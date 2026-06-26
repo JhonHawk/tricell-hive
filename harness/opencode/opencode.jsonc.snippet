@@ -1,0 +1,44 @@
+// Flow pack — additions for ~/.config/opencode/opencode.json
+// Merge these keys into the existing config (do not replace the file).
+{
+  // Session sharing. opencode can upload full session history to its servers
+  // (opncd.ai/s/<id>). Client code (Acme, Tricell, etc.) must never leave the
+  // machine by default — disable it globally. /share can still opt in per-session.
+  "share": "disabled",
+
+  // Phase skills are user-invoked gates. opencode ignores Claude's
+  // disable-model-invocation, so gate them here: "ask" lets the model propose
+  // a flow skill but requires your approval; the /flow-* commands remain the
+  // normal entry point.
+  "permission": {
+    "skill": {
+      "flow-*": "ask"
+    },
+    // Enforce the git/destructive-op safety floor that git-workflow.md states
+    // as prose — here it becomes a hard gate. opencode evaluates these as
+    // glob matches where the LAST matching rule wins, so the catch-all "*"
+    // goes first and the specific destructive patterns override it to "ask".
+    "bash": {
+      "*": "allow",
+      "git push --force*": "ask",
+      "git push -f*": "ask",
+      "git reset --hard*": "ask",
+      "git rebase*": "ask",
+      "rm -rf*": "ask"
+    }
+  },
+  // Optional: make the shared rubrics ambient (they are small). The flow
+  // skills already reference them by path, so this is reinforcement, not a
+  // requirement.
+  // "instructions": ["~/.agents/skills/flow-core/references/harness-mechanics.md"],
+
+  // Linear MCP (required by flow-specs/flow-plan/flow-build). Example shape — adjust to
+  // your actual server; restrict to the agents that need it if desired:
+  // "mcp": { "linear": { "type": "remote", "url": "https://mcp.linear.app/mcp" } }
+}
+
+// Recommended environment (shell profile):
+//   export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1
+// Skills deploy to BOTH ~/.claude/skills (Claude Code) and ~/.agents/skills
+// (universal). opencode discovers both locations; this flag keeps a single
+// discovery source and avoids duplicate skill listings.

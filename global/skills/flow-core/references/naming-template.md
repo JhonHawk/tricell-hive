@@ -1,0 +1,56 @@
+# naming.md — instantiated naming table template
+
+Written by `/flow-foundation` to `<project>-specs/conventions/naming.md`, consumed by
+`devops-engineer`, `/flow-deploy` (gate + `verify` audit), and any session that creates an
+infra resource. The generic rule lives in the global rule `workflow/infra-naming.md`; this
+file is its **instantiation**: the concrete name of every resource this project will have.
+
+Why instantiate instead of deriving on the fly: an abstract rule evaluated per-session
+produces divergent interpretations (`bo` vs `backoffice`, `media` vs `assets`). A table
+written once produces the same name every time. The historical inconsistency this prevents
+came precisely from naming resources at deploy-request time without a written table.
+
+## Rules of use
+
+- **Gate:** any new resource is validated against this table BEFORE creation. Not listed →
+  add the row first (user sign-off if it needs an exception), then create.
+- Names derive from the global rule using the **project token** recorded in PROJECT.md.
+- Exceptions are documented in this file with their reason — an undocumented exception is
+  indistinguishable from drift, which is exactly what the audit flags.
+- `flow-deploy verify` diffs reality (aws/hcloud/gh CLI listings) against this table and
+  reports drift. Keep `status` current so the audit stays meaningful.
+
+## Template
+
+```markdown
+# <project> — Infrastructure naming
+
+Project token: `<project-token>` · Derived from global rule `workflow/infra-naming.md`
+Environments: `development | qa | production` (full token, always last)
+
+## Resource table
+
+| Resource type | Template | Concrete name | Env | Status | Notes |
+|---|---|---|---|---|---|
+| VPS / server | `<token>-<env>` | <token>-qa | qa | exists | Hetzner project <name> |
+| S3 bucket | `<token>-<content>-<env>` | <token>-media-production | production | planned | |
+| IAM user | `<token>-<role>-iam-<env>` | … | | | |
+| Secrets path | `<token>/<env>/<resource>` | … | | | |
+| Subdomain (non-prod) | `<env-short>-<app>.<domain>` | qa-api.<domain> | qa | exists | DNS exception: short env prefix |
+| Subdomain (prod) | `<app>.<domain>` | api.<domain> | production | planned | clean domain IS production |
+| Database | `<token>_<env>` or invariant | … | | | see exceptions if invariant |
+| GitHub repo | `<token>-<component>` | <token>-backend | — | exists | repos never carry env |
+| CI/CD workflow env | `development\|qa\|production` | — | — | — | stage vocabulary only |
+
+## Project exceptions (sealed — each with its reason)
+
+| Exception | Reason | Sealed on |
+|---|---|---|
+| <e.g. DB names invariant across envs> | <e.g. one Postgres per env per VPS — env lives in DATABASE_URL host> | YYYY-MM-DD |
+
+## Untouchable legacies (do NOT rename)
+
+| Resource | Why it stays |
+|---|---|
+| <name> | <migration cost exceeds benefit / live data / external references> |
+```

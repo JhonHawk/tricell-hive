@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; case \"$f\" in */global/agents/*.md|*/global/agents/*/*.md) lines=$(wc -l < \"$f\"); if [ \"$lines\" -gt 120 ]; then printf '{\"systemMessage\":\"Agent %s has %d lines (max 120). Consider trimming filler.\",\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The agent file exceeds the 120-line limit defined in CLAUDE.md. Review and trim.\"}}' \"$(basename \"$f\")\" \"$lines\"; fi ;; esac; } 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Checking agent line count..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). Kept as reference and as a manual fallback if that merge fails. The matcher is tool-name only (Bash); the script itself filters for `git push` and stays silent otherwise.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/pre-push-lint-reminder.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

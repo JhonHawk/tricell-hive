@@ -1,0 +1,233 @@
+---
+name: deploy-global
+description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/ and ~/.config/opencode/agents/, opencode commands, and harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). Use when ready to deploy config changes.
+disable-model-invocation: true
+---
+
+Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents, skills, hooks), then the multi-harness layer (Codex + opencode) derived from the same sources.
+
+## Steps
+
+1. List all files recursively in `global/` — show what will be deployed grouped by type (config, rules, agents, hooks) with line counts.
+2. **Ensure target structures exist** — on a fresh machine nothing may exist:
+   ```bash
+   mkdir -p ~/.claude/{rules,agents,skills,hooks,backups}
+   mkdir -p ~/.agents/skills ~/.codex/agents ~/.config/opencode/{agents,commands}
+   ```
+3. **Diff BEFORE deploying** — compare each source file against its deployed counterpart. Show a summary of what will change: new files, modified files, and unchanged files. This MUST happen before any copy operation. If a target file does not exist, report it as NEW.
+4. **Backup existing config** before overwriting:
+   - Build the tar archive dynamically — only include paths that exist. Use an array so each path is a separate argument regardless of execution context:
+     ```bash
+     tar_args=()
+     [ -f ~/.claude/CLAUDE.md ] && tar_args+=(CLAUDE.md)
+     [ -d ~/.claude/rules ] && [ "$(ls -A ~/.claude/rules 2>/dev/null)" ] && tar_args+=(rules/)
+     [ -d ~/.claude/agents ] && [ "$(ls -A ~/.claude/agents 2>/dev/null)" ] && tar_args+=(agents/)
+     [ -d ~/.claude/skills ] && [ "$(ls -A ~/.claude/skills 2>/dev/null)" ] && tar_args+=(skills/)
+     [ -d ~/.claude/hooks ] && [ "$(ls -A ~/.claude/hooks 2>/dev/null)" ] && tar_args+=(hooks/)
+     [ -f ~/.claude/settings.json ] && tar_args+=(settings.json)
+     if [ ${#tar_args[@]} -gt 0 ]; then
+       tar -czf ~/.claude/backups/global-backup-$(date +%Y%m%d-%H%M%S).tar.gz -C ~/.claude "${tar_args[@]}"
+     else
+       echo "Nothing to back up (fresh install)"
+     fi
+     ```
+   - Keep only the 5 most recent backups — delete older ones.
+5. **Remove orphans via manifest**: `~/.claude/.deploy-manifest` records every file the *previous* deploy copied. Anything listed there that no longer has a source in `global/` was repo-managed and lost its source — safe to delete. Files never listed (manually installed, third-party) are unreachable by construction.
+   ```bash
+   manifest=~/.claude/.deploy-manifest
+   orphans=()
+   if [ -f "$manifest" ]; then
+     while IFS= read -r rel; do
+       case "$rel" in '#'*|'') continue ;; esac
+       case "$rel" in
+         CLAUDE.md|rules/*|agents/*|skills/*) src="global/$rel"; tgt=~/.claude/"$rel" ;;
+         hooks/*) src=$(find global/hooks -name "$(basename "$rel")" -print -quit 2>/dev/null); tgt=~/.claude/"$rel" ;;
+         agents-skills/*) src="global/skills/${rel#agents-skills/}"; tgt=~/.agents/skills/"${rel#agents-skills/}" ;;
+         codex-agents/*) n=$(basename "$rel" .toml); src=$(find global/agents -name "$n.md" -print -quit 2>/dev/null); tgt=~/.codex/agents/"$(basename "$rel")" ;;
+         opencode-agents/*) n=$(basename "$rel" .md); src=$(find global/agents -name "$n.md" -print -quit 2>/dev/null); tgt=~/.config/opencode/agents/"$(basename "$rel")" ;;
+         opencode-commands/*) src="harness/opencode/commands/$(basename "$rel")"; tgt=~/.config/opencode/commands/"$(basename "$rel")" ;;
+         harness-agents/codex/*) src="harness/AGENTS.md"; tgt=~/.codex/AGENTS.md ;;
+         harness-agents/opencode/*) src="harness/AGENTS.md"; tgt=~/.config/opencode/AGENTS.md ;;
+         *) continue ;;   # unknown prefix — never delete
+       esac
+       if [ -z "$src" ] || [ ! -e "$src" ]; then
+         [ -e "$tgt" ] && orphans+=("$rel")
+       fi
+     done < "$manifest"
+   fi
+   printf '%s\n' "${orphans[@]}"
+   ```
+   - **Orphans found** → list them and confirm deletion with the user (one `AskUserQuestion`, fold into the deploy confirmation if one is already planned). On confirmation: `rm` each orphan at its mapped target path (`tgt` per the case above — spans `~/.claude/`, `~/.agents/skills/`, `~/.codex/agents/`, `~/.config/opencode/`), then prune empty dirs: `find ~/.claude/rules ~/.claude/agents ~/.claude/skills ~/.agents/skills -type d -empty -delete 2>/dev/null`.
+   - **Hook orphans also purge their `settings.json` block.** A removed `.sh` must not leave a dangling hook entry. For each orphan whose `rel` is `hooks/*.sh`, purge from `~/.claude/settings.json` any hook entry whose inner `command` references that basename — this is safe *because the manifest confirmed the hook was repo-managed*; the user's own hooks (never in the manifest) are never matched. Same temp+validate+move discipline as the merge; backup is covered by step 4.
+     ```bash
+     # $orphan_basename is the basename of a hooks/*.sh orphan, e.g. pre-push-lint-reminder.sh
+     tmp=$(mktemp)
+     if jq --arg bn "$orphan_basename" '
+       if .hooks then
+         .hooks |= ( with_entries( .value |= map(
+             select( ((.hooks // []) | map(.command) | any(contains($bn))) | not )
+         )) | with_entries( select(.value | length > 0) ) )
+       else . end
+     ' ~/.claude/settings.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
+       mv "$tmp" ~/.claude/settings.json
+       echo "settings.json: purged orphan hook block for $orphan_basename"
+     else
+       rm -f "$tmp"
+       echo "WARNING: could not purge $orphan_basename from settings.json — left unchanged."
+     fi
+     ```
+   - **No manifest (first run) or unreadable** → skip deletion entirely and say so. Degrade to no-deletion, never to guessing.
+6. **Deploy CLAUDE.md**: copy `global/CLAUDE.md` → `~/.claude/CLAUDE.md`.
+7. **Deploy rules**: copy all files from `global/rules/` → `~/.claude/rules/`, preserving subdirectory structure.
+8. **Clean stale rules**: find `.md` files at `~/.claude/rules/` root level whose filename also exists in a subdirectory. Use `find` instead of globs to avoid zsh `nomatch` errors:
+   ```bash
+   find ~/.claude/rules -maxdepth 1 -name '*.md' -print0 2>/dev/null | while IFS= read -r -d '' f; do
+     name=$(basename "$f")
+     if find ~/.claude/rules -mindepth 2 -name "$name" -print -quit | grep -q .; then
+       rm "$f"
+       echo "Stale rule removed: $name"
+     fi
+   done
+   ```
+   Report which files were cleaned, if any.
+9. **Deploy agents**: copy `global/agents/` subdirectory structure to `~/.claude/agents/` **preserving subdirectories** (design/, development/, review/, quality/, ops/, docs/). Claude Code discovers agents recursively.
+10. **Clean stale agents**: same logic as rules — use `find` instead of globs.
+11. **Deploy skills**: if `global/skills/` exists and is not empty, copy subdirectory structure to `~/.claude/skills/` **preserving subdirectories**. Each skill is a folder containing a `SKILL.md` file and optional supporting files:
+    ```bash
+    if [ -d global/skills ] && [ "$(ls -A global/skills 2>/dev/null)" ]; then
+      for skill_dir in global/skills/*/; do
+        skill_name=$(basename "$skill_dir")
+        mkdir -p ~/.claude/skills/"$skill_name"
+        cp -R "$skill_dir"* ~/.claude/skills/"$skill_name"/
+      done
+    fi
+    ```
+12. **Clean stale skills (fallback — only when no manifest exists)**: find skill directories in `~/.claude/skills/` that exist at the target but NOT in `global/skills/`. Only report them — do NOT auto-delete, since the user may have manually installed skills (e.g., symlinked design skills, context7-mcp). From the second manifest-aware deploy onward, step 5 already handles repo-managed orphans precisely; skip this step when a manifest was present.
+13. **Deploy hooks** (optional — as of Claude Code 2.1.136+ plan mode is harness-enforced, so most hooks are no longer necessary; this step deploys whatever is in `global/hooks/` if anything): copy `.sh` files from each `global/hooks/<hook-folder>/` to `~/.claude/hooks/` (flat destination — no subdirectories). Make them executable:
+    ```bash
+    find global/hooks -name '*.sh' -exec cp {} ~/.claude/hooks/ \;
+    chmod +x ~/.claude/hooks/*.sh
+    ```
+    The `README.md` files are NOT deployed — they are in-repo documentation only.
+
+    **Register hooks in `settings.json` (idempotent, additive merge).** The `.sh`
+    copy alone does nothing until the hook is registered. Merge every hook block from
+    `global/hooks/*/settings-config.json` into `~/.claude/settings.json` WITHOUT
+    overwriting it — add what's missing, leave existing entries (and all non-hook
+    preference keys) untouched, and never duplicate on re-deploy. Identity is the
+    inner `command` string (the `.sh` path is unique and stable): a managed entry is
+    upserted (old version dropped, new appended), so timeout/matcher edits propagate
+    while the user's own hooks are preserved. Backup is covered by step 4. Writes to a
+    temp file, validates it parses, then moves into place; on any failure it leaves
+    `settings.json` untouched and falls back to the manual reminder. Assumes hook paths
+    have no spaces (true for `global/hooks/*/`).
+    ```bash
+    configs=$(find global/hooks -name settings-config.json 2>/dev/null)
+    if [ -n "$configs" ]; then
+      [ -f ~/.claude/settings.json ] || echo '{}' > ~/.claude/settings.json
+      managed=$(jq -s 'reduce .[] as $c ({}; reduce (($c.hooks // {}) | to_entries[]) as $e (.; .[$e.key] = ((.[$e.key] // []) + $e.value)))' $configs)
+      tmp=$(mktemp)
+      if jq --argjson m "$managed" '
+        reduce ($m | to_entries[]) as $evt (.;
+          .hooks[$evt.key] = (
+            ($evt.value | map(.hooks[].command)) as $mcmds
+            | ((.hooks[$evt.key] // [])
+                | map( select(
+                    ((.hooks // []) | map(.command)) as $ec
+                    | ($ec | any(. as $c | ($mcmds | index($c)) != null)) | not
+                  )))
+              + $evt.value
+          ))
+      ' ~/.claude/settings.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
+        mv "$tmp" ~/.claude/settings.json
+        echo "settings.json: hook blocks merged (idempotent, additive)."
+      else
+        rm -f "$tmp"
+        echo "WARNING: settings.json hook merge failed — left unchanged. Register manually from settings-config.json."
+      fi
+    fi
+    ```
+    The reverse — a hook deleted from `global/hooks/` — is handled by step 5, which
+    purges the dangling block from `settings.json` (manifest confirms it was repo-managed).
+13b. **Deploy the multi-harness layer** — the generated trees are VERSIONED under
+    `harness/`; rebuild first, then copy committed artifacts:
+    ```bash
+    # Regenerate from canonical sources (global/agents, global/skills)
+    python3 harness/build.py
+    # A dirty harness/ after build = canonical sources changed without a rebuild.
+    # Continue the deploy, but report it and remind the user to commit the diff.
+    git status --porcelain harness/
+
+    # Universal skills (cleaned; Codex + opencode read ~/.agents/skills)
+    for skill_dir in harness/agents-skills/*/; do
+      skill_name=$(basename "$skill_dir")
+      mkdir -p ~/.agents/skills/"$skill_name"
+      cp -R "$skill_dir"* ~/.agents/skills/"$skill_name"/
+    done
+    # Generated agents — never hand-edited
+    cp harness/codex/agents/*.toml ~/.codex/agents/
+    find harness/opencode/agents -name '*.md' ! -name 'README.md' -exec cp {} ~/.config/opencode/agents/ \;
+    # opencode command wrappers
+    cp harness/opencode/commands/*.md ~/.config/opencode/commands/
+    # Shared cross-harness guidance — REPLACES the target files (they are fully
+    # repo-managed from the first deploy; diff per step 3 before overwriting).
+    # opencode gets the shared file verbatim. Codex gets the shared file PLUS a
+    # Codex-only Engram memory tail: opencode and Claude Code inject the Engram
+    # protocol via their own plugins, but Codex has none — appending the tail to
+    # its AGENTS.md carries the protocol as an additive, TUI-invisible project-doc
+    # instruction that survives `engram setup`. So the two AGENTS.md files are
+    # intentionally NOT byte-identical (no cmp check between them).
+    cp harness/AGENTS.md ~/.config/opencode/AGENTS.md
+    cat harness/AGENTS.md harness/codex/engram-memory-tail.md > ~/.codex/AGENTS.md
+    ```
+    Config snippets (`harness/{codex,opencode}/*.snippet`) are one-time manual merges —
+    point the user at the READMEs, never write their config files. Note: `~/.codex/AGENTS.md`
+    = shared `harness/AGENTS.md` + `harness/codex/engram-memory-tail.md` (Codex-only), so it
+    is larger than the opencode copy by design — verify it stays under `project_doc_max_bytes`
+    (49152) from the snippet, not equal to the opencode file.
+14. **Write the manifest** — after all copies succeed, record exactly what this deploy manages, mapped to *deployed* paths (relative to `~/.claude/`; hooks flattened to match step 13's flat copy):
+    ```bash
+    {
+      echo "# deploy-global manifest — files managed by tricell-hive. Do not edit by hand."
+      echo "# deployed_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      echo "# source_commit: $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+      [ -f global/CLAUDE.md ] && echo "CLAUDE.md"
+      find global/rules global/agents global/skills -type f 2>/dev/null | sed 's|^global/||'
+      find global/hooks -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|'
+      # multi-harness layer
+      find global/skills -type f 2>/dev/null | sed 's|^global/skills/|agents-skills/|'
+      find global/agents -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|\.md$|.toml|; s|^|codex-agents/|'
+      find global/agents -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-agents/|'
+      find harness/opencode/commands -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-commands/|'
+      [ -f harness/AGENTS.md ] && printf 'harness-agents/codex/AGENTS.md\nharness-agents/opencode/AGENTS.md\n'
+    } > ~/.claude/.deploy-manifest
+    ```
+    Write the manifest only after a successful deploy — if the deploy aborted midway, leave the previous manifest untouched so the next run still sees the last known-good state.
+15. Report:
+    - What was deployed per category (config, rules, agents, skills, hooks) with counts
+    - Multi-harness layer: universal skills count (~/.agents/skills), generated agents per harness, opencode commands, and the shared `AGENTS.md` deployed to `~/.config/opencode/AGENTS.md` (verbatim) and `~/.codex/AGENTS.md` (shared + Codex-only `engram-memory-tail.md`); remind that config snippets (READMEs in `harness/{codex,opencode}/`) are one-time manual merges
+    - Orphans removed via manifest (step 5) and stale files cleaned (if any); note when no manifest existed yet
+    - Backup location and size
+    - Diff summary from step 2 (new, modified, unchanged)
+    - For hooks: report the settings.json merge outcome (blocks registered, or the WARNING fallback if the merge failed). No manual step is needed when the merge succeeded
+    - Remind the user to restart Claude Code or open a new session to reload
+    - Show how to restore:
+      ```bash
+      tar -xzf ~/.claude/backups/<backup-file>.tar.gz -C ~/.claude/
+      ```
+
+## Shell compatibility
+
+This skill runs in both bash and zsh. Avoid bare globs that fail in zsh when there are no matches:
+- **Use `find` instead of `for f in *.md`** for stale-file cleanup.
+- **Check directory existence** before including paths in tar commands.
+- **Use `2>/dev/null` on find** to suppress permission or missing-path errors.
+
+## Rules
+- **Never delete** files from `~/.claude/rules/`, `~/.claude/agents/`, `~/.claude/skills/`, or `~/.claude/hooks/` that are NOT managed by this repo. Only overwrite files that exist in `global/`. The manifest defines "managed": a path may be deleted only if the previous manifest lists it (step 5) — and only after user confirmation.
+- **Exception: stale duplicates.** If a file exists at root level AND inside a subdirectory with the same name, the root copy is stale and must be removed. Claude Code discovers rules recursively — a duplicate means the rule loads twice, wasting context window.
+- **Manifest failure degrades to no-deletion.** Missing, unreadable, or malformed manifest → skip step 5 with a warning and continue the deploy. Entries with prefixes outside `CLAUDE.md|rules/|agents/|skills/|hooks/` are ignored, so a corrupted manifest can never reach arbitrary paths.
+- Step 2 guarantees all directories exist — no need to check individually in later steps.
+- Always create a backup before any overwrite.
+- Show a diff summary for every file being overwritten.
+- **`~/.claude/settings.json` is never overwritten — only surgically edited for repo-managed hooks.** It holds the user's preferences. Exactly two writes are permitted, both confined to the `hooks` key, both backed up (step 4) and validated (temp + `jq empty` before move): (1) the idempotent additive merge in step 13 (upsert by `command` — add/update repo hooks, preserve every existing entry and all non-hook keys, never duplicate); (2) the orphan purge in step 5 (remove a hook block only when the manifest confirms the `.sh` was repo-managed and its source is gone). Non-hook keys and the user's own hooks are off-limits — touch nothing those two operations don't own.

@@ -1,0 +1,19 @@
+.DS_Store
+.idea
+*.swp
+*.swo
+*~
+CLAUDE.local.md
+**/.claude.json
+.firecrawl
+audit-coverage-gaps.html
+_support/workspace/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Private optional research sources
+/_support/workspace/
+/CLAUDE.local.md

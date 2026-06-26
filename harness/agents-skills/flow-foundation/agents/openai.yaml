@@ -1,0 +1,3 @@
+# Codex skill metadata — phase gates are user-invoked, never implicit.
+policy:
+  allow_implicit_invocation: false
