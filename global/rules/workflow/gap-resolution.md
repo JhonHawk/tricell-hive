@@ -35,6 +35,17 @@ Runs after reading the spec and before writing the first plan task. Applies to p
 
 **Step 3 — Confirm:** Present gaps to the user before writing tasks when (a) any gap requires more than one inline task to resolve, OR (b) you found observations worth flagging. Otherwise, list any inline gaps in the plan and proceed — no separate confirmation round-trip needed.
 
+### Decisions to close before executing
+
+A blocking decision is resolved during **planning**, never mid-execution — a question that surfaces mid-task stalls the run and breaks autonomy. After the gap analysis, enumerate every decision that blocks task detail and fold its resolution into the plan-approval gate, so execution is mechanical.
+
+- **Materialize them as a table** in the plan, titled "Decisions to close BEFORE executing": `Decision · Point · What's decided · Type · Recommendation · Blocks`.
+- **Classify by owner:**
+  - *Technical* (the implementer's to make) — state the recommendation and confirm it with a peer or tool (a second model, context7, a quick test). No user round-trip unless reversibility is low.
+  - *Stakeholder/PO* — needs user ratification; fold ALL of these into the single up-front question block (the plan gate), so the user answers once and execution proceeds uninterrupted.
+- **Each row names what it Blocks** — the tasks or detail that cannot be finalized until it closes. A decision that blocks nothing is not a gate; resolve it inline.
+- A decision discovered mid-execution that should have been caught here is a planning defect, same as a silently-dropped gap.
+
 ### Exceptions
 - **Simple single-task changes** (bug fixes, config tweaks, docs): skip 3-step process; principle still applies.
 - **Isolated Mode** (worktree/feature branch): findings documented inline in the plan; checkpoints (`git-workflow.md`) cover progress review.

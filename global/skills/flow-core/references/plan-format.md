@@ -56,6 +56,29 @@ planned ──build──► building ──all tasks landed──► built ─�
 - **`flow-build` advances `Status`**, never the planner. The reviewer advances `built →
   verified`.
 
+## Decisions to close before executing
+
+When any decision blocks task detail, the plan carries a **Decisions to close BEFORE executing**
+section above the tasks — the approval gate resolves them so execution is mechanical, never a
+drip of mid-task questions (`gap-resolution.md > Decisions to close before executing`).
+
+```markdown
+## Decisions to close BEFORE executing
+
+| Decision | Point | What's decided | Type | Recommendation | Blocks |
+|---|---|---|---|---|---|
+| D1 | <spec/AC ref> | <the choice> | technical | <your call> | T3, T4 |
+| D2 | <spec/AC ref> | <the choice> | stakeholder | <your call> | T1 |
+
+> Resolution path: technical rows confirmed with a peer/tool; stakeholder rows ratified in the
+> approval gate.
+```
+
+- *Technical* rows the planner confirms with a peer/tool (a second model, context7, a quick test);
+  *stakeholder* rows fold into the plan-approval question block (`flow-plan write`, step 6).
+- A row that blocks no task does not belong here — resolve it inline. Omit the whole section when
+  no decision blocks detail; never include it empty.
+
 ## Task block
 
 Every task is independently executable and independently trackable.

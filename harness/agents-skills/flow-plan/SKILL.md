@@ -61,7 +61,10 @@ Crystallizes findings + spec into a plan another harness executes. The plan is t
    never assumed or omitted downstream), a `Verify:` command paired with its expected output, and
    the `Commit: feat(<scope>): T<n> …` tag. Declare the integration semantics (branch, merge
    mechanics, which CI gates each PR) in the header. Routing each task to a specialist is
-   `flow-build`'s job at execution time — the plan stays harness-neutral.
+   `flow-build`'s job at execution time — the plan stays harness-neutral. When any decision
+   blocks task detail, add a **Decisions to close BEFORE executing** table above the tasks
+   (`plan-format.md`): technical rows you confirm with a peer/tool, stakeholder rows folded into
+   the approval gate at step 6 — so execution never drips questions mid-task.
 3. **Preflight — resources confirmed at plan time, not at point of use.** The plan's approval is
    the last interruption; a missing credential found mid-execution kills the autonomy. Derive
    from the WHOLE flow (implementation, the in-vivo gate, and what promoting to qa/prod will
