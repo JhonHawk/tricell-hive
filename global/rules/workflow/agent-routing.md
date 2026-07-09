@@ -5,10 +5,10 @@ alwaysApply: true
 ## Agent Routing
 
 ### Explicit Invocation Takes Precedence
-If the user names a specific agent (`@agent-name`, "use the X agent"), invoke it directly. The rules below only apply when the main thread decides implicitly which agent to use.
+If the user names a specific agent (`@agent-name`, "use the X agent"), invoke it directly. The rules below govern implicit routing only — they don't interfere with Agent Teams coordination or `flow-*` skills, whose bodies own their agent dispatch.
 
 ### Single-Agent Disambiguation
-When a task could map to multiple agents, use these signals. If a task hits multiple rows, don't pick one — chain them in this order: design → implementation → tests → review (see Multi-Agent Detection and Reference Chains below).
+When a task could map to multiple agents, use these signals. If a task hits multiple rows, don't pick one — chain them in order: design → implementation → tests → review (see Multi-Agent Chains below).
 
 | Signal in task | Route to | NOT to |
 |---|---|---|
@@ -35,70 +35,38 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | workspace file hygiene, misplaced artifacts, ledger repair, unpromoted decisions | workspace-custodian | secrets-auditor |
 
 ### Skill Disambiguation (output rendering)
-When choosing a skill for *how to render output* (distinct from agent selection above):
+Static rich HTML report → `flow-report`; live interactive state (sliders, live re-render) → `playground`; production UI artifact → `frontend-design`/`canvas-design`; short, conversational, agent-consumed, or versioned doc → Markdown. Full trigger logic and carve-outs: `quality/communication-format.md` (canonical — not restated here).
 
-| Signal in output need | Route to | NOT to |
-|---|---|---|
-| static rich HTML report (plan, spec, audit, brief, code review writeup, research, deck, design tokens reference) | `flow-report` skill | `playground` |
-| interactive HTML with live state (sliders, knobs, prototype, live editor, custom config form) | `playground` skill | `flow-report` |
-| UI component, landing page, visual artifact for production | `frontend-design` or `canvas-design` skill | `flow-report`, `playground` |
-| short conversational, single-section, agent-consumed, versioned doc | Markdown or inline prose | any HTML skill |
-
-See `quality/communication-format.md` for the full trigger logic and carve-outs.
-
-### Browser Tooling (which tool drives the browser)
-Distinct from agent selection above: once an agent needs a browser, the default driver is the
-`agent-browser` CLI (via Bash) — chrome-devtools MCP only for Lighthouse/perf-insight/heap,
-playwright MCP only as fallback. `tools/browser-automation.md` owns the full rationale.
+### Browser Tooling
+Once an agent needs a browser, the default driver is the `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback. Rationale: `tools/browser-automation.md`.
 
 ### Delegation Thresholds
-Delegate on growing complexity, not only on explicit request. These are orientative gates against a monolithic main thread, not hard stops — apply with proportion:
-- **Understanding a flow that spans 4+ files** → delegate a bounded exploration to `Explore` rather than reading them all in the main thread (extends the "3+ search queries" trigger in global `CLAUDE.md`).
+Delegate on growing complexity, not only on explicit request — orientative gates against a monolithic main thread:
+- **Understanding a flow that spans 4+ files** → delegate a bounded exploration to `Explore` (extends the "3+ search queries" trigger in global `CLAUDE.md`).
 - **Writing 2+ non-trivial files** → delegate one writer (the domain specialist per the table above), then verify in fresh context.
-- **~20 tool calls, 5 exploratory reads, or 2 non-mechanical edits without delegating** → pause and re-plan instead of pushing the session further.
+- **~20 tool calls, 5 exploratory reads, or 2 non-mechanical edits without delegating** → re-plan in flight: delegate the remainder instead of pushing the session further.
 
-### Multi-Agent Detection
-Before acting on a broad task, evaluate whether it spans 2+ domains:
-- Mentions both design AND implementation ("add payment processing")
-- Requires both frontend AND backend changes
-- Explicitly or implicitly needs testing after implementation
-- Crosses service boundaries (see cross-service-workflow rule)
+### Multi-Agent Chains — declare, don't gate
+A task spanning 2+ domains (design AND implementation, frontend AND backend, implies tests, crosses service boundaries) gets a chain of specialists, each receiving the previous agent's key outputs (spec paths, schemas, diffs). **Declare the chain in the start summary and execute** — fold it into the plan gate when one exists. A blocking presentation is signal-driven only: 2+ genuinely valid chains (ask which), an embedded stakeholder decision, or an irreversible/costly stage.
 
-When multiple agents are needed:
-1. Identify which agents are needed and in what order
-2. Present the routing plan to the user before executing
-3. Execute sequentially — pass each agent's key outputs (spec paths, API schemas) as context to the next
-
-### Reference Chains
-These are reference sequences, not mandatory pipelines. Skip steps in proportion to the change: a trivial feature collapses to the implementation agent alone; cross-service, security-sensitive, or high-risk changes use the full chain. Note that implementation agents write tests for their own code per `quality/testing.md` — test-engineer is reserved for primary-task coverage work.
-
-- **New feature**: system-designer → implementation agent(s) → (test-engineer if coverage push needed) → code-reviewer
+Reference chains — sequences, not mandatory pipelines; skip steps in proportion to the change (a trivial feature collapses to the implementation agent alone). Implementation agents write tests for their own code per `quality/testing.md`; test-engineer is for primary-task coverage work:
+- **New feature**: system-designer → implementation agent(s) → (test-engineer if coverage push) → code-reviewer
 - **Bug fix (root cause unknown)**: performance-engineer or Explore → implementing agent
 - **Security audit**: security-reviewer → secrets-auditor → code-reviewer
 - **New deployment**: implementation agent → devops-engineer → security-reviewer
 - **Cloud migration / greenfield infra**: cloud-architect (topology/DR/cost spec) → devops-engineer (IaC + pipelines) → security-reviewer
 
-**Verification runs in fresh context.** Route review/verification stages to a separate subagent that did not implement the change — fresh-context verifiers outperform self-critique by the implementing thread. The verifier's input is the actual change (the diff, the run output), never the implementing agent's report of it — a report travels as claims to check, not as context to trust.
-- **The verifier runs the tests, it does not read about them.** For any behavior change, it re-runs the suite to confirm the **verifiable test gate** (`quality/testing.md`): fail-to-pass (the new tests fail without the change) and pass-to-pass (the existing suite still passes), and it inspects the diff for test-gaming — `.skip`/`xit`, deleted assertions, `--no-verify`, runner-config edits. A green report over weakened tests fails the gate. This is why the test→code contract cannot cross the agent boundary on trust: the subagent can reward-hack it, so the verifier re-establishes it from the run.
-- **The implementer's handoff carries the evidence, not the adjective.** It returns which tests it added (paths) and the verify command with its actual output — "implemented with tests" is a claim; `pnpm test messages.spec → 12 passing` is evidence the verifier can re-run.
+### Verification runs in fresh context
+Route review/verification to a separate subagent that did NOT implement the change — fresh-context verifiers outperform self-critique. The verifier's input is the actual change (the diff, the run output), never the implementer's report of it — a report travels as claims to check, not context to trust.
+- **The verifier runs the tests, it does not read about them:** it re-establishes the verifiable test gate (`quality/testing.md`) from an actual run — fail-to-pass, pass-to-pass — and inspects the diff for test-gaming (the list lives in `testing.md`; a green report over weakened tests fails the gate).
+- **The implementer's handoff carries evidence, not adjectives:** test paths added and the verify command with its actual output — `pnpm test messages.spec → 12 passing`, not "implemented with tests".
 
 ### Chain Interruption
-When an agent in a chain produces output that the next agent cannot consume (incomplete spec, failing tests, ambiguous review):
-1. Do not silently skip or retry the agent
-2. Present the gap to the user with the specific issue
-3. Let the user decide: re-run with clarification, skip with acknowledgment, or adjust the plan
-
-### Coexistence
-This rule guides implicit routing only. It does not interfere with:
-- Direct agent invocation by the user (`@agent-name`)
-- Agent Teams coordination (teammates, SendMessage, shared tasks)
-- `flow-*` skills (explicit phase gates — each skill's body owns its agent dispatch)
-- `flow-report` skill (auto-invoked per `quality/communication-format.md` — handles output rendering, not routing)
+When an agent's output can't feed the next stage (incomplete spec, failing tests, ambiguous review): never silently skip the stage. A technically resolvable gap gets ONE bounded re-run with the clarified ask, reported in the close summary. Second failure — or a gap only the user can resolve — escalates with the specific issue: re-run with clarification, skip with acknowledgment, or adjust the plan.
 
 ### Workflow Tool vs Subagents vs Agent Teams
-- **Default to a direct subagent.** Explore for search, the domain specialist (per Single-Agent Disambiguation above) for domain work, chained design → impl → tests → review. A single `Agent` call with the right specialist is the correct default for single-domain work — including under `ultracode`. Do not wrap one task in a workflow, and do not delegate trivial edits at all.
-- **Reach for the Workflow tool only when** the agent set or execution order is data-driven — computed per run (e.g. "review every changed file", "audit every route", fan-out over an unknown-size list) — not when a fixed chain of named agents already suffices.
-- **Reach for Agent Teams only when** you need persistent parallel workers with shared task lists and P2P messaging, or the user asks.
-- **When you do author a workflow, route each stage to its specialist via `agentType`,** reusing the same Single-Agent Disambiguation table that governs direct routing — e.g. a Next.js implementation stage gets `agentType: "nextjs-architecture-expert"`, a security pass `"security-reviewer"`. The default subagent (no `agentType`) is for glue steps only — fan-out, dedup, synthesis — and loses any custom agent's tool/permission allowlist. An unknown `agentType` throws; there is no fallback.
-- **Workflows require explicit opt-in.** They run only under the `ultracode` keyword, a standing `/effort ultracode` session, an explicit user request, or `bypassPermissions`; otherwise each run hits the permission gate. Never call the Workflow tool on inferred intent alone.
-- *Version-sensitive (workflow/ultracode are research-preview, Claude Code 2.1.154+) — revisit the workflow-specific bullets if the API shifts.*
+- **Default to a direct subagent.** Explore for search, the domain specialist (table above) for domain work, chained design → impl → tests → review. A single `Agent` call with the right specialist is the correct default for single-domain work — including under `ultracode`. Don't wrap one task in a workflow; don't delegate trivial edits at all.
+- **Workflow tool only when** the agent set or execution order is data-driven — computed per run ("review every changed file", fan-out over an unknown-size list) — never when a fixed chain of named agents suffices.
+- **Agent Teams only when** you need persistent parallel workers with shared task lists and P2P messaging, or the user asks.
+- **Inside a workflow, route each stage to its specialist via `agentType`**, reusing the table above. The default subagent (no `agentType`) is for glue only — fan-out, dedup, synthesis. An unknown `agentType` throws; there is no fallback.
+- **Workflows require explicit opt-in:** the `ultracode` keyword, a standing `/effort ultracode` session, an explicit user request, or `bypassPermissions` — never inferred intent alone. *(Version-sensitive: workflow/ultracode are research-preview, Claude Code 2.1.154+.)*

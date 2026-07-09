@@ -50,11 +50,13 @@ Report as a table with a suggested action per row. Change nothing.
    - **Contradictions** (both files rule differently on the same topic) → never pick
      silently; list each with both versions (divergence protocol) for the user to
      resolve in the confirmation step.
-4. **Gate (both-files case only):** present the conversion plan — what moves where,
-   what stays Claude-side, contradictions to resolve — and get confirmation. If the pair
-   is `divergent` by design (mostly disjoint scopes — e.g. a repo where AGENTS.md is a
-   local compatibility guide, not a duplicate), say the pattern may not apply and stop
-   unless the user overrides.
+4. **Gate by signal, not by case.** A clean both-files merge (no contradictions, no
+   divergent-by-design pair) → proceed-and-report like the single-file cases: fully
+   reversible (uncommitted diff in a git repo, `.bak` files otherwise — step 6), and the
+   summary diff is the review surface. Confirm only on signal: **contradictions** from
+   step 3 (present both versions — divergence protocol), or a pair `divergent` by design
+   (mostly disjoint scopes — e.g. AGENTS.md as a local compatibility guide, not a
+   duplicate) → the pattern may not apply; stop unless the user overrides.
 5. **Write:**
    - `AGENTS.md` — the canonical content. Preserve the original language and wording;
      translating or rewriting prose is out of scope for this skill.

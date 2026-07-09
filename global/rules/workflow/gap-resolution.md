@@ -4,80 +4,33 @@ alwaysApply: true
 
 ## Gap Resolution in Plans
 
-> Owns **prerequisites** (missing-and-required). For **risks** (present-but-fragile, runtime failure modes), see `quality/critical-thinking.md`. The two rules don't overlap: gap = something missing now; risk = something that could break later.
+> Owns **prerequisites** (missing-and-required). Risks (present-but-fragile) → `quality/critical-thinking.md`; conflicts between present-but-disagreeing sources → Divergence below. **Principle:** a gap detected during planning either becomes a plan task or reaches the user at the plan gate — a gap silently dropped is a plan defect.
 
-**Principle:** A gap detected during planning that does not become an actionable task or escalated to the user is a defect in the plan.
+**Gap vs observation.** A gap is a preexisting condition blocking the feature (missing dependency, incomplete interface, required migration, undefined contract, missing tests for modified code) — it becomes a task. An observation is unrelated tech debt — surface with a recommendation; the user decides. Never silently discard either.
 
-### Gap vs Observation
-- **Gap** — preexisting condition blocking the feature: missing dependency, incomplete interface, required migration, undefined contract, missing tests for modified code. Becomes a task.
-- **Observation** — unrelated tech debt or nice-to-have. Surface with recommendation; user decides.
+### Gap analysis — investigate always, ritualize only on findings
 
-**Never silently discard.**
-
-### Mandatory Gap Analysis
-
-Runs after reading the spec and before writing the first plan task. Applies to plan mode (Shift+Tab) and any session designing implementation tasks.
-
-**Step 1 — Investigate** with glob/grep/read. The scope spans the full flow — implementation, verification (incl. in-vivo), and what promotion to QA/prod will require — not just the implementation step:
-- Files to modify — current state, tests, dependencies
-- Interfaces/contracts — exist, complete?
-- Dependencies — installed, correct version, configured?
-- Infrastructure — migrations, env vars, CI/CD?
-- External integrations & capabilities — API credentials, webhook endpoints, third-party tokens, and the CLIs/tools the flow needs (including verification and promotion steps): present? Verify with `which`/`--version`/a presence check — never assume absence, and never assume presence.
-
-**Step 2 — Classify:**
-
-| Classification | Criteria | Action |
-|---|---|---|
-| Inline gap | Prerequisite, ≤3 tasks to resolve | First tasks in plan |
-| Prerequisite gap | Prerequisite, >3 tasks | Separate prerequisite plan |
-| Observation | Non-blocking tech debt | Present with recommendation |
-
-**Step 3 — Confirm:** Present gaps to the user before writing tasks when (a) any gap requires more than one inline task to resolve, OR (b) you found observations worth flagging. Otherwise, list any inline gaps in the plan and proceed — no separate confirmation round-trip needed.
+- **Investigation is unconditional, scaled to the plan's surface.** Before writing tasks, verify what the plan assumes with glob/grep/read or a cheap presence check (`which`, `--version`): files' current state and tests, interfaces/contracts, dependency versions and config, infrastructure (migrations, env vars, CI/CD), and the credentials/CLIs the full flow needs — implementation, verification (incl. in-vivo), and promotion. Never assume presence or absence.
+- **Findings drive the formality.** Clean check and no open decisions → write the plan and say the check was clean. Real gaps, or 3+ blocking decisions → classify and materialize (below).
+- **Classify by size:** a gap resolvable in ≤3 tasks leads the plan (first tasks, visible at the plan gate); >3 tasks → propose a separate prerequisite plan. Observations ride along as recommendations.
+- **The plan gate is THE consolidated block.** Gaps, stakeholder decisions, contract confirmations (`cross-service-workflow.md`), and the routing chain (`agent-routing.md`) fold into ONE interaction. A separate round-trip before the gate exists only when a gap changes the task's scope or is a stakeholder call.
 
 ### Decisions to close before executing
 
-A blocking decision is resolved during **planning**, never mid-execution — a question that surfaces mid-task stalls the run and breaks autonomy. After the gap analysis, enumerate every decision that blocks task detail and fold its resolution into the plan-approval gate, so execution is mechanical.
+A decision that blocks task detail is resolved at the plan gate, never mid-execution. After the gap analysis, enumerate them and classify by owner:
 
-- **Materialize them as a table** in the plan, titled "Decisions to close BEFORE executing": `Decision · Point · What's decided · Type · Recommendation · Blocks`.
-- **Classify by owner:**
-  - *Technical* (the implementer's to make) — state the recommendation and confirm it with a peer or tool (a second model, context7, a quick test). No user round-trip unless reversibility is low.
-  - *Stakeholder/PO* — needs user ratification; fold ALL of these into the single up-front question block (the plan gate), so the user answers once and execution proceeds uninterrupted.
-- **Each row names what it Blocks** — the tasks or detail that cannot be finalized until it closes. A decision that blocks nothing is not a gate; resolve it inline.
-- A decision discovered mid-execution that should have been caught here is a planning defect, same as a silently-dropped gap.
+- **Technical** (the implementer's to make): state the recommendation and proceed. Verify against a peer/tool only on signal — version-sensitive surface (context7), low reversibility, or genuine dispute — not as ritual for every choice.
+- **Stakeholder/PO:** fold ALL into the plan gate so the user answers once. When ownership is unclear → treat as stakeholder.
+- **3+ blocking decisions → materialize the table** (`Decision · What's decided · Type · Recommendation · Blocks`); 1-2 → plain prose in the plan gate. A decision that blocks nothing resolves inline.
+- **Batching ≠ deferral.** The gate covers what is knowable at plan time; a blocker DISCOVERED mid-execution escalates in the moment — that it was discoverable earlier is a planning defect, but never a reason to sit on it.
 
 ### Exceptions
-- **Simple single-task changes** (bug fixes, config tweaks, docs): skip 3-step process; principle still applies.
-- **Isolated Mode** (worktree/feature branch): findings documented inline in the plan; checkpoints (`git-workflow.md`) cover progress review.
+Simple single-task changes (bug fix, config tweak, docs): no ritual — the principle (investigate cheaply, never drop a gap) still applies.
 
 ## Divergence Between Sources
 
-> Owns **conflicts** (two present-but-disagreeing sources). Distinct from **gaps** (above: something missing) and **risks** (in `quality/critical-thinking.md`: present-but-fragile).
+> Owns **conflicts**: two authoritative sources disagreeing on the same decision — spec vs ticket, comment vs code, test vs implementation, two specs vs each other. Never pick a side silently, and never hard-code a permanent winner ("spec over code", "tests over implementation") — hard-coded priority hides drift. The rule is surface, then resolve.
 
-**Principle:** When two authoritative sources disagree about the same decision, never pick a side silently. The divergence is the signal — not a problem to route around.
-
-### Common patterns
-
-| Source A | Source B |
-|---|---|
-| Spec / wireframe / API contract | Task description, ticket, Linear issue |
-| Code comment / docstring | Actual code behavior |
-| README / docs | Current implementation |
-| Test assertion | Implementation |
-| Two specs / wireframes | Each other |
-
-### Workflow
-
-1. **Stop.** Do not silently follow either source.
-2. **Report** to the user or orchestrator: cite both sources with paths, line numbers, and last-modified context.
-3. **Wait for resolution**: declare which source is authoritative for this case, OR update one of them to match the other.
-4. **Carve-out — proceed only when ALL three hold AND the decision is genuinely the implementer's to make (not a stakeholder/contract/spec decision):**
-   - One source is unambiguously stale (older AND reflects pre-decision context).
-   - The other clearly reflects current intent.
-   - Following it is reversible (UI tweak in a mock — not a migration, not a contract change, not a security control).
-
-   Even then: note the divergence in the commit message and in your handoff. Do not suppress.
-
-### Anti-pattern
-
-Catchphrases that hard-code a permanent priority between two sources ("spec over code", "tests over implementation") hide drift and skip the "flag and update" step. The rule is always "surface, then resolve" — never "follow source X by default".
+- **Default: surface it.** Cite both sources (paths, lines, last-modified context) and get a resolution — which source is authoritative for this case, or update one to match the other.
+- **Resolve-by-evidence carve-out** — proceed without a round-trip only when ALL hold: (1) live state or the record trail proves one source verifiably stale (older AND pre-decision); (2) the decision is genuinely the implementer's — stakeholder, contract, migration, and security calls stay hard-blocking; (3) following the current source is reversible. **The carve-out is always reported** — commit message + handoff/close summary. An unreported resolution is a silent one.
+- **Unattended runs fail closed:** no human present → report blocked; never self-authorize either side (`quality/development-principles.md > Fix at the Root`).

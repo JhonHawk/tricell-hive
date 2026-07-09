@@ -4,8 +4,9 @@ Canonical procedure for bringing an existing project (current OR past) into the 
 documentary convention. Consumed by **`/flow-hygiene migrate`**; also self-contained enough to
 paste to any project's agent (including non-Claude-Code harnesses) where the skill is not deployed.
 
-The full rule is `project-structure.md > Session capture layer`; if this file and the deployed rule
-ever disagree, the rule wins. Always run **audit → manifest → approve → execute**: read-only first,
+The full convention is `specs-structure.md > Session & initiative conventions` (summary:
+`project-structure.md > Session capture layer`); if this playbook and the convention ever disagree,
+the convention wins. Always run **audit → manifest → approve → execute**: read-only first,
 nothing destructive without typed confirmation.
 
 ---

@@ -12,7 +12,7 @@ disable-model-invocation: true
 # /flow-kickoff — workspace bootstrap
 
 Creates the project container everything else assumes. `$1` = group (client/domain,
-lowercase: `acme`, `initech`, …), `$2` = project (kebab-case).
+lowercase: `acme`, `globex`, …), `$2` = project (kebab-case).
 
 Resolve group/project in this order:
 1. **Explicit arguments** win.
@@ -78,15 +78,24 @@ Repos and the specs repo come later (F3/F5) — kickoff creates no git repos.
 
 ## Phase 4 — Client conventions
 
-Ask the user (single AskUserQuestion round) for what is not inferable: branching model
-(default: `main`/`master` protected; some clients use development→qa→master), the
-**task tracker** (`Tracker` + `Tracker access` per the ledger template: linear / jira /
-none; mcp / cli / api / manual — these fields are how every later flow skill resolves
-"the tracker", so they are not optional), cloud accounts/providers in play, and any
-sealed client conventions. Tracker fields land in PROJECT.md; the rest goes as a short
-block in the workspace AGENTS.md (reaching Claude through the CLAUDE.md import) —
-branching declarations there are what git-workflow's protected-branch gates read.
-Naming exceptions wait for the naming table (F5); don't collect them now.
+Infer before asking: sibling projects under the same `<group>/` usually share the
+client's tracker, cloud accounts, and conventions — read a sibling's PROJECT.md /
+AGENTS.md first and inherit what matches. Then ask (one AskUserQuestion round) ONLY for
+the residue that nothing answers:
+
+- **Task tracker** (`Tracker` + `Tracker access` per the ledger template: linear / jira /
+  none; mcp / cli / api / manual) — required fields; every later flow skill resolves
+  "the tracker" through them. Inherited from a sibling → record, don't ask.
+- **Sealed client conventions** and cloud accounts actually known at kickoff — unknown
+  is a valid answer; they land in the ledger when they surface.
+
+Branching model is NOT collected here — git-workflow decides it at first commit intent.
+Only a client-imposed protected-branch scheme (e.g. development→qa→master) counts as a
+sealed convention worth recording; declarations in the workspace AGENTS.md are what
+git-workflow's protected-branch gates read. Tracker fields land in PROJECT.md; the rest
+goes as a short block in AGENTS.md (reaching Claude through the CLAUDE.md import).
+Naming exceptions wait for the naming table (F5). Nothing left to ask → skip the round
+and report what was inherited.
 
 ## Phase 5 — Close
 

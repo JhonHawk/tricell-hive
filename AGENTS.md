@@ -103,7 +103,6 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── debugging.md           # Root-cause discipline: reproduce before fix, one change at a time, 3-fix circuit breaker
 │   │   ├── development-principles.md
 │   │   ├── patterns-antipatterns.md
-│   │   ├── research-driven.md    # includes context7 protocol
 │   │   ├── security.md
 │   │   └── testing.md
 │   ├── languages/                 # Language/framework standards (path-scoped)
@@ -188,6 +187,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 ## Git Conventions
 - **Conventional commits:** `feat:`, `fix:`, `chore:`, `docs:` prefixes required.
+- **Direct commits and pushes to `master` are this hub's declared workflow** (no PR gate, no CI on branches). Force-push and history rewrites stay gated.
 - This is a **configuration-only repo** — no build system, no CI/CD, no runtime. Changes are validated by reading/reviewing agent files, not by running builds or tests.
 
 ## Rule Exclusions (this repo)

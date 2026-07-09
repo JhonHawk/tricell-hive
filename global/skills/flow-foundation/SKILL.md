@@ -12,13 +12,12 @@ disable-model-invocation: true
 # /flow-foundation — repos, contracts, pipelines
 
 Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). This phase **authors**
-the infrastructure — repos, contracts, schema, CI, provisioning scripts, naming — but
-does NOT provision environments: foundation usually starts before the client's
-accounts/resources are confirmed, and coupling it to provisioning would block it on
-exactly what the user doesn't control. Environment execution belongs to
-`/flow-deploy setup <env>`, which runs whenever resources are approved. The golden rule
-(**every environment's first deploy is performed by the pipeline**) lives there;
-foundation's job is leaving everything ready so setup is a button-press, not a project.
+the infrastructure — repos, contracts, schema, CI, provisioning scripts, naming — and
+provisions NO environments: execution belongs to `/flow-deploy setup <env>`, run whenever
+client resources are approved (the golden rule — **every environment's first deploy is
+performed by the pipeline** — lives there). Foundation leaves everything ready so setup
+is a button-press, not a project. Proportional: a single-repo project collapses Phases
+2–3 into one derivation + one dispatch — the phases are seams, not ceremony.
 
 Reference stack (confirm against specs, don't assume): NestJS APIs, Next.js frontends
 (HeroUI/shadcn), PostgreSQL/MongoDB, Redis; AWS for buckets/email; Hetzner VPS for QA,
@@ -32,12 +31,15 @@ Instantiate `<project>-specs/conventions/naming.md` from the global rule
 will create gets its row BEFORE anything is created; client exceptions get documented
 with their reason and the user's sign-off.
 
-## Phase 2 — Repo matrix (gate)
+## Phase 2 — Repo matrix
 
 Derive the repo list from the specs (backend, frontend, transactional services, the
-existing mocks repo) and present it via AskUserQuestion: names per the naming table
-(`<project>-<component>`), stack per repo, QA/prod targets. Nothing is created until the
-user approves the matrix — repos are cheap to create and expensive to rename.
+existing mocks repo): names per the naming table (`<project>-<component>`), stack per
+repo, QA/prod targets. Names that derive cleanly from the Phase 1 table → **create and
+report the matrix** — the table already carries the user's sign-off. Gate via
+AskUserQuestion only on signal: a name needing a NEW naming exception, genuine ambiguity
+in the repo split the specs don't settle, or creation inside a client-owned org (a wrong
+repo there is outward-visible and expensive to rename).
 
 ## Phase 3 — Parallel dispatch
 

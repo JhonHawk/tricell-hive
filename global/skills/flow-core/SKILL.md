@@ -16,9 +16,7 @@ must agree on, so they live in exactly one place. Design rationale and full phas
 
 ## The flow contract
 
-Every `flow-*` skill follows this contract. It exists because the failure mode it prevents
-is well documented in this workspace's history: the main thread doing all the work itself,
-agents sitting unused, files landing in improvised locations.
+Every `flow-*` skill follows this contract.
 
 1. **OPEN (DoR)** — read `<project>/_support/PROJECT.md` (the ledger). If it does not
    exist and the current skill is not `flow-kickoff`: stop and suggest `/flow-kickoff`.
@@ -37,10 +35,12 @@ agents sitting unused, files landing in improvised locations.
 3. **ROUTE FILES** — before writing any file, apply the file-routing rule below.
 4. **ORCHESTRATE** — the main thread routes and synthesizes. It does NOT implement,
    review, or verify by itself. Every substantive work unit goes to an agent in a fresh
-   context; only summaries return to the main thread.
-5. **HANDOFF** — every agent prompt follows `references/handoff-protocol.md`. A handoff
-   missing intent or bounded context produces misaligned work — the protocol is not
-   optional ceremony.
+   context; only summaries return to the main thread. Declared exceptions: flow-mock
+   `build` (prototype carve-out) and flow-build on a harness without specialist agents
+   may implement in the main thread — review and verification stay in fresh contexts
+   everywhere.
+5. **HANDOFF** — every agent prompt follows `references/handoff-protocol.md`: intent and
+   bounded context are what keep the dispatched work aligned.
 6. **CLOSE (DoD)** — update PROJECT.md (phase, artifacts with paths, decisions and whether
    they were promoted, open questions), **then write the `## Current handoff` section**:
    what this phase produced (paths), decisions left, what it changed backward (spec-changes
@@ -72,6 +72,7 @@ scales to the cost of undoing its writes, never uniform:
 |---|---|
 | Production / real code (flow-plan/flow-build, flow-deploy) | Strong plan gate — already defined in those skills |
 | A whole repo cheap-to-rebuild but costly-to-redo (flow-mock `build`) | Light plan gate: epics/screens/stack/order, approved before building |
+| Resources derived from a signed naming table (flow-foundation repo matrix) | Signal-gated: proceed-and-report on clean derivation; gate on a new naming exception, unsettled repo split, or client-org blast radius |
 | A draft that re-enters its own review gate (flow-specs `epic`) | The review gate IS the gate; no separate plan gate |
 | Deterministic bootstrap (flow-kickoff, flow-specs `init`) | No gate — a plan adds friction without reducing risk |
 
@@ -115,6 +116,13 @@ as staging, `git mv` into the specs repo once it exists). The invariant never ch
 durable artifacts go to the versioned layer for the current shape, NEVER to gitignored
 `_support/workspace/`.
 
+**Session reports** (review/QA/test reports a flow phase renders): route to the versioned
+session-capture layer for the current shape — `<project>-specs/sessions/<slug>/reports/`
+or `<repo>/_support/sessions/<slug>/reports/` (detection rule: `project-structure.md`).
+Raw evidence (screenshots, logs) stays in `_support/evidence/<slug>/` (gitignored),
+referenced by path — never embedded in the versioned report. Flow skills cite this
+instead of restating it.
+
 ## Templates (read on demand)
 
 | Reference | When to read it |
@@ -123,6 +131,7 @@ durable artifacts go to the versioned layer for the current shape, NEVER to giti
 | `references/handoff-protocol.md` | Before dispatching ANY agent from a flow skill; also the research→write→build→verify phase-handoff chain |
 | `references/plan-format.md` | Writing an executable plan (`flow-plan write`) or executing one (`flow-build`) — the plan-as-state contract |
 | `references/naming-template.md` | Instantiating the project naming table (`flow-foundation`) or auditing it (`flow-deploy verify`) |
+| `references/test-report-template.md` | Writing the versioned in-vivo/QA report (`flow-build` gate, `flow-deploy` qa/verify) |
 | `references/specs-structure.md` | Creating the specs repo (`flow-specs init`) or checking conformance (`flow-hygiene`) |
 | `references/release-notes-template.md` | Drafting client release notes (`flow-deploy qa`/`prod`) |
 | `references/harness-mechanics.md` | You are NOT Claude Code (Codex/opencode reading these skills from `~/.agents/skills/`) — translates mechanic names before executing any flow skill |

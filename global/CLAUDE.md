@@ -8,6 +8,7 @@
 
 ## Destructive Operations
 - **Always ask before executing any destructive or hard-to-reverse action** — unless the user has already authorized it or a rollback path is known. This includes: dropping/truncating database tables, force-pushing, resetting git history, modifying production infrastructure, scaling/restarting services, changing DNS or security groups. If not pre-authorized, present what will happen, what could break, and how to revert before executing.
+- **Carve-out — non-production deploy operations:** a deploy/restart/scaling change on a non-prod environment with a documented rollback path, or a non-prod deploy executed under a declared flow skill or pipeline, is standing-authorized — declare it, don't ask. **Production always confirms.**
 - **Claude Code CLI commands and flags with broad blast radius** require the same per-invocation confirmation, including: `claude project purge [path]` (deletes all transcripts, tasks, file history, and config entries for a project — added in 2.1.126), and any use of `--dangerously-skip-permissions` (since 2.1.126 it bypasses writes to `.claude/`, `.git/`, `.vscode/`, and shell config files; catastrophic removal commands still prompt as a safety net). Never run these autonomously, even if the session is in autonomous commit mode — autonomous mode covers `commit` only, never destructive CLI operations.
 
 ## Execution
@@ -68,23 +69,23 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 - **Plan mode re-entry.** If a prior plan file exists, read it. Decide whether to extend it (continuation of the same task) or overwrite it (genuinely new task).
 
 ### Dependency Decisions
-- **Before installing any new dependency:** present 2-3 alternatives with pros/cons (bundle size, maintenance status, TS support, community adoption). Use interactive questions to let the user choose.
-- **Preferred libraries** — when applicable, use these without proposing alternatives unless project context warrants it:
-  - `zod` — schema validation with TS type inference. Preferred over joi, yup, or manual validation.
-  - `date-fns` — date manipulation. **Never use moment.js.** Preferred over dayjs for tree-shakeability.
-  - `nanoid` — short IDs for client-side use. Preferred over uuid when full UUIDs are unnecessary.
-  - `vitest` — test runner for Vite/Next.js projects. Preferred over jest in modern setups.
-  - `playwright` — E2E testing. Preferred over cypress for CI reliability.
-- **Before adding a dependency that overlaps with an existing one:** flag the overlap and ask whether to consolidate or keep both.
-- **If only one viable option exists:** explain why briefly and proceed.
-- **Before installing any dependency version:** check OSV.dev for known vulnerabilities via the OSV API (see `security.md > Supply Chain Security` for the curl command and ecosystem mapping). Do not proceed with CRITICAL/HIGH CVEs without explicit user confirmation.
+- **One decision point, one report.** Adding a dependency resolves by inference, not by a default question: a preferred library below or an established project convention decides the pick; the OSV check resolves the version; context7 validates the integration on version-sensitivity signals (`rules/tools/context7.md`). The close report names pick, version, and check results once.
+- **Preferred libraries** — use without proposing alternatives unless project context warrants it:
+  - `zod` — schema validation with TS type inference (over joi, yup, manual validation).
+  - `date-fns` — date manipulation; **never moment.js** (over dayjs, for tree-shakeability).
+  - `nanoid` — short client-side IDs (over uuid when full UUIDs are unnecessary).
+  - `vitest` — test runner for Vite/Next.js projects (over jest in modern setups).
+  - `playwright` — E2E testing (over cypress, for CI reliability).
+- **Ask only at a real fork:** an architectural pick with no preferred default and no project convention — 2-3 curated options folded into the plan gate — or the OSV CRITICAL/HIGH gate below. Only one viable option → explain briefly and proceed.
+- **Overlap with an existing dependency:** flag it with a consolidate-or-keep recommendation and proceed with the current change; consolidating existing usages is a separate, user-approved refactor.
+- **OSV before any install** (`security.md > Supply Chain Security` owns the command, ecosystem mapping, and tiers): a compatible `fixed` version (patch/minor, or verified non-breaking) → install THAT version and report the swap — a major-only fix is a bump decision, never a silent swap; MEDIUM/LOW without fix → proceed and report; **CRITICAL/HIGH with no safe path → explicit user confirmation, always.**
 
 ### Communication
 - **Exploratory questions get prose first.** When the user asks "how should we...", "what could we do about...", "what do you think?" — respond with a 2-3 sentence recommendation and the main tradeoff, presented as something the user can redirect, not a decided plan. Only escalate to `AskUserQuestion` if the user signals they want to commit ("let me decide", "give me options"), or the question blocks work until answered.
 - **Use `AskUserQuestion`** for decisions that need an answer now (2+ discrete options, work blocked until decided). Never present those decisions as plain numbered text.
 - **Never dump 10 options.** Narrow to 2-3 curated recommendations with a clear opinion on which is preferred and why.
 - **Always mark the recommended option.** Whenever an `AskUserQuestion` call has a preferred choice, make it the FIRST option and suffix its label with `(Recomendado)` — `(Recommended)` only when the question itself is in English. This is mandatory, not optional: a question without a flagged recommendation is only acceptable when the options are genuinely equivalent and you hold no opinion. State the recommendation in the label, not just the description.
-- **Use `AskUserQuestion` proactively** for actionable decisions — don't assume user intent on ambiguous requests where the wrong choice would require redoing work.
+- **`AskUserQuestion` on genuinely ambiguous requests** — where the wrong choice would require redoing work, don't assume user intent; otherwise infer, proceed, and report the choice at close.
 - **Be direct, not diplomatic.** State problems plainly. Don't soften bad news with compliments or qualifiers. The user prefers honest challenge over polite agreement.
 - **Explain like a senior to a junior.** Surface the reasoning and consequences behind a choice instead of assuming the listener already holds the context — name what each branch of a consequential decision implies before asking them to pick. Assume capability, not context: don't condescend or belabor the obvious.
 - **Concise-first when writing rules.** Adding or editing a rule in any CLAUDE.md/AGENTS.md: write the minimal actionable form on the first pass — one directive per rule, no justification, no provenance notes ("mirrors project X"), no examples unless they disambiguate. Expand only if asked.
@@ -111,7 +112,7 @@ Keep the main thread focused: delegate executable work, reason in the main threa
 - **Delegate to specialized agents** per `rules/workflow/agent-routing.md` disambiguation table before handling the task yourself in the main thread. If the task falls clearly in a domain (security review, DB schema, frontend component), the specialist is preferred — both for quality and for context hygiene.
 - **Parallelize independent subagent calls.** When 2+ queries have no data dependency between them, dispatch in a single message with multiple `Agent` tool uses. Sequential dispatch of independent work wastes wall-clock and main-thread turns.
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
-- **Default to subagents; escalate only on a clear signal.** Agent Teams when the work needs persistent parallel workers (shared task lists, P2P messaging) or the user asks; the Workflow tool only on explicit opt-in (`ultracode` keyword, `/effort ultracode` session, explicit request, or `bypassPermissions`) — never on inferred intent. Disambiguation + the `agentType` rule for custom agents inside workflows: `rules/workflow/agent-routing.md > Workflow Tool vs Subagents vs Agent Teams`.
+- **Default to subagents; escalate only on a clear signal.** Agent Teams when the work needs persistent parallel workers or the user asks; the Workflow tool only on explicit opt-in — never on inferred intent. The opt-in list, disambiguation, and the `agentType` rule: `rules/workflow/agent-routing.md > Workflow Tool vs Subagents vs Agent Teams`.
 
 ## CodeGraph
 

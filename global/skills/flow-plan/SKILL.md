@@ -85,8 +85,8 @@ Crystallizes findings + spec into a plan another harness executes. The plan is t
    section** of the plan as explicit asks. The plan is not ready for approval while a known-needed
    resource is unresolved.
 4. **Large scope → split into an initiative.** When the scope is too dense for one plan, propose
-   splitting into numbered parts and create the **initiative** folder (`project-structure.md >
-   Session capture layer`): `plan/` with a master plan + parts `00-NN`, each part its own `Status`.
+   splitting into numbered parts and create the **initiative** folder (`flow-core/references/
+   specs-structure.md > Session & initiative conventions`): `plan/` with a master plan + parts `00-NN`, each part its own `Status`.
    One-off scope stays a single `<slug>-plan.md`.
 5. **Write the plan to the session/initiative home** (detection rule in `project-structure.md`):
    the specs repo if present, else `<repo>/_support/sessions/`. Add an `Implements:` line (epic/

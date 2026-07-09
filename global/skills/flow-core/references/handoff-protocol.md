@@ -2,8 +2,7 @@
 
 Agents start cold: they see none of the conversation, none of the plan, none of the other
 agents' work. Everything they need travels in the prompt. A handoff that skips one of the
-four elements below produces plausible-looking but misaligned work — and the cost of
-re-running an agent is always higher than the cost of writing one good prompt.
+four elements below produces plausible-looking but misaligned work.
 
 ## The four elements — every dispatch includes all of them
 
