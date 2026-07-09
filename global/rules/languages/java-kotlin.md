@@ -5,6 +5,9 @@ paths:
 
 ## Java/Kotlin
 
+### Tooling
+- **Format with Spotless** (Gradle/Maven plugin, Java + Kotlin). Kotlin adds **ktlint** for style (standalone or via Spotless) and **detekt** for static analysis. Prefer these over Checkstyle/PMD in new setups.
+
 ### Framework Preferences (Spring Boot 3.x)
 - Records, sealed classes, pattern matching. Constructor injection.
 - DTOs for API responses; never expose entities.

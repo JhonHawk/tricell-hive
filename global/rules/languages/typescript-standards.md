@@ -22,8 +22,9 @@ paths:
 - JSDoc for public APIs; document "why", not "what".
 
 ### Linting & Formatting
-- **Always respect existing ESLint and Prettier configs.** After completing an implementation, run lint and format **only on the files you modified** — never on the entire codebase.
-- **New projects:** if no `.eslintrc.*`/`eslint.config.*` or `.prettierrc.*`/`prettier.config.*` exists, ask the user whether to configure them or skip. Do not assume either way.
+- **Always respect existing lint/format configs** (Biome/Ultracite, ESLint, Prettier). After completing an implementation, run lint and format **only on the files you modified** — never on the entire codebase.
+- **New projects: Ultracite (Biome engine) is the default setup** — `ultracite init --linter biome` + git hooks. Skip its agent-rules generation (agent config lives in the global hub); keep its `PostToolUse` fix hook. Repos needing custom lint rules use its ESLint mode or plain ESLint. Angular is the exception — see `angular-patterns.md > Tooling`.
+- **Migrating an existing ESLint+Prettier repo to Ultracite is opportunistic, never a campaign** — single format-only commit, listed in `.git-blame-ignore-revs`.
 - **Existing projects:** if configs exist, run them on modified files after implementation. If configs are missing, ask the user whether to add them or skip.
 - **If the user chooses to skip:** document the decision in the project's `CLAUDE.md` (e.g., `## Constraints\n- ESLint/Prettier intentionally omitted`) so future sessions don't re-ask.
 
