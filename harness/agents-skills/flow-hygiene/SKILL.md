@@ -19,21 +19,17 @@ existing workspaces by design, so a project that predates the pack enters the fl
 running `audit` + `apply` here — that retrofits the ledger and the workspace CLAUDE.md,
 after which any phase gate (`/flow-plan`, `/flow-build`, `/flow-deploy`) works normally.
 
-It also audits **session conformance** (the session capture layer,
-`project-structure.md > Session capture layer`): loose artifacts that belong grouped in a
-session (`move`), unpromoted session decisions (`promote`), stale concluded sessions and
-raw committed by mistake (`expire`), non-ISO session folders and broken `Session:`
-back-references (`conform`/`repair`), and **same-tier duplicate folders** (several
-`evidence`/`reports`/`spec`) to consolidate (`move`) — always preserving the legitimate
-raw(`_support`, gitignored) / curated(specs, versioned) split. It also recognizes the
-**initiative** grouping (`project-structure.md > Session capture layer`): an initiative
-folder (`sessions/<start-date>-<slug>/` with `findings/`, `plan/`, and nested dated
-sub-sessions) is legitimate structure — never flag its nested executions as loose or
-misplaced; conversely, a flat session that has grown into a dense multi-part or
-multi-session effort is a `move` finding to promote into an initiative. The one-shot
-**reset/bootstrap** of an existing repo (homologate dates, sweep loose artifacts into
-`sessions/YYYY-MM-DD-<slug>/` or the `sessions/previously/` quarantine) is the **`migrate`**
-subcommand below, which follows `~/.agents/skills/flow-core/references/migration-playbook.md`.
+It also audits **session conformance** (`project-structure.md > Session capture layer`):
+loose artifacts that belong grouped in a session (`move`), unpromoted session decisions
+(`promote`), stale concluded sessions and raw committed by mistake (`expire`), non-ISO
+session folders and broken `Session:` back-references (`conform`/`repair`), and
+**same-tier duplicate folders** (several `evidence`/`reports`/`spec`) to consolidate
+(`move`) — always preserving the raw(`_support`, gitignored) / curated(specs, versioned)
+split. An **initiative** folder (`specs-structure.md > Session & initiative conventions`)
+is legitimate structure — never flag its nested executions as loose; conversely, a flat
+session grown into a dense multi-part effort is a `move` finding to promote into an
+initiative. The one-shot **reset/bootstrap** of an existing repo is the **`migrate`**
+subcommand below (procedure: `~/.agents/skills/flow-core/references/migration-playbook.md`).
 
 ## `audit`
 

@@ -31,7 +31,7 @@ they stay verifiable against the codebase.
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task
 │                             # ── EXECUTION (what actually happened) ──
-└── sessions/                 # Execution journal (by time) — see project-structure.md "Session capture layer"
+└── sessions/                 # Execution journal (by time) — full convention below
     ├── README.md             # Sessions index (versioned, co-located): slug · date · state · implements
     ├── previously/           # reset quarantine (loose/legacy artifacts swept in at bootstrap)
     └── YYYY-MM-DD-<slug>/     # <slug>-plan.md (declares `Implements:`), <slug>-findings.md, optional analysis/ reports/
@@ -109,9 +109,10 @@ Then <verifiable outcome>
   `_support/`, never here. The intention layer (decisions/contracts/epics/conventions) is
   updated BY execution and back-references the session slug (`Session:` in `tasks.md`).
   `sessions/README.md` is the versioned, co-located index — NOT the ledger, which is
-  non-versioned and lives outside this repo. Full rule:
-  `project-structure.md > Session capture layer`. Reset/bootstrap of an existing repo sweeps
-  loose artifacts into `sessions/previously/`.
+  non-versioned and lives outside this repo. Full convention: "Session & initiative
+  conventions" below (the always-loaded summary is `project-structure.md > Session capture
+  layer`). Reset/bootstrap of an existing repo sweeps loose artifacts into
+  `sessions/previously/`.
 - **Evidence here is summarized** — the curated proof a delivery points to (E2E report
   summary, sign-off notes). Raw traces/screenshots stay in `_support/evidence/`.
 - **Release notes are dated client-facing records**, `releases/YYYY-MM-DD-<env>.md` — the
@@ -120,9 +121,56 @@ Then <verifiable outcome>
   (gitignored), which is the bug this rule fixes.
 - Documents in the client's language; Gherkin keywords stay in English
   (`Given/When/Then`) for tooling compatibility.
-- **Optional Docusaurus presentation layer.** A specs repo MAY carry a Docusaurus site
-  (opted in at `/flow-specs init`) rendering the same content as a navigable site. Its
-  scaffold (`package.json`, `docusaurus.config.*`, `sidebars.*`, `src/`, `static/`) is
-  conformant and sits *over* the structure above — it never replaces it: `conventions/`,
-  `contracts/`, `decisions/`, `epics/`, `sessions/` stay the source of truth at their
-  paths. `/flow-hygiene` treats the scaffold as expected, not as misplaced files.
+- **Optional Astro Starlight presentation layer.** A specs repo MAY carry a Starlight
+  site (opted in at `/flow-specs init`) rendering the same content as a navigable site.
+  Its scaffold (`package.json`, `astro.config.*`, `src/`, `public/`) is conformant and
+  sits *over* the structure above — it never replaces it: `conventions/`, `contracts/`,
+  `decisions/`, `epics/`, `sessions/` stay the source of truth at their paths.
+  `/flow-hygiene` treats the scaffold as expected, not as misplaced files.
+
+## Session & initiative conventions (canonical)
+
+The always-loaded rule (`project-structure.md > Session capture layer`) carries the
+summary — two axes, detection rule, raw-out-of-git, lifecycle. This section is the full
+convention; it applies wherever sessions live (specs repo, standalone `_support/sessions/`).
+
+**Naming.** Folder: `YYYY-MM-DD-<kebab-slug>` (ISO date prefix; lexicographic =
+chronological). Multiple sessions the same day → distinct intention-revealing slugs; a
+numeric tiebreaker (`-2`) only on a real slug collision. **Session top-level files carry
+the SLUG, not the date** — `<slug>-plan.md`, `<slug>-findings.md`, `<slug>-report.html`:
+the slug makes a hit self-identifying in basename-only surfaces (quick-open, editor tabs,
+filename/semantic search) where the folder path isn't shown; the date stays the folder's
+(a date on a living file asserts a fixity it doesn't have). Nested subfolder files
+(`analysis/…`, `reports/…`) stay short — their path is already specific. This is a
+deliberate, scoped exception to "internal files unprefixed": sessions are high-volume and
+referenced individually; a one-off deliverable folder is not.
+
+**Structure is optional and proportional** — no fixed skeleton. Create a type-subfolder
+(`reports/`, `analysis/`, `internal/`) only at 2+ artifacts of that type. A trivial
+session is a `<slug>-plan.md` plus a couple of loose files. Homologate HOW artifacts are
+grouped, not WHAT files exist.
+
+**Initiative (multi-session grouping).** When one effort exceeds a single session — a
+dense plan split into parts, executed across several sessions or days — group it under
+`sessions/<start-date>-<slug>/` holding `README.md` (index), `findings/` (research),
+`plan/` (master plan + numbered parts `00-NN`), and the dated execution sub-sessions
+INSIDE it (`YYYY-MM-DD-<sub>/`, each with its own `reports/`). The initiative container
+carries its immutable **start date** (preserves the index's chronological order; the
+slug-not-date rule governs files, not this container); sub-sessions carry their own dates,
+so a later day nests inside the initiative instead of fragmenting into a sibling folder.
+Each plan part carries its own `Status` (`plan-format.md`); the master plan's part index
+lists them. **One-off work stays a flat session** — promote to an initiative only when it
+grows (the move is `/flow-hygiene`'s; `flow-plan write` proposes the split when scope
+density warrants it).
+
+**Back-reference (by slug).** A session's `<slug>-plan.md` declares `Implements:` the
+intention it executes; the intention records the session that implemented or changed it
+(`Session:` in `tasks.md`, `Implementado en: sessions/<slug>` in decisions/epics). When
+execution diverges from the spec, update the spec (source of truth) and record the session
+slug as the origin — `gap-resolution.md > Divergence Between Sources`.
+
+**Lifecycle** (recorded in the sessions index, never the ledger): `in-progress` (active
+`<slug>-plan.md`) → `concluded` (work done, promotion pending — `/flow-hygiene` flags it)
+→ `finalized` (durable outputs promoted, raw pruned). A concluded/finalized session is
+immutable — a later correction supersedes with a new linked record, never an in-place
+edit.

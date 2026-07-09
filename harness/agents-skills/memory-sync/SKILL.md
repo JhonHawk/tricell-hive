@@ -13,16 +13,20 @@ description: >
 
 Two memory layers run at once: Engram (MCP) and native file-memory
 (`~/.claude/projects/<slug>/memory/`). They drift when state advances and the old fact is
-never invalidated — memory gets *corrected by addition* (a new "actually X is done" note)
-instead of *replaced*. Both layers then hold "X pending" and "X done" at once, and the next
-session resurfaces the stale one as current — re-reporting finished work as pending,
-sometimes re-implementing it. This skill reconciles both layers against ground truth.
-Default subcommand: `audit`.
+never invalidated (`memory-routing.md > Invalidation` — "corrected by addition" leaves
+both facts alive); this skill reconciles both layers against ground truth. Default
+subcommand: `audit`.
 
-**Ground-truth precedence** — a memory is a claim verified *against* these, never trusted
-*over* them:
-1. **The live system** — the authoritative source *for the kind of claim*: git/disk for implementation (file/test/migration exists? branch merged? tests pass?), the running app/DB for runtime state, and **the tool/library's own authoritative docs (context7) for a version-sensitive behavior/default claim** ("the cooldown is active", "the default is Z"). Highest authority. **Absence-of-evidence ≠ proof of absence:** an inspection command returning empty/`undefined`/not-found (`pnpm config get`, a `grep` miss) does NOT prove "off/absent" — internal defaults don't surface; confirm a negative against the authoritative source before concluding it.
-2. **The ledger** — `<project>/_support/PROJECT.md` (phase + open decisions). A status *record*, above memory but **below the live system**: when the ledger says "done" but git/disk shows the work absent or reverted, the live system wins and the record is what to correct. (A *declared* issue tracker is also a record at this tier — see the tracker step.)
+**Ground-truth precedence** (canon: `memory-routing.md > Reporting state from ground
+truth`) — a memory is a claim verified *against* these, never trusted *over* them:
+1. **The live system** — matched to the claim type: git/disk for implementation, the
+   running app/DB for runtime state, context7 anchored to the installed version for
+   tool/library behavior claims. **Absence-of-evidence ≠ proof of absence:** an empty
+   inspection result (`pnpm config get`, a `grep` miss) does not prove "off" — confirm a
+   negative against the authoritative source.
+2. **The ledger** (and a *declared* tracker — see the tracker step) — status records:
+   above memory, below the live system; when they disagree with git/disk, live state
+   wins and the record is what to correct.
 3. **Memory** — Engram + native: the *lowest* authority, a claim to confirm.
 
 **Existence ≠ completion (the core trap).** A remembered "X is MISSING" is refuted by X simply *existing* — directly verifiable, safe to auto-invalidate. But a remembered "X is PENDING / TODO" is **not** refuted by a related artifact existing — 30 test files existing does not prove the testing task is done (they could be stubs, cover other cases, be unrelated). A pending-task claim needs a **positive completion signal**: a commit/PR that closes it, a ledger phase that has passed it, a tracker ticket marked done, or tests that actually *pass* — not just a file on disk. Existence-only → KEEP-and-flag for review, never auto-invalidate.
@@ -42,7 +46,7 @@ Default subcommand: `audit`.
    - Native: read `memory/MEMORY.md` and each file. Flag every "Remaining Work" / pending entry — **including struck-through or "DESACTUALIZADO"-annotated ones left inside a pending section** (annotated-in-place still reads as pending — the exact anti-pattern).
 2. **Establish ground truth from the live system FIRST, matched to the claim type.** Never trust a *record* (ledger, tracker, Engram, native) as proof — records corroborate; the authoritative live source proves. Pick the source by claim (and **decompose a compound memory** — an upgrade *and* a resulting default — verifying each part against its own source, or the whole thing routes to git and the behavior half never reaches context7):
    - **Implementation claim** ("X was built / exists / is merged"): git is mandatory and primary — `git log --oneline --all` (grep area/ticket), `git show <sha>`, `git branch --merged` to confirm a closing commit/PR actually landed — plus `ls`/`grep` and a test run for presence/passing.
-   - **Tool/library behavior or default claim** ("the cooldown is active", "the default is Z", anything version-sensitive): verify against the tool's authoritative docs for the *installed* version (context7, per `tools/context7.md`) — not a memory, and not a misread inspection command. This is the failure mode a prior run hit: it invalidated a correct memory by trusting another memory instead of pnpm's docs.
+   - **Tool/library behavior or default claim** ("the cooldown is active", "the default is Z", anything version-sensitive): verify against the tool's authoritative docs for the *installed* version (context7, per `tools/context7.md`) — never against another memory or a misread inspection command.
    - **Task-state claim** ("done/pending"): the ledger and a *declared* tracker corroborate, but git proves.
    Apply existence-vs-completion (a "pending" claim needs a positive completion signal — a closing commit/PR or passing tests, not a related file existing) AND absence-of-evidence (an empty/`undefined` inspection result is not proof of "off"). Run checks in the main thread (it holds the Engram session); delegate only a wide multi-repo file sweep to an `Explore` subagent.
 3. **Classify each claim with a stable ID** (IDs live in the manifest — `apply` may run later):
@@ -69,6 +73,4 @@ Default subcommand: `audit`.
 
 - **Does NOT configure Engram** (the plugin self-manages). It *uses* the lifecycle tools — `mem_update` / `mem_delete` (invalidate/remove), `mem_review action=list` (harvest observations whose decay window passed, an extra staleness signal). `mem_compare` is NOT a lifecycle tool — it only records a supersedes/conflict relation and does not by itself remove or hide a memory.
 - **Why audit runs in the main thread** (unlike flow-hygiene's custodian): reconciliation needs the live Engram session the main thread holds; a fresh subagent would lack it. Only the wide disk sweep is delegable.
-- **Resolving a claim from records alone — Engram, native, ledger, tracker — without checking git is THE failure mode.** Those are all status *records*; git history is the live system (tier 1). Every implementation/completion claim is checked against `git log`/`git show`/`git branch --merged` before classification. Records corroborate; git proves.
-- **Verify before invalidating.** Never invalidate a claim you could not positively verify; "unverifiable" and "existence-only for a pending claim" are FLAG, not auto. The risk this guards against is a false "stale" verdict overwriting a still-true memory.
 - Background and the upstream protocol: `memory-routing.md > Invalidation` and `> Reporting state from ground truth`.

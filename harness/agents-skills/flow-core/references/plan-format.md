@@ -87,6 +87,7 @@ Every task is independently executable and independently trackable.
 ### T<n>: <imperative title>
 
 in-vivo: yes | no        ← does this task need a live walk? planner decides (UI/integration → yes; pure logic → no)
+design-review: yes       ← opt-in: user-facing UI task → flow-build's Visual-craft gate walks it; omit the line for non-UI tasks
 Files:
   - Create: <exact/path>
   - Modify: <exact/path:lines>
@@ -106,7 +107,9 @@ Rules:
   is done. The commit's `T<n>` tag is what derives task-state from `git log`.
 - **`in-vivo:` is mandatory per task** so the gate is never assumed or omitted. `flow-build`
   reads these to know which tasks need a walk; the *timing* (inline vs deferred) is a
-  once-per-session decision, not per task (see `flow-build`).
+  once-per-run decision, not per task (see `flow-build`). **`design-review:` is its opt-in
+  sibling** — set `yes` on user-facing UI tasks to route them through flow-build's
+  Visual-craft design gate; absent means no.
 - **`Verify:` pairs a command with its expected output** (handoff-protocol element 4). A step
   whose expected result you cannot state is not a verification step yet. This is what lets a
   cheaper executor verify mechanically instead of judging.

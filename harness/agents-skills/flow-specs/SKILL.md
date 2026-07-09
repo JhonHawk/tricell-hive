@@ -21,11 +21,11 @@ gate). With no argument, show the subcommands and the epics index status.
 2. Create `<project>/<project>-specs/` following
    `~/.agents/skills/flow-core/references/specs-structure.md` exactly: README index,
    `conventions/`, `contracts/`, `decisions/`, `evidence/`, `epics/`.
-3. **Optional — Docusaurus presentation layer** (default: no, markdown-only). Ask once.
-   If yes, scaffold Docusaurus *over* the canonical structure: content stays at its
-   flow-core paths as the source of truth — Docusaurus serves it, never reorganizes it
-   into `docs/`. Query context7 for the installed Docusaurus version's config when
-   scaffolding.
+3. **Astro Starlight presentation layer only if the user asked for one** (default:
+   markdown-only — no question). When requested, scaffold Starlight *over* the canonical
+   structure: content stays at its flow-core paths as the source of truth — Starlight
+   serves it, never reorganizes it into its own content tree. Query context7 for the
+   installed Astro/Starlight version's config when scaffolding.
 4. `git init` + initial commit. Suggest (never execute) creating the GitHub remote.
 5. Link the tracker project per the ledger's `Tracker` / `Tracker access` fields (mcp →
    load tools via ToolSearch; cli → `acli` for Jira; api → env token; manual/none →
@@ -57,9 +57,7 @@ is only steps 1–2.
    `Tracker: none` or `access: manual` → tasks.md is the source of truth (self-assigned
    IDs); for `manual`, list the tracker updates the user must make in the close report.
 4. **The review gate is part of this subcommand, not optional**: run `review` on the new or
-   revised epic before marking it `reviewed` in the README index. An epic that skips review
-   is exactly the "defined what was asked, never questioned what's missing" failure this
-   skill exists to close.
+   revised epic before marking it `reviewed` in the README index.
 
 ## `review <spec-ref>` — pre-implementation quality gate
 
@@ -88,10 +86,7 @@ is only steps 1–2.
    (fix spec first / proceed as-is / discuss). Do not soften the critic's findings.
 5. Apply approved fixes to the epic files (Gherkin rewrites land verbatim), update the
    README index status, mirror changes to the tracker (per the ledger's access fields).
-6. Render the full report via the `flow-report` skill to the session's `reports/` in the
-   versioned session-capture layer (location per the `project-structure.md` detection rule:
-   specs repo → `<project>-specs/sessions/<slug>/reports/spec-review-<epic-slug>.html`;
-   standalone single repo → `<repo>/_support/sessions/<slug>/reports/`) — **versioned**: the
-   durable history of what the gate found and when (the epic files carry the applied outcome;
-   this carries the review record). NEVER `_support/workspace/` (gitignored). CLOSE per the
-   contract.
+6. Render the full report via the `flow-report` skill as
+   `spec-review-<epic-slug>.html`, routed per flow-core's **Session reports** rule — the
+   durable history of what the gate found and when (the epic files carry the applied
+   outcome; this carries the review record). CLOSE per the contract.

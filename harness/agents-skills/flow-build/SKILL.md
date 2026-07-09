@@ -1,9 +1,9 @@
 ---
 name: flow-build
 description: >
-  Execute an approved plan (the build half of F6 of the flow pack). A state-driven reconciler:
-  it reads the plan's Status + git, executes the pending tasks, and runs the in-vivo gate.
-  `verify` jumps straight to the gate. Runs on any harness. Point it at a plan or part.
+  Execute an approved plan (the build half of F6 of the flow pack) as a state-driven
+  reconciler — resumable, never re-doing landed work. `verify` jumps straight to the
+  verification gate. Runs on any harness. Point it at a plan or part.
 ---
 
 # /flow-build — execute the plan
@@ -33,11 +33,13 @@ harness still gates their work.
    | `built` | run the gate (below) |
    | `verified` | nothing pending — report and stop |
 
-3. **In-vivo timing — ask ONCE per session, before T1, only if the plan has ≥1 `in-vivo: yes`
-   task.** *Run the in-vivo walk inline (after each gated task) or defer all walks to `built`?*
-   The answer is a **session decision that persists** for the whole run — never re-asked per task,
-   even with 10 tasks — until the user changes it (the once-per-session pattern of
-   `git-workflow.md`). No in-vivo tasks → no question.
+3. **In-vivo timing — infer, never ask** (relevant only when the plan has ≥1 `in-vivo: yes`
+   or `design-review: yes` task; none → nothing to decide). Default: **defer all browser
+   walks to `built`** — walks amortize over the change-group (`testing.md > Execution
+   Scope`). Go **inline** (walk after each gated task) only on signal: multiple independent
+   gated tasks where early walk feedback would redirect later ones, or the plan/user says
+   so. State the choice in the start summary; it persists for the run until the user
+   overrides it.
 
 ## Execute (`planned`/`building` → `built`)
 
@@ -67,8 +69,8 @@ unmerged (each task's gate validates the integrated state of every task before i
   the suspect, not the hypothesis. Bring the symptom, the attempts, and the architecture question
   to the user (`debugging.md`).
 - **Git is autonomous inside this flow** (invoking `/flow-build` is the authorization): per-task
-  commits + the PR/CI/merge cycle. Never touch protected branches (`qa`/prod promotions are
-  `/flow-deploy`), never force-push or rewrite history.
+  commits + the PR/CI/merge cycle. `qa`/prod promotions stay `/flow-deploy`'s; the safety
+  gates of `git-workflow.md` (protected branches, no force-push/rewrites) never relax.
 - When every task is in git → set `Status: built`.
 
 ## Gate (`built` → `verified`) — also the `verify` subcommand
@@ -82,18 +84,24 @@ the tasks not yet gated:
    the builder's report travels as claims to check, never as context to trust.
 2. **In-vivo gate** for `in-vivo: yes` tasks (now, if timing was deferred): dispatch
    **in-vivo-qa-tester** against the running app — it walks the Gherkin ACs AND the
-   negative/adversarial cases (double-click, invalid input, gated-route access, mid-flow refresh,
-   expired session). Raw evidence → `_support/evidence/YYYY-MM-DD-<slug>/` (gitignored); the
+   negative/adversarial catalog the agent owns. Raw evidence → `_support/evidence/YYYY-MM-DD-<slug>/` (gitignored); the
    **versioned report** → the versioned layer (specs repo `<project>-specs/evidence/<epic-id>/`,
    else `<repo>/_support/sessions/<slug>/reports/`) per `references/test-report-template.md`. **A
    `blocked` AC is not a pass** — unblock at the root (seed missing reference data, fix the
    precondition) and re-run; escalate only a genuinely external blocker as a ledger **Promotion
    prerequisite**, never closed as done.
-3. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
-   build per app** (`build` then `start`, never `next dev --turbopack`, never a monorepo-root
-   start-all) — it validates the state QA receives. Stop any server this flow started (verify per
-   port: `lsof -nP -iTCP:<port> -sTCP:LISTEN`, one port per call, stderr visible).
-4. **test-engineer** only if the goal includes a coverage push — specialists test their own code.
+3. **Design gate** for `design-review: yes` tasks (opt-in; user-facing UI tasks set the flag in the
+   plan, mirroring `in-vivo: yes`): dispatch **ux-flow-reviewer** against the running app on the
+   **Visual craft** rubric axis (`flow-mock/references/ux-rubric.md` #11–17; criteria
+   `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
+   hierarchy, elevation, borders restraint, component simplicity. Same evidence/report routing as
+   the in-vivo gate. **A craft `blocker` is not a pass** — fix at the root and re-walk; `friction`/
+   `polish` may pass with the user's recorded acknowledgement.
+4. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
+   build per app** (global `Execution` rule — never the dev server, one app at a time) — it
+   validates the state QA receives. Stop any server this flow started (verify per port:
+   `lsof -nP -iTCP:<port> -sTCP:LISTEN`).
+5. **test-engineer** only if the goal includes a coverage push — specialists test their own code.
 - Gate passes → set `Status: verified`.
 
 ## CLOSE

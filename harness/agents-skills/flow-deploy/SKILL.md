@@ -31,8 +31,7 @@ always.
 4. **Post-deploy verification** — two layers, liveness then functional:
    - **Liveness (always runs)**: health endpoints + the project's smoke E2E suite against
      QA URLs. This proves the server responds — it does NOT prove the UI renders. An
-     HTTP/curl smoke is liveness, never the functional validation below; treating the two as
-     equivalent is the failure this split prevents.
+     HTTP/curl smoke is liveness, never the functional validation below.
    - **Functional validation — a handoff, not an auto-gate**: when the promotion touches UI,
      auth/session, or an integration, liveness alone does not prove it works (a logged-in
      screen full of untranslated keys still returns 200). This is QA's by default — most
@@ -41,17 +40,15 @@ always.
      verification/close, state that functional QA is pending and OFFER to run the
      **in-vivo-qa-tester** agent against the QA URLs (authenticated real-user session walking
      the promoted ACs + the negative catalog, versioned report per `test-report-template.md`).
-     The user decides — human QA covers it, or dispatch the agent. The failure this prevents
-     is the silent skip: asserting "verified" when only liveness ran.
+     The user decides — human QA covers it, or dispatch the agent.
 5. Release notes for the client from merged PRs + tracker states since the last
    promotion, per `flow-core/references/release-notes-template.md` — **versioned** (plain
    markdown, the durable record of what shipped, committed with the close): with a specs repo
    → `<project>-specs/releases/YYYY-MM-DD-<env>.md`; **no specs repo** (standalone single
    repo, or workspace pre-specs) → the deploy session's versioned location per the
    session-capture detection rule (`<repo>/_support/sessions/<slug>/release-notes-<env>.md`).
-   NEVER `_support/workspace/` (gitignored). Per-project overrides (channel/language/tone) in
-   the ledger's `Release notes` row. The user reviews before anything is sent — client-facing
-   copy uses usted.
+   Per-project overrides (channel/language/tone) in the ledger's `Release notes` row. The
+   user reviews before anything is sent — client-facing copy uses usted.
 6. CLOSE per the contract: raw evidence (pipeline run links + smoke output) → ephemeral
    `_support/evidence/`; the **versioned report** (smoke results, any AC walk against QA
    URLs) → the versioned layer (specs repo → `<project>-specs/evidence/<epic>/`; no specs repo
@@ -109,7 +106,6 @@ Standalone health pass, usable anytime:
 1. Smoke suite + health endpoints against the target env
 2. **Naming audit**: list live resources via `aws` / `hcloud` / `gh` CLIs and diff
    against `<project>-specs/conventions/naming.md`. Report drift (resource exists but
-   isn't in the table / violates its row) — finding drift here is the cheap path; finding
-   it in a client audit is the expensive one. Never rename anything as part of the audit;
+   isn't in the table / violates its row). Never rename anything as part of the audit;
    renames are planned migrations (per `infra-naming.md`).
 3. Report + ledger update per the contract.
