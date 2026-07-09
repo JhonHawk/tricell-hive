@@ -27,8 +27,9 @@ Every output must:
 2. **Render readable in first 5 seconds.** Title at top + 1-line TL;DR + table of contents if >5 sections.
 3. **Use real layout, not stacked headings.** Comparisons → CSS grid columns. Timelines → horizontal axis. Hierarchy → indentation or boxes. If the structure would be invisible in Markdown, make it visible here.
 4. **Be mobile-responsive.** Include `<meta name="viewport" content="width=device-width, initial-scale=1">`. Single-column collapse below 720px.
-5. **Avoid default-AI aesthetics.** No gradient cards with emoji headers, no purple-to-pink buttons, no `Inter` everywhere. Default to: serif body (Georgia, Charter, system serif), restrained palette (3-5 colors max), 60-75ch line length, generous whitespace.
+5. **Avoid default-AI aesthetics.** No gradient cards with emoji headers, no purple-to-pink buttons, no `Inter` everywhere. Default to: serif body (Georgia, Charter, system serif), restrained palette (3-5 colors max), generous whitespace.
 6. **Include provenance footer.** Collapsible `<details>` at the bottom with: timestamp, source prompt (truncated), file paths referenced.
+7. **Legibility baseline & layout.** `font-size:18px` base, `line-height:1.6` (drop to 16px below 720px); never the browser default 16px, never below 17px. **The shell is the measure.** One wide container (~1280px in the baseline) and ALL content — headings, prose, lists, tables — fills it edge-to-edge. Never put a `max-width` cap on prose narrower than its container: a text column with a dead band to its right is the defect. If shorter lines are ever wanted, narrow the shell itself — never strand capped text inside a wider one. This is a deliberate, user-validated divergence from the classic 45–75ch measure (the user prefers the space used); do not reintroduce prose caps. Tables never shrink below ~0.95rem. Start from `references/baseline.html` — a concrete, validated skeleton (design-system tokens, type scale, status palette, masthead, TOC, stat strip, accent cards, clickable master table, reusable modal + JS, provenance footer) — and adapt it instead of improvising the CSS.
 
 ## Category patterns
 

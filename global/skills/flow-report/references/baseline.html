@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Keep this viewport tag: it drives the <720px responsive collapse below. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flow-report baseline — concrete starting skeleton</title>
+<!--
+  ============================================================================
+  flow-report BASELINE SKELETON
+  ============================================================================
+  A concrete, self-contained starting point for flow-report HTML output.
+  Distilled from a validated status-tracker so a report inherits a legible,
+  consistent, good-taste baseline instead of improvising its CSS each time.
+
+  HOW TO USE
+  - Copy this file, then ADAPT: rename tokens only if the report's domain
+    needs a different accent; replace the placeholder copy/components with the
+    report's real content; delete components you don't need.
+  - Keep the DESIGN SYSTEM (:root tokens + type scale) intact unless you have
+    a reason. That is what makes outputs consistent.
+  - Self-contained always: all CSS in <style>, all JS in <script>, all imagery
+    inline SVG or base64. No CDN <link>/<script> that can 404 offline.
+
+  LEGIBILITY BASELINE (non-negotiable — see flow-report SKILL.md rule)
+  - font-size 18px base, line-height 1.6; 16px below 720px. Never the browser
+    default 16px, never below 17px.
+  - THE SHELL IS THE MEASURE: all content — headings, prose, lists, tables —
+    fills the container edge-to-edge. NEVER cap prose (max-width on p/ul/h1)
+    narrower than the shell: a text column with a dead band to its right is
+    the exact defect this rule prevents. Want shorter lines? Narrow the shell
+    itself — never strand capped text inside a wider container.
+  - This is a DELIBERATE, user-validated divergence from the classic 45-75ch
+    measure: the user prefers the space used. Do not "fix" it back to a cap.
+  - Tables never shrink below ~0.95rem; this dense 8-ish-column master table
+    sits at 16px, which is the floor for a table this wide.
+  ============================================================================
+-->
+<style>
+  /* ============================================================
+     DESIGN SYSTEM — warm-editorial neutrals + single accent.
+     Swap the --accent family for a domain-appropriate hue, but keep ONE
+     accent for the whole page (no second accent in a later section).
+     Shadows are tinted to the warm bg, never pure black.
+     ============================================================ */
+  :root{
+    /* ink & surfaces */
+    --ink:#1b1916; --ink-soft:#3b3833; --muted:#6f675d; --faint:#938b7f;
+    --line:#e4ddd1; --line-soft:#efe9de;
+    --bg:#f7f3eb; --paper:#fffdf8; --paper-2:#faf6ee; --hover:#f3eee4;
+    /* accent — single hue, used identically everywhere */
+    --accent:#1c5563; --accent-deep:#143f4a; --accent-soft:#e3edef; --accent-line:#cadee1;
+    /* status families: ink / tint / hairline */
+    --red:#993126; --red-bg:#f7e8e3; --red-line:#e6c8bf;
+    --amber:#855d0c; --amber-bg:#f6efd9; --amber-line:#e6d6ad;
+    --green:#326538; --green-bg:#e7efe3; --green-line:#c9dbc2;
+    --blue:#274d78; --blue-bg:#e7eef7; --blue-line:#ccd9eb;
+    --gray:#5c564e; --gray-bg:#eee9e1; --gray-line:#ddd7cb;
+    /* shape & elevation */
+    --r-sm:6px; --r:10px; --r-lg:14px;
+    --shadow:0 1px 2px rgba(54,44,28,.05), 0 6px 20px rgba(54,44,28,.06);
+    --shadow-lg:0 28px 70px rgba(27,25,22,.30);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    /* Serif body is justified for an editorial report/document. For a product
+       dashboard, swap to a system sans stack instead. */
+    font-family:Charter,"Iowan Old Style",Georgia,"Times New Roman",serif;
+    line-height:1.6; font-size:18px;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  /* SHELL = MEASURE: one container, ALL content fills it (no per-element
+     prose caps anywhere). To get shorter lines, narrow THIS value — never
+     cap text inside a wider shell. */
+  .wrap{max-width:1280px; margin:0 auto; padding:56px 36px 88px}
+
+  /* ---- masthead ---- */
+  header.masthead{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:36px}
+  .kicker{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 12px; font-weight:600}
+  h1{font-size:clamp(30px,3.4vw,40px); line-height:1.14; letter-spacing:-.012em; margin:0 0 16px;
+    font-weight:600}
+  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); background:var(--paper);
+    border:1px solid var(--line); border-left:4px solid var(--accent);
+    padding:16px 20px; margin:20px 0 0; border-radius:0 var(--r) var(--r) 0}
+  .tldr strong{color:var(--ink)}
+  .meta{font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--muted); margin-top:20px;
+    display:flex; flex-wrap:wrap; gap:8px 26px}
+
+  /* ---- prose & headings ---- */
+  h2{font-size:25px; line-height:1.2; letter-spacing:-.008em; margin:54px 0 16px; padding-top:22px;
+    border-top:1px solid var(--line); font-weight:600}
+  h3{font-size:19px; margin:30px 0 10px; font-weight:600}
+  p{margin:12px 0}  /* no max-width cap: prose fills the shell (shell = measure) */
+  a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-line)}
+  a:hover{border-bottom-color:var(--accent)}
+  code,.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.84em;
+    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:5px}
+  .id{font-family:ui-monospace,Menlo,monospace; font-weight:700; font-size:14px; color:var(--accent)}
+  .rownum{font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--faint); text-align:center; white-space:nowrap; width:36px}
+
+  /* ---- table of contents (drop if <5 sections) ---- */
+  nav.toc{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:20px 24px;
+    margin:28px 0; box-shadow:var(--shadow)}
+  nav.toc strong{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+  nav.toc ul{margin:10px 0 0; padding-left:20px; columns:2; column-gap:40px}
+  nav.toc li{margin:5px 0}
+
+  /* ---- stat strip: a small grid of headline metrics, colored by state ---- */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:24px 0}
+  .stat{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px;
+    border-top:3px solid var(--gray-line); box-shadow:var(--shadow)}
+  .stat .n{font-size:38px; font-weight:700; line-height:1; font-family:ui-monospace,Menlo,monospace;
+    letter-spacing:-.02em}
+  .stat .l{font-size:13px; line-height:1.4; color:var(--muted); margin-top:9px}
+  .stat.red{border-top-color:var(--red)} .stat.red .n{color:var(--red)}
+  .stat.green{border-top-color:var(--green)} .stat.green .n{color:var(--green)}
+  .stat.amber{border-top-color:var(--amber)} .stat.amber .n{color:var(--amber)}
+  .stat.blue{border-top-color:var(--blue)} .stat.blue .n{color:var(--blue)}
+
+  /* ---- accent cards (blockers, risks, callouts — numbered, accent border) ---- */
+  .cards{display:grid; gap:16px; margin:20px 0}
+  .card{display:grid; grid-template-columns:46px 1fr; gap:16px; align-items:start;
+    background:var(--red-bg); border:1px solid var(--red-line); border-left:4px solid var(--red);
+    border-radius:0 var(--r) var(--r) 0; padding:18px 22px}
+  .card .num{font-family:ui-monospace,Menlo,monospace; font-weight:700; font-size:26px; color:var(--red); line-height:1.1}
+  .card h4{margin:0 0 6px; font-size:17px}
+  .card p{margin:0; font-size:16px; line-height:1.5}
+
+  /* ---- master table (rows are clickable -> detail modal) ---- */
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:16px; background:var(--paper);
+    border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow)}
+  thead th{background:var(--paper-2); text-align:left; padding:12px 13px; font-size:12px; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line)}
+  tbody td{padding:12px 13px; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.45}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--paper-2)}
+  td.c{text-align:center; white-space:nowrap}
+
+  /* ---- status badges + priority chips ---- */
+  .b{display:inline-block; font-family:ui-monospace,Menlo,monospace; font-size:12px; font-weight:600;
+    padding:2px 8px; border-radius:5px; white-space:nowrap; border:1px solid transparent}
+  .ok{background:var(--green-bg); color:var(--green); border-color:var(--green-line)}
+  .pa{background:var(--amber-bg); color:var(--amber); border-color:var(--amber-line)}
+  .no{background:var(--gray-bg); color:var(--gray); border-color:var(--gray-line)}
+  .nx{background:var(--red-bg); color:var(--red); border-color:var(--red-line)}
+  .dev{background:var(--blue-bg); color:var(--blue); border-color:var(--blue-line)}
+  .prio{display:inline-block; font-family:ui-monospace,Menlo,monospace; font-size:11.5px; font-weight:700;
+    padding:2px 7px; border-radius:5px; border:1px solid transparent}
+  .p0{background:var(--red-bg); color:var(--red); border-color:var(--red-line)}
+  .p1{background:var(--amber-bg); color:var(--amber); border-color:var(--amber-line)}
+  .p2{background:var(--blue-bg); color:var(--blue); border-color:var(--blue-line)}
+  .p3{background:var(--gray-bg); color:var(--gray); border-color:var(--gray-line)}
+
+  /* ---- legend ---- */
+  .legend{display:flex; flex-wrap:wrap; gap:10px 18px; margin:12px 0 0; font-size:14px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .row-hint{font-size:14px; color:var(--muted); margin:8px 0 0; font-style:italic}
+
+  /* ---- provenance footer ---- */
+  details.prov{margin-top:60px; border-top:1px solid var(--line); padding-top:18px; font-size:14px; color:var(--muted)}
+  details.prov summary{cursor:pointer; font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--accent)}
+  details.prov p{margin-top:12px; line-height:1.6}
+  details.prov code{background:var(--paper)}
+  .src{font-family:ui-monospace,Menlo,monospace; font-size:13px}
+
+  /* ============================================================
+     GENERIC MODAL — reusable over N collections of clickable rows.
+     head (id-chip, title, counter, close) · body (lbl/val fields) ·
+     foot (prev/next). Driven by the JS at the bottom. Keep this block
+     and its JS together when you reuse it.
+     ============================================================ */
+  tbody tr.row-click{cursor:pointer}
+  tbody tr.row-click:hover{background:var(--hover)}
+  .modal-ov{position:fixed; inset:0; background:rgba(27,25,22,.52); backdrop-filter:blur(3px); display:none;
+    align-items:center; justify-content:center; padding:24px; z-index:50}
+  .modal-ov.open{display:flex}
+  .modal{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg);
+    max-width:min(960px,92vw); width:100%; max-height:88vh; display:flex; flex-direction:column;
+    box-shadow:var(--shadow-lg)}
+  .modal-head{display:flex; align-items:center; gap:14px; padding:18px 24px; border-bottom:1px solid var(--line)}
+  .modal-head .mid{font-family:ui-monospace,Menlo,monospace; font-weight:700; color:var(--accent);
+    font-size:15px; background:var(--accent-soft); padding:4px 10px; border-radius:var(--r-sm); border:1px solid var(--accent-line)}
+  .modal-head h3{margin:0; font-size:20px; flex:1; font-weight:600}
+  .modal-head .count{font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--muted); white-space:nowrap}
+  .modal-head .x{cursor:pointer; border:none; background:none; font-size:26px; color:var(--muted); line-height:1; padding:0 2px; border-radius:var(--r-sm)}
+  .modal-head .x:hover{color:var(--ink)}
+  .modal-body{padding:22px 24px; overflow:auto}
+  .mfield{margin:0 0 18px}
+  .mfield .lbl{font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+  .mfield .val{font-size:17px; line-height:1.55}
+  .accion-box{background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:var(--r);
+    padding:13px 16px; font-size:16px; line-height:1.5}
+  .modal-foot{display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:15px 24px; border-top:1px solid var(--line)}
+  .modal-foot button{font-family:inherit; font-size:15px; padding:9px 17px; border:1px solid var(--line);
+    background:var(--paper); border-radius:var(--r-sm); cursor:pointer; color:var(--ink);
+    transition:background .12s ease, border-color .12s ease, transform .06s ease}
+  .modal-foot button:hover:not(:disabled){background:var(--accent-soft); border-color:var(--accent)}
+  .modal-foot button:active:not(:disabled){transform:translateY(1px)}
+  .modal-foot button:disabled{opacity:.38; cursor:default}
+  .modal-foot .nav-hint{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--muted)}
+
+  /* ---- responsive collapse: single column, table -> stacked blocks ---- */
+  @media(max-width:720px){
+    body{font-size:16px}
+    .wrap{padding:36px 18px 64px}
+    h1{font-size:27px}
+    h2{font-size:22px}
+    .stat .n{font-size:32px}
+    .modal-foot .nav-hint{display:none}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    nav.toc ul{columns:1}
+    .card{grid-template-columns:1fr} .card .num{font-size:20px}
+    table{font-size:15px} thead{display:none}
+    tbody td{display:block; border-bottom:none; padding:3px 13px}
+    tbody tr{display:block; border-bottom:1px solid var(--line); padding:10px 0}
+    td.c{text-align:left; display:inline-block; padding-right:4px}
+    .rownum{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== MASTHEAD: kicker + h1 + TL;DR (accent border) + meta strip ===== -->
+  <header class="masthead">
+    <p class="kicker">Group · Project · Topic</p>
+    <h1>Report title that names the subject in plain language</h1>
+    <div class="tldr">
+      One-sentence <strong>bottom-line</strong> up top: the single most important
+      takeaway a reader should leave with, stated before any detail.
+    </div>
+    <div class="meta">
+      <span>Date 2026-01-01</span>
+      <span>Scope: N items</span>
+      <span>Source: where this came from</span>
+    </div>
+  </header>
+
+  <!-- ===== TABLE OF CONTENTS (include only when >5 sections) ===== -->
+  <nav class="toc">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#summary">1 · Executive summary</a></li>
+      <li><a href="#blockers">2 · Blockers &amp; risks</a></li>
+      <li><a href="#table">3 · Master table</a></li>
+      <li><a href="#method">4 · Method &amp; provenance</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== 1 · STAT STRIP: headline metrics, colored by state ===== -->
+  <h2 id="summary">1 · Executive summary</h2>
+  <div class="stats">
+    <div class="stat green"><div class="n">33</div><div class="l">Done / on track</div></div>
+    <div class="stat amber"><div class="n">1</div><div class="l">Partial / needs input</div></div>
+    <div class="stat blue"><div class="n">3</div><div class="l">In progress</div></div>
+    <div class="stat red"><div class="n">0</div><div class="l">Blocked / critical</div></div>
+  </div>
+  <p>
+    A short prose paragraph that frames the numbers. Like every element, it
+    runs the full width of the shell — no dead band to its right.
+  </p>
+
+  <!-- ===== 2 · ACCENT CARDS: blockers / risks (numbered) ===== -->
+  <h2 id="blockers">2 · Blockers &amp; risks</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="num">1</div>
+      <div>
+        <h4><span class="id">ID-1</span> — First blocker, named</h4>
+        <p>What it blocks and the one action that clears it. Reference code as
+          <code>path/to/file.ts:42</code> when useful.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="num">2</div>
+      <div>
+        <h4><span class="id">ID-2</span> — Second blocker</h4>
+        <p>Keep each card to a single concern. Adjust the accent family (red for
+          blockers, amber for risks) by swapping the card's tint variables.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3 · MASTER TABLE: clickable rows -> detail modal ===== -->
+  <h2 id="table">3 · Master table</h2>
+  <div class="legend">
+    <span><span class="b ok">OK</span> done</span>
+    <span><span class="b pa">~</span> partial</span>
+    <span><span class="b nx">NO</span> absent</span>
+    <span><span class="b dev">WIP</span> in progress</span>
+  </div>
+  <p class="row-hint">▸ Click any row for detail. Inside, navigate with ← → and close with Esc.</p>
+  <table id="master">
+    <thead>
+      <!-- First <th> pairs with the .rownum cell the JS prepends to each row. -->
+      <tr><th class="c">#</th><th>ID</th><th>Item</th><th class="c">Status</th><th>Note</th><th class="c">Prio</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="id">ID-1</span></td><td>First item</td>
+        <td class="c"><span class="b ok">OK</span></td><td>Short status note</td>
+        <td class="c"><span class="prio p1">P1</span></td>
+      </tr>
+      <tr>
+        <td><span class="id">ID-2</span></td><td>Second item</td>
+        <td class="c"><span class="b dev">WIP</span></td><td>Short status note</td>
+        <td class="c"><span class="prio p2">P2</span></td>
+      </tr>
+      <tr>
+        <td><span class="id">ID-3</span></td><td>Third item</td>
+        <td class="c"><span class="b nx">NO</span></td><td>Short status note</td>
+        <td class="c"><span class="prio p0">P0</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===== 4 · METHOD / SOURCES (prose) ===== -->
+  <h2 id="method">4 · Method &amp; provenance</h2>
+  <p>
+    How the report was produced and what to trust. Plain prose, full shell
+    width like everything else.
+  </p>
+
+  <!-- ===== PROVENANCE FOOTER: collapsible <details> ===== -->
+  <details class="prov">
+    <summary>Provenance</summary>
+    <p>
+      <strong>Generated:</strong> 2026-01-01 ·
+      <strong>Prompt:</strong> "truncated source prompt" ·
+      <strong>Files referenced:</strong> <code>path/to/source</code>
+    </p>
+  </details>
+
+</div>
+
+<!-- ===== GENERIC MODAL markup (shared by every collection) ===== -->
+<div class="modal-ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="mid" id="m-id">ID</span>
+      <h3 id="m-title">—</h3>
+      <span class="count" id="m-count"></span>
+      <button class="x" id="m-x" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+    <div class="modal-foot">
+      <button id="m-prev">← Prev</button>
+      <span class="nav-hint">← → to navigate · Esc to close</span>
+      <button id="m-next">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   REUSABLE MODAL ENGINE
+   - Holds one or more collections of items; each item = {id, title, body}.
+   - Rows wired with wire(el, coll, idx) become accessible buttons
+     (role=button, tabindex, Enter/Space) that open the modal at that item.
+   - Keyboard: ← → step within the open collection, Esc closes.
+   - Focus is restored to the originating row on close (a11y).
+   Replace DETAILS / the body builder with the report's real fields; the engine
+   below does not need to change.
+   ============================================================================ */
+
+// Per-item detail data, keyed by the row's ID. Adapt the fields to the report.
+const DETAILS = {
+  "ID-1": {t:"First item", status:"ok", note:"What this item is and where it stands.", action:"The next concrete action."},
+  "ID-2": {t:"Second item", status:"dev", note:"Status detail for the second item.", action:"The next concrete action."},
+  "ID-3": {t:"Third item", status:"nx", note:"Status detail for the third item.", action:"The next concrete action."}
+};
+const BADGE = {ok:{c:"ok",s:"OK"}, pa:{c:"pa",s:"~"}, nx:{c:"nx",s:"NO"}, dev:{c:"dev",s:"WIP"}};
+function badge(code){var b=BADGE[code]||BADGE.pa; return '<span class="b '+b.c+'">'+b.s+'</span>';}
+
+// Build one item's modal body from its data. This is the per-report part.
+function itemBody(id, d){
+  return ''
+    + '<div class="mfield"><div class="lbl">Status</div><div class="val">'+badge(d.status)+' &nbsp;'+d.note+'</div></div>'
+    + '<div class="mfield"><div class="lbl">Action / what is left</div><div class="accion-box">'+d.action+'</div></div>';
+}
+
+// ---- engine (generic; reuse as-is) ----
+const ov=document.getElementById("ov");
+const elId=document.getElementById("m-id"), elTitle=document.getElementById("m-title"),
+      elCount=document.getElementById("m-count"), elBody=document.getElementById("m-body"),
+      btnPrev=document.getElementById("m-prev"), btnNext=document.getElementById("m-next");
+// COLL maps a collection name -> array of {id,title,body}. Add more collections
+// (cards, phases, decisions) the same way; rows wired to each name navigate within it.
+const COLL = {points:[]};
+let curColl="points", curIdx=0, lastRow=null;
+
+function renderCur(){
+  var c=COLL[curColl], it=c[curIdx];
+  elId.textContent=it.id; elTitle.textContent=it.title; elCount.textContent=(curIdx+1)+" / "+c.length;
+  elBody.innerHTML=it.body; elBody.scrollTop=0;
+  btnPrev.disabled=curIdx===0; btnNext.disabled=curIdx===c.length-1;
+}
+function openItem(coll, idx, row){
+  curColl=coll; curIdx=idx; lastRow=row||null;
+  renderCur(); ov.classList.add("open"); document.body.style.overflow="hidden";
+}
+function closeModal(){
+  ov.classList.remove("open"); document.body.style.overflow="";
+  if(lastRow&&lastRow.focus) lastRow.focus();   // restore focus to the row (a11y)
+}
+btnPrev.addEventListener("click", function(){ if(curIdx>0){curIdx--; renderCur();} });
+btnNext.addEventListener("click", function(){ if(curIdx<COLL[curColl].length-1){curIdx++; renderCur();} });
+document.getElementById("m-x").addEventListener("click", closeModal);
+ov.addEventListener("click", function(e){ if(e.target===ov) closeModal(); });
+document.addEventListener("keydown", function(e){
+  if(!ov.classList.contains("open")) return;
+  if(e.key==="Escape") closeModal();
+  else if(e.key==="ArrowRight" && curIdx<COLL[curColl].length-1){ curIdx++; renderCur(); }
+  else if(e.key==="ArrowLeft" && curIdx>0){ curIdx--; renderCur(); }
+});
+function wire(el, coll, idx){
+  el.classList.add("row-click"); el.tabIndex=0; el.setAttribute("role","button");
+  el.addEventListener("click", function(){ openItem(coll, idx, el); });
+  el.addEventListener("keydown", function(e){
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openItem(coll, idx, el); }
+  });
+}
+
+// ---- wire the master-table rows into the "points" collection ----
+document.querySelectorAll("#master tbody tr").forEach(function(tr){
+  var idEl=tr.querySelector(".id"); if(!idEl) return;
+  var id=idEl.textContent.trim(); var d=DETAILS[id]; if(!d) return;
+  var idx=COLL.points.length;
+  COLL.points.push({id:id, title:d.t, body:itemBody(id, d)});
+  tr.insertAdjacentHTML("afterbegin", '<td class="rownum">'+(idx+1)+'</td>');
+  wire(tr, "points", idx);
+});
+</script>
+</body>
+</html>
