@@ -8,6 +8,8 @@ CLAUDE.local.md
 .firecrawl
 audit-coverage-gaps.html
 _support/workspace/
+# Large copyrighted reference binaries — distilled into global/rules/languages/ui-visual-design.md; reproducible, never committed
+_support/refactoring-ui/
 
 # Python bytecode
 __pycache__/

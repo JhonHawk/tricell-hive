@@ -55,6 +55,12 @@ flow BACK to specs — the mock never silently becomes the spec.
    (`<project>/_support/evidence/mock-review-<date>/`).
    Do not review from the main thread — the reviewer's fresh eyes on the running UI are
    the point of the gate.
+   **This review is mandatory and blocking: the mock does not close until every flow passes
+   both rubric axes (Flow + Visual craft).** A `blocker` finding, or an unresolved Visual-craft
+   fail (type scale, spacing, WCAG-AA contrast, action hierarchy, elevation, borders,
+   component simplicity), is **not a pass** — fix it (`mock-fix`) or route it (`spec-change`)
+   and re-walk the affected flow before closing. `friction`/`polish` findings may close with the
+   user's explicit acknowledgement, recorded in the report.
 3. Triage the findings with the user:
    - `mock-fix` → apply directly in the mocks repo (presentation only)
    - `spec-change` → **do not fix in the mock first**; record it and trigger

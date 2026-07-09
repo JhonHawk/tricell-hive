@@ -36,10 +36,10 @@ harness still gates their work.
    | `verified` | nothing pending — report and stop |
 
 3. **In-vivo timing — ask ONCE per session, before T1, only if the plan has ≥1 `in-vivo: yes`
-   task.** *Run the in-vivo walk inline (after each gated task) or defer all walks to `built`?*
-   The answer is a **session decision that persists** for the whole run — never re-asked per task,
-   even with 10 tasks — until the user changes it (the once-per-session pattern of
-   `git-workflow.md`). No in-vivo tasks → no question.
+   or `design-review: yes` task.** *Run the browser walk (in-vivo and/or design-review) inline
+   (after each gated task) or defer all walks to `built`?* The answer is a **session decision that
+   persists** for the whole run — never re-asked per task, even with 10 tasks — until the user
+   changes it (the once-per-session pattern of `git-workflow.md`). No such tasks → no question.
 
 ## Execute (`planned`/`building` → `built`)
 
@@ -91,11 +91,18 @@ the tasks not yet gated:
    `blocked` AC is not a pass** — unblock at the root (seed missing reference data, fix the
    precondition) and re-run; escalate only a genuinely external blocker as a ledger **Promotion
    prerequisite**, never closed as done.
-3. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
+3. **Design gate** for `design-review: yes` tasks (opt-in; user-facing UI tasks set the flag in the
+   plan, mirroring `in-vivo: yes`): dispatch **ux-flow-reviewer** against the running app on the
+   **Visual craft** rubric axis (`flow-mock/references/ux-rubric.md` #11–17; criteria
+   `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
+   hierarchy, elevation, borders restraint, component simplicity. Same evidence/report routing as
+   the in-vivo gate. **A craft `blocker` is not a pass** — fix at the root and re-walk; `friction`/
+   `polish` may pass with the user's recorded acknowledgement.
+4. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
    build per app** (`build` then `start`, never `next dev --turbopack`, never a monorepo-root
    start-all) — it validates the state QA receives. Stop any server this flow started (verify per
    port: `lsof -nP -iTCP:<port> -sTCP:LISTEN`, one port per call, stderr visible).
-4. **test-engineer** only if the goal includes a coverage push — specialists test their own code.
+5. **test-engineer** only if the goal includes a coverage push — specialists test their own code.
 - Gate passes → set `Status: verified`.
 
 ## CLOSE
