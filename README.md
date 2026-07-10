@@ -21,7 +21,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 ├── CLAUDE.md                        # Core config (always loaded)
 ├── rules/                           # Path-scoped and alwaysApply rules
 │   ├── quality/                     # Code principles (8 files)
-│   ├── languages/                   # Language/framework standards (10 files)
+│   ├── languages/                   # Language/framework standards (11 files, path-scoped)
 │   ├── workflow/                    # Git, deploys, structure, routing, naming (8 files)
 │   └── tools/                       # External tools & MCP protocols (1 file)
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)

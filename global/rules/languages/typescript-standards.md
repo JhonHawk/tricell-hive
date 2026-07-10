@@ -18,21 +18,17 @@ paths:
 - **Avoid barrels in feature code.** Do not create `index.ts` barrels inside feature folders — they slow incremental builds and hide imports. **Exception:** package public APIs (`packages/*/src/index.ts` in a monorepo) and external-facing entry points where a single import path is the contract.
 - Import order: external → internal → relative.
 - PascalCase: components, interfaces, types, classes. camelCase: variables, functions. SCREAMING_SNAKE_CASE: constants. kebab-case: files. Booleans: `is`/`has`/`can`/`should` prefix.
-- **Identifiers in English** — variable, function, type, and file names are always English even in Spanish-domain projects; only domain *values* (enum literals, status strings) may be Spanish. See `CLAUDE.md > Code Layer`.
 - JSDoc for public APIs; document "why", not "what".
 
 ### Linting & Formatting
-- **Always respect existing lint/format configs** (Biome/Ultracite, ESLint, Prettier). After completing an implementation, run lint and format **only on the files you modified** — never on the entire codebase.
-- **New projects: Ultracite (Biome engine) is the default setup** — `ultracite init --linter biome` + git hooks. Skip its agent-rules generation (agent config lives in the global hub); keep its `PostToolUse` fix hook. Repos needing custom lint rules use its ESLint mode or plain ESLint. Angular is the exception — see `angular-patterns.md > Tooling`.
-- **Migrating an existing ESLint+Prettier repo to Ultracite is opportunistic, never a campaign** — single format-only commit, listed in `.git-blame-ignore-revs`.
+- **Always respect existing lint/format configs** (Biome, ESLint, Prettier). After completing an implementation, run lint and format **only on the files you modified** — never on the entire codebase.
+- **New projects — the user's stack:** frontend repos use **Biome + ESLint**; backend repos use **ESLint + Prettier**. Never introduce a different lint/format tool (Ultracite or otherwise) without asking. Angular is the exception — see `angular-patterns.md > Tooling`.
 - **Existing projects:** if configs exist, run them on modified files after implementation. If configs are missing, ask the user whether to add them or skip.
 - **If the user chooses to skip:** document the decision in the project's `CLAUDE.md` (e.g., `## Constraints\n- ESLint/Prettier intentionally omitted`) so future sessions don't re-ask.
 
 ### Runtime Awareness
 - **Check the project's Node.js version** (`.nvmrc`, `engines` in `package.json`, or Dockerfile) before using modern syntax.
-- `?.` (optional chaining) and `??` (nullish coalescing) are ES2020 — they run natively on Node.js 14+ (V8 8.1); older runtimes need transpilation (TS/Babel down-level), so don't assume native support against older targets.
 - `Array.prototype.at()`, `structuredClone()`, `Object.groupBy()` — verify runtime support before using.
-- When in doubt, check compatibility against the project's target environment.
 
 ### Build & Compilation
 - **Keep the incremental build cache in sync with the output it describes.** With

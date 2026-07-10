@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.claude/hooks/pre-push-lint-reminder.sh\"",
+            "command": "$HOME/.claude/hooks/pre-push-lint-reminder.sh",
             "timeout": 10
           }
         ]

@@ -10,6 +10,7 @@
 - **Always ask before executing any destructive or hard-to-reverse action** — unless the user has already authorized it or a rollback path is known. This includes: dropping/truncating database tables, force-pushing, resetting git history, modifying production infrastructure, scaling/restarting services, changing DNS or security groups. If not pre-authorized, present what will happen, what could break, and how to revert before executing.
 - **Carve-out — non-production deploy operations:** a deploy/restart/scaling change on a non-prod environment with a documented rollback path, or a non-prod deploy executed under a declared flow skill or pipeline, is standing-authorized — declare it, don't ask. **Production always confirms.**
 - **Claude Code CLI commands and flags with broad blast radius** require the same per-invocation confirmation, including: `claude project purge [path]` (deletes all transcripts, tasks, file history, and config entries for a project — added in 2.1.126), and any use of `--dangerously-skip-permissions` (since 2.1.126 it bypasses writes to `.claude/`, `.git/`, `.vscode/`, and shell config files; catastrophic removal commands still prompt as a safety net). Never run these autonomously, even if the session is in autonomous commit mode — autonomous mode covers `commit` only, never destructive CLI operations.
+- **Explicitly-delegated unattended runs** ("tienes control total esta noche", "don't ask until I'm back") follow `rules/workflow/unattended-autonomy.md`: proceed-and-log on reversible in-scope work, identical absolute gates, gated decisions queued for review, all work on a dedicated reversible branch, run-bound expiry revoked by the user's first message.
 
 ## Execution
 - **Dev servers: start freely, never orphan.** Starting a local dev server for verification or manual UI checks needs no prior authorization. Declare it when started, and never leave a started server orphaned at end of turn — stop it when done, or ask whether to leave it running when the user is mid-verification.
@@ -34,6 +35,14 @@ uv venv .venv && source .venv/bin/activate && uv pip install reportlab
 uv tool install <package>
 ```
 - `uv` manages its own Python downloads; do not install Python via Homebrew or any other manager.
+
+## Shell (zsh on macOS)
+- The interactive shell is zsh on macOS — never assume bash semantics or GNU userland (BSD `sed -i ''`, `grep`, `awk` differ).
+- Unquoted `$var` does NOT word-split: pass file lists via `find -print0 | xargs -0` or arrays — never `cmd $list`.
+- Unmatched globs ERROR (`nomatch`): use `find` for cleanups, or guard the glob.
+- Never unquoted `=word`/`===` as separators or arguments (zsh `=cmd` expansion).
+- Complex quoting or multiline text → a `python3` heredoc, not heroic shell escaping.
+- After a state-mutating one-liner, verify the post-state — never trust the success banner (a zsh pipeline can exit 0 having silently no-oped).
 
 ## Spanish
 - **Orthography is mandatory.** Always include proper accents (á, é, í, ó, ú, ñ, ü) in user-facing strings, error messages, labels, and comments written in Spanish. Common mistakes to avoid: `reservacion` → `reservación`, `vehiculo` → `vehículo`, `sesion` → `sesión`, `informacion` → `información`, `numero` → `número`.
@@ -82,6 +91,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 
 ### Communication
 - **Exploratory questions get prose first.** When the user asks "how should we...", "what could we do about...", "what do you think?" — respond with a 2-3 sentence recommendation and the main tradeoff, presented as something the user can redirect, not a decided plan. Only escalate to `AskUserQuestion` if the user signals they want to commit ("let me decide", "give me options"), or the question blocks work until answered.
+- **Mid-discussion agreement is not implementation authorization.** In an exploratory conversation (the user asking "¿podemos…?", reacting to an assessment), an "ok"/"sí, pero…" followed by a consideration is design feedback — incorporate it and re-present, don't build. Implement only on an explicit verb ("hazlo", "implementa", "aplica", "procede") or an approved plan; unsure which mode the conversation is in → ask "¿lo aplico?". The bias-for-action duty (`development-principles.md > Calibrate autonomy`) operates *within* an authorized task, never as license to exit a design conversation into implementation.
 - **Use `AskUserQuestion`** for decisions that need an answer now (2+ discrete options, work blocked until decided). Never present those decisions as plain numbered text.
 - **Never dump 10 options.** Narrow to 2-3 curated recommendations with a clear opinion on which is preferred and why.
 - **Always mark the recommended option.** Whenever an `AskUserQuestion` call has a preferred choice, make it the FIRST option and suffix its label with `(Recomendado)` — `(Recommended)` only when the question itself is in English. This is mandatory, not optional: a question without a flagged recommendation is only acceptable when the options are genuinely equivalent and you hold no opinion. State the recommendation in the label, not just the description.
@@ -114,11 +124,20 @@ Keep the main thread focused: delegate executable work, reason in the main threa
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
 - **Default to subagents; escalate only on a clear signal.** Agent Teams when the work needs persistent parallel workers or the user asks; the Workflow tool only on explicit opt-in — never on inferred intent. The opt-in list, disambiguation, and the `agentType` rule: `rules/workflow/agent-routing.md > Workflow Tool vs Subagents vs Agent Teams`.
 
+<!-- CODEGRAPH_START -->
 ## CodeGraph
 
-In repositories indexed by CodeGraph (a `.codegraph/` directory at or above the path), reach for it when the answer needs relations or multi-file context — understanding a surface before editing, call paths, consumers, tests affected, or blast radius. The payoff is measured in round-trips, not milliseconds (raw speed vs `rg` is a practical tie): one `codegraph_explore` call replaces the multi-turn grep→Read loop it would take to assemble the same picture, with the source already included. A one-shot question a single grep or Read answers does NOT earn it — use whichever is at hand. No `.codegraph/` → skip it; indexing is the user's decision.
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
 
-- **`codegraph_explore` (MCP) is the default** — relevant symbols' line-numbered source plus the call paths between them in one call, including dynamic-dispatch hops grep can't follow. Treat the returned source as already Read. Bonus signal: it marks affected symbols with no covering tests — a coverage-gap read grep never gives. Multi-repo workspace: pass `projectPath` to the child repo (the root has no index). Load it by name via tool search if deferred.
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+<!-- CODEGRAPH_END -->
+
+The managed block above is owned by `codegraph install` (markers kept so upgrades report "Unchanged" instead of appending a duplicate). Hive specifics on top of it:
+
+- **Earn it by shape:** the payoff is round-trips — relations or multi-file context in one call. A one-shot question a single grep or Read answers does NOT earn it. Bonus signal from `codegraph_explore`: it marks affected symbols with no covering tests. Multi-repo workspace: pass `projectPath` to the child repo (the root has no index).
 - **Specialized CLI commands when you already know the target** (shell only — not exposed as MCP): `codegraph query <name>` to locate a symbol, `node <name>` to read one symbol's source + caller/callee trail, `callers`/`callees <symbol>` for direct relations, `impact <symbol>` for blast radius before touching shared UI/services, `affected --stdin --depth 2 --json` to pick the tests a changed file hits (feeds the `testing.md > Execution Scope` test selection), `files --filter <dir>` for an indexed-area inventory (no positional args). Multi-repo workspace: query commands take `-p <repo>`; maintenance commands (`index`, `sync`, `status`) take the path positionally instead (`codegraph status <repo>`) — no `--path` there.
 - **`rg` still wins on literal, exhaustive textual work** — confirming a string exists, counting usages, full-coverage audits. The split is *coverage, not speed*: warm MCP latency ≈ `rg`. CodeGraph for relevance and relations; `rg` for exact text and total coverage. Unknown-name bug: CodeGraph to orient, then `rg` to confirm the pattern.
 - **Name exact symbols/files when you know them** — a broad query can return the high-level caller instead of the detail you meant; duplicate names → disambiguate with a file-specific query or `node -f`.

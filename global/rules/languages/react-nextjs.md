@@ -22,7 +22,7 @@ paths:
 
 ### Data Fetching & Caching
 - **Server Components fetch directly** — no client-side fetching library needed. Fetch is auto-memoized within a render pass.
-- **Cache strategies**: `cache: 'force-cache'` (static), `cache: 'no-store'` (always fresh), `next: { revalidate: N }` (ISR).
+- **Cache strategies**: since Next 15, bare `fetch` is NOT persistently cached by default — `cache: 'force-cache'` opts in (static), `cache: 'no-store'` forces fresh, `next: { revalidate: N }` is ISR.
 - **Tag-based revalidation**: Tag fetches with `next: { tags: ['resource'] }`, invalidate with `revalidateTag()` or `revalidatePath()`. **Always revalidate after mutations** — forgetting this is a top community-reported mistake.
 
 ### Streaming & Suspense
@@ -39,7 +39,7 @@ paths:
 - **Default for new projects**: Next.js 16 (current stable). React 19+ is the minimum since v15. Treat v15 as legacy-acceptable only for existing codebases mid-migration; do not start new projects on v15.
 - **Async route props**: `params` and `searchParams` are Promises (since v15). On v16, prefer the typed helper `PageProps<'/route/[slug]'>` (run `next typegen` to generate). Fall back to manual `await` (Server Components) or `use()` (Client Components) when the helper is not yet generated.
 - **Turbopack is default in v16** and configured at the top level of `next.config.ts` as `turbopack: { ... }`. The `experimental.turbopack` location was removed — do not introduce it in new configs and migrate it on touch.
-- **`next dev --turbopack` spawns one `node/postcss.js` worker per CSS module and does not cap them.** Component-heavy CSS (a full UI kit like HeroUI + Tailwind v4) reaches hundreds of persistent worker processes; several dev servers at once (a monorepo-root `dev` that starts every app) multiplies it into an OOM that can panic the machine. The runaway is **dev-only** — `next build` pools the workers (caps at ~tens), `next start` runs zero. For any visual or in-vivo validation, serve a production build (`build` then `start`), per-app — never `dev`. Reserve `dev`/HMR for active iteration, one app at a time, and prefer dropping `--turbopack` if it recurs.
+- **`next dev --turbopack` worker runaway can OOM the machine** — dev-only; serve visual/in-vivo checks from a production build, one app at a time (full mechanics: global `Execution` rule).
 - **`useActionState`** for form state with server validation — replaces manual `useState` + `useTransition` for forms.
 - **`useOptimistic`** for optimistic UI updates while Server Actions complete.
 - **Verify version-specific APIs against context7 before implementing** — `tools/context7.md` mandates this for any Next.js feature tied to a major version.

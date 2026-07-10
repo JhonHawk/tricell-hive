@@ -36,7 +36,7 @@ Memory drifts when a fact becomes false and the old record survives — "correct
 
 ### Tracker sync (governed by project declaration)
 
-Reconciliation uses an issue tracker (Linear, Jira, Monday, GitHub Issues) only when the project DECLARES one — in its `AGENTS.md`/`CLAUDE.md` or the ledger's `Tracker` field; the declaration IS the standing read authorization, no per-run request. A merely *detectable* tracker (ticket keys like `PROJ-229`, a connected MCP) is not consulted on sight — `/memory-sync audit` flags it and proposes adding the declaration. No declared tracker → local sources only (git/disk, ledger, Engram, native).
+Reconciliation uses an issue tracker (Linear, Jira, Monday, GitHub Issues) only when the project DECLARES one — in its `AGENTS.md`/`CLAUDE.md` or the ledger's `Tracker` field; the declaration IS the standing read authorization, no per-run request. A merely *detectable* tracker (ticket keys like `TRI-229`, a connected MCP) is not consulted on sight — `/memory-sync audit` flags it and proposes adding the declaration. No declared tracker → local sources only (git/disk, ledger, Engram, native).
 
 - A declared tracker ranks alongside the ledger and above memory — authoritative for tracking state, but a status *record*, not the live system: if it says done while git/disk disagrees, live state wins and the ticket is what to correct.
 - **Writes are outward-facing — batch them.** Collect every proposed ticket update/close into the session-close confirmation: one approval covers the batch, never per-ticket asks mid-run. Standing write authorization only when the project's config/flow declares it. Use the tracker's MCP/CLI (Linear MCP, `acli` for Jira) via tool-search.

@@ -37,7 +37,7 @@ truth`) — a memory is a claim verified *against* these, never trusted *over* t
 - **Engram project:** `mem_current_project`, or `.engram/config.json` → `project_name` (multi-repo workspace → the unified `<group>-<project>`). Ambiguous → ask, never guess (`memory-routing.md > Workspace project identity`).
 - **Native memory dir:** `~/.claude/projects/<slug>/memory/`, `<slug>` = workspace absolute path with `/` → `-`.
 - **Ledger:** `<workspace>/_support/PROJECT.md` (absent in non-flow projects → ground truth is live state only).
-- **Task tracker:** check whether the project *declares* one — in its `AGENTS.md`/`CLAUDE.md` or the ledger's `Tracker` field. Declared → reconcile uses it without asking each run. In use but **undeclared** (signals: ticket keys in commits/branches like `BILL-48`/`PROJ-229`, a connected tracker MCP) → flag it in `audit` and propose adding the declaration to the project's `AGENTS.md`/`CLAUDE.md` (confirm before writing); once declared, later runs use it automatically — no per-run request. No tracker → skip.
+- **Task tracker:** check whether the project *declares* one — in its `AGENTS.md`/`CLAUDE.md` or the ledger's `Tracker` field. Declared → reconcile uses it without asking each run. In use but **undeclared** (signals: ticket keys in commits/branches like `FAC-48`/`TRI-229`, a connected tracker MCP) → flag it in `audit` and propose adding the declaration to the project's `AGENTS.md`/`CLAUDE.md` (confirm before writing); once declared, later runs use it automatically — no per-run request. No tracker → skip.
 - **Preflight tools:** Engram lifecycle tools are deferred — load before first use: `ToolSearch("select:mem_update,mem_compare,mem_delete,mem_review")`. (`mem_context`/`mem_search` are core.)
 
 ## `audit`

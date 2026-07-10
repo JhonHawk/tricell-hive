@@ -67,7 +67,7 @@ is only steps 1–2.
    - **Existing path** → a folder is the epic; a file inside it (`PRODUCT.md`/`TECH.md`/
      `tasks.md`) resolves to its containing folder.
    - **Not a path → treat as identifier**: match against `<project>-specs/epics/` by
-     ID prefix (`E07`, `PROJ-360`) or slug (`mensajeria`), case-insensitive and partial.
+     ID prefix (`E07`, `TRI-360`) or slug (`mensajeria`), case-insensitive and partial.
      One match → use it; several → AskUserQuestion with the candidates; none → stop with
      the available epics listed from the README index.
    - **No argument** → show the epics index and ask which to review; do not guess.

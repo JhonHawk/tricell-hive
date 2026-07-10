@@ -30,4 +30,4 @@ paths:
 - **Minimal permissions.** Always declare `permissions:` at workflow or job level. Default to `contents: read`.
 - **Cache dependencies** with `actions/cache` or built-in caching (setup-node, setup-python). Key on lockfile hash.
 - **`fail-fast: false`** in matrices only when you need all results. Default `fail-fast: true` is correct for most CI.
-- **Secrets via `${{ secrets.X }}`** — never hardcoded, never echoed, never passed as CLI args visible in logs.
+- **Secrets: never echoed and never passed as CLI args visible in logs** — env-var or secret-manager injection only.

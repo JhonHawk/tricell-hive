@@ -1,0 +1,16 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). Kept as reference and as a manual fallback if that merge fails. UserPromptSubmit has no matcher; the script gates itself on permission_mode == \"plan\" AND a flow-workspace ledger, firing at most once per session.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/flow-plan-injector.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

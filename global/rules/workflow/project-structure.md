@@ -55,6 +55,8 @@ No specs repo yet (pre-F3, or outside the flow pack) → durable material may li
 
 A **session** is one unit of real execution (dev session, sprint close, analysis pass) — distinct from the **intention** layer (business rules and prior analysis: `decisions/`, `contracts/`, `epics/`, `conventions/`). Two axes that reference each other, never duplicate:
 
+**Trigger — durable output on explicit signal, not flow membership.** A session folder is created or reused when execution produces a durable artifact on an **explicit signal**: the user asked for the analysis/report, or asks to keep a conclusion. `flow-plan`/`flow-build` create it as part of F6, and on Claude Code an approved native plan-mode plan in a flow workspace is captured automatically (`flow-plan-capture` hook) unless the plan carries `Session: no`. Without an explicit signal, OFFER the artifact — don't write it. Boundary vs memory (`memory-routing.md`): `findings.md` is for conclusions a later session re-reads, with an Engram observation pointing at it; a conversational discovery goes to Engram alone. Trivial work with no durable artifact creates no session folder.
+
 - **Execution (by time)** → `sessions/YYYY-MM-DD-<slug>/` — `<slug>-plan.md`, `<slug>-findings.md`, optional `analysis/`, `reports/`. Versioned; mutable during the session, immutable once concluded — a later correction supersedes with a new linked record, never an in-place edit.
 - **Intention (by type)** → the durable by-type homes. Execution updates intention; it never replaces it. **Plans are execution:** a task-by-task implementation plan (the HOW) is a session's `plan.md`; a decision/ADR/design-spec (the WHAT and WHY) is intention. Classify by content, not filename.
 
@@ -81,15 +83,15 @@ A **session** is one unit of real execution (dev session, sprint close, analysis
 Applies to generated artifacts under `_support/workspace|evidence|archive|plan` — not to `src/` (the framework owns it) or versioned specs (own convention).
 
 **Naming — order elements by primary retrieval axis, most significant first.**
-- ISO dates `YYYY-MM-DD`, zero-padded — only then lexicographic = chronological. Chronology-primary artifacts (snapshots, dated reports) → date prefix (`2026-06-19-payment-audit`); subject-primary → subject first, date second (`payment-audit-2026-06-19`).
+- ISO dates `YYYY-MM-DD`, zero-padded — only then lexicographic = chronological. **Dated folders are ALWAYS date-first** (`2026-06-19-payment-audit/`) — one format across sessions, evidence, workspace runs, and archive: listings sort chronologically and cleanup ("purge everything before X") stays one glob; never `<slug>-YYYY-MM-DD/` for a folder. Loose files order by primary retrieval axis: chronology-primary → date prefix; subject-primary → subject first, date second (`in-vivo-fac-6-2026-07-01.md`).
 - A date marks a point-in-time snapshot: immutable artifacts carry one; living documents edited in place do NOT.
 - Intention-revealing names; never generic (`report`, `output`, `data`, `temp`, `analysis`).
 
-**Grouping — one deliverable, one folder; atomic artifact, loose file.** 2+ files forming a single deliverable → folder `{slug}-YYYY-MM-DD/`, internal files unprefixed (the folder carries the date). A self-sufficient single artifact → loose file. The conceptual unit decides, not the file count.
+**Grouping — one deliverable, one folder; atomic artifact, loose file.** 2+ files forming a single deliverable → folder `YYYY-MM-DD-{slug}/`, internal files unprefixed (the folder carries the date). A self-sufficient single artifact → loose file. The conceptual unit decides, not the file count.
 
 **Retention — reproducible-from-source ⇒ ephemeral; non-reproducible ⇒ durable.**
-- Raw run output (screenshot dumps, logs, intermediate dumps, build output) → `_support/workspace/<run-slug>/`, gitignored, purged at task close. Never committed.
-- Durable evidence is the curated subset only → `_support/evidence/<slug>-YYYY-MM-DD/`; curation at close is an explicit appraisal step — keep what documents an AC or bug, purge the rest.
+- Raw run output (screenshot dumps, logs, intermediate dumps, build output) → `_support/workspace/YYYY-MM-DD-<run-slug>/`, gitignored, purged at task close. Never committed.
+- Durable evidence is the curated subset only → `_support/evidence/YYYY-MM-DD-<slug>/`; curation at close is an explicit appraisal step — keep what documents an AC or bug, purge the rest.
 - **Retained raster evidence → WebP lossless** (`cwebp -lossless <in> -o <out>.webp`): bit-exact, ~−75% on UI screenshots, renders natively in browsers and GitHub. Update report paths (`.png`→`.webp`) in the same step. Don't rewrite git history to shrink already-committed rasters.
 
 **What gets versioned — text-that-interprets vs binary, NOT "is it evidence".** Retained ≠ versioned.

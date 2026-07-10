@@ -8,6 +8,7 @@ Generates (delete-and-recreate, never incremental):
     harness/agents-skills/        <- global/skills   (cleaned universal skills)
     harness/codex/agents/         <- global/agents   (Codex TOML subagents)
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
+    harness/opencode/rules/       <- global/rules/languages (opencode-rules plugin format)
 
 Hand-written sources are never touched: harness/AGENTS.md, harness/codex/{README,
 *.snippet}, harness/opencode/{README, *.snippet, commands/}.
@@ -15,6 +16,7 @@ Hand-written sources are never touched: harness/AGENTS.md, harness/codex/{README
 Run this after ANY edit to global/agents or global/skills, before committing —
 /deploy-global also runs it and flags a dirty harness/ as a missed rebuild.
 """
+import re
 import shutil
 import subprocess
 import sys
@@ -102,6 +104,28 @@ def main():
             for f in sorted((Path(tmp) / src_name).iterdir()):
                 shutil.copy2(f, dst / f.name)
             (dst / "README.md").write_text(GENERATED_README, encoding="utf-8")
+
+    # Path-scoped language rules -> opencode-rules plugin format
+    rules_out = ROOT / "harness" / "opencode" / "rules"
+    regen_dir(rules_out)
+    subprocess.run(
+        [sys.executable, str(BUILD / "convert-rules.py"),
+         str(ROOT / "global" / "rules" / "languages"), str(rules_out)],
+        check=True,
+    )
+    (rules_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
+
+    # language-rules router skill (Codex leg): inject the canonical rule files as
+    # frontmatter-stripped references so the skill body's routing table resolves.
+    lang_refs = skills_out / "language-rules" / "references"
+    lang_refs.mkdir(parents=True, exist_ok=True)
+    injected = 0
+    for rule in sorted((ROOT / "global" / "rules" / "languages").glob("*.md")):
+        text = rule.read_text(encoding="utf-8")
+        m = re.match(r"^---\n.*?\n---\n?", text, re.S)
+        (lang_refs / rule.name).write_text(text[m.end():] if m else text, encoding="utf-8")
+        injected += 1
+    print(f"injected {injected} language-rule references -> {lang_refs}")
 
     check_agents_size()
 

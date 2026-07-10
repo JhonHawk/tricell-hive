@@ -9,8 +9,7 @@ paths:
 - **Format with Spotless** (Gradle/Maven plugin, Java + Kotlin). Kotlin adds **ktlint** for style (standalone or via Spotless) and **detekt** for static analysis. Prefer these over Checkstyle/PMD in new setups.
 
 ### Framework Preferences (Spring Boot 3.x)
-- Records, sealed classes, pattern matching. Constructor injection.
-- DTOs for API responses; never expose entities.
+- DTOs for API responses — Java `record`, Kotlin `data class`, no mutable POJOs; never expose entities.
 - **`@HttpExchange`** for declarative REST clients (Spring 6+). Prefer over RestTemplate and `@FeignClient`. For programmatic clients, `RestClient` (Spring 6.1+) is the replacement for `RestTemplate`, which is on a deprecation path (reference docs mark it deprecated as of 7.0; `@Deprecated` annotation in 7.1, removal in 8.0).
 - **`@Transactional` lives at the service boundary**, not on repositories. Repositories run inside the transaction the service opens. Avoid `@Transactional` on controllers — they shouldn't own transaction lifetime.
 - **`@ConfigurationProperties` over scattered `@Value`** for env-driven config. Bind a typed record once; inject the record, not individual values.
@@ -23,6 +22,5 @@ paths:
 
 ### Language-Specific Patterns
 - **Never return `null` from public methods.** Use `Optional<T>` in Java, `T?` with safe calls in Kotlin.
-- **Use records/data classes for DTOs.** Java: `record UserDto(String name) {}`. Kotlin: `data class UserDto(val name: String)`. No mutable POJOs with getter/setter boilerplate.
 - **`Optional` is for return types only.** Never use as method parameter. Consume with `.map()`, `.orElseThrow()`, `.ifPresent()`. Never `.get()` without checking.
 - **Wrap checked exceptions at domain boundary.** Don't let `SQLException` propagate to controllers. Catch in infra layer, re-throw as unchecked domain exceptions.

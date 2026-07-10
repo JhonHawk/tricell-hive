@@ -8,7 +8,7 @@ paths:
 
 > **Apply proportionally.** Scripts >20 lines OR persistent (committed beyond the current session, deployed to CI/production, or shared with others) follow all rules. Ephemeral session scripts under `_support/scripts/` need only `set -euo pipefail` plus quoted variables — the rest is overkill for code that gets deleted today.
 
-- **Shebang:** `#!/usr/bin/env bash` — resolves bash via `$PATH`, portable to systems where bash lives outside `/bin` (BSD, Nix). Tradeoff: the first bash in `$PATH` wins, so a non-default version can be picked up. (The Google Shell Style Guide mandates `#!/bin/bash` instead — a deliberate trade of PATH-portability for a fixed interpreter, not an oversight.)
+- **Shebang:** `#!/usr/bin/env bash`.
 - **`set -euo pipefail`** at the top of every non-trivial script. Fail on errors (`-e`), undefined variables (`-u`), and pipe failures (`-o pipefail`).
 - **Quote all variables:** `"$var"` not `$var`. Unquoted variables cause word splitting and glob expansion bugs.
 - **`[[ ]]` over `[ ]`** for conditionals — supports regex, no word splitting, and safe with empty strings.

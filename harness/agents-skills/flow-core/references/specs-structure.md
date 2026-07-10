@@ -26,7 +26,7 @@ they stay verifiable against the codebase.
 │   └── <epic-id>/            # in-vivo reports (test-report-template.md), text-only — no images; raw stays in _support/
 ├── releases/                # Client-facing release notes per promotion (release-notes-template.md): YYYY-MM-DD-<env>.md
 ├── epics/
-│   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or PROJ-360-cicd
+│   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd
 │       ├── PRODUCT.md        # What and why — written at F3, gate: /flow-specs review
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task

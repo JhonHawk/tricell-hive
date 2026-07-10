@@ -12,7 +12,7 @@ paths:
 ## Angular
 
 ### Tooling
-- **Lint with `angular-eslint`, including template linting** (`@angular-eslint/template-parser` over `*.component.html`). Do not adopt Ultracite/Biome in Angular repos — neither engine lints Angular templates.
+- **Lint with `angular-eslint`, including template linting** (`@angular-eslint/template-parser` over `*.component.html`). Do not adopt Biome in Angular repos — it does not lint Angular templates.
 
 ### Version Detection (FIRST STEP — NON-NEGOTIABLE)
 - **Check `package.json` → `@angular/core` BEFORE generating any code.** Angular guidance in this repo is version-banded, not one-size-fits-all.

@@ -10,7 +10,15 @@ description: >
 # /flow-plan — research and write the plan
 
 Follow the flow contract (`~/.agents/skills/flow-core/SKILL.md`). This skill is the *thinking*
-half of F6: it explores and plans, it never executes — execution is `/flow-build`. It produces
+half of F6: it explores and plans, it never executes — execution is `/flow-build`.
+
+**Positioning — the formal/epic track.** The organic path produces the same artifact: a
+native plan-mode plan approved in a flow workspace is captured to
+`sessions/YYYY-MM-DD-<slug>/<slug>-plan.md` (on Claude Code via the `flow-plan-capture`
+hook; on other harnesses per the workspace conventions) and `/flow-build` adopts it
+directly. Invoke `/flow-plan` when the work warrants the full formal pass — epic-scoped
+research findings, preflight verification, and a plan born with reconciler metadata —
+not as a prerequisite for every session. It produces
 durable artifacts (`<slug>-findings.md`, `<slug>-plan.md`) that a *different harness* may pick
 up cold, so everything it writes is self-contained.
 
@@ -94,7 +102,8 @@ Crystallizes findings + spec into a plan another harness executes. The plan is t
      ExitPlanMode; do not duplicate it as a summary.
    - **Any other mode**: present the plan FIRST (tasks, preflight `ok`/`missing`, integration
      semantics), then gate with the structured-question mechanic.
-7. **CLOSE**: update the ledger handoff (plan path, next phase). **Suggest the next steps
-   explicitly** — the exact `/flow-build` invocation and the plan path, plus the model/harness
-   recommendation (capable model for review; a cheaper harness MAY run the build) framed as a
-   cost choice, not a requirement. List any unresolved Preflight asks the user must clear first.
+7. **CLOSE**: update the ledger handoff (plan path, next phase). **Offer the next step
+   explicitly** — the exact `/flow-build` invocation and the plan path, phrased as an offer to
+   run it now, plus the model/harness recommendation (capable model for review; a cheaper harness
+   MAY run the build) framed as a cost choice, not a requirement. Unresolved Preflight asks the
+   user must clear are the only user to-dos — list them with why they are the user's.

@@ -22,9 +22,23 @@ harness still gates their work.
 
 ## OPEN — reconcile
 
-1. Read `<project>/_support/PROJECT.md` (missing → suggest `/flow-kickoff`, stop) and the plan
-   or part at `$ARGUMENTS` (a part file inside an initiative's `plan/`, or a single `<slug>-plan.md`).
-2. Read the plan's `Status` and `git log` (grep the task IDs `T<n>`). Determine the pending state:
+1. Read `<project>/_support/PROJECT.md` (missing → suggest `/flow-kickoff`, stop) and resolve
+   the plan: the path at `$ARGUMENTS` (a part file inside an initiative's `plan/`, or a single
+   `<slug>-plan.md`); **zero-arg → discover** the current session plan — the ledger's
+   `## Current handoff` plan pointer, else the newest `sessions/*/*-plan.md` with `Status:
+   planned|building`. Nothing found → report that and stop (plan mode or `/flow-plan` produce
+   one; a manually placed plan file works too).
+2. **ADOPT — organic plans.** A captured plan-mode plan carries no reconciler metadata; adopt
+   it **additively** (never rewrite the approved content): derive `T<n>` task boundaries from
+   its steps, add `Verify:`/expected-output per task where the plan implies them, and the
+   `Commit:` tags. If adoption introduces **integration semantics the approved plan did not
+   carry** (branching model, PR/merge flow, CI gates), that delta folds into this run's
+   question block as a confirmation — the user approved a plan without those semantics, so
+   they are asked, not assumed. Write the adopted metadata back to the plan file.
+3. Read the plan's `Status` and `git log` (grep the task IDs `T<n>`). **Status is a claim,
+   git is ground truth** — organic commits may carry no `T<n>` tags: when tags are absent,
+   match tasks against the actual log/diff (files touched) before deciding anything landed.
+   Determine the pending state:
 
    | `Status` + git | Do |
    |---|---|
@@ -33,7 +47,7 @@ harness still gates their work.
    | `built` | run the gate (below) |
    | `verified` | nothing pending — report and stop |
 
-3. **In-vivo timing — infer, never ask** (relevant only when the plan has ≥1 `in-vivo: yes`
+4. **In-vivo timing — infer, never ask** (relevant only when the plan has ≥1 `in-vivo: yes`
    or `design-review: yes` task; none → nothing to decide). Default: **defer all browser
    walks to `built`** — walks amortize over the change-group (`testing.md > Execution
    Scope`). Go **inline** (walk after each gated task) only on signal: multiple independent
@@ -119,4 +133,5 @@ the tasks not yet gated:
 5. **Report** — tasks done vs pending, merges (PR#, CI results), what was verified (paths) vs
    not, servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
    a pending list; promotion is never the suggested next work — if integration is ahead of `qa`,
-   close with a one-line pointer to `/flow-deploy qa`.
+   close with a one-line offer to run `/flow-deploy qa` now (the user decides; never expand its
+   plan, never list it as a user to-do).

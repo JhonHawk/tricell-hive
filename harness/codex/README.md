@@ -12,7 +12,7 @@ semantics travel with the skill.
 | Skills + rubrics | `global/skills/` | `~/.agents/skills/` | `/deploy-global` (copy) |
 | Subagents | `harness/codex/agents/` (generated, versioned) | `~/.codex/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit |
 | Config additions | `config.toml.snippet` | merge into `~/.codex/config.toml` | Manual, once |
-| Engram memory protocol | `engram-memory-tail.md` | appended to `~/.codex/AGENTS.md` | `/deploy-global` (cat after the shared AGENTS.md) |
+| Engram memory protocol | Engram Codex plugin (`engram@engram`, bundled hooks) | plugin cache under `~/.codex/plugins/` | Engram's own plugin channel — nothing to deploy from the hub |
 
 ## One-time setup
 
@@ -20,21 +20,19 @@ semantics travel with the skill.
    limits).
 2. Run `/deploy-global` from the hub; start a fresh Codex session.
 
-## Engram memory — DO NOT run `engram setup` for Codex
+## Engram memory — plugin-injected; DO NOT run `engram setup` for Codex
 
-Engram reaches Codex as the `engram-memory-tail.md` section of `~/.codex/AGENTS.md`
-(deployed by `/deploy-global`). This is additive (preserves Codex's base prompt) and
-invisible in the TUI — unlike a SessionStart hook, which renders its injected block
-on screen every session.
+The Engram protocol reaches Codex through the **Engram Codex plugin** (bundled hooks:
+SessionStart injects the protocol + live memory context and recovers after compaction;
+UserPromptSubmit forces the MCP ToolSearch; Stop/SubagentStop close sessions). The former
+`engram-memory-tail.md` appended to `~/.codex/AGENTS.md` duplicated this and was removed
+2026-07-10 — history preserves it if the plugin ever goes away.
 
-`engram setup` (option 5, Codex) **breaks this**: it rewrites `~/.codex/engram-instructions.md`
-to a verbose 90-line protocol AND re-adds `model_instructions_file = .../engram-instructions.md`
-to `config.toml`, which **replaces** Codex's base system prompt (verified in codex-rs). The
-Engram MCP server (the tools) is registered separately and does NOT need `engram setup`.
-
-If `engram setup` Codex ever runs again: remove the `model_instructions_file` line from
-`config.toml`, then re-run `/deploy-global` to restore the AGENTS.md tail. Check with:
-`grep -n model_instructions_file ~/.codex/config.toml` (should return nothing).
+`engram setup` (option 5, Codex) is still harmful: it rewrites `~/.codex/engram-instructions.md`
+AND re-adds `model_instructions_file = .../engram-instructions.md` to `config.toml`, which
+**replaces** Codex's base system prompt (verified in codex-rs). The plugin makes it
+unnecessary. If it ever runs: remove the `model_instructions_file` line from `config.toml`.
+Check with: `grep -n model_instructions_file ~/.codex/config.toml` (should return nothing).
 
 ## Behavioral notes (from harness-mechanics.md)
 

@@ -24,10 +24,14 @@ after which any phase gate (`/flow-plan`, `/flow-build`, `/flow-deploy`) works n
 It also audits **session conformance** (`project-structure.md > Session capture layer`):
 loose artifacts that belong grouped in a session (`move`), unpromoted session decisions
 (`promote`), stale concluded sessions and raw committed by mistake (`expire`), non-ISO
-session folders and broken `Session:` back-references (`conform`/`repair`), and
-**same-tier duplicate folders** (several `evidence`/`reports`/`spec`) to consolidate
-(`move`) — always preserving the raw(`_support`, gitignored) / curated(specs, versioned)
-split. An **initiative** folder (`specs-structure.md > Session & initiative conventions`)
+session folders and broken `Session:` back-references (`conform`/`repair`),
+**uncommitted session artifacts** in a versioned home — captured plans, findings, or
+reports sitting untracked (`commit`, the standing-authorized `chore(sessions): <slug>`;
+backstop of the capture flow) — plus **stale captured plans** (`Status: planned` older
+than ~2 weeks with no matching execution: recommend adopt via `/flow-build`, conclude, or
+expire), and **same-tier duplicate folders** (several `evidence`/`reports`/`spec`) to
+consolidate (`move`) — always preserving the raw(`_support`, gitignored) /
+curated(specs, versioned) split. An **initiative** folder (`specs-structure.md > Session & initiative conventions`)
 is legitimate structure — never flag its nested executions as loose; conversely, a flat
 session grown into a dense multi-part effort is a `move` finding to promote into an
 initiative. The one-shot **reset/bootstrap** of an existing repo is the **`migrate`**
@@ -42,7 +46,7 @@ subcommand below (procedure: `~/.claude/skills/flow-core/references/migration-pl
    status from observable state: specs repo, git history, the tracker), the ambient pair
    per the kickoff skill's Phase 2 block. A ledger missing the `Tracker` / `Tracker
    access` fields is a `repair` finding: **detect the tracker from observable signals**
-   — ticket-key patterns in commits and branches (`BILL-48` ~ Linear, `ATSCL-2406` ~
+   — ticket-key patterns in commits and branches (`FAC-48` ~ Linear, `ATSCL-2406` ~
    Jira), conventions written in AGENTS.md/CLAUDE.md, which MCP/CLI responds (`acli`,
    Linear MCP) — and propose the field values with the evidence; the user confirms.
    A workspace with only a CLAUDE.md (pre-pack pattern) gets the inversion proposed:
@@ -118,7 +122,12 @@ truth for the steps below.
 5. Execute only what was approved: `git init <project>-specs` (if approved) → structure + `.gitignore`
    + `.engram/config.json` + README map; `git mv` inside a repo / `mv` across the `_support/`→specs
    boundary; write promoted files, indexes, and back-references; rename to ISO; archive (never delete)
-   on any doubt. Preserve content verbatim and the raw/curated split.
+   on any doubt. Preserve content verbatim and the raw/curated split. **Workspace conventions
+   refresh:** if the workspace AGENTS.md predates the artifact-first template (it suggests invoking
+   `/flow-plan` → `/flow-build` for substantive work instead of declaring the session-artifact
+   conventions), rewrite that block to the current `flow-kickoff` template — a coherent revision,
+   not a string swap — and add the `sessions/**` pre-authorization to the workspace
+   `.claude/settings.json` if absent.
 6. CLOSE per the contract: update the ledger pointer (it does NOT index sessions), report executed vs
    skipped (counts to `sessions/` / `previously/` / intention / raw / pruned), and — if a specs repo
    was created — make its initial commit (single-branch new repo; the `migrate` invocation authorizes

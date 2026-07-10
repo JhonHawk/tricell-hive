@@ -1,0 +1,17 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). Kept as reference and as a manual fallback if that merge fails. Fires only on ExitPlanMode; the script itself detects the flow-workspace ledger and a plan-level `Session: no` opt-out, and stays silent elsewhere.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/flow-plan-capture.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -28,6 +28,7 @@ The user is a software architect and developer working across 6 client groups wi
 - Do not alias or symlink `AGENTS.md` to `harness/AGENTS.md`; they serve different scopes.
 - When changing routing or domains, check `global/rules/workflow/agent-routing.md`.
 - When a rule or convention is grounded in external authority (standards, canonical books, official docs), record the source in `_support/docs/methodology-bibliography.md` and consult it before re-researching.
+- The `<!-- CODEGRAPH_START/END -->` block in `global/CLAUDE.md` and `harness/AGENTS.md` is owned by `codegraph install` — absorbed into the sources (2026-07-10) so installer upgrades report "Unchanged" and `/deploy-global` doesn't delete it. Never edit, dedupe, or reflow content between the markers; hive-specific CodeGraph guidance lives in the bullets AFTER the block. If a codegraph upgrade rewrites its block in the DEPLOYED files, re-absorb the new content into both sources instead of letting them drift.
 - Use conventional commit prefixes if asked to commit.
 
 ## Agent Design Principles
@@ -86,7 +87,7 @@ description: >
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
 - `global/rules/workflow/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW skill needs an opencode command wrapper in `harness/opencode/commands/`; a renamed agent/skill needs a grep through `harness/`.
-- **Rules don't pass through `build.py`.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code). Codex and opencode read only the condensed `harness/AGENTS.md`. So a new or changed rule that applies to all harnesses must be reflected MANUALLY in `harness/AGENTS.md` — there is no generator for this. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
+- **AlwaysApply rules don't pass through `build.py`.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` for the always-on layer. A new or changed alwaysApply rule that applies to all harnesses must be reflected MANUALLY in `harness/AGENTS.md` — there is no generator for that. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4, security-audited 2026-07-10) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
 
 ## File Structure
 
@@ -95,7 +96,7 @@ AGENTS.md                          # Canonical guide for all harnesses
 CLAUDE.md                          # Imports AGENTS.md via @AGENTS.md; adds Claude Code-specific content
 global/                            # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                      # Core config (always loaded)
-├── hooks/                         # Hook scripts (none currently — harness enforces plan mode since 2.1.136)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (pre-push-lint-reminder, flow-plan-capture, flow-plan-injector)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (alwaysApply)
 │   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
@@ -183,7 +184,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 ### Ephemeral Workspace
 
-`_support/workspace/` is **git-ignored** scratch — never a commit target. When work concludes, each artifact either moves to `_support/archive/<audits|docs>/` with a date-suffixed name (`{slug}-YYYY-MM-DD`) if worth keeping, or is deleted. To commit a generated file, relocate it to `archive/` first.
+`_support/workspace/` is **git-ignored** scratch — never a commit target. When work concludes, each artifact either moves to `_support/archive/<audits|docs>/` with a date-prefixed name (`YYYY-MM-DD-{slug}`) if worth keeping, or is deleted. To commit a generated file, relocate it to `archive/` first. Existing archive entries keep their legacy names — no renames.
 
 ## Git Conventions
 - **Conventional commits:** `feat:`, `fix:`, `chore:`, `docs:` prefixes required.
@@ -207,18 +208,17 @@ Build/test/lint enforcement is restored automatically in any other repo with run
 - Codex global target: `~/.codex/AGENTS.md`.
 - OpenCode global target: `~/.config/opencode/AGENTS.md`.
 - Before changing behavior that depends on how Codex or OpenCode loads, scopes, resumes, or prioritizes `AGENTS.md`, validate against current Codex and OpenCode documentation when applicable.
-- **Codex carries a Codex-only tail.** opencode gets `harness/AGENTS.md` verbatim; Codex gets it PLUS `harness/codex/engram-memory-tail.md` (the Engram memory protocol). opencode and Claude Code inject that protocol through their own plugins, but Codex has none — appending the tail to its `AGENTS.md` is how the protocol reaches Codex (additive, TUI-invisible, survives `engram setup`). So the two deployed files are intentionally NOT identical.
+- **Both harnesses get the shared file verbatim.** The Engram protocol reaches every harness through its own plugin — Codex included since the Engram Codex plugin (bundled SessionStart/UserPromptSubmit/Stop hooks) shipped; the former `engram-memory-tail.md` concat was removed 2026-07-10 as a duplicate.
 - After changing the source, replicate it with:
   ```bash
   cp harness/AGENTS.md ~/.config/opencode/AGENTS.md
-  cat harness/AGENTS.md harness/codex/engram-memory-tail.md > ~/.codex/AGENTS.md
+  cp harness/AGENTS.md ~/.codex/AGENTS.md
   ```
 - Validate with:
   ```bash
   cmp -s harness/AGENTS.md ~/.config/opencode/AGENTS.md && echo "OpenCode MATCH"
-  # Codex = shared + tail; check the tail is present and the whole stays under project_doc_max_bytes (49152)
-  tail -1 ~/.codex/AGENTS.md | grep -q mem_session_summary && echo "Codex tail OK"
-  wc -c ~/.codex/AGENTS.md  # must be < 49152
+  cmp -s harness/AGENTS.md ~/.codex/AGENTS.md && echo "Codex MATCH"
+  wc -c ~/.codex/AGENTS.md  # must be < 49152 (project_doc_max_bytes)
   ```
 - Start a new Codex/OpenCode session after replication. Do not rely on resumed sessions to reflect changed global instructions.
 

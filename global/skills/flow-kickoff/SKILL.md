@@ -58,6 +58,17 @@ Repos and the specs repo come later (F3/F5) — kickoff creates no git repos.
    artifact index, and open questions live there.
    File placement follows the flow-core file-routing rule: versioned material →
    `<project>-specs/`; temporary/sensitive/raw → `_support/`.
+   Session artifacts (all harnesses): an approved plan lives at
+   `sessions/YYYY-MM-DD-<slug>/<slug>-plan.md` (session-capture layout), first line
+   `Status: planned`; a plan carrying `Session: no` means the user declined the
+   session folder — don't create one. Investigation conclusions the user asks to
+   keep go to `<slug>-findings.md` in the same layout. When session artifacts are
+   produced, update the ledger's `## Current handoff` and commit them at close —
+   standing-authorized, `chore(sessions): <slug>`. `/flow-build` adopts and
+   executes any session plan. Trivial fixes, small commits, and investigations
+   without kept artifacts proceed ad-hoc with no session machinery; epic-scoped
+   formal work may still enter through `/flow-plan` (no command exposed → follow
+   the skill files directly).
 
    <client conventions block, if any — see Phase 4>
    ```
@@ -68,6 +79,18 @@ Repos and the specs repo come later (F3/F5) — kickoff creates no git repos.
    ```
    Claude-specific instructions, if ever needed, go below the import — never duplicated
    into both files.
+
+3. Pre-authorize the session-artifact lane (Claude Code): write the workspace
+   `.claude/settings.json` allowing `Write`/`Edit` under any `sessions/**` path so
+   plan capture and findings never hit a mid-answer permission prompt:
+   ```json
+   {
+     "permissions": {
+       "allow": ["Write(./**/sessions/**)", "Edit(./**/sessions/**)"]
+     }
+   }
+   ```
+   Merge into an existing file additively — never overwrite user entries.
 
 ## Phase 3 — Absorb intake + memory
 
