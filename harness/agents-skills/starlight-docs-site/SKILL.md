@@ -82,9 +82,12 @@ Add one page/slice to an existing site. Detect the profile from the site.
 
 Validate an existing Starlight site against the canon. **Read-only: report, don't
 modify.** Follow `references/audit-checklist.md` exactly — it lists every check, its
-severity (build error vs. style observation), and the report format. Covers the
-chassis/correctness layer and the architecture/authoring layer. Group findings by
-severity; the voice rule (usted vs. imperative) is an observation, never an error.
+severity (build error vs. style observation), and the report format. Covers three
+static layers: chassis/correctness, architecture/authoring, and theme/styles (theme
+strategy, token discipline, and a computed WCAG-AA contrast check via
+`scripts/contrast-check.py`). Rendered visual review (browser screenshots) is out of
+scope of the static audit. Group findings by severity; the voice rule (usted vs.
+imperative) is an observation, never an error.
 
 ## Reference map
 

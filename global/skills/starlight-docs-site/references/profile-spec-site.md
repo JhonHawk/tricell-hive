@@ -1,7 +1,7 @@
 # Profile — spec-site
 
 A specs/BRD docs-as-code site: the source of truth for business rules. Diátaxis:
-**reference (dominant) + explanation**. Reference project: `educavita-next-specs`
+**reference (dominant) + explanation**. Reference project: `acme-next-specs`
 (distilled from its `_support/docs/specs-site-replication-guide.md`). Template:
 `templates/spec-site/`.
 

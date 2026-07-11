@@ -1,7 +1,7 @@
 # Profile — user-manual
 
 An operator/QA manual. Diátaxis: **how-to (dominant) + reference**. Reference project:
-`ark-specs/docs/manual-usuario`. Template: `templates/user-manual/`.
+`globex-specs/docs/manual-usuario`. Template: `templates/user-manual/`.
 
 ## What makes it this profile
 

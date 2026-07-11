@@ -1,6 +1,6 @@
 # Audit checklist
 
-`audit` is **read-only**: report findings, propose fixes, modify nothing. Walk both layers
+`audit` is **read-only**: report findings, propose fixes, modify nothing. Walk the layers
 below. Assign each finding a severity and group the report by it.
 
 ## Severity
@@ -9,8 +9,9 @@ below. Assign each finding a severity and group the report by it.
   frontmatter, second H1 in body, image import that won't resolve).
 - **warning** — correctness/convention drift that won't fail the build but should be fixed
   (image in `public/` losing optimization, version drift, missing `sidebar.order` under autogenerate).
-- **observation** — style/architecture guidance (voice mismatch, Diátaxis mixing, deep nesting).
-  Never blocks; especially the voice rule (usted vs. imperative) is always an observation.
+- **observation** — style/architecture guidance (voice mismatch, Diátaxis mixing, deep nesting,
+  colors bypassing the token system). Never blocks; especially the voice rule (usted vs.
+  imperative) is always an observation.
 
 ## Layer A — chassis / correctness
 
@@ -42,6 +43,42 @@ below. Assign each finding a severity and group the report by it.
 18. **Voice**: consistent with the profile's established convention. observation (never error).
 19. **Empty scaffolding**: section trees/pages with placeholder-only content. observation.
 20. **Duplication/drift**: the same fact stated in multiple places. observation.
+
+## Layer C — theme / styles (static)
+
+Convention + contrast, not aesthetics — validates that the theme follows the house strategy and
+is accessible. No browser (that is the out-of-scope rendered review below). Anchors:
+`references/chassis.md > Theme strategy` and `~/.claude/rules/languages/ui-visual-design.md > Color`.
+
+21. **Theme strategy**: `src/styles/theme.css` exists and overrides `--sl-color-*` with **Dark =
+    `:root`** and **Light = `:root[data-theme="light"]`**. error if the file is missing or the
+    dark/light split is absent.
+22. **Accent replaced**: no leftover `REPLACE:` markers or the template's neutral placeholder
+    accent (`oklch(70% 0.16 260)` / node fill `#4f6bed`) — those mean the site was never
+    rebranded. warning.
+23. **Token discipline**: colors come through `--sl-color-*` overrides, not hardcoded hex/rgb that
+    bypasses the token system. The fixed Mermaid node-fill hex is exempt (brand identity by
+    design, per chassis). observation.
+24. **Mermaid framing**: theme-aware `.mermaid` overrides present (panel background/border via
+    Starlight variables), so diagrams read in both themes. warning if absent.
+25. **customCss wired**: `customCss: ["./src/styles/theme.css"]` set in `astro.config.mjs`. error
+    if the theme file exists but is not wired.
+26. **Contrast (WCAG AA)**: compute the accent-vs-background ratio for both themes and report it.
+    Pull `--sl-color-accent` (and `--sl-color-accent-high` in light) and the background
+    (`--sl-color-black` in dark; the light `--sl-color-black`/surface in light) from `theme.css`,
+    then run the bundled helper:
+    ```bash
+    uv run --with coloraide python scripts/contrast-check.py "<accent>" "<background>"
+    ```
+    (OSV-check `coloraide` on first use — PyPI, clean as of this writing.) Ratio < 4.5:1 for
+    body-size link text → warning; always report the ratio. Never meaning by color alone.
+27. **image-zoom backdrop**: `--starlight-image-zoom-backdrop-bg` present iff `starlight-image-zoom`
+    is installed. observation.
+
+**Out of scope here — rendered visual review.** Actual rendered appearance (dark/light
+screenshots, unstyled-flash, real on-screen contrast) needs a running build + a browser: build,
+`pnpm preview`, and drive it with the `agent-browser` CLI, or route to `ux-flow-reviewer`. This
+static layer does not open a browser.
 
 ## Report format
 

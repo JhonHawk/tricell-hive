@@ -1,7 +1,9 @@
 # Best practices — the quality layer
 
-Research-backed rules for structure, authoring, and correctness. **Not UI/branding** — the
-theme is fixed. Applied when generating content and checked in `audit`. Sources at the end.
+Research-backed rules for structure, authoring, and correctness. **Not UI/branding** — this
+layer never redesigns the theme. (The theme is still audited for *convention adherence + WCAG
+contrast* — that is `audit` Layer C in `audit-checklist.md`, a correctness check, not a
+redesign.) Applied when generating content and checked in `audit`. Sources at the end.
 
 ## Diátaxis — classify every page
 
@@ -29,7 +31,7 @@ application. Classify with the compass, per page — never mix types on one page
 
 - how-to/tutorial → imperative, 2nd person ("Selecciona…", "Verifica…"); reference → declarative,
   neutral; explanation → argumentative.
-- **Divergence note**: `ark` user-manual uses formal "usted" descriptive; Google/Microsoft
+- **Divergence note**: `globex` user-manual uses formal "usted" descriptive; Google/Microsoft
   recommend imperative 2nd person for manuals. **Respect the project's established convention by
   default** (usted for the manual); expose voice as a configurable rule. `audit` reports a voice
   mismatch as an **observation, never an error**.
