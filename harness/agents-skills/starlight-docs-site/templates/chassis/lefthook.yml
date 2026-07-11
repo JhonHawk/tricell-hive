@@ -1,0 +1,24 @@
+# Lefthook — git hooks for the docs site (lefthook 2.x `jobs` syntax).
+# Applied when the user opts into git hooks during `scaffold`: this file plus the
+# `lefthook` devDependency and a `prepare: lefthook install` script (see SKILL.md).
+#
+# Pre-commit runs Biome (format + safe lint fixes) on the staged JS/TS/JSON/CSS files
+# Biome owns (Markdown/MDX/.astro content is not Biome's; it is reviewed by reading).
+# Pre-push runs the Astro content/type check — it can't be scoped to staged files.
+#
+# `--no-errors-on-unmatched` keeps the hook green when the staged set has no files
+# Biome handles. `stage_fixed: true` re-stages Biome's autofixes.
+#
+# Emergency bypass: `git commit --no-verify` / `git push --no-verify`.
+
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: check
+      run: pnpm check

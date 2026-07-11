@@ -1,0 +1,27 @@
+---
+title: "<Project> — Especificaciones"
+description: "Fuente de verdad del producto, publicada como docs-as-code: qué hace, por qué, y en qué estado de aprobación está cada rebanada."
+template: splash
+hero:
+  tagline: La fuente de verdad del producto — qué hace, por qué, y en qué estado está cada rebanada.
+  actions:
+    - text: Cómo se construye y se gobierna
+      link: /workflow/product-workflow/
+      icon: right-arrow
+      variant: primary
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+Este sitio es la **fuente de verdad** de las reglas de negocio, publicada como
+docs-as-code: cada spec es un archivo versionado en git. Documenta el _qué_ y el
+_por qué_; el detalle técnico vive junto al mock y al runtime.
+
+<CardGrid>
+  <Card title="Crece por rebanada" icon="seti:plan">
+    El sitio arranca casi vacío y se llena una rebanada a la vez. Nada de árboles de secciones vacíos.
+  </Card>
+  <Card title="Gobernado por gates" icon="approve-check">
+    Publicar no es aprobar: el estado lo dice la rúbrica de cada página, con evidencia fechada.
+  </Card>
+</CardGrid>

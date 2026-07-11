@@ -16,7 +16,14 @@ alwaysApply: true
 ### Branching
 - **Decide at first commit intent, not before** — editing needs no branch decision (`git switch -c` carries uncommitted changes losslessly). Ask once per session, folding into the verb's question block when both fire: stay on the current branch, or a dedicated branch per change-group (**Isolated Mode** — also auto-activated by a pre-existing worktree or an explicit user instruction). Default: stay. An approved plan that declares git semantics settles this at the plan gate instead.
 - **A branch's unit is a cohesive change-group** — one open thematic branch at a time; a new theme waits until the previous one integrates. A worktree is the explicit exception for genuine overlap.
-- **Trunk-shaped, not git-flow:** no permanent `develop`/`release`/`hotfix` branches unless the repo already uses them. Names: `<type>/<kebab-description>` mirroring commit prefixes (`feat/user-auth`).
+- **Long-lived branches follow the repo's class** (declared per repo in the project's naming table; undeclared → classify by "does this repo deploy to environments with their own state?"):
+  - **Deployable multi-env** (app/service with its own environments): environment branches `development` (default) → `qa` → `production` — full env tokens per `infra-naming.md`, subset allowed when an environment doesn't exist (no QA env → `development` → `production`). Environment branches receive changes only by promotion.
+  - **Platform-native deployable** (Vercel/Netlify-style): the platform's model wins — the trunk IS production, previews per PR; don't force environment branches against the platform.
+  - **Specs / mocks / docs / config hub**: single-branch trunk.
+  - **IaC/infra**: single trunk — environments live in directories/workspaces/var-files, never in branches.
+  - **Library/package**: trunk + version tags.
+- **Git-flow stays out:** no `develop`/`release/*`/`hotfix/*` branches unless the repo already uses them (migrating such a repo is a planned decision, not a cleanup). `development` above is an *environment branch* (it deploys the development environment), not git-flow's `develop`.
+- **Work branches:** `<type>/<kebab-description>` mirroring commit prefixes (`feat/user-auth`), cut from and merged back to the integration branch (`development`, or the trunk).
 
 ### Commits
 - **Granularity is inferred, never asked up-front.** Dedicated branch/worktree → autonomous, granular commits at natural seams (an auditable, bisectable N-commit history — the standing default in every repo; a project may declare squash-only or other semantics). Shared/protected branch → per-changeset confirmation; at the second explicit commit request, offer session autonomy once.
@@ -24,9 +31,9 @@ alwaysApply: true
 - **Checkpoints** (Isolated Mode, plans with 4+ file-modifying tasks): a progress pulse roughly every 3 such tasks — a brief note by default; a blocking question only when something is decision-relevant (deviation, concern, red tests).
 
 ### Safety gates (all modes — fold confirmations into the task's single question block)
-- **Protected branches** (project-declared; default `main`/`master`): no direct commits unless the project allows it. Exceptions: a single-branch repo (bare `master` IS the workflow), or a repo whose history shows direct-to-default as the norm (no PR gate, no CI on branches) — confirm once per session and treat as standing; a project declaration removes even that first ask.
+- **Protected branches** (project-declared; default: the production-deploying branch — `production`, or `main`/`master` where the trunk IS production — plus `qa` where it exists): no direct commits unless the project allows it. Exceptions: a single-branch repo (bare `master` IS the workflow), or a repo whose history shows direct-to-default as the norm (no PR gate, no CI on branches) — confirm once per session and treat as standing; a project declaration removes even that first ask.
 - **Force-push and published-history rewrites** (`rebase` on shared branches, `reset --hard`, `amend` on pushed commits): always confirm, presenting what gets overwritten.
-- **Merge to `main`/`master`:** always confirm.
+- **Merge/promotion into the production-deploying branch** (`production`, or `main`/`master` where the trunk IS production): always confirm. Promotion into `qa` follows the non-prod carve-out (`CLAUDE.md > Destructive Operations`) — declared, not asked.
 - **Push:** an explicit push verb is the confirmation; otherwise ask. Session-close remote pruning and declared-workflow repos (exceptions above) are standing-authorized.
 - **Branch deletion:** confirm — except confirmed-merged branches at session close (below). Unmerged deletion, force-delete, or unverifiable merge status always asks.
 

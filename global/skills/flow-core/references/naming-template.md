@@ -42,6 +42,17 @@ Environments: `development | qa | production` (full token, always last)
 | GitHub repo | `<token>-<component>` | <token>-backend | — | exists | repos never carry env |
 | CI/CD workflow env | `development\|qa\|production` | — | — | — | stage vocabulary only |
 
+## Repo branch model
+
+Classes and semantics: global rule `workflow/git-workflow.md > Branching`. This mapping is
+what `/flow-deploy` reads to resolve promotion source/target branches.
+
+| Repo | Class | Long-lived branches | Branch → environment |
+|---|---|---|---|
+| <token>-backend | deployable multi-env | development (default) · qa · production | each branch deploys its same-named env |
+| <token>-frontend | platform-native (Vercel) | main | main → production; PR previews |
+| <token>-specs | specs/config | master | — |
+
 ## Project exceptions (sealed — each with its reason)
 
 | Exception | Reason | Sealed on |

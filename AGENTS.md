@@ -147,7 +147,11 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── flow-hygiene/              # /flow-hygiene — audit | apply | migrate workspace hygiene
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
-│   └── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
+│   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
+│   └── starlight-docs-site/       # /starlight-docs-site — scaffold | page | audit Astro Starlight docs (user-manual | spec-site)
+│       ├── SKILL.md
+│       ├── references/            # chassis, profile-*, best-practices, audit-checklist
+│       └── templates/            # chassis + user-manual + spec-site (copy-ready, pinned versions)
 └── agents/                        # Optimized agents, organized by role/color
     ├── design/                    # blue
     ├── development/               # green

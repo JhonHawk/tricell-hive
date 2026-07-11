@@ -29,13 +29,16 @@ Instantiate `<project>-specs/conventions/naming.md` from the global rule
 (`workflow/infra-naming.md`) using the project token in PROJECT.md and the template at
 `~/.claude/skills/flow-core/references/naming-template.md`. Every resource this phase
 will create gets its row BEFORE anything is created; client exceptions get documented
-with their reason and the user's sign-off.
+with their reason and the user's sign-off. The table includes the **repo branch model**
+section: each repo's class and branch→environment mapping per
+`workflow/git-workflow.md > Branching` — `/flow-deploy` resolves promotions from it.
 
 ## Phase 2 — Repo matrix
 
 Derive the repo list from the specs (backend, frontend, transactional services, the
 existing mocks repo): names per the naming table (`<project>-<component>`), stack per
-repo, QA/prod targets. Names that derive cleanly from the Phase 1 table → **create and
+repo, QA/prod targets, and repo class (deployable multi-env / platform-native /
+specs-mocks / IaC) from the branch-model table. Names that derive cleanly from the Phase 1 table → **create and
 report the matrix** — the table already carries the user's sign-off. Gate via
 AskUserQuestion only on signal: a name needing a NEW naming exception, genuine ambiguity
 in the repo split the specs don't settle, or creation inside a client-owned org (a wrong
@@ -52,7 +55,10 @@ independent:
   these exactly.
 - **database-specialist** — initial schema + migration baseline in the backend repo(s),
   honoring DB naming from the table (including any invariant-name exception).
-- **devops-engineer** — per repo: scaffold, CI (lint → typecheck → build → test, fail
+- **devops-engineer** — per repo: scaffold, the branch model per the repo's class
+  (deployable multi-env: `development` as default + `qa` + `production` created with the
+  scaffold, protections on `qa`/`production`; specs/mocks: single trunk — never deferred
+  to first deploy), CI (lint → typecheck → build → test, fail
   fast) running green from the first commit, the CD workflow **defined with its target
   environment parametrized** (ready to point at whatever env setup creates), and
   **scripted, idempotent** provisioning AUTHORED and versioned in

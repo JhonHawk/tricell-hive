@@ -1,0 +1,287 @@
+---
+type WorkflowStatus = "draft" | "gate1-approved" | "gate2-approved";
+type WorkflowStage =
+  | "discovery"
+  | "brd-draft"
+  | "gate1-approved"
+  | "technical-spec"
+  | "mock"
+  | "acceptance-criteria"
+  | "build-qa"
+  | "uat"
+  | "gate2-approved";
+
+interface Props {
+  module: string;
+  slice?: string;
+  artifact: string;
+  status: WorkflowStatus;
+  stage: WorkflowStage;
+  lastUpdated: Date | string;
+  nextGate?: string;
+  owner?: string;
+  gate1Evidence?: string[];
+  gate2Evidence?: string[];
+  evidence?: string[];
+  tracker?: string[];
+}
+
+const {
+  module: _module,
+  slice: _slice,
+  artifact: _artifact,
+  status: _status,
+  stage: _stage,
+  lastUpdated: _lastUpdated,
+  nextGate: _nextGate,
+  owner: _owner,
+  gate1Evidence: _gate1Evidence = [],
+  gate2Evidence: _gate2Evidence = [],
+  evidence: _evidence = [],
+  tracker: _tracker = [],
+} = Astro.props;
+
+const _statusLabel: Record<WorkflowStatus, string> = {
+  draft: "Borrador",
+  "gate1-approved": "Gate 1 aprobado",
+  "gate2-approved": "Gate 2 aprobado",
+};
+
+const _statusNote: Record<WorkflowStatus, string> = {
+  draft: "Contenido en definición o revisión. No debe usarse como contrato aprobado.",
+  "gate1-approved": "Negocio aprobó el BRD. Desarrollo puede avanzar contra esta base.",
+  "gate2-approved": "Negocio aprobó UAT. Este artefacto representa el cierre aprobado.",
+};
+
+const _artifactLabel =
+  {
+    "module-index": "Índice de módulo",
+    brd: "BRD",
+    "technical-spec": "Spec técnica",
+    "acceptance-criteria": "Criterios de aceptación",
+    "uat-report": "Reporte UAT",
+  }[_artifact] ?? _artifact;
+
+const _stageLabel: Record<WorkflowStage, string> = {
+  discovery: "Discovery",
+  "brd-draft": "BRD borrador",
+  "gate1-approved": "Gate 1 aprobado",
+  "technical-spec": "Spec técnica",
+  mock: "Mock",
+  "acceptance-criteria": "Criterios de aceptación",
+  "build-qa": "Construcción + QA",
+  uat: "UAT",
+  "gate2-approved": "Gate 2 aprobado",
+};
+
+const _updatedValue =
+  _lastUpdated instanceof Date ? _lastUpdated.toISOString() : String(_lastUpdated);
+const _updated = _updatedValue.slice(0, 10);
+---
+
+<aside class={`spec-rubric spec-rubric--${_status}`}>
+  <div class="spec-rubric__header">
+    <div class="spec-rubric__summary">
+      <p class="spec-rubric__eyebrow">Rúbrica de la spec</p>
+      <h2>{_stageLabel[_stage]}</h2>
+      <p>{_statusNote[_status]}</p>
+    </div>
+    <span class={`spec-rubric__badge spec-rubric__badge--${_status}`}>
+      {_statusLabel[_status]}
+    </span>
+  </div>
+
+  <dl>
+    <div>
+      <dt>Módulo</dt>
+      <dd>{_module}</dd>
+    </div>
+    {
+      _slice ? (
+        <div>
+          <dt>Rebanada</dt>
+          <dd>{_slice}</dd>
+        </div>
+      ) : null
+    }
+    <div>
+      <dt>Artefacto</dt>
+      <dd>{_artifactLabel}</dd>
+    </div>
+    <div>
+      <dt>Última actualización</dt>
+      <dd>{_updated}</dd>
+    </div>
+    {
+      _nextGate ? (
+        <div>
+          <dt>Siguiente gate</dt>
+          <dd>{_nextGate}</dd>
+        </div>
+      ) : null
+    }
+    {
+      _owner ? (
+        <div>
+          <dt>Owner</dt>
+          <dd>{_owner}</dd>
+        </div>
+      ) : null
+    }
+  </dl>
+
+  {
+    _evidence.length || _gate1Evidence.length || _gate2Evidence.length || _tracker.length ? (
+      <div class="spec-rubric__refs">
+        {_evidence.length ? (
+          <p>
+            <strong>Evidencia:</strong> {_evidence.join(" · ")}
+          </p>
+        ) : null}
+        {_gate1Evidence.length ? (
+          <p>
+            <strong>Gate 1:</strong> {_gate1Evidence.join(" · ")}
+          </p>
+        ) : null}
+        {_gate2Evidence.length ? (
+          <p>
+            <strong>Gate 2:</strong> {_gate2Evidence.join(" · ")}
+          </p>
+        ) : null}
+        {_tracker.length ? (
+          <p>
+            <strong>Seguimiento:</strong> {_tracker.join(" · ")}
+          </p>
+        ) : null}
+      </div>
+    ) : null
+  }
+</aside>
+
+<style>
+  .spec-rubric {
+    display: grid;
+    gap: 0.85rem;
+    margin: 1.25rem 0 1.75rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-left: 0.25rem solid var(--sl-color-accent);
+    border-radius: 0.4rem;
+    background: var(--sl-color-gray-6);
+  }
+
+  .spec-rubric--draft {
+    border-left-color: var(--sl-color-gray-3);
+  }
+
+  .spec-rubric--gate2-approved {
+    border-left-color: var(--sl-color-accent-high);
+  }
+
+  .spec-rubric__header {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .spec-rubric__summary {
+    min-width: 0;
+  }
+
+  .spec-rubric__eyebrow {
+    margin: 0 0 0.2rem;
+    color: var(--sl-color-gray-3);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .spec-rubric h2 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .spec-rubric p {
+    margin: 0.25rem 0 0;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    line-height: 1.45;
+  }
+
+  .spec-rubric dl {
+    display: grid;
+    gap: 0.75rem 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+
+  .spec-rubric dt {
+    color: var(--sl-color-gray-3);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .spec-rubric dd {
+    margin: 0.15rem 0 0;
+    color: var(--sl-color-white);
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .spec-rubric__badge {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    min-height: 1.45rem;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 999px;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .spec-rubric__badge--draft {
+    color: var(--sl-color-gray-2);
+  }
+
+  .spec-rubric__badge--gate1-approved,
+  .spec-rubric__badge--gate2-approved {
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-accent-high);
+  }
+
+  .spec-rubric__refs {
+    display: grid;
+    gap: 0.35rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+
+  @media (min-width: 36rem) {
+    .spec-rubric dl {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 54rem) {
+    .spec-rubric dl {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

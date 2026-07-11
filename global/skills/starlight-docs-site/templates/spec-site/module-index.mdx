@@ -1,0 +1,33 @@
+---
+title: "«Nombre del módulo»"
+description: "«Una frase: qué capacidad de negocio agrupa este módulo. Obligatoria.»"
+workflow:
+  module: "«Nombre del módulo»"
+  artifact: module-index
+  status: draft
+  stage: discovery
+  lastUpdated: 2026-07-11
+---
+
+import SpecRubric from "../../../components/SpecRubric.astro";
+
+<SpecRubric {...frontmatter.workflow} />
+
+<!--
+  ÍNDICE DE MÓDULO — corto. Presenta el módulo, lista sus rebanadas con estado y
+  declara reglas de convergencia entre caminos. No reemplaza a los BRD.
+  El import de SpecRubric asume la página en src/content/docs/«module»/index.mdx
+  (3 niveles hasta src/components/). Ajusta los `../` si cambia la profundidad.
+-->
+
+«Qué capacidad de negocio cubre el módulo y por qué existe.»
+
+## Rebanadas
+
+| Rebanada | Estado | Descripción |
+| --- | --- | --- |
+| [«Auto-registro»](/«module»/«slice»/) | `draft` | «Una frase.» |
+
+## Reglas de convergencia
+
+«Cómo se relacionan las rebanadas entre sí (qué comparten, dónde convergen).»

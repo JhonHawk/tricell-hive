@@ -1,0 +1,32 @@
+---
+title: "<Project> — Manual de usuario"
+description: "Guía operativa de <Project>: qué hace cada pantalla, cómo se usa y qué reglas la gobiernan."
+template: splash
+hero:
+  tagline: Qué hace cada pantalla, cómo se usa y qué esperar de ella.
+  actions:
+    - text: Empezar por la introducción
+      link: /introduccion/que-es/
+      icon: right-arrow
+      variant: primary
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+{/* REPLACE the cards below with the manual's real top-level areas. Keep this
+    page a map of the manual — one card per major area — not a content dump. */}
+
+<CardGrid>
+  <Card title="Introducción" icon="open-book">
+    Qué es «Proyecto», quién lo usa y el mapa general del producto.
+  </Card>
+  <Card title="Operación diaria" icon="rocket">
+    Los flujos que un operador ejecuta día a día, pantalla por pantalla.
+  </Card>
+  <Card title="Roles y permisos" icon="approve-check">
+    Quién puede hacer qué. La UI esconde; el backend niega.
+  </Card>
+  <Card title="Estados y errores" icon="warning">
+    Qué significa cada estado y cómo recuperarse de cada error.
+  </Card>
+</CardGrid>

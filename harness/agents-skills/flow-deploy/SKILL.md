@@ -13,6 +13,10 @@ description: >
 Follow the flow contract (`~/.agents/skills/flow-core/SKILL.md`). Deploys here are
 **promotions through the pipeline, never direct pushes to servers** — if something only
 works by SSH, that's a pipeline bug to fix first (F5's golden rule, still in force).
+Promotion source/target branches resolve from the naming table's **repo branch model**
+(canonical chain `development → qa → production` per `workflow/git-workflow.md >
+Branching`; platform-native repos promote via the platform's own flow). No branch-model
+table → derive from the global rule and say so.
 Production operations are destructive-class: explicit user confirmation per global rules,
 always.
 
@@ -95,7 +99,8 @@ is executed here, when resources are approved:
    with placeholders. Never write real secret values to files; report which secrets the
    user must fill by hand.
 4. **Wire the pipeline:** add the env as a CD target (workflow env, branch mapping per
-   the project's branching model) so the FIRST deploy to the new env is performed by the
+   the naming table's repo branch model — the env's same-named branch deploys it) so the
+   FIRST deploy to the new env is performed by the
    pipeline — F5's golden rule applies to every environment, not just the first.
 5. CLOSE per the contract: run `verify` against the new env + naming audit, and record
    the env in the ledger and the naming table (`status: exists`).
