@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Pack — Manual de uso día a día</title>
+<style>
+  :root{
+    --ink:#1a1d21; --muted:#5c6470; --paper:#fbfaf7; --card:#ffffff;
+    --accent:#0d5c63; --accent2:#b3541e; --line:#e3ded4; --code:#f2efe8;
+    --ok:#2e6b34; --warn:#9a6700;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:Charter,Georgia,'Times New Roman',serif;font-size:17px;line-height:1.65}
+  main{max-width:860px;margin:0 auto;padding:48px 28px 80px}
+  h1{font-size:2rem;margin:0 0 4px;letter-spacing:-.5px}
+  h2{font-size:1.35rem;margin:56px 0 12px;padding-top:18px;border-top:1px solid var(--line)}
+  h3{font-size:1.05rem;margin:28px 0 8px;color:var(--accent)}
+  p{margin:10px 0;max-width:72ch}
+  .tldr{background:var(--card);border-left:4px solid var(--accent);padding:14px 18px;margin:20px 0;
+    font-size:1.02rem}
+  .kicker{color:var(--muted);font-size:.9rem;text-transform:uppercase;letter-spacing:.12em;margin-bottom:18px}
+  nav{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 22px;margin:26px 0;
+    font-family:ui-sans-serif,system-ui,sans-serif;font-size:.88rem}
+  nav a{color:var(--accent);text-decoration:none;margin-right:4px}
+  nav a:hover{text-decoration:underline}
+  nav span{color:var(--line);margin:0 8px}
+  table{border-collapse:collapse;width:100%;margin:16px 0;font-size:.92rem;
+    font-family:ui-sans-serif,system-ui,sans-serif}
+  th{text-align:left;border-bottom:2px solid var(--ink);padding:8px 10px;font-size:.82rem;
+    text-transform:uppercase;letter-spacing:.06em}
+  td{border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top}
+  tr:hover td{background:#f6f3ec}
+  code,kbd{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.85em;
+    background:var(--code);padding:2px 6px;border-radius:4px}
+  kbd{border:1px solid var(--line);background:var(--card)}
+  .cmd{color:var(--accent);font-weight:600;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:18px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+  .card h4{margin:0 0 6px;font-size:.95rem;color:var(--accent)}
+  .card p,.card li{font-size:.86rem;margin:6px 0;color:var(--muted);
+    font-family:ui-sans-serif,system-ui,sans-serif}
+  .card ul{margin:6px 0;padding-left:18px}
+  .tag{display:inline-block;font-family:ui-sans-serif,system-ui,sans-serif;font-size:.7rem;
+    padding:1px 8px;border-radius:10px;border:1px solid var(--line);color:var(--muted);margin-left:6px;
+    vertical-align:middle}
+  .tag.gate{border-color:var(--accent2);color:var(--accent2)}
+  .step{display:flex;gap:14px;margin:14px 0;align-items:flex-start}
+  .step .n{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,sans-serif;
+    font-weight:700;font-size:.85rem;margin-top:2px}
+  .step p{margin:2px 0}
+  .diagram{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px 10px;
+    margin:20px 0;overflow-x:auto}
+  details{margin:40px 0 0;color:var(--muted);font-size:.82rem;
+    font-family:ui-sans-serif,system-ui,sans-serif}
+  details code{font-size:.9em}
+  .note{background:#fdf6e3;border:1px solid #ead9a8;border-radius:6px;padding:10px 16px;margin:14px 0;
+    font-size:.92rem}
+  @media(max-width:720px){
+    .grid{grid-template-columns:1fr}
+    main{padding:28px 16px 60px}
+    body{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<main>
+<p class="kicker">tricell-hive · flow pack · actualizado 2026-06-26</p>
+<h1>Flow Pack — Manual de uso día a día</h1>
+<p class="tldr"><strong>TL;DR:</strong> 11 skills — 9 fases invocables (<code>/flow-intake</code> → <code>/flow-deploy</code> + <code>/flow-hygiene</code>) más dos compartidas (<code>flow-core</code> biblioteca, <code>flow-report</code> render HTML) — cubren el ciclo completo de un proyecto cliente. Tú cruzas las puertas — ninguna de las 8 fases se auto-invoca (<code>flow-report</code> sí, es render) — y cada una despacha el trabajo a agentes especialistas en contextos frescos: el hilo principal orquesta, nunca implementa. Requiere <code>/deploy-global</code> para activarse.</p>
+
+<nav>
+  <a href="#ciclo">El ciclo</a><span>·</span>
+  <a href="#rapida">Referencia rápida</a><span>·</span>
+  <a href="#nuevo">Proyecto nuevo</a><span>·</span>
+  <a href="#dev">Sesión de desarrollo</a><span>·</span>
+  <a href="#entrega">Día de entrega</a><span>·</span>
+  <a href="#higiene">Higiene</a><span>·</span>
+  <a href="#artefactos">Dónde queda todo</a><span>·</span>
+  <a href="#ambiental">Lo que opera solo</a><span>·</span>
+  <a href="#gotchas">Gotchas</a><span>·</span>
+  <a href="#harnesses">Codex/opencode</a>
+</nav>
+
+<h2 id="ciclo">El ciclo completo</h2>
+<div class="diagram">
+<svg viewBox="0 0 820 210" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,system-ui,sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5c6470"/>
+    </marker>
+  </defs>
+  <!-- phase boxes -->
+  <g font-size="11" text-anchor="middle">
+    <g><rect x="10" y="40" width="100" height="52" rx="6" fill="#0d5c63" opacity=".08" stroke="#0d5c63"/>
+       <text x="60" y="60" font-weight="700" fill="#0d5c63">F1 intake</text>
+       <text x="60" y="76" fill="#5c6470">/flow-intake</text></g>
+    <g><rect x="125" y="40" width="100" height="52" rx="6" fill="#0d5c63" opacity=".08" stroke="#0d5c63"/>
+       <text x="175" y="60" font-weight="700" fill="#0d5c63">F2 kickoff</text>
+       <text x="175" y="76" fill="#5c6470">/flow-kickoff</text></g>
+    <g><rect x="240" y="40" width="100" height="52" rx="6" fill="#b3541e" opacity=".08" stroke="#b3541e"/>
+       <text x="290" y="60" font-weight="700" fill="#b3541e">F3 specs</text>
+       <text x="290" y="76" fill="#5c6470">/flow-specs</text></g>
+    <g><rect x="355" y="40" width="100" height="52" rx="6" fill="#b3541e" opacity=".08" stroke="#b3541e"/>
+       <text x="405" y="60" font-weight="700" fill="#b3541e">F4 mock</text>
+       <text x="405" y="76" fill="#5c6470">/flow-mock</text></g>
+    <g><rect x="470" y="40" width="110" height="52" rx="6" fill="#0d5c63" opacity=".08" stroke="#0d5c63"/>
+       <text x="525" y="60" font-weight="700" fill="#0d5c63">F5 foundation</text>
+       <text x="525" y="76" fill="#5c6470">/flow-foundation</text></g>
+    <g><rect x="595" y="40" width="100" height="52" rx="6" fill="#2e6b34" opacity=".08" stroke="#2e6b34"/>
+       <text x="645" y="58" font-weight="700" fill="#2e6b34">F6 dev ⟳</text>
+       <text x="645" y="72" font-size="9" fill="#5c6470">/flow-plan</text>
+       <text x="645" y="84" font-size="9" fill="#5c6470">/flow-build</text></g>
+    <g><rect x="710" y="40" width="100" height="52" rx="6" fill="#2e6b34" opacity=".08" stroke="#2e6b34"/>
+       <text x="760" y="60" font-weight="700" fill="#2e6b34">F7 deploy</text>
+       <text x="760" y="76" fill="#5c6470">/flow-deploy</text></g>
+  </g>
+  <!-- arrows -->
+  <g stroke="#5c6470" stroke-width="1.4" fill="none">
+    <line x1="110" y1="66" x2="123" y2="66" marker-end="url(#arr)"/>
+    <line x1="225" y1="66" x2="238" y2="66" marker-end="url(#arr)"/>
+    <line x1="340" y1="66" x2="353" y2="66" marker-end="url(#arr)"/>
+    <line x1="455" y1="66" x2="468" y2="66" marker-end="url(#arr)"/>
+    <line x1="580" y1="66" x2="593" y2="66" marker-end="url(#arr)"/>
+    <line x1="695" y1="66" x2="708" y2="66" marker-end="url(#arr)"/>
+    <!-- mock findings back to specs -->
+    <path d="M 405 40 C 405 14, 290 14, 290 38" marker-end="url(#arr)" stroke-dasharray="4 3"/>
+    <!-- dev loop -->
+    <path d="M 668 92 C 690 116, 600 116, 622 94" marker-end="url(#arr)" stroke-dasharray="4 3"/>
+  </g>
+  <g font-size="10" fill="#5c6470" text-anchor="middle">
+    <text x="347" y="12">hallazgos de UX regresan a specs</text>
+    <text x="645" y="126">épica por épica, por sesiones</text>
+  </g>
+  <!-- hygiene bar -->
+  <rect x="10" y="150" width="800" height="40" rx="6" fill="#9a6700" opacity=".07" stroke="#9a6700" stroke-dasharray="5 3"/>
+  <text x="410" y="169" font-size="11" font-weight="700" fill="#9a6700" text-anchor="middle">/flow-hygiene — transversal, bajo demanda</text>
+  <text x="410" y="183" font-size="10" fill="#5c6470" text-anchor="middle">atrapa el desorden de las sesiones conversacionales que el pack deliberadamente no controla</text>
+</svg>
+</div>
+<p>Cada puerta lee el <strong>ledger</strong> (<code>_support/PROJECT.md</code>) al abrir y lo actualiza al cerrar — por eso cualquier sesión futura sabe en qué va el proyecto sin que se lo cuentes. Y cada puerta despacha su trabajo sustantivo a agentes en contextos frescos: tu contexto principal recibe resúmenes, no ruido.</p>
+
+<h2 id="rapida">Referencia rápida</h2>
+<table>
+<tr><th>Cuándo</th><th>Comando</th><th>Qué obtienes</th></tr>
+<tr><td>Llega un documento de requerimientos del cliente</td><td class="cmd">/flow-intake &lt;doc&gt;</td><td>Documento mejorado (<code>[PROPUESTO]</code> marcado) + preguntas bloqueantes listas para el cliente</td></tr>
+<tr><td>El proyecto va en serio</td><td class="cmd">/flow-kickoff [group] [project]</td><td>Workspace canónico + ledger + par ambiental (AGENTS.md canónico, CLAUDE.md lo importa) + memoria Engram unificada. Sin args, infiere group/project del cwd si ya estás en la carpeta</td></tr>
+<tr><td>Hay que escribir las specs</td><td class="cmd">/flow-specs init · epic &lt;n&gt; · revise &lt;épica&gt;</td><td>Repo de specs estilo Warp (capa Astro Starlight opcional), épicas con Gherkin sincronizadas al tracker declarado; <code>revise</code> reabre una épica cuyo scope cambió</td></tr>
+<tr><td>Una épica está redactada <span class="tag gate">gate</span></td><td class="cmd">/flow-specs review &lt;épica&gt;</td><td>2 revisores en paralelo: scorecard de calidad + crítica adversarial de necesidad</td></tr>
+<tr><td>Specs aprobadas, falta visualizar</td><td class="cmd">/flow-mock build</td><td>Prototipo navegable (HeroUI/shadcn) — el reemplazo de Figma</td></tr>
+<tr><td>El mock está navegable <span class="tag gate">gate</span></td><td class="cmd">/flow-mock review</td><td>Fricciones UX con screenshots; lo que implica spec regresa a F3</td></tr>
+<tr><td>A construir cimientos</td><td class="cmd">/flow-foundation</td><td>Tabla de naming, repos, contratos, schema, CI verde + CD y provisioning <em>escritos</em> (los ejecuta <code>setup</code> cuando haya recursos)</td></tr>
+<tr><td>Planear una sesión de desarrollo</td><td class="cmd">/flow-plan research · write</td><td><code>research</code>: investigación técnica read-only del código → <code>findings.md</code>. <code>write</code>: plan ejecutable auto-contenido (archivos, pasos, verificación, commit por task) <span class="tag gate">gate</span></td></tr>
+<tr><td>Ejecutar el plan</td><td class="cmd">/flow-build · verify</td><td>Reconciler dirigido por estado (lee <code>Status</code> + git): ejecuta cada task → verificación fresca → ciclo por task hasta <strong>mergeado</strong>. <code>verify</code> salta al gate in-vivo. Corre en cualquier harness</td></tr>
+<tr><td>Día de entrega <span class="tag gate">gate</span></td><td class="cmd">/flow-deploy qa · prod</td><td>Promoción vía pipeline con gates (rollback declarado, smoke E2E, release notes)</td></tr>
+<tr><td>¿Todo sano? ¿naming sin drift?</td><td class="cmd">/flow-deploy verify</td><td>Smoke + health + audit de naming contra la tabla instanciada</td></tr>
+<tr><td>Falta ambientar un entorno (prod cerca de la entrega, un dev nuevo)</td><td class="cmd">/flow-deploy setup &lt;env&gt;</td><td>Plan de recursos desde la tabla de naming (un gate) → provisioning scripteado + secrets + pipeline; el primer deploy al entorno nuevo lo hace el pipeline</td></tr>
+<tr><td>El workspace se siente desordenado</td><td class="cmd">/flow-hygiene audit · apply</td><td>Custodio propone move/promote/expire/repair/conform en dos artefactos (reporte HTML para revisar + manifest md accionable); tú apruebas, él ejecuta</td></tr>
+<tr><td>Adoptar el pack en un proyecto ya andado</td><td class="cmd">/flow-hygiene migrate</td><td>Bootstrap one-shot: crea el specs-repo, tiering active/archived, cuarentena <code>sessions/previously/</code>, reconstruye fases desde lo observable (sigue <code>migration-playbook.md</code>)</td></tr>
+</table>
+
+<h2 id="nuevo">Escenario: proyecto nuevo, de cero</h2>
+<div class="step"><div class="n">1</div><div><p><strong>Te llega el documento del cliente.</strong> Corres <code class="cmd">/flow-intake ~/Downloads/propuesta-cliente.md</code>. El <em>requirement-analyst</em> lo evalúa contra la rúbrica de 10 dimensiones y te entrega el documento mejorado más dos listas: preguntas <strong>bloqueantes</strong> (tu agenda para la siguiente llamada) y <strong>nice-to-know</strong> (cada una con el default que asumiríamos). Decides: llamar al cliente o aceptar defaults y avanzar con riesgo anotado.</p></div></div>
+<div class="step"><div class="n">2</div><div><p><strong>Va en serio.</strong> <code class="cmd">/flow-kickoff</code> a secas, parado en la carpeta del proyecto — infiere <code>group</code>/<code>project</code> del path (<code>…/projects/acme/mi-proyecto/</code>) y te confirma en una línea antes de crear nada. Parado en la carpeta del grupo, solo te pregunta el nombre del proyecto; <code class="cmd">/flow-kickoff acme mi-proyecto</code> con argumentos explícitos funciona desde cualquier lado. Crea la estructura de 3 niveles, el ledger, y el par ambiental del workspace — <code>AGENTS.md</code> canónico (Codex/opencode lo leen nativo) + <code>CLAUDE.md</code> que lo importa con <code>@AGENTS.md</code>. Las convenciones del cliente se <strong>infieren de los proyectos hermanos del grupo</strong> (tracker, cuentas, convenciones selladas) y solo se pregunta el residuo que nada responde — si no queda nada, no hay ronda y se reporta lo heredado. El modelo de branching ya no se pregunta aquí: las ramas long-lived las fija la clase del repo (git-workflow: repos desplegables multi-entorno usan <code>development → qa → production</code>; specs/mocks e IaC van single-trunk) y se declaran en la tabla de naming en foundation; la decisión de rama de trabajo la toma git-workflow en el primer intento de commit. Desde este momento <em>toda</em> sesión de <em>todo</em> harness en ese workspace sabe dónde está parada. El par ambiental además declara las <strong>convenciones de artefactos de sesión</strong>: un plan aprobado (del plan mode nativo o de <code class="cmd">/flow-plan</code>) vive en <code>sessions/YYYY-MM-DD-&lt;slug&gt;/&lt;slug&gt;-plan.md</code>, los findings que pides conservar junto a él, el handoff del ledger se actualiza al producirlos, y su commit al cierre está pre-autorizado (<code>chore(sessions)</code>). Kickoff también pre-autoriza escrituras a <code>sessions/**</code> en Claude Code — cero permission prompts a media respuesta. Fixes triviales, commits chicos e investigaciones sin artefactos siguen ad-hoc, sin ceremonia.</p></div></div>
+<div class="step"><div class="n">3</div><div><p><strong>Specs.</strong> <code class="cmd">/flow-specs init</code> crea el repo versionado — solo markdown por default, sin preguntas; si tú pides una <strong>capa de presentación Astro Starlight</strong>, la monta como sitio navegable <em>sobre</em> la estructura canónica, sin reorganizarla. Luego <code class="cmd">/flow-specs epic mensajeria</code> por cada épica. El gate de review está <em>integrado</em> en <code>epic</code> — no existe la épica "lista" sin que <em>spec-quality-reviewer</em> la haya puntuado y <em>product-critic</em> haya desafiado si debe existir en esa forma. Los <code>blocker</code>/<code>rethink</code> te llegan como pregunta, no como nota al pie. Si una épica ya redactada cambia de scope (feedback de stakeholder, regla nueva, incluso post-implementación), <code class="cmd">/flow-specs revise &lt;épica&gt;</code> la reabre tratando el cambio como diff e identificando las tasks ya implementadas que invalida.</p></div></div>
+<div class="step"><div class="n">4</div><div><p><strong>Mock.</strong> <code class="cmd">/flow-mock build</code> detecta el stack (HeroUI o shadcn) desde las señales del workspace y lo presenta como decisión nombrada <em>dentro</em> del light plan gate — una sola interacción con pantallas, stack y orden de construcción. Luego <code class="cmd">/flow-mock review</code>: el <em>ux-flow-reviewer</em> navega el prototipo vivo con la rúbrica de dos ejes y screenshots. El eje <strong>Flow bloquea siempre</strong>; de Visual craft bloquea solo lo que se propagaría al build (contraste WCAG, jerarquía de acciones, escala tipográfica) — el resto cierra con tu acknowledgement registrado. Lo importante: hallazgos que cambian comportamiento <strong>no se parchan en el mock</strong> — disparan actualización de la épica primero.</p></div></div>
+<div class="step"><div class="n">5</div><div><p><strong>Foundation.</strong> <code class="cmd">/flow-foundation</code> instancia la tabla de naming (cada recurso futuro ya tiene nombre antes de existir — incluido el <strong>modelo de ramas por repo</strong>: clase y mapeo rama→entorno, que flow-deploy lee para promover), deriva la matriz de repos de esa tabla — <strong>procede y reporta cuando los nombres derivan limpio</strong>; solo gatea ante una excepción nueva de naming, un split que las specs no resuelven, o creación en la org del cliente — y despacha en paralelo: contratos (system-designer), schema (database-specialist), CI verde + CD parametrizado + provisioning <em>escrito</em> + ramas de entorno con sus protecciones creadas junto al scaffold (devops-engineer). Deliberadamente <strong>no ambienta nada</strong> — los recursos del cliente rara vez están confirmados tan temprano. Cuando se aprueben, <code class="cmd">/flow-deploy setup qa</code> ejecuta lo que foundation dejó escrito, y su primer deploy lo hace el pipeline. Mientras tanto, <code class="cmd">/flow-plan</code> puede arrancar contra servicios locales sin esperar.</p></div></div>
+
+<h2 id="dev">Escenario: sesión de desarrollo (la rutina)</h2>
+<p>La sesión de desarrollo tiene dos entradas. <strong>La orgánica (tu rutina):</strong> platicas, activas el plan mode nativo, apruebas — y el plan queda capturado en <code>sessions/</code> automáticamente (en Claude Code vía hook; con línea <code>Session: no</code> en el plan si no quieres carpeta); <code class="cmd">/flow-build</code> a secas lo <strong>adopta</strong> (le agrega la metadata del reconciler de forma aditiva, confirmándote cualquier semántica git que el plan aprobado no traía) y lo ejecuta — día 2 es "continúa con &lt;slug&gt;" o re-invocar <code class="cmd">/flow-build</code>. <strong>La formal (épicas):</strong> <code class="cmd">/flow-plan</code> <strong>piensa</strong> (investiga el código y escribe el plan con metadata completa), <code class="cmd">/flow-build</code> <strong>ejecuta</strong>. Ambos corren en <em>cualquier</em> harness — usar el modelo más capaz para planear y descargar la ejecución a uno más barato (opencode/grok) es recomendación de costo, no candado: quien solo tenga un harness, o agote límites en él, corre todo ahí. Lo que va a pasar, en orden:</p>
+<div class="grid">
+<div class="card"><h4>1 · /flow-plan research</h4><p>Investigación técnica <strong>read-only</strong>: cómo hace ya el repo esto, 2-3 enfoques con trade-offs, gaps/prerequisitos, riesgos, superficies version-sensibles. Sale un <code>&lt;slug&gt;-findings.md</code>. Acotado a <em>implementación</em> — no producto ni UX (eso es specs/mock). Si halla algo inviable, rutea de vuelta a <code>/flow-specs</code>.</p></div>
+<div class="card"><h4>2 · /flow-plan write <span class="tag gate">gate</span></h4><p>Escribe el plan ejecutable <strong>auto-contenido</strong> (para "cero contexto"): archivos exactos, interfaces, pasos, comando de verificación con su output esperado, commit por task. El routing a especialista lo decide <code>flow-build</code> al ejecutar — el plan queda harness-neutral. Preflight: env/keys, CLIs autenticados (gh/aws/hcloud), servicios arriba. Alcance enorme → propone partirlo en una <strong>iniciativa</strong>. Aprobar = ejecución sin interrupciones por recursos.</p></div>
+<div class="card"><h4>3 · El plan es el estado</h4><p>El <code>plan.md</code> lleva <code>Status: planned→building→built→verified</code> por parte; git es la verdad de las tasks (commit <code>T&lt;n&gt;</code>). Por eso otro harness —o tú tras una compactación— levanta el plan en frío y continúa exactamente donde quedó, sin un ledger nuevo.</p></div>
+<div class="card"><h4>4 · /flow-build (reconciler)</h4><p>Lee <code>Status</code> + git y hace lo pendiente: por task <strong>branch → dispatch al especialista → verify → PR → espera CI (<code>gh pr checks --watch</code>) → merge → borra la rama</strong>; la siguiente ramifica del trunk ya actualizado. Si se cortó, retoma desde la primera task sin commit. Tres fixes fallidos al mismo síntoma = para y te consulta. <strong>Nunca toca rama protegida</strong> — qa/prod son de <code>flow-deploy</code>.</p></div>
+<div class="card"><h4>5 · Gate in-vivo (inferido, no preguntado)</h4><p>El plan marca por task si necesita walk in-vivo. <code>/flow-build</code> ya no pregunta el timing: <strong>difiere los walks a <code>built</code> por default</strong> (amortizan sobre el change-group) y va inline solo con señal — varias tasks gateadas independientes cuyo feedback temprano redirige a las siguientes, o si el plan o tú lo piden. La elección se declara en el resumen de arranque y persiste la corrida. Verificación: <strong>(a) spec-compliance → (b) code-quality</strong>, y el <em>in-vivo-qa-tester</em> camina Gherkin + adversarial contra el build de producción. <code class="cmd">/flow-build verify</code> salta directo al gate.</p></div>
+<div class="card"><h4>Tu rol</h4><p>Aprobar el plan, responder el gate in-vivo, decidir sobre fallos que los agentes reporten. El merge a <code>development</code> es autónomo dentro del flow; promover a qa/prod lo decides tú. Si quieres control por commit o por merge en una sesión, dilo al invocar.</p></div>
+</div>
+
+<h2 id="entrega">Escenario: día de entrega</h2>
+<p><code class="cmd">/flow-deploy qa</code> verifica los pre-gates (pipeline verde, migraciones identificadas, <strong>rollback declarado o no hay deploy</strong>), promueve <em>vía pipeline</em> — nunca SSH — resolviendo ramas origen/destino del modelo de ramas de la tabla de naming (cadena canónica <code>development → qa → production</code>), y verifica en dos capas distintas: <strong>liveness</strong> (health + smoke, siempre corre, solo prueba que el server responde) y <strong>validación funcional</strong> cuando el deploy toca UI/auth/integración — que es un <em>handoff, no un auto-gate</em>: por default es QA humano, pero nunca pasa en silencio; al cierre se te ofrece correr el agente <em>in-vivo-qa-tester</em> contra las URLs de QA. Guarda evidencia y te redacta el borrador de release notes (a <code>&lt;project&gt;-specs/releases/</code>) desde los PRs y el tracker declarado (con el template client-facing de <code>flow-core</code>; tú lo revisas antes de enviarlo). <code class="cmd">/flow-deploy prod</code> agrega confirmación explícita, dry-run de migraciones y pausa de monitoreo antes de declarar éxito; su verificación es liveness-only. <code class="cmd">/flow-deploy verify</code> corre suelto cuando quieras: smoke + health + <strong>audit de naming</strong> (lista recursos reales vía aws/hcloud/gh y diffea contra la tabla — el drift se detecta aquí, no en la próxima auditoría). Y <code class="cmd">/flow-deploy setup &lt;env&gt;</code> es el dueño de <em>toda</em> la ambientación — incluido el primer QA del proyecto (foundation escribe los scripts; setup los ejecuta cuando los recursos del cliente se confirman): deriva los recursos de la tabla de naming, te presenta el plan con su blast radius (un solo gate), y después provisiona vía scripts idempotentes, crea los secrets con placeholders, y conecta el entorno al pipeline — el primer deploy de todo entorno lo hace el pipeline, nunca a mano.</p>
+
+<h2 id="higiene">Escenario: "no encuentro nada en este workspace"</h2>
+<p><code class="cmd">/flow-hygiene audit</code> manda al <em>workspace-custodian</em> (read-only, contexto fresco) a aplicar la regla de ruteo retroactivamente: archivos mal ubicados, reportes cuya decisión nunca se promovió al repo de specs, scratch caduco, punteros rotos del ledger. Te regresa acciones clasificadas (<code>move</code> / <code>promote</code> / <code>expire</code> / <code>repair</code> / <code>conform</code>) en <strong>dos artefactos</strong>: el reporte HTML para revisión en browser (renderizado vía <code>flow-report</code>) y el manifest accionable <code>hygiene-audit-&lt;fecha&gt;.md</code> (tabla ID · acción · ruta · riesgo) que consume <code>apply</code>. <code class="cmd">/flow-hygiene apply</code> te las presenta por grupo y ejecuta <em>solo lo que apruebes</em> — en la duda archiva, nunca borra. Cadencia sugerida: cierre de épica y pre-entrega.</p>
+
+<h2 id="artefactos">Dónde queda todo</h2>
+<div class="grid">
+<div class="card"><h4>_support/ (no versionado)</h4><ul>
+<li><code>PROJECT.md</code> — el ledger: fase, índice, pendientes</li>
+<li><code>workspace/</code> — reportes temporales, scratch</li>
+<li><code>evidence/</code> — screenshots y traces brutos</li>
+<li><code>docs/</code> — material pre-specs-repo</li>
+</ul><p>Apunta y caduca. Nunca archiva.</p></div>
+<div class="card"><h4>&lt;project&gt;-specs/ (versionado)</h4><ul>
+<li><code>epics/</code> — PRODUCT.md + TECH.md + tasks.md</li>
+<li><code>conventions/naming.md</code> — la tabla instanciada</li>
+<li><code>contracts/</code> — OpenAPI, eventos</li>
+<li><code>decisions/</code> — decisiones promovidas, fechadas</li>
+<li><code>sessions/</code> — journal de ejecución por fecha (plan, findings, reportes); back-refs a las épicas. Se crea al capturar un plan aprobado (automático en Claude Code, opt-out <code>Session: no</code>) o cuando pides conservar un análisis — señal explícita, nunca por iniciativa del agente; trabajo trivial sin artefacto no genera carpeta</li>
+<li><code>releases/</code> — release notes client-facing</li>
+</ul><p>La memoria del proyecto. Lo que importa vive aquí.</p></div>
+<div class="card"><h4>La regla de 4 preguntas</h4>
+<p>Antes de escribir cualquier archivo:</p>
+<ul>
+<li>¿Historial/versionado? → specs repo</li>
+<li>¿Temporal/sensible/bruto? → _support</li>
+<li>¿De un solo repo? → &lt;repo&gt;/_support</li>
+<li>¿Reporte que produjo decisión? → promover</li>
+</ul></div>
+</div>
+
+<h2 id="ambiental">Lo que opera sin que invoques nada</h2>
+<table>
+<tr><th>Pieza</th><th>Efecto en sesiones normales</th></tr>
+<tr><td><code>workflow/infra-naming.md</code> (regla global)</td><td>Cualquier deploy ad-hoc conversacional nombra recursos con la convención — el origen histórico de la inconsistencia era justo pedir deploys sin regla escrita</td></tr>
+<tr><td>Regla de ruteo en <code>project-structure.md</code></td><td>Toda sesión sabe que lo durable va al specs repo y lo efímero a _support</td></tr>
+<tr><td>AGENTS.md del workspace + CLAUDE.md <code>@AGENTS.md</code> (los crea kickoff)</td><td>Toda sesión de TODO harness — Claude por import, Codex/opencode nativo, incluso la casual dentro de un repo hijo — recibe el puntero al ledger y las convenciones del cliente (branching, cuentas) desde un solo archivo canónico</td></tr>
+<tr><td>Routing de los 6 agentes nuevos</td><td>Mencionar "revisa esta épica", "este mock se siente raro" o "verifica que esto funciona en el browser" puede enrutar al especialista correcto (incl. <code>in-vivo-qa-tester</code>) incluso fuera de las skills</td></tr>
+</table>
+
+<h2 id="gotchas">Gotchas</h2>
+<table>
+<tr><th>Situación</th><th>Qué saber</th></tr>
+<tr><td>Las skills no aparecen</td><td>Falta <code class="cmd">/deploy-global</code> (siempre lo inicias tú). El manifest también limpiará de <code>~/.claude/</code> lo eliminado: apply-preset, orchestrate y los 3 agentes retirados</td></tr>
+<tr><td>Ninguna skill-fase se auto-invoca</td><td>Deliberado en las 9 fases (<code>disable-model-invocation</code>): son puertas que tú cruzas. Decir "revisemos la spec" no dispara <code>/flow-specs review</code> — escríbelo como comando. Excepción: <code>flow-report</code> SÍ auto-invoca (es render de salida, regido por <code>communication-format.md</code>)</td></tr>
+<tr><td>Primer uso recomendado</td><td>Piloto: <code class="cmd">/flow-plan</code> + <code class="cmd">/flow-build</code> contra una épica real de chat-hub para calibrar el protocolo de handoff, y <code class="cmd">/flow-hygiene audit</code> sobre ese workspace (ya acumuló el desorden perfecto de prueba)</td></tr>
+<tr><td>flow-plan + plan mode</td><td>Conviven: <code>flow-plan write</code> produce el plan y el plan mode nativo es el gate de aprobación. Tu hábito de iniciar en plan mode se queda</td></tr>
+<tr><td>¿Qué garantiza que los agentes se ejecuten?</td><td>Tres capas, no <code>allowed-tools</code> (una allowlist restringe qué <em>puede</em> usarse, no obliga a usar nada): (1) el cuerpo de la skill se inyecta como instrucción directa al invocarla — máxima saliencia, a diferencia de las reglas ambientales que perdían contra el momentum; (2) gates de artefacto: <code>flow-build</code> orquesta y despacha a especialistas, nunca implementa en el hilo principal, y tú apruebas el plan viéndolo; las síntesis requieren insumos que solo los agentes producen; (3) la prohibición explícita en el punto de tentación ("do NOT implement/review yourself"). Si el piloto muestra drift, la escalación dura son hooks (PreToolUse bloqueando Edit en código durante el flow) — se agregan con evidencia, no por anticipación</td></tr>
+<tr><td>Proyectos ya andados (chat-hub)</td><td>No se "rehacen" fases — las puertas no son peaje retroactivo. El path dedicado es <code class="cmd">/flow-hygiene migrate</code>: bootstrap one-shot que crea el specs-repo, aplica tiering active/archived, cuarentena <code>sessions/previously/</code> y reconstruye el estado de fases desde lo observable (specs repo, git, tracker) siguiendo <code>migration-playbook.md</code>. Después entra directo por la puerta de tu fase actual: <code class="cmd">/flow-plan</code> + <code class="cmd">/flow-build</code> para sesiones, <code class="cmd">/flow-deploy</code> para entregas. (Para solo ordenar desorden sin bootstrap: <code class="cmd">/flow-hygiene audit · apply</code>)</td></tr>
+<tr><td>Codex / opencode</td><td>Construido: las skills se publican también a <code>~/.agents/skills/</code> (ambos la leen nativo) con <code>harness-mechanics.md</code> como clave de traducción. Codex: <code>$flow-plan ...</code> / <code>$flow-build ...</code> directo, subagentes TOML generados. opencode: comandos <code>/flow-*</code>, agentes generados. Setup one-time: READMEs en <code>harness/{codex,opencode}/</code>. Al actualizar el hub + deploy, los tres harnesses se sincronizan — los agentes per-harness se <em>generan</em>, nunca se editan a mano</td></tr>
+<tr><td>Servidores dev</td><td>Ya no existe el concepto de autorización (regla global, 2026-06-12): cualquier skill o sesión arranca el server local libremente. La obligación es de higiene, no de permiso — <code class="cmd">/flow-build</code> apaga al cierre solo el que él inició (verificado por puerto), y <code class="cmd">/flow-mock review</code> lo apaga al cerrar salvo que estés validando en ese momento (regla global Execution — nunca huérfano, nunca pregunta por default)</td></tr>
+</table>
+
+<h2 id="harnesses">Codex / opencode — observaciones por skill</h2>
+<p>Común a todas: lo que llega a <code>~/.agents/skills/</code> es una copia <em>generada limpia</em> (frontmatter universal, rutas reescritas — <code>convert-skills.py</code>); los gates de decisión (AskUserQuestion) degradan a pregunta inline en chat; la aprobación de plan es explícita en chat (sin plan mode nativo); los agentes despachados son los <em>generados</em> en cada deploy (TOML para Codex con <code>sandbox_mode</code>, markdown para opencode con <code>permission</code>); y el tracker (cuando es MCP) y el browser solo funcionan si su MCP está configurado en ese harness (snippets en <code>harness/</code>). Invocación: Codex <code>$flow-x ...</code> (texto libre como argumentos) · opencode <code>/flow-x ...</code> (command envoltura con <code>$ARGUMENTS</code>).</p>
+<table>
+<tr><th>Skill</th><th>Codex</th><th>opencode</th></tr>
+<tr><td><code>flow-core</code></td><td colspan="2">No se invoca en ningún harness — biblioteca. Su pieza específica para estos dos es <code>harness-mechanics.md</code>: léela SIEMPRE antes de ejecutar cualquier flow skill fuera de Claude</td></tr>
+<tr><td><code>flow-intake</code></td><td>Funciona completo: <code>requirement-analyst</code> generado corre con sandbox read-only</td><td>Funciona completo vía task tool; read-only por <code>permission</code></td></tr>
+<tr><td><code>flow-kickoff</code></td><td colspan="2">Funciona completo en ambos: kickoff crea <code>AGENTS.md</code> como canónico del workspace (Codex y opencode lo leen nativo) + <code>CLAUDE.md</code> que lo importa con <code>@AGENTS.md</code> (mecanismo oficial de Claude Code). Un solo archivo, tres harnesses ambientales. Engram funciona (MCP configurado en ambos)</td></tr>
+<tr><td><code>flow-specs</code></td><td>Si el tracker declarado es Linear vía MCP, requiere su snippet (Jira usa <code>acli</code>/shell; <code>manual/none</code> no necesita nada). Los 2 revisores corren como workers paralelos. El reporte HTML se renderiza vía <code>flow-report</code> (vive en <code>~/.agents/skills/</code>)</td><td>Ídem: tracker declarado (Linear MCP del snippet / Jira <code>acli</code> / ninguno); revisores vía task tool; HTML vía <code>flow-report</code></td></tr>
+<tr><td><code>flow-mock</code></td><td><code>build</code> funciona: shadcn/design-taste/optional reference project viven en <code>~/.agents/skills/</code> y HeroUI Pro está como MCP en config.toml. <code>review</code> requiere browser MCP en este harness</td><td>Funciona completo: skills de diseño universales + MCP de chrome-devtools ya configurado — hasta el gate de navegación corre nativo</td></tr>
+<tr><td><code>flow-foundation</code></td><td>Funciona: despacho paralelo de los 3 agentes generados; la matriz de repos procede-y-reporta (gate inline solo con señal)</td><td>Funciona ídem</td></tr>
+<tr><td><code>flow-plan</code></td><td>Funciona completo: <code>research</code> despacha exploradores read-only; <code>write</code> aprueba el plan inline (<code>/plan</code> ayuda a redactar). MCP/CLI del tracker declarado si aplica</td><td>Ídem vía task tool; plan aprobado inline</td></tr>
+<tr><td><code>flow-build</code></td><td>Funciona con matices: el gate in-vivo (<code>in-vivo-qa-tester</code>) necesita browser MCP; el ciclo PR→CI→merge usa <code>gh</code> (shell); lee <code>Status</code>+git para reanudar. Spawn explícito es suficiente — las skills lo ordenan</td><td>Mismos matices (browser MCP para in-vivo, <code>gh</code> para el merge); todo lo demás nativo vía task tool</td></tr>
+<tr><td><code>flow-deploy</code></td><td>Funciona completo: gh/aws/hcloud son shell, sin dependencias de harness. Gates inline</td><td>Funciona completo ídem</td></tr>
+<tr><td><code>flow-hygiene</code></td><td>Funciona (audit · apply · migrate): custodio con sandbox read-only propone; apply/migrate ejecutan con aprobación inline</td><td>Funciona (audit · apply · migrate): custodio con <code>edit: deny</code>; apply/migrate ídem</td></tr>
+<tr><td><code>flow-report</code></td><td colspan="2">No se invoca directo — la despachan specs y hygiene para sus reportes. Es escritura de archivo HTML sin dependencias de harness: funciona completo en ambos</td></tr>
+</table>
+<p>Lectura transversal: <strong>el pack viaja completo</strong> — las skills de diseño viven en <code>~/.agents/skills/</code>, los MCP clave (Engram, HeroUI, chrome-devtools) están configurados en ambos harnesses, y el par ambiental AGENTS.md+CLAUDE.md cubre los tres. El único pendiente puntual: el MCP del tracker declarado en los snippets cuando es Linear (specs/dev lo usan; Jira corre por <code>acli</code>/shell y <code>manual/none</code> no necesita nada).</p>
+
+<details>
+<summary>Procedencia</summary>
+<p>Generado: 2026-06-11 · Actualizado: 2026-07-07 (ejecución orgánica del pack: kickoff infiere convenciones de proyectos hermanos y ya no pregunta branching; specs init sin pregunta de capa de presentación (que ahora es Astro Starlight, no Docusaurus); mock consolida stack en el plan gate y Visual craft bloquea por señal; build infiere el timing in-vivo, default diferido; foundation procede-y-reporta la matriz de repos; flag <code>design-review:</code> documentado en plan-format. Antes 2026-06-26: F6 dividido: <code>flow-dev</code> → <code>flow-plan</code> [research | write] + <code>flow-build</code> reconciler; plan-como-estado <code>Status</code>+git; gate in-vivo once-per-session; capacidad harness-agnóstica; nivel <strong>iniciativa</strong> en la capa de sesiones. Antes 2026-06-24: modelo de merge por task; tracker agnóstico; flow-hygiene migrate; flow-specs revise; split liveness/funcional en flow-deploy; 6º agente in-vivo-qa-tester) · Fuente: validación contra los SKILL.md canónicos · Spec canónico: <code>_support/spec/2026-06-26-flow-dev-split-design.md</code> + <code>flow-pack-design.md</code> · Skills: <code>global/skills/flow-*/</code> · Agentes nuevos: <code>requirement-analyst</code>, <code>spec-quality-reviewer</code>, <code>product-critic</code>, <code>ux-flow-reviewer</code>, <code>workspace-custodian</code>, <code>in-vivo-qa-tester</code> · Prompt origen: "crea un reporte/manual sobre cómo lo usaría en mi día a día (en html)"</p>
+</details>
+</main>
+</body>
+</html>

@@ -53,6 +53,13 @@ harness/                      # Generic AGENTS-compatible config, not deployed b
 ├── manage-agents/                   # /manage-agents — validate, optimize, report
 ├── manage-rules/                    # /manage-rules — validate, audit, create
 └── deploy-global/                   # /deploy-global — sync global/ → ~/.claude/
+
+_support/                            # Workspace material, not deployed
+├── archive/                         # Dated historical snapshots (audits/, docs/)
+├── archived-agents/                 # Retired agent versions kept for reference
+├── docs/                            # Durable hub docs (methodology-bibliography, flow-pack-manual)
+├── spec/                            # Design specs and decision records
+└── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
 ## Agents (21 agents)
