@@ -13,6 +13,8 @@ Use `/manage-agents` for all agent operations:
 - `/manage-agents optimize <name>` — guided optimization of a single agent
 - `/manage-agents report` — generate live analysis report with metrics
 
+After editing files under `global/agents/**`, offer `/manage-agents validate` at close; after editing `global/rules/**`, offer `/manage-rules validate`. Offer, don't run uninvited.
+
 ### Agent Frontmatter Reference
 
 ```yaml
@@ -59,7 +61,10 @@ initialPrompt: "Analyze this repo"  # Auto-submitted first prompt.
 ---
 name: skill-name                    # kebab-case, max 64 chars, unique
 description: >                      # 1-3 sentences. Claude uses this for auto-invocation.
-                                    # Truncated to 250 chars in listings.
+                                    # Model-visible skill listing caps description at
+                                    # 1,536 chars/skill (listing budget ~1% of context,
+                                    # least-invoked truncated first) — highest-signal
+                                    # triggers up front.
 # --- Execution control ---
 effort: max                         # low | medium | high | max. Overrides session default.
 context: fork                       # Runs in isolated subagent context. Main sees only result.
