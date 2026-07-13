@@ -69,6 +69,14 @@ Repos and the specs repo come later (F3/F5) — kickoff creates no git repos.
    without kept artifacts proceed ad-hoc with no session machinery; epic-scoped
    formal work may still enter through `/flow-plan` (no command exposed → follow
    the skill files directly).
+   Flow phase offering (all harnesses): the ledger's `Current phase` /
+   `Next suggested` lines name the pipeline step. When its exit criteria are met
+   and the conversation matches, OFFER the next command in prose ("spec review
+   passed — run `/flow-mock build`?") — never execute a flow command uninvited.
+   Sequence: F1 `/flow-intake` → F2 `/flow-kickoff` → F3 `/flow-specs` →
+   F4 `/flow-mock` → F5 `/flow-foundation` → F6 `/flow-plan` + `/flow-build` →
+   F7 `/flow-deploy qa`. Never offer `/flow-deploy prod` as an automatic next
+   step — production is always the user's explicit call.
 
    <client conventions block, if any — see Phase 4>
    ```

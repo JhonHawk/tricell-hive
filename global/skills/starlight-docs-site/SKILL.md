@@ -8,6 +8,7 @@ description: >
   Starlight", "sitio de specs", "agrega una página al manual", "audita el sitio de
   docs", or editing files in a Starlight project (astro.config, src/content/docs).
 user-invocable: true
+paths: "**/astro.config.*,**/src/content/docs/**"
 argument-hint: "[scaffold|page|audit] <path> [user-manual|spec-site]"
 ---
 

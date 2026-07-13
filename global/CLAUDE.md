@@ -109,6 +109,8 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 
 - **`flow-report` skill auto-invokes** when `rules/quality/communication-format.md` trigger conditions are met. That rule is the canonical source for the trigger — don't restate the conditions elsewhere.
 
+- **User-gated skills are OFFERED, never invoked.** A `disable-model-invocation` skill (the flow pack, deploys, maintenance commands) is never executed uninvited. In a flow workspace, when the ledger's `Current phase` / `Next suggested` state (ambient via the flow-phase-context hook) matches the conversation, offer the corresponding `/flow-*` command in prose ("spec review passed — run `/flow-mock build`?") and let the user run it. Never offer `/flow-deploy prod` or `/deploy-global` as an automatic next step — those are always the user's explicit call.
+
 ### Deferred Tools
 
 - **Deferred tools surface only by name at session start** when tool search is enabled — this includes most MCP server tools and several built-ins (e.g., `LSP`, `WebFetch`, `WebSearch`, `Monitor`, `NotebookEdit`, `computer-use`, `playwright`, `chrome-devtools`). Calling a deferred tool directly returns `InputValidationError`.
