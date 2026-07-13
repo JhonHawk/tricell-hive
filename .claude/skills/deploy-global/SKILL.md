@@ -61,14 +61,9 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
    - **Hook orphans also purge their `settings.json` block.** A removed `.sh` must not leave a dangling hook entry. For each orphan whose `rel` is `hooks/*.sh`, purge from `~/.claude/settings.json` any hook entry whose inner `command` references that basename — this is safe *because the manifest confirmed the hook was repo-managed*; the user's own hooks (never in the manifest) are never matched. Same temp+validate+move discipline as the merge; backup is covered by step 4.
      ```bash
      # $orphan_basename is the basename of a hooks/*.sh orphan, e.g. pre-push-lint-reminder.sh
+     # The filter is a bundled resource (repo-relative; the skill runs from the repo root).
      tmp=$(mktemp)
-     if jq --arg bn "$orphan_basename" '
-       if .hooks then
-         .hooks |= ( with_entries( .value |= map(
-             select( ((.hooks // []) | map(.command) | any(contains($bn))) | not )
-         )) | with_entries( select(.value | length > 0) ) )
-       else . end
-     ' ~/.claude/settings.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
+     if jq --arg bn "$orphan_basename" -f .claude/skills/deploy-global/filters/hook-purge.jq ~/.claude/settings.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
        mv "$tmp" ~/.claude/settings.json
        echo "settings.json: purged orphan hook block for $orphan_basename"
      else
@@ -122,23 +117,15 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     `settings.json` untouched and falls back to the manual reminder. Assumes hook paths
     have no spaces (true for `global/hooks/*/`).
     ```bash
-    configs=$(find global/hooks -name settings-config.json 2>/dev/null)
-    if [ -n "$configs" ]; then
+    # find -print0 | xargs -0: zsh does NOT word-split an unquoted $var — a plain
+    # `jq -s ... $configs` receives ONE newline-joined pseudo-path, jq errors, and
+    # the merge silently no-ops (bug found in vivo 2026-07-10).
+    if find global/hooks -name settings-config.json 2>/dev/null | grep -q .; then
       [ -f ~/.claude/settings.json ] || echo '{}' > ~/.claude/settings.json
-      managed=$(jq -s 'reduce .[] as $c ({}; reduce (($c.hooks // {}) | to_entries[]) as $e (.; .[$e.key] = ((.[$e.key] // []) + $e.value)))' $configs)
+      managed=$(find global/hooks -name settings-config.json -print0 2>/dev/null | xargs -0 jq -s 'reduce .[] as $c ({}; reduce (($c.hooks // {}) | to_entries[]) as $e (.; .[$e.key] = ((.[$e.key] // []) + $e.value)))')
       tmp=$(mktemp)
-      if jq --argjson m "$managed" '
-        reduce ($m | to_entries[]) as $evt (.;
-          .hooks[$evt.key] = (
-            ($evt.value | map(.hooks[].command)) as $mcmds
-            | ((.hooks[$evt.key] // [])
-                | map( select(
-                    ((.hooks // []) | map(.command)) as $ec
-                    | ($ec | any(. as $c | ($mcmds | index($c)) != null)) | not
-                  )))
-              + $evt.value
-          ))
-      ' ~/.claude/settings.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
+      # The merge filter is a bundled resource (repo-relative; the skill runs from the repo root).
+      if jq --argjson m "$managed" -f .claude/skills/deploy-global/filters/hook-merge.jq ~/.claude/settings.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
         mv "$tmp" ~/.claude/settings.json
         echo "settings.json: hook blocks merged (idempotent, additive)."
       else
@@ -169,22 +156,30 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     find harness/opencode/agents -name '*.md' ! -name 'README.md' -exec cp {} ~/.config/opencode/agents/ \;
     # opencode command wrappers
     cp harness/opencode/commands/*.md ~/.config/opencode/commands/
+    # Path-scoped language rules (generated; loaded by the opencode-rules plugin,
+    # pinned in opencode.jsonc.snippet — the plugin entry itself is a one-time
+    # manual config merge, never written here)
+    mkdir -p ~/.config/opencode/rules
+    find harness/opencode/rules -name '*.md' ! -name 'README.md' -exec cp {} ~/.config/opencode/rules/ \;
     # Shared cross-harness guidance — REPLACES the target files (they are fully
     # repo-managed from the first deploy; diff per step 3 before overwriting).
-    # opencode gets the shared file verbatim. Codex gets the shared file PLUS a
-    # Codex-only Engram memory tail: opencode and Claude Code inject the Engram
-    # protocol via their own plugins, but Codex has none — appending the tail to
-    # its AGENTS.md carries the protocol as an additive, TUI-invisible project-doc
-    # instruction that survives `engram setup`. So the two AGENTS.md files are
-    # intentionally NOT byte-identical (no cmp check between them).
+    # Both harnesses get the shared file VERBATIM. The Engram protocol reaches
+    # Codex via the Engram Codex plugin's bundled hooks (SessionStart et al.) —
+    # the former engram-memory-tail.md concat was removed 2026-07-10 as a
+    # duplicate once that plugin shipped.
     cp harness/AGENTS.md ~/.config/opencode/AGENTS.md
-    cat harness/AGENTS.md harness/codex/engram-memory-tail.md > ~/.codex/AGENTS.md
+    cp harness/AGENTS.md ~/.codex/AGENTS.md
     ```
     Config snippets (`harness/{codex,opencode}/*.snippet`) are one-time manual merges —
-    point the user at the READMEs, never write their config files. Note: `~/.codex/AGENTS.md`
-    = shared `harness/AGENTS.md` + `harness/codex/engram-memory-tail.md` (Codex-only), so it
-    is larger than the opencode copy by design — verify it stays under `project_doc_max_bytes`
-    (49152) from the snippet, not equal to the opencode file.
+    point the user at the READMEs, never write their config files. Verify
+    `~/.codex/AGENTS.md` stays under `project_doc_max_bytes` (49152) from the snippet.
+    Close the Codex leg by validating its config still parses cleanly (`--strict-config`
+    errors on unrecognized keys — catches config drift the deploy would otherwise mask):
+    ```bash
+    # `features list` rejects the flag; `doctor` accepts it (verified 0.144.0)
+    codex --strict-config doctor >/dev/null 2>&1 && echo "codex config OK" \
+      || echo "WARNING: codex --strict-config doctor failed — inspect ~/.codex/config.toml for drift"
+    ```
 14. **Write the manifest** — after all copies succeed, record exactly what this deploy manages, mapped to *deployed* paths (relative to `~/.claude/`; hooks flattened to match step 13's flat copy):
     ```bash
     {
@@ -205,7 +200,7 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     Write the manifest only after a successful deploy — if the deploy aborted midway, leave the previous manifest untouched so the next run still sees the last known-good state.
 15. Report:
     - What was deployed per category (config, rules, agents, skills, hooks) with counts
-    - Multi-harness layer: universal skills count (~/.agents/skills), generated agents per harness, opencode commands, and the shared `AGENTS.md` deployed to `~/.config/opencode/AGENTS.md` (verbatim) and `~/.codex/AGENTS.md` (shared + Codex-only `engram-memory-tail.md`); remind that config snippets (READMEs in `harness/{codex,opencode}/`) are one-time manual merges
+    - Multi-harness layer: universal skills count (~/.agents/skills), generated agents per harness, opencode commands, and the shared `AGENTS.md` deployed verbatim to `~/.config/opencode/AGENTS.md` and `~/.codex/AGENTS.md`; remind that config snippets (READMEs in `harness/{codex,opencode}/`) are one-time manual merges
     - Orphans removed via manifest (step 5) and stale files cleaned (if any); note when no manifest existed yet
     - Backup location and size
     - Diff summary from step 2 (new, modified, unchanged)
@@ -222,6 +217,7 @@ This skill runs in both bash and zsh. Avoid bare globs that fail in zsh when the
 - **Use `find` instead of `for f in *.md`** for stale-file cleanup.
 - **Check directory existence** before including paths in tar commands.
 - **Use `2>/dev/null` on find** to suppress permission or missing-path errors.
+- **Never inline multi-line jq programs.** The two `settings.json` filters ship as bundled resources under `.claude/skills/deploy-global/filters/` and are invoked with `jq -f` — an inline single-quoted multi-line program breaks when the executing agent flattens the command with `\` continuations (the backslashes land inside the quoted program and jq fails to compile). Single-line jq stays inline.
 
 ## Rules
 - **Never delete** files from `~/.claude/rules/`, `~/.claude/agents/`, `~/.claude/skills/`, or `~/.claude/hooks/` that are NOT managed by this repo. Only overwrite files that exist in `global/`. The manifest defines "managed": a path may be deleted only if the previous manifest lists it (step 5) — and only after user confirmation.

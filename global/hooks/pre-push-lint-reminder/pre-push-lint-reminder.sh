@@ -13,6 +13,10 @@
 #
 # Scope note: detection is Node/package.json only (the dominant flow-build push
 # stack). Python/Java repos get no reminder by design; extend here if needed.
+#
+# Lefthook-aware: when the repo has an INSTALLED lefthook pre-push hook AND a
+# configured `pre-push:` section, the deterministic gate already blocks a bad
+# push — the reminder would be redundant noise there, so it stays silent.
 
 set -uo pipefail
 
@@ -29,6 +33,27 @@ repo_root=$(git rev-parse --show-toplevel 2>/dev/null || true)
 root="${repo_root:-.}"
 pkg="$root/package.json"
 [ -f "$pkg" ] || exit 0   # no Node manifest -> nothing to remind about
+
+# Lefthook covers this push? Both conditions must hold: the git pre-push hook is
+# installed and belongs to lefthook (honoring core.hooksPath and worktrees), AND
+# some lefthook config declares a top-level `pre-push:` section (1.x `commands:`
+# and 2.x `jobs:` both nest under it). Config present but never `lefthook install`ed
+# -> no active gate -> keep reminding.
+hooks_dir=$(git -C "$root" config core.hooksPath 2>/dev/null || true)
+[ -n "$hooks_dir" ] || hooks_dir=$(git -C "$root" rev-parse --git-path hooks 2>/dev/null || true)
+case "$hooks_dir" in
+  /*) ;;                                # absolute -> use as-is
+  ?*) hooks_dir="$root/$hooks_dir" ;;   # relative -> anchor to repo root
+esac
+if [[ -n "$hooks_dir" && -f "$hooks_dir/pre-push" ]] \
+   && grep -qi 'lefthook' "$hooks_dir/pre-push" 2>/dev/null; then
+  for lh_cfg in lefthook.yml lefthook.yaml .lefthook.yml .lefthook.yaml \
+                lefthook-local.yml lefthook-local.yaml; do
+    if [[ -f "$root/$lh_cfg" ]] && grep -qE '^pre-push:' "$root/$lh_cfg" 2>/dev/null; then
+      exit 0   # deterministic gate active -> reminder redundant
+    fi
+  done
+fi
 
 # Detect package manager (mirrors the global pnpm-default rule).
 pm=pnpm

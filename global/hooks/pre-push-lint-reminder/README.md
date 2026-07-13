@@ -21,6 +21,12 @@ nunca bloquea.
 - Detecta el package manager (`pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn,
   `package-lock.json` → npm; fallback pnpm) y nombra el comando exacto en el
   recordatorio.
+- **Consciente de lefthook:** si el repo tiene el hook de git `pre-push`
+  INSTALADO por lefthook (respetando `core.hooksPath` y worktrees) **y** algún
+  config de lefthook (`lefthook.yml`/`.yaml`, variantes `.` y `-local`) declara
+  una sección `pre-push:`, el gate determinístico ya cubre el push → silencio.
+  Config presente pero sin `lefthook install` → no hay gate activo → sigue
+  recordando.
 - Inyecta el aviso vía `hookSpecificOutput.additionalContext` con
   `permissionDecision: "allow"` y `exit 0` — el modelo lo ve, el push procede.
 
