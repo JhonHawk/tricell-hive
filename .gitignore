@@ -16,6 +16,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Engram: track only the project identity, not local sync chunks
+.engram/*
+!.engram/config.json
+
 # Private optional research sources
 /_support/workspace/
 /CLAUDE.local.md
