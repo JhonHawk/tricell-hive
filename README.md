@@ -12,6 +12,36 @@ Generic AGENTS-compatible harness config lives under `harness/`. Root `AGENTS.md
 /manage-agents report # Live analysis of all agents
 ```
 
+## Prerequisites
+
+The config assumes these are installed; nothing here installs them for you.
+
+### Per harness (one-time)
+
+| Harness | What | How |
+|---|---|---|
+| Claude Code | Engram plugin (memory protocol) | Engram's own plugin channel (`plugin:engram`) |
+| Codex | Engram Codex plugin (`engram@engram`, bundled hooks) | Plugin cache under `~/.codex/plugins/`. **Never run `engram setup` for Codex** — it sets `model_instructions_file`, which replaces Codex's base system prompt (`harness/codex/README.md`) |
+| Codex | Config additions (`project_doc_max_bytes = 65536`, `commit_attribution = ""`, subagent limits) | Merge `harness/codex/config.toml.snippet` into `~/.codex/config.toml`, once |
+| opencode | `opencode-rules@0.6.4` plugin (glob-conditional language rules; pinned, audited) + flow-skill gating | Merge `harness/opencode/opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`, once |
+| opencode | Single skill-discovery source | `export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` in the shell profile |
+
+Merge/verify commands and the reasoning live in `harness/README.md` (snippets are the one
+layer `/deploy-global` cannot automate). After any merge, start a fresh session.
+
+### CLIs and MCPs the rules assume present
+
+| Tool | Used by | Check |
+|---|---|---|
+| `agent-browser` CLI (+ `AGENT_BROWSER_PROFILE=Tricell` in `~/.zshenv`) | browser-automation rule, in-vivo verification, `in-vivo-qa-tester` | `agent-browser --version` |
+| `codegraph` CLI + MCP | CodeGraph rule (indexed repos only) | `codegraph --version` |
+| `uv` | Python rule (pip is banned) | `uv --version` |
+| `pnpm` | default package manager | `pnpm --version` |
+| `gh` | GitHub operations (PRs, API) | `gh auth status` |
+| `cwebp` | evidence retention (WebP lossless) | `cwebp -version` |
+| context7 MCP | context7 rule (library docs at write time) | plugin/MCP config per harness |
+| chrome-devtools / playwright MCP | Lighthouse/perf; browser fallback | MCP config per harness |
+
 ## Structure
 
 ```
@@ -36,8 +66,14 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── flow-plan/                   # F6 — plan the dev session: research | write
 │   ├── flow-build/                  # F6 — execute the plan: reconciler + verify gate
 │   ├── flow-deploy/                 # F7 — qa | prod | verify
-│   ├── flow-hygiene/                # Workspace hygiene: audit | apply
-│   └── flow-report/                 # Self-contained HTML reports for substantial output
+│   ├── flow-hygiene/                # Workspace hygiene: audit | apply | migrate
+│   ├── flow-report/                 # Self-contained HTML reports for substantial output
+│   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
+│   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
+│   ├── memory-sync/                 # Reconcile Engram + native memory vs ground truth
+│   ├── starlight-docs-site/         # Astro Starlight docs: scaffold | page | audit
+│   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (Codex/opencode)
+│   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
 └── agents/                          # Optimized agents by role
     ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer
     ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, nextjs
@@ -46,8 +82,12 @@ global/                              # Mirrors ~/.claude/ — deployable source 
     ├── ops/                         # red     — devops-engineer
     └── docs/                        # magenta — technical-writer
 
-harness/                      # Generic AGENTS-compatible config, not deployed by /deploy-global
-└── AGENTS.md                        # Condensed cross-harness guidance
+harness/                      # Multi-harness layer (Codex + opencode), deployed by /deploy-global step 13b
+├── AGENTS.md                        # Always-on cross-harness core (~18 KiB; depth behind router skills)
+├── build.py                         # Regenerates generated trees + injects router-skill references
+├── agents-skills/                   # GENERATED — universal skills → ~/.agents/skills
+├── codex/                           # config.toml.snippet + GENERATED TOML agents
+└── opencode/                        # opencode.jsonc.snippet + commands/ + GENERATED agents & rules
 
 .claude/skills/
 ├── manage-agents/                   # /manage-agents — validate, optimize, report
@@ -90,14 +130,14 @@ _support/                            # Workspace material, not deployed
 
 Use `/manage-agents report` for live line counts and reduction metrics instead of relying on static README totals.
 
-## Rules (27 files)
+## Rules (29 files)
 
 | Category     | Files | Scope |
 |--------------|------:|-------|
-| `quality/`   |     8 | alwaysApply — code principles, security, testing, verifiable test gate, communication format |
-| `languages/` |    10 | path-scoped — TypeScript, React/Next.js, Angular, Java/Kotlin, Python, SQL, Tailwind, shell, IaC, NestJS |
-| `workflow/`  |     8 | alwaysApply — git, routing, project structure, infra naming, cross-service, gap resolution, memory routing, devops |
-| `tools/`     |     1 | alwaysApply — context7 query protocol |
+| `quality/`   |     7 | alwaysApply — code principles, security, testing, debugging, critical thinking, communication format |
+| `languages/` |    11 | path-scoped — TypeScript, React/Next.js, Angular, Java/Kotlin, Python, SQL, Tailwind, shell, IaC, NestJS, UI visual design |
+| `workflow/`  |     9 | alwaysApply — git, routing, project structure, infra naming, cross-service, gap resolution, memory routing, unattended autonomy, devops |
+| `tools/`     |     2 | alwaysApply — context7 query protocol, browser automation |
 
 ## Agent Design Criteria
 
@@ -119,6 +159,12 @@ Use `/manage-agents report` for live line counts and reduction metrics instead o
 | `/flow-hygiene` | global | Workspace hygiene: `audit` \| `apply` |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
 | `flow-report` | global | Renders substantial output as self-contained HTML (auto-invoked) |
+| `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |
+| `/starlight-docs-site` | global | `scaffold` \| `page` \| `audit` — Astro Starlight docs sites |
+| `language-rules` | global | Router: full language rules for Codex; quality depth rows for Codex + opencode (references injected by `build.py`) |
+| `workspace-conventions` | global | Router: workspace/session/contract conventions for Codex + opencode (model-invoked) |
+| `memory-policy` | global | Router: Engram policy layer for Codex + opencode (model-invoked) |
+| `unattended-delegation` | global | Router: explicitly-delegated unattended runs for Codex + opencode (model-invoked) |
 | `/manage-agents` | repo | `validate` \| `optimize <name>` \| `report` — agent lifecycle management |
 | `/manage-rules` | repo | `validate` \| `audit` \| `create` — rule lifecycle management |
 | `/deploy-global` | repo | Sync `global/` to `~/.claude/` (user-initiated only) |
