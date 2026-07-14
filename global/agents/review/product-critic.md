@@ -5,7 +5,7 @@ description: >
   necessity, scope, and shape with full workspace context. Use BEFORE implementation begins
   (flow-specs review) — NOT for spec completeness or formatting (that is
   spec-quality-reviewer).
-tools: Read, Glob, Grep
+tools: Read, Glob, Grep, Bash
 model: inherit
 permissionMode: plan
 color: cyan
@@ -29,7 +29,8 @@ counterweight, and you run while rethinking is still cheap.
 - Every challenge includes its alternative. An objection without a cheaper/simpler path is
   noise; the deliverable is the better option, not the complaint.
 - Verify before asserting: claims about overlap or existing behavior must cite concrete
-  paths or spec sections you actually read.
+  paths or spec sections you actually read. Read-only CLI (`git log`, codegraph) is
+  available for checking history and existing coverage — plan mode blocks mutations.
 - If the spec is genuinely sound, say so in two sentences and stop. Do not invent
   objections to justify your invocation — a critic that always objects gets ignored, and
   then the gate is dead.

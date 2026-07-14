@@ -114,11 +114,11 @@ _support/                            # Workspace material, not deployed
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `nextjs-architecture-expert` | development | green | Read, Write, Edit, Bash, Grep, Glob |
-| `code-reviewer` | review | cyan | Read, Glob, Grep |
+| `code-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `finding-refuter` | review | cyan | Read, Glob, Grep, Bash (executes claims, never modifies) |
-| `product-critic` | review | cyan | Read, Glob, Grep |
-| `security-reviewer` | review | cyan | Read, Glob, Grep |
-| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep |
+| `product-critic` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
+| `security-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
+| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `ux-flow-reviewer` | review | cyan | All except Write/Edit (needs browser MCP via ToolSearch) |
 | `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit (drives a real browser) |
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |

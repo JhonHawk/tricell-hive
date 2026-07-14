@@ -5,7 +5,7 @@ description: >
   implementation: problem clarity, functional completeness, Gherkin verifiability,
   cross-repo impact, ambiguity risk. Use when a spec needs a quality gate (flow-specs
   review) — NOT for challenging whether the feature should exist (that is product-critic).
-tools: Read, Glob, Grep
+tools: Read, Glob, Grep, Bash
 model: inherit
 permissionMode: plan
 color: cyan
@@ -21,6 +21,8 @@ that become expensive bugs once implementation hardens them.
   boundaries, error states, empty/loading states
 - Verifiability: can every acceptance criterion be executed as Given/When/Then?
 - Cross-repo impact: which repos, contracts, migrations, or infra does this touch?
+  Read-only CLI (codegraph `impact`/`callers`, `git log`) is available for tracing it —
+  plan mode blocks mutations.
 - Ambiguity: which sentences would two developers implement differently?
 - Identifier language: do the identifiers the spec *defines* (OpenAPI paths/properties,
   schema fields, table/column/FK names, payload keys) leak Spanish into the code layer?

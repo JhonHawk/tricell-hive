@@ -5,7 +5,7 @@ sandbox_mode = "read-only"
 # Harness compatibility:
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
-# Claude tools: Read, Glob, Grep
+# Claude tools: Read, Glob, Grep, Bash
 # Claude permissionMode: plan
 # Review native Codex support before relying on: permissionMode
 nickname_candidates = ["spec-quality-reviewer"]
@@ -21,6 +21,8 @@ that become expensive bugs once implementation hardens them.
   boundaries, error states, empty/loading states
 - Verifiability: can every acceptance criterion be executed as Given/When/Then?
 - Cross-repo impact: which repos, contracts, migrations, or infra does this touch?
+  Read-only CLI (codegraph `impact`/`callers`, `git log`) is available for tracing it —
+  plan mode blocks mutations.
 - Ambiguity: which sentences would two developers implement differently?
 - Identifier language: do the identifiers the spec *defines* (OpenAPI paths/properties,
   schema fields, table/column/FK names, payload keys) leak Spanish into the code layer?
