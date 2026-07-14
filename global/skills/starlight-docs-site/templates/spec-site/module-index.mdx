@@ -14,17 +14,19 @@ import SpecRubric from "../../../components/SpecRubric.astro";
 <SpecRubric {...frontmatter.workflow} />
 
 <!--
-  ÍNDICE DE MÓDULO — corto. Presenta el módulo, lista sus rebanadas con estado y
-  declara reglas de convergencia entre caminos. No reemplaza a los BRD.
-  El import de SpecRubric asume la página en src/content/docs/«module»/index.mdx
-  (3 niveles hasta src/components/). Ajusta los `../` si cambia la profundidad.
+  ÍNDICE DE MÓDULO — corto. Presenta el módulo, lista sus vistas (rebanadas) con
+  estado y declara reglas de convergencia entre caminos. No reemplaza a las
+  páginas de vista/BRD. El estado en esta tabla es in-page (permitido); en labels
+  del sidebar jamás. El import de SpecRubric asume la página en
+  src/content/docs/«module»/index.mdx (3 niveles hasta src/components/).
+  Ajusta los `../` si cambia la profundidad.
 -->
 
 «Qué capacidad de negocio cubre el módulo y por qué existe.»
 
-## Rebanadas
+## Vistas
 
-| Rebanada | Estado | Descripción |
+| Vista | Estado | Descripción |
 | --- | --- | --- |
 | [«Auto-registro»](/«module»/«slice»/) | `draft` | «Una frase.» |
 

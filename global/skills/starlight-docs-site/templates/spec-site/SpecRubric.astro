@@ -11,6 +11,12 @@ type WorkflowStage =
   | "uat"
   | "gate2-approved";
 
+interface EpicInfluence {
+  epic: string;
+  contribution: string;
+  gateDate: Date | string;
+}
+
 interface Props {
   module: string;
   slice?: string;
@@ -24,6 +30,7 @@ interface Props {
   gate2Evidence?: string[];
   evidence?: string[];
   tracker?: string[];
+  influencedBy?: EpicInfluence[];
 }
 
 const {
@@ -39,6 +46,7 @@ const {
   gate2Evidence: _gate2Evidence = [],
   evidence: _evidence = [],
   tracker: _tracker = [],
+  influencedBy: _influencedBy = [],
 } = Astro.props;
 
 const _statusLabel: Record<WorkflowStatus, string> = {
@@ -55,8 +63,10 @@ const _statusNote: Record<WorkflowStatus, string> = {
 
 const _artifactLabel =
   {
+    "product-map": "Mapa del producto",
     "module-index": "Índice de módulo",
     brd: "BRD",
+    vista: "Vista",
     "technical-spec": "Spec técnica",
     "acceptance-criteria": "Criterios de aceptación",
     "uat-report": "Reporte UAT",
@@ -77,6 +87,9 @@ const _stageLabel: Record<WorkflowStage, string> = {
 const _updatedValue =
   _lastUpdated instanceof Date ? _lastUpdated.toISOString() : String(_lastUpdated);
 const _updated = _updatedValue.slice(0, 10);
+
+const _formatDate = (value: Date | string): string =>
+  (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
 ---
 
 <aside class={`spec-rubric spec-rubric--${_status}`}>
@@ -129,6 +142,22 @@ const _updated = _updatedValue.slice(0, 10);
       ) : null
     }
   </dl>
+
+  {
+    _influencedBy.length ? (
+      <div class="spec-rubric__influence">
+        <p class="spec-rubric__influence-title">Influenciada por</p>
+        <ul>
+          {_influencedBy.map((entry) => (
+            <li>
+              <strong>{entry.epic}</strong> — {entry.contribution}{" "}
+              <span class="spec-rubric__influence-date">(gate {_formatDate(entry.gateDate)})</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null
+  }
 
   {
     _evidence.length || _gate1Evidence.length || _gate2Evidence.length || _tracker.length ? (
@@ -271,6 +300,37 @@ const _updated = _updatedValue.slice(0, 10);
     border-top: 1px solid var(--sl-color-gray-5);
     color: var(--sl-color-gray-2);
     font-size: var(--sl-text-sm);
+  }
+
+  .spec-rubric__influence {
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+
+  .spec-rubric__influence-title {
+    margin: 0;
+    color: var(--sl-color-gray-3);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .spec-rubric__influence ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1.1rem;
+  }
+
+  .spec-rubric__influence li {
+    margin: 0.15rem 0 0;
+    line-height: 1.45;
+  }
+
+  .spec-rubric__influence-date {
+    color: var(--sl-color-gray-3);
+    white-space: nowrap;
   }
 
   @media (min-width: 36rem) {
