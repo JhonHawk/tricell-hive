@@ -30,6 +30,13 @@ CLAUDE_ONLY_FIELDS = {
     "tools",
 }
 CODEX_REASONING_EFFORTS = {"low", "medium", "high", "xhigh"}
+# Claude model-alias tiers → Codex model slugs. Single place to update when
+# OpenAI rotates the family. Agents on "inherit" (or an unmapped alias) emit no
+# `model` line, so the Codex session model applies — the coordinator/session is
+# never stamped. Tier-mapped agents default to "high" reasoning effort unless
+# the Claude frontmatter sets a Codex-compatible effort explicitly.
+CODEX_TIER_MAP = {"sonnet": "gpt-5.6-terra", "haiku": "gpt-5.6-luna"}
+CODEX_TIER_DEFAULT_EFFORT = "high"
 
 
 def parse_agent(path: Path):
@@ -117,18 +124,22 @@ def comma_join(values) -> str:
 
 
 def codex_model(agent):
-    """Return a model only when the Claude value is already Codex-compatible."""
+    """Map the Claude model to Codex: pass through gpt-*/o* IDs, translate alias tiers."""
     model = (agent["model"] or "").strip()
     if not model or model == "inherit":
         return None
     if model.startswith(("gpt-", "o")):
         return model
-    return None
+    return CODEX_TIER_MAP.get(model)
 
 
 def codex_reasoning_effort(agent):
     effort = (agent["effort"] or "").strip()
-    return effort if effort in CODEX_REASONING_EFFORTS else None
+    if effort in CODEX_REASONING_EFFORTS:
+        return effort
+    if (agent["model"] or "").strip() in CODEX_TIER_MAP:
+        return CODEX_TIER_DEFAULT_EFFORT
+    return None
 
 
 def codex_compatibility_comments(agent):
@@ -146,6 +157,10 @@ def codex_compatibility_comments(agent):
         )
     if agent["model"] and agent["model"] != "inherit" and not codex_model(agent):
         comments.append(f"# Claude model: {comment_escape(agent['model'])}")
+    elif agent["model"] in CODEX_TIER_MAP:
+        comments.append(
+            f"# Claude model alias: {agent['model']} -> {CODEX_TIER_MAP[agent['model']]}"
+        )
     if agent["effort"] and not codex_reasoning_effort(agent):
         comments.append(f"# Claude effort: {comment_escape(agent['effort'])}")
     if agent["permission_mode"]:

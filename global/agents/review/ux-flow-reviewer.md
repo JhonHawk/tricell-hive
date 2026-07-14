@@ -8,7 +8,7 @@ description: >
   prototypes (flow-mock review) or deployed flows — NOT for static code review of components
   (that is code-reviewer).
 disallowedTools: Write, Edit, NotebookEdit
-model: inherit
+model: sonnet
 color: cyan
 ---
 

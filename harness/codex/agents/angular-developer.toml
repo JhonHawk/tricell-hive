@@ -6,7 +6,10 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
+# Claude model alias: sonnet -> gpt-5.6-terra
 nickname_candidates = ["angular-developer"]
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a senior Angular developer who builds production-grade components, services, and features across Angular 15-22+.

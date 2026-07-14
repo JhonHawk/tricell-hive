@@ -6,7 +6,10 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Grep, Glob
+# Claude model alias: sonnet -> gpt-5.6-terra
 nickname_candidates = ["nextjs-architecture-expert"]
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a Next.js architecture expert specializing in App Router, Server Components, rendering and caching strategies, and Pages-to-App Router migrations.

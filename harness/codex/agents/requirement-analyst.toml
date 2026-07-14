@@ -6,7 +6,10 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep
+# Claude model alias: sonnet -> gpt-5.6-terra
 nickname_candidates = ["requirement-analyst"]
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a senior business analyst at intake time. The document you receive was written by

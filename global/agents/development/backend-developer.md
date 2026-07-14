@@ -4,7 +4,7 @@ description: >
   Build server-side APIs, microservices, and backend systems across NestJS, Express, Spring Boot, Kotlin, and Python.
   Use when implementing API endpoints, database integration, authentication, or service architecture.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: inherit
+model: sonnet
 color: green
 ---
 

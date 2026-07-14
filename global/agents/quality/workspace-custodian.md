@@ -6,7 +6,7 @@ description: >
   it proposes actions, never executes them (flow-hygiene apply executes with user
   approval). Use via /flow-hygiene audit, or when a workspace feels disordered.
 tools: Read, Glob, Grep, Bash
-model: inherit
+model: sonnet
 color: yellow
 ---
 

@@ -7,7 +7,7 @@ description: >
   docs BEFORE specs exist (flow-intake) — NOT for reviewing written épicas (that is
   spec-quality-reviewer).
 tools: Read, Glob, Grep
-model: inherit
+model: sonnet
 color: blue
 ---
 

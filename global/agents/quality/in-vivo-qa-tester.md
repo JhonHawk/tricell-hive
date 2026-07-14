@@ -8,7 +8,7 @@ description: >
   in-vivo check (local production build) and the flow-deploy qa post-deploy walk (QA URLs). NOT for
   UX friction (ux-flow-reviewer) and NOT for writing automated suites (test-engineer).
 disallowedTools: Edit, NotebookEdit
-model: inherit
+model: sonnet
 effort: high
 color: yellow
 ---

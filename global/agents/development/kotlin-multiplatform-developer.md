@@ -13,7 +13,7 @@ description: >
   <commentary>KMP shared-code + Android — routes here, not backend-developer.</commentary>
   </example>
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: inherit
+model: sonnet
 color: green
 ---
 

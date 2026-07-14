@@ -5,7 +5,7 @@ description: >
   Use when making Next.js architecture decisions, migrating from Pages Router, or implementing
   Next.js-specific features (not React generic).
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: inherit
+model: sonnet
 color: green
 ---
 

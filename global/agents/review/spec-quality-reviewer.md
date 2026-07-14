@@ -6,7 +6,7 @@ description: >
   cross-repo impact, ambiguity risk. Use when a spec needs a quality gate (flow-specs
   review) — NOT for challenging whether the feature should exist (that is product-critic).
 tools: Read, Glob, Grep, Bash
-model: inherit
+model: sonnet
 permissionMode: plan
 color: cyan
 ---

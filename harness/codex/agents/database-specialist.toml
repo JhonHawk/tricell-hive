@@ -6,8 +6,10 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
-# Claude model: sonnet
+# Claude model alias: sonnet -> gpt-5.6-terra
 nickname_candidates = ["database-specialist"]
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a senior database engineer who designs schemas for correctness and performance, writes efficient queries, and manages migrations safely.

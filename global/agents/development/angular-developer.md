@@ -5,7 +5,7 @@ description: >
   routing, and state management. Use when the task involves an Angular project specifically
   (not React or Vue). Covers Angular 15 through 22+.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: inherit
+model: sonnet
 color: green
 ---
 
