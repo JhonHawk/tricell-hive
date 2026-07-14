@@ -118,12 +118,13 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 
 ### Delegation & Context Hygiene
 
-Keep the main thread focused: delegate executable work, reason in the main thread. Finer thresholds: `rules/workflow/agent-routing.md > Delegation Thresholds`.
+Keep the main thread focused: delegate executable work, reason in the main thread. Governing question: does this inflate my context without need? Yes → delegate; no → inline. Gates and the inline-vs-delegate table: `rules/workflow/agent-routing.md > Delegation Gates`.
 
 - **Delegate to subagent `Explore`** when you need 3+ search queries across the codebase, or the question is open-ended ("how does X work?", "where is Y used?"). Explore returns a summarized report; tool-use noise stays out of the main thread.
 - **Delegate to specialized agents** per `rules/workflow/agent-routing.md` disambiguation table before handling the task yourself in the main thread. If the task falls clearly in a domain (security review, DB schema, frontend component), the specialist is preferred — both for quality and for context hygiene.
 - **Parallelize independent subagent calls.** When 2+ queries have no data dependency between them, dispatch in a single message with multiple `Agent` tool uses. Sequential dispatch of independent work wastes wall-clock and main-thread turns.
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
+- **Never relaunch what you already delegated.** Before spawning, check no equivalent subagent is already running or answered — wait for its result. Hygiene detail: `rules/workflow/agent-routing.md > Delegation Gates`.
 - **Default to subagents; escalate only on a clear signal.** Agent Teams when the work needs persistent parallel workers or the user asks; the Workflow tool only on explicit opt-in — never on inferred intent. The opt-in list, disambiguation, and the `agentType` rule: `rules/workflow/agent-routing.md > Workflow Tool vs Subagents vs Agent Teams`.
 
 <!-- CODEGRAPH_START -->
