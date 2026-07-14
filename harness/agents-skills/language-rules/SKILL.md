@@ -9,8 +9,11 @@ description: >
   @nestjs/core), Python (pyproject.toml, .py), Java/Kotlin/Spring (pom.xml,
   build.gradle*), SQL migrations/Prisma/Drizzle (schema.prisma, drizzle.config, migration
   dirs), Tailwind CSS, shell scripts, Docker/Terraform/GitHub Actions, and UI visual
-  craft. Load after repository discovery even when the user does not name the stack;
-  read EVERY matching reference, not just the first.
+  craft — plus depth references for implementation principles, testing gates, debugging
+  discipline, and browser-driven verification. Load after repository discovery even when
+  the user does not name the stack; read EVERY matching reference, not just the first.
+  opencode: language rules arrive via its rules plugin — load this skill only for the
+  quality/verification references.
 ---
 
 # language-rules — deterministic router to the full language conventions
@@ -35,6 +38,10 @@ the COMPLETE rules only when the stack is actually touched.
 | `*.sh`, shell script edits | `references/shell-standards.md` |
 | `Dockerfile*`, `*.tf`, `.github/workflows/*` | `references/iac-devops.md` |
 | Building or styling UI (any stack) | `references/ui-visual-design.md` |
+| Non-trivial implementation (new feature, refactor — any stack) | `references/development-principles.md` |
+| Writing/modifying tests, or any behavior change | `references/testing.md` |
+| Non-obvious bug: intermittent, multi-layer, or resists the first fix | `references/debugging.md` |
+| Driving a browser / in-vivo verification of a running app | `references/browser-automation.md` |
 
 ## Stacking — combinations are the norm, not the exception
 
@@ -48,3 +55,6 @@ the COMPLETE rules only when the stack is actually touched.
   "fix the validation bug" prompt reveals its stack only after inspection.
 - A reference you already loaded this session does not need reloading.
 - No matching row → this skill has nothing for the task; proceed without it.
+- opencode: the language rows arrive automatically via the rules plugin — read only the
+  quality/verification rows (development-principles, testing, debugging,
+  browser-automation) from here.

@@ -35,6 +35,31 @@ BUILD = ROOT / "harness" / "build"
 AGENTS_BUDGET_BYTES = 30 * 1024
 AGENTS_HARD_LIMIT_BYTES = 48 * 1024
 
+# Router skills (Codex/opencode leg): canonical rule files injected as
+# frontmatter-stripped references so each skill's routing table resolves.
+# Keys are skill dir names under global/skills/; entries are (dir, glob)
+# relative to global/. The skill body names the trigger; the reference IS
+# the single canonical source — never fork content into the skill.
+SKILL_REFERENCE_INJECTIONS = {
+    "language-rules": [
+        ("rules/languages", "*.md"),
+        ("rules/quality", "development-principles.md"),
+        ("rules/quality", "testing.md"),
+        ("rules/quality", "debugging.md"),
+        ("rules/tools", "browser-automation.md"),
+    ],
+    "workspace-conventions": [
+        ("rules/workflow", "project-structure.md"),
+        ("rules/workflow", "cross-service-workflow.md"),
+    ],
+    "memory-policy": [
+        ("rules/workflow", "memory-routing.md"),
+    ],
+    "unattended-delegation": [
+        ("rules/workflow", "unattended-autonomy.md"),
+    ],
+}
+
 GENERATED_README = """# Generated — do not edit
 
 Everything in this directory is derived from canonical sources in `global/`
@@ -115,17 +140,27 @@ def main():
     )
     (rules_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
 
-    # language-rules router skill (Codex leg): inject the canonical rule files as
-    # frontmatter-stripped references so the skill body's routing table resolves.
-    lang_refs = skills_out / "language-rules" / "references"
-    lang_refs.mkdir(parents=True, exist_ok=True)
-    injected = 0
-    for rule in sorted((ROOT / "global" / "rules" / "languages").glob("*.md")):
-        text = rule.read_text(encoding="utf-8")
-        m = re.match(r"^---\n.*?\n---\n?", text, re.S)
-        (lang_refs / rule.name).write_text(text[m.end():] if m else text, encoding="utf-8")
-        injected += 1
-    print(f"injected {injected} language-rule references -> {lang_refs}")
+    # Router skills: inject canonical rule files as frontmatter-stripped
+    # references so each skill body's routing table resolves.
+    for skill_name, sources in SKILL_REFERENCE_INJECTIONS.items():
+        refs = skills_out / skill_name / "references"
+        if not (skills_out / skill_name).exists():
+            sys.exit(f"ERROR: SKILL_REFERENCE_INJECTIONS names '{skill_name}' but "
+                     f"global/skills/{skill_name}/ does not exist.")
+        refs.mkdir(parents=True, exist_ok=True)
+        injected = 0
+        for subdir, pattern in sources:
+            matches = sorted((ROOT / "global" / subdir).glob(pattern))
+            if not matches:
+                sys.exit(f"ERROR: no files match global/{subdir}/{pattern} "
+                         f"(reference injection for '{skill_name}').")
+            for rule in matches:
+                text = rule.read_text(encoding="utf-8")
+                m = re.match(r"^---\n.*?\n---\n?", text, re.S)
+                (refs / rule.name).write_text(
+                    text[m.end():] if m else text, encoding="utf-8")
+                injected += 1
+        print(f"injected {injected} references -> {refs}")
 
     check_agents_size()
 
