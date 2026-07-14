@@ -39,8 +39,11 @@ product or UX — those are `flow-specs` (epics/ACs) and `flow-mock` (UX), alrea
 
 1. **OPEN** per the contract: read `<project>/_support/PROJECT.md`; missing → suggest
    `/flow-kickoff` and stop. Consume any `## Current handoff`.
-2. Read the target epic in `<project>-specs/epics/` (PRODUCT.md, tasks.md) and the naming table
-   if infra is in scope. `$ARGUMENTS` after the subcommand overrides scope (epic ID or task IDs).
+2. Read the target epic in `<project>-specs/epics/` (PRODUCT.md, tasks.md, TECH.md if present)
+   and the naming table if infra is in scope. Collect the epic's **parked technical questions**
+   (Open Questions marked `technical — resolves in TECH.md` by the business gate) — resolving
+   them is part of this investigation, and the resolutions land in the epic's TECH.md, not in
+   PRODUCT.md. `$ARGUMENTS` after the subcommand overrides scope (epic ID or task IDs).
 3. **EXPLORE in subagents, never inline** (context hygiene — discovery noise stays out of the
    orchestrator). Dispatch read-only explorers per the handoff protocol to establish:
    - **Current state** — how this repo already does the thing; patterns, conventions, and
@@ -74,7 +77,11 @@ Crystallizes findings + spec into a plan another harness executes. The plan is t
    `flow-build`'s job at execution time — the plan stays harness-neutral. When any decision
    blocks task detail, add a **Decisions to close BEFORE executing** table above the tasks
    (`plan-format.md`): technical rows you confirm with a peer/tool, stakeholder rows folded into
-   the approval gate at step 6 — so execution never drips questions mid-task.
+   the approval gate at step 6 — so execution never drips questions mid-task. **This gate is the
+   technical gate** (counterpart of `/flow-specs review`, the business gate): the epic's parked
+   technical questions must be closed — in its TECH.md, or as rows in the Decisions table — before
+   the plan is ready for approval; an open parked question is a plan defect, never something
+   execution absorbs silently.
 3. **Preflight — resources confirmed at plan time, not at point of use.** The plan's approval is
    the last interruption; a missing credential found mid-execution kills the autonomy. Derive
    from the WHOLE flow (implementation, the in-vivo gate, and what promoting to qa/prod will

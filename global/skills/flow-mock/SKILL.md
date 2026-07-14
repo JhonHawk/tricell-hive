@@ -18,9 +18,11 @@ flow BACK to specs — the mock never silently becomes the spec.
 
 ## `build`
 
-1. OPEN per the contract. Read the reviewed epics in `<project>-specs/epics/` — the mock
-   implements what specs say, screen by screen, with realistic fake data (volumes per the
-   spec: include the 0-item and the 10,000-item case).
+1. OPEN per the contract. Read the product map and vistas in `<project>-specs/product/`
+   (the business rules in force, screen by screen) plus the reviewed epics in
+   `<project>-specs/epics/` (the deltas being mocked) — the mock implements what the
+   vistas say, with realistic fake data (volumes per the spec: include the 0-item and
+   the 10,000-item case).
 2. Detect or decide the design stack — never as a separate question. Existing mocks repo
    → mirror its stack. New → pick from workspace signals (the client's existing frontends,
    declared conventions) and carry the pick into the plan gate (step 4) as a named

@@ -15,8 +15,9 @@ nothing destructive without typed confirmation.
 
 Three layers, by versioning need and axis:
 
-- **Intention** (durable, versioned, BY TYPE) — `decisions/` (dated ADRs), `contracts/`, `epics/`,
-  `conventions/`. Business rules and prior technical analysis. Stays intact.
+- **Intention** (durable, versioned, BY TYPE) — `product/` (business rules in force), `decisions/`
+  (dated ADRs), `contracts/`, `epics/`, `conventions/`. Business rules and prior technical
+  analysis. Stays intact.
 - **Execution** (versioned journal, BY TIME) — `sessions/YYYY-MM-DD-<slug>/`: the real work record
   (`<slug>-plan.md`, `<slug>-findings.md`, analysis, reports — top-level files carry the slug, not the date). Immutable once concluded.
 - **Raw** (NOT versioned) — logs, dumps, raw screenshots, video, build output →
@@ -114,6 +115,25 @@ Rename non-ISO date tokens (`DD-MM-YYYY`, `DD_MM_YYYY`, `DDMMYYYY`, `MM-DD-YYYY`
 MANIFEST + per-finding reasoning, then a SUMMARY: counts to `sessions/`, `previously/`, intention
 homes, raw, pruned; whether a specs repo was created; what was NOT touched and why. ARCHIVED projects
 get a short summary (structure + sweep + index).
+
+## Product-layer adoption (specs repos that predate `product/`)
+
+A separate, deliberate migration — user-approved on its own, never a side effect of the
+documentary sweep above. For a specs repo with epics but no `product/` layer
+(`specs-structure.md > product/`):
+
+1. **Derive the map** (`product/README.md`) from the reviewed/delivered epics and the
+   requirements doc: portals/surfaces, actors and roles, end-to-end flow, module list.
+2. **Extract the vistas.** Per module, write each vista's rules in force from the epics'
+   PRODUCT.md content (rules live once, in the vista; the epic keeps the delta). Reconstruct
+   `Influenciada por` per epic with its gate date from the README index / git history.
+3. **Relocate technical content** already written into PRODUCT.md: to the epic's TECH.md
+   (draft, if foundation exists) or to parked Open Questions (`technical — resolves in
+   TECH.md`). Preserve every decision — relocate, don't rewrite; loss here is the migration's
+   main risk, so diff-review each epic.
+4. **Reorder the Starlight sidebar** if a site exists: product topology first (map → modules →
+   vistas), epics/decisions/requirements as the appendix; status out of sidebar labels, into
+   the in-page rubric.
 
 ## Safety invariants
 
