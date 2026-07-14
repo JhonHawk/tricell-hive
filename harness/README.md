@@ -40,16 +40,17 @@ configuration the repo knows nothing about. So the flow-pack additions ship as `
 fragments you merge by hand, once.
 
 They are **idempotent in intent**: once merged you don't repeat them on each deploy —
-unless a snippet itself changes (e.g. the `AGENTS.md` hard limit in `build.py` moves, so
-`project_doc_max_bytes` must follow to stay in sync).
+unless a snippet itself changes (e.g. `project_doc_max_bytes` gets a new value).
 
 ## What each snippet adds
 
 ### `codex/config.toml.snippet` → `~/.codex/config.toml`
 
-- **`project_doc_max_bytes = 49152`** — the one that matters. Codex truncates `AGENTS.md`
-  **silently** past its 32 KiB default, dropping the last sections. This raises the
-  ceiling to 48 KiB. Keep it in sync with `AGENTS_HARD_LIMIT_BYTES` in `build.py`.
+- **`project_doc_max_bytes = 65536`** — the one that matters. Codex truncates the
+  AGENTS.md chain **silently** past its 32 KiB default, and the budget is **combined**
+  root-first (global + workspace + repo files), so a fat global starves the downstream
+  docs. 64 KiB gives the whole chain headroom; the global file's own size is enforced
+  separately by `build.py` (`AGENTS_BUDGET_BYTES`/`AGENTS_HARD_LIMIT_BYTES`).
   TOML note: it is a top-level key — it must stay **above** the `[agents]` table.
 - **`[agents] max_threads / max_depth`** — subagent coordination for flow-build-style
   sessions (`max_depth = 1` is enough: orchestrator → workers).

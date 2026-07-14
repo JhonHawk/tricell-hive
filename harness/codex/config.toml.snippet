@@ -2,12 +2,13 @@
 # Merge into the existing file (do not replace).
 
 # AGENTS.md truncation airbag. Codex's default project_doc_max_bytes is 32 KiB
-# and it truncates SILENTLY past it — dropping the last sections (Git, Session
-# Execution Mode). Raise it so a normally-growing condensed file never truncates.
-# The editorial budget (~30 KiB, enforced by harness/build.py) keeps it concise;
-# this is only the safety net. Keep in sync with AGENTS_HARD_LIMIT_BYTES in build.py.
+# (verified in source at rust-v0.144.3/main, 2026-07-13) and it truncates
+# SILENTLY past it. The budget is COMBINED root-first across the whole chain
+# (global ~/.codex/AGENTS.md + workspace + repo files), so a fat global starves
+# the workspace/repo docs. 64 KiB leaves the chain ample headroom; the editorial
+# budget on the global file itself is enforced separately by harness/build.py.
 # TOML note: this is a top-level key — it must stay ABOVE the [agents] table.
-project_doc_max_bytes = 49152
+project_doc_max_bytes = 65536
 
 # Commit attribution. Codex appends a "Codex <noreply@openai.com>" co-author
 # trailer to every commit by default. The git-workflow rule forbids ANY AI
