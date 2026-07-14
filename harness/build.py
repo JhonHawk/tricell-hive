@@ -26,14 +26,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "harness" / "build"
 
-# AGENTS.md is the condensed, portable rule set shared by Codex and opencode.
-# Two thresholds, two purposes (see CLAUDE.md > Routing Maintenance):
-#   BUDGET  — editorial limit: it is a *condensed* file; at this size, prune
-#             before adding. Protects conciseness (context cost in BOTH harnesses).
-#   HARD    — Codex's project_doc_max_bytes airbag: past this, Codex truncates
-#             silently (dropping the LAST sections). Must match the snippet value.
-AGENTS_BUDGET_BYTES = 30 * 1024
-AGENTS_HARD_LIMIT_BYTES = 48 * 1024
+# AGENTS.md is the always-on core shared by Codex and opencode (pruned to
+# ~18 KiB 2026-07-14; situational depth lives behind the router skills).
+# Two thresholds, two purposes:
+#   BUDGET  — editorial limit: at this size, prune before adding. Re-bloat is
+#             a deliberate act, not drift.
+#   HARD    — build failure: the core has no business growing past this; the
+#             chain airbag (project_doc_max_bytes = 65536) is separate and
+#             covers global + workspace + repo files combined.
+AGENTS_BUDGET_BYTES = 19 * 1024
+AGENTS_HARD_LIMIT_BYTES = 24 * 1024
 
 # Router skills (Codex/opencode leg): canonical rule files injected as
 # frontmatter-stripped references so each skill's routing table resolves.
@@ -86,9 +88,9 @@ def check_agents_size():
     if size > AGENTS_HARD_LIMIT_BYTES:
         sys.exit(
             f"ERROR: harness/AGENTS.md is {kib:.1f} KiB, over the "
-            f"{AGENTS_HARD_LIMIT_BYTES // 1024} KiB hard limit. Codex truncates "
-            f"silently past project_doc_max_bytes (the last sections — Git, "
-            f"Session Execution Mode — drop first). Prune before deploying."
+            f"{AGENTS_HARD_LIMIT_BYTES // 1024} KiB hard limit. It is the "
+            f"always-on core — move situational content behind a router skill "
+            f"(SKILL_REFERENCE_INJECTIONS) instead of growing it."
         )
     if size > AGENTS_BUDGET_BYTES:
         print(

@@ -9,7 +9,7 @@ canonical sources for the other two CLIs.
 
 | Path | What | Maintained how |
 |---|---|---|
-| `AGENTS.md` | Condensed cross-harness guidance → `~/.codex/AGENTS.md` + `~/.config/opencode/AGENTS.md` | Hand-edited; budget ~30 KiB (`build.py` warns), hard limit 48 KiB |
+| `AGENTS.md` | Always-on cross-harness core → `~/.codex/AGENTS.md` + `~/.config/opencode/AGENTS.md`; situational depth lives behind router skills | Hand-edited; budget ~19 KiB (`build.py` warns), hard limit 24 KiB (build fails) |
 | `build.py` | Regenerates every generated tree below from `global/` | Run after any agent/skill edit |
 | `agents-skills/` | Cleaned universal skills → `~/.agents/skills/` | **Generated** |
 | `codex/agents/` | TOML subagents → `~/.codex/agents/` | **Generated** |
@@ -95,7 +95,11 @@ python3 harness/build.py      # regenerate the generated trees from global/
 /deploy-global                # copies everything; reports a dirty harness/ if you forgot to rebuild
 ```
 
-A **new skill** needs an opencode command wrapper in `opencode/commands/`; a **renamed**
-agent or skill needs a grep through `harness/`. Rules and `global/CLAUDE.md` do **not**
-pass through `build.py` — a cross-harness rule change must be mirrored manually into
-`AGENTS.md`.
+A new **user-invoked** skill needs an opencode command wrapper in `opencode/commands/`;
+model-invoked reference/router skills (language-rules, workspace-conventions,
+memory-policy, unattended-delegation, flow-core, flow-report) need none — they are read
+by path or invoked by the model. A **renamed** agent or skill needs a grep through
+`harness/`. Rules and `global/CLAUDE.md` do **not** pass through `build.py` — a
+cross-harness rule change must be mirrored manually into `AGENTS.md` (always-on core) or
+covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in
+`build.py`).
