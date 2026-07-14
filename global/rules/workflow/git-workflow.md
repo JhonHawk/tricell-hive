@@ -42,6 +42,7 @@ alwaysApply: true
 - **Shared integration branches receive changes via PR**, never a direct local merge, wherever the project uses a PR gate; a solo repo without one may merge locally.
 - **You own the CI of any PR you merge until the landed branch is green:** wait for PR checks before merging (never on red or pending), watch the post-merge run, and fix failures you triggered instead of handing them back. CI is authoritative over local runs.
 - **Promotion moves the integration branch's whole current state**, not the session diff, unless the user explicitly scopes a partial promotion.
+- **Stacked PRs:** when a task depends on an unmerged prior PR, branch from that PR's branch and chain the PRs, declaring the merge order in the close report — never block mid-session waiting for a merge.
 
 ### Session close (standing-authorized, automatic)
 - Prune branches confirmed 100% merged (`git branch --merged <target>`): delete the local and its merged remote counterpart; return the checkout to the integration branch. Then `git fetch --prune` and fast-forward local integration branches behind their upstream.
