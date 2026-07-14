@@ -12,13 +12,26 @@ the judgment; this file brings the domain checklist.
 | 4 | Main + alternate flows | Happy path plus the alternates that change behavior (retries, cancellations, concurrency) |
 | 5 | Permissions & tenancy | Roles, visibility rules, and tenant/org limits stated per flow — not assumed |
 | 6 | UI states | Empty, loading, error, success defined for every surface the epic touches |
-| 7 | Data & contracts | Required data, ownership, and affected contracts (OpenAPI/events) identified |
+| 7 | Data & contracts | Required data, its ownership, and affected contracts (OpenAPI/events) *identified by name* — never defined: shapes, fields, and schemas are TECH.md's job |
 | 8 | Gherkin verifiability | Every AC executable as Given/When/Then; no "should work correctly" criteria |
 | 9 | Success signal | Measurable acceptance: what QA runs, what the client signs off against |
 | 10 | Risks & dependencies | Known risks, cross-epic dependencies, and open questions with owners |
 
 ## Hard checks (binary — not scored, every failure is at least a `gap`)
 
+- **No technical leakage in PRODUCT.md.** Table/column shapes, endpoint definitions,
+  token/session mechanics, algorithms, hashing/library choices, or any content whose home
+  is TECH.md — each occurrence is at least a `gap` and the finding MUST name the
+  relocation target (parked Open Question `technical — resolves in TECH.md`, or a task AC
+  when the detail is genuinely verifiable behavior). *Naming* an affected contract or
+  constraint is fine (dimension 7); *defining* it is the leak. A spec that resolves
+  technical blockers inline instead of parking them fails this check regardless of how
+  well-argued the resolutions are.
+- **Affected vistas declared and the map consistent.** The `## Affected vistas` section
+  exists, every vista it names exists in `product/` (or its map entry is part of this
+  epic's draft), and the epic's business rules are written for the vista pages — not
+  restated as product state inside PRODUCT.md. A missing map entry, or rules that live
+  only in the epic, is a `gap`.
 - **Code-layer identifiers are English.** Every identifier the spec *defines* — OpenAPI
   `path`/`property`, schema field, table/column/FK name, event payload key, request/response
   shape — must be English, even when the surrounding prose is Spanish. A Spanish identifier
