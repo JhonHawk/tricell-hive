@@ -40,6 +40,16 @@ Priority over the default — any match means NO HTML even when the trigger thre
 - **Short prose.** Under ~300 words OR single-section: inline responses, status checkpoints, confirmation summaries.
 - **Harness configs.** `settings.json`, hook scripts, MCP configs, skill frontmatter — these have their own format.
 
+### Conversational ASCII diagrams
+
+Within a prose answer, include a small ASCII diagram only when the explanation's topology is non-linear — the shapes prose serializes badly:
+
+- **Branching** — fallbacks, error paths, mutually exclusive outcomes.
+- **Fan-out / fan-in** — one shared component with N consumers; side-by-side comparison of parallel paths (A/B).
+- **Cross-layer flow** — data traversing 3+ components or layers.
+
+The diagram accompanies the prose explanation, never replaces it.
+
 ### Cost — and the edge rule
 
 HTML costs **2-4× tokens** vs equivalent Markdown and **2-4× generation time**; the trigger exists so that cost always buys a deliverable. At the edge — conditions arguably met, deliverable status unclear — Markdown. When in doubt, Markdown.
