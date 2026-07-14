@@ -31,7 +31,11 @@ Instantiate `<project>-specs/conventions/naming.md` from the global rule
 will create gets its row BEFORE anything is created; client exceptions get documented
 with their reason and the user's sign-off. The table includes the **repo branch model**
 section: each repo's class and branch→environment mapping per
-`workflow/git-workflow.md > Branching` — `/flow-deploy` resolves promotions from it.
+`workflow/git-workflow.md > Branching` — `/flow-deploy` resolves promotions from it. It
+also includes the **code-layer conventions** section: boundary casing (API JSON/DTO, DB
+tables/columns, ORM mapping, legacy→target mapping when porting) derived from the stacks
+the specs settle — per-language idiomatic casing stays in the global `languages/*` rules,
+never restated here.
 
 ## Phase 2 — Repo matrix
 
@@ -51,11 +55,14 @@ Dispatch per the handoff protocol
 independent:
 
 - **system-designer** — base OpenAPI contracts into `<project>-specs/contracts/`, derived
-  from the reviewed epics. Consumer: every implementation agent in F6 builds against
-  these exactly.
+  from the reviewed epics, honoring the code-layer conventions from the naming table
+  (API JSON casing; identifiers English). Consumer: every implementation agent in F6
+  builds against these exactly.
 - **database-specialist** — initial schema + migration baseline in the backend repo(s),
   honoring DB naming from the table (including any invariant-name exception).
-- **devops-engineer** — per repo: scaffold, the branch model per the repo's class
+- **devops-engineer** — per repo: scaffold (including a minimal repo `AGENTS.md` whose
+  conventions block POINTS at the naming table — infra names + code-layer conventions —
+  never copies it), the branch model per the repo's class
   (deployable multi-env: `development` as default + `qa` + `production` created with the
   scaffold, protections on `qa`/`production`; specs/mocks: single trunk — never deferred
   to first deploy), CI (lint → typecheck → build → test, fail

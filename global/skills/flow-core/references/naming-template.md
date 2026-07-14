@@ -1,9 +1,12 @@
 # naming.md — instantiated naming table template
 
 Written by `/flow-foundation` to `<project>-specs/conventions/naming.md`, consumed by
-`devops-engineer`, `/flow-deploy` (gate + `verify` audit), and any session that creates an
-infra resource. The generic rule lives in the global rule `workflow/infra-naming.md`; this
-file is its **instantiation**: the concrete name of every resource this project will have.
+`devops-engineer`, `/flow-deploy` (gate + `verify` audit), contract authors
+(system-designer, F3/F5 spec sessions), and any session that creates an infra resource or
+defines a cross-layer identifier. The generic rule lives in the global rule
+`workflow/infra-naming.md`; this file is its **instantiation**: the concrete name of every
+resource this project will have, plus the **code-layer boundary conventions** (API JSON
+casing, DB casing, ORM mapping) that per-language idioms cannot resolve alone.
 
 Why instantiate instead of deriving on the fly: an abstract rule evaluated per-session
 produces divergent interpretations (`bo` vs `backoffice`, `media` vs `assets`). A table
@@ -19,6 +22,11 @@ came precisely from naming resources at deploy-request time without a written ta
   indistinguishable from drift, which is exactly what the audit flags.
 - `flow-deploy verify` diffs reality (aws/hcloud/gh CLI listings) against this table and
   reports drift. Keep `status` current so the audit stays meaningful.
+- **Code-layer conventions gate at spec-writing time:** an OpenAPI property, DTO field, or
+  column defined in the wrong boundary casing is caught against this table at spec review
+  — after implementation it costs a migration, not an edit. Per-language idiomatic casing
+  is NOT recorded here (the global `languages/*` rules own it — restating it invites
+  drift); only the boundaries where two stacks meet.
 
 ## Template
 
@@ -52,6 +60,27 @@ what `/flow-deploy` reads to resolve promotion source/target branches.
 | <token>-backend | deployable multi-env | development (default) · qa · production | each branch deploys its same-named env |
 | <token>-frontend | platform-native (Vercel) | main | main → production; PR previews |
 | <token>-specs | specs/config | master | — |
+
+## Code-layer conventions
+
+Boundary decisions the per-language idioms cannot resolve alone, derived from the stacks
+in the repo matrix. Idiomatic casing inside one language is not restated here (global
+`languages/*` rules own it). Identifiers are always English; domain values may stay
+Spanish per bounded domain (global `CLAUDE.md > Code Layer`).
+
+| Boundary | Convention | Driven by |
+|---|---|---|
+| API JSON / DTO fields | camelCase | <producer + consumer, e.g. Nest API + React front> |
+| DB tables & columns | snake_case, English | <e.g. PostgreSQL idiom> |
+| ORM ↔ DB mapping | explicit (`@map` / `@Column({ name })`) — never the ORM's implicit naming strategy | camelCase props over snake_case columns |
+| Event/queue payload keys | <casing> | <same ecosystem as the API, or broker convention> |
+
+### Legacy → target mapping (only when porting a legacy surface)
+
+| Legacy (source) | Target | Layer |
+|---|---|---|
+| <is_superadmin (JSON)> | <isSuperadmin prop ↔ is_superadmin column> | DTO ↔ DB |
+| <nombre> | <name / key> | field rename (Spanish → English) |
 
 ## Project exceptions (sealed — each with its reason)
 
