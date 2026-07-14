@@ -26,7 +26,9 @@ user for approval, so every proposal must be concrete enough to execute verbatim
   from observable state; a CLAUDE.md-only workspace gets the inversion proposed
 - Specs-repo conformance against
   `~/.claude/skills/flow-core/references/specs-structure.md`: README index vs actual
-  epics, status headers, legacy folder names
+  epics, status headers, legacy folder names; epic↔vista consistency — a reviewed epic
+  whose `## Affected vistas` name vistas missing from `product/`, or a vista lacking the
+  `Influenciada por` entry for an epic that shaped it, is a `conform` finding
 - Session conformance (`project-structure.md > Session capture layer`): loose artifacts
   that belong grouped into a `sessions/YYYY-MM-DD-<slug>/` (`move`); session decisions
   never promoted to the intention layer (`promote`); concluded sessions stale past use, or

@@ -50,7 +50,7 @@ No specs repo yet (pre-F3, or outside the flow pack) → durable material may li
 
 ### Session capture layer
 
-A **session** is one unit of real execution (dev session, sprint close, analysis pass) — distinct from the **intention** layer (business rules and prior analysis: `decisions/`, `contracts/`, `epics/`, `conventions/`). Two axes that reference each other, never duplicate:
+A **session** is one unit of real execution (dev session, sprint close, analysis pass) — distinct from the **intention** layer (business rules and prior analysis: `product/` (business rules in force), `decisions/`, `contracts/`, `epics/`, `conventions/`). Two axes that reference each other, never duplicate:
 
 **Trigger — durable output on explicit signal, not flow membership.** A session folder is created or reused when execution produces a durable artifact on an **explicit signal**: the user asked for the analysis/report, or asks to keep a conclusion. `flow-plan`/`flow-build` create it as part of F6, and on Claude Code an approved native plan-mode plan in a flow workspace is captured automatically (`flow-plan-capture` hook) unless the plan carries `Session: no`. Without an explicit signal, OFFER the artifact — don't write it. Boundary vs memory (`memory-routing.md`): `findings.md` is for conclusions a later session re-reads, with an Engram observation pointing at it; a conversational discovery goes to Engram alone. Trivial work with no durable artifact creates no session folder.
 

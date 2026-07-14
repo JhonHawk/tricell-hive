@@ -20,12 +20,17 @@ gate). With no argument, show the subcommands and the epics index status.
 1. OPEN per the contract (ledger must exist; record the specs repo in it at CLOSE).
 2. Create `<project>/<project>-specs/` following
    `~/.agents/skills/flow-core/references/specs-structure.md` exactly: README index,
-   `conventions/`, `contracts/`, `decisions/`, `evidence/`, `epics/`.
+   `product/` (map README seeded from the F1/F2 material: portals, actors/roles,
+   end-to-end flow — module folders appear as epics define them), `conventions/`,
+   `contracts/`, `decisions/`, `evidence/`, `epics/`.
 3. **Astro Starlight presentation layer only if the user asked for one** (default:
-   markdown-only — no question). When requested, scaffold Starlight *over* the canonical
-   structure: content stays at its flow-core paths as the source of truth — Starlight
-   serves it, never reorganizes it into its own content tree. Query context7 for the
-   installed Astro/Starlight version's config when scaffolding.
+   markdown-only — no question). When requested, scaffold via the `starlight-docs-site`
+   skill's **`spec-site` profile** *over* the canonical structure: content stays at its
+   flow-core paths as the source of truth — Starlight serves it, never reorganizes it
+   into its own content tree. The sidebar follows the product topology and status rules
+   in `specs-structure.md > Optional Astro Starlight presentation layer` — never the
+   repo's delivery taxonomy. Query context7 for the installed Astro/Starlight version's
+   config when scaffolding.
 4. `git init` + initial commit. Suggest (never execute) creating the GitHub remote.
 5. Link the tracker project per the ledger's `Tracker` / `Tracker access` fields (mcp →
    load tools via ToolSearch; cli → `acli` for Jira; api → env token; manual/none →
@@ -49,17 +54,29 @@ is only steps 1–2.
    what is added, dropped, or reshaped, and which already-implemented tasks the change
    invalidates (those become explicit findings for the close report and the next dev
    session's handoff, never silent rework).
-2. Create or amend `epics/<EPIC-ID>-<slug>/` with PRODUCT.md and tasks.md per the structure
+2. **Reconcile with the product map first**: identify which `product/` vistas the epic
+   creates or modifies (the mandatory `## Affected vistas` section). A vista/module the
+   epic introduces gets its map entry drafted as part of this step — an epic may not
+   reference a vista that exists nowhere. Business rules are drafted *for the vista
+   pages*; PRODUCT.md carries only the delta (`specs-structure.md > product/`).
+3. Create or amend `epics/<EPIC-ID>-<slug>/` with PRODUCT.md and tasks.md per the structure
    reference (TECH.md comes later, once foundation exists — its Relevant Code section
-   needs real paths). On revise, keep stable task IDs stable; only new tasks get new IDs.
-3. Write Gherkin ACs per task. Sync to the declared tracker via its declared access:
+   needs real paths). PRODUCT.md carries **no technical content**: a technical question
+   that surfaces while drafting is parked in Open Questions (`technical — resolves in
+   TECH.md`), never answered in the spec. On revise, keep stable task IDs stable; only
+   new tasks get new IDs.
+4. Write Gherkin ACs per task. Sync to the declared tracker via its declared access:
    epic + one issue per task, ACs in the issue description. Keep IDs aligned both ways.
    `Tracker: none` or `access: manual` → tasks.md is the source of truth (self-assigned
    IDs); for `manual`, list the tracker updates the user must make in the close report.
-4. **The review gate is part of this subcommand, not optional**: run `review` on the new or
+5. **The review gate is part of this subcommand, not optional**: run `review` on the new or
    revised epic before marking it `reviewed` in the README index.
 
-## `review <spec-ref>` — pre-implementation quality gate
+## `review <spec-ref>` — the BUSINESS gate
+
+This gate closes *business* questions: rules, scope, actors, verifiability. It never
+resolves technical ones — the technical gate is TECH.md at `flow-plan` (F6), once
+foundation exists.
 
 1. **Resolve `<spec-ref>` to an epic folder** (against the specs repo found at OPEN):
    - **Existing path** → a folder is the epic; a file inside it (`PRODUCT.md`/`TECH.md`/
@@ -81,11 +98,19 @@ is only steps 1–2.
    Do NOT review the spec yourself — your job is dispatch and synthesis.
 3. Synthesize: deduplicate; where the critic contradicts the reviewer, keep BOTH and mark
    the tension explicitly — resolving it is the user's call, not yours.
-   Classify: `blocker` | `gap` | `rethink` | `polish`.
+   Classify: `blocker` | `gap` | `rethink` | `polish` | `technical-parked`.
+   **`technical-parked` is the mandatory classification for any finding whose resolution
+   is technical** (schema shape, endpoint design, token/session mechanics, algorithm,
+   library choice): it lands in the epic's Open Questions with an owner, marked
+   `technical — resolves in TECH.md`. Resolving it by writing the answer into PRODUCT.md
+   fails the gate — the rubric's leakage hard check catches exactly that.
 4. Gate: if any `blocker` or `rethink` exists, present them via AskUserQuestion
    (fix spec first / proceed as-is / discuss). Do not soften the critic's findings.
-5. Apply approved fixes to the epic files (Gherkin rewrites land verbatim), update the
-   README index status, mirror changes to the tracker (per the ledger's access fields).
+5. Apply approved fixes to the epic files (Gherkin rewrites land verbatim). **On pass,
+   apply the epic to the product layer**: create/update the `product/` vista pages with
+   the decided rules and add the `Influenciada por` entries — the vista absorbs the
+   business truth; the epic stays a delta. Update the README index status, mirror changes
+   to the tracker (per the ledger's access fields).
 6. Render the full report via the `flow-report` skill as
    `spec-review-<epic-slug>.html`, routed per flow-core's **Session reports** rule — the
    durable history of what the gate found and when (the epic files carry the applied

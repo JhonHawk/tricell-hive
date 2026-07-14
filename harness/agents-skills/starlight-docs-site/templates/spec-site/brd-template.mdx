@@ -10,6 +10,13 @@ workflow:
   lastUpdated: 2026-07-11
   nextGate: Gate 1
   owner: "«Rol responsable»"
+  # En repos flow-core esta página es una VISTA (artifact: vista) y lleva la
+  # trazabilidad de las épicas que la moldearon; el estado de cada épica vive
+  # en el índice de épicas del repo, nunca aquí:
+  # influencedBy:
+  #   - epic: "E04 — roles operativos"
+  #     contribution: "define los 4 roles y su visibilidad"
+  #     gateDate: 2026-06-18
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";

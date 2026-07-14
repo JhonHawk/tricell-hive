@@ -6,7 +6,15 @@ import { z } from "astro/zod";
 const workflowSchema = z.object({
   module: z.string(),
   slice: z.string().optional(),
-  artifact: z.enum(["module-index", "brd", "technical-spec", "acceptance-criteria", "uat-report"]),
+  artifact: z.enum([
+    "product-map",
+    "module-index",
+    "brd",
+    "vista",
+    "technical-spec",
+    "acceptance-criteria",
+    "uat-report",
+  ]),
   status: z.enum(["draft", "gate1-approved", "gate2-approved"]),
   stage: z.enum([
     "discovery",
@@ -26,6 +34,17 @@ const workflowSchema = z.object({
   gate1Evidence: z.array(z.string()).optional(),
   gate2Evidence: z.array(z.string()).optional(),
   tracker: z.array(z.string()).optional(),
+  // Vista pages only: the epics (deltas) that created or modified this vista.
+  // Epic STATUS is read from the repo's epic index — never duplicated here.
+  influencedBy: z
+    .array(
+      z.object({
+        epic: z.string(), // e.g. "E04 — roles operativos"
+        contribution: z.string(), // one line: what it added/changed
+        gateDate: z.date(), // when the business gate passed
+      }),
+    )
+    .optional(),
 });
 
 export const collections = {

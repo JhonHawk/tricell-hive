@@ -41,8 +41,13 @@ export default defineConfig({
         root: { label: "Español", lang: "es-MX" },
       },
       social: [],
-      // The sidebar grows one slice (rebanada) at a time — never scaffold empty
-      // groups. Each spec slice adds its own section here as it is authored.
+      // The sidebar IS the product topology, in this order:
+      //   1. "Introducción" — the product map (qué es, actores y roles, flujo completo).
+      //   2. One group per business module, its vistas as items.
+      //   3. Appendix, last — épicas, decisiones, requisitos (reference material).
+      // It grows one vista at a time — never scaffold empty groups. Delivery
+      // taxonomy (epic IDs) is never the navigation axis, and workflow status
+      // never rides in labels — it renders in-page via SpecRubric.
       // The governance page lives under "Guías", outside the specs navigation.
       sidebar: [
         {

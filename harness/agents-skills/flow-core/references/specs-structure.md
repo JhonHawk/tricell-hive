@@ -11,12 +11,23 @@ What Warp gets right and we keep: **one folder per work item, named by its track
 implementation must match, and tech specs that cite real code paths (`file.rs:24-145`) so
 they stay verifiable against the codebase.
 
+What Warp does NOT provide (its specs are dev-facing) and this layout adds: a **product
+layer** (`product/`) holding the business truth in force — the map of portals, actors, and
+modules, plus the current business rules per vista. Epics are *deltas* against that layer;
+the product layer is the accumulated *state*. A business reader reads `product/`; a
+developer plans from `epics/`.
+
 ## Repository layout
 
 ```
 <project>-specs/
-├── README.md                 # Index: epic table (ID, name, status, links) + pointer to sessions/README.md — the map
+├── README.md                 # Index: epic table (ID, name, status, links) + pointer to sessions/README.md
 │                             # ── INTENTION (rules / prior analysis) ──
+├── product/                  # Business truth IN FORCE — the product map + current rules per vista
+│   ├── README.md             # The map: portals/surfaces, actors & roles, end-to-end flow
+│   └── <module>/             # e.g. usuarios/, finanzas/ — one folder per business module
+│       ├── index.md          # What the module is, for which actor(s); lists its vistas
+│       └── <vista>.md        # Current business rules of one vista (screen/surface)
 ├── conventions/
 │   └── naming.md             # Instantiated naming table (see naming-template.md)
 ├── contracts/                # OpenAPI specs, event schemas — cross-repo source of truth
@@ -27,7 +38,7 @@ they stay verifiable against the codebase.
 ├── releases/                # Client-facing release notes per promotion (release-notes-template.md): YYYY-MM-DD-<env>.md
 ├── epics/
 │   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd
-│       ├── PRODUCT.md        # What and why — written at F3, gate: /flow-specs review
+│       ├── PRODUCT.md        # The DELTA: what changes and why — written at F3, gate: /flow-specs review
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task
 │                             # ── EXECUTION (what actually happened) ──
@@ -37,7 +48,44 @@ they stay verifiable against the codebase.
     └── YYYY-MM-DD-<slug>/     # <slug>-plan.md (declares `Implements:`), <slug>-findings.md, optional analysis/ reports/
 ```
 
-## PRODUCT.md skeleton (Warp-derived)
+## product/ — the product map and vistas (business truth in force)
+
+The product layer answers "what is this product, and what are its rules **today**" — it is
+what a business reader (client, PO, new team member) reads, and what the Starlight sidebar
+renders. It grows only with what has been *defined*: a product born with just auth and user
+management has one module with its vistas, nothing else.
+
+- **`product/README.md` — the map.** Portals/surfaces (e.g. client portal vs backoffice),
+  actors and roles (who enters which portal), the end-to-end flow of the platform, and the
+  module list. Reference shape: the "Introducción" layer of a user manual — written as
+  *intention* before anything is built.
+- **`product/<module>/index.md` — the module.** Short: what capability it groups, for which
+  actor(s), its vistas with one line each. Never replaces the vista pages.
+- **`product/<module>/<vista>.md` — the vista.** The business rules IN FORCE for one
+  screen/surface — the accumulated result of every epic that shaped it, not a per-epic
+  restatement. Two epics touching the same vista converge here instead of contradicting
+  each other in two documents.
+
+Vista skeleton — headings in the **client's language** (business-facing; Spanish shown as
+the example):
+
+```markdown
+# <Vista> — <Módulo>
+
+## Propósito y actores      <!-- qué resuelve, quién la opera (rol), en qué portal -->
+## Reglas de negocio        <!-- numeradas; las VIGENTES tras el último gate de negocio -->
+## Estados y transiciones   <!-- estados de la entidad/flujo; mermaid opcional -->
+## Casos borde              <!-- límites, vacíos, concurrencia -->
+## Influenciada por         <!-- trazabilidad, ver regla abajo -->
+```
+
+**Traceability (`Influenciada por`).** One line per epic that created or modified the
+vista: `- E04 — define los 4 roles operativos (gate 2026-06-18)`. The epic's *status* is
+NOT duplicated here — it lives once, in the README epic index (the site's SpecRubric
+renders it by lookup); the vista entry records only who contributed what, and when it
+passed the business gate.
+
+## PRODUCT.md skeleton (Warp-derived; the epic's DELTA, not product state)
 
 ```markdown
 # <Epic name> — Product Spec
@@ -45,14 +93,24 @@ Tracker: <epic URL or — if untracked> · Mock: <route in the mocks repo, if it
 
 ## Summary            <!-- 3-5 lines: the change, for whom, why now -->
 ## Problem            <!-- the pain with evidence; no solution language here -->
+## Affected vistas    <!-- MANDATORY: which product/ vistas this epic CREATES or MODIFIES,
+                           with the one-line delta per vista. The rules themselves land in
+                           the vista pages at gate pass — never restated here -->
 ## Goals              <!-- bullet list, each verifiable -->
 ## Non-goals          <!-- explicit scope fence — what this epic deliberately won't do -->
-## User Experience    <!-- subsections per flow/surface; states (empty/loading/error),
-                           roles and tenant boundaries, edge cases -->
+## User Experience    <!-- only what the DELTA changes; current behavior lives in product/ -->
 ## Success Criteria   <!-- measurable; what QA/the client accepts against -->
 ## Validation         <!-- how it will be verified: E2E journeys, in-vivo gates -->
-## Open Questions     <!-- each blocks something specific; owner named -->
+## Open Questions     <!-- each blocks something specific; owner named. Technical questions
+                           surfaced at the business gate are PARKED here (marked
+                           `technical — resolves in TECH.md`), never answered in this file -->
 ```
+
+**PRODUCT.md carries no technical content.** Schemas, endpoints, table/column shapes,
+token/session mechanics, algorithms, and library choices belong to TECH.md (F5+). A
+technical question that surfaces while drafting or reviewing the epic is *parked* as an
+Open Question with an owner — resolving it inside PRODUCT.md is the defect this rule
+exists to prevent (the review gate hardens it: `spec-rubric.md` hard checks).
 
 ## TECH.md skeleton (Warp-derived)
 
@@ -93,9 +151,18 @@ Then <verifiable outcome>
   (`E07`, …) and tasks.md is the source of truth. If an epic is re-scoped in the tracker,
   the spec updates in the same change — divergence between the tracker and the specs repo
   is a defect (`/flow-hygiene` flags it).
-- **PRODUCT.md before TECH.md, TECH.md before code.** A PRODUCT.md merges only after
-  passing `/flow-specs review`. TECH.md cites real paths — it cannot be written before the
-  foundation exists, and it goes stale loudly (paths stop resolving) rather than silently.
+- **The map precedes epics.** An epic may only reference vistas/modules that exist in
+  `product/` — when the epic introduces a new one, creating the map entry is part of the
+  epic's draft. At business-gate pass (`/flow-specs review`), the epic's rules are applied
+  to the vista pages and the `Influenciada por` entries are added: the vista absorbs the
+  *decided* rules, even before they are built — the epic index status tells the reader
+  what is decided vs delivered.
+- **PRODUCT.md before TECH.md, TECH.md before code — and each has its own gate.** A
+  PRODUCT.md merges only after passing `/flow-specs review` (the **business gate**: rules,
+  scope, verifiability — technical findings get parked, not resolved). TECH.md cites real
+  paths — it cannot be written before the foundation exists, and it goes stale loudly
+  (paths stop resolving) rather than silently; it closes the epic's parked technical
+  questions, verified at the `flow-plan` plan gate (the **technical gate**).
 - **README.md is the index, not a document.** One table: epic ID, name, status
   (draft / reviewed / in development / delivered), links. Same role the ledger plays for
   the workspace — if it's not in the index, it's invisible.
@@ -106,8 +173,8 @@ Then <verifiable outcome>
   (`Implementado en: sessions/<slug>`, path noted even if the raw expired).
 - **Sessions are the execution layer.** `sessions/YYYY-MM-DD-<slug>/` records what was
   actually done (plan, findings, reports); raw (logs/dumps/screenshots) stays gitignored under
-  `_support/`, never here. The intention layer (decisions/contracts/epics/conventions) is
-  updated BY execution and back-references the session slug (`Session:` in `tasks.md`).
+  `_support/`, never here. The intention layer (product/decisions/contracts/epics/conventions)
+  is updated BY execution and back-references the session slug (`Session:` in `tasks.md`).
   `sessions/README.md` is the versioned, co-located index — NOT the ledger, which is
   non-versioned and lives outside this repo. Full convention: "Session & initiative
   conventions" below (the always-loaded summary is `project-structure.md > Session capture
@@ -122,11 +189,19 @@ Then <verifiable outcome>
 - Documents in the client's language; Gherkin keywords stay in English
   (`Given/When/Then`) for tooling compatibility.
 - **Optional Astro Starlight presentation layer.** A specs repo MAY carry a Starlight
-  site (opted in at `/flow-specs init`) rendering the same content as a navigable site.
-  Its scaffold (`package.json`, `astro.config.*`, `src/`, `public/`) is conformant and
-  sits *over* the structure above — it never replaces it: `conventions/`, `contracts/`,
+  site (opted in at `/flow-specs init`, scaffolded via the `starlight-docs-site` skill's
+  `spec-site` profile) rendering the same content as a navigable site. Its scaffold
+  (`package.json`, `astro.config.*`, `src/`, `public/`) is conformant and sits *over* the
+  structure above — it never replaces it: `product/`, `conventions/`, `contracts/`,
   `decisions/`, `epics/`, `sessions/` stay the source of truth at their paths.
   `/flow-hygiene` treats the scaffold as expected, not as misplaced files.
+  - **The sidebar IS the product map** — Introducción (map: qué es, actores y roles,
+    flujo completo) → one group per module with its vistas → an appendix group (épicas,
+    decisiones, requisitos) as reference material, last. Delivery taxonomy (epic IDs,
+    E01–E12) is never the navigation axis.
+  - **Workflow status never rides in sidebar labels** ("draft (bloqueada en Q-03)" in a
+    label is the anti-pattern). Status renders in-page via the profile's `SpecRubric`
+    component, looked up from the epic index.
 
 ## Session & initiative conventions (canonical)
 
