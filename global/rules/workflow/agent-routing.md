@@ -68,7 +68,7 @@ Delegation hygiene:
 Each one inflates main-thread context without need:
 - **Monolithic session:** grinding past a fired gate "to finish this part first".
 - **Read-as-prep, edit separately:** paying for the same context twice — the writer reads and edits in one delegation.
-- **Duplicate launch:** relaunching a subagent whose equivalent is already running or answered.
+- **Duplicate launch:** spawning what the dedup hygiene bullet already forbids — wait for the running equivalent instead.
 - **Reopening verification for fresh budget:** a failed fix cycle escalates (Chain Interruption below); it never restarts verification to reset the count.
 
 ### Multi-Agent Chains — declare, don't gate
@@ -83,7 +83,7 @@ Reference chains — sequences, not mandatory pipelines; skip steps in proportio
 
 ### Verification runs in fresh context
 Route review/verification to a separate subagent that did NOT implement the change — fresh-context verifiers outperform self-critique. The verifier's input is the actual change (the diff, the run output), never the implementer's report of it — a report travels as claims to check, not context to trust.
-- **The verifier runs the tests, it does not read about them:** it re-establishes the verifiable test gate (`quality/testing.md`) from an actual run — fail-to-pass, pass-to-pass — and inspects the diff for test-gaming (the list lives in `testing.md`; a green report over weakened tests fails the gate).
+- **The verifier runs the tests, it does not read about them:** it re-establishes the verifiable test gate (`quality/testing.md`) from an actual run and inspects the diff for test-gaming (the list lives in `testing.md`; a green report over weakened tests fails the gate).
 - **The implementer's handoff carries evidence, not adjectives:** test paths added and the verify command with its actual output — `pnpm test messages.spec → 12 passing`, not "implemented with tests".
 - **Adversarial triage is the default, not a request:** any "is this claim true / does this bug exist / verify this finding" task routes to `finding-refuter` without being asked. Budget by risk: trivial/cosmetic finding → no refuter; standard finding → one `finding-refuter` pass; hot path (auth, security, payments, migrations, data integrity) or >400 changed lines → 2-3 independent refuters, majority verdict (2-of-3).
 - **Fix budget: two rounds per verification cycle.** A third failed fix escalates per Chain Interruption and the three-fix breaker in `quality/debugging.md` — the loop never silently extends, and restarting verification to reset the budget is the anti-pattern above.

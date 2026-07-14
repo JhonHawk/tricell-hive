@@ -8,8 +8,8 @@ paths:
 ### Tooling
 - **Format with Spotless** (Gradle/Maven plugin, Java + Kotlin). Kotlin adds **ktlint** for style (standalone or via Spotless) and **detekt** for static analysis. Prefer these over Checkstyle/PMD in new setups.
 
-### Framework Preferences (Spring Boot 3.x)
-- DTOs for API responses — Java `record`, Kotlin `data class`, no mutable POJOs; never expose entities.
+### Framework Preferences (Spring Boot 3.x/4.x)
+- DTOs for API responses — Java `record`, Kotlin `data class`, no mutable POJOs; entity-exposure rules live in `patterns-antipatterns.md`.
 - **`@HttpExchange`** for declarative REST clients (Spring 6+). Prefer over RestTemplate and `@FeignClient`. For programmatic clients, `RestClient` (Spring 6.1+) is the replacement for `RestTemplate`, which is on a deprecation path (reference docs mark it deprecated as of 7.0; `@Deprecated` annotation in 7.1, removal in 8.0).
 - **`@Transactional` lives at the service boundary**, not on repositories. Repositories run inside the transaction the service opens. Avoid `@Transactional` on controllers — they shouldn't own transaction lifetime.
 - **`@ConfigurationProperties` over scattered `@Value`** for env-driven config. Bind a typed record once; inject the record, not individual values.

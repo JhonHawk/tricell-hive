@@ -17,7 +17,7 @@ match: any
 ## NestJS
 
 ### Version Detection
-- **Check `package.json` → `@nestjs/core` version BEFORE generating code.** v10 and v11 differ in defaults (e.g., v11 uses `fastify` adapter option, new `@UsePipes` behavior).
+- **Check `package.json` → `@nestjs/core` version BEFORE generating code.** v10 and v11 differ materially: v11 defaults to Express v5, whose path matching changes routes/middleware — named wildcards (`{*splat}`) replace bare `*`, and `(.*)` is no longer supported.
 
 ### Architecture
 - **Request lifecycle order:** middleware → guards → interceptors (pre) → pipes → controller → service → interceptors (post) → exception filters → response. Place logic in the correct layer.
