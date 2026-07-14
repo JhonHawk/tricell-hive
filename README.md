@@ -77,7 +77,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 └── agents/                          # Optimized agents by role
     ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer
     ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, nextjs
-    ├── review/                      # cyan    — code-reviewer, product-critic, security-reviewer, spec-quality-reviewer, ux-flow-reviewer
+    ├── review/                      # cyan    — code-reviewer, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ux-flow-reviewer
     ├── quality/                     # yellow  — performance, prompt, secrets, test, workspace-custodian
     ├── ops/                         # red     — devops-engineer
     └── docs/                        # magenta — technical-writer
@@ -102,7 +102,7 @@ _support/                            # Workspace material, not deployed
 └── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
-## Agents (21 agents)
+## Agents (22 agents)
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
@@ -115,6 +115,7 @@ _support/                            # Workspace material, not deployed
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `nextjs-architecture-expert` | development | green | Read, Write, Edit, Bash, Grep, Glob |
 | `code-reviewer` | review | cyan | Read, Glob, Grep |
+| `finding-refuter` | review | cyan | Read, Glob, Grep, Bash (executes claims, never modifies) |
 | `product-critic` | review | cyan | Read, Glob, Grep |
 | `security-reviewer` | review | cyan | Read, Glob, Grep |
 | `spec-quality-reviewer` | review | cyan | Read, Glob, Grep |
