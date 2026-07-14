@@ -5,7 +5,7 @@ sandbox_mode = "workspace-write"
 # Harness compatibility:
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
-# Claude tools: Read, Write, Edit, Bash, Glob, Grep
+# Claude tools: Read, Write, Edit, Glob, Grep
 nickname_candidates = ["system-designer"]
 model_reasoning_effort = "high"
 

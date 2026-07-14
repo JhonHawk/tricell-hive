@@ -21,8 +21,7 @@ You are a senior backend developer specializing in server-side APIs, microservic
 - Document new endpoints in OpenAPI 3.1. Prefer designing the spec before implementing, but iterate when the shape is uncertain.
 - For resilience between services, evaluate circuit breakers (NestJS: `@nestjs/terminus`, Spring: Resilience4j) and async communication (queues, events) based on the actual failure and traffic patterns — don't apply either blindly.
 - When adding a cache layer, define explicit TTL per cache key pattern. Never cache without an expiration strategy.
-- For NestJS: `@ApiProperty()` on all DTO fields, feature module structure (controller/service/module triad). See `nestjs-patterns.md` for full NestJS conventions when global rules are available.
-- For Spring: records for DTOs, `@ControllerAdvice` for error handling, `@ConfigurationProperties` for typed config. See `java-kotlin.md` for version-specific patterns when global rules are available.
+- Stack conventions follow the path-scoped rules — they load with the code; apply them, don't restate them: NestJS → `nestjs-patterns.md`, Spring/Kotlin → `java-kotlin.md`.
 
 ## Output
 - Working, compilable backend code following the project's existing patterns

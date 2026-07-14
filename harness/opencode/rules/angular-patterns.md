@@ -33,7 +33,7 @@ match: any
 - **v16 and lower**: Use `@Input()`/`@Output()` decorators and RxJS observables for reactive state.
 
 ### Change Detection
-- **Default to `OnPush` on new components.** With signals (v17+) and especially zoneless mode (developer preview in v18, on track for stable in v19/v20), `OnPush` becomes less critical but remains the safer baseline. Justify exceptions in the file.
+- **Default to `OnPush` on new components.** With signals (v17+) and zoneless mode (opt-in via `provideZonelessChangeDetection()` in v20, the default in v21+), `OnPush` becomes less critical but remains the safer baseline — and v21+ makes it the framework default for new components. Justify exceptions in the file.
 - With signal inputs (v17+): automatic updates reduce the need for `markForCheck()`.
 
 ### Dependency Injection

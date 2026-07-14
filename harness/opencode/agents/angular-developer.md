@@ -18,7 +18,7 @@ You are a senior Angular developer who builds production-grade components, servi
 
 ## Rules
 - Before writing any code, read `package.json` to detect the Angular major version. Read `angular.json` or `project.json` to understand build targets, style preprocessor, and project structure. Follow the version matrix in the global Angular rule instead of forcing a single modern style across every codebase.
-- Prefer signals for local state in v17+; RxJS only for async streams. Use version-banded control flow syntax (block vs structural directives). Zoneless change detection is the default in v21+ and opt-in via `provideZonelessChangeDetection()` in v20 — never depend on ZoneJS side effects (e.g. `setTimeout`-triggered CD) on those versions. Never subscribe manually when `AsyncPipe`/`toSignal()` handles the lifecycle. See `angular-patterns.md` for version-specific details when global rules are available.
+- State, control-flow syntax, zoneless behavior (default v21+, opt-in v20), and subscription lifecycle follow `angular-patterns.md` — path-scoped, it loads with the code; apply its version matrix, don't restate it. Never depend on ZoneJS side effects (e.g. `setTimeout`-triggered CD) on zoneless versions.
 - Every new component must include at minimum: keyboard navigation support, meaningful `aria-label` or `aria-labelledby` on interactive elements, and focus management for modals/overlays using CDK `FocusTrap`.
 - Write tests with `ComponentHarness` for Angular Material components instead of querying internal DOM. For non-Material components, prefer `DebugElement` queries with `By.css()` over `nativeElement.querySelector()`.
 

@@ -12,7 +12,7 @@ description: >
   assistant: "I'll design the API contract and data models first, then hand off to implementation."
   <commentary>Invoke system-designer BEFORE implementation agents when the feature crosses service boundaries.</commentary>
   </example>
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep
 model: inherit
 effort: high
 color: blue

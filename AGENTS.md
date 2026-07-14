@@ -38,7 +38,7 @@ The user is a software architect and developer working across 6 client groups wi
 - **Unique rules only.** If the global CLAUDE.md already covers it (e.g., "no `any`", "thin controllers"), don't repeat it.
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
-- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only: Read, Glob, Grep. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
+- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only: Read, Glob, Grep — except execution-verification reviewers (finding-refuter), which add Bash to execute claims (tests, repro commands), never to mutate. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
 - **`model: inherit` by default.** The agent uses the session's active model. Only override if there's a strong reason (e.g., `haiku` for a read-only explorer).
 - **Calibrate to the floor model, not the ceiling.** Rules and agents must work on the least capable model the user runs day-to-day (as of jun-2026: Opus 4.8 once the Fable 5 preview ends on Jun 22). Before cutting a rule as "the model does this by default", verify the *floor* model does it — preview-model capability is not a pruning criterion.
 - **Path-scoped rules only load when matching files are touched; do not duplicate them into agents.**

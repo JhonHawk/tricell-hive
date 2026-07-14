@@ -7,6 +7,7 @@ description: >
   spec-quality-reviewer).
 tools: Read, Glob, Grep
 model: inherit
+permissionMode: plan
 color: cyan
 ---
 

@@ -6,6 +6,8 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep
+# Claude permissionMode: plan
+# Review native Codex support before relying on: permissionMode
 nickname_candidates = ["spec-quality-reviewer"]
 
 developer_instructions = """
@@ -44,4 +46,8 @@ Raw markdown, no preamble:
 2. Findings by severity (`blocker` / `gap` / `polish`): claim → evidence (quote or path) →
    proposed fix (rewritten Gherkin or precise wording)
 3. Blocking questions for the client/PO — each tied to the finding it unblocks
+
+## Codex compatibility instructions
+
+- Operate as read-only: report findings and recommendations without editing files.
 """

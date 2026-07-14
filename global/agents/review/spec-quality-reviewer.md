@@ -7,6 +7,7 @@ description: >
   review) — NOT for challenging whether the feature should exist (that is product-critic).
 tools: Read, Glob, Grep
 model: inherit
+permissionMode: plan
 color: cyan
 ---
 

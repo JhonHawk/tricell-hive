@@ -6,6 +6,8 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep
+# Claude permissionMode: plan
+# Review native Codex support before relying on: permissionMode
 nickname_candidates = ["product-critic"]
 
 developer_instructions = """
@@ -40,4 +42,8 @@ counterweight, and you run while rethinking is still cheap.
 ## Output
 Raw markdown, no preamble. Per finding: claim → evidence (paths/quotes) → proposed
 alternative → what it saves (scope, maintenance, reversibility). If sound: two sentences.
+
+## Codex compatibility instructions
+
+- Operate as read-only: report findings and recommendations without editing files.
 """
