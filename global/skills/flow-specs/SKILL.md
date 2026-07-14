@@ -61,18 +61,23 @@ is only steps 1–2.
    epic introduces gets its map entry drafted as part of this step — an epic may not
    reference a vista that exists nowhere. Business rules are drafted *for the vista
    pages*; PRODUCT.md carries only the delta (`specs-structure.md > product/`).
-3. Create or amend `epics/<EPIC-ID>-<slug>/` with PRODUCT.md and tasks.md per the structure
-   reference (TECH.md comes later, once foundation exists — its Relevant Code section
-   needs real paths). PRODUCT.md carries **no technical content**: a technical question
-   that surfaces while drafting is parked in Open Questions (`technical — resolves in
-   TECH.md`), never answered in the spec. On revise, keep stable task IDs stable; only
-   new tasks get new IDs.
-4. Write Gherkin ACs per task. Sync to the declared tracker via its declared access:
-   epic + one issue per task, ACs in the issue description. Keep IDs aligned both ways.
-   `Tracker: none` or `access: manual` → tasks.md is the source of truth (self-assigned
-   IDs); for `manual`, list the tracker updates the user must make in the close report.
-5. **The review gate is part of this subcommand, not optional**: run `review` on the new or
-   revised epic before marking it `reviewed` in the README index.
+3. Create or amend `epics/<EPIC-ID>-<slug>/` with PRODUCT.md per the structure reference —
+   **business only**: the delta plus its acceptance scenarios (Success Criteria /
+   Validation, happy AND negative paths). NO tasks.md yet — task decomposition is
+   delivery planning and waits for the gate (step 4). TECH.md comes later, once
+   foundation exists — its Relevant Code section needs real paths. PRODUCT.md carries
+   **no technical content**: a technical question that surfaces while drafting is parked
+   in Open Questions (`technical — resolves in TECH.md`), never answered in the spec.
+4. **The business gate is part of this subcommand, not optional**: run `review` on the
+   epic — it gates PRODUCT.md + the vista drafts while no task exists to invalidate.
+5. **Only on pass, derive delivery**: write tasks.md (Gherkin ACs per task) from the
+   gated rules and sync to the declared tracker via its declared access: epic + one issue
+   per task, ACs in the issue description. Keep IDs aligned both ways. `Tracker: none` or
+   `access: manual` → tasks.md is the source of truth (self-assigned IDs); for `manual`,
+   list the tracker updates the user must make in the close report. The tracker never
+   sees pre-gate tasks. On revise, keep stable task IDs stable; only new tasks get new
+   IDs — the diff from step 1 names the already-implemented tasks the change invalidates.
+   Then mark the epic `reviewed` in the README index.
 
 ## `review <spec-ref>` — the BUSINESS gate
 

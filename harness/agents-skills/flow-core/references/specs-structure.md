@@ -40,7 +40,7 @@ developer plans from `epics/`.
 │   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd
 │       ├── PRODUCT.md        # The DELTA: what changes and why — written at F3, gate: /flow-specs review
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
-│       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task
+│       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task — derived post-gate
 │                             # ── EXECUTION (what actually happened) ──
 └── sessions/                 # Execution journal (by time) — full convention below
     ├── README.md             # Sessions index (versioned, co-located): slug · date · state · implements
@@ -163,6 +163,11 @@ Then <verifiable outcome>
   paths — it cannot be written before the foundation exists, and it goes stale loudly
   (paths stop resolving) rather than silently; it closes the epic's parked technical
   questions, verified at the `flow-plan` plan gate (the **technical gate**).
+- **tasks.md is derived AFTER the business gate.** Task decomposition (units of work,
+  repo assignment, per-task Gherkin) is delivery planning over *gated* rules — writing
+  it pre-gate means every business finding invalidates already-synced tasks. Business
+  acceptance scenarios (happy + negative) belong in PRODUCT.md/the vistas and ARE gated;
+  the tracker never sees pre-gate tasks.
 - **README.md is the index, not a document.** One table: epic ID, name, status
   (draft / reviewed / in development / delivered), links. Same role the ledger plays for
   the workspace — if it's not in the index, it's invisible.
