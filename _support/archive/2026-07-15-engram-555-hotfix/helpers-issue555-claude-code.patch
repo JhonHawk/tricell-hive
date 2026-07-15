@@ -1,0 +1,42 @@
+--- a/scripts/_helpers.sh
++++ b/scripts/_helpers.sh
+@@ -2,11 +2,37 @@
+ # Engram — Shared helpers for Claude Code hooks
+ # WARNING: Do not read from stdin here — scripts source this before reading their hook input.
+ 
+-# Detect project name from git remote, with fallbacks.
+-# Priority: git remote origin repo name > git root basename > cwd basename
++# Detect project name from the explicit override or nearest Engram config,
++# with git/directory fallbacks. Remove this compatibility block once
++# https://github.com/Gentleman-Programming/engram/issues/555 is released.
+ detect_project() {
+   local dir="$1"
+ 
++  if [ -n "${ENGRAM_PROJECT:-}" ]; then
++    printf '%s\n' "$ENGRAM_PROJECT" | tr '[:upper:]' '[:lower:]'
++    return
++  fi
++
++  local cursor="$dir"
++  while [ -n "$cursor" ]; do
++    local config_path="${cursor}/.engram/config.json"
++    local configured_project=""
++    if [ -f "$config_path" ]; then
++      configured_project=$(jq -r '
++        .project_name
++        | select(type == "string" and length > 0)
++      ' "$config_path" 2>/dev/null || true)
++    fi
++    if [ -n "$configured_project" ]; then
++      printf '%s\n' "$configured_project" | tr '[:upper:]' '[:lower:]'
++      return
++    fi
++    if [ "$cursor" = "/" ]; then
++      break
++    fi
++    cursor=$(dirname "$cursor")
++  done
++
+   # Try git remote origin URL
+   local url
+   url=$(git -C "$dir" remote get-url origin 2>/dev/null)
