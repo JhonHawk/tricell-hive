@@ -30,6 +30,7 @@ The user is a software architect and developer working across 6 client groups wi
 - When a rule or convention is grounded in external authority (standards, canonical books, official docs), record the source in `_support/docs/methodology-bibliography.md` and consult it before re-researching.
 - The `<!-- CODEGRAPH_START/END -->` block in `global/CLAUDE.md` and `harness/AGENTS.md` is owned by `codegraph install` — absorbed into the sources (2026-07-10) so installer upgrades report "Unchanged" and `/deploy-global` doesn't delete it. Never edit, dedupe, or reflow content between the markers; hive-specific CodeGraph guidance lives in the bullets AFTER the block. If a codegraph upgrade rewrites its block in the DEPLOYED files, re-absorb the new content into both sources instead of letting them drift.
 - Use conventional commit prefixes if asked to commit.
+- Never add temporary or incident-specific details (local hotfixes, dated machine state, pending workarounds) to versioned convention docs (`AGENTS.md`, `CLAUDE.md`, `global/`, `harness/` READMEs) unless the user explicitly asks. Route them to machine-local notes (`_support/backup/`, Engram) instead.
 
 ## Agent Design Principles
 
