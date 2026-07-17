@@ -3,7 +3,8 @@ name: unattended-delegation
 description: >
   Activate ONLY when the user explicitly hands over unattended control — "full control
   tonight", "don't ask until I'm back", "tienes control total esta noche", "me voy a
-  dormir, sigue tú", "run unattended". Read BEFORE declaring the mode accepted, then
+  dormir, sigue tú", "run unattended", "work the sprint board while I'm away", "ve
+  cerrando los tickets sin preguntarme". Read BEFORE declaring the mode accepted, then
   declare the scope, the gates that stay closed, and the decision-log location. Covers
   proceed-and-log widened scope, queueing gated decisions instead of timing out, the
   dedicated-branch requirement, run-bound expiry, and the close report. Absolute safety
@@ -29,5 +30,8 @@ delegation is not in effect.
 - The absolute gates (destructive/irreversible ops, production, secrets, history
   rewrites/force-push, shared-ref mutation, CRITICAL/HIGH supply chain, data deletion)
   are also in the always-on Safety floor — they apply whether or not this skill loads.
+- A tracker-scoped handover ("work the sprint board while I'm away") is the same mode
+  with the project's DECLARED tracker bounding the scope: one reversible change-group
+  and one decision-log entry per ticket; tracker writes batch to the close report.
 - A non-delegated unattended turn (cron, background job, workflow stage) is NOT this
   mode: it stays fail-closed — stop and report blocked rather than assume approval.

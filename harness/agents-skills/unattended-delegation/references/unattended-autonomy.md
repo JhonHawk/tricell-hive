@@ -11,6 +11,10 @@
 - In-scope reversible technical decisions, resolvable blockers, dependency picks with a safe version (OSV tiers unchanged), test/build/verify loops, and already standing-authorized non-prod ops → proceed; never bounce these back as questions.
 - Every widened decision lands in the **decision log**: what was decided, why, how to revert. The log is a structural component of the mode — proceeding without logging is outside the delegation.
 
+### Tracker-scoped runs
+- A handover bounded by the project's declared tracker ("work the sprint board while I'm away", "ve cerrando los tickets sin preguntarme") is this same mode — a scope parameter, not a variant. The declared tracker (`memory-routing.md > Tracker sync`) defines the work list; an undeclared tracker cannot scope a run.
+- Execute item-by-item: one reversible change-group per ticket on the run's dedicated branch, one decision-log entry per ticket, per-ticket state in the close report (done / blocked / queued). A ticket requiring anything beyond the widened scope queues like any gated decision; tracker writes (status changes, comments) batch to the close per `memory-routing.md`.
+
 ### Absolute gates — never relax
 Identical to attended mode; no gate's behavior depends on which mode is active:
 - Destructive/irreversible operations · production (deploys, DNS, infra, data) · secrets · history rewrites / force-push · merge or push to shared/protected refs · CRITICAL/HIGH supply-chain with no safe path · data deletion.
