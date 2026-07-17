@@ -58,14 +58,11 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
 │   ├── flow-core/                   # Flow pack shared library (non-invocable)
-│   ├── flow-intake/                 # F1 — requirements analysis
-│   ├── flow-kickoff/                # F2 — workspace bootstrap
-│   ├── flow-specs/                  # F3 — specs repo: init | epic | review
-│   ├── flow-mock/                   # F4 — prototype: build | review
-│   ├── flow-foundation/             # F5 — repos, contracts, CI/CD-first
-│   ├── flow-plan/                   # F6 — plan the dev session: research | write
-│   ├── flow-build/                  # F6 — execute the plan: reconciler + verify gate
-│   ├── flow-deploy/                 # F7 — qa | prod | verify
+│   ├── flow-brainstorming/          # Business-idea iteration into a decision
+│   ├── flow-start/                  # Greenfield wizard: intake + bootstrap + foundation
+│   ├── flow-specs/                  # Specs repo: init | epic | review
+│   ├── flow-plan/                   # Plan the dev session: research | write
+│   ├── flow-build/                  # Execute the plan: reconciler + verify gate
 │   ├── flow-hygiene/                # Workspace hygiene: audit | apply | migrate
 │   ├── flow-report/                 # Self-contained HTML reports for substantial output
 │   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
@@ -156,7 +153,7 @@ Use `/manage-agents report` for live line counts and reduction metrics instead o
 |-------|-------|---------|
 | `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates |
 | `flow-core` | global | Flow pack shared library: contract + templates (non-invocable) |
-| `/flow-intake` … `/flow-deploy` | global | The 7 phase gates of the client project flow (F1–F7) |
+| `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
 | `/flow-hygiene` | global | Workspace hygiene: `audit` \| `apply` |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
 | `flow-report` | global | Renders substantial output as self-contained HTML (auto-invoked) |

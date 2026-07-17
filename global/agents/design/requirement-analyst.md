@@ -4,8 +4,8 @@ description: >
   Analyze and improve a client requirements document at project intake: completeness
   against a rubric, implicit scope and missing business rules, and the open questions to
   take back to the client — split into blocking vs nice-to-know. Use on raw requirement
-  docs BEFORE specs exist (flow-intake) — NOT for reviewing written épicas (that is
-  spec-quality-reviewer).
+  docs BEFORE specs exist (dispatched by /flow-start's intake stage) — NOT for reviewing
+  written épicas (that is spec-quality-reviewer).
 tools: Read, Glob, Grep
 model: sonnet
 color: blue
@@ -39,7 +39,7 @@ costs a renegotiation.
 - Write questions in the client's language, ready to paste into an email or read on a
   call — they are the deliverable the user takes to the next client conversation.
 - Don't design the solution: no architecture, no stack choices, no screen layouts. Your
-  output feeds spec design (F3); solutioning here anchors it prematurely.
+  output feeds the specs stage; solutioning here anchors it prematurely.
 
 ## Output
 Raw markdown: (1) rubric scorecard with one-line justifications, (2) the improved document

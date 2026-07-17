@@ -1,10 +1,10 @@
 ---
 name: flow-plan
 description: >
-  The planning half of a development session (F6 of the flow pack). `research` runs a
-  read-only technical investigation of a scope and writes findings; `write` turns findings +
-  spec into an executable, harness-agnostic plan. Use before `/flow-build`. Scope with an
-  epic ID or explicit task IDs.
+  The planning stage of the daily dev chain: captures/adopts the approved native plan — one
+  plan per unit of work. `research` runs a read-only technical investigation of a scope and
+  writes findings; `write` turns findings + spec into an executable, harness-agnostic plan.
+  Use before `/flow-build`. Scope with an epic ID or explicit task IDs.
 argument-hint: "[research | write] [epic-id | TASK-IDs ...]"
 disable-model-invocation: true
 ---
@@ -12,7 +12,7 @@ disable-model-invocation: true
 # /flow-plan — research and write the plan
 
 Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). This skill is the *thinking*
-half of F6: it explores and plans, it never executes — execution is `/flow-build`.
+half of a dev unit's chain: it explores and plans, it never executes — execution is `/flow-build`.
 
 **Positioning — the formal/epic track.** The organic path produces the same artifact: a
 native plan-mode plan approved in a flow workspace is captured to
@@ -35,10 +35,10 @@ findings yet → `research`; findings present, no plan → `write`) and state wh
 ## research — technical investigation (read-only, no gate)
 
 Reduces the unknowns so `write` can produce a complete recipe. Scoped to **implementation**, not
-product or UX — those are `flow-specs` (epics/ACs) and `flow-mock` (UX), already upstream.
+product or UX — those are `flow-specs` (epics/ACs) and mock work units' UX material, already upstream.
 
 1. **OPEN** per the contract: read `<project>/_support/PROJECT.md`; missing → suggest
-   `/flow-kickoff` and stop. Consume any `## Current handoff`.
+   `/flow-start` and stop. Consume any `## Current handoff`.
 2. Read the target epic in `<project>-specs/epics/` (PRODUCT.md, tasks.md, TECH.md if present)
    and the naming table if infra is in scope. Collect the epic's **parked technical questions**
    (Open Questions marked `technical — resolves in TECH.md` by the business gate) — resolving

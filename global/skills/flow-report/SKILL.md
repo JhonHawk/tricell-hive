@@ -1,8 +1,9 @@
 ---
 name: flow-report
 description: >
-  Renders substantial agent output as self-contained single-file HTML reports
-  with rich static layout (embedded CSS, SVG, syntax-highlighted code).
+  The general reporting skill — renders substantial agent output as self-contained
+  single-file HTML reports with rich static layout (embedded CSS, SVG, syntax-highlighted
+  code). Fires in any workspace, not only flow ones.
   Triggers on requests for plan, spec, audit, brief, research report, code-
   review writeup, brainstorm comparison, design tokens reference, diagram,
   illustration, or deck — when output exceeds ~300 words AND mixes 2+ kinds

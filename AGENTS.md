@@ -98,7 +98,7 @@ AGENTS.md                          # Canonical guide for all harnesses
 CLAUDE.md                          # Imports AGENTS.md via @AGENTS.md; adds Claude Code-specific content
 global/                            # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                      # Core config (always loaded)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (pre-push-lint-reminder, flow-phase-context, flow-plan-capture, flow-plan-injector, delegation-reminder, session-hygiene-context)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (pre-push-lint-reminder, flow-session-context, flow-context, flow-plan-capture, delegation-reminder)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (alwaysApply)
 │   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
@@ -139,15 +139,12 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   └── bootstrap-workspace.sh
 │   ├── flow-core/                 # Flow pack shared library (non-invocable): contract + templates
 │   │   ├── SKILL.md
-│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook
-│   ├── flow-intake/               # /flow-intake — F1: requirements analysis (+ requirements rubric)
-│   ├── flow-kickoff/              # /flow-kickoff — F2: workspace bootstrap + ledger + workspace CLAUDE.md
-│   ├── flow-specs/                # /flow-specs — F3: init | epic | review (+ spec rubric)
-│   ├── flow-mock/                 # /flow-mock — F4: build | review (+ UX rubric)
-│   ├── flow-foundation/           # /flow-foundation — F5: naming table, repos, contracts, CI/CD-first
-│   ├── flow-plan/                 # /flow-plan — F6: plan the dev session (research | write) with agent-routing table
-│   ├── flow-build/                # /flow-build — F6: execute the plan (state-driven reconciler + verify gate)
-│   ├── flow-deploy/               # /flow-deploy — F7: qa | prod | verify (+ naming audit)
+│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook, promotion-playbook, ux-rubric
+│   ├── flow-brainstorming/        # /flow-brainstorming — business-idea iteration into a decision
+│   ├── flow-start/                # /flow-start — greenfield wizard: intake + workspace bootstrap + technical foundation
+│   ├── flow-specs/                # /flow-specs — write/review specs: init | epic | review (+ spec rubric)
+│   ├── flow-plan/                 # /flow-plan — write the session plan (research | write) with agent-routing table
+│   ├── flow-build/                # /flow-build — execute the plan (state-driven reconciler + verify gate)
 │   ├── flow-hygiene/              # /flow-hygiene — audit | apply | migrate workspace hygiene
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md

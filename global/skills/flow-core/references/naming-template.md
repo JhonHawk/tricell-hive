@@ -1,9 +1,9 @@
 # naming.md — instantiated naming table template
 
-Written by `/flow-foundation` to `<project>-specs/conventions/naming.md`, consumed by
-`devops-engineer`, `/flow-deploy` (gate + `verify` audit), contract authors
-(system-designer, F3/F5 spec sessions), and any session that creates an infra resource or
-defines a cross-layer identifier. The generic rule lives in the global rule
+Written by `/flow-start` (foundation stage) to `<project>-specs/conventions/naming.md`,
+consumed by `devops-engineer`, the promotion walk (gate + `verify` audit, via
+`promotion-playbook.md`), contract authors (system-designer, specs-stage spec sessions),
+and any session that creates an infra resource or defines a cross-layer identifier. The generic rule lives in the global rule
 `workflow/infra-naming.md`; this file is its **instantiation**: the concrete name of every
 resource this project will have, plus the **code-layer boundary conventions** (API JSON
 casing, DB casing, ORM mapping) that per-language idioms cannot resolve alone.
@@ -20,8 +20,9 @@ came precisely from naming resources at deploy-request time without a written ta
 - Names derive from the global rule using the **project token** recorded in PROJECT.md.
 - Exceptions are documented in this file with their reason — an undocumented exception is
   indistinguishable from drift, which is exactly what the audit flags.
-- `flow-deploy verify` diffs reality (aws/hcloud/gh CLI listings) against this table and
-  reports drift. Keep `status` current so the audit stays meaningful.
+- The promotion `verify` walk (`promotion-playbook.md`) diffs reality (aws/hcloud/gh CLI
+  listings) against this table and reports drift. Keep `status` current so the audit stays
+  meaningful.
 - **Code-layer conventions gate at spec-writing time:** an OpenAPI property, DTO field, or
   column defined in the wrong boundary casing is caught against this table at spec review
   — after implementation it costs a migration, not an edit. Per-language idiomatic casing
@@ -53,7 +54,8 @@ Environments: `development | qa | production` (full token, always last)
 ## Repo branch model
 
 Classes and semantics: global rule `workflow/git-workflow.md > Branching`. This mapping is
-what `/flow-deploy` reads to resolve promotion source/target branches.
+what the promotion walk (`promotion-playbook.md`) reads to resolve promotion source/target
+branches.
 
 | Repo | Class | Long-lived branches | Branch → environment |
 |---|---|---|---|

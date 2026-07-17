@@ -1,7 +1,7 @@
 # Release notes — client-facing template
 
-Used by `/flow-deploy` (`qa` and `prod`) to draft the client-facing release notes from
-merged PRs + tracker states since the last promotion. The draft is **always reviewed by
+Used by the QA/prod promotion walk (`promotion-playbook.md`) to draft the client-facing
+release notes from merged PRs + tracker states since the last promotion. The draft is **always reviewed by
 the user before anything is sent** — this template produces a draft, never an outbound
 message.
 

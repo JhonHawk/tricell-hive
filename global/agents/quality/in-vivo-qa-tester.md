@@ -5,8 +5,9 @@ description: >
   criteria with a QA mindset — walk each AC's happy path AND adversarial/negative paths
   (double-click, rapid resubmit, invalid input, back/refresh mid-flow, direct access to
   gated routes, network failure, expired session). Use for the flow-build verify gate
-  in-vivo check (local production build) and the flow-deploy qa post-deploy walk (QA URLs). NOT for
-  UX friction (ux-flow-reviewer) and NOT for writing automated suites (test-engineer).
+  in-vivo check (local production build) and the post-deploy QA walk per
+  flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction (ux-flow-reviewer)
+  and NOT for writing automated suites (test-engineer).
 disallowedTools: Edit, NotebookEdit
 model: sonnet
 effort: high
@@ -52,7 +53,10 @@ do by accident.
   product code — `Write` is for the report only.
 - Severity by impact: `blocker` (AC fails, or data/money lost or duplicated) | `major`
   (happy path works but a negative case breaks) | `minor` (cosmetic, non-blocking). An AC
-  you could not exercise is `blocked` — never a silent pass.
+  you could not exercise is `blocked` — never a silent pass. **Visually broken is never
+  `minor`:** layout overflow, clipped or capped text, overlapping elements, or content not
+  filling its container reports as `major` at least — breakage is a defect to fix in-cycle,
+  not a cosmetic observation (craft polish stays `minor`; breakage does not).
 - Evidence or it didn't happen: each finding cites the route/state and a screenshot or
   trace saved to the ephemeral evidence path the dispatcher provides.
 - Distinguish three causes when something doesn't work: a code bug (fix → implementer), a

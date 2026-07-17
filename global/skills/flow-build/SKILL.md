@@ -1,7 +1,7 @@
 ---
 name: flow-build
 description: >
-  Execute an approved plan (the build half of F6 of the flow pack) as a state-driven
+  Execute an approved plan (the executing stage of the daily dev chain) as a state-driven
   reconciler — resumable, never re-doing landed work. `verify` jumps straight to the
   verification gate. Runs on any harness. Point it at a plan or part.
 argument-hint: "[verify] [plan-or-part-path]"
@@ -11,7 +11,7 @@ disable-model-invocation: true
 # /flow-build — execute the plan
 
 Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). This is the *doing* half of
-F6: it executes the plan `/flow-plan write` produced. It is a **reconciler** — it reads the
+the dev chain: it executes the plan `/flow-plan write` produced. It is a **reconciler** — it reads the
 desired state (the plan) and the observed state (git), and converges toward the next pending
 state. It never re-does landed work and never trusts a header over git.
 
@@ -24,7 +24,7 @@ harness still gates their work.
 
 ## OPEN — reconcile
 
-1. Read `<project>/_support/PROJECT.md` (missing → suggest `/flow-kickoff`, stop) and resolve
+1. Read `<project>/_support/PROJECT.md` (missing → suggest `/flow-start`, stop) and resolve
    the plan: the path at `$ARGUMENTS` (a part file inside an initiative's `plan/`, or a single
    `<slug>-plan.md`); **zero-arg → discover** the current session plan — the ledger's
    `## Current handoff` plan pointer, else the newest `sessions/*/*-plan.md` with `Status:
@@ -85,7 +85,8 @@ unmerged (each task's gate validates the integrated state of every task before i
   the suspect, not the hypothesis. Bring the symptom, the attempts, and the architecture question
   to the user (`debugging.md`).
 - **Git is autonomous inside this flow** (invoking `/flow-build` is the authorization): per-task
-  commits + the PR/CI/merge cycle. `qa`/prod promotions stay `/flow-deploy`'s; the safety
+  commits + the PR/CI/merge cycle. `qa`/prod promotions run via git conventions
+  (`git-workflow.md`) with `flow-core/references/promotion-playbook.md`; the safety
   gates of `git-workflow.md` (protected branches, no force-push/rewrites) never relax.
 - When every task is in git → set `Status: built`.
 
@@ -105,10 +106,14 @@ the tasks not yet gated:
    else `<repo>/_support/sessions/<slug>/reports/`) per `references/test-report-template.md`. **A
    `blocked` AC is not a pass** — unblock at the root (seed missing reference data, fix the
    precondition) and re-run; escalate only a genuinely external blocker as a ledger **Promotion
-   prerequisite**, never closed as done.
+   prerequisite**, never closed as done. **Visually broken is a defect, not a cosmetic note:**
+   anything detected visually broken during the walk — layout overflow, clipped or capped text,
+   overlapping elements, content not filling its container — is fixed in this cycle like a failing
+   AC, never deferred as polish. (The design gate below owns *craft*; this owns *breakage* and
+   applies even when `design-review` is not set.)
 3. **Design gate** for `design-review: yes` tasks (opt-in; user-facing UI tasks set the flag in the
    plan, mirroring `in-vivo: yes`): dispatch **ux-flow-reviewer** against the running app on the
-   **Visual craft** rubric axis (`flow-mock/references/ux-rubric.md` #11–17; criteria
+   **Visual craft** rubric axis (`flow-core/references/ux-rubric.md` #11–17; criteria
    `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
    hierarchy, elevation, borders restraint, component simplicity. Same evidence/report routing as
    the in-vivo gate. **A craft `blocker` is not a pass** — fix at the root and re-walk; `friction`/
@@ -135,5 +140,6 @@ the tasks not yet gated:
 5. **Report** — tasks done vs pending, merges (PR#, CI results), what was verified (paths) vs
    not, servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
    a pending list; promotion is never the suggested next work — if integration is ahead of `qa`,
-   close with a one-line offer to run `/flow-deploy qa` now (the user decides; never expand its
+   close with a one-line offer to run the QA promotion walk now
+   (`flow-core/references/promotion-playbook.md`; the user decides; never expand its
    plan, never list it as a user to-do).
