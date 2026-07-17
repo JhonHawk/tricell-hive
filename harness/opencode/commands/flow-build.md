@@ -1,5 +1,5 @@
 ---
-description: F6 — execute the plan: state-driven reconciler that builds, verifies, and closes (flow pack)
+description: execute the plan: state-driven reconciler that builds, verifies, and closes (flow pack)
 ---
 Execute the flow-pack skill `flow-build` now, with these arguments: $ARGUMENTS
 

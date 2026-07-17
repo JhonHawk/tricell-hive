@@ -53,25 +53,22 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 |---|---|
 | Group / client | <group> |
 | Project token | <project-token>        <!-- seed for all infra naming --> |
-| Current phase | F<N> — <phase name> |
-| Specs repo | <project>-specs/ (or "not yet created — F3 pending") |
+| Current stage | arranque / specs / desarrollo / operación |
+| Specs repo | <project>-specs/ (or "not yet created — specs stage pending") |
 | Tracker | linear (team FAC) / jira (project ATSCL) / none |
 | Tracker access | mcp / cli (acli) / api (env <TOKEN_VAR>) / manual — ordered by preference when several work |
 | Deferred marker | linear label "deferred" / jira label / tasks.md `[deferred]` / none — how paused-by-decision work is marked |
 | Release notes | OPTIONAL — overrides for `release-notes-template.md` (canal: correo / whatsapp / slack · idioma · tono); absent = template defaults |
 | Last updated | YYYY-MM-DD (<what changed>) |
 
-## Phase status
+## Stage status
 
-| Phase | Status | Closed on | Key outputs |
+| Stage | Status | Closed on | Key outputs |
 |---|---|---|---|
-| F1 intake | done / in progress / pending | YYYY-MM-DD | <paths> |
-| F2 kickoff | … | | |
-| F3 specs | … | | |
-| F4 mock | … | | |
-| F5 foundation | … | | |
-| F6 development | in progress (epic <id>) | — | <branch / PRs> |
-| F7 deployment | … | | |
+| arranque | done / in progress / pending | YYYY-MM-DD | <workspace + foundation paths> |
+| specs | … | | <specs repo, epics> |
+| desarrollo | in progress (epic <id>) | — | <branch / PRs; per-unit chain: brainstorm → spec → plan → build> |
+| operación | … | | <promoted envs, release notes> |
 
 ## Current handoff
 
@@ -112,7 +109,8 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 ## Promotion prerequisites
 
 Configs/credentials a dev session found are required BEFORE promoting to an environment —
-populated by flow-build close, read by `/flow-deploy` on OPEN. Drop the row once satisfied.
+populated by flow-build close, read at promotion via git (`references/promotion-playbook.md`).
+Drop the row once satisfied.
 
 | Environment | Requirement | Status | Discovered |
 |---|---|---|---|

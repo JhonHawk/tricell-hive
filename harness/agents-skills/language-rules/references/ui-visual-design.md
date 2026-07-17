@@ -5,7 +5,8 @@
 > non-visual file — apply judgment, exit silently when irrelevant. **Boundaries:** the spacing/
 > sizing *scale* itself is owned by `tailwind.md` (use the canonical scale, no arbitrary `[...]`);
 > component-level taste is owned by the loaded design-system skill (HeroUI/shadcn); flow-level UX
-> (orientation, error recovery, empty-state *invitation*) is owned by the flow-mock UX rubric. The
+> (orientation, error recovery, empty-state *invitation*) is owned by the UX rubric
+> (`flow-core/references/ux-rubric.md`). The
 > numeric values below are starting criteria to map onto the project's design tokens — not literals
 > to hardcode.
 

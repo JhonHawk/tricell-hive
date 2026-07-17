@@ -1,5 +1,5 @@
 ---
-description: F3 — specs repo lifecycle: init (product map + structure), epic/revise drafting as deltas with tracker sync, business review gate (flow pack)
+description: specs repo lifecycle: init (product map + structure), epic/revise drafting as deltas with tracker sync, business review gate (flow pack)
 ---
 Execute the flow-pack skill `flow-specs` now, with these arguments: $ARGUMENTS
 

@@ -1,7 +1,7 @@
 ---
 name: flow-specs
 description: >
-  Manage the project's specs repo (F3 of the flow pack): create it with the canonical
+  Manage the project's specs repo (the specs stage): create it with the canonical
   structure (init), draft a NEW epic or revise an EXISTING one with Gherkin tasks synced
   to the project's tracker (epic / revise), or run the pre-implementation quality gate
   with two independent reviewers (review). Use when creating, revising, or reviewing
@@ -20,24 +20,29 @@ gate). With no argument, show the subcommands and the epics index status.
 1. OPEN per the contract (ledger must exist; record the specs repo in it at CLOSE).
 2. Create `<project>/<project>-specs/` following
    `~/.agents/skills/flow-core/references/specs-structure.md` exactly: README index,
-   `product/` (map README seeded from the F1/F2 material: portals, actors/roles,
+   `product/` (map README seeded from the `/flow-start` material — requirements + workspace
+   bootstrap: portals, actors/roles,
    end-to-end flow — module folders appear as epics define them), `conventions/`,
    `contracts/`, `decisions/`, `evidence/`, `epics/`.
-3. **Astro Starlight presentation layer only if the user asked for one** (default:
-   markdown-only — no question). When requested, scaffold via the `starlight-docs-site`
-   skill's **`spec-site` profile** *over* the canonical structure: content stays at its
-   flow-core paths as the source of truth — Starlight serves it, never reorganizes it
-   into its own content tree. The sidebar follows the product topology and status rules
-   in `specs-structure.md > Optional Astro Starlight presentation layer` — never the
-   repo's delivery taxonomy. Query context7 for the installed Astro/Starlight version's
-   config when scaffolding.
+3. **Ask the presentation format once, at init** (AskUserQuestion, folded into the init
+   question block): *markdown only* — the canonical structure with no site layer;
+   *Astro Starlight* — scaffold via the `starlight-docs-site` skill's **`spec-site`
+   profile** *over* the canonical structure (content stays at its flow-core paths as the
+   source of truth — Starlight serves it, never reorganizes it into its own content
+   tree; sidebar follows the product topology and status rules in
+   `specs-structure.md > Optional Astro Starlight presentation layer`, never the repo's
+   delivery taxonomy; query context7 for the installed Astro/Starlight version's config
+   when scaffolding); or *other (specify)* — the user names the format and it is applied
+   over the same canonical structure, which is non-negotiable as the source of truth.
+   Recommend by context (large multi-consumer spec sets earn Starlight; otherwise
+   markdown) and record the choice in the ledger at CLOSE.
 4. `git init` + initial commit. Suggest (never execute) creating the GitHub remote.
 5. Link the tracker project per the ledger's `Tracker` / `Tracker access` fields (mcp →
    load tools via ToolSearch; cli → `acli` for Jira; api → env token; manual/none →
    skip, the specs repo is the task source): find or create the project, record the URL
    in README and PROJECT.md. Fields missing from the ledger → ask once and record them
-   (kickoff normally sets them; pre-pack workspaces get them via `/flow-hygiene`).
-6. If `_support/` already holds high-level spec material from F1/F2, propose the promotion
+   (`/flow-start` normally sets them; pre-pack workspaces get them via `/flow-hygiene`).
+6. If `_support/` already holds high-level spec material from `/flow-start`, propose the promotion
    plan (what moves into the repo, what stays as scratch) — file-routing rule question 4.
 
 ## `epic <name>` / `revise <epic-ref>` — draft a new epic or revise an existing one
@@ -63,7 +68,7 @@ is only steps 1–2.
    **business only**: the delta plus its acceptance scenarios (Success Criteria /
    Validation, happy AND negative paths). NO tasks.md yet — task decomposition is
    delivery planning and waits for the gate (step 4). TECH.md comes later, once
-   foundation exists — its Relevant Code section needs real paths. PRODUCT.md carries
+   `/flow-start`'s foundation stage ran — its Relevant Code section needs real paths. PRODUCT.md carries
    **no technical content**: a technical question that surfaces while drafting is parked
    in Open Questions (`technical — resolves in TECH.md`), never answered in the spec.
 4. **The business gate is part of this subcommand, not optional**: run `review` on the
@@ -80,8 +85,8 @@ is only steps 1–2.
 ## `review <spec-ref>` — the BUSINESS gate
 
 This gate closes *business* questions: rules, scope, actors, verifiability. It never
-resolves technical ones — the technical gate is TECH.md at `flow-plan` (F6), once
-foundation exists.
+resolves technical ones — the technical gate is TECH.md at `flow-plan`, once
+`/flow-start`'s foundation stage ran.
 
 1. **Resolve `<spec-ref>` to an epic folder** (against the specs repo found at OPEN):
    - **Existing path** → a folder is the epic; a file inside it (`PRODUCT.md`/`TECH.md`/

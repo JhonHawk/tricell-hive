@@ -26,8 +26,9 @@ by path/description, never embeds or commits it.
 
 ## When it is written
 
-By the in-vivo gate of `/flow-build` (the `verify` gate) and by `/flow-deploy` post-deploy
-verification — every run that walks Gherkin ACs against a live app. One report per
+By the in-vivo gate of `/flow-build` (the `verify` gate) and by the promotion walk's
+post-deploy verification (`promotion-playbook.md`) — every run that walks Gherkin ACs
+against a live app. One report per
 in-vivo run, named `in-vivo-<task-or-epic>-YYYY-MM-DD.md` under
 `<project>-specs/evidence/<epic-id>/`. The raw screenshots/PDFs in `_support/evidence/` are
 purged at close — never promoted into the versioned repo. A screenshot the client needs

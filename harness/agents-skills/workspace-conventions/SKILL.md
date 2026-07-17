@@ -32,10 +32,11 @@ play.
 
 ## Flow phase boundaries (harness addendum — not restated in the references)
 
-- Actions owned by another flow phase get a pointer to the owning skill, never that
-  phase's execution plan inline: environment promotion, deploys, and post-deploy
-  verification belong to the deploy skill — offer to run it now ("integration is ahead
-  of qa — I can run `/flow-deploy qa`, proceed?"), never hand it back as a user to-do.
+- Actions owned by another convention get a pointer to it, never their execution plan
+  inline: environment promotion and post-deploy verification follow the git-workflow
+  promotion gates and `flow-core/references/promotion-playbook.md` — surface the next
+  promotion as a recommendation the user confirms, never hand it back as an opaque
+  user to-do.
 - Suggestion surfaces (next steps, scope candidates, recommendations) obey the same
   boundaries: when a skill owns the action, the suggestion is the skill invocation
   phrased as an offer to run it, not the plan.

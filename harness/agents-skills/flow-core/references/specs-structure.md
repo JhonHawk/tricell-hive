@@ -38,7 +38,7 @@ developer plans from `epics/`.
 ├── releases/                # Client-facing release notes per promotion (release-notes-template.md): YYYY-MM-DD-<env>.md
 ├── epics/
 │   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd
-│       ├── PRODUCT.md        # The DELTA: what changes and why — written at F3, gate: /flow-specs review
+│       ├── PRODUCT.md        # The DELTA: what changes and why — written at the specs stage, gate: /flow-specs review
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task — derived post-gate
 │                             # ── EXECUTION (what actually happened) ──
@@ -107,7 +107,8 @@ Tracker: <epic URL or — if untracked> · Mock: <route in the mocks repo, if it
 ```
 
 **PRODUCT.md carries no technical content.** Schemas, endpoints, table/column shapes,
-token/session mechanics, algorithms, and library choices belong to TECH.md (F5+). A
+token/session mechanics, algorithms, and library choices belong to TECH.md (foundation
+material, now `/flow-start`). A
 technical question that surfaces while drafting or reviewing the epic is *parked* as an
 Open Question with an owner — resolving it inside PRODUCT.md is the defect this rule
 exists to prevent (the review gate hardens it: `spec-rubric.md` hard checks).
