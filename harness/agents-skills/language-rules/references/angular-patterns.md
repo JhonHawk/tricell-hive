@@ -24,7 +24,7 @@
 - **v16 and lower**: Use `@Input()`/`@Output()` decorators and RxJS observables for reactive state.
 
 ### Change Detection
-- **Default to `OnPush` on new components.** With signals (v17+) and zoneless mode (opt-in via `provideZonelessChangeDetection()` in v20, the default in v21+), `OnPush` becomes less critical but remains the safer baseline — and v21+ makes it the framework default for new components. Justify exceptions in the file.
+- **Default to `OnPush` on new components.** With signals (v17+) and zoneless mode (opt-in via `provideZonelessChangeDetection()` in v20, the default in v21+), `OnPush` becomes less critical but remains the safer baseline — and v22+ makes it the framework default for newly generated components (`Default` renamed to `Eager`; existing components unaffected on update). Justify exceptions in the file.
 - With signal inputs (v17+): automatic updates reduce the need for `markForCheck()`.
 
 ### Dependency Injection

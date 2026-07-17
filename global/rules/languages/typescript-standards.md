@@ -21,7 +21,7 @@ paths:
 - JSDoc for public APIs; document "why", not "what".
 
 ### Linting & Formatting
-- **Always respect existing lint/format configs** (Biome, ESLint, Prettier). After completing an implementation, run lint and format **only on the files you modified** — never on the entire codebase.
+- **Always respect existing lint/format configs** (Biome, ESLint, Prettier). Execution scope and timing after implementation: `CLAUDE.md > Build & Lint`.
 - **New projects — the user's stack:** frontend repos use **Biome + ESLint**; backend repos use **ESLint + Prettier**. Never introduce a different lint/format tool (Ultracite or otherwise) without asking. Angular is the exception — see `angular-patterns.md > Tooling`.
 - **Existing projects:** if configs exist, run them on modified files after implementation. If configs are missing, ask the user whether to add them or skip.
 - **If the user chooses to skip:** document the decision in the project's `CLAUDE.md` (e.g., `## Constraints\n- ESLint/Prettier intentionally omitted`) so future sessions don't re-ask.

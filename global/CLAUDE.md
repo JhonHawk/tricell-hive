@@ -87,7 +87,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
   - `playwright` — E2E testing (over cypress, for CI reliability).
 - **Ask only at a real fork:** an architectural pick with no preferred default and no project convention — 2-3 curated options folded into the plan gate — or the OSV CRITICAL/HIGH gate below. Only one viable option → explain briefly and proceed.
 - **Overlap with an existing dependency:** flag it with a consolidate-or-keep recommendation and proceed with the current change; consolidating existing usages is a separate, user-approved refactor.
-- **OSV before any install** (`security.md > Supply Chain Security` owns the command, ecosystem mapping, and tiers): a compatible `fixed` version (patch/minor, or verified non-breaking) → install THAT version and report the swap — a major-only fix is a bump decision, never a silent swap; MEDIUM/LOW without fix → proceed and report; **CRITICAL/HIGH with no safe path → explicit user confirmation, always.**
+- **OSV before any install** — `security.md > Supply Chain Security` owns the command, ecosystem mapping, and resolution tiers; resolve by its tiers and report at close. **CRITICAL/HIGH with no safe path → explicit user confirmation, always.**
 
 ### Communication
 - **Exploratory questions get prose first.** When the user asks "how should we...", "what could we do about...", "what do you think?" — respond with a 2-3 sentence recommendation and the main tradeoff, presented as something the user can redirect, not a decided plan. Only escalate to `AskUserQuestion` if the user signals they want to commit ("let me decide", "give me options"), or the question blocks work until answered.

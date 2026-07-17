@@ -1,5 +1,6 @@
 ---
-paths: "**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,java,kt,kts}"
+paths:
+  - "**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,java,kt,kts}"
 ---
 
 ## Patterns & Anti-patterns (JS/TS, Java, Kotlin)
