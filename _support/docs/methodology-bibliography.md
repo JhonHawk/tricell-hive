@@ -11,7 +11,7 @@ Sources backing the rules and conventions under `global/rules/`. Append-only in 
 
 ## Generated-artifact naming, grouping & retention
 
-Backs `workflow/project-structure.md > Generated-artifact naming, grouping & retention` and its condensed mirror in `harness/AGENTS.md`. Researched jun-2026.
+Backs `workflow/support-artifacts.md > Generated-artifact naming, grouping & retention` (moved 2026-07-17 from `project-structure.md`) and its condensed mirror in `harness/AGENTS.md`. Researched jun-2026.
 
 ### Date naming — ISO 8601, lexicographic = chronological
 - `[Authoritative]` **ISO 8601-1:2019**, Part 1 (basic Gregorian dates) — `YYYY-MM-DD`, components ordered largest unit first. *Supported.* Caveat: lexicographic order equals chronological **only** with fixed-width zero-padding (`2026-06-09`, not `2026-6-9`).
