@@ -12,7 +12,7 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
 2. **Ensure target structures exist** — on a fresh machine nothing may exist:
    ```bash
    mkdir -p ~/.claude/{rules,agents,skills,hooks,backups}
-   mkdir -p ~/.agents/skills ~/.codex/agents ~/.config/opencode/{agents,commands}
+   mkdir -p ~/.agents/skills ~/.codex/{agents,hooks} ~/.config/opencode/{agents,commands,plugins}
    ```
 3. **Diff BEFORE deploying** — compare each source file against its deployed counterpart. Show a summary of what will change: new files, modified files, and unchanged files. This MUST happen before any copy operation. If a target file does not exist, report it as NEW.
 4. **Backup existing config** before overwriting:
@@ -46,6 +46,8 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
          codex-agents/*) n=$(basename "$rel" .toml); src=$(find global/agents -name "$n.md" -print -quit 2>/dev/null); tgt=~/.codex/agents/"$(basename "$rel")" ;;
          opencode-agents/*) n=$(basename "$rel" .md); src=$(find global/agents -name "$n.md" -print -quit 2>/dev/null); tgt=~/.config/opencode/agents/"$(basename "$rel")" ;;
          opencode-commands/*) src="harness/opencode/commands/$(basename "$rel")"; tgt=~/.config/opencode/commands/"$(basename "$rel")" ;;
+         codex-hooks/*) src=$(find global/hooks -name "$(basename "$rel")" -print -quit 2>/dev/null); tgt=~/.codex/hooks/"$(basename "$rel")" ;;
+         opencode-plugins/*) src=$(find global/hooks -name "$(basename "$rel")" -print -quit 2>/dev/null); tgt=~/.config/opencode/plugins/"$(basename "$rel")" ;;
          harness-agents/codex/*) src="harness/AGENTS.md"; tgt=~/.codex/AGENTS.md ;;
          harness-agents/opencode/*) src="harness/AGENTS.md"; tgt=~/.config/opencode/AGENTS.md ;;
          *) continue ;;   # unknown prefix — never delete
@@ -71,6 +73,21 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
        echo "WARNING: could not purge $orphan_basename from settings.json — left unchanged."
      fi
      ```
+   - **Codex hook orphans purge `~/.codex/hooks.json` the same way.** A removed `codex-hooks/*.sh` orphan (source gone from `global/hooks/`) must not leave a dangling entry in Codex's hooks file. Because it shares the Claude schema (`.hooks.<Event>[].hooks[].command`), reuse the SAME `hook-purge.jq` filter keyed on the orphan basename, with the identical temp+validate+move discipline:
+     ```bash
+     # $orphan_basename is the basename of a codex-hooks/*.sh orphan, e.g. flow-session-context.sh
+     if [ -f ~/.codex/hooks.json ]; then
+       tmp=$(mktemp)
+       if jq --arg bn "$orphan_basename" -f .claude/skills/deploy-global/filters/hook-purge.jq ~/.codex/hooks.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
+         mv "$tmp" ~/.codex/hooks.json
+         echo "~/.codex/hooks.json: purged orphan hook block for $orphan_basename"
+       else
+         rm -f "$tmp"
+         echo "WARNING: could not purge $orphan_basename from ~/.codex/hooks.json — left unchanged."
+       fi
+     fi
+     ```
+     An `opencode-plugins/*.ts` orphan needs no config purge — opencode loads local plugins by file presence, so removing the `.ts` fully deregisters it.
    - **No manifest (first run) or unreadable** → skip deletion entirely and say so. Degrade to no-deletion, never to guessing.
 6. **Deploy CLAUDE.md**: copy `global/CLAUDE.md` → `~/.claude/CLAUDE.md`.
 7. **Deploy rules**: copy all files from `global/rules/` → `~/.claude/rules/`, preserving subdirectory structure.
@@ -200,6 +217,41 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     fi
     ```
     Report the ensure outcome in step 15. Do not treat a failure as a deploy abort — the rest of the deploy is independent.
+13d. **Deploy the Codex session hook.** The cross-harness `flow-session-context` hook reaches
+    Codex as a SessionStart command. Copy the script into `~/.codex/hooks/` and register it in
+    `~/.codex/hooks.json` with the same additive-merge discipline as step 13 — Codex's hooks
+    file shares the Claude schema (`.hooks.<Event>[].hooks[].command`), so the merge is keyed on
+    the inner `command` string and re-deploys never duplicate:
+    ```bash
+    if [ -f global/hooks/flow-session-context/flow-session-context.sh ]; then
+      cp global/hooks/flow-session-context/flow-session-context.sh ~/.codex/hooks/
+      chmod +x ~/.codex/hooks/flow-session-context.sh
+    fi
+    if [ -f global/hooks/flow-session-context/codex-hooks.json ]; then
+      [ -f ~/.codex/hooks.json ] || echo '{}' > ~/.codex/hooks.json
+      managed=$(jq '.hooks // {}' global/hooks/flow-session-context/codex-hooks.json)
+      tmp=$(mktemp)
+      if jq --argjson m "$managed" -f .claude/skills/deploy-global/filters/hook-merge.jq ~/.codex/hooks.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
+        mv "$tmp" ~/.codex/hooks.json
+        echo "~/.codex/hooks.json: session hook merged (idempotent, additive)."
+      else
+        rm -f "$tmp"
+        echo "WARNING: ~/.codex/hooks.json merge failed — left unchanged. Register manually from codex-hooks.json."
+      fi
+    fi
+    ```
+    **Codex guards hooks with `[hooks.state]` in `~/.codex/config.toml`** — a `trusted_hash` per
+    command plus a per-hook `enabled` flag. The deploy NEVER edits `config.toml`. Report in step
+    15: if the new hook's slot is missing or `enabled = false`, the merged hook stays inert until
+    the user runs Codex once and accepts the trust prompt (or sets `enabled = true`).
+13e. **Deploy the opencode session plugin.** opencode auto-loads local plugins by file presence —
+    no `opencode.json` edit is needed:
+    ```bash
+    if [ -f global/hooks/flow-session-context/flow-session-context.ts ]; then
+      cp global/hooks/flow-session-context/flow-session-context.ts ~/.config/opencode/plugins/
+      echo "opencode plugin deployed: flow-session-context.ts"
+    fi
+    ```
 14. **Write the manifest** — after all copies succeed, record exactly what this deploy manages, mapped to *deployed* paths (relative to `~/.claude/`; hooks flattened to match step 13's flat copy):
     ```bash
     {
@@ -215,6 +267,11 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
       find global/agents -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-agents/|'
       find harness/opencode/commands -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-commands/|'
       [ -f harness/AGENTS.md ] && printf 'harness-agents/codex/AGENTS.md\nharness-agents/opencode/AGENTS.md\n'
+      # cross-harness session hook: Codex hooks (.sh in any folder shipping a codex-hooks.json) + opencode plugin (.ts)
+      find global/hooks -name codex-hooks.json 2>/dev/null | while IFS= read -r cj; do
+        find "$(dirname "$cj")" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|codex-hooks/|'
+      done
+      find global/hooks -name '*.ts' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-plugins/|'
     } > ~/.claude/.deploy-manifest
     ```
     Write the manifest only after a successful deploy — if the deploy aborted midway, leave the previous manifest untouched so the next run still sees the last known-good state.
@@ -225,6 +282,7 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     - Backup location and size
     - Diff summary from step 2 (new, modified, unchanged)
     - For hooks: report the settings.json merge outcome (blocks registered, or the WARNING fallback if the merge failed). No manual step is needed when the merge succeeded
+    - For the cross-harness session hook (steps 13d/13e): report the `~/.codex/hooks.json` merge outcome and the opencode plugin copy. **Codex trust caveat:** if the hook's `[hooks.state]` slot in `~/.codex/config.toml` is missing or `enabled = false`, the merged hook stays inert until the user runs Codex once and accepts the trust prompt (or sets `enabled = true`) — the deploy never edits `config.toml`
     - Engram #555 ensure (step 13c): OK / WARNING — temporary until upstream ships the fix
     - Remind the user to restart Claude Code or open a new session to reload
     - Show how to restore:

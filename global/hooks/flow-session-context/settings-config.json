@@ -1,0 +1,16 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). SessionStart with no matcher; the script filters to startup|clear and joins two self-gating sections (flow protocol in a flow workspace, git-hygiene facts in any git repo), staying silent when both are empty. Advisory only — never blocks.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/flow-session-context.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

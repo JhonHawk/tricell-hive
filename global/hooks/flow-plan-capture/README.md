@@ -7,7 +7,7 @@ is captured to the session-capture layer (`sessions/YYYY-MM-DD-<slug>/<slug>-pla
 `Status: planned`, sessions-index row) and the model is told the canonical path is the
 working plan from there. `/flow-build` adopts that file (ADOPT step). Codex and opencode
 have no equivalent event — they get the same convention as instructions via the workspace
-`AGENTS.md` template written by `/flow-kickoff`.
+`AGENTS.md` template written by `/flow-start`.
 
 Design decisions (user-approved 2026-07-10):
 - **No size threshold** — entering plan mode is the proportionality filter.
