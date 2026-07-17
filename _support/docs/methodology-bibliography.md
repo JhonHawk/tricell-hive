@@ -777,6 +777,10 @@ The rule distills a **curated** subset, decided chapter by chapter — not the w
 
 ---
 
+## Note — flow-pack v2 redesign (2026-07-17)
+
+The flow-pack v2 redesign superseded the F1–F7 phase model with four project stages (`arranque · specs · desarrollo · operación`), where the daily brainstorm→spec→plan→build loop lives inside `desarrollo`. It fused flow-intake/kickoff/foundation into `/flow-start`, dissolved flow-mock into the chain as a work type, retired flow-deploy (promotion knowledge moved to `flow-core/references/promotion-playbook.md`), and added `/flow-brainstorming`. The UX rubric was relocated from `flow-mock/references/ux-rubric.md` to `flow-core/references/ux-rubric.md`. Historical entries above that cite F-phases or the old rubric path reflect the model in force when researched — they are not rewritten.
+
 ## Unattended autonomy mode (explicit overnight delegation)
 
 Backs `workflow/unattended-autonomy.md`, its cross-references in `quality/development-principles.md > Fix at the Root`, `workflow/gap-resolution.md > Divergence`, and `global/CLAUDE.md > Destructive Operations`, plus the condensed mirror in `harness/AGENTS.md > Unattended Delegation Mode`. Researched jul-2026 via adversarial deep-research (24 sources fetched → 117 claims extracted → top-25 verified with 3 independent votes each → 24 confirmed unanimously, 1 refuted). Full report archived at `_support/archive/audits/unattended-autonomy-research-2026-07-09.html`.
