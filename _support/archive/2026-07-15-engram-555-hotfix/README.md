@@ -8,9 +8,38 @@ affects v1.19.0 and main `be4b613`. **Delete this folder once upstream ships the
 
 The fix (same logic, one patch per harness): `ENGRAM_PROJECT` env override → nearest
 `.engram/config.json` walking ancestor directories (`project_name`, lowercased) →
-original git/dirname fallbacks. Shell versions require `jq` (bundled on macOS).
+original git/dirname fallbacks. Shell versions require `jq` (bundled on macOS / Homebrew).
 
-## Apply on a machine (idempotent — check first)
+## Durable install (preferred)
+
+A one-shot patch dies on the next plugin update (Codex `0.1.0` → `0.1.1` wiped the fix
+on 2026-07-15). Use the ensure script instead — it re-discovers every cache version dir,
+is idempotent, and installs a LaunchAgent that re-applies when plugin trees change.
+
+```bash
+# From this directory (or any checkout of tricell-hive):
+./ensure-engram-555.sh status     # exit 0 = all targets healthy
+./ensure-engram-555.sh apply      # re-apply only missing targets
+./ensure-engram-555.sh install    # apply + copy kit to ~/.engram/hotfix-555/
+                                  # + symlink ~/.local/bin/ensure-engram-555
+                                  # + LaunchAgent WatchPaths on plugin caches
+./ensure-engram-555.sh uninstall  # remove LaunchAgent + symlink (kit stays)
+```
+
+After `install`:
+
+| Piece | Path |
+|---|---|
+| Stable kit (patches + script) | `~/.engram/hotfix-555/` |
+| CLI | `ensure-engram-555` → `~/.local/bin/ensure-engram-555` |
+| Watcher | `~/Library/LaunchAgents/com.jmartinez.engram-555-ensure.plist` |
+| Log | `~/.engram/hotfix-555.log` |
+
+`/deploy-global` step **13c** also runs `ensure-engram-555 apply` (or `install` if the
+kit was never set up on that machine), so a normal config deploy heals drift even if
+the watcher missed an update.
+
+## Manual patch (fallback only)
 
 ```bash
 # Already applied? (each listed file has the fix; missing file = not applied there)
@@ -38,10 +67,10 @@ bash -c 'source ~/.claude/plugins/cache/engram/engram/<ver>/scripts/_helpers.sh;
   detect_project <path-inside-a-configured-workspace>'
 ```
 
-Re-apply triggers: the harness's engram plugin updates (new version dir / marketplace
-`last_updated` change / hooks ask re-trust), or memories start splitting again.
-If a patch stops applying cleanly, upstream rewrote the script — re-derive from the
-pristine upstream source instead of blind-copying old fixed files.
+Re-apply triggers without the watcher: the harness's engram plugin updates (new version
+dir / marketplace `last_updated` change / hooks ask re-trust), or memories start
+splitting again. If a patch stops applying cleanly, upstream rewrote the script —
+re-derive from the pristine upstream source instead of blind-copying old fixed files.
 
 ## engram setup side-effects (any machine, same vintage)
 

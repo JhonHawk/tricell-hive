@@ -180,6 +180,26 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     codex --strict-config doctor >/dev/null 2>&1 && echo "codex config OK" \
       || echo "WARNING: codex --strict-config doctor failed — inspect ~/.codex/config.toml for drift"
     ```
+13c. **Re-assert Engram #555 detect_project hotfix** (temporary — remove when upstream ships https://github.com/Gentleman-Programming/engram/issues/555). Plugin updates rewrite `~/.codex/plugins/cache/engram/**` and silently drop the local patch. Prefer the durable installer (LaunchAgent + kit under `~/.engram/hotfix-555/`); always re-run apply so this deploy leaves the machine healthy even if the watcher missed an update:
+    ```bash
+    ensure_script=""
+    if [ -x "$HOME/.local/bin/ensure-engram-555" ]; then
+      ensure_script="$HOME/.local/bin/ensure-engram-555"
+    elif [ -x "$HOME/.engram/hotfix-555/ensure-engram-555.sh" ]; then
+      ensure_script="$HOME/.engram/hotfix-555/ensure-engram-555.sh"
+    elif [ -x "_support/archive/2026-07-15-engram-555-hotfix/ensure-engram-555.sh" ]; then
+      # First machine / kit never installed: install durable copy + watcher from the archive.
+      _support/archive/2026-07-15-engram-555-hotfix/ensure-engram-555.sh install
+      ensure_script="$HOME/.local/bin/ensure-engram-555"
+    fi
+    if [ -n "$ensure_script" ]; then
+      "$ensure_script" apply && echo "engram #555 hotfix: OK" \
+        || echo "WARNING: engram #555 ensure failed — memories may split across project aliases until fixed"
+    else
+      echo "WARNING: engram #555 ensure script not found — see _support/archive/2026-07-15-engram-555-hotfix/"
+    fi
+    ```
+    Report the ensure outcome in step 15. Do not treat a failure as a deploy abort — the rest of the deploy is independent.
 14. **Write the manifest** — after all copies succeed, record exactly what this deploy manages, mapped to *deployed* paths (relative to `~/.claude/`; hooks flattened to match step 13's flat copy):
     ```bash
     {
@@ -205,6 +225,7 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     - Backup location and size
     - Diff summary from step 2 (new, modified, unchanged)
     - For hooks: report the settings.json merge outcome (blocks registered, or the WARNING fallback if the merge failed). No manual step is needed when the merge succeeded
+    - Engram #555 ensure (step 13c): OK / WARNING — temporary until upstream ships the fix
     - Remind the user to restart Claude Code or open a new session to reload
     - Show how to restore:
       ```bash
