@@ -126,7 +126,8 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── git-workflow.md
 │   │   ├── infra-naming.md        # Generic infra naming layer; projects instantiate it in their specs repo
 │   │   ├── memory-routing.md      # Engram (work-record) vs native file-memory (always-hot) boundary
-│   │   └── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo) + session capture layer
+│   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo) + session capture layer
+│   │   └── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
 │   └── tools/                     # External tools & MCP plugin protocols (alwaysApply)
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)

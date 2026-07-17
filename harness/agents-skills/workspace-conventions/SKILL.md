@@ -26,7 +26,8 @@ play.
 
 | Situation | Read |
 |---|---|
-| Creating/moving/naming any artifact outside app source; `_support/` vs specs-repo routing; sessions, evidence, naming, retention; infra repo placement | `references/project-structure.md` |
+| Creating/moving/naming any artifact outside app source; `_support/` vs specs-repo routing; sessions; infra repo placement | `references/project-structure.md` |
+| Generated-artifact naming/grouping, retention, evidence curation, versioning, legacy folder mappings (anything under `_support/`) | `references/support-artifacts.md` |
 | New or changed cross-service contract (endpoint a frontend consumes, request/response shape between services, events/webhooks) | `references/cross-service-workflow.md` |
 
 ## Flow phase boundaries (harness addendum — not restated in the references)

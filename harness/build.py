@@ -52,6 +52,7 @@ SKILL_REFERENCE_INJECTIONS = {
     ],
     "workspace-conventions": [
         ("rules/workflow", "project-structure.md"),
+        ("rules/workflow", "support-artifacts.md"),
         ("rules/workflow", "cross-service-workflow.md"),
     ],
     "memory-policy": [
@@ -132,14 +133,16 @@ def main():
                 shutil.copy2(f, dst / f.name)
             (dst / "README.md").write_text(GENERATED_README, encoding="utf-8")
 
-    # Path-scoped language rules -> opencode-rules plugin format
+    # Path-scoped rules -> opencode-rules plugin format (the converter skips
+    # alwaysApply files, so the workflow pass only picks up path-scoped ones)
     rules_out = ROOT / "harness" / "opencode" / "rules"
     regen_dir(rules_out)
-    subprocess.run(
-        [sys.executable, str(BUILD / "convert-rules.py"),
-         str(ROOT / "global" / "rules" / "languages"), str(rules_out)],
-        check=True,
-    )
+    for rules_src in ("languages", "workflow"):
+        subprocess.run(
+            [sys.executable, str(BUILD / "convert-rules.py"),
+             str(ROOT / "global" / "rules" / rules_src), str(rules_out)],
+            check=True,
+        )
     (rules_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
 
     # Router skills: inject canonical rule files as frontmatter-stripped
