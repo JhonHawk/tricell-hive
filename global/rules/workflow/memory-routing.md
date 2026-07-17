@@ -12,6 +12,7 @@ alwaysApply: true
 - **Native file-memory is the always-hot exception:** only facts that must be in context every session without a search — who the user is (`user`), standing behavioral corrections (`feedback`).
 - **Litmus:** "must this be in context every session without my searching for it?" Yes → native. No, retrieved when the topic comes up → Engram.
 - **Never write the same fact to both systems.** Both protocols say "save proactively" on overlapping triggers; this rule is the tiebreaker and wins by specificity.
+- **Compaction is not total amnesia:** the thread continues with a summary plus the unsummarized recent context, and native memory, the ledger, and git persist on their own — Engram is the searchable cross-session work record, not the only survivor.
 - **Flow-phase artifacts and status facts use a deterministic `topic_key`** (`flow/{epic-or-project-slug}/{artifact}`, `status/<area>`) so saves upsert, never duplicate — the ledger stays the source of truth, Engram is the resume-mirror; convention defined in `flow-core`. Observations about decisions/discoveries/executions record the producing session's slug (`session: sessions/YYYY-MM-DD-<slug>`) so recall points at the durable documents (`project-structure.md > Session capture layer`).
 
 ### Workspace project identity (multi-repo)

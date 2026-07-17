@@ -43,7 +43,7 @@ Once an agent needs a browser, the default driver is the `agent-browser` CLI (vi
 
 ### Delegation Gates
 Delegate on growing complexity, not only on explicit request. These are hard gates, not suggestions: when one fires, delegate — or state in one visible line why inline is correct. Continuing silently past a fired gate is the violation. Governing question for anything unlisted: does this inflate main-thread context without need? Yes → delegate.
-- **Understanding a flow that spans 4+ files** → delegate a bounded exploration to `Explore` (extends the "3+ search queries" trigger in global `CLAUDE.md`).
+- **Understanding a flow that spans 4+ files** → delegate a bounded exploration to `Explore` (extends the "3+ search queries" trigger in global `CLAUDE.md`). Explore's guaranteed value is context hygiene (search noise stays out of the main thread), not token price — it inherits the session model unless its definition overrides.
 - **Writing 2+ non-trivial files** → delegate one writer (the domain specialist per the table above), then verify in fresh context.
 - **~20 tool calls, 5 exploratory reads, or 2 non-mechanical edits without delegating** → re-plan in flight: delegate the remainder instead of pushing the session further.
 

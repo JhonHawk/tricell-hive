@@ -27,6 +27,7 @@ Scan every `.md` file in `global/rules/` and check:
 5. **No duplication between rules** — Flag overlapping content across rule files (e.g., same library mentioned in two files).
 6. **Size check** — Flag rules under 5 lines (too thin — consider merging) or over 50 lines (consider splitting).
 7. **Industry alignment** — For each rule, verify its recommendations still reflect current industry consensus. Use web search and context7 to check if any rule has become outdated or if a better practice has emerged. Flag stale rules.
+8. **Enforcement honesty** — A rule phrased as mechanical impossibility ("cannot", "physically blocked") must be backed by a deterministic layer (hook, deny permission, allowlist); otherwise flag it for rewording as confirm-gated or convention. Gates name their enforcement layer. Taxonomy: `_support/docs/enforcement-layers.md`.
 
 Output a summary table, then specific issues per rule with suggestions.
 
@@ -71,6 +72,7 @@ Analyze what technology stacks are covered by rules and which have gaps:
 
 Rules for creating:
 - Each rule must change Claude's behavior vs default. No generic advice.
+- Gates name their enforcement layer (deterministic / confirm-gated / prompt-convention) — see `_support/docs/enforcement-layers.md`; never phrase a convention as mechanical impossibility.
 - Prefer few strong rules over many weak ones.
 - If the content fits naturally in an existing rule file, suggest merging instead of creating a new file.
 - **Research before drafting**: use web search, context7, and authoritative sources (official docs, recognized books, RFC/specs) to ground the rule in current industry best practices. Don't write rules based solely on internal conventions — validate against the broader ecosystem.
