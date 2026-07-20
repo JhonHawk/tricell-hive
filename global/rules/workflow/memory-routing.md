@@ -15,6 +15,15 @@ alwaysApply: true
 - **Compaction is not total amnesia:** the thread continues with a summary plus the unsummarized recent context, and native memory, the ledger, and git persist on their own — Engram is the searchable cross-session work record, not the only survivor.
 - **Flow-phase artifacts and status facts use a deterministic `topic_key`** (`flow/{epic-or-project-slug}/{artifact}`, `status/<area>`) so saves upsert, never duplicate — the ledger stays the source of truth, Engram is the resume-mirror; convention defined in `flow-core`. Observations about decisions/discoveries/executions record the producing session's slug (`session: sessions/YYYY-MM-DD-<slug>`) so recall points at the durable documents (`project-structure.md > Session capture layer`).
 
+### Save cadence — batch to close; save now only what would hurt to lose
+
+The plugin-injected protocol wins on *mechanics* (tools, envelopes, judgment flow); this layer governs *when* to save. Its per-task "save immediately" triggers name what is save-worthy — not a command to write mid-task.
+
+- **Mid-session `mem_save` is reserved for facts that would hurt to lose if the session died now:** an architecture/scope decision, a root cause, a new convention, a user correction. Micro-decisions and incremental progress consolidate into `mem_session_summary` and the close-time upserts.
+- **One living fact = one upsert.** An evolving fact revisited during the session updates once at close via its `topic_key` — never N observations tracking each intermediate state.
+- **A save-nudge is satisfied by the next consolidated save** when something durable exists to record; it is not an instruction to invent an observation.
+- The close-time invalidation pass (supersede below) is not "too many calls" — it is the designed cost of not accumulating stale memory.
+
 ### Workspace project identity (multi-repo)
 
 A multi-repo workspace declares ONE unified Engram project — `.engram/config.json` with `project_name: <group>-<project>`, at the workspace root AND in each child repo. The `engram-init-workspace` skill owns the mechanics and writes both placements idempotently. When detection returns `ambiguous` under a canonical `projects/<group>/<project>/` path: derive the name from the path, pass it as explicit `project`, proceed — and offer the skill once to fix it durably. Non-canonical path with no config → ask; never guess a name.
