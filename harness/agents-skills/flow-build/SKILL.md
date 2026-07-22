@@ -72,9 +72,13 @@ unmerged (each task's gate validates the integrated state of every task before i
    **inline** and the task is `in-vivo: yes`, its walk runs now. Findings route back to the
    builder; the affected stage re-runs.
 5. **Commit, PR, CI, merge** — one commit per verified task with the `Commit: feat(<scope>):
-   T<n> …` tag (the tag is how state is read from git — never batch tasks into one commit). Push,
-   open the PR, **wait for CI** (`gh pr checks <n> --watch`; never merge red or pending — the
-   session owns the wait, it is never handed to the user). CI failure → route to the builder, fix
+   T<n> …` tag (the tag is how state is read from git — never batch tasks into one commit). A
+   plan may declare **change-groups** (cohesive runs of small tasks): one branch/PR per group,
+   tasks landing as sequential tagged commits on it, gates amortizing per `testing.md > Execution
+   Scope`; undeclared → one PR per task. Push, open the PR, and **overlap the CI wait**
+   (`gh pr checks <n> --watch`) with the task's non-integrative ceremony (ledger notes, evidence
+   filing, next dispatch prep) — never merge red or pending; the session owns the wait, it is
+   never handed to the user. CI failure → route to the builder, fix
    on the same PR, re-run the local gate on the affected subset BEFORE re-pushing. Then merge per
    the plan's mechanics, delete the task branch (local + remote), checkout the integration branch,
    pull.
@@ -93,9 +97,12 @@ unmerged (each task's gate validates the integrated state of every task before i
 `verify` jumps straight here (assumes `built`); the default reaches here after Execute. Run, for
 the tasks not yet gated:
 
-1. **Two-stage review, strict order, fresh contexts** — (a) **spec compliance**: the task diff
-   against the task text + ACs (missing, extra, misunderstood — nothing else); (b) **code
-   quality** (code-reviewer) over the same diff, only after (a) passes. The diff is the input;
+1. **Two-stage review, fresh contexts, parallel dispatch** — (a) **spec compliance**: the task
+   diff against the task text + ACs (missing, extra, misunderstood — nothing else); (b) **code
+   quality** (code-reviewer) over the same diff. Neither consumes the other's output — dispatch
+   both in ONE message and merge findings; a trivial diff outside hot surfaces
+   (`agent-routing.md > Independent review scales by surface`) collapses to a single reviewer
+   carrying both lenses. The diff is the input;
    the builder's report travels as claims to check, never as context to trust.
 2. **In-vivo gate** for `in-vivo: yes` tasks (now, if timing was deferred): dispatch
    **in-vivo-qa-tester** against the running app — it walks the Gherkin ACs AND the

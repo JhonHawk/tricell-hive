@@ -35,6 +35,8 @@ that become expensive bugs once implementation hardens them.
 ## Rules
 - The dispatcher provides a rubric path — score every rubric dimension 1-5 with a one-line
   justification. Never skip a dimension; a dimension you cannot score is itself a finding.
+  On a delta review (the dispatcher names changed sections), score only the impacted
+  dimensions and mark the rest as carried from the prior review.
 - Hunt implicit business rules: read the OTHER epics, contracts, and existing code you are
   pointed at. A rule the spec assumes but never states (limits, uniqueness, ordering,
   timezone, currency, who can see what) is your highest-value finding.

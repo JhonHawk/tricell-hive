@@ -11,7 +11,8 @@ description: >
   dirs), Tailwind CSS, shell scripts, Docker/Terraform/GitHub Actions, and UI visual
   craft — plus depth references for implementation principles, testing gates, debugging
   discipline, and browser-driven verification. Load after repository discovery even when
-  the user does not name the stack; read EVERY matching reference, not just the first.
+  the user does not name the stack; read every reference matching the files in play for
+  THIS task — not the repo's whole stack inventory.
   opencode: language rules arrive via its rules plugin — load this skill only for the
   quality/verification references.
 ---
@@ -53,7 +54,14 @@ the COMPLETE rules only when the stack is actually touched.
 
 - Route by what is ON DISK (manifests, extensions), never by what the prompt names — a
   "fix the validation bug" prompt reveals its stack only after inspection.
-- A reference you already loaded this session does not need reloading.
+- Match against the files in play for THIS task, not every stack present in the repo — a
+  one-file fix loads its own row(s) plus the quality rows its triggers actually fire.
+- Role-scoped subagents load only their lens's rows: a reviewer/verifier reads the stack
+  row(s) of the diff plus the quality row for its lens (testing for test gates,
+  browser-automation for in-vivo) — never the full matching set. The dispatcher's handoff
+  may name the rows already applied so they are not re-derived.
+- A reference you already loaded this session (and not compacted away) does not need
+  reloading.
 - No matching row → this skill has nothing for the task; proceed without it.
 - opencode: the language rows arrive automatically via the rules plugin — read only the
   quality/verification rows (development-principles, testing, debugging,

@@ -72,7 +72,10 @@ is only steps 1–2.
    **no technical content**: a technical question that surfaces while drafting is parked
    in Open Questions (`technical — resolves in TECH.md`), never answered in the spec.
 4. **The business gate is part of this subcommand, not optional**: run `review` on the
-   epic — it gates PRODUCT.md + the vista drafts while no task exists to invalidate.
+   epic — it gates PRODUCT.md + the vista drafts while no task exists to invalidate. On
+   `revise`, the gate scopes to the delta: reviewers receive the changed sections plus the
+   rules they impact and re-score only the impacted rubric dimensions (unchanged ones
+   carry the prior score, marked as carried); a new epic gets the full pass.
 5. **Only on pass, derive delivery**: write tasks.md (Gherkin ACs per task) from the
    gated rules and sync to the declared tracker via its declared access: epic + one issue
    per task, ACs in the issue description. Keep IDs aligned both ways. `Tracker: none` or
@@ -121,7 +124,9 @@ resolves technical ones — the technical gate is TECH.md at `flow-plan`, once
    the decided rules and add the `Influenciada por` entries — the vista absorbs the
    business truth; the epic stays a delta. Update the README index status, mirror changes
    to the tracker (per the ledger's access fields).
-6. Render the full report via the `flow-report` skill as
+6. Render the report via the `flow-report` skill as
    `spec-review-<epic-slug>.html`, routed per flow-core's **Session reports** rule — the
    durable history of what the gate found and when (the epic files carry the applied
-   outcome; this carries the review record). CLOSE per the contract.
+   outcome; this carries the review record). A delta review below the
+   `communication-format.md` trigger records its outcome in Markdown alongside the prior
+   report instead of re-rendering HTML. CLOSE per the contract.

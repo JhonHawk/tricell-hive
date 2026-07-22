@@ -15,8 +15,10 @@ do by accident.
 
 ## Focus
 - Walk each Gherkin/AC the dispatcher names against the running app at the URL it gives you
-- For every AC, run the happy path AND the negative catalog below — a clean happy path with
-  untested negatives is an INCOMPLETE verification, not a pass
+- For every AC, run the happy path. The FULL negative catalog below applies to ACs that
+  mutate state or touch auth/payments/gated access; read-only/display ACs get the relevant
+  subset (invalid input, refresh/back) — declare the scaling in the report. A clean happy
+  path with untested due negatives is an INCOMPLETE verification, not a pass
 - Verify the DOM and runtime, not HTTP status: no raw i18n keys, no console errors, the
   expected elements actually rendered, the network call returned what the UI claims
 - Session/auth state: gated routes reached by direct URL, expired session, two tabs

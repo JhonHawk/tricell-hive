@@ -14,7 +14,7 @@ Manage rule files in `global/rules/`. Parse `$ARGUMENTS` to determine the subcom
 
 ### `validate` — Validate all rules
 
-Scan every `.md` file in `global/rules/` and check:
+Default scope: the rule files changed in the working tree / recent commits, or named by the user; `validate --all` scans the full inventory. For each file in scope check:
 
 1. **Frontmatter** — Must have exactly one of:
    - `alwaysApply: true` (no `paths` field) — for cross-language rules
@@ -25,7 +25,7 @@ Scan every `.md` file in `global/rules/` and check:
 4. **No duplication with core** — Compare rule content against `global/CLAUDE.md`. Flag rules that repeat what the core config already says.
 5. **No duplication between rules** — Flag overlapping content across rule files (e.g., same library mentioned in two files).
 6. **Size check** — Flag rules under 5 lines (too thin — consider merging) or over 50 lines (consider splitting).
-7. **Industry alignment** — For each rule, verify its recommendations still reflect current industry consensus. Use web search and context7 to check if any rule has become outdated or if a better practice has emerged. Flag stale rules.
+7. **Industry alignment (deep pass — only on `validate --deep` or explicit request)** — verify the in-scope rules still reflect current industry consensus (web search, context7); flag stale rules. The default validate skips this pass.
 8. **Enforcement honesty** — A rule phrased as mechanical impossibility ("cannot", "physically blocked") must be backed by a deterministic layer (hook, deny permission, allowlist); otherwise flag it for rewording as confirm-gated or convention. Gates name their enforcement layer. Taxonomy: `_support/docs/enforcement-layers.md`.
 
 Output a summary table, then specific issues per rule with suggestions.

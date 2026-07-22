@@ -43,7 +43,8 @@ product or UX — those are `flow-specs` (epics/ACs) and mock work units' UX mat
    them is part of this investigation, and the resolutions land in the epic's TECH.md, not in
    PRODUCT.md. `$ARGUMENTS` after the subcommand overrides scope (epic ID or task IDs).
 3. **EXPLORE in subagents, never inline** (context hygiene — discovery noise stays out of the
-   orchestrator). Dispatch read-only explorers per the handoff protocol to establish:
+   orchestrator). Dispatch read-only explorers per the handoff protocol — independent
+   areas in ONE message, in parallel — to establish:
    - **Current state** — how this repo already does the thing; patterns, conventions, and
      existing code to reuse (`development-principles.md > Search/Observe before creating`).
    - **Approaches** — 2-3 technical options with trade-offs and a recommendation.

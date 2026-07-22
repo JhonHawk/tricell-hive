@@ -13,7 +13,7 @@ Manage agent definitions in this workspace. Parse `$ARGUMENTS` to determine the 
 
 ### `validate` — Validate all agents
 
-Scan every `.md` file recursively in `global/agents/` and check each against the design principles in CLAUDE.md:
+Default scope: the agent files changed in the working tree / recent commits, or named by the user; `validate --all` scans the full inventory. Check each in-scope agent against the design principles in CLAUDE.md:
 
 1. **Line count** — Must be ≤120 lines. Flag any that exceed.
 2. **Naming** — kebab-case, 3-50 chars, starts/ends with alphanumeric.
@@ -22,7 +22,7 @@ Scan every `.md` file recursively in `global/agents/` and check each against the
 5. **Tool restriction** — Read-only agents (review/) should not have Write, Edit, or Bash. Quality agents may be remediation-oriented (Write/Edit expected) or audit-oriented (read-only plus Bash for external analyzers); validate the tool surface against the role described. `permissionMode: plan` is a positive signal for read-only review agents.
 6. **Color vs directory** — Agent must be in the correct subdirectory for its color (development/=green, review/=cyan, quality/=yellow, ops/=red, docs/=magenta).
 7. **No global rule duplication** — Flag rules that repeat content from `global/rules/`.
-8. **Industry alignment** — For each agent's Rules section, check if any rule contradicts current industry consensus or if there's a well-established practice the agent is missing. Use web search and context7 to verify. Flag outdated or missing practices.
+8. **Industry alignment (deep pass — only on `validate --deep` or explicit request)** — check the in-scope agents' Rules sections against current industry consensus (web search, context7); flag outdated or missing practices. The default validate skips this pass.
 
 Output a summary table, then list specific issues per agent with suggestions.
 
