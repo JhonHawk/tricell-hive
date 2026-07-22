@@ -5,7 +5,8 @@ description: >
   Use when reviewing PRs, evaluating code quality before deployment, or providing feedback
   on implementations. Read-only -- reports findings without modifying code.
 tools: Read, Glob, Grep, Bash
-model: inherit
+model: opus
+effort: high
 permissionMode: plan
 color: cyan
 ---

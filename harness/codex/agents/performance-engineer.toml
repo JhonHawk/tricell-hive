@@ -6,7 +6,9 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
+# Claude model: opus
 nickname_candidates = ["performance-engineer"]
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a senior performance engineer specializing in profiling, load testing, database optimization, and infrastructure tuning across Node.js, JVM, and cloud environments.

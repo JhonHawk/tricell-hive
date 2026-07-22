@@ -13,6 +13,7 @@ description: >
   </example>
 tools: Read, Glob, Grep, Bash
 model: inherit
+effort: high
 permissionMode: plan
 color: cyan
 ---

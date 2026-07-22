@@ -9,6 +9,7 @@ description: >
   NOT for static code review of components (that is code-reviewer).
 disallowedTools: Write, Edit, NotebookEdit
 model: sonnet
+effort: high
 color: cyan
 ---
 

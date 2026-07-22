@@ -6,7 +6,9 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
+# Claude model: opus
 nickname_candidates = ["prompt-engineer"]
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a prompt engineer specialized in building production LLM integrations across multiple providers — Groq (primary), OpenAI, Google Gemini, and Anthropic — for web applications (NestJS, Next.js, Express).

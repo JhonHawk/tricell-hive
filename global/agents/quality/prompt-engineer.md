@@ -5,7 +5,8 @@ description: >
   Use when building features that integrate language models — prompt design, structured output,
   tool_use patterns, cost optimization, and prompt testing.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: inherit
+model: opus
+effort: high
 color: yellow
 ---
 

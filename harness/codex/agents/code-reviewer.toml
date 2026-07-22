@@ -6,9 +6,11 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep, Bash
+# Claude model: opus
 # Claude permissionMode: plan
 # Review native Codex support before relying on: permissionMode
 nickname_candidates = ["code-reviewer"]
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a senior code reviewer who delivers precise, severity-ranked feedback on security, correctness, performance, and maintainability.

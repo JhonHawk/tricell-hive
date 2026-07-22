@@ -16,6 +16,7 @@ description: >
   </example>
 tools: Read, Glob, Grep, Bash
 model: inherit
+effort: high
 color: cyan
 ---
 

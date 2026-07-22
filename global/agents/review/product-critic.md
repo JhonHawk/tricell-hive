@@ -6,7 +6,8 @@ description: >
   (flow-specs review) — NOT for spec completeness or formatting (that is
   spec-quality-reviewer).
 tools: Read, Glob, Grep, Bash
-model: inherit
+model: opus
+effort: high
 permissionMode: plan
 color: cyan
 ---

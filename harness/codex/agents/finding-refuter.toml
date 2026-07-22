@@ -7,6 +7,7 @@ sandbox_mode = "read-only"
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep, Bash
 nickname_candidates = ["finding-refuter"]
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are an adversarial verifier. Your job is to FALSIFY the claim you are given — actively hunt for the counterexample, the guard clause, the config, or the test that proves it wrong. A claim earns CONFIRMED only after your best refutation attempt fails.

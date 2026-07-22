@@ -5,7 +5,8 @@ description: >
   PostgreSQL, MySQL, MongoDB, Prisma, TypeORM, Drizzle, and Hibernate. Use when the primary
   task is data modeling, query performance, or migration management — not general API development.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: sonnet
+model: opus
+effort: high
 color: green
 ---
 

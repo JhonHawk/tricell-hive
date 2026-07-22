@@ -5,7 +5,8 @@ description: >
   Use when diagnosing slow response times, optimizing database queries, planning for scalability,
   or conducting load testing.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: inherit
+model: opus
+effort: high
 color: yellow
 ---
 
