@@ -39,6 +39,7 @@ Applies to every **behavior change** (non-trivial, per the `critical-thinking.md
 - **Full suite + E2E are the CI / pre-merge gate**, not a per-iteration step.
 - **Safeguard — the subset is only safe with a downstream gate.** Valid *only* if CI runs the full suite before merge. **Absent CI, run the full suite before marking the task done — nothing else will.** "I ran the related tests" never satisfies the verifiable test gate's pass-to-pass half, which *is* the full existing suite staying green.
 - **Anti-pattern: fixtures coupled to the full run.** If one spec in isolation forces the whole suite to boot (DB prep living only inside the full gate), that coupling *is* the defect — make prep runnable once, independent of the runner, instead of defaulting to the full suite.
+- **Independent checks dispatch in parallel.** Lint, typecheck, and the affected test subset share no state — run them concurrently and read the results together; serialize only real dependencies (build before start, migrate before seed).
 - **Serialize only what shares state.** Restrict `--runInBand` (or any global serialization) to suites that truly share mutable state; let the rest parallelize.
 
 ### What to Test

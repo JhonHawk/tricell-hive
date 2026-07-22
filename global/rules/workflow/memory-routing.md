@@ -21,6 +21,7 @@ The plugin-injected protocol wins on *mechanics* (tools, envelopes, judgment flo
 
 - **Mid-session `mem_save` is reserved for facts that would hurt to lose if the session died now:** an architecture/scope decision, a root cause, a new convention, a user correction. Micro-decisions and incremental progress consolidate into `mem_session_summary` and the close-time upserts.
 - **One living fact = one upsert.** An evolving fact revisited during the session updates once at close via its `topic_key` — never N observations tracking each intermediate state.
+- **Close is ONE consolidated pass.** At most one upsert per living `topic_key` plus one `mem_session_summary` per session close; a mid-session save or compaction-forced summary already covering the fact is updated, never re-saved.
 - **A save-nudge is satisfied by the next consolidated save** when something durable exists to record; it is not an instruction to invent an observation.
 - The close-time invalidation pass (supersede below) is not "too many calls" — it is the designed cost of not accumulating stale memory.
 
