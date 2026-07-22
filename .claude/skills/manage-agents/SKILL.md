@@ -5,7 +5,6 @@ description: >
   Use with: /manage-agents validate, /manage-agents optimize <agent-name>,
   or /manage-agents report. Triggers when working with agent files in global/agents/,
   reviewing agent quality, creating new agents, or analyzing agent metrics.
-disable-model-invocation: true
 ---
 
 Manage agent definitions in this workspace. Parse `$ARGUMENTS` to determine the subcommand.

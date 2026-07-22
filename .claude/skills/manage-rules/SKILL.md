@@ -6,7 +6,6 @@ description: >
   /manage-rules validate, /manage-rules audit, or /manage-rules create <name>.
   Triggers when working with rule files, reviewing global config coverage,
   adding new technology standards, or checking rule quality.
-disable-model-invocation: true
 ---
 
 Manage rule files in `global/rules/`. Parse `$ARGUMENTS` to determine the subcommand.
