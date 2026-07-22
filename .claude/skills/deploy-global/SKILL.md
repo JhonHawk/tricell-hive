@@ -119,8 +119,9 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     ```bash
     find global/hooks -name '*.sh' -exec cp {} ~/.claude/hooks/ \;
     chmod +x ~/.claude/hooks/*.sh
+    find global/hooks -name '*.json' ! -name 'settings-config.json' -exec cp {} ~/.claude/hooks/ \;
     ```
-    The `README.md` files are NOT deployed — they are in-repo documentation only.
+    Hook data files (e.g. `code-search-routing.json`) deploy next to their script; `settings-config.json` is merge-only (below) and `README.md` files are NOT deployed — they are in-repo documentation only.
 
     **Register hooks in `settings.json` (idempotent, additive merge).** The `.sh`
     copy alone does nothing until the hook is registered. Merge every hook block from

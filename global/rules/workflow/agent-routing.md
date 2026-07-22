@@ -33,6 +33,7 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | functional verification of a running app: walk ACs + adversarial/negative testing (double-click, invalid input, gated routes, mid-flow refresh) in a real browser | in-vivo-qa-tester | ux-flow-reviewer, test-engineer |
 | workspace file hygiene, misplaced artifacts, ledger repair, unpromoted decisions | workspace-custodian | secrets-auditor |
 | refute or adversarially verify a finding, claim, or diagnosis produced by another agent or investigation | finding-refuter | code-reviewer, the main thread |
+| "where is X implemented" / "how does Y work" / "does Z exist" — code discovery needing a verified conclusion (unknown terminology, legacy code, cross-repo) | code-scout | Explore (file location only), the main thread |
 
 ### Skill & Browser Disambiguation
 Output rendering: static rich HTML report → `flow-report`; live interactive state → `playground`; production UI artifact → `frontend-design`/`canvas-design`; short, conversational, agent-consumed, or versioned doc → Markdown — full trigger logic and carve-outs: `quality/communication-format.md` (canonical). Browser driving: default `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback (`tools/browser-automation.md`).

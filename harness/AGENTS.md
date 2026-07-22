@@ -83,7 +83,9 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
 
-The managed block above is owned by `codegraph install` (markers kept so upgrades report "Unchanged"). On top of it: earn it by shape — relations or multi-file context in one call; a one-shot question a single grep answers does not. Multi-repo workspaces pass `--path <repo>`/`projectPath` to the child repo. Keep `rg` for literal, exhaustive textual work — exact text and total coverage.
+The managed block above is owned by `codegraph install` (markers kept so upgrades report "Unchanged"). On top of it: earn it by shape — relations or multi-file context in one call; a one-shot question a single grep answers does not. Multi-repo workspaces pass `--path <repo>`/`projectPath` to the child repo.
+
+Routing: `rg` = exhaustive work and the only valid evidence of absence; `jbcontext search` (always INSIDE the child git repo, never a workspace root) = unknown terminology and legacy/untyped code, where CodeGraph is skipped; ambiguous scope → rg+Read first. An index result is a pointer, never a verdict: no absence claims from an index; verify hits are alive; disk beats index on conflict.
 
 ## Repository Rules
 - Product-specific slash commands, skills, and agent names are workflow references unless the active harness exposes them; inspect or edit the underlying files when a command is unavailable.

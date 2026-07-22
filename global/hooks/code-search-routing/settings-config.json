@@ -1,0 +1,29 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command). PreToolUse DENIES contraindicated index tools per repo (map: code-search-routing.json, deployed next to the script) — deterministic block via exit 2. PostToolUse injects the anti-conclusion discipline right after an index tool runs — advisory, never blocks. Policy: global/rules/tools/code-search.md.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__codegraph__.*|mcp__jbcontext__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/code-search-routing.sh pre",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|mcp__codegraph__.*|mcp__jbcontext__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/code-search-routing.sh post",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
