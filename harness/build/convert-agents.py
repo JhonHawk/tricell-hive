@@ -124,11 +124,13 @@ def comma_join(values) -> str:
 
 
 def codex_model(agent):
-    """Map the Claude model to Codex: pass through gpt-*/o* IDs, translate alias tiers."""
+    """Map the Claude model to Codex: pass through gpt-*/o-series IDs, translate alias tiers."""
     model = (agent["model"] or "").strip()
     if not model or model == "inherit":
         return None
-    if model.startswith(("gpt-", "o")):
+    # o-series needs a digit after the "o" — a bare startswith("o") would swallow
+    # Claude aliases like "opus" and stamp them as Codex model slugs.
+    if model.startswith("gpt-") or re.match(r"^o\d", model):
         return model
     return CODEX_TIER_MAP.get(model)
 
