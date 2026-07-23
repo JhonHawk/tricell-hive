@@ -19,6 +19,12 @@ set -uo pipefail
 
 AGE_MIN=120   # minutes; younger processes are assumed to be in active use
 
+# Cooldown: report at most once per TTL machine-wide (state file shared by the
+# Claude Code and Codex deployments), UNLESS a finding not present in the
+# last-reported set appears — new information always breaks the silence.
+TTL_MIN=360   # 6h
+STATE_FILE="${SESSION_HYGIENE_STATE:-${XDG_CACHE_HOME:-$HOME/.cache}/session-hygiene-report.state}"
+
 # Fresh sessions only (startup/clear). Missing/unparseable input (e.g. the
 # Codex hook runner) defaults to reporting rather than silence.
 input=$(cat 2>/dev/null || true)
@@ -51,17 +57,20 @@ fmt_age() {  # minutes -> "3h" / "27h" / "2d"
 }
 
 findings=""
+finding_keys=""   # stable identities (pids/ports, not ages) for the cooldown fingerprint
 
 # --- 1. Leaked browser-automation processes ---------------------------------
 browser_count=0
 browser_oldest=0
 while IFS= read -r line; do
   [ -n "$line" ] || continue
+  pid=$(printf '%s' "$line" | awk '{print $1}')
   etime=$(printf '%s' "$line" | awk '{print $2}')
   mins=$(etime_minutes "$etime")
   [ "$mins" -ge "$AGE_MIN" ] || continue
   browser_count=$((browser_count + 1))
   [ "$mins" -gt "$browser_oldest" ] && browser_oldest=$mins
+  finding_keys+="browser:${pid}"$'\n'
 done < <(ps -axo pid=,etime=,command= | grep -E 'agent-browser|Chrome for Testing' | grep -v grep)
 
 if [ "$browser_count" -gt 0 ]; then
@@ -92,6 +101,7 @@ while IFS= read -r line; do
   [ -n "$etime" ] || continue
   mins=$(etime_minutes "$etime")
   [ "$mins" -ge "$AGE_MIN" ] || continue
+  finding_keys+="dev:${pid}:${port}"$'\n'
   cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
   scope="unclassified"
   if [ -n "$session_cwd" ] && [ -n "$cwd" ]; then
@@ -112,6 +122,26 @@ done < <(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 {print $1, $2, $9
 
 # --- Emit ---------------------------------------------------------------------
 [ -n "$findings" ] || exit 0
+
+# Cooldown gate: within TTL, stay silent unless a current key was not in the
+# last-reported set (a shrinking set never breaks the silence — nothing new).
+if [ -s "$STATE_FILE" ]; then
+  last_ts=$(head -1 "$STATE_FILE" 2>/dev/null)
+  case "$last_ts" in ''|*[!0-9]*) last_ts=0 ;; esac
+  now=$(date +%s)
+  if [ $((now - last_ts)) -lt $((TTL_MIN * 60)) ]; then
+    new_key=0
+    while IFS= read -r key; do
+      [ -n "$key" ] || continue
+      grep -Fxq "$key" "$STATE_FILE" || { new_key=1; break; }
+    done <<< "$finding_keys"
+    [ "$new_key" -eq 1 ] || exit 0
+  fi
+fi
+
+mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null
+{ date +%s; printf '%s' "$finding_keys"; } > "${STATE_FILE}.tmp" 2>/dev/null \
+  && mv "${STATE_FILE}.tmp" "$STATE_FILE" 2>/dev/null
 
 report="Session-hygiene report (report-only): processes likely leaked by previous agent sessions were detected.
 ${findings}Mention this to the user in your first reply and offer the cleanup. Items from other workspaces need the user to confirm that project is idle first — a concurrent session may be using them. Do NOT kill anything without the user's confirmation."

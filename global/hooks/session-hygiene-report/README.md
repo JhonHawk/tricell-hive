@@ -33,6 +33,14 @@ la siguiente sesión fresca recoge lo que quedó.
   limpieza pidiendo antes confirmar que ese proyecto está inactivo (puede ser el
   server activo de una sesión concurrente); sin `cwd` en el input (p.ej. Codex) →
   verificar con el usuario antes de cualquier limpieza.
+- **Cooldown de 6 h con fingerprint (`TTL_MIN=360`).** Reporta a lo más una vez
+  por TTL en toda la máquina — el state file
+  (`~/.cache/session-hygiene-report.state`, override con `SESSION_HYGIENE_STATE`)
+  lo comparten los deployments de Claude Code y Codex. Guarda identidades
+  estables de los hallazgos (`browser:<pid>`, `dev:<pid>:<port>`, nunca edades):
+  un hallazgo NUEVO respecto al último reporte rompe el silencio aunque el TTL
+  no haya vencido; un set igual o menor calla hasta que venza. Evita que cada
+  pane/sesión nueva re-reporte los mismos huérfanos.
 - **Solo-reporte, nunca mata nada.** Un proceso listado puede pertenecer a otra
   sesión activa en paralelo; el mensaje instruye ofrecer la limpieza al usuario y
   no ejecutarla sin su confirmación.
@@ -57,7 +65,13 @@ confirme el trust prompt del comando (`[hooks.state]` en `~/.codex/config.toml`)
 ## Prueba manual
 
 ```bash
+export SESSION_HYGIENE_STATE=/tmp/shr-test.state; rm -f "$SESSION_HYGIENE_STATE"
 echo '{"source":"startup"}' | ./session-hygiene-report.sh
 # Con huérfanos ≥2h → JSON con additionalContext; limpio → sin salida, exit 0.
+echo '{"source":"startup"}' | ./session-hygiene-report.sh  # repetición en TTL → silencio
 echo '{"source":"resume"}' | ./session-hygiene-report.sh   # siempre silencio
+# TTL vencido → reporta de nuevo:
+{ echo 0; tail -n +2 "$SESSION_HYGIENE_STATE"; } > t && mv t "$SESSION_HYGIENE_STATE"
+# Hallazgo nuevo dentro del TTL → reporta (quita una key del state y rerun):
+grep -v 'browser:' "$SESSION_HYGIENE_STATE" > t && mv t "$SESSION_HYGIENE_STATE"
 ```
