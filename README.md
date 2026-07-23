@@ -42,6 +42,30 @@ layer `/deploy-global` cannot automate). After any merge, start a fresh session.
 | context7 MCP | context7 rule (library docs at write time) | plugin/MCP config per harness |
 | chrome-devtools / playwright MCP | Lighthouse/perf; browser fallback | MCP config per harness |
 
+### Terminal workspace: herdr (recommended)
+
+[herdr](https://herdr.dev) is the recommended terminal multiplexer for running agent
+sessions (Claude Code / Codex / opencode) side by side — workspaces per project,
+worktree-per-agent panes. Not required by any rule; it is the daily driver this config
+is operated from.
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh    # or: brew install herdr
+```
+
+Adopted plugins (install with `herdr plugin install <owner/repo> --yes`):
+
+| Plugin | Why | Key |
+|---|---|---|
+| `persiyanov/herdr-reviewr` | Review an agent's diff beside the chat, line comments sent back to its input — the review-before-push loop as a pane. Config sets `base_branches = ["development", "main", "master"]` to match environment-branch repos | `cmd+r` toggle |
+| `smarzban/herdr-file-viewer` | Git-aware read-only tree + content browsing with diffs and rendered markdown | `prefix+f` split, `prefix+shift+f` tab |
+| `Numbered-com/herdr-ports` | `$ports` badge on every space with active TCP listeners — permanent dev-server visibility, the visual complement of the `session-hygiene-report` hook | — |
+
+herdr config is machine-local, NOT deployed by this repo: keybindings live in
+`~/.config/herdr/config.toml`; per-plugin config in `herdr plugin config-dir <id>`.
+Candidates evaluated for a second wave (worktree bootstrap, notifications, workspace
+templates, Linear/browser panes): see the 2026-07-23 plugin review in Engram.
+
 ## Structure
 
 ```
