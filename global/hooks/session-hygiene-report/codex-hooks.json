@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.codex/hooks/session-hygiene-report.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

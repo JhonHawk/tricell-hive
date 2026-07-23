@@ -218,28 +218,27 @@ Deploy the entire `global/` directory to `~/.claude/` (CLAUDE.md, rules, agents,
     fi
     ```
     Report the ensure outcome in step 15. Do not treat a failure as a deploy abort — the rest of the deploy is independent.
-13d. **Deploy the Codex session hook.** The cross-harness `flow-session-context` hook reaches
-    Codex as a SessionStart command. Copy the script into `~/.codex/hooks/` and register it in
-    `~/.codex/hooks.json` with the same additive-merge discipline as step 13 — Codex's hooks
-    file shares the Claude schema (`.hooks.<Event>[].hooks[].command`), so the merge is keyed on
-    the inner `command` string and re-deploys never duplicate:
+13d. **Deploy the Codex hooks.** Every hook folder shipping a `codex-hooks.json` reaches Codex:
+    copy its scripts into `~/.codex/hooks/` and register them in `~/.codex/hooks.json` with the
+    same additive-merge discipline as step 13 — Codex's hooks file shares the Claude schema
+    (`.hooks.<Event>[].hooks[].command`), so the merge is keyed on the inner `command` string
+    and re-deploys never duplicate:
     ```bash
-    if [ -f global/hooks/flow-session-context/flow-session-context.sh ]; then
-      cp global/hooks/flow-session-context/flow-session-context.sh ~/.codex/hooks/
-      chmod +x ~/.codex/hooks/flow-session-context.sh
-    fi
-    if [ -f global/hooks/flow-session-context/codex-hooks.json ]; then
+    mkdir -p ~/.codex/hooks
+    find global/hooks -name codex-hooks.json 2>/dev/null | while IFS= read -r cj; do
+      hookdir=$(dirname "$cj")
+      find "$hookdir" -name '*.sh' -exec cp {} ~/.codex/hooks/ \; -exec sh -c 'chmod +x ~/.codex/hooks/"$(basename "$1")"' _ {} \;
       [ -f ~/.codex/hooks.json ] || echo '{}' > ~/.codex/hooks.json
-      managed=$(jq '.hooks // {}' global/hooks/flow-session-context/codex-hooks.json)
+      managed=$(jq '.hooks // {}' "$cj")
       tmp=$(mktemp)
       if jq --argjson m "$managed" -f .claude/skills/deploy-global/filters/hook-merge.jq ~/.codex/hooks.json > "$tmp" && jq empty "$tmp" 2>/dev/null; then
         mv "$tmp" ~/.codex/hooks.json
-        echo "~/.codex/hooks.json: session hook merged (idempotent, additive)."
+        echo "~/.codex/hooks.json: $(basename "$hookdir") merged (idempotent, additive)."
       else
         rm -f "$tmp"
-        echo "WARNING: ~/.codex/hooks.json merge failed — left unchanged. Register manually from codex-hooks.json."
+        echo "WARNING: ~/.codex/hooks.json merge failed for $(basename "$hookdir") — left unchanged. Register manually from its codex-hooks.json."
       fi
-    fi
+    done
     ```
     **Codex guards hooks with `[hooks.state]` in `~/.codex/config.toml`** — a `trusted_hash` per
     command plus a per-hook `enabled` flag. The deploy NEVER edits `config.toml`. Report in step
