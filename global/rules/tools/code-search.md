@@ -15,7 +15,7 @@
 ## Contraindications
 
 - **CodeGraph in legacy/untyped JS repos**: its anchors mislead there — use jbcontext/rg. The routing hook denies it in declared legacy repos.
-- **jbcontext from a workspace root or any non-git directory**: all remote-less directories collapse into ONE shared repository id — searches silently serve another project's index. Always index and search per child git repo.
+- **jbcontext from a workspace root or any non-git directory**: the repository id is derived from the path string as received, so an implicit cwd collapses every remote-less directory into ONE shared id — searches silently serve another project's index. Always index and search per child git repo, passing `--project-path <repo>` explicitly rather than relying on the cwd. Workspace roots carry an empty `.jbcontextignore`; the CLI refuses to index a root holding that marker (deterministic) and does not inherit it into child repos.
 - **Twin clones sharing a remote**: indistinguishable ids. Index under a temporary synthetic remote (`git remote set-url origin <fake-url>`, index, revert) and search with `--git-remote-url <fake-url>`.
 
 ## Anti-conclusion discipline
