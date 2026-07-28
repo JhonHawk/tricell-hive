@@ -1,17 +1,9 @@
 ---
 name: workspace-conventions
 description: >
-  Mandatory before creating, moving, or naming ANY file outside application source — a
-  report, plan, analysis, findings, evidence, screenshot, session notes, spec, contract,
-  ADR, or infra config — in a workspace under projects/<group>/<project>/ or any repo
-  with a _support/ folder or a <project>-specs sibling. Also load before answering
-  "what's next / where are we" in a workspace with a _support/PROJECT.md ledger, before
-  offering any /flow-* command, and before adding or changing a cross-service contract
-  (endpoint consumed by another service, changed request/response shape, new
-  events/webhooks). Covers _support/ routing vs the specs repo, sessions/ and evidence
-  conventions, artifact naming and retention, infra repo placement, flow phase
-  boundaries, and contract-first rules. Codex/opencode channel; Claude Code receives
-  these rules always-on via its own rules — do not load there.
+  Codex/opencode: load before creating/naming artifacts outside app source (_support,
+  plans, specs, ADRs, contracts, evidence) or answering "what's next"/offering /flow-*
+  with a ledger. Skip Claude Code (always-on rules). Triggers: _support/, *-specs, flow.
 ---
 
 # workspace-conventions — router to workspace, session, and contract conventions

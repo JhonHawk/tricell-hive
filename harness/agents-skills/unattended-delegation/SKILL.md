@@ -1,16 +1,11 @@
 ---
 name: unattended-delegation
 description: >
-  Activate ONLY when the user explicitly hands over unattended control — "full control
-  tonight", "don't ask until I'm back", "tienes control total esta noche", "me voy a
-  dormir, sigue tú", "run unattended", "work the sprint board while I'm away", "ve
-  cerrando los tickets sin preguntarme". Read BEFORE declaring the mode accepted, then
-  declare the scope, the gates that stay closed, and the decision-log location. Covers
-  proceed-and-log widened scope, queueing gated decisions instead of timing out, the
-  dedicated-branch requirement, run-bound expiry, and the close report. Absolute safety
-  gates never relax in any mode. Silence or a long-running task never activates this;
-  only an explicit user declaration does. Codex/opencode channel; Claude Code receives
-  these rules always-on via its own rules — do not load there.
+  Load on an explicit user handover of unattended control ("full control tonight",
+  "tienes control total", "run unattended", "ve cerrando los tickets") BEFORE
+  declaring the mode accepted. Never activates from silence or a long task.
+  Declare scope/gates/decision-log first. Codex/opencode channel; Claude Code
+  always-on rules cover this.
 ---
 
 # unattended-delegation — explicitly-delegated unattended runs

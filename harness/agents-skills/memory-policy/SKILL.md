@@ -1,15 +1,9 @@
 ---
 name: memory-policy
 description: >
-  Load before the FIRST Engram memory operation of a session (mem_save, mem_search,
-  mem_context, mem_session_summary) in any multi-repo workspace under
-  projects/<group>/<project>/, and before answering "what's pending / where are we" from
-  memory. Covers unified project naming via .engram/config.json, deterministic topic_key
-  upserts for status facts, session-slug tagging, rewriting stale memories instead of
-  appending, ground-truth-before-memory verification by claim type, and declared-tracker
-  consultation. The Engram plugin's injected protocol always wins; this is only the
-  policy layer on top. Codex/opencode channel; Claude Code receives these rules
-  always-on via its own rules — do not load there.
+  Codex/opencode: load before first Engram op (mem_save/search/context/summary) or
+  answering pending state from memory. Project identity, topic_key, ground-truth.
+  Skip Claude Code (always-on). Plugin protocol wins over this policy layer.
 ---
 
 # memory-policy — the policy layer over the Engram plugin protocol

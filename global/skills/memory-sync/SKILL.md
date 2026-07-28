@@ -1,12 +1,9 @@
 ---
 name: memory-sync
 description: >
-  Reconcile a project's persistent memory (Engram + native file-memory) against ground
-  truth (live git/disk, the ledger, the tracker) and invalidate stale memories. Use when
-  memory REPEATEDLY resurfaces finished work as pending, when a memory provably contradicts
-  live code, at session close, or on explicit request — NOT to answer a one-off "what's
-  pending?" (that is a cheap inline ground-truth check per memory-routing.md, not a full
-  audit). audit reports; apply executes approved invalidations.
+  Audit/apply Engram+native memory vs ground truth when memory resurfaces finished work
+  as pending, contradicts live code, at session close, or on request. Not for one-off
+  "what's pending?" (inline ground-truth check). Subcommands: audit | apply.
 argument-hint: "[audit | apply]"
 ---
 

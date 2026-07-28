@@ -1,18 +1,9 @@
 ---
 name: flow-report
 description: >
-  The general reporting skill — renders substantial agent output as self-contained
-  single-file HTML reports with rich static layout (embedded CSS, SVG, syntax-highlighted
-  code). Fires in any workspace, not only flow ones.
-  Triggers on requests for plan, spec, audit, brief, research report, code-
-  review writeup, brainstorm comparison, design tokens reference, diagram,
-  illustration, or deck — when output exceeds ~300 words AND mixes 2+ kinds
-  of information (tables, diagrams, code, mockups). Do NOT use for: short
-  conversational replies; agent-to-agent handoffs; versioned docs (CLAUDE.md,
-  README, ADRs); outputs with live interactive state (sliders, knobs, live
-  re-render, export-as-prompt) — those go to the `playground` skill; UI
-  components, landing pages, or visual artifacts owned by frontend-design or
-  canvas-design.
+  Render substantial multi-format agent output as single-file static HTML (plan, audit,
+  research, review, comparison). Triggers: ≥~300 words AND 2+ info kinds (tables,
+  diagrams, code, mockups). Not for short chat, handoffs, or live playgrounds.
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

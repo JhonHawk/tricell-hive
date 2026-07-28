@@ -1,12 +1,8 @@
 ---
 name: starlight-docs-site
 description: >
-  Build, extend, or audit an Astro Starlight documentation site — a user manual
-  (manual de usuario) or a specs/BRD site (docs-as-code). Use when scaffolding a
-  new Starlight docs site, adding a page/section (rebanada) to one, or checking an
-  existing one against the house convention. Triggers: "manual de usuario con
-  Starlight", "sitio de specs", "agrega una página al manual", "audita el sitio de
-  docs", or editing files in a Starlight project (astro.config, src/content/docs).
+  Scaffold/page/audit Astro Starlight docs (user-manual or spec-site). Triggers:
+  "manual de usuario", "sitio de specs", Starlight paths (astro.config, content/docs).
 user-invocable: true
 paths: "**/astro.config.*,**/src/content/docs/**"
 argument-hint: "[scaffold|page|audit] <path> [user-manual|spec-site]"

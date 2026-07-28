@@ -1,20 +1,10 @@
 ---
 name: language-rules
 description: >
-  Mandatory before any task that writes, edits, reviews, debugs, or generates code on a
-  harness WITHOUT conditional rule loading (Codex — load this; opencode and Claude Code
-  receive these rules automatically through their own conditional channels, do not load
-  there). Covers TypeScript/JavaScript (.ts/.tsx/.js/.jsx, tsconfig), React/Next.js
-  (next.config.*, app/ router), Angular (angular.json), NestJS (nest-cli.json,
-  @nestjs/core), Python (pyproject.toml, .py), Java/Kotlin/Spring (pom.xml,
-  build.gradle*), SQL migrations/Prisma/Drizzle (schema.prisma, drizzle.config, migration
-  dirs), Tailwind CSS, shell scripts, Docker/Terraform/GitHub Actions, and UI visual
-  craft — plus depth references for implementation principles, testing gates, debugging
-  discipline, and browser-driven verification. Load after repository discovery even when
-  the user does not name the stack; read every reference matching the files in play for
-  THIS task — not the repo's whole stack inventory.
-  opencode: language rules arrive via its rules plugin — load this skill only for the
-  quality/verification references.
+  Codex: load before code write/edit/review/debug/generate. Full language conventions
+  (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle, Tailwind,
+  shell, Docker/Terraform/GHA, UI). Do not load on Claude Code/opencode (own conditional
+  channels); opencode: quality/verification refs only. Match files in play, not whole stack.
 ---
 
 # language-rules — deterministic router to the full language conventions

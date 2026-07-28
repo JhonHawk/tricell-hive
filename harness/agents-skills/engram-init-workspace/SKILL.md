@@ -1,6 +1,9 @@
 ---
 name: engram-init-workspace
-description: Initialize a unified Engram project for a multi-repo workspace by creating .engram/config.json at the workspace root and each child git repo, so every repo shares one memory bucket. Use when Engram returns ambiguous project detection, when setting up a new workspace under projects/group/project/, or when the user asks to register or init the Engram project for a workspace.
+description: >
+  Init unified Engram .engram/config.json for multi-repo workspaces (shared memory
+  bucket). Use on ambiguous project detection, new projects/<group>/<project>/, or
+  explicit Engram init/register.
 ---
 
 # Engram: initialize a unified workspace project
