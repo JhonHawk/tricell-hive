@@ -29,6 +29,7 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | raw client requirements doc, project intake analysis (no quotation involved) | requirement-analyst | spec-quality-reviewer |
 | spec/épica completeness, Gherkin verifiability, quality gate on written specs | spec-quality-reviewer | product-critic, code-reviewer |
 | challenge necessity/scope/shape of a feature BEFORE implementation | product-critic | spec-quality-reviewer, architect-style review |
+| redesign or visually polish a screen that already exists (composition, brand surface, hierarchy) | visual-designer | the framework specialist, ux-flow-reviewer |
 | UX friction in a live mock or deployed flow, navigation review | ux-flow-reviewer | code-reviewer, nextjs-architecture-expert |
 | functional verification of a running app: walk ACs + adversarial/negative testing (double-click, invalid input, gated routes, mid-flow refresh) in a real browser | in-vivo-qa-tester | ux-flow-reviewer, test-engineer |
 | workspace file hygiene, misplaced artifacts, ledger repair, unpromoted decisions | workspace-custodian | secrets-auditor |
