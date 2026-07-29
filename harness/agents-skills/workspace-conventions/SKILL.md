@@ -31,7 +31,11 @@ play.
   user to-do.
 - Suggestion surfaces (next steps, scope candidates, recommendations) obey the same
   boundaries: when a skill owns the action, the suggestion is the skill invocation
-  phrased as an offer to run it, not the plan.
+  phrased as an offer to run it, not the plan. **Every such offer names the direct
+  route as its alternative — and when the current phase's artifact already holds what
+  execution needs, the direct route goes first.** Never phrase the next skill as the
+  only or "correct" next step: chained offers with no branch turn a small change into a
+  full pipeline one acceptance at a time.
 - In flow workspaces, an approved plan is a session artifact: it lives at
   `sessions/YYYY-MM-DD-<slug>/<slug>-plan.md` with `Status: planned` (a plan carrying
   `Session: no` declines the folder), the ledger `## Current handoff` is updated when
