@@ -120,11 +120,15 @@ the tasks not yet gated:
    applies even when `design-review` is not set.)
 3. **Design gate** for `design-review: yes` tasks (opt-in; user-facing UI tasks set the flag in the
    plan, mirroring `in-vivo: yes`): dispatch **ux-flow-reviewer** against the running app on the
-   **Visual craft** rubric axis (`flow-core/references/ux-rubric.md` #11–17; criteria
+   **Visual craft** rubric axis (`flow-core/references/ux-rubric.md` #11–18; criteria
    `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
-   hierarchy, elevation, borders restraint, component simplicity. Same evidence/report routing as
-   the in-vivo gate. **A craft `blocker` is not a pass** — fix at the root and re-walk; `friction`/
-   `polish` may pass with the user's recorded acknowledgement.
+   hierarchy, elevation, borders restraint, component simplicity, net improvement. Same
+   evidence/report routing as the in-vivo gate. **A craft `blocker` is not a pass** — fix at the
+   root and re-walk; `friction`/`polish` may pass with the user's recorded acknowledgement.
+   - **When the task changes an existing screen, capture the pre-change state BEFORE the run's
+     first edit** — same viewports and themes the walk will use, into the run's raw-evidence
+     folder — and hand both captures to the reviewer for dimension 18. Missing pre-change capture
+     → the design gate reports **not-verified**, never pass.
 4. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
    build per app** (global `Execution` rule — never the dev server, one app at a time) — it
    validates the state QA receives. Stop any server this flow started (verify per port:
