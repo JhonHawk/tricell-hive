@@ -62,6 +62,8 @@ finding_keys=""   # stable identities (pids/ports, not ages) for the cooldown fi
 # --- 1. Leaked browser-automation processes ---------------------------------
 browser_count=0
 browser_oldest=0
+# shellcheck disable=SC2009  # pgrep returns only pids; this needs pid+etime+command in one pass, and the
+# worst case of an argv false positive is one spurious advisory line in a hygiene report.
 while IFS= read -r line; do
   [ -n "$line" ] || continue
   pid=$(printf '%s' "$line" | awk '{print $1}')

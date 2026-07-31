@@ -16,8 +16,10 @@ file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_respons
 [ -n "$file_path" ] || exit 0
 [ -f "$file_path" ] || exit 0
 
+# `*` crosses `/` in a case pattern, so this one pattern already covers both
+# global/agents/<agent>.md and global/agents/<role>/<agent>.md.
 case "$file_path" in
-  */global/agents/*.md|*/global/agents/*/*.md) ;;
+  */global/agents/*.md) ;;
   *) exit 0 ;;
 esac
 

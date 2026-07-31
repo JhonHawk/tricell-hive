@@ -108,6 +108,7 @@ case "$location" in
       reason="standalone git repo — will register ONLY this repo as '$name'; the parent is not treated as a workspace"
     else
       verdict="not-workspace"
+      # shellcheck disable=SC2016  # the single quotes are literal output; the outer string is double-quoted, so $current_repo does expand
       reason="standalone git repo${current_repo:+ '$current_repo'} — git-remote already gives it a unique project; pass --name only to set a custom name for THIS repo (siblings are never touched)"
     fi ;;
   noncanonical_multi)

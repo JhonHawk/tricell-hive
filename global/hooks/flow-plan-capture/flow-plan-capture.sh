@@ -101,6 +101,7 @@ if [ ! -f "$index" ]; then
   printf '# Sessions index\n\n' > "$index" 2>/dev/null || true
 fi
 if [ -f "$index" ] && ! grep -q "$today-$candidate" "$index" 2>/dev/null; then
+  # shellcheck disable=SC2016  # backticks are markdown and %s is the printf format; nothing here is meant to expand
   printf -- '- `%s` — in-progress (plan captured from native plan mode)\n' \
     "$today-$candidate" >> "$index" 2>/dev/null || true
 fi

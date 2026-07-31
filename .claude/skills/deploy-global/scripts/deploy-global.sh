@@ -457,6 +457,7 @@ step_backup() {
         # Keep only the 5 most recent backups.
         local -a old_backups
         old_backups=()
+        # shellcheck disable=SC2012  # filenames are script-generated (global-backup-<timestamp>.tar.gz); ls -t is the portable mtime sort on BSD
         while IFS= read -r line; do
             old_backups+=("${line}")
         done < <(ls -t "${BACKUP_DIR}"/global-backup-*.tar.gz 2>/dev/null | tail -n +6)
@@ -772,6 +773,7 @@ merge_hook_configs() {
     # manual reminder" — not a mid-deploy abort. An empty $managed makes the
     # downstream `jq --argjson m "$managed" ...` fail too, but that failure
     # is inside the if/else below and already degrades to the WARNING path.
+    # shellcheck disable=SC2016  # single-quoted jq filter: $c and $e are jq variables, not shell
     managed=$(printf '%s\n' "${config_list}" | tr '\n' '\0' | xargs -0 jq -s \
         'reduce .[] as $c ({}; reduce (($c.hooks // {}) | to_entries[]) as $e (.; .[$e.key] = ((.[$e.key] // []) + $e.value)))') || managed=""
 
