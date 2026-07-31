@@ -6,15 +6,6 @@ description: >
   description. Use for redesigns and visual polish of a running UI ("this screen looks wrong",
   "restyle the login", "apply the brand"). NOT for building new features or flows (that is the
   framework specialist), NOT for reviewing without changing (that is ux-flow-reviewer).
-
-  <example>
-  Context: A login screen looks empty and off-brand after a restyle.
-  user: "The login looks worse than before — fix the composition"
-  assistant: "I'll capture the current render, find the brand assets and tokens already in the
-  repo, then iterate: edit, re-render, judge, adjust."
-  <commentary>Visual work on an existing screen routes here — the framework specialist would
-  implement a description without ever seeing the page.</commentary>
-  </example>
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills: design-taste-frontend
 model: inherit

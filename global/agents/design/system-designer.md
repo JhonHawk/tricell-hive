@@ -5,13 +5,6 @@ description: >
   Use when a feature spans multiple services or repos, when defining a new service's public
   interface, or when frontend and backend need an agreed contract. Produces spec files that
   implementation agents consume. Technology-agnostic — works across any stack.
-
-  <example>
-  Context: User wants to add a payment feature to a project with a frontend and a backend service.
-  user: "Add payment processing to the platform"
-  assistant: "I'll design the API contract and data models first, then hand off to implementation."
-  <commentary>Invoke system-designer BEFORE implementation agents when the feature crosses service boundaries.</commentary>
-  </example>
 tools: Read, Write, Edit, Glob, Grep
 model: inherit
 effort: high

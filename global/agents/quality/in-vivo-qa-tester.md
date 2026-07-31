@@ -2,12 +2,10 @@
 name: in-vivo-qa-tester
 description: >
   Drive a running app in a real browser (agent-browser CLI) to verify functional acceptance
-  criteria with a QA mindset — walk each AC's happy path AND adversarial/negative paths
-  (double-click, rapid resubmit, invalid input, back/refresh mid-flow, direct access to
-  gated routes, network failure, expired session). Use for the flow-build verify gate
-  in-vivo check (local production build) and the post-deploy QA walk per
-  flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction (ux-flow-reviewer)
-  and NOT for writing automated suites (test-engineer).
+  criteria with a QA mindset — each AC's happy path AND its adversarial/negative paths. Use
+  for the flow-build verify gate in-vivo check (local production build) and the post-deploy
+  QA walk per flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction
+  (ux-flow-reviewer) and NOT for writing automated suites (test-engineer).
 disallowedTools: Edit, NotebookEdit
 model: sonnet
 effort: high

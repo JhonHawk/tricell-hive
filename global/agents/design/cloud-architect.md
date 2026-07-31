@@ -7,22 +7,6 @@ description: >
   Use for "how should we lay out our AWS accounts / network / multi-region DR", migration
   planning, or cost-architecture decisions — NOT for writing the Terraform or pipelines
   (that is devops-engineer).
-
-  <example>
-  Context: A client app on a single Hetzner VPS needs to move to AWS with a DR plan.
-  user: "Plan our migration from Hetzner to AWS — we need region failover under 4h."
-  assistant: "I'll design the account/network topology, the 6Rs migration waves, and a
-  multi-region DR strategy with RTO/RPO targets, then hand the spec to devops-engineer to build."
-  <commentary>cloud-architect designs the infra and writes the spec; devops-engineer writes the IaC.</commentary>
-  </example>
-
-  <example>
-  Context: AWS bill climbed and the user wants a cost-architecture decision, not a pipeline tweak.
-  user: "Our AWS spend doubled — what should the architecture be to control it?"
-  assistant: "I'll produce a FinOps plan: right-sizing targets, Reserved/Spot mix, storage
-  tiering, and a tagging/cost-allocation model, as a spec devops-engineer can apply."
-  <commentary>Strategy/topology decision -> cloud-architect. Implementing the change -> devops-engineer.</commentary>
-  </example>
 tools: Read, Write, Edit, Glob, Grep
 model: inherit
 effort: high

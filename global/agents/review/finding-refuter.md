@@ -7,13 +7,6 @@ description: >
   finding" — including findings from Explore reports, review agents, or the main thread's
   own analysis. NOT for reviewing whole diffs (code-reviewer) or challenging feature
   necessity/scope (product-critic).
-
-  <example>
-  Context: An exploration report claims a race condition exists in the payment webhook handler.
-  user: "Verify the race condition finding from the investigation"
-  assistant: "I'll dispatch finding-refuter to try to disprove it — reproduce the interleaving or find the guard that prevents it."
-  <commentary>Claims produced by other agents get adversarial verification, not confirmation-biased re-review.</commentary>
-  </example>
 tools: Read, Glob, Grep, Bash
 model: inherit
 effort: high

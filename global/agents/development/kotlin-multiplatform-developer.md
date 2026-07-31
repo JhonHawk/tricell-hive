@@ -5,13 +5,6 @@ description: >
   expect/actual abstractions, coroutines/Flow across platforms, Jetpack Compose, and native (Swift/ObjC) interop.
   Use when the task targets Android OR shares Kotlin code across platforms. For server-only Kotlin (Ktor/Spring
   API with no Android or multiplatform target), use backend-developer instead.
-
-  <example>
-  Context: Sharing business logic between Android and iOS.
-  user: "Structure a KMP project to share networking and state between Android Compose and SwiftUI"
-  assistant: "I'll set up the shared module with expect/actual platform boundaries and a coroutine-based client, then wire Android Compose to the shared ViewModels."
-  <commentary>KMP shared-code + Android — routes here, not backend-developer.</commentary>
-  </example>
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 color: green

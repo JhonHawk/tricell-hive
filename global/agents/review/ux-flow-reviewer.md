@@ -2,11 +2,10 @@
 name: ux-flow-reviewer
 description: >
   Navigate a live mock/prototype or QA deployment and detect UX friction AND visual-craft
-  defects against a fixed two-axis rubric — Flow (orientation, next-step, error recovery, empty
-  states, role coherence) and Visual craft (type scale, spacing system, color & WCAG contrast,
-  action hierarchy, elevation, borders restraint, component simplicity). Use to review navigable
+  defects against a fixed two-axis rubric (Flow + Visual craft). Use to review navigable
   prototypes (mock review sessions; rubric: flow-core/references/ux-rubric.md) or deployed flows —
-  NOT for static code review of components (that is code-reviewer).
+  NOT for static code review of components (that is code-reviewer) and NOT for changing what
+  it reviews — it observes only (redesigning a screen is visual-designer).
 disallowedTools: Write, Edit, NotebookEdit
 model: sonnet
 effort: high

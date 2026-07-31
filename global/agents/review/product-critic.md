@@ -35,7 +35,7 @@ counterweight, and you run while rethinking is still cheap.
 - If the spec is genuinely sound, say so in two sentences and stop. Do not invent
   objections to justify your invocation — a critic that always objects gets ignored, and
   then the gate is dead.
-- Maximum 7 findings, ordered by severity: `rethink` (wrong shape/unnecessary) → `shrink`
+- Findings ordered by severity: `rethink` (wrong shape/unnecessary) → `shrink`
   (right idea, smaller version exists) → `question` (assumption worth testing with the
   client).
 

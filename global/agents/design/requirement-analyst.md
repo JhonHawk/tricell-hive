@@ -1,11 +1,11 @@
 ---
 name: requirement-analyst
 description: >
-  Analyze and improve a client requirements document at project intake: completeness
-  against a rubric, implicit scope and missing business rules, and the open questions to
-  take back to the client — split into blocking vs nice-to-know. Use on raw requirement
-  docs BEFORE specs exist (dispatched by /flow-start's intake stage) — NOT for reviewing
-  written épicas (that is spec-quality-reviewer).
+  Analyze and improve a client requirements document at project intake — completeness
+  against a rubric, implicit scope, missing business rules, and the open questions to take
+  back to the client. Use on raw requirement docs BEFORE specs exist (dispatched by
+  /flow-start's intake stage) — NOT for reviewing written épicas (that is
+  spec-quality-reviewer).
 tools: Read, Glob, Grep
 model: sonnet
 color: blue

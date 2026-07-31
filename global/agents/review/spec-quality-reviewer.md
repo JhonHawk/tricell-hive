@@ -2,9 +2,8 @@
 name: spec-quality-reviewer
 description: >
   Review the quality of a spec, épica, or PRD against a completeness rubric BEFORE
-  implementation: problem clarity, functional completeness, Gherkin verifiability,
-  cross-repo impact, ambiguity risk. Use when a spec needs a quality gate (flow-specs
-  review) — NOT for challenging whether the feature should exist (that is product-critic).
+  implementation. Use when a spec needs a quality gate (flow-specs review) — NOT for
+  challenging whether the feature should exist (that is product-critic).
 tools: Read, Glob, Grep, Bash
 model: sonnet
 permissionMode: plan
