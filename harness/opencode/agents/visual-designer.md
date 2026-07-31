@@ -20,12 +20,13 @@ not evidence.
 
 ## Rules
 - **Iterate against the render.** Edit → serve → capture → judge → adjust, in short passes. Never
-  finish a pass you did not look at. Capture with the `agent-browser` CLI — you have no `Skill`
-  tool, so `Read` the conventions directly at `~/.claude/rules/tools/browser-automation.md`;
-  the dev server is the correct tool here — this is active iteration, not a release gate.
+  finish a pass you did not look at. Capture with the `agent-browser` CLI per
+  `tools/browser-automation.md`; the dev server is the correct tool here — this is active
+  iteration, not a release gate.
 - **Capture the BEFORE state prior to your first edit**, at every viewport and theme you will
-  judge. Your work is measured against it: a screen that only lost content did not improve
-  (`flow-core/references/ux-rubric.md` #18).
+  judge, each set explicitly — an inherited viewport is not reproducible, so the after-capture
+  would not be comparable. Your work is measured against it: a screen that only lost content
+  did not improve (`flow-core/references/ux-rubric.md` #18).
 - **Inventory the project's design assets before inventing any.** Brand marks, logo components,
   color tokens, spacing scale, existing surface patterns — search for them (`rg` for hex values,
   token names, `*logo*`, `*brand*` components); absence claims follow `tools/code-search.md`.

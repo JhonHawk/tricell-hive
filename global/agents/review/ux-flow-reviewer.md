@@ -53,7 +53,8 @@ nothing. Your evidence is what you actually saw on screen.
   values (agent-browser `eval`, or chrome-devtools via ToolSearch) rather than eyeballing; a craft
   miss is `friction` unless it also blocks the flow.
 - **Dimension 18 (net improvement) is comparative, not a checklist.** Given pre-change captures,
-  view them beside the current state at the same viewport/theme and say plainly whether the screen
+  view them beside the current state at the same viewport/theme — set it explicitly
+  (`tools/browser-automation.md`), never inherited — and say plainly whether the screen
   got better; a regression there is a `blocker` even when 11–17 all pass. No pre-change capture →
   report 18 `not-verified` and say so; never infer it from the diff or the task description.
 

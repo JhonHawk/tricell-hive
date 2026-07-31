@@ -30,7 +30,8 @@ after Execute. Run, for the tasks not yet gated:
    evidence/report routing as the in-vivo gate. **A craft `blocker` is not a pass** — fix at the
    root and re-walk; `friction`/`polish` may pass with the user's recorded acknowledgement.
    - **When the task changes an existing screen, capture the pre-change state BEFORE the run's
-     first edit** — same viewports and themes the walk will use, into the run's raw-evidence
+     first edit** — same viewports and themes the walk will use, each set explicitly per
+     `tools/browser-automation.md`, into the run's raw-evidence
      folder — and hand both captures to the reviewer for dimension 18. Missing pre-change capture
      → the design gate reports **not-verified**, never pass.
 4. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
