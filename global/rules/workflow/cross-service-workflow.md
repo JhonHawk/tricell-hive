@@ -4,6 +4,8 @@ alwaysApply: true
 
 ## Cross-Service Coordination
 
+> **Loaded via the `workspace-conventions` skill** (trigger: a new or changed shared contract), not always-on. Claude Code: `~/.claude/rules/workflow/cross-service-workflow.md`. Codex/opencode: `references/cross-service-workflow.md`. Always-on entry point: `gap-resolution.md > The plan gate` folds contract confirmations into the plan gate.
+
 > Spec-first for shared contracts: the contract is designed before code implements it, and nobody deviates from a spec without updating it first. Confirmation is by signal (below), not a per-contract stop. Contract specs live in `<project>-specs/contracts/`; pre-specs-repo fallback: `<project>/_support/spec/` (repo-local contracts: `<repo>/_support/spec/`).
 
 ### Trigger — a shared contract, not repo count

@@ -19,9 +19,13 @@ Default scope: the rule files changed in the working tree / recent commits, or n
 1. **Frontmatter** — Must have exactly one of:
    - `alwaysApply: true` (no `paths` field) — for cross-language rules
    - `paths: [...]` array with valid glob patterns — for language/framework-scoped rules
-   - Flag files with both, neither, or invalid frontmatter.
+   - `loadedBy: <skill-name>` — progressive disclosure: the rule loads when that router skill is invoked, not always. Verify the named skill exists and actually routes to the rule, and that the rule is listed in `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` so the other harnesses receive it.
+   - Flag files with more than one, none, or invalid frontmatter.
 2. **Glob validity** — Each pattern in `paths` should match real file types. Flag patterns that would never match anything useful (e.g., `**/*.xyz`).
-3. **Scope correctness** — Rules with language-specific content (mentions `.ts`, `.java`, JSDoc, etc.) should be path-scoped, not `alwaysApply`. Rules with cross-language content should be `alwaysApply`, not path-scoped. Hybrid activation via likely entrypoint files is acceptable when a framework can be config-less (example: Tailwind v4 CSS-first), but the rule body must explicitly require marker verification before applying guidance.
+3. **Scope correctness** — Rules with language-specific content (mentions `.ts`, `.java`, JSDoc, etc.) should be path-scoped, not `alwaysApply`. Rules with cross-language content should be `alwaysApply`, not path-scoped. A `loadedBy:` rule must pass three reachability tests, all of them:
+   - **Trigger** — a file glob the model will actually touch, or an unmistakable conversational signal. "The model will remember" is not a trigger. A rule that fires on an ACTION with no file footprint (deploying, driving a browser, an incident) has no glob and must stay always-on.
+   - **Nothing safety-bearing is conditional.** A gate reachable only when a skill happens to load is a broken gate; that content stays in an `alwaysApply` owner.
+   - **Consumers can reach it.** Grep `global/agents/**` for citations of the rule. An agent with a `tools:` allowlist that omits `Skill` **cannot invoke a router skill at all**, and skills are not inherited from the parent — for those consumers the rule must stay always-on, or the agent must cite the deployed path (`~/.claude/rules/...`) and read it directly. Also fix any agent line that still calls the rule "always on". Hybrid activation via likely entrypoint files is acceptable when a framework can be config-less (example: Tailwind v4 CSS-first), but the rule body must explicitly require marker verification before applying guidance.
 4. **No duplication with core** — Compare rule content against `global/CLAUDE.md`. Flag rules that repeat what the core config already says.
 5. **No duplication between rules** — Flag overlapping content across rule files (e.g., same library mentioned in two files).
 6. **Size check** — Flag rules under 5 lines (too thin — consider merging) or over 50 lines (consider splitting).

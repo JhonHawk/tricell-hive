@@ -27,7 +27,8 @@ not evidence.
 
 ## Rules
 - **Iterate against the render.** Edit → serve → capture → judge → adjust, in short passes. Never
-  finish a pass you did not look at. Capture with the `agent-browser` CLI (`tools/browser-automation.md`);
+  finish a pass you did not look at. Capture with the `agent-browser` CLI — you have no `Skill`
+  tool, so `Read` the conventions directly at `~/.claude/rules/tools/browser-automation.md`;
   the dev server is the correct tool here — this is active iteration, not a release gate.
 - **Capture the BEFORE state prior to your first edit**, at every viewport and theme you will
   judge. Your work is measured against it: a screen that only lost content did not improve

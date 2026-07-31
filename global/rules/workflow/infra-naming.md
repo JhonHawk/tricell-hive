@@ -1,8 +1,10 @@
 ---
-alwaysApply: true
+loadedBy: workspace-conventions
 ---
 
 ## Infrastructure Naming
+
+> **Loaded via the `workspace-conventions` skill** (trigger: creating or naming any infra resource), not always-on. Claude Code: `~/.claude/rules/workflow/infra-naming.md`. Codex/opencode: `references/infra-naming.md`. Also reached from `git-workflow.md > Branching` (env branches) and `languages/iac-devops.md` (path-scoped on `*.tf` / `Dockerfile*` / workflows).
 
 > Generic layer for every client and provider (AWS, Hetzner, GitHub, DNS). Each project instantiates it into a concrete table at `<project>-specs/conventions/naming.md` (template: flow-core `naming-template.md`); project-specific exceptions are documented THERE with their reason, never improvised. No instantiated table → derive from this rule and say so.
 

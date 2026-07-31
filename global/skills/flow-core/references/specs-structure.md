@@ -211,7 +211,7 @@ Then <verifiable outcome>
 
 ## Session & initiative conventions (canonical)
 
-The always-loaded rule (`project-structure.md > Session capture layer`) carries the
+The convention (`workflow/session-capture.md`, loaded via the `workspace-conventions` skill) carries the
 summary — two axes, detection rule, raw-out-of-git, lifecycle. This section is the full
 convention; it applies wherever sessions live (specs repo, standalone `_support/sessions/`).
 

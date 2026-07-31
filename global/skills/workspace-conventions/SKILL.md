@@ -1,26 +1,36 @@
 ---
 name: workspace-conventions
 description: >
-  Codex/opencode: load before creating/naming artifacts outside app source (_support,
-  plans, specs, ADRs, contracts, evidence) or answering "what's next"/offering /flow-*
-  with a ledger. Skip Claude Code (always-on rules). Triggers: _support/, *-specs, flow.
+  All harnesses: load before creating/naming artifacts outside app source (_support,
+  plans, specs, ADRs, contracts, evidence, sessions), naming any infra resource (bucket,
+  cluster, service, security group, DB, subdomain, env branch), designing a cross-service
+  contract, or answering "what's next"/offering /flow-* with a ledger.
+  Triggers: _support/, *-specs, flow, IaC.
 ---
 
-# workspace-conventions — router to workspace, session, and contract conventions
+# workspace-conventions — router to workspace, session, contract, and naming conventions
 
-The full canonical rules live in `references/` (injected at build time from
-`global/rules/workflow/` — single source of truth). This skill exists because Codex and
-opencode have no conditional channel for intent-keyed policy: the always-on floor keeps
-one trigger line; the complete conventions load here, when the situation is actually in
-play.
+No harness loads these rules always-on: the always-on floor keeps the decision that must
+be made before any write (the 3-level hierarchy and `_support` vs specs-repo routing,
+`workflow/project-structure.md`), and the complete conventions load here, when the
+situation is actually in play.
+
+**Where the references live** — same canonical file, two paths:
+
+| Harness | Read from |
+|---|---|
+| Claude Code | `~/.claude/rules/workflow/<file>` (deployed, no longer always-on) |
+| Codex / opencode | `references/<file>` (injected at build time from `global/rules/workflow/`) |
 
 ## Routing table — read every row that matches the situation
 
 | Situation | Read |
 |---|---|
-| Creating/moving/naming any artifact outside app source; `_support/` vs specs-repo routing; sessions; infra repo placement | `references/project-structure.md` |
-| Generated-artifact naming/grouping, retention, evidence curation, versioning, legacy folder mappings (anything under `_support/`) | `references/support-artifacts.md` |
-| New or changed cross-service contract (endpoint a frontend consumes, request/response shape between services, events/webhooks) | `references/cross-service-workflow.md` |
+| Creating/moving/naming any artifact outside app source; `_support/` vs specs-repo routing; infra repo placement | `project-structure.md` |
+| Which subfolder it lands in; session folders (`sessions/YYYY-MM-DD-<slug>/`), execution-vs-intention, raw-out-of-git, scripts and plans placement | `session-capture.md` |
+| Generated-artifact naming/grouping, retention, evidence curation, versioning, legacy folder mappings (anything under `_support/`) | `support-artifacts.md` |
+| New or changed cross-service contract (endpoint a frontend consumes, request/response shape between services, events/webhooks) | `cross-service-workflow.md` — Codex/opencode only; it is always-on in Claude Code because `system-designer`, the agent that enforces it, has a `tools:` allowlist with no `Skill` and could never load it from here |
+| Naming ANY infra resource — bucket, cluster, ECS service, security group, DB, secret path, subdomain, env branch, repo — or adding one to a project's naming table | `infra-naming.md` |
 
 ## Flow phase boundaries (harness addendum — not restated in the references)
 
@@ -46,6 +56,9 @@ play.
 ## Rules of use
 
 - Route by what is ON DISK (a `_support/` folder, a `<project>-specs` sibling, a
-  `_support/PROJECT.md` ledger), never by whether the prompt mentions the flow pack.
+  `_support/PROJECT.md` ledger, `*.tf`/`Dockerfile`), never by whether the prompt mentions
+  the flow pack.
+- Naming is the row to read EARLY: a wrong infra name costs a recreate + migrate, not an
+  edit — read `infra-naming.md` before proposing the name, not after creating it.
 - A reference already loaded this session does not need reloading.
 - No matching situation → this skill has nothing for the task; proceed without it.
