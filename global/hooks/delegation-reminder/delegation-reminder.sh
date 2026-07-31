@@ -51,7 +51,8 @@ printf '%s|%s' "$owner" "$count" > "$marker" 2>/dev/null || true
 
 # Remind exactly when crossing each multiple of 20.
 if [ "$count" -ge 20 ] && [ $((count % 20)) -eq 0 ]; then
-  reminder="Delegation gate reminder (non-blocking): ~${count} main-thread tool calls without delegating. Per agent-routing.md > Delegation Gates, delegate the remainder to a subagent (Explore, the domain specialist, or finding-refuter for claim verification) — or state in one visible line why staying inline is correct."
+  # Inject the SIGNAL only; `agent-routing.md > Delegation Gates` owns what to do about it.
+  reminder="Delegation gate (non-blocking): ~${count} main-thread tool calls since the last delegation — see agent-routing.md > Delegation Gates."
   jq -n --arg ctx "$reminder" '{
     hookSpecificOutput: {
       hookEventName: "PostToolUse",

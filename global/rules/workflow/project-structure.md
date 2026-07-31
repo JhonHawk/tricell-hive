@@ -43,7 +43,7 @@ No specs repo yet (pre-specs-repo, or outside the flow pack) → durable materia
 |---|---|---|---|
 | `docs/` | ✓ | ✓ | Durable documentation (workspace-level: only until a specs repo absorbs it) |
 | `spec/` | ✓ | ✓ | Specs, contracts, technical decisions (OpenAPI, schemas, ADRs); workspace-level: pre-specs-repo only |
-| `plan/` | ✓ | ✓ | Implementation plans (`.md` or `.html` — `quality/communication-format.md`) |
+| `plan/` | ✓ | ✓ | Implementation plans (format per `quality/communication-format.md`) |
 | `workspace/` | ✓ | ✓ | **Ephemeral** scratch, AI notes — relocate or delete when work concludes; never let it accumulate |
 | `evidence/` | ✓ | ✓ | Screenshots, bug evidence, validation artifacts (curated subset only — retention in `support-artifacts.md`) |
 | `scripts/` | — | ✓ | Disposable dev-session utilities |
@@ -75,9 +75,9 @@ A **session** is one unit of real execution (dev session, sprint close, analysis
 
 ### Plans: `_support/plan/` vs `~/.claude/plans/`
 
-- **`<scope>/_support/plan/`** — durable plan artifacts scoped to the project or repo. `.html` for substantial multi-modal plans, `.md` otherwise (`quality/communication-format.md`).
+- **`<scope>/_support/plan/`** — durable plan artifacts scoped to the project or repo; format per `quality/communication-format.md`.
 - **`~/.claude/plans/*.md`** — native Claude Code plan-mode mechanism (Shift+Tab); `.md` by convention.
 
 ### Artifact naming essentials (pre-write)
 
-Dated folders are ALWAYS date-first (`YYYY-MM-DD-<slug>/`); loose files order by primary retrieval axis (chronology-primary → date prefix; subject-primary → subject first, date second); dates only on point-in-time snapshots, never on living documents edited in place. One deliverable = one folder, atomic artifact = loose file. Folders `kebab-case`, intention-revealing names — never generic. Full conventions (retention, versioning, evidence curation, legacy mappings): `workflow/support-artifacts.md` (path-scoped — loads on touching `_support/**`).
+Dated folders are ALWAYS date-first (`YYYY-MM-DD-<slug>/`); dates only on point-in-time snapshots, never on living documents edited in place. One deliverable = one folder, atomic artifact = loose file. Full conventions (loose-file ordering, folder/name style, retention, versioning, evidence curation, legacy mappings): `workflow/support-artifacts.md` (path-scoped — loads on touching `_support/**`).

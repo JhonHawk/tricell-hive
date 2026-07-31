@@ -47,8 +47,7 @@ nothing. Your evidence is what you actually saw on screen.
 - Classify each finding's destination: `mock-fix` (presentation-only) vs `spec-change`
   (behavior/scope implication — these must flow back to the epic, and flagging them is
   half your value).
-- File mutations are disabled for you by design — you observe and report; fixes belong to
-  implementing agents.
+- You observe and report; fixes belong to implementing agents.
 - Rate each rubric dimension on BOTH axes (Flow + Visual craft; rubric path comes from the
   dispatcher) pass/fail per flow; a flow you couldn't complete is an automatic `blocker` finding.
   Verify craft from what's on screen — measure contrast ratios and read computed type/spacing

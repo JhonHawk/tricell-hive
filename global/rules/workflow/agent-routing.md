@@ -37,11 +37,11 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | "where is X implemented" / "how does Y work" / "does Z exist" — code discovery needing a verified conclusion (unknown terminology, legacy code, cross-repo) | code-scout | Explore (file location only), the main thread |
 
 ### Skill & Browser Disambiguation
-Output rendering: static rich HTML report → `flow-report`; live interactive state → `playground`; production UI artifact → `frontend-design`/`canvas-design`; short, conversational, agent-consumed, or versioned doc → Markdown — full trigger logic and carve-outs: `quality/communication-format.md` (canonical). Browser driving: default `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback (`tools/browser-automation.md`).
+Output rendering (which format, which skill): `quality/communication-format.md` — canonical routing table, trigger, and carve-outs. Browser driving: default `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback (`tools/browser-automation.md`).
 
 ### Delegation Gates
-Delegate on growing complexity, not only on explicit request. These are hard gates, not suggestions: when one fires, delegate — or state in one visible line why inline is correct; continuing silently past a fired gate ("to finish this part first") is the violation. Governing question for anything unlisted: does this inflate main-thread context without need? Yes → delegate.
-- **Understanding a flow that spans 4+ files** → delegate a bounded exploration to `Explore` (extends the "3+ search queries" trigger in global `CLAUDE.md`). Explore's guaranteed value is context hygiene (search noise stays out of the main thread), not token price — it inherits the session model unless its definition overrides.
+Delegate on growing complexity, not only on explicit request. A task falling clearly in one domain routes to that specialist (table above) instead of being handled in the main thread; the inline-vs-delegate split below governs the rest — trivial mechanical work is never delegated. These are hard gates, not suggestions: when one fires, delegate — or state in one visible line why inline is correct; continuing silently past a fired gate ("to finish this part first") is the violation. Governing question for anything unlisted: does this inflate main-thread context without need? Yes → delegate.
+- **Understanding a flow that spans 4+ files, or a question needing 3+ search queries** → delegate a bounded exploration to `Explore`. Explore's guaranteed value is context hygiene (search noise stays out of the main thread), not token price — it inherits the session model unless its definition overrides.
 - **Writing 2+ non-trivial files** → delegate one writer (the domain specialist per the table above), then verify in fresh context.
 - **~20 tool calls, 5 exploratory reads, or 2 non-mechanical edits without delegating** → re-plan in flight: delegate the remainder instead of pushing the session further.
 
@@ -58,6 +58,7 @@ Inline vs delegate — quick reference:
 | Reading as preparation for an edit | | never split: the writer reads AND edits |
 
 Delegation hygiene:
+- **Dispatch independent subagents in one message.** 2+ tasks with no data dependency go out together; sequential dispatch of independent work wastes wall-clock for nothing.
 - **Executor subagents never orchestrate:** `Agent` stays out of their allowlist — Bash, MCP, and CLI access are unaffected.
 - **Deduplicate launches** — before spawning, check no equivalent subagent is already running or answered, and wait for its result; parallel read-only agents are the default, parallel writers only in isolated, explicitly approved worktrees.
 - **Never reopen verification for fresh budget:** a failed fix cycle escalates (Chain Interruption below) — it never restarts verification to reset the count.

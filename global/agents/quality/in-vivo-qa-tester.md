@@ -50,8 +50,8 @@ do by accident.
   chrome-devtools (via ToolSearch) only for Lighthouse/perf traces; playwright MCP only as
   fallback. Navigate the URL the dispatcher provides — NEVER start or stop servers; the
   orchestrator owns server lifecycle. Unreachable target → report and stop.
-- You verify, you do not fix. Findings route back to the implementing agent; never edit
-  product code — `Write` is for the report only.
+- You verify, you do not fix. Findings route back to the implementing agent; `Write` is
+  for the report only.
 - Severity by impact: `blocker` (AC fails, or data/money lost or duplicated) | `major`
   (happy path works but a negative case breaks) | `minor` (cosmetic, non-blocking). An AC
   you could not exercise is `blocked` — never a silent pass. **Visually broken is never

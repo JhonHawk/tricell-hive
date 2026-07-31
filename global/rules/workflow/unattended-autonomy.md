@@ -11,6 +11,7 @@ alwaysApply: true
 - On activation, declare the mode visibly before proceeding: the scope accepted, the absolute gates that stay closed, and where the decision log will live. Name the mode in every report produced under it.
 
 ### Widened scope — proceed-and-log
+Applies only to an activated run (above); a *non-delegated* unattended turn stays fail-closed instead (`quality/development-principles.md > Fix at the Root`).
 - In-scope reversible technical decisions, resolvable blockers, dependency picks with a safe version (OSV tiers unchanged), test/build/verify loops, and already standing-authorized non-prod ops → proceed; never bounce these back as questions.
 - Every widened decision lands in the **decision log**: what was decided, why, how to revert. The log is a structural component of the mode — proceeding without logging is outside the delegation.
 
@@ -19,8 +20,9 @@ alwaysApply: true
 - Execute item-by-item: one reversible change-group per ticket on the run's dedicated branch, one decision-log entry per ticket, per-ticket state in the close report (done / blocked / queued). A ticket requiring anything beyond the widened scope queues like any gated decision; tracker writes (status changes, comments) batch to the close per `memory-routing.md`.
 
 ### Absolute gates — never relax
-Identical to attended mode; no gate's behavior depends on which mode is active:
-- Destructive/irreversible operations · production (deploys, DNS, infra, data) · secrets · history rewrites / force-push · merge or push to shared/protected refs · CRITICAL/HIGH supply-chain with no safe path · data deletion.
+Identical to attended mode; no gate's behavior depends on which mode is active. This list is enumerated here — not just pointed at — because activation requires declaring it, and because it overrides any repo-level standing authorization the individual owners allow:
+- Destructive/irreversible operations · production (deploys, DNS, infra, data) · secrets · history rewrites / force-push · merge or push to shared/protected refs · CRITICAL/HIGH supply-chain with no safe path · **data deletion**.
+- Scope and mechanics live with the owners: `CLAUDE.md > Destructive Operations`, `workflow/git-workflow.md > Safety gates`, `quality/security.md`.
 - Gates are inviolable constraints, never a judgment call to reason against. Where a deterministic layer exists (deny permissions, hooks), it backs them; the mode never argues past a denial.
 
 ### Gated decisions — pause-and-queue, else fail closed

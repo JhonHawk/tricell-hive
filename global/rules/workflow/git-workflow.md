@@ -33,7 +33,7 @@ alwaysApply: true
 ### Safety gates (all modes — fold confirmations into the task's single question block)
 - **Protected branches** (project-declared; default: the production-deploying branch — `production`, or `main`/`master` where the trunk IS production — plus `qa` where it exists): no direct commits unless the project allows it. Exceptions: a single-branch repo (bare `master` IS the workflow), or a repo whose history shows direct-to-default as the norm (no PR gate, no CI on branches) — confirm once per session and treat as standing; a project declaration removes even that first ask.
 - **Force-push and published-history rewrites** (`rebase` on shared branches, `reset --hard`, `amend` on pushed commits): always confirm, presenting what gets overwritten.
-- **Merge/promotion into the production-deploying branch** (`production`, or `main`/`master` where the trunk IS production): always confirm. Promotion into `qa` follows the non-prod carve-out (`CLAUDE.md > Destructive Operations`) — declared, not asked.
+- **Merge/promotion into the production-deploying branch** (`production`, or `main`/`master` where the trunk IS production): always confirm — it is a production deploy (`CLAUDE.md > Destructive Operations`), and no rollback path substitutes for the confirmation. Promotion into `qa` follows that rule's non-prod carve-out — declared, not asked.
 - **Push:** an explicit push verb is the confirmation; otherwise ask. Session-close remote pruning and declared-workflow repos (exceptions above) are standing-authorized.
 - **Branch deletion:** confirm — except confirmed-merged branches at session close (below). Unmerged deletion, force-delete, or unverifiable merge status always asks.
 

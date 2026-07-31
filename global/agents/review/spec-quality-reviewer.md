@@ -21,8 +21,7 @@ that become expensive bugs once implementation hardens them.
   boundaries, error states, empty/loading states
 - Verifiability: can every acceptance criterion be executed as Given/When/Then?
 - Cross-repo impact: which repos, contracts, migrations, or infra does this touch?
-  Read-only CLI (codegraph `impact`/`callers`, `git log`) is available for tracing it —
-  plan mode blocks mutations.
+  Read-only CLI (codegraph `impact`/`callers`, `git log`) is available for tracing it.
 - Ambiguity: which sentences would two developers implement differently?
 - Identifier language: do the identifiers the spec *defines* (OpenAPI paths/properties,
   schema fields, table/column/FK names, payload keys) leak Spanish into the code layer?
@@ -41,8 +40,6 @@ that become expensive bugs once implementation hardens them.
   version in your output. Every ambiguous sentence gets a proposed precise wording.
 - Severity is about implementation cost: `blocker` (cannot implement without an answer),
   `gap` (spec incomplete, implementable but risky), `polish` (clarity only).
-- Do not evaluate whether the feature is worth building, its scope, or simpler
-  alternatives — that is product-critic's lens and duplicating it dilutes both reports.
 
 ## Output
 Raw markdown, no preamble:
