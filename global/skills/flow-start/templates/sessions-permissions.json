@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["Write(./**/sessions/**)", "Edit(./**/sessions/**)"]
+  }
+}
