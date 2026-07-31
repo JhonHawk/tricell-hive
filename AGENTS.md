@@ -119,19 +119,23 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── shell-standards.md
 │   │   ├── sql-migrations.md      # SQL, Prisma, Drizzle
 │   │   ├── tailwind.md
-│   │   └── typescript-standards.md
+│   │   ├── typescript-standards.md
+│   │   └── ui-visual-design.md    # Visual craft: type scale, spacing, contrast, action hierarchy
 │   ├── workflow/                  # Git, routing, coordination (5 alwaysApply, 2 path-scoped, 4 loadedBy)
 │   │   ├── agent-routing.md
 │   │   ├── cross-service-workflow.md
-│   │   ├── devops-principles.md
+│   │   ├── devops-principles.md  # path-scoped (Dockerfile/tf/workflows)
 │   │   ├── gap-resolution.md
 │   │   ├── git-workflow.md
-│   │   ├── infra-naming.md        # Generic infra naming layer; projects instantiate it in their specs repo
-│   │   ├── memory-routing.md      # Engram (work-record) vs native file-memory (always-hot) boundary
+│   │   ├── infra-naming.md        # loadedBy workspace-conventions — projects instantiate it in their specs repo
+│   │   ├── memory-routing.md      # loadedBy memory-policy — Engram vs native file-memory boundary
 │   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
 │   │   ├── session-capture.md     # loadedBy workspace-conventions — session layer + subfolder vocabulary
-│   │   └── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
+│   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
+│   │   └── unattended-autonomy.md # loadedBy unattended-delegation — the delegated-run mode
 │   └── tools/                     # External tools & MCP protocols (2 alwaysApply, 1 loadedBy)
+│       ├── browser-automation.md  # loadedBy language-rules — agent-browser CLI vs MCP browser servers
+│       ├── code-search.md         # rg vs jbcontext vs codegraph routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon

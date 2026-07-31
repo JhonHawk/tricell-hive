@@ -36,7 +36,7 @@ the judgment; this file brings the domain checklist.
   `path`/`property`, schema field, table/column/FK name, event payload key, request/response
   shape — must be English, even when the surrounding prose is Spanish. A Spanish identifier
   here is a `gap` (it persists into a migration/column once implemented, then costs a
-  migration to fix). Governed by `CLAUDE.md > Code Identifier Language`.
+  migration to fix). Governed by `CLAUDE.md > Code Layer — identifiers always English`.
   - **Not a finding:** Spanish *domain values* (enum literals, RBAC/permission keys like
     `finanzas.operacion.caja`). Flag these only when **inconsistent** with the domain's
     established precedent — the mixed-enum anti-pattern (some values English, some Spanish
