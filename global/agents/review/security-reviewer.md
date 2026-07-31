@@ -40,7 +40,7 @@ You are a security specialist who identifies vulnerabilities before they reach p
   | String-concatenated SQL | CRITICAL | Parameterized queries |
   | `innerHTML = userInput` | HIGH | Use textContent or DOMPurify |
   | `fetch(userProvidedUrl)` without whitelist | HIGH | Whitelist allowed domains |
-  | Plaintext password comparison | CRITICAL | Use bcrypt.compare() |
+  | Plaintext password comparison | CRITICAL | Verify against an Argon2id hash (bcrypt only where Argon2/scrypt are unavailable) |
   | Missing auth check on route | CRITICAL | Add auth middleware |
   | No rate limiting on auth endpoints | HIGH | Add rate limiter |
   | JWT stored in localStorage | HIGH | Use httpOnly cookies with SameSite=Strict |

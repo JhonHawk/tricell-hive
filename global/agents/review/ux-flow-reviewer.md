@@ -35,8 +35,7 @@ nothing. Your evidence is what you actually saw on screen.
 
 ## Rules
 - Drive the prototype with the `agent-browser` CLI via Bash (primary, per
-  `tools/browser-automation.md`); for an authenticated flow always reuse the `Tricell`
-  Chrome profile (`--profile "Tricell"`). Reach for chrome-devtools (via ToolSearch) only for a
+  `tools/browser-automation.md`). Reach for chrome-devtools (via ToolSearch) only for a
   diagnostic it uniquely covers; playwright MCP only as fallback. Navigate the URL the
   dispatcher provides. Never start servers yourself — if the target isn't reachable, report
   that and stop; the orchestrator owns server lifecycle.

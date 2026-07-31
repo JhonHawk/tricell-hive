@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Code-Search Routing
 
 > Route by operation type, not by tool preference. Deny/warn per repo is enforced deterministically by the `code-search-routing` hook; everything else is prompt-convention.

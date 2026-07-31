@@ -152,14 +152,14 @@ _support/                            # Workspace material, not deployed
 
 Use `/manage-agents report` for live line counts and reduction metrics instead of relying on static README totals.
 
-## Rules (29 files)
+## Rules (31 files)
 
 | Category     | Files | Scope |
 |--------------|------:|-------|
-| `quality/`   |     7 | alwaysApply — code principles, security, testing, debugging, critical thinking, communication format |
+| `quality/`   |     7 | alwaysApply — code principles, security, testing, debugging, critical thinking, communication format; `patterns-antipatterns` is path-scoped |
 | `languages/` |    11 | path-scoped — TypeScript, React/Next.js, Angular, Java/Kotlin, Python, SQL, Tailwind, shell, IaC, NestJS, UI visual design |
-| `workflow/`  |     9 | alwaysApply — git, routing, project structure, infra naming, cross-service, gap resolution, memory routing, unattended autonomy, devops |
-| `tools/`     |     2 | alwaysApply — context7 query protocol, browser automation |
+| `workflow/`  |    10 | alwaysApply — git, routing, project structure, infra naming, cross-service, gap resolution, memory routing, unattended autonomy, devops; `support-artifacts` is path-scoped |
+| `tools/`     |     3 | alwaysApply — context7 query protocol, browser automation, code-search routing |
 
 ## Agent Design Criteria
 

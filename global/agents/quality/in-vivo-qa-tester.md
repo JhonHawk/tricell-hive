@@ -46,8 +46,7 @@ do by accident.
 - Drive the app with the `agent-browser` CLI via Bash (primary, per
   `tools/browser-automation.md`): persistent session across commands, `console` for
   console-error checks, `network requests` to verify the call returned what the UI claims,
-  `network route --abort` to simulate offline/500. For an authenticated walk, always reuse the
-  `Tricell` Chrome profile (`--profile "Tricell"`) to inherit login state. Reach for
+  `network route --abort` to simulate offline/500. Reach for
   chrome-devtools (via ToolSearch) only for Lighthouse/perf traces; playwright MCP only as
   fallback. Navigate the URL the dispatcher provides — NEVER start or stop servers; the
   orchestrator owns server lifecycle. Unreachable target → report and stop.
