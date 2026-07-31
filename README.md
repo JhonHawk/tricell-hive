@@ -152,14 +152,22 @@ _support/                            # Workspace material, not deployed
 
 Use `/manage-agents report` for live line counts and reduction metrics instead of relying on static README totals.
 
-## Rules (31 files)
+## Rules (32 files)
 
-| Category     | Files | Scope |
-|--------------|------:|-------|
-| `quality/`   |     7 | alwaysApply — code principles, security, testing, debugging, critical thinking, communication format; `patterns-antipatterns` is path-scoped |
-| `languages/` |    11 | path-scoped — TypeScript, React/Next.js, Angular, Java/Kotlin, Python, SQL, Tailwind, shell, IaC, NestJS, UI visual design |
-| `workflow/`  |    10 | alwaysApply — git, routing, project structure, infra naming, cross-service, gap resolution, memory routing, unattended autonomy, devops; `support-artifacts` is path-scoped |
-| `tools/`     |     3 | alwaysApply — context7 query protocol, browser automation, code-search routing |
+Three scopes, exactly one per file:
+
+- **`alwaysApply: true`** — in context every session. Reserved for what has no reliable trigger: safety gates, and policy that fires on an action with no file footprint.
+- **`paths: [...]`** — loads when a matching file is touched.
+- **`loadedBy: <skill>`** — loads when that router skill is invoked. Situational policy only; see the three reachability tests in `/manage-rules validate`.
+
+| Category     | Files | always | paths | loadedBy |
+|--------------|------:|-------:|------:|---------:|
+| `quality/`   |     7 |      6 |     1 |        0 |
+| `languages/` |    11 |      0 |    11 |        0 |
+| `workflow/`  |    11 |      5 |     2 |        4 |
+| `tools/`     |     3 |      2 |     0 |        1 |
+
+Always-on footprint (`global/CLAUDE.md` + the 13 `alwaysApply` rules): **701 lines / 97 KB / ~24k tokens**. Keep it measured — it is paid on every session before any work starts.
 
 ## Agent Design Criteria
 
