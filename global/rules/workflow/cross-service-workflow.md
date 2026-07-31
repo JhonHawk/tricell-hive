@@ -4,7 +4,7 @@ alwaysApply: true
 
 ## Cross-Service Coordination
 
-> **Loaded via the `workspace-conventions` skill** (trigger: a new or changed shared contract), not always-on. Claude Code: `~/.claude/rules/workflow/cross-service-workflow.md`. Codex/opencode: `references/cross-service-workflow.md`. Always-on entry point: `gap-resolution.md > The plan gate` folds contract confirmations into the plan gate.
+> **Always-on in Claude Code**, and reached via the `workspace-conventions` skill on Codex/opencode (`references/cross-service-workflow.md`). It is not conditional here because `system-designer` — the agent that enforces spec-first — has a `tools:` allowlist with no `Skill`, so it could never load this from a router.
 
 > Spec-first for shared contracts: the contract is designed before code implements it, and nobody deviates from a spec without updating it first. Confirmation is by signal (below), not a per-contract stop. Contract specs live in `<project>-specs/contracts/`; pre-specs-repo fallback: `<project>/_support/spec/` (repo-local contracts: `<repo>/_support/spec/`).
 

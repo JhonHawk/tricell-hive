@@ -90,7 +90,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
   - `nanoid` — short client-side IDs (over uuid when full UUIDs are unnecessary).
   - `vitest` — test runner for Vite/Next.js projects (over jest in modern setups).
   - `playwright` — E2E testing (over cypress, for CI reliability).
-- **Ask only at a real fork:** an architectural pick with no preferred default and no project convention — 2-3 curated options folded into the plan gate — or the OSV CRITICAL/HIGH gate below. Only one viable option → explain briefly and proceed.
+- **Ask only at a real fork:** an architectural pick with no preferred default and no project convention — 2-3 curated options folded into the plan gate — or the OSV CRITICAL/HIGH no-safe-path gate (`security.md > Supply Chain Security`). Only one viable option → explain briefly and proceed.
 - **Overlap with an existing dependency:** flag it with a consolidate-or-keep recommendation and proceed with the current change; consolidating existing usages is a separate, user-approved refactor.
 - **OSV before any install** — `security.md > Supply Chain Security` owns the command, ecosystem mapping, and resolution tiers; resolve by its tiers and report at close.
 

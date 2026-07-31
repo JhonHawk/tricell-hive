@@ -89,7 +89,8 @@ description: >
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
 - `global/rules/workflow/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
-- **AlwaysApply rules don't pass through `build.py` — but router-skill references DO.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` always-on core. A new or changed alwaysApply rule that applies to all harnesses is reflected MANUALLY in `harness/AGENTS.md` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in `build.py`: workspace-conventions ← project-structure/cross-service, memory-policy ← memory-routing, unattended-delegation ← unattended-autonomy, language-rules ← languages/* + quality depth), where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4, security-audited 2026-07-10) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
+- **Rules carry exactly one of three scopes.** `alwaysApply: true` (in context every session) · `paths: [...]` (loads on a matching file) · `loadedBy: <skill>` (loads when that router skill is invoked). Always-on is the expensive default — it is paid every session before any work — so it is reserved for safety gates and for policy with no reliable trigger. **Before making a rule `loadedBy:`, apply the three reachability tests in `/manage-rules validate`:** a real trigger, nothing safety-bearing, and consumers that can actually load it. An executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill at all, and skills are not inherited from the parent — for those consumers the rule stays always-on or is cited by deployed path. A rule that fires on an ACTION rather than a file (deploying, driving a browser, a live incident) needs an always-on rule that *instructs* the load at that moment; naming the file is not instructing.
+- **AlwaysApply rules don't pass through `build.py` — but router-skill references DO.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` always-on core. A new or changed alwaysApply rule that applies to all harnesses is reflected MANUALLY in `harness/AGENTS.md` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in `build.py`: workspace-conventions ← project-structure/session-capture/support-artifacts/cross-service/infra-naming, memory-policy ← memory-routing, unattended-delegation ← unattended-autonomy, language-rules ← languages/* + quality depth + browser-automation), where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4, security-audited 2026-07-10) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
 
 ## File Structure
 
@@ -100,7 +101,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── CLAUDE.md                      # Core config (always loaded)
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (pre-push-lint-reminder, flow-session-context, flow-context, flow-plan-capture, delegation-reminder)
 ├── rules/                         # Organized by function, discovered recursively
-│   ├── quality/                   # Code principles (alwaysApply)
+│   ├── quality/                   # Code principles (6 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
 │   │   ├── critical-thinking.md
 │   │   ├── debugging.md           # Root-cause discipline: reproduce before fix, one change at a time, 3-fix circuit breaker
@@ -119,7 +120,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── sql-migrations.md      # SQL, Prisma, Drizzle
 │   │   ├── tailwind.md
 │   │   └── typescript-standards.md
-│   ├── workflow/                  # Git, deploys, routing, coordination (alwaysApply)
+│   ├── workflow/                  # Git, routing, coordination (5 alwaysApply, 2 path-scoped, 4 loadedBy)
 │   │   ├── agent-routing.md
 │   │   ├── cross-service-workflow.md
 │   │   ├── devops-principles.md
@@ -127,9 +128,10 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── git-workflow.md
 │   │   ├── infra-naming.md        # Generic infra naming layer; projects instantiate it in their specs repo
 │   │   ├── memory-routing.md      # Engram (work-record) vs native file-memory (always-hot) boundary
-│   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo) + session capture layer
+│   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
+│   │   ├── session-capture.md     # loadedBy workspace-conventions — session layer + subfolder vocabulary
 │   │   └── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
-│   └── tools/                     # External tools & MCP plugin protocols (alwaysApply)
+│   └── tools/                     # External tools & MCP protocols (2 alwaysApply, 1 loadedBy)
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon

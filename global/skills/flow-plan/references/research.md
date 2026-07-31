@@ -16,7 +16,7 @@ product or UX — those are `flow-specs` (epics/ACs) and mock work units' UX mat
    (`~/.claude/skills/flow-core/references/handoff-protocol.md`) — independent
    areas in ONE message, in parallel — to establish:
    - **Current state** — how this repo already does the thing; patterns, conventions, and
-     existing code to reuse (`development-principles.md > Search/Observe before creating`).
+     existing code to reuse (`development-principles.md > Search before creating` and `> Observe before writing`).
    - **Approaches** — 2-3 technical options with trade-offs and a recommendation.
    - **Gaps and prerequisites** — missing interfaces, uninstalled libs, migrations, env/config,
      credentials (the `gap-resolution.md` Investigate step, materialized as an artifact).
