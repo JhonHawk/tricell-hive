@@ -89,7 +89,7 @@ description: >
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
 - `global/rules/workflow/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
-- **Rules carry exactly one of three scopes.** `alwaysApply: true` (in context every session) · `paths: [...]` (loads on a matching file) · `loadedBy: <skill>` (loads when that router skill is invoked). Always-on is the expensive default — it is paid every session before any work — so it is reserved for safety gates and for policy with no reliable trigger. **Before making a rule `loadedBy:`, apply the three reachability tests in `/manage-rules validate`:** a real trigger, nothing safety-bearing, and consumers that can actually load it. An executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill at all, and skills are not inherited from the parent — for those consumers the rule stays always-on or is cited by deployed path. A rule that fires on an ACTION rather than a file (deploying, driving a browser, a live incident) needs an always-on rule that *instructs* the load at that moment; naming the file is not instructing.
+- **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading (learned the hard way on 2026-07-31: a whole wave shipped on the opposite assumption and reduced nothing). Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
 - **AlwaysApply rules don't pass through `build.py` — but router-skill references DO.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` always-on core. A new or changed alwaysApply rule that applies to all harnesses is reflected MANUALLY in `harness/AGENTS.md` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in `build.py`: workspace-conventions ← project-structure/session-capture/support-artifacts/cross-service/infra-naming, memory-policy ← memory-routing, unattended-delegation ← unattended-autonomy, language-rules ← languages/* + quality depth + browser-automation), where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4, security-audited 2026-07-10) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
 
 ## File Structure
@@ -121,20 +121,20 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── tailwind.md
 │   │   ├── typescript-standards.md
 │   │   └── ui-visual-design.md    # Visual craft: type scale, spacing, contrast, action hierarchy
-│   ├── workflow/                  # Git, routing, coordination (5 alwaysApply, 2 path-scoped, 4 loadedBy)
+│   ├── workflow/                  # Git, routing, coordination (9 always-on, 2 path-scoped)
 │   │   ├── agent-routing.md
 │   │   ├── cross-service-workflow.md
 │   │   ├── devops-principles.md  # path-scoped (Dockerfile/tf/workflows)
 │   │   ├── gap-resolution.md
 │   │   ├── git-workflow.md
-│   │   ├── infra-naming.md        # loadedBy workspace-conventions — projects instantiate it in their specs repo
-│   │   ├── memory-routing.md      # loadedBy memory-policy — Engram vs native file-memory boundary
+│   │   ├── infra-naming.md        # Generic infra naming; projects instantiate it in their specs repo
+│   │   ├── memory-routing.md      # Engram vs native file-memory boundary
 │   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
-│   │   ├── session-capture.md     # loadedBy workspace-conventions — session layer + subfolder vocabulary
+│   │   ├── session-capture.md     # Session layer + subfolder vocabulary (split out of project-structure)
 │   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
-│   │   └── unattended-autonomy.md # loadedBy unattended-delegation — the delegated-run mode
-│   └── tools/                     # External tools & MCP protocols (2 alwaysApply, 1 loadedBy)
-│       ├── browser-automation.md  # loadedBy language-rules — agent-browser CLI vs MCP browser servers
+│   │   └── unattended-autonomy.md # The delegated-run mode
+│   └── tools/                     # External tools & MCP protocols (3 always-on)
+│       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
 │       ├── code-search.md         # rg vs jbcontext vs codegraph routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)

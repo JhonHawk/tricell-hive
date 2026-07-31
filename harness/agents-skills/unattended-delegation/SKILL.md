@@ -1,7 +1,7 @@
 ---
 name: unattended-delegation
 description: >
-  All harnesses: load on an explicit user handover of unattended control ("full control
+  Codex/opencode: load on an explicit user handover of unattended control ("full control
   tonight", "tienes control total", "run unattended", "ve cerrando los tickets") BEFORE
   declaring the mode accepted. Never activates from silence or a long task. Declare
   scope/gates/decision-log first.
@@ -18,7 +18,6 @@ the run, on every harness.
 
 | Harness | Read from |
 |---|---|
-| Claude Code | `~/.claude/rules/workflow/unattended-autonomy.md` |
 | Codex / opencode | `references/unattended-autonomy.md` (injected at build time) |
 
 ## Rules of use

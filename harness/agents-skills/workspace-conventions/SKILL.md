@@ -1,7 +1,7 @@
 ---
 name: workspace-conventions
 description: >
-  All harnesses: load before creating/naming artifacts outside app source (_support,
+  Codex/opencode: load before creating/naming artifacts outside app source (_support,
   plans, specs, ADRs, contracts, evidence, sessions), naming any infra resource (bucket,
   cluster, service, security group, DB, subdomain, env branch), designing a cross-service
   contract, or answering "what's next"/offering /flow-* with a ledger.
@@ -10,17 +10,13 @@ description: >
 
 # workspace-conventions — router to workspace, session, contract, and naming conventions
 
-No harness loads these rules always-on: the always-on floor keeps the decision that must
-be made before any write (the 3-level hierarchy and `_support` vs specs-repo routing,
-`workflow/project-structure.md`), and the complete conventions load here, when the
-situation is actually in play.
+This skill exists because Codex and opencode have no conditional channel for intent-keyed
+policy: their always-on floor keeps one trigger line and the complete conventions load
+here, when the situation is actually in play. **Claude Code does not need it** — these
+rules are always-on there, since `paths:` is the only key that makes a rule conditional
+and none of them carries one.
 
-**Where the references live** — same canonical file, two paths:
-
-| Harness | Read from |
-|---|---|
-| Claude Code | `~/.claude/rules/workflow/<file>` (deployed, no longer always-on) |
-| Codex / opencode | `references/<file>` (injected at build time from `global/rules/workflow/`) |
+References are injected at build time from `global/rules/workflow/` into `references/`.
 
 ## Routing table — read every row that matches the situation
 
@@ -29,7 +25,7 @@ situation is actually in play.
 | Creating/moving/naming any artifact outside app source; `_support/` vs specs-repo routing; infra repo placement | `project-structure.md` |
 | Which subfolder it lands in; session folders (`sessions/YYYY-MM-DD-<slug>/`), execution-vs-intention, raw-out-of-git, scripts and plans placement | `session-capture.md` |
 | Generated-artifact naming/grouping, retention, evidence curation, versioning, legacy folder mappings (anything under `_support/`) | `support-artifacts.md` |
-| New or changed cross-service contract (endpoint a frontend consumes, request/response shape between services, events/webhooks) | `cross-service-workflow.md` — Codex/opencode only; it is always-on in Claude Code because `system-designer`, the agent that enforces it, has a `tools:` allowlist with no `Skill` and could never load it from here |
+| New or changed cross-service contract (endpoint a frontend consumes, request/response shape between services, events/webhooks) | `cross-service-workflow.md` |
 | Naming ANY infra resource — bucket, cluster, ECS service, security group, DB, secret path, subdomain, env branch, repo — or adding one to a project's naming table | `infra-naming.md` |
 
 ## Flow phase boundaries (harness addendum — not restated in the references)

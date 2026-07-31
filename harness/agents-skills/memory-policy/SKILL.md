@@ -1,7 +1,7 @@
 ---
 name: memory-policy
 description: >
-  All harnesses: load before the first Engram op of a session (mem_save/search/context/
+  Codex/opencode: load before the first Engram op of a session (mem_save/search/context/
   summary) or before writing to native file-memory. Project identity, save cadence,
   topic_key upserts, invalidation, tracker sync. Plugin protocol wins over this layer.
 ---
@@ -17,7 +17,6 @@ always-on — it is dead weight in a session that never touches memory.
 
 | Harness | Read from |
 |---|---|
-| Claude Code | `~/.claude/rules/workflow/memory-routing.md` |
 | Codex / opencode | `references/memory-routing.md` (injected at build time) |
 
 ## Rules of use

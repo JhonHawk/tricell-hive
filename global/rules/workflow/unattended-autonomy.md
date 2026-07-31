@@ -1,10 +1,10 @@
 ---
-loadedBy: unattended-delegation
+alwaysApply: true
 ---
 
 ## Unattended Autonomy Mode
 
-> **Loaded via the `unattended-delegation` skill**, not always-on — read it BEFORE declaring the mode accepted. Claude Code: `~/.claude/rules/workflow/unattended-autonomy.md`. Codex/opencode: `references/unattended-autonomy.md`. Two always-on guards stand in front of it and do NOT depend on this file loading: activation is explicit-only (`CLAUDE.md > Destructive Operations`) and every absolute gate below is owned by an always-on rule (`> Absolute gates`).
+> Always-on in Claude Code; Codex/opencode reach it through the `unattended-delegation` skill, which they must load BEFORE declaring the mode accepted. Two guards stand in front of it either way: activation is explicit-only (`CLAUDE.md > Destructive Operations`) and every absolute gate below is owned by an always-on rule (`> Absolute gates`).
 
 > An explicitly-delegated unattended run: the user hands over control and leaves ("tienes control total esta noche", "no preguntes hasta que vuelva", "me voy a dormir, sigue tú"). ONE mode — no variants. Distinct from a *non-delegated* unattended turn (cron, workflow stage, background job), which stays fail-closed per `quality/development-principles.md > Fix at the Root`. The mode is a trade: removed confirmations are compensated by ADDED controls — decision log, reversible checkpoints, queued escalations, automatic expiry. Without those controls the delegation is not in effect.
 

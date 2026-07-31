@@ -1,10 +1,10 @@
 ---
-loadedBy: workspace-conventions
+alwaysApply: true
 ---
 
 ## Session Capture & Support Vocabulary
 
-> **Loaded via the `workspace-conventions` skill** (trigger: creating, naming, or placing any artifact outside app source), not always-on. Claude Code: `~/.claude/rules/workflow/session-capture.md`. Codex/opencode: `references/session-capture.md`. The always-on half — the 3-level hierarchy and the `_support` vs specs-repo routing decision — is `workflow/project-structure.md`; this file owns where inside that structure a thing lands.
+> Always-on in Claude Code; Codex/opencode reach it through the `workspace-conventions` skill. Split out of `workflow/project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
 
 ### Canonical subfolder vocabulary
 

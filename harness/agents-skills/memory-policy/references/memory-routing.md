@@ -1,7 +1,7 @@
 
 ## Memory Routing — Engram vs. Native File-Memory
 
-> **Loaded via the `memory-policy` skill**, not always-on. Claude Code: `~/.claude/rules/workflow/memory-routing.md`. Codex/opencode: `references/memory-routing.md`. The always-on half — how to ANSWER a state question — is `quality/debugging.md > Reporting state from ground truth`; this file owns the store mechanics.
+> Always-on in Claude Code; Codex/opencode reach it through the `memory-policy` skill. The companion half — how to ANSWER a state question — lives in `quality/debugging.md > Reporting state from ground truth`; this file owns the store mechanics.
 
 > Two memory systems run at once: Claude Code's **native file-memory** (harness-injected, always in context) and **Engram** (MCP server, SQLite, retrieved on demand). Their save-triggers overlap; this rule draws the boundary so the same fact never lands in both and drifts. It does NOT configure Engram (its plugin self-manages); it governs which system receives a given save.
 

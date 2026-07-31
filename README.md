@@ -154,20 +154,23 @@ Use `/manage-agents report` for live line counts and reduction metrics instead o
 
 ## Rules (32 files)
 
-Three scopes, exactly one per file:
+**`paths:` is the only frontmatter key Claude Code reads.** Per the official docs, *"rules without a `paths` field are loaded unconditionally"* — so there are two states, not three:
 
-- **`alwaysApply: true`** — in context every session. Reserved for what has no reliable trigger: safety gates, and policy that fires on an action with no file footprint.
-- **`paths: [...]`** — loads when a matching file is touched.
-- **`loadedBy: <skill>`** — loads when that router skill is invoked. Situational policy only; see the three reachability tests in `/manage-rules validate`.
+- **`paths: [...]`** — loads only when a matching file is touched. The only way to keep a rule out of the always-on set.
+- **No `paths:`** — always-on. We write `alwaysApply: true` to state the intent, but it is documentation, not mechanism: the file loads identically without it. An unrecognized key does **not** suppress loading.
 
-| Category     | Files | always | paths | loadedBy |
-|--------------|------:|-------:|------:|---------:|
-| `quality/`   |     7 |      6 |     1 |        0 |
-| `languages/` |    11 |      0 |    11 |        0 |
-| `workflow/`  |    11 |      5 |     2 |        4 |
-| `tools/`     |     3 |      2 |     0 |        1 |
+| Category     | Files | always-on | path-scoped |
+|--------------|------:|----------:|------------:|
+| `quality/`   |     7 |         6 |           1 |
+| `languages/` |    11 |         0 |          11 |
+| `workflow/`  |    11 |         9 |           2 |
+| `tools/`     |     3 |         3 |           0 |
 
-Always-on footprint (`global/CLAUDE.md` + the 13 `alwaysApply` rules): **701 lines / 97 KB / ~24k tokens**. Keep it measured — it is paid on every session before any work starts.
+Always-on footprint (`global/CLAUDE.md` + the 18 rules without `paths:`): **913 lines / 121 KB / ~30k tokens**, paid on every session before any work starts. Measure it with:
+
+```sh
+cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" || cat "$f"; done | wc -c
+```
 
 ## Agent Design Criteria
 
