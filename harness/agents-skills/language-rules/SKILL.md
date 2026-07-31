@@ -1,18 +1,25 @@
 ---
 name: language-rules
 description: >
-  Codex: load before code write/edit/review/debug/generate. Full language conventions
+  Codex: load before code write/edit/review/debug/generate — full language conventions
   (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle, Tailwind,
-  shell, Docker/Terraform/GHA, UI). Do not load on Claude Code/opencode (own conditional
-  channels); opencode: quality/verification refs only. Match files in play, not whole stack.
+  shell, Docker/Terraform/GHA, UI). Claude Code/opencode get language rules by glob —
+  load here only to drive a browser / verify a running app. Match files in play.
 ---
 
 # language-rules — deterministic router to the full language conventions
 
-The full, canonical language rules live in `references/` (injected at build time from
-`global/rules/languages/` — single source of truth). This skill exists because Codex has
-no glob-conditional rule loading: the always-on floor was removed in favor of loading
-the COMPLETE rules only when the stack is actually touched.
+The full, canonical rules live in `references/` (injected at build time from
+`global/rules/` — single source of truth). This skill exists because Codex has no
+glob-conditional rule loading: the COMPLETE rules load only when the stack is touched.
+
+**Per-harness scope — read only what your harness lacks:**
+
+| Harness | What this skill is for | Reference path |
+|---|---|---|
+| Codex | Everything below — no conditional rule channel exists | `references/<file>` |
+| Claude Code | **Only the browser row.** Language rows arrive by `paths:` glob; the quality rows are always-on | `~/.claude/rules/tools/browser-automation.md` |
+| opencode | Browser + quality rows. Language rows arrive via the rules plugin | `references/<file>` |
 
 ## Routing table — read every row that matches the files/manifests in play
 
@@ -53,6 +60,9 @@ the COMPLETE rules only when the stack is actually touched.
 - A reference you already loaded this session (and not compacted away) does not need
   reloading.
 - No matching row → this skill has nothing for the task; proceed without it.
-- opencode: the language rows arrive automatically via the rules plugin — read only the
-  quality/verification rows (development-principles, testing, debugging,
+- **Claude Code:** every row except `browser-automation` is already reaching you (language
+  rows by `paths:` glob, quality rows always-on) — read the browser row before driving a
+  browser, and skip the rest rather than loading a duplicate.
+- **opencode:** the language rows arrive automatically via the rules plugin — read only
+  the quality/verification rows (development-principles, testing, debugging,
   browser-automation) from here.

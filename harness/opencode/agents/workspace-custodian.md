@@ -59,6 +59,6 @@ user for approval, so every proposal must be concrete enough to execute verbatim
   an `expire`.
 
 ## Output
-Raw markdown: summary line (counts per classification), then one table per
-classification with columns: source path | action/destination | reason. End with
-anything you chose NOT to flag and why (borderline cases) — silence reads as "clean".
+Raw markdown: summary line (counts per classification), then the proposals grouped by
+classification. End with anything you chose NOT to flag and why (borderline cases) —
+silence reads as "clean".

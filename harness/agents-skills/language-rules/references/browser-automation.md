@@ -1,6 +1,8 @@
 
 ## Browser Automation Tooling
 
+> **Loaded via the `language-rules` skill** (trigger: driving a browser or in-vivo verification), not always-on. Claude Code: `~/.claude/rules/tools/browser-automation.md`. Codex/opencode: `references/browser-automation.md`. Always-on entry point: `workflow/agent-routing.md > Skill & Browser Disambiguation` names this file whenever a browser is in play.
+
 > Which tool drives a browser. Default to the `agent-browser` CLI; reach for an MCP browser server only for what the CLI cannot do. Distinct from `agent-routing.md` (which *agent* verifies) — this picks the *tool* the agent uses.
 
 ### Primary: `agent-browser` CLI (via Bash)

@@ -33,5 +33,4 @@ You are a senior Angular developer who builds production-grade components, servi
 - Template with correct syntax for the detected Angular version
 - Styles using the project's configured preprocessor
 - Unit tests using TestBed with dependency mocking
-- Usage example as a code comment showing how to consume the component
 """

@@ -20,7 +20,7 @@ Outside the carve-outs above, tests are part of the implementation — never a f
 
 > Canonical here; `agent-routing.md` (who verifies) and `development-principles.md` (what violates it) reference this without restating it. The gate is a *checkable result*, not the test-first ritual — recommend writing the failing test first (it clarifies intent), require only the verifiable outcome.
 
-Applies to every **behavior change** (non-trivial, per the `critical-thinking.md` trivial carve-out). A change clears the gate only when all three hold:
+Applies to every **behavior change** (non-trivial, per the carve-out above). A change clears the gate only when all three hold:
 - **Fail-to-pass** — it ships with at least one test that fails *without* the change and passes *with* it. A test that passes either way proves nothing.
 - **Pass-to-pass** — every previously-passing test still passes. The change does not delete, weaken, or loosen existing tests to go green.
 - **Verification runs the tests** — the gate is cleared by an actual run (command + result), never by a claim that it would pass.
@@ -29,7 +29,7 @@ Applies to every **behavior change** (non-trivial, per the `critical-thinking.md
 
 ### Execution Scope
 
-> *What* to cover (above) is separate from *how much to run per iteration*: scope the run to the change; reserve the full suite for the merge boundary. Proportionality canon referenced by `CLAUDE.md > Build & Lint`; "trivial" is defined in `quality/critical-thinking.md`.
+> *What* to cover (above) is separate from *how much to run per iteration*: scope the run to the change; reserve the full suite for the merge boundary. Proportionality canon referenced by `CLAUDE.md > Build & Lint`.
 
 - **The local loop runs the affected subset — selected by the tooling, not by eye:** `jest --findRelatedTests <files>` / `--changedSince`, vitest's `related` / watch mode. A guessed subset misses regressions; a dependency-graph-selected one covers the transitively-affected tests. A trivial or localized change does not earn the full suite per iteration.
 - **The test/in-vivo run amortizes over the change-group, not per commit:** a cohesive group spanning several commits on a small surface runs the affected subset and the in-vivo gate ONCE at the group's close. **Exception — a commit that stands alone earns its own run:** ~15+ files, or core/risky logic even under that threshold. Deferring to group-close trades away per-commit bisect signal — acceptable for a cohesive group, not a sprawling one: split that group instead.

@@ -14,7 +14,7 @@ never invalidated (`memory-routing.md > Invalidation` — "corrected by addition
 both facts alive); this skill reconciles both layers against ground truth. Default
 subcommand: `audit`.
 
-**Ground-truth precedence** (canon: `memory-routing.md > Reporting state from ground
+**Ground-truth precedence** (canon: `quality/debugging.md > Reporting state from ground
 truth`) — a memory is a claim verified *against* these, never trusted *over* them:
 1. **The live system** — matched to the claim type: git/disk for implementation, the
    running app/DB for runtime state, context7 anchored to the installed version for
@@ -70,4 +70,4 @@ truth`) — a memory is a claim verified *against* these, never trusted *over* t
 
 - **Does NOT configure Engram** (the plugin self-manages). It *uses* the lifecycle tools — `mem_update` / `mem_delete` (invalidate/remove), `mem_review action=list` (harvest observations whose decay window passed, an extra staleness signal). `mem_compare` is NOT a lifecycle tool — it only records a supersedes/conflict relation and does not by itself remove or hide a memory.
 - **Why audit runs in the main thread** (unlike flow-hygiene's custodian): reconciliation needs the live Engram session the main thread holds; a fresh subagent would lack it. Only the wide disk sweep is delegable.
-- Background and the upstream protocol: `memory-routing.md > Invalidation` and `> Reporting state from ground truth`.
+- Background and the upstream protocol: `memory-routing.md > Invalidation` (via the `memory-policy` skill) and `quality/debugging.md > Reporting state from ground truth`.

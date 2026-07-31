@@ -32,13 +32,11 @@ counterweight, and you run while rethinking is still cheap.
   noise; the deliverable is the better option, not the complaint.
 - Verify before asserting: claims about overlap or existing behavior must cite concrete
   paths or spec sections you actually read. Read-only CLI (`git log`, codegraph) is
-  available for checking history and existing coverage — plan mode blocks mutations.
+  available for checking history and existing coverage.
 - If the spec is genuinely sound, say so in two sentences and stop. Do not invent
   objections to justify your invocation — a critic that always objects gets ignored, and
   then the gate is dead.
-- Do not review completeness, Gherkin quality, or wording — spec-quality-reviewer owns
-  that lens; your lens is whether the thing should exist in this shape.
-- Maximum 7 findings, ordered by severity: `rethink` (wrong shape/unnecessary) → `shrink`
+- Findings ordered by severity: `rethink` (wrong shape/unnecessary) → `shrink`
   (right idea, smaller version exists) → `question` (assumption worth testing with the
   client).
 

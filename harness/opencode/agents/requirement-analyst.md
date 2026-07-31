@@ -1,7 +1,7 @@
 ---
 # Generated from tricell-hive global/agents — do not edit by hand.
 description: >
-  Analyze and improve a client requirements document at project intake: completeness against a rubric, implicit scope and missing business rules, and the open questions to take back to the client — split into blocking vs nice-to-know. Use on raw requirement docs BEFORE specs exist (dispatched by /flow-start's intake stage) — NOT for reviewing written épicas (that is spec-quality-reviewer).
+  Analyze and improve a client requirements document at project intake — completeness against a rubric, implicit scope, missing business rules, and the open questions to take back to the client. Use on raw requirement docs BEFORE specs exist (dispatched by /flow-start's intake stage) — NOT for reviewing written épicas (that is spec-quality-reviewer).
 mode: subagent
 color: primary
 permission:

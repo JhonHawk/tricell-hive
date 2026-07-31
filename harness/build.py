@@ -52,8 +52,10 @@ SKILL_REFERENCE_INJECTIONS = {
     ],
     "workspace-conventions": [
         ("rules/workflow", "project-structure.md"),
+        ("rules/workflow", "session-capture.md"),
         ("rules/workflow", "support-artifacts.md"),
         ("rules/workflow", "cross-service-workflow.md"),
+        ("rules/workflow", "infra-naming.md"),
     ],
     "memory-policy": [
         ("rules/workflow", "memory-routing.md"),

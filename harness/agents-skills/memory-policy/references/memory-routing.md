@@ -1,6 +1,8 @@
 
 ## Memory Routing — Engram vs. Native File-Memory
 
+> **Loaded via the `memory-policy` skill**, not always-on. Claude Code: `~/.claude/rules/workflow/memory-routing.md`. Codex/opencode: `references/memory-routing.md`. The always-on half — how to ANSWER a state question — is `quality/debugging.md > Reporting state from ground truth`; this file owns the store mechanics.
+
 > Two memory systems run at once: Claude Code's **native file-memory** (harness-injected, always in context) and **Engram** (MCP server, SQLite, retrieved on demand). Their save-triggers overlap; this rule draws the boundary so the same fact never lands in both and drifts. It does NOT configure Engram (its plugin self-manages); it governs which system receives a given save.
 
 ### The boundary
@@ -31,16 +33,12 @@ A multi-repo workspace declares ONE unified Engram project — `.engram/config.j
 Memory drifts when a fact becomes false and the old record survives — "corrected by addition" leaves both "X pending" and "X done" alive, and the next session resurfaces the stale one as current.
 
 - **Status/pending facts upsert via `topic_key`.** A project's current state or an evolving decision is ONE living observation per topic — never a fresh observation each time.
-- **When a fact becomes false, invalidate the old record.** Engram: `mem_update` the stale observation to restate the current truth (it overwrites — invalidate only once the new truth is verified); `mem_compare(supersedes)` merely records a relation and does NOT hide the stale one — never a substitute for the update. Native: MOVE the resolved item out of "Remaining Work" — a struck-through entry left in a pending section still reads as pending. **Existence ≠ completion:** a related file merely existing doesn't prove a pending task done; that needs a positive signal (closing commit, passed phase/tests). `/memory-sync` owns the verification.
+- **When a fact becomes false, invalidate the old record.** Engram: `mem_update` the stale observation to restate the current truth (it overwrites — invalidate only once the new truth is verified); `mem_compare(supersedes)` merely records a relation and does NOT hide the stale one — never a substitute for the update. Native: MOVE the resolved item out of "Remaining Work" — a struck-through entry left in a pending section still reads as pending. Verify completion against ground truth before invalidating (`quality/debugging.md > Reporting state from ground truth`); `/memory-sync` owns the sweep.
 - **Fix the layer the fact lives in.** A status deliberately mirrored across both layers (ledger-mirrored flow state) is invalidated in both, or one goes current while the other stays stale.
 
 ### Reporting state from ground truth
 
-"What's pending / what's next / where are we?" is answered from authority, not memory:
-
-- **Implementation state ("X is done/exists") is authoritative only in the live system** (git/disk, running app, DB). The ledger (`PROJECT.md`) is authoritative only for coordination state nothing else records — current flow phase, pointers, declared tracker; for implementation claims it is a record to verify against the live system, never a substitute. Memory is a CLAIM to verify against both.
-- **Verify a remembered claim against the live source for its type before reporting it.** Implementation → git first (closing commit/PR, merged branch, the file/test on disk). Tool/library behavior or defaults → the docs for the INSTALLED version (context7 anchored to the lockfile/manifest, never latest), never a memory or a misread inspection command. **Absence of evidence ≠ proof of absence:** an empty `config get` or a grep miss doesn't prove "off". A claim contradicting ground truth is stale — report the real state and invalidate it (above).
-- **Recurring drift, or "what's pending?" surfacing finished work → run `/memory-sync audit`.** At session close, IF this session's completions map to a still-"pending" memory, supersede it before saving the summary — conditional on this-session completions, not a per-session ritual.
+Canonical: `quality/debugging.md > Reporting state from ground truth` (always-on — it fires with no Engram in play). Its consequence here: at session close, IF this session's completions map to a still-"pending" memory, supersede it before saving the summary — conditional on this-session completions, not a per-session ritual.
 
 ### Tracker sync (governed by project declaration)
 

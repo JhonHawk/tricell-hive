@@ -1,24 +1,34 @@
 ---
 name: memory-policy
 description: >
-  Codex/opencode: load before first Engram op (mem_save/search/context/summary) or
-  answering pending state from memory. Project identity, topic_key, ground-truth.
-  Skip Claude Code (always-on). Plugin protocol wins over this policy layer.
+  All harnesses: load before the first Engram op of a session (mem_save/search/context/
+  summary) or before writing to native file-memory. Project identity, save cadence,
+  topic_key upserts, invalidation, tracker sync. Plugin protocol wins over this layer.
 ---
 
 # memory-policy — the policy layer over the Engram plugin protocol
 
-The full canonical policy lives in `references/memory-routing.md` (injected at build
-time from `global/rules/workflow/` — single source of truth). The Engram plugin
-hook-injects the PROTOCOL (tools, save/search triggers, session summary) every session;
-this skill carries the POLICY that keeps those saves clean: project identity, upserts,
-invalidation, ground truth.
+The Engram plugin hook-injects the PROTOCOL (tools, save/search triggers, session
+summary) every session; this skill carries the POLICY that keeps those saves clean:
+project identity, save cadence, upserts, invalidation, tracker sync. No harness loads it
+always-on — it is dead weight in a session that never touches memory.
+
+**Where the reference lives** — same canonical file, two paths:
+
+| Harness | Read from |
+|---|---|
+| Claude Code | `~/.claude/rules/workflow/memory-routing.md` |
+| Codex / opencode | `references/memory-routing.md` (injected at build time) |
 
 ## Rules of use
 
-- Read `references/memory-routing.md` in full on first load; apply the Engram side. Its
-  native file-memory half (`MEMORY.md`, memory directories) is Claude-Code-only —
-  Codex/opencode sessions skip it rather than simulating it through other storage.
+- Read it in full on first load. Its native file-memory half (`MEMORY.md`, memory
+  directories) is Claude-Code-only — Codex/opencode sessions skip that half rather than
+  simulating it through other storage.
+- **Not in this skill and never conditional:** how to ANSWER a question about state
+  ("what's pending / where are we?") is always-on in `quality/debugging.md > Reporting
+  state from ground truth` — verify against git/disk/DB before reporting, whether or not
+  this skill ever loads.
 - This skill parameterizes Engram's own affordances (`topic_key`, `mem_update`,
   `.engram/config.json`) — it never overrides the plugin-injected protocol. On conflict,
   the plugin's protocol wins and this skill gets fixed, not argued past.
