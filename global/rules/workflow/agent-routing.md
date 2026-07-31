@@ -50,15 +50,12 @@ Inline vs delegate — quick reference:
 | Action | Inline | Delegate |
 |---|---|---|
 | Read 1-3 files to make a decision | ✓ | |
-| Read 4+ files to understand a flow | | `Explore` |
 | Mechanical single-file edit | ✓ | |
-| Multi-file write or new logic | | one writer (specialist per the table) |
 | State bash (`git status`, `gh pr view`) | ✓ | |
 | Execution bash (tests, builds, installs) | | the writer/verifier runs them |
 | Reading as preparation for an edit | | never split: the writer reads AND edits |
 
 Delegation hygiene:
-- **Dispatch independent subagents in one message.** 2+ tasks with no data dependency go out together; sequential dispatch of independent work wastes wall-clock for nothing.
 - **Executor subagents never orchestrate:** `Agent` stays out of their allowlist — Bash, MCP, and CLI access are unaffected.
 - **Deduplicate launches** — before spawning, check no equivalent subagent is already running or answered, and wait for its result; parallel read-only agents are the default, parallel writers only in isolated, explicitly approved worktrees.
 - **Never reopen verification for fresh budget:** a failed fix cycle escalates (Chain Interruption below) — it never restarts verification to reset the count.
@@ -66,7 +63,7 @@ Delegation hygiene:
 ### Multi-Agent Chains — declare, don't gate
 A task spanning 2+ domains (design AND implementation, frontend AND backend, implies tests, crosses service boundaries) gets a chain of specialists, each receiving the previous agent's key outputs (spec paths, schemas, diffs). **Declare the chain in the start summary and execute** — fold it into the plan gate when one exists. A blocking presentation is signal-driven only: 2+ genuinely valid chains (ask which), an embedded stakeholder decision, or an irreversible/costly stage.
 
-Reference chains — sequences, not mandatory pipelines; skip steps in proportion to the change (a trivial feature collapses to the implementation agent alone): **new feature** system-designer → implementer(s) → (test-engineer on a coverage push) → code-reviewer; **bug, root cause unknown** Explore or performance-engineer → implementer; **security audit** security-reviewer → secrets-auditor → code-reviewer; **deployment/infra** implementer → devops-engineer → security-reviewer (cloud-architect designs first on greenfield or migration). Implementation agents write tests for their own code per `quality/testing.md`; test-engineer is for primary-task coverage work.
+Reference chains — sequences, not mandatory pipelines; skip steps in proportion to the change (a trivial feature collapses to the implementation agent alone): **new feature** system-designer → implementer(s) → (test-engineer on a coverage push) → code-reviewer; **bug, root cause unknown** Explore or performance-engineer → implementer; **security audit** security-reviewer → secrets-auditor → code-reviewer; **deployment/infra** implementer → devops-engineer → security-reviewer (cloud-architect designs first on greenfield or migration).
 
 ### Verification runs in fresh context
 Route review/verification to a separate subagent that did NOT implement the change — fresh-context verifiers outperform self-critique. The verifier's input is the actual change (the diff, the run output), never the implementer's report of it — a report travels as claims to check, not context to trust.
