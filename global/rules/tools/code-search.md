@@ -32,4 +32,4 @@ An index result is a pointer, never a verdict:
 
 ## Model floor for discovery agents
 
-Discovery agents run on **sonnet** (Codex: terra via the tier map). haiku/luna are NOT approved for discovery — the discipline above is the safety mechanism and degrades first on smaller models. Mechanical harness roles may use haiku/luna.
+Discovery agents run on **sonnet** (Codex: luna at `max` reasoning via the tier map). The floor is the reasoning depth, not the model size: luna below `max`, and haiku, are NOT approved for discovery — the discipline above is the safety mechanism and degrades first on shallow reasoning. Mechanical harness roles may run at lower efforts.

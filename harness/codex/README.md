@@ -55,8 +55,13 @@ parts in Codex TOML and makes non-equivalent fields visible:
   delegate agents; Codex has no native per-agent tool deny equivalent here.
 - `skills:` becomes a developer instruction to use the named skill when
   available; do not assume it is preloaded.
-- Claude model aliases such as `sonnet` stay as comments; only Codex-compatible
-  model IDs are emitted as `model`.
+- Claude model aliases are translated by the tier map in
+  `harness/build/convert-agents.py`: `opus` → `gpt-5.6-sol` @ `high` (judgment),
+  `sonnet` → `gpt-5.6-luna` @ `max` (execution), `haiku` → `gpt-5.6-luna` @ `high`.
+  The tier's effort overrides the Claude `effort` frontmatter, which is calibrated
+  for Claude's models; the original value stays as a comment.
+- `inherit` emits no `model`, so those agents resolve to `[agents]
+  default_subagent_model` in `config.toml` before falling back to the session model.
 
 `python3 harness/build.py` prints warnings for lossy fields so review catches
 semantic drift before deploy.

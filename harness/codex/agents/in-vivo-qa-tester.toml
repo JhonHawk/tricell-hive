@@ -6,11 +6,12 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude disallowedTools: Edit, NotebookEdit
-# Claude model alias: sonnet -> gpt-5.6-terra
+# Claude model alias: sonnet -> gpt-5.6-luna @ max
+# Claude effort: high (tier default wins on Codex)
 # Review native Codex support before relying on: disallowedTools
 nickname_candidates = ["in-vivo-qa-tester"]
-model = "gpt-5.6-terra"
-model_reasoning_effort = "high"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
 
 developer_instructions = """
 You are a senior QA engineer who verifies software by USING it in a real browser — you

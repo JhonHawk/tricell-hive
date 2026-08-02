@@ -29,14 +29,33 @@ CLAUDE_ONLY_FIELDS = {
     "skills",
     "tools",
 }
-CODEX_REASONING_EFFORTS = {"low", "medium", "high", "xhigh"}
-# Claude model-alias tiers → Codex model slugs. Single place to update when
-# OpenAI rotates the family. Agents on "inherit" (or an unmapped alias) emit no
-# `model` line, so the Codex session model applies — the coordinator/session is
-# never stamped. Tier-mapped agents default to "high" reasoning effort unless
-# the Claude frontmatter sets a Codex-compatible effort explicitly.
-CODEX_TIER_MAP = {"sonnet": "gpt-5.6-terra", "haiku": "gpt-5.6-luna"}
-CODEX_TIER_DEFAULT_EFFORT = "high"
+CODEX_REASONING_EFFORTS = {"minimal", "low", "medium", "high", "xhigh", "max", "ultra"}
+# Not every model advertises every level. A tier that is not advertised is dropped
+# silently by Codex at request time (verified on 0.146.0), so the build rejects it
+# instead — keep in sync with `additional_speed_tiers`/`supported_reasoning_levels`
+# in ~/.codex/models_cache.json.
+CODEX_UNSUPPORTED_EFFORTS = {"gpt-5.6-luna": frozenset({"ultra"})}
+# Claude model-alias tiers → (Codex model slug, reasoning effort). Single place to
+# update when OpenAI rotates the family. Execution runs on luna at max reasoning;
+# judgment roles run on sol. Agents on "inherit" (or an unmapped alias) emit no
+# `model` line: they resolve to the [agents] default in config.toml, then to the
+# session model.
+CODEX_TIER_MAP = {
+    "opus": ("gpt-5.6-sol", "high"),
+    "sonnet": ("gpt-5.6-luna", "max"),
+    "haiku": ("gpt-5.6-luna", "high"),
+}
+
+
+def validate_tier_map():
+    for alias, (slug, effort) in CODEX_TIER_MAP.items():
+        if effort not in CODEX_REASONING_EFFORTS:
+            raise ValueError(f"tier {alias}: unknown reasoning effort '{effort}'")
+        if effort in CODEX_UNSUPPORTED_EFFORTS.get(slug, frozenset()):
+            raise ValueError(f"tier {alias}: {slug} does not advertise effort '{effort}'")
+
+
+validate_tier_map()
 
 
 def parse_agent(path: Path):
@@ -132,16 +151,25 @@ def codex_model(agent):
     # Claude aliases like "opus" and stamp them as Codex model slugs.
     if model.startswith("gpt-") or re.match(r"^o\d", model):
         return model
-    return CODEX_TIER_MAP.get(model)
+    tier = CODEX_TIER_MAP.get(model)
+    return tier[0] if tier else None
 
 
 def codex_reasoning_effort(agent):
+    """The tier's effort wins over the Claude `effort` frontmatter, which is
+    calibrated for Claude's models rather than the Codex tier it maps to. An
+    explicit gpt-*/o-series model keeps its frontmatter effort, dropped when the
+    model does not advertise it."""
+    tier = CODEX_TIER_MAP.get((agent["model"] or "").strip())
+    if tier:
+        return tier[1]
     effort = (agent["effort"] or "").strip()
-    if effort in CODEX_REASONING_EFFORTS:
-        return effort
-    if (agent["model"] or "").strip() in CODEX_TIER_MAP:
-        return CODEX_TIER_DEFAULT_EFFORT
-    return None
+    if effort not in CODEX_REASONING_EFFORTS:
+        return None
+    model = codex_model(agent)
+    if model and effort in CODEX_UNSUPPORTED_EFFORTS.get(model, frozenset()):
+        return None
+    return effort
 
 
 def codex_compatibility_comments(agent):
@@ -160,11 +188,17 @@ def codex_compatibility_comments(agent):
     if agent["model"] and agent["model"] != "inherit" and not codex_model(agent):
         comments.append(f"# Claude model: {comment_escape(agent['model'])}")
     elif agent["model"] in CODEX_TIER_MAP:
+        slug, effort = CODEX_TIER_MAP[agent["model"]]
         comments.append(
-            f"# Claude model alias: {agent['model']} -> {CODEX_TIER_MAP[agent['model']]}"
+            f"# Claude model alias: {agent['model']} -> {slug} @ {effort}"
         )
-    if agent["effort"] and not codex_reasoning_effort(agent):
+    resolved_effort = codex_reasoning_effort(agent)
+    if agent["effort"] and not resolved_effort:
         comments.append(f"# Claude effort: {comment_escape(agent['effort'])}")
+    elif agent["effort"] and agent["effort"].strip() != resolved_effort:
+        comments.append(
+            f"# Claude effort: {comment_escape(agent['effort'])} (tier default wins on Codex)"
+        )
     if agent["permission_mode"]:
         comments.append(f"# Claude permissionMode: {comment_escape(agent['permission_mode'])}")
     if agent["max_turns"]:

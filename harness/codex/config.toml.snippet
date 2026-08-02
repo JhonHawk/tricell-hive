@@ -28,6 +28,12 @@ commit_attribution = ""
 [agents]
 max_threads = 6
 max_depth = 1
+# Floor for agents the hive leaves on "inherit" (finding-refuter, system-designer,
+# cloud-architect, visual-designer) — all judgment roles, so they must not follow a
+# session running on a cheap tier. Precedence: agent file > spawn value > these
+# defaults > parent session, so a tier-mapped agent's own TOML still wins.
+default_subagent_model = "gpt-5.6-sol"
+default_subagent_reasoning_effort = "high"
 
 # Linear MCP — required by flow-specs / flow-plan / flow-build. Example shape; adjust to the
 # actual server you use (or Codex's native Linear integration if configured).
