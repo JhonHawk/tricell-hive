@@ -60,6 +60,9 @@ SKILL_REFERENCE_INJECTIONS = {
     "memory-policy": [
         ("rules/workflow", "memory-routing.md"),
     ],
+    "flow-report": [
+        ("rules/quality", "communication-format.md"),
+    ],
     "unattended-delegation": [
         ("rules/workflow", "unattended-autonomy.md"),
     ],

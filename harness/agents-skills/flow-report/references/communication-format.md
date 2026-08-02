@@ -1,6 +1,3 @@
----
-alwaysApply: true
----
 
 ## Communication Format
 

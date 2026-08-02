@@ -26,7 +26,7 @@ either axis is a finding.
 
 | # | Dimension | Pass means |
 |---|---|---|
-| 11 | Type scale | Font sizes come from a small consistent scale (px/rem, not `em`); body measure is 45–75 chars; line-height ~1.5–2 for body, ~1 for large headings |
+| 11 | Type scale | Font sizes come from a small consistent scale (px/rem, not `em`); body measure is 45–75 chars; line-height ~1.5–2 for body, ~1 for large headings. **The measure applies to product UI, which is what this rubric scores.** A single-document deliverable (report, published Artifact) inverts it — there the shell is the measure and capping prose is the defect (`quality/communication-format.md > Layout floor`) |
 | 12 | Spacing system | Spacing comes from the scale; **space around a group exceeds space within it** (no ambiguous equal spacing); whitespace is generous, not cramped |
 | 13 | Color & contrast | Palette is systematic (greys + 1–2 primaries + semantic accents, fixed shades); text meets **WCAG AA — ≥4.5:1 normal, ≥3:1 large**; meaning is never carried by color alone |
 | 14 | Action hierarchy | Per view exactly one primary action (solid); secondary = outline/low-contrast; tertiary = link-styled; a destructive action isn't auto-styled big/red unless it's the view's primary |
