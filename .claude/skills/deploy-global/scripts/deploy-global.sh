@@ -42,6 +42,10 @@ readonly CLAUDE_HOME="${HOME}/.claude"
 readonly CODEX_HOME="${HOME}/.codex"
 readonly OPENCODE_HOME="${HOME}/.config/opencode"
 readonly AGENTS_SKILLS_HOME="${HOME}/.agents/skills"
+# Grok relocates its config root via GROK_HOME (documented in its user guide);
+# honor it so a relocated install is not silently deployed to ~/.grok.
+readonly GROK_HOME="${GROK_HOME:-${HOME}/.grok}"
+readonly GROK_RULES_HOME="${GROK_HOME}/rules"
 readonly MANIFEST="${CLAUDE_HOME}/.deploy-manifest"
 readonly BACKUP_DIR="${CLAUDE_HOME}/backups"
 readonly CODEX_DOC_MAX_BYTES=49152
@@ -66,6 +70,7 @@ FORCE_DELETE_ORPHANS=0
 RUN_CLAUDE=1
 RUN_CODEX=1
 RUN_OPENCODE=1
+RUN_GROK=1
 
 REPORT_LOG=""
 TMP_FILES=()
@@ -112,7 +117,8 @@ FLAGS:
                         claude    -> global/ into ~/.claude
                         codex     -> harness/ codex-specific targets (~/.codex)
                         opencode  -> harness/ opencode-specific targets (~/.config/opencode)
-                        harness   -> alias for "codex,opencode"
+                        grok      -> always-on rules symlinked into ~/.grok/rules
+                        harness   -> alias for "codex,opencode,grok"
                         all       -> everything (default when --only is omitted)
   --delete-orphans   Under --apply, actually delete manifest-confirmed orphans
                       (and purge their settings.json/hooks.json entries).
@@ -133,6 +139,13 @@ SCOPE NOTES:
   ~/.claude — there is no equivalent snapshot mechanism for ~/.codex or
   ~/.config/opencode in the source procedure, so the backup step is skipped
   entirely when the "claude" scope is not active.
+
+  The "grok" scope writes only symlinks (no file content), each pointing at the
+  deployed rule under ~/.claude/rules — so it needs the "claude" scope to have
+  run at least once, and removing a link never touches a rule. Grok's rules
+  discovery is NOT recursive and does NOT honor `paths:`, so only always-on
+  rules (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
+  Path-scoped rules reach Grok through the router skills instead.
 
 EXIT STATUS:
   0  ran to completion (dry-run or apply)
@@ -193,6 +206,7 @@ parse_args() {
         RUN_CLAUDE=0
         RUN_CODEX=0
         RUN_OPENCODE=0
+        RUN_GROK=0
         local IFS=','
         local -a scopes
         read -r -a scopes <<<"${only_raw}"
@@ -202,16 +216,19 @@ parse_args() {
                 claude) RUN_CLAUDE=1 ;;
                 codex) RUN_CODEX=1 ;;
                 opencode) RUN_OPENCODE=1 ;;
+                grok) RUN_GROK=1 ;;
                 harness)
                     RUN_CODEX=1
                     RUN_OPENCODE=1
+                    RUN_GROK=1
                     ;;
                 all)
                     RUN_CLAUDE=1
                     RUN_CODEX=1
                     RUN_OPENCODE=1
+                    RUN_GROK=1
                     ;;
-                *) die "Unknown --only scope: ${s} (expected claude|codex|opencode|harness|all)" ;;
+                *) die "Unknown --only scope: ${s} (expected claude|codex|opencode|grok|harness|all)" ;;
             esac
         done
     fi
@@ -358,6 +375,51 @@ deploy_file() {
 }
 
 # ---------------------------------------------------------------------------
+# Grok rule selection
+#
+# Grok discovers rules by scanning `rules/` NON-recursively and does not honor
+# `paths:` — both verified empirically against grok 0.2.118 with marker files
+# under a temporary GROK_HOME. Consequences encoded below:
+#   - the tree under global/rules/ is invisible to it, so each rule is linked
+#     flat as `<subdir>__<file>.md` (file symlinks ARE followed; directory
+#     symlinks are not);
+#   - a path-scoped rule would become always-on there, so only rules WITHOUT
+#     `paths:` are linked. The rest reach Grok through the router skills.
+# ---------------------------------------------------------------------------
+
+# rule_is_always_on FILE -> 0 when the rule loads unconditionally.
+# `paths:` in the first frontmatter block is the only key that makes a rule
+# conditional; every other key (alwaysApply:, …) is documentation, not
+# mechanism, and no frontmatter at all means always-on.
+rule_is_always_on() {
+    local f="$1" first="" fm
+    [[ -f "${f}" ]] || return 1
+    IFS= read -r first <"${f}" || true
+    [[ "${first}" == "---" ]] || return 0
+    fm=$(sed -n '2,/^---[[:space:]]*$/p' "${f}")
+    grep -q '^paths:' <<<"${fm}" && return 1
+    return 0
+}
+
+# grok_always_on_rules -> one rel path per line, e.g. "quality/testing.md"
+grok_always_on_rules() {
+    local f rel
+    while IFS= read -r f; do
+        [[ -n "${f}" ]] || continue
+        rel="${f#"${REPO_ROOT}"/global/rules/}"
+        # `__` is the flatten separator; a rule filename containing it would
+        # make the flat name ambiguous to reverse in manifest_entry_map. Fail
+        # loudly instead of silently mapping it to a nonexistent source.
+        case "${rel}" in
+            *__*) die "Rule path contains '__', which collides with the Grok flatten separator: ${rel}" ;;
+        esac
+        if rule_is_always_on "${f}"; then
+            printf '%s\n' "${rel}"
+        fi
+    done < <(find "${REPO_ROOT}/global/rules" -type f -name '*.md' 2>/dev/null | sort)
+}
+
+# ---------------------------------------------------------------------------
 # Step 1 (preview) — always runs, always read-only.
 # ---------------------------------------------------------------------------
 
@@ -419,6 +481,29 @@ step_diff() {
         diff_category "opencode-rules (pre-rebuild)" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules" -name '*.md' ! -name 'README.md'
         diff_file "harness AGENTS.md -> opencode (pre-rebuild)" "${REPO_ROOT}/harness/AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
     fi
+    if [[ "${RUN_GROK}" -eq 1 ]]; then
+        diff_grok_rules
+    fi
+}
+
+diff_grok_rules() {
+    local new=0 relink=0 unchanged=0 total=0 rel flat current
+    while IFS= read -r rel; do
+        [[ -n "${rel}" ]] || continue
+        total=$((total + 1))
+        flat="${rel//\//__}"
+        current=""
+        [[ -L "${GROK_RULES_HOME}/${flat}" ]] && current=$(readlink "${GROK_RULES_HOME}/${flat}")
+        if [[ "${current}" == "${CLAUDE_HOME}/rules/${rel}" ]]; then
+            unchanged=$((unchanged + 1))
+        elif [[ -e "${GROK_RULES_HOME}/${flat}" || -L "${GROK_RULES_HOME}/${flat}" ]]; then
+            relink=$((relink + 1))
+        else
+            new=$((new + 1))
+        fi
+    done < <(grok_always_on_rules)
+    log "  grok-rules: ${new} new, ${relink} relinked, ${unchanged} unchanged (${total} always-on of $(find "${REPO_ROOT}/global/rules" -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ') rules)"
+    report "  grok-rules: ${new} new, ${relink} relinked, ${unchanged} unchanged (${total} always-on rules)"
 }
 
 # ---------------------------------------------------------------------------
@@ -483,6 +568,7 @@ manifest_entry_scope() {
         agents-skills/*) echo "shared" ;;
         codex-agents/* | codex-hooks/* | harness-agents/codex/*) echo "codex" ;;
         opencode-agents/* | opencode-commands/* | opencode-plugins/* | harness-agents/opencode/*) echo "opencode" ;;
+        grok-rules/*) echo "grok" ;;
         *) echo "unknown" ;;
     esac
 }
@@ -558,6 +644,19 @@ manifest_entry_map() {
             MAP_SRC="${REPO_ROOT}/harness/AGENTS.md"
             MAP_TGT="${OPENCODE_HOME}/AGENTS.md"
             ;;
+        grok-rules/*)
+            # Un-flatten `quality__testing.md` back to `quality/testing.md`.
+            # MAP_SRC is deliberately left empty when the rule still exists but
+            # is no longer always-on (it gained `paths:`): the link must then be
+            # detected as an orphan, since Grok cannot scope it.
+            local flat unflat
+            flat=$(basename "${rel}")
+            unflat="${flat//__//}"
+            if rule_is_always_on "${REPO_ROOT}/global/rules/${unflat}"; then
+                MAP_SRC="${REPO_ROOT}/global/rules/${unflat}"
+            fi
+            MAP_TGT="${GROK_RULES_HOME}/${flat}"
+            ;;
         *)
             : # unrecognized prefix — MAP_SRC/MAP_TGT stay empty, never touched
             ;;
@@ -587,11 +686,15 @@ step_detect_orphans() {
             shared) [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] || continue ;;
             codex) [[ "${RUN_CODEX}" -eq 1 ]] || continue ;;
             opencode) [[ "${RUN_OPENCODE}" -eq 1 ]] || continue ;;
+            grok) [[ "${RUN_GROK}" -eq 1 ]] || continue ;;
             *) continue ;; # unknown prefix — never touch
         esac
         manifest_entry_map "${rel}"
         if [[ -z "${MAP_SRC}" || ! -e "${MAP_SRC}" ]]; then
-            [[ -n "${MAP_TGT}" && -e "${MAP_TGT}" ]] && ORPHANS+=("${rel}")
+            # -L as well as -e: a dangling symlink (grok-rules/ pointing at a
+            # rule that was removed from ~/.claude/rules) fails -e, and would
+            # otherwise survive every cleanup while still being loaded-by-name.
+            { [[ -n "${MAP_TGT}" ]] && { [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; }; } && ORPHANS+=("${rel}")
         fi
     done <"${MANIFEST}"
 
@@ -634,7 +737,7 @@ step_delete_orphans() {
     for rel in "${ORPHANS[@]}"; do
         manifest_entry_map "${rel}"
         [[ -n "${MAP_TGT}" ]] || continue
-        if [[ -e "${MAP_TGT}" ]]; then
+        if [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; then
             rm -rf "${MAP_TGT}"
             log "Deleted orphan: ${MAP_TGT}"
             deleted=$((deleted + 1))
@@ -649,7 +752,7 @@ step_delete_orphans() {
         esac
     done
     # Prune now-empty managed directories.
-    find "${CLAUDE_HOME}/rules" "${CLAUDE_HOME}/agents" "${CLAUDE_HOME}/skills" "${AGENTS_SKILLS_HOME}" -type d -empty -delete 2>/dev/null || true
+    find "${CLAUDE_HOME}/rules" "${CLAUDE_HOME}/agents" "${CLAUDE_HOME}/skills" "${AGENTS_SKILLS_HOME}" "${GROK_RULES_HOME}" -type d -empty -delete 2>/dev/null || true
     report "orphans: ${deleted} deleted"
 }
 
@@ -1019,6 +1122,65 @@ step_deploy_opencode_plugin() {
 }
 
 # ---------------------------------------------------------------------------
+# Grok scope — flat symlinks into ~/.grok/rules.
+#
+# Links point at the DEPLOYED rule under ~/.claude/rules, not at the repo:
+# both harnesses then read the same bytes, a redeploy updates them at once,
+# and a checkout on another branch never silently changes what Grok loads.
+# ---------------------------------------------------------------------------
+
+step_deploy_grok() {
+    [[ "${RUN_GROK}" -eq 1 ]] || return 0
+    log "== Deploy: grok scope (flat rule symlinks) =="
+
+    local new=0 relinked=0 unchanged=0 undeployed=0
+    local rel flat src tgt current
+    while IFS= read -r rel; do
+        [[ -n "${rel}" ]] || continue
+        flat="${rel//\//__}"
+        src="${CLAUDE_HOME}/rules/${rel}"
+        tgt="${GROK_RULES_HOME}/${flat}"
+
+        if [[ ! -f "${src}" ]]; then
+            undeployed=$((undeployed + 1))
+            log "  WARNING: ${rel} is not deployed under ${CLAUDE_HOME}/rules — link skipped. Run the claude scope first."
+            continue
+        fi
+
+        current=""
+        [[ -L "${tgt}" ]] && current=$(readlink "${tgt}")
+        if [[ "${current}" == "${src}" ]]; then
+            unchanged=$((unchanged + 1))
+            vlog "  unchanged: ${flat}"
+            continue
+        fi
+        if [[ -e "${tgt}" || -L "${tgt}" ]]; then
+            relinked=$((relinked + 1))
+        else
+            new=$((new + 1))
+        fi
+
+        if [[ "${APPLY}" -eq 1 ]]; then
+            mkdir -p "${GROK_RULES_HOME}"
+            ln -sfn "${src}" "${tgt}"
+            vlog "  linked: ${flat} -> ${src}"
+        else
+            vlog "  [DRY-RUN] would link: ${flat} -> ${src}"
+        fi
+    done < <(grok_always_on_rules)
+
+    if [[ "${undeployed}" -gt 0 ]]; then
+        report "grok-rules: WARNING — ${undeployed} rule(s) not deployed under ${CLAUDE_HOME}/rules, links skipped"
+    fi
+    if [[ "${APPLY}" -eq 1 ]]; then
+        log "Grok rules: ${new} linked, ${relinked} relinked, ${unchanged} already current -> ${GROK_RULES_HOME}"
+    else
+        log "[DRY-RUN] Grok rules: would link ${new}, relink ${relinked}; ${unchanged} already current -> ${GROK_RULES_HOME}"
+    fi
+    report "grok-rules: ${new} linked, ${relinked} relinked, ${unchanged} current -> ${GROK_RULES_HOME}"
+}
+
+# ---------------------------------------------------------------------------
 # Step 14 — write manifest. Scope-aware merge: entries for scopes NOT active
 # this run are preserved verbatim from the previous manifest instead of being
 # dropped, so a partial (--only) run never blinds orphan detection for the
@@ -1054,6 +1216,7 @@ step_write_manifest() {
                     shared) [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] && continue ;;
                     codex) [[ "${RUN_CODEX}" -eq 1 ]] && continue ;;
                     opencode) [[ "${RUN_OPENCODE}" -eq 1 ]] && continue ;;
+                    grok) [[ "${RUN_GROK}" -eq 1 ]] && continue ;;
                     unknown) continue ;;
                 esac
                 echo "${rel}"
@@ -1086,6 +1249,9 @@ step_write_manifest() {
             [[ -f "${REPO_ROOT}/harness/AGENTS.md" ]] && echo "harness-agents/opencode/AGENTS.md"
             find "${REPO_ROOT}/global/hooks" -name '*.ts' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-plugins/|' || true
         fi
+        if [[ "${RUN_GROK}" -eq 1 ]]; then
+            grok_always_on_rules | sed 's|/|__|g; s|^|grok-rules/|' || true
+        fi
     } >"${tmp}"
 
     # --only codex / --only opencode / --only harness on a fresh machine
@@ -1106,7 +1272,7 @@ step_write_manifest() {
 step_final_report() {
     echo "===================================================================="
     echo "deploy-global.sh report — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN) | scopes: claude=${RUN_CLAUDE} codex=${RUN_CODEX} opencode=${RUN_OPENCODE}"
+    echo "mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN) | scopes: claude=${RUN_CLAUDE} codex=${RUN_CODEX} opencode=${RUN_OPENCODE} grok=${RUN_GROK}"
     echo "===================================================================="
     if [[ -s "${REPORT_LOG}" ]]; then
         cat "${REPORT_LOG}"
@@ -1140,7 +1306,7 @@ main() {
     register_tmp "${REPORT_LOG}"
 
     log "deploy-global.sh — mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN)"
-    log "scopes — claude:${RUN_CLAUDE} codex:${RUN_CODEX} opencode:${RUN_OPENCODE}"
+    log "scopes — claude:${RUN_CLAUDE} codex:${RUN_CODEX} opencode:${RUN_OPENCODE} grok:${RUN_GROK}"
 
     step_preview
     step_diff
@@ -1155,6 +1321,7 @@ main() {
     step_engram_hotfix
     step_deploy_codex_hooks
     step_deploy_opencode_plugin
+    step_deploy_grok
     step_write_manifest
 
     step_final_report
