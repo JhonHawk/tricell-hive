@@ -39,6 +39,7 @@ glob-conditional rule loading: the COMPLETE rules load only when the stack is to
 | Writing/modifying tests, or any behavior change | `references/testing.md` |
 | Non-obvious bug: intermittent, multi-layer, or resists the first fix | `references/debugging.md` |
 | Driving a browser / in-vivo verification of a running app | `references/browser-automation.md` |
+| Code discovery/search (rg vs jbcontext vs codegraph routing, absence claims, index-hit verification) | `references/code-search.md` |
 
 ## Stacking — combinations are the norm, not the exception
 

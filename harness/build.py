@@ -49,6 +49,7 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/quality", "testing.md"),
         ("rules/quality", "debugging.md"),
         ("rules/tools", "browser-automation.md"),
+        ("rules/tools", "code-search.md"),
     ],
     "workspace-conventions": [
         ("rules/workflow", "project-structure.md"),
