@@ -1,0 +1,17 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13) and copies bash-policy.json next to the script. One PreToolUse process carries every shell policy gate: four DENIES (index routing per repo, pip ban, package-manager mixing, lockfile deletion) via exit 2, then the non-blocking pre-push quality-gate reminder. `permissionDecision: allow` is emitted only inside that push branch — never globally. Policy: rules/tools/code-search.md, CLAUDE.md > Python Dependency Management / Package Manager.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__codegraph__.*|mcp__jbcontext__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/bash-policy.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
