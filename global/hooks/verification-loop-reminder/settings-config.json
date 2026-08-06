@@ -1,0 +1,17 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). PostToolUse with the Bash matcher fires on every shell command; the script does its own classification, counting, and threshold logic. Advisory only — never blocks.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/verification-loop-reminder.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

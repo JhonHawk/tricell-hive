@@ -15,6 +15,7 @@ alwaysApply: true
 ### Widened scope — proceed-and-log
 Applies only to an activated run (above); a *non-delegated* unattended turn stays fail-closed instead (`quality/development-principles.md > Fix at the Root`).
 - In-scope reversible technical decisions, resolvable blockers, dependency picks with a safe version (OSV tiers unchanged), test/build/verify loops, and already standing-authorized non-prod ops → proceed; never bounce these back as questions.
+- Unattended runs carry full verification rigor: the attended fast-feedback carve-out (`quality/testing.md > Execution Scope`) never applies without a user present to validate.
 - Every widened decision lands in the **decision log**: what was decided, why, how to revert. The log is a structural component of the mode — proceeding without logging is outside the delegation.
 
 ### Tracker-scoped runs

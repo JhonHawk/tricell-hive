@@ -100,7 +100,7 @@ AGENTS.md                          # Canonical guide for all harnesses
 CLAUDE.md                          # Imports AGENTS.md via @AGENTS.md; adds Claude Code-specific content
 global/                            # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                      # Core config (always loaded)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (pre-push-lint-reminder, flow-session-context, flow-context, flow-plan-capture, delegation-reminder)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (pre-push-lint-reminder, flow-session-context, flow-context, flow-plan-capture, delegation-reminder, code-search-routing, session-hygiene-report, verification-loop-reminder)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (6 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
