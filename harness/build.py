@@ -34,8 +34,11 @@ BUILD = ROOT / "harness" / "build"
 #   HARD    — build failure: the core has no business growing past this; the
 #             chain airbag (project_doc_max_bytes = 65536) is separate and
 #             covers global + workspace + repo files combined.
-AGENTS_BUDGET_BYTES = 19 * 1024
-AGENTS_HARD_LIMIT_BYTES = 24 * 1024
+# HARD is anchored at half the chain airbag, so the global core can never claim
+# more than half of what Codex reads: the largest repo AGENTS.md in the fleet is
+# ~25 KiB, and 32 + 25 still clears 64.
+AGENTS_BUDGET_BYTES = 25 * 1024
+AGENTS_HARD_LIMIT_BYTES = 32 * 1024
 
 # Router skills (Codex/opencode leg): canonical rule files injected as
 # frontmatter-stripped references so each skill's routing table resolves.
