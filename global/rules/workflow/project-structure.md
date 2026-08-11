@@ -17,6 +17,7 @@ projects/<group>/<project>/    ← group: client/domain, lowercase (acme, tricel
 ```
 
 - The support folder is always named `_support/`; **the path decides the scope**: `<project>/_support/` = shared across repos, `<repo>/_support/` = single codebase. New artifact → "does this apply to more than one repo?" Yes → workspace-level; no → repo-level.
+- **An established level is sticky.** An initiative that already keeps its dated `evidence/`/`sessions/` folders at one level puts new folders at that SAME level — the routing question is answered once per initiative, never re-derived per artifact; moving an initiative's material to the other level is a deliberate migration. The level also decides versioning (a workspace root is often not a git repo), so silent drift changes what gets committed.
 - Support files live under `_support/`, never loose beside `src/` or `app/`.
 
 ### File-routing rule: `_support` vs the specs repo
