@@ -122,6 +122,34 @@ while IFS= read -r line; do
   esac
 done < <(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 {print $1, $2, $9}')
 
+# --- 3. Agent-shell drift (Claude Code only) ---------------------------------
+# CLAUDE_CODE_SHELL keeps the Bash tool on bash 5 (CLAUDE.md > Shell). It can
+# degrade silently (update dropping the variable, brew moving the binary, a
+# daemon predating the setting), so verify it every fresh session. Report-only,
+# and exempt from the cooldown: a drifted shell affects every command.
+shell_drift=""
+if [ "${CLAUDECODE:-}" = "1" ]; then
+  cfg_shell=$(jq -r '.env.CLAUDE_CODE_SHELL // empty' "$HOME/.claude/settings.json" 2>/dev/null)
+  if [ -z "$cfg_shell" ]; then
+    shell_drift="CLAUDE_CODE_SHELL is no longer set in settings.json env — the Bash tool is running zsh. The zsh rules in CLAUDE.md > Shell apply until it is restored."
+  elif [ ! -x "$cfg_shell" ]; then
+    shell_drift="CLAUDE_CODE_SHELL points to '$cfg_shell', which is missing or not executable (brew upgrade moved it?) — Claude fell back to zsh. Fix the path or reinstall bash; zsh rules apply meanwhile."
+  else
+    # shellcheck disable=SC2016  # single quotes intentional: BASH_VERSINFO must expand in the probed child bash, not in this hook
+    bmajor=$("$cfg_shell" -c 'echo "${BASH_VERSINFO[0]:-0}"' 2>/dev/null)
+    case "$bmajor" in ''|*[!0-9]*) bmajor=0 ;; esac
+    if [ "$bmajor" -lt 5 ]; then
+      shell_drift="CLAUDE_CODE_SHELL resolves to bash ${bmajor} (<5) — pre-5 bash breaks the snapshot's BASHPID branch. Point it to Homebrew bash 5."
+    elif ! ls "$HOME/.claude/shell-snapshots/"snapshot-bash-* >/dev/null 2>&1; then
+      shell_drift="settings declare bash but no bash snapshot exists yet — the daemon likely predates the setting. A FULL Claude Code restart is needed; until then the Bash tool runs zsh (zsh rules apply). Verify after restart: echo \$BASH_VERSION → 5.x."
+    fi
+  fi
+  if [ -n "$shell_drift" ]; then
+    findings+="- Shell drift: ${shell_drift}"$'\n'
+    finding_keys+="shell-drift"$'\n'
+  fi
+fi
+
 # --- Emit ---------------------------------------------------------------------
 [ -n "$findings" ] || exit 0
 
@@ -137,7 +165,8 @@ if [ -s "$STATE_FILE" ]; then
       [ -n "$key" ] || continue
       grep -Fxq "$key" "$STATE_FILE" || { new_key=1; break; }
     done <<< "$finding_keys"
-    [ "$new_key" -eq 1 ] || exit 0
+    # Shell drift always reports — it degrades every command, cooldown or not.
+    [ "$new_key" -eq 1 ] || [ -n "$shell_drift" ] || exit 0
   fi
 fi
 

@@ -14,7 +14,7 @@
 - **The rollback-path exemption never covers data deletion or any irreversible loss.** A backup is not authorization: deleting data always confirms, whatever the mode.
 - **Carve-out — non-production deploy operations:** a deploy/restart/scaling change on a non-prod environment with a documented rollback path, or a non-prod deploy executed under a declared flow skill or pipeline, is standing-authorized — declare it, don't ask. **Production always confirms.**
 - **What "a documented rollback path" means — the readiness gate the carve-out presupposes.** Before any deploy, a recovery strategy exists and is written down or scripted: a **rollback** (blue-green swap, previous artifact, previous image tag) where the change is reversible, or a **fix-forward** path (feature flag, corrective release) where it is not — an applied migration that drops data cannot be rolled back. Neither → the deployment isn't ready, whatever the environment. Always-on because it fires on the ACT of deploying: a Vercel, Dokploy, Netlify, or CLI-driven deploy touches none of the IaC file globs that load `devops-principles.md`.
-- **Claude Code CLI commands and flags with broad blast radius** require the same per-invocation confirmation, including: `claude project purge [path]` (deletes all transcripts, tasks, file history, and config entries for a project — added in 2.1.126), and any use of `--dangerously-skip-permissions` (since 2.1.126 it bypasses writes to `.claude/`, `.git/`, `.vscode/`, and shell config files; catastrophic removal commands still prompt as a safety net). Never run these autonomously, even if the session is in autonomous commit mode — autonomous mode covers `commit` only, never destructive CLI operations.
+- **Claude Code CLI commands and flags with broad blast radius** require the same per-invocation confirmation, including: `claude project purge [path]` (deletes all transcripts, tasks, file history, and config entries for a project), and any use of `--dangerously-skip-permissions` (it bypasses writes to `.claude/`, `.git/`, `.vscode/`, and shell config files; catastrophic removal commands still prompt as a safety net). Never run these autonomously, even if the session is in autonomous commit mode — autonomous mode covers `commit` only, never destructive CLI operations.
 - **Explicitly-delegated unattended runs** ("tienes control total esta noche", "don't ask until I'm back") run the `unattended-delegation` skill — load it BEFORE declaring the mode accepted, because the mode is only in effect with its controls (decision log, dedicated branch, queued escalations, run-bound expiry). **Activation is explicit-only: silence, absence, or a long-running task never activate it**, and the gates above never relax under it — declaring the mode without the skill's controls is not the mode.
 
 ## Execution
@@ -41,13 +41,19 @@ uv tool install <package>
 ```
 - `uv` manages its own Python downloads; do not install Python via Homebrew or any other manager.
 
-## Shell (zsh on macOS)
-- The interactive shell is zsh on macOS — never assume bash semantics or GNU userland (BSD `sed -i ''`, `grep`, `awk` differ).
-- Unquoted `$var` does NOT word-split: pass file lists via `find -print0 | xargs -0` or arrays — never `cmd $list`.
-- Unmatched globs ERROR (`nomatch`): use `find` for cleanups, or guard the glob.
-- Never unquoted `=word`/`===` as separators or arguments (zsh `=cmd` expansion).
+## Shell — tool runtime per harness
+
+- **Claude Code: the Bash tool runs bash 5** (`CLAUDE_CODE_SHELL=/opt/homebrew/bin/bash` in settings `env`; validated by the deploy-global preflight) — write plain bash. If zsh-style errors appear (`(eval):N:` prefix, `read-only variable`, `no matches found`), the override has drifted to zsh: flag it and apply the zsh rules below until fixed.
+- **Grok and Codex tool shells are zsh via eval** — and so is any shell not confirmed otherwise. For them:
+  - **Never assign zsh special names as variables:** `path` (tied to `PATH` — `path=/x` replaces the entire PATH and later commands die with `command not found`), `status` (read-only), `cwd`, `argv`, `pipestatus`, `fpath`, `cdpath`, `manpath`. Use `dir`, `repo_path`, `st`, `exit_status`. Enforcement: prompt-convention here; deterministic deny for `path=`/`status=` in the `bash-policy` hook (Grok scope).
+  - **No bash-4isms:** `declare -A`, `${!var}` (zsh form: `${(P)var}`), `${!arr[@]}`, `mapfile`, `read -p`.
+  - Unmatched globs ERROR (`nomatch`) — **including as flag values** (`--include=*.ts`): guard the glob or use `find`/`rg`.
+  - Unquoted `$var` does NOT word-split: pass file lists via `find -print0 | xargs -0` or arrays — never `cmd $list`.
+  - Never unquoted `=word`/`===` as separators or arguments (zsh `=cmd` expansion).
+- macOS userland is BSD for every harness (`sed -i ''`, `grep`, `awk` differ from GNU).
+- Parsing `gh auth status`: never take the account from `$NF` (the last field is `(keyring)`) — take the token after `account`, or use `gh api user --jq .login`.
 - Complex quoting or multiline text → a `python3` heredoc, not heroic shell escaping.
-- After a state-mutating one-liner, verify the post-state — never trust the success banner (a zsh pipeline can exit 0 having silently no-oped).
+- After a state-mutating one-liner, verify the post-state — never trust the success banner (a pipeline can exit 0 having silently no-oped).
 
 ## Spanish
 - **Orthography is mandatory.** Always include proper accents (á, é, í, ó, ú, ñ, ü) in user-facing strings, error messages, labels, and comments written in Spanish. Common mistakes to avoid: `reservacion` → `reservación`, `vehiculo` → `vehículo`, `sesion` → `sesión`, `informacion` → `información`, `numero` → `número`.

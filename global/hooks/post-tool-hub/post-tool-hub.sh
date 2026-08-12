@@ -11,6 +11,7 @@
 #   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
 #   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
 #   3. Index anti-conclusion     (codegraph/jbcontext) — code-search.md
+#   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
 #
 # The counters keep SEPARATE state files and are never coupled: one section
 # firing must not reset or advance another's count.
@@ -144,6 +145,33 @@ index_discipline_section() {
 }
 
 # ---------------------------------------------------------------------------
+# 4. zsh-signature teacher — fires when a shell tool result carries a zsh
+# dialect error. In Grok (zsh runtime) it names the exact fix so the retry is
+# informed; in Claude (bash 5 expected via CLAUDE_CODE_SHELL) the same
+# signature means the override drifted — that IS the alarm. Fires per failure:
+# these signatures only appear when a command actually died on them.
+# ---------------------------------------------------------------------------
+zsh_signature_section() {
+  local out sig=""
+  [ "$is_shell" -eq 1 ] || return 0
+  out=$(printf '%s' "$input" | jq -r '(.tool_response // .toolOutput // empty) | tostring' 2>/dev/null)
+  [ -n "$out" ] || return 0
+
+  if   [[ "$out" == *"read-only variable"* ]]; then sig="read-only variable"
+  elif [[ "$out" == *"no matches found"* ]];   then sig="no matches found (nomatch)"
+  elif [[ "$out" == *"bad substitution"* ]];   then sig="bad substitution"
+  elif [[ "$out" =~ \(eval\):[0-9]+: ]];       then sig="(eval):N: error"
+  else return 0; fi
+
+  # shellcheck disable=SC2016  # single quotes intentional: ${!var}/${(P)var}/$BASH_VERSION are literal text for the model, never expanded here
+  if [ "$tool_name" = "run_terminal_command" ]; then
+    printf 'zsh failure signature detected (%s). This tool shell is zsh: `status`/`path` are special — rename such variables (st, repo_path); `${!var}` is `${(P)var}`; no `declare -A`/`mapfile`/`read -p`; unmatched globs abort, even as flag values. Fix per CLAUDE.md > Shell and retry.' "$sig"
+  else
+    printf 'zsh failure signature under the Bash tool (%s), which should be running bash 5 via CLAUDE_CODE_SHELL — the override may have drifted or a restart is pending. Verify with `echo $BASH_VERSION`; until it says 5.x, apply the zsh rules in CLAUDE.md > Shell.' "$sig"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Collect and emit once.
 # ---------------------------------------------------------------------------
 context=""
@@ -156,6 +184,7 @@ append() {
 append "$(delegation_section)"
 append "$(verification_loop_section)"
 append "$(index_discipline_section)"
+append "$(zsh_signature_section)"
 
 if [ -n "$context" ]; then
   jq -n --arg ctx "$context" '{

@@ -14,8 +14,7 @@ shell script. This skill is the interface over it; it does not restate the proce
 ## The `grok` scope
 
 Grok reads `~/.claude/CLAUDE.md` natively, but its rules discovery is **not recursive** and
-does **not** honor `paths:` (both verified against grok 0.2.118 with marker files under a
-temporary `GROK_HOME`). Every rule in `global/rules/` lives one level down, so none of them
+does **not** honor `paths:`. Every rule in `global/rules/` lives one level down, so none of them
 ever reached it. The scope closes that gap in two parts:
 
 1. **Rules** — one flat **file** symlink per always-on rule into `$GROK_HOME/rules/`
@@ -47,6 +46,30 @@ categories (`agents-skills`, `codex-agents`, `opencode-agents`, etc.) is labeled
 `(pre-rebuild)`**: dry-run never rebuilds `harness/` (it never writes anything, full stop),
 so that diff reflects whatever `harness/` held on disk at run time, not what a fresh
 `build.py` would produce. Rebuild first if you need the diff to be current.
+
+## Machine preflight — agent shell config (report-only, never mutates)
+
+The zsh-mine mitigation (`global/CLAUDE.md > Shell`) assumes machine state this repo cannot
+deploy. Check it on every deploy and report ✓/✗ per line; a ✗ is a drift warning for the
+user — this skill never edits shell config or settings to fix it:
+
+```bash
+S=$(jq -r '.env.CLAUDE_CODE_SHELL // empty' ~/.claude/settings.json)
+echo "CLAUDE_CODE_SHELL=${S:-MISSING}"                    # expect /opt/homebrew/bin/bash
+[ -x "$S" ] && "$S" -c 'echo "bash=$BASH_VERSION BASHPID=${BASHPID:-EMPTY}"'
+    # expect major >= 5 AND a real PID — bash 3.2 is actively broken with the
+    # snapshot's BASHPID branch, and an empty BASHPID means that broken path
+grep -c 'zsh_special_re' "$HOME/.claude/hooks/bash-policy.sh"
+    # expect >= 1: the path=/status= deny (Grok scope) survived the deploy
+grep -c 'unsetopt nomatch' "$HOME/.zshenv"
+    # expect >= 1: the agent-shell nomatch guard (covers Codex `zsh -lc` and
+    # Claude's zsh fallback) is still present in the user's zshenv
+```
+
+- Missing/non-executable `CLAUDE_CODE_SHELL` → Claude Code degrades to zsh auto-detection
+  (benign — the zsh rules in `CLAUDE.md > Shell` reapply; still report the drift).
+- After changing `settings.json` `env`, a FULL Claude Code restart is required (the daemon
+  caches the environment); a new session under the old daemon keeps the old shell.
 
 ## Running it
 

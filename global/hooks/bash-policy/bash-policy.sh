@@ -112,6 +112,22 @@ if [[ "$command" == *"--break-system-packages"* ]] || [[ "$pip_stripped" =~ $pip
 fi
 
 # ---------------------------------------------------------------------------
+# (b2) DENY — zsh special-variable assignment. Grok's tool shell is zsh via
+# eval, where `path` is tied to PATH (assigning it replaces the ENTIRE PATH —
+# every later command dies with `command not found`) and `status` is read-only.
+# Scoped to run_terminal_command: Claude Code's Bash tool runs bash 5 via
+# CLAUDE_CODE_SHELL, where these names are ordinary variables — a deny there
+# would only produce false positives. Word-boundary pattern so repo_path= and
+# file_path= pass; covers plain, +=, and typeset/local/export/declare forms.
+# ---------------------------------------------------------------------------
+if [ "$tool_name" = "run_terminal_command" ]; then
+  zsh_special_re='(^|[;&|({[:space:]])((typeset|local|export|declare)[[:space:]]+(-[A-Za-z]+[[:space:]]+)*)?(path|status)\+?='
+  if [[ "$command" =~ $zsh_special_re ]]; then
+    deny "bash-policy: this tool shell is zsh — 'path' is tied to PATH (assigning it wipes the entire PATH) and 'status' is read-only. Rename the variable (repo_path, dir, st, exit_status) and retry. See CLAUDE.md > Shell."
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # (c) DENY — package-manager mixing. Nearest lockfile decides the manager;
 # only MUTATING verbs count, so read-only calls (npm view, pnpm why) pass.
 # ---------------------------------------------------------------------------
