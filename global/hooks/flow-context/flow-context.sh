@@ -22,9 +22,10 @@
 set -uo pipefail
 
 input=$(cat)
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+# Dual-runtime: Claude snake_case | Grok camelCase (keep aligned with bash-policy).
+cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
-session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty' 2>/dev/null)
 mode=$(printf '%s' "$input" | jq -r '.permission_mode // .permissionMode // empty' 2>/dev/null)
 
 # Flow workspace? Walk up for the ledger. Not a flow workspace → nothing to do.

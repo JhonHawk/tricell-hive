@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # post-tool-hub.sh — PostToolUse (all tools) hub, NON-BLOCKING.
 #
+# Dual-runtime: Claude Code and Grok Build payloads. Field fallbacks must stay
+# in sync with bash-policy.sh.
+#
 # One process, one stdin read, three independent sections. Each section
-# self-gates on tool_name and returns its reminder text; whatever fires is
+# self-gates on tool name and returns its reminder text; whatever fires is
 # newline-joined into a SINGLE additionalContext emission.
 #
 #   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
-#   2. Full-suite run counter    (Bash)       — testing.md > Execution Scope
+#   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
 #   3. Index anti-conclusion     (codegraph/jbcontext) — code-search.md
 #
 # The counters keep SEPARATE state files and are never coupled: one section
@@ -17,31 +20,39 @@
 set -uo pipefail
 
 input=$(cat)
-session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-tool_name=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)
+# Dual-runtime field normalization (Claude snake_case | Grok camelCase).
+session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty' 2>/dev/null)
+tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // empty' 2>/dev/null)
+command=$(printf '%s' "$input" | jq -r '.tool_input.command // .toolInput.command // empty' 2>/dev/null)
 
 [ -n "$session_id" ] || exit 0
 [ -n "$tool_name" ] || exit 0
 
+is_shell=0
+case "$tool_name" in
+  Bash|run_terminal_command) is_shell=1 ;;
+esac
+
 # ---------------------------------------------------------------------------
 # 1. Delegation counter — every non-delegation tool call increments; a
-# Task/Agent call resets to 0; a reminder fires on each multiple of 20.
+# Task/Agent/spawn_subagent call resets to 0; a reminder fires on each
+# multiple of 20.
 #
 # Subagent noise: PostToolUse may also fire for tool calls made by subagents
 # (same session_id; agent_id semantics are undocumented as of Jul 2026).
 # Mitigations: (1) the counter keys to the FIRST-SEEN agent_id — events
-# reporting a different agent_id are ignored; (2) the reset on Task/Agent
+# reporting a different agent_id are ignored; (2) the reset on delegation
 # leaves the counter at 0 after every delegation, so any residual noise
 # cannot accumulate across delegations.
 # ---------------------------------------------------------------------------
 delegation_section() {
   local agent_id marker owner count
-  agent_id=$(printf '%s' "$input" | jq -r '.agent_id // "main"' 2>/dev/null)
+  agent_id=$(printf '%s' "$input" | jq -r '.agent_id // .agentId // "main"' 2>/dev/null)
   marker="${TMPDIR:-/tmp}/claude-delegation-reminder-${session_id}"
 
   # Delegation observed -> reset the counter and stay silent.
   case "$tool_name" in
-    Task|Agent)
+    Task|Agent|spawn_subagent)
       printf '%s|0' "$agent_id" > "$marker" 2>/dev/null || true
       return 0 ;;
   esac
@@ -89,9 +100,8 @@ is_full_suite() {
 }
 
 verification_loop_section() {
-  local command marker count
-  [ "$tool_name" = "Bash" ] || return 0
-  command=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+  local marker count
+  [ "$is_shell" -eq 1 ] || return 0
   [ -n "$command" ] || return 0
   is_full_suite "$command" || return 0
 
@@ -117,14 +127,12 @@ verification_loop_section() {
 index_discipline_section() {
   local tool="" marker
   case "$tool_name" in
-    Bash)
-      local cmd
-      cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
-      if printf '%s' "$cmd" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
-      if printf '%s' "$cmd" | grep -qE '(^|[^[:alnum:]_-])jbcontext([^[:alnum:]_-]|$)'; then tool="${tool:+$tool }jbcontext"; fi
+    Bash|run_terminal_command)
+      if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
+      if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])jbcontext([^[:alnum:]_-]|$)'; then tool="${tool:+$tool }jbcontext"; fi
       ;;
-    mcp__codegraph__*) tool="codegraph" ;;
-    mcp__jbcontext__*) tool="jbcontext" ;;
+    mcp__codegraph__*|codegraph__*) tool="codegraph" ;;
+    mcp__jbcontext__*|jbcontext__*) tool="jbcontext" ;;
   esac
   [ -n "$tool" ] || return 0
 

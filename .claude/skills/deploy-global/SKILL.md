@@ -1,6 +1,6 @@
 ---
 name: deploy-global
-description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/ and ~/.config/opencode/agents/, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). Use when ready to deploy config changes.
+description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, and ~/.grok/agents/, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). Use when ready to deploy config changes.
 disable-model-invocation: true
 ---
 
@@ -16,14 +16,22 @@ shell script. This skill is the interface over it; it does not restate the proce
 Grok reads `~/.claude/CLAUDE.md` natively, but its rules discovery is **not recursive** and
 does **not** honor `paths:` (both verified against grok 0.2.118 with marker files under a
 temporary `GROK_HOME`). Every rule in `global/rules/` lives one level down, so none of them
-ever reached it. The scope closes that gap: one flat **file** symlink per always-on rule into
-`$GROK_HOME/rules/` (default `~/.grok/rules/`), named `<dir>__<file>.md`, pointing at the
-deployed rule under `~/.claude/rules/` — so both harnesses read the same bytes and one
-redeploy updates both. Directory symlinks do not work; the scan still refuses to recurse.
+ever reached it. The scope closes that gap in two parts:
 
-Path-scoped rules are deliberately excluded: Grok would load them always-on. They reach it
-through the router skills (`language-rules`, `workspace-conventions`) like on Codex.
-A rule that later gains `paths:` turns its link into a manifest-detected orphan.
+1. **Rules** — one flat **file** symlink per always-on rule into `$GROK_HOME/rules/`
+   (default `~/.grok/rules/`), named `<dir>__<file>.md`, pointing at the deployed rule under
+   `~/.claude/rules/` — so Claude and Grok read the same bytes. Directory symlinks do not
+   work; the scan still refuses to recurse. Path-scoped rules are deliberately excluded
+   (Grok would load them always-on); they reach it through the router skills
+   (`language-rules`, `workspace-conventions`) like on Codex. A rule that later gains
+   `paths:` turns its link into a manifest-detected orphan.
+2. **Agents** — copies generated `harness/grok/agents/*.md` into `$GROK_HOME/agents/`
+   (real files; Grok frontmatter differs from Claude). Built by `harness/build.py` from
+   `global/agents/`. Hive hooks stay single-source under `~/.claude/hooks/` (Grok merges
+   `settings.json` via compat); scripts are dual-runtime for Claude + Grok payloads.
+
+**Herdr note:** Herdr installs its own SessionStart under both `~/.claude/settings.json` and
+`~/.grok/hooks/` — that double registration is third-party, not this deploy.
 
 ## Before running
 
@@ -59,7 +67,7 @@ its own location regardless of cwd):
 |---|---|
 | `--dry-run` | Report what would change; write nothing. **Default.** |
 | `--apply` | Perform the deploy for real. |
-| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules`), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. |
+| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. |
 | `--delete-orphans` | Under `--apply`, actually delete manifest-confirmed orphans (files whose source was removed from `global/`/`harness/`) and purge their `settings.json`/`hooks.json` entries. **Without this flag orphans are only listed, never removed** — this is the confirmation gate; present the orphan list to the user before ever passing it. Refused (not deleted) if the orphan set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup. |
 | `--force-delete-orphans` | Implies `--delete-orphans` and bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
 | `--verbose`, `-v` | Per-file logging instead of per-category summaries. |

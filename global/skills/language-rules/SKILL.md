@@ -1,23 +1,26 @@
 ---
 name: language-rules
 description: >
-  Codex: load before code write/edit/review/debug/generate — full language conventions
-  (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle, Tailwind,
-  shell, Docker/Terraform/GHA, UI). opencode gets language rules by glob via its plugin;
-  Claude Code needs none of it — its rules load natively. Match files in play.
+  Codex/Grok: load before code write/edit/review/debug/generate — full language
+  conventions (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle,
+  Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). opencode gets language
+  rules by glob via its plugin; Claude Code needs none of it — its rules load natively.
+  Match files in play.
 ---
 
 # language-rules — deterministic router to the full language conventions
 
 The full, canonical rules live in `references/` (injected at build time from
-`global/rules/` — single source of truth). This skill exists because Codex has no
-glob-conditional rule loading: the COMPLETE rules load only when the stack is touched.
+`global/rules/` — single source of truth). This skill exists because Codex and Grok
+have no path-scoped / glob-conditional rule loading: the COMPLETE rules load only
+when the stack is touched.
 
 **Per-harness scope — read only what your harness lacks:**
 
 | Harness | What this skill is for | Reference path |
 |---|---|---|
 | Codex | Everything below — no conditional rule channel exists | `references/<file>` |
+| Grok | Everything below — always-on rules only; no `paths:` | `references/<file>` |
 | opencode | Browser + quality rows. Language rows arrive via the rules plugin | `references/<file>` |
 
 ## Routing table — read every row that matches the files/manifests in play
@@ -33,9 +36,9 @@ glob-conditional rule loading: the COMPLETE rules load only when the stack is to
 | `schema.prisma`, `drizzle.config.*`, migration dirs, raw `*.sql` | `references/sql-migrations.md` |
 | Tailwind markers (`@import "tailwindcss"`, `@theme`, `tailwind.config.*`) | `references/tailwind.md` |
 | `*.sh`, shell script edits | `references/shell-standards.md` |
-| `Dockerfile*`, `*.tf`, `.github/workflows/*` | `references/iac-devops.md` |
+| `Dockerfile*`, `*.tf`, `.github/workflows/*` | `references/iac-devops.md` + `references/devops-principles.md` |
 | Building or styling UI (any stack) | `references/ui-visual-design.md` |
-| Non-trivial implementation (new feature, refactor — any stack) | `references/development-principles.md` |
+| Non-trivial implementation (new feature, refactor — any stack) | `references/development-principles.md` + `references/patterns-antipatterns.md` |
 | Writing/modifying tests, or any behavior change | `references/testing.md` |
 | Non-obvious bug: intermittent, multi-layer, or resists the first fix | `references/debugging.md` |
 | Driving a browser / in-vivo verification of a running app | `references/browser-automation.md` |
@@ -61,6 +64,8 @@ glob-conditional rule loading: the COMPLETE rules load only when the stack is to
   reloading.
 - No matching row → this skill has nothing for the task; proceed without it.
 - **Claude Code:** every row is already reaching you — language rows by `paths:` glob, the rest always-on. Do not load this skill.
+- **Grok:** always-on rules arrive via `~/.grok/rules/`; path-scoped language/quality/devops
+  rows do not — read every matching row below from `references/`.
 - **opencode:** the language rows arrive automatically via the rules plugin — read only
   the quality/verification rows (development-principles, testing, debugging,
-  browser-automation) from here.
+  browser-automation, patterns-antipatterns when implementing) from here.

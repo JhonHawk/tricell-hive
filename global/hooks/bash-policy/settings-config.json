@@ -3,7 +3,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|mcp__codegraph__.*|mcp__jbcontext__.*",
+        "matcher": "Bash|run_terminal_command|mcp__codegraph__.*|mcp__jbcontext__.*|codegraph__.*|jbcontext__.*",
         "hooks": [
           {
             "type": "command",

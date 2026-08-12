@@ -46,6 +46,7 @@ readonly AGENTS_SKILLS_HOME="${HOME}/.agents/skills"
 # honor it so a relocated install is not silently deployed to ~/.grok.
 readonly GROK_HOME="${GROK_HOME:-${HOME}/.grok}"
 readonly GROK_RULES_HOME="${GROK_HOME}/rules"
+readonly GROK_AGENTS_HOME="${GROK_HOME}/agents"
 readonly MANIFEST="${CLAUDE_HOME}/.deploy-manifest"
 readonly BACKUP_DIR="${CLAUDE_HOME}/backups"
 readonly CODEX_DOC_MAX_BYTES=49152
@@ -118,6 +119,7 @@ FLAGS:
                         codex     -> harness/ codex-specific targets (~/.codex)
                         opencode  -> harness/ opencode-specific targets (~/.config/opencode)
                         grok      -> always-on rules symlinked into ~/.grok/rules
+                                     + generated agents into ~/.grok/agents
                         harness   -> alias for "codex,opencode,grok"
                         all       -> everything (default when --only is omitted)
   --delete-orphans   Under --apply, actually delete manifest-confirmed orphans
@@ -140,11 +142,12 @@ SCOPE NOTES:
   ~/.config/opencode in the source procedure, so the backup step is skipped
   entirely when the "claude" scope is not active.
 
-  The "grok" scope writes only symlinks (no file content), each pointing at the
-  deployed rule under ~/.claude/rules — so it needs the "claude" scope to have
-  run at least once, and removing a link never touches a rule. Grok's rules
-  discovery is NOT recursive and does NOT honor `paths:`, so only always-on
-  rules (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
+  The "grok" scope (1) writes rule symlinks into ~/.grok/rules, each pointing
+  at the deployed always-on rule under ~/.claude/rules — so it needs the
+  "claude" scope to have run at least once for rules; (2) copies generated
+  agents from harness/grok/agents into ~/.grok/agents. Grok's rules discovery
+  is NOT recursive and does NOT honor `paths:`, so only always-on rules
+  (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
   Path-scoped rules reach Grok through the router skills instead.
 
 EXIT STATUS:
@@ -483,6 +486,7 @@ step_diff() {
     fi
     if [[ "${RUN_GROK}" -eq 1 ]]; then
         diff_grok_rules
+        diff_category "grok-agents (pre-rebuild)" "${REPO_ROOT}/harness/grok/agents" "${GROK_AGENTS_HOME}" -name '*.md' ! -name 'README.md'
     fi
 }
 
@@ -568,7 +572,7 @@ manifest_entry_scope() {
         agents-skills/*) echo "shared" ;;
         codex-agents/* | codex-hooks/* | harness-agents/codex/*) echo "codex" ;;
         opencode-agents/* | opencode-commands/* | opencode-plugins/* | harness-agents/opencode/*) echo "opencode" ;;
-        grok-rules/*) echo "grok" ;;
+        grok-rules/* | grok-agents/*) echo "grok" ;;
         *) echo "unknown" ;;
     esac
 }
@@ -656,6 +660,12 @@ manifest_entry_map() {
                 MAP_SRC="${REPO_ROOT}/global/rules/${unflat}"
             fi
             MAP_TGT="${GROK_RULES_HOME}/${flat}"
+            ;;
+        grok-agents/*)
+            local n
+            n=$(basename "${rel}" .md)
+            MAP_SRC=$(find "${REPO_ROOT}/global/agents" -name "${n}.md" -print -quit 2>/dev/null)
+            MAP_TGT="${GROK_AGENTS_HOME}/$(basename "${rel}")"
             ;;
         *)
             : # unrecognized prefix — MAP_SRC/MAP_TGT stay empty, never touched
@@ -899,7 +909,7 @@ merge_hook_configs() {
 # ---------------------------------------------------------------------------
 
 step_harness_rebuild() {
-    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] || return 0
+    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] || return 0
     log "== Harness rebuild =="
     if [[ "${APPLY}" -eq 1 ]]; then
         (cd "${REPO_ROOT}" && python3 harness/build.py)
@@ -919,7 +929,8 @@ step_harness_rebuild() {
 }
 
 step_deploy_shared_harness() {
-    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] || return 0
+    # Universal skills land in ~/.agents/skills (Codex, opencode, Grok all scan it).
+    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] || return 0
     deploy_tree "agents-skills (universal skills)" "${REPO_ROOT}/harness/agents-skills" "${AGENTS_SKILLS_HOME}"
 }
 
@@ -1122,16 +1133,17 @@ step_deploy_opencode_plugin() {
 }
 
 # ---------------------------------------------------------------------------
-# Grok scope — flat symlinks into ~/.grok/rules.
+# Grok scope — flat rule symlinks into ~/.grok/rules + agents into ~/.grok/agents.
 #
-# Links point at the DEPLOYED rule under ~/.claude/rules, not at the repo:
+# Rule links point at the DEPLOYED rule under ~/.claude/rules, not at the repo:
 # both harnesses then read the same bytes, a redeploy updates them at once,
 # and a checkout on another branch never silently changes what Grok loads.
+# Agents are real files (Grok frontmatter differs from Claude).
 # ---------------------------------------------------------------------------
 
 step_deploy_grok() {
     [[ "${RUN_GROK}" -eq 1 ]] || return 0
-    log "== Deploy: grok scope (flat rule symlinks) =="
+    log "== Deploy: grok scope (flat rule symlinks + agents) =="
 
     local new=0 relinked=0 unchanged=0 undeployed=0
     local rel flat src tgt current
@@ -1178,6 +1190,9 @@ step_deploy_grok() {
         log "[DRY-RUN] Grok rules: would link ${new}, relink ${relinked}; ${unchanged} already current -> ${GROK_RULES_HOME}"
     fi
     report "grok-rules: ${new} linked, ${relinked} relinked, ${unchanged} current -> ${GROK_RULES_HOME}"
+
+    # Generated Grok agent definitions (frontmatter differs from Claude — real files).
+    deploy_flat_pattern "grok-agents" "${REPO_ROOT}/harness/grok/agents" "${GROK_AGENTS_HOME}" -name '*.md' ! -name 'README.md'
 }
 
 # ---------------------------------------------------------------------------
@@ -1233,7 +1248,7 @@ step_write_manifest() {
             find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
             find "${REPO_ROOT}/global/hooks" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|' || true
         fi
-        if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]]; then
+        if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]]; then
             find "${REPO_ROOT}/global/skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/global/skills/|agents-skills/|" || true
         fi
         if [[ "${RUN_CODEX}" -eq 1 ]]; then
@@ -1251,6 +1266,7 @@ step_write_manifest() {
         fi
         if [[ "${RUN_GROK}" -eq 1 ]]; then
             grok_always_on_rules | sed 's|/|__|g; s|^|grok-rules/|' || true
+            find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|grok-agents/|' || true
         fi
     } >"${tmp}"
 
@@ -1291,7 +1307,7 @@ step_final_report() {
         echo "itself to register them — this reminder is that prompt."
     fi
     echo ""
-    echo "Reminder: restart Claude Code / Codex / opencode (or open a new session) to reload."
+    echo "Reminder: restart Claude Code / Codex / opencode / Grok (or open a new session) to reload."
 }
 
 # ---------------------------------------------------------------------------
