@@ -41,9 +41,27 @@ la siguiente sesión fresca recoge lo que quedó.
   un hallazgo NUEVO respecto al último reporte rompe el silencio aunque el TTL
   no haya vencido; un set igual o menor calla hasta que venza. Evita que cada
   pane/sesión nueva re-reporte los mismos huérfanos.
+- **Tercera clase (solo Claude Code, gated por `CLAUDECODE=1`): shell drift.**
+  Verifica que el tool Bash siga en bash 5 (`CLAUDE_CODE_SHELL` en settings
+  `env`). Checks deterministas: variable ausente en `settings.json`, binario
+  faltante/no ejecutable, bash <5, y —para el caso "daemon anterior al
+  setting"— la ausencia de `CLAUDE_CODE_SHELL` en el **entorno del propio
+  hook**: los hooks heredan el env de settings (recarga en vivo según docs),
+  así que settings-en-disco sin env-en-runtime es anómalo (versión vieja o
+  recarga fallida) y se reporta como advertencia suave que instruye verificar
+  in-band (`echo $BASH_VERSION` en el primer Bash call).
+  **Nunca inferir drift de `~/.claude/shell-snapshots/`**: el snapshot se crea
+  lazy en el PRIMER Bash call —después de los hooks de SessionStart— y se borra
+  al salir limpio pero sobrevive crashes; ausencia y presencia son ruido
+  (falso positivo estructural — corregido 2026-08-12). Exento del cooldown: un
+  shell drifteado afecta cada comando. En Grok/Codex la sección completa se
+  salta (`CLAUDECODE` ≠ 1; validado en runtime Grok).
 - **Solo-reporte, nunca mata nada.** Un proceso listado puede pertenecer a otra
   sesión activa en paralelo; el mensaje instruye ofrecer la limpieza al usuario y
   no ejecutarla sin su confirmación.
+- **Encabezado adaptativo:** el intro y las instrucciones finales se componen
+  según las clases realmente presentes — un reporte solo-drift ya no afirma
+  "processes likely leaked".
 - Silencio total cuando nada califica — cero ruido en sesiones limpias.
 - Emite vía `hookSpecificOutput.additionalContext` (`SessionStart`), exit 0 siempre.
 

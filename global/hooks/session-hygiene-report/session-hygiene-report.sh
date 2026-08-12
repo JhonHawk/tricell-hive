@@ -56,7 +56,7 @@ fmt_age() {  # minutes -> "3h" / "27h" / "2d"
   if [ "$m" -ge 2880 ]; then echo "$((m / 1440))d"; else echo "$((m / 60))h"; fi
 }
 
-findings=""
+proc_findings=""
 finding_keys=""   # stable identities (pids/ports, not ages) for the cooldown fingerprint
 
 # --- 1. Leaked browser-automation processes ---------------------------------
@@ -76,7 +76,7 @@ while IFS= read -r line; do
 done < <(ps -axo pid=,etime=,command= | grep -E 'agent-browser|Chrome for Testing' | grep -v grep)
 
 if [ "$browser_count" -gt 0 ]; then
-  findings+="- ${browser_count} agent-browser/Chrome-for-Testing process(es) older than $((AGE_MIN / 60))h (oldest: $(fmt_age "$browser_oldest")) — likely leaked by a previous agent session. Cleanup: review \`agent-browser session list\` with the user and close only sessions confirmed stale. NEVER \`close --all\` as a reflex — it also kills sessions belonging to other projects' concurrently active agents."$'\n'
+  proc_findings+="- ${browser_count} agent-browser/Chrome-for-Testing process(es) older than $((AGE_MIN / 60))h (oldest: $(fmt_age "$browser_oldest")) — likely leaked by a previous agent session. Cleanup: review \`agent-browser session list\` with the user and close only sessions confirmed stale. NEVER \`close --all\` as a reflex — it also kills sessions belonging to other projects' concurrently active agents."$'\n'
 fi
 
 # --- 2. Long-lived dev-server listeners --------------------------------------
@@ -114,19 +114,20 @@ while IFS= read -r line; do
   fi
   case "$scope" in
     this-workspace)
-      findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — THIS workspace's leftover; verify it is still wanted and offer to stop it."$'\n' ;;
+      proc_findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — THIS workspace's leftover; verify it is still wanted and offer to stop it."$'\n' ;;
     other-workspace)
-      findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — from ANOTHER workspace: could be a leak or a concurrent session's active server; offer cleanup, but ask the user to confirm that project is idle before stopping it."$'\n' ;;
+      proc_findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — from ANOTHER workspace: could be a leak or a concurrent session's active server; offer cleanup, but ask the user to confirm that project is idle before stopping it."$'\n' ;;
     *)
-      findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd:-unknown}) — workspace unknown; verify with the user before any cleanup."$'\n' ;;
+      proc_findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd:-unknown}) — workspace unknown; verify with the user before any cleanup."$'\n' ;;
   esac
 done < <(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR > 1 {print $1, $2, $9}')
 
 # --- 3. Agent-shell drift (Claude Code only) ---------------------------------
 # CLAUDE_CODE_SHELL keeps the Bash tool on bash 5 (CLAUDE.md > Shell). It can
 # degrade silently (update dropping the variable, brew moving the binary, a
-# daemon predating the setting), so verify it every fresh session. Report-only,
-# and exempt from the cooldown: a drifted shell affects every command.
+# session that failed to inherit the settings env), so verify it every fresh
+# session. Report-only, and exempt from the cooldown: a drifted shell affects
+# every command.
 shell_drift=""
 if [ "${CLAUDECODE:-}" = "1" ]; then
   cfg_shell=$(jq -r '.env.CLAUDE_CODE_SHELL // empty' "$HOME/.claude/settings.json" 2>/dev/null)
@@ -140,17 +141,27 @@ if [ "${CLAUDECODE:-}" = "1" ]; then
     case "$bmajor" in ''|*[!0-9]*) bmajor=0 ;; esac
     if [ "$bmajor" -lt 5 ]; then
       shell_drift="CLAUDE_CODE_SHELL resolves to bash ${bmajor} (<5) — pre-5 bash breaks the snapshot's BASHPID branch. Point it to Homebrew bash 5."
-    elif ! ls "$HOME/.claude/shell-snapshots/"snapshot-bash-* >/dev/null 2>&1; then
-      shell_drift="settings declare bash but no bash snapshot exists yet — the daemon likely predates the setting. A FULL Claude Code restart is needed; until then the Bash tool runs zsh (zsh rules apply). Verify after restart: echo \$BASH_VERSION → 5.x."
+    elif [ -z "${CLAUDE_CODE_SHELL:-}" ]; then
+      # Hooks inherit settings env (live-reloaded per docs), so with the setting
+      # present on disk its absence HERE is anomalous — an old version or a
+      # failed reload. Soft warning: the message instructs in-band verification.
+      # (Never infer drift from ~/.claude/shell-snapshots: snapshots are created
+      # lazily on the FIRST Bash call — after SessionStart hooks run — and are
+      # deleted on clean exit but survive crashes. Absence is the normal
+      # fresh-session state and presence may be stale: both edges are noise.)
+      shell_drift="settings declare bash 5 but CLAUDE_CODE_SHELL is absent from this hook's environment — the session may not have loaded it. Verify on the first Bash call: echo \$BASH_VERSION → 5.x means bash is fine and this warning is stale; empty means the Bash tool is on zsh (zsh rules in CLAUDE.md > Shell apply; a full Claude Code restart restores bash)."
     fi
   fi
   if [ -n "$shell_drift" ]; then
-    findings+="- Shell drift: ${shell_drift}"$'\n'
     finding_keys+="shell-drift"$'\n'
   fi
 fi
 
 # --- Emit ---------------------------------------------------------------------
+findings="$proc_findings"
+if [ -n "$shell_drift" ]; then
+  findings+="- Shell drift: ${shell_drift}"$'\n'
+fi
 [ -n "$findings" ] || exit 0
 
 # Cooldown gate: within TTL, stay silent unless a current key was not in the
@@ -174,8 +185,25 @@ mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null
 { date +%s; printf '%s' "$finding_keys"; } > "${STATE_FILE}.tmp" 2>/dev/null \
   && mv "${STATE_FILE}.tmp" "$STATE_FILE" 2>/dev/null
 
-report="Session-hygiene report (report-only): processes likely leaked by previous agent sessions were detected.
-${findings}Mention this to the user in your first reply and offer the cleanup. Items from other workspaces need the user to confirm that project is idle first — a concurrent session may be using them. Do NOT kill anything without the user's confirmation."
+# Header and instructions match the findings actually present — a drift-only
+# report must not claim leaked processes were detected.
+intro=""
+outro=""
+if [ -n "$proc_findings" ]; then
+  intro="processes likely leaked by previous agent sessions were detected"
+  outro="Mention this to the user in your first reply and offer the cleanup. Items from other workspaces need the user to confirm that project is idle first — a concurrent session may be using them. Do NOT kill anything without the user's confirmation."
+fi
+if [ -n "$shell_drift" ]; then
+  if [ -n "$intro" ]; then
+    intro+="; the agent-shell (bash 5) check also raised a warning"
+  else
+    intro="the agent-shell (bash 5) check raised a warning"
+  fi
+  outro="${outro:+$outro }Mention the shell warning in your first reply and verify it before acting on it."
+fi
+
+report="Session-hygiene report (report-only): ${intro}.
+${findings}${outro}"
 
 jq -n --arg ctx "$report" '{
   hookSpecificOutput: {
