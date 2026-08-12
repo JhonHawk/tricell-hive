@@ -18,7 +18,7 @@
 ### Data Fetching & Caching
 - **Server Components fetch directly** — no client-side fetching library needed. Fetch is auto-memoized within a render pass.
 - **Cache strategies**: since Next 15, bare `fetch` is NOT persistently cached by default — `cache: 'force-cache'` opts in (static), `cache: 'no-store'` forces fresh, `next: { revalidate: N }` is ISR.
-- **Tag-based revalidation**: Tag fetches with `next: { tags: ['resource'] }`, invalidate with `revalidateTag()` or `revalidatePath()`. **Always revalidate after mutations** — forgetting this is a top community-reported mistake.
+- **Tag-based revalidation**: Tag fetches with `next: { tags: ['resource'] }`, invalidate with `revalidateTag()` or `revalidatePath()`. **Always revalidate after mutations.**
 
 ### Streaming & Suspense
 - **Use `<Suspense>` boundaries** for granular streaming — don't rely solely on `loading.tsx` for everything.

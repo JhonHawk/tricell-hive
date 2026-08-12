@@ -39,7 +39,7 @@ truth`) — a memory is a claim verified *against* these, never trusted *over* t
 ## `audit`
 
 1. **Gather memory (read-only).**
-   - Engram: `mem_context` (project) for the recent picture — do NOT rely on `mem_search` alone, its recall is unreliable (verified). Pull status / pending / decision observations with their ids.
+   - Engram: `mem_context` (project) for the recent picture — do NOT rely on `mem_search` alone, its recall is unreliable. Pull status / pending / decision observations with their ids.
    - Native: read `memory/MEMORY.md` and each file. Flag every "Remaining Work" / pending entry — **including struck-through or "DESACTUALIZADO"-annotated ones left inside a pending section** (annotated-in-place still reads as pending — the exact anti-pattern).
 2. **Establish ground truth from the live system FIRST, matched to the claim type.** Never trust a *record* (ledger, tracker, Engram, native) as proof — records corroborate; the authoritative live source proves. Pick the source by claim (and **decompose a compound memory** — an upgrade *and* a resulting default — verifying each part against its own source, or the whole thing routes to git and the behavior half never reaches context7):
    - **Implementation claim** ("X was built / exists / is merged"): git is mandatory and primary — `git log --oneline --all` (grep area/ticket), `git show <sha>`, `git branch --merged` to confirm a closing commit/PR actually landed — plus `ls`/`grep` and a test run for presence/passing.

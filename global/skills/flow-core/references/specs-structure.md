@@ -1,21 +1,13 @@
 # Specs repo structure — conventions
 
 Used by `/flow-specs init` to create `<project>/<project>-specs/` and by `/flow-hygiene` to
-check conformance. Derived from Warp's specs organization
-(github.com/warpdotdev/warp/tree/master/specs, extracted 2026-06-11) and adapted to this
-workflow: tracker épicas → tasks with Gherkin ACs, plus the conventions/decisions layers the
-flow pack needs.
-
-What Warp gets right and we keep: **one folder per work item, named by its tracker ID**, a
-**product spec separated from the tech spec**, specs written as the source of truth that
-implementation must match, and tech specs that cite real code paths (`file.rs:24-145`) so
-they stay verifiable against the codebase.
-
-What Warp does NOT provide (its specs are dev-facing) and this layout adds: a **product
-layer** (`product/`) holding the business truth in force — the map of portals, actors, and
-modules, plus the current business rules per vista. Epics are *deltas* against that layer;
-the product layer is the accumulated *state*. A business reader reads `product/`; a
-developer plans from `epics/`.
+check conformance. Core shape: **one folder per work item, named by its tracker ID**; the
+**product spec separated from the tech spec**; specs as the source of truth implementation
+must match, with tech specs citing real code paths (`file.rs:24-145`) so they stay
+verifiable; and a **product layer** (`product/`) holding the business truth in force — the
+map of portals, actors, and modules, plus the current business rules per vista. Epics are
+*deltas* against that layer; the product layer is the accumulated *state*. A business reader
+reads `product/`; a developer plans from `epics/`.
 
 ## Repository layout
 

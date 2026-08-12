@@ -873,3 +873,7 @@ Backs `languages/typescript-standards.md > Type Safety` (type-system-as-source-o
 - `[Semi-authoritative]` **Böckeler, "The role of developer skills in agentic coding", martinfowler.com (2025)** — named-practitioner taxonomy: no-reuse, over-engineering, brute-force fixes.
 - `[Non-authoritative]` **OX Security "Army of Juniors" (2025)** — excessive commenting in 90–100% of AI repos, over-specification 80–90%; repo-level attribution is heuristic — corroboration only.
 - **Verdict: supported.** Local corroboration (2026-08-11 sweep, 6 repos): parallel-type duplication in 5/5 repos with surface, drift bugs already present in remuneri and recruitment; type-distrust 15 dead checks across 3 repos; the `!== null && !== undefined` chain in 12 repos.
+
+## Specs repo structure (flow-core/references/specs-structure.md)
+
+- `[Semi-authoritative]` **Warp specs organization** (github.com/warpdotdev/warp/tree/master/specs, extracted 2026-06-11) — origin of the layout core: one folder per work item named by tracker ID, product spec separated from tech spec, tech specs citing real code paths for verifiability. The `product/` layer (business truth in force; epics as deltas) is our extension — Warp's specs are dev-facing only. Attribution moved here from the reference doc (2026-08-12 claims audit).

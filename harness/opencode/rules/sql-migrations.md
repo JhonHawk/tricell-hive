@@ -26,4 +26,4 @@ match: any
 ### Drizzle
 - **`drizzle-kit generate`** for codebase-first migrations from TypeScript schema. Never hand-write migrations that drift from the schema source.
 - **Schema co-located with feature modules.** Export from a central `schema.ts` that re-exports feature schemas.
-- **`drizzle-kit push`** — reserved for development; production uses `drizzle-kit migrate` with generated SQL files for an auditable, version-controlled history. (Drizzle's docs do endorse `push` in production for blue/green + serverless setups; our convention is stricter for auditability.)
+- **`drizzle-kit push`** — reserved for development; production uses `drizzle-kit migrate` with generated SQL files for an auditable, version-controlled history. (Deliberately stricter than Drizzle's own docs, for auditability — don't "correct" it to match upstream.)

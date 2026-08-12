@@ -11,7 +11,7 @@ match: any
 
 ### Framework Preferences (Spring Boot 3.x/4.x)
 - DTOs for API responses — Java `record`, Kotlin `data class`, no mutable POJOs; entity-exposure rules live in `patterns-antipatterns.md`.
-- **`@HttpExchange`** for declarative REST clients (Spring 6+). Prefer over RestTemplate and `@FeignClient`. For programmatic clients, `RestClient` (Spring 6.1+) is the replacement for `RestTemplate`, which is on a deprecation path (reference docs mark it deprecated as of 7.0; `@Deprecated` annotation in 7.1, removal in 8.0).
+- **`@HttpExchange`** for declarative REST clients (Spring 6+). Prefer over RestTemplate and `@FeignClient`. For programmatic clients, `RestClient` (Spring 6.1+) is the replacement for `RestTemplate`, which is on a deprecation path toward removal.
 - **`@Transactional` lives at the service boundary**, not on repositories. Repositories run inside the transaction the service opens. Avoid `@Transactional` on controllers — they shouldn't own transaction lifetime.
 - **`@ConfigurationProperties` over scattered `@Value`** for env-driven config. Bind a typed record once; inject the record, not individual values.
 - **Virtual threads (Java 21+)**: Enable via `spring.threads.virtual.enabled=true`. Never size virtual thread pools manually. **Caveat (JDK 21–23 only):** virtual threads block synchronously on JDBC — fine when the DB is the bottleneck, but a `synchronized` block guarding *long-lived, frequent* blocking I/O pins the carrier; swap to `ReentrantLock` in those hot spots only. JEP 491 (JDK 24+) removed this pinning, so on 24+ the workaround is unnecessary — verify the target JDK before applying it.

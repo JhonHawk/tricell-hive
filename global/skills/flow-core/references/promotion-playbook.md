@@ -118,5 +118,3 @@ A standalone health pass, usable anytime:
 3. **Report + ledger update.**
 
 ---
-
-_Distilled from the retired flow-deploy skill, 2026-07-17._
