@@ -1,7 +1,7 @@
 # /flow-hygiene — what to judge (the center)
 
 The judgment core `audit` applies to a workspace, and the lens `migrate` reuses while tiering
-and routing artifacts. Three questions, all judgment — never a pass/fail conformance sweep:
+and routing artifacts. Four questions, all judgment — never a pass/fail conformance sweep:
 
 1. **Git state.** Uncommitted session artifacts in a versioned home (captured plans, findings,
    reports sitting untracked) → propose the standing-authorized `chore(sessions): <slug>` commit.
@@ -17,6 +17,11 @@ and routing artifacts. Three questions, all judgment — never a pass/fail confo
    patterns in commits and branches (`FAC-48` ~ Linear, `ATSCL-2406` ~ Jira), conventions in
    AGENTS.md/CLAUDE.md, which MCP/CLI responds — and propose the field values with the evidence;
    the user confirms.
+4. **Forward-formality declared.** When the workspace has a specs repo (`Specs repo` ledger row
+   or a sibling `*-specs/`), check the ambient pair declares a forward-documentation convention
+   for operator-facing work — spec before code, a product-state home (`product/<module>/<vista>`),
+   docs/manual updated in the same change-group. Missing → propose installing the declaration in
+   the workspace `AGENTS.md`; never retro-audit past work against it.
 
 **Convention is suggested, never enforced.** Canonical structure, ISO date renames, naming
 schemes, initiative-vs-flat layout: SUGGEST them when they clearly help navigation, never audit
