@@ -846,3 +846,30 @@ Backs the `refactor/claude5-rightsizing` change-group: the `loadedBy:` rule scop
 
 ### Not adopted in this pass
 Blindspot pass, the interview step, `implementation-notes.md` during build, and the post-implementation explainer + quiz from the field guide. Deliberately deferred to a later change-group so the pruning stays measurable on its own.
+
+
+## Code-smell rules — taxonomy, deterministic layer & LLM-amplified smells (2026-08-11)
+
+Backs `languages/typescript-standards.md > Type Safety` (type-system-as-source-of-truth bullet) and `> Linting & Formatting` (smell-backstop stack), `quality/development-principles.md` ("A change leaves no residue"), `languages/nestjs-patterns.md > DTOs & Validation` (Response DTO derivation), the `code-reviewer` "TS type smells" catch, and the comment-discipline line in `harness/AGENTS.md`. Researched ago-2026 (4 parallel research agents + a 6-repo local recurrence sweep; synthesis: `_support/workspace/anti-smell-rules-research-2026-08-11.html`).
+
+### Canonical taxonomy (vocabulary + selection filter, not rule content)
+- `[Authoritative]` **Fowler, *Refactoring* 2e (2018), ch. 3 "Bad Smells in Code" (with Beck)** — the 24-smell catalog; the vocabulary layer (LLMs know these names).
+- `[Authoritative]` **Ousterhout, *A Philosophy of Software Design*, red-flag boxes (per-chapter)** — 14 red flags, deliberately judgment-dominant (only Repetition and partially Pass-Through Method are mechanizable): the natural complement to Fowler for review-layer rules a linter can never own.
+- `[Semi-authoritative]` **Martin, *Clean Code* ch. 17 "Smells and Heuristics"** — of 66 items only G4 (Overridden Safeties — the escape-hatch rule's 2008 ancestor), G6, G8, G11, G31 are distinct and current; the function-size dogma is disputed (incl. by Ousterhout) — cite as checklist source only.
+- **Verdict: adopted as selection filter.** The triple filter that decided what ships: a smell earns a prompt rule only if judgment-only AND LLM-amplified AND uncovered by existing rules.
+
+### Deterministic layer — smells that do NOT earn prompt rules
+- `[Authoritative]` **typescript-eslint v8.67 rules index** — `no-unnecessary-condition` (strict-type-checked; requires `strictNullChecks`; FPs where ORM types overclaim) catches type-distrust deterministically; **no rule detects parallel type shapes** (verified against the full index); `prefer-optional-chain` collapses null-chains only before a member access.
+- `[Authoritative]` **Biome v2.5** — `noUnnecessaryConditions`/complexity opt-in, own type-inference engine; no duplication detection (2026) — pair with jscpd.
+- `[Authoritative]` **eslint-plugin-sonarjs 4.2.0 (active; 279 rules)** — cherry-pick: `cognitive-complexity` (S3776), `no-identical-functions`, `no-gratuitous-expressions`, `no-selector-parameter`.
+- `[Authoritative]` **jscpd 5 (Rust engine)** — token-level clone detection, SARIF for GitHub Code Scanning.
+- **Verdict: supported.** Mechanizable smells route to lint config per the enforcement-layer doctrine; prompt budget is reserved for the seven verified judgment-only smells (parallel types, bare null-chains, speculative generality, wrong abstraction, assertion laundering, overclaiming types, Rule-of-Three judgment).
+
+### LLM-amplified smells — why the prompt rules target what they target
+- `[Semi-authoritative]` **GitClear reports 2024/2025/2026** — block duplication +81% (2023–26), error-masking constructs +47%, cross-file reuse −35%, copy/paste ~5× refactoring. **Correlational** (no per-commit AI attribution; vendor interest) — directional, never causal.
+- `[Semi-authoritative]` **Liu et al., "Debt Behind the AI Boom" (arXiv:2603.28592, 2026)** — 302.6k AI-attributed commits: smells = 89.3% of detected issues; 22.7% persist. Best attribution methodology; grounds the dead-code/residue rule.
+- `[Semi-authoritative]` **Zhang et al., "Copilot-in-the-Loop" (arXiv:2401.14176, 2024)** — self-fix up to 87.1% when the smell is NAMED in the prompt: the evidence that concrete named rules work and a generic "avoid smells" rule does not. This number is the operational justification for principle-with-anchors phrasing.
+- `[Authoritative]` **Anthropic, Claude Code best practices** — "Don't add error handling, fallbacks, or validation for scenarios that can't happen — trust internal code and framework guarantees": vendor prescription matching "trust your types". OpenAI GPT-5.x guides prescribe minimal comments likewise.
+- `[Semi-authoritative]` **Böckeler, "The role of developer skills in agentic coding", martinfowler.com (2025)** — named-practitioner taxonomy: no-reuse, over-engineering, brute-force fixes.
+- `[Non-authoritative]` **OX Security "Army of Juniors" (2025)** — excessive commenting in 90–100% of AI repos, over-specification 80–90%; repo-level attribution is heuristic — corroboration only.
+- **Verdict: supported.** Local corroboration (2026-08-11 sweep, 6 repos): parallel-type duplication in 5/5 repos with surface, drift bugs already present in remuneri and recruitment; type-distrust 15 dead checks across 3 repos; the `!== null && !== undefined` chain in 12 repos.

@@ -28,7 +28,7 @@ match: any
 ### DTOs & Validation
 - **`class-validator`** for incoming HTTP request validation via `ValidationPipe`. Use `zod` for config, env vars, and non-NestJS contexts.
 - **`@ApiProperty()`** on every DTO field — `@nestjs/swagger` generates docs from decorators, not inference.
-- **Separate Create/Update DTOs.** Use `PartialType()`, `PickType()`, `OmitType()` from `@nestjs/mapped-types` instead of duplicating fields.
+- **Separate Create/Update DTOs.** Use `PartialType()`, `PickType()`, `OmitType()` from `@nestjs/mapped-types` instead of duplicating fields. Response DTOs derive the same way (`PickType`/`OmitType`/`IntersectionType` over the Create DTO or entity) — hand-redeclaring the field set is the same duplication.
 
 ### Configuration
 - **`@nestjs/config` + `zod`** for env var validation at startup. Never use raw `process.env.X` without validation.

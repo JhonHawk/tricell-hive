@@ -36,6 +36,7 @@ Scale the read to the diff's size and risk before forming opinions: small diffs 
 ## Stack-specific catches
 Flag these review-time smells a formatter or type-checker won't catch on its own:
 - **TS/JS**: floating (unawaited) Promises in async paths; `any` without a suppression comment justifying it; recommend `noUncheckedIndexedAccess` for index/array access that assumes presence.
+- **TS type smells**: hand-written parallel types mirroring an existing DTO/schema (derive via `Partial`/`Pick`/`Omit` instead); runtime checks against states the declared type excludes (`!== null` on a `string | undefined` field) with no comment naming the unvalidated path; `!== null && !== undefined` chains (`!= null` covers both); field-by-field copy chains collapsible into a mapped helper.
 - **Python**: mutable default arguments (`def fn(items=[])`); bare `except:` swallowing all errors; `eval`/`exec` reaching user input.
 - **SQL/ORM**: any `UPDATE`/`DELETE` missing a `WHERE`; a query inside a loop that should be a single JOIN or batch (N+1); FK columns used in `JOIN`/`WHERE` with no index.
 
