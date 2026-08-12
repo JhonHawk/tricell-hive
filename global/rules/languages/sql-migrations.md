@@ -11,7 +11,7 @@ paths:
 ### Migration Safety
 - **Prefer forward-only migrations with a backward-compatible transition window (expand-contract)** over paired down-scripts: add the new shape, dual-write/backfill, migrate readers, then drop the old shape in a later release — never a single in-place breaking change. Provide a down/rollback only where it's genuinely cheap; document why it's irreversible (data backfill, enum removal).
 - **Idempotent when possible.** Use `IF NOT EXISTS`, `IF EXISTS`, `OR REPLACE` to make reruns safe.
-- **Never `DROP COLUMN` without verifying data impact.** Check if the column has non-null values, foreign key dependencies, or application reads. Ask the user before destructive schema changes.
+- **Never `DROP COLUMN` without verifying data impact.** Check if the column has non-null values, foreign key dependencies, or application reads; the confirmation gate for destructive schema changes resolves through the always-on destructive-operations gate in the core config (`Destructive Operations` in Claude Code's CLAUDE.md) — not restated here.
 - **Adding NOT NULL columns** to existing tables requires a `DEFAULT` value or a multi-step migration (add nullable → backfill → set NOT NULL).
 - **Index foreign key columns.** Postgres does *not* auto-index them (MySQL/InnoDB does) — every `REFERENCES` on Postgres should have a corresponding index unless the table is trivially small.
 - **Timestamp-prefixed naming.** Migration files: `YYYYMMDDHHMMSS_description.sql` or framework-generated equivalents.
