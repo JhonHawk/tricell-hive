@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# bash-policy.sh — PreToolUse (Bash + codegraph/jbcontext MCP), DENY-FIRST.
+# bash-policy.sh — PreToolUse (shell + codegraph/jbcontext MCP), DENY-FIRST.
+#
+# Dual-runtime: Claude Code (Bash, tool_name/tool_input) and Grok Build
+# (run_terminal_command, toolName/toolInput; MCP as server__tool). Keep the
+# field fallbacks in sync with post-tool-hub.sh.
 #
 # One process for every pre-execution shell policy gate. The order is
-# load-bearing: every DENY runs first (exit 2 + a one-line stderr naming the
-# rule and the fix, never JSON), and only then may the advisory emit JSON.
+# load-bearing: every DENY runs first (exit 2 + human reason on stderr;
+# Grok-safe JSON decision on stdout), and only then may the advisory emit JSON.
 #
 #   Denies:   (a) repo-scoped index routing (map: bash-policy.json)
 #             (b) pip ban — uv is the only Python package manager
@@ -11,10 +15,10 @@
 #             (d) lockfile deletion
 #   Advisory: (e) pre-push local-quality-gate reminder
 #
-# Non-Bash (MCP index) tools see (a) only; (b)-(e) are shell-command policy.
+# Non-shell (MCP index) tools see (a) only; (b)-(e) are shell-command policy.
 #
 # `permissionDecision: "allow"` is emitted ONLY inside the push advisory — a
-# global allow would auto-approve arbitrary Bash.
+# global allow would auto-approve arbitrary shell.
 #
 # Policy owners: rules/tools/code-search.md, CLAUDE.md > Python Dependency
 # Management, CLAUDE.md > Package Manager, CLAUDE.md > Build & Lint.
@@ -23,15 +27,33 @@ set -uo pipefail
 
 MAP="$HOME/.claude/hooks/bash-policy.json"
 
+# Deny for both harnesses: Claude honors exit 2 + stderr; Grok honors
+# {"decision":"deny"} and/or exit 2. Always print both.
+deny() {
+  local reason="$1"
+  printf '%s\n' "$reason" >&2
+  jq -n --arg r "$reason" '{decision: "deny", reason: $r}' 2>/dev/null || true
+  exit 2
+}
+
 input=$(cat)
-tool_name=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)
+
+# Dual-runtime field normalization (Claude snake_case | Grok camelCase).
+tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // empty' 2>/dev/null)
 [ -n "$tool_name" ] || exit 0
 
 command=""
 case "$tool_name" in
-  Bash) command=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) ;;
+  Bash|run_terminal_command)
+    command=$(printf '%s' "$input" | jq -r '.tool_input.command // .toolInput.command // empty' 2>/dev/null)
+    ;;
 esac
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
+
+is_shell=0
+case "$tool_name" in
+  Bash|run_terminal_command) is_shell=1 ;;
+esac
 
 # ---------------------------------------------------------------------------
 # (a) DENY — repo-scoped index-tool routing.
@@ -40,18 +62,18 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 tool=""
 haystack=""
 case "$tool_name" in
-  Bash)
+  Bash|run_terminal_command)
     haystack="$command"
     if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
     if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])jbcontext([^[:alnum:]_-]|$)'; then tool="${tool:+$tool }jbcontext"; fi
     ;;
-  mcp__codegraph__*)
+  mcp__codegraph__*|codegraph__*)
     tool="codegraph"
-    haystack=$(printf '%s' "$input" | jq -r '.tool_input.projectPath // .cwd // empty' 2>/dev/null)
+    haystack=$(printf '%s' "$input" | jq -r '.tool_input.projectPath // .toolInput.projectPath // .cwd // .workspaceRoot // empty' 2>/dev/null)
     ;;
-  mcp__jbcontext__*)
+  mcp__jbcontext__*|jbcontext__*)
     tool="jbcontext"
-    haystack=$(printf '%s' "$input" | jq -r '.tool_input.pathFilter // .cwd // empty' 2>/dev/null)
+    haystack=$(printf '%s' "$input" | jq -r '.tool_input.pathFilter // .toolInput.pathFilter // .cwd // .workspaceRoot // empty' 2>/dev/null)
     ;;
 esac
 
@@ -69,8 +91,7 @@ if [ -n "$tool" ] && [ -f "$MAP" ]; then
         [ -n "$repo" ] || continue
         if printf '%s' "$haystack" | grep -qF "$repo"; then
           reason=$(jq -r '.reason // "contraindicated here"' <<<"$row")
-          echo "bash-policy: '$t' is DENIED in repo '$repo' — $reason. Use the routed alternative (rules/tools/code-search.md)." >&2
-          exit 2
+          deny "bash-policy: '$t' is DENIED in repo '$repo' — $reason. Use the routed alternative (rules/tools/code-search.md)."
         fi
       done < <(jq -r '.repos[]?' <<<"$row")
     done
@@ -78,7 +99,7 @@ if [ -n "$tool" ] && [ -f "$MAP" ]; then
 fi
 
 # Everything below is shell-command policy.
-[ "$tool_name" = "Bash" ] || exit 0
+[ "$is_shell" -eq 1 ] || exit 0
 [ -n "$command" ] || exit 0
 
 # ---------------------------------------------------------------------------
@@ -87,8 +108,7 @@ fi
 pip_re='(^|[;&|]|sudo[[:space:]]+)[[:space:]]*pip3?([[:space:]]|$)'
 pip_stripped=${command//uv pip/ }
 if [[ "$command" == *"--break-system-packages"* ]] || [[ "$pip_stripped" =~ $pip_re ]]; then
-  echo "bash-policy: pip is banned — use uv (uv pip install / uv run). See CLAUDE.md > Python Dependency Management." >&2
-  exit 2
+  deny "bash-policy: pip is banned — use uv (uv pip install / uv run). See CLAUDE.md > Python Dependency Management."
 fi
 
 # ---------------------------------------------------------------------------
@@ -121,8 +141,7 @@ if cmd_pm=$(mutating_manager "$command") && [ -n "$cwd" ]; then
     lock_pm=${lock_hit%%|*}
     lock_path=${lock_hit#*|}
     if [ "$cmd_pm" != "$lock_pm" ]; then
-      echo "bash-policy: never mix package managers — '$cmd_pm' denied, this tree is '$lock_pm' ($lock_path). Use $lock_pm. See CLAUDE.md > Package Manager." >&2
-      exit 2
+      deny "bash-policy: never mix package managers — '$cmd_pm' denied, this tree is '$lock_pm' ($lock_path). Use $lock_pm. See CLAUDE.md > Package Manager."
     fi
   fi
 fi
@@ -136,8 +155,7 @@ lock_re='(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lockb|uv\.lock|poet
 while IFS= read -r segment; do
   [[ "$segment" =~ $rm_re ]] || continue
   [[ "$segment" =~ $lock_re ]] || continue
-  echo "bash-policy: never delete or regenerate lockfiles unless the user explicitly asks (${BASH_REMATCH[1]}) — surface the problem instead. See CLAUDE.md > Package Manager." >&2
-  exit 2
+  deny "bash-policy: never delete or regenerate lockfiles unless the user explicitly asks (${BASH_REMATCH[1]}) — surface the problem instead. See CLAUDE.md > Package Manager."
 done < <(printf '%s\n' "$command" | tr ';&|' '\n')
 
 # ---------------------------------------------------------------------------

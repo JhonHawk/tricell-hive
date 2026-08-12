@@ -8,6 +8,7 @@ Generates (delete-and-recreate, never incremental):
     harness/agents-skills/        <- global/skills   (cleaned universal skills)
     harness/codex/agents/         <- global/agents   (Codex TOML subagents)
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
+    harness/grok/agents/          <- global/agents   (Grok Build markdown agents)
     harness/opencode/rules/       <- global/rules/languages (opencode-rules plugin format)
 
 Hand-written sources are never touched: harness/AGENTS.md, harness/codex/{README,
@@ -51,6 +52,8 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/quality", "development-principles.md"),
         ("rules/quality", "testing.md"),
         ("rules/quality", "debugging.md"),
+        ("rules/quality", "patterns-antipatterns.md"),
+        ("rules/workflow", "devops-principles.md"),
         ("rules/tools", "browser-automation.md"),
         ("rules/tools", "code-search.md"),
     ],
@@ -136,6 +139,7 @@ def main():
         for src_name, dst in (
             ("codex", ROOT / "harness" / "codex" / "agents"),
             ("opencode", ROOT / "harness" / "opencode" / "agents"),
+            ("grok", ROOT / "harness" / "grok" / "agents"),
         ):
             regen_dir(dst)
             for f in sorted((Path(tmp) / src_name).iterdir()):
