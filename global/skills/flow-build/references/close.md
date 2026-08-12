@@ -12,8 +12,12 @@ Runs at the end of every `/flow-build` invocation, after the run's last stage.
    en: sessions/<slug>` on decisions/epics), promote durable findings, save the slug to Engram.
 4. **Evidence** — versioned reports already written by the gate; **purge ephemeral raw** from
    `_support/evidence/` (confirm gitignored). The report survives, the screenshots do not.
-5. **Report** — tasks done vs pending, merges (PR#, CI results), what was verified (paths) vs
-   not, servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
+5. **Docs impact** — state the change-group's specs/product-doc delta: files updated in the
+   specs repo (product state, conventions, manual pages), or `none` with the reason. An
+   operator-facing change (screen, role capability, business rule) with no delta is a gap to
+   close in the change-group, never a "next step".
+6. **Report** — tasks done vs pending, merges (PR#, CI results), docs impact (item 5), what
+   was verified (paths) vs not, servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
    a pending list; promotion is never the suggested next work — if integration is ahead of `qa`,
    close with a one-line offer to run the QA promotion walk now
    (`flow-core/references/promotion-playbook.md`; the user decides; never expand its
