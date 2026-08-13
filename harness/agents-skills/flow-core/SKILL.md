@@ -2,9 +2,10 @@
 name: flow-core
 description: >
   Shared protocol and templates for the flow pack (flow-brainstorming, flow-start, flow-adopt,
-  flow-specs, flow-plan, flow-build, flow-workspace, flow-report). Not a workflow itself —
-  it is the library every flow-* skill reads for the flow contract, the file-routing rule,
-  and the canonical templates (ledger, handoff protocol, naming table, specs structure).
+  flow-specs, flow-plan, flow-build, flow-workspace, flow-audit, flow-report). Not a
+  workflow itself — it is the library every flow-* skill reads for the flow contract, the
+  file-routing rule, and the canonical templates (ledger, handoff protocol, naming table,
+  specs structure).
 ---
 
 # flow-core — shared library for the flow pack
@@ -122,7 +123,12 @@ session-capture layer for the current shape — `<project>-specs/sessions/<slug>
 or `<repo>/_support/sessions/<slug>/reports/` (detection rule: `project-structure.md`).
 Raw evidence (screenshots, logs) stays in `_support/evidence/<slug>/` (gitignored),
 referenced by path — never embedded in the versioned report. Flow skills cite this
-instead of restating it.
+instead of restating it. **Declared carve-out — baseline-comparison reports
+(`/flow-audit`):** cross-run comparison needs one stable home plus a history table, which
+per-slug session folders can't give, so audit runs write to
+`<project>-specs/audit/reports/YYYY-MM-DD.html` with the instance README as index
+(`references/audit-playbook.md` owns the layout; sanctioned in `specs-structure.md`).
+Without a specs repo, the standard session form above applies unchanged.
 
 ## Templates (read on demand)
 
@@ -130,6 +136,8 @@ instead of restating it.
 |---|---|
 | `references/ledger-template.md` | Creating PROJECT.md (`/flow-start`) or repairing/reconstructing it (`flow-workspace`, `/flow-adopt`) |
 | `references/judgment-criteria.md` | Judging workspace artifacts (`/flow-workspace audit`, `/flow-adopt`) |
+| `references/audit-playbook.md` | Running or instantiating a multi-lens preventive audit (`/flow-audit`) |
+| `references/migration-playbook.md` | Bringing a pre-pack project into the flow (`/flow-adopt`) |
 | `references/handoff-protocol.md` | Before dispatching ANY agent from a flow skill; also the research→write→build→verify phase-handoff chain |
 | `references/plan-format.md` | Writing an executable plan (`flow-plan write`) or executing one (`flow-build`) — the plan-as-state contract |
 | `references/naming-template.md` | Instantiating the project naming table (`/flow-start` foundation stage) or auditing it (promotion `verify`) |
@@ -160,5 +168,6 @@ Transversal (not a stage):
 | Skill | Role |
 |---|---|
 | `/flow-workspace` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
+| `/flow-audit` | Multi-lens preventive audit of runtime repos (epic close, pre-architectural change): parallel readers → dedup → refuters → versioned HTML report per `references/audit-playbook.md` |
 | `flow-report` | Shared rendering skill (like flow-core, not a stage): renders substantial human-targeted output as self-contained HTML; auto-invokes per `rules/quality/communication-format.md` |
 | `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill reads |

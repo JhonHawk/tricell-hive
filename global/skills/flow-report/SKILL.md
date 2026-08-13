@@ -50,14 +50,16 @@ If the output requires live interactive state (sliders that change preview in re
 
 ## Output location
 
-- Reports, audits, briefs, research → `_support/workspace/{kebab-slug}.html`
+- Ad-hoc reports, briefs, research (nothing a flow skill directs) → `_support/workspace/{kebab-slug}.html`
 - Plans persisted in repo → `_support/plan/{kebab-slug}.html`
-- **Caller-directed versioned record** (flow-pack gate reports — spec-review, mock-review) →
-  write to the exact versioned path the invoking skill names (the session-capture `reports/`:
-  specs repo → `<project>-specs/sessions/<slug>/reports/`, else standalone →
-  `<repo>/_support/sessions/<slug>/reports/`), not workspace. When the target is the specs
-  repo, version no raster images: reference raw screenshots in `_support/evidence/<slug>/` by
-  path, never embed them.
+- **Caller-directed versioned record** (flow-pack reports — spec-review, mock-review, audit) →
+  write to the exact versioned path the invoking flow skill names, not workspace. Known
+  destinations: the session-capture `reports/` (specs repo →
+  `<project>-specs/sessions/<slug>/reports/`, else standalone →
+  `<repo>/_support/sessions/<slug>/reports/`) and the audit baseline home
+  `<project>-specs/audit/reports/YYYY-MM-DD.html` (`flow-core/references/audit-playbook.md`).
+  When the target is the specs repo, version no raster images: reference raw screenshots in
+  `_support/evidence/<slug>/` by path, never embed them.
 - Embedded images → sibling `images/` folder, referenced relatively (workspace/plan only)
 
 ## After writing

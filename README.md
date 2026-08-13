@@ -89,6 +89,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── flow-build/                  # Execute the plan: reconciler + verify gate
 │   ├── flow-workspace/              # Workspace hygiene: audit | apply
 │   ├── flow-adopt/                  # Bring a pre-pack project into the flow (specs repo, tiering, manifest)
+│   ├── flow-audit/                  # Multi-lens preventive audit of runtime repos (epic close)
 │   ├── flow-report/                 # Self-contained HTML reports for substantial output
 │   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
 │   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
@@ -192,6 +193,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
 | `/flow-workspace` | global | Workspace hygiene: `audit` \| `apply` |
 | `/flow-adopt` | global | Bring a pre-pack project into the flow: specs repo, tiering, gated migration manifest |
+| `/flow-audit` | global | Multi-lens preventive audit of runtime repos: parallel readers → refuters → versioned HTML report |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
 | `flow-report` | global | Renders substantial output as self-contained HTML (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |

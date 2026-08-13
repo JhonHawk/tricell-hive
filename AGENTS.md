@@ -146,7 +146,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   └── bootstrap-workspace.sh
 │   ├── flow-core/                 # Flow pack shared library (non-invocable): contract + templates
 │   │   ├── SKILL.md
-│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook, judgment-criteria, promotion-playbook, ux-rubric
+│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook, judgment-criteria, audit-playbook, promotion-playbook, ux-rubric
 │   ├── flow-brainstorming/        # /flow-brainstorming — business-idea iteration into a decision
 │   ├── flow-start/                # /flow-start — greenfield wizard: intake + workspace bootstrap + technical foundation
 │   ├── flow-specs/                # /flow-specs — write/review specs: init | epic | review (+ spec rubric)
@@ -154,6 +154,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── flow-build/                # /flow-build — execute the plan (state-driven reconciler + verify gate)
 │   ├── flow-workspace/            # /flow-workspace — audit | apply workspace hygiene
 │   ├── flow-adopt/                # /flow-adopt — bring a pre-pack project into the flow (specs repo, tiering, manifest)
+│   ├── flow-audit/                # /flow-audit — multi-lens preventive audit of runtime repos (epic close)
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth

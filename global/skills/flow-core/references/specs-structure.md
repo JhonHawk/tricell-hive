@@ -34,6 +34,8 @@ reads `product/`; a developer plans from `epics/`.
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task — derived post-gate
 │                             # ── EXECUTION (what actually happened) ──
+├── audit/                    # Multi-lens audit instance (audit-playbook.md): README.md = protocol instance + history table
+│   └── reports/              #   one YYYY-MM-DD.html per run — stable home so baselines compare across runs
 └── sessions/                 # Execution journal (by time) — full convention below
     ├── README.md             # Sessions index (versioned, co-located): slug · date · state · implements
     ├── previously/           # reset quarantine (loose/legacy artifacts swept in at bootstrap)
