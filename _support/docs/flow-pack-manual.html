@@ -86,7 +86,9 @@
 
 <h2 id="ciclo">El ciclo completo</h2>
 <div class="diagram">
-<svg viewBox="0 0 820 262" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,system-ui,sans-serif">
+<svg viewBox="0 0 820 262" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,system-ui,sans-serif" role="img" aria-labelledby="pack-stages-title pack-stages-desc">
+  <title id="pack-stages-title">Las cuatro etapas del flow pack</title>
+  <desc id="pack-stages-desc">Diagrama de las etapas arranque, specs, desarrollo y operación, con la cadena por unidad de trabajo dentro de desarrollo y las skills transversales debajo.</desc>
   <defs>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#5c6470"/>
@@ -262,7 +264,7 @@
 <tr><td><code>flow-workspace</code></td><td>Funciona (audit · apply): custodio con sandbox read-only propone; apply ejecuta con aprobación inline</td><td>Funciona (audit · apply): custodio con <code>edit: deny</code>; apply ídem</td></tr>
 <tr><td><code>flow-adopt</code></td><td>Funciona: custodio read-only produce el manifest de migración; la ejecución gateada corre con aprobación inline</td><td>Funciona: mismo flujo con <code>edit: deny</code> en el custodio</td></tr>
 <tr><td><code>flow-audit</code></td><td>Funciona: lectores y refuters read-only generados; consolidación y reporte vía <code>flow-report</code></td><td>Funciona: mismo flujo vía task tool; lente→agente se resuelve contra el roster generado</td></tr>
-<tr><td><code>flow-report</code></td><td colspan="2">No se invoca directo — la despachan <code>/flow-specs</code> y <code>/flow-workspace</code> para sus reportes (y auto-invoca como skill general de reporting). Es escritura de archivo HTML sin dependencias de harness: funciona completo en ambos</td></tr>
+<tr><td><code>flow-report</code></td><td colspan="2">No se invoca directo — la despachan <code>/flow-specs</code> y <code>/flow-workspace</code> para sus reportes (y auto-invoca como skill general de reporting). Renderiza en <strong>cinco arquetipos</strong> elegidos por lo que se presenta — document (reporte operativo), explainer, review (diff anotado), comparison (grid de opciones), deck — cada uno con skeleton validado propio, checks deterministas de salida (auto-contención + geometría SVG) y soporte de entregables multi-archivo por etapas. Interactividad solo de presentación (tabs, collapsibles, modales); estado vivo → skill <code>playground</code>. Es escritura de archivo HTML sin dependencias de harness: funciona completo en ambos</td></tr>
 </table>
 <p>Lectura transversal: <strong>el pack viaja completo</strong> — las skills de diseño viven en <code>~/.agents/skills/</code>, los MCP clave (Engram, HeroUI, chrome-devtools) están configurados en ambos harnesses, el hook de sesión es nativo en los tres, y el par ambiental AGENTS.md+CLAUDE.md cubre los tres. La promoción/entrega no es skill en ningún harness: la dirige git (<code>gh</code>/aws/hcloud son shell, sin dependencias). El único pendiente puntual: el MCP del tracker declarado en los snippets cuando es Linear (specs/dev lo usan; Jira corre por <code>acli</code>/shell y <code>manual/none</code> no necesita nada).</p>
 

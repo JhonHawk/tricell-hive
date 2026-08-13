@@ -198,7 +198,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `/flow-adopt` | global | Bring a pre-pack project into the flow: specs repo, tiering, gated migration manifest |
 | `/flow-audit` | global | Multi-lens preventive audit of runtime repos: parallel readers → refuters → versioned HTML report |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
-| `flow-report` | global | Renders substantial output as self-contained HTML (auto-invoked) |
+| `flow-report` | global | Renders substantial output as self-contained HTML in five archetypes — document, explainer, review, comparison, deck (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |
 | `/starlight-docs-site` | global | `scaffold` \| `page` \| `audit` — Astro Starlight docs sites |
 | `language-rules` | global | Router: full language rules for Codex; quality depth rows for Codex + opencode (references injected by `build.py`) |
