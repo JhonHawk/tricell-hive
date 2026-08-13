@@ -316,5 +316,8 @@ Run before shipping any diagram in a report:
 - [ ] Node names sans 12px/600; technical text mono; no webfont anywhere in the file?
 - [ ] `role="img"`, first-child `<title>`, prefixed `<slug>-title`/`<slug>-desc` IDs?
 - [ ] Colors match §3 (report tokens) — no upstream tangerine, no foreign palette?
+- [ ] Deterministic checks clean: `python3 <skill-dir>/scripts/verify_geometry.py <file>` and
+      `python3 <skill-dir>/scripts/self_check.py <file>` (both adapted from upstream; exit
+      non-zero on failure)?
 
 The complete MIT notice is in [diagram-design license](license-diagram-design.md).

@@ -64,6 +64,11 @@ If the output requires live interactive state (sliders that change preview in re
 
 ## After writing
 
+Run the deterministic checks (they exit non-zero on failure; fix and re-run until clean — never ship a failing report):
+
+- Every report: `python3 $HOME/.agents/skills/flow-report/scripts/self_check.py <file>` — self-containment (no external requests) + accessible-SVG contract.
+- Reports embedding SVG diagrams: also `python3 $HOME/.agents/skills/flow-report/scripts/verify_geometry.py <file>` — label-mask/node overlap geometry.
+
 Report to the user:
 - Full file path (so they can `open` it)
 - Word count and rough section count
