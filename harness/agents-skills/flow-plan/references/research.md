@@ -17,6 +17,11 @@ product or UX — those are `flow-specs` (epics/ACs) and mock work units' UX mat
    areas in ONE message, in parallel — to establish:
    - **Current state** — how this repo already does the thing; patterns, conventions, and
      existing code to reuse (`development-principles.md > Search before creating` and `> Observe before writing`).
+     The explorer reads the repo's declared convention files first (`<repo>/_support/docs/*-patterns.md`,
+     `<project>-specs/conventions/`); when the task's surface has NO convention, the census result
+     (which pattern dominates, at what ratio) becomes a `Status: proposed` convention draft that
+     rides to the plan gate — a majority pattern that is a genuine defect is surfaced with a
+     fix-at-root recommendation instead of codified.
    - **Approaches** — 2-3 technical options with trade-offs and a recommendation.
    - **Gaps and prerequisites** — missing interfaces, uninstalled libs, migrations, env/config,
      credentials (the `gap-resolution.md` Investigate step, materialized as an artifact).

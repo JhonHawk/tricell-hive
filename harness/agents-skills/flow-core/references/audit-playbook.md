@@ -13,8 +13,8 @@ repos, doctrine paths, known debt), and any harness can run the instance as a pl
 
 ## Lenses
 
-A run declares its lens set: `full` (all six) or a scoped subset (`smells`, `security`, `db`,
-`perf`, `arch`, `secrets`). **The lens→agent mapping resolves at RUN TIME against the current
+A run declares its lens set: `full` (all seven) or a scoped subset (`smells`, `security`, `db`,
+`perf`, `arch`, `secrets`, `conventions`). **The lens→agent mapping resolves at RUN TIME against the current
 roster** (`agent-routing.md`'s disambiguation table) — never frozen into the project instance;
 a project README that hardcodes agent names drifts when the roster changes.
 
@@ -26,9 +26,10 @@ a project README that hardcodes agent names drifts when the roster changes.
 | `db` | schema, indexes, N+1, partition/pagination patterns | database-specialist |
 | `perf` | sync I/O in handlers, sequential awaits, bundle size, caching | performance-engineer |
 | `secrets` | gitleaks sweep, .env.example correctness, committed keys | secrets-auditor |
+| `conventions` | 80/20 census: declared convention files (`<repo>/_support/docs/*-patterns.md`, `<project>-specs/conventions/`) vs code — per-file conformance list, drift since adoption, surfaces with no convention | code-scout (census) + code-reviewer (verdict) |
 
 Per-agent finding cap (default 25) exists to bound the consolidated TOTAL to something
-navigable (~150 on a 6-lens run); scale it down when lenses × repos grows. An agent that
+navigable (~175 on a 7-lens run); scale it down when lenses × repos grows. An agent that
 finds more prioritizes by impact and says so in its scope notes.
 
 ## Severity scale

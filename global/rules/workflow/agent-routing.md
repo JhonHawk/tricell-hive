@@ -38,6 +38,7 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | workspace file hygiene, misplaced artifacts, ledger repair, unpromoted decisions | workspace-custodian | secrets-auditor |
 | refute or adversarially verify a finding, claim, or diagnosis produced by another agent or investigation | finding-refuter | code-reviewer, the main thread |
 | "where is X implemented" / "how does Y work" / "does Z exist" — code discovery needing a verified conclusion (unknown terminology, legacy code, cross-repo) | code-scout | Explore (file location only), the main thread |
+| 80/20 convention census — which pattern dominates a UI/service surface, does a declared convention cover it | code-scout | the implementing agent, the main thread (the resulting `Status: proposed` draft is authored at the plan gate, not by the census agent) |
 | review a diff/PR for correctness, maintainability, and cleanup — the default when no other row's signal is primary | code-reviewer | the implementing agent |
 
 ### Skill & Browser Disambiguation

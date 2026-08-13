@@ -167,7 +167,9 @@ Then <verifiable outcome>
   (draft / reviewed / in development / delivered), links. Same role the ledger plays for
   the workspace — if it's not in the index, it's invisible.
 - **Status lives in the spec header**, mirrored to the README table. Vocabulary:
-  `draft → reviewed → in development → delivered` (+ `parked`).
+  `draft → reviewed → in development → delivered` (+ `parked`). Convention files
+  (`conventions/`, or repo-scoped ones in `<repo>/_support/docs/`) carry their own lifecycle
+  instead: `proposed → adopted → superseded`.
 - **Decisions are dated files**, `YYYY-MM-DD-<slug>.md`: context, decision, consequences,
   and a back-reference to the session that produced or changed them
   (`Implementado en: sessions/<slug>`, path noted even if the raw expired).

@@ -22,9 +22,9 @@ projects/<group>/<project>/    ← group: client/domain, lowercase (acme, tricel
 
 ### File-routing rule: `_support` vs the specs repo
 
-Projects on the flow pack have a versioned specs repo (`<project>-specs/`) — the project's durable memory; `_support/` is the non-versioned layer that points and expires. Before writing any file, answer in order:
+Projects on the flow pack have a versioned specs repo (`<project>-specs/`) — the project's durable memory. **Workspace-level** `_support/` is the non-versioned layer that points and expires (a workspace root is typically not a git repo); **repo-level** `_support/` is committed with its repo, so durable repo-scoped material (e.g. a convention in `<repo>/_support/docs/`) is versioned there and travels with a single-repo clone. Before writing any file, answer in order:
 
-1. Must it have history/versioning? → `<project>-specs/`
+1. Must it have history/versioning AND apply to more than one repo? → `<project>-specs/`
 2. Temporary, sensitive, raw evidence, or scratch? → `_support/`
 3. Single-repo material? → `<repo>/_support/` or the repo's natural location
 4. Did a temporary report produce a decision? → promote/summarize it into `<project>-specs/`

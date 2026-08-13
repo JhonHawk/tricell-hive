@@ -18,9 +18,12 @@ four elements below produces plausible-looking but misaligned work.
    (the ledger's `## Current handoff` carries the path), so the agent builds against the
    prototype the UX was validated on instead of re-inventing the screen. If you cannot name
    the files, you are not ready to dispatch — explore first.
-3. **Applicable conventions** — only the ones the agent cannot infer: the project naming
-   table (`<project>-specs/conventions/naming.md`), the branch to work on. Do not paste
-   global rules — agents inherit them.
+3. **Applicable conventions** — only the ones the agent cannot infer: the repo's own
+   convention files (`<repo>/_support/docs/ui-patterns.md`, `service-patterns.md`) when the
+   dispatch touches their surface, the project naming table
+   (`<project>-specs/conventions/naming.md`), the branch to work on. Naming the file here is
+   the write-time channel — executor agents cannot load skills, the dispatch prompt is what
+   reaches them. Do not paste global rules — agents inherit them.
 4. **Expected output shape** — what comes back and in what form: "return: files
    created/modified with paths, migration ID, what you verified (command + result), open
    issues". The agent's final message is the only thing the orchestrator sees; an
