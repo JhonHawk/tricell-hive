@@ -5,10 +5,7 @@ description: >
   process chain. Use when exploring whether an idea is worth doing: "¿y si el sistema
   hiciera…?", "el cliente quiere…", "¿vale la pena…?". Takes the idea in any form (a
   sentence, rough notes, a client email) — no document required. Produces a business
-  decision (proceed / discard / defer), not a spec or technical design. Entry is
-  question-gated: on detected brainstorming intent the session asks ONCE ("¿Iniciamos
-  modo brainstorming?"); a No is sticky — manual invocation only for the rest of the
-  session.
+  decision (proceed / discard / defer), not a spec or technical design.
 ---
 
 # /flow-brainstorming — iterate the idea before it becomes a spec

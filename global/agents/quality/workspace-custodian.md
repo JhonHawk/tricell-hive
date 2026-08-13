@@ -2,9 +2,12 @@
 name: workspace-custodian
 description: >
   Audit the documentary hygiene of a client workspace: misplaced files, unpromoted
-  decisions, stale scratch, broken ledger pointers, specs-repo nonconformance. Read-only —
-  it proposes actions, never executes them (flow-workspace apply executes with user
-  approval). Use via /flow-workspace audit, or when a workspace feels disordered.
+  decisions, stale scratch, broken ledger pointers, specs-repo nonconformance. Also
+  produces the migration manifest when a pre-pack project enters the flow (/flow-adopt:
+  specs-repo creation, activity tiering, per-artifact routing). Read-only — it proposes
+  actions, never executes them (flow-workspace apply / flow-adopt execute with user
+  approval). Use via /flow-workspace audit or /flow-adopt, or when a workspace feels
+  disordered.
 tools: Read, Glob, Grep, Bash
 model: sonnet
 color: yellow

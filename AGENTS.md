@@ -41,8 +41,8 @@ The user is a software architect and developer working across 6 client groups wi
 - **Unique rules only.** If the global CLAUDE.md already covers it (e.g., "no `any`", "thin controllers"), don't repeat it.
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
-- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, codegraph, dependency audits) under harness-enforced `permissionMode: plan` — never Write/Edit. Exception: execution-verification reviewers (finding-refuter) run Bash without plan mode to execute claims (tests, repro commands), constrained by prompt to never mutate. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
-- **`model: inherit` by default.** The agent uses the session's active model. Only override if there's a strong reason (e.g., `haiku` for a read-only explorer).
+- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, codegraph, dependency audits) under harness-enforced `permissionMode: plan` — never Write/Edit. Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (finding-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (ux-flow-reviewer and in-vivo-qa-tester drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
+- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (spec-quality-reviewer, ux-flow-reviewer, in-vivo-qa-tester) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
 - **Calibrate to the floor model, not the ceiling.** Rules and agents must work on the least capable model the user runs day-to-day (as of jul-2026: Sonnet 5 — the executor-tier agents; sessions and top-tier agents run Fable 5, permanent on the plan, with a pinned `opus` tier between). Before cutting a rule as "the model does this by default", verify the *floor* model does it — top-model capability is not a pruning criterion.
 - **Path-scoped rules only load when matching files are touched; do not duplicate them into agents.**
 
@@ -60,11 +60,11 @@ description: >
   Use this agent when evaluating architecture decisions...
 
   <example>
-  Context: Team is migrating from monolith to microservices.
-  user: "Review our proposed service boundaries"
-  assistant: "I'll evaluate the architecture..."
+  Context: Team is designing service boundaries before implementation begins.
+  user: "Design the service boundaries for the new module"
+  assistant: "I'll design the contracts and boundaries..."
   <commentary>
-  Invoke for macro-level design, not code-level review.
+  Invoke system-designer for pre-implementation macro design, not code-level review.
   </commentary>
   </example>
 ```

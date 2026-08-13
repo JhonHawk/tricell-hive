@@ -3,9 +3,10 @@ name: flow-start
 description: >
   Stand up a NEW client project workspace from scratch — the greenfield wizard. Use when
   beginning a project that has no workspace yet: raw notes or a brief in hand, a client
-  just signed, "empecemos el proyecto de <cliente>". Walks three dialogue stages — intake
-  (produce the requirements doc), bootstrap (workspace + ledger + memory), foundation
-  (naming, repos, contracts, CI) — adapting or skipping any stage already done (retrofit).
+  just signed, "empecemos el proyecto de <cliente>". Also retrofits a bare codebase with
+  no flow material (a project with accumulated documentary material enters via /flow-adopt
+  instead). Produces the requirements intake, the canonical workspace + ledger + memory,
+  and the per-repo technical foundation.
 ---
 
 # /flow-start — greenfield project wizard

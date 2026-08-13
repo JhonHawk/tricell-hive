@@ -2,16 +2,14 @@
 name: adversarial-research
 description: >
   Adversarial multi-proposal research for a consequential question, claim, or design
-  decision: N independent generators (one may be Codex via codex-rescue when the codex
-  plugin is present) produce proposals in parallel without seeing each other; a
-  finding-refuter cross-examines every claim against declared ground truth (repo files,
-  docs, live state), attempting to refute each one; the main thread synthesizes a canon —
-  refuted / weakened(+fix) / surviving / net-new — with a verdict on the most faithful
-  proposal. Use when being wrong is expensive and a single investigation would anchor on
-  one framing: architecture mappings, root-cause disputes, "which of these designs matches
-  reality", migration/compat claims. Do NOT use for single-fact lookups, questions one
-  grep or file read answers, or verifying one already-stated claim (dispatch
-  finding-refuter directly per agent-routing).
+  decision — N independent generators (one may be Codex) plus an adversarial
+  cross-examination against declared ground truth, delivering a synthesized canon
+  (refuted / weakened+fix / surviving / net-new) with a most-faithful verdict. Use when
+  being wrong is expensive and a single investigation would anchor on one framing:
+  architecture mappings, root-cause disputes, "which of these designs matches reality",
+  migration/compat claims. Do NOT use for single-fact lookups, questions one grep or file
+  read answers, or verifying one already-stated claim (dispatch finding-refuter directly
+  per agent-routing).
 ---
 
 # /adversarial-research — independent proposals, adversarial cross-exam, synthesized canon
