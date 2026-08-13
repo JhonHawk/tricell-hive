@@ -64,10 +64,22 @@ grep -c 'zsh_special_re' "$HOME/.claude/hooks/bash-policy.sh"
 grep -c 'unsetopt nomatch' "$HOME/.zshenv"
     # expect >= 1: the agent-shell nomatch guard (covers Codex `zsh -lc` and
     # Claude's zsh fallback) is still present in the user's zshenv
+P=$(command -v pnpm) && readlink -f "$P"
+    # expect a path NOT containing "corepack" (e.g. ~/Library/pnpm/bin/pnpm —
+    # the standalone install). A corepack shim means pnpm is corepack-managed,
+    # which pnpm upstream deprecated (ago-2026) and Node 25+ no longer bundles
+grep -c '^[^#]*--corepack-enabled' "$HOME/.zshrc"
+    # expect 0 (non-comment lines only): fnm's --corepack-enabled flag re-shims
+    # pnpm through corepack in every new shell, shadowing the standalone install
 ```
 
 - Missing/non-executable `CLAUDE_CODE_SHELL` → Claude Code degrades to zsh auto-detection
   (benign — the zsh rules in `CLAUDE.md > Shell` reapply; still report the drift).
+- pnpm resolving to a corepack shim, or `--corepack-enabled` present in `.zshrc` → warn:
+  installs will break on Node 25+ (corepack no longer bundled) and go through corepack's
+  integrity layer meanwhile. Fix (user-run, never automatic): install the standalone
+  (`curl -fsSL https://get.pnpm.io/install.sh | sh -`), drop `--corepack-enabled` from the
+  fnm env line, and remove stale shims with `corepack disable pnpm`.
 - After changing `settings.json` `env`, a FULL Claude Code restart is required (the daemon
   caches the environment); a new session under the old daemon keeps the old shell.
 
