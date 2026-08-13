@@ -102,7 +102,7 @@ resolves technical ones — the technical gate is TECH.md at `flow-plan`, once
 2. Dispatch BOTH reviewers in parallel (one message, two Agent calls), per the handoff
    protocol (`~/.agents/skills/flow-core/references/handoff-protocol.md`):
    - **spec-quality-reviewer** — pass: the epic path, the rubric path
-     (`~/.agents/skills/flow-specs/references/spec-rubric.md`), pointers to sibling epics and
+     (`$HOME/.agents/skills/flow-specs/references/spec-rubric.md`), pointers to sibling epics and
      contracts for implicit-rule hunting, and the intent: "findings feed a go/no-go gate
      before implementation; the user fixes the spec, not the client".
    - **product-critic** — pass: the epic path, the workspace layout (where the other

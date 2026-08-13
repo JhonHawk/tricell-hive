@@ -7,7 +7,7 @@ Output: a mirror tree where each SKILL.md is cleaned for universal consumers:
     (name, description, license, compatibility, metadata)
   - Claude-only keys are stripped (argument-hint, disable-model-invocation,
     user-invocable, allowed-tools, context, agent, model, effort, paths, shell)
-  - body rewrites: ${CLAUDE_SKILL_DIR} -> ~/.agents/skills/<name>
+  - body rewrites: ${CLAUDE_SKILL_DIR} -> $HOME/.agents/skills/<name> ($HOME, not ~: the token may land inside double quotes, where tilde does not expand)
                    ~/.claude/skills/   -> ~/.agents/skills/
   - every other file (references/, scripts/, assets/, agents/openai.yaml)
     copies verbatim
@@ -65,7 +65,7 @@ def clean_skill_md(text: str, skill_name: str) -> str:
         return text
     fm, body = m.groups()
     fm = clean_frontmatter(fm)
-    body = body.replace("${CLAUDE_SKILL_DIR}", f"~/.agents/skills/{skill_name}")
+    body = body.replace("${CLAUDE_SKILL_DIR}", f"$HOME/.agents/skills/{skill_name}")
     body = body.replace("~/.claude/skills/", "~/.agents/skills/")
     return f"---\n{fm}\n---\n{body}"
 

@@ -10,7 +10,7 @@ natively.
 |---|---|---|---|
 | Skills + rubrics | `global/skills/` | `~/.agents/skills/` | `/deploy-global` (copy) |
 | Subagents | `harness/opencode/agents/` (generated, versioned) | `~/.config/opencode/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit |
-| Commands `/flow-*` | `harness/opencode/commands/` | `~/.config/opencode/commands/` | `/deploy-global` (copy) |
+| Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) | `harness/opencode/commands/` | `~/.config/opencode/commands/` | `/deploy-global` (copy) |
 | Config additions | `opencode.jsonc.snippet` | merge into `~/.config/opencode/opencode.json` | Manual, once |
 
 ## One-time setup

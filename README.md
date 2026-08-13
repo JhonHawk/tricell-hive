@@ -125,15 +125,17 @@ _support/                            # Workspace material, not deployed
 └── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
-## Agents (22 agents)
+## Agents (24 agents)
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
 | `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep |
 | `requirement-analyst` | design | blue | Read, Glob, Grep |
-| `system-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep |
+| `system-designer` | design | blue | Read, Write, Edit, Glob, Grep |
+| `visual-designer` | design | magenta | Read, Write, Edit, Bash, Glob, Grep |
 | `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
+| `code-scout` | development | green | Read, Glob, Grep, Bash (read-only discovery) |
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `nextjs-architecture-expert` | development | green | Read, Write, Edit, Bash, Grep, Glob |
@@ -142,14 +144,14 @@ _support/                            # Workspace material, not deployed
 | `product-critic` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `security-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
-| `ux-flow-reviewer` | review | cyan | All except Write/Edit (needs browser MCP via ToolSearch) |
-| `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit (drives a real browser) |
+| `ux-flow-reviewer` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
+| `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit, Agent (drives a real browser; Write for the in-vivo report) |
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `prompt-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `secrets-auditor` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `test-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `workspace-custodian` | quality | yellow | Read, Glob, Grep, Bash (read-only audit) |
-| `devops-engineer` | ops | red | Inherited toolset except `Agent` (intentional) |
+| `devops-engineer` | ops | red | Read, Write, Edit, Bash, Glob, Grep (explicit allowlist; `Agent` denied) |
 | `technical-writer` | docs | magenta | Read, Write, Edit, Glob, Grep |
 
 Use `/manage-agents report` for live line counts and reduction metrics instead of relying on static README totals.
@@ -188,6 +190,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 
 | Skill | Scope | Purpose |
 |-------|-------|---------|
+| `/adversarial-research` | global | N independent generators (one may be Codex) + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon |
 | `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates |
 | `flow-core` | global | Flow pack shared library: contract + templates (non-invocable) |
 | `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
