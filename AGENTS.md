@@ -238,9 +238,12 @@ Build/test/lint enforcement is restored automatically in any other repo with run
   ```bash
   cmp -s harness/AGENTS.md ~/.config/opencode/AGENTS.md && echo "OpenCode MATCH"
   cmp -s harness/AGENTS.md ~/.codex/AGENTS.md && echo "Codex MATCH"
-  wc -c ~/.codex/AGENTS.md  # must be well under 65536 (project_doc_max_bytes) — the budget is
-                            # COMBINED across the chain (global + workspace + repo AGENTS.md),
-                            # so this check is a lower bound, not the full budget
+  wc -c ~/.codex/AGENTS.md  # context-size sanity only — the global file does NOT count against
+                            # project_doc_max_bytes; that budget covers only the repo chain
+                            # (git root → cwd). On overflow Codex truncates the crossing file
+                            # mid-content and silently drops deeper files — keep per-repo
+                            # AGENTS.md chains small and audit them with:
+                            #   find <repo> -name AGENTS.md -exec cat {} + | wc -c
   ```
 - Start a new Codex/OpenCode session after replication. Do not rely on resumed sessions to reflect changed global instructions.
 

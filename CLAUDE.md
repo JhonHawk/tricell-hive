@@ -121,4 +121,4 @@ You are [1 sentence: who this agent is and its core expertise].
 
 ### Notes
 - **Claude Code harness injection:** Claude Code injects much of Anthropic's model-specific prompting guidance (act-don't-overplan, lead-with-outcome, autonomous-operation, faithful progress reporting) into the system prompt directly — never duplicate harness-injected guidance into `global/`.
-- **AGENTS.md fallback:** In repos *without* `CLAUDE.md`, Claude Code loads `AGENTS.md` as memory fallback — audit periodically with `find ~/Development/projects -maxdepth 4 -name AGENTS.md | while read f; do [ -f "$(dirname "$f")/CLAUDE.md" ] || echo "FALLBACK ACTIVE: $f"; done`.
+- **No AGENTS.md fallback:** Claude Code does NOT load a repo's `AGENTS.md` when `CLAUDE.md` is absent — an `AGENTS.md` without its companion `CLAUDE.md` (`@AGENTS.md`) is invisible to Claude Code. Audit periodically with `find ~/Development/projects -maxdepth 4 -name AGENTS.md | while read f; do [ -f "$(dirname "$f")/CLAUDE.md" ] || echo "INVISIBLE TO CLAUDE CODE: $f"; done`.
