@@ -30,6 +30,11 @@ Default scope: the rule files changed in the working tree / recent commits, or n
 6. **Size check** — Flag rules under 5 lines (too thin — consider merging) or over 50 lines (consider splitting).
 7. **Industry alignment (deep pass — only on `validate --deep` or explicit request)** — verify the in-scope rules still reflect current industry consensus (web search, context7); flag stale rules. The default validate skips this pass.
 8. **Enforcement honesty** — A rule phrased as mechanical impossibility ("cannot", "physically blocked") must be backed by a deterministic layer (hook, deny permission, allowlist); otherwise flag it for rewording as confirm-gated or convention. Gates name their enforcement layer. Taxonomy: `_support/docs/enforcement-layers.md`.
+9. **Harness reachability** — Claude Code is not the only consumer; per in-scope rule verify how it reaches the other three:
+   - **Always-on** → lands in Grok's flat symlink set (no `paths:`, filename without `__` — `deploy-global.sh > grok_always_on_rules`), and when it belongs to the cross-harness core its manual mirror in `harness/AGENTS.md` is a recorded decision (mirrored, or consciously Claude-only).
+   - **Path-scoped under `languages/`** → present BOTH in the opencode rules pipeline (`build.py` conversion) AND in `language-rules`' injected references (`SKILL_REFERENCE_INJECTIONS`).
+   - **Path-scoped elsewhere** → reachable through some router skill's injections, or explicitly Claude-only by design (say so in its header).
+   - **Transition hazard, flag it every time it appears in a diff:** adding `paths:` to a previously always-on rule silently removes it from Grok; removing `paths:` silently adds it to every Grok session.
 
 Output a summary table, then specific issues per rule with suggestions.
 
