@@ -22,6 +22,7 @@ Every output must:
 5. **Avoid default-AI aesthetics.** No gradient cards with emoji headers, no purple-to-pink buttons, no `Inter` everywhere. Default to: serif body (Georgia, Charter, system serif), restrained palette (3-5 colors max), generous whitespace.
 6. **Include provenance footer.** Collapsible `<details>` at the bottom with: timestamp, source prompt (truncated), file paths referenced.
 7. **Legibility baseline & layout.** Follow `rules/quality/communication-format.md > Layout floor` (Codex/opencode: `references/communication-format.md`) — the shell is the measure, no prose caps, 18px base. Here the shell is ~1280px. Start from `references/baseline.html` — a concrete, validated skeleton (design-system tokens, type scale, status palette, masthead, TOC, stat strip, accent cards, clickable master table, reusable modal + JS, provenance footer) — and adapt it instead of improvising the CSS.
+8. **Diagrams follow the grammar.** Any inline SVG diagram (architecture, flowchart, sequence, state, ER, timeline, swimlane, quadrant, layers, tree, Gantt, bar) is drawn per `references/diagram-grammar.md` — load it before drawing. Never improvise connector routing, arrow labels, or node styling; the grammar is skinned to the baseline tokens.
 
 ## Category patterns
 
