@@ -336,7 +336,7 @@ diff_hooks() {
         else
             modified=$((modified + 1))
         fi
-    done < <(find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o \( -name '*.json' ! -name 'settings-config.json' \) \) -print0 2>/dev/null)
+    done < <(find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o \( -name '*.json' ! -name 'settings-config.json' ! -name 'codex-hooks.json' \) \) -print0 2>/dev/null)
     log "  hooks: ${new} new, ${modified} modified, ${unchanged} unchanged"
     report "  hooks: ${new} new, ${modified} modified, ${unchanged} unchanged"
 }
@@ -854,7 +854,13 @@ step_deploy_hooks() {
             mkdir -p "${CLAUDE_HOME}/hooks"
             find "${REPO_ROOT}/global/hooks" -name '*.sh' -exec cp {} "${CLAUDE_HOME}/hooks/" \;
             chmod +x "${CLAUDE_HOME}/hooks/"*.sh 2>/dev/null || true
-            find "${REPO_ROOT}/global/hooks" -name '*.json' ! -name 'settings-config.json' -exec cp {} "${CLAUDE_HOME}/hooks/" \;
+            # *.json here = runtime config a deployed hook READS from the flat dir
+            # (bash-policy.json). Merge INPUTS are excluded like settings-config.json:
+            # codex-hooks.json feeds the ~/.codex/hooks.json merge (Codex's native
+            # hooks.json discovery — learn.chatgpt.com/docs/hooks); a flattened copy
+            # is inert to every harness (Claude registers hooks only via settings.json,
+            # no directory auto-scan) and two hooks' files collide on the basename.
+            find "${REPO_ROOT}/global/hooks" -name '*.json' ! -name 'settings-config.json' ! -name 'codex-hooks.json' -exec cp {} "${CLAUDE_HOME}/hooks/" \;
             log "Deployed ${count} hook script(s) -> ${CLAUDE_HOME}/hooks"
         else
             log "[DRY-RUN] would deploy ${count} hook script(s) -> ${CLAUDE_HOME}/hooks"
