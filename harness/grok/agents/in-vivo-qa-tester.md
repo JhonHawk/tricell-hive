@@ -2,7 +2,7 @@
 # Generated from tricell-hive global/agents — do not edit by hand.
 name: in-vivo-qa-tester
 description: >
-  Drive a running app in a real browser (agent-browser CLI) to verify functional acceptance criteria with a QA mindset — each AC's happy path AND its adversarial/negative paths. Use for the flow-build verify gate in-vivo check (local production build) and the post-deploy QA walk per flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction (ux-flow-reviewer) and NOT for writing automated suites (test-engineer).
+  Drive a running app in a real browser (agent-browser CLI) to verify functional acceptance criteria with a QA mindset — each AC's happy path AND its adversarial/negative paths. Use for the flow-build verify gate in-vivo check (local production build) and the post-deploy QA walk per flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction (ui-reviewer) and NOT for writing automated suites (test-engineer).
 prompt_mode: full
 model: inherit
 permission_mode: plan
@@ -72,4 +72,5 @@ do by accident.
 
 ## Grok compatibility instructions
 
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 - Operate as read-only: report findings and recommendations without editing files.

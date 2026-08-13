@@ -20,9 +20,10 @@ Default scope: the agent files changed in the working tree / recent commits, or 
 3. **Frontmatter** — Must have: name, description, model, color. `tools` is recommended but optional; if omitted, report that the agent inherits the default toolset and verify that this is intentional for the role. Recognized optional fields: `tools`, `effort`, `permissionMode`, `maxTurns`, `skills`, `disallowedTools`, `mcpServers`, `hooks`, `background`, `isolation`, `initialPrompt`, `memory`.
 4. **Description quality** — Must be 1-3 action-oriented sentences stating WHEN to invoke (triggers). Flag generic descriptions, and flag descriptions that compress the body's procedure into steps — a workflow-summarizing description risks being followed instead of the body.
 5. **Tool restriction** — Read-only agents (review/) should not have Write, Edit, or Bash. Quality agents may be remediation-oriented (Write/Edit expected) or audit-oriented (read-only plus Bash for external analyzers); validate the tool surface against the role described. `permissionMode: plan` is a positive signal for read-only review agents.
-6. **Color vs directory** — Agent must be in the correct subdirectory for its color (development/=green, review/=cyan, quality/=yellow, ops/=red, docs/=magenta).
+6. **Color vs directory** — Agent must be in the correct subdirectory for its color (design/=blue, development/=green, review/=cyan, quality/=yellow, ops/=red, docs/=magenta).
 7. **No global rule duplication** — Flag rules that repeat content from `global/rules/`.
-8. **Industry alignment (deep pass — only on `validate --deep` or explicit request)** — check the in-scope agents' Rules sections against current industry consensus (web search, context7); flag outdated or missing practices. The default validate skips this pass.
+8. **README inventory sync** (always on `--all`; otherwise when any agent file changed) — `README.md`'s agents table matches disk: heading count == `ls global/agents/*/*.md | wc -l`, one row per agent, tool-surface cell consistent with the agent's `tools`/`disallowedTools` frontmatter.
+9. **Industry alignment (deep pass — only on `validate --deep` or explicit request)** — check the in-scope agents' Rules sections against current industry consensus (web search, context7); flag outdated or missing practices. The default validate skips this pass.
 
 Output a summary table, then list specific issues per agent with suggestions.
 

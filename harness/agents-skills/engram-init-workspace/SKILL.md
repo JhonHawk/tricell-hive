@@ -16,7 +16,7 @@ The fix is ONE unified project for the whole workspace: `.engram/config.json` = 
 
 1. **Detect — write nothing yet.** The script decides what this directory is; don't pre-judge.
    ```bash
-   bash "~/.agents/skills/engram-init-workspace/bootstrap-workspace.sh" --detect
+   bash "$HOME/.agents/skills/engram-init-workspace/bootstrap-workspace.sh" --detect
    ```
    (Append a directory argument to target somewhere other than the current directory.) Read `verdict=` and `location=`:
    - **`workspace`** — canonical layout; `project_name`/`workspace_root` resolved. `location` sets the default write scope (see the Scope table). Go to step 2.
@@ -25,7 +25,7 @@ The fix is ONE unified project for the whole workspace: `.engram/config.json` = 
 
 2. **Write — no confirmation round.** The script is idempotent, never clobbers, and the config is an untracked, reversible file — proceed directly; the report carries the outcome. The only ask is `needs-name` with no `$ARGUMENTS` (genuine input — step 1). Re-run without `--detect`, adding scope flags as needed:
    ```bash
-   bash "~/.agents/skills/engram-init-workspace/bootstrap-workspace.sh" [--name N] [--all] [--only a,b] [--exclude c] [dir]
+   bash "$HOME/.agents/skills/engram-init-workspace/bootstrap-workspace.sh" [--name N] [--all] [--only a,b] [--exclude c] [dir]
    ```
    Refuses unless detection is `workspace` or `register-repo`.
 

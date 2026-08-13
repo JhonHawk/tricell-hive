@@ -3,9 +3,10 @@ name: flow-start
 description: >
   Stand up a NEW client project workspace from scratch — the greenfield wizard. Use when
   beginning a project that has no workspace yet: raw notes or a brief in hand, a client
-  just signed, "empecemos el proyecto de <cliente>". Walks three dialogue stages — intake
-  (produce the requirements doc), bootstrap (workspace + ledger + memory), foundation
-  (naming, repos, contracts, CI) — adapting or skipping any stage already done (retrofit).
+  just signed, "empecemos el proyecto de <cliente>". Also retrofits a bare codebase with
+  no flow material (a project with accumulated documentary material enters via /flow-adopt
+  instead). Produces the requirements intake, the canonical workspace + ledger + memory,
+  and the per-repo technical foundation.
 argument-hint: "[<group> <project>]"
 disable-model-invocation: true
 ---
@@ -23,7 +24,10 @@ the OPEN "ledger must exist" precondition is what the wizard satisfies, not what
 requirements doc present → skip intake; a ledger present → skip bootstrap; some repos present
 → foundation covers only the gaps. Refuse only when the workspace is **fully established**
 (ledger + specs repo + repos all present) — that is maintenance, not a start: point to
-`/flow-hygiene` and stop.
+`/flow-workspace` and stop. Split adoption by what EXISTS: a project with accumulated
+documentary material to tier and route (legacy docs, loose sessions, an old CLAUDE.md) starts
+with `/flow-adopt`; a bare codebase with no flow material retrofits here. When both apply,
+`/flow-adopt` first, then this wizard covers the remaining foundation gaps.
 
 ## Resolve group & project
 

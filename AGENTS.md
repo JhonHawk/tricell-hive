@@ -30,6 +30,7 @@ The user is a software architect and developer working across 6 client groups wi
 - When a rule or convention is grounded in external authority (standards, canonical books, official docs), record the source in `_support/docs/methodology-bibliography.md` and consult it before re-researching.
 - Gates in rules and docs name their enforcement layer — deterministic (hook, deny permission, allowlist), confirm-gated (the user's confirmation is the key), or prompt-convention; never phrase a convention as mechanical impossibility. Taxonomy: `_support/docs/enforcement-layers.md`.
 - The `<!-- CODEGRAPH_START/END -->` block in `global/CLAUDE.md` and `harness/AGENTS.md` is owned by `codegraph install` — absorbed into the sources so installer upgrades report "Unchanged" and `/deploy-global` doesn't delete it. Never edit, dedupe, or reflow content between the markers; hive-specific CodeGraph guidance lives in the bullets AFTER the block. If a codegraph upgrade rewrites its block in the DEPLOYED files, re-absorb the new content into both sources instead of letting them drift.
+- **`flow-<x>` names a user-gated command of the flow pack** (`disable-model-invocation: true`). Pack infrastructure is the declared exception and carries no gate: `flow-core` (non-invocable library) and `flow-report` (model-invoked renderer; format will grow beyond HTML). A new `flow-*` skill that is not a gated command takes a non-flow name.
 - Use conventional commit prefixes if asked to commit.
 - Never add temporary or incident-specific details (local hotfixes, dated machine state, pending workarounds) to versioned convention docs (`AGENTS.md`, `CLAUDE.md`, `global/`, `harness/` READMEs) unless the user explicitly asks. Route them to machine-local notes (`_support/backup/`, Engram) instead.
 
@@ -40,8 +41,8 @@ The user is a software architect and developer working across 6 client groups wi
 - **Unique rules only.** If the global CLAUDE.md already covers it (e.g., "no `any`", "thin controllers"), don't repeat it.
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
-- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, codegraph, dependency audits) under harness-enforced `permissionMode: plan` — never Write/Edit. Exception: execution-verification reviewers (finding-refuter) run Bash without plan mode to execute claims (tests, repro commands), constrained by prompt to never mutate. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
-- **`model: inherit` by default.** The agent uses the session's active model. Only override if there's a strong reason (e.g., `haiku` for a read-only explorer).
+- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, codegraph, dependency audits) under harness-enforced `permissionMode: plan` — never Write/Edit. Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (finding-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (ui-reviewer and in-vivo-qa-tester drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
+- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (spec-quality-reviewer, ui-reviewer, in-vivo-qa-tester) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
 - **Calibrate to the floor model, not the ceiling.** Rules and agents must work on the least capable model the user runs day-to-day (as of jul-2026: Sonnet 5 — the executor-tier agents; sessions and top-tier agents run Fable 5, permanent on the plan, with a pinned `opus` tier between). Before cutting a rule as "the model does this by default", verify the *floor* model does it — top-model capability is not a pruning criterion.
 - **Path-scoped rules only load when matching files are touched; do not duplicate them into agents.**
 
@@ -59,11 +60,11 @@ description: >
   Use this agent when evaluating architecture decisions...
 
   <example>
-  Context: Team is migrating from monolith to microservices.
-  user: "Review our proposed service boundaries"
-  assistant: "I'll evaluate the architecture..."
+  Context: Team is designing service boundaries before implementation begins.
+  user: "Design the service boundaries for the new module"
+  assistant: "I'll design the contracts and boundaries..."
   <commentary>
-  Invoke for macro-level design, not code-level review.
+  Invoke system-designer for pre-implementation macro design, not code-level review.
   </commentary>
   </example>
 ```
@@ -71,7 +72,7 @@ description: >
 ### Color Assignment by Role
 - **blue** — design, analysis (system-designer)
 - **cyan** — review, research (code-reviewer, security-reviewer)
-- **green** — implementation, building (backend-developer, angular-developer, nextjs-architecture-expert)
+- **green** — implementation, building (backend-developer, angular-developer, react-developer)
 - **yellow** — validation, quality, testing (test-engineer, prompt-engineer)
 - **magenta** — creative, documentation, content (technical-writer)
 - **red** — critical operations, security, devops (devops-engineer)
@@ -88,9 +89,10 @@ description: >
 ## Routing Maintenance
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
 - `global/rules/workflow/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
+- `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
 - Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
 - **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
-- **AlwaysApply rules don't pass through `build.py` — but router-skill references DO.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` always-on core. A new or changed alwaysApply rule that applies to all harnesses is reflected MANUALLY in `harness/AGENTS.md` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in `build.py`: workspace-conventions ← project-structure/session-capture/support-artifacts/cross-service/infra-naming, memory-policy ← memory-routing, unattended-delegation ← unattended-autonomy, language-rules ← languages/* + quality depth + browser-automation), where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
+- **AlwaysApply rules don't pass through `build.py` — but router-skill references DO.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` always-on core. A new or changed alwaysApply rule that applies to all harnesses is reflected MANUALLY in `harness/AGENTS.md` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references — `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` is the authoritative skill←rule mapping (do not restate it here; it drifts) — where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
 - **Grok scope (`deploy-global --only grok` / part of `harness`):** (1) always-on rules — Grok's scan is NOT recursive and ignores `paths:`, so each always-on rule is symlinked flat into `~/.grok/rules/` as `<dir>__<file>.md` → `~/.claude/rules/` copy; a new always-on rule is picked up on the next deploy; **giving an existing rule `paths:` removes it from Grok**, so situational content must reach Grok via a router skill's `SKILL_REFERENCE_INJECTIONS` (same as Codex); rule filenames must never contain `__` (flatten separator). (2) agents — `harness/build.py` emits `harness/grok/agents/*.md` from `global/agents/`; deploy copies them to `~/.grok/agents/` so `spawn_subagent` can use the hub roster by name. (3) hooks — **not** re-copied under `~/.grok/hooks/`; Grok merges `~/.claude/settings.json` via compat, and hive hook scripts are dual-runtime (Claude + Grok payloads). Grok also loads `~/.claude/CLAUDE.md` natively.
 
 ## File Structure
@@ -146,16 +148,22 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   └── bootstrap-workspace.sh
 │   ├── flow-core/                 # Flow pack shared library (non-invocable): contract + templates
 │   │   ├── SKILL.md
-│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook, promotion-playbook, ux-rubric
+│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook, judgment-criteria, audit-playbook, promotion-playbook, ux-rubric
 │   ├── flow-brainstorming/        # /flow-brainstorming — business-idea iteration into a decision
 │   ├── flow-start/                # /flow-start — greenfield wizard: intake + workspace bootstrap + technical foundation
 │   ├── flow-specs/                # /flow-specs — write/review specs: init | epic | review (+ spec rubric)
 │   ├── flow-plan/                 # /flow-plan — write the session plan (research | write) with agent-routing table
 │   ├── flow-build/                # /flow-build — execute the plan (state-driven reconciler + verify gate)
-│   ├── flow-hygiene/              # /flow-hygiene — audit | apply | migrate workspace hygiene
+│   ├── flow-workspace/            # /flow-workspace — audit | apply workspace hygiene
+│   ├── flow-adopt/                # /flow-adopt — bring a pre-pack project into the flow (specs repo, tiering, manifest)
+│   ├── flow-audit/                # /flow-audit — multi-lens preventive audit of runtime repos (epic close)
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
+│   ├── language-rules/            # Router (model-invoked): language rules for Codex/Grok — references injected by build.py
+│   ├── memory-policy/             # Router (model-invoked): Engram policy for Codex/opencode — references injected by build.py
+│   ├── workspace-conventions/     # Router (model-invoked): workspace/session/contract conventions — references injected by build.py
+│   ├── unattended-delegation/     # Router (model-invoked): delegated unattended runs — references injected by build.py
 │   └── starlight-docs-site/       # /starlight-docs-site — scaffold | page | audit Astro Starlight docs (user-manual | spec-site)
 │       ├── SKILL.md
 │       ├── references/            # chassis, profile-*, best-practices, audit-checklist

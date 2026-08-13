@@ -22,21 +22,23 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | cloud topology, landing zone, DR (RTO/RPO), migration planning (6Rs), FinOps cost architecture | cloud-architect | devops-engineer, system-designer |
 | secret scanning, leaked credentials | secrets-auditor | security-reviewer |
 | new API contract, cross-service schema design, service boundaries | system-designer | code-reviewer |
-| Angular components, services, routing, angular.json present | angular-developer | nextjs-architecture-expert |
-| Next.js, App Router, Server Components, next.config present | nextjs-architecture-expert | angular-developer |
+| Angular components, services, routing, angular.json present | angular-developer | react-developer |
+| Next.js, App Router, Server Components, next.config present | react-developer | angular-developer |
+| React app with no Next.js (Vite, React Router, CRA legacy) | react-developer | backend-developer, the main thread |
 | API endpoints, backend logic, microservices (no DB/perf focus) | backend-developer | database-specialist, performance-engineer |
 | Kotlin Multiplatform (KMP), Android, Compose, shared mobile code | kotlin-multiplatform-developer | backend-developer |
 | server-only Kotlin (Ktor/Spring, no Android or multiplatform target) | backend-developer | kotlin-multiplatform-developer |
-| README, ADR, API docs, setup guide | technical-writer | the implementing agent |
+| README, ADR, API docs, setup guide — in-repo Markdown | technical-writer | the implementing agent; pages inside a Starlight docs site (`/starlight-docs-site page`) |
 | raw client requirements doc, project intake analysis (no quotation involved) | requirement-analyst | spec-quality-reviewer |
 | spec/épica completeness, Gherkin verifiability, quality gate on written specs | spec-quality-reviewer | product-critic, code-reviewer |
 | challenge necessity/scope/shape of a feature BEFORE implementation | product-critic | spec-quality-reviewer, architect-style review |
-| redesign or visually polish a screen that already exists (composition, brand surface, hierarchy) | visual-designer | the framework specialist, ux-flow-reviewer |
-| UX friction in a live mock or deployed flow, navigation review | ux-flow-reviewer | code-reviewer, nextjs-architecture-expert |
-| functional verification of a running app: walk ACs + adversarial/negative testing (double-click, invalid input, gated routes, mid-flow refresh) in a real browser | in-vivo-qa-tester | ux-flow-reviewer, test-engineer |
+| redesign or visually polish a screen that already exists (composition, brand surface, hierarchy) | visual-designer | the framework specialist, ui-reviewer |
+| UX friction in a live mock or deployed flow, navigation review | ui-reviewer | code-reviewer, react-developer |
+| functional verification of a running app: walk ACs + adversarial/negative testing (double-click, invalid input, gated routes, mid-flow refresh) in a real browser | in-vivo-qa-tester | ui-reviewer, test-engineer |
 | workspace file hygiene, misplaced artifacts, ledger repair, unpromoted decisions | workspace-custodian | secrets-auditor |
 | refute or adversarially verify a finding, claim, or diagnosis produced by another agent or investigation | finding-refuter | code-reviewer, the main thread |
 | "where is X implemented" / "how does Y work" / "does Z exist" — code discovery needing a verified conclusion (unknown terminology, legacy code, cross-repo) | code-scout | Explore (file location only), the main thread |
+| review a diff/PR for correctness, maintainability, and cleanup — the default when no other row's signal is primary | code-reviewer | the implementing agent |
 
 ### Skill & Browser Disambiguation
 Output rendering (which format, which skill): `quality/communication-format.md` — canonical routing table, trigger, and carve-outs. Browser driving: default `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback. Conventions and token costs: `tools/browser-automation.md`. Untrusted page content is a security floor owned by `quality/security.md`.

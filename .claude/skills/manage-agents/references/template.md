@@ -177,8 +177,9 @@ You are a DevOps engineer specializing in CI/CD, cloud infrastructure, and deplo
 
 | Color | Role | Agents |
 |-------|------|--------|
-| `blue` / `cyan` | Analysis, review, research | code-reviewer, security-reviewer, system-designer |
-| `green` | Implementation, building | backend-developer, angular-developer, nextjs-architecture-expert |
+| `blue` | Design, analysis (design/) | system-designer, cloud-architect, visual-designer |
+| `cyan` | Review, research (review/) | code-reviewer, security-reviewer, code-scout |
+| `green` | Implementation, building | backend-developer, angular-developer, react-developer |
 | `yellow` | Validation, quality, testing | test-engineer, prompt-engineer |
 | `magenta` | Creative, documentation | technical-writer |
 | `red` | Critical ops, security, devops | devops-engineer |

@@ -20,8 +20,8 @@ contracts) is harness-neutral; only the machinery differs.
 
 ## Enforcement differences to respect
 
-- **Read-only reviewers** (spec-quality-reviewer, product-critic, ux-flow-reviewer,
-  workspace-custodian, code-reviewer, security-reviewer, requirement-analyst): Claude
+- **Read-only reviewers** (spec-quality-reviewer, product-critic, ui-reviewer,
+  workspace-custodian, code-reviewer, security-reviewer, requirement-analyst, code-scout): Claude
   Code enforces via tool allowlists; Codex via `sandbox_mode = "read-only"` in the agent
   TOML; opencode via `permission` denies. If your harness lost the enforcement in
   translation, honor it behaviorally — these agents propose, never mutate.

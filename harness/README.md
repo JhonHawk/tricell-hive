@@ -14,7 +14,7 @@ canonical sources for the other two CLIs.
 | `agents-skills/` | Cleaned universal skills → `~/.agents/skills/` | **Generated** |
 | `codex/agents/` | TOML subagents → `~/.codex/agents/` | **Generated** |
 | `opencode/agents/` | Markdown subagents → `~/.config/opencode/agents/` | **Generated** |
-| `opencode/commands/` | `/flow-*` wrappers → `~/.config/opencode/commands/` | Hand-edited (one per skill) |
+| `opencode/commands/` | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) → `~/.config/opencode/commands/` | Hand-edited (one per user-invoked skill) |
 | `(global/hooks/flow-session-context/)` | Cross-harness SessionStart context → Claude `settings.json` + `~/.claude/hooks/`, `~/.codex/hooks.json` + `~/.codex/hooks/`, `~/.config/opencode/plugins/` | Copied by `/deploy-global` (source under `global/`, not `harness/`) |
 | `codex/config.toml.snippet` | Codex config additions | **Manual merge, once** |
 | `opencode/opencode.jsonc.snippet` | opencode config additions | **Manual merge, once** |

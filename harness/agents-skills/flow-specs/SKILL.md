@@ -41,7 +41,7 @@ gate). With no argument, show the subcommands and the epics index status.
    load tools via ToolSearch; cli → `acli` for Jira; api → env token; manual/none →
    skip, the specs repo is the task source): find or create the project, record the URL
    in README and PROJECT.md. Fields missing from the ledger → ask once and record them
-   (`/flow-start` normally sets them; pre-pack workspaces get them via `/flow-hygiene`).
+   (`/flow-start` normally sets them; pre-pack workspaces get them via `/flow-adopt`).
 6. If `_support/` already holds high-level spec material from `/flow-start`, propose the promotion
    plan (what moves into the repo, what stays as scratch) — file-routing rule question 4.
 
@@ -102,7 +102,7 @@ resolves technical ones — the technical gate is TECH.md at `flow-plan`, once
 2. Dispatch BOTH reviewers in parallel (one message, two Agent calls), per the handoff
    protocol (`~/.agents/skills/flow-core/references/handoff-protocol.md`):
    - **spec-quality-reviewer** — pass: the epic path, the rubric path
-     (`~/.agents/skills/flow-specs/references/spec-rubric.md`), pointers to sibling epics and
+     (`$HOME/.agents/skills/flow-specs/references/spec-rubric.md`), pointers to sibling epics and
      contracts for implicit-rule hunting, and the intent: "findings feed a go/no-go gate
      before implementation; the user fixes the spec, not the client".
    - **product-critic** — pass: the epic path, the workspace layout (where the other
