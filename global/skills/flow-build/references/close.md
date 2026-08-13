@@ -17,7 +17,9 @@ Runs at the end of every `/flow-build` invocation, after the run's last stage.
    operator-facing change (screen, role capability, business rule) with no delta is a gap to
    close in the change-group, never a "next step".
 6. **Report** — tasks done vs pending, merges (PR#, CI results), docs impact (item 5), what
-   was verified (paths) vs not, servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
+   was verified (paths) vs not, **executor substitutions** (a gate or `Agent:`-annotated task
+   run inline instead of via its routing-row agent — name it with the one-line why; a silent
+   substitution is a close defect), servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
    a pending list; promotion is never the suggested next work — if integration is ahead of `qa`,
    close with a one-line offer to run the QA promotion walk now
    (`flow-core/references/promotion-playbook.md`; the user decides; never expand its

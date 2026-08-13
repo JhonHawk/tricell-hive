@@ -12,7 +12,10 @@ Crystallizes findings + spec into a plan another harness executes. The plan is t
    never assumed or omitted downstream), a `Verify:` command paired with its expected output, and
    the `Commit: feat(<scope>): T<n> …` tag. Declare the integration semantics (branch, merge
    mechanics, which CI gates each PR) in the header. Routing each task to a specialist is
-   `flow-build`'s job at execution time — the plan stays harness-neutral. When any decision
+   `flow-build`'s job at execution time — the plan stays harness-neutral; the optional `Agent:`
+   line annotates the routing row where one clearly applies (it is a visibility aid, not a
+   lock — `flow-core/references/plan-format.md` owns the rule, including the `in-vivo: yes` →
+   `in-vivo-qa-tester` convention and the substitution-reporting duty). When any decision
    blocks task detail, add a **Decisions to close BEFORE executing** table above the tasks
    (`flow-core/references/plan-format.md`): technical rows you confirm with a peer/tool, stakeholder rows folded into
    the approval gate at step 6 — so execution never drips questions mid-task. **This gate is the

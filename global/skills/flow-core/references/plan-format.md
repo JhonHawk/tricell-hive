@@ -88,6 +88,7 @@ Every task is independently executable and independently trackable.
 
 in-vivo: yes | no        ← does this task need a live walk? planner decides (UI/integration → yes; pure logic → no)
 design-review: yes       ← opt-in: user-facing UI task → flow-build's Visual-craft gate walks it; omit the line for non-UI tasks
+Agent: <agent-name>      ← optional routing annotation: the routing-table executor when a row covers the task (agent-routing.md); omit when none applies
 Files:
   - Create: <exact/path>
   - Modify: <exact/path:lines>
@@ -110,6 +111,14 @@ Rules:
   once-per-run decision, not per task (see `flow-build`). **`design-review:` is its opt-in
   sibling** — set `yes` on user-facing UI tasks to route them through flow-build's
   Visual-craft design gate; absent means no.
+- **The walk of an `in-vivo: yes` task runs via `in-vivo-qa-tester` wherever the agent roster
+  exists** — the same dispatch `flow-build`'s gate makes mechanical, and it includes the role's
+  adversarial half, not just the plan's happy-path checklist. `Agent:` makes any other
+  routing-row executor plan-visible without breaking harness-neutrality: a harness without the
+  roster executes the recipe directly. Running a walk or an `Agent:`-annotated task inline
+  when the roster IS available is a **substitution** — reported at close with its one-line
+  justification, never silent. This duty travels with the plan: a protocol run by hand outside
+  `/flow-build` inherits it identically.
 - **`Verify:` pairs a command with its expected output** (handoff-protocol element 4). A step
   whose expected result you cannot state is not a verification step yet. This is what lets a
   cheaper executor verify mechanically instead of judging.
@@ -143,6 +152,7 @@ sessions/<start-date>-<slug>/
 ### T3: Add idempotency key to the send-message endpoint
 
 in-vivo: yes
+Agent: backend-developer
 Files:
   - Modify: src/modules/messages/messages.controller.ts
   - Modify: src/modules/messages/dto/send-message.dto.ts
