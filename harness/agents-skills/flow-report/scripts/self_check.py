@@ -34,6 +34,11 @@ flow-report skill (tricell-hive). Local changes:
     for us: a real report ships page-level `<script>` (the baseline
     skeleton's modal/TOC/deck-nav JS) and would otherwise RuntimeError on
     `canonical_controller()`'s missing template on every run.
+  - Removed the "at least one accessible SVG" requirement. Upstream validates
+    single-diagram files, where a missing SVG means a broken deliverable;
+    flow-report runs this script on EVERY report, and a diagram-free report
+    (tables/prose only) is legitimate. The full accessible-SVG contract still
+    applies to every non-decorative SVG that IS present.
   - `<script>` is now scoped instead: a `<script>` OUTSIDE every `<svg>` is
     page JS and passes; a `<script>` INSIDE an `<svg>` fails cleanly
     ("diagrams are static under the flow-report grammar") instead of
@@ -160,8 +165,6 @@ def check_svgs(parser: DiagramParser, errors: list[str]) -> None:
         if isinstance(svg["attrs"], dict)
         and str(svg["attrs"].get("aria-hidden", "")).casefold() != "true"
     ]
-    if not checkable:
-        errors.append("diagram file needs at least one accessible (non-aria-hidden) SVG")
     for number, svg in enumerate(checkable, 1):
         attrs = svg["attrs"]
         assert isinstance(attrs, dict)

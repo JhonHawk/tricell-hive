@@ -1,9 +1,11 @@
 ---
 name: flow-report
 description: >
-  Render substantial multi-format agent output as single-file static HTML (plan, audit,
-  research, review, comparison). Triggers: ≥~300 words AND 2+ info kinds (tables,
-  diagrams, code, mockups). Not for short chat, handoffs, or live playgrounds.
+  Render substantial multi-format agent output as single-file static HTML in five
+  archetypes — document, explainer, review, comparison, deck — chosen by what is being
+  presented (plan, audit, research, PR review, option grid, pitch). Triggers: ≥~300 words
+  AND 2+ info kinds (tables, diagrams, code, mockups). Not for short chat, handoffs, or
+  live playgrounds.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
@@ -21,33 +23,45 @@ Every output must:
 4. **Be mobile-responsive.** Include `<meta name="viewport" content="width=device-width, initial-scale=1">`. Single-column collapse below 720px.
 5. **Avoid default-AI aesthetics.** No gradient cards with emoji headers, no purple-to-pink buttons, no `Inter` everywhere. Default to: serif body (Georgia, Charter, system serif), restrained palette (3-5 colors max), generous whitespace.
 6. **Include provenance footer.** Collapsible `<details>` at the bottom with: timestamp, source prompt (truncated), file paths referenced.
-7. **Legibility baseline & layout.** Follow `rules/quality/communication-format.md > Layout floor` (Codex/opencode: `references/communication-format.md`) — the shell is the measure, no prose caps, 18px base. Here the shell is ~1280px. Start from `references/baseline.html` — a concrete, validated skeleton (design-system tokens, type scale, status palette, masthead, TOC, stat strip, accent cards, clickable master table, reusable modal + JS, provenance footer) — and adapt it instead of improvising the CSS.
+7. **Legibility baseline & layout.** Follow `rules/quality/communication-format.md > Layout floor` (Codex/opencode: `references/communication-format.md`) — the shell is the measure, no prose caps, 18px base; per-archetype interpretation below. Start from the archetype skeleton chosen in `Format selection` and adapt it instead of improvising the CSS — every skeleton ships the same validated design system (tokens, type scale, status palette, provenance footer).
 8. **Diagrams follow the grammar.** Any inline SVG diagram (architecture, flowchart, sequence, state, ER, timeline, swimlane, quadrant, layers, tree, Gantt, bar) is drawn per `references/diagram-grammar.md` — load it before drawing. Never improvise connector routing, arrow labels, or node styling; the grammar is skinned to the baseline tokens.
 
-## Category patterns
+## Format selection
 
-Match the user request to a category and render its minimum structure.
+Pick the archetype from what you are PRESENTING, not from who asked. The archetype supplies chrome and layout; when a flow skill prescribes a section contract (flow-audit per `flow-core/references/audit-playbook.md`, flow-specs review findings by severity), that contract owns the outline and the archetype never overrides it.
 
-### Plan / spec
-Summary table (phases, milestones, owners) + data-flow or state diagram (SVG) + risk table (probability × impact) + inline mockups for UI-touching phases + critical code snippets with syntax highlighting.
+| Presenting… | Archetype | Skeleton |
+|---|---|---|
+| Operational/status report, findings inventory, audit (flow-audit), spec/mock review (flow-specs), hygiene/migration review (flow-workspace/flow-adopt), weekly dashboard, incident timeline, plan/spec, design tokens | **document** | `references/baseline.html` |
+| Code review, PR writeup, annotated diff | **review** | `references/skeleton-review.html` |
+| Research synthesis, concept/subsystem explainer, module map, onboarding doc, FAQ | **explainer** | `references/skeleton-explainer.html` |
+| Brainstorm, tech selection, A-vs-B, option grid | **comparison** | `references/skeleton-comparison.html` |
+| Deck, pitch, guided walkthrough | **deck** | `references/skeleton-deck.html` |
+| Live interactive state (sliders, live re-render, editors that export state) | — not this skill | `playground` skill |
 
-### Code review / PR writeup
-Diff rendered as 2-column with line numbers + inline margin annotations categorized `blocking` / `nit` / `nice` + file-list jump-links at top + TL;DR verdict at top.
+- **document** — dense operational record: stat strip, master table + modal, accent cards. The default when no other row clearly wins.
+- **explainer** — teach a concept: TOC, collapsible sections, tabbed code, gotchas table, FAQ/glossary; diagram up top.
+- **review** — verdict over a code diff: severity-coded margin annotations (`blocking`/`nit`/`nice`), file jump-links, verdict TL;DR. Code diffs only — spec/mock reviews are document.
+- **comparison** — undecided options: 3-6 cards (title, mockup/snippet, pros/cons, tradeoff tags), criteria matrix. Never a pre-selected winner.
+- **deck** — one idea per 16:9 slide; `←`/`→` navigation, `P` presenter notes, `Esc` exit fullscreen, contents as slide 2. No-JS/print state = slides stacked full-width — the provenance footer lives there.
 
-### Audit / research / explainer
-Flow diagram up top (one SVG, clickable nodes) + annotated code snippet beside prose + gotchas table at bottom (one row per edge case) + source list (links, files, commits referenced).
+Content patterns (minimum structure, inside the chosen archetype):
 
-### Brainstorm / comparison
-3-6 option cards in CSS grid. Each card: title, mockup or snippet, pros/cons, tradeoff tags. No pre-selected winner.
+- **Plan / spec** (document): phase/milestone summary table + data-flow or state SVG + risk table (probability × impact) + inline mockups for UI-touching phases + key code snippets.
+- **Design tokens** (document): swatches with hex + variable name + usage label; type scale rendered live; spacing as horizontal bars; component variants live with hover states.
+- **Incident timeline** (document): horizontal-axis timeline SVG + minute-by-minute table + action checklist.
 
-### Design tokens
-Color swatches with hex + variable name + usage label. Typography scale rendered live. Spacing scale as horizontal bars. Component variants (primary/secondary/ghost) shown live with hover states.
+### Interactivity: presentation only
 
-### Interactive playgrounds, sliders, live editors — NOT this skill
-If the output requires live interactive state (sliders that change preview in real time, knobs to tune values, editors that export state as JSON or natural-language prompt), delegate to the `playground` skill — that's its dedicated domain. `flow-report` covers static rich layout only. The boundary is: `playground` has live state binding, `flow-report` does not.
+Sanctioned JS reveals content already in the file: tabs, collapsibles, clickable rows/modals, deck keyboard nav, hover states. Live-state binding — sliders that re-render a preview, knobs that tune values, editors that export state as JSON or prompt — is the `playground` skill's domain. The boundary is state, not visual richness.
 
-### Deck / presentation
-16:9 slides, one idea per slide. Arrow-key navigation (`←` `→`). Press `P` for presenter notes. Press `Esc` to exit fullscreen. Include a contents slide as slide 1.
+### Layout floor by archetype
+
+`Layout floor` applies as: **document / explainer / comparison** — literal (~1280px shell, 18px base, the shell is the measure). **review** — prose and annotations at the 18px floor; the diff is a data grid under the table clause (mono 14-15px in its own scroll container; commentary never inherits the code size). **deck** — the slide is the shell: each 16:9 slide fills edge-to-edge with on-slide type ≥24px; the stacked no-JS state reverts to the standard full-width shell.
+
+## Multi-file staged deliverables
+
+Default: one deliverable = one file. A staged deliverable (exploration → mockups → plan) may split into sibling files under one dated folder (`_support/workspace/YYYY-MM-DD-<slug>/01-exploration.html`, `02-mockups.html`, …) with relative links between them. Each file is individually self-contained, carries its own provenance footer, and passes the deterministic checks on its own.
 
 ## Output location
 
@@ -69,9 +83,11 @@ Run the deterministic checks (they exit non-zero on failure; fix and re-run unti
 
 - Every report: `python3 ${CLAUDE_SKILL_DIR}/scripts/self_check.py <file>` — self-containment (no external requests) + accessible-SVG contract.
 - Reports embedding SVG diagrams: also `python3 ${CLAUDE_SKILL_DIR}/scripts/verify_geometry.py <file>` — label-mask/node overlap geometry.
+- A multi-file deliverable runs the checks on every file individually.
 
 Report to the user:
 - Full file path (so they can `open` it)
+- Archetype used
 - Word count and rough section count
 - Suggested next step: `open <path>` to view in browser, or destination for sharing (S3, Notion, Confluence)
 

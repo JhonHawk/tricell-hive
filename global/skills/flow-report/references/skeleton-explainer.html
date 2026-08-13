@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Keep this viewport tag: it drives the <720px responsive collapse below. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flow-report skeleton — explainer archetype</title>
+<!--
+  ============================================================================
+  flow-report SKELETON — EXPLAINER archetype
+  ============================================================================
+  For TEACHING a concept, subsystem, or decision to a reader who doesn't
+  hold the context: mental model first, then progressive depth the reader
+  opens on demand. Status reporting is the document archetype
+  (baseline.html); comparing options is skeleton-comparison.html; a diff
+  verdict is skeleton-review.html.
+
+  HOW TO USE
+  - Copy this file, then ADAPT: the reading order is the contract — mental
+    model (diagram) -> how it works (collapsibles, shallow to deep) ->
+    usage by example (tabs) -> gotchas -> FAQ -> glossary -> sources.
+    Delete sections the topic doesn't need.
+  - The inline SVG here is a deliberately MINIMAL but grammar-compliant
+    diagram (2 nodes, 1 connector, masked label, legend). For a real
+    diagram, read references/diagram-grammar.md — type selection, the
+    connector rules, the 4px grid, and the accessible-SVG contract are all
+    mandatory. Verify with scripts/verify_geometry.py + self_check.py.
+  - Keep the DESIGN SYSTEM (:root tokens + type scale) intact unless you
+    have a reason. That is what makes outputs consistent.
+  - Self-contained always: all CSS in <style>, all JS in one <script>, all
+    imagery inline SVG. No CDN <link>/<script> that can 404 offline.
+
+  LEGIBILITY BASELINE (non-negotiable — see flow-report SKILL.md rule)
+  - 18px/1.6 base, 16px <720px. THE SHELL IS THE MEASURE. Code blocks are
+    data grids and sit at 15px mono; explanation prose never does.
+  ============================================================================
+-->
+<style>
+  /* ============================================================
+     DESIGN SYSTEM — warm-editorial neutrals + single accent.
+     Inherited verbatim from baseline.html. ONE accent per page.
+     ============================================================ */
+  :root{
+    /* ink & surfaces */
+    --ink:#1b1916; --ink-soft:#3b3833; --muted:#6f675d; --faint:#938b7f;
+    --line:#e4ddd1; --line-soft:#efe9de;
+    --bg:#f7f3eb; --paper:#fffdf8; --paper-2:#faf6ee; --hover:#f3eee4;
+    /* accent — single hue, used identically everywhere */
+    --accent:#1c5563; --accent-deep:#143f4a; --accent-soft:#e3edef; --accent-line:#cadee1;
+    /* status families: ink / tint / hairline */
+    --red:#993126; --red-bg:#f7e8e3; --red-line:#e6c8bf;
+    --amber:#855d0c; --amber-bg:#f6efd9; --amber-line:#e6d6ad;
+    --green:#326538; --green-bg:#e7efe3; --green-line:#c9dbc2;
+    --blue:#274d78; --blue-bg:#e7eef7; --blue-line:#ccd9eb;
+    --gray:#5c564e; --gray-bg:#eee9e1; --gray-line:#ddd7cb;
+    /* shape & elevation */
+    --r-sm:6px; --r:10px; --r-lg:14px;
+    --shadow:0 1px 2px rgba(54,44,28,.05), 0 6px 20px rgba(54,44,28,.06);
+    --shadow-lg:0 28px 70px rgba(27,25,22,.30);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:Charter,"Iowan Old Style",Georgia,"Times New Roman",serif;
+    line-height:1.6; font-size:18px;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  /* SHELL = MEASURE: one container, all content fills it. */
+  .wrap{max-width:1280px; margin:0 auto; padding:56px 36px 88px}
+
+  /* ---- masthead ---- */
+  header.masthead{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:36px}
+  .kicker{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 12px; font-weight:600}
+  h1{font-size:clamp(30px,3.4vw,40px); line-height:1.14; letter-spacing:-.012em; margin:0 0 16px; font-weight:600}
+  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); background:var(--paper);
+    border:1px solid var(--line); border-left:4px solid var(--accent);
+    padding:16px 20px; margin:20px 0 0; border-radius:0 var(--r) var(--r) 0}
+  .tldr strong{color:var(--ink)}
+  .meta{font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--muted); margin-top:20px;
+    display:flex; flex-wrap:wrap; gap:8px 26px}
+
+  /* ---- prose & headings ---- */
+  h2{font-size:25px; line-height:1.2; letter-spacing:-.008em; margin:54px 0 16px; padding-top:22px;
+    border-top:1px solid var(--line); font-weight:600}
+  h3{font-size:19px; margin:30px 0 10px; font-weight:600}
+  p{margin:12px 0}
+  a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-line)}
+  a:hover{border-bottom-color:var(--accent)}
+  code,.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.84em;
+    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:5px}
+
+  /* ---- table of contents ---- */
+  nav.toc{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:20px 24px;
+    margin:28px 0; box-shadow:var(--shadow)}
+  nav.toc strong{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+  nav.toc ul{margin:10px 0 0; padding-left:20px; columns:2; column-gap:40px}
+  nav.toc li{margin:5px 0}
+
+  /* ---- concept diagram (skin per diagram-grammar.md §4) ---- */
+  .diagram{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
+    padding:20px; overflow-x:auto; margin:18px 0; box-shadow:var(--shadow)}
+  .diagram svg{display:block; width:100%; height:auto; min-width:640px}
+  .diagram figcaption{font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); margin-top:10px}
+
+  /* ---- collapsible deep-dive sections ---- */
+  details.sec{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); margin:16px 0; padding:0 24px}
+  details.sec>summary{cursor:pointer; list-style:none; font-weight:600; font-size:19px;
+    padding:16px 28px 16px 0; position:relative}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>summary::after{content:""; position:absolute; right:4px; top:50%; width:9px; height:9px;
+    border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
+    transform:translateY(-70%) rotate(45deg); transition:transform .15s ease}
+  details.sec[open]>summary::after{transform:translateY(-30%) rotate(225deg)}
+  details.sec .body{border-top:1px solid var(--line-soft); padding:6px 0 20px}
+
+  /* ---- two-column: prose beside annotated code (collapses <720px) ---- */
+  .duo{display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start; margin:14px 0}
+
+  /* ---- code blocks + tabs. 15px mono is the data-grid size; explanation
+     prose never inherits it. Token colors come from the page palette —
+     no highlight library, classes are hand-applied where they teach. ---- */
+  pre.code{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:15px; line-height:1.6;
+    background:var(--paper-2); border:1px solid var(--line-soft); border-radius:var(--r-sm);
+    padding:14px 18px; overflow-x:auto; margin:12px 0; white-space:pre}
+  .tok-kw{color:var(--accent); font-weight:600}
+  .tok-str{color:var(--green)}
+  .tok-com{color:var(--faint); font-style:italic}
+  .tabs{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); margin:18px 0; overflow:hidden}
+  .tabbar{display:flex; gap:2px; background:var(--paper-2); border-bottom:1px solid var(--line); padding:6px 8px 0}
+  .tab{font-family:ui-monospace,Menlo,monospace; font-size:13px; font-weight:600; color:var(--muted);
+    background:none; border:1px solid transparent; border-bottom:none; border-radius:var(--r-sm) var(--r-sm) 0 0;
+    padding:8px 14px; cursor:pointer}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{background:var(--paper); border-color:var(--line); color:var(--accent);
+    position:relative; top:1px}
+  .panel{padding:4px 18px 14px}
+  .panel pre.code{border:none; background:var(--paper); margin:0; padding:10px 0}
+
+  /* ---- gotchas table ---- */
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:16px; background:var(--paper);
+    border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow)}
+  thead th{background:var(--paper-2); text-align:left; padding:12px 13px; font-size:12px; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line)}
+  tbody td{padding:12px 13px; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.45}
+  tbody tr:last-child td{border-bottom:none}
+
+  /* ---- FAQ + glossary + sources ---- */
+  details.faq{border-bottom:1px solid var(--line-soft); padding:10px 0}
+  details.faq summary{cursor:pointer; font-weight:600; list-style-position:outside}
+  details.faq p{color:var(--ink-soft); margin:10px 0 4px}
+  dl.gloss dt{font-weight:600; margin-top:14px}
+  dl.gloss dd{margin:2px 0 0 0; color:var(--ink-soft)}
+  ul.src{font-family:ui-monospace,Menlo,monospace; font-size:14px; line-height:1.9}
+
+  /* ---- provenance footer ---- */
+  details.prov{margin-top:60px; border-top:1px solid var(--line); padding-top:18px; font-size:14px; color:var(--muted)}
+  details.prov summary{cursor:pointer; font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--accent)}
+  details.prov p{margin-top:12px; line-height:1.6}
+  details.prov code{background:var(--paper)}
+
+  /* ---- responsive collapse ---- */
+  @media(max-width:720px){
+    body{font-size:16px}
+    .wrap{padding:36px 18px 64px}
+    h1{font-size:27px}
+    h2{font-size:22px}
+    nav.toc ul{columns:1}
+    .duo{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== MASTHEAD: the TL;DR is the whole explanation in one sentence —
+       a reader who stops here should still leave with the right model. -->
+  <header class="masthead">
+    <p class="kicker">Group · Project · Explainer</p>
+    <h1>How the subsystem works, named in plain language</h1>
+    <div class="tldr">
+      <strong>In one sentence:</strong> the concept's mental model stated plainly —
+      what it is, what it talks to, and the one thing people get wrong about it.
+    </div>
+    <div class="meta">
+      <span>Date 2026-01-01</span>
+      <span>Audience: who this teaches</span>
+      <span>Source: code / spec it explains</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#model">1 · The mental model</a></li>
+      <li><a href="#how">2 · How it works</a></li>
+      <li><a href="#usage">3 · Usage by example</a></li>
+      <li><a href="#gotchas">4 · Gotchas</a></li>
+      <li><a href="#faq">5 · FAQ</a></li>
+      <li><a href="#gloss">6 · Glossary &amp; sources</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== 1 · MENTAL MODEL: one diagram, then the paragraph that reads it.
+       This SVG is the minimal grammar-compliant form (2 nodes, 1 connector,
+       masked label, bottom legend). Real diagrams: follow
+       references/diagram-grammar.md — draw only when the visual beats a
+       paragraph, orthogonal connectors, 4px grid, ≤2 accent elements. -->
+  <h2 id="model">1 · The mental model</h2>
+  <p>One short paragraph that primes the diagram: name the two roles and the
+    single relationship the reader must hold on to.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 216" role="img" aria-labelledby="exp-title exp-desc">
+      <title id="exp-title">Concept A reading from Concept B</title>
+      <desc id="exp-desc">The focal component Concept A reads its state from the supporting component Concept B.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#6f675d"/>
+        </marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#1c5563"/>
+        </marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#274d78"/>
+        </marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#fffdf8"/>
+      <!-- arrows before boxes (z-order); endpoints share the y axis, so a
+           plain line is legal — anything else needs orthogonal elbows -->
+      <line x1="240" y1="104" x2="400" y2="104" stroke="#6f675d" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- arrow label: opaque paper mask, 8px visible gap above the line -->
+      <rect x="300" y="84" width="40" height="12" rx="2" fill="#fffdf8"/>
+      <text x="320" y="93" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace"
+            text-anchor="middle" letter-spacing="0.06em">READS</text>
+      <!-- focal node (accent — 1-2 accents max per diagram) -->
+      <rect x="64" y="72" width="176" height="64" rx="6" fill="#fffdf8"/>
+      <rect x="64" y="72" width="176" height="64" rx="6" fill="#e3edef" stroke="#1c5563" stroke-width="1"/>
+      <rect x="72" y="80" width="28" height="12" rx="2" fill="transparent" stroke="#1c5563" stroke-opacity="0.4" stroke-width="0.8"/>
+      <text x="86" y="89" fill="#1c5563" fill-opacity="0.8" font-size="7" font-family="ui-monospace,Menlo,monospace"
+            text-anchor="middle" letter-spacing="0.08em">SVC</text>
+      <text x="152" y="106" fill="#1b1916" font-size="12" font-weight="600"
+            font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" text-anchor="middle">Concept A</text>
+      <text x="152" y="122" fill="#6f675d" font-size="9" font-family="ui-monospace,Menlo,monospace"
+            text-anchor="middle">domain.core</text>
+      <!-- supporting node (plain ink treatment) -->
+      <rect x="400" y="72" width="176" height="64" rx="6" fill="#fffdf8"/>
+      <rect x="400" y="72" width="176" height="64" rx="6" fill="#fffdf8" stroke="#1b1916" stroke-width="1"/>
+      <rect x="408" y="80" width="28" height="12" rx="2" fill="transparent" stroke="#1b1916" stroke-opacity="0.4" stroke-width="0.8"/>
+      <text x="422" y="89" fill="#1b1916" fill-opacity="0.8" font-size="7" font-family="ui-monospace,Menlo,monospace"
+            text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="488" y="106" fill="#1b1916" font-size="12" font-weight="600"
+            font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" text-anchor="middle">Concept B</text>
+      <text x="488" y="122" fill="#6f675d" font-size="9" font-family="ui-monospace,Menlo,monospace"
+            text-anchor="middle">adapter:out</text>
+      <!-- legend: bottom strip, covers exactly the treatments used -->
+      <line x1="32" y1="176" x2="608" y2="176" stroke="rgba(27,25,22,0.10)" stroke-width="0.8"/>
+      <text x="32" y="192" fill="#6f675d" font-size="8" font-family="ui-monospace,Menlo,monospace"
+            letter-spacing="0.14em">LEGEND</text>
+      <rect x="104" y="184" width="16" height="9" rx="2" fill="#e3edef" stroke="#1c5563" stroke-width="0.8"/>
+      <text x="128" y="192" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace">focal</text>
+      <rect x="200" y="184" width="16" height="9" rx="2" fill="#fffdf8" stroke="#1b1916" stroke-width="0.8"/>
+      <text x="224" y="192" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace">component</text>
+      <line x1="328" y1="188" x2="356" y2="188" stroke="#6f675d" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <text x="368" y="192" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace">reads from</text>
+    </svg>
+    <figcaption>One-line reading of the diagram: A pulls from B, never the reverse.</figcaption>
+  </figure>
+
+  <!-- ===== 2 · HOW IT WORKS: collapsibles ordered shallow -> deep.
+       First one open — the reader lands on substance, not a wall of chevrons. -->
+  <h2 id="how">2 · How it works</h2>
+  <details class="sec" open>
+    <summary>The happy path, end to end</summary>
+    <div class="body">
+      <div class="duo">
+        <div>
+          <p>Prose column: walk the flow in reading order. Keep each step tied to
+            the line of code beside it — the pairing is the point of the layout.</p>
+          <p>Second paragraph if the step needs a caveat or a "why".</p>
+        </div>
+        <pre class="code"><span class="tok-com">// annotated snippet — real code, trimmed</span>
+<span class="tok-kw">export function</span> handle(input) {
+  <span class="tok-kw">const</span> state = store.read(input.key);
+  <span class="tok-com">// the step the prose is explaining</span>
+  <span class="tok-kw">return</span> apply(state, <span class="tok-str">"policy"</span>);
+}</pre>
+      </div>
+    </div>
+  </details>
+  <details class="sec">
+    <summary>What happens on failure</summary>
+    <div class="body">
+      <p>Deeper material the first-pass reader can skip. Same two-column pattern
+        inside if code helps; plain prose if it doesn't.</p>
+    </div>
+  </details>
+  <details class="sec">
+    <summary>Why it is shaped this way (history / constraints)</summary>
+    <div class="body">
+      <p>The design-rationale layer: the constraint that forced the shape, and
+        what would have to change for the shape to change.</p>
+    </div>
+  </details>
+
+  <!-- ===== 3 · USAGE BY EXAMPLE: tabbed code block, one scenario per tab ===== -->
+  <h2 id="usage">3 · Usage by example</h2>
+  <div class="tabs">
+    <div class="tabbar" role="tablist">
+      <button class="tab" role="tab" aria-selected="true">basic.ts</button>
+      <button class="tab" role="tab" aria-selected="false">with-options.ts</button>
+      <button class="tab" role="tab" aria-selected="false">error-handling.ts</button>
+    </div>
+    <div class="panel"><pre class="code"><span class="tok-com">// the minimal call — what most readers came for</span>
+<span class="tok-kw">const</span> result = subsystem.run(<span class="tok-str">"input"</span>);</pre></div>
+    <div class="panel" hidden><pre class="code"><span class="tok-com">// the same call with the two options that matter</span>
+<span class="tok-kw">const</span> result = subsystem.run(<span class="tok-str">"input"</span>, { retry: <span class="tok-kw">true</span> });</pre></div>
+    <div class="panel" hidden><pre class="code"><span class="tok-kw">try</span> { subsystem.run(<span class="tok-str">"input"</span>); }
+<span class="tok-kw">catch</span> (err) { <span class="tok-com">// the error type callers actually see</span> }</pre></div>
+  </div>
+
+  <!-- ===== 4 · GOTCHAS: one row per edge case — the section readers return to ===== -->
+  <h2 id="gotchas">4 · Gotchas</h2>
+  <table>
+    <thead><tr><th>Edge case</th><th>What happens</th><th>What to do instead</th></tr></thead>
+    <tbody>
+      <tr><td>The surprising input</td><td>The wrong-looking but by-design behavior</td><td>The correct call or guard</td></tr>
+      <tr><td>The tempting misuse</td><td>Why it breaks, one sentence</td><td>The sanctioned alternative</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ===== 5 · FAQ ===== -->
+  <h2 id="faq">5 · FAQ</h2>
+  <details class="faq">
+    <summary>The question people actually ask first?</summary>
+    <p>A direct answer, two sentences max, linking into the sections above.</p>
+  </details>
+  <details class="faq">
+    <summary>The second question?</summary>
+    <p>Same shape. Delete the FAQ entirely if nothing has been asked twice.</p>
+  </details>
+
+  <!-- ===== 6 · GLOSSARY & SOURCES ===== -->
+  <h2 id="gloss">6 · Glossary &amp; sources</h2>
+  <dl class="gloss">
+    <dt>Term</dt><dd>Definition in the project's vocabulary, one line.</dd>
+    <dt>Second term</dt><dd>Only terms this page actually uses — not a domain dictionary.</dd>
+  </dl>
+  <h3>Sources</h3>
+  <ul class="src">
+    <li>src/domain/core.ts — the implementation explained above</li>
+    <li>commit abc1234 — where the current shape landed</li>
+    <li>spec/subsystem.md — the contract it implements</li>
+  </ul>
+
+  <!-- ===== PROVENANCE FOOTER (always last) ===== -->
+  <details class="prov">
+    <summary>Provenance</summary>
+    <p>
+      <strong>Generated:</strong> 2026-01-01 ·
+      <strong>Prompt:</strong> "truncated source prompt" ·
+      <strong>Files referenced:</strong> <code>src/domain/core.ts</code>
+    </p>
+  </details>
+
+</div>
+
+<script>
+/* Tab switcher — the only JS on the page. Each .tabs block is independent:
+   the Nth .tab shows the Nth .panel. Keep it this small. */
+document.querySelectorAll(".tabs").forEach(function(tabs){
+  var btns = tabs.querySelectorAll(".tab");
+  var panels = tabs.querySelectorAll(".panel");
+  btns.forEach(function(btn, i){
+    btn.addEventListener("click", function(){
+      btns.forEach(function(b, j){
+        b.setAttribute("aria-selected", i === j ? "true" : "false");
+        panels[j].hidden = i !== j;
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>
