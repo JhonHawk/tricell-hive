@@ -671,7 +671,7 @@ Backs `languages/shell-standards.md`. Researched jun-2026.
 
 ## Session-based documentary organization
 
-Backs `workflow/project-structure.md > Session capture layer` and its condensed mirror in `harness/AGENTS.md`, plus the session touches in `flow-core/references/specs-structure.md`, `ledger-template.md`, the `flow-dev`/`flow-hygiene` skills, `workspace-custodian`, and `workflow/memory-routing.md` (session slug in memories). Researched jun-2026.
+Backs `workflow/project-structure.md > Session capture layer` and its condensed mirror in `harness/AGENTS.md`, plus the session touches in `flow-core/references/specs-structure.md`, `ledger-template.md`, the `flow-dev`/`flow-hygiene` skills (jun-2026 names; today `flow-plan`/`flow-build` and `flow-workspace`), `workspace-custodian`, and `workflow/memory-routing.md` (session slug in memories). Researched jun-2026.
 
 ### Two models of time-ordered capture — durable (chosen) vs ephemeral (rejected)
 - `[Authoritative]` **Scientific lab-notebook discipline (NARA; Harvard/Stanford RDM; GLP; FDA 21 CFR Part 11)** — time-ordered capture as a durable, immutable, retained record with an audit trail; canonical source for reproducibility. *Adjusted — this is the model adopted:* the session journal is versioned and immutable once concluded.
@@ -680,7 +680,7 @@ Backs `workflow/project-structure.md > Session capture layer` and its condensed 
 
 ### Capture-then-promote, immutability, and the promotion gate
 - `[Authoritative]` **Nygard, *Documenting Architecture Decisions* (Cognitect, 2011)** + **adr.github.io / MADR** + **AWS Prescriptive Guidance (ADR)** — dated, immutable, append-only decision records; supersession by a new linked record, never in-place edit. *Supported* — backs session immutability and the by-type `decisions/` promotion home.
-- `[Authoritative]` **IETF RFC 2026** (maturity levels, minimum tenure) + **Python PEP 1** + **Rust RFC process** + **Kubernetes KEP** ("implementable" gate) — a proposal advances draft→accepted→final at an acceptance checkpoint, not retroactively; the ephemeral discussion (RFC) and the durable record (ADR) are two lives of one decision. *Supported, adopted lightly:* the rule reuses close-time appraisal + flow-hygiene `promote` as the gate, deliberately WITHOUT RFC 2026's formal minimum-tenure ceremony (overkill for a solo/small-team config).
+- `[Authoritative]` **IETF RFC 2026** (maturity levels, minimum tenure) + **Python PEP 1** + **Rust RFC process** + **Kubernetes KEP** ("implementable" gate) — a proposal advances draft→accepted→final at an acceptance checkpoint, not retroactively; the ephemeral discussion (RFC) and the durable record (ADR) are two lives of one decision. *Supported, adopted lightly:* the rule reuses close-time appraisal + flow-workspace `promote` as the gate, deliberately WITHOUT RFC 2026's formal minimum-tenure ceremony (overkill for a solo/small-team config).
 
 ### Type-organized durable docs (the intention layer)
 - `[Authoritative]` **Procida, *Diátaxis*** + **Divio Documentation System** — durable docs organized by TYPE (tutorial / how-to / reference / explanation), not by time. *Supported* — grounds the intention layer as the by-type axis orthogonal to the by-time session axis.
@@ -692,7 +692,7 @@ Backs `workflow/project-structure.md > Session capture layer` and its condensed 
 - `[Authoritative]` **SSOT (general-ledger / Atlassian)** — one master per datum. *Supported* — backs "the sessions index is single and co-located (`sessions/README.md`), never a parallel index that drifts", and the finding that the non-versioned ledger (outside the specs repo) cannot index versioned sessions.
 
 ### Honesty notes
-- No software-engineering canon standardizes a session→permanent-docs **promotion schedule**; the close-time-appraisal + hygiene-sweep mechanism is this config's own engineering judgment (reusing file-routing step 4 + flow-hygiene), not a standard.
+- No software-engineering canon standardizes a session→permanent-docs **promotion schedule**; the close-time-appraisal + hygiene-sweep mechanism is this config's own engineering judgment (reusing file-routing step 4 + the `/flow-workspace` sweep), not a standard.
 - `[Semi-authoritative]` **Pragmatic Programmer, *It's All Writing* (engineering daybook)** establishes dated work-capture as recognized practice but does NOT formalize promotion — recorded as lineage, not a mandate.
 
 

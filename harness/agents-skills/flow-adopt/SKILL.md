@@ -5,8 +5,8 @@ description: >
   activity tiering, per-artifact routing, ledger and ambient-pair reconstruction. Use when a
   project predates the pack — legacy workspace, no ledger, "metamos este proyecto al flow".
   /flow-start retrofits a bare codebase and points fully-established workspaces to
-  /flow-hygiene; a project with accumulated documentary material starts here. A lighter
-  retrofit without specs-repo creation is /flow-hygiene audit + apply. Produces a risk-gated
+  /flow-workspace; a project with accumulated documentary material starts here. A lighter
+  retrofit without specs-repo creation is /flow-workspace audit + apply. Produces a risk-gated
   migration manifest and executes only the approved actions.
 ---
 

@@ -1,4 +1,4 @@
-# /flow-hygiene `audit` — the default subcommand
+# /flow-workspace `audit` — the default subcommand
 
 Produces the actions manifest `apply` consumes. Judge with
 `~/.claude/skills/flow-core/references/judgment-criteria.md`; propose, never execute.
@@ -14,7 +14,7 @@ Produces the actions manifest `apply` consumes. Judge with
    inversion mechanics and is user-gated — never restate or auto-run them here).
 2. Dispatch **workspace-custodian** (fresh context, read-only) with the workspace root, the specs
    repo path, and the intent: "your proposals will be presented verbatim to the user by
-   flow-hygiene apply — make every action executable as written". The custodian's fresh eyes are
+   flow-workspace apply — make every action executable as written". The custodian's fresh eyes are
    the point; don't audit from the main thread.
 3. Save the **actions manifest** → `<project>/_support/workspace/hygiene-audit-<YYYY-MM-DD>.md`:
    one simple list, a row per proposed action — `action · path · why (one line) · risk

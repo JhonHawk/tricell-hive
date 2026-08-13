@@ -1,7 +1,7 @@
 # /flow-adopt — bring an existing project into the flow
 
 The opt-in path for bringing an existing project (current OR past) into the flow — the broader
-sibling of `/flow-hygiene` `audit` + `apply`, adding specs-repo creation and active/archived
+sibling of `/flow-workspace` `audit` + `apply`, adding specs-repo creation and active/archived
 tiering. Mechanics live in `~/.claude/skills/flow-core/references/migration-playbook.md` —
 **read it first; it is the source of truth.** Judge artifacts with
 `~/.claude/skills/flow-core/references/judgment-criteria.md` (archive on doubt;

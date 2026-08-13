@@ -1,4 +1,4 @@
-# /flow-hygiene `apply` — execute the approved actions
+# /flow-workspace `apply` — execute the approved actions
 
 Consumes the manifest `audit` produced. Nothing executes without explicit approval.
 

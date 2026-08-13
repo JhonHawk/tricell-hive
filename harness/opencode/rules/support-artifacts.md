@@ -34,5 +34,5 @@ Applies to generated artifacts under `_support/workspace|evidence|archive|plan` 
 ### Naming & legacy mappings
 
 - Folders: `kebab-case` for projects/repos, lowercase simple nouns for standard folders (`docs`, `spec`, `plan`, `scripts`).
-- Legacy → canonical: `manuals`/`reference` → `docs/`, `artifacts`/`bug-evidence` → `evidence/`, `context-ia` → `workspace/`, `_project/` → `_support/`; relocate `backup` → `_support/backup/`, `todos` → `_support/todos/`; `tmp` → delete (outside a `/flow-hygiene` run the deletion is a destructive op — confirm per `CLAUDE.md > Destructive Operations`).
+- Legacy → canonical: `manuals`/`reference` → `docs/`, `artifacts`/`bug-evidence` → `evidence/`, `context-ia` → `workspace/`, `_project/` → `_support/`; relocate `backup` → `_support/backup/`, `todos` → `_support/todos/`; `tmp` → delete (outside a `/flow-workspace` run the deletion is a destructive op — confirm per `CLAUDE.md > Destructive Operations`).
 - **Retirement:** each legacy mapping lives only while some repo still uses the name; drop the entry when the last one migrates — this rule is not an archive.

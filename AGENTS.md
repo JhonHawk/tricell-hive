@@ -152,7 +152,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── flow-specs/                # /flow-specs — write/review specs: init | epic | review (+ spec rubric)
 │   ├── flow-plan/                 # /flow-plan — write the session plan (research | write) with agent-routing table
 │   ├── flow-build/                # /flow-build — execute the plan (state-driven reconciler + verify gate)
-│   ├── flow-hygiene/              # /flow-hygiene — audit | apply workspace hygiene
+│   ├── flow-workspace/            # /flow-workspace — audit | apply workspace hygiene
 │   ├── flow-adopt/                # /flow-adopt — bring a pre-pack project into the flow (specs repo, tiering, manifest)
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md

@@ -2,7 +2,7 @@
 name: flow-core
 description: >
   Shared protocol and templates for the flow pack (flow-brainstorming, flow-start, flow-adopt,
-  flow-specs, flow-plan, flow-build, flow-hygiene, flow-report). Not a workflow itself —
+  flow-specs, flow-plan, flow-build, flow-workspace, flow-report). Not a workflow itself —
   it is the library every flow-* skill reads for the flow contract, the file-routing rule,
   and the canonical templates (ledger, handoff protocol, naming table, specs structure).
 ---
@@ -128,15 +128,15 @@ instead of restating it.
 
 | Reference | When to read it |
 |---|---|
-| `references/ledger-template.md` | Creating PROJECT.md (`/flow-start`) or repairing/reconstructing it (`flow-hygiene`, `/flow-adopt`) |
-| `references/judgment-criteria.md` | Judging workspace artifacts (`/flow-hygiene audit`, `/flow-adopt`) |
+| `references/ledger-template.md` | Creating PROJECT.md (`/flow-start`) or repairing/reconstructing it (`flow-workspace`, `/flow-adopt`) |
+| `references/judgment-criteria.md` | Judging workspace artifacts (`/flow-workspace audit`, `/flow-adopt`) |
 | `references/handoff-protocol.md` | Before dispatching ANY agent from a flow skill; also the research→write→build→verify phase-handoff chain |
 | `references/plan-format.md` | Writing an executable plan (`flow-plan write`) or executing one (`flow-build`) — the plan-as-state contract |
 | `references/naming-template.md` | Instantiating the project naming table (`/flow-start` foundation stage) or auditing it (promotion `verify`) |
 | `references/promotion-playbook.md` | Promoting to qa/prod via git conventions — read by deploy sessions and `devops-engineer`, offered by the session hook |
 | `references/ux-rubric.md` | The design/UX gate — consumed by `flow-build`'s design gate and by mock-review work |
 | `references/test-report-template.md` | Writing the versioned in-vivo/QA report (`flow-build` gate; the QA promotion walk via `promotion-playbook.md`) |
-| `references/specs-structure.md` | Creating the specs repo (`flow-specs init`, `/flow-adopt`) or checking conformance (`flow-hygiene`) |
+| `references/specs-structure.md` | Creating the specs repo (`flow-specs init`, `/flow-adopt`) or checking conformance (`flow-workspace`) |
 | `references/release-notes-template.md` | Drafting client release notes (the QA/prod promotion walk via `promotion-playbook.md`) |
 | `references/harness-mechanics.md` | You are NOT Claude Code (Codex/opencode reading these skills from `~/.agents/skills/`) — translates mechanic names before executing any flow skill |
 
@@ -159,6 +159,6 @@ Transversal (not a stage):
 
 | Skill | Role |
 |---|---|
-| `/flow-hygiene` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
+| `/flow-workspace` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
 | `flow-report` | Shared rendering skill (like flow-core, not a stage): renders substantial human-targeted output as self-contained HTML; auto-invokes per `rules/quality/communication-format.md` |
 | `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill reads |

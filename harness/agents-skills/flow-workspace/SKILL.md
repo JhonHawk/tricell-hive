@@ -1,5 +1,5 @@
 ---
-name: flow-hygiene
+name: flow-workspace
 description: >
   Audit and repair workspace health — git state, stray files, broken pointers; convention
   is suggested, not enforced. Use at milestone closes (epic done, pre-delivery) or whenever
@@ -7,7 +7,7 @@ description: >
   approved ones. Bringing a pre-pack project into the flow is /flow-adopt, not this skill.
 ---
 
-# /flow-hygiene — workspace health
+# /flow-workspace — workspace health
 
 The flow contract keeps flow-skill writes clean; conversational sessions are where disorder
 accumulates. This skill is the compensating control: not a gate, an on-demand sweep guided by
@@ -24,4 +24,4 @@ repair without specs-repo creation — whether the workspace is already in the f
 | `audit` (default) | `flow-core/references/judgment-criteria.md` → `references/audit.md` | Dispatches workspace-custodian and saves the actions manifest; proposes, never executes |
 | `apply` | `references/apply.md` | Gates the manifest by risk and executes only the approved actions |
 
-Stable path after deploy: `~/.agents/skills/flow-hygiene/references/<file>.md`.
+Stable path after deploy: `~/.agents/skills/flow-workspace/references/<file>.md`.
