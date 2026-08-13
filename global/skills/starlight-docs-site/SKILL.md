@@ -3,8 +3,6 @@ name: starlight-docs-site
 description: >
   Scaffold/page/audit Astro Starlight docs (user-manual or spec-site). Triggers:
   "manual de usuario", "sitio de specs", Starlight paths (astro.config, content/docs).
-user-invocable: true
-paths: "**/astro.config.*,**/src/content/docs/**"
 argument-hint: "[scaffold|page|audit] <path> [user-manual|spec-site]"
 ---
 
