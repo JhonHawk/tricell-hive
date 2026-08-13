@@ -674,6 +674,11 @@ manifest_entry_map() {
 }
 
 ORPHANS=()
+# Orphans detected this run but NOT deleted (no --delete-orphans, or the size
+# breaker refused). step_write_manifest re-emits these entries so a later run
+# can still confirm and delete them — dropping them would leave the stale
+# files untracked forever.
+KEPT_ORPHANS=()
 MANIFEST_TOTAL=0
 
 step_detect_orphans() {
@@ -730,14 +735,16 @@ step_detect_orphans() {
 
     if [[ "${APPLY}" -eq 1 && "${DELETE_ORPHANS}" -eq 1 ]]; then
         if [[ "${FORCE_DELETE_ORPHANS}" -ne 1 ]] && { [[ ${#ORPHANS[@]} -gt ${ORPHAN_MAX_ABS} ]] || [[ "${pct}" -ge "${ORPHAN_MAX_PCT}" ]]; }; then
-            log "REFUSING to delete: ${#ORPHANS[@]} orphans (${pct}%) exceeds the safety threshold (>${ORPHAN_MAX_ABS} entries or >=${ORPHAN_MAX_PCT}% of the manifest). This looks like a broken checkout (missing global/ or harness/ sources) rather than a routine cleanup. Pass --force-delete-orphans to override if this volume of removal is genuinely expected."
-            report "orphans: REFUSED deletion — ${#ORPHANS[@]} orphans (${pct}%) over threshold (>${ORPHAN_MAX_ABS} or >=${ORPHAN_MAX_PCT}%); pass --force-delete-orphans to override"
+            KEPT_ORPHANS=("${ORPHANS[@]}")
+            log "REFUSING to delete: ${#ORPHANS[@]} orphans (${pct}%) exceeds the safety threshold (>${ORPHAN_MAX_ABS} entries or >=${ORPHAN_MAX_PCT}% of the manifest). This looks like a broken checkout (missing global/ or harness/ sources) rather than a routine cleanup. Pass --force-delete-orphans to override if this volume of removal is genuinely expected. Their manifest entries are preserved so a later run can still delete them."
+            report "orphans: REFUSED deletion — ${#ORPHANS[@]} orphans (${pct}%) over threshold (>${ORPHAN_MAX_ABS} or >=${ORPHAN_MAX_PCT}%); pass --force-delete-orphans to override (entries preserved in manifest)"
         else
             step_delete_orphans
         fi
     else
-        log "Not deleting (pass --apply --delete-orphans to confirm removal)."
-        report "orphans: not deleted (requires --apply --delete-orphans)"
+        KEPT_ORPHANS=("${ORPHANS[@]}")
+        log "Not deleting (pass --apply --delete-orphans to confirm removal). Manifest entries are preserved so a later run can still delete them."
+        report "orphans: not deleted (requires --apply --delete-orphans; entries preserved in manifest)"
     fi
 }
 
@@ -1237,6 +1244,17 @@ step_write_manifest() {
                 echo "${rel}"
             done <"${MANIFEST}"
         fi
+
+        # Preserve entries for orphans detected but NOT deleted this run
+        # (no --delete-orphans, or the size breaker refused). Their sources
+        # are gone, so the fresh scans below will never re-list them; without
+        # this block the stale deployed files become untracked forever and no
+        # later --delete-orphans run can find them. Guarded expansion: the
+        # array is usually empty and set -u would trip on bash < 4.4.
+        local kept
+        for kept in ${KEPT_ORPHANS[@]+"${KEPT_ORPHANS[@]}"}; do
+            echo "${kept}"
+        done
 
         # Each pipeline below is guarded with `|| true`: under pipefail, `find`
         # returning non-zero because one of several starting paths is missing
