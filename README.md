@@ -87,7 +87,8 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── flow-specs/                  # Specs repo: init | epic | review
 │   ├── flow-plan/                   # Plan the dev session: research | write
 │   ├── flow-build/                  # Execute the plan: reconciler + verify gate
-│   ├── flow-hygiene/                # Workspace hygiene: audit | apply | migrate
+│   ├── flow-hygiene/                # Workspace hygiene: audit | apply
+│   ├── flow-adopt/                  # Bring a pre-pack project into the flow (specs repo, tiering, manifest)
 │   ├── flow-report/                 # Self-contained HTML reports for substantial output
 │   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
 │   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
@@ -190,6 +191,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `flow-core` | global | Flow pack shared library: contract + templates (non-invocable) |
 | `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
 | `/flow-hygiene` | global | Workspace hygiene: `audit` \| `apply` |
+| `/flow-adopt` | global | Bring a pre-pack project into the flow: specs repo, tiering, gated migration manifest |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
 | `flow-report` | global | Renders substantial output as self-contained HTML (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |

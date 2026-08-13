@@ -1,7 +1,7 @@
 # /flow-hygiene `audit` — the default subcommand
 
-Produces the actions manifest `apply` consumes. Judge with `references/judgment-criteria.md`;
-propose, never execute.
+Produces the actions manifest `apply` consumes. Judge with
+`~/.claude/skills/flow-core/references/judgment-criteria.md`; propose, never execute.
 
 1. OPEN per the contract (`~/.claude/skills/flow-core/SKILL.md`). If PROJECT.md or the workspace
    ambient pair (AGENTS.md canonical + CLAUDE.md importing it via `@AGENTS.md`) is missing or
@@ -9,8 +9,9 @@ propose, never execute.
    (`~/.claude/skills/flow-core/references/ledger-template.md`; phase status inferred from
    observable state — specs repo, git history, the tracker), the ambient pair from the flow-start
    bootstrap templates (`~/.claude/skills/flow-start/templates/workspace-agents.md` +
-   `workspace-claude.md`). A workspace with only a CLAUDE.md (pre-pack
-   pattern) gets the inversion proposed: content moves to AGENTS.md, CLAUDE.md becomes the import.
+   `workspace-claude.md`). A workspace with only a CLAUDE.md (pre-pack pattern) gets an
+   ambient-pair nonconformance proposal: OFFER `/agents-md-primary <path>` (it owns the
+   inversion mechanics and is user-gated — never restate or auto-run them here).
 2. Dispatch **workspace-custodian** (fresh context, read-only) with the workspace root, the specs
    repo path, and the intent: "your proposals will be presented verbatim to the user by
    flow-hygiene apply — make every action executable as written". The custodian's fresh eyes are

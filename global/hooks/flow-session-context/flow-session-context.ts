@@ -28,7 +28,7 @@ Flow pack v2 — process chain for this workspace. Suggest the matching stage wh
 - PLAN: planning intent ALWAYS uses the harness's native plan mechanism; flow-plan captures/adopts the approved plan — never a parallel planning ceremony. ONE plan per unit of work (a mock is a work unit like any fullstack build).
 - EXECUTE: a captured plan exists -> offer /flow-build to execute it. Resuming a unit of work from the ledger ("continuemos con X", a PX/part) -> make that offer explicitly ONCE per session, direct route named as the alternative; a no is sticky for the session. A hand-run of the protocol after a no still owes the plan's per-task gates: the in-vivo walk's executor and close-time substitution reporting (flow-core/references/plan-format.md).
 - After a deploy/promotion (git conventions own the flow): offer the in-vivo QA walk (flow-core/references/promotion-playbook.md).
-- New greenfield project -> offer /flow-start. Workspace health concerns -> /flow-hygiene.
+- New greenfield project -> offer /flow-start. Pre-pack project entering the flow -> offer /flow-adopt. Workspace health concerns -> /flow-hygiene.
 </flow-process-protocol>`
 
 const PROTOCOL_MARKER = "<flow-process-protocol>"

@@ -1,8 +1,8 @@
 ---
 name: flow-core
 description: >
-  Shared protocol and templates for the flow pack (flow-brainstorming, flow-start, flow-specs,
-  flow-plan, flow-build, flow-hygiene, flow-report). Not a workflow itself —
+  Shared protocol and templates for the flow pack (flow-brainstorming, flow-start, flow-adopt,
+  flow-specs, flow-plan, flow-build, flow-hygiene, flow-report). Not a workflow itself —
   it is the library every flow-* skill reads for the flow contract, the file-routing rule,
   and the canonical templates (ledger, handoff protocol, naming table, specs structure).
 ---
@@ -128,14 +128,15 @@ instead of restating it.
 
 | Reference | When to read it |
 |---|---|
-| `references/ledger-template.md` | Creating PROJECT.md (`/flow-start`) or repairing it (`flow-hygiene`) |
+| `references/ledger-template.md` | Creating PROJECT.md (`/flow-start`) or repairing/reconstructing it (`flow-hygiene`, `/flow-adopt`) |
+| `references/judgment-criteria.md` | Judging workspace artifacts (`/flow-hygiene audit`, `/flow-adopt`) |
 | `references/handoff-protocol.md` | Before dispatching ANY agent from a flow skill; also the research→write→build→verify phase-handoff chain |
 | `references/plan-format.md` | Writing an executable plan (`flow-plan write`) or executing one (`flow-build`) — the plan-as-state contract |
 | `references/naming-template.md` | Instantiating the project naming table (`/flow-start` foundation stage) or auditing it (promotion `verify`) |
 | `references/promotion-playbook.md` | Promoting to qa/prod via git conventions — read by deploy sessions and `devops-engineer`, offered by the session hook |
 | `references/ux-rubric.md` | The design/UX gate — consumed by `flow-build`'s design gate and by mock-review work |
 | `references/test-report-template.md` | Writing the versioned in-vivo/QA report (`flow-build` gate; the QA promotion walk via `promotion-playbook.md`) |
-| `references/specs-structure.md` | Creating the specs repo (`flow-specs init`) or checking conformance (`flow-hygiene`) |
+| `references/specs-structure.md` | Creating the specs repo (`flow-specs init`, `/flow-adopt`) or checking conformance (`flow-hygiene`) |
 | `references/release-notes-template.md` | Drafting client release notes (the QA/prod promotion walk via `promotion-playbook.md`) |
 | `references/harness-mechanics.md` | You are NOT Claude Code (Codex/opencode reading these skills from `~/.agents/skills/`) — translates mechanic names before executing any flow skill |
 
@@ -149,7 +150,7 @@ unit of work; a mock is just a work TYPE that runs the same loop.
 
 | Project stage | How it runs |
 |---|---|
-| `arranque` | `/flow-start` — greenfield wizard: intake + workspace bootstrap + foundation (repos, naming table, CI/CD), fused into one conversational flow |
+| `arranque` | `/flow-start` — greenfield wizard: intake + workspace bootstrap + foundation (repos, naming table, CI/CD), fused into one conversational flow. Pre-pack projects enter via `/flow-adopt` (specs repo, tiering, gated migration manifest) |
 | `specs` | `/flow-specs` — specs repo (`init`), epic drafting + tracker sync (`epic`), quality gate (`review`) |
 | `desarrollo` | the daily chain, per unit of work: `/flow-brainstorming` → `/flow-specs` → native plan mode (`/flow-plan` captures/adopts it) → `/flow-build` executes and verifies. Mock work units run the same chain |
 | `operación` | promotion to qa/prod via git conventions (`git-workflow.md`) + `references/promotion-playbook.md` — no dedicated skill |

@@ -23,7 +23,10 @@ the OPEN "ledger must exist" precondition is what the wizard satisfies, not what
 requirements doc present → skip intake; a ledger present → skip bootstrap; some repos present
 → foundation covers only the gaps. Refuse only when the workspace is **fully established**
 (ledger + specs repo + repos all present) — that is maintenance, not a start: point to
-`/flow-hygiene` and stop.
+`/flow-hygiene` and stop. Split adoption by what EXISTS: a project with accumulated
+documentary material to tier and route (legacy docs, loose sessions, an old CLAUDE.md) starts
+with `/flow-adopt`; a bare codebase with no flow material retrofits here. When both apply,
+`/flow-adopt` first, then this wizard covers the remaining foundation gaps.
 
 ## Resolve group & project
 

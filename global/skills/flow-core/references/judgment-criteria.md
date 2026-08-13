@@ -1,7 +1,8 @@
-# /flow-hygiene — what to judge (the center)
+# Workspace judgment criteria (the center)
 
-The judgment core `audit` applies to a workspace, and the lens `migrate` reuses while tiering
-and routing artifacts. Four questions, all judgment — never a pass/fail conformance sweep:
+The judgment core `/flow-hygiene audit` applies to a workspace, and the lens `/flow-adopt`
+reuses while tiering and routing artifacts. Four questions, all judgment — never a pass/fail
+conformance sweep:
 
 1. **Git state.** Uncommitted session artifacts in a versioned home (captured plans, findings,
    reports sitting untracked) → propose the standing-authorized `chore(sessions): <slug>` commit.
