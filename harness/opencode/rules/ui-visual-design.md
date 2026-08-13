@@ -14,7 +14,7 @@ match: any
 > (orientation, error recovery, empty-state *invitation*) is owned by the UX rubric
 > (`flow-core/references/ux-rubric.md`). **Agent routing:** redesigning or polishing an
 > existing screen routes to `visual-designer`; observing a RUNNING UI (navigable mock, QA
-> deploy) without changing it routes to `ux-flow-reviewer`; reviewing component code without
+> deploy) without changing it routes to `ui-reviewer`; reviewing component code without
 > executing it routes to `code-reviewer` (`agent-routing.md`). The
 > numeric values below are starting criteria to map onto the project's design tokens — not literals
 > to hardcode.

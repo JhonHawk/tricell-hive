@@ -77,7 +77,7 @@ is accessible. No browser (that is the out-of-scope rendered review below). Anch
 
 **Out of scope here — rendered visual review.** Actual rendered appearance (dark/light
 screenshots, unstyled-flash, real on-screen contrast) needs a running build + a browser: build,
-`pnpm preview`, and drive it with the `agent-browser` CLI, or route to `ux-flow-reviewer`. This
+`pnpm preview`, and drive it with the `agent-browser` CLI, or route to `ui-reviewer`. This
 static layer does not open a browser.
 
 ## Report format

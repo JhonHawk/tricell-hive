@@ -98,9 +98,9 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (Codex/opencode)
 │   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
 └── agents/                          # Optimized agents by role
-    ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer
-    ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, nextjs
-    ├── review/                      # cyan    — code-reviewer, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ux-flow-reviewer
+    ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer, visual-designer
+    ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
+    ├── review/                      # cyan    — code-reviewer, code-scout, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ui-reviewer
     ├── quality/                     # yellow  — performance, prompt, secrets, test, workspace-custodian
     ├── ops/                         # red     — devops-engineer
     └── docs/                        # magenta — technical-writer
@@ -132,19 +132,19 @@ _support/                            # Workspace material, not deployed
 | `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep |
 | `requirement-analyst` | design | blue | Read, Glob, Grep |
 | `system-designer` | design | blue | Read, Write, Edit, Glob, Grep |
-| `visual-designer` | design | magenta | Read, Write, Edit, Bash, Glob, Grep |
+| `visual-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep |
 | `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
-| `code-scout` | development | green | Read, Glob, Grep, Bash (read-only discovery) |
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
-| `nextjs-architecture-expert` | development | green | Read, Write, Edit, Bash, Grep, Glob |
+| `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob |
+| `code-scout` | review | cyan | Read, Glob, Grep, Bash (read-only discovery) |
 | `code-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `finding-refuter` | review | cyan | Read, Glob, Grep, Bash (executes claims, never modifies) |
 | `product-critic` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `security-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
 | `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
-| `ux-flow-reviewer` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
+| `ui-reviewer` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
 | `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit, Agent (drives a real browser; Write for the in-vivo report) |
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `prompt-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |

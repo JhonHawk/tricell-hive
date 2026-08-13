@@ -1,5 +1,6 @@
 
 > **Applies when:** `react` is in `package.json` dependencies or `next.config.*` exists. Skip for Astro, Preact, or Solid projects that also use `.tsx`.
+> **Plain React (no `next` in package.json — Vite, React Router, CRA legacy):** the Next-prescriptive sections below (Architecture routers/RSC/Server Actions, `next/image`, caching) do NOT apply; follow the project's own router and the framework-agnostic sections (Version Detection for React, Hooks, State, Preferred Libraries). Never introduce Next.js conventions (RSC, file routing, `use server`) into a plain React app.
 
 ## React / Next.js
 

@@ -23,7 +23,7 @@ after Execute. Run, for the tasks not yet gated:
    AC, never deferred as polish. (The design gate below owns *craft*; this owns *breakage* and
    applies even when `design-review` is not set.)
 3. **Design gate** for `design-review: yes` tasks (opt-in; user-facing UI tasks set the flag in the
-   plan, mirroring `in-vivo: yes`): dispatch **ux-flow-reviewer** against the running app on the
+   plan, mirroring `in-vivo: yes`): dispatch **ui-reviewer** against the running app on the
    **Visual craft** rubric axis (`flow-core/references/ux-rubric.md` #11–18; criteria
    `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
    hierarchy, elevation, borders restraint, component simplicity, net improvement. Same
