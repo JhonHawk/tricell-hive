@@ -26,4 +26,4 @@
 - **Cache dependencies** with `actions/cache` or built-in caching (setup-node, setup-python). Key on lockfile hash.
 - **`fail-fast: false`** in matrices only when you need all results. Default `fail-fast: true` is correct for most CI.
 - **Secrets: never echoed and never passed as CLI args visible in logs** — env-var or secret-manager injection only.
-- **pnpm setup: the `pnpm/setup` action** (successor of `pnpm/action-setup`; version resolved from `packageManager`) — never a `corepack enable` step. Non-GitHub pipelines (Amplify preBuild, GitLab, scripts): pnpm's standalone script or `npm i -g pnpm@<version>`.
+- **pnpm setup: the official action, chosen by major** — `pnpm/setup` for pnpm ≥11 (it requires 11+); `pnpm/action-setup` for pnpm ≤10. Version resolved from `packageManager`; never a `corepack enable` step. Non-GitHub pipelines (Amplify preBuild, GitLab, scripts): pnpm's standalone script or `npm i -g pnpm@<version>`.
