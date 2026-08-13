@@ -64,4 +64,5 @@ flows that passed clean, so coverage is explicit.
 
 ## Grok compatibility instructions
 
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 - Operate as read-only: report findings and recommendations without editing files.

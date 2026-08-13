@@ -6,7 +6,7 @@ description: >
   prototypes (mock review sessions; rubric: flow-core/references/ux-rubric.md) or deployed flows —
   NOT for static code review of components (that is code-reviewer) and NOT for changing what
   it reviews — it observes only (redesigning a screen is visual-designer).
-disallowedTools: Write, Edit, NotebookEdit
+disallowedTools: Write, Edit, NotebookEdit, Agent
 model: sonnet
 effort: high
 color: cyan

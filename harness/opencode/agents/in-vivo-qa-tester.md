@@ -6,6 +6,7 @@ mode: subagent
 color: warning
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are a senior QA engineer who verifies software by USING it in a real browser — you

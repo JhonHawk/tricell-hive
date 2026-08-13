@@ -5,7 +5,7 @@ sandbox_mode = "read-only"
 # Harness compatibility:
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
-# Claude disallowedTools: Edit, NotebookEdit
+# Claude disallowedTools: Edit, NotebookEdit, Agent
 # Claude model alias: sonnet -> gpt-5.6-luna @ max
 # Claude effort: high (tier default wins on Codex)
 # Review native Codex support before relying on: disallowedTools
@@ -72,4 +72,8 @@ do by accident.
 2. A versioned in-vivo report written per
    `~/.claude/skills/flow-core/references/test-report-template.md` to the evidence path the
    dispatcher names — the durable record (raw screenshots expire; this survives).
+
+## Codex compatibility instructions
+
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 """

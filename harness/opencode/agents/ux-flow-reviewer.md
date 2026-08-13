@@ -6,6 +6,7 @@ mode: subagent
 color: info
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are a senior product/UX reviewer who evaluates by USING the interface, not by reading
