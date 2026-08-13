@@ -24,7 +24,7 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | new API contract, cross-service schema design, service boundaries | system-designer | code-reviewer |
 | Angular components, services, routing, angular.json present | angular-developer | react-developer |
 | Next.js, App Router, Server Components, next.config present | react-developer | angular-developer |
-| React app with no Next.js (Vite, React Router, CRA legacy) | react-developer | angular-developer, backend-developer |
+| React app with no Next.js (Vite, React Router, CRA legacy) | react-developer | backend-developer, the main thread |
 | API endpoints, backend logic, microservices (no DB/perf focus) | backend-developer | database-specialist, performance-engineer |
 | Kotlin Multiplatform (KMP), Android, Compose, shared mobile code | kotlin-multiplatform-developer | backend-developer |
 | server-only Kotlin (Ktor/Spring, no Android or multiplatform target) | backend-developer | kotlin-multiplatform-developer |
