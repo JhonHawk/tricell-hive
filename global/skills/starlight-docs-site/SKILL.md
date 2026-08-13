@@ -63,6 +63,9 @@ ONE example page, never empty section trees.
      document the `DOCS_BASIC_AUTH_USER`/`DOCS_BASIC_AUTH_PASSWORD` env vars (never commit values).
 5. `pnpm install`, then verify from a production build: `pnpm build && pnpm check`
    (not the dev server — search/pagefind is build-only). Report the result.
+   If the scaffolded site gets its own CI/Docker later, pnpm bootstraps per
+   `global/CLAUDE.md > Package Manager` (never corepack — the templates'
+   `packageManager` pin does not self-activate on Node 25+).
 
 ### `page <path>`
 

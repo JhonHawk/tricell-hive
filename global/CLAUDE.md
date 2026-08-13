@@ -26,6 +26,7 @@
 - **Detect before installing:** check for `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `package-lock.json` → npm. Fallback: `packageManager` field in `package.json`. If nothing is detected, use pnpm.
 - **Never mix package managers.** Use only the detected one for all operations.
 - **Never delete or regenerate lock files** unless explicitly requested.
+- **Never install pnpm via corepack** (deprecated upstream; Node 25+ no longer bundles it). Bootstrap per pnpm's official paths: standalone script (`curl -fsSL https://get.pnpm.io/install.sh | sh -`) on machines/servers/generic CI, the `pnpm/setup` action on GitHub Actions, `ghcr.io/pnpm/pnpm` image in Docker (file-level patterns: `rules/languages/iac-devops.md`). Version pinning lives in `packageManager` — pnpm ≥10 honors it natively.
 
 ## System Installations
 - **Verify before assuming absence.** Before proposing to install a tool/CLI or routing around its absence, check it isn't already present (`which`, `--version`, or a project-local variant). Don't suggest an install — or an alternative — for something that's already there.
