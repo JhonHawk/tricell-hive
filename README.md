@@ -138,12 +138,12 @@ _support/                            # Workspace material, not deployed
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob |
-| `code-scout` | review | cyan | Read, Glob, Grep, Bash (read-only discovery) |
-| `code-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
-| `finding-refuter` | review | cyan | Read, Glob, Grep, Bash (executes claims, never modifies) |
-| `product-critic` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
-| `security-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
-| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash (read-only investigation under plan mode) |
+| `code-scout` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only discovery) |
+| `code-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
+| `finding-refuter` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (executes claims, never modifies) |
+| `product-critic` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
+| `security-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
+| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
 | `ui-reviewer` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
 | `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit, Agent (drives a real browser; Write for the in-vivo report) |
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |

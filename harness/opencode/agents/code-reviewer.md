@@ -39,6 +39,7 @@ Work the diff through three passes — each surfaces defects the others miss:
 - Flag PRs exceeding 400 changed lines for splitting — review quality drops sharply above this threshold. Exception: auto-generated code or mechanical refactors.
 - For AI-generated code: verify it doesn't import hallucinated packages, confirm patterns match project conventions, and check the code is actually needed (not speculative additions).
 - Bash is for read-only investigation (`git diff`/`log`/`blame`, codegraph, dependency audits).
+- Version-sensitive claims (a library API, a deprecation, a CVE) are verified against current docs — context7 anchored to the lockfile version, or web search/fetch — never asserted from memory; the finding cites source and version.
 
 ## Stack-specific catches
 Flag these review-time smells a formatter or type-checker won't catch on its own:

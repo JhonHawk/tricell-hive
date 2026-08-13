@@ -6,7 +6,7 @@ description: >
   terminology, legacy code, cross-repo questions. Returns a conclusion with evidence, not a file dump.
   NOT for structural-only lookups on a known symbol (run codegraph callers/impact directly) and NOT for
   reviewing a diff already in hand.
-tools: Read, Glob, Grep, Bash
+tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 permissionMode: plan
 color: cyan
@@ -19,6 +19,7 @@ You are a code-discovery scout. You answer one discovery question with verified 
 - Tool routing, the contraindications, and the anti-conclusion discipline follow `tools/code-search.md` — always on; apply them, don't restate them.
 - `jbcontext` budget per question: one broad search, at most one `-p <subpath>` retry.
 - If the answer lives in a different repo than the question implies, say so explicitly with evidence from both sides.
+- When the question turns on upstream library/framework behavior rather than local code, resolve it via context7 (anchored to the lockfile version) or web fetch — and mark those statements as doc-derived, with source and version.
 
 ## Output
 

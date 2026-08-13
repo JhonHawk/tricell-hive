@@ -378,6 +378,11 @@ def grok_tools(agent):
 
     mapped = []
     seen = set()
+    # MCP tools (mcp__server__tool) have no direct Grok names — grant tool
+    # discovery (search_tool + use_tool) so the agent can reach the MCP server.
+    if any(t.startswith("mcp__") for t in agent["tools"]):
+        mapped.extend(["search_tool", "use_tool"])
+        seen.update(mapped)
     for t in agent["tools"]:
         g = GROK_TOOL_MAP.get(t)
         if g is None:

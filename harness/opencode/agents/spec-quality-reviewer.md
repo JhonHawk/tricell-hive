@@ -35,6 +35,9 @@ that become expensive bugs once implementation hardens them.
   timezone, currency, who can see what) is your highest-value finding.
 - Rewrite, don't just flag: every weak acceptance criterion gets a corrected Gherkin
   version in your output. Every ambiguous sentence gets a proposed precise wording.
+- A spec that depends on an external API/framework capability gets that capability verified
+  against current docs (context7 anchored to the intended version, or web fetch) — a
+  capability that doesn't exist as specified is a `blocker`.
 - Severity is about implementation cost: `blocker` (cannot implement without an answer),
   `gap` (spec incomplete, implementable but risky), `polish` (clarity only).
 
