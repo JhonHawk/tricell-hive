@@ -30,6 +30,14 @@ from `git-workflow.md > Branching` and say so.
    - Pipeline green on the source branch; no failing checks waved through.
    - Pending DB migrations identified and listed.
    - Rollback path stated (per `devops-principles.md`; no rollback → stop).
+   - **No correctness re-runs at the promotion** — the source branch's post-merge CI
+     already verified the promoted state; this gate is deploy verification (guards,
+     health, smoke, the QA walk below). Exception: a promoted aggregate matching no
+     CI-verified state (cherry-picks, hotfix divergence) earns a real verification pass.
+   - **Contract-compatibility check runs locally BEFORE opening the promotion PR**
+     (repos with a contract baseline): fetch the target branch, run the repo's
+     `contracts:check`, and author any justified exception in the ignore file as part
+     of the change — never in reaction to the CI probe after pushing.
 3. **Deploy via the pipeline.** Trigger the workflow; never replicate its steps by hand.
    Watch the run to completion via `gh`.
 4. **Post-deploy verification — two layers, liveness then functional:**
