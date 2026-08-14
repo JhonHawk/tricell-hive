@@ -51,8 +51,11 @@ Crystallizes findings + spec into a plan another harness executes. The plan is t
 6. **Gate the plan for approval**, by harness mode (`flow-core/references/harness-mechanics.md`):
    - **Native plan mode active**: the plan document is the presentation — finalize and exit via
      ExitPlanMode; do not duplicate it as a summary.
-   - **Any other mode**: present the plan FIRST (tasks, preflight `ok`/`missing`, integration
-     semantics), then gate with the structured-question mechanic.
+   - **Any other mode**: render the plan IN the conversation FIRST — every task block, the
+     Preflight results (`ok`/`missing`), the Decisions table, the integration semantics — then
+     gate with the structured-question mechanic. The file path plus a summary, or a synopsis
+     embedded in the question text, is NOT a presentation: the user approves what they can
+     read on screen, never a plan they would have to open a file to see.
 7. **CLOSE**: update the ledger handoff (plan path, next phase). **Offer the next step
    explicitly** — the exact `/flow-build` invocation and the plan path, phrased as an offer to
    run it now, plus the model/harness recommendation (capable model for review; a cheaper harness
