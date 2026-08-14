@@ -12,7 +12,11 @@ product or UX — those are `flow-specs` (epics/ACs) and mock work units' UX mat
    them is part of this investigation, and the resolutions land in the epic's TECH.md, not in
    PRODUCT.md. `$ARGUMENTS` after the subcommand overrides scope (epic ID or task IDs).
 3. **EXPLORE in subagents, never inline** (context hygiene — discovery noise stays out of the
-   orchestrator). Dispatch read-only explorers per the handoff protocol
+   orchestrator). When the investigation needs remote state (env-branch deltas, promotion
+   scope), the orchestrator runs the remote ground truth FIRST — `git fetch` on each repo in
+   scope, be it the workspace's repos or the single working repo — before dispatching;
+   explorers then read local refs only (read-only explorers cannot mutate `.git` in stricter
+   harnesses). Dispatch read-only explorers per the handoff protocol
    (`~/.claude/skills/flow-core/references/handoff-protocol.md`) — independent
    areas in ONE message, in parallel — to establish:
    - **Current state** — how this repo already does the thing; patterns, conventions, and
