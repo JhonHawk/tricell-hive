@@ -24,7 +24,9 @@ unmerged (each task's gate validates the integrated state of every task before i
    Scope`; undeclared → one PR per task. Push, open the PR, and **overlap the CI wait**
    (`gh pr checks <n> --watch`) with the task's non-integrative ceremony (ledger notes, evidence
    filing, next dispatch prep) — never merge red or pending; the session owns the wait, it is
-   never handed to the user. CI failure → route to the builder, fix
+   never handed to the user. The merge also waits for the PR's bug-hunt pass
+   (`git-workflow.md > PRs & promotion`, Phase B — the repo's reviewer app or the harness-native
+   review; the verify-gate review already discharged Phase A). CI failure → route to the builder, fix
    on the same PR, re-run the local gate on the affected subset BEFORE re-pushing. Then merge per
    the plan's mechanics, delete the task branch (local + remote), checkout the integration branch,
    pull.
