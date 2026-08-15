@@ -14,9 +14,11 @@ The copy-ready templates below live in this skill's `templates/` directory —
 2. **Ledger + ambient pair** — create `_support/PROJECT.md` from
    `~/.claude/skills/flow-core/references/ledger-template.md`. Record the **project token**
    (usually `<project>`; confirm if a shorter token is preferable — it seeds every infra
-   name in Stage C). Then create the workspace ambient pair — `AGENTS.md` canonical (every
-   AGENTS-compatible harness reads it natively), `CLAUDE.md` importing it — so all harnesses
-   share one pointer with zero duplication:
+   name in Stage C). Then create the workspace ambient pair — `AGENTS.md` canonical,
+   `CLAUDE.md` importing it. Scope caveat: the workspace pair loads only in sessions opened
+   AT the workspace root (every harness's discovery is git-root-bounded from a child repo;
+   Claude Code's ancestor walk loads the CLAUDE.md but does not resolve its import) — the
+   per-repo `AGENTS.md` that Stage C scaffolds is what child-repo sessions actually read:
    - `AGENTS.md` ← `templates/workspace-agents.md` (English; the conventions block at its
      end is filled at step 4).
    - `CLAUDE.md` ← `templates/workspace-claude.md` (a single `@AGENTS.md`

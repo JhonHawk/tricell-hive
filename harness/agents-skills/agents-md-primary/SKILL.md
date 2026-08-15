@@ -19,6 +19,14 @@ drift. The inversion makes AGENTS.md canonical and CLAUDE.md a one-line importer
 (`@AGENTS.md` — official Claude Code import, loaded at session start), with
 Claude-specific instructions below the import when they genuinely exist.
 
+**The import law (empirical, Claude Code 2.1.233 — undocumented upstream):** `@AGENTS.md`
+resolves in the cwd's own CLAUDE.md and in lazily-loaded subtree CLAUDE.md files; it does
+NOT resolve in eagerly-loaded ANCESTOR CLAUDE.md files (their literal text loads, the
+import is skipped). Consequence for `convert`: at a repo root the pattern is complete for
+sessions opened there and for parent-workspace sessions that touch the repo (lazy path
+resolves); at a WORKSPACE root the pattern's content operates only in sessions opened at
+that root — warn this trade in the convert report when the target is a workspace root.
+
 ## `scan <root>` — find candidates (read-only)
 
 Walk `<root>` (default `~/Development/projects`, depth ≤ 4 to cover
@@ -80,12 +88,16 @@ the promote-to-core / inject-to-router outcomes (those are hive edits). Not loca
 those two outcomes are reported as destination-less proposals and the rest of the audit
 runs unchanged.
 
-**Per rule, compute the harness-coverage matrix — never a boolean.** Which DEPLOYED
-always-on layer already carries it: `~/.claude/rules` (Claude ✓, Grok ✓ via symlink) ·
-the condensed deployed core (Codex ✓, opencode ✓) · a router-skill injection or the
-opencode rules plugin (situational reach). A project rule duplicating a global-rules-only
-item is still LOAD-BEARING for Codex/opencode — deletion requires coverage in every
-harness the project uses.
+**Per rule, compute the harness-coverage matrix — never a boolean, and with a LEVEL
+axis.** Which DEPLOYED always-on layer already carries it: `~/.claude/rules` (Claude ✓,
+Grok ✓ via symlink) · the condensed deployed core (Codex ✓, opencode ✓) · a router-skill
+injection or the opencode rules plugin (situational reach). A project rule duplicating a
+global-rules-only item is still LOAD-BEARING for Codex/opencode — deletion requires
+coverage in every harness the project uses. The LEVEL of the audited file changes what
+"coverage" means: a REPO-level file loads in child-repo sessions (all harnesses); a
+WORKSPACE-ROOT file operates ONLY in sessions opened at the workspace root — from a
+child-repo session no harness auto-loads it, and Claude Code's ancestor walk loads the
+workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law below).
 
 **Classify each rule into exactly one outcome:**
 
@@ -94,7 +106,7 @@ harness the project uses.
 | **delete** | Full coverage — pure noise (and reclaims Codex's per-repo `project_doc_max_bytes` budget) | Remove from the project file |
 | **promote-to-core** | Universal (gate, every-session procedure), partial coverage | Condensed line into `harness/AGENTS.md` (27 KiB budget is the gate) → then delete from EVERY project |
 | **inject-to-router** | Situational (language, workspace, memory policy), partial coverage | Add the owning global rule to `SKILL_REFERENCE_INJECTIONS` → delete from the project |
-| **keep — project canon** | Genuinely project-specific, needed cross-harness | Stays: the project AGENTS.md IS its canonical channel |
+| **keep — project canon** | Genuinely project-specific, needed cross-harness | Split by LEVEL: a REPO file stays — it is the canonical channel for all harnesses; a WORKSPACE-ROOT file operates only in workspace-root sessions — its cross-harness content is proposed DOWN to the governing repo (plus a per-repo pointer to ledger/workspace root) |
 | **re-anchor / explicit override** | Stale fork (paraphrased copy of an evolved global rule — the drift that produces contradictory instructions) or a deliberate contradiction | Rewrite quoting the canonical text, or as `overrides global <rule> because <reason>` — overrides legitimately WIN (`git-workflow.md` precedence); they must read as intentional |
 
 Delegate the per-project reading to subagents (context hygiene; the semantic comparison

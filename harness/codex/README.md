@@ -42,6 +42,9 @@ Check with: `grep -n model_instructions_file ~/.codex/config.toml` (should retur
   instruction** (fully proactive delegation is gated to the Ultra intelligence tier). The
   always-on routing table in `harness/AGENTS.md` is that imperative instruction; the skills'
   "dispatch X" lines also count. `max_depth = 1` suffices (orchestrator → workers).
+- **`codex debug prompt-input` renders the exact model-visible prompt** (global AGENTS.md
+  first, then `--- project-doc ---` with per-file headers) without burning a model turn —
+  the deterministic auditor for what Codex actually loads. Grok's analog is `grok inspect`.
 - **Custom-agent name resolution verified working** (2026-08-15, codex 0.147.0,
   `multi_agent = true`): `spawn_agent(agent_type="finding-refuter")` resolves and spawns —
   upstream issues #15250/#14579 report it broken in some tool-backed contexts; if it

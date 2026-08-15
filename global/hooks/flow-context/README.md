@@ -17,7 +17,7 @@ Payload is STATE, not routing instructions (the retired flow-route-reminder prov
 
 ## Delivery
 
-Claude Code only (UserPromptSubmit + native plan mode are Claude Code concepts). Deployed by `/deploy-global` (script → `~/.claude/hooks/`, block merged into `settings.json` from `settings-config.json`). Codex/opencode get the flow conventions through their workspace `AGENTS.md` instead.
+Claude Code only (UserPromptSubmit + native plan mode are Claude Code concepts). Deployed by `/deploy-global` (script → `~/.claude/hooks/`, block merged into `settings.json` from `settings-config.json`). Codex/opencode get the flow conventions through the deployed global core (`~/.codex/AGENTS.md` / `~/.config/opencode/AGENTS.md`) plus the `flow-session-context` hook — NOT through the workspace `AGENTS.md`, which their git-root-bounded discovery never reaches from a child-repo session (it loads only when the session opens at the workspace root).
 
 ## Test payloads
 

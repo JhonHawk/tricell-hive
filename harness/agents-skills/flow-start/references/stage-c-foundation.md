@@ -33,7 +33,10 @@ project collapses the repo dialogue into one derivation + one dispatch.
    - **database-specialist** — initial schema + migration baseline in the backend repo(s),
      honoring DB naming from the table (including any invariant-name exception).
    - **devops-engineer** — per repo: scaffold (with a minimal repo `AGENTS.md` whose
-     conventions block POINTS at the naming table, never copies it), the branch model per the
+     conventions block POINTS at the naming table, never copies it, and carries the
+     project pointers — `Ledger: ../_support/PROJECT.md`, the workspace-root path, and the
+     instruction to open them for project-scope tasks: child-repo sessions never auto-load
+     the workspace files), the branch model per the
      repo's class (deployable multi-env: `development` default + `qa` + `production`,
      protections on `qa`/`production`; specs/mocks: single trunk), CI (lint → typecheck →
      build → test, fail fast) green from the first commit, the CD workflow parametrized by
