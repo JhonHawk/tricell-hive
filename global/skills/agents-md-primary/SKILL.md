@@ -73,13 +73,18 @@ Report as a table with a suggested action per row. Change nothing.
 ## `audit [path]` — dedup project rules against the global canon (read-only)
 
 Target: one project/workspace root (default cwd) and its child repos' `AGENTS.md`/
-`CLAUDE.md`. Canon: the HIVE SOURCES (`global/CLAUDE.md`, always-on `global/rules/`,
-`harness/AGENTS.md`, `SKILL_REFERENCE_INJECTIONS` in `harness/build.py`, the opencode
-rules-plugin set) — deployed copies are checked only to flag deploy drift.
+`CLAUDE.md`. **Coverage canon = the DEPLOYED layers — what sessions actually load:**
+`~/.claude/CLAUDE.md` + always-on `~/.claude/rules/`, the condensed core at
+`~/.codex/AGENTS.md` / `~/.config/opencode/AGENTS.md`, Grok's `~/.grok/rules/` symlinks,
+the deployed router-skill references, and opencode's rules plugin. The hive repo — WHEN
+locatable — serves two other roles only: flagging deployed-vs-source drift, and receiving
+the promote-to-core / inject-to-router outcomes (those are hive edits). Not locatable →
+those two outcomes are reported as destination-less proposals and the rest of the audit
+runs unchanged.
 
-**Per rule, compute the harness-coverage matrix — never a boolean.** Which always-on
-layer already carries it: `global/rules` (Claude ✓, Grok ✓ via symlink) · the condensed
-`harness/AGENTS.md` core (Codex ✓, opencode ✓) · a router-skill injection or the
+**Per rule, compute the harness-coverage matrix — never a boolean.** Which DEPLOYED
+always-on layer already carries it: `~/.claude/rules` (Claude ✓, Grok ✓ via symlink) ·
+the condensed deployed core (Codex ✓, opencode ✓) · a router-skill injection or the
 opencode rules plugin (situational reach). A project rule duplicating a global-rules-only
 item is still LOAD-BEARING for Codex/opencode — deletion requires coverage in every
 harness the project uses.
