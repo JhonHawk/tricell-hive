@@ -64,6 +64,7 @@ Delegation hygiene:
 - **Executor subagents never orchestrate:** `Agent` stays out of their allowlist — Bash, MCP, and CLI access are unaffected.
 - **Artifact destinations in subagent prompts are absolute paths.** A cwd-relative `_support/` resolves to whatever repo the agent sits in, not to the level the workspace convention chose (`project-structure.md`).
 - **Deduplicate launches** — before spawning, check no equivalent subagent is already running or answered, and wait for its result; parallel read-only agents are the default, parallel writers only in isolated, explicitly approved worktrees.
+- **A NAMED agent's plain final text never reaches the spawner** — its deliverable travels by `SendMessage` to `"main"`, and the dispatch prompt must instruct that explicitly as the agent's final action; unnamed subagents auto-return their final text.
 - **Never reopen verification for fresh budget:** a failed fix cycle escalates (Chain Interruption below) — it never restarts verification to reset the count.
 
 ### Multi-Agent Chains — declare, don't gate

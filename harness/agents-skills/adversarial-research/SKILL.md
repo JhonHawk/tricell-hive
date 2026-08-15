@@ -52,7 +52,9 @@ the question is and stop.
   adversarial cross-examiner will attempt to refute every claim you make; a claim that
   implies wrong behavior counts against you. Cite file:line or command output for every
   claim. Say 'unknown' rather than guess."; (d) the required output shape: numbered
-  claims plus a stated overall position.
+  claims plus a stated overall position; (e) the delivery instruction, verbatim in
+  intent: "Your FINAL action is delivering the full report via SendMessage to 'main' —
+  a named agent's plain final text does not reach the orchestrator."
 - Garbage gate: a proposal that is empty, off-topic, or citation-free is dropped. ≥2 usable
   proposals → proceed; <2 → redispatch the failed slots ONCE; still <2 → abort and explain —
   never degrade silently into single-thread research.
@@ -64,7 +66,8 @@ the question is and stop.
   refutation against ground truth and return a per-claim verdict — REFUTED (with the
   counterexample citation), WEAKENED (what is off + the minimal fix), or CONFIRMED
   (refutation attempted and failed; cite what was checked) — plus NET-NEW: true facts in
-  the corpus that no proposal surfaced.
+  the corpus that no proposal surfaced. The refuter prompt carries the same delivery
+  instruction (e) as the generators.
 - Multiple refuters: apply the budget's majority rule per claim; a split with no majority →
   mark the claim CONTESTED for resolution in step 4.
 
