@@ -101,7 +101,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
     ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer, visual-designer
     ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
     ├── review/                      # cyan    — code-reviewer, code-scout, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ui-reviewer
-    ├── quality/                     # yellow  — performance, prompt, secrets, test, workspace-custodian
+    ├── quality/                     # yellow  — performance, prompt, secrets, state-fetcher, test, workspace-custodian
     ├── ops/                         # red     — devops-engineer
     └── docs/                        # magenta — technical-writer
 
@@ -125,7 +125,7 @@ _support/                            # Workspace material, not deployed
 └── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
-## Agents (24 agents)
+## Agents (25 agents)
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
@@ -149,6 +149,7 @@ _support/                            # Workspace material, not deployed
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `prompt-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `secrets-auditor` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
+| `state-fetcher` | quality | yellow | All except Write, Edit, NotebookEdit, Agent (tracker MCP/CLI + gh + deploy CLIs; never mutates files) |
 | `test-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `workspace-custodian` | quality | yellow | Read, Glob, Grep, Bash (read-only audit) |
 | `devops-engineer` | ops | red | Read, Write, Edit, Bash, Glob, Grep (explicit allowlist; `Agent` denied) |

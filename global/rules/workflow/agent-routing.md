@@ -36,6 +36,7 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | UX friction in a live mock or deployed flow, navigation review | ui-reviewer | code-reviewer, react-developer |
 | functional verification of a running app: walk ACs + adversarial/negative testing (double-click, invalid input, gated routes, mid-flow refresh) in a real browser | in-vivo-qa-tester | ui-reviewer, test-engineer |
 | workspace file hygiene, misplaced artifacts, ledger repair, unpromoted decisions | workspace-custodian | secrets-auditor |
+| low-reasoning external state: declared-tracker board/ticket reads, PR-check watches, deploy-job polling, or executing an APPROVED tracker batch | state-fetcher | workspace-custodian (files/ledger), /memory-sync (decides staleness), the main thread (a single quick state call stays inline) |
 | refute or adversarially verify a finding, claim, or diagnosis produced by another agent or investigation | finding-refuter | code-reviewer, the main thread |
 | "where is X implemented" / "how does Y work" / "does Z exist" — code discovery needing a verified conclusion (unknown terminology, legacy code, cross-repo) | code-scout | Explore (file location only), the main thread |
 | 80/20 convention census — which pattern dominates a UI/service surface, does a declared convention cover it | code-scout | the implementing agent, the main thread (the resulting `Status: proposed` draft is authored at the plan gate, not by the census agent) |

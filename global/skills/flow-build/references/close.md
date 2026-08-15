@@ -3,7 +3,8 @@
 Runs at the end of every `/flow-build` invocation, after the run's last stage.
 
 1. **Tracker** — move task states, comment evidence + merged-PR refs (via the declared access;
-   mcp → dispatch the updates; manual → list them; none → update `tasks.md`).
+   mechanics: `flow-core/references/tracker-access.md`; a batch big enough to inflate the
+   close dispatches `state-fetcher` with it; manual → list them; none → update `tasks.md`).
 2. **Git** — confirm nothing open: `gh pr list --state open` in every repo touched, output in the
    report; non-empty is a blocker NOW, never a "next step". No unmerged task branches.
 3. **Ledger** — update PROJECT.md (phase/epic progress, artifacts, decisions, **Promotion

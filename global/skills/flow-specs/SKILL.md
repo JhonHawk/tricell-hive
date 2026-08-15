@@ -79,7 +79,9 @@ is only steps 1–2.
    rules they impact and re-score only the impacted rubric dimensions (unchanged ones
    carry the prior score, marked as carried); a new epic gets the full pass.
 5. **Only on pass, derive delivery**: write tasks.md (Gherkin ACs per task) from the
-   gated rules and sync to the declared tracker via its declared access: epic + one issue
+   gated rules and sync to the declared tracker via its declared access (mechanics:
+   `flow-core/references/tracker-access.md`; a large sync dispatches `state-fetcher` with the
+   approved task set): epic + one issue
    per task, ACs in the issue description. Keep IDs aligned both ways. `Tracker: none` or
    `access: manual` → tasks.md is the source of truth (self-assigned IDs); for `manual`,
    list the tracker updates the user must make in the close report. The tracker never

@@ -29,7 +29,7 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
   forgot to poda — `/flow-workspace` flags it. History grows one line per phase forever; the
   cost is negligible and the trail is worth keeping.
 - Dates in absolute form (`2026-06-11`), never "yesterday" or "last week".
-- **Tracker fields are how flow skills resolve "the tracker"** — they never hardcode
+- **Tracker fields are how flow skills resolve "the tracker"** (shared access/batching mechanics: `references/tracker-access.md`) — they never hardcode
   Linear/Jira. `Tracker: none` means the project is untracked: the specs repo's
   `tasks.md` files are the only task source, and close phases skip tracker updates.
   `Tracker access` decides the mechanics: `mcp` (load via ToolSearch), `cli` (`acli`

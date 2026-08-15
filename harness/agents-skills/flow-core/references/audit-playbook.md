@@ -68,7 +68,7 @@ finds more prioritizes by impact and says so in its scope notes.
    (`P0×4 + P1×2 + P2×1`) → findings per lens (collapsible) → tentative remediation plan
    (pre-epic / during / backlog) → baseline snapshot for the next run → refuted & excluded →
    provenance footer (date, prompt, lens set, agents, repo SHAs, doctrine consulted).
-6. **Post-audit.** Present to the architect/tech lead; P0+P1 → tracker tickets (batched to the
+6. **Post-audit.** Present to the architect/tech lead; P0+P1 → tracker tickets (mechanics: `references/tracker-access.md`; the approved batch dispatches `state-fetcher`; batched to the
    close confirmation per `memory-routing.md > Tracker sync`); P2/P3 → backlog/memory; add the
    run's row to the instance README's history table. Re-run at the next epic close and compare
    baselines — only same-lens runs compare 1:1.
