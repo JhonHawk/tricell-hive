@@ -37,8 +37,8 @@ BUILD = ROOT / "harness" / "build"
 #             covers global + workspace + repo files combined.
 # HARD is anchored at half the chain airbag, so the global core can never claim
 # more than half of what Codex reads: the largest repo AGENTS.md in the fleet is
-# ~25 KiB, and 32 + 25 still clears 64.
-AGENTS_BUDGET_BYTES = 25 * 1024
+# ~27 KiB (raised from 25 for the Codex agent-routing table), and 32 + 27 still clears 64.
+AGENTS_BUDGET_BYTES = 27 * 1024
 AGENTS_HARD_LIMIT_BYTES = 32 * 1024
 
 # Router skills (Codex/opencode leg): canonical rule files injected as

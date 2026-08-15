@@ -38,8 +38,15 @@ Check with: `grep -n model_instructions_file ~/.codex/config.toml` (should retur
 
 - **No argument substitution in Codex skills** — `$flow-specs review epics/E07` passes
   "review epics/E07" as free text; the skill bodies interpret it as the subcommand.
-- **Subagent spawning is explicit-only** in Codex; the skills' "dispatch X" instructions
-  count as the explicit request. `max_depth = 1` suffices (orchestrator → workers).
+- **Subagent spawning triggers on explicit request OR an imperative AGENTS.md/skill
+  instruction** (fully proactive delegation is gated to the Ultra intelligence tier). The
+  always-on routing table in `harness/AGENTS.md` is that imperative instruction; the skills'
+  "dispatch X" lines also count. `max_depth = 1` suffices (orchestrator → workers).
+- **Custom-agent name resolution verified working** (2026-08-15, codex 0.147.0,
+  `multi_agent = true`): `spawn_agent(agent_type="finding-refuter")` resolves and spawns —
+  upstream issues #15250/#14579 report it broken in some tool-backed contexts; if it
+  regresses, the fallback is reading the target `~/.codex/agents/<name>.toml` and inlining
+  its `developer_instructions` into `spawn_agent(agent_type="worker")`.
 - **Read-only reviewers** are enforced via `sandbox_mode = "read-only"` in the generated
   TOMLs (no per-tool allowlists in Codex).
 
