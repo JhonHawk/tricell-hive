@@ -192,7 +192,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | Skill | Scope | Purpose |
 |-------|-------|---------|
 | `/adversarial-research` | global | N independent generators (one may be Codex) + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon |
-| `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the hive canon (harness-coverage matrix) |
+| `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the deployed canon (harness-coverage matrix) + completeness checks (project pointers, Git Workflow declarations) |
 | `flow-core` | global | Flow pack shared library: contract + templates (non-invocable) |
 | `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
 | `/flow-workspace` | global | Workspace hygiene: `audit` \| `apply` |

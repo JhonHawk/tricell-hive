@@ -109,10 +109,26 @@ workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law
 | **keep — project canon** | Genuinely project-specific, needed cross-harness | Split by LEVEL: a REPO file stays — it is the canonical channel for all harnesses; a WORKSPACE-ROOT file operates only in workspace-root sessions — its cross-harness content is proposed DOWN to the governing repo (plus a per-repo pointer to ledger/workspace root) |
 | **re-anchor / explicit override** | Stale fork (paraphrased copy of an evolved global rule — the drift that produces contradictory instructions) or a deliberate contradiction | Rewrite quoting the canonical text, or as `overrides global <rule> because <reason>` — overrides legitimately WIN (`git-workflow.md` precedence); they must read as intentional |
 
+**Completeness checks — same audit pass, per child repo of a workspace:**
+
+- **Project pointers**: the repo `AGENTS.md` carries `Ledger: <relative path>` and the
+  workspace-root path, with the instruction to open them for project-scope tasks
+  (child-repo sessions never auto-load the workspace files). Missing → propose the
+  2-4 line block (~200 B).
+- **`## Git Workflow` declarations**: `Base branch:` / `Git mode:` / `PR review:` per
+  `git-workflow.md`'s declaration block. Missing → propose values inferred from repo
+  state (branch topology, PR history, platform); not inferable → ask in the apply
+  confirmation. Each declared value removes a per-session question.
+- **Tracker declaration**: a flow project declares in its LEDGER (the three fields —
+  `memory-routing.md` owns the home and the confirm gate); the audit only FLAGS absence
+  and proposes the ledger edit — never writes it, and the proposal rides the same
+  confirm-gated batch.
+
 Delegate the per-project reading to subagents (context hygiene; the semantic comparison
 is judgment work — paraphrases count as duplicates). Output: a per-file table
-(rule · current home · coverage CC/Grok/Codex/opencode · outcome · proposed diff) plus
-the promotion/injection candidates for the hive. Audit changes nothing.
+(rule · current home · coverage CC/Grok/Codex/opencode · outcome · proposed diff), the
+completeness proposals per repo, plus the promotion/injection candidates for the hive.
+Audit changes nothing.
 
 ## `apply` — execute the confirmed audit manifest
 
