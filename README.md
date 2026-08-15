@@ -79,7 +79,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── workflow/                    # Git, deploys, structure, routing, naming (8 files)
 │   └── tools/                       # External tools & MCP protocols (1 file)
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
-│   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import
+│   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs hive canon
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
 │   ├── flow-core/                   # Flow pack shared library (non-invocable)
 │   ├── flow-brainstorming/          # Business-idea iteration into a decision
@@ -192,7 +192,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | Skill | Scope | Purpose |
 |-------|-------|---------|
 | `/adversarial-research` | global | N independent generators (one may be Codex) + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon |
-| `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates |
+| `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the hive canon (harness-coverage matrix) |
 | `flow-core` | global | Flow pack shared library: contract + templates (non-invocable) |
 | `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
 | `/flow-workspace` | global | Workspace hygiene: `audit` \| `apply` |

@@ -5,8 +5,11 @@ description: >
   canonical harness-instructions file and CLAUDE.md becomes its `@AGENTS.md` import
   (plus genuinely Claude-specific content below the import). Use on projects where
   AGENTS.md and CLAUDE.md duplicate content, where only one of the pair exists, or to
-  find conversion candidates across many projects (scan). Idempotent.
-argument-hint: "[path | scan <root>]"
+  find conversion candidates across many projects (scan). Also audits project
+  AGENTS.md/CLAUDE.md content against the global hive canon — per-rule harness-coverage
+  matrix, dedup, stale-fork detection, promotion/injection routing (audit | apply).
+  Idempotent.
+argument-hint: "[path | scan <root> | audit [path] | apply]"
 disable-model-invocation: true
 ---
 
@@ -67,9 +70,46 @@ Report as a table with a suggested action per row. Change nothing.
    summary diff. If the project is a git repo, leave the changes uncommitted and suggest
    the commit; if it is NOT a git repo, write `CLAUDE.md.bak`/`AGENTS.md.bak` first.
 
+## `audit [path]` — dedup project rules against the global canon (read-only)
+
+Target: one project/workspace root (default cwd) and its child repos' `AGENTS.md`/
+`CLAUDE.md`. Canon: the HIVE SOURCES (`global/CLAUDE.md`, always-on `global/rules/`,
+`harness/AGENTS.md`, `SKILL_REFERENCE_INJECTIONS` in `harness/build.py`, the opencode
+rules-plugin set) — deployed copies are checked only to flag deploy drift.
+
+**Per rule, compute the harness-coverage matrix — never a boolean.** Which always-on
+layer already carries it: `global/rules` (Claude ✓, Grok ✓ via symlink) · the condensed
+`harness/AGENTS.md` core (Codex ✓, opencode ✓) · a router-skill injection or the
+opencode rules plugin (situational reach). A project rule duplicating a global-rules-only
+item is still LOAD-BEARING for Codex/opencode — deletion requires coverage in every
+harness the project uses.
+
+**Classify each rule into exactly one outcome:**
+
+| Outcome | When | Proposed action |
+|---|---|---|
+| **delete** | Full coverage — pure noise (and reclaims Codex's per-repo `project_doc_max_bytes` budget) | Remove from the project file |
+| **promote-to-core** | Universal (gate, every-session procedure), partial coverage | Condensed line into `harness/AGENTS.md` (27 KiB budget is the gate) → then delete from EVERY project |
+| **inject-to-router** | Situational (language, workspace, memory policy), partial coverage | Add the owning global rule to `SKILL_REFERENCE_INJECTIONS` → delete from the project |
+| **keep — project canon** | Genuinely project-specific, needed cross-harness | Stays: the project AGENTS.md IS its canonical channel |
+| **re-anchor / explicit override** | Stale fork (paraphrased copy of an evolved global rule — the drift that produces contradictory instructions) or a deliberate contradiction | Rewrite quoting the canonical text, or as `overrides global <rule> because <reason>` — overrides legitimately WIN (`git-workflow.md` precedence); they must read as intentional |
+
+Delegate the per-project reading to subagents (context hygiene; the semantic comparison
+is judgment work — paraphrases count as duplicates). Output: a per-file table
+(rule · current home · coverage CC/Grok/Codex/opencode · outcome · proposed diff) plus
+the promotion/injection candidates for the hive. Audit changes nothing.
+
+## `apply` — execute the confirmed audit manifest
+
+One approval covers the batch; contradictions and overrides are listed individually
+inside it. Project edits ride each repo's session git mode; hive changes
+(promotions to the core, injection-map edits) are hive commits with `build.py` re-run.
+Never apply without an audit manifest from this session.
+
 ## Out of scope
 
 - Nested `CLAUDE.md`/`AGENTS.md` in subdirectories — convert one root per invocation
   (point the skill at the subdirectory if needed).
 - `CLAUDE.local.md` — personal file, never touched.
-- Content quality: this skill relocates, it does not rewrite or prune.
+- Content quality in `convert`: it relocates, it does not rewrite or prune — pruning and
+  dedup are `audit`/`apply`'s job.
