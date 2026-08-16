@@ -24,13 +24,13 @@
 
 ## Package Manager
 - **pnpm is the default.** For new projects or when no lock file exists, use pnpm.
-- **Detect before installing:** check for `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `package-lock.json` → npm. Fallback: `packageManager` field in `package.json`. If nothing is detected, use pnpm.
+- **Detect before installing:** the lockfile on disk decides; absent one, the `packageManager` field in `package.json`; absent both, pnpm.
 - **Never mix package managers.** Use only the detected one for all operations.
 - **Never delete or regenerate lock files** unless explicitly requested.
 - **Never install pnpm via corepack** (deprecated upstream; Node 25+ no longer bundles it). Bootstrap per pnpm's official paths: standalone script (`curl -fsSL https://get.pnpm.io/install.sh | sh -`) on machines/servers/generic CI, the `pnpm/setup` action on GitHub Actions, `ghcr.io/pnpm/pnpm` image in Docker (file-level patterns: `rules/languages/iac-devops.md`). Version pinning lives in `packageManager` — pnpm ≥10 honors it natively.
 
 ## System Installations
-- **Verify before assuming absence.** Before proposing to install a tool/CLI or routing around its absence, check it isn't already present (`which`, `--version`, or a project-local variant). Don't suggest an install — or an alternative — for something that's already there.
+- **Verify before assuming absence.** Before proposing to install a tool/CLI — or routing around its absence — check it isn't already present (`which`, `--version`, or a project-local variant).
 - **Confirm before any system-wide install** (Homebrew, global npm/pnpm/uv, system Python, etc.) — explain what installs, where it lands, and how to uninstall cleanly before proceeding.
 
 ## Python Dependency Management
@@ -39,7 +39,6 @@
 ```bash
 uv run --with "reportlab,openpyxl,lxml" python script.py
 uv venv .venv && source .venv/bin/activate && uv pip install reportlab
-uv tool install <package>
 ```
 - `uv` manages its own Python downloads; do not install Python via Homebrew or any other manager.
 
@@ -58,7 +57,7 @@ uv tool install <package>
 - After a state-mutating one-liner, verify the post-state — never trust the success banner (a pipeline can exit 0 having silently no-oped).
 
 ## Spanish
-- **Orthography is mandatory.** Always include proper accents (á, é, í, ó, ú, ñ, ü) in user-facing strings, error messages, labels, and comments written in Spanish. Common mistakes to avoid: `reservacion` → `reservación`, `vehiculo` → `vehículo`, `sesion` → `sesión`, `informacion` → `información`, `numero` → `número`.
+- **Orthography is mandatory.** Always include proper accents (á, é, í, ó, ú, ñ, ü) in user-facing strings, error messages, labels, and comments written in Spanish. Watch the high-frequency misses: `reservación`, `vehículo`, `sesión`, `información`, `número`.
 - **Dialect: Mexican Spanish.** Default to `tú` (informal) for all conversational communication with the user. Use `usted` only for formal client-facing copy (cotizaciones, RFP responses, proposals, formal emails to unknown audiences). Never use `vos` — voseo is not Mexican Spanish and reads as foreign.
 - **Lexical preference:** when a Mexican-standard term differs from another regional term, prefer the Mexican one (e.g., `computadora` over `ordenador`). When both are accepted in Mexican usage, follow the user's lead.
 
@@ -74,7 +73,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 - **i18n/message keys are identifiers, not domain values.** A translation key (`t("session.expiringWarning")`) is English, semantic, and hierarchical; the Spanish lives in the value (the copy), never in a key derived from it. The per-bounded-domain carve-out covers business-vocabulary values (enums, RBAC), not UI-string keys.
 
 ## Dates & Time
-- **Write dates in the user's local timezone, never UTC.** When you type a date into durable text — a memory summary, a ledger entry, a report header, a date-suffixed filename, a commit — use the local date already in context (`currentDate`) or from `date`, never a mentally computed UTC one. After ~18:00 in the Americas, UTC has already rolled to the next day, so a calculated date silently lands one day ahead. The system clock and tool timestamps (`date`, Engram's `Created:`) are already local and correct — only hand-typed dates drift. Unsure → run `date`, don't compute.
+- **Write dates in the user's local timezone, never UTC.** When you type a date into durable text — a memory summary, a ledger entry, a report header, a date-suffixed filename, a commit — use the local date already in context (`currentDate`) or from `date`, never a mentally computed UTC one. After ~18:00 in the Americas, UTC has already rolled to the next day, so a calculated date silently lands one day ahead. Tool timestamps are already local; only hand-typed dates drift. Unsure → run `date`, don't compute.
 
 ## Config Files Language
 
@@ -94,10 +93,10 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 - **One decision point, one report.** Adding a dependency resolves by inference, not by a default question: a preferred library below or an established project convention decides the pick; the OSV check resolves the version; context7 validates the integration on version-sensitivity signals (`rules/tools/context7.md`). The close report names pick, version, and check results once.
 - **Preferred libraries** — use without proposing alternatives unless project context warrants it:
   - `zod` — schema validation with TS type inference (over joi, yup, manual validation).
-  - `date-fns` — date manipulation; **never moment.js** (over dayjs, for tree-shakeability).
+  - `date-fns` — date manipulation; **never moment.js** (over dayjs).
   - `nanoid` — short client-side IDs (over uuid when full UUIDs are unnecessary).
   - `vitest` — test runner for Vite/Next.js projects (over jest in modern setups).
-  - `playwright` — E2E testing (over cypress, for CI reliability).
+  - `playwright` — E2E testing (over cypress).
 - **Ask only at a real fork:** an architectural pick with no preferred default and no project convention — 2-3 curated options folded into the plan gate — or the OSV CRITICAL/HIGH no-safe-path gate (`security.md > Supply Chain Security`). Only one viable option → explain briefly and proceed.
 - **Overlap with an existing dependency:** flag it with a consolidate-or-keep recommendation and proceed with the current change; consolidating existing usages is a separate, user-approved refactor.
 - **OSV before any install** — `security.md > Supply Chain Security` owns the command, ecosystem mapping, and resolution tiers; resolve by its tiers and report at close.
@@ -112,6 +111,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 - **Be direct, not diplomatic.** State problems plainly. Don't soften bad news with compliments or qualifiers. The user prefers honest challenge over polite agreement.
 - **Explain like a senior to a junior.** Surface the reasoning and consequences behind a choice instead of assuming the listener already holds the context — name what each branch of a consequential decision implies before asking them to pick. Assume capability, not context: don't condescend or belabor the obvious.
 - **Concise-first when writing rules — rules are not debates.** Adding or editing a rule in any CLAUDE.md/AGENTS.md, rule file, agent prompt, or hook message: write the minimal actionable form on the first pass — one directive per rule, no justification, no provenance notes ("mirrors project X"), no evidence citations (benchmarks, measurements, "v3/v4", version history), no examples unless they disambiguate. The consuming agent has no access to the evidence and the citation only inflates context; evidence lives in the repo's bibliography/README, never in the directive. **Carve-out:** a stat stays only when it IS the operational threshold the rule turns on — test: would removing the number change the decision? Expand only if asked.
+- **Don't restate what the agent reads from the repo, nor teach what the floor model already does** — the package manager a lockfile declares, the framework its config declares, a directory listing: no-ops that also go stale. **Test:** delete the line and name what the agent would do differently; nothing → cut it. Calibrate to the floor model, never to yourself — a reminder the weakest model still needs (BSD vs GNU flags) earns its place.
 - **Name the enforcement layer.** A rule that states a gate says what enforces it — deterministic (hook, deny permission, allowlist), confirm-gated (the user's explicit confirmation is the key), or prompt-convention. Never phrase a prompt-convention as mechanical impossibility; if a gate must be unbreakable, that's a request for a deterministic backstop, not stronger wording.
 - **Flag contradictions.** A codebase pattern that contradicts a global rule, or two authoritative sources that disagree about the same decision: surface it rather than silently following either — `rules/workflow/gap-resolution.md > Divergence Between Sources`.
 - **No human-time estimates for work Claude will do.** When presenting options or trade-offs for tasks the agent will execute in-session, omit wall-clock estimates ("~2-3 horas", "medio día", "1 día de trabajo"). Use scope, risk, and reversibility instead. Exception: client-facing sales work (cotizaciones, retainers, staffing), where hour/day estimates are the deliverable.
@@ -126,7 +126,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 
 ### Deferred Tools
 
-- **Deferred tools surface only by name at session start** when tool search is enabled — this includes most MCP server tools and several built-ins (e.g., `LSP`, `WebFetch`, `WebSearch`, `Monitor`, `NotebookEdit`, `computer-use`, `playwright`, `chrome-devtools`). Calling a deferred tool directly returns `InputValidationError`.
+- **Deferred tools surface only by name at session start** when tool search is enabled — most MCP server tools and several built-ins. The session's own listing is authoritative; never work from a remembered list. Calling a deferred tool directly returns `InputValidationError`.
 - **Load via `ToolSearch` before first use.** Use `ToolSearch({query: "select:Name1,Name2"})` for direct selection, or a keyword query to discover relevant tools. When you'll use several tools from one MCP server, batch the load into a single call.
 
 ### Delegation & Context Hygiene
