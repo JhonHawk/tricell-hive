@@ -149,6 +149,18 @@ is judgment work — paraphrases count as duplicates). Output: a per-file table
 completeness proposals per repo, plus the promotion/injection candidates for the hive.
 Audit changes nothing.
 
+**The manifest is Markdown, never HTML** — it is the `apply` step's input, not a document to
+read, so it takes `communication-format.md`'s agent-handoff carve-out. This declaration is
+what discharges the flow-report trigger; without it a long manifest keeps tripping it.
+
+**Resolve the harness set from disk, never by asking.** Which harnesses are in play is
+observable (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.grok` — the last one's
+`sessions/` and `memtrace/` show real use). And before asking whether a harness would lose a
+rule, check how it reaches it: a **situational/path-scoped** rule reaches Codex AND Grok the
+same way, through a router skill's injected references under `~/.agents/skills` — Grok is not
+a special case, and it additionally gets every always-on rule as a flat symlink, which Codex
+does not. Ask only what disk cannot answer.
+
 ## `apply` — execute the confirmed audit manifest
 
 One approval covers the batch; contradictions and overrides are listed individually
