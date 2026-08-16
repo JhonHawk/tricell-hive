@@ -231,7 +231,7 @@ cmds=""
 [ -n "$has_lint" ] && cmds="\`$pm lint\`"
 [ -n "$has_test" ] && cmds="${cmds:+$cmds, }\`$pm test\`"
 
-reminder="Pre-push reminder (non-blocking): you are about to \`git push\`. Confirm the local quality gate ran on the AFFECTED subset SINCE your last code edit — any edit after the last run (e.g. a post-push CI fix) invalidates it, and CI will then catch what a local check would have. Detected for this repo: ${cmds}. If you edited code since the last run, re-run them now, then push. This does not block the push."
+reminder="Pre-push reminder (non-blocking): you are about to \`git push\`. Confirm the local quality gate ran on the AFFECTED subset SINCE your last code edit — any edit after the last run (e.g. a post-push CI fix) invalidates it, and CI will then catch what a local check would have. The in-vivo/smoke pass and any check still waiting on a user confirmation belong BEFORE this push, not after it. Detected for this repo: ${cmds}. If you edited code since the last run, re-run them now, then push. This does not block the push."
 
 jq -n --arg ctx "$reminder" '{
   hookSpecificOutput: {

@@ -208,5 +208,5 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `memory-policy` | global | Router: Engram policy layer for Codex + opencode (model-invoked) |
 | `unattended-delegation` | global | Router: explicitly-delegated unattended runs for Codex + opencode (model-invoked) |
 | `/manage-agents` | repo | `validate` \| `optimize <name>` \| `report` — agent lifecycle management |
-| `/manage-rules` | repo | `validate` \| `audit` \| `create` — rule lifecycle management, incl. `global/CLAUDE.md` and the always-on corpus ratchet |
+| `/manage-rules` | repo | `validate` \| `audit` \| `create` — rule lifecycle management, incl. `global/CLAUDE.md` and the always-on rule corpus |
 | `/deploy-global` | repo | Sync `global/` to `~/.claude/` (user-initiated only) |
