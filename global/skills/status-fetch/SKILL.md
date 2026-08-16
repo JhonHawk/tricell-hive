@@ -1,0 +1,61 @@
+---
+name: status-fetch
+description: >
+  Fetch the project's live external state — git across repos, the declared tracker's
+  board, open PRs, deploy jobs — in an isolated subagent, returning compact facts.
+  Use for "what's pending", "what's next", "where are we", or before a status report.
+  Returns facts to interpret, never a decision about what to work on.
+argument-hint: "[repo-name | all]"
+context: fork
+agent: state-fetcher
+background: false
+---
+
+# status-fetch
+
+Gather live state in a forked subagent so the sweep — often tens of thousands of tokens
+of tracker pages, git output and PR listings — never enters the main session. Only the
+compact report returns.
+
+**This runs in a fresh subagent with no conversation history** — on Claude Code by
+frontmatter, elsewhere because the caller dispatches it. Everything comes from `$ARGUMENTS`
+and disk; report facts, and the main thread decides what they mean.
+
+## 1 — Resolve scope from disk
+
+- `$ARGUMENTS` names a repo → scope to it. `all` or empty → every git repo at or below cwd
+  (workspace root: each child repo; single repo: itself).
+- **Ledger** — `_support/PROJECT.md` at or above cwd. Read it if present: it declares the
+  `Tracker`, `Tracker access`, and `Deferred marker` fields. Absent → local sources only.
+- **Tracker authorization is the declaration.** No declared tracker → do NOT query Linear,
+  Jira, or any tracker MCP; report `tracker: no declarado` and use git and disk alone.
+  A ticket key in a branch name is not a declaration.
+
+## 2 — Fetch, in parallel where the calls are independent
+
+Per repo: current branch, ahead/behind vs upstream, working-tree cleanliness, last commits,
+other local branches, stashes, worktrees.
+
+Beyond one repo, or when the tracker is declared, also: open PRs and their check state
+(`gh pr list`, `gh pr checks`), the tracker's live tickets, and deploy jobs for branches
+that deploy an environment. Environment-branch topologies (`development` → `qa` →
+`production`): report the divergence between them.
+
+**Query the tracker once and filter locally.** Repeated board calls with different filters
+are the failure mode this skill exists to prevent — one broad read, then narrow in memory.
+
+## 3 — Report facts, not conclusions
+
+A compact table per dimension (repos · tracker · PRs · deploys), then at most three lines
+of anomalies — a ledger claim contradicted by live state, a branch diverged from its
+upstream, a ticket marked done whose code is absent.
+
+- **Empty is a finding.** Write `ninguno` explicitly; an omitted row reads as unchecked.
+- **Say what you could not reach.** An unauthorized tracker, a failed `gh` call, an
+  unreadable repo: name it. Silence about a gap reports it as absence.
+- **No recommendations, no priorities, no next steps.** Deciding what work exists and what
+  to do about it belongs to the main thread. Ranking tickets here is out of scope.
+- Distinguish a **record** (ledger, tracker) from **live state** (git, deploys); on
+  conflict, live state wins and the record is what needs correcting.
+
+Keep the whole report under ~80 lines. It is the only thing that survives this fork.
