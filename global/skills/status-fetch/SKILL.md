@@ -48,12 +48,15 @@ is not a divergence report.
 **Batch the reads.** One command per repo, or one loop over all of them — never a round-trip
 per fact.
 
-**Query the tracker by non-terminal state — one call per state, all dispatched in a single
-parallel batch.** One unfiltered read comes back ordered by recency and truncates with the
-open backlog outside the page. The failure mode to avoid is the SEQUENTIAL refilter — board
-call after board call until something looks right — never the one parallel fan-out. A
-truncated response (page cap, `hasNextPage`) is declared as truncated: a page's count is
-never reported as a total.
+**Query the tracker by non-terminal state — one call per state, emitted together in a single
+turn so they run concurrently.** One unfiltered read comes back ordered by recency and
+truncates with the open backlog outside the page. The failure mode to avoid is the SEQUENTIAL
+refilter — board call after board call until something looks right — never the one parallel
+fan-out. A truncated response (page cap, `hasNextPage`) is declared as truncated: a page's
+count is never reported as a total.
+
+**Tracker rows carry their IDs.** Report the tickets, never a bare count — an unlisted number
+cannot be audited, and it is the form that has silently come back wrong.
 
 ## 3 — Report facts, not conclusions
 
@@ -73,4 +76,6 @@ Compare them against the live heads fetched above and name the mismatch.
 - Distinguish a **record** (ledger, tracker) from **live state** (git, deploys); on
   conflict, live state wins and the record is what needs correcting.
 
-Keep the whole report under ~80 lines. It is the only thing that survives this fork.
+Compact, not truncated: no preamble, no restating the request, one row per fact. Completeness
+of the dimensions above outranks brevity — this report is the only thing that survives the fork,
+so a fact cut to save lines is a fact the caller never gets.

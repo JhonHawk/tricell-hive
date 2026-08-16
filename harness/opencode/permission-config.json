@@ -1,0 +1,8 @@
+{
+  "_comment": "Repo-managed opencode permission block, merged into ~/.config/opencode/opencode.json by /deploy-global (opencode scope). Additive and idempotent; a rule already present in the user's config wins. Leading ~ is expanded to $HOME at merge time so this file stays portable.",
+  "permission": {
+    "external_directory": {
+      "~/.claude/skills/**": "allow"
+    }
+  }
+}

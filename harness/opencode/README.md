@@ -12,11 +12,13 @@ natively.
 | Subagents | `harness/opencode/agents/` (generated, versioned) | `~/.config/opencode/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit |
 | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) | `harness/opencode/commands/` | `~/.config/opencode/commands/` | `/deploy-global` (copy) |
 | Config additions | `opencode.jsonc.snippet` | merge into `~/.config/opencode/opencode.json` | Manual, once |
+| Permission keys | `permission-config.json` | `permission.*` in `~/.config/opencode/opencode.json` | `/deploy-global` (surgical jq merge, idempotent) |
 
 ## One-time setup
 
 1. Merge `opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`
-   (skill gating + Linear MCP).
+   (skill gating + Linear MCP). The `permission` keys are NOT part of this step —
+   `permission-config.json` is merged by the deploy on every run.
 2. Add to your shell profile: `export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`
    (single skill-discovery source — see snippet comments).
 3. Run `/deploy-global` from the hub; start a fresh opencode session.

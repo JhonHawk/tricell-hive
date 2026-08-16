@@ -128,9 +128,16 @@ surface every `WARNING:` to the user, don't just report success.
   symlinks, so removing them can never destroy a rule.
 - The `grok` scope skips (with a WARNING, never a dangling link) any rule not yet present
   under `~/.claude/rules/` — run the `claude` scope at least once first.
-- Never overwrites `~/.claude/settings.json` or `~/.codex/hooks.json` wholesale — only
-  surgical, validated (temp-file + `jq empty` before move) merges of repo-managed hook
-  blocks, via the bundled `filters/hook-merge.jq` and `filters/hook-purge.jq`.
+- Never overwrites `~/.claude/settings.json`, `~/.codex/hooks.json`, or
+  `~/.config/opencode/opencode.json` wholesale — only surgical, validated (temp-file +
+  `jq empty` before move) merges of repo-managed blocks, via the bundled
+  `filters/hook-merge.jq` and `filters/hook-purge.jq` for hooks, and
+  `harness/opencode/permission-config.json` for the opencode permission keys. That
+  permission merge adds a repo rule only when the user has not already declared the same
+  pattern (`~` expanded on both sides for the comparison), never rewrites their spelling,
+  and skips a `permission` set to a bare action string. Only `opencode.json` is merged —
+  a comments-bearing `opencode.jsonc` is reported and left alone, since `jq` cannot
+  round-trip comments.
 - A partial run (`--only claude`, `--only codex`, etc.) preserves the untouched scopes'
   entries in `~/.claude/.deploy-manifest` rather than dropping them — so orphan detection
   for scopes you didn't just run stays accurate on the next deploy.
@@ -145,7 +152,7 @@ Remind the user to restart Claude Code / Codex / opencode (or start a new sessio
 reload — a running session does not pick up the new files. **On a fresh machine (or any run
 touching the `codex`/`opencode` scopes for the first time)**, also point them at
 `harness/{codex,opencode}/README.md`: the `*.snippet` config merges (plugin/hook
-registration in `opencode.jsonc` / `config.toml`) are one-time and manual — this script never
-writes those config files, so hooks and rules can land on disk with nothing registering them
-until that merge happens. The script's own final report repeats this reminder whenever the
+registration in `opencode.jsonc` / `config.toml`) are one-time and manual — this script writes
+no part of those files except the opencode `permission` keys above, so hooks and rules can land
+on disk with nothing registering them until that merge happens. The script's own final report repeats this reminder whenever the
 `codex` or `opencode` scope ran.

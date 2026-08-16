@@ -1146,6 +1146,73 @@ step_deploy_opencode_plugin() {
 }
 
 # ---------------------------------------------------------------------------
+# Step 13f — opencode permission block (surgical, additive merge)
+#
+# The state-fetcher agent reads flow-core references from ~/.claude/skills, which
+# opencode treats as an external directory and gates behind an interactive prompt —
+# so status-fetch cannot run unattended there. This merges only the repo-managed
+# permission keys; every other key in opencode.json is left untouched, and a rule
+# the user already set for the same pattern WINS over the repo's (right operand of
+# `+`). Leading `~` in the source is expanded to $HOME at merge time.
+#
+# jsonc is skipped deliberately: jq cannot round-trip comments, and silently
+# stripping the user's comments is worse than reporting the gap.
+# ---------------------------------------------------------------------------
+
+step_merge_opencode_permissions() {
+    [[ "${RUN_OPENCODE}" -eq 1 ]] || return 0
+    local src="${REPO_ROOT}/harness/opencode/permission-config.json"
+    [[ -f "${src}" ]] || return 0
+
+    local target="${OPENCODE_HOME}/opencode.json"
+    if [[ ! -f "${target}" && -f "${OPENCODE_HOME}/opencode.jsonc" ]]; then
+        log "WARNING: only opencode.jsonc found — permission merge skipped (jq cannot preserve comments)."
+        report "opencode permissions: WARNING skipped (jsonc, merge by hand)"
+        return 0
+    fi
+
+    log "== Merge: opencode permission block =="
+    if [[ "${APPLY}" -eq 0 ]]; then
+        log "[DRY-RUN] would merge repo-managed permission keys into ${target}"
+        report "opencode permissions: [DRY-RUN] would merge"
+        return 0
+    fi
+
+    [[ -f "${target}" ]] || { mkdir -p "${OPENCODE_HOME}" && echo '{}' >"${target}"; }
+
+    local tmp
+    tmp=$(mktemp)
+    register_tmp "${tmp}"
+    # A repo rule is added ONLY when the user has not already declared that pattern
+    # (compared with ~ expanded on both sides, so `~/x` and `/Users/me/x` count as the
+    # same rule). The user's literal spelling is never rewritten. `permission` set to a
+    # bare action string is a valid shape the schema allows — leave it alone entirely.
+    # shellcheck disable=SC2016  # single-quoted jq filter: $p/$home/$cat are jq variables, not shell
+    if jq --slurpfile p "${src}" --arg home "${HOME}" '
+            if ((.permission // {}) | type) != "object" then .
+            else
+                reduce (($p[0].permission // {}) | to_entries[]) as $cat (.;
+                    .permission[$cat.key] =
+                        (if ((.permission[$cat.key] // {}) | type) == "object"
+                         then ((.permission[$cat.key] // {}) | keys | map(sub("^~"; $home))) as $have
+                              | (($cat.value
+                                  | with_entries(.key |= sub("^~"; $home))
+                                  | with_entries(. as $e | select(($have | index($e.key)) == null)))
+                                 + (.permission[$cat.key] // {}))
+                         else .permission[$cat.key] end))
+            end
+        ' "${target}" >"${tmp}" && jq empty "${tmp}" 2>/dev/null; then
+        mv "${tmp}" "${target}"
+        log "${target}: permission block merged (idempotent, additive; user rules win)."
+        report "opencode permissions: merged"
+    else
+        rm -f "${tmp}"
+        log "WARNING: ${target} permission merge failed — left unchanged."
+        report "opencode permissions: WARNING merge failed"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Grok scope — flat rule symlinks into ~/.grok/rules + agents into ~/.grok/agents.
 #
 # Rule links point at the DEPLOYED rule under ~/.claude/rules, not at the repo:
@@ -1326,7 +1393,8 @@ step_final_report() {
         echo ""
         echo "Reminder: harness/{codex,opencode}/*.snippet config merges (plugin/hook"
         echo "registration in opencode.jsonc / config.toml) are ONE-TIME and MANUAL — this"
-        echo "deploy never writes those config files. See harness/{codex,opencode}/README.md."
+        echo "deploy writes no part of those files except the opencode permission keys"
+        echo "(harness/opencode/permission-config.json). See harness/{codex,opencode}/README.md."
         echo "On a fresh machine, hooks and rules land on disk with no prompt from the tool"
         echo "itself to register them — this reminder is that prompt."
     fi
@@ -1361,6 +1429,7 @@ main() {
     step_engram_hotfix
     step_deploy_codex_hooks
     step_deploy_opencode_plugin
+    step_merge_opencode_permissions
     step_deploy_grok
     step_write_manifest
 
