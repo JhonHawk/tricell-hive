@@ -157,7 +157,10 @@ observable (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.grok` — the las
 rule, check how it reaches it: a **situational/path-scoped** rule reaches Codex AND Grok the
 same way, through a router skill's injected references under `~/.agents/skills` — Grok is not
 a special case, and it additionally gets every always-on rule as a flat symlink, which Codex
-does not. Ask only what disk cannot answer.
+does not. **Verify Grok with `grok inspect`, which lists both the instruction files and the
+skills it actually loads — never by looking at `~/.grok/skills/`:** Grok scans
+`~/.agents/skills` and `~/.claude/skills`, so that directory is near-empty by design and
+reading it as "no skills reach Grok" is a false negative. Ask only what disk cannot answer.
 
 ## `apply` — execute the confirmed audit manifest
 
