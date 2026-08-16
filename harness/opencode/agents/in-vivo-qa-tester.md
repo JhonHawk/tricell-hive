@@ -5,7 +5,6 @@ description: >
 mode: subagent
 color: warning
 permission:
-  edit: "deny"
   task: "deny"
 ---
 

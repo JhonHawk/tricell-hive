@@ -5,7 +5,7 @@ description: >
   bucket). Use on ambiguous project detection, new projects/<group>/<project>/, or
   explicit Engram init/register.
 argument-hint: "[project-name]"
-allowed-tools: Bash, Read, Glob
+allowed-tools: Read, Glob, Bash(bash *bootstrap-workspace.sh *)
 ---
 
 # Engram: initialize a unified workspace project

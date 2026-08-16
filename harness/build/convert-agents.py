@@ -120,8 +120,11 @@ def parse_agent(path: Path):
 
 
 def can_write(agent):
+    # Either write tool still available => the agent can write. Denying only one
+    # of them (in-vivo-qa-tester denies Edit but keeps Write for its report) must
+    # not zero out write capability in the generated trees.
     if agent["tools"] is None:
-        return not ({"Write", "Edit"} & set(agent["disallowed"]))
+        return bool({"Write", "Edit"} - set(agent["disallowed"]))
     return bool({"Write", "Edit"} & set(agent["tools"]))
 
 
@@ -372,7 +375,10 @@ def grok_tools(agent):
             "search_tool",
             "use_tool",
         ]
-        if not ({"Write", "Edit", "MultiEdit"} & set(agent["disallowed"])):
+        # search_replace is Grok's only write tool (Write/Edit/MultiEdit all map
+        # to it), so it follows can_write: present whenever either write tool
+        # survives the denylist.
+        if can_write(agent):
             base.insert(4, "search_replace")
         return base
 

@@ -25,14 +25,20 @@ description: >                      # 1-3 sentences. CRITICAL for auto-invocatio
   When to use this agent. Be specific. Include trigger phrases. Add <example> blocks if routing is ambiguous.
 
 # --- Tool control ---
-tools: Read, Glob, Grep             # Allowlist. Inherits all if omitted. Supports Agent(type1, type2).
-disallowedTools: Write, Edit        # Denylist. Applied before tools allowlist.
+tools: Read, Glob, Grep             # Allowlist. Inherits all if omitted. Supports Agent(type1, type2)
+                                    # and MCP patterns: mcp__<server>, mcp__* — the Claude-side
+                                    # analog of Grok's mcpInheritance.
+disallowedTools: Write, Edit        # Denylist. Applied before tools allowlist. Same MCP patterns.
 
 # --- Model & execution ---
-model: inherit                      # sonnet | opus | haiku | full model ID | inherit (default)
-effort: high                        # low | medium | high | max. Overrides session default.
+model: inherit                      # sonnet | opus | haiku | fable | full model ID | inherit (default)
+effort: high                        # low | medium | high | xhigh | max. Overrides session default.
+                                    # Available levels depend on the model. Setting the level the
+                                    # session already runs at is a no-op — check settings first.
 maxTurns: 30                        # Max agentic turns before stopping.
-permissionMode: default             # default | acceptEdits | dontAsk | bypassPermissions | plan
+permissionMode: default             # default | acceptEdits | auto | dontAsk | bypassPermissions |
+                                    # plan (manual = alias of default). NOT enforced when the parent
+                                    # session is in auto mode — see AGENTS.md "Restricted tools".
 
 # --- Context injection ---
 skills: skill-name                  # Skills preloaded at startup. NOT inherited from parent.
@@ -66,10 +72,19 @@ description: >                      # 1-3 sentences. Claude uses this for auto-i
                                     # least-invoked truncated first) — highest-signal
                                     # triggers up front.
 # --- Execution control ---
-effort: max                         # low | medium | high | max. Overrides session default.
+effort: max                         # low | medium | high | xhigh | max. Overrides session default.
 context: fork                       # Runs in isolated subagent context. Main sees only result.
+                                    # The fork has NO conversation history — only for skills whose
+                                    # input is fully specified by $ARGUMENTS + disk.
 agent: Explore                      # Subagent type when context: fork. Default: general-purpose.
-allowed-tools: Read, Glob, Grep     # Restricts tools available to the skill.
+allowed-tools: Read, Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
+                                    # GRANTS unprompted permission for the listed tools during
+                                    # the invoking turn. Does NOT restrict: every tool stays
+                                    # callable. Scope Bash to command patterns, never bare `Bash`
+                                    # — the grant covers the whole turn, not just this skill's
+                                    # own commands. ${CLAUDE_SKILL_DIR} substitutes here too.
+disallowed-tools: Write, Edit       # Removes tools from the pool while the skill is active.
+                                    # This is the field that restricts.
 model: inherit                      # Override model. Default: session model.
 shell: bash                         # Shell for !`command` blocks. Default: bash.
 

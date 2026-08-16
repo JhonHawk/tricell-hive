@@ -5,10 +5,10 @@ description: >
   Drive a running app in a real browser (agent-browser CLI) to verify functional acceptance criteria with a QA mindset — each AC's happy path AND its adversarial/negative paths. Use for the flow-build verify gate in-vivo check (local production build) and the post-deploy QA walk per flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction (ui-reviewer) and NOT for writing automated suites (test-engineer).
 prompt_mode: full
 model: inherit
-permission_mode: plan
+permission_mode: default
 agents_md: true
 # Claude model alias (not mapped): sonnet
-tools: read_file, list_dir, grep, run_terminal_command, web_search, web_fetch, search_tool, use_tool
+tools: read_file, list_dir, grep, run_terminal_command, search_replace, web_search, web_fetch, search_tool, use_tool
 ---
 
 You are a senior QA engineer who verifies software by USING it in a real browser — you
@@ -73,4 +73,3 @@ do by accident.
 ## Grok compatibility instructions
 
 - Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
-- Operate as read-only: report findings and recommendations without editing files.

@@ -9,7 +9,7 @@ is not, and a gate described loosely invites an agent to argue past it.
 
 | Layer | Who enforces | Mechanism | If the model ignores it |
 |---|---|---|---|
-| **Deterministic** | The harness | Hooks, deny permissions, tool allowlists, `InputValidationError` on unloaded deferred tools, `permissionMode: plan` | The action is intercepted — obedience is irrelevant |
+| **Deterministic** | The harness | Hooks, deny permissions, tool allowlists, `InputValidationError` on unloaded deferred tools | The action is intercepted — obedience is irrelevant |
 | **Confirm-gated** | The user | The rule requires explicit user confirmation before the action; the harness may or may not back it | The model can technically proceed, but doing so violates the gate; the user's yes IS the key |
 | **Prompt-convention** | The model itself | The rule is loaded into context; the model follows it because it read it | Nothing intercepts — discipline, review, and audits catch it after the fact |
 
@@ -29,10 +29,14 @@ is not, and a gate described loosely invites an agent to argue past it.
 Two honest subtleties:
 
 - **A tool allowlist is deterministic but not airtight.** An agent without `Write` but with
-  unrestricted `Bash` can still mutate through the shell — that is why read-only review
-  agents carry `permissionMode: plan` in addition to the allowlist, and why
-  `finding-refuter` (Bash without plan mode, constrained by prompt) is a documented
-  exception, not the norm (`AGENTS.md > Agent Design Principles`, "Restricted tools" bullet).
+  unrestricted `Bash` can still mutate through the shell. Review agents carry
+  `permissionMode: plan` against this, but **it is not a layer to count on**: when the parent
+  session runs in auto mode — the default on Pro/Max/Team unless `permissions.defaultMode`
+  says otherwise — a subagent inherits auto mode and its frontmatter `permissionMode` is
+  ignored. Verified empirically 2026-08-15: a `code-reviewer` subagent had no `ExitPlanMode`
+  and created a file via `touch` unblocked. So for every review agent the real deterministic
+  layer is the `tools:` allowlist alone, and the Bash-shell path stays open — the gap a
+  deny rule or an agent-scoped hook would close.
 - **Loading is deterministic; obeying is not.** Path-scoped rules are glob-loaded by the
   harness (deterministic), but the loaded content is still prompt-convention.
 

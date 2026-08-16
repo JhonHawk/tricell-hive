@@ -6,7 +6,7 @@ description: >
   presented (plan, audit, research, PR review, option grid, pitch). Triggers: ≥~300 words
   AND 2+ info kinds (tables, diagrams, code, mockups). Not for short chat, handoffs, or
   live playgrounds.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
 # flow-report
