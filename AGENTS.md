@@ -208,7 +208,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 ## Git Conventions
 - **Conventional commits:** `feat:`, `fix:`, `chore:`, `docs:` prefixes required.
-- **Direct commits to `master` are this hub's declared workflow** (no PR gate, no CI on branches). **Push is confirm-gated: never push until the user confirms they agree with the changes** — their explicit instruction after reviewing them is the confirmation. Force-push and history rewrites stay gated.
+- **Direct commits to `master` are this hub's declared workflow** (no PR gate, no CI on branches). **The review gate sits before the commit, not before the push:** present the diff, commit on the user's approval, and push in the same step — that one approval covers both, so never ask a second time for the push. Confirm-gated; force-push and history rewrites stay separately gated.
 - This is a **configuration-only repo** — no build system, no CI/CD, no runtime. Changes are validated by reading/reviewing agent files, not by running builds or tests.
 
 ## Rule Exclusions (this repo)
