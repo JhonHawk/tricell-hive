@@ -48,9 +48,11 @@ is not a divergence report.
 **Batch the reads.** One command per repo, or one loop over all of them — never a round-trip
 per fact.
 
-**Query the tracker once and filter locally.** Repeated board calls with different filters
-are the failure mode this skill exists to prevent — one broad read, then narrow in memory.
-A truncated response (page cap, `hasNextPage`) is declared as truncated: a page's count is
+**Query the tracker by non-terminal state — one call per state, all dispatched in a single
+parallel batch.** One unfiltered read comes back ordered by recency and truncates with the
+open backlog outside the page. The failure mode to avoid is the SEQUENTIAL refilter — board
+call after board call until something looks right — never the one parallel fan-out. A
+truncated response (page cap, `hasNextPage`) is declared as truncated: a page's count is
 never reported as a total.
 
 ## 3 — Report facts, not conclusions
