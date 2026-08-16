@@ -153,13 +153,18 @@ Audit changes nothing.
 read, so it takes `communication-format.md`'s agent-handoff carve-out. This declaration is
 what discharges the flow-report trigger; without it a long manifest keeps tripping it.
 
-**Resolve the harness set from disk, never by asking.** Which harnesses are in play is
+**Resolve coverage from disk, never from the design's intent.** Which harnesses are in play is
 observable (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.grok` — the last one's
-`sessions/` and `memtrace/` show real use). And before asking whether a harness would lose a
-rule, check how it reaches it: a **situational/path-scoped** rule reaches Codex AND Grok the
-same way, through a router skill's injected references under `~/.agents/skills` — Grok is not
-a special case, and it additionally gets every always-on rule as a flat symlink, which Codex
-does not. Ask only what disk cannot answer.
+`sessions/` and `memtrace/` show real use), and so is what each one actually loads. Verify the
+DEPLOYED state, never a doc or a script comment describing where content is supposed to land:
+- **Claude Code** — `~/.claude/rules` (always-on + path-scoped, native).
+- **Grok** — `~/.grok/rules` flat symlinks (always-on) + `~/.claude/CLAUDE.md` + the router
+  skills symlinked into `~/.grok/skills` (Grok does NOT scan `~/.agents/skills`). Audit with
+  `grok inspect`: it lists both the instruction files and the skills actually loaded. Path-scoped
+  rules reach it through those routers — but only if the grok scope has been deployed, so
+  confirm the links exist before counting them as coverage.
+- **Codex / opencode** — the condensed core + router skills from `~/.agents/skills`.
+Ask only what disk cannot answer.
 
 ## `apply` — execute the confirmed audit manifest
 

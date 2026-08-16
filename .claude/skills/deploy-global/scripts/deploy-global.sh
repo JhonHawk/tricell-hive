@@ -47,6 +47,7 @@ readonly AGENTS_SKILLS_HOME="${HOME}/.agents/skills"
 readonly GROK_HOME="${GROK_HOME:-${HOME}/.grok}"
 readonly GROK_RULES_HOME="${GROK_HOME}/rules"
 readonly GROK_AGENTS_HOME="${GROK_HOME}/agents"
+readonly GROK_SKILLS_HOME="${GROK_HOME}/skills"
 readonly MANIFEST="${CLAUDE_HOME}/.deploy-manifest"
 readonly BACKUP_DIR="${CLAUDE_HOME}/backups"
 readonly CODEX_DOC_MAX_BYTES=49152
@@ -148,7 +149,8 @@ SCOPE NOTES:
   agents from harness/grok/agents into ~/.grok/agents. Grok's rules discovery
   is NOT recursive and does NOT honor `paths:`, so only always-on rules
   (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
-  Path-scoped rules reach Grok through the router skills instead.
+  Path-scoped rules reach Grok through the router skills, symlinked into
+#  ~/.grok/skills by this same scope (Grok does not scan ~/.agents/skills).
 
 EXIT STATUS:
   0  ran to completion (dry-run or apply)
@@ -942,7 +944,10 @@ step_harness_rebuild() {
 }
 
 step_deploy_shared_harness() {
-    # Universal skills land in ~/.agents/skills (Codex, opencode, Grok all scan it).
+    # Universal skills land in ~/.agents/skills — scanned by Codex and opencode.
+    # Grok does NOT scan it: it reads its own ~/.grok/skills, so the grok scope
+    # symlinks the router skills there (step_deploy_grok). Without those links no
+    # path-scoped rule reaches a Grok session at all. Audit with `grok inspect`.
     [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] || return 0
     deploy_tree "agents-skills (universal skills)" "${REPO_ROOT}/harness/agents-skills" "${AGENTS_SKILLS_HOME}"
 }
@@ -1206,6 +1211,50 @@ step_deploy_grok() {
 
     # Generated Grok agent definitions (frontmatter differs from Claude — real files).
     deploy_flat_pattern "grok-agents" "${REPO_ROOT}/harness/grok/agents" "${GROK_AGENTS_HOME}" -name '*.md' ! -name 'README.md'
+
+    # Router skills. Grok does NOT scan ~/.agents/skills — it reads its own
+    # ~/.grok/skills — so without these links every path-scoped rule (languages,
+    # devops, support-artifacts) reaches Grok through no channel at all. Only the
+    # four routers are linked, not the whole universal tree: they are what carries
+    # the situational rules, and the skill catalogue has its own budget.
+    local sk_new=0 sk_relinked=0 sk_unchanged=0 sk_missing=0
+    local skill src tgt current
+    for skill in language-rules memory-policy workspace-conventions unattended-delegation; do
+        src="${AGENTS_SKILLS_HOME}/${skill}"
+        tgt="${GROK_SKILLS_HOME}/${skill}"
+
+        if [[ ! -d "${src}" ]]; then
+            sk_missing=$((sk_missing + 1))
+            log "  WARNING: router skill ${skill} not present under ${AGENTS_SKILLS_HOME} — link skipped."
+            continue
+        fi
+
+        current=""
+        [[ -L "${tgt}" ]] && current=$(readlink "${tgt}")
+        if [[ "${current}" == "${src}" ]]; then
+            sk_unchanged=$((sk_unchanged + 1))
+            vlog "  unchanged: skills/${skill}"
+            continue
+        fi
+        if [[ -e "${tgt}" || -L "${tgt}" ]]; then
+            sk_relinked=$((sk_relinked + 1))
+        else
+            sk_new=$((sk_new + 1))
+        fi
+
+        if [[ "${APPLY}" -eq 1 ]]; then
+            mkdir -p "${GROK_SKILLS_HOME}"
+            ln -sfn "${src}" "${tgt}"
+            vlog "  linked: skills/${skill} -> ${src}"
+        else
+            vlog "  [DRY-RUN] would link: skills/${skill} -> ${src}"
+        fi
+    done
+
+    if [[ "${sk_missing}" -gt 0 ]]; then
+        report "grok-skills: WARNING — ${sk_missing} router skill(s) missing from ${AGENTS_SKILLS_HOME}, links skipped"
+    fi
+    report "grok-skills: ${sk_new} linked, ${sk_relinked} relinked, ${sk_unchanged} current -> ${GROK_SKILLS_HOME}"
 }
 
 # ---------------------------------------------------------------------------
