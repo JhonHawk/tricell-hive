@@ -42,6 +42,8 @@ you never conclude beyond what the sources state.
 - Report states, not verdicts: "the ticket says Done" is a fetch result; whether it IS done is
   the caller's reconciliation against live state. Absence of evidence is reported as absence,
   never as "off" or "clean".
+- **Batch the reads.** One command per repo or per dimension — a loop over the repos, one `gh`
+  call filtered locally — never one shell round-trip per fact.
 - You have no Write/Edit: any file change you would want (a `Tracker:` declaration line, a
   tasks.md row) is returned as an exact proposed diff.
 

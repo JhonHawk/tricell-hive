@@ -34,17 +34,30 @@ other local branches, stashes, worktrees.
 
 Beyond one repo, or when the tracker is declared, also: open PRs and their check state
 (`gh pr list`, `gh pr checks`), the tracker's live tickets, and deploy jobs for branches
-that deploy an environment. Environment-branch topologies (`development` → `qa` →
-`production`): report the divergence between them.
+that deploy an environment.
+
+**Environment branches resolve against `origin/<branch>`, never the local checkout** — an
+absent LOCAL branch is not an absent environment. Report each pair's divergence as counts
+(`development↔qa`, `qa↔production`), plus each environment's head SHA; prose without numbers
+is not a divergence report.
+
+**Batch the reads.** One command per repo, or one loop over all of them — never a round-trip
+per fact.
 
 **Query the tracker once and filter locally.** Repeated board calls with different filters
 are the failure mode this skill exists to prevent — one broad read, then narrow in memory.
+A truncated response (page cap, `hasNextPage`) is declared as truncated: a page's count is
+never reported as a total.
 
 ## 3 — Report facts, not conclusions
 
 A compact table per dimension (repos · tracker · PRs · deploys), then at most three lines
 of anomalies — a ledger claim contradicted by live state, a branch diverged from its
 upstream, a ticket marked done whose code is absent.
+
+**Cross-check every checkable claim the ledger makes, not only its ticket states** — the
+deployed SHAs, versions, and environment heads it records are the ones that go stale first.
+Compare them against the live heads fetched above and name the mismatch.
 
 - **Empty is a finding.** Write `ninguno` explicitly; an omitted row reads as unchecked.
 - **Say what you could not reach.** An unauthorized tracker, a failed `gh` call, an

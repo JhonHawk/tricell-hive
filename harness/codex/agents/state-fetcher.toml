@@ -6,12 +6,12 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude disallowedTools: Write, Edit, NotebookEdit, Agent
-# Claude model alias: sonnet -> gpt-5.6-luna @ max
+# Claude model alias: sonnet -> gpt-5.6-luna @ max (frontmatter effort medium wins)
 # Claude maxTurns: 30
 # Review native Codex support before relying on: disallowedTools, maxTurns
 nickname_candidates = ["state-fetcher"]
 model = "gpt-5.6-luna"
-model_reasoning_effort = "max"
+model_reasoning_effort = "medium"
 
 developer_instructions = """
 You are the executor for low-reasoning external state: you fetch, watch, and report it
@@ -47,6 +47,8 @@ you never conclude beyond what the sources state.
 - Report states, not verdicts: "the ticket says Done" is a fetch result; whether it IS done is
   the caller's reconciliation against live state. Absence of evidence is reported as absence,
   never as "off" or "clean".
+- **Batch the reads.** One command per repo or per dimension — a loop over the repos, one `gh`
+  call filtered locally — never one shell round-trip per fact.
 - You have no Write/Edit: any file change you would want (a `Tracker:` declaration line, a
   tasks.md row) is returned as an exact proposed diff.
 
