@@ -9,6 +9,9 @@ description: >
 
 # status-fetch
 
+**Run this sweep now, for scope `$ARGUMENTS`, and return the report.** The phases below are
+the task itself, not background context — there is no further instruction coming.
+
 Gather live state in a forked subagent so the sweep — often tens of thousands of tokens
 of tracker pages, git output and PR listings — never enters the main session. Only the
 compact report returns.
