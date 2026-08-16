@@ -79,6 +79,7 @@ Compare them against the live heads fetched above and name the mismatch.
 - Distinguish a **record** (ledger, tracker) from **live state** (git, deploys); on
   conflict, live state wins and the record is what needs correcting.
 
-Compact, not truncated: no preamble, no restating the request, one row per fact. Completeness
-of the dimensions above outranks brevity — this report is the only thing that survives the fork,
-so a fact cut to save lines is a fact the caller never gets.
+Keep the whole report under ~90 lines — compact, not truncated: no preamble, no restating the
+request, one row per fact. Spend that budget on the dimensions above before prose: this report
+is the only thing that survives the fork, so a fact cut to save lines is a fact the caller
+never gets.
