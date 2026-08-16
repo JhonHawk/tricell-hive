@@ -7,8 +7,9 @@ description: >
   AGENTS.md and CLAUDE.md duplicate content, where only one of the pair exists, or to
   find conversion candidates across many projects (scan). Also audits project
   AGENTS.md/CLAUDE.md content against the global hive canon — per-rule harness-coverage
-  matrix, dedup, stale-fork detection, promotion/injection routing (audit | apply).
-  Idempotent.
+  matrix, dedup, stale-fork detection, promotion/injection routing — plus content quality:
+  agent-discoverable rules, stale file paths, missing git-workflow declarations and ledger
+  pointers, instruction budget (audit | apply). Idempotent.
 ---
 
 # /agents-md-primary — one canonical file, every harness ambient
@@ -33,7 +34,9 @@ Walk `<root>` (default `~/Development/projects`, depth ≤ 4 to cover
 `projects/<group>/<project>/<repo>`) and classify every directory that has AGENTS.md
 and/or CLAUDE.md at its root:
 
-- `converted` — CLAUDE.md is the `@AGENTS.md` import (or a symlink to AGENTS.md)
+- `converted` — CLAUDE.md carries the `@AGENTS.md` import (or is a symlink to AGENTS.md).
+  Detect the import ANYWHERE in the file, not just on line 1: a heading or preamble above it
+  resolves identically. Matching only the first line misreports conformant repos as `both`.
 - `duplicated` — both exist with substantially overlapping content ← the targets
 - `divergent` — both exist with conflicting or deliberately different content
 - `claude-only` / `agents-only` — half the pair missing
@@ -106,8 +109,16 @@ workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law
 | **delete** | Full coverage — pure noise (and reclaims Codex's per-repo `project_doc_max_bytes` budget) | Remove from the project file |
 | **promote-to-core** | Universal (gate, every-session procedure), partial coverage | Condensed line into `harness/AGENTS.md` (27 KiB budget is the gate) → then delete from EVERY project |
 | **inject-to-router** | Situational (language, workspace, memory policy), partial coverage | Add the owning global rule to `SKILL_REFERENCE_INJECTIONS` → delete from the project |
-| **keep — project canon** | Genuinely project-specific, needed cross-harness | Split by LEVEL: a REPO file stays — it is the canonical channel for all harnesses; a WORKSPACE-ROOT file operates only in workspace-root sessions — its cross-harness content is proposed DOWN to the governing repo (plus a per-repo pointer to ledger/workspace root) |
+| **discoverable** | The repo's own files already state it — package manager (lockfile), scripts (`package.json`), framework (its config), directory inventory | Remove. Discriminator is the no-op test: delete the line and name what the agent would do differently. Nothing → it is a no-op. Verify against disk before proposing, never from the rule's wording |
+| **stale** | An implementation detail that no longer matches the repo — distinct from `re-anchor`, which is drift against a GLOBAL rule | Resolve every backtick path against disk (below). Resolves elsewhere → **moved**: rewrite the path. Nowhere → **absent**: delete the claim |
+| **keep — project canon** | Genuinely project-specific, needed cross-harness | Split by LEVEL: a REPO file stays — it is the canonical channel for all harnesses; a WORKSPACE-ROOT file operates only in workspace-root sessions — its cross-harness content is proposed DOWN to the governing repo (plus a per-repo pointer to ledger/workspace root). **Record why it is canon** — a ticket reference (`TRI-514`) is the preferred form; it holds the full reason outside the context budget. That note is what lets the NEXT audit delete the rule instead of re-deriving it |
 | **re-anchor / explicit override** | Stale fork (paraphrased copy of an evolved global rule — the drift that produces contradictory instructions) or a deliberate contradiction | Rewrite quoting the canonical text, or as `overrides global <rule> because <reason>` — overrides legitimately WIN (`git-workflow.md` precedence); they must read as intentional |
+
+**Resolving backtick paths (feeds the `stale` outcome).** A naive resolver is unusable — ~90% of
+its hits are false. Keep only tokens that contain `/` AND end in a `.ext`, discarding anything
+starting with `@ * / http ~` or containing `:// < > *` or spaces — that drops TS aliases, URL
+routes, slash-commands, regexes and hostnames. Unresolved → retry by basename (`find -name`)
+before reporting: most broken paths are MOVED, not absent, and the two take opposite fixes.
 
 **Completeness checks — same audit pass, per child repo of a workspace:**
 
@@ -116,9 +127,15 @@ workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law
   (child-repo sessions never auto-load the workspace files). Missing → propose the
   2-4 line block (~200 B).
 - **`## Git Workflow` declarations**: `Base branch:` / `Git mode:` / `PR review:` per
-  `git-workflow.md`'s declaration block. Missing → propose values inferred from repo
-  state (branch topology, PR history, platform); not inferable → ask in the apply
-  confirmation. Each declared value removes a per-session question.
+  `git-workflow.md`'s declaration block. Each declared value removes a per-session question.
+  `Base branch` is inferable from branch topology; `PR review` from the review apps wired to
+  the repo. **`Git mode` is never inferable — it is the user's preference, not a repo fact:**
+  propose one from the repo's class (PR-gated with CI → `pr-merge`; specs/mocks/docs
+  single-branch → `direct-base`) and confirm it in the apply, never infer it silently.
+- **Instruction budget**: report each file's size, and the repo's Codex chain — Codex
+  concatenates git-root → cwd, so nested `AGENTS.md` files are charged together against
+  `project_doc_max_bytes` (32 KiB default; raising it is per-machine and does not travel with
+  the repo). Informational; the fleet's median file is ~2.3 KB, so flag only real outliers.
 - **Tracker declaration**: a flow project declares in its LEDGER (the three fields —
   `memory-routing.md` owns the home and the confirm gate); the audit only FLAGS absence
   and proposes the ledger edit — never writes it, and the proposal rides the same
@@ -144,3 +161,9 @@ Never apply without an audit manifest from this session.
 - `CLAUDE.local.md` — personal file, never touched.
 - Content quality in `convert`: it relocates, it does not rewrite or prune — pruning and
   dedup are `audit`/`apply`'s job.
+- **Rewriting the user's prose, in any subcommand.** The skill proposes deleting, re-anchoring,
+  or adding declarative blocks; it never recomposes, compresses, or restyles wording that stays.
+- **Rationale as an inline comment.** Instruction files are tokenized verbatim by Codex,
+  opencode and Grok (Claude Code strips HTML comments from `CLAUDE.md`; nothing strips them from
+  `AGENTS.md`, which is where the canonical content lives). A rule's reason belongs in the
+  ticket it cites, the commit body, or the hive's bibliography — never in the loaded file.
