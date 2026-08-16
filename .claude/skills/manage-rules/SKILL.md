@@ -14,7 +14,7 @@ Manage rule files in `global/rules/`. Parse `$ARGUMENTS` to determine the subcom
 
 ### `validate` — Validate all rules
 
-Default scope: the rule files changed in the working tree / recent commits, or named by the user; `validate --all` scans the full inventory. For each file in scope check:
+Default scope: the rule files changed in the working tree / recent commits, or named by the user; `validate --all` scans the full inventory. **`global/CLAUDE.md` is in scope too** — it is the largest always-on artifact (~19% of everything a session loads) and checks 4-10 apply to it; checks 1-3 do not (it carries no frontmatter and is never path-scoped). For each file in scope check:
 
 1. **Frontmatter — `paths:` is the only key Claude Code actually reads.** Per the official docs: *"Rules without a `paths` field are loaded unconditionally and apply to all files."* So there are exactly two real states:
    - **`paths: [...]`** with valid globs — loads only when a matching file is touched. This is the ONLY mechanism that keeps a rule out of the always-on set.
@@ -36,6 +36,10 @@ Default scope: the rule files changed in the working tree / recent commits, or n
    - **Path-scoped elsewhere** → reachable through some router skill's injections, or explicitly Claude-only by design (say so in its header).
    - **Transition hazard, flag it every time it appears in a diff:** adding `paths:` to a previously always-on rule silently removes it from Grok; removing `paths:` silently adds it to every Grok session.
 
+10. **Corpus ratchet — the always-on total may not grow.** Measure `global/CLAUDE.md` + every rule with no `paths:`, in bytes. Ceiling: **140,723 B (137.4 KiB / 961 lines / 346 bullets, 19 files — measured 2026-08-15)**. Over it → flag, naming the files whose growth caused it and what to cut to get back under. The ceiling moves DOWN only, updated in the same commit that prunes; it never rises to accommodate an addition. Enforcement: prompt-convention — it reports, it does not block.
+    - **A diff that adds bytes while bullet count stays flat is the signature to catch:** the corpus grows by making existing rules longer (mean bullet 351 → 406 B over one 35-day window), so a rule-count check reports stability while cost compounds. Flag any always-on bullet over ~500 chars or carrying 3+ hard modals — that is `Concise-first`'s "one directive per rule" made checkable.
+    - **Deleting an always-on line requires reading its history first** (`git log -L<start>,<end>:<file>`) and quoting the introducing commit's **body**, not its subject — the subject often describes a neighbouring directive. Lines whose walk bottoms out at the initial import have no recoverable rationale: say so rather than treating absence as permission.
+
 Output a summary table, then specific issues per rule with suggestions.
 
 ### `audit` — Coverage report
@@ -50,10 +54,12 @@ Analyze what technology stacks are covered by rules and which have gaps:
    - CSS/Tailwind: which rules apply?
    - Python: any rules? (user has Python projects)
 3. **Gap analysis** — Identify stacks in the user's ecosystem (from CLAUDE.md context: Next.js, Angular, NestJS, Express, Spring, Kotlin, Python, DevOps) that have no dedicated path-scoped rule.
-4. **Load analysis** — Calculate how many rule lines load per stack:
-   - Always-loaded lines (sum of all `alwaysApply` rules)
-   - Per-stack lines (always-loaded + stack-specific path-scoped rules)
-   - Compare to the old monolithic CLAUDE.GLOBAL.md (181 lines) to show savings.
+4. **Load analysis** — What a session actually pays, in BYTES (the corpus grows by mass, not by
+   rule count — line or rule counts report it stable while cost compounds):
+   - Always-on total: `global/CLAUDE.md` + every rule with no `paths:`. Report bytes and the
+     tokenizer proxy (`bytes ÷ 3.7`), plus each file's share so the biggest are visible.
+   - Per-stack: always-on + that stack's path-scoped rules.
+   - The trend, not just the level: bytes added vs deleted across the window since the last prune.
 
 ### `create <name>` — Create a new rule
 
