@@ -165,9 +165,9 @@ reading it as "no skills reach Grok" is a false negative. Ask only what disk can
 **A capability a connected MCP provides is NOT deducible from the rule layers — ask the
 harness.** A tool's own description reaches the model directly, so a rule teaching its
 mechanics can be fully redundant while every coverage matrix says otherwise. One-shot probes
-settle it in seconds: `codex exec "<question>"`, `grok -p "<question>"`. Run one before
+settle it in seconds: `codex exec "<q>"`, `grok -p "<q>"`, `opencode run "<q>"`. Run one before
 proposing to inject a tool rule into a router or to keep a per-repo line about a tool —
-measured 2026-08-15, both already named context7 and its exact call sequence unprompted.
+measured 2026-08-15, all three named context7 and its exact call sequence unprompted.
 
 ## `apply` — execute the confirmed audit manifest
 
