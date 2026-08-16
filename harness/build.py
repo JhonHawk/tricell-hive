@@ -32,12 +32,12 @@ BUILD = ROOT / "harness" / "build"
 # Two thresholds, two purposes:
 #   BUDGET  — editorial limit: at this size, prune before adding. Re-bloat is
 #             a deliberate act, not drift.
-#   HARD    — build failure: the core has no business growing past this; the
-#             chain airbag (project_doc_max_bytes = 65536) is separate and
-#             covers global + workspace + repo files combined.
-# HARD is anchored at half the chain airbag, so the global core can never claim
-# more than half of what Codex reads: the largest repo AGENTS.md in the fleet is
-# ~27 KiB (raised from 25 for the Codex agent-routing table), and 32 + 27 still clears 64.
+#   HARD    — build failure: the core has no business growing past this.
+# `project_doc_max_bytes` covers ONLY the repo chain (git-root → cwd); the
+# deployed global file does not count against it. Measured 2026-08-15 with
+# `codex debug prompt-input`: from harness/, loaded docs total 81,278 B against
+# a 65,536 cap with no truncation — only the 54,347 B chain is charged.
+CHAIN_CAP_BYTES = 32 * 1024  # Codex default; the conservative number for a public repo
 AGENTS_BUDGET_BYTES = 27 * 1024
 AGENTS_HARD_LIMIT_BYTES = 32 * 1024
 
@@ -118,6 +118,28 @@ def check_agents_size():
     return True
 
 
+def report_codex_chain():
+    """Report this repo's own Codex instruction chain — advisory, never fatal.
+
+    Codex concatenates <git-root>/AGENTS.md with every intermediate AGENTS.md
+    down to the cwd, so a session opened under harness/ loads the shared core
+    a second time (once as the deployed global, once as a project doc). The
+    file-level budget above cannot see that: the cap applies to the sum.
+    """
+    root_agents = ROOT / "AGENTS.md"
+    if not root_agents.exists():
+        return
+    chain = root_agents.stat().st_size + (ROOT / "harness" / "AGENTS.md").stat().st_size
+    pct = chain / CHAIN_CAP_BYTES * 100
+    line = (f"codex chain (AGENTS.md + harness/AGENTS.md): {chain / 1024:.1f} KiB, "
+            f"{pct:.0f}% of the {CHAIN_CAP_BYTES // 1024} KiB default cap")
+    if chain > CHAIN_CAP_BYTES:
+        print(f"NOTE: {line} — a Codex session opened under harness/ truncates "
+              f"silently unless project_doc_max_bytes is raised.")
+    else:
+        print(line + ".")
+
+
 def main():
     # Universal skills (Codex + opencode read ~/.agents/skills)
     skills_out = ROOT / "harness" / "agents-skills"
@@ -181,6 +203,7 @@ def main():
         print(f"injected {injected} references -> {refs}")
 
     check_agents_size()
+    report_codex_chain()
 
     print("harness/ regenerated. If `git status` shows changes, commit them — "
           "a dirty tree after build means canonical sources changed without a rebuild.")
