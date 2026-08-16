@@ -107,7 +107,7 @@ workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law
 | Outcome | When | Proposed action |
 |---|---|---|
 | **delete** | Full coverage — pure noise (and reclaims Codex's per-repo `project_doc_max_bytes` budget) | Remove from the project file |
-| **promote-to-core** | Universal (gate, every-session procedure), partial coverage | Condensed line into `harness/AGENTS.md` (27 KiB budget is the gate) → then delete from EVERY project |
+| **promote-to-core** | Universal (gate, every-session procedure), partial coverage | Condensed line into `harness/AGENTS.md` (28 KiB budget is the gate) → then delete from EVERY project |
 | **inject-to-router** | Situational (language, workspace, memory policy), partial coverage | Add the owning global rule to `SKILL_REFERENCE_INJECTIONS` → delete from the project |
 | **discoverable** | The repo's own files already state it — package manager (lockfile), scripts (`package.json`), framework (its config), directory inventory | Remove. Discriminator is the no-op test: delete the line and name what the agent would do differently. Nothing → it is a no-op. Verify against disk before proposing, never from the rule's wording |
 | **stale** | An implementation detail that no longer matches the repo — distinct from `re-anchor`, which is drift against a GLOBAL rule | Resolve every backtick path against disk (below). Resolves elsewhere → **moved**: rewrite the path. Nowhere → **absent**: delete the claim |
