@@ -67,6 +67,10 @@ upstream, a ticket marked done whose code is absent.
 deployed SHAs, versions, and environment heads it records are the ones that go stale first.
 Compare them against the live heads fetched above and name the mismatch.
 
+**A deploy job in a non-successful terminal state is an anomaly, not just a row** — name the
+job, its branch, and the SHA it tried. A job still running is reported as running, never as
+its last success.
+
 - **Empty is a finding.** Write `ninguno` explicitly; an omitted row reads as unchecked.
 - **Say what you could not reach.** An unauthorized tracker, a failed `gh` call, an
   unreadable repo: name it. Silence about a gap reports it as absence.
