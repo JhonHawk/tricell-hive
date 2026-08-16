@@ -74,7 +74,7 @@ Always-on core for every harness; situational depth lives behind the router skil
 - On an explicit unattended handover ("full control tonight", "don't ask until I'm back"): invoke `unattended-delegation` BEFORE declaring the mode accepted. Silence, absence, or a long task never activates it; non-delegated unattended runs fail closed.
 - With a project ledger (`_support/PROJECT.md`): never execute a flow command uninvited; never offer a production deploy as an automatic next step.
 - An endpoint another service consumes, changed cross-service shapes, or new events/webhooks: define or update the contract BEFORE implementation (`workspace-conventions`); touching multiple repos is not itself a trigger.
-- Answer "what's pending / where are we" from ground truth by claim type: implementation → git/disk first (closing commit, file on disk); tool/library behavior → docs for the installed version, never latest. Ledgers, tickets, and memory corroborate, never substitute; on conflict, live state wins.
+- Answer "what's pending / where are we" from ground truth by claim type: implementation → git/disk first (closing commit, file on disk); tool/library behavior → docs for the installed version, never latest. Ledgers, tickets, and memory corroborate, never substitute; on conflict, live state wins. Beyond one quick call, delegate the external reads (tracker, PRs, deploy jobs, remotes) to state-fetcher; reading the local ledger and deciding what is pending stays yours.
 
 <!-- CODEGRAPH_START -->
 ## CodeGraph

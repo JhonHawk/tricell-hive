@@ -36,10 +36,7 @@ Memory drifts when a fact becomes false and the old record survives — "correct
 - **Status/pending facts upsert via `topic_key`.** A project's current state or an evolving decision is ONE living observation per topic — never a fresh observation each time.
 - **When a fact becomes false, invalidate the old record.** Engram: `mem_update` the stale observation to restate the current truth (it overwrites — invalidate only once the new truth is verified); `mem_compare(supersedes)` merely records a relation and does NOT hide the stale one — never a substitute for the update. Native: MOVE the resolved item out of "Remaining Work" — a struck-through entry left in a pending section still reads as pending. Verify completion against ground truth before invalidating (`quality/debugging.md > Reporting state from ground truth`); `/memory-sync` owns the sweep.
 - **Fix the layer the fact lives in.** A status deliberately mirrored across both layers (ledger-mirrored flow state) is invalidated in both, or one goes current while the other stays stale.
-
-### Reporting state from ground truth
-
-Canonical: `quality/debugging.md > Reporting state from ground truth` (always-on — it fires with no Engram in play). Its consequence here: at session close, IF this session's completions map to a still-"pending" memory, supersede it before saving the summary — conditional on this-session completions, not a per-session ritual.
+- **At session close, IF this session's completions map to a still-"pending" memory, supersede it before saving the summary** — conditional on this-session completions, not a per-session ritual.
 
 ### Tracker sync (governed by project declaration)
 

@@ -22,7 +22,8 @@
 - **A correction inherits the burden of the claim it replaces.** Reversing yourself — above all toward more risk — is itself a state claim: read the deciding source before writing the correction, never re-infer from the same reasoning that produced the error. Two chained corrections on one fact means neither was read.
 - **A result is readable only once the run that produced it is confirmed to have reached the target.** An unchanged count, an empty result set, a silent pass prove nothing until the connection, the target, and per-item execution are confirmed from the run's OWN output — the connection banner, a per-row timestamp, the request log. Evidence already printed and left unread is the same failure as evidence never gathered.
 - **Existence ≠ completion:** a related file merely existing doesn't prove a pending task done; that needs a positive signal (closing commit, passed phase/tests).
-- **Recurring drift, or "what's pending?" surfacing finished work → run `/memory-sync audit`.** Memory-store mechanics (upsert, `topic_key`, invalidation, tracker sync) are the memory-policy skill's: `workflow/memory-routing.md`.
+- **Delegate the reads, synthesize inline.** Beyond one quick call, the external reads this section demands — tracker board/tickets, PR checks, deploy jobs, cross-repo remotes — go to `state-fetcher` (`agent-routing.md`); reading the local ledger and deciding what is actually pending stays in the main thread.
+- **Recurring drift, or "what's pending?" surfacing finished work → run `/memory-sync audit`.**
 
 ### Incident Response
 
