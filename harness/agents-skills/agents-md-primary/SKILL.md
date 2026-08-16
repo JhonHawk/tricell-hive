@@ -154,6 +154,10 @@ inside it. Project edits ride each repo's session git mode; hive changes
 (promotions to the core, injection-map edits) are hive commits with `build.py` re-run.
 Never apply without an audit manifest from this session.
 
+**Shared surface:** `inject-to-router` WRITES `SKILL_REFERENCE_INJECTIONS`; `/manage-rules
+validate` check 9 VALIDATES that same map's harness reachability. Two owners, one file —
+after an injection edit, that check is the verification step, not an optional follow-up.
+
 ## Out of scope
 
 - Nested `CLAUDE.md`/`AGENTS.md` in subdirectories — convert one root per invocation
