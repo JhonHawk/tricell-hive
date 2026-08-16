@@ -160,20 +160,19 @@ def codex_model(agent):
 
 
 def codex_reasoning_effort(agent):
-    """The tier's effort wins over the Claude `effort` frontmatter, which is
-    calibrated for Claude's models rather than the Codex tier it maps to. An
-    explicit gpt-*/o-series model keeps its frontmatter effort, dropped when the
-    model does not advertise it."""
+    """An explicit `effort:` in the frontmatter wins: a role deliberately kept
+    cheap (mechanical fetch/watch) must not inherit the tier's reasoning depth.
+    Absent — or not advertised by the target model — the tier's effort applies."""
+    model = codex_model(agent)
+    declared = (agent["effort"] or "").strip()
+    if declared in CODEX_REASONING_EFFORTS and declared not in CODEX_UNSUPPORTED_EFFORTS.get(
+        model, frozenset()
+    ):
+        return declared
     tier = CODEX_TIER_MAP.get((agent["model"] or "").strip())
     if tier:
         return tier[1]
-    effort = (agent["effort"] or "").strip()
-    if effort not in CODEX_REASONING_EFFORTS:
-        return None
-    model = codex_model(agent)
-    if model and effort in CODEX_UNSUPPORTED_EFFORTS.get(model, frozenset()):
-        return None
-    return effort
+    return None
 
 
 def codex_compatibility_comments(agent):
@@ -189,14 +188,15 @@ def codex_compatibility_comments(agent):
         comments.append(
             f"# Claude disallowedTools: {comment_escape(comma_join(agent['disallowed']))}"
         )
+    resolved_effort = codex_reasoning_effort(agent)
     if agent["model"] and agent["model"] != "inherit" and not codex_model(agent):
         comments.append(f"# Claude model: {comment_escape(agent['model'])}")
     elif agent["model"] in CODEX_TIER_MAP:
-        slug, effort = CODEX_TIER_MAP[agent["model"]]
-        comments.append(
-            f"# Claude model alias: {agent['model']} -> {slug} @ {effort}"
-        )
-    resolved_effort = codex_reasoning_effort(agent)
+        slug, tier_effort = CODEX_TIER_MAP[agent["model"]]
+        note = f"# Claude model alias: {agent['model']} -> {slug} @ {tier_effort}"
+        if resolved_effort and resolved_effort != tier_effort:
+            note += f" (frontmatter effort {resolved_effort} wins)"
+        comments.append(note)
     if agent["effort"] and not resolved_effort:
         comments.append(f"# Claude effort: {comment_escape(agent['effort'])}")
     elif agent["effort"] and agent["effort"].strip() != resolved_effort:
