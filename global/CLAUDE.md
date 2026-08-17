@@ -129,6 +129,8 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 
 Consulting the router is never the blocking step: read it and keep going in the same turn.
 
+**Creating a NEW source file loads no rule for it — read the rule first.** Path-scoped rules trigger when a matching file is READ, so editing an existing file pulls its rule in, but writing one from scratch does not: the rule arrives after the file is already written, if at all. Before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching rule under `~/.claude/rules/languages/` — or `~/.claude/skills/language-rules/references/` on a harness that does not load that directory. Editing files whose rule is already in context needs no re-read. Path-scoped rules are also **not re-injected after compaction**: if a long session compacts and then creates a file, treat the rule as absent and read it again.
+
 - **`flow-report` skill auto-invokes** when `rules/quality/communication-format.md` trigger conditions are met. That rule is the canonical source for the trigger — don't restate the conditions elsewhere.
 
 - **`/simplify` (Claude Code built-in) may auto-invoke at a change-group's green seam** — affected tests passing, before the commit/diff-presentation boundary — scoped to the just-changed code, and declared when run. Quality cleanup only (reuse, simplification, efficiency, altitude); never a substitute for review. It edits the working tree — its edits are part of the change-group and reach the user through the same commit/diff gate as the rest. Claude Code only: Codex/Grok/opencode have no such skill — the same four dimensions reach them through the `code-reviewer` agent.
