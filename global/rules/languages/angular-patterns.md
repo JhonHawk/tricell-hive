@@ -3,7 +3,6 @@ paths:
   - "**/*.{component,directive,pipe,service,guard,resolver,interceptor,module}.ts"
   - "**/*.component.html"
   - "**/app.config.ts"
-  - "**/main.ts"
   - "angular.json"
 ---
 
