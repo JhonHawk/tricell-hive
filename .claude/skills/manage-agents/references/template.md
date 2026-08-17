@@ -26,6 +26,28 @@ You are [role in 1 sentence].
 - [What this agent delivers]
 ```
 
+## Role rules table (bucket-C policy)
+
+Agents that exercise a role (implementers, designers, reviewers) carry a `## Role rules`
+table — the channel that brings path-scoped/situational policy to subagents on every harness:
+
+```markdown
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Writing or refactoring code | `~/.claude/skills/language-rules/references/development-principles.md` |
+| Naming fields, enums, tables, endpoints, or spec properties | `~/.claude/skills/language-rules/references/identifier-language.md` |
+```
+
+- Cite the canonical `~/.claude/skills/<router>/references/` root; `build.py` rebases it per
+  harness (`~/.agents/skills/...` for Codex/opencode) — never hand-write a harness-specific root.
+- Only reference files that `SKILL_REFERENCE_INJECTIONS` (in `harness/build.py`) actually emits;
+  any other target is a broken pointer in all four harnesses (`/manage-agents validate` check 8).
+- Rows state a trigger ("When"), not a topic — the agent reads on match, once per session.
+
 ## Example: Implementation Agent (green, 38 lines)
 
 ```markdown

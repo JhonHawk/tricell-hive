@@ -115,6 +115,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── languages/                 # Language/framework standards (path-scoped)
 │   │   ├── angular-patterns.md
 │   │   ├── iac-devops.md          # Docker, Terraform, GH Actions
+│   │   ├── identifier-language.md # Domain-translation judgment layer (its gate stays always-on in CLAUDE.md > Code Layer)
 │   │   ├── java-kotlin.md
 │   │   ├── nestjs-patterns.md
 │   │   ├── python-standards.md
