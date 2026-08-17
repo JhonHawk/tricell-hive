@@ -1,9 +1,12 @@
 ---
 name: memory-policy
 description: >
-  Load before the first Engram op of a session (mem_save/search/context/
-  summary) or before writing to native file-memory. Project identity, save cadence,
-  topic_key upserts, invalidation, tracker sync. Plugin protocol wins over this layer.
+  Load BEFORE recording or recalling anything that must outlive this session — saving a
+  decision, a root cause or a convention, recalling prior work, or the close-time summary.
+  Covers project identity, save cadence, topic_key upserts, invalidation and tracker sync.
+  The user asks to "remember", "save this", "what did we decide"; they never name the tool.
+  Triggers: remember, save, recall, "what did we decide", session close;
+  recuerda, guarda esto, anota, "qué decidimos".
 ---
 
 # memory-policy — the policy layer over the Engram plugin protocol

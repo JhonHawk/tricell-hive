@@ -1,11 +1,13 @@
 ---
 name: task-routing
 description: >
-  Load BEFORE delegating work to an agent, choosing which specialist gets a task, deciding
-  whether to delegate at all, or writing the tasks of a plan. Covers the agent roster and
-  disambiguation table, delegation gates, multi-agent chains, fresh-context verification,
-  and the gap analysis a plan needs before its tasks are written.
-  Triggers: delegate, subagent, which agent, plan tasks, prerequisites, conflicting sources.
+  Load BEFORE deciding HOW a piece of work gets done: which specialist takes it, whether to
+  delegate at all, how a multi-domain task is chained and verified, and what must be settled
+  before a plan's tasks are written. Any request to review, audit, investigate, diagnose,
+  refactor across files, or "how would you approach X" is this decision, even when the user
+  never says the word delegate — they ask for a result, not for a routing choice.
+  Triggers: review, audit, investigate, diagnose, plan, approach, refactor, verify;
+  revisar, auditar, investigar, diagnosticar, planear, "cómo lo abordarías".
 ---
 
 # task-routing — who does the work, and what must be settled before it starts
