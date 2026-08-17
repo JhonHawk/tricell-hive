@@ -5,7 +5,9 @@ description: >
   conventions (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle,
   Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). opencode gets language
   rules by glob via its plugin; Claude Code needs none of it — its rules load natively.
-  Match files in play.
+  Match files in play. Exception for every harness except Claude Code: naming identifiers
+  BEFORE the file exists (new fields, enums, table/spec properties) has no glob to fire —
+  load this skill and read identifier-language.md before choosing the names.
 ---
 
 # language-rules — deterministic router to the full language conventions
@@ -21,7 +23,7 @@ when the stack is touched.
 |---|---|---|
 | Codex | Everything below — no conditional rule channel exists | `references/<file>` |
 | Grok | Everything below — always-on rules only; no `paths:` | `references/<file>` |
-| opencode | Browser + quality rows. Language rows arrive via the rules plugin | `references/<file>` |
+| opencode | Browser + quality rows + pre-file naming. Language rows arrive via the rules plugin | `references/<file>` |
 
 ## Routing table — read every row that matches the files/manifests in play
 
@@ -43,6 +45,7 @@ when the stack is touched.
 | Non-obvious bug: intermittent, multi-layer, or resists the first fix | `references/debugging.md` |
 | Driving a browser / in-vivo verification of a running app | `references/browser-automation.md` |
 | Code discovery/search (rg vs jbcontext vs codegraph routing, absence claims, index-hit verification) | `references/code-search.md` |
+| Naming identifiers with no file yet on disk — new fields, enums, table/column names, spec/API properties | `references/identifier-language.md` |
 
 ## Stacking — combinations are the norm, not the exception
 
@@ -68,4 +71,8 @@ when the stack is touched.
   rows do not — read every matching row below from `references/`.
 - **opencode:** the language rows arrive automatically via the rules plugin — read only
   the quality/verification rows (development-principles, testing, debugging,
-  browser-automation, patterns-antipatterns when implementing) from here.
+  browser-automation, patterns-antipatterns when implementing) from here. The plugin fires
+  on files TOUCHED: naming identifiers before any matching file exists gives it nothing to
+  match, so the pre-file naming row above applies to opencode too — the always-on gate
+  states the rule; `identifier-language.md` carries the judgment (domain translation,
+  false friends) that the gate alone has been measured to miss.
