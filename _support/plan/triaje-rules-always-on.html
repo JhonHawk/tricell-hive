@@ -185,11 +185,14 @@
     <p class="kicker">tricell · hive · rediseño de carga de contexto</p>
     <h1>Triaje de las 18 rules always-on</h1>
     <div class="tldr">
-      Las 18 rules cuestan <strong>28 768 tokens en toda sesión</strong>, se use o no lo que dicen.
-      Repartidas en tres cubetas, el piso permanente baja a <strong>~7 700</strong>: una sesión de
-      investigación o de devops-lectura ahorra <strong>73%</strong>, y una que delega, <strong>60%</strong>.
-      El criterio no es «rule o skill» sino <strong>qué dispara cada regla</strong>: una acción del hilo
-      principal, un tema situacional, o la ejecución de un rol.
+      <strong>Ejecutado y medido.</strong> La carga de instrucciones baja de <strong>59 622 a
+      36 445 tokens</strong> por sesión — <strong>−38,9%</strong>, 23 177 tokens. Always-on pasa de
+      18 rules a 11. El criterio que lo guió: no «rule o skill» sino <strong>qué dispara cada
+      regla</strong> — una acción irreversible se queda, un tipo de archivo va a <code>paths:</code>,
+      una intención sin archivo detrás va a un router.
+      <br><br>Las cifras proyectadas del triaje partían de 28 768 tokens (solo las rules); la medición
+      con el hook <code>InstructionsLoaded</code> reveló que el total real era el doble, porque incluye
+      el <code>CLAUDE.md</code> global y el <code>AGENTS.md</code> del repo.
     </div>
     <div class="meta">
       <span>2026-08-17</span>
@@ -216,10 +219,10 @@
 
   <h2 id="resumen">1 · Resumen</h2>
   <div class="stats">
-    <div class="stat red"><div class="n">28 768</div><div class="l">Tokens always-on hoy, cada sesión</div></div>
-    <div class="stat green"><div class="n">7 682</div><div class="l">Núcleo propuesto (–73%)</div></div>
-    <div class="stat blue"><div class="n">14 537</div><div class="l">A skill del orquestador</div></div>
-    <div class="stat amber"><div class="n">6 833</div><div class="l">A inline en cuerpo del agente</div></div>
+    <div class="stat red"><div class="n">59 622</div><div class="l">Línea base medida, antes de tocar nada</div></div>
+    <div class="stat green"><div class="n">36 445</div><div class="l">Ahora — medido, −38,9%</div></div>
+    <div class="stat blue"><div class="n">11</div><div class="l">Rules always-on (eran 18)</div></div>
+    <div class="stat amber"><div class="n">23 177</div><div class="l">Tokens liberados por sesión</div></div>
   </div>
   <p>
     Los 28 768 tokens son medición, no estimación: salen de <code>grok inspect</code>, que reporta el
