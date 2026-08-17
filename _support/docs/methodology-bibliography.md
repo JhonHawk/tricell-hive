@@ -920,6 +920,8 @@ Backs `workflow/cross-service-workflow.md > Contract distribution`, the distribu
 
 **Verification status: UNVERIFIED — recorded from model knowledge, not a live research pass.** Names and roles are believed correct; precise loci, editions, and current maintenance status are NOT confirmed, contrary to this file's citation convention. Run a docs pass or `/adversarial-research` before treating any entry as settled.
 
+**Thesis the rule encodes:** a release channel (immutable, versioned, auditable) and a development channel (mutable, disposable) are different mechanisms; using the release channel for the edit loop is what forces a hand-built bridge between edited and published bytes. Maven's `-SNAPSHOT` is the native two-channel form; npm has no equivalent, which is why the JS ecosystem produced local registries and snapshot/canary publishing.
+
 **Origin of the rules:** the failure pattern, not a completed source review — `ark` and `sample-project`, the only two projects with a contract registry, both hand-built the delivery mechanism (2/2), and neither surfaced the ecosystem equivalents to the user.
 
 ### Patterns

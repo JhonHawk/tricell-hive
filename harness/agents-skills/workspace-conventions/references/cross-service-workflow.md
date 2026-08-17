@@ -18,8 +18,9 @@ Multi-agent chains follow `agent-routing.md`: declare the chain and execute, pas
 
 ### Contract distribution
 How the contract reaches consumers is part of the design, not the implementer's leftover.
-- The handshake is a **published, versioned artifact** pinned by exact version — never a local pointer (`file:`, `link:`, `workspace:*`) in a consumer repo, and never "wait until the producer's feature merges".
-- Publish a **prerelease** before implementing: both sides pin it and build in parallel. A wire change is a new prerelease, not an ad-hoc adjustment at integration time.
+- **Two channels, not one.** The **release channel** is the immutable versioned artifact consumers pin by exact version — the cross-team handshake. The **development channel** is mutable and disposable, for the edit loop before anything is released (local registry, snapshot/canary publish). One channel doing both jobs forces a hand-built bridge between edited and published bytes — local overlays, digest markers, provenance checks. That bridge is the defect: add the channel instead of guarding the gap.
+- Consumers pin the release channel by exact version — never a local pointer (`file:`, `link:`, `workspace:*`) in a consumer repo, and never "wait until the producer's feature merges".
+- A **prerelease** is the handshake once the wire stabilizes: both sides pin it and build in parallel, and a wire change is a new prerelease rather than an ad-hoc adjustment at integration time. It is not the iteration mechanism — that is the development channel.
 - A prerelease pin never reaches a production-deploying branch — gate it where the project gates promotion.
 - New projects adopt this by default. Existing projects keep their mechanism; propose a change only when theirs causes drift or blocks parallel work.
 
