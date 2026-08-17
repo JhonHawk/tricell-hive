@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: performance-engineer
 description: >
   Identify and eliminate performance bottlenecks in applications, databases, and infrastructure. Use when diagnosing slow response times, optimizing database queries, planning for scalability, or conducting load testing.

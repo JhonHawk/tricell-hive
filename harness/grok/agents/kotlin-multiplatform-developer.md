@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: kotlin-multiplatform-developer
 description: >
   Build Kotlin Multiplatform (KMP) shared code, Android apps, and Compose Multiplatform UI — expect/actual abstractions, coroutines/Flow across platforms, Jetpack Compose, and native (Swift/ObjC) interop. Use when the task targets Android OR shares Kotlin code across platforms. For server-only Kotlin (Ktor/Spring API with no Android or multiplatform target), use backend-developer instead.

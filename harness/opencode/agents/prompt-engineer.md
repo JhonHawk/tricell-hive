@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Design, optimize, and maintain LLM prompts and agentic flows for production applications. Use when building features that integrate language models — prompt design, structured output, tool_use patterns, cost optimization, and prompt testing.
 mode: subagent

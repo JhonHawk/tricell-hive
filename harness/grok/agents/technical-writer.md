@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: technical-writer
 description: >
   Create, improve, and maintain technical documentation in Markdown files — READMEs, ADRs, API docs, setup guides, and contribution guides. Use when writing or restructuring documentation within a repository.

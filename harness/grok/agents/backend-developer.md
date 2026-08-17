@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: backend-developer
 description: >
   Build server-side APIs, microservices, and backend systems across NestJS, Express, Spring Boot, Kotlin, and Python. Use when implementing API endpoints, database integration, authentication, or service architecture.

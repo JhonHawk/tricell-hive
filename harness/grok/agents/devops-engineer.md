@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: devops-engineer
 description: >
   CI/CD pipelines, deployment automation, infrastructure provisioning, and cloud operations across GitHub Actions, AWS, Hetzner, Vercel, and Dokploy. Use for pipeline setup, Docker/Kubernetes config, monitoring, security scanning, and deployment strategies.

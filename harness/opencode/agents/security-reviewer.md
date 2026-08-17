@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Security vulnerability detection across OWASP Top 10 categories. Use PROACTIVELY after writing code that handles user input, authentication, API endpoints, or sensitive data. Read-only — reports findings without modifying code.
 mode: subagent

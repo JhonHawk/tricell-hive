@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: code-reviewer
 description: >
   Conduct code reviews focusing on correctness, maintainability, and quality cleanup (reuse, simplification, efficiency, altitude). The default reviewer for any diff/PR with no stronger routing signal. Use when reviewing PRs, evaluating code quality before deployment, providing feedback on implementations, or when asked to find cleanup/simplification opportunities in changed code. Surfaces security and performance smells incidentally and escalates depth to security-reviewer / performance-engineer. Read-only -- reports findings without modifying code.

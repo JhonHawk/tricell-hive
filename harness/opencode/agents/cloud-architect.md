@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Design cloud infrastructure topology BEFORE provisioning: account/landing-zone structure, network and region layout, disaster-recovery strategy (RTO/RPO), cloud migration planning (6Rs), and FinOps cost strategy. Produces an infra spec/ADR that devops-engineer implements. Use for "how should we lay out our AWS accounts / network / multi-region DR", migration planning, or cost-architecture decisions — NOT for writing the Terraform or pipelines (that is devops-engineer).
 mode: subagent

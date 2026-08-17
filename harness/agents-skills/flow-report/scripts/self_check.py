@@ -17,7 +17,7 @@ itself.
 ---
 Adapted from https://github.com/cathrynlavery/diagram-design
 (skills/diagram-design/scripts/self_check.py, v2.3.2, MIT) for the
-flow-report skill (tricell-hive). Local changes:
+flow-report skill. Local changes:
   - Removed the fonts.googleapis.com stylesheet exemption. Upstream
     allowlisted one specific remote Google Fonts URL as an acceptable
     external reference; flow-report HTML must open offline and pass the

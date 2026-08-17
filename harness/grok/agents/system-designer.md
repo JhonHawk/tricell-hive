@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: system-designer
 description: >
   Design API contracts, service boundaries, and data models BEFORE implementation begins. Use when a feature spans multiple services or repos, when defining a new service's public interface, or when frontend and backend need an agreed contract. Produces spec files that implementation agents consume. Technology-agnostic — works across any stack.

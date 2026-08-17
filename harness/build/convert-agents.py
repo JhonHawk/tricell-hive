@@ -17,7 +17,10 @@ import re
 import sys
 from pathlib import Path
 
-GENERATED_NOTE = "Generated from tricell-hive global/agents — do not edit by hand."
+# Deliberately names no source repository or path: an agent that reads its own
+# definition and finds one treats it as a place to go verify things, and starts
+# wandering out of the repository it was invoked in.
+GENERATED_NOTE = "Generated file — do not edit by hand; edit the canonical agent and rebuild."
 CLAUDE_ONLY_FIELDS = {
     "background",
     "disallowedTools",

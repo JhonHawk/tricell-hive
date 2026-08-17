@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Build and maintain Angular applications -- components, services, directives, pipes, routing, and state management. Use when the task involves an Angular project specifically (not React or Vue). Covers Angular 15 through 22+.
 mode: subagent

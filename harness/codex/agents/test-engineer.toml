@@ -1,4 +1,4 @@
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name = "test-engineer"
 description = "Design test strategies, generate comprehensive test suites, and improve coverage across vitest, jest, Playwright, TestBed, pytest, and JUnit. Use when writing tests is the primary task — not as a side effect of feature development."
 sandbox_mode = "workspace-write"

@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: ui-reviewer
 description: >
   Navigate a live mock/prototype or QA deployment and detect UX friction AND visual-craft defects against a fixed two-axis rubric (Flow + Visual craft). Use to review navigable prototypes (mock review sessions; rubric: flow-core/references/ux-rubric.md) or deployed flows — NOT for static code review of components (that is code-reviewer) and NOT for changing what it reviews — it observes only (redesigning a screen is visual-designer).

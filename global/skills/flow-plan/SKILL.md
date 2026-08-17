@@ -41,3 +41,8 @@ findings yet → `research`; findings present, no plan → `write`) and state wh
 | `write` | `references/write.md` | `<slug>-plan.md` (or an initiative's `plan/` parts) with reconciler metadata + Preflight | the plan gate — the technical counterpart of `/flow-specs review` |
 
 Stable path after deploy: `~/.claude/skills/flow-plan/references/<file>.md`.
+
+`research.md` and `write.md` are the only references this skill owns. Everything else the
+plan phase needs is a neighbour: `plan-format.md`, `handoff-protocol.md` and the rest of the
+templates → `flow-core/references/`; `project-structure.md` → `workspace-conventions/references/`.
+Always read them under the owning skill — a bare `references/<file>.md` resolves here and fails.

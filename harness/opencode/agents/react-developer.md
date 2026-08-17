@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Build and architect React applications — generic React (Vite, React Router, CRA legacy) AND Next.js as its specialization (App Router, Server Components, caching, Pages Router migrations). Use for any React project without another framework owner: component architecture, data fetching, routing, rendering strategy. Not Angular (angular-developer).
 mode: subagent

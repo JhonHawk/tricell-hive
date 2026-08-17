@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Scan repositories for exposed secrets using gitleaks and remediate findings. Use when auditing a repo or workspace for leaked API keys, passwords, tokens, IPs, SSH keys, or connection strings in any file type.
 mode: subagent

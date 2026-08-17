@@ -11,8 +11,9 @@ description: >
 # flow-core — shared library for the flow pack
 
 This skill is never executed as a workflow. It holds the decisions every `flow-*` skill
-must agree on, so they live in exactly one place. Design rationale and full phase specs:
-`tricell-hive/_support/spec/flow-pack-design.md`.
+must agree on, so they live in exactly one place. Design rationale and full phase specs live
+with the pack's own source repository — not something to go looking for from a project
+session.
 
 ## The flow contract
 
@@ -149,6 +150,13 @@ Without a specs repo, the standard session form above applies unchanged.
 | `references/harness-mechanics.md` | You are NOT Claude Code (Codex/opencode reading these skills from `~/.agents/skills/`) — translates mechanic names before executing any flow skill |
 
 Stable path after deploy: `~/.agents/skills/flow-core/references/<file>.md`.
+
+**Only the files listed above live here.** A `global/rules` file cited by name from inside
+one of them belongs to a router skill, not to `flow-core`: `project-structure.md` and
+`session-capture.md` → `workspace-conventions/references/`, `memory-routing.md` →
+`memory-policy/references/`, language and framework rules → `language-rules/references/`.
+Resolving those against `flow-core/references/` fails silently and the work proceeds
+without the rule.
 
 ## Pack map
 

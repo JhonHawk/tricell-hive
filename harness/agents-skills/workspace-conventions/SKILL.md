@@ -57,4 +57,10 @@ References are injected at build time from `global/rules/workflow/` into `refere
 - Naming is the row to read EARLY: a wrong infra name costs a recreate + migrate, not an
   edit — read `infra-naming.md` before proposing the name, not after creating it.
 - A reference already loaded this session does not need reloading.
+- **Every file in the table above lives in THIS skill's `references/`.** Rules cited by name
+  from inside those files usually belong to another skill — read them there, never under
+  this one: `memory-routing.md` → `memory-policy/references/`, language and framework rules
+  → `language-rules/references/`, `unattended-autonomy.md` →
+  `unattended-delegation/references/`. A path guessed under the wrong skill fails silently
+  and the answer proceeds without the rule.
 - No matching situation → this skill has nothing for the task; proceed without it.
