@@ -131,6 +131,7 @@ Consulting the router is never the blocking step: read it and keep going in the 
 
 **Creating a NEW source file loads no rule for it — read the rule first.** Path-scoped rules trigger when a matching file is READ, so editing an existing file pulls its rule in, but writing one from scratch does not: the rule arrives after the file is already written, if at all. Before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching rule under `~/.claude/rules/languages/` — or `~/.claude/skills/language-rules/references/` on a harness that does not load that directory. Editing files whose rule is already in context needs no re-read. Path-scoped rules are also **not re-injected after compaction**: if a long session compacts and then creates a file, treat the rule as absent and read it again.
 
+- **`memory-policy` before the first memory operation of a session**, and before the close-time consolidation. A memory op has no file behind it, so nothing loads the routing rule for you.
 - **`git-mechanics` before the first git verb of a session.** Branching, the session git mode, commit semantics, PRs, promotion and session close live there, not in context. The gates — what a verb authorizes, protected branches, force-push, production promotion — stay always-on in `git-workflow.md` and need no skill.
 - **`flow-report` skill auto-invokes** when `rules/quality/communication-format.md` trigger conditions are met. That rule is the canonical source for the trigger — don't restate the conditions elsewhere.
 

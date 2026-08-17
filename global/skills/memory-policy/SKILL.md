@@ -1,7 +1,7 @@
 ---
 name: memory-policy
 description: >
-  Codex/opencode: load before the first Engram op of a session (mem_save/search/context/
+  Load before the first Engram op of a session (mem_save/search/context/
   summary) or before writing to native file-memory. Project identity, save cadence,
   topic_key upserts, invalidation, tracker sync. Plugin protocol wins over this layer.
 ---

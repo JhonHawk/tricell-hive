@@ -78,7 +78,7 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules-situational", "git-mechanics.md"),
     ],
     "memory-policy": [
-        ("rules/workflow", "memory-routing.md"),
+        ("rules-situational", "memory-routing.md"),
     ],
     "flow-report": [
         ("rules/quality", "communication-format.md"),
