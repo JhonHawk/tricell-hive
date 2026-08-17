@@ -320,6 +320,25 @@ OPENCODE_COLOR = {
 }
 
 
+def opencode_extra_instructions(agent):
+    """opencode cannot preload a skill into an agent.
+
+    Its own `permission.skill` and `tools.skill` keys restrict which skills an
+    agent may reach — neither attaches one. Codex and Grok translate `skills:`
+    into a prose instruction; opencode was the only harness where the field
+    vanished with no warning at all.
+
+    Agent-spawn and write restrictions are deliberately NOT repeated here:
+    opencode enforces those deterministically through the `permission` block,
+    and an instruction restating a hard denial only invites arguing with it.
+    """
+    return [
+        f"When the `{skill}` skill is available and relevant, use it before "
+        "performing the specialized workflow manually."
+        for skill in agent["skills"]
+    ]
+
+
 def to_opencode(agent) -> str:
     perms = []
     if not can_write(agent):
@@ -341,7 +360,13 @@ def to_opencode(agent) -> str:
         fm.append("permission:")
         fm.extend(perms)
     fm.append("---")
-    return "\n".join(fm) + "\n\n" + agent["body"] + "\n"
+    body = agent["body"]
+    extra = opencode_extra_instructions(agent)
+    if extra:
+        body = body + "\n\n## opencode compatibility instructions\n\n" + "\n".join(
+            f"- {instruction}" for instruction in extra
+        )
+    return "\n".join(fm) + "\n\n" + body + "\n"
 
 
 # Claude tool names → Grok Build tool names. Unknown Claude-only tools are dropped.

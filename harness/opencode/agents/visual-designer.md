@@ -45,3 +45,7 @@ not evidence.
 The applied change, plus: the before/after captures (paths, per viewport and theme), what each
 edit was solving, tokens or assets introduced, and — stated plainly — whether the screen is
 better than what you started from and where it still falls short.
+
+## opencode compatibility instructions
+
+- When the `design-taste-frontend` skill is available and relevant, use it before performing the specialized workflow manually.
