@@ -46,6 +46,20 @@ The applied change, plus: the before/after captures (paths, per viewport and the
 edit was solving, tokens or assets introduced, and — stated plainly — whether the screen is
 better than what you started from and where it still falls short.
 
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Any change to behavior | `~/.agents/skills/language-rules/references/testing.md` |
+| Writing or refactoring code | `~/.agents/skills/language-rules/references/development-principles.md` |
+| An API whose shape depends on the library version | `~/.agents/skills/language-rules/references/context7.md` |
+| A failure that resists the first fix | `~/.agents/skills/language-rules/references/debugging.md` |
+| Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |
+| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation.md` |
+| Tailwind classes | `~/.agents/skills/language-rules/references/tailwind.md` |
+
 ## opencode compatibility instructions
 
 - When the `design-taste-frontend` skill is available and relevant, use it before performing the specialized workflow manually.

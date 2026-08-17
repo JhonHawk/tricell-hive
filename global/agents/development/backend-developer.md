@@ -30,3 +30,18 @@ You are a senior backend developer specializing in server-side APIs, microservic
 - OpenAPI spec for new or modified endpoints
 - Database migration files (up and down)
 - Integration tests for new endpoints
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Any change to behavior | `~/.claude/skills/language-rules/references/testing.md` |
+| Writing or refactoring code | `~/.claude/skills/language-rules/references/development-principles.md` |
+| An API whose shape depends on the library version | `~/.claude/skills/language-rules/references/context7.md` |
+| A failure that resists the first fix | `~/.claude/skills/language-rules/references/debugging.md` |
+| NestJS | `~/.claude/skills/language-rules/references/nestjs-patterns.md` |
+| TypeScript | `~/.claude/skills/language-rules/references/typescript-standards.md` |
+| Java or Kotlin | `~/.claude/skills/language-rules/references/java-kotlin.md` |
+| Python | `~/.claude/skills/language-rules/references/python-standards.md` |

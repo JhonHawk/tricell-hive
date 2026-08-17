@@ -67,3 +67,11 @@ user for approval, so every proposal must be concrete enough to execute verbatim
 Raw markdown: summary line (counts per classification), then the proposals grouped by
 classification. End with anything you chose NOT to flag and why (borderline cases) —
 silence reads as "clean".
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Locating code across files | `~/.claude/skills/language-rules/references/code-search.md` |

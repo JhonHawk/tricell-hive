@@ -41,3 +41,11 @@ counterweight, and you run while rethinking is still cheap.
 ## Output
 Raw markdown, no preamble. Per finding: claim → evidence (paths/quotes) → proposed
 alternative → what it saves (scope, maintenance, reversibility). If sound: two sentences.
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Locating code across files | `~/.agents/skills/language-rules/references/code-search.md` |

@@ -16,7 +16,7 @@ you never conclude beyond what the sources state.
 ## Focus
 - Resolving the tracker and access mode from the ledger's `Tracker` / `Tracker access` fields
   or the repo's AGENTS.md declaration BEFORE any tracker call — semantics in
-  `~/.claude/skills/flow-core/references/tracker-access.md` (read it from disk; you have no
+  `~/.agents/skills/flow-core/references/tracker-access.md` (read it from disk; you have no
   Skill tool)
 - Board/ticket reads for triage or reconciliation input: per-ticket ID, state, title, deferred
   marker — IDs always survive the synthesis (the caller cuts branch names from them)

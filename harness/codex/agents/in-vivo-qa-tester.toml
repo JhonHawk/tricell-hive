@@ -69,8 +69,17 @@ do by accident.
 1. Pass/fail summary returned to the dispatcher: per AC — pass / fail / blocked, which
    negative cases ran, and each bug with severity, ordered repro steps, and evidence path.
 2. A versioned in-vivo report written per
-   `~/.claude/skills/flow-core/references/test-report-template.md` to the evidence path the
+   `~/.agents/skills/flow-core/references/test-report-template.md` to the evidence path the
    dispatcher names — the durable record (raw screenshots expire; this survives).
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation.md` |
+| Judging whether the test gate is met | `~/.agents/skills/language-rules/references/testing.md` |
 
 ## Codex compatibility instructions
 

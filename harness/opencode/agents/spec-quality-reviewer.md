@@ -47,3 +47,11 @@ Raw markdown, no preamble:
 2. Findings by severity (`blocker` / `gap` / `polish`): claim → evidence (quote or path) →
    proposed fix (rewritten Gherkin or precise wording)
 3. Blocking questions for the client/PO — each tied to the finding it unblocks
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Locating code across files | `~/.agents/skills/language-rules/references/code-search.md` |

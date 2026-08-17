@@ -64,6 +64,15 @@ Raw markdown: per flow — rubric pass/fail line, then findings (severity, route
 screenshot path, what you observed, proposed fix, `mock-fix`/`spec-change`). End with the
 flows that passed clean, so coverage is explicit.
 
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation.md` |
+| Type, spacing, contrast, hierarchy | `~/.claude/skills/language-rules/references/ui-visual-design.md` |
+
 ## Grok compatibility instructions
 
 - Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.

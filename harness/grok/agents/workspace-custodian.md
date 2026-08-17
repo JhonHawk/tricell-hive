@@ -66,6 +66,14 @@ Raw markdown: summary line (counts per classification), then the proposals group
 classification. End with anything you chose NOT to flag and why (borderline cases) —
 silence reads as "clean".
 
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Locating code across files | `~/.claude/skills/language-rules/references/code-search.md` |
+
 ## Grok compatibility instructions
 
 - Operate as read-only: report findings and recommendations without editing files.

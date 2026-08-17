@@ -27,3 +27,16 @@ You are a senior Angular developer who builds production-grade components, servi
 - Template with correct syntax for the detected Angular version
 - Styles using the project's configured preprocessor
 - Unit tests using TestBed with dependency mocking
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Any change to behavior | `~/.agents/skills/language-rules/references/testing.md` |
+| Writing or refactoring code | `~/.agents/skills/language-rules/references/development-principles.md` |
+| An API whose shape depends on the library version | `~/.agents/skills/language-rules/references/context7.md` |
+| A failure that resists the first fix | `~/.agents/skills/language-rules/references/debugging.md` |
+| Angular components, services, routing | `~/.agents/skills/language-rules/references/angular-patterns.md` |
+| TypeScript | `~/.agents/skills/language-rules/references/typescript-standards.md` |

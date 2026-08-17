@@ -61,3 +61,12 @@ nothing. Your evidence is what you actually saw on screen.
 Raw markdown: per flow — rubric pass/fail line, then findings (severity, route/state,
 screenshot path, what you observed, proposed fix, `mock-fix`/`spec-change`). End with the
 flows that passed clean, so coverage is explicit.
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation.md` |
+| Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |

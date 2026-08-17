@@ -274,7 +274,7 @@ def codex_warnings(agent):
 
 def to_codex(agent) -> str:
     sandbox = "workspace-write" if can_write(agent) else "read-only"
-    body = agent["body"].replace('"""', "'''")
+    body = rebase_skill_root(agent["body"]).replace('"""', "'''")
     extra_instructions = codex_extra_instructions(agent)
     if extra_instructions:
         body = body + "\n\n## Codex compatibility instructions\n\n" + "\n".join(
@@ -320,6 +320,20 @@ OPENCODE_COLOR = {
 }
 
 
+# Agent bodies cite role rules by absolute path so the agent can Read them
+# without a skill tool — the only mechanism all four harnesses share. There are
+# exactly two roots, and which one is correct depends on the harness:
+#   ~/.claude/skills  — Claude Code (deployed there) and Grok (scans it)
+#   ~/.agents/skills  — Codex and opencode
+# Sources are written with the Claude root; this rebases it for the other two.
+CLAUDE_SKILL_ROOT = "~/.claude/skills/"
+AGENTS_SKILL_ROOT = "~/.agents/skills/"
+
+
+def rebase_skill_root(body: str) -> str:
+    return body.replace(CLAUDE_SKILL_ROOT, AGENTS_SKILL_ROOT)
+
+
 def opencode_extra_instructions(agent):
     """opencode cannot preload a skill into an agent.
 
@@ -360,7 +374,7 @@ def to_opencode(agent) -> str:
         fm.append("permission:")
         fm.extend(perms)
     fm.append("---")
-    body = agent["body"]
+    body = rebase_skill_root(agent["body"])
     extra = opencode_extra_instructions(agent)
     if extra:
         body = body + "\n\n## opencode compatibility instructions\n\n" + "\n".join(
@@ -459,6 +473,7 @@ def to_grok(agent) -> str:
 
     Model is always inherit — Claude opus/sonnet aliases are not Grok slugs.
     """
+    # NOT rebased: Grok scans ~/.claude/skills and never ~/.agents/skills.
     body = agent["body"]
     extra = grok_extra_instructions(agent)
     if extra:

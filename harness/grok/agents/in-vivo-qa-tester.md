@@ -70,6 +70,15 @@ do by accident.
    `~/.claude/skills/flow-core/references/test-report-template.md` to the evidence path the
    dispatcher names — the durable record (raw screenshots expire; this survives).
 
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation.md` |
+| Judging whether the test gate is met | `~/.claude/skills/language-rules/references/testing.md` |
+
 ## Grok compatibility instructions
 
 - Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
