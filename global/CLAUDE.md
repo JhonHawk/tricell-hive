@@ -159,7 +159,7 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
 
-The managed block above is owned by `codegraph install` (markers kept so upgrades report "Unchanged" instead of appending a duplicate). Hive specifics on top of it:
+The managed block above is owned by `codegraph install` (markers kept so upgrades report "Unchanged" instead of appending a duplicate). User-layer specifics on top of it:
 
 - **Earn it by shape:** the payoff is round-trips — relations or multi-file context in one call. A one-shot question a single grep or Read answers does NOT earn it. Bonus signal from `codegraph_explore`: it marks affected symbols with no covering tests. Multi-repo workspace: pass `projectPath` to the child repo (the root has no index).
 - **Specialized CLI commands when you already know the target** (shell only — not exposed as MCP): `codegraph query <name>` to locate a symbol, `node <name>` to read one symbol's source + caller/callee trail, `callers`/`callees <symbol>` for direct relations, `impact <symbol>` for blast radius before touching shared UI/services, `affected --stdin --depth 2 --json` to pick the tests a changed file hits (feeds the `testing.md > Execution Scope` test selection), `files --filter <dir>` for an indexed-area inventory (no positional args). Multi-repo workspace: query commands take `-p <repo>`; maintenance commands (`index`, `sync`, `status`) take the path positionally instead (`codegraph status <repo>`) — no `--path` there.

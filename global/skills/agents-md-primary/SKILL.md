@@ -6,7 +6,7 @@ description: >
   (plus genuinely Claude-specific content below the import). Use on projects where
   AGENTS.md and CLAUDE.md duplicate content, where only one of the pair exists, or to
   find conversion candidates across many projects (scan). Also audits project
-  AGENTS.md/CLAUDE.md content against the global hive canon — per-rule harness-coverage
+  AGENTS.md/CLAUDE.md content against the deployed global canon — per-rule harness-coverage
   matrix, dedup, stale-fork detection, promotion/injection routing — plus content quality:
   agent-discoverable rules, stale file paths, missing git-workflow declarations and ledger
   pointers, instruction budget (audit | apply). Idempotent.
@@ -87,11 +87,11 @@ Target: one project/workspace root (default cwd) and its child repos' `AGENTS.md
 `CLAUDE.md`. **Coverage canon = the DEPLOYED layers — what sessions actually load:**
 `~/.claude/CLAUDE.md` + always-on `~/.claude/rules/`, the condensed core at
 `~/.codex/AGENTS.md` / `~/.config/opencode/AGENTS.md`, Grok's `~/.grok/rules/` symlinks,
-the deployed router-skill references, and opencode's rules plugin. The hive repo — WHEN
-locatable — serves two other roles only: flagging deployed-vs-source drift, and receiving
-the promote-to-core / inject-to-router outcomes (those are hive edits). Not locatable →
-those two outcomes are reported as destination-less proposals and the rest of the audit
-runs unchanged.
+the deployed router-skill references, and opencode's rules plugin. **The audit is
+self-contained on those layers: never locate, search for, or read the hub repo the
+deployment came from.** Promote-to-core / inject-to-router outcomes are hub edits by
+nature — report them as proposals for the user to take to a session opened in the hub;
+this skill neither finds nor touches it.
 
 **Per rule, compute the harness-coverage matrix — never a boolean, and with a LEVEL
 axis.** Which DEPLOYED always-on layer already carries it: `~/.claude/rules` (Claude ✓,
@@ -146,7 +146,7 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
 Delegate the per-project reading to subagents (context hygiene; the semantic comparison
 is judgment work — paraphrases count as duplicates). Output: a per-file table
 (rule · current home · coverage CC/Grok/Codex/opencode · outcome · proposed diff), the
-completeness proposals per repo, plus the promotion/injection candidates for the hive.
+completeness proposals per repo, plus the hub-destined promotion/injection proposals.
 Audit changes nothing.
 
 **The manifest is Markdown, never HTML** — it is the `apply` step's input, not a document to
@@ -174,13 +174,10 @@ measured 2026-08-15, all three named context7 and its exact call sequence unprom
 ## `apply` — execute the confirmed audit manifest
 
 One approval covers the batch; contradictions and overrides are listed individually
-inside it. Project edits ride each repo's session git mode; hive changes
-(promotions to the core, injection-map edits) are hive commits with `build.py` re-run.
-Never apply without an audit manifest from this session.
-
-**Shared surface:** `inject-to-router` WRITES `SKILL_REFERENCE_INJECTIONS`; `/manage-rules
-validate` check 9 VALIDATES that same map's harness reachability. Two owners, one file —
-after an injection edit, that check is the verification step, not an optional follow-up.
+inside it. Project edits ride each repo's session git mode. Hub-destined proposals
+(promote-to-core, injection-map edits) are OUT of apply's scope — the manifest carries
+them for the user to execute in a session opened in the hub, where `build.py` and its
+validation run. Never apply without an audit manifest from this session.
 
 ## Out of scope
 
@@ -194,4 +191,4 @@ after an injection edit, that check is the verification step, not an optional fo
 - **Rationale as an inline comment.** Instruction files are tokenized verbatim by Codex,
   opencode and Grok (Claude Code strips HTML comments from `CLAUDE.md`; nothing strips them from
   `AGENTS.md`, which is where the canonical content lives). A rule's reason belongs in the
-  ticket it cites, the commit body, or the hive's bibliography — never in the loaded file.
+  ticket it cites or the commit body — never in the loaded file.
