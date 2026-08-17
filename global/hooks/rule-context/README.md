@@ -29,10 +29,24 @@ no channel at all for the main thread:
 
 | Harness | Channel that reaches the main thread | Arrives before the write? |
 |---|---|---|
-| Claude Code | `paths:` natively, plus this hook | no — both land with the tool result |
+| Claude Code | `paths:` natively, plus this hook | no — see below |
 | opencode | `opencode-rules` plugin, by glob | yes |
 | Codex | `MANDATORY FIRST ACTION` in `harness/AGENTS.md` | **yes** — an instruction acts before the decision |
 | Grok | this hook, plus the router skills | no for the hook; the routers depend on invocation |
+
+Claude Code's own `paths:` mechanism has the same gap, and for a different reason: per the docs,
+*"path-scoped rules trigger when Claude reads files matching the pattern, not on every tool
+use."* The trigger is a READ. Creating a new file of that kind never reads it, so the rule does
+not load for the write that would have needed it most.
+
+Two more consequences worth knowing before moving rules off always-on:
+
+- Path-scoped rules **do not survive compaction**: *"rules with `paths:` frontmatter are not
+  re-injected automatically; they reload the next time Claude reads a file matching the rule's
+  patterns."* A long session loses them silently.
+- The `InstructionsLoaded` hook logs which instruction files loaded, when, and why — the docs
+  name it for *"debugging path-specific rules or lazy-loaded files"*. That is the measuring
+  instrument for verifying any always-on reduction.
 
 Subagents get their policy inlined into their own prompt. The main thread had nothing — on
 Codex and Grok it has been writing React or Terraform with none of those rules present. This
@@ -71,12 +85,15 @@ the harness that most needs it.
 
 ## Limits
 
-**The reminder lands after the write, not before it.** The hook runs at `PreToolUse`, but its
-`additionalContext` reaches the model together with the tool RESULT — verified twice, in a
-running session and in a fresh one. So the first write of a given kind still happens without
-the rule; the reminder applies from the next action onward, and lets the model revisit what it
-just wrote. Only the deny path of `PreToolUse` is genuinely pre-emptive, and this hook never
-denies.
+**The reminder lands after the write, not before it — by design, not by accident.** Claude
+Code's hook reference defines the field as *"added to the Claude Code context when the tool
+completes"*, and states the consequence outright: the context *"cannot influence the permission
+decision — it arrives after the tool has already executed."* Observed twice before the docs were
+checked, in a running session and a fresh one.
+
+Of `PreToolUse`'s three `permissionDecision` values (`allow`, `deny`, `escalate`), only `allow`
+and `deny` are pre-emptive. An advisory hook has no pre-emptive path available: the first write
+of a given kind happens without the rule, and the reminder applies from the next action onward.
 
 That is a real ceiling, not a wording detail: this is not a gate, and pairing it with the
 one-reminder-per-session dedup means a rule is named exactly once, right after its first use.
