@@ -45,5 +45,6 @@ Read the row matching what you touch; skip anything already loaded this session.
 
 | When | Read |
 |---|---|
+| Naming fields, enums, tables, endpoints, or spec properties | `~/.agents/skills/language-rules/references/identifier-language.md` |
 | A contract another service consumes | `~/.agents/skills/language-rules/references/context7.md` |
 | Designing or changing a cross-service contract | `~/.agents/skills/workspace-conventions/references/cross-service-workflow.md` |

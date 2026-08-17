@@ -42,6 +42,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 |---|---|
 | Any change to behavior | `~/.claude/skills/language-rules/references/testing.md` |
 | Writing or refactoring code | `~/.claude/skills/language-rules/references/development-principles.md` |
+| Naming fields, enums, tables, endpoints, or spec properties | `~/.claude/skills/language-rules/references/identifier-language.md` |
 | An API whose shape depends on the library version | `~/.claude/skills/language-rules/references/context7.md` |
 | A failure that resists the first fix | `~/.claude/skills/language-rules/references/debugging.md` |
 | NestJS | `~/.claude/skills/language-rules/references/nestjs-patterns.md` |
