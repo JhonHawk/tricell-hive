@@ -913,3 +913,27 @@ Backs `quality/testing.md > Execution Scope` (full-suite placement), `workflow/d
 - `[Semi-authoritative]` **minimumcd.org; trunkbaseddevelopment.com** — automated testing before merge AND on merge; release branches receive no development work; trunk-first fixes cherry-picked forward. *Supported.*
 - `[Semi-authoritative]` **Micco, "The State of CI Testing @Google" (deck); SmartBear/Cisco review study; platform docs (Azure release gates, GitLab merge trains, GitHub merge queue); AI-reviewer vendor docs** — flakiness must be budgeted structurally; review effectiveness ceiling at 200–400 LOC; promotion gates consume signals rather than produce test verdicts; AI reviewers attach to `pull_request` on the integration branch by design. *Supported.*
 - **Verdict: adjusted.** The build-only-in-full-suite placement is a portfolio cost decision layered on the canon (consistent with Google's presubmit cost rationale, with typecheck as the pre-merge compile proxy and red-trunk revert discipline as the backstop) — not itself a canon mandate.
+
+## Contract distribution — the versioned artifact as cross-repo handshake
+
+Backs `workflow/cross-service-workflow.md > Contract distribution`, the distribution rules in `agents/design/system-designer.md`, and `quality/development-principles.md > Prior art before infrastructure`. Recorded 2026-08-17.
+
+**Verification status: UNVERIFIED — recorded from model knowledge, not a live research pass.** Names and roles are believed correct; precise loci, editions, and current maintenance status are NOT confirmed, contrary to this file's citation convention. Run a docs pass or `/adversarial-research` before treating any entry as settled.
+
+**Origin of the rules:** the failure pattern, not a completed source review — `ark` and `sample-project`, the only two projects with a contract registry, both hand-built the delivery mechanism (2/2), and neither surfaced the ecosystem equivalents to the user.
+
+### Patterns
+- `[Authoritative]` **Sam Newman, *Building Microservices* (2nd ed., O'Reilly)** — integration and contract chapters: versioned contracts, deployment coupling, consumers not waiting on a producer's release.
+- `[Authoritative]` **Ian Robinson, "Consumer-Driven Contracts: A Service Evolution Pattern"** (martinfowler.com) — CDC runs in the *opposite direction* to a producer-published schema package (tooling: Pact, Spring Cloud Contract). Complementary, not the pattern the rule encodes.
+- `[Authoritative]` **Danilo Sato, "Parallel Change" (expand-contract)** (martinfowler.com) — evolving a contract without a coordinated cutover. Not yet covered by any rule; candidate gap.
+- `[Authoritative]` **SemVer 2.0.0 §9** — prerelease identifiers, the mechanic behind the prerelease handshake. Maven's `-SNAPSHOT` is the native equivalent; npm has none, hence prerelease/canary conventions.
+- `[Semi-authoritative]` **Confluent Schema Registry** (compatibility modes BACKWARD/FORWARD/FULL) and **Buf Schema Registry** — the productized form of a versioned contract registry with breaking-change detection and generated-SDK publication.
+- `[Authoritative]` **Forsgren, Humble & Kim, *Accelerate*** — loosely coupled architecture and independent deployability as measured capabilities; the empirical case against "producer merges first, consumer follows".
+
+### Ecosystem tooling — the prior art to check before hand-building
+- **yalc** — local publish/install store; the supported form of a `node_modules` overlay.
+- **Verdaccio** — local/proxy npm registry for unpublished bytes.
+- **Changesets snapshot releases** — publishes without burning a version number.
+- **pkg.pr.new** — installable package per commit/PR without publishing to the real registry.
+
+**Verdict: pending.** Sources unread this session; the rules stand on the observed failure pattern until a research pass confirms or adjusts them.

@@ -19,6 +19,13 @@ Spec check + contract design happen BEFORE implementation when the change touche
 
 Multi-agent chains follow `agent-routing.md`: declare the chain and execute, passing each agent's key outputs (spec paths, schemas) forward.
 
+### Contract distribution
+How the contract reaches consumers is part of the design, not the implementer's leftover.
+- The handshake is a **published, versioned artifact** pinned by exact version — never a local pointer (`file:`, `link:`, `workspace:*`) in a consumer repo, and never "wait until the producer's feature merges".
+- Publish a **prerelease** before implementing: both sides pin it and build in parallel. A wire change is a new prerelease, not an ad-hoc adjustment at integration time.
+- A prerelease pin never reaches a production-deploying branch — gate it where the project gates promotion.
+- New projects adopt this by default. Existing projects keep their mechanism; propose a change only when theirs causes drift or blocks parallel work.
+
 ### Spec consumption
 - Implement against the spec's schemas exactly (paths, methods, status codes, request/response shapes) — never invent shapes. HTTP/REST → OpenAPI; event/message/webhook contracts → AsyncAPI or CloudEvents, not OpenAPI.
 - Language-specific type examples in the spec are starting points; absent those, derive types from the schemas.
