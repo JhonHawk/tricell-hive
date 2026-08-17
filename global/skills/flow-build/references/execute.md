@@ -25,7 +25,7 @@ unmerged (each task's gate validates the integrated state of every task before i
    (`gh pr checks <n> --watch`) with the task's non-integrative ceremony (ledger notes, evidence
    filing, next dispatch prep) — never merge red or pending; the session owns the wait, it is
    never handed to the user. The merge also waits for the PR's bug-hunt pass per the repo's
-   declared or session-chosen route (`git-workflow.md > PRs & promotion`, Phase B; `none` →
+   declared or session-chosen route (`git-mechanics.md > PRs & promotion`, Phase B; `none` →
    checks-only, reported; the verify-gate review already discharged Phase A). CI failure → route to the builder, fix
    on the same PR, re-run the local gate on the affected subset BEFORE re-pushing. Then merge per
    the plan's mechanics, delete the task branch (local + remote), checkout the integration branch,

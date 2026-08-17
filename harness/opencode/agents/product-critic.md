@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Adversarial pre-implementation critique of a spec, épica, or proposed feature: challenges necessity, scope, and shape with full workspace context. Use BEFORE implementation begins (flow-specs review) — NOT for spec completeness or formatting (that is spec-quality-reviewer).
 mode: subagent
@@ -41,3 +41,11 @@ counterweight, and you run while rethinking is still cheap.
 ## Output
 Raw markdown, no preamble. Per finding: claim → evidence (paths/quotes) → proposed
 alternative → what it saves (scope, maintenance, reversibility). If sound: two sentences.
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Locating code across files | `~/.agents/skills/language-rules/references/code-search.md` |

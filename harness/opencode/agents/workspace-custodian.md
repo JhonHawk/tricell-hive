@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
   Audit the documentary hygiene of a client workspace: misplaced files, unpromoted decisions, stale scratch, broken ledger pointers, specs-repo nonconformance. Also produces the migration manifest when a pre-pack project enters the flow (/flow-adopt: specs-repo creation, activity tiering, per-artifact routing). Read-only — it proposes actions, never executes them (flow-workspace apply / flow-adopt execute with user approval). Use via /flow-workspace audit or /flow-adopt, or when a workspace feels disordered.
 mode: subagent
@@ -15,7 +15,7 @@ user for approval, so every proposal must be concrete enough to execute verbatim
 
 ## Focus
 - File routing: apply the 4-question rule from
-  `~/.claude/skills/flow-core/SKILL.md > File-routing rule` retroactively to everything
+  `~/.agents/skills/flow-core/SKILL.md > File-routing rule` retroactively to everything
   under `<project>/_support/` and each `<repo>/_support/`
 - Pending promotions: scratch reports whose decisions never reached `<project>-specs/`
 - Staleness: `_support/workspace/` content whose triggering work already concluded
@@ -25,11 +25,11 @@ user for approval, so every proposal must be concrete enough to execute verbatim
   + CLAUDE.md `@AGENTS.md` import) — propose creating them, reconstructing phase status
   from observable state; a CLAUDE.md-only workspace gets the inversion proposed
 - Specs-repo conformance against
-  `~/.claude/skills/flow-core/references/specs-structure.md`: README index vs actual
+  `~/.agents/skills/flow-core/references/specs-structure.md`: README index vs actual
   epics, status headers, legacy folder names; epic↔vista consistency — a reviewed epic
   whose `## Affected vistas` name vistas missing from `product/`, or a vista lacking the
   `Influenciada por` entry for an epic that shaped it, is a `conform` finding
-- Session conformance (you have no `Skill` tool — read `~/.claude/rules/workflow/session-capture.md`): loose artifacts
+- Session conformance (you have no `Skill` tool — read `~/.agents/skills/workspace-conventions/references/session-capture.md`): loose artifacts
   that belong grouped into a `sessions/YYYY-MM-DD-<slug>/` (`move`); session decisions
   never promoted to the intention layer (`promote`); concluded sessions stale past use, or
   raw (logs/dumps/screenshots) committed into the versioned layer (`expire`); non-ISO
@@ -62,3 +62,11 @@ user for approval, so every proposal must be concrete enough to execute verbatim
 Raw markdown: summary line (counts per classification), then the proposals grouped by
 classification. End with anything you chose NOT to flag and why (borderline cases) —
 silence reads as "clean".
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Locating code across files | `~/.agents/skills/language-rules/references/code-search.md` |

@@ -377,6 +377,54 @@ deploy_file() {
     report "${label} -> ${tgt}"
 }
 
+# deploy_injected_references — copy build-injected `references/` into the
+# Claude skills tree.
+#
+# Router skills (language-rules, workspace-conventions, memory-policy,
+# unattended-delegation, flow-report) carry no `references/` in global/skills:
+# harness/build.py injects them from global/rules into harness/agents-skills
+# only. That tree feeds ~/.agents/skills (Codex, opencode) — but Grok scans
+# ~/.claude/skills and never ~/.agents/skills, so on Grok every router pointed
+# at reference files that existed in no path it could see, and the model went
+# looking for them by guessing. Copying the injected sets here closes that gap
+# and pre-stages the same files for Claude Code.
+#
+# The comparison is per FILE, not per skill: flow-report owns references in
+# global/ AND receives an injected one, so skipping the whole skill would have
+# left exactly that file undeployed. A file already present in global/ is never
+# overwritten here — convert-skills.py strips frontmatter on its way into
+# harness/, so copying it back would deploy the cleaned variant over the source.
+deploy_injected_references() {
+    local src_root="${REPO_ROOT}/harness/agents-skills"
+    [[ -d "${src_root}" ]] || return 0
+    local d name f base count=0
+    for d in "${src_root}"/*/references/; do
+        [[ -d "${d}" ]] || continue
+        name=$(basename "$(dirname "${d}")")
+        for f in "${d}"*; do
+            [[ -f "${f}" ]] || continue
+            base=$(basename "${f}")
+            # Canonical copy already deployed from global/ — leave it alone.
+            [[ -f "${REPO_ROOT}/global/skills/${name}/references/${base}" ]] && continue
+            if [[ "${APPLY}" -eq 1 ]]; then
+                mkdir -p "${CLAUDE_HOME}/skills/${name}/references"
+                cp "${f}" "${CLAUDE_HOME}/skills/${name}/references/${base}"
+            fi
+            count=$((count + 1))
+        done
+    done
+    if [[ "${count}" -eq 0 ]]; then
+        vlog "injected references: none"
+        return 0
+    fi
+    if [[ "${APPLY}" -eq 1 ]]; then
+        log "Deployed injected references: ${count} files -> ${CLAUDE_HOME}/skills"
+    else
+        log "[DRY-RUN] would deploy injected references: ${count} files -> ${CLAUDE_HOME}/skills"
+    fi
+    report "injected references: ${count} files -> ${CLAUDE_HOME}/skills"
+}
+
 # ---------------------------------------------------------------------------
 # Grok rule selection
 #
@@ -598,9 +646,18 @@ manifest_entry_map() {
     MAP_SRC=""
     MAP_TGT=""
     case "${rel}" in
-        CLAUDE.md | rules/* | agents/* | skills/*)
+        CLAUDE.md | rules/* | agents/*)
             MAP_SRC="${REPO_ROOT}/global/${rel}"
             MAP_TGT="${CLAUDE_HOME}/${rel}"
+            ;;
+        skills/*)
+            MAP_SRC="${REPO_ROOT}/global/${rel}"
+            MAP_TGT="${CLAUDE_HOME}/${rel}"
+            # Router `references/` have no counterpart in global/skills — they
+            # are injected into harness/agents-skills by build.py. Without this
+            # fallback every injected file reads as an orphan and step 5 offers
+            # to delete what the previous step just deployed.
+            [[ -e "${MAP_SRC}" ]] || MAP_SRC="${REPO_ROOT}/harness/agents-skills/${rel#skills/}"
             ;;
         hooks/*)
             local bn
@@ -611,6 +668,9 @@ manifest_entry_map() {
         agents-skills/*)
             MAP_SRC="${REPO_ROOT}/global/skills/${rel#agents-skills/}"
             MAP_TGT="${AGENTS_SKILLS_HOME}/${rel#agents-skills/}"
+            # Same injected-references case as skills/* above: build.py writes
+            # them straight into harness/, never into global/skills.
+            [[ -e "${MAP_SRC}" ]] || MAP_SRC="${REPO_ROOT}/harness/agents-skills/${rel#agents-skills/}"
             ;;
         codex-agents/*)
             local n
@@ -823,6 +883,7 @@ step_deploy_claude() {
     deploy_tree "agents" "${REPO_ROOT}/global/agents" "${CLAUDE_HOME}/agents"
     clean_stale_duplicates "agent" "${CLAUDE_HOME}/agents"
     deploy_tree "skills" "${REPO_ROOT}/global/skills" "${CLAUDE_HOME}/skills"
+    deploy_injected_references
 
     # Step 12: fallback stale-skill report, report-only, and only meaningful
     # when no manifest existed before this run (manifest-aware orphan

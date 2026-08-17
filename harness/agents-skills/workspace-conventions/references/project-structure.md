@@ -1,4 +1,8 @@
 
+---
+alwaysApply: true
+---
+
 ## Project & Workspace Structure
 
 The user's projects follow a canonical 3-level hierarchy. Understand this before creating files, proposing directories, or looking for documentation.

@@ -26,7 +26,7 @@ The user is a software architect and developer working across 6 client groups wi
 - Do not treat `harness/AGENTS.md` as part of `/deploy-global`; it belongs to the generic harness track.
 - `harness/agents-skills/`, `harness/codex/agents/`, and `harness/opencode/agents/` are GENERATED trees. Never hand-edit them; edit the canonical source under `global/` and run `python3 harness/build.py`, committing the regenerated output.
 - Do not alias or symlink `AGENTS.md` to `harness/AGENTS.md`; they serve different scopes.
-- When changing routing or domains, check `global/rules/workflow/agent-routing.md`.
+- When changing routing or domains, check `global/rules-situational/agent-routing.md` (router: `task-routing`).
 - When a rule or convention is grounded in external authority (standards, canonical books, official docs), record the source in `_support/docs/methodology-bibliography.md` and consult it before re-researching.
 - Gates in rules and docs name their enforcement layer — deterministic (hook, deny permission, allowlist), confirm-gated (the user's confirmation is the key), or prompt-convention; never phrase a convention as mechanical impossibility. Taxonomy: `_support/docs/enforcement-layers.md`.
 - The `<!-- CODEGRAPH_START/END -->` block in `global/CLAUDE.md` and `harness/AGENTS.md` is owned by `codegraph install` — absorbed into the sources so installer upgrades report "Unchanged" and `/deploy-global` doesn't delete it. Never edit, dedupe, or reflow content between the markers; hive-specific CodeGraph guidance lives in the bullets AFTER the block. If a codegraph upgrade rewrites its block in the DEPLOYED files, re-absorb the new content into both sources instead of letting them drift.
@@ -88,7 +88,7 @@ description: >
 
 ## Routing Maintenance
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
-- `global/rules/workflow/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
+- `global/rules-situational/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
 - Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
 - **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
@@ -102,7 +102,7 @@ AGENTS.md                          # Canonical guide for all harnesses
 CLAUDE.md                          # Imports AGENTS.md via @AGENTS.md; adds Claude Code-specific content
 global/                            # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                      # Core config (always loaded)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (6 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
@@ -124,7 +124,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── tailwind.md
 │   │   ├── typescript-standards.md
 │   │   └── ui-visual-design.md    # Visual craft: type scale, spacing, contrast, action hierarchy
-│   ├── workflow/                  # Git, routing, coordination (9 always-on, 2 path-scoped)
+│   ├── workflow/                  # Git gates, coordination (2 always-on, 6 path-scoped; mechanics+routing+gaps+memory → rules-situational/)
 │   │   ├── agent-routing.md
 │   │   ├── cross-service-workflow.md
 │   │   ├── devops-principles.md  # path-scoped (Dockerfile/tf/workflows)
@@ -137,6 +137,13 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
 │   │   └── unattended-autonomy.md # The delegated-run mode
 │   └── tools/                     # External tools & MCP protocols (3 always-on)
+├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable only via a
+│                                  # router skill. For rules whose trigger is an intent
+│                                  # (delegating, planning), which `paths:` cannot express.
+│   ├── agent-routing.md
+│   ├── gap-resolution.md
+│   ├── git-mechanics.md
+│   └── memory-routing.md
 │       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
 │       ├── code-search.md         # rg vs jbcontext vs codegraph routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
@@ -160,6 +167,8 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
+│   ├── git-mechanics/             # Router (model-invoked): branching, commits, PRs, promotion, close
+│   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis
 │   ├── language-rules/            # Router (model-invoked): language rules for Codex/Grok — references injected by build.py
 │   ├── memory-policy/             # Router (model-invoked): Engram policy for Codex/opencode — references injected by build.py
 │   ├── workspace-conventions/     # Router (model-invoked): workspace/session/contract conventions — references injected by build.py

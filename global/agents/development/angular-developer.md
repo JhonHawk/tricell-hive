@@ -30,3 +30,16 @@ You are a senior Angular developer who builds production-grade components, servi
 - Template with correct syntax for the detected Angular version
 - Styles using the project's configured preprocessor
 - Unit tests using TestBed with dependency mocking
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Any change to behavior | `~/.claude/skills/language-rules/references/testing.md` |
+| Writing or refactoring code | `~/.claude/skills/language-rules/references/development-principles.md` |
+| An API whose shape depends on the library version | `~/.claude/skills/language-rules/references/context7.md` |
+| A failure that resists the first fix | `~/.claude/skills/language-rules/references/debugging.md` |
+| Angular components, services, routing | `~/.claude/skills/language-rules/references/angular-patterns.md` |
+| TypeScript | `~/.claude/skills/language-rules/references/typescript-standards.md` |

@@ -112,11 +112,27 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 - **Concise-first when writing rules — rules are not debates.** Adding or editing a rule in any CLAUDE.md/AGENTS.md, rule file, agent prompt, or hook message: write the minimal actionable form on the first pass — one directive per rule, no justification, no provenance notes ("mirrors project X"), no evidence citations (benchmarks, measurements, "v3/v4", version history), no examples unless they disambiguate. The consuming agent has no access to the evidence and the citation only inflates context; evidence lives in the repo's bibliography/README, never in the directive. **Carve-out:** a stat stays only when it IS the operational threshold the rule turns on — test: would removing the number change the decision? Expand only if asked.
 - **Don't restate what the agent reads from the repo, nor teach what the floor model already does** — the package manager a lockfile declares, the framework its config declares, a directory listing: no-ops that also go stale. **Test:** delete the line and name what the agent would do differently; nothing → cut it. Calibrate to the floor model, never to yourself — a reminder the weakest model still needs (BSD vs GNU flags) earns its place.
 - **Name the enforcement layer.** A rule that states a gate says what enforces it — deterministic (hook, deny permission, allowlist), confirm-gated (the user's explicit confirmation is the key), or prompt-convention. Never phrase a prompt-convention as mechanical impossibility; if a gate must be unbreakable, that's a request for a deterministic backstop, not stronger wording.
-- **Flag contradictions.** A codebase pattern that contradicts a global rule, or two authoritative sources that disagree about the same decision: surface it rather than silently following either — `rules/workflow/gap-resolution.md > Divergence Between Sources`.
+- **Flag contradictions.** A codebase pattern that contradicts a global rule, or two authoritative sources that disagree about the same decision: surface it rather than silently following either — `gap-resolution.md > Divergence Between Sources`, via the `task-routing` skill.
 - **No human-time estimates for work Claude will do.** When presenting options or trade-offs for tasks the agent will execute in-session, omit wall-clock estimates ("~2-3 horas", "medio día", "1 día de trabajo"). Use scope, risk, and reversibility instead. Exception: client-facing sales work (cotizaciones, retainers, staffing), where hour/day estimates are the deliverable.
 
 ### Skill Auto-invocation
 
+**Situational policy lives behind a router skill, so not invoking it is the same as not having the rule.** Load the matching router BEFORE acting — not after, and not "if it turns out to be needed". If a router plausibly covers the situation, read it; being wrong costs one read, skipping it costs the rule. These thoughts mean the check is being rationalized away, not that it is unnecessary:
+
+| Thought | Reality |
+|---|---|
+| "This is a simple edit" | Simple edits are where conventions get silently broken. |
+| "I already know this convention" | Conventions change and are per-project. Read the current one. |
+| "I'll check the convention after writing it" | Then the wrong name is already in a migration. |
+| "I read that rule earlier in the session" | Fine — a reference already loaded is not reloaded. |
+| "The task is too small to route" | Size decides delegation, never whether the rule applies. |
+
+Consulting the router is never the blocking step: read it and keep going in the same turn.
+
+**Creating a NEW source file loads no rule for it — read the rule first.** Path-scoped rules trigger when a matching file is READ, so editing an existing file pulls its rule in, but writing one from scratch does not: the rule arrives after the file is already written, if at all. Before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching rule under `~/.claude/rules/languages/` — or `~/.claude/skills/language-rules/references/` on a harness that does not load that directory. Editing files whose rule is already in context needs no re-read. Path-scoped rules are also **not re-injected after compaction**: if a long session compacts and then creates a file, treat the rule as absent and read it again.
+
+- **`memory-policy` before the first memory operation of a session**, and before the close-time consolidation. A memory op has no file behind it, so nothing loads the routing rule for you.
+- **`git-mechanics` before the first git verb of a session.** Branching, the session git mode, commit semantics, PRs, promotion and session close live there, not in context. The gates — what a verb authorizes, protected branches, force-push, production promotion — stay always-on in `git-workflow.md` and need no skill.
 - **`flow-report` skill auto-invokes** when `rules/quality/communication-format.md` trigger conditions are met. That rule is the canonical source for the trigger — don't restate the conditions elsewhere.
 
 - **`/simplify` (Claude Code built-in) may auto-invoke at a change-group's green seam** — affected tests passing, before the commit/diff-presentation boundary — scoped to the just-changed code, and declared when run. Quality cleanup only (reuse, simplification, efficiency, altitude); never a substitute for review. It edits the working tree — its edits are part of the change-group and reach the user through the same commit/diff gate as the rest. Claude Code only: Codex/Grok/opencode have no such skill — the same four dimensions reach them through the `code-reviewer` agent.
@@ -130,7 +146,7 @@ The `Spanish` rule above governs prose and UI strings; this governs code identif
 
 ### Delegation & Context Hygiene
 
-Keep the main thread focused: delegate executable work, reason in the main thread. Governing question: does this inflate my context without need? Yes → delegate; no → inline. Routing table, delegation gates, inline-vs-delegate, and the subagent/team/workflow escalation: `rules/workflow/agent-routing.md`.
+Keep the main thread focused: delegate executable work, reason in the main thread. Governing question: does this inflate my context without need? Yes → delegate; no → inline. **Invoke the `task-routing` skill BEFORE the first delegation of a session and before writing a plan's tasks** — it carries the routing table, the delegation gates, inline-vs-delegate, fresh-context verification, and the gap analysis. Neither rule is always-on: their trigger is an intent, not a file, so nothing loads them for you and not invoking the skill is the same as not having them.
 
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
 

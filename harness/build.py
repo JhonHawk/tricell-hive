@@ -56,6 +56,10 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/workflow", "devops-principles.md"),
         ("rules/tools", "browser-automation.md"),
         ("rules/tools", "code-search.md"),
+        # Claude Code and Grok get this always-on, but on Codex and opencode the
+        # agent Role rules table is the ONLY pointer to the Context7 protocol —
+        # and it pointed at a file this map never generated.
+        ("rules/tools", "context7.md"),
     ],
     "workspace-conventions": [
         ("rules/workflow", "project-structure.md"),
@@ -64,8 +68,17 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/workflow", "cross-service-workflow.md"),
         ("rules/workflow", "infra-naming.md"),
     ],
+    # Sources live in rules-situational/: their trigger is an intent (delegating,
+    # planning), which `paths:` cannot express, so a router is their only channel.
+    "task-routing": [
+        ("rules-situational", "agent-routing.md"),
+        ("rules-situational", "gap-resolution.md"),
+    ],
+    "git-mechanics": [
+        ("rules-situational", "git-mechanics.md"),
+    ],
     "memory-policy": [
-        ("rules/workflow", "memory-routing.md"),
+        ("rules-situational", "memory-routing.md"),
     ],
     "flow-report": [
         ("rules/quality", "communication-format.md"),

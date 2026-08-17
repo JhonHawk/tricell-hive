@@ -1,10 +1,17 @@
 ---
+paths:
+  - "**/_support/**"
+  - "**/*-specs/**"
+  - "**/sessions/**"
+---
+
+---
 alwaysApply: true
 ---
 
 ## Session Capture & Support Vocabulary
 
-> Always-on in Claude Code; Codex/opencode reach it through the `workspace-conventions` skill. Split out of `workflow/project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
+> Path-scoped: loads when the session touches `_support/**`, a specs repo, or `sessions/**`. Codex/opencode/Grok reach it through the `workspace-conventions` skill. Split out of `workflow/project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
 
 ### Canonical subfolder vocabulary
 

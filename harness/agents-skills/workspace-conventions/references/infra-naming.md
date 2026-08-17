@@ -1,7 +1,11 @@
 
+---
+alwaysApply: true
+---
+
 ## Infrastructure Naming
 
-> Always-on in Claude Code. Codex/opencode reach it through the `workspace-conventions` skill (`references/infra-naming.md`), which is why it is also in `SKILL_REFERENCE_INJECTIONS`.
+> Path-scoped: loads on IaC files (`*.tf`, Dockerfile, compose, workflows, `*-infra/**`). Naming a resource with none of those open is the gap the router covers — invoke `workspace-conventions` BEFORE proposing any infra name, since a wrong name costs a recreate and migrate, not an edit.
 
 > Generic layer for every client and provider (AWS, Hetzner, GitHub, DNS). Each project instantiates it into a concrete table at `<project>-specs/conventions/naming.md` (template: flow-core `naming-template.md`); project-specific exceptions are documented THERE with their reason, never improvised. No instantiated table → derive from this rule and say so.
 
@@ -25,7 +29,7 @@ env ∈ { development, qa, production }
 | Secrets Manager | `<project>/<env>/<resource>` | `acme-fleet/qa/jwt` | slash hierarchy is the AWS idiom |
 | Postgres/MySQL database | `<project>_<env>` | `internal_apps_qa` | hyphens force quoted identifiers — snake_case |
 | GitHub repo / ECR image | `<project>-<component>` — no env | `acme-marketplace-backend` | env lives in branches/workflows and image tags |
-| Git environment branches | `development` → `qa` → `production` | `production` deploys production | full env token as branch name; only deployable multi-env repos — repo classes in `git-workflow.md > Branching` |
+| Git environment branches | `development` → `qa` → `production` | `production` deploys production | full env token as branch name; only deployable multi-env repos — repo classes in `git-mechanics.md > Branching` |
 | Non-prod subdomain | `<env-short>-<app>.<domain>` | `qa-api.example.com` | DNS-standard prefix position; human-typed public surface — the only place the short token is correct |
 | Prod subdomain | `<app>.<domain>` — no token | `api.example.com` | the clean domain IS production |
 | Serverless Framework | `<service>-<stage>-<fn>` | — | framework-imposed stage infix; only the stage vocabulary (`development\|qa\|production`) is ours |

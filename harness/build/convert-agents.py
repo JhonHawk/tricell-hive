@@ -17,7 +17,10 @@ import re
 import sys
 from pathlib import Path
 
-GENERATED_NOTE = "Generated from tricell-hive global/agents — do not edit by hand."
+# Deliberately names no source repository or path: an agent that reads its own
+# definition and finds one treats it as a place to go verify things, and starts
+# wandering out of the repository it was invoked in.
+GENERATED_NOTE = "Generated file — do not edit by hand; edit the canonical agent and rebuild."
 CLAUDE_ONLY_FIELDS = {
     "background",
     "disallowedTools",
@@ -271,7 +274,7 @@ def codex_warnings(agent):
 
 def to_codex(agent) -> str:
     sandbox = "workspace-write" if can_write(agent) else "read-only"
-    body = agent["body"].replace('"""', "'''")
+    body = rebase_skill_root(agent["body"]).replace('"""', "'''")
     extra_instructions = codex_extra_instructions(agent)
     if extra_instructions:
         body = body + "\n\n## Codex compatibility instructions\n\n" + "\n".join(
@@ -317,6 +320,39 @@ OPENCODE_COLOR = {
 }
 
 
+# Agent bodies cite role rules by absolute path so the agent can Read them
+# without a skill tool — the only mechanism all four harnesses share. There are
+# exactly two roots, and which one is correct depends on the harness:
+#   ~/.claude/skills  — Claude Code (deployed there) and Grok (scans it)
+#   ~/.agents/skills  — Codex and opencode
+# Sources are written with the Claude root; this rebases it for the other two.
+CLAUDE_SKILL_ROOT = "~/.claude/skills/"
+AGENTS_SKILL_ROOT = "~/.agents/skills/"
+
+
+def rebase_skill_root(body: str) -> str:
+    return body.replace(CLAUDE_SKILL_ROOT, AGENTS_SKILL_ROOT)
+
+
+def opencode_extra_instructions(agent):
+    """opencode cannot preload a skill into an agent.
+
+    Its own `permission.skill` and `tools.skill` keys restrict which skills an
+    agent may reach — neither attaches one. Codex and Grok translate `skills:`
+    into a prose instruction; opencode was the only harness where the field
+    vanished with no warning at all.
+
+    Agent-spawn and write restrictions are deliberately NOT repeated here:
+    opencode enforces those deterministically through the `permission` block,
+    and an instruction restating a hard denial only invites arguing with it.
+    """
+    return [
+        f"When the `{skill}` skill is available and relevant, use it before "
+        "performing the specialized workflow manually."
+        for skill in agent["skills"]
+    ]
+
+
 def to_opencode(agent) -> str:
     perms = []
     if not can_write(agent):
@@ -338,7 +374,13 @@ def to_opencode(agent) -> str:
         fm.append("permission:")
         fm.extend(perms)
     fm.append("---")
-    return "\n".join(fm) + "\n\n" + agent["body"] + "\n"
+    body = rebase_skill_root(agent["body"])
+    extra = opencode_extra_instructions(agent)
+    if extra:
+        body = body + "\n\n## opencode compatibility instructions\n\n" + "\n".join(
+            f"- {instruction}" for instruction in extra
+        )
+    return "\n".join(fm) + "\n\n" + body + "\n"
 
 
 # Claude tool names → Grok Build tool names. Unknown Claude-only tools are dropped.
@@ -431,6 +473,7 @@ def to_grok(agent) -> str:
 
     Model is always inherit — Claude opus/sonnet aliases are not Grok slugs.
     """
+    # NOT rebased: Grok scans ~/.claude/skills and never ~/.agents/skills.
     body = agent["body"]
     extra = grok_extra_instructions(agent)
     if extra:

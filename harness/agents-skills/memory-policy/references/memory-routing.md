@@ -1,7 +1,7 @@
 
 ## Memory Routing — Engram vs. Native File-Memory
 
-> Always-on in Claude Code; Codex/opencode reach it through the `memory-policy` skill. The companion half — how to ANSWER a state question — lives in `quality/debugging.md > Reporting state from ground truth`; this file owns the store mechanics.
+> Not always-on anywhere: a memory operation has no file behind it, so every harness reaches this through the `memory-policy` skill. The companion half — how to ANSWER a state question — lives in `quality/debugging.md > Reporting state from ground truth`; this file owns the store mechanics.
 
 > Two memory systems run at once: Claude Code's **native file-memory** (harness-injected, always in context) and **Engram** (MCP server, SQLite, retrieved on demand). Their save-triggers overlap; this rule draws the boundary so the same fact never lands in both and drifts. It does NOT configure Engram (its plugin self-manages); it governs which system receives a given save.
 
@@ -13,7 +13,7 @@
 - **Never write the same fact to both systems.** Both protocols say "save proactively" on overlapping triggers; this rule is the tiebreaker and wins by specificity.
 - **Compaction is not total amnesia:** the thread continues with a summary plus the unsummarized recent context, and native memory, the ledger, and git persist on their own — Engram is the searchable cross-session work record, not the only survivor.
 - **Flow-phase artifacts and status facts use a deterministic `topic_key`** (`flow/{epic-or-project-slug}/{artifact}`, `status/<area>`) so saves upsert, never duplicate — the ledger stays the source of truth, Engram is the resume-mirror; convention defined in `flow-core`. Observations about decisions/discoveries/executions record the producing session's slug (`session: sessions/YYYY-MM-DD-<slug>`) so recall points at the durable documents (`project-structure.md > Session capture layer`).
-- **Git session modes are never memory:** the git mode and branch strategy resolve per session or from the repo's `AGENTS.md` declaration (`git-workflow.md > Commits`) — never saved to or read from Engram, whatever a save-preference trigger suggests. Safety gates never become preferences: push, merge, production, and data deletion confirm per operation, always.
+- **Git session modes are never memory:** the git mode and branch strategy resolve per session or from the repo's `AGENTS.md` declaration (`git-mechanics.md > Commits`) — never saved to or read from Engram, whatever a save-preference trigger suggests. Safety gates never become preferences: push, merge, production, and data deletion confirm per operation, always.
 
 ### Save cadence — batch to close; save now only what would hurt to lose
 

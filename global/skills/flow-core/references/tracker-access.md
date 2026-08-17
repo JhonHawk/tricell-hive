@@ -4,7 +4,7 @@
 > restate. Consumers: flow-specs (task sync), flow-build (close), flow-audit /
 > audit-playbook (ticket filing), memory-sync (propagation), promotion-playbook (close
 > check), and the `state-fetcher` executor. Policy owner stays
-> `rules/workflow/memory-routing.md > Tracker sync`; ledger field semantics stay in
+> `rules-situational/memory-routing.md > Tracker sync`; ledger field semantics stay in
 > `ledger-template.md` — this file owns only the shared HOW.
 
 ## Resolution

@@ -25,7 +25,7 @@ nothing. Your evidence is what you actually saw on screen.
   does the UI explain how to recover?
 - Hierarchy and copy: does the layout prioritize the decision the user came to make?
   Does the copy state consequences before destructive/sensitive actions?
-- Visual craft against `~/.claude/rules/languages/ui-visual-design.md` (path-scoped rule —
+- Visual craft against `~/.claude/skills/language-rules/references/ui-visual-design.md` (path-scoped rule —
   it will NOT auto-load in this browser-driving context; Read it directly): type scale &
   line-length, spacing
   system (space around a group > space within it), color palette + measurable WCAG-AA contrast
@@ -64,3 +64,12 @@ nothing. Your evidence is what you actually saw on screen.
 Raw markdown: per flow — rubric pass/fail line, then findings (severity, route/state,
 screenshot path, what you observed, proposed fix, `mock-fix`/`spec-change`). End with the
 flows that passed clean, so coverage is explicit.
+
+## Role rules
+
+Read the row matching what you touch; skip anything already loaded this session.
+
+| When | Read |
+|---|---|
+| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation.md` |
+| Type, spacing, contrast, hierarchy | `~/.claude/skills/language-rules/references/ui-visual-design.md` |

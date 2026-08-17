@@ -1,5 +1,5 @@
 ---
-# Generated from tricell-hive global/agents — do not edit by hand.
+# Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: state-fetcher
 description: >
   Fetch and watch low-reasoning external state and return it compact: the DECLARED tracker's board and tickets (Linear via MCP, Jira via acli, GitHub Issues via gh — or tasks.md when untracked), PR checks and merge state (gh), and deploy jobs (Amplify, Vercel, pipelines). Also executes an ALREADY-APPROVED batch of outward tracker writes, reading payloads from disk. Use when a board read, check watch, deploy-job poll, or ticket batch would otherwise inflate the main thread — the result matters, not the search. NOT for deciding what work exists (flow-specs), what is stale (/memory-sync), or file/ledger hygiene (workspace-custodian).

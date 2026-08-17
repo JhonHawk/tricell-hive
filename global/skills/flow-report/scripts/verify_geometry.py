@@ -29,8 +29,8 @@ Usage:
 
 ---
 Adapted from https://github.com/cathrynlavery/diagram-design
-(scripts/verify-geometry.py, v2.3.2, MIT) for the flow-report skill
-(tricell-hive). Local changes:
+(scripts/verify-geometry.py, v2.3.2, MIT) for the flow-report skill.
+Local changes:
   - Node/mask overlap checks are now scoped per `<svg>...</svg>` block
     instead of running across the whole document. A flow-report HTML file
     can embed several diagrams plus surrounding report markup (tables,

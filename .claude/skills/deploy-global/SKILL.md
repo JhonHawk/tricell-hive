@@ -24,6 +24,14 @@ ever reached it. The scope closes that gap in two parts:
    (Grok would load them always-on); they reach it through the router skills
    (`language-rules`, `workspace-conventions`) like on Codex. A rule that later gains
    `paths:` turns its link into a manifest-detected orphan.
+
+   That router path only works because the claude scope now also deploys the
+   **build-injected `references/`** into `~/.claude/skills/` (`deploy_injected_references`).
+   Grok scans `~/.claude/skills/` and never `~/.agents/skills/`, so while the injected sets
+   existed only under `harness/agents-skills`, every router on Grok pointed at reference
+   files reachable from no path it knew — the routing table loaded, the targets did not
+   exist, and the model guessed. Keep the two in step: a new entry in
+   `SKILL_REFERENCE_INJECTIONS` reaches Grok only after a deploy of the claude scope.
 2. **Agents** — copies generated `harness/grok/agents/*.md` into `$GROK_HOME/agents/`
    (real files; Grok frontmatter differs from Claude). Built by `harness/build.py` from
    `global/agents/`. Hive hooks stay single-source under `~/.claude/hooks/` (Grok merges
