@@ -1,20 +1,26 @@
 ---
 name: workspace-conventions
 description: >
-  Codex/opencode: load before creating/naming artifacts outside app source (_support,
-  plans, specs, ADRs, contracts, evidence, sessions), naming any infra resource (bucket,
-  cluster, service, security group, DB, subdomain, env branch), designing a cross-service
-  contract, or answering "what's next"/offering /flow-* with a ledger.
-  Triggers: _support/, *-specs, flow, IaC.
+  Load BEFORE creating/naming artifacts outside app source (_support, plans, specs, ADRs,
+  contracts, evidence, sessions), naming any infra resource (bucket, cluster, service,
+  security group, DB, subdomain, env branch), designing a cross-service contract, or
+  answering "what's next"/offering /flow-* with a ledger. Every harness, Claude Code
+  included: these rules are path-scoped there and load only after a matching file is read,
+  which is usually too late to pick a name or a location.
+  Triggers: _support/, *-specs, flow, IaC, naming, contract.
 ---
 
 # workspace-conventions — router to workspace, session, contract, and naming conventions
 
-This skill exists because Codex and opencode have no conditional channel for intent-keyed
+This skill exists because Codex and Grok have no conditional channel for intent-keyed
 policy: their always-on floor keeps one trigger line and the complete conventions load
-here, when the situation is actually in play. **Claude Code does not need it** — these
-rules are always-on there, since `paths:` is the only key that makes a rule conditional
-and none of them carries one.
+here, when the situation is actually in play.
+
+**Claude Code needs it too now.** `project-structure`, `session-capture`, `infra-naming`
+and `cross-service-workflow` carry `paths:` there, so they load only once a matching file
+is READ — and naming an infra resource or choosing where an artifact goes usually happens
+BEFORE any such file is open. That is the gap this skill covers: invoke it when the
+situation applies, not when a file happens to match.
 
 References are injected at build time from `global/rules/workflow/` into `references/`.
 

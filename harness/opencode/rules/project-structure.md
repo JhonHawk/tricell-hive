@@ -1,3 +1,9 @@
+---
+globs:
+  - "**/_support/**"
+  - "**/*-specs/**"
+match: any
+---
 
 ---
 alwaysApply: true

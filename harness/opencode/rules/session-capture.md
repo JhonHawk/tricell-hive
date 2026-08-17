@@ -1,8 +1,9 @@
 ---
-paths:
+globs:
   - "**/_support/**"
   - "**/*-specs/**"
   - "**/sessions/**"
+match: any
 ---
 
 ---

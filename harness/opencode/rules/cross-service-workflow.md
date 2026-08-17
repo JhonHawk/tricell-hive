@@ -1,3 +1,13 @@
+---
+globs:
+  - "**/_support/spec/**"
+  - "**/*-specs/**"
+  - "**/openapi*.yml"
+  - "**/openapi*.yaml"
+  - "**/asyncapi*.yml"
+  - "**/asyncapi*.yaml"
+match: any
+---
 
 ---
 alwaysApply: true

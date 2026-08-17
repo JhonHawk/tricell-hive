@@ -1,10 +1,20 @@
 ---
+paths:
+  - "**/_support/spec/**"
+  - "**/*-specs/**"
+  - "**/openapi*.yml"
+  - "**/openapi*.yaml"
+  - "**/asyncapi*.yml"
+  - "**/asyncapi*.yaml"
+---
+
+---
 alwaysApply: true
 ---
 
 ## Cross-Service Coordination
 
-> **Always-on in Claude Code**, and reached via the `workspace-conventions` skill on Codex/opencode (`references/cross-service-workflow.md`). It is not conditional here because `system-designer` — the agent that enforces spec-first — has a `tools:` allowlist with no `Skill`, so it could never load this from a router.
+> Path-scoped: loads on contract surfaces (`_support/spec/**`, a specs repo, OpenAPI/AsyncAPI files). `system-designer` has no `Skill` tool, so it reaches this by absolute path from its own Role rules table — not through a router.
 
 > Spec-first for shared contracts: the contract is designed before code implements it, and nobody deviates from a spec without updating it first. Confirmation is by signal (below), not a per-contract stop. Contract specs live in `<project>-specs/contracts/`; pre-specs-repo fallback: `<project>/_support/spec/` (repo-local contracts: `<repo>/_support/spec/`).
 

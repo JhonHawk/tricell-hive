@@ -1,10 +1,21 @@
 ---
+paths:
+  - "**/*.tf"
+  - "**/*.tfvars"
+  - "**/Dockerfile*"
+  - "**/docker-compose*.yml"
+  - "**/docker-compose*.yaml"
+  - "**/.github/workflows/**"
+  - "**/*-infra/**"
+---
+
+---
 alwaysApply: true
 ---
 
 ## Infrastructure Naming
 
-> Always-on in Claude Code. Codex/opencode reach it through the `workspace-conventions` skill (`references/infra-naming.md`), which is why it is also in `SKILL_REFERENCE_INJECTIONS`.
+> Path-scoped: loads on IaC files (`*.tf`, Dockerfile, compose, workflows, `*-infra/**`). Naming a resource with none of those open is the gap the router covers — invoke `workspace-conventions` BEFORE proposing any infra name, since a wrong name costs a recreate and migrate, not an edit.
 
 > Generic layer for every client and provider (AWS, Hetzner, GitHub, DNS). Each project instantiates it into a concrete table at `<project>-specs/conventions/naming.md` (template: flow-core `naming-template.md`); project-specific exceptions are documented THERE with their reason, never improvised. No instantiated table → derive from this rule and say so.
 

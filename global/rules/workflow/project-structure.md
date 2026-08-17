@@ -1,4 +1,10 @@
 ---
+paths:
+  - "**/_support/**"
+  - "**/*-specs/**"
+---
+
+---
 alwaysApply: true
 ---
 

@@ -1,3 +1,14 @@
+---
+globs:
+  - "**/*.tf"
+  - "**/*.tfvars"
+  - "**/Dockerfile*"
+  - "**/docker-compose*.yml"
+  - "**/docker-compose*.yaml"
+  - "**/.github/workflows/**"
+  - "**/*-infra/**"
+match: any
+---
 
 ---
 alwaysApply: true

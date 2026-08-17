@@ -124,7 +124,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── tailwind.md
 │   │   ├── typescript-standards.md
 │   │   └── ui-visual-design.md    # Visual craft: type scale, spacing, contrast, action hierarchy
-│   ├── workflow/                  # Git, routing, coordination (9 always-on, 2 path-scoped)
+│   ├── workflow/                  # Git, routing, coordination (5 always-on, 6 path-scoped)
 │   │   ├── agent-routing.md
 │   │   ├── cross-service-workflow.md
 │   │   ├── devops-principles.md  # path-scoped (Dockerfile/tf/workflows)
