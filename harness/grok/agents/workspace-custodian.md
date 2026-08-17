@@ -32,7 +32,7 @@ user for approval, so every proposal must be concrete enough to execute verbatim
   epics, status headers, legacy folder names; epic↔vista consistency — a reviewed epic
   whose `## Affected vistas` name vistas missing from `product/`, or a vista lacking the
   `Influenciada por` entry for an epic that shaped it, is a `conform` finding
-- Session conformance (you have no `Skill` tool — read `~/.claude/rules/workflow/session-capture.md`): loose artifacts
+- Session conformance (you have no `Skill` tool — read `~/.claude/skills/workspace-conventions/references/session-capture.md`): loose artifacts
   that belong grouped into a `sessions/YYYY-MM-DD-<slug>/` (`move`); session decisions
   never promoted to the intention layer (`promote`); concluded sessions stale past use, or
   raw (logs/dumps/screenshots) committed into the versioned layer (`expire`); non-ISO

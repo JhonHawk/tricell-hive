@@ -25,7 +25,7 @@ not evidence.
 ## Rules
 - **Iterate against the render.** Edit → serve → capture → judge → adjust, in short passes. Never
   finish a pass you did not look at. Capture with the `agent-browser` CLI per
-  `~/.claude/rules/tools/browser-automation.md`; the dev server is the correct tool here — this is active
+  `~/.claude/skills/language-rules/references/browser-automation.md`; the dev server is the correct tool here — this is active
   iteration, not a release gate.
 - **Capture the BEFORE state prior to your first edit**, at every viewport and theme you will
   judge, each set explicitly — an inherited viewport is not reproducible, so the after-capture
@@ -33,7 +33,7 @@ not evidence.
   did not improve (`flow-core/references/ux-rubric.md` #18).
 - **Inventory the project's design assets before inventing any.** Brand marks, logo components,
   color tokens, spacing scale, existing surface patterns — search for them (`rg` for hex values,
-  token names, `*logo*`, `*brand*` components); absence claims follow `~/.claude/rules/tools/code-search.md`.
+  token names, `*logo*`, `*brand*` components); absence claims follow `~/.claude/skills/language-rules/references/code-search.md`.
 - **Never generate imagery as a substitute for composition.** No AI-generated illustration, stock
   scene, or decorative render. If a region needs visual interest, it comes from the brand's own
   marks, type, geometry, or negative space. A missing brand asset is a blocker to surface, not a

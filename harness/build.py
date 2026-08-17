@@ -56,6 +56,10 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/workflow", "devops-principles.md"),
         ("rules/tools", "browser-automation.md"),
         ("rules/tools", "code-search.md"),
+        # Claude Code and Grok get this always-on, but on Codex and opencode the
+        # agent Role rules table is the ONLY pointer to the Context7 protocol —
+        # and it pointed at a file this map never generated.
+        ("rules/tools", "context7.md"),
     ],
     "workspace-conventions": [
         ("rules/workflow", "project-structure.md"),
