@@ -5,17 +5,34 @@
 Names the situational rule that applies at the moment it starts applying: a file kind about
 to be written, or a tool with its own routing policy about to run.
 
+## Where it actually fires
+
+**Claude Code and Grok only.** In Codex it does not run — verified in both TUI and
+`codex exec`, zero injections in either rollout, even though Codex's own hook panel lists
+`PreToolUse — 1 installed, 1 active`. It is registered and recognized; it just never reaches
+the model.
+
+That costs nothing, because Codex is covered better by another channel: the
+`MANDATORY FIRST ACTION` line in `harness/AGENTS.md` plus the router bootstrap in
+`global/CLAUDE.md`. Observed in the same test — Codex announced *"Voy a aplicar language-rules
+porque el archivo es TSX"*, read `typescript-standards.md`, and only then wrote the file.
+An always-on instruction acts **before** the decision to write; this hook cannot.
+
+Separately: **`codex exec` runs no hooks at all** — not SessionStart, not any. Its rollout has
+zero while a TUI session carries the hive's SessionStart. Relevant to any automation built on
+`codex exec` (CI, scripts): hooks do not guard it.
+
 ## Why it exists
 
 Situational rules reach each harness through a different channel, and two of the four have
 no channel at all for the main thread:
 
-| Harness | Path-scoped rules in the main thread |
-|---|---|
-| Claude Code | loaded natively via `paths:` |
-| opencode | loaded by glob by the `opencode-rules` plugin |
-| Codex | **nothing loads them** |
-| Grok | ignores `paths:`; path-scoped rules are not symlinked into `~/.grok/rules/` |
+| Harness | Channel that reaches the main thread | Arrives before the write? |
+|---|---|---|
+| Claude Code | `paths:` natively, plus this hook | no — both land with the tool result |
+| opencode | `opencode-rules` plugin, by glob | yes |
+| Codex | `MANDATORY FIRST ACTION` in `harness/AGENTS.md` | **yes** — an instruction acts before the decision |
+| Grok | this hook, plus the router skills | no for the hook; the routers depend on invocation |
 
 Subagents get their policy inlined into their own prompt. The main thread had nothing — on
 Codex and Grok it has been writing React or Terraform with none of those rules present. This
