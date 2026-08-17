@@ -74,6 +74,9 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules-situational", "agent-routing.md"),
         ("rules-situational", "gap-resolution.md"),
     ],
+    "git-mechanics": [
+        ("rules-situational", "git-mechanics.md"),
+    ],
     "memory-policy": [
         ("rules/workflow", "memory-routing.md"),
     ],

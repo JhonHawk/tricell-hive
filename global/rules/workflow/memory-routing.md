@@ -16,7 +16,7 @@ alwaysApply: true
 - **Never write the same fact to both systems.** Both protocols say "save proactively" on overlapping triggers; this rule is the tiebreaker and wins by specificity.
 - **Compaction is not total amnesia:** the thread continues with a summary plus the unsummarized recent context, and native memory, the ledger, and git persist on their own — Engram is the searchable cross-session work record, not the only survivor.
 - **Flow-phase artifacts and status facts use a deterministic `topic_key`** (`flow/{epic-or-project-slug}/{artifact}`, `status/<area>`) so saves upsert, never duplicate — the ledger stays the source of truth, Engram is the resume-mirror; convention defined in `flow-core`. Observations about decisions/discoveries/executions record the producing session's slug (`session: sessions/YYYY-MM-DD-<slug>`) so recall points at the durable documents (`project-structure.md > Session capture layer`).
-- **Git session modes are never memory:** the git mode and branch strategy resolve per session or from the repo's `AGENTS.md` declaration (`git-workflow.md > Commits`) — never saved to or read from Engram, whatever a save-preference trigger suggests. Safety gates never become preferences: push, merge, production, and data deletion confirm per operation, always.
+- **Git session modes are never memory:** the git mode and branch strategy resolve per session or from the repo's `AGENTS.md` declaration (`git-mechanics.md > Commits`) — never saved to or read from Engram, whatever a save-preference trigger suggests. Safety gates never become preferences: push, merge, production, and data deletion confirm per operation, always.
 
 ### Save cadence — batch to close; save now only what would hurt to lose
 

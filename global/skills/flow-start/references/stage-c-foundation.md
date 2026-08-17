@@ -12,7 +12,7 @@ project collapses the repo dialogue into one derivation + one dispatch.
    row BEFORE creation; client exceptions are documented with their reason and the user's
    sign-off. Include the
    **repo branch model** section (each repo's class and branch→environment mapping per
-   `git-workflow.md > Branching`) and the **code-layer conventions** section (boundary
+   `git-mechanics.md > Branching`) and the **code-layer conventions** section (boundary
    casing derived from the settled stacks).
 2. **Repo matrix, asked per repo** — derive the repo list from the requirements/specs
    (mocks, specs, backend, frontend, transactional services): names per the naming table

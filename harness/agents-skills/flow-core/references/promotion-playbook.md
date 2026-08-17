@@ -20,7 +20,7 @@ something only works by SSH, that is a pipeline bug to fix first — every envir
 first deploy included. Source/target branches resolve from the naming table's repo
 branch model (canonical chain `development → qa → production`); platform-native repos
 (Vercel/Netlify) promote via the platform's own flow. No branch-model table → derive
-from `git-workflow.md > Branching` and say so.
+from `git-mechanics.md > Branching` and say so.
 
 ## QA promotion walk
 

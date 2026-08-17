@@ -121,7 +121,7 @@ function gitHygieneSection(dir: string): string {
     if (merged.length > 0) parts.push(`local branches fully merged into ${target}: ${merged.join(" ")}`)
     if (gone.length > 0) parts.push(`branches whose upstream is gone: ${gone.join(" ")}`)
 
-    return `Pending git hygiene from a previous session (deterministic session-close backstop): ${parts.join("; ")}. The ritual that owns this is git-workflow.md > Session close (standing-authorized: prune confirmed-merged branches, report divergences; unmerged branches are decisions, not noise).`
+    return `Pending git hygiene from a previous session (deterministic session-close backstop): ${parts.join("; ")}. The ritual that owns this is git-mechanics.md > Session close (standing-authorized: prune confirmed-merged branches, report divergences; unmerged branches are decisions, not noise).`
   } catch {
     return ""
   }

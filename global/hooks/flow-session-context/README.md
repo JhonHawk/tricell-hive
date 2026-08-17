@@ -3,7 +3,7 @@
 SessionStart context for the flow pack v2, delivered across all three harnesses. Merges what were two separate SessionStart hooks (the old `session-hygiene-context`) plus the flow-pack process map into ONE injection with two independent, self-gating sections:
 
 1. **Flow protocol** — injected ONLY inside a flow workspace (a `_support/PROJECT.md` ledger at or above cwd). A static `<flow-process-protocol>` block: the v2 process chain (brainstorm → spec → plan → execute → deploy/QA) so the model can OFFER the matching `/flow-*` stage when user intent matches. It never forces a stage — flow skills stay user-gated (global CLAUDE.md > Skill Auto-invocation).
-2. **Git hygiene** — injected in ANY git repo (not flow-gated). Deterministic backstop for the session-close ritual (`git-workflow.md > Session close`): most closes are silent, so the ceremony runs at the next fresh seam. Injects pending-hygiene FACTS — local branches fully merged into the integration target, and branches whose upstream is `[gone]` — capped at 8 each, silent when none. State only, never routing instructions.
+2. **Git hygiene** — injected in ANY git repo (not flow-gated). Deterministic backstop for the session-close ritual (`git-mechanics.md > Session close`): most closes are silent, so the ceremony runs at the next fresh seam. Injects pending-hygiene FACTS — local branches fully merged into the integration target, and branches whose upstream is `[gone]` — capped at 8 each, silent when none. State only, never routing instructions.
 
 Both sections empty → no injection at all (exit 0 / no-op). Local git queries only; no fetch, no network. Advisory — never blocks.
 

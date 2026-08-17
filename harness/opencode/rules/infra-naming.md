@@ -40,7 +40,7 @@ env ∈ { development, qa, production }
 | Secrets Manager | `<project>/<env>/<resource>` | `acme-fleet/qa/jwt` | slash hierarchy is the AWS idiom |
 | Postgres/MySQL database | `<project>_<env>` | `internal_apps_qa` | hyphens force quoted identifiers — snake_case |
 | GitHub repo / ECR image | `<project>-<component>` — no env | `acme-marketplace-backend` | env lives in branches/workflows and image tags |
-| Git environment branches | `development` → `qa` → `production` | `production` deploys production | full env token as branch name; only deployable multi-env repos — repo classes in `git-workflow.md > Branching` |
+| Git environment branches | `development` → `qa` → `production` | `production` deploys production | full env token as branch name; only deployable multi-env repos — repo classes in `git-mechanics.md > Branching` |
 | Non-prod subdomain | `<env-short>-<app>.<domain>` | `qa-api.example.com` | DNS-standard prefix position; human-typed public surface — the only place the short token is correct |
 | Prod subdomain | `<app>.<domain>` — no token | `api.example.com` | the clean domain IS production |
 | Serverless Framework | `<service>-<stage>-<fn>` | — | framework-imposed stage infix; only the stage vocabulary (`development\|qa\|production`) is ours |

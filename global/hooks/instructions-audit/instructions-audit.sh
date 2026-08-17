@@ -36,10 +36,20 @@ input=$(cat)
 session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // "unknown"' 2>/dev/null)
 log="${TMPDIR:-/tmp}/claude-instructions-audit-${session_id}.jsonl"
 
-# Stamp arrival time: the event carries a reason but not a clock, and the
-# ordering between session_start and later lazy loads is the whole point.
+# Stamp arrival time AND the file's size at load time.
+#
+# The size has to be captured here, not computed later from the path: a rule that
+# is moved or deleted between the run and the analysis reads as 0 bytes, which
+# silently shrinks the BASELINE a comparison is measured against — the before/after
+# delta then comes out short, in the flattering direction. Hit exactly that while
+# measuring the always-on reduction.
+file_path=$(printf '%s' "$input" | jq -r '.file_path // empty' 2>/dev/null)
+size=0
+[ -n "$file_path" ] && [ -f "$file_path" ] && size=$(wc -c < "$file_path" 2>/dev/null | tr -d ' ')
+
 printf '%s\n' "$input" \
-  | jq -c --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '. + {_at: $at}' >> "$log" 2>/dev/null \
+  | jq -c --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson sz "${size:-0}" \
+      '. + {_at: $at, _bytes: $sz}' >> "$log" 2>/dev/null \
   || printf '{"_at":"%s","_raw_unparseable":true}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$log" 2>/dev/null
 
 exit 0
