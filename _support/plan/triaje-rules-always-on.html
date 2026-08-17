@@ -453,13 +453,16 @@
     <div class="card">
       <div class="num">1</div>
       <div>
-        <h4>El hilo principal editando código — mitigado por <code>rule-context</code></h4>
+        <h4>El hilo principal editando código — mitigado por <code>rule-context</code>, con techo medido</h4>
         <p>El inline cubre al ejecutor; cuando el hilo principal hace una edición mecánica de un archivo,
-          ni el núcleo ni el agente llevan la regla. Lo cierra un hook <code>PreToolUse</code> nuevo que
-          inyecta el puntero de la regla que aplica, por archivo o por herramienta — el mismo patrón que
-          <code>bash-policy</code> ya usa en producción. <strong>Queda un límite:</strong> el hook es
-          determinista al entregar el recordatorio, no al cumplirlo. Para una regla corta cuyo
-          incumplimiento sea caro, se inyecta el contenido en vez del puntero.</p>
+          ni el núcleo ni el agente llevan la regla. Lo cierra un hook <code>PreToolUse</code> que inyecta
+          el puntero de la regla que aplica, por archivo o por herramienta.
+          <strong>Techo verificado en dos sesiones:</strong> el hook corre antes de la herramienta, pero su
+          <code>additionalContext</code> llega al modelo <em>junto con el resultado</em> — la primera
+          escritura de cada tipo ocurre igualmente sin la regla, y el recordatorio aplica de ahí en
+          adelante. Solo la vía de denegación de <code>PreToolUse</code> es realmente previa, y este hook
+          nunca deniega. Es un recordatorio, no un gate; para una regla corta cuyo incumplimiento sea caro,
+          se inyecta el contenido en vez del puntero.</p>
       </div>
     </div>
     <div class="card">

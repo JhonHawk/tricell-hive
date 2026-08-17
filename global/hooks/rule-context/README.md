@@ -54,6 +54,18 @@ the harness that most needs it.
 
 ## Limits
 
-Deterministic at **delivering** the reminder, not at obeying it. For a short rule whose breach
-is expensive, inject the content instead of the pointer — it costs tokens, but only when a
-file of that kind is actually touched.
+**The reminder lands after the write, not before it.** The hook runs at `PreToolUse`, but its
+`additionalContext` reaches the model together with the tool RESULT — verified twice, in a
+running session and in a fresh one. So the first write of a given kind still happens without
+the rule; the reminder applies from the next action onward, and lets the model revisit what it
+just wrote. Only the deny path of `PreToolUse` is genuinely pre-emptive, and this hook never
+denies.
+
+That is a real ceiling, not a wording detail: this is not a gate, and pairing it with the
+one-reminder-per-session dedup means a rule is named exactly once, right after its first use.
+The trade was deliberate — insisting on every write would turn a useful pointer into noise
+that gets tuned out.
+
+Deterministic at **delivering** the reminder, never at obeying it. For a short rule whose
+breach is expensive, inject the content instead of the pointer — it costs tokens, but only when
+a file of that kind is actually touched.
