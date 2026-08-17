@@ -22,7 +22,10 @@ project collapses the repo dialogue into one derivation + one dispatch.
    question block. A clean derivation from the signed table needs only confirmation; gate
    harder only on a NEW naming exception, an unsettled repo split, or creation inside a
    client-owned org (outward-visible, expensive to rename). Repos already present → the
-   matrix covers only the missing ones.
+   matrix covers only the missing ones. A product whose runtime services share contracts
+   and promote together may be born as ONE monorepo instead of N repos — decide it in
+   this same question block; the format, layout, and done-criteria live in
+   `/monorepo-cutover` (greenfield lane, skip the hoist).
 3. **Parallel dispatch** — per the handoff protocol
    (`~/.claude/skills/flow-core/references/handoff-protocol.md`), in parallel where
    independent:
