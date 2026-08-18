@@ -2,11 +2,16 @@
 # Merge into the existing file (do not replace).
 
 # AGENTS.md truncation airbag. Codex's default project_doc_max_bytes is 32 KiB
-# (verified in source at rust-v0.144.3/main, 2026-07-13) and it truncates
-# SILENTLY past it. The budget is COMBINED root-first across the whole chain
-# (global ~/.codex/AGENTS.md + workspace + repo files), so a fat global starves
-# the workspace/repo docs. 64 KiB leaves the chain ample headroom; the editorial
-# budget on the global file itself is enforced separately by harness/build.py.
+# and it truncates SILENTLY past it. The budget covers the PROJECT chain only —
+# every AGENTS.md from the git root down to the cwd. The global
+# ~/.codex/AGENTS.md is NOT charged against it: Codex reads it whole into a
+# separate field, and the counter is initialized after that (verified in source
+# 2026-08-18 and reproduced — an 80 KiB project doc truncated while the 30 KiB
+# global stayed intact). So a fat global does NOT starve the repo docs; its own
+# size is a context-cost question that no harness caps — harness/build.py reports
+# it and enforces nothing.
+# 64 KiB is for the CHAIN: this hub's own root + harness AGENTS.md exceed the
+# 32 KiB default on their own.
 # TOML note: this is a top-level key — it must stay ABOVE the [agents] table.
 project_doc_max_bytes = 65536
 

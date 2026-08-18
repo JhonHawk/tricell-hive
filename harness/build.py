@@ -27,22 +27,40 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "harness" / "build"
 
-# AGENTS.md is the always-on core shared by Codex and opencode (pruned to
-# ~18 KiB 2026-07-14; situational depth lives behind the router skills).
-# Two thresholds, two purposes:
-#   BUDGET  — editorial limit: at this size, prune before adding. Re-bloat is
-#             a deliberate act, not drift.
-#   HARD    — build failure: the core has no business growing past this.
-# `project_doc_max_bytes` covers ONLY the repo chain (git-root → cwd); the
-# deployed global file does not count against it. Measured 2026-08-15 with
-# `codex debug prompt-input`: from harness/, loaded docs total 81,278 B against
-# a 65,536 cap with no truncation — only the 54,347 B chain is charged.
+# AGENTS.md is the always-on core shared by Codex, opencode and Grok — paid in
+# full at the start of EVERY session, in every project. That cost, not a byte
+# cap, is what these thresholds govern.
+#
+# The placement rule they enforce: the core holds SAFETY GATES and policy whose
+# trigger is an ACTION rather than a file; the mechanics of how to carry that
+# action out live behind the router skill, which the core points at. Gate and
+# pointer here, mechanics there — never both, or the core pays twice for what
+# the router already carries.
+#
+# There is NO size threshold on this file, by design. It had two (an editorial
+# budget and a build-failing hard limit); both were justified by a truncation
+# risk that does not exist, and in practice they turned every core edit into
+# byte-counting — trimming prose that earned its place to fit a number nobody
+# enforces. What governs growth is the PLACEMENT rule above (gate and pointer
+# here, mechanics in the router), a quality question, not a size one. The build
+# reports the file's size and its per-session token cost as a FACT, so the cost
+# stays visible without pretending to be a gate.
+# NO harness caps the global instruction file — verified 2026-08-18 in source
+# and reproduced empirically, so neither threshold below is about truncation:
+#   Codex — the global is read whole (`codex-home/src/instructions/mod.rs`) into
+#     a field separate from the `project_doc_max_bytes` counter, which is
+#     initialized AFTER the global is appended (`core/src/agents_md.rs`) and only
+#     consumes the PROJECT chain (git-root → cwd). Reproduced: an 80,824 B project
+#     AGENTS.md truncated at the 65,536 cap while the 30,322 B global stayed
+#     intact — 96,087 B total, above the cap, so they share no budget.
+#   opencode — read via `fs.readFileString()` and concatenated verbatim, no slice
+#     or max_bytes anywhere in the pipeline; a request for a configurable cap was
+#     closed "not planned".
+#   Grok — documented ("no character cap and no truncation") with a source test
+#     asserting full content, applied to user- and repo-level alike.
+# The one REAL cap is Codex's `project_doc_max_bytes` over the PROJECT chain —
+# which this repo hits only when a session opens under harness/ (see below).
 CHAIN_CAP_BYTES = 32 * 1024  # Codex default; the conservative number for a public repo
-AGENTS_BUDGET_BYTES = 31 * 1024  # 28 -> 31 on 2026-08-18: the prose pass reclaimed
-# every reclaimable byte, and the remaining overage was the always-on WHO routing table
-# (duplicated on purpose from agent-routing.md so spawning a specialist costs no skill
-# load). Capability kept over a self-imposed round number; the warning still guards drift.
-AGENTS_HARD_LIMIT_BYTES = 32 * 1024
 
 # Router skills (Codex/opencode leg): canonical rule files injected as
 # frontmatter-stripped references so each skill's routing table resolves.
@@ -76,6 +94,10 @@ SKILL_REFERENCE_INJECTIONS = {
     "task-routing": [
         ("rules-situational", "agent-routing.md"),
         ("rules-situational", "gap-resolution.md"),
+        # The core gates behavior on "trivial" (review scaling, test ritual) but
+        # only this file defines it — and no router carried it, so Codex/opencode
+        # judged the threshold with nothing to judge it by.
+        ("rules/quality", "critical-thinking.md"),
     ],
     "git-mechanics": [
         ("rules-situational", "git-mechanics.md"),
@@ -105,33 +127,19 @@ def regen_dir(path: Path):
     path.mkdir(parents=True)
 
 
-def check_agents_size():
-    """Guard the shared AGENTS.md against context bloat and Codex truncation.
+def report_agents_size():
+    """Report the always-on core's size and per-session cost. Never blocks.
 
-    Warns at the editorial budget; fails the build past the hard limit so a
-    Codex-truncating file never reaches deploy. Returns True if within budget.
+    No harness caps this file (see the header note), so there is nothing here to
+    fail the build on. The number is published because the cost is real — it is
+    paid at the start of every session in every project — and because a rising
+    trend is the cue to run the placement audit, not to reword paragraphs.
     """
     agents = ROOT / "harness" / "AGENTS.md"
     size = agents.stat().st_size
-    kib = size / 1024
-    if size > AGENTS_HARD_LIMIT_BYTES:
-        sys.exit(
-            f"ERROR: harness/AGENTS.md is {kib:.1f} KiB, over the "
-            f"{AGENTS_HARD_LIMIT_BYTES // 1024} KiB hard limit. It is the "
-            f"always-on core — move situational content behind a router skill "
-            f"(SKILL_REFERENCE_INJECTIONS) instead of growing it."
-        )
-    if size > AGENTS_BUDGET_BYTES:
-        print(
-            f"WARNING: harness/AGENTS.md is {kib:.1f} KiB, over the "
-            f"{AGENTS_BUDGET_BYTES // 1024} KiB editorial budget. It is a "
-            f"condensed file — prune or consolidate before adding more."
-        )
-        return False
-    print(f"harness/AGENTS.md: {kib:.1f} KiB (budget "
-          f"{AGENTS_BUDGET_BYTES // 1024} KiB, hard limit "
-          f"{AGENTS_HARD_LIMIT_BYTES // 1024} KiB).")
-    return True
+    print(f"harness/AGENTS.md: {size / 1024:.1f} KiB (~{size // 4:,} tokens "
+          f"per session, every project). No harness caps it; growth is governed "
+          f"by placement, not by a byte budget.")
 
 
 def report_codex_chain():
@@ -146,14 +154,35 @@ def report_codex_chain():
     if not root_agents.exists():
         return
     chain = root_agents.stat().st_size + (ROOT / "harness" / "AGENTS.md").stat().st_size
-    pct = chain / CHAIN_CAP_BYTES * 100
+    cap, origin = _codex_chain_cap()
+    pct = chain / cap * 100
     line = (f"codex chain (AGENTS.md + harness/AGENTS.md): {chain / 1024:.1f} KiB, "
-            f"{pct:.0f}% of the {CHAIN_CAP_BYTES // 1024} KiB default cap")
-    if chain > CHAIN_CAP_BYTES:
+            f"{pct:.0f}% of the {cap // 1024} KiB {origin} cap")
+    if chain > cap:
         print(f"NOTE: {line} — a Codex session opened under harness/ truncates "
-              f"silently unless project_doc_max_bytes is raised.")
+              f"silently. Raise project_doc_max_bytes in ~/.codex/config.toml, "
+              f"or move content behind a router skill.")
     else:
         print(line + ".")
+
+
+def _codex_chain_cap():
+    """The cap this machine actually enforces, not the vendor default.
+
+    A warning that fires against a number nobody uses is a warning nobody reads:
+    `project_doc_max_bytes` is routinely raised, and comparing against the 32 KiB
+    default then reports a truncation risk that does not exist here. Falls back to
+    the default when the key is absent — which is also what a fresh clone gets.
+    """
+    cfg = Path.home() / ".codex" / "config.toml"
+    if cfg.exists():
+        for raw in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw.split("#", 1)[0].strip()
+            if line.startswith("project_doc_max_bytes"):
+                digits = "".join(c for c in line.split("=", 1)[-1] if c.isdigit())
+                if digits:
+                    return int(digits), "configured"
+    return CHAIN_CAP_BYTES, "default"
 
 
 def main():
@@ -218,7 +247,7 @@ def main():
                 injected += 1
         print(f"injected {injected} references -> {refs}")
 
-    check_agents_size()
+    report_agents_size()
     report_codex_chain()
 
     print("harness/ regenerated. If `git status` shows changes, commit them — "

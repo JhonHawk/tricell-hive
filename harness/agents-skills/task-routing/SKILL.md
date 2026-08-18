@@ -27,6 +27,7 @@ the plan gate.
 |---|---|
 | Choosing which agent gets a task; a task spanning 2+ domains; whether to delegate at all; how verification and review are staged | `agent-routing.md` |
 | Writing the tasks of a plan; a prerequisite that blocks the work; two authoritative sources that disagree | `gap-resolution.md` |
+| Judging whether a change is TRIVIAL (the carve-out that scales review, tests and risk-surfacing down); deciding who OWNS an open decision; whether an alternative is worth surfacing | `critical-thinking.md` |
 
 References are injected at build time from `global/rules-situational/` into `references/`.
 Stable path after deploy: `~/.agents/skills/task-routing/references/<file>.md` (Claude Code

@@ -48,10 +48,14 @@ unless a snippet itself changes (e.g. `project_doc_max_bytes` gets a new value).
 ### `codex/config.toml.snippet` → `~/.codex/config.toml`
 
 - **`project_doc_max_bytes = 65536`** — the one that matters. Codex truncates the
-  AGENTS.md chain **silently** past its 32 KiB default, and the budget is **combined**
-  root-first (global + workspace + repo files), so a fat global starves the downstream
-  docs. 64 KiB gives the whole chain headroom; the global file's own size is enforced
-  separately by `build.py` (`AGENTS_BUDGET_BYTES`/`AGENTS_HARD_LIMIT_BYTES`).
+  AGENTS.md chain **silently** past its 32 KiB default. The budget covers the **project
+  chain only** (every AGENTS.md from the git root down to the cwd); the global
+  `~/.codex/AGENTS.md` is **not** charged against it — verified in source and reproduced
+  2026-08-18 (bibliography). A fat global therefore does NOT starve the repo docs; its
+  size is a per-session context cost with no cap in any harness — `build.py` reports it
+  (size + token estimate) but enforces nothing, because growth is governed by placement,
+  not by a byte budget. 64 KiB is for the CHAIN: this hub's own root + `harness/AGENTS.md`
+  exceed the 32 KiB default by themselves.
   TOML note: it is a top-level key — it must stay **above** the `[agents]` table.
 - **`[agents] max_threads / max_depth`** — subagent coordination for flow-build-style
   sessions (`max_depth = 1` is enough: orchestrator → workers).

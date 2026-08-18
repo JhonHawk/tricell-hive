@@ -8,16 +8,14 @@
 | Operation | Tool |
 |---|---|
 | Exhaustive literal search, usage counts, existence checks | `rg` — the only valid evidence for an absence claim |
-| Intent discovery, unknown terminology, legacy/untyped code | `jbcontext search` (per-repo) |
+| Intent discovery, unknown terminology, legacy/untyped code | `rg` with a broad vocabulary sweep (English AND Spanish domain terms, plural/singular, abbreviations), then Read the hits; delegate to `code-scout` when the sweep spans repos or the terminology is unknown |
 | Callers / impact / affected tests, structural questions on a known symbol | `codegraph` (`callers`, `impact`, `affected`, `explore`) |
 | Ambiguous scope questions (mixed design-vs-code, "where do we handle…") | rg + Read first; add index tools only after the question is concretized |
 | Conclusions, flows, "does X exist?" answered for a decision | agent loop (code-scout / Explore) + finding-refuter on negative claims |
 
 ## Contraindications
 
-- **CodeGraph in legacy/untyped JS repos**: its anchors mislead there — use jbcontext/rg. The routing hook denies it in declared legacy repos.
-- **jbcontext from a workspace root**: the root is a repository distinct from the repos beneath it, so an implicit cwd indexes or searches whatever directory you happen to be in, not the repo you meant. Always pass `--project-path <repo>` explicitly, per child git repo. `.jbcontextignore` with NO patterns excludes the directory it sits in (deterministic) and is not inherited into child repos — that is the workspace-root guard; WITH `.gitignore`-style patterns it excludes only those paths, so use it to keep `node_modules/` and vendored trees out of an indexed repo.
-- **Twin clones sharing a remote**: still one id — derived from the remote, not the path. Disambiguate with `--git-remote-url <synthetic-url>` on `index`, `search`, and `remove-index`; never rewrite the real remote.
+- **CodeGraph in legacy/untyped JS repos**: its anchors mislead there — use `rg` plus Read. The routing hook denies it in declared legacy repos.
 
 ## Anti-conclusion discipline
 
