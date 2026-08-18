@@ -4,12 +4,12 @@ The reconciler's entry, run on every `/flow-build` invocation: resolve which pla
 executed, adopt it if it was born organic, and read the pending state from git rather than
 from the plan header.
 
-1. Read `<project>/_support/PROJECT.md` (missing → suggest `/flow-start`, stop) and resolve
-   the plan: the path at `$ARGUMENTS` (a part file inside an initiative's `plan/`, or a single
-   `<slug>-plan.md`); **zero-arg → discover** the current session plan — the ledger's
-   `## Current handoff` plan pointer, else the newest `sessions/*/*-plan.md` with `Status:
-   planned|building`. Nothing found → report that and stop (plan mode or `/flow-plan` produce
-   one; a manually placed plan file works too).
+1. Read `<project>/_support/PROJECT.md` (missing → suggest applying the bootstrap-playbook,
+   stop) and resolve the plan: the path at `$ARGUMENTS` (a part file inside an initiative's
+   `plan/`, or a single `<slug>-plan.md`); **zero-arg → discover** the current session plan —
+   the ledger's `## Current handoff` plan pointer, else the newest `sessions/*/*-plan.md` with
+   `Status: planned|building`. Nothing found → report that and stop (native plan mode,
+   captured by the plan-capture hook, produces one; a manually placed plan file works too).
 2. **ADOPT — organic plans.** A captured plan-mode plan carries no reconciler metadata; adopt
    it **additively** (never rewrite the approved content): derive `T<n>` task boundaries from
    its steps, add `Verify:`/expected-output per task where the plan implies them, and the

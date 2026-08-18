@@ -154,17 +154,13 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── engram-init-workspace/     # /engram-init-workspace — unified .engram/config.json for multi-repo workspaces
 │   │   ├── SKILL.md
 │   │   └── bootstrap-workspace.sh
-│   ├── flow-core/                 # Flow pack shared library (non-invocable): contract + templates
+│   ├── flow-core/                 # Process library (non-invocable): contract, templates, playbooks
 │   │   ├── SKILL.md
-│   │   └── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, migration-playbook, judgment-criteria, audit-playbook, promotion-playbook, ux-rubric
-│   ├── flow-brainstorming/        # /flow-brainstorming — business-idea iteration into a decision
-│   ├── flow-start/                # /flow-start — greenfield wizard: intake + workspace bootstrap + technical foundation
-│   ├── flow-specs/                # /flow-specs — write/review specs: init | epic | review (+ spec rubric)
-│   ├── flow-plan/                 # /flow-plan — write the session plan (research | write) with agent-routing table
-│   ├── flow-build/                # /flow-build — execute the plan (state-driven reconciler + verify gate)
-│   ├── flow-workspace/            # /flow-workspace — audit | apply workspace hygiene
-│   ├── flow-adopt/                # /flow-adopt — bring a pre-pack project into the flow (specs repo, tiering, manifest)
-│   ├── flow-audit/                # /flow-audit — multi-lens preventive audit of runtime repos (epic close)
+│   │   ├── references/            # ledger-template, handoff-protocol, naming-template, specs-structure, plan-format,
+│   │   │                          #   judgment-criteria, ux-rubric, spec-rubric, requirements-rubric + the playbooks:
+│   │   │                          #   bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion
+│   │   └── templates/             # workspace-agents, workspace-claude, sessions-permissions
+│   ├── flow-build/                # /flow-build — execute or resume a captured plan (reconciler + verify gate)
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth

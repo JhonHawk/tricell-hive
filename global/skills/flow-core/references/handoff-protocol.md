@@ -101,8 +101,9 @@ with its output, and anything you couldn't complete with the reason.
 ## Phase handoff — the research → write → build → verify chain
 
 Everything above governs **agent dispatch** (skill → agent). The dev trinity
-(`flow-plan research` → `flow-plan write` → `flow-build` → its `verify` gate) also hands off
-**phase → phase**, and its carrier is an **artifact**, not the ledger's `## Current handoff`.
+(research → native plan mode, captured by the plan-capture hook → `flow-build` → its
+`verify` gate) also hands off **phase → phase**, and its carrier is an **artifact**, not
+the ledger's `## Current handoff`.
 This matters because a phase may run on a *different harness* than the one before it: the
 carrier has to be a durable file any harness reads cold, not session state.
 

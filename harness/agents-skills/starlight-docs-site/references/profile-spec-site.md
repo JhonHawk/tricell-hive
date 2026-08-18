@@ -16,7 +16,7 @@ site presents the **product topology**, never the delivery taxonomy:
 | Module | `product/<module>/` — a business capability |
 | Slice (rebanada) | ≈ a **vista** — `product/<module>/<vista>.md` |
 | BRD per slice | the vista page: business rules IN FORCE, accumulated across epics |
-| Gates on a slice | the **business gate** (`/flow-specs review`) on the epics that shaped it |
+| Gates on a slice | the **business gate** (the spec-writing playbook's review step) on the epics that shaped it |
 | — | `epics/` — planning deltas; appendix material on the site, never the nav axis |
 
 Epics are *deltas*; vistas are the *state*. A vista page lists the epics that shaped it in
@@ -55,9 +55,9 @@ status with dated evidence. States: `draft` → `gate1-approved` → `gate2-appr
 governance page (`product-workflow.mdx`) lives under "Guías", outside the specs navigation.
 
 On a flow-core repo the gates map, they don't multiply: `gate1-approved` ≈ the business
-gate passed (`/flow-specs review` — rules decided, vista updated); `gate2-approved` ≈
-delivered/UAT signed. Technical resolution is TECH.md's gate (flow-plan) and never blocks
-`gate1`.
+gate passed (the spec-writing playbook's review step — rules decided, vista updated);
+`gate2-approved` ≈ delivered/UAT signed. Technical resolution is TECH.md's gate (native
+plan mode) and never blocks `gate1`.
 
 ## The workflow rubric (frontmatter + component)
 

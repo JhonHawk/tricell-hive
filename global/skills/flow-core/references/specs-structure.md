@@ -1,7 +1,8 @@
 # Specs repo structure — conventions
 
-Used by `/flow-specs init` to create `<project>/<project>-specs/` and by `/flow-workspace` to
-check conformance. Core shape: **one folder per work item, named by its tracker ID**; the
+Used by the spec-writing playbook's `init` step to create `<project>/<project>-specs/` and by
+the workspace-hygiene-playbook to check conformance. Core shape: **one folder per work item,
+named by its tracker ID**; the
 **product spec separated from the tech spec**; specs as the source of truth implementation
 must match, with tech specs citing real code paths (`file.rs:24-145`) so they stay
 verifiable; and a **product layer** (`product/`) holding the business truth in force — the
@@ -30,7 +31,7 @@ reads `product/`; a developer plans from `epics/`.
 ├── releases/                # Client-facing release notes per promotion (release-notes-template.md): YYYY-MM-DD-<env>.md
 ├── epics/
 │   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd
-│       ├── PRODUCT.md        # The DELTA: what changes and why — written at the specs stage, gate: /flow-specs review
+│       ├── PRODUCT.md        # The DELTA: what changes and why — written at the specs stage, gate: the spec-writing playbook's business gate
 │       ├── TECH.md           # How — written when foundation exists; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task — derived post-gate
 │                             # ── EXECUTION (what actually happened) ──
@@ -102,7 +103,7 @@ Tracker: <epic URL or — if untracked> · Mock: <route in the mocks repo, if it
 
 **PRODUCT.md carries no technical content.** Schemas, endpoints, table/column shapes,
 token/session mechanics, algorithms, and library choices belong to TECH.md (foundation
-material, now `/flow-start`). A
+material, now the bootstrap-playbook). A
 technical question that surfaces while drafting or reviewing the epic is *parked* as an
 Open Question with an owner — resolving it inside PRODUCT.md is the defect this rule
 exists to prevent (the review gate hardens it: `spec-rubric.md` hard checks).
@@ -145,19 +146,20 @@ Then <verifiable outcome>
   ledger (Linear team key, Jira project key); with `Tracker: none`, IDs are self-assigned
   (`E07`, …) and tasks.md is the source of truth. If an epic is re-scoped in the tracker,
   the spec updates in the same change — divergence between the tracker and the specs repo
-  is a defect (`/flow-workspace` flags it).
+  is a defect (the workspace-hygiene-playbook flags it).
 - **The map precedes epics.** An epic may only reference vistas/modules that exist in
   `product/` — when the epic introduces a new one, creating the map entry is part of the
-  epic's draft. At business-gate pass (`/flow-specs review`), the epic's rules are applied
+  epic's draft. At business-gate pass (the spec-writing playbook's business gate), the epic's rules are applied
   to the vista pages and the `Influenciada por` entries are added: the vista absorbs the
   *decided* rules, even before they are built — the epic index status tells the reader
   what is decided vs delivered.
 - **PRODUCT.md before TECH.md, TECH.md before code — and each has its own gate.** A
-  PRODUCT.md merges only after passing `/flow-specs review` (the **business gate**: rules,
-  scope, verifiability — technical findings get parked, not resolved). TECH.md cites real
-  paths — it cannot be written before the foundation exists, and it goes stale loudly
-  (paths stop resolving) rather than silently; it closes the epic's parked technical
-  questions, verified at the `flow-plan` plan gate (the **technical gate**).
+  PRODUCT.md merges only after passing the spec-writing playbook's business gate (the
+  **business gate**: rules, scope, verifiability — technical findings get parked, not
+  resolved). TECH.md cites real paths — it cannot be written before the foundation exists,
+  and it goes stale loudly (paths stop resolving) rather than silently; it closes the
+  epic's parked technical questions, verified at native plan mode's plan gate (the
+  **technical gate**).
 - **tasks.md is derived AFTER the business gate.** Task decomposition (units of work,
   repo assignment, per-task Gherkin) is delivery planning over *gated* rules — writing
   it pre-gate means every business finding invalidates already-synced tasks. Business
@@ -191,12 +193,13 @@ Then <verifiable outcome>
 - Documents in the client's language; Gherkin keywords stay in English
   (`Given/When/Then`) for tooling compatibility.
 - **Optional Astro Starlight presentation layer.** A specs repo MAY carry a Starlight
-  site (opted in at `/flow-specs init`, scaffolded via the `starlight-docs-site` skill's
-  `spec-site` profile) rendering the same content as a navigable site. Its scaffold
-  (`package.json`, `astro.config.*`, `src/`, `public/`) is conformant and sits *over* the
-  structure above — it never replaces it: `product/`, `conventions/`, `contracts/`,
-  `decisions/`, `epics/`, `sessions/` stay the source of truth at their paths.
-  `/flow-workspace` treats the scaffold as expected, not as misplaced files.
+  site (opted in at the spec-writing playbook's `init` step, scaffolded via the
+  `starlight-docs-site` skill's `spec-site` profile) rendering the same content as a
+  navigable site. Its scaffold (`package.json`, `astro.config.*`, `src/`, `public/`) is
+  conformant and sits *over* the structure above — it never replaces it: `product/`,
+  `conventions/`, `contracts/`, `decisions/`, `epics/`, `sessions/` stay the source of
+  truth at their paths. The workspace-hygiene-playbook treats the scaffold as expected,
+  not as misplaced files.
   - **The sidebar IS the product map** — Introducción (map: qué es, actores y roles,
     flujo completo) → one group per module with its vistas → an appendix group (épicas,
     decisiones, requisitos) as reference material, last. Delivery taxonomy (epic IDs,
@@ -237,8 +240,8 @@ slug-not-date rule governs files, not this container); sub-sessions carry their 
 so a later day nests inside the initiative instead of fragmenting into a sibling folder.
 Each plan part carries its own `Status` (`plan-format.md`); the master plan's part index
 lists them. **One-off work stays a flat session** — promote to an initiative only when it
-grows (the move is `/flow-workspace`'s; `flow-plan write` proposes the split when scope
-density warrants it).
+grows (the move is the workspace-hygiene-playbook's; native plan-mode writing proposes the
+split when scope density warrants it).
 
 **Back-reference (by slug).** A session's `<slug>-plan.md` declares `Implements:` the
 intention it executes; the intention records the session that implemented or changed it
@@ -247,7 +250,7 @@ execution diverges from the spec, update the spec (source of truth) and record t
 slug as the origin — `gap-resolution.md > Divergence Between Sources`.
 
 **Lifecycle** (recorded in the sessions index, never the ledger): `in-progress` (active
-`<slug>-plan.md`) → `concluded` (work done, promotion pending — `/flow-workspace` flags it)
-→ `finalized` (durable outputs promoted, raw pruned). A concluded/finalized session is
+`<slug>-plan.md`) → `concluded` (work done, promotion pending — the workspace-hygiene-playbook
+flags it) → `finalized` (durable outputs promoted, raw pruned). A concluded/finalized session is
 immutable — a later correction supersedes with a new linked record, never an in-place
 edit.

@@ -1,6 +1,6 @@
 # naming.md — instantiated naming table template
 
-Written by `/flow-start` (foundation stage) to `<project>-specs/conventions/naming.md`,
+Written per the bootstrap-playbook (foundation stage) to `<project>-specs/conventions/naming.md`,
 consumed by `devops-engineer`, the promotion walk (gate + `verify` audit, via
 `promotion-playbook.md`), contract authors (system-designer, specs-stage spec sessions),
 and any session that creates an infra resource or defines a cross-layer identifier. The generic rule lives in the global rule

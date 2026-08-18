@@ -1,17 +1,15 @@
----
-name: flow-specs
-description: >
-  Manage the project's specs repo (the specs stage): create it with the canonical
-  structure (init), draft a NEW epic or revise an EXISTING one with Gherkin tasks synced
-  to the project's tracker (epic / revise), or run the pre-implementation quality gate
-  with two independent reviewers (review). Use when creating, revising, or reviewing
-  specs/épicas for a client project — including scope changes from stakeholder feedback,
-  even after implementation started.
----
+# Spec-writing playbook — creating the specs repo, drafting epics, and the business gate
 
-# /flow-specs — specs repo lifecycle
+The procedure behind the specs layer: standing the repo up, drafting or revising an epic,
+and the MANDATORY business gate that must pass before delivery is derived. Artifact shapes
+(repo layout, PRODUCT.md / TECH.md skeletons, tasks.md, Gherkin) live in
+`specs-structure.md`; the quality bar the reviewers apply lives in `spec-rubric.md`.
+Runs conversationally — the stages below are checklists, not a command.
 
-Follow the flow contract (`~/.agents/skills/flow-core/SKILL.md`). Parse `$1` as the
+
+## Stages
+
+Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). Work the stage that applies:
 subcommand; `revise` is an alias of `epic` for an existing epic (same flow, same review
 gate). With no argument, show the subcommands and the epics index status.
 
@@ -19,8 +17,8 @@ gate). With no argument, show the subcommands and the epics index status.
 
 1. OPEN per the contract (ledger must exist; record the specs repo in it at CLOSE).
 2. Create `<project>/<project>-specs/` following
-   `~/.agents/skills/flow-core/references/specs-structure.md` exactly: README index,
-   `product/` (map README seeded from the `/flow-start` material — requirements + workspace
+   `~/.claude/skills/flow-core/references/specs-structure.md` exactly: README index,
+   `product/` (map README seeded from the the greenfield bootstrap material — requirements + workspace
    bootstrap: portals, actors/roles,
    end-to-end flow — module folders appear as epics define them), `conventions/`,
    `contracts/`, `decisions/`, `evidence/`, `epics/`.
@@ -41,8 +39,8 @@ gate). With no argument, show the subcommands and the epics index status.
    load tools via ToolSearch; cli → `acli` for Jira; api → env token; manual/none →
    skip, the specs repo is the task source): find or create the project, record the URL
    in README and PROJECT.md. Fields missing from the ledger → ask once and record them
-   (`/flow-start` normally sets them; pre-pack workspaces get them via `/flow-adopt`).
-6. If `_support/` already holds high-level spec material from `/flow-start`, propose the promotion
+   (the bootstrap playbook normally sets them; pre-pack workspaces get them through the migration playbook).
+6. If `_support/` already holds high-level spec material from the bootstrap stage, propose the promotion
    plan (what moves into the repo, what stays as scratch) — file-routing rule question 4.
 
 ## `epic <name>` / `revise <epic-ref>` — draft a new epic or revise an existing one
@@ -68,7 +66,7 @@ is only steps 1–2.
    **business only**: the delta plus its acceptance scenarios (Success Criteria /
    Validation, happy AND negative paths). NO tasks.md yet — task decomposition is
    delivery planning and waits for the gate (step 4). TECH.md comes later, once
-   `/flow-start`'s foundation stage ran — its Relevant Code section needs real paths. PRODUCT.md carries
+   the bootstrap playbook's foundation stage ran — its Relevant Code section needs real paths. PRODUCT.md carries
    **no technical content**: a technical question that surfaces while drafting is parked
    in Open Questions (`technical — resolves in TECH.md`), never answered in the spec.
 4. **The business gate is part of this subcommand, not optional**: run `review` on the
@@ -90,8 +88,8 @@ is only steps 1–2.
 ## `review <spec-ref>` — the BUSINESS gate
 
 This gate closes *business* questions: rules, scope, actors, verifiability. It never
-resolves technical ones — the technical gate is TECH.md at `flow-plan`, once
-`/flow-start`'s foundation stage ran.
+resolves technical ones — the technical gate is TECH.md at native plan mode's plan gate,
+once the bootstrap playbook's foundation stage ran.
 
 1. **Resolve `<spec-ref>` to an epic folder** (against the specs repo found at OPEN):
    - **Existing path** → a folder is the epic; a file inside it (`PRODUCT.md`/`TECH.md`/
@@ -102,9 +100,9 @@ resolves technical ones — the technical gate is TECH.md at `flow-plan`, once
      the available epics listed from the README index.
    - **No argument** → show the epics index and ask which to review; do not guess.
 2. Dispatch BOTH reviewers in parallel (one message, two Agent calls), per the handoff
-   protocol (`~/.agents/skills/flow-core/references/handoff-protocol.md`):
+   protocol (`~/.claude/skills/flow-core/references/handoff-protocol.md`):
    - **spec-quality-reviewer** — pass: the epic path, the rubric path
-     (`$HOME/.agents/skills/flow-specs/references/spec-rubric.md`), pointers to sibling epics and
+     (`${CLAUDE_SKILL_DIR}/references/spec-rubric.md`), pointers to sibling epics and
      contracts for implicit-rule hunting, and the intent: "findings feed a go/no-go gate
      before implementation; the user fixes the spec, not the client".
    - **product-critic** — pass: the epic path, the workspace layout (where the other

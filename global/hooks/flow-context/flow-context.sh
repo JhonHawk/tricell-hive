@@ -36,29 +36,49 @@ while [ -n "$dir" ] && [ "$dir" != "/" ]; do
 done
 [ -n "$ledger" ] || exit 0
 
-# ─── Phase section: once per session, re-firing on ledger mtime change ───────
+# ─── Phase section: captured plans that still have work outstanding ──────────
+#
+# The trigger is the ARTIFACT, never the ledger's declared phase. A plan file
+# exists because native plan mode produced one and the plan-capture hook adopted
+# it — so the signal is produced upstream of any flow command, instead of by the
+# very command it would suggest (the old ledger-phase source could only be fed by
+# a run that never happened, so it never fired). Entering plan mode IS the
+# proportionality filter: a small change makes no plan and earns no offer.
 phase_out=""
-mtime=$(stat -f %m "$ledger" 2>/dev/null || stat -c %Y "$ledger" 2>/dev/null || echo 0)
+root=${ledger%/_support/PROJECT.md}
+sessions_home=""
+specs_sessions=$(find "$root" -maxdepth 2 -type d -path '*-specs/sessions' 2>/dev/null | head -1)
+if [ -n "$specs_sessions" ]; then
+  sessions_home="$specs_sessions"
+elif [ -d "$root/_support/sessions" ]; then
+  sessions_home="$root/_support/sessions"
+fi
+
+pending=""
+if [ -n "$sessions_home" ]; then
+  while IFS= read -r plan; do
+    [ -n "$plan" ] || continue
+    st=$(grep -m1 -E '^Status:' "$plan" 2>/dev/null | sed -E 's/^Status:[[:space:]]*([a-z]+).*/\1/')
+    case "$st" in
+      planned|building) pending="${pending}"$'\n'"- ${plan#"$root"/} (Status: $st)" ;;
+    esac
+  done < <(find "$sessions_home" -maxdepth 2 -type f -name '*-plan.md' 2>/dev/null | sort)
+fi
+
+# Re-fire when the pending set or any Status changes; stay quiet otherwise.
 phase_fire=1
+sig=$(printf '%s' "$pending" | cksum | cut -d' ' -f1)
 if [ -n "$session_id" ]; then
   phase_marker="${TMPDIR:-/tmp}/claude-flow-context-phase-${session_id}"
-  if [ -f "$phase_marker" ] && [ "$(cat "$phase_marker" 2>/dev/null)" = "$mtime" ]; then
+  if [ -f "$phase_marker" ] && [ "$(cat "$phase_marker" 2>/dev/null)" = "$sig" ]; then
     phase_fire=0
   fi
 fi
-if [ "$phase_fire" = "1" ]; then
-  # Accept both vocabularies: `Current stage` (v2 ledger template) and `Current phase` (pre-v2 ledgers).
-  phase=$(grep -m1 -E '^\| *Current (stage|phase) *\|' "$ledger" 2>/dev/null | sed -E 's/^\| *Current (stage|phase) *\| *(.*[^ ]) *\|.*$/\2/')
-  next=$(grep -m1 -E '^- *Next suggested:' "$ledger" 2>/dev/null | sed -E 's/^- *Next suggested: *//')
-  # Ledger present but both fields missing/blank → skip the phase section.
-  if [ -n "$phase$next" ]; then
-    phase_out="Flow workspace — state from the ledger ($ledger):"
-    [ -n "$phase" ] && phase_out="${phase_out}"$'\n'"- Current stage: $phase"
-    [ -n "$next" ] && phase_out="${phase_out}"$'\n'"- Next suggested step: $next"
-    phase_out="${phase_out}"$'\n'"- Advisory: the ledger can be stale — verify before relying on it. Flow commands are offered to the user, never invoked uninvited (global rule: Skill Auto-invocation)."
-    # Record the mtime only once we actually emit (so a blank ledger re-checks next prompt).
-    [ -n "$session_id" ] && printf '%s' "$mtime" > "$phase_marker" 2>/dev/null || true
-  fi
+if [ "$phase_fire" = "1" ] && [ -n "$pending" ]; then
+  phase_out="Flow workspace — captured plans with work outstanding (paths relative to $root):${pending}"
+  phase_out="${phase_out}"$'\n'"- The Status header plus git IS the execution state; a checked box is not. Verify against git before trusting a Status."
+  phase_out="${phase_out}"$'\n'"- Offer \`/flow-build\` ONCE this session to execute or resume, naming the direct route as the alternative; a no is sticky. Never invoke it uninvited (global rule: Skill Auto-invocation)."
+  [ -n "$session_id" ] && printf '%s' "$sig" > "$phase_marker" 2>/dev/null || true
 fi
 
 # ─── Plan section: plan mode only, once per session ──────────────────────────

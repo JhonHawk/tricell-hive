@@ -1,8 +1,9 @@
 # Documentary migration playbook
 
 Canonical procedure for bringing an existing project (current OR past) into the session-based
-documentary convention. Consumed by **`/flow-adopt`**; also self-contained enough to
-paste to any project's agent (including non-Claude-Code harnesses) where the skill is not deployed.
+documentary convention. Applied directly by any session bringing a pre-pack project into the
+flow; also self-contained enough to paste to any project's agent (including non-Claude-Code
+harnesses) where the skill is not deployed.
 
 The full convention is `specs-structure.md > Session & initiative conventions` (summary:
 `project-structure.md > Session capture layer`); if this playbook and the convention ever disagree,
@@ -109,6 +110,18 @@ Rename non-ISO date tokens (`DD-MM-YYYY`, `DD_MM_YYYY`, `DDMMYYYY`, `MM-DD-YYYY`
 - Delete non-reproducible only after typed confirmation (`eliminar` + ids); doubt → archive.
 - Preserve the raw/curated split; preserve content verbatim when moving/promoting (migrate, don't rewrite).
 - If a specs repo was created: stage and make its initial commit at the end.
+
+## Phase 7 — Ambient refresh (the instruction pair)
+
+- Workspace carrying only a `CLAUDE.md` (the pre-pack pattern) → OFFER the inversion as
+  `/agents-md-primary <path>`; that skill owns the mechanics and is user-gated, so never restate
+  or auto-run them here.
+- Workspace `AGENTS.md` predating the current template → rewrite that block to
+  `flow-core/templates/workspace-agents.md` as a coherent revision, never a string swap.
+- `.claude/settings.json` missing the `sessions/**` pre-authorization → add it from
+  `flow-core/templates/sessions-permissions.json`.
+
+Re-running the migration is safe by design: already-conforming artifacts produce no findings.
 
 ## Output
 

@@ -70,5 +70,5 @@ truth`) — a memory is a claim verified *against* these, never trusted *over* t
 ## Notes
 
 - **Does NOT configure Engram** (the plugin self-manages). It *uses* the lifecycle tools — `mem_update` / `mem_delete` (invalidate/remove), `mem_review action=list` (harvest observations whose decay window passed, an extra staleness signal). `mem_compare` is NOT a lifecycle tool — it only records a supersedes/conflict relation and does not by itself remove or hide a memory.
-- **Why audit runs in the main thread** (unlike flow-workspace's custodian): reconciliation needs the live Engram session the main thread holds; a fresh subagent would lack it. Only the wide disk sweep is delegable.
+- **Why audit runs in the main thread** (unlike the workspace-hygiene-playbook's custodian dispatch): reconciliation needs the live Engram session the main thread holds; a fresh subagent would lack it. Only the wide disk sweep is delegable.
 - Background and the upstream protocol: `memory-routing.md > Invalidation` (via the `memory-policy` skill) and `quality/debugging.md > Reporting state from ground truth`.

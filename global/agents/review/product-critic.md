@@ -3,7 +3,7 @@ name: product-critic
 description: >
   Adversarial pre-implementation critique of a spec, épica, or proposed feature: challenges
   necessity, scope, and shape with full workspace context. Use BEFORE implementation begins
-  (flow-specs review) — NOT for spec completeness or formatting (that is
+  (the business gate of the spec-writing playbook) — NOT for spec completeness or formatting (that is
   spec-quality-reviewer).
 tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: opus

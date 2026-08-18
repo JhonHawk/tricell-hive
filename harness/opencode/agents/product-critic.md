@@ -1,7 +1,7 @@
 ---
 # Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
-  Adversarial pre-implementation critique of a spec, épica, or proposed feature: challenges necessity, scope, and shape with full workspace context. Use BEFORE implementation begins (flow-specs review) — NOT for spec completeness or formatting (that is spec-quality-reviewer).
+  Adversarial pre-implementation critique of a spec, épica, or proposed feature: challenges necessity, scope, and shape with full workspace context. Use BEFORE implementation begins (the business gate of the spec-writing playbook) — NOT for spec completeness or formatting (that is spec-quality-reviewer).
 mode: subagent
 color: info
 permission:

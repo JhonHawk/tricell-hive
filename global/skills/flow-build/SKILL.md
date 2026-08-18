@@ -11,7 +11,8 @@ disable-model-invocation: true
 # /flow-build — execute the plan
 
 Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). This is the *doing* half of
-the dev chain: it executes the plan `/flow-plan write` produced. It is a **reconciler** — it reads the
+the dev chain: it executes the plan native plan mode (captured by the plan-capture hook)
+produced. It is a **reconciler** — it reads the
 desired state (the plan) and the observed state (git), and converges toward the next pending
 state. It never re-does landed work and never trusts a header over git.
 

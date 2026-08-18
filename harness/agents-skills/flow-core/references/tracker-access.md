@@ -1,7 +1,7 @@
 # Tracker access — shared mechanics
 
 > Single home for the access ladder and batching semantics the tracker touchpoints used to
-> restate. Consumers: flow-specs (task sync), flow-build (close), flow-audit /
+> restate. Consumers: the spec-writing playbook (task sync), flow-build (close),
 > audit-playbook (ticket filing), memory-sync (propagation), promotion-playbook (close
 > check), and the `state-fetcher` executor. Policy owner stays
 > `rules-situational/memory-routing.md > Tracker sync`; ledger field semantics stay in

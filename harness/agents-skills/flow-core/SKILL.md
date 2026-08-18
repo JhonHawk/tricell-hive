@@ -1,9 +1,10 @@
 ---
 name: flow-core
 description: >
-  Shared protocol and templates for the flow pack (flow-brainstorming, flow-start, flow-adopt,
-  flow-specs, flow-plan, flow-build, flow-workspace, flow-audit, flow-report). Not a
-  workflow itself — it is the library every flow-* skill reads for the flow contract, the
+  Shared protocol and templates for the flow pack: the live skills (flow-build, flow-report)
+  and the playbooks that preserve the retired flow-* commands' knowledge (bootstrap,
+  migration, spec-writing, workspace-hygiene, audit, promotion). Not a workflow itself — it
+  is the library every flow-* skill and playbook reads for the flow contract, the
   file-routing rule, and the canonical templates (ledger, handoff protocol, naming table,
   specs structure).
 ---
@@ -20,7 +21,7 @@ session.
 Every `flow-*` skill follows this contract.
 
 1. **OPEN (DoR)** — read `<project>/_support/PROJECT.md` (the ledger). If it does not
-   exist and the current skill is not `flow-start`: stop and suggest `/flow-start`.
+   exist: stop and follow `references/bootstrap-playbook.md` to establish it first.
    Never improvise workspace structure. Then **consume the `## Current handoff` section**
    if the previous phase left one — it is the bounded context that phase produced for you
    (paths, decisions, what changed, the repos to treat as input). Verify the phase's
@@ -37,7 +38,7 @@ Every `flow-*` skill follows this contract.
 4. **ORCHESTRATE** — the main thread routes and synthesizes. It does NOT implement,
    review, or verify by itself. Every substantive work unit goes to an agent in a fresh
    context; only summaries return to the main thread. Declared exceptions: mock work
-   units (built via flow-plan/flow-build like any other unit — prototype carve-out) and
+   units (built via native plan mode/flow-build like any other unit — prototype carve-out) and
    flow-build on a harness without specialist agents may implement in the main thread —
    review and verification stay in fresh contexts everywhere.
 5. **HANDOFF** — every agent prompt follows `references/handoff-protocol.md`: intent and
@@ -71,13 +72,13 @@ scales to the cost of undoing its writes, never uniform:
 
 | Phase writes | Gate |
 |---|---|
-| Production / real code (flow-plan/flow-build) | Strong plan gate — already defined in those skills |
-| Resources derived from a signed naming table (`/flow-start` foundation stage, repo matrix) | Signal-gated: proceed-and-report on clean derivation; gate on a new naming exception, unsettled repo split, or client-org blast radius (highest-risk `/flow-start` gate) |
-| A mock work unit (a whole repo cheap-to-rebuild but costly-to-redo) | Light plan gate via flow-plan: epics/screens/stack/order, approved before building |
-| A draft that re-enters its own review gate (flow-specs `epic`) | The review gate IS the gate; no separate plan gate |
-| `/flow-start` conversational stages (intake scorecard, workspace bootstrap confirm) | Per-stage conversational gate — a scorecard/confirm the user answers, no plan file |
+| Production / real code (native plan mode/flow-build) | Strong plan gate — already defined in those skills |
+| Resources derived from a signed naming table (bootstrap-playbook foundation stage, repo matrix) | Signal-gated: proceed-and-report on clean derivation; gate on a new naming exception, unsettled repo split, or client-org blast radius (highest-risk bootstrap gate) |
+| A mock work unit (a whole repo cheap-to-rebuild but costly-to-redo) | Light plan gate via native plan mode: epics/screens/stack/order, approved before building |
+| A draft that re-enters its own review gate (the spec-writing playbook's `epic` step) | The review gate IS the gate; no separate plan gate |
+| Bootstrap-playbook conversational stages (intake scorecard, workspace bootstrap confirm) | Per-stage conversational gate — a scorecard/confirm the user answers, no plan file |
 | Promotion to an environment (qa/prod) | Git-workflow safety gates (`git-workflow.md`) + `references/promotion-playbook.md` — not a flow skill gate |
-| Deterministic bootstrap (`/flow-start` structure, flow-specs `init`) | No gate — a plan adds friction without reducing risk |
+| Deterministic bootstrap (bootstrap-playbook structure, spec-writing playbook's `init` step) | No gate — a plan adds friction without reducing risk |
 
 A gate heavier than the phase's reversibility is ceremony; lighter is a foot-gun.
 
@@ -125,7 +126,7 @@ or `<repo>/_support/sessions/<slug>/reports/` (detection rule: `project-structur
 Raw evidence (screenshots, logs) stays in `_support/evidence/<slug>/` (gitignored),
 referenced by path — never embedded in the versioned report. Flow skills cite this
 instead of restating it. **Declared carve-out — baseline-comparison reports
-(`/flow-audit`):** cross-run comparison needs one stable home plus a history table, which
+(the audit-playbook):** cross-run comparison needs one stable home plus a history table, which
 per-slug session folders can't give, so audit runs write to
 `<project>-specs/audit/reports/YYYY-MM-DD.html` with the instance README as index
 (`references/audit-playbook.md` owns the layout; sanctioned in `specs-structure.md`).
@@ -135,17 +136,17 @@ Without a specs repo, the standard session form above applies unchanged.
 
 | Reference | When to read it |
 |---|---|
-| `references/ledger-template.md` | Creating PROJECT.md (`/flow-start`) or repairing/reconstructing it (`flow-workspace`, `/flow-adopt`) |
-| `references/judgment-criteria.md` | Judging workspace artifacts (`/flow-workspace audit`, `/flow-adopt`) |
-| `references/audit-playbook.md` | Running or instantiating a multi-lens preventive audit (`/flow-audit`) |
-| `references/migration-playbook.md` | Bringing a pre-pack project into the flow (`/flow-adopt`) |
+| `references/ledger-template.md` | Creating PROJECT.md (per `bootstrap-playbook.md`) or repairing/reconstructing it (`workspace-hygiene-playbook.md`, `migration-playbook.md`) |
+| `references/judgment-criteria.md` | Judging workspace artifacts (`workspace-hygiene-playbook.md`'s audit, `migration-playbook.md`) |
+| `references/audit-playbook.md` | Running or instantiating a multi-lens preventive audit |
+| `references/migration-playbook.md` | Bringing a pre-pack project into the flow |
 | `references/handoff-protocol.md` | Before dispatching ANY agent from a flow skill; also the research→write→build→verify phase-handoff chain |
-| `references/plan-format.md` | Writing an executable plan (`flow-plan write`) or executing one (`flow-build`) — the plan-as-state contract |
-| `references/naming-template.md` | Instantiating the project naming table (`/flow-start` foundation stage) or auditing it (promotion `verify`) |
+| `references/plan-format.md` | Writing an executable plan (native plan mode, captured by the plan-capture hook) or executing one (`flow-build`) — the plan-as-state contract |
+| `references/naming-template.md` | Instantiating the project naming table (bootstrap-playbook foundation stage) or auditing it (promotion `verify`) |
 | `references/promotion-playbook.md` | Promoting to qa/prod via git conventions — read by deploy sessions and `devops-engineer`, offered by the session hook |
 | `references/ux-rubric.md` | The design/UX gate — consumed by `flow-build`'s design gate and by mock-review work |
 | `references/test-report-template.md` | Writing the versioned in-vivo/QA report (`flow-build` gate; the QA promotion walk via `promotion-playbook.md`) |
-| `references/specs-structure.md` | Creating the specs repo (`flow-specs init`, `/flow-adopt`) or checking conformance (`flow-workspace`) |
+| `references/specs-structure.md` | Creating the specs repo (`spec-writing-playbook.md`'s `init` step, `migration-playbook.md`) or checking conformance (`workspace-hygiene-playbook.md`) |
 | `references/release-notes-template.md` | Drafting client release notes (the QA/prod promotion walk via `promotion-playbook.md`) |
 | `references/harness-mechanics.md` | You are NOT Claude Code (Codex/opencode reading these skills from `~/.agents/skills/`) — translates mechanic names before executing any flow skill |
 
@@ -164,18 +165,22 @@ The pack is organized by **project stage**, not a fixed phase sequence. The dail
 (brainstorm → spec → plan → execute) lives *inside* the `desarrollo` stage and repeats per
 unit of work; a mock is just a work TYPE that runs the same loop.
 
+Most former per-stage commands are dissolved: their knowledge lives as playbooks in
+`references/`, applied directly rather than invoked. Only `flow-build` and `flow-report`
+remain live commands.
+
 | Project stage | How it runs |
 |---|---|
-| `arranque` | `/flow-start` — greenfield wizard: intake + workspace bootstrap + foundation (repos, naming table, CI/CD), fused into one conversational flow. Pre-pack projects enter via `/flow-adopt` (specs repo, tiering, gated migration manifest) |
-| `specs` | `/flow-specs` — specs repo (`init`), epic drafting + tracker sync (`epic`), quality gate (`review`) |
-| `desarrollo` | the daily chain, per unit of work: `/flow-brainstorming` → `/flow-specs` → native plan mode (`/flow-plan` captures/adopts it) → `/flow-build` executes and verifies. Mock work units run the same chain |
+| `arranque` | Applied via `references/bootstrap-playbook.md` — greenfield: intake + workspace bootstrap + foundation (repos, naming table, CI/CD), fused into one conversational flow. Pre-pack projects enter via `references/migration-playbook.md` (specs repo, tiering, gated migration manifest) |
+| `specs` | Applied via `references/spec-writing-playbook.md` — specs repo (`init`), epic drafting + tracker sync (`epic`), quality gate (`review`) |
+| `desarrollo` | the daily chain, per unit of work: idea exploration (converges on proceed/discard/defer per `rules/quality/critical-thinking.md`) → `references/spec-writing-playbook.md` → native plan mode (captured by the plan-capture hook) → `/flow-build` executes and verifies. Mock work units run the same chain |
 | `operación` | promotion to qa/prod via git conventions (`git-workflow.md`) + `references/promotion-playbook.md` — no dedicated skill |
 
 Transversal (not a stage):
 
-| Skill | Role |
+| Skill / playbook | Role |
 |---|---|
-| `/flow-workspace` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
-| `/flow-audit` | Multi-lens preventive audit of runtime repos (epic close, pre-architectural change): parallel readers → dedup → refuters → versioned HTML report per `references/audit-playbook.md` |
+| `references/workspace-hygiene-playbook.md` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
+| `references/audit-playbook.md` | Multi-lens preventive audit of runtime repos (epic close, pre-architectural change): parallel readers → dedup → refuters → versioned HTML report |
 | `flow-report` | Shared rendering skill (like flow-core, not a stage): renders substantial human-targeted output as self-contained HTML; auto-invokes per `rules/quality/communication-format.md` |
-| `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill reads |
+| `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill and playbook reads |

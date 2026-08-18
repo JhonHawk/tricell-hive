@@ -1,8 +1,8 @@
 # Plan format — the executable, harness-agnostic plan
 
-A plan written by `flow-plan write` is **two things at once**: the contract another harness
-executes, and the durable state of that execution. Both roles impose the same discipline —
-the plan must be self-sufficient.
+A plan written in native plan mode (captured by the plan-capture hook) is **two things at
+once**: the contract another harness executes, and the durable state of that execution.
+Both roles impose the same discipline — the plan must be self-sufficient.
 
 ## Two invariants
 
@@ -75,9 +75,29 @@ drip of mid-task questions (`gap-resolution.md > Decisions to close before execu
 ```
 
 - *Technical* rows the planner confirms with a peer/tool (a second model, context7, a quick test);
-  *stakeholder* rows fold into the plan-approval question block (`flow-plan write`, step 6).
+  *stakeholder* rows fold into the plan-approval question block.
 - A row that blocks no task does not belong here — resolve it inline. Omit the whole section when
   no decision blocks detail; never include it empty.
+
+## Preflight — resources confirmed at plan time, not at point of use
+
+The plan's approval is the last interruption; a missing credential found mid-execution kills the
+autonomy. Derive the resource list from the WHOLE flow (implementation, the in-vivo gate, and what
+promoting to qa/prod will need) and resolve it NOW. Check presence, never print values:
+
+| Resource class | Verify |
+|---|---|
+| Env/config | `.env.<env>` and config files the tasks read exist |
+| CLI auth | `gh auth status`, `aws sts get-caller-identity` / `hcloud` for the accounts touched |
+| Domain tools | CLIs beyond gh/aws/hcloud (tunnels, webhook simulators, provider CLIs) — `which`/`--version`; missing → ask before installing |
+| Services | DB/Redis/queues reachable (or note how they start) |
+| Integrations | tracker access works; external sandbox tokens present — including the in-vivo gate's credentials |
+| Test baseline | the touched suite runs before T1 (affected subset per `testing.md`); a red baseline is a Preflight decision for the user, never absorbed silently |
+
+What is checkable gets reported `ok`/`missing`; what needs the user goes in a **Preflight section**
+of the plan as explicit asks. The plan is not ready for approval while a known-needed resource is
+unresolved. This applies to any plan that will be executed, including one written in native plan
+mode and captured by the plan-capture hook.
 
 ## Task block
 
@@ -127,8 +147,8 @@ Rules:
 
 ## Large scope — split into parts (an initiative)
 
-When `flow-plan write` finds the scope too dense for one plan, it proposes splitting and
-creates an **initiative** (`project-structure.md > Session capture layer`):
+When the scope proves too dense for one plan during native plan-mode writing, propose
+splitting and create an **initiative** (`project-structure.md > Session capture layer`):
 
 ```
 sessions/<start-date>-<slug>/

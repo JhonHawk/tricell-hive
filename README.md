@@ -81,16 +81,10 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs deployed canon + content quality
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
-│   ├── flow-core/                   # Flow pack shared library (non-invocable)
-│   ├── flow-brainstorming/          # Business-idea iteration into a decision
-│   ├── flow-start/                  # Greenfield wizard: intake + bootstrap + foundation
-│   ├── flow-specs/                  # Specs repo: init | epic | review
-│   ├── flow-plan/                   # Plan the dev session: research | write
-│   ├── flow-build/                  # Execute the plan: reconciler + verify gate
-│   ├── flow-workspace/              # Workspace hygiene: audit | apply
-│   ├── flow-adopt/                  # Bring a pre-pack project into the flow (specs repo, tiering, manifest)
-│   ├── flow-audit/                  # Multi-lens preventive audit of runtime repos (epic close)
-│   ├── flow-report/                 # Self-contained HTML reports for substantial output
+│   ├── flow-core/                   # Process library (non-invocable): contract, templates, playbooks
+│   │                                #   (bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion)
+│   ├── flow-build/                  # Execute a captured plan: reconciler + verify gate
+│   ├── flow-report/                 # Self-contained HTML reports for artifacts that outlive the thread
 │   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
 │   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
 │   ├── memory-sync/                 # Reconcile Engram + native memory vs ground truth
@@ -193,11 +187,8 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 |-------|-------|---------|
 | `/adversarial-research` | global | N independent generators (one may be Codex) + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon |
 | `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the deployed canon (harness-coverage matrix) + completeness checks (project pointers, Git Workflow declarations) + content quality (agent-discoverable rules, stale paths, instruction budget). Hub-destined proposals (promote-to-core, injection map) are reported, never executed by the skill |
-| `flow-core` | global | Flow pack shared library: contract + templates (non-invocable) |
-| `/flow-brainstorming` … `/flow-build` | global | The client project flow: 4 stages (arranque · specs · desarrollo · operación); the daily brainstorm → spec → plan → build chain runs inside desarrollo |
-| `/flow-workspace` | global | Workspace hygiene: `audit` \| `apply` |
-| `/flow-adopt` | global | Bring a pre-pack project into the flow: specs repo, tiering, gated migration manifest |
-| `/flow-audit` | global | Multi-lens preventive audit of runtime repos: parallel readers → refuters → versioned HTML report |
+| `flow-core` | global | Process library (non-invocable): flow contract, templates, and the playbooks — bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion |
+| `/flow-build` | global | Execute or resume a captured plan: state-driven reconciler + verify gate. The one remaining process command — everything else is a playbook |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
 | `flow-report` | global | Renders substantial output as self-contained HTML in five archetypes — document, explainer, review, comparison, deck (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |

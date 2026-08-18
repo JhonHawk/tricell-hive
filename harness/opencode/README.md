@@ -25,7 +25,7 @@ natively.
 
 ## How it works
 
-`/flow-plan <args>` (opencode command) → instructs the agent to read
+`/flow-build <args>` (opencode command) → instructs the agent to read
 `harness-mechanics.md` (mechanic translation) + the skill body from
 `~/.agents/skills/` → dispatches the generated subagents via the task tool.
 Updating a skill or agent in the hub + `/deploy-global` updates this harness with no

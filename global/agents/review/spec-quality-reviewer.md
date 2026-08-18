@@ -2,7 +2,7 @@
 name: spec-quality-reviewer
 description: >
   Review the quality of a spec, épica, or PRD against a completeness rubric BEFORE
-  implementation. Use when a spec needs a quality gate (flow-specs review) — NOT for
+  implementation. Use when a spec needs a quality gate (the business gate of the spec-writing playbook) — NOT for
   challenging whether the feature should exist (that is product-critic).
 tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet

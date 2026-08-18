@@ -30,7 +30,8 @@ Ask, never assume, what the monorepo will contain:
   governs; its tool table does not. Record the choice as an intake decision — never
   default it from this file.
 - **Greenfield** (new project born monorepo) → skip the hoist; the playbook's layout,
-  CI/CD shape, and done-checklist apply from day one. `/flow-start` stage C routes here.
+  CI/CD shape, and done-checklist apply from day one. The bootstrap-playbook's foundation
+  stage routes here.
 
 ## `intake` — close the decisions before moving code
 

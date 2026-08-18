@@ -1,7 +1,7 @@
 ---
 # Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
-  Review the quality of a spec, épica, or PRD against a completeness rubric BEFORE implementation. Use when a spec needs a quality gate (flow-specs review) — NOT for challenging whether the feature should exist (that is product-critic).
+  Review the quality of a spec, épica, or PRD against a completeness rubric BEFORE implementation. Use when a spec needs a quality gate (the business gate of the spec-writing playbook) — NOT for challenging whether the feature should exist (that is product-critic).
 mode: subagent
 color: info
 permission:

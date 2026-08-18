@@ -11,7 +11,8 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 ## Maintenance rules
 
 - Every flow skill updates the ledger at CLOSE. Conversational sessions should update it when
-  they produce artifacts worth finding later — if they don't, `/flow-workspace` repairs it.
+  they produce artifacts worth finding later — if they don't, applying the
+  workspace-hygiene-playbook repairs it.
 - A decision recorded here is a **pointer**: once the specs repo exists, the decision's full
   text gets promoted to `<project>-specs/` and the ledger row links to it. A decision that
   lives only in the ledger is at risk — the ledger is not versioned.
@@ -26,8 +27,8 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 - **Handoff poda is mandatory.** `## Current handoff` holds only the last closed phase's
   handoff. A phase that consumes it at OPEN (DoR) collapses it to one line in
   `## Handoff history` before writing its own. Two expanded handoffs at once means a phase
-  forgot to poda — `/flow-workspace` flags it. History grows one line per phase forever; the
-  cost is negligible and the trail is worth keeping.
+  forgot to poda — the workspace-hygiene-playbook flags it. History grows one line per phase
+  forever; the cost is negligible and the trail is worth keeping.
 - Dates in absolute form (`2026-06-11`), never "yesterday" or "last week".
 - **Tracker fields are how flow skills resolve "the tracker"** (shared access/batching mechanics: `references/tracker-access.md`) — they never hardcode
   Linear/Jira. `Tracker: none` means the project is untracked: the specs repo's
@@ -80,7 +81,7 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 - Spec-changes triggered: <what changed backward, or "none">
 - Decisions left: <one line, or pointer to Decisions table>
 - Input for the next phase: <repos/paths the next phase treats as bounded context>
-- Next suggested: /flow-<phase> <scope>  (<why — which phases are done for this scope>)
+- Next suggested: <next action — a live command like /flow-build, or "apply the <name> playbook"> <scope>  (<why — which phases are done for this scope>)
 
 ## Handoff history
 

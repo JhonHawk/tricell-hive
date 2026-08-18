@@ -31,11 +31,11 @@ Every output must:
 
 ## Format selection
 
-Pick the archetype from what you are PRESENTING, not from who asked. The archetype supplies chrome and layout; when a flow skill prescribes a section contract (flow-audit per `flow-core/references/audit-playbook.md`, flow-specs review findings by severity), that contract owns the outline and the archetype never overrides it.
+Pick the archetype from what you are PRESENTING, not from who asked. The archetype supplies chrome and layout; when a flow skill or playbook prescribes a section contract (the audit-playbook per `flow-core/references/audit-playbook.md`, the spec-writing playbook's review findings by severity), that contract owns the outline and the archetype never overrides it.
 
 | Presenting… | Archetype | Skeleton |
 |---|---|---|
-| Operational/status report, findings inventory, audit (flow-audit), spec/mock review (flow-specs), hygiene/migration review (flow-workspace/flow-adopt), weekly dashboard, incident timeline, plan/spec, design tokens | **document** | `references/baseline.html` |
+| Operational/status report, findings inventory, audit (the audit-playbook), spec/mock review (the spec-writing playbook), hygiene/migration review (the workspace-hygiene-playbook/migration-playbook), weekly dashboard, incident timeline, plan/spec, design tokens | **document** | `references/baseline.html` |
 | Code review, PR writeup, annotated diff | **review** | `references/skeleton-review.html` |
 | Research synthesis, concept/subsystem explainer, module map, onboarding doc, FAQ | **explainer** | `references/skeleton-explainer.html` |
 | Brainstorm, tech selection, A-vs-B, option grid | **comparison** | `references/skeleton-comparison.html` |

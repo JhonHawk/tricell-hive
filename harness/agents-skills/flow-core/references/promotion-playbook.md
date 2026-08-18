@@ -89,12 +89,12 @@ Everything the QA walk does, plus:
 
 Stand up an environment that does not exist yet (`development` | `qa` | `production`), or
 re-run idempotently to converge a drifted one. This procedure owns ALL environment
-provisioning, including the project's first: `/flow-start` authors the naming table and
-the scripts/pipelines but provisions nothing (client resources are rarely confirmed that
-early); every environment is executed here, when resources are approved.
+provisioning, including the project's first: the bootstrap-playbook authors the naming
+table and the scripts/pipelines but provisions nothing (client resources are rarely
+confirmed that early); every environment is executed here, when resources are approved.
 
 1. **Resource plan first (gate):** derive every resource the env needs from the project's
-   naming table (`<project>-specs/conventions/naming.md`, instantiated by `/flow-start`),
+   naming table (`<project>-specs/conventions/naming.md`, instantiated per the bootstrap-playbook),
    adding the missing rows for this env BEFORE creating anything (naming-template rules
    apply: user sign-off for exceptions). Present the resource list + blast radius (client
    account, provider, cost-bearing resources) for approval. One gate; after it, execution

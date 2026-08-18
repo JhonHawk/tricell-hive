@@ -7,7 +7,7 @@ description: >
   Also executes an ALREADY-APPROVED batch of outward tracker writes, reading payloads from
   disk. Use when a board read, check watch, deploy-job poll, or ticket batch would otherwise
   inflate the main thread — the result matters, not the search. NOT for deciding what work
-  exists (flow-specs), what is stale (/memory-sync), or file/ledger hygiene
+  exists (the specs layer), what is stale (/memory-sync), or file/ledger hygiene
   (workspace-custodian).
 disallowedTools: Write, Edit, NotebookEdit, Agent
 model: sonnet

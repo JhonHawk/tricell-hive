@@ -1,4 +1,4 @@
-# Multi-lens audit playbook — the generic protocol `/flow-audit` executes
+# Multi-lens audit playbook — the protocol an audit run follows
 
 Preventive multi-specialist audit of a project's runtime repos: technical debt, antipatterns,
 and architectural drift, captured BEFORE they compound across the next epics. Harness-agnostic
@@ -43,6 +43,9 @@ finds more prioritizes by impact and says so in its scope notes.
 
 ## Protocol
 
+0. **Resolve the lens set and its agents.** Default to `full` for a first baseline, a scoped
+   lens for follow-ups. Map lens→agent against the CURRENT `agent-routing.md` roster — never
+   the instance README's remembered names, which go stale as the roster changes.
 1. **Prepare.** Stable stack (no mid-merge). Collect: repo paths + HEAD SHAs, the canonical
    doctrine each reader must load (specs/architecture docs, workspace + repo AGENTS.md), and
    the known pre-existing debt list (tickets, memory) that readers must NOT re-report.
@@ -62,8 +65,12 @@ finds more prioritizes by impact and says so in its scope notes.
    `agent-routing.md > Verification runs in fresh context` (that rule owns the budget). Refuted
    findings drop to a "refuted" appendix; the inventory reports UNIQUE, surviving findings, and
    says so (raw counts stay in a per-agent section).
-5. **Consolidate → report** via the flow-report skill to
-   `<project>-specs/audit/reports/YYYY-MM-DD.html`. Structure: TL;DR → dashboard (severity
+5. **Consolidate → report** via the flow-report skill, passing that destination EXPLICITLY —
+   `<project>-specs/audit/reports/YYYY-MM-DD.html`, the versioned record; never let it fall
+   back to `_support/workspace/`. No specs repo yet → the standard session-capture form
+   (`<repo>/_support/sessions/YYYY-MM-DD-audit-<lens>/reports/`), flagged in the report as
+   pre-specs-repo; absent an instance README, offer to bootstrap one from the instantiation
+   section below (that write is part of the run). Structure: TL;DR → dashboard (severity
    counts + lens×repo matrix) → P0 prominent → health score per repo
    (`P0×4 + P1×2 + P2×1`) → findings per lens (collapsible) → tentative remediation plan
    (pre-epic / during / backlog) → baseline snapshot for the next run → refuted & excluded →
