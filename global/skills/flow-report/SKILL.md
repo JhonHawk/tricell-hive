@@ -1,11 +1,14 @@
 ---
 name: flow-report
 description: >
-  Render substantial multi-format agent output as single-file static HTML in five
-  archetypes — document, explainer, review, comparison, deck — chosen by what is being
-  presented (plan, audit, research, PR review, option grid, pitch). Triggers: ≥~300 words
-  AND 2+ info kinds (tables, diagrams, code, mockups). Not for short chat, handoffs, or
-  live playgrounds.
+  Render an artifact that outlives the conversation — one the user keeps, shares, or
+  returns to — as single-file static HTML in five archetypes (document, explainer, review,
+  comparison, deck), chosen by what is presented (plan, audit, research, PR review, option
+  grid, pitch). NOT for answering the user: an analysis, diagnosis, review verdict, status,
+  or option comparison reported back in-thread stays prose however long or rich. Requires
+  the artifact test in rules/quality/communication-format.md, plus ≥~300 words and 2+ info
+  kinds (tables, diagrams, code, mockups) as necessary-not-sufficient conditions. Never for
+  handoffs or live playgrounds.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
