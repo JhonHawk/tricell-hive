@@ -10,7 +10,7 @@
 #
 #   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
 #   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
-#   3. Index anti-conclusion     (codegraph/jbcontext) — code-search.md
+#   3. Index anti-conclusion     (codegraph) — code-search.md
 #   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
 #
 # The counters keep SEPARATE state files and are never coupled: one section
@@ -123,17 +123,15 @@ verification_loop_section() {
 # ---------------------------------------------------------------------------
 # 3. Index anti-conclusion discipline — injected right after an index tool ran.
 # Once per session: the discipline is a stance, not a per-call correction, and
-# repeating it every codegraph/jbcontext call is pure context tax.
+# repeating it every codegraph call is pure context tax.
 # ---------------------------------------------------------------------------
 index_discipline_section() {
   local tool="" marker
   case "$tool_name" in
     Bash|run_terminal_command)
       if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
-      if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])jbcontext([^[:alnum:]_-]|$)'; then tool="${tool:+$tool }jbcontext"; fi
       ;;
     mcp__codegraph__*|codegraph__*) tool="codegraph" ;;
-    mcp__jbcontext__*|jbcontext__*) tool="jbcontext" ;;
   esac
   [ -n "$tool" ] || return 0
 

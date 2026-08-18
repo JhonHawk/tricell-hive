@@ -146,7 +146,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── git-mechanics.md
 │   └── memory-routing.md
 │       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
-│       ├── code-search.md         # rg vs jbcontext vs codegraph routing + anti-conclusion discipline
+│       ├── code-search.md         # rg vs codegraph routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon

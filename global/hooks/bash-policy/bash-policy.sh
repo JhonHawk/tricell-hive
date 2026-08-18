@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bash-policy.sh — PreToolUse (shell + codegraph/jbcontext MCP), DENY-FIRST.
+# bash-policy.sh — PreToolUse (shell + codegraph MCP), DENY-FIRST.
 #
 # Dual-runtime: Claude Code (Bash, tool_name/tool_input) and Grok Build
 # (run_terminal_command, toolName/toolInput; MCP as server__tool). Keep the
@@ -65,15 +65,10 @@ case "$tool_name" in
   Bash|run_terminal_command)
     haystack="$command"
     if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
-    if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])jbcontext([^[:alnum:]_-]|$)'; then tool="${tool:+$tool }jbcontext"; fi
     ;;
   mcp__codegraph__*|codegraph__*)
     tool="codegraph"
     haystack=$(printf '%s' "$input" | jq -r '.tool_input.projectPath // .toolInput.projectPath // .cwd // .workspaceRoot // empty' 2>/dev/null)
-    ;;
-  mcp__jbcontext__*|jbcontext__*)
-    tool="jbcontext"
-    haystack=$(printf '%s' "$input" | jq -r '.tool_input.pathFilter // .toolInput.pathFilter // .cwd // .workspaceRoot // empty' 2>/dev/null)
     ;;
 esac
 

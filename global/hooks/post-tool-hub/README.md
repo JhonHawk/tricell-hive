@@ -12,7 +12,7 @@ Each section self-gates on `tool_name` and returns text; whatever fires is newli
 
 **2. Full-suite run counter** (`Bash` only) — counts repeated whole-suite verification runs (`turbo run test`, `pnpm [-r] [run] test`, followed only by flags). A command carrying `--filter` is the sanctioned affected-subset run and never counts; a non-flag argument (`pnpm test messages.spec`) or a scoped script (`pnpm test:unit`) is treated as scoped. The first run is the legitimate merge-boundary gate and stays silent; run #2 onward reminds. Policy: `testing.md > Execution Scope`.
 
-**3. Index anti-conclusion discipline** (codegraph/jbcontext, via Bash command or MCP tool name) — injects the "an index result is a pointer, never a verdict" reminder.
+**3. Index anti-conclusion discipline** (codegraph, via Bash command or MCP tool name) — injects the "an index result is a pointer, never a verdict" reminder.
 
 ## Behavior change vs the absorbed hooks
 
