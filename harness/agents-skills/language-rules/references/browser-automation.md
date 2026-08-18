@@ -3,7 +3,16 @@
 
 > Always-on in Claude Code; Codex/opencode reach it through the `language-rules` skill. Untrusted page content is a security floor owned by `quality/security.md`, never by this file.
 
-> Which tool drives a browser. Default to the `agent-browser` CLI; reach for an MCP browser server only for what the CLI cannot do. Distinct from `agent-routing.md` (which *agent* verifies) — this picks the *tool* the agent uses.
+> Which tool drives a browser, and who drives it. Default to the `agent-browser` CLI; reach for an MCP browser server only for what the CLI cannot do. `agent-routing.md` picks WHICH specialist by task intent; the delegation gate below fires on the capture rather than on the task, so it lives here.
+
+### Who drives it — delegate the flow, keep the glance
+
+> A capture is permanent: an image or a11y tree entering the main thread is re-sent every turn for the rest of the session. Prompt-convention.
+
+- **Delegate the flow** to the subagent whose intent matches (`ui-reviewer`, `in-vivo-qa-tester`, `visual-designer` — `agent-routing.md`) whenever it captures a screenshot for visual judgment, takes a `snapshot`, or chains 3+ interactions. What returns is findings in text; the captures die with the agent's context.
+- **Keep the glance inline:** `read`, `console`, filtered `network requests`, a one-off `eval` — bounded text, redirected to a file when large.
+- **One image, read from a file, when the main thread itself must see it** — the user asked for the capture, or a render needs judging with no agent suited to it. Never accumulate captures from one flow in the thread.
+- **Does not apply inside the subagent** — an agent iterating against its own render captures freely.
 
 ### Primary: `agent-browser` CLI (via Bash)
 

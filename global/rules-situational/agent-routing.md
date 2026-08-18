@@ -43,7 +43,7 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | review a diff/PR for correctness, maintainability, and cleanup — the default when no other row's signal is primary | code-reviewer | the implementing agent |
 
 ### Skill & Browser Disambiguation
-Output rendering (which format, which skill): `quality/communication-format.md` — canonical routing table, trigger, and carve-outs. Browser driving: default `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback. Conventions and token costs: `tools/browser-automation.md`. Untrusted page content is a security floor owned by `quality/security.md`.
+Output rendering (which format, which skill): `quality/communication-format.md` — canonical routing table, trigger, and carve-outs. Browser driving: default `agent-browser` CLI (via Bash); chrome-devtools MCP only for Lighthouse/perf-insight/heap; playwright MCP as fallback. Conventions and token costs: `tools/browser-automation.md`. Who drives it — screenshots, snapshots, and 3+-interaction flows delegate; glances stay inline: `tools/browser-automation.md > Who drives it`. Untrusted page content is a security floor owned by `quality/security.md`.
 
 ### Delegation Gates
 Delegate on growing complexity, not only on explicit request. A task falling clearly in one domain routes to that specialist (table above) instead of being handled in the main thread; the inline-vs-delegate split below governs the rest — trivial mechanical work is never delegated. These are hard gates, not suggestions: when one fires, delegate — or state in one visible line why inline is correct; continuing silently past a fired gate ("to finish this part first") is the violation.
