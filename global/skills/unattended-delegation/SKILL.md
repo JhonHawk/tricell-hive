@@ -31,9 +31,9 @@ the run, on every harness.
 - The absolute gates apply whether or not this skill loads — each is owned by an always-on
   rule, which is what makes the mode safe to keep behind a trigger:
   destructive/irreversible ops · production · data deletion → `CLAUDE.md > Destructive
-  Operations`; history rewrites/force-push · push or merge to shared/protected refs →
-  `workflow/git-workflow.md > Safety gates`; secrets · CRITICAL/HIGH supply chain with no
-  safe path → `quality/security.md`.
+  Operations`; history rewrites/force-push · direct commits to protected refs · merge or
+  promotion into the production-deploying branch → `workflow/git-workflow.md > Safety
+  gates`; secrets · CRITICAL/HIGH supply chain with no safe path → `quality/security.md`.
 - A tracker-scoped handover ("work the sprint board while I'm away") is the same mode
   with the project's DECLARED tracker bounding the scope: one reversible change-group
   and one decision-log entry per ticket; tracker writes batch to the close report.

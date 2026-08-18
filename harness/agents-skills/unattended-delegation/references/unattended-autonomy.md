@@ -12,6 +12,7 @@
 ### Widened scope — proceed-and-log
 Applies only to an activated run (above); a *non-delegated* unattended turn stays fail-closed instead (`quality/development-principles.md > Fix at the Root`).
 - In-scope reversible technical decisions, resolvable blockers, dependency picks with a safe version (OSV tiers unchanged), test/build/verify loops, and already standing-authorized non-prod ops → proceed; never bounce these back as questions.
+- **Integrating the run's OWN work is inside the scope, up to the production line.** The dedicated branch merges into the integration branch through its own PR once checks and the review pass are green, and promotion into a non-prod environment branch (`qa`) is declared, not asked (`git-workflow.md > Safety gates`) — a run told to land something in a non-prod environment cannot do it otherwise. The production-deploying branch is where it stops: a merge or promotion into it queues for the human, always.
 - Unattended runs carry full verification rigor: the attended fast-feedback carve-out (`quality/testing.md > Execution Scope`) never applies without a user present to validate.
 - Every widened decision lands in the **decision log**: what was decided, why, how to revert. The log is a structural component of the mode — proceeding without logging is outside the delegation.
 
@@ -21,7 +22,7 @@ Applies only to an activated run (above); a *non-delegated* unattended turn stay
 
 ### Absolute gates — never relax
 Identical to attended mode; no gate's behavior depends on which mode is active. This list is enumerated here — not just pointed at — because activation requires declaring it, and because it overrides any repo-level standing authorization the individual owners allow:
-- Destructive/irreversible operations · production (deploys, DNS, infra, data) · secrets · history rewrites / force-push · merge or push to shared/protected refs · CRITICAL/HIGH supply-chain with no safe path · **data deletion**.
+- Destructive/irreversible operations · production (deploys, DNS, infra, data — including any merge or promotion INTO the production-deploying branch) · secrets · history rewrites / force-push · direct commits or pushes to protected refs · CRITICAL/HIGH supply-chain with no safe path · **data deletion**.
 - Scope and mechanics live with the owners: `CLAUDE.md > Destructive Operations`, `workflow/git-workflow.md > Safety gates`, `quality/security.md`.
 - Gates are inviolable constraints, never a judgment call to reason against. Where a deterministic layer exists (deny permissions, hooks), it backs them; the mode never argues past a denial.
 
@@ -30,7 +31,7 @@ Identical to attended mode; no gate's behavior depends on which mode is active. 
 - When nothing independent remains → fail closed: checkpoint the work, finish the log, stop. Never timeout-default-proceed — a sleeping user's silence is not consent.
 
 ### Reversibility bias
-- All mode work happens on a dedicated branch, granular commits at natural seams, zero mutation of shared refs. Reverting the entire run must be one branch reset, not archaeology.
+- All mode work happens on a dedicated branch with granular commits at natural seams; the only shared-ref mutations are the run's own PR merges and non-prod promotions, which stay revertible as merge commits. Reverting the entire run must be one branch reset or one revert chain, not archaeology.
 
 ### Expiry & revocation
 - Run-bound: the mode expires when the delegated run ends, and the user's first message revokes it instantly. It never carries into the next task or session.
