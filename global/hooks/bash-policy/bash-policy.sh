@@ -165,13 +165,55 @@ fi
 # ---------------------------------------------------------------------------
 # (d) DENY — lockfile deletion. Evaluated per command segment so an unrelated
 # `rm` in one segment cannot pair with a lockfile named in another.
+#
+# ONE carve-out — `git rm` of a redundant per-package lockfile: it resolves to
+# an existing file outside the repo root while a same-named lockfile sits AT
+# the root (the workspace-consolidation shape), and no install verb runs in the
+# same command. That deletion is staged, shows in the diff, and cannot silently
+# regenerate. Plain `rm`/`unlink`, the root lockfile, a lone lockfile with no
+# root sibling, and anything unverifiable stay denied — the carve-out fails
+# closed by falling through.
 # ---------------------------------------------------------------------------
 rm_re='(^|[[:space:]])(sudo[[:space:]]+)?((git[[:space:]]+)?rm|unlink)[[:space:]]'
+gitrm_re='(^|[[:space:]])git[[:space:]]+rm([[:space:]]|$)'
+install_re='(^|[[:space:]])(pnpm|npm|yarn|bun|uv|poetry|cargo|bundle)[[:space:]]+(i|add|install|sync|update|upgrade)([[:space:]]|$)'
 lock_re='(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lockb|uv\.lock|poetry\.lock|Cargo\.lock|Gemfile\.lock)'
+lk_base="$cwd"
 while IFS= read -r segment; do
+  # Track `cd` so a later segment's relative paths resolve where they will run.
+  if [[ "$segment" =~ (^|[[:space:]])cd[[:space:]]+([^[:space:]]+) ]]; then
+    lk_cd="${BASH_REMATCH[2]}"
+    case "$lk_cd" in
+      /*) lk_base="$lk_cd" ;;
+      *)  lk_base="$lk_base/$lk_cd" ;;
+    esac
+  fi
   [[ "$segment" =~ $rm_re ]] || continue
   [[ "$segment" =~ $lock_re ]] || continue
-  deny "bash-policy: never delete or regenerate lockfiles unless the user explicitly asks (${BASH_REMATCH[1]}) — surface the problem instead. See CLAUDE.md > Package Manager."
+  lk_named="${BASH_REMATCH[1]}"
+
+  if [[ "$segment" =~ $gitrm_re ]] && ! [[ "$command" =~ $install_re ]]; then
+    lk_root=$(git -C "$lk_base" rev-parse --show-toplevel 2>/dev/null || true)
+    if [ -n "$lk_root" ]; then
+      lk_ok=1
+      read -ra lk_tokens <<< "$segment"
+      for lk_tok in "${lk_tokens[@]}"; do
+        [[ "$lk_tok" =~ $lock_re ]] || continue
+        case "$lk_tok" in
+          /*) lk_abs="$lk_tok" ;;
+          *)  lk_abs="$lk_base/$lk_tok" ;;
+        esac
+        if [ ! -f "$lk_abs" ] || [ "${lk_abs%/*}" -ef "$lk_root" ] \
+           || [ ! -f "$lk_root/${lk_abs##*/}" ]; then
+          lk_ok=0
+          break
+        fi
+      done
+      [ "$lk_ok" -eq 1 ] && continue
+    fi
+  fi
+
+  deny "bash-policy: never delete or regenerate lockfiles unless the user explicitly asks ($lk_named) — surface the problem instead. Sole exception: 'git rm' of a per-package lockfile that is redundant with a same-named one at the repo root. See CLAUDE.md > Package Manager."
 done < <(printf '%s\n' "$command" | tr ';&|' '\n')
 
 # ---------------------------------------------------------------------------

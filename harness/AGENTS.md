@@ -64,7 +64,7 @@ Always-on core for every harness; situational depth lives behind the router skil
 - Code defaults (reuse-first search, naming, typed errors, schema validation, DTO boundaries): the language-rules `development-principles` reference.
 
 ## Debugging
-- Obvious errors get direct fixes; non-obvious → root cause before fix, ground truth from the live source, one variable at a time; three failed fixes on one symptom → stop and question the approach with the user. Full discipline (incl. red→green regression proof): the language-rules `debugging` reference.
+- Obvious errors get direct fixes; non-obvious → root cause before fix, ground truth from the live source, one variable at a time; three failed fixes on one artifact → stop and question the approach with the user, counted whatever the work is called (debugging, porting, salvaging). Salvaging old work (stale diff, abandoned branch) first establishes it ever ran: never-run code is unfinished, not broken, so the question is whether it is needed, not how to repair it — dispensable → discard and say so, keeping its durable half (doctrine, docs, a decision) when the machinery goes. Full discipline (incl. red→green regression proof): the language-rules `debugging` reference.
 
 ## On-Demand Rules
 - Not invoking a router below is identical to not having its rule. Load it BEFORE acting, never after; being wrong costs one read, skipping costs the rule. "Simple edit", "I know this convention", "I'll check it afterwards", and "too small to route" are rationalizations, not exemptions — size decides delegation, never whether a rule applies. A reference already read this session is not re-read.
