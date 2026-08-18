@@ -50,7 +50,7 @@ each is fixed — never a silent retry of the same agent unchanged:
 | `DONE` | Complete, verified as dispatched | Verify against the diff, then proceed |
 | `DONE_WITH_CONCERNS` | Complete, but the agent flags risks or doubts | Read the concerns BEFORE consuming the output; real ones route to review or the user |
 | `NEEDS_CONTEXT` | Missing information to proceed correctly | The gap was in the handoff — re-dispatch the same task with the missing context added |
-| `BLOCKED` | Cannot proceed: failed verification, contradiction, missing resource | Diagnose before re-dispatching: task too large → split it; reasoning beyond the agent → escalate model or specialist; plan defect → surface to the user |
+| `BLOCKED` | Genuinely cannot proceed: failed verification, contradiction, a resource the agent cannot obtain. Work it has the access and the decision for is NOT blocked — that is a pending step it should have taken | Diagnose before re-dispatching: task too large → split it; reasoning beyond the agent → escalate model or specialist; plan defect → surface to the user |
 
 Instruct agents that escalating is always legitimate — "this is too hard for me" is an
 acceptable return; bad work costs more than no work.
