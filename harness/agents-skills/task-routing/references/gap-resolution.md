@@ -18,6 +18,7 @@ A decision that blocks task detail is resolved at the plan gate, never mid-execu
 
 - **Technical** (the implementer's to make): state the recommendation and proceed. Verify against a peer/tool only on signal — version-sensitive surface (context7), low reversibility, or genuine dispute — not as ritual for every choice.
 - **Stakeholder/PO:** fold ALL into the plan gate so the user answers once. When ownership is unclear → treat as stakeholder.
+- **Replacement scope** (what survives of a legacy path being replaced) is always stakeholder-owned — the gate and its three shapes (complete / frozen retention / functional coexistence) live in `CLAUDE.md > Agent Behavior > Task Execution`; a recorded prior decision discharges it.
 - **3+ blocking decisions → materialize the table** (`Decision · What's decided · Type · Recommendation · Blocks`); 1-2 → plain prose in the plan gate. A decision that blocks nothing resolves inline.
 - **Batching ≠ deferral.** The gate covers what is knowable at plan time; a blocker DISCOVERED mid-execution escalates in the moment — that it was discoverable earlier is a planning defect, but never a reason to sit on it.
 
