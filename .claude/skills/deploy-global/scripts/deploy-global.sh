@@ -1399,9 +1399,31 @@ step_write_manifest() {
             [[ -f "${REPO_ROOT}/global/CLAUDE.md" ]] && echo "CLAUDE.md"
             find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
             find "${REPO_ROOT}/global/hooks" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|' || true
+            # Injected references are deployed into ~/.claude/skills by
+            # deploy_injected_references but exist ONLY in the generated tree, so
+            # the walk above never saw them. Same skip as that function: a file
+            # the canonical global/ copy already provides is not ours to track here.
+            local inj_dir inj_skill inj_file inj_base
+            for inj_dir in "${REPO_ROOT}/harness/agents-skills"/*/references/; do
+                [[ -d "${inj_dir}" ]] || continue
+                inj_skill=$(basename "$(dirname "${inj_dir}")")
+                for inj_file in "${inj_dir}"*; do
+                    [[ -f "${inj_file}" ]] || continue
+                    inj_base=$(basename "${inj_file}")
+                    [[ -f "${REPO_ROOT}/global/skills/${inj_skill}/references/${inj_base}" ]] && continue
+                    echo "skills/${inj_skill}/references/${inj_base}"
+                done
+            done
         fi
         if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]]; then
-            find "${REPO_ROOT}/global/skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/global/skills/|agents-skills/|" || true
+            # Walk the tree that is actually DEPLOYED (harness/agents-skills),
+            # never global/skills. The generated tree carries files the source
+            # does not — agents/openai.yaml, the injected references/ — and a
+            # deployed file missing from the manifest is immortal: no orphan
+            # sweep can ever confirm it. Cost of getting this wrong, measured
+            # 2026-08-18: five agents/openai.yaml of dissolved skills survived a
+            # --force-delete-orphans run because the manifest never knew them.
+            find "${REPO_ROOT}/harness/agents-skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/harness/agents-skills/|agents-skills/|" || true
         fi
         if [[ "${RUN_CODEX}" -eq 1 ]]; then
             find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|\.md$|.toml|; s|^|codex-agents/|' || true
