@@ -13,6 +13,14 @@
  *
  * Node builtins only. Advisory: every failure path degrades to no injection,
  * never throws out of the hook.
+ *
+ * NO post-compaction recovery here (the .sh has one, on SessionStart source
+ * `compact`). opencode exposes no compaction signal to this transform, and the
+ * per-session gate below suppresses re-injection for the rest of the session.
+ * Inverting that gate to presence-based — re-inject whenever PROTOCOL_MARKER is
+ * absent from output.system — would cover it organically, but only if opencode
+ * reliably passes transformed system arrays back through; if it does not, the
+ * failure mode is re-injecting on every step. Left as-is until that is verified.
  */
 
 import type { Plugin } from "@opencode-ai/plugin"

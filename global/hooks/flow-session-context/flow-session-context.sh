@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# flow-session-context.sh — SessionStart (startup|clear) hook, NON-BLOCKING.
+# flow-session-context.sh — SessionStart (startup|clear|compact) hook, NON-BLOCKING.
 #
-# Cross-harness session-start context for the flow pack v2. Merges two
-# independent, self-gating sections into ONE injected context string:
+# Cross-harness session-start context for the flow pack v2. Two independent,
+# self-gating sections on a FRESH context (startup|clear), plus a third,
+# narrower payload after a compaction:
 #
 #   1. Flow protocol — ONLY inside a flow workspace (ledger _support/PROJECT.md
 #      at or above cwd). A static process-chain map so the model can OFFER the
-#      matching /flow-* stage when user intent matches. Never forces a stage;
-#      flow skills stay user-gated (global CLAUDE.md > Skill Auto-invocation).
+#      matching playbook when user intent matches. Never forces a stage; flow
+#      skills stay user-gated (global CLAUDE.md > Skill Auto-invocation).
 #
 #   2. Git hygiene — in ANY git repo (not flow-gated). Deterministic backstop
 #      for the session-close ritual (git-mechanics.md > Session close): most
@@ -15,6 +16,14 @@
 #      injecting pending-hygiene FACTS (locally merged branches, [gone]
 #      upstreams). It injects state, never routing; the always-on rule owns
 #      what to do.
+#
+#   3. Post-compaction recovery (source == compact) — the process map is the
+#      ONLY trigger the SPEC step has, and a compaction can drop it from
+#      context. Re-injected condensed: recovery, not the full startup load.
+#      Git hygiene stays OUT (a session-close backstop is noise mid-task), and
+#      flow-context's per-session markers are cleared so the pending-plan state
+#      re-emits on the next prompt instead of being suppressed by a marker that
+#      predates the compaction.
 #
 # Either section may be empty; both empty -> silent (exit 0, no injection).
 # Local git queries only (no fetch, no network). Advisory only — NEVER blocks,
@@ -25,18 +34,51 @@ set -uo pipefail
 input=$(cat)
 source_evt=$(printf '%s' "$input" | jq -r '.source // empty' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 
-# Only fresh contexts: skip resume (context already has it) and compact (mid-task).
-case "$source_evt" in startup|clear) ;; *) exit 0 ;; esac
+# Fresh contexts and compaction. `resume` is skipped: the context already has it.
+case "$source_evt" in startup|clear|compact) ;; *) exit 0 ;; esac
 
-# ─── Section 1: Flow protocol (flow workspaces only) ─────────────────────────
+emit() {
+  jq -n --arg ctx "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "SessionStart",
+      additionalContext: $ctx
+    }
+  }'
+  exit 0
+}
+
+# ─── Flow workspace? Walk up for the ledger ──────────────────────────────────
 dir="$cwd"; ledger=""
 while [ -n "$dir" ] && [ "$dir" != "/" ]; do
   if [ -f "$dir/_support/PROJECT.md" ]; then ledger="$dir/_support/PROJECT.md"; break; fi
   dir=$(dirname "$dir")
 done
 
+# ─── Post-compaction: condensed recovery, then done ──────────────────────────
+if [ "$source_evt" = "compact" ]; then
+  [ -n "$ledger" ] || exit 0
+
+  # Clear flow-context's per-session markers: their "already injected this
+  # session" assumption is void once the context was compacted away.
+  if [ -n "$session_id" ]; then
+    rm -f "${TMPDIR:-/tmp}/claude-flow-context-phase-${session_id}" \
+          "${TMPDIR:-/tmp}/claude-flow-context-plan-${session_id}" 2>/dev/null || true
+  fi
+
+  emit '<flow-process-protocol source="post-compaction">
+Flow workspace — context was compacted; the process map is re-injected because the pre-compaction copy may not have survived. Same rules, condensed. Never force ceremony onto a small change:
+- IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer (quality/critical-thinking.md).
+- SPEC: a decided idea needs formalization -> flow-core/references/spec-writing-playbook.md. Its business gate is mandatory BEFORE delivery is derived.
+- PLAN: planning intent ALWAYS uses the harness native plan mechanism; the plan-capture hook adopts the approved plan. ONE plan per unit of work (flow-core/references/plan-format.md).
+- EXECUTE: a captured plan with pending tasks -> offer /flow-build ONCE, naming the direct route as the alternative; never invoke it uninvited.
+Pending-plan state re-emits on the next prompt (flow-context markers were cleared). Verify any Status against git before trusting it.
+</flow-process-protocol>'
+fi
+
+# ─── Section 1: Flow protocol (flow workspaces only) ─────────────────────────
 flow_section=""
 if [ -n "$ledger" ]; then
   flow_section='<flow-process-protocol>
@@ -103,11 +145,4 @@ fi
 
 [ -n "$ctx" ] || exit 0
 
-jq -n --arg ctx "$ctx" '{
-  hookSpecificOutput: {
-    hookEventName: "SessionStart",
-    additionalContext: $ctx
-  }
-}'
-
-exit 0
+emit "$ctx"
