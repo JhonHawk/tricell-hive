@@ -38,7 +38,10 @@ BUILD = ROOT / "harness" / "build"
 # `codex debug prompt-input`: from harness/, loaded docs total 81,278 B against
 # a 65,536 cap with no truncation — only the 54,347 B chain is charged.
 CHAIN_CAP_BYTES = 32 * 1024  # Codex default; the conservative number for a public repo
-AGENTS_BUDGET_BYTES = 28 * 1024
+AGENTS_BUDGET_BYTES = 31 * 1024  # 28 -> 31 on 2026-08-18: the prose pass reclaimed
+# every reclaimable byte, and the remaining overage was the always-on WHO routing table
+# (duplicated on purpose from agent-routing.md so spawning a specialist costs no skill
+# load). Capability kept over a self-imposed round number; the warning still guards drift.
 AGENTS_HARD_LIMIT_BYTES = 32 * 1024
 
 # Router skills (Codex/opencode leg): canonical rule files injected as
