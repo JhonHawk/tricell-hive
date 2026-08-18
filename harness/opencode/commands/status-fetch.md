@@ -3,7 +3,7 @@ description: Fetch live project state (git, declared tracker, PRs, deploys) as c
 ---
 Execute the skill `status-fetch` now, with these arguments: $ARGUMENTS
 
-1. Read `~/.agents/skills/status-fetch/SKILL.md` and follow its phases exactly.
+1. Read !`echo ~/.agents/skills/status-fetch/SKILL.md` and follow its phases exactly.
 2. **The isolation is not automatic here.** `context: fork` is Claude Code-only and is
    stripped from this tree, so dispatch the work yourself: send the skill's phases to the
    `state-fetcher` subagent via the task tool and report only what it returns. Running the

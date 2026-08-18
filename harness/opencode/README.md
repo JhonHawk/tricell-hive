@@ -31,3 +31,8 @@ natively.
 Updating a skill or agent in the hub + `/deploy-global` updates this harness with no
 adapter edits; only a renamed agent or a new skill requires touching this folder
 (new command wrapper).
+
+**Wrapper paths — no literal `~`.** Every `~/.agents/…` path in a wrapper is written
+as a `` !`echo ~/…` `` shell injection, so opencode expands it to an absolute path at
+prompt-build time. The Read tool does not expand tilde, and a model that passes the
+literal `~` gets a failed read plus a recovery detour.

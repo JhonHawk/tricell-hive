@@ -3,7 +3,7 @@ description: N independent generators + adversarial cross-exam + canon synthesis
 ---
 Execute the skill `adversarial-research` now, with these arguments: $ARGUMENTS
 
-1. Read `~/.agents/skills/adversarial-research/SKILL.md` and follow its phases exactly.
+1. Read !`echo ~/.agents/skills/adversarial-research/SKILL.md` and follow its phases exactly.
 2. Translate Claude Code mechanics to opencode equivalents: the Skill tool → this
    command; generator and refuter subagents (Agent tool) → the task tool, dispatching
    all generators in one parallel batch; AskUserQuestion → an inline question.
