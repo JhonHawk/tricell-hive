@@ -146,24 +146,47 @@ def report_codex_chain():
     """Report this repo's own Codex instruction chain — advisory, never fatal.
 
     Codex concatenates <git-root>/AGENTS.md with every intermediate AGENTS.md
-    down to the cwd, so a session opened under harness/ loads the shared core
-    a second time (once as the deployed global, once as a project doc). The
-    file-level budget above cannot see that: the cap applies to the sum.
+    down to the CWD, so the chain size depends on where the session is opened:
+    at the repo root it is the root file alone; under harness/ the shared core
+    loads a second time (once as the deployed global, once as a project doc).
+
+    Report BOTH, always. A single number labelled "the chain" is read as the
+    current state, and the worst case then gets quoted as if it were today's
+    reading — which is how a 94%-of-cap figure for a directory nobody opens
+    ends up in a status report about the repo at large.
+
+    `project_doc_max_bytes` budgets ONLY this project chain. The global
+    ~/.codex/AGENTS.md is exempt (verified in codex source + reproduced
+    empirically; bibliography, 2026-08-18) — never add it to these numbers.
     """
     root_agents = ROOT / "AGENTS.md"
     if not root_agents.exists():
         return
-    chain = root_agents.stat().st_size + (ROOT / "harness" / "AGENTS.md").stat().st_size
+    at_root = root_agents.stat().st_size
+    under_harness = at_root + (ROOT / "harness" / "AGENTS.md").stat().st_size
     cap, origin = _codex_chain_cap()
-    pct = chain / cap * 100
-    line = (f"codex chain (AGENTS.md + harness/AGENTS.md): {chain / 1024:.1f} KiB, "
-            f"{pct:.0f}% of the {cap // 1024} KiB {origin} cap")
-    if chain > cap:
-        print(f"NOTE: {line} — a Codex session opened under harness/ truncates "
-              f"silently. Raise project_doc_max_bytes in ~/.codex/config.toml, "
-              f"or move content behind a router skill.")
+
+    def fmt(size):
+        return f"{size / 1024:.1f} KiB, {size / cap * 100:.0f}% of cap"
+
+    header = (f"codex project chain — cap {cap // 1024} KiB ({origin}); "
+              f"the global ~/.codex/AGENTS.md is exempt and never counts here")
+    if at_root > cap:
+        print(f"NOTE: {header}\n"
+              f"  EVERY session truncates silently: at repo root {fmt(at_root)}. "
+              f"Move content behind a router skill, or raise "
+              f"project_doc_max_bytes in ~/.codex/config.toml.")
+    elif under_harness > cap:
+        print(f"NOTE: {header}\n"
+              f"  at repo root: {fmt(at_root)} — the normal case\n"
+              f"  under harness/: {fmt(under_harness)} — a session opened THERE "
+              f"truncates silently. Open Codex at the root, or move content "
+              f"behind a router skill.")
     else:
-        print(line + ".")
+        print(f"{header}:\n"
+              f"  at repo root: {fmt(at_root)} — the normal case\n"
+              f"  under harness/: {fmt(under_harness)} — worst case; "
+              f"open Codex at the root")
 
 
 def _codex_chain_cap():

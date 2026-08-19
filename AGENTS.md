@@ -255,7 +255,7 @@ Build/test/lint enforcement is restored automatically in any other repo with run
                             #   find <repo> -name AGENTS.md -exec cat {} + | wc -c
   ```
 - Start a new Codex/OpenCode session after replication. Do not rely on resumed sessions to reflect changed global instructions.
-- **A Codex session opened under `harness/` loads the shared core twice** — once as the deployed global, once as a project doc in the chain (`AGENTS.md` + `harness/AGENTS.md` = ~53 KiB, over the 32 KiB default cap; it fits only because `~/.codex/config.toml` raises `project_doc_max_bytes`). Codex offers no exclusion mechanism — `project_doc_fallback_filenames` adds names, never removes them. Open Codex at the repo root; `build.py` reports the chain size on every run.
+- **A Codex session opened under `harness/` loads the shared core twice** — once as the deployed global, once as a project doc in the chain (that sum exceeds the 32 KiB default cap; it fits only because `~/.codex/config.toml` raises `project_doc_max_bytes`). A session at the repo ROOT loads only the root file and is unaffected — never quote the under-`harness/` figure as the repo's current chain size. Codex offers no exclusion mechanism — `project_doc_fallback_filenames` adds names, never removes them. Open Codex at the repo root; `build.py` reports BOTH chain sizes — at the root and under `harness/` — on every run.
 
 ## Validation
 - This is a configuration-only repo; validation is mostly diff review and consistency checks.
