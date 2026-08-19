@@ -31,6 +31,7 @@ renaming images/repos to match the monorepo name (image names are
 | Contracts package and facades | Visual mocks (separate baseline) |
 | CI, image CD, frontend-host config | Account/VPS Terraform if it lives in specs/infra (copied for apply, never re-applied during cutover) |
 | Canonical QA compose | Real secrets (workspace `_support/secrets/`) |
+| Quality layer: ONE lint/format config, ONE hook runner, ONE name per equivalent task script | The per-repo variants of it — they do not survive the hoist as-is |
 
 Old remotes are **archived**, never deleted — history, issues, and registry packages tied
 to them survive. No new work lands there.
@@ -47,6 +48,7 @@ Without these, the hoist produces a repo that cannot deploy.
 | CD | Path-filtered per slice; never "deploy all" | A docs change redeploys every service |
 | CI per stage | PR→`development` = quick checks · push `development` = full suite · PR `development→qa` = branch policy only · deploy builds the image | Slow promotions, hung checks on docs PRs |
 | Local compose | ONE cwd; the Postgres bind mount is pointed or symlinked, never blindly moved | An `up` from the new path creates an empty data dir |
+| Quality stack, when the sources disagree | Pick ONE before the hoist (whichever the larger surface already uses) and converge in the same PR | Each app keeps its own; "temporary" becomes permanent and no gate is enforceable across the repo |
 | Production | Out of the cutover; QA green first | Go-live mixed with repo migration |
 
 Per-project (re-decide each time): stack versions from the DESTINATION lockfile; domain
@@ -210,6 +212,7 @@ an empty-volume symptom — it's a wrong-cwd symptom.
 | Actions role Read | The default when adding | Leave it "because it's listed" |
 | Empty local DB | Different cwd, different bind mount | `docker compose down -v` |
 | Remote cache never hits | Missing `TURBO_TOKEN`/`TURBO_TEAM` | Rip out the YAML — cache is opt-in |
+| Cutover "done", tooling half-consolidated | Verify proved the new tree deploys, never that the old one stopped existing | Run the §9 residue sweep before closing |
 
 Deploy SSH: never feed the remote via `ssh … bash -s <<'EOF'` when an inner command reads
 stdin (`docker compose exec -T` eats the script and exits 0). Use `bash -c "$(cat)"`.
@@ -227,6 +230,26 @@ stdin (`docker compose exec -T` eats the script and exits 0). Use `bash -c "$(ca
 - [ ] Quick checks use `--affected`; sherif + env-hash checks in CI.
 - [ ] `turbo.json` declares `globalEnv`/test env and `remoteCache.signature`.
 - [ ] (Optional) remote cache secrets set; one CI run shows a cache HIT.
+
+### Residue sweep — did the consolidation actually consolidate?
+
+QA green proves the new tree deploys. It does not prove the old one stopped existing. Every
+category below was found in a monorepo that had passed its own cutover months earlier —
+sweep all four before closing:
+
+- [ ] **No dangling reference.** Nothing copies, excludes, or points at a path the hoist
+      moved: `Dockerfile*` COPY sources, `.dockerignore`, CI path filters, script cwd
+      assumptions. A dev image nobody builds in CI rots in silence.
+- [ ] **No surviving duplicate.** What is shareable now exists once: per-app scripts
+      differing only in constants, byte-identical configs, install/rebuild steps repeated
+      across image stages, a second formatter still installed in one app.
+- [ ] **The adopted capability is ON, not merely configured.** CI invokes tasks THROUGH the
+      orchestrator (never the package manager directly), every task declares its `inputs`,
+      and the checkout does not wipe the cache dir — a re-run of an untouched task must hit.
+      Paying for the cutover and leaving the cache off is the most expensive outcome available.
+- [ ] **Docs match the tree.** `AGENTS.md`/`CLAUDE.md`/READMEs declare nothing pending that
+      is already done, nor done what is not. A ledger that lies is the costliest residue:
+      it misroutes every agent and person who reads it next.
 
 ## 10 · What not to copy from the source case
 
