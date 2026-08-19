@@ -27,6 +27,7 @@ An index result is a pointer, never a verdict:
 - **Never conclude absence from an index.** "X does not exist" requires an exhaustive `rg` sweep (broad vocabulary, English AND Spanish domain terms, 0 hits). Index coverage is partial by design.
 - **Verify before building on a hit.** A plausible index hit may be dead code or the wrong direction — Read the file and check callers before anchoring a conclusion on it.
 - **On conflict between an index and disk (`rg`/Read), disk wins.**
+- **In a monorepo, an import CodeGraph could not resolve by path still becomes an edge — to the nearest same-named symbol.** Aliases declared per app (`@/*` in `apps/<x>/tsconfig.json`) and packages served from `src/`/`dist/` both fail path resolution, so `callers`/`impact`/`affected` read as confident while pointing into the wrong app. Confirm the target file before acting on a cross-package or aliased relation; the durable fix is a `paths` entry per internal package in the workspace root's `tsconfig.json`, never a root `@/*`.
 
 ## Model floor for discovery agents
 

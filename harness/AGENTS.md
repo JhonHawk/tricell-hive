@@ -120,4 +120,4 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
 
-The block above is managed by `codegraph install` — never edit between the markers. Earn it by shape: relations or multi-file context in one call; a one-grep question does not; multi-repo → `--path <repo>`/`projectPath`. Full rg/codegraph routing and the anti-conclusion discipline: the language-rules `code-search` reference — load it before discovery/search work.
+The block above is managed by `codegraph install` — never edit between the markers. Earn it by shape: relations or multi-file context in one call; a one-grep question does not. One index per project root — a monorepo's workspace root (never per app), or each repo when the product stays split; another project → `--path <root>`/`projectPath`. Full rg/codegraph routing and the anti-conclusion discipline: the language-rules `code-search` reference — load it before discovery/search work.
