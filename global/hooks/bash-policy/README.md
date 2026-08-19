@@ -1,6 +1,6 @@
 # bash-policy
 
-**Event:** `PreToolUse`, matcher `Bash|mcp__codegraph__.*`.
+**Event:** `PreToolUse`, matcher `Bash|run_terminal_command`.
 
 One process carrying every pre-execution shell policy gate. Absorbs the former `code-search-routing` (PRE mode) and `pre-push-lint-reminder`, and adds three universal denies. Consolidation goal: a Bash call spawns 2 hook processes instead of 4-5, and the stdin/`jq` boilerplate is paid once.
 

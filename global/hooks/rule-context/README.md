@@ -77,7 +77,7 @@ edit-heavy session from paying the same pointer on every write.
   `shell` call): TS/JS, React, Python, Java/Kotlin, SQL, shell, Terraform, Dockerfile, CI
   workflows, CSS, and the Angular/NestJS shared suffixes.
 - **Tool policy** (`Bash` / `run_terminal_command` / `shell`): `agent-browser` →
-  `browser-automation.md`; `codegraph` → `code-search.md`.
+  `browser-automation.md`.
 
 Codex runs edits through `apply_patch` inside a shell call, so the file kind is read from the
 patch header instead of a `file_path` field. Without that branch the hook would be inert on

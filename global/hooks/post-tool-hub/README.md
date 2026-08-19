@@ -12,11 +12,7 @@ Each section self-gates on `tool_name` and returns text; whatever fires is newli
 
 **2. Full-suite run counter** (`Bash` only) — counts repeated whole-suite verification runs (`turbo run test`, `pnpm [-r] [run] test`, followed only by flags). A command carrying `--filter` is the sanctioned affected-subset run and never counts; a non-flag argument (`pnpm test messages.spec`) or a scoped script (`pnpm test:unit`) is treated as scoped. The first run is the legitimate merge-boundary gate and stays silent; run #2 onward reminds. Policy: `testing.md > Execution Scope`.
 
-**3. Index anti-conclusion discipline** (codegraph, via Bash command or MCP tool name) — injects the "an index result is a pointer, never a verdict" reminder.
-
 ## Behavior change vs the absorbed hooks
-
-Section 3 now fires **at most once per session** (marker file below). Previously it re-injected after *every* index call. The discipline is a stance, not a per-call correction, so repetition was pure context tax. Sections 1 and 2 are unchanged.
 
 ## State files — separate by design
 
@@ -24,7 +20,6 @@ Section 3 now fires **at most once per session** (marker file below). Previously
 |---|---|
 | `${TMPDIR:-/tmp}/claude-delegation-reminder-<session_id>` | 1 (format `<agent_id>\|<count>`) |
 | `${TMPDIR:-/tmp}/claude-verification-loop-<session_id>` | 2 (plain integer) |
-| `${TMPDIR:-/tmp}/claude-index-discipline-<session_id>` | 3 (presence marker) |
 
 The counters are never coupled: a `Task` call resetting section 1 must not touch section 2's count. Corrupt or missing counter files reset to 0. Markers live in TMPDIR and are never cleaned up by the hook; the OS purges them.
 
@@ -44,7 +39,7 @@ Deterministic delivery of prompt-convention reminders. The hook injects signals 
 ## Smoke test
 
 ```bash
-S=smoketest; T=${TMPDIR:-/tmp}; rm -f "$T"/claude-delegation-reminder-$S "$T"/claude-verification-loop-$S "$T"/claude-index-discipline-$S
+S=smoketest; T=${TMPDIR:-/tmp}; rm -f "$T"/claude-delegation-reminder-$S "$T"/claude-verification-loop-$S
 hub() { jq -n --arg s "$S" --arg t "$1" --arg c "${2:-}" \
           '{session_id:$s,tool_name:$t,tool_input:{command:$c}}' | bash post-tool-hub.sh; }
 
@@ -52,6 +47,4 @@ for i in $(seq 1 20); do out=$(hub Read); done; echo "$out"  # delegation remind
 hub Task > /dev/null; cat "$T/claude-delegation-reminder-$S" # expect main|0
 hub Bash "pnpm test" > /dev/null                             # silent (run #1)
 hub Bash "pnpm test"                                         # full-suite reminder, run #2
-hub Bash "codegraph explore foo"                             # index discipline, once
-hub Bash "codegraph explore bar"                             # silent thereafter
 ```

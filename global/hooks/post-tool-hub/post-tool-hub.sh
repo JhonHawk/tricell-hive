@@ -10,7 +10,6 @@
 #
 #   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
 #   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
-#   3. Index anti-conclusion     (codegraph) — code-search.md
 #   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
 #
 # The counters keep SEPARATE state files and are never coupled: one section
@@ -121,28 +120,6 @@ verification_loop_section() {
 }
 
 # ---------------------------------------------------------------------------
-# 3. Index anti-conclusion discipline — injected right after an index tool ran.
-# Once per session: the discipline is a stance, not a per-call correction, and
-# repeating it every codegraph call is pure context tax.
-# ---------------------------------------------------------------------------
-index_discipline_section() {
-  local tool="" marker
-  case "$tool_name" in
-    Bash|run_terminal_command)
-      if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
-      ;;
-    mcp__codegraph__*|codegraph__*) tool="codegraph" ;;
-  esac
-  [ -n "$tool" ] || return 0
-
-  marker="${TMPDIR:-/tmp}/claude-index-discipline-${session_id}"
-  [ -f "$marker" ] && return 0
-  : > "$marker" 2>/dev/null || true
-
-  printf '%s' 'code-search discipline (rules/tools/code-search.md): an index result is a pointer, never a verdict. Read the cited file before citing it; never conclude absence from an index — "does not exist" requires an exhaustive rg sweep (0 hits, broad vocabulary); check a hit is alive (callers/imports) before building on it; on index-vs-disk conflict, disk wins.'
-}
-
-# ---------------------------------------------------------------------------
 # 4. zsh-signature teacher — fires when a shell tool result carries a zsh
 # dialect error. In Grok (zsh runtime) it names the exact fix so the retry is
 # informed; in Claude (bash 5 expected via CLAUDE_CODE_SHELL) the same
@@ -181,7 +158,6 @@ append() {
 
 append "$(delegation_section)"
 append "$(verification_loop_section)"
-append "$(index_discipline_section)"
 append "$(zsh_signature_section)"
 
 if [ -n "$context" ]; then

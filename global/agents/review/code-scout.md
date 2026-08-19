@@ -4,7 +4,7 @@ description: >
   Discover where and how something is implemented across a codebase or multi-repo workspace and answer with
   verified file:line references — "where is X implemented?", "how does Y work?", "does Z exist?", unknown
   terminology, legacy code, cross-repo questions. Returns a conclusion with evidence, not a file dump.
-  NOT for structural-only lookups on a known symbol (run codegraph callers/impact directly) and NOT for
+  NOT for a single-fact lookup you can settle with one `rg` and NOT for
   reviewing a diff already in hand.
 tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet

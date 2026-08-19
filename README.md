@@ -34,7 +34,6 @@ layer `/deploy-global` cannot automate). After any merge, start a fresh session.
 | Tool | Used by | Check |
 |---|---|---|
 | `agent-browser` CLI (+ `AGENT_BROWSER_PROFILE=Tricell` in `~/.zshenv`) | browser-automation rule, in-vivo verification, `in-vivo-qa-tester` | `agent-browser --version` |
-| `codegraph` CLI + MCP | CodeGraph rule (indexed repos only) | `codegraph --version` |
 | `uv` | Python rule (pip is banned) | `uv --version` |
 | `pnpm` | default package manager | `pnpm --version` |
 | `gh` | GitHub operations (PRs, API) | `gh auth status` |

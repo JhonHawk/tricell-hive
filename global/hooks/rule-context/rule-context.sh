@@ -105,7 +105,6 @@ case "$tool_name" in
       *agent-browser*) add_rule "browser-automation.md" ;;
     esac
     case "$command" in
-      *codegraph*) add_rule "code-search.md" ;;
     esac
     # Codex edits through `apply_patch` inside a shell call, so the file kind is
     # in the patch header rather than in a file_path field. Without this the hook

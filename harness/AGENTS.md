@@ -109,15 +109,4 @@ Always-on core for every harness; situational depth lives behind the router skil
 - An endpoint another service consumes, changed cross-service shapes, or new events/webhooks: define or update the contract BEFORE implementation (`workspace-conventions`); touching multiple repos is not itself a trigger.
 - Answer "what's pending / where are we" from ground truth by claim type: implementation → git/disk first (closing commit, file on disk); tool/library behavior → docs for the installed version, never latest. Ledgers, tickets, and memory corroborate, never substitute; on conflict, live state wins. Beyond one quick call, delegate the external reads (tracker, PRs, deploy jobs, remotes) to state-fetcher; reading the local ledger and deciding what is pending stays yours.
 
-<!-- CODEGRAPH_START -->
-## CodeGraph
-
-In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
-
-- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
-- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
-
-If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
-<!-- CODEGRAPH_END -->
-
-The block above is managed by `codegraph install` — never edit between the markers. Earn it by shape: relations or multi-file context in one call; a one-grep question does not. One index per project root — a monorepo's workspace root (never per app), or each repo when the product stays split; another project → `--path <root>`/`projectPath`. Full rg/codegraph routing and the anti-conclusion discipline: the language-rules `code-search` reference — load it before discovery/search work.
+Code discovery: `rg` for search and absence claims, then Read. Full routing and the anti-conclusion discipline: the language-rules `code-search` reference — load it before discovery/search work.

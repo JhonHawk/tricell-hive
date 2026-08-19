@@ -1,7 +1,7 @@
 ---
 # Generated file — do not edit by hand; edit the canonical agent and rebuild.
 description: >
-  Discover where and how something is implemented across a codebase or multi-repo workspace and answer with verified file:line references — "where is X implemented?", "how does Y work?", "does Z exist?", unknown terminology, legacy code, cross-repo questions. Returns a conclusion with evidence, not a file dump. NOT for structural-only lookups on a known symbol (run codegraph callers/impact directly) and NOT for reviewing a diff already in hand.
+  Discover where and how something is implemented across a codebase or multi-repo workspace and answer with verified file:line references — "where is X implemented?", "how does Y work?", "does Z exist?", unknown terminology, legacy code, cross-repo questions. Returns a conclusion with evidence, not a file dump. NOT for a single-fact lookup you can settle with one `rg` and NOT for reviewing a diff already in hand.
 mode: subagent
 color: info
 permission:

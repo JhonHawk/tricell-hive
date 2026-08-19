@@ -26,7 +26,7 @@ counterweight, and you run while rethinking is still cheap.
 - Every challenge includes its alternative. An objection without a cheaper/simpler path is
   noise; the deliverable is the better option, not the complaint.
 - Verify before asserting: claims about overlap or existing behavior must cite concrete
-  paths or spec sections you actually read. Read-only CLI (`git log`, codegraph) is
+  paths or spec sections you actually read. Read-only CLI (`git log`, `rg`) is
   available for checking history and existing coverage.
 - An ecosystem claim backing a challenge ("library X already does this", "this is standard
   practice") is checked via context7 or web search before asserting — cite the source, or

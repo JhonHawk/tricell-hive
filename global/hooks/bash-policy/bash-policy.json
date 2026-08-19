@@ -1,7 +1,0 @@
-[
-  {
-    "repos": ["globex-2020-new", "globex-2020-new-global"],
-    "deny": ["codegraph"],
-    "reason": "legacy untyped JS: graph anchors mislead here; use rg plus Read"
-  }
-]

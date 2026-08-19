@@ -818,6 +818,16 @@ Backs `workflow/unattended-autonomy.md`, its cross-references in `quality/develo
 
 ## Code-search routing — jbcontext/CodeGraph/rg/agent (2026-07-21)
 
+> **CodeGraph fue RETIRADO el 2026-08-19 — desinstalado del hive y de los harnesses.** Motivo medido, no
+> preferencia: su resolución de imports adivina cuando falla y no marca la adivinanza. En
+> `educavita-next-monorepo`, `@/components/app-frame` de school-portal quedó apuntando al componente del
+> backoffice (arista `imports` sin `provenance`, más su gemela `calls` marcada `heuristic`), y con ella todo
+> el shell de esa app. Causa: sólo lee el `tsconfig.json` de la raíz del índice — el de cada app es invisible
+> — y el desempate entre homónimos no favorece al importador. El compilador de TypeScript resuelve ese mismo
+> specifier correctamente (`ts.resolveModuleName` contra el tsconfig de la app), así que la sustitución
+> apunta a herramientas apoyadas en el type checker (LSP/SCIP). Los benchmarks de abajo siguen siendo
+> válidos para lo que midieron; no cubrían monorepos con apps gemelas.
+
 > **jbcontext está APARCADO desde 2026-08-18 — decisión del usuario, no un veredicto de los benchmarks.** Se retiró de la tabla de routing (`code-search.md`), de la detección de los hooks `bash-policy`/`post-tool-hub`/`rule-context`, del agente `code-scout` y de los punteros del core. La operación que cubría —descubrimiento por intención, terminología desconocida, código legacy/untyped— la absorbe `rg` con barrido amplio de vocabulario más el agente `code-scout`; en repos legacy declarados el hook sigue denegando CodeGraph, ahora enrutando a `rg`. La herramienta existe y sigue instalada como servidor MCP a nivel máquina (fuera de este repo): reactivarla es volver a agregar su fila de routing y su detección en los tres hooks. La evidencia comparativa que motivó su adopción original queda abajo, intacta.
 
 - `[Internal — measured]` **Benchmarks v3 + v4** (`_support/archive/audits/2026-07-21-benchmark-{v2-ark-jbcontext-vs-codegraph,v3-discovery-multiworkspace,v4-toolset-ablation}.html`) — evidence base for `global/rules/tools/code-search.md`, the `code-search-routing` hook, and the `code-scout` agent. v3: 27 tasks / 4 workspaces / 2 judges per task; single-shot quality jbcontext 5.9 ≈ rg 5.9 > CodeGraph 4.5, explore agent 9.2 (with its first verified factual error). v4 (ablation, sonnet explorers, 4 arms): tools complement — D(both) 8.53 > max(B,C); jbcontext +1.94 on legacy/unknown terminology; CodeGraph +0.72 on structural traps but −0.34 on legacy; ambiguous questions: baseline wins. Operational hazards verified: jbcontext repository id = normalized git remote (non-git dirs collapse into ONE shared id — silent wrong-index serving; same-remote twins indistinguishable; synthetic-remote + `--git-remote-url` workaround validated); non-git indexing ingests node_modules; no client-side index deletion exists (EAP §8 covers deletion on withdrawal only).

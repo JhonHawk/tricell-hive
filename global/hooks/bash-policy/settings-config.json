@@ -3,7 +3,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|run_terminal_command|mcp__codegraph__.*|codegraph__.*",
+        "matcher": "Bash|run_terminal_command",
         "hooks": [
           {
             "type": "command",

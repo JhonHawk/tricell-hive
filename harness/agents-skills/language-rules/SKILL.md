@@ -44,7 +44,7 @@ when the stack is touched.
 | Writing/modifying tests, or any behavior change | `references/testing.md` |
 | Non-obvious bug: intermittent, multi-layer, or resists the first fix | `references/debugging.md` |
 | Driving a browser / in-vivo verification of a running app | `references/browser-automation.md` |
-| Code discovery/search (rg vs codegraph routing, absence claims, index-hit verification) | `references/code-search.md` |
+| Code discovery/search (routing by operation, absence claims, hit verification) | `references/code-search.md` |
 | Naming identifiers with no file yet on disk — new fields, enums, table/column names, spec/API properties | `references/identifier-language.md` |
 
 ## Stacking — combinations are the norm, not the exception

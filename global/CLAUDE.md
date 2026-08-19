@@ -153,20 +153,3 @@ Keep the main thread focused: delegate executable work, reason in the main threa
 
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
 
-<!-- CODEGRAPH_START -->
-## CodeGraph
-
-In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
-
-- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
-- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
-
-If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
-<!-- CODEGRAPH_END -->
-
-The managed block above is owned by `codegraph install` (markers kept so upgrades report "Unchanged" instead of appending a duplicate). User-layer specifics on top of it:
-
-- **Earn it by shape:** the payoff is round-trips — relations or multi-file context in one call. A one-shot question a single grep or Read answers does NOT earn it. Bonus signal from `codegraph_explore`: it marks affected symbols with no covering tests. **One index per project root** — a monorepo's workspace root, or each repo when the product stays split across repos. Never index per app inside a monorepo: `packages/` falls outside the tree and cross-package resolution goes dark. Reaching another project (a child repo, a second monorepo): pass `projectPath`; a container folder holding several repos has no index of its own.
-- **Specialized CLI commands when you already know the target** (shell only — not exposed as MCP): `codegraph query <name>` to locate a symbol, `node <name>` to read one symbol's source + caller/callee trail, `callers`/`callees <symbol>` for direct relations, `impact <symbol>` for blast radius before touching shared UI/services, `affected --stdin --depth 2 --json` to pick the tests a changed file hits (feeds the `testing.md > Execution Scope` test selection), `files --filter <dir>` for an indexed-area inventory (no positional args). Another project: query commands take `-p <root>`; maintenance commands (`index`, `sync`, `status`) take the path positionally instead (`codegraph status <root>`) — no `--path` there.
-- **Routing against `rg`, and the anti-conclusion discipline:** `rules/tools/code-search.md`.
-- **Name exact symbols/files when you know them** — a broad query can return the high-level caller instead of the detail you meant; duplicate names → disambiguate with a file-specific query or `node -f`.

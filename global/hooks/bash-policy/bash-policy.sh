@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bash-policy.sh — PreToolUse (shell + codegraph MCP), DENY-FIRST.
+# bash-policy.sh — PreToolUse (shell), DENY-FIRST.
 #
 # Dual-runtime: Claude Code (Bash, tool_name/tool_input) and Grok Build
 # (run_terminal_command, toolName/toolInput; MCP as server__tool). Keep the
@@ -9,13 +9,10 @@
 # load-bearing: every DENY runs first (exit 2 + human reason on stderr;
 # Grok-safe JSON decision on stdout), and only then may the advisory emit JSON.
 #
-#   Denies:   (a) repo-scoped index routing (map: bash-policy.json)
-#             (b) pip ban — uv is the only Python package manager
-#             (c) package-manager mixing vs the nearest lockfile
-#             (d) lockfile deletion
-#   Advisory: (e) pre-push local-quality-gate reminder
-#
-# Non-shell (MCP index) tools see (a) only; (b)-(e) are shell-command policy.
+#   Denies:   (a) pip ban — uv is the only Python package manager
+#             (b) package-manager mixing vs the nearest lockfile
+#             (c) lockfile deletion
+#   Advisory: (d) pre-push local-quality-gate reminder
 #
 # `permissionDecision: "allow"` is emitted ONLY inside the push advisory — a
 # global allow would auto-approve arbitrary shell.
@@ -25,7 +22,6 @@
 
 set -uo pipefail
 
-MAP="$HOME/.claude/hooks/bash-policy.json"
 
 # Deny for both harnesses: Claude honors exit 2 + stderr; Grok honors
 # {"decision":"deny"} and/or exit 2. Always print both.
@@ -50,55 +46,8 @@ case "$tool_name" in
 esac
 cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
 
-is_shell=0
-case "$tool_name" in
-  Bash|run_terminal_command) is_shell=1 ;;
-esac
-
 # ---------------------------------------------------------------------------
-# (a) DENY — repo-scoped index-tool routing.
-# Which index tool (if any) does this call involve?
-# ---------------------------------------------------------------------------
-tool=""
-haystack=""
-case "$tool_name" in
-  Bash|run_terminal_command)
-    haystack="$command"
-    if printf '%s' "$command" | grep -qE '(^|[^[:alnum:]_-])codegraph([^[:alnum:]_-]|$)'; then tool="codegraph"; fi
-    ;;
-  mcp__codegraph__*|codegraph__*)
-    tool="codegraph"
-    haystack=$(printf '%s' "$input" | jq -r '.tool_input.projectPath // .toolInput.projectPath // .cwd // .workspaceRoot // empty' 2>/dev/null)
-    ;;
-esac
-
-if [ -n "$tool" ] && [ -f "$MAP" ]; then
-  haystack="$haystack $cwd"
-  # Map rows: {"repos": ["substr", ...], "deny": ["codegraph"], "reason": "..."}
-  n=$(jq 'length' "$MAP" 2>/dev/null || echo 0)
-  i=0
-  while [ "$i" -lt "$n" ]; do
-    row=$(jq -c ".[$i]" "$MAP")
-    i=$((i + 1))
-    for t in $tool; do
-      jq -e --arg t "$t" '.deny // [] | index($t)' >/dev/null 2>&1 <<<"$row" || continue
-      while IFS= read -r repo; do
-        [ -n "$repo" ] || continue
-        if printf '%s' "$haystack" | grep -qF "$repo"; then
-          reason=$(jq -r '.reason // "contraindicated here"' <<<"$row")
-          deny "bash-policy: '$t' is DENIED in repo '$repo' — $reason. Use the routed alternative (rules/tools/code-search.md)."
-        fi
-      done < <(jq -r '.repos[]?' <<<"$row")
-    done
-  done
-fi
-
-# Everything below is shell-command policy.
-[ "$is_shell" -eq 1 ] || exit 0
-[ -n "$command" ] || exit 0
-
-# ---------------------------------------------------------------------------
-# (b) DENY — pip ban. `uv pip …` is the sanctioned form and is stripped first.
+# (a) DENY — pip ban. `uv pip …` is the sanctioned form and is stripped first.
 # ---------------------------------------------------------------------------
 pip_re='(^|[;&|]|sudo[[:space:]]+)[[:space:]]*pip3?([[:space:]]|$)'
 pip_stripped=${command//uv pip/ }
@@ -123,7 +72,7 @@ if [ "$tool_name" = "run_terminal_command" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# (c) DENY — package-manager mixing. Nearest lockfile decides the manager;
+# (b) DENY — package-manager mixing. Nearest lockfile decides the manager;
 # only MUTATING verbs count, so read-only calls (npm view, pnpm why) pass.
 # ---------------------------------------------------------------------------
 lockfile_manager() {
@@ -158,7 +107,7 @@ if cmd_pm=$(mutating_manager "$command") && [ -n "$cwd" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# (d) DENY — lockfile deletion. Evaluated per command segment so an unrelated
+# (c) DENY — lockfile deletion. Evaluated per command segment so an unrelated
 # `rm` in one segment cannot pair with a lockfile named in another.
 #
 # ONE carve-out — `git rm` of a redundant per-package lockfile: it resolves to
@@ -212,7 +161,7 @@ while IFS= read -r segment; do
 done < <(printf '%s\n' "$command" | tr ';&|' '\n')
 
 # ---------------------------------------------------------------------------
-# (e) ADVISORY — pre-push local-quality-gate reminder. NEVER blocks.
+# (d) ADVISORY — pre-push local-quality-gate reminder. NEVER blocks.
 #
 # Stays silent for repos with no detectable Node quality gate (no package.json,
 # or no lint/test script), and for repos where an INSTALLED lefthook pre-push
