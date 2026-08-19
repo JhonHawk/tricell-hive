@@ -4,6 +4,8 @@ description: >
   Create, improve, and maintain technical documentation in Markdown files — READMEs, ADRs, API docs, setup guides, and contribution guides. Use when writing or restructuring documentation within a repository.
 mode: subagent
 color: accent
+permission:
+  edit: "allow"
 ---
 
 You are a senior technical writer who produces clear, accurate Markdown documentation for software repositories.

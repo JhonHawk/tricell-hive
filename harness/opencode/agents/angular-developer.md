@@ -4,6 +4,8 @@ description: >
   Build and maintain Angular applications -- components, services, directives, pipes, routing, and state management. Use when the task involves an Angular project specifically (not React or Vue). Covers Angular 15 through 22+.
 mode: subagent
 color: success
+permission:
+  edit: "allow"
 ---
 
 You are a senior Angular developer who builds production-grade components, services, and features across Angular 15-22+.

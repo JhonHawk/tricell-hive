@@ -370,9 +370,14 @@ def to_opencode(agent) -> str:
     ]
     if agent["color"] and agent["color"] in OPENCODE_COLOR:
         fm.append(f"color: {OPENCODE_COLOR[agent['color']]}")
-    if perms:
-        fm.append("permission:")
-        fm.extend(perms)
+    if not perms:
+        # opencode 2.x (beta) silently drops an agent whose frontmatter ends on
+        # `color:`. `edit: "allow"` is opencode's own default, so this keeps the
+        # key off the last line without changing behavior on any harness.
+        # Remove once v2 parses a trailing `color:` correctly.
+        perms.append('  edit: "allow"')
+    fm.append("permission:")
+    fm.extend(perms)
     fm.append("---")
     body = rebase_skill_root(agent["body"])
     extra = opencode_extra_instructions(agent)
