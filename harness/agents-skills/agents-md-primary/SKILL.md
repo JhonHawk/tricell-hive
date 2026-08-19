@@ -9,7 +9,8 @@ description: >
   AGENTS.md/CLAUDE.md content against the deployed global canon — per-rule harness-coverage
   matrix, dedup, stale-fork detection, promotion/injection routing — plus content quality:
   agent-discoverable rules, stale file paths, missing git-workflow declarations and ledger
-  pointers, instruction budget (audit | apply). Idempotent.
+  pointers, instruction budget, and verification parity between the repo's local hooks and
+  its CI (audit | apply). Idempotent.
 ---
 
 # /agents-md-primary — one canonical file, every harness ambient
@@ -106,7 +107,7 @@ workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law
 
 | Outcome | When | Proposed action |
 |---|---|---|
-| **delete** | Full coverage — pure noise (and reclaims Codex's per-repo `project_doc_max_bytes` budget) | Remove from the project file |
+| **delete** | Full coverage — pure noise (and reclaims Codex's per-repo `project_doc_max_bytes` budget). Coverage is not only another instruction layer: a rule a DETERMINISTIC mechanism in the repo now enforces (hook job, CI gate) is covered the same way | Remove from the project file |
 | **promote-to-core** | Universal (gate, every-session procedure), partial coverage | Condensed line into `harness/AGENTS.md` (28 KiB budget is the gate) → then delete from EVERY project |
 | **inject-to-router** | Situational (language, workspace, memory policy), partial coverage | Add the owning global rule to `SKILL_REFERENCE_INJECTIONS` → delete from the project |
 | **discoverable** | The repo's own files already state it — package manager (lockfile), scripts (`package.json`), framework (its config), directory inventory | Remove. Discriminator is the no-op test: delete the line and name what the agent would do differently. Nothing → it is a no-op. Verify against disk before proposing, never from the rule's wording |
@@ -136,6 +137,23 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   concatenates git-root → cwd, so nested `AGENTS.md` files are charged together against
   `project_doc_max_bytes` (32 KiB default; raising it is per-machine and does not travel with
   the repo). Informational; the fleet's median file is ~2.3 KB, so flag only real outliers.
+- **Verification parity**: derive the repo's layers from disk — `package.json` scripts,
+  `lefthook.yml` / `.husky/`, `.github/workflows/` — and compute two gaps against CI.
+  **Invocation**: pre-commit does not run on commits created by `cherry-pick` or `rebase`
+  (measured: 0 runs), nor under `-n`, so a check living only there is absent from exactly the
+  operations that prepare a PR. **Coverage**: repo paths no job's `glob` matches — shell
+  scripts, root configs, workflow files. Widening globs never closes the invocation gap; only
+  a pre-push job does. **The fix belongs in the repo's EXISTING hook manager, never in
+  prose** — never introduce one — scoped to what CI already runs minus the full test suite
+  (tests stay on the affected-subset rule, `testing.md > Execution Scope`).
+  `AGENTS.md` takes only what the hook cannot enforce: in a repo with no hook manager, the
+  imperative instruction (declared prompt-convention). Every verification line already in the
+  file is then re-checked against the real map, **both directions**. One promising coverage
+  the repo does not have is `stale` — correct or delete it; that lie is what produces the
+  failure this check prevents. One prescribing by hand what a deterministic layer has since
+  taken over is `delete` — the tool arrived after the rule and the rule never retired. The
+  exception that stays: a line telling the agent NOT to duplicate what the hook already does
+  (an autocorrecting pre-commit), which changes behaviour instead of restating it.
 - **Tracker declaration**: a flow project declares in its LEDGER (the three fields —
   `memory-routing.md` owns the home and the confirm gate); the audit only FLAGS absence
   and proposes the ledger edit — never writes it, and the proposal rides the same
@@ -172,7 +190,10 @@ measured 2026-08-15, all three named context7 and its exact call sequence unprom
 ## `apply` — execute the confirmed audit manifest
 
 One approval covers the batch; contradictions and overrides are listed individually
-inside it. Project edits ride each repo's session git mode. Hub-destined proposals
+inside it. Project edits ride each repo's session git mode. A hook-config edit proposed by
+**verification parity** rides that same approval — it is the one non-instruction file this
+skill writes; verify it with the manager's own runner (`lefthook run pre-push`) before
+reporting it done. Hub-destined proposals
 (promote-to-core, injection-map edits) are OUT of apply's scope — the manifest carries
 them for the user to execute in a session opened in the hub, where `build.py` and its
 validation run. Never apply without an audit manifest from this session.
