@@ -8,7 +8,32 @@ This repo is the **source of truth** for the user's global agent configuration. 
 The reusable generic harness configuration lives in `harness/AGENTS.md`. Edit that file when changing cross-project AGENTS guidance. Do not duplicate its full contents here.
 
 ## Context
-The user is a software architect and developer working across 6 client groups with ~50 repositories spanning Next.js, Angular, NestJS, Express, Java/Spring, Kotlin, Python, and DevOps (GitHub Actions, AWS, Hetzner, Vercel, Dokploy). Agents must not repeat global rules; they inherit them automatically.
+The user is a software architect and developer. Agents must not repeat global rules; they inherit them automatically.
+
+**Portfolio snapshot — 2026-08-20.** 54 repos on disk, 44 with a commit in the last 90 days:
+
+| Category (of the 44 active) | # | Notes |
+|---|---|---|
+| Product, high personal volume | 9 | ark-monorepo, sample-project ×4, globex-backend-client, globex-web-client-reforge, umbrella-backoffice, educavita-next-monorepo |
+| Product, team-led (he reviews more than he writes) | ~13 | hooli, fleetsystem, initech ×6, remuneri-reforge-* |
+| Specs | 6 | documentation repos, no runtime |
+| Mocks / prototypes | 4 | |
+| Cloned reference repos | 3 | optional reference project, optional reference project, improve — none of his commits |
+| Config / meta | 4 | tricell-hive, tricell-hive-private (archived), rfp-estimations, terminal-ui-cv |
+| Marketing / landing | 3 | |
+| Dormant (>90d) | 10 | all of `ebitware`, untouched since 2026-03 |
+
+Three live client groups — `sample-workspace`, `sample-organization`, and Tricell's own work; `hitss/` is empty, `ebitware/` frozen. Work concentrates hard: `ark-monorepo` alone carries ~40% of his commit volume.
+
+**Monorepos are the default shape from here on** — Turborepo + workspaces with a shared contracts package between front and back. Seven active repos already follow it (ark, hooli-frontend, sample-project, fleetsystem-frontend, internal-apps, educavita, umbrella); two more are Nx (globex-web-client-reforge, e-hub-web-frontend). Assume new work is a monorepo unless told otherwise.
+
+Stack across the portfolio: Next.js, Angular, NestJS, Express, Java/Spring, Kotlin, Python, and DevOps (GitHub Actions, AWS, Hetzner, Vercel, Dokploy). Day-to-day volume is TypeScript-dominant (Next/Angular/Nest, Prisma/Drizzle) with long-running Node workers (BullMQ + Redis + S3) in production; Java/Kotlin/Python are in the working set but idle in the repos on disk at this snapshot.
+
+Refresh the snapshot with:
+
+```bash
+find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while read -r r; do printf "%s %s\n" "$(git -C "$r" log -1 --format=%cs)" "$r"; done | sort -r
+```
 
 ## Repository Boundaries
 - `global/` is the deployable Claude Code source of truth for `~/.claude/`.
