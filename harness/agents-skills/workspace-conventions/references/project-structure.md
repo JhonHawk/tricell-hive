@@ -35,8 +35,10 @@ No specs repo yet (pre-specs-repo, or outside the flow pack) → durable materia
 ### Infra repo split: `<project>-infra` vs app repos
 
 - **App-specific** (Dockerfile, dev compose, the service's CI/CD, its `.env.example`) → the app repo, in `<repo>/` or `<repo>/_support/infrastructure/`.
-- **Foundational/shared** (Terraform/IaC, deployment orchestration, reverse-proxy config, DNS, runbooks, secret *templates*) → a dedicated `<project>-infra` repo, sibling to the app repos. Never in `<project>-specs` (contracts ≠ IaC), never buried in one app repo.
-- **Routing test:** serves one service → app repo; 2+ or unowned (VPC, DNS, cloud account, IAM, shared cluster/buckets/DB) → `<project>-infra`. Create it when 2+ app repos share foundational infra or credentials need permission separation — never for symmetry. Name per `infra-naming.md` (`<project>-infra`, no env token).
+- **Foundational/shared** (Terraform/IaC, deployment orchestration, reverse-proxy config, DNS, runbooks, secret *templates*) → `<project>-infra`, sibling to the app repos, **when that repo is warranted** (gate below). Never in `<project>-specs` — contracts ≠ IaC.
+- **Creation gate first, routing second.** Create `<project>-infra` only when 2+ app repos share foundational infra, or IaC write access must be narrower than merge access to the app repo — never for symmetry, never merely to keep IaC out of the app repo.
+- **Routing test:** serves one service → app repo; 2+ or unowned (VPC, DNS, cloud account, IAM, shared cluster/buckets/DB) → `<project>-infra` **where that repo exists**; where it does not, the single app repo, in a top-level `infrastructure/` or `terraform/`, applied by its own workflow with its own deploy role — the credential boundary is the workflow's role, not the repo boundary. Name per `infra-naming.md` (`<project>-infra`, no env token).
+- **The single-repo choice carries an extraction condition** — written into the decision record, not left implicit: extract to `<project>-infra` when a second app repo appears, or when IaC write access must narrow. Its cost, stated once: anyone who can merge to the integration branch can edit the IaC.
 - **Secrets:** commit only templates (`.env.example`, `*.tfvars.example`). Real secrets and Terraform state stay out of git — secret manager / remote backend.
 
 ### Where inside the structure (pre-write essentials)
