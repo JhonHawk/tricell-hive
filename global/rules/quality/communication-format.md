@@ -47,6 +47,15 @@ Applies to every human-facing HTML deliverable whatever route produced it: `flow
 
 An answer the gate keeps in-thread carries everything a page would have carried, minus the packaging: no executive summary, no restatement of the question, no "what follows is…" preamble, no closing recap of what was just said. Headers and lists appear only where the content already has seams — a compact list, or two or three short headers, is the ceiling; an answer whose parts are not genuinely separate takes none. Trim by dropping detail that would not change what the reader does next, never by compressing sentences into fragments, arrow chains, or abbreviations. Explanatory means the reasoning that would change the reader's decision travels with the conclusion: why this over the obvious alternative, what it costs, and what would change the answer.
 
+### Answer length — set by the question, not by the work behind it
+
+A bare-fact or yes/no question closes in 1-3 sentences of plain prose; a substantive one carries the full substance the section above requires. Effort spent is not a reason to write more, exactly as it is not a reason to render a page.
+
+- **Lead with the result** — what happened, or the answer itself, in the first sentence. No "let me…" preamble, no plan narration, no step-by-step account of the tools run: outcomes, decisions, and what the user must act on.
+- **Full detail on request.** A request to explain, expand, or justify is answered completely; brevity never withholds what was asked for.
+- **Never trade correctness for brevity.** Failing output keeps its actual text, security warnings keep their reasoning, destructive-action confirmations keep what will happen and how to revert, per-criterion state keeps its per-criterion form. Trim detail that would not change what the reader does next — never the evidence a decision rests on.
+- **Precedence:** where the harness has a native output style (Claude Code `outputStyle`), it states this same thing and wins on wording. This section is the floor where there is none (Grok, opencode) or where the native switch only tunes the model's own verbosity (Codex `personality`, `model_verbosity`).
+
 ### Conversational ASCII diagrams
 
 **Explaining how something works, why it broke, or how parts relate ships WITH a small ASCII diagram by default** — drawing is the norm, not a fresh judgment call each time. The triggers are conversational, not abstract: "how does X work", "why did Y happen", "what's the flow", "walk me through it", "explain this" — and their Spanish equivalents ("cómo funciona", "por qué pasó", "explícame"). Shapes that qualify: **branching** (fallbacks, error paths, mutually exclusive outcomes), **fan-out / fan-in** (one component with N consumers; parallel paths side by side), **cross-layer flow** (data traversing 3+ layers), **staged pipelines with gates** (promotion chains, CI stages — what blocks what), **dependency relationships** (what points at what, what breaks when one moves), **before/after** when a change rearranges the shape. Two distinct topologies in one answer earn two diagrams.
