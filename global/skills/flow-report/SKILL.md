@@ -2,9 +2,10 @@
 name: flow-report
 description: >
   Render an artifact that outlives the conversation — one the user keeps, shares, or
-  returns to — as single-file static HTML in five archetypes (document, explainer, review,
-  comparison, deck), chosen by what is presented (plan, audit, research, PR review, option
-  grid, pitch). NOT for answering the user: an analysis, diagnosis, review verdict, status,
+  returns to — as single-file static HTML in six archetypes (document, paper, explainer,
+  review, comparison, deck), chosen by what is presented (audit, postmortem, design doc,
+  research, PR review, option grid, pitch). `paper` is the formal, printable one: serif,
+  numbered sections, footnotes, cover page. NOT for answering the user: an analysis, diagnosis, review verdict, status,
   or option comparison reported back in-thread stays prose however long or rich. Requires
   the artifact test in rules/quality/communication-format.md, plus ≥~300 words and 2+ info
   kinds (tables, diagrams, code, mockups) as necessary-not-sufficient conditions. Never for
@@ -20,7 +21,7 @@ Produces a single self-contained `.html` file under `_support/workspace/` or `_s
 
 Every output must:
 
-1. **Be self-contained.** All CSS in `<style>`, all JS in `<script>`, all imagery as inline SVG or base64 data URIs. No CDN dependencies that may 404. The file opens correctly offline.
+1. **Be self-contained — with one host allowed and one declared exception.** All CSS in `<style>`, all JS in `<script>`, all imagery as inline SVG or base64 data URIs; the file opens correctly offline. **Google Fonts is the sole remote host allowed without ceremony** — it is the only one the Artifacts CSP lets through, and a failed font request degrades to the system stack instead of breaking the page. **Any other remote host** (a CDN for KaTeX, Mermaid, highlight.js) requires declaring `<meta name="flow-report-assets" content="external">`, which `self_check.py` enforces and reports. That declaration is a real trade, not a formality: the Artifacts CSP blocks every non-font host, so the report cannot be published as an Artifact, and an async CDN script renders **empty** if the reader prints before it loads. Never let layout or legibility depend on a remote request. Screenshots past a handful move to a sibling `images/` folder — and then the PDF, not the HTML, is what circulates.
 2. **Render readable in first 5 seconds.** Title at top + 1-line TL;DR + table of contents if >5 sections.
 3. **Use real layout, not stacked headings.** Comparisons → CSS grid columns. Timelines → horizontal axis. Hierarchy → indentation or boxes. If the structure would be invisible in Markdown, make it visible here.
 4. **Be mobile-responsive.** Include `<meta name="viewport" content="width=device-width, initial-scale=1">`. Single-column collapse below 720px.
@@ -35,7 +36,8 @@ Pick the archetype from what you are PRESENTING, not from who asked. The archety
 
 | Presenting… | Archetype | Skeleton |
 |---|---|---|
-| Operational/status report, findings inventory, audit (the audit-playbook), spec/mock review (the spec-writing playbook), hygiene/migration review (the workspace-hygiene-playbook/migration-playbook), weekly dashboard, incident timeline, plan/spec, design tokens | **document** | `references/baseline.html` |
+| Operational/status report, findings inventory, audit (the audit-playbook), spec/mock review (the spec-writing playbook), hygiene/migration review (the workspace-hygiene-playbook/migration-playbook), weekly dashboard, design tokens | **document** | `references/baseline.html` |
+| Formal document that circulates and gets printed: postmortem, design doc, proposal, procedure, standalone guide, plan/spec meant to be signed off | **paper** | `references/skeleton-paper.html` |
 | Code review, PR writeup, annotated diff | **review** | `references/skeleton-review.html` |
 | Research synthesis, concept/subsystem explainer, module map, onboarding doc, FAQ | **explainer** | `references/skeleton-explainer.html` |
 | Brainstorm, tech selection, A-vs-B, option grid | **comparison** | `references/skeleton-comparison.html` |
@@ -43,6 +45,7 @@ Pick the archetype from what you are PRESENTING, not from who asked. The archety
 | Live interactive state (sliders, live re-render, editors that export state) | — not this skill | `playground` skill |
 
 - **document** — dense operational record: stat strip, master table + modal, accent cards. The default when no other row clearly wins.
+- **paper** — a formal document read linearly and printed: serif, capped measure, hierarchical numbering, footnotes, status header and page-aware print. **Page 1 is a cover carrying the title block alone** (doctype, title, subtitle, metadata); abstract, contents and body all start on page 2 — `class="titleblock inline"` drops the cover for a short note. Carries the instruction layer (prerequisites, numbered steps, note/warning/caution callouts, `<kbd>`) that a procedure or guide needs. **Boundary with `starlight-docs-site`: what does the reader receive — one file, or one site?** A PDF attached to an email is this archetype; a manual that lives at a URL and is searched page by page is that skill.
 - **explainer** — teach a concept: TOC, collapsible sections, tabbed code, gotchas table, FAQ/glossary; diagram up top.
 - **review** — verdict over a code diff: severity-coded margin annotations (`blocking`/`nit`/`nice`), file jump-links, verdict TL;DR. Code diffs only — spec/mock reviews are document.
 - **comparison** — undecided options: 3-6 cards (title, mockup/snippet, pros/cons, tradeoff tags), criteria matrix. Never a pre-selected winner.
@@ -52,7 +55,9 @@ Content patterns (minimum structure, inside the chosen archetype):
 
 - **Plan / spec** (document): phase/milestone summary table + data-flow or state SVG + risk table (probability × impact) + inline mockups for UI-touching phases + key code snippets.
 - **Design tokens** (document): swatches with hex + variable name + usage label; type scale rendered live; spacing as horizontal bars; component variants live with hover states.
-- **Incident timeline** (document): horizontal-axis timeline SVG + minute-by-minute table + action checklist.
+- **Postmortem** (paper): abstract + impact (users, duration, scope) + timeline (horizontal-axis SVG and minute-by-minute table) + root cause + detection + resolution + action items **with owner and date** + lessons.
+- **Design doc** (paper): context and problem + goals and non-goals + proposed design + alternatives considered and why each was rejected + risks + rollout plan.
+- **Procedure / guide** (paper): prerequisites + numbered steps (one action each, verification stated) + callouts at the failure points + what to do when it goes wrong.
 
 ### Interactivity: presentation only
 
@@ -62,7 +67,7 @@ Sanctioned JS reveals content already in the file: tabs, collapsibles, clickable
 
 ### Layout floor by archetype
 
-`Layout floor` applies as: **document / explainer / comparison** — literal (~1280px shell, 18px base, the shell is the measure). **review** — prose and annotations at the 18px floor; the diff is a data grid under the table clause (mono 14-15px in its own scroll container; commentary never inherits the code size). **deck** — the slide is the shell: each 16:9 slide fills edge-to-edge with on-slide type ≥24px; the stacked no-JS state reverts to the standard full-width shell.
+`Layout floor` applies as: **document / explainer / comparison** — literal (~1280px shell, 18px base, the shell is the measure). **paper** — the ONE sanctioned exception, and it departs the allowed way: the *shell itself* is narrow (~68ch text column at 19px), never a cap on prose inside a wider container; the space left over carries hanging section numbers, and figures/tables opt into full width with `.bleed`. **review** — prose and annotations at the 18px floor; the diff is a data grid under the table clause (mono 14-15px in its own scroll container; commentary never inherits the code size). **deck** — the slide is the shell: each 16:9 slide fills edge-to-edge with on-slide type ≥24px; the stacked no-JS state reverts to the standard full-width shell.
 
 ## Multi-file staged deliverables
 

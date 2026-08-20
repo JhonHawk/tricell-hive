@@ -408,6 +408,12 @@
      (Cmd+P -> Save as PDF): a headless exporter that does not emulate print
      media will NOT pick this up. ---- */
   @media print{
+    /* A collapsed <details> prints as its summary alone — the content is gone.
+       Provenance ships open; the JS below opens the rest before printing. */
+    details{break-inside:auto}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    details.prov > summary::before,details.sec > summary::before,details.faq > summary::before{content:none}
     :root, :root[data-theme="dark"], :root[data-theme="light"]{
       --bg:#ffffff; --paper:#ffffff;
       --ink:#111214; --ink-soft:#33353a; --muted:#5c5e64; --faint:#8b8d93;
@@ -596,7 +602,7 @@
   </div>
 
   <!-- ===== PROVENANCE FOOTER: collapsible <details> ===== -->
-  <details class="prov">
+  <details class="prov" open>
     <summary>Provenance</summary>
     <p>
       <strong>Generated:</strong> 2026-01-01 ·
@@ -725,6 +731,22 @@ document.querySelectorAll("#master tbody tr").forEach(function(tr){
   tr.insertAdjacentHTML("afterbegin", '<td class="rownum">'+(idx+1)+'</td>');
   wire(tr, "points", idx);
 });
+
+/* Print integrity: a collapsed <details> loses its content in the PDF. Open
+   every one before printing and restore the reader's state afterwards. The
+   provenance block additionally ships with `open` in the markup, so it
+   survives even a headless print that never fires beforeprint. */
+(function(){
+  var was=[];
+  window.addEventListener("beforeprint", function(){
+    was = [].map.call(document.querySelectorAll("details"), function(d){
+      var prev=d.open; d.open=true; return prev;
+    });
+  });
+  window.addEventListener("afterprint", function(){
+    [].forEach.call(document.querySelectorAll("details"), function(d,i){ d.open = was[i]; });
+  });
+})();
 </script>
 </body>
 </html>

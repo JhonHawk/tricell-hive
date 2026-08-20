@@ -31,35 +31,156 @@
     never cap prose narrower than the shell.
   ============================================================================
 -->
+<script>
+/* Anti-FOUC: resolve the effective theme BEFORE first paint. Always writes an
+   explicit data-theme so the CSS needs one dark block, not three. */
+(function(){
+  try{
+    var saved = localStorage.getItem("fr-theme");
+    var sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", saved || (sysDark ? "dark" : "light"));
+  }catch(e){ document.documentElement.setAttribute("data-theme","dark"); }
+})();
+</script>
 <style>
   /* ============================================================
-     DESIGN SYSTEM — warm-editorial neutrals + single accent.
-     Inherited verbatim from baseline.html. Swap the --accent family only if
-     the report's domain needs a different hue; ONE accent per page.
+     DESIGN SYSTEM — engineering terminal, dual palette.
+     Mono is the grid; chrome is dashed hairlines and corner brackets; no
+     elevation anywhere. ONE accent (blue), so red/amber/green keep meaning
+     status. Light and dark come from the same tokens — only ~12 semantic
+     values differ, everything else derives with color-mix(). Print always
+     forces light: these become PDFs.
      ============================================================ */
-  :root{
-    /* ink & surfaces */
-    --ink:#1b1916; --ink-soft:#3b3833; --muted:#6f675d; --faint:#938b7f;
-    --line:#e4ddd1; --line-soft:#efe9de;
-    --bg:#f7f3eb; --paper:#fffdf8; --paper-2:#faf6ee; --hover:#f3eee4;
-    /* accent — single hue, used identically everywhere */
-    --accent:#1c5563; --accent-deep:#143f4a; --accent-soft:#e3edef; --accent-line:#cadee1;
-    /* status families: ink / tint / hairline */
-    --red:#993126; --red-bg:#f7e8e3; --red-line:#e6c8bf;
-    --amber:#855d0c; --amber-bg:#f6efd9; --amber-line:#e6d6ad;
-    --green:#326538; --green-bg:#e7efe3; --green-line:#c9dbc2;
-    --blue:#274d78; --blue-bg:#e7eef7; --blue-line:#ccd9eb;
-    --gray:#5c564e; --gray-bg:#eee9e1; --gray-line:#ddd7cb;
-    /* shape & elevation */
-    --r-sm:6px; --r:10px; --r-lg:14px;
-    --shadow:0 1px 2px rgba(54,44,28,.05), 0 6px 20px rgba(54,44,28,.06);
-    --shadow-lg:0 28px 70px rgba(27,25,22,.30);
+  /* ---- LIGHT: the base, and what PRINT always falls back to ---- */
+  :root, :root[data-theme="light"]{
+    --bg:#f4f3f0; --paper:#fbfaf8;
+    --ink:#16171a; --ink-soft:#3d3f44; --muted:#6b6d73; --faint:#9a9ca1;
+    --accent:#1b62c4;            /* focal + informational state (see note) */
+    --red:#b3261e; --amber:#8a5a00; --green:#2e6b34;
+    --shadow-color:transparent;  /* no elevation in this system, either theme */
   }
+  /* ---- DARK ---- */
+  :root[data-theme="dark"]{
+    --bg:#0b0b0c; --paper:#131316;
+    --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+    --accent:#4a9eff;
+    --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+    --shadow-color:transparent;
+  }
+  /* No-JS fallback: the inline script above normally wins, but if JS is off
+     the OS preference still applies. */
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --bg:#0b0b0c; --paper:#131316;
+      --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+      --accent:#4a9eff;
+      --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+    }
+  }
+
+  /* ---- LAYER 2: derived. Theme-agnostic by construction. ---- */
+  :root{
+    /* rules & hairlines — always the ink, thinned */
+    --line:color-mix(in srgb, var(--ink) 16%, transparent);
+    --line-soft:color-mix(in srgb, var(--ink) 9%, transparent);
+    --rule:color-mix(in srgb, var(--ink) 22%, transparent);   /* dashed chrome */
+    --hover:color-mix(in srgb, var(--ink) 5%, transparent);
+    /* accent derivations */
+    --accent-soft:color-mix(in srgb, var(--accent) 12%, var(--bg));
+    --accent-line:color-mix(in srgb, var(--accent) 38%, transparent);
+    /* status tints: mixed against the page, so they are correct in both themes */
+    --red-bg:color-mix(in srgb, var(--red) 12%, var(--bg));
+    --red-line:color-mix(in srgb, var(--red) 40%, transparent);
+    --amber-bg:color-mix(in srgb, var(--amber) 12%, var(--bg));
+    --amber-line:color-mix(in srgb, var(--amber) 40%, transparent);
+    --green-bg:color-mix(in srgb, var(--green) 12%, var(--bg));
+    --green-line:color-mix(in srgb, var(--green) 40%, transparent);
+    /* the accent doubles as the informational/in-progress state — that is why
+       it is blue and the three semantic states are not */
+    --blue:var(--accent); --blue-bg:var(--accent-soft); --blue-line:var(--accent-line);
+    --gray:var(--muted);
+    --gray-bg:color-mix(in srgb, var(--ink) 7%, var(--bg));
+    --gray-line:var(--line);
+    /* shape: nested-radii rule — inner = outer - inset (inset = 4px) */
+    --r-sm:4px; --r:8px; --r-lg:12px;
+    /* dashed chrome geometry — one place to retune every frame on the page */
+    --dash:7px; --gap:7px; --br:13px;
+    /* type */
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospaceui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+
+  /* ============================================================
+     CHROME LAYER — the part that makes this system look like itself.
+     MIXED by design: data gets a dashed FRAME, prose gets a RAIL.
+     Framing prose too turns a 3,000-word audit into noise where
+     everything weighs the same. Never draw either with text characters
+     (`+ - - -`): it breaks reflow and pollutes the a11y tree. CSS only.
+     ============================================================ */
+
+  /* .framed — dashed box for DATA: tables, stat strips, diagrams, code.
+     Four background gradients = four dashed edges, fully tunable via
+     --dash/--gap. Corner brackets come from two pseudo-elements. */
+  .option{position:relative}
+  .framed{
+    position:relative; padding:22px 24px; border-radius:0;
+    background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0;
+    background-repeat:no-repeat;
+  }
+  /* corner brackets — four L marks, never a continuous rule. Each pseudo spans
+     the box width but paints only at its two corners (2 gradients each side:
+     one vertical tick, one horizontal tick). --br tunes the arm length. */
+  .option::before,.option::after,
+  .framed::before,.framed::after{
+    content:""; position:absolute; left:-1px; right:-1px; height:var(--br); pointer-events:none;
+    background-image:
+      linear-gradient(var(--accent),var(--accent)), linear-gradient(var(--accent),var(--accent)),
+      linear-gradient(var(--accent),var(--accent)), linear-gradient(var(--accent),var(--accent));
+    background-size:1px 100%, 1px 100%, var(--br) 1px, var(--br) 1px;
+    background-repeat:no-repeat;
+  }
+  .option::before,
+  .framed::before{top:-1px; background-position:0 0, 100% 0, 0 0, 100% 0}
+  .option::after,
+  .framed::after{bottom:-1px; background-position:0 100%, 100% 100%, 0 100%, 100% 100%}
+  /* framed title, sitting on the top edge: [ LIKE THIS ] */
+  .framed > .frame-t{
+    position:absolute; top:-.72em; left:22px; padding:0 10px; background:var(--bg);
+    font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); white-space:nowrap;
+  }
+  .framed > .frame-t::before{content:"[ "} .framed > .frame-t::after{content:" ]"}
+  .framed{margin-top:26px}
+  .framed + .framed{margin-top:26px}
+  h2 + .framed,h3 + .framed{margin-top:22px}
+
+  /* .rail — vertical dashed margin rail for PROSE. No box, no title. */
+  .rail{
+    padding-left:22px;
+    background-image:repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:1px 100%; background-position:0 0; background-repeat:no-repeat;
+  }
+
+  .masthead-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px}
+
+  /* ---- theme toggle ---- */
+  .theme-t{font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); background:transparent; border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:7px 12px; cursor:pointer; white-space:nowrap; flex:none;
+    transition:color .12s ease, border-color .12s ease}
+  .theme-t:hover{color:var(--accent); border-color:var(--accent-line)}
+  .theme-t:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
-  body{
+  body{counter-reset:sec; 
     margin:0; background:var(--bg); color:var(--ink);
-    font-family:Charter,"Iowan Old Style",Georgia,"Times New Roman",serif;
+    font-family:var(--sans);
     line-height:1.6; font-size:18px;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   }
@@ -67,29 +188,35 @@
   .wrap{max-width:1280px; margin:0 auto; padding:56px 36px 88px}
 
   /* ---- masthead ---- */
-  header.masthead{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:36px}
-  .kicker{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.14em;
+  header.masthead{padding-bottom:28px; margin-bottom:36px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 100%}
+  .kicker{font-family:var(--mono); font-size:12px; letter-spacing:.14em;
     text-transform:uppercase; color:var(--accent); margin:0 0 12px; font-weight:600}
   h1{font-size:clamp(30px,3.4vw,40px); line-height:1.14; letter-spacing:-.012em; margin:0 0 16px; font-weight:600}
-  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); background:var(--paper);
-    border:1px solid var(--line); border-left:4px solid var(--accent);
-    padding:16px 20px; margin:20px 0 0; border-radius:0 var(--r) var(--r) 0}
+  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); padding:16px 0 16px 22px; margin:22px 0 0;
+    background-image:repeating-linear-gradient(to bottom, var(--accent) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:2px 100%; background-position:0 0; background-repeat:no-repeat}
   .tldr strong{color:var(--ink)}
-  .meta{font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--muted); margin-top:20px;
+  .meta{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:20px;
     display:flex; flex-wrap:wrap; gap:8px 26px}
 
   /* ---- prose & headings ---- */
   h2{font-size:25px; line-height:1.2; letter-spacing:-.008em; margin:54px 0 16px; padding-top:22px;
-    border-top:1px solid var(--line); font-weight:600}
+    font-weight:650; counter-increment:sec;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 0}
+  h2::before{content:counter(sec,decimal-leading-zero); font-family:var(--mono); font-size:.62em;
+    font-weight:600; color:var(--accent); margin-right:.85em; letter-spacing:.06em; vertical-align:.12em}
   h3{font-size:19px; margin:0 0 6px; font-weight:600}
   p{margin:12px 0}
   a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-line)}
   a:hover{border-bottom-color:var(--accent)}
-  code,.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.84em;
-    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:5px}
+  code,.mono{font-family:var(--mono); font-size:.84em;
+    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:var(--r-sm)}
 
   /* ---- tradeoff-tag vocabulary: neutral chips, NEVER color-coded per option ---- */
-  .tag{display:inline-block; font-family:ui-monospace,Menlo,monospace; font-size:11.5px; font-weight:600;
+  .tag{display:inline-block; font-family:var(--mono); font-size:11.5px; font-weight:600;
     padding:2px 8px; border-radius:5px; background:var(--gray-bg); color:var(--gray);
     border:1px solid var(--gray-line); white-space:nowrap}
   .legend{display:flex; flex-wrap:wrap; gap:10px 18px; margin:12px 0 0; font-size:14px; color:var(--muted)}
@@ -102,15 +229,21 @@
      header IS the defect this archetype exists to avoid. Every card gets
      the identical neutral treatment. */
   .options{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; margin:24px 0}
-  .option{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
-    padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px}
+  .option{padding:22px 24px; display:flex; flex-direction:column; gap:12px;
+    background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0; background-repeat:no-repeat;}
   .option .thesis{margin:0; font-size:16px; color:var(--ink-soft); line-height:1.5}
   .figure{background:var(--paper-2); border:1px dashed var(--line); border-radius:var(--r-sm);
     min-height:110px; display:flex; align-items:center; justify-content:center;
-    font-family:ui-monospace,Menlo,monospace; font-size:12.5px; color:var(--faint); text-align:center; padding:12px}
+    font-family:var(--mono); font-size:12.5px; color:var(--faint); text-align:center; padding:12px}
   .option ul{margin:0; padding:0; list-style:none; font-size:16px; line-height:1.5}
   .option li{padding-left:22px; position:relative; margin:5px 0}
-  .option li::before{position:absolute; left:0; font-family:ui-monospace,Menlo,monospace; font-weight:700}
+  .option li::before{position:absolute; left:0; font-family:var(--mono); font-weight:700}
   ul.pros li::before{content:"+"; color:var(--green)}
   ul.cons li::before{content:"\2212"; color:var(--red)}  /* minus sign */
   .option .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:2px}
@@ -118,15 +251,15 @@
   .bestwhen strong{color:var(--ink-soft); font-style:normal}
 
   /* ---- criteria matrix (reuses the baseline badge language) ---- */
-  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:16px; background:var(--paper);
-    border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow)}
-  thead th{background:var(--paper-2); text-align:left; padding:12px 13px; font-size:12px; letter-spacing:.05em;
-    text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line)}
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:16px}
+  thead th{text-align:left; padding:11px 13px; font-size:11.5px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--muted); font-weight:600; font-family:var(--mono);
+    border-bottom:1px solid var(--rule)}
   tbody td{padding:12px 13px; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.45}
   tbody tr:last-child td{border-bottom:none}
   tbody tr:hover{background:var(--paper-2)}
   td.c,th.c{text-align:center; white-space:nowrap}
-  .b{display:inline-block; font-family:ui-monospace,Menlo,monospace; font-size:12px; font-weight:600;
+  .b{display:inline-block; font-family:var(--mono); font-size:12px; font-weight:600;
     padding:2px 8px; border-radius:5px; white-space:nowrap; border:1px solid transparent}
   .ok{background:var(--green-bg); color:var(--green); border-color:var(--green-line)}
   .pa{background:var(--amber-bg); color:var(--amber); border-color:var(--amber-line)}
@@ -134,8 +267,10 @@
   .no{background:var(--gray-bg); color:var(--gray); border-color:var(--gray-line)}
 
   /* ---- provenance footer ---- */
-  details.prov{margin-top:60px; border-top:1px solid var(--line); padding-top:18px; font-size:14px; color:var(--muted)}
-  details.prov summary{cursor:pointer; font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--accent)}
+  details.prov{margin-top:60px; padding-top:20px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 0; font-size:14px; color:var(--muted)}
+  details.prov summary{cursor:pointer; font-family:var(--mono); font-size:13px; color:var(--accent)}
   details.prov p{margin-top:12px; line-height:1.6}
   details.prov code{background:var(--paper)}
 
@@ -151,6 +286,75 @@
     tbody tr{display:block; border-bottom:1px solid var(--line); padding:10px 0}
     td.c{text-align:left; display:inline-block; padding-right:4px}
   }
+  /* ---- diagrams: framed, and colored by TOKEN (never hard-coded hex) ----
+     SVG presentation attributes cannot read var(), so diagram color lives in
+     these CSS classes instead. That is what makes a diagram follow the theme
+     toggle AND invert correctly for print. See references/diagram-grammar.md. */
+  figure.diagram{margin:26px 0}
+  .diagram svg{display:block; width:100%; height:auto; min-width:640px}
+  .diagram figcaption{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:12px}
+  .d-bg{fill:var(--bg)}
+  .d-node{fill:none; stroke:var(--ink); stroke-width:1}
+  .d-focal{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.5}
+  .d-store{fill:none; stroke:var(--muted); stroke-width:1}
+  .d-ext{fill:none; stroke:var(--faint); stroke-width:1; stroke-dasharray:4 3}
+  .d-arrow{fill:none; stroke:var(--muted); stroke-width:1.25}
+  .d-arrow-accent{fill:none; stroke:var(--accent); stroke-width:1.5}
+  .d-label{fill:var(--ink); font-family:var(--sans); font-size:12px; font-weight:600}
+  .d-sub{fill:var(--muted); font-family:var(--mono); font-size:9px}
+  .d-alabel{fill:var(--faint); font-family:var(--mono); font-size:8px; letter-spacing:.08em}
+  .d-mask{fill:var(--bg)}
+  .d-rule{stroke:var(--rule); stroke-width:1; stroke-dasharray:7 7}
+  .d-legend-rule{stroke:var(--line); stroke-width:.8}
+  .d-tag{fill:none; stroke:var(--accent); stroke-opacity:.45; stroke-width:.8}
+  .d-tag.ink{stroke:var(--ink); stroke-opacity:.4}
+  .d-tagtext{fill:var(--accent); fill-opacity:.85; font-family:var(--mono); font-size:7px; letter-spacing:.08em}
+  .d-tagtext.ink{fill:var(--ink); fill-opacity:.8}
+
+  /* ---- draw-in animation: SVG strokes trace themselves on scroll-in ----
+     Presentation only — it reveals content already in the file, it holds no
+     state. Disabled wholesale under prefers-reduced-motion below. */
+  .draw .d-node,.draw .d-arrow,.draw .d-arrow-accent,.draw .d-focal,.draw .d-store,.draw .d-ext{
+    stroke-dasharray:1200; stroke-dashoffset:1200}
+  .draw.in .d-node,.draw.in .d-arrow,.draw.in .d-arrow-accent,.draw.in .d-focal,
+  .draw.in .d-store,.draw.in .d-ext{
+    animation:trace 1.1s cubic-bezier(.4,0,.2,1) forwards}
+  .draw .d-ext{stroke-dasharray:4 3; stroke-dashoffset:0}  /* keep dashed nodes dashed */
+  @keyframes trace{to{stroke-dashoffset:0}}
+
+  /* ---- PRINT: always light, whatever the toggle says. These reports become
+     PDFs, and nobody wants 20 pages of black. Print from the browser
+     (Cmd+P -> Save as PDF): a headless exporter that does not emulate print
+     media will NOT pick this up. ---- */
+  @media print{
+    /* A collapsed <details> prints as its summary alone — the content is gone.
+       Provenance ships open; the JS below opens the rest before printing. */
+    details{break-inside:auto}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    details.prov > summary::before,details.sec > summary::before,details.faq > summary::before{content:none}
+    :root, :root[data-theme="dark"], :root[data-theme="light"]{
+      --bg:#ffffff; --paper:#ffffff;
+      --ink:#111214; --ink-soft:#33353a; --muted:#5c5e64; --faint:#8b8d93;
+      --accent:#14509f; --red:#a11f18; --amber:#7a4f00; --green:#265c2c;
+    }
+    body{font-size:11.5pt; background:#fff}
+    .wrap{max-width:none; padding:0}
+    .theme-t,.row-hint,.modal-ov{display:none !important}
+    details.prov[open],details.prov{display:block}
+    details.prov > summary{list-style:none}
+    a{color:var(--ink); border-bottom:none}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-family:var(--mono); font-size:.75em; color:var(--muted)}
+    h2{break-after:avoid-page} h3{break-after:avoid-page}
+    .card,.framed,figure.diagram,tr{break-inside:avoid}
+    thead{display:table-header-group}
+    /* status color is semantic here, so force it through the print engine */
+    .b,.prio,.stat .n{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+    .draw .d-node,.draw .d-arrow,.draw .d-arrow-accent,.draw .d-focal,.draw .d-store,.draw .d-ext{
+      stroke-dashoffset:0 !important; animation:none !important}
+  }
+
+
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
     *{transition:none !important}
@@ -163,8 +367,13 @@
   <!-- ===== MASTHEAD: the TL;DR frames the QUESTION being decided — never
        the answer. If a bottom-line answer exists, this is not a comparison. -->
   <header class="masthead">
-    <p class="kicker">Group · Project · Decision</p>
-    <h1>Which option should we pick for the thing being decided?</h1>
+    <div class="masthead-top">
+      <div>
+      <p class="kicker">Group · Project · Decision</p>
+      <h1>Which option should we pick for the thing being decided?</h1>
+      </div>
+      <button class="theme-t" id="theme-t" type="button" aria-live="polite">Theme</button>
+    </div>
     <div class="tldr">
       <strong>The question:</strong> one sentence stating what must be decided,
       what it affects, and by when. State the stakes — never the answer.
@@ -188,7 +397,7 @@
 
   <!-- ===== OPTIONS GRID: 3-6 identical-weight cards. See the CSS note:
        no card ever gets the accent — the reader picks the winner, not the CSS. -->
-  <h2 id="options">1 · The options</h2>
+  <h2 id="options">The options</h2>
   <div class="options">
 
     <div class="option">
@@ -248,7 +457,7 @@
 
   <!-- ===== CRITERIA MATRIX: options × criteria, badge cells. Rows are the
        criteria the DECIDER cares about, not everything measurable. -->
-  <h2 id="matrix">2 · Criteria matrix</h2>
+  <h2 id="matrix">Criteria matrix</h2>
   <table>
     <thead>
       <tr><th>Criterion</th><th class="c">Option A</th><th class="c">Option B</th><th class="c">Option C</th></tr>
@@ -275,7 +484,7 @@
 
   <!-- ===== WHAT WOULD CHANGE THE DECISION: the facts that would settle it.
        Keeping this section honest is what keeps the page neutral. -->
-  <h2 id="unknowns">3 · What would change the decision</h2>
+  <h2 id="unknowns">What would change the decision</h2>
   <p>Short list of open facts. Each entry names the unknown and which option it
     would tip the decision toward if resolved.</p>
   <ul>
@@ -284,7 +493,7 @@
   </ul>
 
   <!-- ===== PROVENANCE FOOTER (always last) ===== -->
-  <details class="prov">
+  <details class="prov" open>
     <summary>Provenance</summary>
     <p>
       <strong>Generated:</strong> 2026-01-01 ·
@@ -294,5 +503,73 @@
   </details>
 
 </div>
+<script>
+/* ============================================================================
+   THEME TOGGLE — light <-> dark, persisted. Print always forces light in CSS,
+   so this never affects the PDF. Presentation only: it holds no content state.
+   ============================================================================ */
+(function(){
+  var btn=document.getElementById("theme-t"), root=document.documentElement;
+  function label(){
+    var dark=root.getAttribute("data-theme")==="dark";
+    btn.textContent = dark ? "light" : "dark";
+    btn.setAttribute("aria-label","Switch to "+(dark?"light":"dark")+" theme");
+  }
+  label();
+  btn.addEventListener("click", function(){
+    var next = root.getAttribute("data-theme")==="dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try{ localStorage.setItem("fr-theme", next); }catch(e){}
+    label();
+  });
+})();
+
+/* ============================================================================
+   DRAW-IN — SVG strokes trace themselves when the figure scrolls into view.
+   Reveals content already in the file; no state. prefers-reduced-motion and
+   print both short-circuit it in CSS, and a browser without IntersectionObserver
+   simply gets the finished diagram.
+   ============================================================================ */
+(function(){
+  var figs=document.querySelectorAll(".draw");
+  if(!figs.length) return;
+  if(!("IntersectionObserver" in window) ||
+     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)){
+    figs.forEach(function(f){ f.classList.remove("draw"); });
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  },{threshold:.15, rootMargin:"0px 0px -8% 0px"});
+  figs.forEach(function(f){ io.observe(f); });
+  /* Safety net: an un-traced diagram is an INVISIBLE diagram (the strokes start
+     fully offset). If anything keeps a figure from ever intersecting — a
+     screenshot tool, a print-to-image path, a container that never scrolls —
+     reveal everything rather than ship a blank figure. */
+  setTimeout(function(){ figs.forEach(function(f){ f.classList.add("in"); }); }, 4000);
+  window.addEventListener("beforeprint", function(){
+    figs.forEach(function(f){ f.classList.remove("draw"); f.classList.add("in"); });
+  });
+})();
+
+
+/* Print integrity: a collapsed <details> loses its content in the PDF. Open
+   every one before printing and restore the reader's state afterwards. The
+   provenance block additionally ships with `open` in the markup, so it
+   survives even a headless print that never fires beforeprint. */
+(function(){
+  var was=[];
+  window.addEventListener("beforeprint", function(){
+    was = [].map.call(document.querySelectorAll("details"), function(d){
+      var prev=d.open; d.open=true; return prev;
+    });
+  });
+  window.addEventListener("afterprint", function(){
+    [].forEach.call(document.querySelectorAll("details"), function(d,i){ d.open = was[i]; });
+  });
+})();
+</script>
 </body>
 </html>

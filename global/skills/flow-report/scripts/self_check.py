@@ -56,6 +56,19 @@ from pathlib import Path
 
 REFERENCE_ATTRS = {"src", "href", "xlink:href", "poster", "srcset", "action", "formaction"}
 
+# Google Fonts is the ONE host that survives everywhere a report goes: it loads
+# under the Artifacts CSP, and a failed font request degrades to the system
+# stack instead of breaking the page. Always allowed, no declaration needed.
+FONT_HOSTS = ("https://fonts.googleapis.com", "https://fonts.gstatic.com")
+
+# Any OTHER remote host must be opted into by the document itself, with
+#     <meta name="flow-report-assets" content="external">
+# The declaration rides with the file, so the check is reproducible by anyone
+# who receives it — a CLI flag would not be. Declaring it is a real trade: the
+# Artifacts CSP blocks every non-font host, so such a report cannot be
+# published as an Artifact, and a CDN outage degrades or breaks it offline.
+EXTERNAL_OPT_IN = ("flow-report-assets", "external")
+
 
 class DiagramParser(HTMLParser):
     def __init__(self) -> None:
@@ -64,6 +77,7 @@ class DiagramParser(HTMLParser):
         self.svgs: list[dict[str, object]] = []
         self.unsafe: list[str] = []
         self.references: list[tuple[str, str, str]] = []
+        self.allow_external = False
         self._svg_depth = 0
         self._current_svg: dict[str, object] | None = None
         self._capture: str | None = None
@@ -76,6 +90,11 @@ class DiagramParser(HTMLParser):
         data = {key: value for key, value in normalized_attrs}
         if tag in {"base", "embed", "object", "iframe"}:
             self.unsafe.append(f"<{tag}> is not allowed in a diagram file")
+        if tag == "meta":
+            data = {k.casefold(): (v or "") for k, v in attrs}
+            if (data.get("name", "").strip().casefold() == EXTERNAL_OPT_IN[0]
+                    and data.get("content", "").strip().casefold() == EXTERNAL_OPT_IN[1]):
+                self.allow_external = True
         for key, value in normalized_attrs:
             if key.startswith("on"):
                 self.unsafe.append(f"executable attribute {key} on <{tag}>")
@@ -141,7 +160,7 @@ def parsed_document(source: str) -> DiagramParser:
     return parser
 
 
-def reference_error(tag: str, rel: str, value: str) -> str | None:
+def reference_error(tag: str, rel: str, value: str, allow_external: bool = False) -> str | None:
     stripped = value.strip()
     lowered = stripped.casefold()
     if not stripped or stripped.startswith("#"):
@@ -155,7 +174,15 @@ def reference_error(tag: str, rel: str, value: str) -> str | None:
         if lowered.startswith("data:") and not lowered.startswith("data:image/"):
             return f"non-image data URL on <{tag}>: {stripped[:80]}"
         return None
-    return f"remote reference on <{tag}>: {stripped[:80]}"
+    if lowered.startswith(FONT_HOSTS):
+        return None
+    if allow_external:
+        return None
+    return (
+        f"remote reference on <{tag}>: {stripped[:80]} "
+        "(only Google Fonts is allowed by default; declare "
+        '<meta name="flow-report-assets" content="external"> to opt in)'
+    )
 
 
 def check_svgs(parser: DiagramParser, errors: list[str]) -> None:
@@ -206,12 +233,27 @@ def verify(path: Path) -> list[str]:
     errors: list[str] = []
     errors.extend(parser.unsafe)
     for tag, rel, value in parser.references:
-        finding = reference_error(tag, rel, value)
+        finding = reference_error(tag, rel, value, parser.allow_external)
         if finding:
             errors.append(finding)
     check_svgs(parser, errors)
     check_scripts(parser, errors)
     return errors
+
+
+def external_notes(path: Path) -> list[str]:
+    """Remote hosts a declared opt-in let through — reported, never silent."""
+    parser = parsed_document(path.read_text(encoding="utf-8"))
+    if not parser.allow_external:
+        return []
+    hosts = []
+    for _tag, _rel, value in parser.references:
+        low = value.strip().casefold()
+        if low.startswith(("http://", "https://", "//")) and not low.startswith(FONT_HOSTS):
+            host = value.strip().split("/")[2] if "//" in value else value.strip()
+            if host not in hosts:
+                hosts.append(host)
+    return hosts
 
 
 def main() -> int:
@@ -230,7 +272,12 @@ def main() -> int:
             for error in errors:
                 print(f"  - {error}")
         else:
-            print(f"OK {path}")
+            hosts = external_notes(path)
+            if hosts:
+                print(f"OK {path}  (declared external assets: {', '.join(hosts)})")
+                print("  ! not publishable as an Artifact: its CSP blocks every non-font host")
+            else:
+                print(f"OK {path}")
     return 1 if failed else 0
 
 

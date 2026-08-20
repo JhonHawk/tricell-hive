@@ -83,7 +83,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── flow-core/                   # Process library (non-invocable): contract, templates, playbooks
 │   │                                #   (bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion)
 │   ├── flow-build/                  # Execute a captured plan: reconciler + verify gate
-│   ├── flow-report/                 # Self-contained HTML reports for artifacts that outlive the thread
+│   ├── flow-report/                 # Self-contained HTML reports for artifacts that outlive the thread (6 archetypes; `paper` is the printable one)
 │   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
 │   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
 │   ├── memory-sync/                 # Reconcile Engram + native memory vs ground truth
@@ -189,7 +189,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `flow-core` | global | Process library (non-invocable): flow contract, templates, and the playbooks — bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion |
 | `/flow-build` | global | Execute or resume a captured plan: state-driven reconciler + verify gate. The one remaining process command — everything else is a playbook |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
-| `flow-report` | global | Renders substantial output as self-contained HTML in five archetypes — document, explainer, review, comparison, deck (auto-invoked) |
+| `flow-report` | global | Renders substantial output as self-contained HTML in six archetypes — document, paper, explainer, review, comparison, deck (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |
 | `/monorepo-cutover` | global | `intake` \| `execute` \| `verify` — migrate a multi-repo product to a monorepo (or bootstrap one greenfield); stack fork at intake (JS/TS lane fully specified; polyglot → orchestrator decision), candidate tracking via Engram upsert |
 | `/status-fetch` | global | Live external state (git, declared tracker, PRs, deploys) as compact facts — runs in a forked `state-fetcher` so the sweep stays out of the session |

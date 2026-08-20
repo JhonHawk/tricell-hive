@@ -271,6 +271,12 @@
 
   /* print = stacked: force the document state back even if JS ran */
   @media print{
+    /* A collapsed <details> prints as its summary alone — the content is gone.
+       Provenance ships open; the JS below opens the rest before printing. */
+    details{break-inside:auto}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    details.prov > summary::before,details.sec > summary::before,details.faq > summary::before{content:none}
     body.deck-on{overflow:visible}
     body.deck-on .slide{display:block; position:static; aspect-ratio:auto; width:auto; padding:48px 56px}
     body.deck-on .notes{display:block; position:static; box-shadow:none}
@@ -422,7 +428,7 @@
 
 <!-- ===== PROVENANCE FOOTER: after the last slide; reachable in the stacked
      (no-JS / print) state, which is what satisfies the footer rule. ===== -->
-<details class="prov">
+<details class="prov" open>
   <summary>Provenance</summary>
   <p>
     <strong>Generated:</strong> 2026-01-01 ·
@@ -518,6 +524,22 @@
   });
 
   show(0);
+})();
+
+/* Print integrity: a collapsed <details> loses its content in the PDF. Open
+   every one before printing and restore the reader's state afterwards. The
+   provenance block additionally ships with `open` in the markup, so it
+   survives even a headless print that never fires beforeprint. */
+(function(){
+  var was=[];
+  window.addEventListener("beforeprint", function(){
+    was = [].map.call(document.querySelectorAll("details"), function(d){
+      var prev=d.open; d.open=true; return prev;
+    });
+  });
+  window.addEventListener("afterprint", function(){
+    [].forEach.call(document.querySelectorAll("details"), function(d,i){ d.open = was[i]; });
+  });
 })();
 </script>
 </body>

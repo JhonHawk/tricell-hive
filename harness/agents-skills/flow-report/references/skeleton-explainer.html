@@ -35,34 +35,156 @@
     data grids and sit at 15px mono; explanation prose never does.
   ============================================================================
 -->
+<script>
+/* Anti-FOUC: resolve the effective theme BEFORE first paint. Always writes an
+   explicit data-theme so the CSS needs one dark block, not three. */
+(function(){
+  try{
+    var saved = localStorage.getItem("fr-theme");
+    var sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", saved || (sysDark ? "dark" : "light"));
+  }catch(e){ document.documentElement.setAttribute("data-theme","dark"); }
+})();
+</script>
 <style>
   /* ============================================================
-     DESIGN SYSTEM — warm-editorial neutrals + single accent.
-     Inherited verbatim from baseline.html. ONE accent per page.
+     DESIGN SYSTEM — engineering terminal, dual palette.
+     Mono is the grid; chrome is dashed hairlines and corner brackets; no
+     elevation anywhere. ONE accent (blue), so red/amber/green keep meaning
+     status. Light and dark come from the same tokens — only ~12 semantic
+     values differ, everything else derives with color-mix(). Print always
+     forces light: these become PDFs.
      ============================================================ */
-  :root{
-    /* ink & surfaces */
-    --ink:#1b1916; --ink-soft:#3b3833; --muted:#6f675d; --faint:#938b7f;
-    --line:#e4ddd1; --line-soft:#efe9de;
-    --bg:#f7f3eb; --paper:#fffdf8; --paper-2:#faf6ee; --hover:#f3eee4;
-    /* accent — single hue, used identically everywhere */
-    --accent:#1c5563; --accent-deep:#143f4a; --accent-soft:#e3edef; --accent-line:#cadee1;
-    /* status families: ink / tint / hairline */
-    --red:#993126; --red-bg:#f7e8e3; --red-line:#e6c8bf;
-    --amber:#855d0c; --amber-bg:#f6efd9; --amber-line:#e6d6ad;
-    --green:#326538; --green-bg:#e7efe3; --green-line:#c9dbc2;
-    --blue:#274d78; --blue-bg:#e7eef7; --blue-line:#ccd9eb;
-    --gray:#5c564e; --gray-bg:#eee9e1; --gray-line:#ddd7cb;
-    /* shape & elevation */
-    --r-sm:6px; --r:10px; --r-lg:14px;
-    --shadow:0 1px 2px rgba(54,44,28,.05), 0 6px 20px rgba(54,44,28,.06);
-    --shadow-lg:0 28px 70px rgba(27,25,22,.30);
+  /* ---- LIGHT: the base, and what PRINT always falls back to ---- */
+  :root, :root[data-theme="light"]{
+    --bg:#f4f3f0; --paper:#fbfaf8;
+    --ink:#16171a; --ink-soft:#3d3f44; --muted:#6b6d73; --faint:#9a9ca1;
+    --accent:#1b62c4;            /* focal + informational state (see note) */
+    --red:#b3261e; --amber:#8a5a00; --green:#2e6b34;
+    --shadow-color:transparent;  /* no elevation in this system, either theme */
   }
+  /* ---- DARK ---- */
+  :root[data-theme="dark"]{
+    --bg:#0b0b0c; --paper:#131316;
+    --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+    --accent:#4a9eff;
+    --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+    --shadow-color:transparent;
+  }
+  /* No-JS fallback: the inline script above normally wins, but if JS is off
+     the OS preference still applies. */
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --bg:#0b0b0c; --paper:#131316;
+      --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+      --accent:#4a9eff;
+      --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+    }
+  }
+
+  /* ---- LAYER 2: derived. Theme-agnostic by construction. ---- */
+  :root{
+    /* rules & hairlines — always the ink, thinned */
+    --line:color-mix(in srgb, var(--ink) 16%, transparent);
+    --line-soft:color-mix(in srgb, var(--ink) 9%, transparent);
+    --rule:color-mix(in srgb, var(--ink) 22%, transparent);   /* dashed chrome */
+    --hover:color-mix(in srgb, var(--ink) 5%, transparent);
+    /* accent derivations */
+    --accent-soft:color-mix(in srgb, var(--accent) 12%, var(--bg));
+    --accent-line:color-mix(in srgb, var(--accent) 38%, transparent);
+    /* status tints: mixed against the page, so they are correct in both themes */
+    --red-bg:color-mix(in srgb, var(--red) 12%, var(--bg));
+    --red-line:color-mix(in srgb, var(--red) 40%, transparent);
+    --amber-bg:color-mix(in srgb, var(--amber) 12%, var(--bg));
+    --amber-line:color-mix(in srgb, var(--amber) 40%, transparent);
+    --green-bg:color-mix(in srgb, var(--green) 12%, var(--bg));
+    --green-line:color-mix(in srgb, var(--green) 40%, transparent);
+    /* the accent doubles as the informational/in-progress state — that is why
+       it is blue and the three semantic states are not */
+    --blue:var(--accent); --blue-bg:var(--accent-soft); --blue-line:var(--accent-line);
+    --gray:var(--muted);
+    --gray-bg:color-mix(in srgb, var(--ink) 7%, var(--bg));
+    --gray-line:var(--line);
+    /* shape: nested-radii rule — inner = outer - inset (inset = 4px) */
+    --r-sm:4px; --r:8px; --r-lg:12px;
+    /* dashed chrome geometry — one place to retune every frame on the page */
+    --dash:7px; --gap:7px; --br:13px;
+    /* type */
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospaceui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+
+  /* ============================================================
+     CHROME LAYER — the part that makes this system look like itself.
+     MIXED by design: data gets a dashed FRAME, prose gets a RAIL.
+     Framing prose too turns a 3,000-word audit into noise where
+     everything weighs the same. Never draw either with text characters
+     (`+ - - -`): it breaks reflow and pollutes the a11y tree. CSS only.
+     ============================================================ */
+
+  /* .framed — dashed box for DATA: tables, stat strips, diagrams, code.
+     Four background gradients = four dashed edges, fully tunable via
+     --dash/--gap. Corner brackets come from two pseudo-elements. */
+  nav.toc,.diagram{position:relative}
+  .framed{
+    position:relative; padding:22px 24px; border-radius:0;
+    background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0;
+    background-repeat:no-repeat;
+  }
+  /* corner brackets — four L marks, never a continuous rule. Each pseudo spans
+     the box width but paints only at its two corners (2 gradients each side:
+     one vertical tick, one horizontal tick). --br tunes the arm length. */
+  nav.toc::before,.diagram::before,nav.toc::after,.diagram::after,
+  .framed::before,.framed::after{
+    content:""; position:absolute; left:-1px; right:-1px; height:var(--br); pointer-events:none;
+    background-image:
+      linear-gradient(var(--accent),var(--accent)), linear-gradient(var(--accent),var(--accent)),
+      linear-gradient(var(--accent),var(--accent)), linear-gradient(var(--accent),var(--accent));
+    background-size:1px 100%, 1px 100%, var(--br) 1px, var(--br) 1px;
+    background-repeat:no-repeat;
+  }
+  nav.toc::before,.diagram::before,
+  .framed::before{top:-1px; background-position:0 0, 100% 0, 0 0, 100% 0}
+  nav.toc::after,.diagram::after,
+  .framed::after{bottom:-1px; background-position:0 100%, 100% 100%, 0 100%, 100% 100%}
+  /* framed title, sitting on the top edge: [ LIKE THIS ] */
+  .framed > .frame-t{
+    position:absolute; top:-.72em; left:22px; padding:0 10px; background:var(--bg);
+    font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); white-space:nowrap;
+  }
+  .framed > .frame-t::before{content:"[ "} .framed > .frame-t::after{content:" ]"}
+  .framed{margin-top:26px}
+  .framed + .framed{margin-top:26px}
+  h2 + .framed,h3 + .framed{margin-top:22px}
+
+  /* .rail — vertical dashed margin rail for PROSE. No box, no title. */
+  .rail{
+    padding-left:22px;
+    background-image:repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:1px 100%; background-position:0 0; background-repeat:no-repeat;
+  }
+
+  .masthead-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px}
+
+  /* ---- theme toggle ---- */
+  .theme-t{font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); background:transparent; border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:7px 12px; cursor:pointer; white-space:nowrap; flex:none;
+    transition:color .12s ease, border-color .12s ease}
+  .theme-t:hover{color:var(--accent); border-color:var(--accent-line)}
+  .theme-t:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
-  body{
+  body{counter-reset:sec; 
     margin:0; background:var(--bg); color:var(--ink);
-    font-family:Charter,"Iowan Old Style",Georgia,"Times New Roman",serif;
+    font-family:var(--sans);
     line-height:1.6; font-size:18px;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   }
@@ -70,43 +192,61 @@
   .wrap{max-width:1280px; margin:0 auto; padding:56px 36px 88px}
 
   /* ---- masthead ---- */
-  header.masthead{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:36px}
-  .kicker{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.14em;
+  header.masthead{padding-bottom:28px; margin-bottom:36px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 100%}
+  .kicker{font-family:var(--mono); font-size:12px; letter-spacing:.14em;
     text-transform:uppercase; color:var(--accent); margin:0 0 12px; font-weight:600}
   h1{font-size:clamp(30px,3.4vw,40px); line-height:1.14; letter-spacing:-.012em; margin:0 0 16px; font-weight:600}
-  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); background:var(--paper);
-    border:1px solid var(--line); border-left:4px solid var(--accent);
-    padding:16px 20px; margin:20px 0 0; border-radius:0 var(--r) var(--r) 0}
+  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); padding:16px 0 16px 22px; margin:22px 0 0;
+    background-image:repeating-linear-gradient(to bottom, var(--accent) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:2px 100%; background-position:0 0; background-repeat:no-repeat}
   .tldr strong{color:var(--ink)}
-  .meta{font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--muted); margin-top:20px;
+  .meta{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:20px;
     display:flex; flex-wrap:wrap; gap:8px 26px}
 
   /* ---- prose & headings ---- */
   h2{font-size:25px; line-height:1.2; letter-spacing:-.008em; margin:54px 0 16px; padding-top:22px;
-    border-top:1px solid var(--line); font-weight:600}
+    font-weight:650; counter-increment:sec;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 0}
+  h2::before{content:counter(sec,decimal-leading-zero); font-family:var(--mono); font-size:.62em;
+    font-weight:600; color:var(--accent); margin-right:.85em; letter-spacing:.06em; vertical-align:.12em}
   h3{font-size:19px; margin:30px 0 10px; font-weight:600}
   p{margin:12px 0}
   a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-line)}
   a:hover{border-bottom-color:var(--accent)}
-  code,.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.84em;
-    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:5px}
+  code,.mono{font-family:var(--mono); font-size:.84em;
+    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:var(--r-sm)}
 
   /* ---- table of contents ---- */
-  nav.toc{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:20px 24px;
-    margin:28px 0; box-shadow:var(--shadow)}
+  nav.toc{padding:22px 24px; margin:28px 0;
+    background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0; background-repeat:no-repeat;}
   nav.toc strong{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
   nav.toc ul{margin:10px 0 0; padding-left:20px; columns:2; column-gap:40px}
   nav.toc li{margin:5px 0}
 
   /* ---- concept diagram (skin per diagram-grammar.md §4) ---- */
-  .diagram{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
-    padding:20px; overflow-x:auto; margin:18px 0; box-shadow:var(--shadow)}
+  .diagram{background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0; background-repeat:no-repeat;
+    border-radius:0;
+    padding:20px; overflow-x:auto; margin:18px 0}
   .diagram svg{display:block; width:100%; height:auto; min-width:640px}
-  .diagram figcaption{font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--muted); margin-top:10px}
+  .diagram figcaption{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:10px}
 
   /* ---- collapsible deep-dive sections ---- */
-  details.sec{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
-    box-shadow:var(--shadow); margin:16px 0; padding:0 24px}
+  details.sec{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); margin:16px 0; padding:0 24px}
   details.sec>summary{cursor:pointer; list-style:none; font-weight:600; font-size:19px;
     padding:16px 28px 16px 0; position:relative}
   details.sec>summary::-webkit-details-marker{display:none}
@@ -122,16 +262,15 @@
   /* ---- code blocks + tabs. 15px mono is the data-grid size; explanation
      prose never inherits it. Token colors come from the page palette —
      no highlight library, classes are hand-applied where they teach. ---- */
-  pre.code{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:15px; line-height:1.6;
+  pre.code{font-family:var(--mono); font-size:15px; line-height:1.6;
     background:var(--paper-2); border:1px solid var(--line-soft); border-radius:var(--r-sm);
     padding:14px 18px; overflow-x:auto; margin:12px 0; white-space:pre}
   .tok-kw{color:var(--accent); font-weight:600}
   .tok-str{color:var(--green)}
   .tok-com{color:var(--faint); font-style:italic}
-  .tabs{background:var(--paper); border:1px solid var(--line); border-radius:var(--r);
-    box-shadow:var(--shadow); margin:18px 0; overflow:hidden}
+  .tabs{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); margin:18px 0; overflow:hidden}
   .tabbar{display:flex; gap:2px; background:var(--paper-2); border-bottom:1px solid var(--line); padding:6px 8px 0}
-  .tab{font-family:ui-monospace,Menlo,monospace; font-size:13px; font-weight:600; color:var(--muted);
+  .tab{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--muted);
     background:none; border:1px solid transparent; border-bottom:none; border-radius:var(--r-sm) var(--r-sm) 0 0;
     padding:8px 14px; cursor:pointer}
   .tab:hover{color:var(--ink)}
@@ -142,7 +281,7 @@
 
   /* ---- gotchas table ---- */
   table{width:100%; border-collapse:collapse; margin:18px 0; font-size:16px; background:var(--paper);
-    border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow)}
+    border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden}
   thead th{background:var(--paper-2); text-align:left; padding:12px 13px; font-size:12px; letter-spacing:.05em;
     text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line)}
   tbody td{padding:12px 13px; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.45}
@@ -154,11 +293,13 @@
   details.faq p{color:var(--ink-soft); margin:10px 0 4px}
   dl.gloss dt{font-weight:600; margin-top:14px}
   dl.gloss dd{margin:2px 0 0 0; color:var(--ink-soft)}
-  ul.src{font-family:ui-monospace,Menlo,monospace; font-size:14px; line-height:1.9}
+  ul.src{font-family:var(--mono); font-size:14px; line-height:1.9}
 
   /* ---- provenance footer ---- */
-  details.prov{margin-top:60px; border-top:1px solid var(--line); padding-top:18px; font-size:14px; color:var(--muted)}
-  details.prov summary{cursor:pointer; font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--accent)}
+  details.prov{margin-top:60px; padding-top:20px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 0; font-size:14px; color:var(--muted)}
+  details.prov summary{cursor:pointer; font-family:var(--mono); font-size:13px; color:var(--accent)}
   details.prov p{margin-top:12px; line-height:1.6}
   details.prov code{background:var(--paper)}
 
@@ -171,6 +312,72 @@
     nav.toc ul{columns:1}
     .duo{grid-template-columns:1fr}
   }
+  /* ---- diagrams: framed, and colored by TOKEN (never hard-coded hex) ----
+     SVG presentation attributes cannot read var(), so diagram color lives in
+     these CSS classes instead. That is what makes a diagram follow the theme
+     toggle AND invert correctly for print. See references/diagram-grammar.md. */
+  figure.diagram{margin:26px 0}
+  .diagram svg{display:block; width:100%; height:auto; min-width:640px}
+  .diagram figcaption{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:12px}
+  .d-bg{fill:var(--bg)}
+  .d-node{fill:none; stroke:var(--ink); stroke-width:1}
+  .d-focal{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.5}
+  .d-store{fill:none; stroke:var(--muted); stroke-width:1}
+  .d-ext{fill:none; stroke:var(--faint); stroke-width:1; stroke-dasharray:4 3}
+  .d-arrow{fill:none; stroke:var(--muted); stroke-width:1.25}
+  .d-arrow-accent{fill:none; stroke:var(--accent); stroke-width:1.5}
+  .d-label{fill:var(--ink); font-family:var(--sans); font-size:12px; font-weight:600}
+  .d-sub{fill:var(--muted); font-family:var(--mono); font-size:9px}
+  .d-alabel{fill:var(--faint); font-family:var(--mono); font-size:8px; letter-spacing:.08em}
+  .d-mask{fill:var(--bg)}
+  .d-rule{stroke:var(--rule); stroke-width:1; stroke-dasharray:7 7}
+  .d-legend-rule{stroke:var(--line); stroke-width:.8}
+  .d-tag{fill:none; stroke:var(--accent); stroke-opacity:.45; stroke-width:.8}
+  .d-tag.ink{stroke:var(--ink); stroke-opacity:.4}
+  .d-tagtext{fill:var(--accent); fill-opacity:.85; font-family:var(--mono); font-size:7px; letter-spacing:.08em}
+  .d-tagtext.ink{fill:var(--ink); fill-opacity:.8}
+
+  /* ---- draw-in animation: SVG strokes trace themselves on scroll-in ----
+     Presentation only — it reveals content already in the file, it holds no
+     state. Disabled wholesale under prefers-reduced-motion below. */
+  /* NOTE — no scroll-in reveal animation ships in this system. A stroke trace
+     needs a dash length per shape (one value cannot fit a 16px swatch and a
+     600px connector); a clip-path wipe does not interpolate reliably between
+     percentage and unitless insets. Both failure modes render a BLANK diagram,
+     which is strictly worse than no animation. If one is added later, it must
+     be opt-in from JS over a figure that is already visible. */
+
+  /* ---- PRINT: always light, whatever the toggle says. These reports become
+     PDFs, and nobody wants 20 pages of black. Print from the browser
+     (Cmd+P -> Save as PDF): a headless exporter that does not emulate print
+     media will NOT pick this up. ---- */
+  @media print{
+    /* A collapsed <details> prints as its summary alone — the content is gone.
+       Provenance ships open; the JS below opens the rest before printing. */
+    details{break-inside:auto}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    details.prov > summary::before,details.sec > summary::before,details.faq > summary::before{content:none}
+    :root, :root[data-theme="dark"], :root[data-theme="light"]{
+      --bg:#ffffff; --paper:#ffffff;
+      --ink:#111214; --ink-soft:#33353a; --muted:#5c5e64; --faint:#8b8d93;
+      --accent:#14509f; --red:#a11f18; --amber:#7a4f00; --green:#265c2c;
+    }
+    body{font-size:11.5pt; background:#fff}
+    .wrap{max-width:none; padding:0}
+    .theme-t,.row-hint,.modal-ov{display:none !important}
+    details.prov[open],details.prov{display:block}
+    details.prov > summary{list-style:none}
+    a{color:var(--ink); border-bottom:none}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-family:var(--mono); font-size:.75em; color:var(--muted)}
+    h2{break-after:avoid-page} h3{break-after:avoid-page}
+    .card,.framed,figure.diagram,tr{break-inside:avoid}
+    thead{display:table-header-group}
+    /* status color is semantic here, so force it through the print engine */
+    .b,.prio,.stat .n{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  }
+
+
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
     *{transition:none !important}
@@ -183,8 +390,13 @@
   <!-- ===== MASTHEAD: the TL;DR is the whole explanation in one sentence —
        a reader who stops here should still leave with the right model. -->
   <header class="masthead">
-    <p class="kicker">Group · Project · Explainer</p>
-    <h1>How the subsystem works, named in plain language</h1>
+    <div class="masthead-top">
+      <div>
+      <p class="kicker">Group · Project · Explainer</p>
+      <h1>How the subsystem works, named in plain language</h1>
+      </div>
+      <button class="theme-t" id="theme-t" type="button" aria-live="polite">Theme</button>
+    </div>
     <div class="tldr">
       <strong>In one sentence:</strong> the concept's mental model stated plainly —
       what it is, what it talks to, and the one thing people get wrong about it.
@@ -199,12 +411,12 @@
   <nav class="toc">
     <strong>Contents</strong>
     <ul>
-      <li><a href="#model">1 · The mental model</a></li>
-      <li><a href="#how">2 · How it works</a></li>
-      <li><a href="#usage">3 · Usage by example</a></li>
-      <li><a href="#gotchas">4 · Gotchas</a></li>
-      <li><a href="#faq">5 · FAQ</a></li>
-      <li><a href="#gloss">6 · Glossary &amp; sources</a></li>
+      <li><a href="#model">01 · The mental model</a></li>
+      <li><a href="#how">02 · How it works</a></li>
+      <li><a href="#usage">03 · Usage by example</a></li>
+      <li><a href="#gotchas">04 · Gotchas</a></li>
+      <li><a href="#faq">05 · FAQ</a></li>
+      <li><a href="#gloss">06 · Glossary &amp; sources</a></li>
     </ul>
   </nav>
 
@@ -213,69 +425,59 @@
        masked label, bottom legend). Real diagrams: follow
        references/diagram-grammar.md — draw only when the visual beats a
        paragraph, orthogonal connectors, 4px grid, ≤2 accent elements. -->
-  <h2 id="model">1 · The mental model</h2>
+  <h2 id="model">The mental model</h2>
   <p>One short paragraph that primes the diagram: name the two roles and the
     single relationship the reader must hold on to.</p>
   <figure class="diagram">
+    <div class="scroll-x">
     <svg viewBox="0 0 640 216" role="img" aria-labelledby="exp-title exp-desc">
       <title id="exp-title">Concept A reading from Concept B</title>
       <desc id="exp-desc">The focal component Concept A reads its state from the supporting component Concept B.</desc>
       <defs>
+        <!-- context-stroke makes ONE marker inherit whatever stroke its path
+             carries, so arrowheads follow the theme with no per-color copy -->
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#6f675d"/>
-        </marker>
-        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#1c5563"/>
-        </marker>
-        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#274d78"/>
+          <polygon points="0 0, 8 3, 0 6" fill="context-stroke"/>
         </marker>
       </defs>
-      <rect width="100%" height="100%" fill="#fffdf8"/>
+      <rect class="d-bg" width="100%" height="100%"/>
       <!-- arrows before boxes (z-order); endpoints share the y axis, so a
            plain line is legal — anything else needs orthogonal elbows -->
-      <line x1="240" y1="104" x2="400" y2="104" stroke="#6f675d" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <!-- arrow label: opaque paper mask, 8px visible gap above the line -->
-      <rect x="300" y="84" width="40" height="12" rx="2" fill="#fffdf8"/>
-      <text x="320" y="93" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace"
-            text-anchor="middle" letter-spacing="0.06em">READS</text>
+      <line class="d-arrow" x1="240" y1="104" x2="400" y2="104" marker-end="url(#arrow)"/>
+      <!-- arrow label: opaque page-colored mask, 8px visible gap above the line -->
+      <rect class="d-mask" x="300" y="84" width="40" height="12" rx="2"/>
+      <text class="d-alabel" x="320" y="93" text-anchor="middle">READS</text>
       <!-- focal node (accent — 1-2 accents max per diagram) -->
-      <rect x="64" y="72" width="176" height="64" rx="6" fill="#fffdf8"/>
-      <rect x="64" y="72" width="176" height="64" rx="6" fill="#e3edef" stroke="#1c5563" stroke-width="1"/>
-      <rect x="72" y="80" width="28" height="12" rx="2" fill="transparent" stroke="#1c5563" stroke-opacity="0.4" stroke-width="0.8"/>
-      <text x="86" y="89" fill="#1c5563" fill-opacity="0.8" font-size="7" font-family="ui-monospace,Menlo,monospace"
-            text-anchor="middle" letter-spacing="0.08em">SVC</text>
-      <text x="152" y="106" fill="#1b1916" font-size="12" font-weight="600"
-            font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" text-anchor="middle">Concept A</text>
-      <text x="152" y="122" fill="#6f675d" font-size="9" font-family="ui-monospace,Menlo,monospace"
-            text-anchor="middle">domain.core</text>
+      <rect class="d-focal" x="64" y="72" width="176" height="64" rx="6"/>
+      <rect class="d-mask" x="69" y="66" width="34" height="12"/>
+      <rect class="d-tag" x="72" y="66" width="28" height="12" rx="2"/>
+      <text class="d-tagtext" x="86" y="75" text-anchor="middle">SVC</text>
+      <text class="d-label" x="152" y="102" text-anchor="middle">Concept A</text>
+      <text class="d-sub" x="152" y="117" text-anchor="middle">domain.core</text>
       <!-- supporting node (plain ink treatment) -->
-      <rect x="400" y="72" width="176" height="64" rx="6" fill="#fffdf8"/>
-      <rect x="400" y="72" width="176" height="64" rx="6" fill="#fffdf8" stroke="#1b1916" stroke-width="1"/>
-      <rect x="408" y="80" width="28" height="12" rx="2" fill="transparent" stroke="#1b1916" stroke-opacity="0.4" stroke-width="0.8"/>
-      <text x="422" y="89" fill="#1b1916" fill-opacity="0.8" font-size="7" font-family="ui-monospace,Menlo,monospace"
-            text-anchor="middle" letter-spacing="0.08em">API</text>
-      <text x="488" y="106" fill="#1b1916" font-size="12" font-weight="600"
-            font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" text-anchor="middle">Concept B</text>
-      <text x="488" y="122" fill="#6f675d" font-size="9" font-family="ui-monospace,Menlo,monospace"
-            text-anchor="middle">adapter:out</text>
+      <rect class="d-node" x="400" y="72" width="176" height="64" rx="6"/>
+      <rect class="d-mask" x="405" y="66" width="34" height="12"/>
+      <rect class="d-tag ink" x="408" y="66" width="28" height="12" rx="2"/>
+      <text class="d-tagtext ink" x="422" y="75" text-anchor="middle">API</text>
+      <text class="d-label" x="488" y="102" text-anchor="middle">Concept B</text>
+      <text class="d-sub" x="488" y="117" text-anchor="middle">adapter:out</text>
       <!-- legend: bottom strip, covers exactly the treatments used -->
-      <line x1="32" y1="176" x2="608" y2="176" stroke="rgba(27,25,22,0.10)" stroke-width="0.8"/>
-      <text x="32" y="192" fill="#6f675d" font-size="8" font-family="ui-monospace,Menlo,monospace"
-            letter-spacing="0.14em">LEGEND</text>
-      <rect x="104" y="184" width="16" height="9" rx="2" fill="#e3edef" stroke="#1c5563" stroke-width="0.8"/>
-      <text x="128" y="192" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace">focal</text>
-      <rect x="200" y="184" width="16" height="9" rx="2" fill="#fffdf8" stroke="#1b1916" stroke-width="0.8"/>
-      <text x="224" y="192" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace">component</text>
-      <line x1="328" y1="188" x2="356" y2="188" stroke="#6f675d" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <text x="368" y="192" fill="#938b7f" font-size="8" font-family="ui-monospace,Menlo,monospace">reads from</text>
+      <line class="d-legend-rule" x1="32" y1="176" x2="608" y2="176"/>
+      <text class="d-alabel" x="32" y="192">LEGEND</text>
+      <rect class="d-focal" x="104" y="184" width="16" height="9" rx="2"/>
+      <text class="d-alabel" x="128" y="192">focal</text>
+      <rect class="d-node" x="200" y="184" width="16" height="9" rx="2"/>
+      <text class="d-alabel" x="224" y="192">component</text>
+      <line class="d-arrow" x1="328" y1="188" x2="356" y2="188" marker-end="url(#arrow)"/>
+      <text class="d-alabel" x="368" y="192">reads from</text>
     </svg>
+    </div>
     <figcaption>One-line reading of the diagram: A pulls from B, never the reverse.</figcaption>
   </figure>
 
   <!-- ===== 2 · HOW IT WORKS: collapsibles ordered shallow -> deep.
        First one open — the reader lands on substance, not a wall of chevrons. -->
-  <h2 id="how">2 · How it works</h2>
+  <h2 id="how">How it works</h2>
   <details class="sec" open>
     <summary>The happy path, end to end</summary>
     <div class="body">
@@ -310,7 +512,7 @@
   </details>
 
   <!-- ===== 3 · USAGE BY EXAMPLE: tabbed code block, one scenario per tab ===== -->
-  <h2 id="usage">3 · Usage by example</h2>
+  <h2 id="usage">Usage by example</h2>
   <div class="tabs">
     <div class="tabbar" role="tablist">
       <button class="tab" role="tab" aria-selected="true">basic.ts</button>
@@ -326,7 +528,7 @@
   </div>
 
   <!-- ===== 4 · GOTCHAS: one row per edge case — the section readers return to ===== -->
-  <h2 id="gotchas">4 · Gotchas</h2>
+  <h2 id="gotchas">Gotchas</h2>
   <table>
     <thead><tr><th>Edge case</th><th>What happens</th><th>What to do instead</th></tr></thead>
     <tbody>
@@ -336,7 +538,7 @@
   </table>
 
   <!-- ===== 5 · FAQ ===== -->
-  <h2 id="faq">5 · FAQ</h2>
+  <h2 id="faq">FAQ</h2>
   <details class="faq">
     <summary>The question people actually ask first?</summary>
     <p>A direct answer, two sentences max, linking into the sections above.</p>
@@ -347,7 +549,7 @@
   </details>
 
   <!-- ===== 6 · GLOSSARY & SOURCES ===== -->
-  <h2 id="gloss">6 · Glossary &amp; sources</h2>
+  <h2 id="gloss">Glossary &amp; sources</h2>
   <dl class="gloss">
     <dt>Term</dt><dd>Definition in the project's vocabulary, one line.</dd>
     <dt>Second term</dt><dd>Only terms this page actually uses — not a domain dictionary.</dd>
@@ -360,7 +562,7 @@
   </ul>
 
   <!-- ===== PROVENANCE FOOTER (always last) ===== -->
-  <details class="prov">
+  <details class="prov" open>
     <summary>Provenance</summary>
     <p>
       <strong>Generated:</strong> 2026-01-01 ·
@@ -372,6 +574,28 @@
 </div>
 
 <script>
+/* ============================================================================
+   THEME TOGGLE — light <-> dark, persisted. Print always forces light in CSS,
+   so this never affects the PDF. Presentation only: it holds no content state.
+   ============================================================================ */
+(function(){
+  var btn=document.getElementById("theme-t"), root=document.documentElement;
+  function label(){
+    var dark=root.getAttribute("data-theme")==="dark";
+    btn.textContent = dark ? "light" : "dark";
+    btn.setAttribute("aria-label","Switch to "+(dark?"light":"dark")+" theme");
+  }
+  label();
+  btn.addEventListener("click", function(){
+    var next = root.getAttribute("data-theme")==="dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try{ localStorage.setItem("fr-theme", next); }catch(e){}
+    label();
+  });
+})();
+
+
+
 /* Tab switcher — the only JS on the page. Each .tabs block is independent:
    the Nth .tab shows the Nth .panel. Keep it this small. */
 document.querySelectorAll(".tabs").forEach(function(tabs){
@@ -386,6 +610,22 @@ document.querySelectorAll(".tabs").forEach(function(tabs){
     });
   });
 });
+
+/* Print integrity: a collapsed <details> loses its content in the PDF. Open
+   every one before printing and restore the reader's state afterwards. The
+   provenance block additionally ships with `open` in the markup, so it
+   survives even a headless print that never fires beforeprint. */
+(function(){
+  var was=[];
+  window.addEventListener("beforeprint", function(){
+    was = [].map.call(document.querySelectorAll("details"), function(d){
+      var prev=d.open; d.open=true; return prev;
+    });
+  });
+  window.addEventListener("afterprint", function(){
+    [].forEach.call(document.querySelectorAll("details"), function(d,i){ d.open = was[i]; });
+  });
+})();
 </script>
 </body>
 </html>
