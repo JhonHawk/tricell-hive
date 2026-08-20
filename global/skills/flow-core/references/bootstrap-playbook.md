@@ -66,7 +66,7 @@ The copy-ready templates below live in this skill's `templates/` directory —
 4. **Memory + conventions** — run the `engram-init-workspace` skill so the multi-repo
    workspace shares one memory bucket from day zero. Then infer client conventions before
    asking: read a sibling project's PROJECT.md / AGENTS.md under the same `<group>/` and
-   inherit what matches. Ask (one AskUserQuestion round) ONLY for the residue nothing
+   inherit what matches. Ask (one question round) ONLY for the residue nothing
    answers — chiefly the **task tracker** (`Tracker` + `Tracker access`: linear / jira /
    none; mcp / cli / api / manual — required fields every later flow skill resolves "the
    tracker" through) and any sealed client conventions or cloud accounts known now.

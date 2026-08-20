@@ -22,7 +22,7 @@ gate). With no argument, show the subcommands and the epics index status.
    bootstrap: portals, actors/roles,
    end-to-end flow — module folders appear as epics define them), `conventions/`,
    `contracts/`, `decisions/`, `evidence/`, `epics/`.
-3. **Ask the presentation format once, at init** (AskUserQuestion, folded into the init
+3. **Ask the presentation format once, at init** (a structured question, folded into the init
    question block): *markdown only* — the canonical structure with no site layer;
    *Astro Starlight* — scaffold via the `starlight-docs-site` skill's **`spec-site`
    profile** *over* the canonical structure (content stays at its flow-core paths as the
@@ -96,7 +96,7 @@ once the bootstrap playbook's foundation stage ran.
      `tasks.md`) resolves to its containing folder.
    - **Not a path → treat as identifier**: match against `<project>-specs/epics/` by
      ID prefix (`E07`, `TRI-360`) or slug (`mensajeria`), case-insensitive and partial.
-     One match → use it; several → AskUserQuestion with the candidates; none → stop with
+     One match → use it; several → ask with the candidates; none → stop with
      the available epics listed from the README index.
    - **No argument** → show the epics index and ask which to review; do not guess.
 2. Dispatch BOTH reviewers in parallel (one message, two Agent calls), per the handoff
@@ -117,7 +117,7 @@ once the bootstrap playbook's foundation stage ran.
    library choice): it lands in the epic's Open Questions with an owner, marked
    `technical — resolves in TECH.md`. Resolving it by writing the answer into PRODUCT.md
    fails the gate — the rubric's leakage hard check catches exactly that.
-4. Gate: if any `blocker` or `rethink` exists, present them via AskUserQuestion
+4. Gate: if any `blocker` or `rethink` exists, present them via the question tool
    (fix spec first / proceed as-is / discuss). Do not soften the critic's findings.
 5. Apply approved fixes to the epic files (Gherkin rewrites land verbatim). **On pass,
    apply the epic to the product layer**: create/update the `product/` vista pages with

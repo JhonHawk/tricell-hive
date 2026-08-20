@@ -42,7 +42,7 @@ Consumes the manifest `audit` produced. Nothing executes without explicit approv
 1. Load the most recent **actions manifest** (`hygiene-audit-<date>.md`) — never re-read the HTML
    into context; it exists for the human. No manifest or it's stale → run `audit` first. Audit from
    a prior session → re-open the HTML (if any) so the user reviews first.
-2. Gate via AskUserQuestion, **grouped by RISK, not by action type** — the question may only
+2. Gate via the question tool, **grouped by RISK, not by action type** — the question may only
    reference IDs the user just saw. Approve everything `safe` in one option; `destructive` actions
    (expirations, moves that break references, legacy migrations) are reviewed per item or small
    batch, and deletions execute only after **typed confirmation** — the user writes the literal

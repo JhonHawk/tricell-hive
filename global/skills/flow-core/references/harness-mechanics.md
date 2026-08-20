@@ -10,9 +10,9 @@ contracts) is harness-neutral; only the machinery differs.
 |---|---|---|---|
 | "dispatch agent X" / Agent tool | `Agent` tool with `subagent_type` | Spawn the custom agent `X` (defined in `~/.codex/agents/X.toml`) — spawning on a skill's instruction counts as the required explicit request | `task` tool with the subagent `X` (defined in `~/.config/opencode/agents/X.md`) |
 | "dispatch Explore" (read-only research) | Built-in `Explore` agent | General agent with `sandbox_mode = "read-only"` | General subagent with read-only `permission` denies |
-| `AskUserQuestion` / decision gate | `AskUserQuestion` tool | Ask the options inline in chat and wait for the reply | Ask the options inline in chat and wait for the reply |
+| "the question tool" / decision gate | `AskUserQuestion` tool | Ask the options inline in chat and wait for the reply | Ask the options inline in chat and wait for the reply |
 | "load X via ToolSearch" (MCP) | `ToolSearch` then call | MCP servers from `config.toml` are already available — call directly | MCP tools from `opencode.json` are already available — call directly |
-| `TaskCreate` / session task list | Task tools | Maintain the checklist in your plan/working notes | Todo tooling if available; otherwise plan notes |
+| "the task-list tool" / session task list | Task tools | Maintain the checklist in your plan/working notes | Todo tooling if available; otherwise plan notes |
 | "render via flow-report skill" | `flow-report` skill | Write the self-contained HTML directly (same single-file rules) | Write the self-contained HTML directly |
 | `$ARGUMENTS` / `$1` | Native substitution | No substitution in skills — interpret the free text after `$skill-name` as the arguments | Native in commands (`/flow-*` wrappers); skills invoked via command receive them in the prompt |
 | Native plan mode as approval gate | Plan mode (Shift+Tab) | Present the plan and wait for explicit approval in chat (`/plan` aids drafting) | Present the plan and wait for explicit approval in chat |

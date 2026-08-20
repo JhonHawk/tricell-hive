@@ -34,7 +34,7 @@ the question is and stop.
 - Declare the **ground-truth corpus**: explicit paths/globs, docs, and read-only commands
   (git log, live-state reads) the refuter will treat as canonical. Declared once, pasted
   identically into every generator prompt and the refuter prompt. Genuinely ambiguous
-  corpus → one `AskUserQuestion`; otherwise infer and state it.
+  corpus → one structured question; otherwise infer and state it.
 - Assess the risk tier and set the refuter count M per the refuter budget in
   `agent-routing.md > Verification runs in fresh context` (do not restate its numbers —
   that rule is the single owner). State the plan: "N generators, M refuter(s)".
