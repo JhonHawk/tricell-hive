@@ -37,4 +37,4 @@
   survive the synthesis: branch names (`<type>/<TICKET>-<slug>`) are cut from them.
 - Live state outranks the tracker: a ticket-vs-git conflict is reported for ticket
   correction, never resolved by editing the ticket to match a memory
-  (`debugging.md > Reporting state from ground truth`).
+  (`quality/reporting-integrity.md > Reporting state from ground truth`).

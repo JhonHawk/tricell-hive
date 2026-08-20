@@ -28,7 +28,7 @@ always-on — it is dead weight in a session that never touches memory.
   directories) is Claude-Code-only — Codex/opencode sessions skip that half rather than
   simulating it through other storage.
 - **Not in this skill and never conditional:** how to ANSWER a question about state
-  ("what's pending / where are we?") is always-on in `quality/debugging.md > Reporting
+  ("what's pending / where are we?") is always-on in `quality/reporting-integrity.md > Reporting
   state from ground truth` — verify against git/disk/DB before reporting, whether or not
   this skill ever loads.
 - This skill parameterizes Engram's own affordances (`topic_key`, `mem_update`,

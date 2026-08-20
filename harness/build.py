@@ -71,6 +71,9 @@ SKILL_REFERENCE_INJECTIONS = {
     "language-rules": [
         ("rules/languages", "*.md"),
         ("rules/quality", "development-principles.md"),
+        # Extracted out of development-principles.md + debugging.md, both injected
+        # here: without this line Codex and opencode silently lose both sections.
+        ("rules/quality", "reporting-integrity.md"),
         ("rules/quality", "testing.md"),
         ("rules/quality", "debugging.md"),
         ("rules/quality", "patterns-antipatterns.md"),

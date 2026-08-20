@@ -1,7 +1,7 @@
 
 ## Memory Routing — Engram vs. Native File-Memory
 
-> Not always-on anywhere: a memory operation has no file behind it, so every harness reaches this through the `memory-policy` skill. The companion half — how to ANSWER a state question — lives in `quality/debugging.md > Reporting state from ground truth`; this file owns the store mechanics.
+> Not always-on anywhere: a memory operation has no file behind it, so every harness reaches this through the `memory-policy` skill. The companion half — how to ANSWER a state question — lives in `quality/reporting-integrity.md > Reporting state from ground truth`; this file owns the store mechanics.
 
 > Two memory systems run at once: Claude Code's **native file-memory** (harness-injected, always in context) and **Engram** (MCP server, SQLite, retrieved on demand). Their save-triggers overlap; this rule draws the boundary so the same fact never lands in both and drifts. It does NOT configure Engram (its plugin self-manages); it governs which system receives a given save.
 

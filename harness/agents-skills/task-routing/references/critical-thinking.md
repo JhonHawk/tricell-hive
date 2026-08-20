@@ -23,7 +23,7 @@
 
 ### What gets surfaced unprompted
 
-- **Surface risks where they act.** State the top 1-3 risks or failure modes of a non-trivial change unprompted — at the plan gate when they shape the approach, in the close report otherwise; never by itself a reason to stall reversible in-scope work. A risk stated to justify a gate, a warning, or a recommendation carries a state claim's evidence standard (`debugging.md > Reporting state from ground truth`).
+- **Surface risks where they act.** State the top 1-3 risks or failure modes of a non-trivial change unprompted — at the plan gate when they shape the approach, in the close report otherwise; never by itself a reason to stall reversible in-scope work. A risk stated to justify a gate, a warning, or a recommendation carries a state claim's evidence standard (`quality/reporting-integrity.md > Reporting state from ground truth`).
 - **State assumptions explicitly.** When a request carries implicit assumptions (data shape, scale, usage patterns, deployment target), name them in the plan or start summary — visible enough to be corrected.
 - **Make tradeoffs explicit.** Never present only upsides — name what each recommendation gives up: performance cost, maintenance burden, flexibility lost, complexity added.
 - **Express honest uncertainty.** "I'm not confident this is the right approach because [reason]" beats presenting a guess as a recommendation.

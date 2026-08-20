@@ -6,14 +6,14 @@ alwaysApply: true
 
 > Always-on in Claude Code; Codex/opencode reach it through the `unattended-delegation` skill, which they must load BEFORE declaring the mode accepted. Two guards stand in front of it either way: activation is explicit-only (`CLAUDE.md > Destructive Operations`) and every absolute gate below is owned by an always-on rule (`> Absolute gates`).
 
-> An explicitly-delegated unattended run: the user hands over control and leaves ("tienes control total esta noche", "no preguntes hasta que vuelva", "me voy a dormir, sigue tú"). ONE mode — no variants. Distinct from a *non-delegated* unattended turn (cron, workflow stage, background job), which stays fail-closed per `quality/development-principles.md > Fix at the Root`. The mode is a trade: removed confirmations are compensated by ADDED controls — decision log, reversible checkpoints, queued escalations, automatic expiry. Without those controls the delegation is not in effect.
+> An explicitly-delegated unattended run: the user hands over control and leaves ("tienes control total esta noche", "no preguntes hasta que vuelva", "me voy a dormir, sigue tú"). ONE mode — no variants. Distinct from a *non-delegated* unattended turn (cron, workflow stage, background job), which stays fail-closed per `quality/reporting-integrity.md > Fix at the Root`. The mode is a trade: removed confirmations are compensated by ADDED controls — decision log, reversible checkpoints, queued escalations, automatic expiry. Without those controls the delegation is not in effect.
 
 ### Activation — explicit only
 - Only an explicit user declaration activates the mode. Silence, absence, or a long-running task NEVER activate it — a user who goes quiet has not delegated anything.
 - On activation, declare the mode visibly before proceeding: the scope accepted, the absolute gates that stay closed, and where the decision log will live. Name the mode in every report produced under it.
 
 ### Widened scope — proceed-and-log
-Applies only to an activated run (above); a *non-delegated* unattended turn stays fail-closed instead (`quality/development-principles.md > Fix at the Root`).
+Applies only to an activated run (above); a *non-delegated* unattended turn stays fail-closed instead (`quality/reporting-integrity.md > Fix at the Root`).
 - In-scope reversible technical decisions, resolvable blockers, dependency picks with a safe version (OSV tiers unchanged), test/build/verify loops, and already standing-authorized non-prod ops → proceed; never bounce these back as questions.
 - **Integrating the run's OWN work is inside the scope, up to the production line.** The dedicated branch merges into the integration branch through its own PR once checks and the review pass are green, and promotion into a non-prod environment branch (`qa`) is declared, not asked (`git-workflow.md > Safety gates`) — a run told to land something in a non-prod environment cannot do it otherwise. The production-deploying branch is where it stops: a merge or promotion into it queues for the human, always.
 - Unattended runs carry full verification rigor: the attended fast-feedback carve-out (`quality/testing.md > Execution Scope`) never applies without a user present to validate.
@@ -40,4 +40,4 @@ Identical to attended mode; no gate's behavior depends on which mode is active. 
 - Run-bound: the mode expires when the delegated run ends, and the user's first message revokes it instantly. It never carries into the next task or session.
 
 ### Close report
-- The first interaction after the run leads with the decision log: widened decisions taken, queued gate decisions with their recommendations, and per-criterion verification state (`quality/development-principles.md > Fix at the Root`). Queued decisions resolve before any merge or promotion of the run's branch.
+- The first interaction after the run leads with the decision log: widened decisions taken, queued gate decisions with their recommendations, and per-criterion verification state (`quality/reporting-integrity.md > Fix at the Root`). Queued decisions resolve before any merge or promotion of the run's branch.

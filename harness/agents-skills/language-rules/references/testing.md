@@ -14,7 +14,7 @@
 Outside the carve-outs above, tests are part of the implementation — never a follow-up task:
 - New functions, utilities, pure logic → **unit tests**.
 - New API endpoints, database operations, service interactions → **integration tests**.
-- New user-facing flows spanning multiple components → **E2E** for the critical path only. Deferring a required E2E is a plan-gate decision — a user-approved plan that defers it IS the confirmation; deferred without that, the flow is reported **not-verified** at close (`development-principles.md > Fix at the Root`). Never a mid-run stop to ask, never a silent skip.
+- New user-facing flows spanning multiple components → **E2E** for the critical path only. Deferring a required E2E is a plan-gate decision — a user-approved plan that defers it IS the confirmation; deferred without that, the flow is reported **not-verified** at close (`quality/reporting-integrity.md > Fix at the Root`). Never a mid-run stop to ask, never a silent skip.
 
 ### Verifiable test gate
 

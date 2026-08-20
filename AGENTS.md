@@ -104,12 +104,13 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── CLAUDE.md                      # Core config (always loaded)
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
-│   ├── quality/                   # Code principles (6 alwaysApply, 1 path-scoped)
+│   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
 │   │   ├── critical-thinking.md
 │   │   ├── debugging.md           # Root-cause discipline: reproduce before fix, one change at a time, 3-fix circuit breaker
 │   │   ├── development-principles.md
 │   │   ├── patterns-antipatterns.md
+│   │   ├── reporting-integrity.md # Ground-truth state claims + Fix at the Root (extracted from debugging + development-principles)
 │   │   ├── security.md
 │   │   └── testing.md
 │   ├── languages/                 # Language/framework standards (path-scoped)
