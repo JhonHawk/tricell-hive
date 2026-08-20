@@ -4,13 +4,20 @@
 # Dual-runtime: Claude Code and Grok Build payloads. Field fallbacks must stay
 # in sync with bash-policy.sh.
 #
-# One process, one stdin read, three independent sections. Each section
+# One process, one stdin read, four independent sections. Each section
 # self-gates on tool name and returns its reminder text; whatever fires is
 # newline-joined into a SINGLE additionalContext emission.
 #
+#   0. Plan-capture recovery     (first call) — delegates to flow-plan-capture.sh
 #   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
 #   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
 #   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
+#
+# Section 0 is the one that WRITES (via the capture hook it calls) rather than
+# only advising. It lives here because it needs the earliest event that can see
+# the fresh session's first user turn, and this hub already spawns on every tool
+# call — a dedicated registration would double the per-call process cost to
+# catch a once-per-session condition.
 #
 # The counters keep SEPARATE state files and are never coupled: one section
 # firing must not reset or advance another's count.
@@ -32,6 +39,27 @@ is_shell=0
 case "$tool_name" in
   Bash|run_terminal_command) is_shell=1 ;;
 esac
+
+HOOK_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd) || HOOK_DIR=""
+
+# ---------------------------------------------------------------------------
+# 0. Plan-capture recovery — approving a plan WITH context cleared resolves
+# ExitPlanMode as a permission deny, so PostToolUse:ExitPlanMode never fires and
+# flow-plan-capture never sees the plan. The fresh session's first user turn
+# carries it in `planContent`; this fires the capture hook in recovery mode on
+# the FIRST tool call of any session and stays quiet everywhere else.
+#
+# The marker is written BEFORE the attempt: a failure must not retry every call.
+# ---------------------------------------------------------------------------
+plan_recovery_section() {
+  local marker out
+  marker="${TMPDIR:-/tmp}/claude-flow-plan-recovery-${session_id}"
+  [ -f "$marker" ] && return 0
+  : > "$marker" 2>/dev/null || true
+  [ -n "$HOOK_DIR" ] && [ -x "$HOOK_DIR/flow-plan-capture.sh" ] || return 0
+  out=$(printf '%s' "$input" | "$HOOK_DIR/flow-plan-capture.sh" --from-transcript 2>/dev/null)
+  [ -n "$out" ] && printf '%s' "$out"
+}
 
 # ---------------------------------------------------------------------------
 # 1. Delegation counter — every non-delegation tool call increments; a
@@ -127,15 +155,35 @@ verification_loop_section() {
 # these signatures only appear when a command actually died on them.
 # ---------------------------------------------------------------------------
 zsh_signature_section() {
-  local out sig=""
+  local out sig="" re
   [ "$is_shell" -eq 1 ] || return 0
-  out=$(printf '%s' "$input" | jq -r '(.tool_response // .toolOutput // empty) | tostring' 2>/dev/null)
+  # Collect every string in the response, whatever its shape (Claude's
+  # {stdout,stderr,…}, Grok's own), joined by REAL newlines. `tostring` on the
+  # object would re-escape them as the two characters `\` `n`, which defeats the
+  # line anchor below: the character before `zsh:` would read as alphanumeric.
+  out=$(printf '%s' "$input" | jq -r '
+    (.tool_response // .toolOutput // empty) as $r
+    | if ($r | type) == "object" then [$r | .. | strings] | join("\n")
+      else ($r | tostring) end' 2>/dev/null)
   [ -n "$out" ] || return 0
 
-  if   [[ "$out" == *"read-only variable"* ]]; then sig="read-only variable"
-  elif [[ "$out" == *"no matches found"* ]];   then sig="no matches found (nomatch)"
-  elif [[ "$out" == *"bad substitution"* ]];   then sig="bad substitution"
-  elif [[ "$out" =~ \(eval\):[0-9]+: ]];       then sig="(eval):N: error"
+  # The phrase alone is NOT the signature — zsh's own error prefix is. Matching
+  # the bare text fired on any tool output that merely CONTAINED it: a `cat` or
+  # `git diff` of the rules that document these signatures was enough. Narrowing
+  # the scanned field is not the fix — Claude's Bash tool merges the command's
+  # stderr into `stdout`, so a real failure has no separate channel to read.
+  # Real forms carry a line number: `zsh:<N>: read-only variable: status`,
+  # `(eval):<N>: bad substitution`. Written with `<N>` on purpose — spelling the
+  # digit here would make this very comment match, so any `cat` of this file
+  # would fire the alarm. Same reason the README uses `zsh:N:`.
+  re='(^|[^[:alnum:]_])(zsh|\(eval\)):[0-9]*:?[[:space:]]*(read-only variable|no matches found|bad substitution)'
+  if [[ "$out" =~ $re ]]; then
+    case "${BASH_REMATCH[3]}" in
+      "no matches found") sig="no matches found (nomatch)" ;;
+      *)                  sig="${BASH_REMATCH[3]}" ;;
+    esac
+  elif [[ "$out" =~ \(eval\):[0-9]+: ]]; then
+    sig="(eval):N: error"
   else return 0; fi
 
   # shellcheck disable=SC2016  # single quotes intentional: ${!var}/${(P)var}/$BASH_VERSION are literal text for the model, never expanded here
@@ -156,6 +204,7 @@ append() {
   context="${context:+$context$newline}$1"
 }
 
+append "$(plan_recovery_section)"
 append "$(delegation_section)"
 append "$(verification_loop_section)"
 append "$(zsh_signature_section)"

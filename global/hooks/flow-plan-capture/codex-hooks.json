@@ -1,0 +1,16 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.codex/hooks.json and copies the sibling flow-plan-capture.sh into ~/.codex/hooks/ (step 13d, auto-discovered by the presence of this file). UserPromptSubmit rather than PostToolUse: Codex has no ExitPlanMode tool, and both plan-approval buttons reach the model as an injected user prompt — `Implement the plan.` (context kept) or the `A previous agent produced the plan below` preamble (context cleared). The script self-gates on those two prompts and exits silently on every other turn. Codex trust caveat: a changed script must be re-accepted at the Codex hooks prompt before it runs.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.codex/hooks/flow-plan-capture.sh\" --from-codex-prompt",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
