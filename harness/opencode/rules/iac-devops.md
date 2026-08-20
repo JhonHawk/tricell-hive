@@ -27,6 +27,7 @@ match: any
 - **Remote state with locking.** Never use local state for shared infrastructure. S3 + DynamoDB or Terraform Cloud.
 - **Naming:** `resource_type_purpose` in snake_case. Example: `aws_iam_role_lambda_execution`. Outputs: descriptive, not generic (`vpc_id`, not `output1`).
 - **Modules for repeated patterns.** Extract when 2+ environments share the same resource set. Pin module sources with version tags.
+- **Validate with the official HashiCorp binary** — `terraform fmt -check` and `terraform validate` — never by reading the HCL. Not installed → ask the user to approve the install (`CLAUDE.md > System Installations`); its absence never turns validation into a skipped step. **A green `validate` is not a green apply:** it checks syntax and schema, so a constraint the provider enforces at apply time (a rule requiring two statements, a name length, a regional restriction) passes it and still fails — never report validate as proof the config applies.
 - **`terraform plan` before apply — always.** In CI, save the plan file and apply the exact plan.
 
 ### GitHub Actions
