@@ -1,13 +1,19 @@
 ---
 name: task-routing
 description: >
-  Load BEFORE deciding HOW a piece of work gets done: which specialist takes it, whether to
-  delegate at all, how a multi-domain task is chained and verified, and what must be settled
-  before a plan's tasks are written. Any request to review, audit, investigate, diagnose,
-  refactor across files, or "how would you approach X" is this decision, even when the user
-  never says the word delegate — they ask for a result, not for a routing choice.
-  Triggers: review, audit, investigate, diagnose, plan, approach, refactor, verify;
-  revisar, auditar, investigar, diagnosticar, planear, "cómo lo abordarías".
+  Load at FIRST EDIT-INTENT on a software project — the same moment `git-mechanics` fires,
+  before any file is touched — and before deciding HOW work gets done: which specialist takes
+  it, whether to delegate at all, how a multi-domain task is chained and verified, and what
+  must be settled before a plan's tasks are written. It carries the gap analysis whose
+  prerequisites (accounts and roles, seed rows, running services) are cheapest resolved
+  before the code, not at the verification gate. Any request to review, audit, investigate,
+  diagnose, refactor across files, or "how would you approach X" is this decision, even when
+  the user never says the word delegate — they ask for a result, not for a routing choice.
+  NOT for: a read-only investigation, a short question, or work outside a software project —
+  none reach edit-intent, and the trivial carve-out (typo, rename, one-line config) is out too.
+  Triggers: implement, build, feature, fix, review, audit, investigate, diagnose, plan,
+  approach, refactor, verify; implementa, construye, arregla, revisar, auditar, investigar,
+  diagnosticar, planear, "cómo lo abordarías".
 ---
 
 # task-routing — who does the work, and what must be settled before it starts
