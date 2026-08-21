@@ -17,16 +17,27 @@ after Execute. Run, for the tasks not yet gated:
    else `<repo>/_support/sessions/<slug>/reports/`) per `flow-core/references/test-report-template.md`. **A
    `blocked` AC is not a pass** — unblock at the root (seed missing reference data, fix the
    precondition) and re-run; escalate only a genuinely external blocker as a ledger **Promotion
-   prerequisite**, never closed as done. **Visually broken is a defect, not a cosmetic note:**
-   anything detected visually broken during the walk — layout overflow, clipped or capped text,
-   overlapping elements, content not filling its container — is fixed in this cycle like a failing
-   AC, never deferred as polish. (The design gate below owns *craft*; this owns *breakage* and
-   applies even when `design-review` is not set.)
-3. **Design gate** for `design-review: yes` tasks (opt-in; user-facing UI tasks set the flag in the
-   plan, mirroring `in-vivo: yes`): dispatch **ui-reviewer** against the running app on the
+   prerequisite**, never closed as done. **Visual judgment belongs to the design gate below** —
+   this agent verifies function, not appearance, and takes no systematic per-screen captures.
+   Its captures stay what they always were: repro evidence attached to a finding. Severity floor
+   if it happens to see breakage while walking: `major` at least, never `minor` — it reports it
+   and moves on, it does not go looking.
+
+   **The two gates run in PARALLEL when the project can isolate them** — a separate account and
+   tenant per agent, plus a distinct `agent-browser` session. Resolve that at the plan gate with
+   the rest of the in-vivo prerequisites (`gap-resolution.md`), never at dispatch. Without
+   isolation they SERIALIZE in this order: **design gate first, in-vivo second** — in-vivo
+   deliberately destroys state (duplicate records, expired sessions, aborted requests) and a
+   reviewer walking that wreckage reports defects that do not exist.
+3. **Design gate — REQUIRED for any task with a user-facing surface**, not opt-in: a screen a
+   human will look at is not verified by system-green. The plan sets the flag; a UI task without
+   it is a planning defect, not a licence to skip. Dispatch **ui-reviewer** against the running app on the
    **Visual craft** rubric axis (`flow-core/references/ux-rubric.md` #11–18; criteria
    `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
-   hierarchy, elevation, borders restraint, component simplicity, net improvement. Same
+   hierarchy, elevation, borders restraint, component simplicity, net improvement — **plus
+   BREAKAGE, which this gate owns**: layout overflow, clipped or capped text, overlapping
+   elements, content not filling its container. Breakage is never `polish` — it fixes in-cycle
+   like a failing AC. Same
    evidence/report routing as the in-vivo gate. **A craft `blocker` is not a pass** — fix at the
    root and re-walk; `friction`/`polish` may pass with the user's recorded acknowledgement.
    - **When the task changes an existing screen, capture the pre-change state BEFORE the run's
@@ -34,6 +45,20 @@ after Execute. Run, for the tasks not yet gated:
      `tools/browser-automation.md`, into the run's raw-evidence
      folder — and hand both captures to the reviewer for dimension 18. Missing pre-change capture
      → the design gate reports **not-verified**, never pass.
+3b. **Evidence appraisal — prepared at gate close, presented in the close report.** Partition the
+   run's raw evidence into three, and resolve the DESTINATION by the established level, never by
+   cwd: a workspace that already keeps dated `evidence/` folders at one level takes the new one at
+   that SAME level (`project-structure.md`); only absent an established level does scope decide.
+   - **discard** — captures of a finding now resolved, and intermediate states that produced no
+     finding: reproducible, no communicative value.
+   - **keep, always** — captures of findings still OPEN: they are the live bug's evidence.
+   - **keep, proposed** — the final state of each screen the plan created or changed, on its happy
+     path. These are the client-demo and user-manual material. The ORCHESTRATOR picks them from
+     the plan's tasks, not the agent from what it happened to capture.
+   Retained → `_support/evidence/YYYY-MM-DD-<slug>/` as lossless WebP (`support-artifacts.md`).
+   **One confirmation covers the batch and nothing is deleted without it** — data deletion always
+   confirms (`CLAUDE.md > Destructive Operations`), in every mode.
+
 4. **Integrated smoke** when 2+ tasks merged or any conflict was resolved: serve a **production
    build per app** (global `Execution` rule — never the dev server, one app at a time) — it
    validates the state QA receives. Stop any server this flow started (verify per port:

@@ -26,6 +26,15 @@ nothing. Your evidence is what you actually saw on screen.
   does the UI explain how to recover?
 - Hierarchy and copy: does the layout prioritize the decision the user came to make?
   Does the copy state consequences before destructive/sensitive actions?
+- **Breakage first, on every screen the walk reaches** — layout overflow, clipped or capped
+  text, overlapping elements, content not filling its container. **Judged from the RENDERING,
+  never from the structure:** the DOM and the a11y tree say the cell exists and holds a date —
+  neither says it wrapped to a second line, nor that the grid sits left-aligned in a
+  half-empty container. Two complementary routes, use both: a capture at the declared
+  viewport, READ; and computed geometry via `agent-browser eval` (`scrollWidth > clientWidth`
+  for overflow, bounding-box intersection for overlap, `getComputedStyle` for clamped text) —
+  measurement catches what the eye misses at a glance, the capture catches what no assertion
+  was written for. Breakage is a defect to fix in-cycle, never `polish`
 - Visual craft against `~/.agents/skills/language-rules/references/ui-visual-design.md` (path-scoped rule —
   it will NOT auto-load in this browser-driving context; Read it directly): type scale &
   line-length, spacing
