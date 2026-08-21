@@ -135,10 +135,23 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
 
 **Completeness checks — same audit pass, per child repo of a workspace:**
 
-- **Project pointers**: the repo `AGENTS.md` carries `Ledger: <relative path>` and the
-  workspace-root path, with the instruction to open them for project-scope tasks
-  (child-repo sessions never auto-load the workspace files). Missing → propose the
-  2-4 line block (~200 B).
+- **Project pointers + SIBLING MAP**: the repo `AGENTS.md` carries `Ledger: <relative path>`
+  and the workspace-root path, with the instruction to open them for project-scope tasks
+  (child-repo sessions never auto-load the workspace files), PLUS the siblings — name, role
+  (runtime / specs / mocks / archived) and that they live one level up. Derive the map from
+  `find -maxdepth 2 -name .git`, never from what the file already claims: an active runtime
+  missing from a sibling list is how a session concludes the archived repos ARE the product.
+  Missing or wrong → propose the block (~300 B).
+- **Workspace content that a child-repo session needs MOVES down — it is never copied.** A
+  session opened in a child repo does not load the workspace files at all (Codex starts at
+  the git root; Claude Code loads an ancestor CLAUDE.md's literal text but skips its
+  `@AGENTS.md` import — the import law above). Split by ownership, not by convenience:
+  **down** goes what a single-repo session needs to operate (commands, code conventions, its
+  git workflow, verification); **up stays** only what crosses repos and no repo can own (the
+  ledger, the promotion chain, cross-repo resolution rules, the deployment map). What goes
+  down is DELETED from the workspace file and replaced by nothing — the per-repo pointer
+  above is what carries the reader back up. Two copies of one rule with no arbiter is the
+  drift this skill exists to remove; creating it while conforming the pair is a regression.
 - **`## Git Workflow` declarations**: `Base branch:` / `Git mode:` / `PR review:` per
   `git-workflow.md`'s declaration block. Each declared value removes a per-session question.
   `Base branch` is inferable from branch topology; `PR review` from the review apps wired to
