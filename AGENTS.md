@@ -154,28 +154,26 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── typescript-standards.md
 │   │   └── ui-visual-design.md    # Visual craft: type scale, spacing, contrast, action hierarchy
 │   ├── workflow/                  # Git gates, coordination (2 always-on, 6 path-scoped; mechanics+routing+gaps+memory → rules-situational/)
-│   │   ├── agent-routing.md
 │   │   ├── cross-service-workflow.md
-│   │   ├── devops-principles.md  # path-scoped (Dockerfile/tf/workflows)
-│   │   ├── gap-resolution.md
+│   │   ├── devops-principles.md   # path-scoped (Dockerfile/tf/workflows)
 │   │   ├── git-workflow.md
 │   │   ├── infra-naming.md        # Generic infra naming; projects instantiate it in their specs repo
-│   │   ├── memory-routing.md      # Engram vs native file-memory boundary
 │   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
 │   │   ├── session-capture.md     # Session layer + subfolder vocabulary (split out of project-structure)
 │   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
 │   │   └── unattended-autonomy.md # The delegated-run mode
 │   └── tools/                     # External tools & MCP protocols (3 always-on)
+│       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
+│       ├── code-search.md         # search routing + anti-conclusion discipline
+│       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable only via a
 │                                  # router skill. For rules whose trigger is an intent
 │                                  # (delegating, planning), which `paths:` cannot express.
+│   ├── README.md
 │   ├── agent-routing.md
 │   ├── gap-resolution.md
 │   ├── git-mechanics.md
 │   └── memory-routing.md
-│       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
-│       ├── code-search.md         # search routing + anti-conclusion discipline
-│       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon
 │   ├── agents-md-primary/         # /agents-md-primary — convert projects to AGENTS.md-canonical + CLAUDE.md import
@@ -192,6 +190,8 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
+│   ├── monorepo-cutover/          # /monorepo-cutover — cutover playbook (multi-repo → monorepo)
+│   ├── status-fetch/              # Fetches live external state in an isolated subagent
 │   ├── git-mechanics/             # Router (model-invoked): branching, commits, PRs, promotion, close
 │   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis
 │   ├── language-rules/            # Router (model-invoked): language rules for Codex/Grok — references injected by build.py

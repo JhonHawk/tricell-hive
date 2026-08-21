@@ -10,7 +10,10 @@ description: >
   matrix, dedup, stale-fork detection, promotion/injection routing — plus content quality:
   agent-discoverable rules, stale file paths, missing git-workflow declarations and ledger
   pointers, instruction budget, and verification parity between the repo's local hooks and
-  its CI (audit | apply). Idempotent.
+  its CI (audit | apply). Ground-truth checks compare declared state against git and disk:
+  CLAUDE.local.md claims (read, never written), workspace skills that route to dead paths or
+  lack an invocation gate, repos mentioned nowhere, branches and merge strategies that git
+  refutes, retired command names still offered, and ledger staleness. Idempotent.
 ---
 
 # /agents-md-primary — one canonical file, every harness ambient
@@ -41,6 +44,15 @@ and/or CLAUDE.md at its root:
 - `duplicated` — both exist with substantially overlapping content ← the targets
 - `divergent` — both exist with conflicting or deliberately different content
 - `claude-only` / `agents-only` — half the pair missing
+- `blind` — the half that is missing makes the root invisible to a harness in use:
+  `AGENTS.md` with no sibling `CLAUDE.md` (Claude Code does NOT fall back), or `CLAUDE.md`
+  with no `AGENTS.md` (Codex/opencode/Grok). Count only REPO and WORKSPACE roots — a
+  subtree file, `_support/backup/**`, and a deployable source tree (`global/`, `harness/`)
+  are not findings.
+- `unmanaged` — an active root (any child repo with a commit < 90 days) carrying NO
+  instruction file at all. `convert` has nothing to trigger on here, so this is the only
+  subcommand that ever finds it; the conventions usually exist in `docs/CONTRIBUTING.md`
+  or `README.md`, which no harness loads. Propose promoting that file, never a stub.
 
 Report as a table with a suggested action per row. Change nothing.
 
@@ -154,6 +166,35 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   taken over is `delete` — the tool arrived after the rule and the rule never retired. The
   exception that stays: a line telling the agent NOT to duplicate what the hook already does
   (an autocorrecting pre-commit), which changes behaviour instead of restating it.
+**Ground-truth checks — same audit pass. Each compares a CLAIM against the system that
+decides it; all are deterministic.**
+
+- **`CLAUDE.local.md` — READ it, never write it.** Its state claims (git mode, branch model,
+  package manager, stack, ports, deploy target) are verified against disk and git exactly
+  like any other file's, and outrank nothing: it is the highest-precedence local file, so a
+  stale claim there wins over every correct one. Findings are report-only in the manifest;
+  `apply` still never touches it.
+- **Executable instruction layer** (`.claude/skills/**`, `.claude/rules/**`, per-repo and
+  per-workspace): every disk path a skill routes to resolves; the tracker, branch and
+  commands it names match the repo's own declaration. **Invocation gate is judged by
+  CONSEQUENCE, not by name** — a skill whose body deploys, promotes, pushes, merges or
+  deletes carries `disable-model-invocation: true`. A consequential skill without it is P0;
+  so is a skill routing to a path that no longer exists.
+- **Repo inventory**: `find -maxdepth 2 -name .git` against the repo names the instruction
+  files actually mention. An active repo mentioned nowhere is a finding — NO inventory at
+  all is the bigger one, because it makes the check unrunnable; propose the inventory block.
+- **Declared vs git**: base and production branch against `git ls-remote --heads`; merge
+  strategy against parent counts on the production branch (`git log --format=%p` — one
+  parent = squash/rebase, two = merge commit). A declared branch that does not exist is P0.
+- **Retired command names**: `rg` the workspace for `/`-prefixed command names no longer
+  installed under `~/.claude/skills` and `~/.agents/skills`. Retiring a command elsewhere
+  never rewrites the files that offer it.
+- **Ledger ground truth** (`_support/PROJECT.md`): `Last updated` against the newest child
+  HEAD; every pointer in the CURRENT handoff resolves; rows marked `current` still exist on
+  disk; and the file does not contradict itself across sections. A false pending in the
+  active handoff is the most expensive stale record in the workspace — it is the first thing
+  the next session reads.
+
 - **Tracker declaration**: a flow project declares in its LEDGER (the three fields —
   `memory-routing.md` owns the home and the confirm gate); the audit only FLAGS absence
   and proposes the ledger edit — never writes it, and the proposal rides the same
@@ -202,7 +243,9 @@ validation run. Never apply without an audit manifest from this session.
 
 - Nested `CLAUDE.md`/`AGENTS.md` in subdirectories — convert one root per invocation
   (point the skill at the subdirectory if needed).
-- `CLAUDE.local.md` — personal file, never touched.
+- **Writing `CLAUDE.local.md`** — personal file, never written by any subcommand. `audit`
+  READS it (above): excluding it from reading is what let a false git mode, a false merge
+  strategy and a dead stack survive in three separate workspaces.
 - Content quality in `convert`: it relocates, it does not rewrite or prune — pruning and
   dedup are `audit`/`apply`'s job.
 - **Rewriting the user's prose, in any subcommand.** The skill proposes deleting, re-anchoring,
