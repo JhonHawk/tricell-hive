@@ -21,9 +21,7 @@ natively.
 1. Merge `opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`
    (skill gating + Linear MCP). The `permission` keys are NOT part of this step —
    `permission-config.json` is merged by the deploy on every run.
-2. Add to your shell profile: `export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1`
-   (single skill-discovery source — see snippet comments).
-3. Run `/deploy-global` from the hub; start a fresh opencode session.
+2. Run `/deploy-global` from the hub; start a fresh opencode session.
 
 ## What this harness loads
 
@@ -61,9 +59,12 @@ before assuming an upgrade is due.
   reproduced by `permission.skill."flow-*": "ask"` in `opencode.json` plus the command
   wrappers, which are the only way a gated skill is exposed.
 
-opencode also reads `~/.claude/CLAUDE.md` and `~/.claude/skills/` as a fallback; setting
-`OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` keeps skill discovery to a single source so the
-pack is not listed twice.
+opencode also reads `~/.claude/CLAUDE.md` and `~/.claude/skills/` as a fallback, and needs
+no env var to avoid double-listing: measured 2026-08-21 with `opencode debug skill`, the 33
+pack skills all resolve from `~/.agents/skills` with zero duplicate names and
+`~/.claude/skills` absent from every location. **Caveat that surfaced in the same run:** the
+scan is RECURSIVE, so a skill directory that vendors its own `.codex/skills/` or nested
+`.agents/skills/` publishes those too — `herdr` contributed three skills nobody chose.
 
 ## Unverified / undocumented dependencies
 

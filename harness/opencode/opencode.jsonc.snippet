@@ -43,8 +43,7 @@
   // "mcp": { "linear": { "type": "remote", "url": "https://mcp.linear.app/mcp" } }
 }
 
-// Recommended environment (shell profile):
-//   export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1
-// Skills deploy to BOTH ~/.claude/skills (Claude Code) and ~/.agents/skills
-// (universal). opencode discovers both locations; this flag keeps a single
-// discovery source and avoids duplicate skill listings.
+// No shell env is needed for skill discovery. opencode scans both
+// ~/.claude/skills and ~/.agents/skills but does not double-list them
+// (measured 2026-08-21, `opencode debug skill`: 39 skills, 0 duplicate names,
+// ~/.claude/skills absent from every resolved location).

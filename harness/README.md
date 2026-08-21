@@ -80,9 +80,12 @@ unless a snippet itself changes (e.g. `project_doc_max_bytes` gets a new value).
   `disable-model-invocation`, so this gates the flow skills behind your approval.
 - **`instructions`** (commented, optional) — makes the shared rubrics ambient;
   reinforcement, not a requirement.
-- **Shell env** (not a JSON key): `export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` in your
-  shell profile. Skills deploy to both `~/.claude/skills` and `~/.agents/skills`; this
-  keeps a single discovery source so opencode doesn't list them twice.
+- **No shell env is needed for skill discovery.** Skills deploy to both `~/.claude/skills`
+  and `~/.agents/skills`, and opencode scans both — but it does not double-list them:
+  measured 2026-08-21 with `opencode debug skill`, 39 skills, zero duplicate names, and
+  `~/.claude/skills` absent from every resolved location. The former
+  `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` recommendation was removed — it is undocumented
+  upstream and solved a problem that does not occur.
 
 ## Apply / verify
 
@@ -93,7 +96,6 @@ JSON both reject duplicates / silently last-wins). Check current state before ed
 grep -q 'project_doc_max_bytes' ~/.codex/config.toml          && echo "codex: AGENTS airbag ok"
 grep -q '^\[agents\]'           ~/.codex/config.toml          && echo "codex: subagents ok"
 grep -q 'flow-\*'  ~/.config/opencode/opencode.json           && echo "opencode: skill gate ok"
-grep -q 'OPENCODE_DISABLE_CLAUDE_CODE_SKILLS' ~/.zshrc        && echo "shell: discovery flag ok"
 ```
 
 Each line that prints is already applied — skip it. After merging anything new, start a

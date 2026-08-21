@@ -304,7 +304,7 @@ Las rúbricas viven como markdown plano en `references/` de cada skill (no en el
 
 - **`flow-core/references/harness-mechanics.md`** — la clave de traducción: los mismos SKILL.md sirven a los 3 harnesses; los no-Claude traducen mecánica (Agent tool → spawn/task tool, AskUserQuestion → preguntar inline, ToolSearch → MCP directo, $ARGUMENTS → texto libre en Codex) y respetan las diferencias de enforcement (read-only vía sandbox/permission).
 - **Gating de auto-invocación por harness:** Claude `disable-model-invocation` · Codex `agents/openai.yaml` → `policy.allow_implicit_invocation: false` (viaja con la skill) · opencode `permission.skill` `"flow-*": "ask"` (snippet).
-- **opencode:** entrada user-facing vía commands (no hay slash de skills); `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` recomendado (una sola fuente de descubrimiento). Campo `tools` de agentes deprecado → el convertidor emite `permission`.
+- **opencode:** entrada user-facing vía commands (no hay slash de skills); sin variable de entorno para descubrimiento — opencode no duplica el listado (medido 2026-08-21). Campo `tools` de agentes deprecado → el convertidor emite `permission`.
 - **Codex:** `$skill-name` nativo, sin envolturas; **tiene subagentes** (TOML, `developer_instructions`, spawn explícito-only — las instrucciones "dispatch X" de las skills cuentan como petición explícita; `max_depth=1` suficiente); revisores read-only vía `sandbox_mode = "read-only"`; sin sustitución de argumentos en skills (texto libre).
 
 ### Gaps aceptados

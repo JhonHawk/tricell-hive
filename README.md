@@ -24,7 +24,6 @@ The config assumes these are installed; nothing here installs them for you.
 | Codex | Engram Codex plugin (`engram@engram`, bundled hooks) | Plugin cache under `~/.codex/plugins/`. **Never run `engram setup` for Codex** — it sets `model_instructions_file`, which replaces Codex's base system prompt (`harness/codex/README.md`) |
 | Codex | Config additions (`project_doc_max_bytes = 65536`, `commit_attribution = ""`, subagent limits) | Merge `harness/codex/config.toml.snippet` into `~/.codex/config.toml`, once |
 | opencode | `opencode-rules@0.6.4` plugin (glob-conditional language rules; pinned, audited) + flow-skill gating | Merge `harness/opencode/opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`, once |
-| opencode | Single skill-discovery source | `export OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` in the shell profile |
 
 Merge/verify commands and the reasoning live in `harness/README.md` (snippets are the one
 layer `/deploy-global` cannot automate). After any merge, start a fresh session.
