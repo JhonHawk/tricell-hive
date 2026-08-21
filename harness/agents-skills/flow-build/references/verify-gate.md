@@ -31,9 +31,14 @@ after Execute. Run, for the tasks not yet gated:
    reviewer walking that wreckage reports defects that do not exist.
 3. **Design gate — REQUIRED for any task with a user-facing surface**, not opt-in: a screen a
    human will look at is not verified by system-green. The plan sets the flag; a UI task without
-   it is a planning defect, not a licence to skip. Dispatch **ui-reviewer** against the running app on the
-   **Visual craft** rubric axis (`flow-core/references/ux-rubric.md` #11–18; criteria
-   `languages/ui-visual-design.md`) — type scale, spacing system, color & WCAG-AA contrast, action
+   it is a planning defect, not a licence to skip. Dispatch **ui-reviewer** against the running app.
+   **The axis scope is DERIVED from what a mock review actually covered for THIS feature — never
+   from whether the project owns a mocks repo.** A mock review ran → the gate takes **Visual
+   craft** (`flow-core/references/ux-rubric.md` #11–18) plus the five Flow dimensions a prototype
+   cannot produce (#3 feedback, #4 error recovery, #5 empty states, #9 role coherence, #10
+   responsive & a11y — each needs a real backend, real zero-result queries, real authz). **No mock
+   review for this feature → the gate takes all 18**: half the portfolio has no mocks repo at all,
+   and there the Flow axis is judged by nobody otherwise. Criteria `languages/ui-visual-design.md` — type scale, spacing system, color & WCAG-AA contrast, action
    hierarchy, elevation, borders restraint, component simplicity, net improvement — **plus
    BREAKAGE, which this gate owns**: layout overflow, clipped or capped text, overlapping
    elements, content not filling its container. Breakage is never `polish` — it fixes in-cycle
