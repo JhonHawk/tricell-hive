@@ -2,7 +2,7 @@
 
 Source of truth for global agent configuration. Claude Code config lives under `global/` and deploys to `~/.claude/` via `/deploy-global`.
 
-Generic AGENTS-compatible harness config lives under `harness/`. Root `AGENTS.md` is only the local guide for working on this repo from harnesses that do not read `CLAUDE.md`.
+Generic AGENTS-compatible harness config lives under `harness/`. **What each harness actually loads — and the official doc backing every loading mechanism, with a verified date — has one README per harness:** `global/README.md` (Claude Code), `harness/codex/README.md`, `harness/opencode/README.md`, `harness/grok/README.md`. Root `AGENTS.md` is only the local guide for working on this repo from harnesses that do not read `CLAUDE.md`.
 
 ## Quick Start
 
@@ -90,20 +90,23 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── starlight-docs-site/         # Astro Starlight docs: scaffold | page | audit
 │   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (Codex/opencode)
 │   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
-└── agents/                          # Optimized agents by role
-    ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer, visual-designer
-    ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
-    ├── review/                      # cyan    — code-reviewer, code-scout, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ui-reviewer
-    ├── quality/                     # yellow  — performance, prompt, secrets, state-fetcher, test, workspace-custodian
-    ├── ops/                         # red     — devops-engineer
-    └── docs/                        # magenta — technical-writer
+├── agents/                          # Optimized agents by role
+│   ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer, visual-designer
+│   ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
+│   ├── review/                      # cyan    — code-reviewer, code-scout, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ui-reviewer
+│   ├── quality/                     # yellow  — performance, prompt, secrets, state-fetcher, test, workspace-custodian
+│   ├── ops/                         # red     — devops-engineer
+│   └── docs/                        # magenta — technical-writer
+└── README.md                        # What Claude Code loads + the official doc backing each mechanism
 
-harness/                      # Multi-harness layer (Codex + opencode), deployed by /deploy-global step 13b
-├── AGENTS.md                        # Always-on cross-harness core (~18 KiB; depth behind router skills)
+harness/                      # Multi-harness layer (Codex + opencode + Grok), deployed by /deploy-global step 13b
+├── README.md                        # The layer as a whole + the manual-merge snippets
+├── AGENTS.md                        # Always-on cross-harness core (depth behind router skills)
 ├── build.py                         # Regenerates generated trees + injects router-skill references
 ├── agents-skills/                   # GENERATED — universal skills → ~/.agents/skills
-├── codex/                           # config.toml.snippet + GENERATED TOML agents
-└── opencode/                        # opencode.jsonc.snippet + commands/ + GENERATED agents & rules
+├── codex/                           # README + config.toml.snippet + GENERATED TOML agents
+├── opencode/                        # README + opencode.jsonc.snippet + commands/ + GENERATED agents & rules
+└── grok/                            # README + GENERATED agents (rules reach Grok as flat symlinks)
 
 .claude/skills/
 ├── manage-agents/                   # /manage-agents — validate, optimize, report

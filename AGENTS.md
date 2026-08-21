@@ -113,7 +113,8 @@ description: >
 ## Routing Maintenance
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
 - `global/rules-situational/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
-- `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
+- `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk.
+- **Per-harness loading READMEs** (`global/README.md`, `harness/{codex,opencode,grok}/README.md`) — each carries a *What this harness loads* table whose rows cite an official doc URL with a verification date. A change to what a harness receives (a rule gaining `paths:`, a new generated tree, a hook target) updates the affected table; a claim about upstream behavior carries a URL that was fetched, or is marked **undocumented** rather than given a plausible-looking link. Prompt-convention. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
 - Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
 - **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
 - **Placement in `harness/AGENTS.md`: gate and pointer here, mechanics in the router — never both.** The core is paid in full at the start of every session in every project, so it holds only **safety gates** and **policy whose trigger is an action rather than a file**, plus the one-line pointer to the router that carries the rest. When the same content lives in the core AND in a router reference, the core is paying twice for what the router already delivers — that duplication — not prose length — is what makes the core expensive. **There is no size threshold on the file and none is wanted:** no harness caps it (verified 2026-08-18; bibliography), so `build.py` reports its size and per-session token cost and enforces nothing. Adding to the core: decide the layer first. A rising number is a cue to audit placement, never a reason to reword paragraphs that earned their place.
@@ -126,6 +127,7 @@ When creating, editing, or deleting agents or rules, review and adjust impacted 
 AGENTS.md                          # Canonical guide for all harnesses
 CLAUDE.md                          # Imports AGENTS.md via @AGENTS.md; adds Claude Code-specific content
 global/                            # Mirrors ~/.claude/ — deployable source of truth
+├── README.md                      # What Claude Code loads + the official doc backing each mechanism (verified URLs)
 ├── CLAUDE.md                      # Core config (always loaded)
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
@@ -208,14 +210,18 @@ global/                            # Mirrors ~/.claude/ — deployable source of
     ├── ops/                       # red
     └── docs/                      # magenta
 harness/                           # Per-CLI layer — sources + VERSIONED generated trees (deployed by /deploy-global 13b)
+├── README.md                      # The layer as a whole + the two manual-merge snippets
 ├── AGENTS.md                      # Condensed cross-harness guidance (deployed by /deploy-global 13b to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md)
 ├── build.py                       # Regenerates every generated tree below from global/ — run after agent/skill edits
-├── build/                         # convert-agents.py + convert-skills.py (build tooling)
+├── build/                         # convert-agents.py + convert-rules.py + convert-skills.py (build tooling)
 ├── agents-skills/                 # GENERATED — cleaned universal skills → ~/.agents/skills (Codex + opencode)
 ├── codex/                         # README + config.toml.snippet (sources)
 │   └── agents/                    # GENERATED — TOML subagents → ~/.codex/agents
-└── opencode/                      # README + opencode.jsonc.snippet + commands/ (sources)
-    └── agents/                    # GENERATED — markdown subagents → ~/.config/opencode/agents
+├── opencode/                      # README + opencode.jsonc.snippet + commands/ + permission-config.json (sources)
+│   ├── agents/                    # GENERATED — markdown subagents → ~/.config/opencode/agents
+│   └── rules/                     # GENERATED — path-scoped rules, paths:→globs: → ~/.config/opencode/rules
+└── grok/                          # README (rules reach Grok as flat symlinks; no skills tree by design)
+    └── agents/                    # GENERATED — Grok-shaped markdown subagents → ~/.grok/agents
 _support/                          # Workspace material (see global/rules/workflow/project-structure.md)
 ├── archive/                       # Dated historical snapshots (audits/, docs/) — superseded reports kept for reference
 ├── archived-agents/               # Retired agents kept for reference

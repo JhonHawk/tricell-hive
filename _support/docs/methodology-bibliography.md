@@ -893,7 +893,7 @@ Backs `languages/typescript-standards.md > Type Safety` (type-system-as-source-o
 ## Hook registration per harness (deploy-global hooks category, 2026-08-13)
 
 - `[Authoritative]` **Claude Code hooks docs** (code.claude.com/docs/en/hooks, verified 2026-08-13) — hooks are registered EXCLUSIVELY through the `hooks` configuration in settings files; there is no auto-scanning of `~/.claude/hooks/`. A JSON file in that directory with no settings entry is inert. Grounds: the flat hooks copy in `deploy-global.sh` exists only for runtime config a registered script READS from there (`bash-policy.json`), never as a registration mechanism.
-- `[Authoritative]` **Codex CLI hooks docs** (learn.chatgpt.com/docs/hooks, via developers.openai.com/codex/config-reference, verified 2026-08-13) — hook support is NATIVE: Codex discovers `hooks.json` next to its active config layers (`~/.codex/hooks.json`, `<repo>/.codex/hooks.json`) or inline `[hooks]` tables in `config.toml`; it never reads `~/.claude/`. Grounds: the per-hook `codex-hooks.json` sources are merge INPUT for `~/.codex/hooks.json` (same class as `settings-config.json`) and are excluded from the flat copy — a flattened copy is inert to every harness, and two hooks' files collide on the basename (fix `07992ac`; live corroboration: `codex --strict-config doctor: OK`).
+- `[Authoritative]` **Codex CLI hooks docs** (learn.chatgpt.com/docs/hooks, verified 2026-08-13; re-verified 2026-08-20 — every `developers.openai.com/codex/*` URL now redirects here, cite the destination host) — hook support is NATIVE: Codex discovers `hooks.json` next to its active config layers (`~/.codex/hooks.json`, `<repo>/.codex/hooks.json`) or inline `[hooks]` tables in `config.toml`; it never reads `~/.claude/`. Grounds: the per-hook `codex-hooks.json` sources are merge INPUT for `~/.codex/hooks.json` (same class as `settings-config.json`) and are excluded from the flat copy — a flattened copy is inert to every harness, and two hooks' files collide on the basename (fix `07992ac`; live corroboration: `codex --strict-config doctor: OK`).
 - **Verdict: supported.** No prompt rule derived — the behavioral lesson (validate an assumed mechanism against official docs before building on it) is already owned by `tools/context7.md` and `quality/critical-thinking.md > Research-driven decisions`; per the no-rules-from-single-incidents policy, this entry records the sources, not a new directive.
 
 ## Diagram grammar inside flow-report (references/diagram-grammar.md, 2026-08-13)
@@ -911,7 +911,7 @@ Backs `languages/typescript-standards.md > Type Safety` (type-system-as-source-o
 
 - `[Authoritative]` **Codex CLI measured behavior** (codex 0.147.0, `codex debug prompt-input` sandboxes, reproduced 3× independently — Gen B, Codex refuter, main thread, 2026-08-13 adversarial-research run) — `project_doc_max_bytes` budgets ONLY the project chain (git root → cwd); the global `~/.codex/AGENTS.md` is exempt. On overflow the crossing file is truncated mid-content and deeper files are dropped entirely, with no warning. Codex discovery never crosses upward past the git root (a non-git workspace-root `AGENTS.md` is invisible from inside a child repo); its default sandbox permits sibling-directory READS. Grounds: the corrected `wc -c` comment in root `AGENTS.md` > Replicating Global Harness Config.
 - `[Authoritative]` **Claude Code memory docs + empirical check** (code.claude.com/docs/en/memory, verified 2026-08-13; sandbox `claude -p` marker test, negative result) — Claude Code does NOT load a repo's `AGENTS.md` when `CLAUDE.md` is absent (the docs offer only the import route: "create a CLAUDE.md that imports it"); import parsing skips Markdown code spans and fenced code blocks, so a backtick-wrapped `` `@path` `` is inert (root cause of sample-project-backoffice's never-loaded 1540-line guideline). Grounds: the "No AGENTS.md fallback" note in root `CLAUDE.md` > Notes.
-- `[Authoritative]` **Grok CLI shipped docs + `grok inspect`** (`~/.grok/docs/user-guide/12-project-rules.md`, measured 2026-08-13) — README.md and arbitrary paths (`_support/conventions/*.md`) are auto-loaded by zero of the four harnesses; Grok's roaming discovery detects only its six recognized instruction filenames. Corroborates the existing flat-symlink Grok deploy design (non-recursive scan, `paths:` ignored).
+- `[Authoritative]` **Grok CLI shipped docs + `grok inspect`** (`~/.grok/docs/user-guide/12-project-rules.md`, measured 2026-08-13) — README.md and arbitrary paths (`_support/conventions/*.md`) are auto-loaded by zero of the four harnesses; Grok's roaming discovery detects only its six recognized instruction filenames. Corroborates the existing flat-symlink Grok deploy design. **Qualified 2026-08-20:** `paths:` ignored holds as *documentary absence* (no source mentions any file-pattern scoping key); **non-recursive scan is assumed, never confirmed** — neither the public docs nor the bundled guide state whether the scan descends into subdirectories. Settle it with a `grok inspect` on a nested rules file before citing it as fact.
 - **Verdict: supported.** Grounds the 2026-08-13 corrections (root `AGENTS.md`, root `CLAUDE.md`, `project-structure.md` scope-vs-versioning routing) and the convention-placement decision: repo-scoped conventions versioned in `<repo>/_support/docs/`, multi-repo in `<project>-specs/conventions/`, declared via a pointer block in each repo's `AGENTS.md`. Full canon: `_support/workspace/2026-08-13-conventions-adversarial-research.html`.
 
 ## CI stage placement — quick gate / full suite / release gate
@@ -952,11 +952,83 @@ Backs `workflow/cross-service-workflow.md > Contract distribution`, the distribu
 
 **Verdict: pending.** Sources unread this session; the rules stand on the observed failure pattern until a research pass confirms or adjusts them.
 
+## Per-harness loading mechanics — official sources (2026-08-20)
+
+Backs the *What this harness loads* tables in `global/README.md` and
+`harness/{codex,opencode,grok}/README.md`. Every URL below was fetched and its quote taken
+from the page body, not from a search summary. The READMEs carry the same URLs inline so a
+reader checking for upstream drift never has to leave the harness's own folder; this
+section records the authority tags and the findings that the tables only flag.
+
+### Claude Code
+- `[Authoritative]` **code.claude.com/docs/en/memory** — `#how-claude-md-files-load`,
+  `#import-additional-files`, `#user-level-rules`, `#path-specific-rules`. The last one is
+  the locus for conditional loading: *"Rules without a `paths` field are loaded
+  unconditionally and apply to all files."* **There is no `/docs/en/rules` page** — the
+  entire `.claude/rules/` mechanism lives inside `memory`; a link to `/docs/en/rules` is a
+  404.
+- `[Authoritative]` **code.claude.com/docs/en/sub-agents#supported-frontmatter-fields**,
+  **/skills#frontmatter-reference**, **/hooks#hook-locations**,
+  **/settings#settings-precedence**.
+
+### Codex CLI
+- `[Authoritative]` **learn.chatgpt.com/docs/agent-configuration/agents-md** — *"stops
+  adding files once the combined size reaches the limit defined by project_doc_max_bytes
+  (32 KiB by default)"*. Also **/config-file/config-reference**,
+  **/agent-configuration/subagents**, **/build-skills** (`$HOME/.agents/skills` +
+  `allow_implicit_invocation`), **/hooks**, **/developer-commands?surface=cli**
+  (`codex debug prompt-input`).
+- **Host move, 2026-08-20:** every `developers.openai.com/codex/*` URL redirects to
+  `learn.chatgpt.com/docs/*`. Cite the destination.
+- **Two surfaces this repo depends on are undocumented:** `[hooks.state]` enable slots (the
+  documented switch is `[features] hooks = false`, with `codex_hooks` a deprecated alias)
+  and `multi_agent = true` (the documented subagent surface is the `[agents]` table). Both
+  were established empirically; they are flagged as undocumented in
+  `harness/codex/README.md` rather than given a citation.
+- The `65536` seen in the official page is an example of *raising* the cap, not the default
+  — consistent with the 2026-08-18 section below.
+
+### opencode
+- `[Authoritative]` **opencode.ai/docs/rules**, **/agents**, **/commands**, **/plugins**,
+  **/permissions**, **/skills** (*"Global agent-compatible:
+  `~/.agents/skills/<name>/SKILL.md`"* — opencode reads both `~/.agents/skills` and
+  `~/.claude/skills/`).
+- `[Semi-authoritative]` **github.com/frap129/opencode-rules** — *"`globs` (optional):
+  Array of glob patterns for file-based matching"*; `match` selects the combination mode.
+  Latest release **v0.6.4 (2026-04-25)**: the pin in this repo is current, not stale.
+- **Org move, 2026-08-20:** `github.com/sst/opencode` redirects to
+  `github.com/anomalyco/opencode`. Write `anomalyco`.
+- **Undocumented surface:** `experimental.chat.system.transform`, which
+  `flow-session-context.ts` uses to inject SessionStart context, does not appear in the
+  plugins docs; the only documented `experimental.*` hook there is
+  `experimental.session.compacting`. Read from source, flagged as such in
+  `harness/opencode/README.md`.
+
+### Grok CLI
+- `[Authoritative]` **docs.x.ai/build/overview** (`grok inspect`),
+  **/build/features/project-rules**, **/build/features/subagents**, **/build/features/hooks**,
+  **/build/features/skills-plugins-marketplaces** — the last one carries both *"Grok
+  automatically reads Claude Code marketplaces, plugins, skills, MCPs, agents, hooks, and
+  instruction files"* and *"`disable-model-invocation`: Slash command only; no automatic
+  invoke. Default `false`."* — i.e. the `flow-*` gate holds in Grok with no translation.
+- **Finding: Grok has public web documentation.** This repo previously treated its docs as
+  bundled-only (`~/.grok/docs/user-guide/*`). The bundled guide remains authoritative for
+  the scope/precedence tables and is version-stamped with the CLI, but it is a local file,
+  never a citable URL.
+- **Dead URLs, verified 404 on 2026-08-20:** `github.com/xai-org/grok-cli`,
+  `docs.x.ai/docs/grok-cli`, `docs.x.ai/build/project-rules` (the real path carries
+  `/features/`), and any `xai-org/grok-build/blob/main/docs/...` path.
+
+**Verdict: supported, with three corrections and three undocumented surfaces recorded.**
+The corrections (Codex host, opencode org, Grok docs exist) were applied to this file and
+to the per-harness READMEs in the same change. The undocumented surfaces are the standing
+risk: each is a mechanism the pack depends on that can change without a release note.
+
 ## Límite de tamaño del archivo de instrucciones GLOBAL por harness (2026-08-18)
 
 - `[External — source code]` **Codex** (`openai/codex`): el archivo global se lee entero en `codex-rs/codex-home/src/instructions/mod.rs` (sin ningún `max_bytes`) hacia un campo `UserInstructions` distinto del contador de `project_doc_max_bytes`; en `codex-rs/core/src/agents_md.rs` ese contador se inicializa DESPUÉS de anexar las instrucciones de usuario y solo lo consume la cadena de AGENTS.md de PROYECTO (git-root → cwd). Default `DEFAULT_PROJECT_DOC_MAX_BYTES = 32*1024` en `codex-rs/config/src/config_toml.rs`.
 - `[Internal — measured]` **Reproducción empírica** (2026-08-18): un `AGENTS.md` de proyecto de 80,824 B se truncó en el cap de 65,536 B mientras el global de 30,322 B quedó íntegro — 96,087 B totales, por encima del cap, lo que prueba que no comparten presupuesto.
 - `[External — source code]` **opencode** (`anomalyco/opencode`): `packages/opencode/src/session/instruction.ts` y `packages/core/src/instruction-context.ts` leen global y proyecto por el mismo camino con `fs.readFileString()` y concatenan verbatim — sin `slice` ni `max_bytes` en el pipeline. La doc (`opencode.ai/docs/rules/`) no menciona límites; la petición de un cap configurable se cerró "not planned" (issue #18037). Evidencia POSITIVA de ausencia, no silencio documental.
-- `[External — official docs + source test]` **Grok** (`xai-org/grok-build`): `docs/user-guide/12-project-rules.md` — *"Grok loads each project instruction file in full; there is no character cap and no truncation."* Test `format_agents_md_section_delivers_full_content` en `crates/codegen/xai-grok-agent/src/prompt/agents_md.rs` lo afirma sobre contenido de 5000 B; la misma función procesa scope user-level y repo-level indistintamente.
+- `[External — official docs + source test]` **Grok** (`xai-org/grok-build`): the bundled user guide `~/.grok/docs/user-guide/12-project-rules.md` — *"Grok loads each project instruction file in full; there is no character cap and no truncation."* **Locus corrected 2026-08-20:** that repo is public but has **no `docs/` directory — the guide ships with the CLI on disk and is not reachable as a GitHub URL. The public web equivalent is `docs.x.ai/build/features/project-rules`. Test `format_agents_md_section_delivers_full_content` en `crates/codegen/xai-grok-agent/src/prompt/agents_md.rs` lo afirma sobre contenido de 5000 B; la misma función procesa scope user-level y repo-level indistintamente.
 - `[Contradiction — logged]` Un fetch de la doc de Codex (`learn.chatgpt.com/docs/agent-configuration/agents-md`) sugería un presupuesto "combinado" global+proyecto, pero su frase coincide literalmente con el comentario de módulo de `agents_md.rs` que describe SOLO la cadena de proyecto; el resumen pasa por un modelo intermedio. Prioridad a código + reproducción empírica, ambos consistentes.
 - **Consecuencia para este repo (aplicada 2026-08-18):** se ELIMINARON los dos umbrales de tamaño de `harness/build.py` (`AGENTS_BUDGET_BYTES` y el `AGENTS_HARD_LIMIT_BYTES` que hacía fallar el build). Ambos se justificaban por un riesgo de truncamiento inexistente, y en la práctica convertían cada edición del core en conteo de bytes — recortando prosa que sí valía para caber en un número que nadie aplica. El build ahora reporta tamaño y costo estimado en tokens sin bloquear nada; el crecimiento lo gobierna la regla de ubicación (gate y puntero en el core, mecánica en el router), que es criterio de calidad y no de tamaño. El único cap real que se sigue vigilando es `project_doc_max_bytes` sobre la cadena de PROYECTO, que este repo toca solo al abrir una sesión bajo `harness/`.

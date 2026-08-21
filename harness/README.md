@@ -1,25 +1,37 @@
 # Multi-harness layer
 
-Generic AGENTS-compatible configuration derived from `global/`, so Codex and opencode
-run the same agents, skills, and rules as Claude Code. Claude Code reads `global/`
+Generic AGENTS-compatible configuration derived from `global/`, so Codex, opencode, and
+Grok run the same agents, skills, and rules as Claude Code. Claude Code reads `global/`
 directly (deployed to `~/.claude/` by `/deploy-global`); this layer adapts the same
-canonical sources for the other two CLIs.
+canonical sources for the other three CLIs.
+
+**Which rules actually reach which harness, and the official doc backing each loading
+mechanism, live in one README per harness:** `global/README.md` (Claude Code),
+`codex/README.md`, `opencode/README.md`, `grok/README.md`. Each carries a
+*What this harness loads* table with a verified upstream URL per row — go there when a
+harness changes how it loads rules.
 
 ## Layout
 
 | Path | What | Maintained how |
 |---|---|---|
-| `AGENTS.md` | Always-on cross-harness core → `~/.codex/AGENTS.md` + `~/.config/opencode/AGENTS.md`; situational depth lives behind router skills | Hand-edited; budget ~19 KiB (`build.py` warns), hard limit 24 KiB (build fails) |
+| `AGENTS.md` | Always-on cross-harness core → `~/.codex/AGENTS.md` + `~/.config/opencode/AGENTS.md`; situational depth lives behind router skills | Hand-edited. **No harness caps the global instructions file** (verified 2026-08-18, bibliography), so `build.py` reports its size and per-session token cost and enforces nothing — growth is governed by placement, not a byte budget |
 | `build.py` | Regenerates every generated tree below from `global/` | Run after any agent/skill edit |
 | `agents-skills/` | Cleaned universal skills → `~/.agents/skills/` | **Generated** |
 | `codex/agents/` | TOML subagents → `~/.codex/agents/` | **Generated** |
 | `opencode/agents/` | Markdown subagents → `~/.config/opencode/agents/` | **Generated** |
+| `opencode/rules/` | Path-scoped rules with `paths:` → `globs:` → `~/.config/opencode/rules/` (loaded by glob via the `opencode-rules` plugin) | **Generated** |
+| `grok/agents/` | Grok-shaped markdown subagents → `~/.grok/agents/` | **Generated** |
 | `opencode/commands/` | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) → `~/.config/opencode/commands/` | Hand-edited (one per user-invoked skill) |
 | `(global/hooks/flow-session-context/)` | Cross-harness SessionStart context → Claude `settings.json` + `~/.claude/hooks/`, `~/.codex/hooks.json` + `~/.codex/hooks/`, `~/.config/opencode/plugins/` | Copied by `/deploy-global` (source under `global/`, not `harness/`) |
 | `codex/config.toml.snippet` | Codex config additions | **Manual merge, once** |
 | `opencode/opencode.jsonc.snippet` | opencode config additions | **Manual merge, once** |
 
-Per-harness detail lives in `codex/README.md`, `opencode/README.md`, and
+Grok needs no generated rules or skills tree: its Claude-compat layer reads
+`~/.claude/CLAUDE.md` and `~/.claude/skills/` in place, and its always-on rules are flat
+**symlinks** written by `/deploy-global`, not files built here.
+
+Per-harness detail lives in `codex/README.md`, `opencode/README.md`, `grok/README.md`, and
 `agents-skills/README.md`. This file covers the layer as a whole and the snippets in
 depth.
 
@@ -104,7 +116,8 @@ A new **user-invoked** skill needs an opencode command wrapper in `opencode/comm
 model-invoked reference/router skills (language-rules, workspace-conventions,
 memory-policy, unattended-delegation, flow-core, flow-report) need none — they are read
 by path or invoked by the model. A **renamed** agent or skill needs a grep through
-`harness/`. Rules and `global/CLAUDE.md` do **not** pass through `build.py` — a
-cross-harness rule change must be mirrored manually into `AGENTS.md` (always-on core) or
-covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in
-`build.py`).
+`harness/`. `global/CLAUDE.md` and the **always-on** rules do not pass through `build.py`
+— a cross-harness change to them must be mirrored manually into `AGENTS.md` (always-on
+core) or covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in
+`build.py`). Path-scoped rules under `global/rules/{languages,workflow}/` **do** pass
+through: they are rebuilt into `opencode/rules/` on every run.

@@ -20,6 +20,70 @@ semantics travel with the skill.
    limits).
 2. Run `/deploy-global` from the hub; start a fresh Codex session.
 
+## What this harness loads
+
+Every URL below was fetched and its quote extracted from the page body on the date in the
+last column. Companion files: `global/README.md` (Claude Code),
+`harness/opencode/README.md`, `harness/grok/README.md` — all four share this layout.
+
+> **The documentation host moved.** Every `developers.openai.com/codex/*` URL now redirects
+> to `learn.chatgpt.com/docs/*`. Write the destination host; the old one only resolves by
+> redirect.
+
+| Layer | What | Where it lands | Mechanism | Official doc | Verified |
+|---|---|---|---|---|---|
+| Always-on core | `harness/AGENTS.md` (condensed cross-harness core) | `~/.codex/AGENTS.md` | Global scope, read every session; separate from the project chain | [agent-configuration/agents-md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) | 2026-08-20 |
+| Project chain | every `AGENTS.md` from git root down to cwd | *(read in place)* | Concatenated until `project_doc_max_bytes` (**32 KiB default**) is reached, then **silently truncated** | [agents-md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) — *"stops adding files once the combined size reaches the limit defined by project_doc_max_bytes (32 KiB by default)"* · [config-reference](https://learn.chatgpt.com/docs/config-file/config-reference) | 2026-08-20 |
+| Path-scoped rules | **none** | — | Codex has no conditional-rule channel — see *What does NOT reach it* | (absence) | 2026-08-20 |
+| Skills | 16 skills with injected `references/` | `~/.agents/skills/` | User-scope skill folder, read natively | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"USER $HOME/.agents/skills — Any skills checked into the user's personal folder."* | 2026-08-20 |
+| Skill gating | `agents/openai.yaml` per gated skill | inside each skill dir | Codex ignores Claude's `disable-model-invocation`; the YAML policy carries the gate | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"allow_implicit_invocation (default: true): When false, Codex won't implicitly invoke the skill based on user prompt"* | 2026-08-20 |
+| Agents | 25 generated `.toml` | `~/.codex/agents/` | Standalone TOML files per agent | [agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) — *"add standalone TOML files under ~/.codex/agents/ for personal agents"* | 2026-08-20 |
+| Hooks | 4 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
+| Prompt auditor | — | — | `codex debug prompt-input` renders the model-visible prompt as JSON | [developer-commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli) — *"Render the model-visible prompt input list as JSON"* | 2026-08-20 |
+
+**`project_doc_max_bytes` default is 32 KiB, not 65536.** The `65536` in
+`config.toml.snippet` is a value we *raise it to*; the `65536` seen in the official page is
+likewise an example of raising it, never the default. The cap covers the **project chain
+only** — the global `~/.codex/AGENTS.md` is not charged against it.
+
+## What does NOT reach it
+
+- **The 19 path-scoped rules.** Codex has no `paths:`-equivalent and no conditional-rule
+  channel of any kind. They reach it two ways instead: injected into router-skill
+  `references/` by `harness/build.py` (`SKILL_REFERENCE_INJECTIONS`), and named
+  just-in-time by the advisory `rule-context` hook. A cross-harness rule that lands only in
+  `global/rules/` with a `paths:` key is invisible here.
+- **Claude Code's per-agent tool allowlist.** Read-only reviewers are enforced by
+  `sandbox_mode = "read-only"` instead; there is no per-tool deny.
+- **`$ARGUMENTS` substitution in skills.** Arguments arrive as free text.
+
+## Unverified / undocumented dependencies
+
+Two config surfaces this adapter relies on that the official docs do **not** mention. Both
+were established empirically; neither is citable:
+
+- **`[hooks.state]` enable slots.** A merged hook stays inert until its slot exists with
+  `enabled = true`. The documented switch is `[features] hooks = false` (with `codex_hooks`
+  as a deprecated alias); `[hooks.state]` appears nowhere in the docs.
+  **Status: observed locally, undocumented.**
+- **`multi_agent = true`.** Cited by the agent-resolution note below (verified 2026-08-15,
+  codex 0.147.0). The documented subagent surface is the `[agents]` table
+  (`max_concurrent_threads_per_session` et al.). **Status: observed locally, undocumented
+  — may be an internal key or renamed since.**
+
+## How to re-verify
+
+```bash
+codex debug prompt-input        # exact model-visible prompt: global AGENTS.md first, then
+                                # `--- project-doc ---` with per-file headers
+codex debug --help              # confirms the subcommand still exists in your build
+grep -n project_doc_max_bytes ~/.codex/config.toml
+ls ~/.codex/agents/ | wc -l     # expect 25
+```
+
+`python3 harness/build.py` reports **two** chain sizes on every run — at the repo root and
+under `harness/` — because a session opened under `harness/` loads the shared core twice.
+
 ## Engram memory — plugin-injected; DO NOT run `engram setup` for Codex
 
 The Engram protocol reaches Codex through the **Engram Codex plugin** (bundled hooks:
@@ -46,7 +110,7 @@ Check with: `grep -n model_instructions_file ~/.codex/config.toml` (should retur
   first, then `--- project-doc ---` with per-file headers) without burning a model turn —
   the deterministic auditor for what Codex actually loads. Grok's analog is `grok inspect`.
 - **Custom-agent name resolution verified working** (2026-08-15, codex 0.147.0,
-  `multi_agent = true`): `spawn_agent(agent_type="finding-refuter")` resolves and spawns —
+  `multi_agent = true` — undocumented, see above): `spawn_agent(agent_type="finding-refuter")` resolves and spawns —
   upstream issues #15250/#14579 report it broken in some tool-backed contexts; if it
   regresses, the fallback is reading the target `~/.codex/agents/<name>.toml` and inlining
   its `developer_instructions` into `spawn_agent(agent_type="worker")`.
