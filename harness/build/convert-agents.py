@@ -131,6 +131,18 @@ def can_write(agent):
     return bool({"Write", "Edit"} & set(agent["tools"]))
 
 
+def denies_agent(agent):
+    # Claude Code treats both forms as the same denial: "omit `Agent` from its
+    # `tools` list or add it to `disallowedTools`" (sub-agents docs). opencode
+    # defaults `task` to allow and Codex has no per-tool control, so the
+    # allowlist form has to be translated explicitly for them. Grok needs no
+    # case here — grok_tools maps the allowlist directly, so `spawn_subagent`
+    # is already absent whenever `Agent` is.
+    if "Agent" in agent["disallowed"]:
+        return True
+    return agent["tools"] is not None and "Agent" not in agent["tools"]
+
+
 def has_bash(agent):
     if agent["tools"] is None:
         return "Bash" not in agent["disallowed"]
@@ -232,7 +244,7 @@ def codex_compatibility_comments(agent):
 
 def codex_extra_instructions(agent):
     instructions = []
-    if "Agent" in agent["disallowed"]:
+    if denies_agent(agent):
         instructions.append(
             "Do not spawn, delegate to, or coordinate other agents from this agent. "
             "Return findings or changes directly to the parent session."
@@ -359,7 +371,7 @@ def to_opencode(agent) -> str:
         perms.append('  edit: "deny"')
         if not has_bash(agent):
             perms.append('  bash: "deny"')
-    if "Agent" in agent["disallowed"]:
+    if denies_agent(agent):
         perms.append('  task: "deny"')
     fm = [
         "---",

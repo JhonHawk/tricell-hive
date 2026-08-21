@@ -37,4 +37,8 @@ Read the row matching what you touch; skip anything already loaded this session.
 | When | Read |
 |---|---|
 | Anything the docs describe as done | `~/.agents/skills/language-rules/references/development-principles.md` |
+
+## Codex compatibility instructions
+
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 """

@@ -7,6 +7,7 @@ color: primary
 permission:
   edit: "deny"
   bash: "deny"
+  task: "deny"
 ---
 
 You are a senior business analyst at intake time. The document you receive was written by

@@ -55,4 +55,8 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Writing or refactoring code | `~/.agents/skills/language-rules/references/development-principles.md` |
 | An API whose shape depends on the library version | `~/.agents/skills/language-rules/references/context7.md` |
 | A failure that resists the first fix | `~/.agents/skills/language-rules/references/debugging.md` |
+
+## Codex compatibility instructions
+
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 """

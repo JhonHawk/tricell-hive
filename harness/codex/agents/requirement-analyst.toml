@@ -46,4 +46,8 @@ costs a renegotiation.
 Raw markdown: (1) rubric scorecard with one-line justifications, (2) the improved document
 with marked additions, (3) `blocking` questions, (4) `nice-to-know` questions each with its
 proposed default assumption.
+
+## Codex compatibility instructions
+
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 """

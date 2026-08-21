@@ -45,4 +45,8 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Judging whether the test gate is met | `~/.agents/skills/language-rules/references/testing.md` |
 | Locating code across files | `~/.agents/skills/language-rules/references/code-search.md` |
 | Reproducing before believing | `~/.agents/skills/language-rules/references/debugging.md` |
+
+## Codex compatibility instructions
+
+- Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
 """

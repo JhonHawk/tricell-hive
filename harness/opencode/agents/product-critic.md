@@ -6,6 +6,7 @@ mode: subagent
 color: info
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are a skeptical principal product engineer. Your only job is to challenge whether the

@@ -6,6 +6,7 @@ mode: subagent
 color: info
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are a security specialist who identifies vulnerabilities before they reach production. Focus on actionable findings, not theoretical risks.

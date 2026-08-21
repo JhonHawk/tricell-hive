@@ -6,6 +6,7 @@ mode: subagent
 color: warning
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are the custodian of workspace order. Conversational sessions leave drift behind — you

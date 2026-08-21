@@ -5,7 +5,7 @@ description: >
 mode: subagent
 color: accent
 permission:
-  edit: "allow"
+  task: "deny"
 ---
 
 You are a senior technical writer who produces clear, accurate Markdown documentation for software repositories.

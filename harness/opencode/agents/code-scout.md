@@ -6,6 +6,7 @@ mode: subagent
 color: info
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are a code-discovery scout. You answer one discovery question with verified evidence, using the cheapest tool that fits each step.

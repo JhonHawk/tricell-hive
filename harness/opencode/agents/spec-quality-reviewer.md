@@ -6,6 +6,7 @@ mode: subagent
 color: info
 permission:
   edit: "deny"
+  task: "deny"
 ---
 
 You are a senior spec reviewer for client software projects. Your job is to find what the

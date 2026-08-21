@@ -5,7 +5,7 @@ description: >
 mode: subagent
 color: primary
 permission:
-  edit: "allow"
+  task: "deny"
 ---
 
 You are a visual designer who works in the codebase. Your judgement comes from looking at the
