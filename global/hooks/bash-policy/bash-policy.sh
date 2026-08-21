@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # bash-policy.sh — PreToolUse (shell), DENY-FIRST.
 #
-# Dual-runtime: Claude Code (Bash, tool_name/tool_input) and Grok Build
-# (run_terminal_command, toolName/toolInput; MCP as server__tool). Keep the
-# field fallbacks in sync with post-tool-hub.sh.
+# Tri-runtime: Claude Code (Bash, tool_name/tool_input), Grok Build
+# (run_terminal_command, toolName/toolInput; MCP as server__tool) and Cursor
+# (Shell, tool_name/tool_input, but cwd EMPTY — the real path is in
+# workspace_roots[]). Keep the field fallbacks in sync with post-tool-hub.sh.
 #
 # One process for every pre-execution shell policy gate. The order is
 # load-bearing: every DENY runs first (exit 2 + human reason on stderr;
@@ -34,17 +35,19 @@ deny() {
 
 input=$(cat)
 
-# Dual-runtime field normalization (Claude snake_case | Grok camelCase).
+# Tri-runtime field normalization (Claude snake_case | Grok camelCase | Cursor).
 tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // empty' 2>/dev/null)
 [ -n "$tool_name" ] || exit 0
 
 command=""
 case "$tool_name" in
-  Bash|run_terminal_command)
+  Bash|run_terminal_command|Shell)
     command=$(printf '%s' "$input" | jq -r '.tool_input.command // .toolInput.command // empty' 2>/dev/null)
     ;;
 esac
-cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
+# Cursor sends cwd as an EMPTY STRING (jq's `//` only falls through on null),
+# and carries the real path in workspace_roots[] — pick the first non-empty.
+cwd=$(printf '%s' "$input" | jq -r '[.cwd, .workspaceRoot, (.workspace_roots // [])[0]] | map(select(. != null and . != "")) | first // empty' 2>/dev/null)
 
 # ---------------------------------------------------------------------------
 # (a) DENY — pip ban. `uv pip …` is the sanctioned form and is stripped first.

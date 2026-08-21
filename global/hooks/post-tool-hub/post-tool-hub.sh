@@ -27,7 +27,7 @@
 set -uo pipefail
 
 input=$(cat)
-# Dual-runtime field normalization (Claude snake_case | Grok camelCase).
+# Tri-runtime field normalization (Claude snake_case | Grok camelCase | Cursor).
 session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty' 2>/dev/null)
 tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // empty' 2>/dev/null)
 command=$(printf '%s' "$input" | jq -r '.tool_input.command // .toolInput.command // empty' 2>/dev/null)
@@ -37,7 +37,7 @@ command=$(printf '%s' "$input" | jq -r '.tool_input.command // .toolInput.comman
 
 is_shell=0
 case "$tool_name" in
-  Bash|run_terminal_command) is_shell=1 ;;
+  Bash|run_terminal_command|Shell) is_shell=1 ;;
 esac
 
 HOOK_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd) || HOOK_DIR=""
