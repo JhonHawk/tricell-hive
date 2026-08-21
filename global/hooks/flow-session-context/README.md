@@ -3,7 +3,7 @@
 SessionStart context for the flow pack v2, delivered across all three harnesses. Merges what were two separate SessionStart hooks (the old `session-hygiene-context`) plus the flow-pack process map into ONE injection. On a **fresh context** (`startup|clear`) it emits two independent, self-gating sections; on **`compact`** it emits a third, narrower payload instead.
 
 1. **Flow protocol** — injected ONLY inside a flow workspace (a `_support/PROJECT.md` ledger at or above cwd). A static `<flow-process-protocol>` block: the intent→playbook map (idea → spec → plan → execute → deploy/QA) so the model can work the matching playbook, or OFFER `/flow-build`, when user intent matches. It never forces a stage — `/flow-build` stays user-gated (global CLAUDE.md > Skill Auto-invocation).
-2. **Git hygiene** — injected in ANY git repo (not flow-gated). Deterministic backstop for the session-close ritual (`git-mechanics.md > Session close`): most closes are silent, so the ceremony runs at the next fresh seam. Injects pending-hygiene FACTS — local branches fully merged into the integration target, and branches whose upstream is `[gone]` — capped at 8 each, silent when none. State only, never routing instructions.
+2. **Git hygiene** — injected in ANY git repo (not flow-gated). Deterministic backstop for the end-of-work hygiene ritual (`git-mechanics.md > End-of-work hygiene`): most closes are silent, so the ceremony runs at the next fresh seam. Injects pending-hygiene FACTS — local branches fully merged into the integration target, and branches whose upstream is `[gone]` — capped at 8 each, silent when none. State only, never routing instructions.
 3. **Post-compaction recovery** (`source == compact`, flow workspaces only) — see below.
 
 Nothing applies → no injection at all (exit 0 / no-op). Local git queries only; no fetch, no network. Advisory — never blocks.
@@ -14,7 +14,7 @@ The process map is the **only trigger the SPEC step has**. Unlike EXECUTE — wh
 
 `flow-context` (UserPromptSubmit) does not compensate: its phase marker is keyed on `session_id` + a `cksum` of the pending-plan set. A compaction changes neither, so `phase_fire=0` and the pending-plan state is never re-emitted either. **Both signals are lost at once** — hence this hook clears both `flow-context` markers (`claude-flow-context-phase-<session>` and `claude-flow-context-plan-<session>`) so that state re-emits on the next prompt, with no duplicated scan logic here.
 
-The compact payload is **deliberately not the startup payload**. It is recovery, not a reload: the condensed intent→playbook map only. The bootstrap / migration / hygiene playbook catalogue and the git-hygiene section stay out — a session-close backstop is noise mid-task, and re-paying the full map costs context exactly when it is scarcest. Pattern borrowed from the Engram plugin, which routes `compact` to a separate recovery payload rather than replaying its session-start load.
+The compact payload is **deliberately not the startup payload**. It is recovery, not a reload: the condensed intent→playbook map only. The bootstrap / migration / hygiene playbook catalogue and the git-hygiene section stay out — a end-of-work-hygiene backstop is noise mid-task, and re-paying the full map costs context exactly when it is scarcest. Pattern borrowed from the Engram plugin, which routes `compact` to a separate recovery payload rather than replaying its session-start load.
 
 ## Delivery per harness
 

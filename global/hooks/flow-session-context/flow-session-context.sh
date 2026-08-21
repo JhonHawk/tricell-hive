@@ -11,7 +11,7 @@
 #      skills stay user-gated (global CLAUDE.md > Skill Auto-invocation).
 #
 #   2. Git hygiene — in ANY git repo (not flow-gated). Deterministic backstop
-#      for the session-close ritual (git-mechanics.md > Session close): most
+#      for the end-of-work hygiene ritual (git-mechanics.md > End-of-work hygiene): most
 #      closes are silent, so the ceremony runs at the next fresh seam instead,
 #      injecting pending-hygiene FACTS (locally merged branches, [gone]
 #      upstreams). It injects state, never routing; the always-on rule owns
@@ -20,7 +20,7 @@
 #   3. Post-compaction recovery (source == compact) — the process map is the
 #      ONLY trigger the SPEC step has, and a compaction can drop it from
 #      context. Re-injected condensed: recovery, not the full startup load.
-#      Git hygiene stays OUT (a session-close backstop is noise mid-task), and
+#      Git hygiene stays OUT (a end-of-work-hygiene backstop is noise mid-task), and
 #      flow-context's per-session markers are cleared so the pending-plan state
 #      re-emits on the next prompt instead of being suppressed by a marker that
 #      predates the compaction.
@@ -129,7 +129,7 @@ if [ -d "$cwd" ] && git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&
       [ -n "$facts" ] && facts="${facts}; "
       facts="${facts}branches whose upstream is gone: $(printf '%s' "$gone" | tr '\n' ' ' | sed 's/ *$//')"
     fi
-    git_section="Pending git hygiene from a previous session (deterministic session-close backstop): ${facts}. The ritual that owns this is git-mechanics.md > Session close (standing-authorized: prune confirmed-merged branches, report divergences; unmerged branches are decisions, not noise)."
+    git_section="Pending git hygiene from a previous session (deterministic end-of-work-hygiene backstop): ${facts}. The ritual that owns this is git-mechanics.md > End-of-work hygiene (standing-authorized: prune confirmed-merged branches, report divergences; unmerged branches are decisions, not noise)."
   fi
 fi
 

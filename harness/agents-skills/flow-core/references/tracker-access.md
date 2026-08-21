@@ -22,7 +22,7 @@
 
 ## Writes
 
-- Outward writes batch to ONE session-close confirmation — never per-ticket asks mid-run
+- Outward writes batch to ONE close confirmation at the finished plan — never per-ticket asks mid-run
   (`memory-routing.md > Tracker sync`); unattended runs queue identically.
 - Never delete, archive, transfer, or bulk-close; terminal transitions (Done/Closed/
   Cancelled) are propose-only unless explicitly handed as approved.

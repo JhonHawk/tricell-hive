@@ -1,4 +1,4 @@
-## Git Mechanics — branching, commits, PRs, promotion, session close
+## Git Mechanics — branching, commits, PRs, promotion, end-of-work hygiene
 
 > The situational half of the git conventions. The **gates** — what authorizes an operation,
 > protected branches, force-push, production promotion — stay always-on in
@@ -35,9 +35,13 @@
 - **CI watching overlaps remaining work.** After a push, start the watch and run the rest of the close work (docs, ledger, memory, report) while CI executes; idle-watch only when nothing else remains. A push without a merge in the session mode's scope (`pr-open`, `direct-base`) may close the turn with CI pending — report the run link and pending state; ownership carries into the next interaction. Under `pr-merge` an open PR never closes the turn: the close is the merge. After a merge, the deploy job's outcome is part of the same turn — a pending deploy never closes it. Merging never proceeds on pending.
 - **Promotion moves the integration branch's whole current state**, not the session diff, unless the user explicitly scopes a partial promotion. **Hops run in the chain's order** — each environment promotes from the previous one and is done only on its deploy job's terminal success, so a red or unverified hop blocks the next one rather than being jumped over.
 - **Stacked PRs:** when a task depends on an unmerged prior PR, branch from that PR's branch and chain the PRs, declaring the merge order in the close report — never block mid-session waiting for a merge.
-### Session close (standing-authorized, automatic)
+### End-of-work hygiene (standing-authorized, automatic)
+
+> Fires when the plan or change-group finishes — never on the session ending, and it needs no
+> declaration from the user. It is not a wrap-up: the end-of-session consolidation (memory) is
+> triggered by the user declaring the session over (`memory-routing.md`).
 - Prune branches confirmed 100% merged (`git branch --merged <target>`): delete the local and its merged remote counterpart; return the checkout to the integration branch. Then `git fetch --prune` and fast-forward local integration branches behind their upstream.
 - **Unmerged branches are decisions, not noise:** check for real work (`git log <target>..<branch>`), recommend integrating before close, or ask if it looks abandoned. Never silently leave, delete, or auto-reconcile a diverged branch.
-- Report: deletions, fast-forwards, divergences, unmerged branches with their recommendation, and the branch now checked out.
+- Report: deletions, fast-forwards, divergences, unmerged branches with their recommendation, and the branch now checked out. Report what the WORK reached — never declare the session closed (`reporting-integrity.md`).
 ### Recovery
 - `push` returns 404 on a private repo: check `gh auth status` / `gh auth switch` before assuming the repo is missing; cache the active account for the session.
