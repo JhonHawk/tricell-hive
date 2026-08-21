@@ -114,7 +114,7 @@ while IFS= read -r line; do
   fi
   case "$scope" in
     this-workspace)
-      proc_findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — THIS workspace's leftover; verify it is still wanted and offer to stop it."$'\n' ;;
+      proc_findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — THIS workspace's orphan; verify it is still wanted and offer to stop it."$'\n' ;;
     other-workspace)
       proc_findings+="- Dev server on port ${port} (PID ${pid}, up $(fmt_age "$mins"), cwd: ${cwd}) — from ANOTHER workspace: could be a leak or a concurrent session's active server; offer cleanup, but ask the user to confirm that project is idle before stopping it."$'\n' ;;
     *)
