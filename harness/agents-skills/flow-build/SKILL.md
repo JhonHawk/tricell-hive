@@ -4,6 +4,7 @@ description: >
   Execute an approved plan (the executing stage of the daily dev chain) as a state-driven
   reconciler — resumable, never re-doing landed work. `verify` jumps straight to the
   verification gate. Runs on any harness. Point it at a plan or part.
+disable-model-invocation: true
 ---
 
 # /flow-build — execute the plan

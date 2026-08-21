@@ -7,7 +7,7 @@ canonical sources for the other three CLIs.
 
 **Which rules actually reach which harness, and the official doc backing each loading
 mechanism, live in one README per harness:** `global/README.md` (Claude Code),
-`codex/README.md`, `opencode/README.md`, `grok/README.md`. Each carries a
+`codex/README.md`, `opencode/README.md`, `grok/README.md`, `cursor/README.md`. Each carries a
 *What this harness loads* table with a verified upstream URL per row — go there when a
 harness changes how it loads rules.
 
@@ -31,8 +31,8 @@ Grok needs no generated rules or skills tree: its Claude-compat layer reads
 `~/.claude/CLAUDE.md` and `~/.claude/skills/` in place, and its always-on rules are flat
 **symlinks** written by `/deploy-global`, not files built here.
 
-Per-harness detail lives in `codex/README.md`, `opencode/README.md`, `grok/README.md`, and
-`agents-skills/README.md`. This file covers the layer as a whole and the snippets in
+Per-harness detail lives in `codex/README.md`, `opencode/README.md`, `grok/README.md`,
+`cursor/README.md`, and `agents-skills/README.md`. This file covers the layer as a whole and the snippets in
 depth.
 
 ## Three maintenance classes

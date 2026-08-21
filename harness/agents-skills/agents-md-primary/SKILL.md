@@ -14,6 +14,7 @@ description: >
   CLAUDE.local.md claims (read, never written), workspace skills that route to dead paths or
   lack an invocation gate, repos mentioned nowhere, branches and merge strategies that git
   refutes, retired command names still offered, and ledger staleness. Idempotent.
+disable-model-invocation: true
 ---
 
 # /agents-md-primary — one canonical file, every harness ambient

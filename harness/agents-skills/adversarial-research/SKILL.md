@@ -10,6 +10,7 @@ description: >
   migration/compat claims. Do NOT use for single-fact lookups, questions one grep or file
   read answers, or verifying one already-stated claim (dispatch finding-refuter directly
   per agent-routing).
+disable-model-invocation: true
 ---
 
 # /adversarial-research — independent proposals, adversarial cross-exam, synthesized canon

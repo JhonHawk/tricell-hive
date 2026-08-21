@@ -7,6 +7,7 @@ description: >
   "cutover", "nuevo proyecto formato monorepo"). Stack-aware: the JS/TS lane
   (Turborepo + pnpm) is fully specified; a polyglot mix (Go/Python/Java) forks at
   intake into an orchestrator decision instead. Subcommands: intake | execute | verify.
+disable-model-invocation: true
 ---
 
 # /monorepo-cutover — replicable multi-repo → monorepo migration

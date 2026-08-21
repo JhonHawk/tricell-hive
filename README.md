@@ -2,7 +2,8 @@
 
 Source of truth for global agent configuration. Claude Code config lives under `global/` and deploys to `~/.claude/` via `/deploy-global`.
 
-Generic AGENTS-compatible harness config lives under `harness/`. **What each harness actually loads — and the official doc backing every loading mechanism, with a verified date — has one README per harness:** `global/README.md` (Claude Code), `harness/codex/README.md`, `harness/opencode/README.md`, `harness/grok/README.md`. Root `AGENTS.md` is only the local guide for working on this repo from harnesses that do not read `CLAUDE.md`.
+Generic AGENTS-compatible harness config lives under `harness/`. **What each harness actually loads — and the official doc backing every loading mechanism, with a verified date — has one README per harness:** `global/README.md` (Claude Code), `harness/codex/README.md`, `harness/opencode/README.md`, `harness/grok/README.md`,
+`harness/cursor/README.md`. Root `AGENTS.md` is only the local guide for working on this repo from harnesses that do not read `CLAUDE.md`.
 
 ## Quick Start
 
@@ -105,7 +106,8 @@ harness/                      # Multi-harness layer (Codex + opencode + Grok), d
 ├── agents-skills/                   # GENERATED — universal skills → ~/.agents/skills
 ├── codex/                           # README + config.toml.snippet + GENERATED TOML agents
 ├── opencode/                        # README + opencode.jsonc.snippet + commands/ + GENERATED agents & rules
-└── grok/                            # README + GENERATED agents (rules reach Grok as flat symlinks)
+├── grok/                            # README + GENERATED agents (rules reach Grok as flat symlinks)
+└── cursor/                          # README only — no generated tree, no deploy step
 
 .claude/skills/
 ├── manage-agents/                   # /manage-agents — validate, optimize, report

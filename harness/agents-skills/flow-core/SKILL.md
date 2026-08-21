@@ -7,6 +7,7 @@ description: >
   is the library every flow-* skill and playbook reads for the flow contract, the
   file-routing rule, and the canonical templates (ledger, handoff protocol, naming table,
   specs structure).
+user-invocable: false
 ---
 
 # flow-core — shared library for the flow pack

@@ -220,8 +220,9 @@ harness/                           # Per-CLI layer — sources + VERSIONED gener
 ├── opencode/                      # README + opencode.jsonc.snippet + commands/ + permission-config.json (sources)
 │   ├── agents/                    # GENERATED — markdown subagents → ~/.config/opencode/agents
 │   └── rules/                     # GENERATED — path-scoped rules, paths:→globs: → ~/.config/opencode/rules
-└── grok/                          # README (rules reach Grok as flat symlinks; no skills tree by design)
-    └── agents/                    # GENERATED — Grok-shaped markdown subagents → ~/.grok/agents
+├── grok/                          # README (rules reach Grok as flat symlinks; no skills tree by design)
+│   └── agents/                    # GENERATED — Grok-shaped markdown subagents → ~/.grok/agents
+└── cursor/                        # README only — reads ~/.agents/skills natively and ~/.claude/{agents,settings.json} via compat; nothing generated, nothing deployed
 _support/                          # Workspace material (see global/rules/workflow/project-structure.md)
 ├── archive/                       # Dated historical snapshots (audits/, docs/) — superseded reports kept for reference
 ├── archived-agents/               # Retired agents kept for reference
