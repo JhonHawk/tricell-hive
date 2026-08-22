@@ -1,7 +1,3 @@
----
-alwaysApply: true
----
-
 ## Gap Resolution in Plans
 
 > Owns **prerequisites** (missing-and-required). Risks (present-but-fragile) → `quality/critical-thinking.md`; conflicts between present-but-disagreeing sources → Divergence below. **Principle:** a gap detected during planning either becomes a plan task or reaches the user at the plan gate — a gap silently dropped is a plan defect.

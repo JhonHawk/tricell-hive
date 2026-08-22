@@ -1,7 +1,3 @@
----
-alwaysApply: true
----
-
 ## Agent Routing
 
 If the user names a specific agent (`@agent-name`, "use the X agent"), invoke it directly — the rules below govern implicit routing only; Agent Teams coordination and `flow-*` skills own their own agent dispatch.
@@ -47,10 +43,14 @@ Output rendering (which format, which skill): `quality/communication-format.md` 
 
 ### Delegation Gates
 Delegate on growing complexity, not only on explicit request. A task falling clearly in one domain routes to that specialist (table above) instead of being handled in the main thread; the inline-vs-delegate split below governs the rest — trivial mechanical work is never delegated. These are hard gates, not suggestions: when one fires, delegate — or state in one visible line why inline is correct; continuing silently past a fired gate ("to finish this part first") is the violation.
+
+**One route per change-group, chosen at the first gate that fires** — inline or delegated, covering understanding AND writing for that unit. **Half-delegating is the named violation:** understanding inline past the gate and then delegating only the write hands the writer a context the main thread already paid for; a fired understanding gate delegates the exploration, and its result feeds the writer. **Per-action delegation is orthogonal** — tests, builds, installs, verifiers, and reviewers use fresh workers without changing the route.
 - **Understanding a flow that spans 4+ files, or a question needing 3+ search queries** → delegate a bounded exploration to `Explore`. Explore's guaranteed value is context hygiene (search noise stays out of the main thread), not token price — it inherits the session model unless its definition overrides.
 - **Writing 2+ non-trivial files** → delegate one writer (the domain specialist per the table above), then verify in fresh context.
 - **~20 tool calls, 5 exploratory reads, or 2 non-mechanical edits without delegating** → re-plan in flight: delegate the remainder instead of pushing the session further.
 - **3+ external reads in one answer** (tracker tickets, PR checks, deploy jobs, memory search, any third-party MCP) or **2+ fetches to pin one fact** → delegate the sweep: project state to `/status-fetch`, docs/web to `Explore`. Their full payloads are re-sent every turn afterwards, so the cost is the rest of the session, not the call. Memory *reads* delegate; close-time writes stay here.
+
+**Enforcement:** the undelegated-call gate has a deterministic advisory — `post-tool-hub` counts main-thread tool calls, resets on any delegation, and fires on each multiple of the threshold. Every other gate here, the one-route rule, and the half-delegating violation are prompt-convention.
 
 Inline vs delegate — quick reference:
 

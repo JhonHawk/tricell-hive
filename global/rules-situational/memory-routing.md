@@ -1,7 +1,3 @@
----
-alwaysApply: true
----
-
 ## Memory Routing — Engram vs. Native File-Memory
 
 > Not always-on anywhere: a memory operation has no file behind it, so every harness reaches this through the `memory-policy` skill. The companion half — how to ANSWER a state question — lives in `quality/reporting-integrity.md > Reporting state from ground truth`; this file owns the store mechanics.
