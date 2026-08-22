@@ -61,7 +61,3 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |
 | Driving a browser | `~/.agents/skills/language-rules/references/browser-automation.md` |
 | Tailwind classes | `~/.agents/skills/language-rules/references/tailwind.md` |
-
-## opencode compatibility instructions
-
-- When the `design-taste-frontend` skill is available and relevant, use it before performing the specialized workflow manually.

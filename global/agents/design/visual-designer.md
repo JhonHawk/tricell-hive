@@ -7,7 +7,6 @@ description: >
   "restyle the login", "apply the brand"). NOT for building new features or flows (that is the
   framework specialist), NOT for reviewing without changing (that is ui-reviewer).
 tools: Read, Write, Edit, Bash, Glob, Grep
-skills: design-taste-frontend
 model: inherit
 effort: high
 color: blue

@@ -6,8 +6,6 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
-# Claude skills: design-taste-frontend
-# Review native Codex support before relying on: skills
 nickname_candidates = ["visual-designer"]
 model_reasoning_effort = "high"
 
@@ -69,5 +67,4 @@ Read the row matching what you touch; skip anything already loaded this session.
 ## Codex compatibility instructions
 
 - Do not spawn, delegate to, or coordinate other agents from this agent. Return findings or changes directly to the parent session.
-- When the `design-taste-frontend` skill is available and relevant, use it before performing the specialized workflow manually.
 """
