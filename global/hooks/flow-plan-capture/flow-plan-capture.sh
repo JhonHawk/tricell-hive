@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # flow-plan-capture.sh — plan capture, NON-BLOCKING. Three entry points:
 #
-#   (default)             Claude Code PostToolUse:ExitPlanMode — plan approved.
+#   (default)             Claude Code PostToolUse:ExitPlanMode, or Grok
+#                         PostToolUse:exit_plan_mode — plan approved. One entry
+#                         point, two payload shapes, told apart by the payload
+#                         itself: both harnesses run this same command (Grok
+#                         merges ~/.claude/settings.json via compat), so a flag
+#                         could not distinguish them.
 #   --from-transcript     Claude Code recovery, called by post-tool-hub: the
 #                         "clear context" approval denies the tool, so no
 #                         PostToolUse fires; the plan is read from the fresh
@@ -41,6 +46,7 @@ BREADCRUMB="${TMPDIR:-/tmp}/claude-flow-plan-capture.log"
 crumb() { printf '%s %s\n' "$(date '+%F %T')" "$1" >> "$BREADCRUMB" 2>/dev/null || true; }
 
 mode="hook"
+harness="claude"
 case "${1:-}" in
   --from-transcript)  mode="recovery" ;;
   --from-codex-prompt) mode="codex" ;;
@@ -101,7 +107,22 @@ else
   plan=$(printf '%s' "$input" | jq -r '.tool_response.plan // empty' 2>/dev/null)
   plan_file=$(printf '%s' "$input" | jq -r '.tool_response.filePath // empty' 2>/dev/null)
 
-  # Plan text: inline field first, else the plan file ExitPlanMode wrote.
+  # Grok's payload is camelCase and its tool output is `toolResult`, a plain
+  # STRING (not Claude's structured object): a banner naming the saved plan file,
+  # then a `## Plan:` line and the plan text. Prefer the FILE — the string field
+  # is subject to Grok's free-text clipping — and keep the inline parse as the
+  # fallback for when the banner wording changes.
+  if [ -z "$plan" ] && [ -z "$plan_file" ]; then
+    grok_result=$(printf '%s' "$input" \
+      | jq -r 'if (.toolResult | type) == "string" then .toolResult else empty end' 2>/dev/null)
+    if [ -n "$grok_result" ]; then
+      harness="grok"
+      plan_file=$(printf '%s\n' "$grok_result" | sed -n 's/^Your plan has been saved at: //p' | head -1)
+      [ -f "${plan_file:-}" ] || plan=$(printf '%s\n' "$grok_result" | awk 'p{print} /^## Plan:/{p=1}')
+    fi
+  fi
+
+  # Plan text: inline field first, else the plan file the tool wrote.
   if [ -z "$plan" ] && [ -n "$plan_file" ] && [ -f "$plan_file" ]; then
     plan=$(cat "$plan_file")
   fi
@@ -197,7 +218,7 @@ if [ -f "$index" ] && ! grep -q "$today-$candidate" "$index" 2>/dev/null; then
     "$today-$candidate" >> "$index" 2>/dev/null || true
 fi
 
-crumb "write${mode:+($mode)}: $target"
+crumb "write${mode:+($mode)}${harness:+[$harness]}: $target"
 
 rel_target="${target#"$root"/}"
 whence="captured"

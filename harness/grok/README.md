@@ -17,7 +17,30 @@ Companion files: `global/README.md` (Claude Code), `harness/codex/README.md`,
 | Subagents | `harness/grok/agents/` (generated, versioned) | `~/.grok/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit |
 | Skills | `~/.claude/skills/` | *(read in place)* | Nothing to deploy — `[compat.claude] skills = true` |
 | Global instructions | `~/.claude/CLAUDE.md` | *(read in place)* | Nothing to deploy |
-| Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh` and `post-tool-hub.sh` are dual-runtime |
+| Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh`, `post-tool-hub.sh` and `flow-plan-capture.sh` are dual-runtime. Two Grok specifics: a matcher must name Grok's own tool name when no alias exists (`exit_plan_mode` has none), and **only `Stop`/`SubagentStop` can hand the model context** — see the injection map below |
+
+### Hook injection map — measured, not inferred (2026-08-21)
+
+A probe hook registered on five events in `~/.grok/hooks/`, each emitting a distinct token as
+`additionalContext`, then asked the model which tokens it could see:
+
+| Event | Hook runs? | Model receives its `additionalContext`? |
+|---|---|---|
+| `SessionStart` | yes | **no** |
+| `UserPromptSubmit` | yes | **no** |
+| `PreToolUse` | yes | **no** (its output channel is the allow/deny decision) |
+| `PostToolUse` | yes | **no** |
+| `Stop` / `SubagentStop` | yes | **YES** — and it keeps the turn working (capped at 8 continuations) |
+
+Grok's own words when asked: *"CUERVO-4 llegó en este turno… no vi ZORRO-1, LINCE-2 ni
+TEJON-3."* So a hook on any other event can still ACT (write a file, deny a call) — what it
+cannot do is tell the model anything. Consequences for this repo's hooks in Grok:
+`bash-policy` works (its product is a deny, not context); `rule-context`,
+`flow-session-context`, `session-hygiene-report`, `flow-context` and `post-tool-hub` run but
+their injection never lands; `flow-plan-capture` captures the plan and cannot announce it.
+**What reaches a Grok model is the rules and skills layer, not the hook layer** — put policy
+there, and use hooks in Grok only for effects. `instructions-audit` is a separate case: its
+`InstructionsLoaded` event does not exist in Grok at all.
 
 There is deliberately **no** `harness/grok/skills/` tree: it would duplicate what
 `~/.claude/skills/` already provides. Contrast with Codex, which needs a generated
@@ -35,7 +58,7 @@ last column.
 | Path-scoped rules | **none** | — | No file-pattern scoping key exists — see *What does NOT reach it* | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) (absence) | 2026-08-20 |
 | Skills | 16 skills, incl. the router `references/` | `~/.claude/skills/` (read in place) | Claude-compat scan at the **lowest** precedence; `disable-model-invocation` honored natively | [docs.x.ai/build/features/skills-plugins-marketplaces](https://docs.x.ai/build/features/skills-plugins-marketplaces) — *"`disable-model-invocation`: Slash command only; no automatic invoke. Default `false`."* | 2026-08-20 |
 | Agents | 25 Grok-shaped `.md` (real files, not symlinks) | `~/.grok/agents/` | `.md` agent definitions in `~/.grok/agents/` | [docs.x.ai/build/features/subagents](https://docs.x.ai/build/features/subagents) | 2026-08-20 |
-| Hooks | shared with Claude Code | `~/.claude/settings.json` (merged by compat) | Grok hooks + Claude settings compat | [docs.x.ai/build/features/hooks](https://docs.x.ai/build/features/hooks) | 2026-08-20 |
+| Hooks | shared with Claude Code | `~/.claude/settings.json` (merged by compat) | Grok hooks + Claude settings compat; matcher aliases cover only common Claude tool names, and every event except `Stop` discards hook stdout | [docs.x.ai/build/features/hooks](https://docs.x.ai/build/features/hooks); the alias list and the stdout rule read from the CLI's bundled `~/.grok/docs/user-guide/10-hooks.md` and **reproduced empirically** (injection map below) | 2026-08-21 |
 | Scope & precedence table | — | — | Which dirs are scanned, in what order | bundled doc `~/.grok/docs/user-guide/12-project-rules.md` + `08-skills.md` (grok 1.0.5) — local file, not a URL | 2026-08-20 |
 
 **Dead URLs — never write these** (all verified 404 on 2026-08-20):

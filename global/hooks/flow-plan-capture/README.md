@@ -1,6 +1,6 @@
 # flow-plan-capture
 
-PostToolUse hook on `ExitPlanMode` (Claude Code) — the organic bridge of the flow
+PostToolUse hook on `ExitPlanMode` (Claude Code) / `exit_plan_mode` (Grok) — the organic bridge of the flow
 pack ("Artifact-Attached Flow" design, 2026-07-10). When a native plan-mode plan is
 approved inside a flow workspace (ledger `_support/PROJECT.md` at or above cwd), the plan
 is captured to the session-capture layer (`sessions/YYYY-MM-DD-<slug>/<slug>-plan.md`,
@@ -14,7 +14,7 @@ index row, same idempotency:
 
 | Flag | Harness / event | Covers |
 |---|---|---|
-| *(none)* | Claude Code `PostToolUse:ExitPlanMode` | the plain approval |
+| *(none)* | Claude Code `PostToolUse:ExitPlanMode` · Grok `PostToolUse:exit_plan_mode` | the plain approval, on either harness — told apart by the payload, see below |
 | `--from-transcript` | Claude Code, called by `post-tool-hub` | the approval that clears the context — it denies the tool, so no PostToolUse fires |
 | `--from-codex-prompt` | Codex `UserPromptSubmit` | **both** Codex approval buttons |
 
@@ -24,8 +24,34 @@ Design decisions (user-approved 2026-07-10):
   text, never a silent heuristic.
 - **Idempotent by slug**: overwrite while `Status: planned`; `-2` suffix once advanced.
 - **Breadcrumb log** at `$TMPDIR/claude-flow-plan-capture.log` — every write/skip auditable
-  (`write(hook)` for the PostToolUse path, `write(recovery)` for the one below).
+  (`write(hook)` for the PostToolUse path, `write(recovery)` for the one below; a
+  `[grok]` tag marks the harness when the payload was Grok's).
 - Non-blocking: exit 0 always; silent outside flow workspaces.
+
+## Grok: same entry point, different payload — and no context injection
+
+Grok reads `~/.claude/settings.json` through its Claude compat layer, so it runs this very
+hook — but two things differ, both verified against its hooks doc and a real session
+payload (2026-08-21):
+
+- **The matcher needs both names.** Grok aliases Claude tool names in matchers (`Bash` →
+  `run_terminal_command`, `Task` → `spawn_subagent`), but has no alias for this one, so a
+  matcher of `ExitPlanMode` alone never fires there. The block ships the regex
+  `ExitPlanMode|exit_plan_mode`.
+- **The payload is camelCase and `toolResult` is a plain STRING**, not Claude's structured
+  `tool_response` object: a banner (`Your plan has been saved at: <path>`), then a
+  `## Plan:` line and the plan text. The script prefers that file — the string field is
+  subject to Grok's free-text clipping — and falls back to parsing after `## Plan:` when
+  the banner wording changes. Detection is by payload shape, never by a flag: one command
+  serves both harnesses, so there is nothing to pass.
+
+**What Grok does NOT get: the `additionalContext` injection.** Measured 2026-08-21, not
+inferred: a probe hook on five events showed that only `Stop`/`SubagentStop` reaches a Grok
+model — every other event runs and has its stdout discarded (full map: `harness/grok/README.md`),
+so no hook event on the approval itself can hand the model a pointer. The durable half still works — the
+plan lands in the sessions layer, which is the point (day-2 continuity is a repo file, not
+harness state, and `/flow-build` adopts it) — but on Grok the model is not told. What
+reaches the model there is the rules layer it already loads, not this hook.
 
 ## Why a recovery mode exists (`--from-transcript`)
 
@@ -127,6 +153,20 @@ Expected: bare context text naming the captured path, and one plan file with
 `Status: planned`. Re-running it (any session id) prints nothing and creates nothing.
 
 ```bash
+# Grok approval: camelCase payload, toolResult a string, plan file on disk.
+ws=$(mktemp -d); mkdir -p "$ws/_support"; printf 'x\n' > "$ws/_support/PROJECT.md"
+printf '# Plan Grok\n\nStatus: planned\n' > "$ws/plan.md"
+jq -cn --arg cwd "$ws" --arg res "Your plan has been approved.
+
+Your plan has been saved at: $ws/plan.md
+
+## Plan:
+# Plan Grok
+
+Status: planned" '{hookEventName:"PostToolUse",toolName:"exit_plan_mode",cwd:$cwd,toolResult:$res}' \
+  | ./flow-plan-capture.sh
+find "$ws/_support/sessions" -name '*-plan.md'   # -> captured; stdout ignored BY grok, emitted anyway
+
 # No planContent -> silence, and NO breadcrumb (this is every ordinary session).
 printf '{"type":"user","message":{"role":"user","content":"hola"}}\n' > "$ws/plain.jsonl"
 jq -cn --arg cwd "$ws" --arg tr "$ws/plain.jsonl" \

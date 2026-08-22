@@ -1015,6 +1015,20 @@ section records the authority tags and the findings that the tables only flag.
   bundled-only (`~/.grok/docs/user-guide/*`). The bundled guide remains authoritative for
   the scope/precedence tables and is version-stamped with the CLI, but it is a local file,
   never a citable URL.
+- `[Empirical — reproducible]` **Hook context injection in Grok: only `Stop` reaches the
+  model (measured 2026-08-21).** Method: a probe hook registered in `~/.grok/hooks/` on
+  `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse` and `Stop`, each writing a
+  breadcrumb (proof it RAN) and emitting a distinct token as `additionalContext`; then a
+  headless run (`grok -p`) asked the model which tokens it could see. All five hooks ran; the
+  model saw only the `Stop` token, and that emission also kept the turn working. Confirms the
+  bundled guide's *"For events like `SessionStart` or `PostToolUse`, stdout is ignored"* and
+  extends it to `PreToolUse` and `UserPromptSubmit`. **Consequence applied the same day:** the
+  injection map in `harness/grok/README.md` — in Grok, policy must travel in the rules/skills
+  layer, and hooks are for EFFECTS only. Two side findings: project-scoped hooks
+  (`<project>/.grok/hooks/*.json`) did not run even with the folder trusted and listed in
+  `trusted_folders.toml` — `grok inspect` showed no project hook loaded — while the same file
+  under `~/.grok/hooks/` ran immediately; and Grok has no matcher alias for `exit_plan_mode`,
+  so a Claude-shaped `ExitPlanMode` matcher never fires there.
 - **Dead URLs, verified 404 on 2026-08-20:** `github.com/xai-org/grok-cli`,
   `docs.x.ai/docs/grok-cli`, `docs.x.ai/build/project-rules` (the real path carries
   `/features/`), and any `xai-org/grok-build/blob/main/docs/...` path.

@@ -24,6 +24,7 @@ harness changes how it loads rules.
 | `grok/agents/` | Grok-shaped markdown subagents → `~/.grok/agents/` | **Generated** |
 | `opencode/commands/` | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) → `~/.config/opencode/commands/` | Hand-edited (one per user-invoked skill) |
 | `(global/hooks/flow-session-context/)` | Cross-harness SessionStart context → Claude `settings.json` + `~/.claude/hooks/`, `~/.codex/hooks.json` + `~/.codex/hooks/`, `~/.config/opencode/plugins/` | Copied by `/deploy-global` (source under `global/`, not `harness/`) |
+| `(global/hooks/flow-plan-capture/)` | Plan capture on approval, three harnesses through ONE script: Claude Code + Grok read the `settings-config.json` block from `~/.claude/settings.json` (matcher `ExitPlanMode\|exit_plan_mode` — Grok has no alias for that tool name), Codex gets `codex-hooks.json` → `~/.codex/hooks.json` on `UserPromptSubmit`. opencode has no equivalent event and takes the convention as instructions instead. **Grok captures but cannot inject:** only `Stop` reaches a Grok model (measured — `grok/README.md`) | Copied by `/deploy-global` (source under `global/`, not `harness/`) |
 | `codex/config.toml.snippet` | Codex config additions | **Manual merge, once** |
 | `opencode/opencode.jsonc.snippet` | opencode config additions | **Manual merge, once** |
 
