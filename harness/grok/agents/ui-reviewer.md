@@ -79,7 +79,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 
 | When | Read |
 |---|---|
-| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation.md` |
+| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation-reference.md` |
 | Type, spacing, contrast, hierarchy | `~/.claude/skills/language-rules/references/ui-visual-design.md` |
 
 ## Grok compatibility instructions

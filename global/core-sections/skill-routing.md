@@ -28,7 +28,7 @@ Consulting the router is never the blocking step: read it and keep going in the 
 | `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
 | `workspace-conventions` | writing a file outside application source, or typing an infra resource name | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
 | `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
-| `language-rules` | Grok only — the first `Write`/`Edit` of code (Claude Code loads path-scoped rules natively) | full language conventions |
+| `language-rules` | Grok — the first `Write`/`Edit` of code; Claude Code — about to drive a browser (its language rules load natively, but the browser CLI reference lives only here) | full language conventions; `browser-automation-reference.md` |
 
 `flow-report` is not in the table: it is a renderer, not a router, and its trigger is a property of the answer rather than an act of yours — `rules/quality/communication-format.md` is canonical for it and the conditions are never restated elsewhere.
 

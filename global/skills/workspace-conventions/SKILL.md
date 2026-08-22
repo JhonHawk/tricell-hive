@@ -66,7 +66,7 @@ References are injected at build time from `global/rules/workflow/` into `refere
 - **Every file in the table above lives in THIS skill's `references/`.** Rules cited by name
   from inside those files usually belong to another skill — read them there, never under
   this one: `memory-routing.md` → `memory-policy/references/`, language and framework rules
-  → `language-rules/references/`, `unattended-autonomy.md` →
+  → `language-rules/references/`, `unattended-autonomy-mode.md` →
   `unattended-delegation/references/`. A path guessed under the wrong skill fails silently
   and the answer proceeds without the rule.
 - No matching situation → this skill has nothing for the task; proceed without it.

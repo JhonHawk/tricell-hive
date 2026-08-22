@@ -133,7 +133,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
-│   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
+│   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)
 │   │   ├── critical-thinking.md
 │   │   ├── debugging.md           # Root-cause discipline: reproduce before fix, one change at a time, 3-fix circuit breaker
 │   │   ├── development-principles.md
@@ -162,9 +162,9 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
 │   │   ├── session-capture.md     # Session layer + subfolder vocabulary (split out of project-structure)
 │   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
-│   │   └── unattended-autonomy.md # The delegated-run mode
+│   │   └── unattended-autonomy.md # Gate stub: activation guard + gate pointers (mode mechanics → rules-situational/)
 │   └── tools/                     # External tools & MCP protocols (3 always-on)
-│       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
+│       ├── browser-automation.md  # Gate block: delegation, profile, viewport (CLI reference → rules-situational/)
 │       ├── code-search.md         # search routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable only via a
@@ -172,9 +172,12 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │                                  # (delegating, planning), which `paths:` cannot express.
 │   ├── README.md
 │   ├── agent-routing.md
+│   ├── browser-automation-reference.md   # CLI mechanics + MCP escalation (via language-rules)
+│   ├── communication-format-mechanics.md # Layout floor, in-thread form, diagram norm (via flow-report)
 │   ├── gap-resolution.md
 │   ├── git-mechanics.md
-│   └── memory-routing.md
+│   ├── memory-routing.md
+│   └── unattended-autonomy-mode.md       # Full delegated-run mechanics (via unattended-delegation)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon
 │   ├── agents-md-primary/         # /agents-md-primary — convert projects to AGENTS.md-canonical + CLAUDE.md import

@@ -81,7 +81,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 
 | When | Read |
 |---|---|
-| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation.md` |
+| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation-reference.md` |
 | Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |
 
 ## Codex compatibility instructions

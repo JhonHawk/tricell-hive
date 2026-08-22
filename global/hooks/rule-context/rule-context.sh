@@ -102,7 +102,7 @@ case "$tool_name" in
     [ -n "$command" ] || exit 0
 
     case "$command" in
-      *agent-browser*) add_rule "browser-automation.md" ;;
+      *agent-browser*) add_rule "browser-automation-reference.md" ;;
     esac
     case "$command" in
     esac
@@ -137,7 +137,7 @@ done
 
 [ -n "$fresh" ] || exit 0
 
-ctx="Situational rules that apply here: ${fresh}. Read them before proceeding unless already loaded this session — where they are not always-on they live behind the language-rules router (Codex/Grok) or load by glob (Claude Code, opencode). Advisory: this never blocks."
+ctx="Situational rules that apply here: ${fresh}. Read them before proceeding unless already loaded this session — where they are not always-on they live in the language-rules skill references (every harness for browser-automation-reference.md) or load by glob (Claude Code, opencode). Advisory: this never blocks."
 
 jq -n --arg ctx "$ctx" '{
   hookSpecificOutput: {

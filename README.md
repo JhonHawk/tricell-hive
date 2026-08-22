@@ -75,9 +75,10 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 ├── core-sections/                   # Canonical section files for both always-on cores (global/CLAUDE.md + harness/AGENTS.md)
 ├── rules/                           # Path-scoped and alwaysApply rules
 │   ├── quality/                     # Code principles (8 files)
-│   ├── languages/                   # Language/framework standards (11 files, path-scoped)
+│   ├── languages/                   # Language/framework standards (12 files, path-scoped)
 │   ├── workflow/                    # Git, deploys, structure, routing, naming (8 files)
-│   └── tools/                       # External tools & MCP protocols (1 file)
+│   └── tools/                       # External tools & MCP protocols (3 files)
+├── rules-situational/               # Router-reached rules (7 files, injected into skill references by build.py; never deployed to ~/.claude/rules/)
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs deployed canon + content quality
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
@@ -85,11 +86,11 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   │                                #   (bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion)
 │   ├── flow-build/                  # Execute a captured plan: reconciler + verify gate
 │   ├── flow-report/                 # Self-contained HTML reports for artifacts that outlive the thread (6 archetypes; `paper` is the printable one)
-│   ├── language-rules/              # Router skill: language rules for Codex (references injected by build.py)
+│   ├── language-rules/              # Router skill: language rules for Codex/Grok; browser CLI reference for every harness (references injected by build.py)
 │   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
 │   ├── memory-sync/                 # Reconcile Engram + native memory vs ground truth
 │   ├── starlight-docs-site/         # Astro Starlight docs: scaffold | page | audit
-│   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (Codex/opencode)
+│   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (every harness)
 │   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
 ├── agents/                          # Optimized agents by role
 │   ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer, visual-designer
@@ -155,7 +156,7 @@ _support/                            # Workspace material, not deployed
 
 Use `/manage-agents report` for live line counts and reduction metrics instead of relying on static README totals.
 
-## Rules (32 files)
+## Rules (31 files + 7 router-reached)
 
 **`paths:` is the only frontmatter key Claude Code reads.** Per the official docs, *"rules without a `paths` field are loaded unconditionally"* — so there are two states, not three:
 
@@ -164,10 +165,12 @@ Use `/manage-agents report` for live line counts and reduction metrics instead o
 
 | Category     | Files | always-on | path-scoped |
 |--------------|------:|----------:|------------:|
-| `quality/`   |     7 |         6 |           1 |
-| `languages/` |    11 |         0 |          11 |
-| `workflow/`  |    11 |         9 |           2 |
+| `quality/`   |     8 |         7 |           1 |
+| `languages/` |    12 |         0 |          12 |
+| `workflow/`  |     8 |         2 |           6 |
 | `tools/`     |     3 |         3 |           0 |
+
+`rules-situational/` (7 files) is outside this table: never always-on, reachable only through the router skill that injects it (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`).
 
 Always-on footprint (`global/CLAUDE.md` + the 18 rules without `paths:`): **913 lines / 121 KB / ~30k tokens**, paid on every session before any work starts. Measure it with:
 

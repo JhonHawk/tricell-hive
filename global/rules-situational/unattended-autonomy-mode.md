@@ -1,40 +1,49 @@
+# Unattended Autonomy Mode — full mechanics
 
-## Unattended Autonomy Mode
-
-> Always-on in Claude Code; Codex/opencode reach it through the `unattended-delegation` skill, which they must load BEFORE declaring the mode accepted. Two guards stand in front of it either way: activation is explicit-only (`CLAUDE.md > Destructive Operations`) and every absolute gate below is owned by an always-on rule (`> Absolute gates`).
+> Loaded through the `unattended-delegation` skill on every harness (Claude Code and Grok read it from `~/.claude/skills/unattended-delegation/references/`; Codex and opencode from `~/.agents/skills/`). The always-on stub at `rules/workflow/unattended-autonomy.md` carries only the activation guard and the gate pointers; this file is the mode itself — a run declared without these controls is not the mode.
 
 > An explicitly-delegated unattended run: the user hands over control and leaves ("tienes control total esta noche", "no preguntes hasta que vuelva", "me voy a dormir, sigue tú"). ONE mode — no variants. Distinct from a *non-delegated* unattended turn (cron, workflow stage, background job), which stays fail-closed per `quality/reporting-integrity.md > Fix at the Root`. The mode is a trade: removed confirmations are compensated by ADDED controls — decision log, reversible checkpoints, queued escalations, automatic expiry. Without those controls the delegation is not in effect.
 
-### Activation — explicit only
+## Activation — explicit only
+
 - Only an explicit user declaration activates the mode. Silence, absence, or a long-running task NEVER activate it — a user who goes quiet has not delegated anything.
 - On activation, declare the mode visibly before proceeding: the scope accepted, the absolute gates that stay closed, and where the decision log will live. Name the mode in every report produced under it.
 
-### Widened scope — proceed-and-log
+## Widened scope — proceed-and-log
+
 Applies only to an activated run (above); a *non-delegated* unattended turn stays fail-closed instead (`quality/reporting-integrity.md > Fix at the Root`).
+
 - In-scope reversible technical decisions, resolvable blockers, dependency picks with a safe version (OSV tiers unchanged), test/build/verify loops, and already standing-authorized non-prod ops → proceed; never bounce these back as questions.
 - **Integrating the run's OWN work is inside the scope, up to the production line.** The dedicated branch merges into the integration branch through its own PR once checks and the review pass are green, and promotion into a non-prod environment branch (`qa`) is declared, not asked (`git-workflow.md > Safety gates`) — a run told to land something in a non-prod environment cannot do it otherwise. The production-deploying branch is where it stops: a merge or promotion into it queues for the human, always.
 - Unattended runs carry full verification rigor: the attended fast-feedback carve-out (`quality/testing.md > Execution Scope`) never applies without a user present to validate.
 - Every widened decision lands in the **decision log**: what was decided, why, how to revert. The log is a structural component of the mode — proceeding without logging is outside the delegation.
 
-### Tracker-scoped runs
+## Tracker-scoped runs
+
 - A handover bounded by the project's declared tracker ("work the sprint board while I'm away", "ve cerrando los tickets sin preguntarme") is this same mode — a scope parameter, not a variant. The declared tracker (`memory-routing.md > Tracker sync`) defines the work list; an undeclared tracker cannot scope a run.
 - Execute item-by-item: one reversible change-group per ticket on the run's dedicated branch, one decision-log entry per ticket, per-ticket state in the close report (done / blocked / queued). A ticket requiring anything beyond the widened scope queues like any gated decision; tracker writes (status changes, comments) batch to the close per `memory-routing.md`.
 
-### Absolute gates — never relax
+## Absolute gates — never relax
+
 Identical to attended mode; no gate's behavior depends on which mode is active. This list is enumerated here — not just pointed at — because activation requires declaring it, and because it overrides any repo-level standing authorization the individual owners allow:
+
 - Destructive/irreversible operations · production (deploys, DNS, infra, data — including any merge or promotion INTO the production-deploying branch) · secrets · history rewrites / force-push · direct commits or pushes to protected refs · CRITICAL/HIGH supply-chain with no safe path · **data deletion**.
 - Scope and mechanics live with the owners: `CLAUDE.md > Destructive Operations`, `workflow/git-workflow.md > Safety gates`, `quality/security.md`.
 - Gates are inviolable constraints, never a judgment call to reason against. Where a deterministic layer exists (deny permissions, hooks), it backs them; the mode never argues past a denial.
 
-### Gated decisions — pause-and-queue, else fail closed
+## Gated decisions — pause-and-queue, else fail closed
+
 - A gate or stakeholder decision hit mid-run is **queued with full context** — the decision, the options, a recommendation, and what it blocks — and the run continues with independent work.
 - When nothing independent remains → fail closed: checkpoint the work, finish the log, stop. Never timeout-default-proceed — a sleeping user's silence is not consent.
 
-### Reversibility bias
+## Reversibility bias
+
 - All mode work happens on a dedicated branch with granular commits at natural seams; the only shared-ref mutations are the run's own PR merges and non-prod promotions, which stay revertible as merge commits. Reverting the entire run must be one branch reset or one revert chain, not archaeology.
 
-### Expiry & revocation
+## Expiry & revocation
+
 - Run-bound: the mode expires when the delegated run ends, and the user's first message revokes it instantly. It never carries into the next task or session.
 
-### Close report
+## Close report
+
 - The first interaction after the run leads with the decision log: widened decisions taken, queued gate decisions with their recommendations, and per-criterion verification state (`quality/reporting-integrity.md > Fix at the Root`). Queued decisions resolve before any merge or promotion of the run's branch.

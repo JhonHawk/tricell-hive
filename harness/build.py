@@ -87,6 +87,9 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/quality", "patterns-antipatterns.md"),
         ("rules/workflow", "devops-principles.md"),
         ("rules/tools", "browser-automation.md"),
+        # F2 demotion: the CLI mechanics moved out of the always-on rule; the
+        # stub above keeps the gate, this file carries the reference.
+        ("rules-situational", "browser-automation-reference.md"),
         ("rules/tools", "code-search.md"),
         # Claude Code and Grok get this always-on, but on Codex and opencode the
         # agent Role rules table is the ONLY pointer to the Context7 protocol —
@@ -118,9 +121,10 @@ SKILL_REFERENCE_INJECTIONS = {
     ],
     "flow-report": [
         ("rules/quality", "communication-format.md"),
+        ("rules-situational", "communication-format-mechanics.md"),
     ],
     "unattended-delegation": [
-        ("rules/workflow", "unattended-autonomy.md"),
+        ("rules-situational", "unattended-autonomy-mode.md"),
     ],
 }
 

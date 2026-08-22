@@ -40,8 +40,8 @@ do by accident.
 - Concurrent tabs / expired session → re-auth path works, no zombie state
 
 ## Rules
-- Drive the app with the `agent-browser` CLI via Bash (primary, per
-  `tools/browser-automation.md`): persistent session across commands, `console` for
+- Drive the app with the `agent-browser` CLI via Bash (primary, per the language-rules
+  reference `browser-automation-reference.md`): persistent session across commands, `console` for
   console-error checks, `network requests` to verify the call returned what the UI claims,
   `network route --abort` to simulate offline/500. Reach for
   chrome-devtools (via ToolSearch) only for Lighthouse/perf traces; playwright MCP only as
@@ -76,7 +76,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 
 | When | Read |
 |---|---|
-| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation.md` |
+| Driving a browser | `~/.claude/skills/language-rules/references/browser-automation-reference.md` |
 | Judging whether the test gate is met | `~/.claude/skills/language-rules/references/testing.md` |
 
 ## Grok compatibility instructions

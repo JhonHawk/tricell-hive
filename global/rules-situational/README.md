@@ -19,6 +19,13 @@ A rule leaves `global/rules/` when it is situational, and it lands here rather t
 `paths:` cannot express "I am about to delegate". Forcing an artificial glob would make the
 rule load on the wrong files and still miss the moment it matters.
 
+A second shape lives here since F2: the **detail half of a demoted always-on rule**. The
+gate stays always-on as a stub in `global/rules/` (so Grok's flat symlink and Claude Code's
+unconditional load keep it); the mechanics land here and reach every harness through the
+owning skill's `references/` (`browser-automation-reference.md` → `language-rules`,
+`communication-format-mechanics.md` → `flow-report`, `unattended-autonomy-mode.md` →
+`unattended-delegation`).
+
 ## The cost of moving a rule here
 
 It stops being guaranteed. A rule here is present only when the model invokes its router, so
