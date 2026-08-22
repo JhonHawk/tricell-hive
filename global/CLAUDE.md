@@ -137,9 +137,22 @@ Consulting the router is never the blocking step: read it and keep going in the 
 
 **Creating a NEW source file loads no rule for it — read the rule first.** Path-scoped rules trigger when a matching file is READ, so editing an existing file pulls its rule in, but writing one from scratch does not: the rule arrives after the file is already written, if at all. Before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching rule under `~/.claude/rules/languages/` — or `~/.claude/skills/language-rules/references/` on a harness that does not load that directory. Editing files whose rule is already in context needs no re-read. Path-scoped rules are also **not re-injected after compaction**: if a long session compacts and then creates a file, treat the rule as absent and read it again.
 
-- **`memory-policy` before the first memory operation of a session**, and before the close-time consolidation. A memory op has no file behind it, so nothing loads the routing rule for you.
-- **`git-mechanics` before the first git verb of a session.** Branching, the session git mode, commit semantics, PRs, promotion and end-of-work hygiene live there, not in context. The gates — what a verb authorizes, protected branches, force-push, production promotion — stay always-on in `git-workflow.md` and need no skill.
-- **`flow-report` skill auto-invokes** when `rules/quality/communication-format.md` trigger conditions are met. That rule is the canonical source for the trigger — don't restate the conditions elsewhere.
+**The routers and the act that fires each one.** Nothing else loads them; a router not invoked is a rule you do not have.
+
+| Router | Fires on — the observable act | What it governs |
+|---|---|---|
+| `task-routing` | the first `Write`/`Edit` on project code, or before the first delegation | who takes the task, delegation gates, plan gap analysis |
+| `git-mechanics` | the first `git` command of the session | branch, session mode, commit semantics, PRs, promotion, close |
+| `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
+| `workspace-conventions` | writing a file outside application source, or typing an infra resource name | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
+| `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
+| `language-rules` | Grok only — the first `Write`/`Edit` of code (Claude Code loads path-scoped rules natively) | full language conventions |
+
+`flow-report` is not in the table: it is a renderer, not a router, and its trigger is a property of the answer rather than an act of yours — `rules/quality/communication-format.md` is canonical for it and the conditions are never restated elsewhere.
+
+The gates those routers' domains carry stay always-on and need no skill: what a git verb authorizes, protected branches, force-push and production promotion live in `git-workflow.md`.
+
+**A trigger is written as an act, never as an intent.** The test: could a third party reading the transcript say whether the moment happened? "At edit-intent" fails it — it needs introspection, and a model that does not recognize the moment never reaches the rule. "The first `Write`/`Edit` on project code" passes: it is in the log. This governs the table above, every `description:` in a skill's frontmatter, and any rule whose trigger is a moment rather than a file.
 
 - **`/simplify` (Claude Code built-in) may auto-invoke at a change-group's green seam** — affected tests passing, before the commit/diff-presentation boundary — scoped to the just-changed code, and declared when run. Quality cleanup only (reuse, simplification, efficiency, altitude); never a substitute for review. It edits the working tree — its edits are part of the change-group and reach the user through the same commit/diff gate as the rest. Claude Code only: Codex/Grok/opencode have no such skill — the same four dimensions reach them through the `code-reviewer` agent.
 

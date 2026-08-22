@@ -268,6 +268,54 @@ def check_delegation_threshold_parity():
     print(f"delegation thresholds: canon and core agree ({', '.join(sorted(canon_tokens))}).")
 
 
+# The router table in global/CLAUDE.md names, for each situational router, the
+# observable act that fires it. Claude Code and Grok read that file; Codex and
+# opencode read the condensed core instead. A router added to one and forgotten
+# in the other is invisible in every session of the harnesses that missed it —
+# the exact failure mode this table exists to prevent. The check is directional:
+# every router the table names must also appear in the core, and must exist on
+# disk. Deterministic: the build exits non-zero on drift.
+ROUTER_TABLE_START = "**The routers and the act that fires each one.**"
+ROUTER_TABLE_END = "**A trigger is written as an act"
+ROUTER_ROW = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|")
+
+
+def check_router_index_parity():
+    """Fail the build when a router is listed for one harness family but not the other."""
+    claude = ROOT / "global" / "CLAUDE.md"
+    text = claude.read_text(encoding="utf-8")
+    start = text.find(ROUTER_TABLE_START)
+    end = text.find(ROUTER_TABLE_END, start + 1) if start != -1 else -1
+    if start == -1 or end == -1:
+        sys.exit(f"ERROR: router-index parity: anchor {ROUTER_TABLE_START!r}.."
+                 f"{ROUTER_TABLE_END!r} not found in global/CLAUDE.md. Restore it or "
+                 f"update ROUTER_TABLE_START/END in harness/build.py.")
+    routers = [m.group(1) for line in text[start:end].splitlines()
+               for m in [ROUTER_ROW.match(line)] if m]
+    if not routers:
+        sys.exit("ERROR: router-index parity: the router table in global/CLAUDE.md "
+                 "matched zero rows. A table that names nothing is not a pass.")
+
+    missing_on_disk = [r for r in routers if not (ROOT / "global" / "skills" / r).is_dir()]
+    if missing_on_disk:
+        sys.exit("ERROR: router-index parity: the table names skills that do not exist "
+                 f"under global/skills/: {sorted(missing_on_disk)}. Fix the name or "
+                 "remove the row.")
+
+    core_text = (ROOT / "harness" / "AGENTS.md").read_text(encoding="utf-8")
+    missing_in_core = [r for r in routers if f"`{r}`" not in core_text]
+    if missing_in_core:
+        sys.exit(
+            "ERROR: router-index parity: routers listed for Claude Code/Grok never reach "
+            "Codex/opencode.\n"
+            f"  in global/CLAUDE.md table: {sorted(routers)}\n"
+            f"  absent from harness/AGENTS.md: {sorted(missing_in_core)}\n"
+            "Add each missing router to the always-on core, stating the act that fires it.")
+
+    print(f"router index: {len(routers)} routers, table and core agree "
+          f"({', '.join(routers)}).")
+
+
 def main():
     # Universal skills (Codex + opencode read ~/.agents/skills)
     skills_out = ROOT / "harness" / "agents-skills"
@@ -339,6 +387,7 @@ def main():
     # Last: the trees are already regenerated and the commit reminder already
     # printed, so a drift exit signals only the drift.
     check_delegation_threshold_parity()
+    check_router_index_parity()
 
 
 if __name__ == "__main__":

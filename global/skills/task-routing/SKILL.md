@@ -1,8 +1,8 @@
 ---
 name: task-routing
 description: >
-  Load at FIRST EDIT-INTENT on a software project — the same moment `git-mechanics` fires,
-  before any file is touched — and before deciding HOW work gets done: which specialist takes
+  Load before the FIRST `Write`/`Edit` on project code — the same moment `git-mechanics`
+  fires — and before deciding HOW work gets done: which specialist takes
   it, whether to delegate at all, how a multi-domain task is chained and verified, and what
   must be settled before a plan's tasks are written. It carries the gap analysis whose
   prerequisites (accounts and roles, seed rows, running services) are cheapest resolved
