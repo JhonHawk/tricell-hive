@@ -23,7 +23,10 @@ proposal must be concrete enough to run verbatim. The procedures you follow are
 ## Focus
 - File routing: apply the 4-question rule from
   `~/.claude/skills/flow-core/SKILL.md > File-routing rule` retroactively to everything
-  under `<project>/_support/` and each `<repo>/_support/`
+  under `<project>/_support/` and each `<repo>/_support/`. **A `_support/` below a repo root
+  (`apps/*/_support/`, `packages/*/_support/`) is itself the finding** — a monorepo keeps one
+  at the repo root with the package axis inside the folder; report the third level with what
+  no glob is covering because of it
 - Pending promotions: scratch reports whose decisions never reached `<project>-specs/`
 - Staleness: `_support/workspace/` content whose triggering work already concluded
 - Ledger integrity: PROJECT.md pointers that don't resolve, phase/status rows that
