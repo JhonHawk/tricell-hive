@@ -129,6 +129,15 @@ Claude Code's own system prompt was removed with no measurable eval loss, and th
 from rules to judgment. **Two rules that contradict each other cost more than either one
 alone** — flag the pair, never keep both.
 
+**The manifest is WRITTEN TO DISK, never left in the conversation.** Target:
+`<audited-root>/_support/workspace/agents-md-audit-YYYY-MM-DD.md` (create the folder if the
+workspace lacks one; fall back to `<audited-root>/_support/` where `workspace/` is not the
+convention). One entry per rule: file, line, evidence, outcome, proposed action — the same
+table the report shows. An audit is expensive to produce and outlives the session that ran
+it, exactly like a captured plan (`flow-plan-capture`: day-2 continuity is a repo file, not
+harness state). It also makes the manifest reviewable outside the terminal, which is where
+the user reads everything else. Same-day re-audit overwrites; a later date gets its own file.
+
 **Classify each rule into exactly one outcome:**
 
 | Outcome | When | Proposed action |
@@ -285,7 +294,12 @@ skill writes; verify it with the manager's own runner (`lefthook run pre-push`) 
 reporting it done. Hub-destined proposals
 (promote-to-core, injection-map edits) are OUT of apply's scope — the manifest carries
 them for the user to execute in a session opened in the hub, where `build.py` and its
-validation run. Never apply without an audit manifest from this session.
+validation run. **Read the manifest from disk** (`> audit` writes it), so a run days later needs no
+re-audit. **Revalidate before writing, entry by entry:** every path still resolves and every
+quoted line still matches. A tree that moved underneath — a migration, an earlier partial
+apply, someone else's commit — invalidates the entries it touched; those are re-audited, never
+applied blind, and the report says which ones went stale. No manifest on disk and none in this
+session → run `audit` first; nothing left to apply → say so rather than re-deriving one.
 
 ## Out of scope
 
