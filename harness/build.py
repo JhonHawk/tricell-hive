@@ -211,6 +211,63 @@ def _codex_chain_cap():
     return CHAIN_CAP_BYTES, "default"
 
 
+# The delegation thresholds are stated twice on purpose: the canonical rule
+# carries them with their rationale, the always-on core restates them condensed.
+# Nothing tied the two copies together, so a number could change in one and
+# silently contradict the other in every Codex/opencode/Grok session. This check
+# is that tie — the canonical file stays the source, and the core must not
+# disagree with it. Deterministic: the build exits non-zero on drift.
+DELEGATION_CANON = ROOT / "global" / "rules-situational" / "agent-routing.md"
+DELEGATION_CANON_START = "### Delegation Gates"
+DELEGATION_CANON_END = "Inline vs delegate"
+DELEGATION_CORE_ANCHOR = "- **Delegation gates are hard.**"
+
+# Only STRUCTURED thresholds ("4+", "~20") are compared. The canonical section
+# also carries bare sub-thresholds the core deliberately folds away (5
+# exploratory reads, 2 non-mechanical edits inside the ~20 call gate); they are
+# canon-only by design, so including them would fail a file that is correct.
+THRESHOLD_TOKEN = re.compile(r"~\d+|\d+\+")
+
+
+def check_delegation_threshold_parity():
+    """Fail the build when the core's delegation numbers drift from the canon.
+
+    Fails closed on the anchors too: a renamed section or bullet means the check
+    can no longer see what it claims to verify, which is not a pass.
+    """
+    canon_text = DELEGATION_CANON.read_text(encoding="utf-8")
+    start = canon_text.find(DELEGATION_CANON_START)
+    end = canon_text.find(DELEGATION_CANON_END, start + 1) if start != -1 else -1
+    if start == -1 or end == -1:
+        sys.exit(f"ERROR: delegation-threshold parity: anchor "
+                 f"{DELEGATION_CANON_START!r}..{DELEGATION_CANON_END!r} not found in "
+                 f"{DELEGATION_CANON.relative_to(ROOT)}. Restore it or update "
+                 f"DELEGATION_CANON_START/END in harness/build.py.")
+    canon_tokens = set(THRESHOLD_TOKEN.findall(canon_text[start:end]))
+
+    core = ROOT / "harness" / "AGENTS.md"
+    core_bullet = next((line for line in core.read_text(encoding="utf-8").splitlines()
+                        if line.startswith(DELEGATION_CORE_ANCHOR)), None)
+    if core_bullet is None:
+        sys.exit(f"ERROR: delegation-threshold parity: anchor "
+                 f"{DELEGATION_CORE_ANCHOR!r} not found in harness/AGENTS.md. "
+                 f"Restore it or update DELEGATION_CORE_ANCHOR in harness/build.py.")
+    core_tokens = set(THRESHOLD_TOKEN.findall(core_bullet))
+
+    if canon_tokens != core_tokens:
+        sys.exit(
+            "ERROR: delegation-threshold parity: the always-on core contradicts the "
+            "canonical rule.\n"
+            f"  canon  global/rules-situational/agent-routing.md > {DELEGATION_CANON_START}: "
+            f"{sorted(canon_tokens)}\n"
+            f"  core   harness/AGENTS.md > {DELEGATION_CORE_ANCHOR}: {sorted(core_tokens)}\n"
+            f"  only in canon: {sorted(canon_tokens - core_tokens) or 'none'}\n"
+            f"  only in core:  {sorted(core_tokens - canon_tokens) or 'none'}\n"
+            "Change the canonical rule first, then mirror it into the core.")
+
+    print(f"delegation thresholds: canon and core agree ({', '.join(sorted(canon_tokens))}).")
+
+
 def main():
     # Universal skills (Codex + opencode read ~/.agents/skills)
     skills_out = ROOT / "harness" / "agents-skills"
@@ -278,6 +335,10 @@ def main():
 
     print("harness/ regenerated. If `git status` shows changes, commit them — "
           "a dirty tree after build means canonical sources changed without a rebuild.")
+
+    # Last: the trees are already regenerated and the commit reminder already
+    # printed, so a drift exit signals only the drift.
+    check_delegation_threshold_parity()
 
 
 if __name__ == "__main__":
