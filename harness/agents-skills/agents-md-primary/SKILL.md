@@ -146,9 +146,15 @@ the cheapest removal there is, and the manifest must say which of the two it is.
 is the mechanism that makes these files grow: appending costs nothing, deleting safely costs
 remembering, so nobody deletes (`_support/docs/methodology-bibliography.md` — measured at
 +226% per file lifetime, and older instructions get *harder* to delete, not easier).
-**Surviving rules earn a pointer to their reason** — a ticket key or commit, never the
-reasoning inline: the pointer costs ~10 characters, the paragraph costs the budget you came
-to reclaim.
+**Surviving rules earn their reason recorded — in the form the rule's own difficulty
+decides.** A rule the model would comply with WRONG without knowing why (a gotcha) keeps one
+short line of reasoning inline: it is measured to raise instruction-following, so it buys
+compliance, not only future deletability. A rule that is obvious to follow and merely needs to
+be retirable tomorrow takes a **pointer** — a ticket key or commit, ~10 characters against a
+paragraph. What never works is the middle: a comment that restates the rule without encoding
+why ("comment-shaped noise") grows the file at nearly the rate of no comment at all. And there
+is no free channel — an HTML comment reaches the model verbatim in every harness (measured on
+Codex `prompt-input`), so `<!-- -->` hides nothing and costs the same as plain text.
 
 **Classify each rule into exactly one outcome:**
 

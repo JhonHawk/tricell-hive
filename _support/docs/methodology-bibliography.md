@@ -982,12 +982,22 @@ Backs `workflow/cross-service-workflow.md > Contract distribution`, the distribu
   misma corrección, y mejoran el seguimiento de instrucciones real hasta **+23.1%**
   (WildIFEval). Crítico: los *comment-shaped noise* — comentarios que no codifican el
   razonamiento — crecen casi igual que no tener ninguno (fig. 1a), así que la forma no basta.
+- `[Empírico — medido 2026-08-22]` **No existe un canal de comentario invisible al modelo.**
+  Un `<!-- ... -->` en un `AGENTS.md` llega íntegro al prompt (verificado con
+  `codex debug prompt-index`… `prompt-input`, marcador único recuperado 1/1): ningún harness
+  parsea markdown para descartarlo, el archivo se inyecta crudo. Corrige la lectura
+  divulgativa del paper (*"the agent never reads it, the next person does"*), que además
+  contradice su propio +23.1% de instruction-following: si mejora el cumplimiento, el modelo
+  lo lee. Consecuencia: un comentario cuesta contexto en TODOS los harnesses y `<!-- -->` no
+  ahorra un token frente a texto plano.
 - **Consecuencia aplicada (2026-08-22):** `agents-md-primary` recupera el rationale
   (`git log -S`/blame + ticket) ANTES de proponer `delete`/`demote`/`soften`, y el manifiesto
   distingue "la razón sigue vigente" de "la razón se perdió o nunca se registró". **Tensión
   resuelta con `AGENTS.md > Concise-first`,** que prohíbe justificaciones y notas de
-  procedencia inline: el rationale no va en el archivo, va como PUNTERO (ticket, commit) —
-  ~10 caracteres frente al párrafo, conservando lo que permite borrar mañana. En este repo el
+  procedencia inline: la forma la decide la dificultad de la regla — una línea de razonamiento
+  inline donde el modelo cumpliría mal sin saber el porqué (compra cumplimiento, no solo
+  borrabilidad), un PUNTERO (ticket, commit) donde la regla es obvia y solo debe poder
+  retirarse mañana. En este repo el
   puntero natural es `git blame`, dado que los mensajes de commit llevan el incidente.
 
 - `[Consenso de comunidad — NO vendor]` Varias guías de 2026 convergen en ~150 líneas para
