@@ -970,6 +970,26 @@ Backs `workflow/cross-service-workflow.md > Contract distribution`, the distribu
   hoy en el system prompt de Claude Code, o sea que la aplicaron a sí mismos). **Progressive
   disclosure:** organizar `CLAUDE.md` y skills como *"a tree of files that can be loaded at
   the right time"*. Herramienta: `/doctor` en sesión.
+- `[Authoritative — peer-reviewable research]` **Chakrabarti, K. "Why Does CLAUDE.md Keep
+  Growing? Catastrophic Remembering in Agentic Coding"** (arXiv:2608.11095v1, 11-ago-2026,
+  South Park Commons). Mide **247,694 vidas de instrucción en 1,867 repositorios**: los
+  prompts agénticos crecen **+226%** sobre su vida (+4.9 instrucciones netas por commit) y
+  **cuanto más vieja es una instrucción, MENOS probable es que se borre** (log-hazard
+  −0.032/commit). Causa: recall imperfecto — añadir es barato, pero borrar sin arriesgar una
+  regresión cuesta `O(2^|D|)` porque exige recordar por qué se añadió. Lo llama **catastrophic
+  remembering**, el inverso del olvido catastrófico. **Remedio medido:** comentarios que
+  codifican el razonamiento latente eliminan el **99.3% del exceso** (+211.3% → +1.4%) con la
+  misma corrección, y mejoran el seguimiento de instrucciones real hasta **+23.1%**
+  (WildIFEval). Crítico: los *comment-shaped noise* — comentarios que no codifican el
+  razonamiento — crecen casi igual que no tener ninguno (fig. 1a), así que la forma no basta.
+- **Consecuencia aplicada (2026-08-22):** `agents-md-primary` recupera el rationale
+  (`git log -S`/blame + ticket) ANTES de proponer `delete`/`demote`/`soften`, y el manifiesto
+  distingue "la razón sigue vigente" de "la razón se perdió o nunca se registró". **Tensión
+  resuelta con `AGENTS.md > Concise-first`,** que prohíbe justificaciones y notas de
+  procedencia inline: el rationale no va en el archivo, va como PUNTERO (ticket, commit) —
+  ~10 caracteres frente al párrafo, conservando lo que permite borrar mañana. En este repo el
+  puntero natural es `git blame`, dado que los mensajes de commit llevan el incidente.
+
 - `[Consenso de comunidad — NO vendor]` Varias guías de 2026 convergen en ~150 líneas para
   `AGENTS.md` y ~200 para `CLAUDE.md`, con dos fundamentos: los modelos frontera siguen de
   forma fiable ~150–200 instrucciones (el system prompt del harness ya gasta parte), y el

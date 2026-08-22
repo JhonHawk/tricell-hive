@@ -139,6 +139,18 @@ it, exactly like a captured plan (`flow-plan-capture`: day-2 continuity is a rep
 harness state). It also makes the manifest reviewable outside the terminal, which is where
 the user reads everything else. Same-day re-audit overwrites; a later date gets its own file.
 
+**Recover WHY before proposing any removal.** Every `delete`, `demote` and `soften` first
+reads the rule's rationale — `git log -S "<line>"` or blame on it, plus the ticket it cites —
+and the manifest entry carries what it found. A rule whose reason still holds is not a
+candidate however redundant it looks; one whose reason is **gone or was never recorded** is
+the cheapest removal there is, and the manifest must say which of the two it is. Skipping this
+is the mechanism that makes these files grow: appending costs nothing, deleting safely costs
+remembering, so nobody deletes (`_support/docs/methodology-bibliography.md` — measured at
++226% per file lifetime, and older instructions get *harder* to delete, not easier).
+**Surviving rules earn a pointer to their reason** — a ticket key or commit, never the
+reasoning inline: the pointer costs ~10 characters, the paragraph costs the budget you came
+to reclaim.
+
 **Classify each rule into exactly one outcome:**
 
 | Outcome | When | Proposed action |
