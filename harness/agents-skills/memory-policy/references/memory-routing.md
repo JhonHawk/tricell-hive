@@ -44,6 +44,7 @@ Reconciliation uses an issue tracker (Linear, Jira, Monday, GitHub Issues) only 
 
 - A declared tracker ranks alongside the ledger and above memory — authoritative for tracking state, but a status *record*, not the live system: if it says done while git/disk disagrees, live state wins and the ticket is what to correct.
 - **Writes are outward-facing — batch them.** Collect every proposed ticket update/close into the finished plan's close confirmation: one approval covers the batch, never per-ticket asks mid-run. Standing write authorization only when the project's config/flow declares it. Use the tracker's MCP/CLI (Linear MCP, `acli` for Jira) via tool-search.
+- **Taking a ticket changes its status THEN, outside the batch.** Starting work on a tracked ticket moves it to the tracker's in-progress state as the work starts — one write, no confirmation: it records that the work is underway, it changes none. Same for a ticket that turns out to be blocked. The batch keeps closes, final states, comments, and evidence.
 - **Opening a ticket to capture a pending item is exempt from the batch — reporting it is not.** Work that would otherwise be lost is captured when it is found, not at close: it records state, it does not change any. It surfaces in the plan's close table (`quality/reporting-integrity.md`), never only in the tracker — a ticket the agent invented is one the user has no way to know exists. Closes and status changes stay in the confirmed batch.
 
 ### Promotion

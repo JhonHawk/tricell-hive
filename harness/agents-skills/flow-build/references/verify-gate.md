@@ -29,9 +29,9 @@ after Execute. Run, for the tasks not yet gated:
    isolation they SERIALIZE in this order: **design gate first, in-vivo second** — in-vivo
    deliberately destroys state (duplicate records, expired sessions, aborted requests) and a
    reviewer walking that wreckage reports defects that do not exist.
-3. **Design gate — REQUIRED for any task with a user-facing surface**, not opt-in: a screen a
-   human will look at is not verified by system-green. The plan sets the flag; a UI task without
-   it is a planning defect, not a licence to skip. Dispatch **ui-reviewer** against the running app.
+3. **Design gate — REQUIRED for any task with a user-facing surface**, not opt-in (canonical
+   statement of the gate: `agent-routing.md > Verification runs in fresh context`, which binds a
+   native plan too — this file carries its mechanics). Dispatch **ui-reviewer** against the running app.
    **The axis scope is DERIVED from what a mock review actually covered for THIS feature — never
    from whether the project owns a mocks repo.** A mock review ran → the gate takes **Visual
    craft** (`flow-core/references/ux-rubric.md` #11–18) plus the five Flow dimensions a prototype

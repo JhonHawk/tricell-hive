@@ -153,12 +153,25 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   down is DELETED from the workspace file and replaced by nothing — the per-repo pointer
   above is what carries the reader back up. Two copies of one rule with no arbiter is the
   drift this skill exists to remove; creating it while conforming the pair is a regression.
-- **`## Git Workflow` declarations**: `Base branch:` / `Git mode:` / `PR review:` per
-  `git-workflow.md`'s declaration block. Each declared value removes a per-session question.
-  `Base branch` is inferable from branch topology; `PR review` from the review apps wired to
-  the repo. **`Git mode` is never inferable — it is the user's preference, not a repo fact:**
-  propose one from the repo's class (PR-gated with CI → `pr-merge`; specs/mocks/docs
-  single-branch → `direct-base`) and confirm it in the apply, never infer it silently.
+- **`## Git Workflow` declarations**: `Base branch:` / `Git mode:` / `PR review:` /
+  `Issue tracker:` per `git-workflow.md`'s declaration block. Each declared value removes a
+  per-session question. `Base branch` is a repo FACT: verify it against branch topology, never ask. The
+  other three are DECISIONS no repo file can settle on its own. **The block lives in the
+  REPO's `AGENTS.md`, one per repo — never at the workspace root:** the values differ per repo
+  and a child-repo session never loads the root file; the root keeps only what crosses repos
+  (the promotion chain, the project's tracker). Each decision is confirmed in the apply, never
+  inferred silently:
+  - **`Git mode`** — propose from the WORK CLASS, not from the repo's CI posture
+    (`git-mechanics.md`): changes landing on a surface only the user can judge (any app with a
+    UI) → `pr-open`, even in a PR-gated repo with green CI; work a machine settles end to end
+    (infra, specs, tooling) → `pr-merge`; single-branch → `direct-base`. A repo declaring
+    `pr-merge` over user-judged surface is a FINDING, not a preference to preserve.
+  - **`PR review`** — the review apps wired to the repo tell you WHICH app; they never
+    authorize spending it. Confirm that a paid app's trigger rides the user's sign-off
+    (`git-mechanics.md > PRs & promotion`).
+  - **`Issue tracker`** — standing write authorization to an external system, confirm-gated in
+    its own right (`memory-routing.md > Tracker sync`); never carried over as settled because a
+    previous version of the file already said it.
 - **Instruction budget**: report each file's size, and the repo's Codex chain — Codex
   concatenates git-root → cwd, so nested `AGENTS.md` files are charged together against
   `project_doc_max_bytes` (32 KiB default; raising it is per-machine and does not travel with
