@@ -17,7 +17,7 @@
 
 A search hit is a pointer, never a verdict:
 
-- **An absence claim needs an exhaustive `rg` sweep** — broad vocabulary, English AND Spanish domain terms, 0 hits. Nothing weaker supports "X does not exist".
+- **An absence claim needs an exhaustive `rg` sweep** — broad vocabulary, English AND Spanish domain terms, 0 hits. Nothing weaker supports "X does not exist". **An assumed absence counts as a claimed one:** fixing the occurrence that failed and moving on asserts there are no others without ever saying so, so the sweep is owed before acting, not before writing the sentence (`quality/critical-thinking.md > Count the instances`).
 - **Verify before building on a hit.** It may be dead code or the wrong direction — Read the file and check its call sites before anchoring a conclusion on it.
 - **A tool that infers relations instead of resolving them is not evidence.** Any index or assistant that answers "who calls this" without the compiler's own resolution guesses on ambiguity, and a wrong guess is indistinguishable from a right one in its output. Confirm the target file before acting on a relation it reports.
 
