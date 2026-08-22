@@ -157,10 +157,41 @@ if [ "${CLAUDECODE:-}" = "1" ]; then
   fi
 fi
 
+# --- 4. Stale hive-profile block (report-only) --------------------------------
+# A repo carrying a compiled hive profile (harness/hive-compile.py) stamps the
+# hive SHA it was generated from. When the hive has moved past that SHA
+# touching global/rules/ or the classifier itself, the block may assert stale
+# facts — ONE advisory line, never a mutation. Skipped silently when the hive
+# checkout is absent (other machines) or the cwd repo carries no profile.
+hive_profile_stale=""
+hive_stamp=""
+HIVE_REPO="${HIVE_REPO:-$HOME/Development/projects/tricell/tricell-hive}"
+if [ -n "$session_cwd" ] && [ -d "$HIVE_REPO/.git" ]; then
+  profile_root=$(git -C "$session_cwd" rev-parse --show-toplevel 2>/dev/null || true)
+  if [ -n "$profile_root" ] && [ -f "$profile_root/AGENTS.md" ] \
+     && grep -q 'hive-profile:start' "$profile_root/AGENTS.md" 2>/dev/null; then
+    hive_stamp=$(grep -oE 'hive@[0-9a-f]+' "$profile_root/AGENTS.md" 2>/dev/null | head -1 | cut -d@ -f2)
+    hive_head=$(git -C "$HIVE_REPO" rev-parse --short HEAD 2>/dev/null || true)
+    if [ -n "$hive_stamp" ] && [ -n "$hive_head" ] && [ "$hive_stamp" != "$hive_head" ]; then
+      if ! git -C "$HIVE_REPO" rev-parse --verify --quiet "${hive_stamp}^{commit}" >/dev/null 2>&1; then
+        hive_profile_stale="hive-profile stale (stamp hive@${hive_stamp} unknown to the hive checkout); run harness/hive-compile.py"
+      elif [ -n "$(git -C "$HIVE_REPO" log --name-only "${hive_stamp}..HEAD" -- global/rules/ harness/hive-compile.py 2>/dev/null)" ]; then
+        hive_profile_stale="hive-profile stale (hive moved ${hive_stamp}→${hive_head} touching rules/); run harness/hive-compile.py"
+      fi
+    fi
+  fi
+fi
+if [ -n "$hive_profile_stale" ]; then
+  finding_keys+="hive-profile:${hive_stamp}"$'\n'
+fi
+
 # --- Emit ---------------------------------------------------------------------
 findings="$proc_findings"
 if [ -n "$shell_drift" ]; then
   findings+="- Shell drift: ${shell_drift}"$'\n'
+fi
+if [ -n "$hive_profile_stale" ]; then
+  findings+="- ${hive_profile_stale}"$'\n'
 fi
 [ -n "$findings" ] || exit 0
 
@@ -200,6 +231,14 @@ if [ -n "$shell_drift" ]; then
     intro="the agent-shell (bash 5) check raised a warning"
   fi
   outro="${outro:+$outro }Mention the shell warning in your first reply and verify it before acting on it."
+fi
+if [ -n "$hive_profile_stale" ]; then
+  if [ -n "$intro" ]; then
+    intro+="; this repo's compiled hive profile is stale"
+  else
+    intro="this repo's compiled hive profile is stale"
+  fi
+  outro="${outro:+$outro }Offer to regenerate the hive profile; never regenerate it unasked."
 fi
 
 report="Session-hygiene report (report-only): ${intro}.

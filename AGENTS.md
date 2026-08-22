@@ -255,15 +255,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 ## Rule Exclusions (this repo)
 
-This repo is config-only. The following inherited global rules do **not** apply to changes here:
-
-- **`quality/testing.md`** — no runtime code to test. Agent prompts, rule files, and skills are not "production code".
-- **`Build & Lint`** (from global `CLAUDE.md`) — no build system. Validation is read-review of rule/agent files.
-- **`security.md` → Supply Chain Security** — no installable dependencies; no OSV checks to run.
-- **`patterns-antipatterns.md`** — code-pattern rules (Promise.all, fs.readFileSync, useState) do not apply to markdown.
-- **`critical-thinking.md` → Pre-ship ownership test** (questions 1-2 about runtime load and customer impact) — does not apply to agent/rule text. Risk-surfacing and tradeoff-flagging still apply.
-
-Build/test/lint enforcement is restored automatically in any other repo with runtime code.
+Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); regenerate with `python3 harness/hive-compile.py . --apply` when `global/rules/` or the classifier move (the `session-hygiene-report` hook advises when it goes stale). Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
 
 ## Replicating Global Harness Config
 - Source file: `harness/AGENTS.md` — itself GENERATED from `global/core-sections/`: edit the sections and run `python3 harness/build.py` first, never the output.
@@ -297,3 +289,25 @@ Build/test/lint enforcement is restored automatically in any other repo with run
 - **Shell is the exception — it has a real linter.** After touching any `.sh`, run `find global .claude harness -name '*.sh' -print0 | xargs -0 shellcheck -S style` and keep it at zero findings. A genuine false positive gets `# shellcheck disable=SC####` with the reason inline, placed **before the compound command** (`while`/`if`), never before its `done`/`fi` — a misplaced directive makes shellcheck skip the whole block instead of one line. `_support/backup|archive/**` is third-party or frozen; leave it out of scope.
 - For changes to `AGENTS.md` or `harness/AGENTS.md`, verify the files do not reference Claude-only tools as if they were available in other harnesses.
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
+
+<!-- hive-profile:start -->
+Hive profile v1 · hive@b8c3112 · 2026-08-22 · class: config-hub
+
+## Hive Profile
+
+- **Class:** config-hub
+- **Stack detected:** Python, shell scripts
+
+**Path-scoped rule families that apply here** (load on touching matching files): `python-standards`, `shell-standards`.
+
+**Rule Exclusions (class: config-hub — no runtime):**
+- `quality/testing.md` — no runtime code to test; files here are reviewed by reading.
+- `Build & Lint` (global `CLAUDE.md`) — no build system; validation is read-review/diff review.
+- `security.md` > Supply Chain Security — no installable dependencies; no OSV checks to run.
+- `patterns-antipatterns.md` — code-pattern rules do not apply to markdown.
+- `critical-thinking.md` > Pre-ship ownership test (questions 1-2) — no runtime load or customer impact; risk-surfacing and tradeoffs still apply.
+
+Build/test/lint enforcement is restored automatically in any repo with runtime code.
+
+**Creating the FIRST file of a kind in a session:** read its rule from `~/.claude/rules/languages/` first — path-scoped rules fire on read/edit, not on create.
+<!-- hive-profile:end -->

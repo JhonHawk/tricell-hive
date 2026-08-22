@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+"""hive-compile.py — per-project hive profile generator.
+
+Classifies a target repo from detectable facts (lockfiles, framework configs,
+monorepo markers, infra files, repo-class markers) and writes an idempotent
+managed block into the target's AGENTS.md between two single-line markers:
+
+    <!-- hive-profile:start -->
+    ...
+    <!-- hive-profile:end -->
+
+The stamp inside the block is ONE visible line (HTML comments are stripped only
+by Claude Code — Codex, opencode and Grok inject them verbatim, so the two
+minimal fences above are the only comment lines this block pays for).
+
+Contract mirrors deploy-global: DRY-RUN is the default (prints the block),
+`--apply` writes, `--create` allows creating a missing AGENTS.md, `--check`
+exits non-zero when the target's existing block is stale (the hive moved past
+the stamped SHA touching global/rules/ or this classifier).
+
+Optional per-repo override file `.hive-profile.yaml` (flat `key: value` lines;
+keys: class, tracker, exclusions, notes) — overrides win over detection. A
+tracker line is emitted ONLY from an explicit override declaration: tracker
+declarations are confirm-gated, the tool only mirrors one already made.
+
+Usage:
+    python3 harness/hive-compile.py <target-repo> [--apply] [--create] [--check]
+"""
+import datetime
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+HIVE_ROOT = Path(__file__).resolve().parent.parent
+MARK_START = "<!-- hive-profile:start -->"
+MARK_END = "<!-- hive-profile:end -->"
+OVERRIDE_FILE = ".hive-profile.yaml"
+# Paths whose movement makes an emitted profile stale (also used by the
+# session-hygiene-report staleness advisory — keep the two in sync).
+STALE_PATHS = ["global/rules/", "harness/hive-compile.py"]
+
+# Exclusion set for classes with no runtime — mirrors the hand-written pattern
+# of tricell-hive's AGENTS.md > Rule Exclusions.
+NO_RUNTIME_EXCLUSIONS = [
+    ("`quality/testing.md`", "no runtime code to test; files here are reviewed by reading"),
+    ("`Build & Lint` (global `CLAUDE.md`)", "no build system; validation is read-review/diff review"),
+    ("`security.md` > Supply Chain Security", "no installable dependencies; no OSV checks to run"),
+    ("`patterns-antipatterns.md`", "code-pattern rules do not apply to markdown"),
+    ("`critical-thinking.md` > Pre-ship ownership test (questions 1-2)",
+     "no runtime load or customer impact; risk-surfacing and tradeoffs still apply"),
+]
+
+
+def sh(args, cwd=None):
+    res = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+    return res.returncode, res.stdout.strip()
+
+
+def hive_sha():
+    rc, out = sh(["git", "rev-parse", "--short", "HEAD"], cwd=HIVE_ROOT)
+    if rc != 0:
+        sys.exit("ERROR: cannot resolve the hive repo's HEAD (is this a git checkout?).")
+    return out
+
+
+def read_override(target: Path):
+    """Flat `key: value` parser for .hive-profile.yaml — no external deps."""
+    path = target / OVERRIDE_FILE
+    if not path.is_file():
+        return {}
+    allowed = {"class", "tracker", "exclusions", "notes"}
+    override = {}
+    for ln, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = re.match(r"^([A-Za-z_-]+)\s*:\s*(.+)$", line)
+        if not m:
+            sys.exit(f"ERROR: {path}:{ln}: not a flat 'key: value' line: {raw!r}")
+        key, value = m.group(1).lower(), m.group(2).strip().strip("'\"")
+        if key not in allowed:
+            sys.exit(f"ERROR: {path}:{ln}: unknown key '{key}' (allowed: {sorted(allowed)})")
+        override[key] = value
+    return override
+
+
+def globs(target: Path, *patterns, depth_dirs=("", "apps/*", "packages/*")):
+    """Match patterns at the root and one level under common monorepo dirs."""
+    hits = []
+    for base in depth_dirs:
+        for pattern in patterns:
+            hits.extend(target.glob(f"{base}/{pattern}" if base else pattern))
+    return hits
+
+
+def detect(target: Path):
+    facts = {"stack": [], "rules": [], "infra": [], "monorepo": []}
+
+    # Package manager: lockfile decides; absent one, packageManager; else pnpm.
+    pkg_json = target / "package.json"
+    if (target / "pnpm-lock.yaml").is_file():
+        facts["pm"] = "pnpm (pnpm-lock.yaml)"
+    elif (target / "yarn.lock").is_file():
+        facts["pm"] = "yarn (yarn.lock)"
+    elif (target / "package-lock.json").is_file():
+        facts["pm"] = "npm (package-lock.json)"
+    elif pkg_json.is_file():
+        m = re.search(r'"packageManager"\s*:\s*"([^@"]+)', pkg_json.read_text(encoding="utf-8"))
+        facts["pm"] = f"{m.group(1)} (packageManager field)" if m else "pnpm (default — no lockfile)"
+    else:
+        facts["pm"] = None
+
+    for marker in ("pnpm-workspace.yaml", "turbo.json", "nx.json"):
+        if (target / marker).is_file():
+            facts["monorepo"].append(marker)
+
+    def add(stack, rule):
+        if stack and stack not in facts["stack"]:
+            facts["stack"].append(stack)
+        if rule and rule not in facts["rules"]:
+            facts["rules"].append(rule)
+
+    has_ts = pkg_json.is_file() or bool(globs(target, "tsconfig*.json"))
+    if has_ts:
+        add("TypeScript/JS", "typescript-standards")
+    ui = False
+    if globs(target, "next.config.*"):
+        add("Next.js", "react-nextjs"); ui = True
+    if globs(target, "angular.json"):
+        add("Angular", "angular-patterns"); ui = True
+    if globs(target, "nest-cli.json"):
+        add("NestJS", "nestjs-patterns")
+    if globs(target, "astro.config.*"):
+        add("Astro", "react-nextjs"); ui = True
+    if globs(target, "vite.config.*"):
+        add("Vite", None); ui = True
+    if globs(target, "schema.prisma", "prisma/schema.prisma", "drizzle.config.*"):
+        add("Prisma/Drizzle", "sql-migrations")
+    if globs(target, "tailwind.config.*") or (
+            pkg_json.is_file() and '"tailwindcss"' in pkg_json.read_text(encoding="utf-8")):
+        add("Tailwind", "tailwind")
+    if (target / "pyproject.toml").is_file() or globs(target, "*.py", "scripts/*.py", "harness/*.py"):
+        add("Python", "python-standards")
+    if globs(target, "pom.xml", "build.gradle*"):
+        add("Java/Kotlin", "java-kotlin")
+    # Bounded lookup (no rglob: node_modules in a monorepo makes it minutes).
+    if globs(target, "*.sh", "scripts/*.sh", "_support/scripts/*.sh", "global/hooks/*/*.sh"):
+        add("shell scripts", "shell-standards")
+    if ui:
+        add(None, "ui-visual-design")
+
+    if globs(target, "Dockerfile*"):
+        facts["infra"].append("Dockerfile")
+    if globs(target, "*.tf", "infrastructure/*.tf", "terraform/*.tf"):
+        facts["infra"].append("Terraform")
+    if (target / ".github" / "workflows").is_dir():
+        facts["infra"].append("GitHub Actions")
+    if facts["infra"]:
+        facts["rules"].append("iac-devops")
+
+    # Repo class.
+    if (target / "global").is_dir() and (target / "harness").is_dir():
+        facts["class"] = "config-hub"
+    elif facts["monorepo"]:
+        facts["class"] = "monorepo"
+    elif pkg_json.is_file():
+        facts["class"] = "app"
+    else:
+        tracked = [p for p in target.rglob("*") if p.is_file()
+                   and ".git" not in p.parts and "node_modules" not in p.parts]
+        md = [p for p in tracked if p.suffix == ".md"]
+        facts["class"] = "specs" if tracked and len(md) / len(tracked) >= 0.6 else "other"
+    return facts
+
+
+def render_block(facts, override):
+    repo_class = override.get("class", facts["class"])
+    today = datetime.date.today().isoformat()
+    lines = [MARK_START,
+             f"Hive profile v1 · hive@{hive_sha()} · {today} · class: {repo_class}",
+             "",
+             "## Hive Profile",
+             ""]
+    lines.append(f"- **Class:** {repo_class}"
+                 + (f" ({', '.join(facts['monorepo'])})" if facts["monorepo"] else ""))
+    if facts["pm"]:
+        lines.append(f"- **Package manager:** {facts['pm']}")
+    if facts["stack"]:
+        lines.append(f"- **Stack detected:** {', '.join(facts['stack'])}")
+    if facts["infra"]:
+        lines.append(f"- **Infra:** {', '.join(facts['infra'])}")
+    if override.get("tracker"):
+        lines.append(f"- **Tracker (declared):** {override['tracker']}")
+    if override.get("notes"):
+        lines.append(f"- **Notes:** {override['notes']}")
+
+    if facts["rules"]:
+        lines += ["",
+                  "**Path-scoped rule families that apply here** (load on touching matching files): "
+                  + ", ".join(f"`{r}`" for r in facts["rules"]) + "."]
+
+    no_runtime = repo_class in ("specs", "config-hub")
+    if no_runtime or override.get("exclusions"):
+        lines += ["", f"**Rule Exclusions (class: {repo_class} — no runtime):**"]
+        if no_runtime:
+            lines += [f"- {rule} — {why}." for rule, why in NO_RUNTIME_EXCLUSIONS]
+        for extra in filter(None, (s.strip() for s in override.get("exclusions", "").split(","))):
+            lines.append(f"- {extra}")
+        lines += ["", "Build/test/lint enforcement is restored automatically in any repo with runtime code."]
+
+    lines += ["",
+              "**Creating the FIRST file of a kind in a session:** read its rule from "
+              "`~/.claude/rules/languages/` first — path-scoped rules fire on read/edit, not on create.",
+              MARK_END]
+    return "\n".join(lines) + "\n"
+
+
+def upsert(agents_md: Path, block: str, create: bool):
+    if not agents_md.is_file():
+        if not create:
+            sys.exit(f"ERROR: {agents_md} does not exist. Re-run with --create to create it, "
+                     "or add the block to the file that repo actually loads.")
+        agents_md.write_text(f"# Agent Configuration\n\n{block}", encoding="utf-8")
+        return "created"
+    text = agents_md.read_text(encoding="utf-8")
+    if MARK_START in text:
+        if MARK_END not in text:
+            sys.exit(f"ERROR: {agents_md} has {MARK_START} but no {MARK_END} — repair the fences first.")
+        pattern = re.escape(MARK_START) + r".*?" + re.escape(MARK_END) + r"\n?"
+        new = re.sub(pattern, block, text, count=1, flags=re.S)
+        verdict = "unchanged" if new == text else "replaced"
+    else:
+        new = text.rstrip("\n") + "\n\n" + block
+        verdict = "appended"
+    if verdict != "unchanged":
+        agents_md.write_text(new, encoding="utf-8")
+    return verdict
+
+
+def check_stale(agents_md: Path):
+    if not agents_md.is_file():
+        print(f"no AGENTS.md at {agents_md} — nothing to check.")
+        return 0
+    text = agents_md.read_text(encoding="utf-8")
+    m = re.search(r"hive-profile:start -->\nHive profile v\d+ · hive@([0-9a-f]+)", text)
+    if not m:
+        print("no hive-profile block (or unparseable stamp) — nothing to check.")
+        return 0
+    stamp = m.group(1)
+    current = hive_sha()
+    if stamp == current:
+        print(f"hive-profile fresh (hive@{stamp} == HEAD).")
+        return 0
+    rc, _ = sh(["git", "rev-parse", "--verify", f"{stamp}^{{commit}}"], cwd=HIVE_ROOT)
+    if rc != 0:
+        print(f"STALE: stamp hive@{stamp} is unknown to this hive checkout — regenerate: "
+              "python3 harness/hive-compile.py <repo> --apply")
+        return 1
+    rc, out = sh(["git", "log", "--name-only", f"{stamp}..HEAD", "--"] + STALE_PATHS, cwd=HIVE_ROOT)
+    if rc == 0 and out:
+        print(f"STALE: hive moved {stamp}→{current} touching {' / '.join(STALE_PATHS)} — regenerate: "
+              "python3 harness/hive-compile.py <repo> --apply")
+        return 1
+    print(f"hive-profile fresh enough (hive moved {stamp}→{current} without touching rules or the classifier).")
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    flags = {a for a in args if a.startswith("--")}
+    unknown = flags - {"--apply", "--create", "--check", "--dry-run"}
+    if unknown:
+        sys.exit(f"ERROR: unknown flag(s): {sorted(unknown)}\n{__doc__}")
+    positional = [a for a in args if not a.startswith("--")]
+    if len(positional) != 1:
+        sys.exit(f"ERROR: exactly one target repo path required.\n{__doc__}")
+    target = Path(positional[0]).resolve()
+    if not target.is_dir():
+        sys.exit(f"ERROR: target '{target}' is not a directory.")
+    agents_md = target / "AGENTS.md"
+
+    if "--check" in flags:
+        sys.exit(check_stale(agents_md))
+
+    override = read_override(target)
+    facts = detect(target)
+    block = render_block(facts, override)
+
+    if "--apply" not in flags:
+        print(f"# dry-run (default) — nothing written. Target: {agents_md}")
+        print(block, end="")
+    else:
+        verdict = upsert(agents_md, block, create="--create" in flags)
+        print(f"hive-profile {verdict} -> {agents_md}")
+
+    repo_class = override.get("class", facts["class"])
+    if repo_class in ("specs", "config-hub"):
+        print()
+        print("# optional manual step (never written by this tool): trim what CLAUDE.md pulls in")
+        print(f"# for this no-runtime repo via {target}/.claude/settings.local.json:")
+        print('#   { "claudeMdExcludes": ["rules/quality/testing.md", "rules/quality/patterns-antipatterns.md"] }')
+
+
+if __name__ == "__main__":
+    main()
