@@ -139,6 +139,15 @@ it, exactly like a captured plan (`flow-plan-capture`: day-2 continuity is a rep
 harness state). It also makes the manifest reviewable outside the terminal, which is where
 the user reads everything else. Same-day re-audit overwrites; a later date gets its own file.
 
+**The floor — what a root file keeps even when everything else goes.** One sentence saying
+what the project is; the package manager only if it is not the ecosystem default; the
+build/typecheck/test commands that are NON-standard. Plus this repo's own additions: the
+`## Git Workflow` declarations and the pointers a child-repo session cannot reach on its own
+(ledger, sibling map). That is the stopping condition — an audit that proposes cutting into
+this floor has gone from pruning to breaking, and a file already at it is reported **already
+lean**, not squeezed further. A package-level file inside a monorepo takes the same shape for
+its own scope: what the package is, its stack, its conventions — never a copy of the root's.
+
 **Recover WHY before proposing any removal.** Every `delete`, `demote` and `soften` first
 reads the rule's rationale — `git log -S "<line>"` or blame on it, plus the ticket it cites —
 and the manifest entry carries what it found. A rule whose reason still holds is not a
