@@ -2,17 +2,25 @@
 """Regenerate every generated tree under harness/ from the canonical sources.
 
 Single entry point (run from the repo root):
-    python3 harness/build.py
+    python3 harness/build.py            # assemble + regenerate + parity checks
+    python3 harness/build.py --check    # parity checks only, nothing written
+
+Core outputs are guarded at assembly time: a stale core (matches HEAD, differs
+from the new assembly) regenerates silently; a hand-edited core (differs from
+both) aborts the build with the edit preserved on disk.
 
 Generates (delete-and-recreate, never incremental):
+    global/CLAUDE.md              <- global/core-sections (assembled always-on core, Claude Code)
+    harness/AGENTS.md             <- global/core-sections (assembled always-on core, Codex/opencode/Grok)
     harness/agents-skills/        <- global/skills   (cleaned universal skills)
     harness/codex/agents/         <- global/agents   (Codex TOML subagents)
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
     harness/grok/agents/          <- global/agents   (Grok Build markdown agents)
     harness/opencode/rules/       <- global/rules/languages (opencode-rules plugin format)
 
-Hand-written sources are never touched: harness/AGENTS.md, harness/codex/{README,
-*.snippet}, harness/opencode/{README, *.snippet, commands/}.
+Hand-written sources are never touched: harness/codex/{README, *.snippet},
+harness/opencode/{README, *.snippet, commands/}. The two always-on cores are
+GENERATED — edit global/core-sections/ (format: its README), never the outputs.
 
 Run this after ANY edit to global/agents or global/skills, before committing —
 /deploy-global also runs it and flags a dirty harness/ as a missed rebuild.
@@ -115,6 +123,171 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/workflow", "unattended-autonomy.md"),
     ],
 }
+
+# The two always-on cores are assembled from one canonical section corpus, so a
+# policy edit touches exactly one file. Section format (order/targets/join
+# frontmatter, per-target order overrides, `<name>.<target>.md` body overlays):
+# global/core-sections/README.md.
+CORE_SECTIONS_DIR = ROOT / "global" / "core-sections"
+CORE_TARGETS = {
+    "claude": ROOT / "global" / "CLAUDE.md",
+    "agents": ROOT / "harness" / "AGENTS.md",
+}
+CORE_MARKER = "<!-- generated: global/core-sections -->"
+CORE_NOTICE = ("> Generated from `global/core-sections/` by `harness/build.py` — "
+               "edit the sections, not this file.")
+CORE_OVERLAY_SUFFIXES = tuple(f".{t}.md" for t in CORE_TARGETS)
+
+
+def _core_section_files():
+    """Primary section files, after failing closed on structural defects."""
+    if not CORE_SECTIONS_DIR.is_dir():
+        sys.exit("ERROR: core assembly: global/core-sections/ does not exist — "
+                 "refusing to regenerate the always-on cores from nothing.")
+    files = sorted(p for p in CORE_SECTIONS_DIR.glob("*.md") if p.name != "README.md")
+    primaries = [p for p in files if not p.name.endswith(CORE_OVERLAY_SUFFIXES)]
+    if not primaries:
+        sys.exit("ERROR: core assembly: global/core-sections/ holds no section files — "
+                 "refusing to write empty cores.")
+    for stray in CORE_SECTIONS_DIR.iterdir():
+        if stray.is_file() and stray.suffix != ".md" and not stray.name.startswith("."):
+            print(f"WARNING: core assembly: {stray.name} is not a .md file and is "
+                  "ignored by the assembly.")
+    names = {p.stem for p in primaries}
+    for overlay in (p for p in files if p.name.endswith(CORE_OVERLAY_SUFFIXES)):
+        stem, target = overlay.stem.rsplit(".", 1)
+        if stem not in names:
+            sys.exit(f"ERROR: core assembly: overlay {overlay.name} has no primary "
+                     f"section {stem}.md.")
+        primary_targets = _parse_core_section(CORE_SECTIONS_DIR / f"{stem}.md")[0]
+        if target not in primary_targets:
+            sys.exit(f"ERROR: core assembly: overlay {overlay.name} targets {target!r} "
+                     f"but {stem}.md declares targets: {primary_targets} — the overlay "
+                     "is dead. Add the target to the primary or delete the overlay.")
+    return primaries
+
+
+def _parse_core_section(path):
+    """-> (targets, {target: order}, join, body). Exits on malformed frontmatter."""
+    text = path.read_text(encoding="utf-8")
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        sys.exit(f"ERROR: core assembly: {path.name} lacks a frontmatter block.")
+    meta = {}
+    for raw in m.group(1).splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        key, sep, val = line.partition(":")
+        if not sep or not val.strip():
+            sys.exit(f"ERROR: core assembly: malformed frontmatter line {raw!r} "
+                     f"in {path.name}.")
+        meta[key.strip()] = val.strip()
+    targets = [t.strip() for t in meta.get("targets", "").strip("[]").split(",")
+               if t.strip()]
+    if not targets or any(t not in CORE_TARGETS for t in targets):
+        sys.exit(f"ERROR: core assembly: {path.name} needs `targets:` as a non-empty "
+                 f"subset of {sorted(CORE_TARGETS)} (got {targets or 'none'}).")
+    orders = {}
+    for t in targets:
+        v = meta.get(f"order_{t}", meta.get("order"))
+        if v is None or not v.isdigit():
+            sys.exit(f"ERROR: core assembly: {path.name} has no integer order for "
+                     f"target {t!r} — set `order:` or `order_{t}:`.")
+        orders[t] = int(v)
+    join = meta.get("join", "loose")
+    if join not in ("loose", "tight"):
+        sys.exit(f"ERROR: core assembly: {path.name} `join:` must be 'loose' or "
+                 f"'tight' (default 'loose'; got {join!r}).")
+    return targets, orders, join, text[m.end():].strip("\n")
+
+
+def _assemble_core(target):
+    parts = []
+    for path in _core_section_files():
+        targets, orders, join, body = _parse_core_section(path)
+        if target not in targets:
+            continue
+        overlay = path.with_name(f"{path.stem}.{target}.md")
+        if overlay.exists():
+            otext = overlay.read_text(encoding="utf-8")
+            om = re.match(r"^---\n.*?\n---\n", otext, re.S)
+            body = (otext[om.end():] if om else otext).strip("\n")
+        parts.append((orders[target], path.stem, join, body))
+    seen = {}
+    for order, stem, _, _ in parts:
+        if order in seen:
+            sys.exit(f"ERROR: core assembly: {seen[order]}.md and {stem}.md both use "
+                     f"order {order} for target {target!r} — assembly position would "
+                     "be filename-dependent. Renumber one of them.")
+        seen[order] = stem
+    parts.sort(key=lambda p: (p[0], p[1]))
+    out = []
+    for _, _, join, body in parts:
+        if out:
+            out.append("\n" if join == "tight" else "\n\n")
+        out.append(body)
+    return f"{CORE_MARKER}\n{CORE_NOTICE}\n\n{''.join(out)}\n"
+
+
+def _git_head_content(rel):
+    """Content of the file at HEAD, or None (new file, or no repo)."""
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "show", f"HEAD:{rel}"],
+                           capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else None
+    except OSError:
+        return None
+
+
+def assemble_cores():
+    """Write the assembled cores — refusing to destroy a hand edit.
+
+    Per output: disk == assembly -> up to date, nothing written. Disk differs
+    from the assembly but matches HEAD -> stale after a section edit,
+    regenerated silently. Disk differs from BOTH -> a hand edit (or an
+    uncommitted state the build cannot vouch for): exit non-zero with the edit
+    preserved on disk, never overwrite it.
+    """
+    for target, dest in CORE_TARGETS.items():
+        content = _assemble_core(target)
+        rel = dest.relative_to(ROOT)
+        on_disk = dest.read_text(encoding="utf-8") if dest.exists() else None
+        if on_disk == content:
+            print(f"core up to date: {rel} (target: {target})")
+            continue
+        if on_disk is not None and on_disk != _git_head_content(rel):
+            sys.exit(
+                f"ERROR: core assembly: {rel} differs from BOTH its regeneration and "
+                "HEAD — it holds a hand edit this rebuild would destroy. The edit is "
+                "still on disk: move it into global/core-sections/, restore the output "
+                f"(git checkout -- {rel}), and rerun harness/build.py. If the file is "
+                "itself an uncommitted regeneration with no hand edits, delete it and "
+                "rerun.")
+        dest.write_text(content, encoding="utf-8")
+        print(f"assembled {rel} <- global/core-sections/ "
+              f"({len(content.encode('utf-8')) / 1024:.1f} KiB, target: {target})")
+
+
+def check_core_assembly_parity():
+    """Fail when a core on disk differs from its regeneration. Read-only.
+
+    In a full build assemble_cores() ran first, so this is a belt check for
+    write integrity and determinism; its real teeth are the --check mode
+    (deploy preflight, pre-commit), which runs it WITHOUT assembling — there
+    it catches both a stale output and a hand-edited one.
+    """
+    for target, dest in CORE_TARGETS.items():
+        expected = _assemble_core(target)
+        actual = dest.read_text(encoding="utf-8") if dest.exists() else ""
+        if actual != expected:
+            sys.exit(f"ERROR: core-assembly parity: {dest.relative_to(ROOT)} does not "
+                     "match the assembly of global/core-sections/. It is a generated "
+                     "file — run python3 harness/build.py to regenerate (that run "
+                     "refuses to destroy a hand edit); never hand-edit the output.")
+    print(f"core assembly: {len(CORE_TARGETS)} generated cores match "
+          "global/core-sections/.")
+
 
 GENERATED_README = """# Generated — do not edit
 
@@ -263,7 +436,8 @@ def check_delegation_threshold_parity():
             f"  core   harness/AGENTS.md > {DELEGATION_CORE_ANCHOR}: {sorted(core_tokens)}\n"
             f"  only in canon: {sorted(canon_tokens - core_tokens) or 'none'}\n"
             f"  only in core:  {sorted(core_tokens - canon_tokens) or 'none'}\n"
-            "Change the canonical rule first, then mirror it into the core.")
+            "Change the canonical rule first, then mirror it into the core section "
+            "(global/core-sections/work-style-delegation.md) and rebuild.")
 
     print(f"delegation thresholds: canon and core agree ({', '.join(sorted(canon_tokens))}).")
 
@@ -288,8 +462,9 @@ def check_router_index_parity():
     end = text.find(ROUTER_TABLE_END, start + 1) if start != -1 else -1
     if start == -1 or end == -1:
         sys.exit(f"ERROR: router-index parity: anchor {ROUTER_TABLE_START!r}.."
-                 f"{ROUTER_TABLE_END!r} not found in global/CLAUDE.md. Restore it or "
-                 f"update ROUTER_TABLE_START/END in harness/build.py.")
+                 f"{ROUTER_TABLE_END!r} not found in global/CLAUDE.md. Restore it "
+                 f"(source: global/core-sections/skill-routing.md) or update "
+                 f"ROUTER_TABLE_START/END in harness/build.py.")
     routers = [m.group(1) for line in text[start:end].splitlines()
                for m in [ROUTER_ROW.match(line)] if m]
     if not routers:
@@ -310,13 +485,27 @@ def check_router_index_parity():
             "Codex/opencode.\n"
             f"  in global/CLAUDE.md table: {sorted(routers)}\n"
             f"  absent from harness/AGENTS.md: {sorted(missing_in_core)}\n"
-            "Add each missing router to the always-on core, stating the act that fires it.")
+            "Add each missing router to the always-on core (source: "
+            "global/core-sections/on-demand-rules.md), stating the act that fires it.")
 
     print(f"router index: {len(routers)} routers, table and core agree "
           f"({', '.join(routers)}).")
 
 
 def main():
+    # --check: run every parity check read-only (deploy preflight, pre-commit)
+    # — nothing is written, so a stale or hand-edited core FAILS here instead
+    # of being regenerated or refused mid-write.
+    if "--check" in sys.argv[1:]:
+        check_delegation_threshold_parity()
+        check_router_index_parity()
+        check_core_assembly_parity()
+        print("check-only run: nothing written.")
+        return
+
+    # Always-on cores first, so the size reports below measure generated output
+    assemble_cores()
+
     # Universal skills (Codex + opencode read ~/.agents/skills)
     skills_out = ROOT / "harness" / "agents-skills"
     regen_dir(skills_out)
@@ -388,6 +577,7 @@ def main():
     # printed, so a drift exit signals only the drift.
     check_delegation_threshold_parity()
     check_router_index_parity()
+    check_core_assembly_parity()
 
 
 if __name__ == "__main__":

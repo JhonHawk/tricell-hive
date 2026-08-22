@@ -71,7 +71,8 @@ templates, Linear/browser panes): see the 2026-07-23 plugin review in Engram.
 AGENTS.md                            # Local guide for AGENTS-compatible harnesses working on this repo
 CLAUDE.md                            # Claude-facing project guide, not deployed
 global/                              # Mirrors ~/.claude/ — deployable source of truth
-├── CLAUDE.md                        # Core config (always loaded)
+├── CLAUDE.md                        # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
+├── core-sections/                   # Canonical section files for both always-on cores (global/CLAUDE.md + harness/AGENTS.md)
 ├── rules/                           # Path-scoped and alwaysApply rules
 │   ├── quality/                     # Code principles (8 files)
 │   ├── languages/                   # Language/framework standards (11 files, path-scoped)

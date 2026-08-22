@@ -42,14 +42,18 @@ ever reached it. The scope closes that gap in two parts:
 
 ## Before running
 
-`harness/` is generated from `global/agents` and `global/skills` by `harness/build.py`.
-If canonical sources changed since the last build, rebuild and commit first:
+`harness/` is generated from `global/agents` and `global/skills` by `harness/build.py`,
+which also assembles the two always-on cores (`global/CLAUDE.md` and `harness/AGENTS.md`)
+from `global/core-sections/`. If canonical sources changed since the last build, rebuild
+and commit first:
 ```bash
-python3 harness/build.py && git status --porcelain harness/
+python3 harness/build.py && git status --porcelain harness/ global/CLAUDE.md
 ```
-The script also rebuilds automatically under `--apply` (for the `codex`/`opencode` scopes)
-and warns if `harness/` comes out dirty — but a clean, committed `harness/` going in is the
-judgment call the script can't make for you. **The dry-run diff for harness-derived
+The script also rebuilds automatically under `--apply` (every scope, before deploying
+`global/CLAUDE.md`, so the deployed core is the fresh assembly) and warns if `harness/`
+or `global/CLAUDE.md` comes out dirty — but a clean, committed tree going in is the
+judgment call the script can't make for you. A hand-edited core aborts the rebuild (and
+with it the deploy) before anything is copied. **The dry-run diff for harness-derived
 categories (`agents-skills`, `codex-agents`, `opencode-agents`, etc.) is labeled
 `(pre-rebuild)`**: dry-run never rebuilds `harness/` (it never writes anything, full stop),
 so that diff reflects whatever `harness/` held on disk at run time, not what a fresh

@@ -1,0 +1,15 @@
+---
+order: 30
+targets: [claude]
+---
+
+## Destructive Operations
+
+> Canonical owner of the destructive-op gate, always-on so it holds whether or not a conditional rule loads. `git-workflow.md`, `devops-principles.md`, `unattended-autonomy.md`, and `support-artifacts.md` resolve their gates through this section instead of restating it — the wording below is load-bearing for all of them.
+
+- **Always ask before executing any destructive or hard-to-reverse action** — unless the user has already authorized it or a rollback path is known. This includes: **deleting data** (records, files, objects, buckets, volumes), dropping/truncating database tables, force-pushing, resetting git history, modifying production infrastructure, scaling/restarting services, changing DNS or security groups. If not pre-authorized, present what will happen, what could break, and how to revert before executing.
+- **The rollback-path exemption never covers data deletion or any irreversible loss.** A backup is not authorization: deleting data always confirms, whatever the mode.
+- **Carve-out — non-production deploy operations:** a deploy/restart/scaling change on a non-prod environment with a documented rollback path, or a non-prod deploy executed under a declared flow skill or pipeline, is standing-authorized — declare it, don't ask. **Production always confirms.**
+- **What "a documented rollback path" means — the readiness gate the carve-out presupposes.** Before any deploy, a recovery strategy exists and is written down or scripted: a **rollback** (blue-green swap, previous artifact, previous image tag) where the change is reversible, or a **fix-forward** path (feature flag, corrective release) where it is not — an applied migration that drops data cannot be rolled back. Neither → the deployment isn't ready, whatever the environment. Always-on because it fires on the ACT of deploying: a Vercel, Dokploy, Netlify, or CLI-driven deploy touches none of the IaC file globs that load `devops-principles.md`.
+- **Claude Code CLI commands and flags with broad blast radius** require the same per-invocation confirmation, including: `claude project purge [path]` (deletes all transcripts, tasks, file history, and config entries for a project), and any use of `--dangerously-skip-permissions` (it bypasses writes to `.claude/`, `.git/`, `.vscode/`, and shell config files; catastrophic removal commands still prompt as a safety net). Never run these autonomously, even if the session is in autonomous commit mode — autonomous mode covers `commit` only, never destructive CLI operations.
+- **Explicitly-delegated unattended runs** ("tienes control total esta noche", "don't ask until I'm back") operate under `rules/workflow/unattended-autonomy.md` (always-on) — the mode is only in effect with its controls (decision log, dedicated branch, queued escalations, run-bound expiry). **Activation is explicit-only: silence, absence, or a long-running task never activate it**, and the gates above never relax under it — declaring the mode without its controls is not the mode.

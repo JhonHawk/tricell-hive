@@ -1,0 +1,46 @@
+---
+order: 56
+targets: [agents]
+join: tight
+---
+
+- **Delegation gates are hard.** Any of these fires → delegate, or state in one line why inline is correct: 4+ files to understand · 2+ non-trivial files to write · ~20 undelegated calls · 3+ external reads (tracker, PR checks, deploy jobs, memory, third-party MCP) · 2+ fetches to pin one fact. External sweeps go to `status-fetch` or a research subagent; their payloads re-send every turn, so the cost is the rest of the session. **One route per change-group**, chosen at the first gate that fires and covering understanding AND writing: understanding inline past the gate and then delegating only the write is the named violation. Per-action delegation (tests, builds, installs, verifiers, reviewers) is orthogonal and never changes the route.
+- **Dispatching a subagent:** name artifact destinations as ABSOLUTE paths — a relative `_support/` lands in the agent's own repo. A NAMED agent's final text never reaches the spawner, so instruct delivery via SendMessage to "main"; unnamed subagents auto-return.
+- **Verification is adversarial**: refute via an executed check, never confirm from narration. Verifiers overlap independent work, their verdict collected at the session mode's gate (pre-merge on the PR, else the commit gate), never idle-polled.
+- **Independent review scales by surface, not diff size.** Always: security, auth, payments, migrations, data integrity, and resource limits (pools, timeouts, retries, rate limits, TTLs). A trivial diff outside those skips it. A re-review scopes to the finding's blast radius.
+- **A multi-repo change-group fans the review out:** one blind reviewer per non-trivially-changed repo, plus a cross-implementation reviewer ONLY when a shared contract changed (input: contract spec + diffs filtered to interface surfaces; mandate: the seams — shapes, status codes, auth/cookie semantics, event payloads, error propagation). One parallel dispatch, still ONE review layer and one verdict.
+- **Budgets, so a cycle terminates:** a delegated stage whose output cannot feed the next gets one bounded re-run, then escalates; max two fix rounds per cycle; an approving review closes it and a new finding never resets the budget. A finding blocks only with a concrete failure scenario reproducible now (inputs → wrong outcome); coverage/hardening are follow-ups recorded at close.
+- Spawn domain specialists yourself — standing-authorized, never wait for a flow skill or the user to name one (Codex: `spawn_agent` with the agent's name as `agent_type`; TOMLs in `~/.codex/agents/`). The gates above decide WHEN; this table decides WHO. Reviewers and verifiers never implement.
+
+| Signal in the task | Route to | NOT to |
+|---|---|---|
+| Angular components, services, routing; `angular.json` present | angular-developer | react-developer |
+| Next.js, App Router, Server Components; `next.config` present | react-developer | angular-developer |
+| React with no Next.js (Vite, React Router, CRA) | react-developer | backend-developer, the main thread |
+| API endpoints, backend logic, microservices (no DB/perf focus) | backend-developer | database-specialist, performance-engineer |
+| Kotlin Multiplatform, Android, Compose, shared mobile code | kotlin-multiplatform-developer | backend-developer |
+| Server-only Kotlin (Ktor/Spring, no Android target) | backend-developer | kotlin-multiplatform-developer |
+| Schema design, migration, ORM config | database-specialist | backend-developer |
+| Slow query, EXPLAIN, N+1, index tuning | performance-engineer | backend-developer |
+| CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | backend-developer, cloud-architect |
+| Cloud topology, landing zone, DR (RTO/RPO), FinOps architecture | cloud-architect | devops-engineer, system-designer |
+| New API contract, cross-service schema, service boundaries | system-designer | code-reviewer |
+| Review a diff/PR for correctness and cleanup — the DEFAULT when no other row is primary | code-reviewer | the implementing agent |
+| Vulnerability, OWASP, secrets, auth bypass | security-reviewer | code-reviewer |
+| Secret scanning, leaked credentials | secrets-auditor | security-reviewer |
+| Refute or adversarially verify a finding, claim or diagnosis | finding-refuter | code-reviewer, the main thread |
+| Tests as the primary objective (coverage push, new E2E suite) | test-engineer | the implementing agent |
+| Functional verification of a running app in a real browser: walk ACs + adversarial paths | in-vivo-qa-tester | ui-reviewer, code-reviewer |
+| UX friction in a live mock or deployed flow, navigation review | ui-reviewer | code-reviewer, react-developer |
+| Redesign or visually polish a screen that already exists | visual-designer | the framework specialist, ui-reviewer |
+| Spec/épica completeness, Gherkin verifiability, quality gate | spec-quality-reviewer | product-critic, code-reviewer |
+| Challenge necessity/scope/shape of a feature BEFORE implementation | product-critic | spec-quality-reviewer |
+| Raw client requirements, project intake analysis | requirement-analyst | spec-quality-reviewer |
+| "Where is X / how does Y work / does Z exist" — discovery needing a verified conclusion | code-scout | the implementing agent, the main thread |
+| Prompt design, LLM integration, structured output | prompt-engineer | backend-developer |
+| README, ADR, API docs, setup guide — in-repo Markdown | technical-writer | the implementing agent |
+| Workspace file hygiene, misplaced artifacts, ledger repair | workspace-custodian | secrets-auditor |
+| Low-reasoning external state: tracker board, PR checks, deploy jobs, an APPROVED tracker batch | state-fetcher | a research subagent |
+
+- Work depending on external tools/credentials/services: verify the full set (`which`, `--version`) — implementation, verification, promotion — before committing to a plan; missing items become explicit asks; promotion credentials documented durably.
+- Product-specific slash commands, skills, and agent names are workflow references unless the harness exposes them; inspect or edit the underlying files when unavailable.

@@ -1,3 +1,6 @@
+<!-- generated: global/core-sections -->
+> Generated from `global/core-sections/` by `harness/build.py` — edit the sections, not this file.
+
 # Global Configuration
 
 ## Build & Lint
@@ -173,4 +176,3 @@ Keep the main thread focused: delegate executable work, reason in the main threa
 
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
 - **What you hand a subagent carries its status.** What you verified travels as fact; a document you did not check travels marked unverified, with the check named. A subagent cannot tell the two apart from inside — it reproduces the premise faithfully, and its report comes back reading as independent confirmation of what you gave it.
-
