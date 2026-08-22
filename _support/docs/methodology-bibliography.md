@@ -952,6 +952,40 @@ Backs `workflow/cross-service-workflow.md > Contract distribution`, the distribu
 
 **Verdict: pending.** Sources unread this session; the rules stand on the observed failure pattern until a research pass confirms or adjusts them.
 
+## Tamaño y forma de los archivos de instrucciones (2026-08-21)
+
+- `[Authoritative — vendor]` **Anthropic, "The new rules of context engineering for Claude 5
+  generation models"** (claude.com/blog, 24-jul-2026; Thariq Shihipar, technical staff):
+  removieron **>80% del system prompt de Claude Code** para Opus 5 y Fable 5 **sin pérdida
+  medible en sus evals de coding**. Prescripciones aplicables a `CLAUDE.md`/`AGENTS.md`:
+  mantenerlo *"lightweight and briefly describe what your repo is for"*, centrado en
+  **gotchas** (su ejemplo: *"you may organize your code to keep types in one monolithic file
+  and nowhere else"*); cortar instrucciones repetidas que ya viven en las descripciones de
+  herramientas, guardarraíles diseñados para el peor caso de modelos viejos, reglas
+  prescriptivas de estilo, e **instrucciones contradictorias entre sí** (su ejemplo:
+  *"leave documentation as appropriate"* conviviendo con *"DO NOT add comments"*).
+  **Reglas → criterio:** dejar de escribir "never do X" salvo modo de fallo demostrable —
+  antes *"Never write multi-paragraph docstrings…"*, ahora *"Write code that reads like the
+  surrounding code: match its comment density, naming, and idiom"* (esta última frase está
+  hoy en el system prompt de Claude Code, o sea que la aplicaron a sí mismos). **Progressive
+  disclosure:** organizar `CLAUDE.md` y skills como *"a tree of files that can be loaded at
+  the right time"*. Herramienta: `/doctor` en sesión.
+- `[Consenso de comunidad — NO vendor]` Varias guías de 2026 convergen en ~150 líneas para
+  `AGENTS.md` y ~200 para `CLAUDE.md`, con dos fundamentos: los modelos frontera siguen de
+  forma fiable ~150–200 instrucciones (el system prompt del harness ya gasta parte), y el
+  *context rot* medido sobre 18 modelos frontera. **Trátese como umbral de REVISIÓN, nunca
+  como gate**: ningún vendor publica esa cifra.
+- **Consecuencia aplicada (2026-08-21):** `agents-md-primary` incorpora el test de admisión
+  (gotcha o se va), los outcomes `demote` (progressive disclosure) y `soften`
+  (regla→criterio), el scope a `AGENTS.md` anidados dentro de un repo, y la métrica por
+  CADENA medida con `codex debug prompt-input` en vez de bytes por archivo.
+- **Medición de referencia (2026-08-21, sample-project/apps/backend):** `codex debug prompt-input`
+  = 85,166 B (~21.3k tokens) de prompt inicial, de los que 58,069 B (68%) son la cadena de
+  `AGENTS.md`: 35,170 B del core del hive (global, se paga en TODOS los proyectos), 14,046 B
+  de la app y 9,082 B del root del monorepo. En Claude Code, `/doctor` mide lo mismo por otra
+  vía: `~/.claude/CLAUDE.md` = 7,958 tokens, 55% del contexto residente, cargado en 69
+  proyectos. **El core global es el mayor contribuyente en ambos harnesses.**
+
 ## Per-harness loading mechanics — official sources (2026-08-20)
 
 Backs the *What this harness loads* tables in `global/README.md` and

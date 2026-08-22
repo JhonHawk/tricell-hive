@@ -95,8 +95,11 @@ Report as a table with a suggested action per row. Change nothing.
 
 ## `audit [path]` — dedup project rules against the global canon (read-only)
 
-Target: one project/workspace root (default cwd) and its child repos' `AGENTS.md`/
-`CLAUDE.md`. **Coverage canon = the DEPLOYED layers — what sessions actually load:**
+Target: one project/workspace root (default cwd), its child repos' `AGENTS.md`/`CLAUDE.md`,
+**and every `AGENTS.md` NESTED inside those repos** (`find <repo> -name AGENTS.md`, excluding
+`node_modules`). A monorepo's `apps/*/AGENTS.md` are subdirectories, not child repos — the
+scope that stops at repo roots misses exactly where instructions accumulate, and in a
+monorepo-by-default portfolio that is most of the volume. **Coverage canon = the DEPLOYED layers — what sessions actually load:**
 `~/.claude/CLAUDE.md` + always-on `~/.claude/rules/`, the condensed core at
 `~/.codex/AGENTS.md` / `~/.config/opencode/AGENTS.md`, Grok's `~/.grok/rules/` symlinks,
 the deployed router-skill references, and opencode's rules plugin. **The audit is
@@ -116,6 +119,16 @@ WORKSPACE-ROOT file operates ONLY in sessions opened at the workspace root — f
 child-repo session no harness auto-loads it, and Claude Code's ancestor walk loads the
 workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law below).
 
+**The admission test, applied before the table below.** An always-loaded instruction file
+stays *lightweight and briefly describes what the repo is for*, and what it keeps beyond that
+is **gotchas** — what the agent would get wrong reasoning from the code alone. Everything else
+has a home that is not the resident context: derivable from the repo → `discoverable`; true
+but situational → `demote`; a prohibition with no nameable failure mode → `soften`. Vendor
+guidance for the Claude 5 generation (`_support/docs/methodology-bibliography.md`): ~80% of
+Claude Code's own system prompt was removed with no measurable eval loss, and the shift is
+from rules to judgment. **Two rules that contradict each other cost more than either one
+alone** — flag the pair, never keep both.
+
 **Classify each rule into exactly one outcome:**
 
 | Outcome | When | Proposed action |
@@ -125,7 +138,9 @@ workspace CLAUDE.md but does NOT resolve its `@AGENTS.md` import (the import law
 | **inject-to-router** | Situational (language, workspace, memory policy), partial coverage | Add the owning global rule to `SKILL_REFERENCE_INJECTIONS` → delete from the project |
 | **discoverable** | The repo's own files already state it — package manager (lockfile), scripts (`package.json`), framework (its config), directory inventory | Remove. Discriminator is the no-op test: delete the line and name what the agent would do differently. Nothing → it is a no-op. Verify against disk before proposing, never from the rule's wording |
 | **stale** | An implementation detail that no longer matches the repo — distinct from `re-anchor`, which is drift against a GLOBAL rule | Resolve every backtick path against disk (below). Resolves elsewhere → **moved**: rewrite the path. Nowhere → **absent**: delete the claim |
-| **keep — project canon** | Genuinely project-specific, needed cross-harness | Split by LEVEL: a REPO file stays — it is the canonical channel for all harnesses; a WORKSPACE-ROOT file operates only in workspace-root sessions — its cross-harness content is proposed DOWN to the governing repo (plus a per-repo pointer to ledger/workspace root). **Record why it is canon** — a ticket reference (`TRI-514`) is the preferred form; it holds the full reason outside the context budget. That note is what lets the NEXT audit delete the rule instead of re-deriving it |
+| **demote** | Project canon, but NOT a gotcha: procedure, inventories, command lists, environment detail — true, useful, and not needed on every turn | Move to a doc the agent reads when it acts (`_support/docs/`, the specs repo), leaving a ONE-LINE pointer. Progressive disclosure: the always-loaded file keeps the gate and the pointer, the mechanics live where they are read. This is the outcome for content too valuable to delete and too situational to resident-load |
+| **soften** | A prohibition (`never X`, `always Y`) that cannot name the failure mode it prevents | Rewrite as the criterion the rule was proxying for — *"write code that reads like the surrounding code: match its comment density, naming, and idiom"*, not *"never write multi-line comment blocks"*. Guardrails written for older models' worst case are the bulk of this; a rule whose incident IS nameable stays a rule |
+| **keep — project canon** | Genuinely project-specific, needed cross-harness, **and a gotcha**: something an agent would get WRONG by reasoning from the code alone (module load order that breaks routing, an id validated in one place only, a type layout nothing hints at). Canon that is merely true is `demote`, not `keep` | Split by LEVEL: a REPO file stays — it is the canonical channel for all harnesses; a WORKSPACE-ROOT file operates only in workspace-root sessions — its cross-harness content is proposed DOWN to the governing repo (plus a per-repo pointer to ledger/workspace root). **Record why it is canon** — a ticket reference (`TRI-514`) is the preferred form; it holds the full reason outside the context budget. That note is what lets the NEXT audit delete the rule instead of re-deriving it |
 | **re-anchor / explicit override** | Stale fork (paraphrased copy of an evolved global rule — the drift that produces contradictory instructions) or a deliberate contradiction | Rewrite quoting the canonical text, or as `overrides global <rule> because <reason>` — overrides legitimately WIN (`git-workflow.md` precedence); they must read as intentional |
 
 **Resolving backtick paths (feeds the `stale` outcome).** A naive resolver is unusable — ~90% of
@@ -172,10 +187,16 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   - **`Issue tracker`** — standing write authorization to an external system, confirm-gated in
     its own right (`memory-routing.md > Tracker sync`); never carried over as settled because a
     previous version of the file already said it.
-- **Instruction budget**: report each file's size, and the repo's Codex chain — Codex
-  concatenates git-root → cwd, so nested `AGENTS.md` files are charged together against
-  `project_doc_max_bytes` (32 KiB default; raising it is per-machine and does not travel with
-  the repo). Informational; the fleet's median file is ~2.3 KB, so flag only real outliers.
+- **Instruction budget — measure the CHAIN a session actually loads, never a file alone.**
+  Codex concatenates global → git-root → cwd, so a nested file is charged with everything
+  above it; `codex debug prompt-input` renders that sum exactly and is the measurement of
+  record (Claude Code has no equivalent). Report the chain per entry point, and the global
+  file's share of it — a core paid in every session of every project outranks a repo file in
+  cost even when it is smaller on disk. `project_doc_max_bytes` (32 KiB default) is a
+  truncation cap, NOT the budget: the real ceiling is how many instructions a model reliably
+  follows (~150–200, with the harness system prompt already spending part of it), which is
+  why a chain can be well under the cap and still be over-instructed.
+  **The pruning criterion is `keep vs demote`, not line count** (`> Pruning`).
 - **Verification parity**: derive the repo's layers from disk — `package.json` scripts,
   `lefthook.yml` / `.husky/`, `.github/workflows/` — and compute two gaps against CI.
   **Invocation**: pre-commit does not run on commits created by `cherry-pick` or `rebase`
