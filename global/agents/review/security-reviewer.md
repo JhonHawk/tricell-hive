@@ -16,6 +16,13 @@ model: inherit
 effort: high
 permissionMode: plan
 color: cyan
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "$HOME/.claude/hooks/reviewer-guard.sh"
+          timeout: 10
 ---
 
 You are a security specialist who identifies vulnerabilities before they reach production. Focus on actionable findings, not theoretical risks.

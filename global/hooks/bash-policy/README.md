@@ -14,9 +14,10 @@ Every DENY runs before any advisory, so no JSON is ever emitted before a block. 
 | b | pip ban | deny | Bash |
 | c | Package-manager mixing | deny | Bash |
 | d | Lockfile deletion | deny | Bash |
-| e | Pre-push quality-gate reminder | advisory | Bash |
+| e | Protected environment branches (production, qa) | deny | Bash |
+| f | Pre-push quality-gate reminder | advisory | Bash |
 
-Non-Bash (MCP index) tools see section (a) only — (b)-(e) are shell-command policy.
+Non-Bash (MCP index) tools see section (a) only — (b)-(f) are shell-command policy.
 
 **(a) Repo-scoped index routing.** Ported verbatim from `code-search-routing.sh`, including its JSON map (renamed `bash-policy.json`, same schema: `{"repos": [substr…], "deny": [tool…], "reason": "…"}`). Denies an index tool in repos where it is contraindicated; extend the map with evidence, not intuition. Policy: `rules/tools/code-search.md`.
 
@@ -26,9 +27,11 @@ Non-Bash (MCP index) tools see section (a) only — (b)-(e) are shell-command po
 
 **(d) Lockfile deletion.** Denies `rm` / `git rm` / `unlink` naming any of `pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `Cargo.lock`, `Gemfile.lock`. Evaluated **per command segment** (split on `;`, `&`, `|`) so an unrelated `rm` in one segment cannot pair with a lockfile merely named in another — `rm dist/x && cat pnpm-lock.yaml` passes, `rm pnpm-lock.yaml` does not.
 
-**(e) Pre-push reminder.** Ported verbatim from `pre-push-lint-reminder.sh` — same `git push` filter, same lefthook-aware suppression, same package-manager detection, same message.
+**(e) Protected environment branches.** Denies `git commit` while the affected repo's current branch is `production` or `qa`, and `git push` whose destination is one of them — explicit refspec (`git push origin production`, `git push origin HEAD:qa`) or a bare push while standing on the branch. The repo resolves from `git -C <path>` when present, else from the hook cwd (with per-segment `cd` tracking); the branch from `git symbolic-ref --short HEAD` — detached HEAD and non-repo paths allow. `master`/`main` are deliberately OUT of the set: trunk-direct repos are a declared workflow, and that half stays prompt-convention. An explicit non-protected refspec pushed while standing on `qa` is allowed — the commit lands where the refspec says. This is the deterministic backstop of the promotion confirm-gate: the deny message routes the agent to a work branch or to the USER's confirmation (`git-workflow.md > Safety gates`); the agent never self-confirms.
 
-## Scoped allow — why `permissionDecision` appears only in (e)
+**(f) Pre-push reminder.** Ported verbatim from `pre-push-lint-reminder.sh` — same `git push` filter, same lefthook-aware suppression, same package-manager detection, same message.
+
+## Scoped allow — why `permissionDecision` appears only in (f)
 
 The push advisory emits `permissionDecision: "allow"` because that is what it always did, and it is safe there: the branch is only reachable for a command containing `git push`. Emitting that field anywhere higher in the script would auto-approve **arbitrary Bash**, silently disabling the permission prompt for every shell command in the session. The field must stay inside the push branch.
 
@@ -50,11 +53,19 @@ The leading `(^|[;&|]|[[:space:]])` guard is what keeps `pnpm install` from matc
 
 - `python -m pip install …` is not denied; only the direct `pip`/`pip3` invocation forms are.
 - `npm ci` is not in the mutating-verb list, so it does not trip section (c).
-- Section (e) detects Node quality gates only (`package.json` scripts); Python/Java repos get no reminder.
+- Section (e) covers `production`/`qa` only; a project-declared custom protected branch is
+  confirm-gated by `git-workflow.md`, not by this hook. `git merge` into a protected branch
+  while standing on it is caught only via the commit/push it implies, not as a verb.
+- Section (f) detects Node quality gates only (`package.json` scripts); Python/Java repos get no reminder.
 
 ## Enforcement layers
 
-Sections (a)-(d) are **deterministic** (hook `exit 2` blocks the call). Section (e) is a deterministic delivery of a prompt-convention reminder — it never blocks.
+Sections (a)-(e) are **deterministic** (hook `exit 2` blocks the call). Section (f) is a deterministic delivery of a prompt-convention reminder — it never blocks.
+
+**Harness reach:** Claude Code (settings hook) and Grok (settings compat merge; the script
+parses both payload shapes). **Codex runs no hooks at all** (`codex exec` has no hook
+runtime), and Cursor only what its hook surface supports — there the same gates are
+prompt-convention plus the sandbox/permission layer of that harness.
 
 ## State
 

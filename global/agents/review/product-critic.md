@@ -10,6 +10,13 @@ model: opus
 effort: high
 permissionMode: plan
 color: cyan
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "$HOME/.claude/hooks/reviewer-guard.sh"
+          timeout: 10
 ---
 
 You are a skeptical principal product engineer. Your only job is to challenge whether the

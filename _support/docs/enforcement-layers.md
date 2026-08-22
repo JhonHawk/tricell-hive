@@ -17,7 +17,12 @@ is not, and a gate described loosely invites an agent to argue past it.
 
 - **Deterministic:** hook scripts (`global/hooks/`), permission denies in settings, agent
   frontmatter `tools:` allowlists, `disable-model-invocation` (the harness omits the skill
-  from model-triggerable context), deferred-tool schema sealing via `ToolSearch`.
+  from model-triggerable context), deferred-tool schema sealing via `ToolSearch`; since F4
+  also the **protected-branch deny** (`bash-policy.sh` (d): `git commit` on
+  `production`/`qa`, and `git push` targeting them or bare-pushed from them — the
+  deterministic backstop of the promotion confirm-gate; `master`/`main` stay out: trunk-
+  direct is a declared workflow, prompt-convention by design) and the **reviewer guard**
+  (`reviewer-guard.sh`, agent-scoped via frontmatter `hooks:` — see below).
 - **Confirm-gated:** production deploys and protected-branch merges, force-push and history
   rewrites, destructive operations (`CLAUDE.md > Destructive Operations`), writing a real
   secret to a file (allowed only on explicit user request after a risk confirmation —
@@ -34,9 +39,19 @@ Two honest subtleties:
   session runs in auto mode — the default on Pro/Max/Team unless `permissions.defaultMode`
   says otherwise — a subagent inherits auto mode and its frontmatter `permissionMode` is
   ignored. Verified empirically 2026-08-15: a `code-reviewer` subagent had no `ExitPlanMode`
-  and created a file via `touch` unblocked. So for every review agent the real deterministic
-  layer is the `tools:` allowlist alone, and the Bash-shell path stays open — the gap a
-  deny rule or an agent-scoped hook would close.
+  and created a file via `touch` unblocked. **Since F4 the agent-scoped `reviewer-guard`
+  hook closes the common Bash-mutation paths** (git mutations, deleters, in-place edits,
+  installs, non-temp writes) for the strict roster — `code-reviewer`, `security-reviewer`,
+  `product-critic`, `spec-quality-reviewer`, `code-scout`, `workspace-custodian` — via a
+  frontmatter `hooks:` PreToolUse block on `Bash`. **Exempt by doctrine
+  (execute-to-observe):** `finding-refuter` (runs tests/repro commands), `in-vivo-qa-tester`
+  and `ui-reviewer` (drive a browser), `state-fetcher` (executes approved tracker writes) —
+  for them the deterministic layer remains the `tools:` allowlist, with never-mutate as
+  prompt-convention. Residual gap even under the guard: an interpreter one-liner can still
+  write — the hook is a guardrail, not a sandbox. Harness scope: `hooks:` is Claude-only
+  frontmatter (`convert-agents.py` strips it; `codex exec` runs no hooks), so on
+  Codex/opencode/Grok the whole review-agent read-only doctrine stays allowlist +
+  prompt-convention.
 - **Loading is deterministic; obeying is not.** Path-scoped rules are glob-loaded by the
   harness (deterministic), but the loaded content is still prompt-convention.
 

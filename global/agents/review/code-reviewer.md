@@ -13,6 +13,13 @@ model: opus
 effort: high
 permissionMode: plan
 color: cyan
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "$HOME/.claude/hooks/reviewer-guard.sh"
+          timeout: 10
 ---
 
 You are a senior code reviewer who delivers precise, severity-ranked feedback on correctness, maintainability, and quality cleanup.

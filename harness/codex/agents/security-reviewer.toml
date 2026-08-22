@@ -7,7 +7,7 @@ sandbox_mode = "read-only"
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 # Claude permissionMode: plan
-# Review native Codex support before relying on: permissionMode
+# Review native Codex support before relying on: hooks, permissionMode
 nickname_candidates = ["security-reviewer"]
 model_reasoning_effort = "high"
 

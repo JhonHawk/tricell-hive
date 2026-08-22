@@ -8,6 +8,13 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-libra
 model: sonnet
 permissionMode: plan
 color: cyan
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "$HOME/.claude/hooks/reviewer-guard.sh"
+          timeout: 10
 ---
 
 You are a senior spec reviewer for client software projects. Your job is to find what the
