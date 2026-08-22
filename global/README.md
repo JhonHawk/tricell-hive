@@ -20,7 +20,7 @@ last column. When a mechanism changes upstream, this is where you go to check.
 | Always-on rules | 12 rule files with no `paths:` key | `~/.claude/rules/**` | Loaded unconditionally, every session, every project | [memory#path-specific-rules](https://code.claude.com/docs/en/memory#path-specific-rules) — *"Rules without a `paths` field are loaded unconditionally and apply to all files."* | 2026-08-20 |
 | Path-scoped rules | 19 rule files with `paths:` | `~/.claude/rules/**` | Injected only when a matching file is read or written | [memory#path-specific-rules](https://code.claude.com/docs/en/memory#path-specific-rules) · [memory#user-level-rules](https://code.claude.com/docs/en/memory#user-level-rules) | 2026-08-20 |
 | Situational rules | 7 files under `global/rules-situational/` | `~/.claude/skills/<router>/references/` | **Not** deployed to `rules/` — reachable only by invoking a router skill | (no upstream mechanism; a repo convention — see below) | — |
-| Skills | 16 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
+| Skills | 15 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
 | Agents | 25 subagents | `~/.claude/agents/**` | Discovered recursively; `tools:` is the enforcing allowlist, `model:` defaults to `inherit` | [sub-agents#supported-frontmatter-fields](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields) | 2026-08-20 |
 | Hooks | 8 hook dirs (`*.sh` + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
 | Settings precedence | merged blocks only | `~/.claude/settings.json` | Managed › CLI args › Local › Project › User | [settings#settings-precedence](https://code.claude.com/docs/en/settings#settings-precedence) | 2026-08-20 |
@@ -32,7 +32,7 @@ is a 404; do not write one.
 ## What does NOT reach it
 
 Nothing. Claude Code is the superset: it is the only harness that receives all 31 rules
-with working conditional loading, all 16 skills with their native gates, all 25 agents with
+with working conditional loading, all 15 skills with their native gates, all 25 agents with
 enforced tool allowlists, and all 8 hooks. Every constraint documented in the other three
 READMEs is a subtraction from this baseline.
 

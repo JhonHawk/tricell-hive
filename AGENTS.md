@@ -196,8 +196,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
 │   ├── monorepo-cutover/          # /monorepo-cutover — cutover playbook (multi-repo → monorepo)
 │   ├── status-fetch/              # Fetches live external state in an isolated subagent
-│   ├── git-mechanics/             # Router (model-invoked): branching, commits, PRs, promotion, close
-│   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis
+│   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis + git mechanics (branching, commits, PRs, promotion, close)
 │   ├── language-rules/            # Router (model-invoked): language rules for Codex/Grok — references injected by build.py
 │   ├── memory-policy/             # Router (model-invoked): Engram policy for Codex/opencode — references injected by build.py
 │   ├── workspace-conventions/     # Router (model-invoked): workspace/session/contract conventions — references injected by build.py

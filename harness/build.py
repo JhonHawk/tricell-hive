@@ -108,13 +108,13 @@ SKILL_REFERENCE_INJECTIONS = {
     "task-routing": [
         ("rules-situational", "agent-routing.md"),
         ("rules-situational", "gap-resolution.md"),
+        # F3: the git-mechanics router merged into task-routing; the reference
+        # file keeps its name and section anchors.
+        ("rules-situational", "git-mechanics.md"),
         # The core gates behavior on "trivial" (review scaling, test ritual) but
         # only this file defines it — and no router carried it, so Codex/opencode
         # judged the threshold with nothing to judge it by.
         ("rules/quality", "critical-thinking.md"),
-    ],
-    "git-mechanics": [
-        ("rules-situational", "git-mechanics.md"),
     ],
     "memory-policy": [
         ("rules-situational", "memory-routing.md"),

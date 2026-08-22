@@ -150,8 +150,7 @@ Consulting the router is never the blocking step: read it and keep going in the 
 
 | Router | Fires on — the observable act | What it governs |
 |---|---|---|
-| `task-routing` | the first `Write`/`Edit` on project code, or before the first delegation | who takes the task, delegation gates, plan gap analysis |
-| `git-mechanics` | the first `git` command of the session | branch, session mode, commit semantics, PRs, promotion, close |
+| `task-routing` | the first `Write`/`Edit` on project code OR the first `git` command of the session — whichever comes first — or before the first delegation | who takes the task, delegation gates, plan gap analysis; git mechanics: branch, session mode, commit semantics, PRs, promotion, close |
 | `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
 | `workspace-conventions` | writing a file outside application source, or typing an infra resource name | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
 | `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
@@ -178,7 +177,7 @@ The gates those routers' domains carry stay always-on and need no skill: what a 
 
 ### Delegation & Context Hygiene
 
-Keep the main thread focused: delegate executable work, reason in the main thread. Governing question: does this inflate my context without need? Yes → delegate; no → inline. **Invoke the `task-routing` skill at FIRST EDIT-INTENT on a software project — the same moment `git-mechanics` fires — and before the first delegation or a plan's tasks.** A read-only investigation, a short question, and work outside a software project never reach that trigger; the trivial carve-out is out too. — it carries the routing table, the delegation gates, inline-vs-delegate, fresh-context verification, and the gap analysis. Neither rule is always-on: their trigger is an intent, not a file, so nothing loads them for you and not invoking the skill is the same as not having them.
+Keep the main thread focused: delegate executable work, reason in the main thread. Governing question: does this inflate my context without need? Yes → delegate; no → inline. **Invoke the `task-routing` skill at FIRST EDIT-INTENT on a software project — or at the first git verb of a session that never reaches one — and before the first delegation or a plan's tasks.** A read-only investigation, a short question, and work outside a software project never reach either trigger; the trivial carve-out is out too. — it carries the routing table, the delegation gates, inline-vs-delegate, fresh-context verification, the gap analysis, and the git-mechanics reference. Neither rule is always-on: their trigger is an intent, not a file, so nothing loads them for you and not invoking the skill is the same as not having them.
 
 - **Delegate with the intent, not only the task.** Subagent prompts state the why — the larger goal, who or what consumes the output, and what it enables — so the agent connects the task to relevant context instead of inferring it.
 - **What you hand a subagent carries its status.** What you verified travels as fact; a document you did not check travels marked unverified, with the check named. A subagent cannot tell the two apart from inside — it reproduces the premise faithfully, and its report comes back reading as independent confirmation of what you gave it.

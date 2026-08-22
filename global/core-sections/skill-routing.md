@@ -23,8 +23,7 @@ Consulting the router is never the blocking step: read it and keep going in the 
 
 | Router | Fires on — the observable act | What it governs |
 |---|---|---|
-| `task-routing` | the first `Write`/`Edit` on project code, or before the first delegation | who takes the task, delegation gates, plan gap analysis |
-| `git-mechanics` | the first `git` command of the session | branch, session mode, commit semantics, PRs, promotion, close |
+| `task-routing` | the first `Write`/`Edit` on project code OR the first `git` command of the session — whichever comes first — or before the first delegation | who takes the task, delegation gates, plan gap analysis; git mechanics: branch, session mode, commit semantics, PRs, promotion, close |
 | `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
 | `workspace-conventions` | writing a file outside application source, or typing an infra resource name | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
 | `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
