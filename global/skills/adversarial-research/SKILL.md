@@ -94,9 +94,3 @@ the question is and stop.
   trigger conditions hold; inline Markdown otherwise) — do not hardcode a format here.
 - Always close inline, even when an HTML report is produced, with: the verdict, the
   refuted/weakened/net-new counts, and the recommendation in ≤3 sentences.
-- **Offer to persist the canon** — this is the pack's most expensive analysis and the one
-  invoked precisely because being wrong is costly, so losing it to a closed terminal is the
-  worst outcome per token spent. Propose `sessions/YYYY-MM-DD-<slug>/<slug>-findings.md`
-  (`session-capture.md`); the user's yes is the explicit signal that rule requires, so offer,
-  never write unasked. What earns the file is the refuted-and-why plus the surviving canon
-  with its evidence — the reasoning a later session would otherwise pay to rebuild.
