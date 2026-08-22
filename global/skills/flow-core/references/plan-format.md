@@ -99,6 +99,22 @@ of the plan as explicit asks. The plan is not ready for approval while a known-n
 unresolved. This applies to any plan that will be executed, including one written in native plan
 mode and captured by the plan-capture hook.
 
+## Delivery pauses — how many times the user sees it before the plan ends
+
+One review of everything at the end is where a plan turns into a pile of rework. **Plans with 4+
+file-modifying tasks** (the checkpoint threshold in `git-mechanics.md > Commits`) close this at the
+plan gate, BEFORE the first edit — splitting at push time saves nothing, the lines are already
+written. The gate proposes, it does not ask for a number:
+
+1. **N pauses**, each one named: after which task it falls and what the user can exercise there.
+   The cuts land on seams the plan already declares — a task whose `Interfaces: Produces` closes a
+   contract the following ones consume, never an arbitrary count of tasks.
+2. **One review when the whole plan is met** — a single delivery.
+
+Accepting pauses IS choosing `interactive` for those stretches: each pause is a validation, and the
+chain resumes on it. Under `hold` it does not apply — everything is a diff at close. The chosen
+answer goes in the plan and binds execution; a plan that runs past its own pause is a defect.
+
 ## Task block
 
 Every task is independently executable and independently trackable.

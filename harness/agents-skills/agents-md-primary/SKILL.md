@@ -204,7 +204,7 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   down is DELETED from the workspace file and replaced by nothing — the per-repo pointer
   above is what carries the reader back up. Two copies of one rule with no arbiter is the
   drift this skill exists to remove; creating it while conforming the pair is a regression.
-- **`## Git Workflow` declarations**: `Base branch:` / `Git mode:` / `PR review:` /
+- **`## Git Workflow` declarations**: `Base branch:` / `PR review:` /
   `Issue tracker:` per `git-workflow.md`'s declaration block. Each declared value removes a
   per-session question. `Base branch` is a repo FACT: verify it against branch topology, never ask. The
   other three are DECISIONS no repo file can settle on its own. **The block lives in the
@@ -212,11 +212,11 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   and a child-repo session never loads the root file; the root keeps only what crosses repos
   (the promotion chain, the project's tracker). Each decision is confirmed in the apply, never
   inferred silently:
-  - **`Git mode`** — propose from the WORK CLASS, not from the repo's CI posture
-    (`git-mechanics.md`): changes landing on a surface only the user can judge (any app with a
-    UI) → `pr-open`, even in a PR-gated repo with green CI; work a machine settles end to end
-    (infra, specs, tooling) → `pr-merge`; single-branch → `direct-base`. A repo declaring
-    `pr-merge` over user-judged surface is a FINDING, not a preference to preserve.
+  - **`Git mode` is no longer declared — an existing one is a FINDING to remove.** The mode is
+    asked every session and nothing silences it (`git-mechanics.md > Commits`), so a declared
+    token is a stale default that answers nothing. Removing it keeps whatever the line carried
+    BEYOND the token — which surface needs visual validation, a standing push authorization —
+    as its own line; that knowledge is the repo's, not the mode's.
   - **`PR review`** — the review apps wired to the repo tell you WHICH app; they never
     authorize spending it. Confirm that a paid app's trigger rides the user's sign-off
     (`git-mechanics.md > PRs & promotion`).
