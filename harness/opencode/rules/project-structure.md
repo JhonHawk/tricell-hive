@@ -24,6 +24,7 @@ projects/<group>/<project>/    ← group: client/domain, lowercase (acme, tricel
 ```
 
 - The support folder is always named `_support/`; **the path decides the scope**: `<project>/_support/` = shared across repos, `<repo>/_support/` = single codebase. New artifact → "does this apply to more than one repo?" Yes → workspace-level; no → repo-level.
+- **A monorepo keeps ONE `_support/`, at the repo root — never one per package.** The hierarchy stays two levels; the package axis moves INSIDE the folder (`_support/docs/<app>/`, `_support/scripts/<app>/`), not into the path. The repo is the unit of versioning and nothing clones a single app, so a third level buys no isolation and costs coverage: every hook and CI glob written for `_support/**` silently misses `apps/*/_support/**`, and that miss stays invisible until someone audits why a directory is never linted. Monorepos are the default shape of new work, so this is the common case.
 - **An established level is sticky.** An initiative that already keeps its dated `evidence/`/`sessions/` folders at one level puts new folders at that SAME level — the routing question is answered once per initiative, never re-derived per artifact; moving an initiative's material to the other level is a deliberate migration. The level also decides versioning (a workspace root is often not a git repo), so silent drift changes what gets committed.
 - Support files live under `_support/`, never loose beside `src/` or `app/`.
 
