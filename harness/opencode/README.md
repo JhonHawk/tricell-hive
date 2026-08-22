@@ -66,16 +66,40 @@ pack skills all resolve from `~/.agents/skills` with zero duplicate names and
 scan is RECURSIVE, so a skill directory that vendors its own `.codex/skills/` or nested
 `.agents/skills/` publishes those too — `herdr` contributed three skills nobody chose.
 
-## Unverified / undocumented dependencies
+## BROKEN — the whole plugin layer fails to load (measured 2026-08-21)
 
-- **`experimental.chat.system.transform`** — the hook `flow-session-context.ts` uses to
+> The risk recorded below as "it can break without a release note" HAS happened, and wider
+> than the flow plugin. **Open follow-up; nothing here is fixed yet.**
+
+`~/.local/share/opencode/log/opencode.log` on opencode `1.18.18`: **160 load attempts, 160
+failures**, every plugin, current runs included. The cause is a plugin-contract change —
+`SchemaError: Missing key at ["default"]`, and for the rules plugin
+`Missing key at ["default"]["effect"] / ["setup"]`:
+
+| Plugin | Owner | What is lost while it fails |
+|---|---|---|
+| `opencode-rules@0.6.4` | pinned dep | **every path-scoped rule** — the 19 files this deploy writes to `~/.config/opencode/rules/` never load |
+| `flow-session-context.ts` | this repo | the flow protocol never reaches an opencode session |
+| `engram.ts` | Engram | memory protocol |
+| `gk-hooks.js`, `herdr-agent-state.js` | third-party | their own features |
+
+Confirmed end to end: a headless run in a ledger workspace, asked whether its context
+carried the `flow-process-protocol` marker, answered **AUSENTE**. Not a headless artifact —
+the plugin never loads at all.
+
+**Do not patch the v1 plugin before deciding which opencode the pack targets.** `opencode2`
+(`v0.0.0-beta-17577`, the 2.0 preview) shares `~/.config/opencode` and carries a different
+plugin architecture entirely — capability-named plugins (`opencode.config.instruction`,
+`.skill`, `.policy`, `.agent`, `.reference`), not loose `.ts` files. The 1.x schema error is
+that migration arriving. Until it is decided, what actually reaches an opencode model is
+`AGENTS.md` and the skills tree — nothing that travels by plugin.
+
+- **`experimental.chat.system.transform`** — the surface `flow-session-context.ts` uses to
   inject SessionStart context, because opencode has no real SessionStart event. It does
   **not** appear in [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins); the only
   documented `experimental.*` hook there is `experimental.session.compacting`.
-  **Status: undocumented surface, read from source.** It can break without a release note —
-  the plugin degrades to not injecting on any failure, which is the intended failure mode,
-  but a silent stop means the flow protocol quietly disappears from opencode sessions.
-  Re-check this first when opencode sessions stop showing flow context.
+  **Status: undocumented surface, read from source** — and moot while the plugin holding it
+  cannot load.
 
 ## How to re-verify
 

@@ -1004,6 +1004,22 @@ section records the authority tags and the findings that the tables only flag.
   `experimental.session.compacting`. Read from source, flagged as such in
   `harness/opencode/README.md`.
 
+### opencode
+
+- `[Empirical — reproducible]` **The entire opencode plugin layer fails to load (measured
+  2026-08-21, opencode `1.18.18`).** Method: `grep "failed to load plugin"` over
+  `~/.local/share/opencode/log/opencode.log` — 160 load attempts, 160 failures, current runs
+  included; cause `SchemaError: Missing key at ["default"]` (rules plugin:
+  `["default"]["effect"]` / `["setup"]`). Confirmed end to end by a headless run in a ledger
+  workspace answering **AUSENTE** when asked for the `flow-process-protocol` marker — so the
+  failure is the load, not the injection surface. Affects `opencode-rules@0.6.4` (and with it
+  every path-scoped rule deployed to `~/.config/opencode/rules/`), `flow-session-context.ts`,
+  `engram.ts`, and two third-party plugins. **Diagnosis:** `opencode2` (`v0.0.0-beta-17577`,
+  the 2.0 preview) shares `~/.config/opencode` and uses capability-named plugins
+  (`opencode.config.instruction`, `.skill`, `.policy`, `.agent`) — the 1.x schema error is
+  that contract migration arriving. **Status: open follow-up**, recorded in
+  `harness/opencode/README.md`; the target version is the decision that comes first.
+
 ### Grok CLI
 - `[Authoritative]` **docs.x.ai/build/overview** (`grok inspect`),
   **/build/features/project-rules**, **/build/features/subagents**, **/build/features/hooks**,
