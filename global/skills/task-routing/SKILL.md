@@ -59,6 +59,8 @@ and Grok) or `~/.agents/skills/task-routing/references/<file>.md` (Codex and ope
   both are already behind you by the time `git commit` is typed.
 - **Reading the `git-mechanics.md` reference does not discharge the session-mode ask.** At
   first edit-intent the next ACT is emitting that structured question — all four options.
+- **Sizing or listing a reference (`wc`, `ls`, head-of-file) does not discharge reading it** —
+  when a routing-table row's moment fires, the row's file gets READ before acting.
 - **The git gates are not here.** What authorizes an operation, protected branches,
   force-push, and promotion into the production-deploying branch stay always-on in
   `git-workflow.md` — a gate that depends on a model invoking a skill is not a gate — along
