@@ -249,7 +249,7 @@
 <tr><th>Pieza</th><th>Codex / opencode</th></tr>
 <tr><td><code>flow-core</code></td><td>No se invoca en ningún harness — es la biblioteca. Su pieza específica para estos dos es <code>harness-mechanics.md</code>: léela antes de trabajar cualquier playbook fuera de Claude Code. Los seis playbooks se leen directo desde <code>~/.agents/skills/flow-core/references/</code></td></tr>
 <tr><td><code>/flow-build</code></td><td>Funciona con matices: el gate in-vivo necesita browser MCP; el ciclo PR→CI→merge usa <code>gh</code> (shell); lee <code>Status</code>+git para reanudar. opencode lo expone vía su wrapper de comando; Codex acepta invocación directa</td></tr>
-<tr><td><code>flow-report</code></td><td>Escritura de archivo HTML sin dependencias de harness: funciona completo en ambos. Renderiza en cinco arquetipos (document, explainer, review, comparison, deck) con checks deterministas de salida</td></tr>
+<tr><td><code>flow-report</code></td><td>Escritura de archivo HTML sin dependencias de harness: funciona completo en ambos. Renderiza en seis arquetipos (document, paper, explainer, review, comparison, deck) con checks deterministas de salida</td></tr>
 <tr><td>Los playbooks</td><td>Funcionan completos: son procedimiento en prosa. Los agentes que despachan (<em>workspace-custodian</em>, <em>spec-quality-reviewer</em>, <em>product-critic</em>, <em>requirement-analyst</em>, lectores de auditoría) existen generados en ambos harnesses</td></tr>
 </table>
 

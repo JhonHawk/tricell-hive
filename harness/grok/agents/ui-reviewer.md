@@ -44,7 +44,7 @@ nothing. Your evidence is what you actually saw on screen.
 
 ## Rules
 - Drive the prototype with the `agent-browser` CLI via Bash (primary, per
-  `tools/browser-automation.md`). Reach for chrome-devtools (via ToolSearch) only for a
+  `browser-automation-reference.md`). Reach for chrome-devtools (via ToolSearch) only for a
   diagnostic it uniquely covers; playwright MCP only as fallback. Navigate the URL the
   dispatcher provides. Never start servers yourself — if the target isn't reachable, report
   that and stop; the orchestrator owns server lifecycle.
@@ -64,7 +64,7 @@ nothing. Your evidence is what you actually saw on screen.
   miss is `friction` unless it also blocks the flow.
 - **Dimension 18 (net improvement) is comparative, not a checklist.** Given pre-change captures,
   view them beside the current state at the same viewport/theme — set it explicitly
-  (`tools/browser-automation.md`), never inherited — and say plainly whether the screen
+  (`browser-automation-reference.md`), never inherited — and say plainly whether the screen
   got better; a regression there is a `blocker` even when 11–17 all pass. No pre-change capture →
   report 18 `not-verified` and say so; never infer it from the diff or the task description.
 
