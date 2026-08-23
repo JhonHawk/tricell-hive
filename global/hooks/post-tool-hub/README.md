@@ -16,6 +16,8 @@ Each section self-gates on `tool_name` and returns text; whatever fires is newli
 
 **4. zsh-signature teacher** (`Bash`/`run_terminal_command`) — fires when a shell tool result carries a zsh dialect error: `read-only variable`, `no matches found`, or `bad substitution` **behind zsh's own `zsh:N:` / `(eval):N:` prefix**, or that prefix alone. Under Grok's zsh runtime it names the fix; under Claude's Bash tool the same signature means the `CLAUDE_CODE_SHELL` override drifted, which IS the alarm. Policy: `CLAUDE.md > Shell`.
 
+**5. Git-mode ask advisory** (`Write`/`Edit`/`MultiEdit`, plus it watches `AskUserQuestion`) — the session-mode question (`git-mechanics.md > Commits`) is mandatory at first edit-intent, and real sessions have skipped or shrunk it. Every observed `AskUserQuestion` call touches a sighting marker; the session's **first** `Write`/`Edit`/`MultiEdit` whose `cwd` is inside a git repo consumes a once-per-session evaluation — no prior sighting → one advisory naming the rule; prior sighting, or any later edit → silent. **Claude-shaped payloads only** (snake_case `tool_name`): `AskUserQuestion` is Claude's ask tool, and Grok's equivalent is not observably named here, so firing on Grok payloads would false-positive right after a legitimate ask — Grok stays out of scope, covered by the rule text alone. Heuristic by design (a question the hook could not observe is not counted; the message says so). Policy: `git-mechanics.md > Commits`.
+
 The prefix is load-bearing, not decoration. Matching the bare phrase made any output that merely *contained* it fire — a `cat` or `git diff` of the rules documenting these very signatures was enough, and it happened repeatedly. Reading only `stderr` is not the alternative: Claude's Bash tool merges the command's stderr into `stdout`, so a real failure has no separate channel. The section also collects the response's strings with `[.. | strings] | join("\n")` rather than `tostring` — the latter re-escapes newlines as the two characters `\` `n`, which would make the character before `zsh:` read as alphanumeric and kill the anchor.
 
 ## State files — separate by design
@@ -25,6 +27,8 @@ The prefix is load-bearing, not decoration. Matching the bare phrase made any ou
 | `${TMPDIR:-/tmp}/claude-flow-plan-recovery-<session_id>` | 0 (empty; presence = attempted) |
 | `${TMPDIR:-/tmp}/claude-delegation-reminder-<session_id>` | 1 (format `<agent_id>\|<count>`) |
 | `${TMPDIR:-/tmp}/claude-verification-loop-<session_id>` | 2 (plain integer) |
+| `${TMPDIR:-/tmp}/claude-askq-seen-<session_id>` | 5 (empty; presence = an AskUserQuestion was observed) |
+| `${TMPDIR:-/tmp}/claude-git-mode-ask-<session_id>` | 5 (empty; presence = the once-per-session evaluation ran) |
 
 The counters are never coupled: a `Task` call resetting section 1 must not touch section 2's count. Corrupt or missing counter files reset to 0. Markers live in TMPDIR and are never cleaned up by the hook; the OS purges them.
 
@@ -38,6 +42,7 @@ Deterministic delivery of prompt-convention reminders. The hook injects signals 
 
 - `PostToolUse` may also fire for subagent tool calls within the same session; `agent_id` semantics are undocumented (verified against docs 2026-07). Section 1 mitigates via first-seen-`agent_id` keying plus the reset on delegation. Sections 2 and 4 do not filter by agent — matching their pre-merge behavior. Section 0 is session-scoped on purpose: a subagent's tool call carries the same `session_id` and the same main `transcript_path`, so whichever call comes first is the right one to capture from.
 - Section 2 recognizes only the pnpm/turbo shapes above; other runners (jest, vitest, gradle, pytest) are silent by design.
+- Section 5 is Claude-only and heuristic: it counts only `AskUserQuestion` calls PostToolUse delivered to this hook (which fire after the question is answered). A mode question asked before the hook existed in the session, or on a harness whose ask tool it cannot name (Grok), is invisible to it — hence "does not appear to have been asked" in the message, never a claim that it was not.
 
 ## Deploy
 

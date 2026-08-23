@@ -57,6 +57,8 @@ and Grok) or `~/.agents/skills/task-routing/references/<file>.md` (Codex and ope
 - **Read the git rows before the first git verb, not at commit time.** The session git mode
   is decided at first edit-intent and the branch name is decided before the branch exists —
   both are already behind you by the time `git commit` is typed.
+- **Reading the `git-mechanics.md` reference does not discharge the session-mode ask.** At
+  first edit-intent the next ACT is emitting that structured question — all four options.
 - **The git gates are not here.** What authorizes an operation, protected branches,
   force-push, and promotion into the production-deploying branch stay always-on in
   `git-workflow.md` — a gate that depends on a model invoking a skill is not a gate — along

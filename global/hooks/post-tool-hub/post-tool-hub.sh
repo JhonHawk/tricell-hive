@@ -4,7 +4,7 @@
 # Dual-runtime: Claude Code and Grok Build payloads. Field fallbacks must stay
 # in sync with bash-policy.sh.
 #
-# One process, one stdin read, four independent sections. Each section
+# One process, one stdin read, five independent sections. Each section
 # self-gates on tool name and returns its reminder text; whatever fires is
 # newline-joined into a SINGLE additionalContext emission.
 #
@@ -12,6 +12,7 @@
 #   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
 #   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
 #   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
+#   5. Git-mode ask advisory     (edit tools) — git-mechanics.md > Commits
 #
 # Section 0 is the one that WRITES (via the capture hook it calls) rather than
 # only advising. It lives here because it needs the earliest event that can see
@@ -195,6 +196,47 @@ zsh_signature_section() {
 }
 
 # ---------------------------------------------------------------------------
+# 5. Git-mode ask advisory — the session-mode question (git-mechanics.md >
+# Commits) is mandatory at first edit-intent, and two real sessions skipped or
+# shrank it. On the session's FIRST Write/Edit/MultiEdit inside a git repo, if
+# no AskUserQuestion call was observed earlier, remind once.
+#
+# Claude-shaped payloads only (`tool_name`, snake_case): AskUserQuestion is
+# Claude's ask tool; Grok's equivalent is not observably named here, so firing
+# on its payloads would false-positive after a legitimate ask. Heuristic by
+# design — a question asked where PostToolUse cannot see it is not counted.
+# ---------------------------------------------------------------------------
+git_mode_section() {
+  local askq_marker marker cwd
+  askq_marker="${TMPDIR:-/tmp}/claude-askq-seen-${session_id}"
+
+  # Ask observed -> record it and stay silent.
+  if [ "$tool_name" = "AskUserQuestion" ]; then
+    : > "$askq_marker" 2>/dev/null || true
+    return 0
+  fi
+
+  case "$tool_name" in
+    Write|Edit|MultiEdit) ;;
+    *) return 0 ;;
+  esac
+  # Claude payload shape only (see header note).
+  printf '%s' "$input" | jq -e 'has("tool_name")' >/dev/null 2>&1 || return 0
+
+  # Only an edit inside a git repo consumes the once-per-session evaluation.
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  [ -n "$cwd" ] || return 0
+  git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+
+  marker="${TMPDIR:-/tmp}/claude-git-mode-ask-${session_id}"
+  [ -f "$marker" ] && return 0
+  : > "$marker" 2>/dev/null || true
+  [ -f "$askq_marker" ] && return 0
+
+  printf 'Session git mode (non-blocking): the mandatory mode question (git-mechanics.md > Commits) does not appear to have been asked this session — ask it before the first commit if this session will touch git. Advisory only; heuristic — it only counts AskUserQuestion calls this hook observed.'
+}
+
+# ---------------------------------------------------------------------------
 # Collect and emit once.
 # ---------------------------------------------------------------------------
 context=""
@@ -208,6 +250,7 @@ append "$(plan_recovery_section)"
 append "$(delegation_section)"
 append "$(verification_loop_section)"
 append "$(zsh_signature_section)"
+append "$(git_mode_section)"
 
 if [ -n "$context" ]; then
   jq -n --arg ctx "$context" '{
