@@ -176,9 +176,16 @@ done < <(printf '%s\n' "$command" | tr ';&|' '\n')
 # wins over cwd; `cd` is tracked per segment like the lockfile gate above.
 # An explicit push of a non-protected refspec while standing on qa is allowed
 # — the commit lands where the refspec says, not where HEAD is.
+# A compound command that SWITCHES branch before committing (`git switch -c x
+# && git commit …`) is evaluated against the switch TARGET, not the cwd branch
+# — but only when the target is parseable and verifiable (`-c/-b/-B` name, or
+# an existing local branch); anything unparseable falls back to the current
+# branch (fail-closed).
 # ---------------------------------------------------------------------------
 pb_protected() { case "$1" in production|qa) return 0 ;; esac; return 1; }
 pb_base="$cwd"
+pb_switched_branch=""
+pb_switched_repo=""
 while IFS= read -r pb_seg; do
   if [[ "$pb_seg" =~ (^|[[:space:]])cd[[:space:]]+([^[:space:]]+) ]]; then
     pb_cd="${BASH_REMATCH[2]}"
@@ -205,7 +212,7 @@ while IFS= read -r pb_seg; do
       *)  pb_verb="${pb_toks[pb_j]}"; break ;;
     esac
   done
-  { [ "$pb_verb" = "commit" ] || [ "$pb_verb" = "push" ]; } || continue
+  case "$pb_verb" in commit|push|switch|checkout) ;; *) continue ;; esac
 
   pb_repo="$pb_base"
   if [ -n "$pb_cpath" ]; then
@@ -214,11 +221,43 @@ while IFS= read -r pb_seg; do
       *)  pb_repo="$pb_base/$pb_cpath" ;;
     esac
   fi
-  pb_branch=$(git -C "$pb_repo" symbolic-ref --short HEAD 2>/dev/null || true)
+
+  # switch/checkout: record the target branch for LATER segments of this
+  # command. `-c/-b/-B/--create <name>` is taken as-is (the branch is new);
+  # a plain `switch/checkout <name>` counts only when refs/heads/<name>
+  # already exists — otherwise it may be a file path (`checkout .`,
+  # `checkout -- file`) and nothing is recorded (fail-closed).
+  if [ "$pb_verb" = "switch" ] || [ "$pb_verb" = "checkout" ]; then
+    pb_target=""
+    pb_create=0
+    pb_m=$((pb_j + 1))
+    while [ "$pb_m" -lt "$pb_n" ]; do
+      case "${pb_toks[pb_m]}" in
+        -c|-b|-B|--create) pb_create=1; pb_target="${pb_toks[pb_m + 1]:-}"; break ;;
+        --) break ;;
+        -*) pb_m=$((pb_m + 1)) ;;
+        *)  pb_target="${pb_toks[pb_m]}"; break ;;
+      esac
+    done
+    if [ -n "$pb_target" ]; then
+      if [ "$pb_create" -eq 1 ] \
+         || git -C "$pb_repo" rev-parse --verify --quiet "refs/heads/$pb_target" >/dev/null 2>&1; then
+        pb_switched_branch="$pb_target"
+        pb_switched_repo="$pb_repo"
+      fi
+    fi
+    continue
+  fi
+
+  if [ -n "$pb_switched_branch" ] && [ "$pb_switched_repo" = "$pb_repo" ]; then
+    pb_branch="$pb_switched_branch"
+  else
+    pb_branch=$(git -C "$pb_repo" symbolic-ref --short HEAD 2>/dev/null || true)
+  fi
 
   if [ "$pb_verb" = "commit" ]; then
     if [ -n "$pb_branch" ] && pb_protected "$pb_branch"; then
-      deny "bash-policy: 'git commit' on protected branch '$pb_branch' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Switch to a work branch, or have the user confirm the promotion."
+      deny "bash-policy: 'git commit' on protected branch '$pb_branch' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Switch to a work branch (or run the branch switch as its own command first), or have the user confirm the promotion."
     fi
     continue
   fi
@@ -251,7 +290,7 @@ while IFS= read -r pb_seg; do
   fi
   for pb_dst in $pb_targets; do
     if pb_protected "$pb_dst"; then
-      deny "bash-policy: 'git push' targeting protected branch '$pb_dst' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Push a work branch instead, or have the user confirm the promotion."
+      deny "bash-policy: 'git push' targeting protected branch '$pb_dst' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Push a work branch instead (or run the branch switch as its own command first), or have the user confirm the promotion."
     fi
   done
 done < <(printf '%s\n' "$command" | tr ';&|' '\n')

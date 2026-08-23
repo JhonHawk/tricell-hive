@@ -94,11 +94,36 @@ def globs(target: Path, *patterns, depth_dirs=("", "apps/*", "packages/*")):
     return hits
 
 
+def pnpm_workspace_has_packages(path: Path):
+    """pnpm ≥10 uses pnpm-workspace.yaml for general config too — the file is a
+    monorepo marker only when it declares a non-empty `packages:` key."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    m = re.search(r"^packages\s*:\s*(.*)$", text, re.M)
+    if not m:
+        return False
+    inline = m.group(1).split("#", 1)[0].strip()
+    if inline:
+        return inline != "[]"
+    for line in text[m.end():].splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if not line[:1].isspace():
+            return False          # next top-level key — the list was empty
+        if s.startswith("- "):
+            return True
+    return False
+
+
 def detect(target: Path):
     facts = {"stack": [], "rules": [], "infra": [], "monorepo": []}
 
     # Package manager: lockfile decides; absent one, packageManager; else pnpm.
     pkg_json = target / "package.json"
+    pkg_text = pkg_json.read_text(encoding="utf-8") if pkg_json.is_file() else ""
     if (target / "pnpm-lock.yaml").is_file():
         facts["pm"] = "pnpm (pnpm-lock.yaml)"
     elif (target / "yarn.lock").is_file():
@@ -106,12 +131,15 @@ def detect(target: Path):
     elif (target / "package-lock.json").is_file():
         facts["pm"] = "npm (package-lock.json)"
     elif pkg_json.is_file():
-        m = re.search(r'"packageManager"\s*:\s*"([^@"]+)', pkg_json.read_text(encoding="utf-8"))
+        m = re.search(r'"packageManager"\s*:\s*"([^@"]+)', pkg_text)
         facts["pm"] = f"{m.group(1)} (packageManager field)" if m else "pnpm (default — no lockfile)"
     else:
         facts["pm"] = None
 
-    for marker in ("pnpm-workspace.yaml", "turbo.json", "nx.json"):
+    ws_yaml = target / "pnpm-workspace.yaml"
+    if ws_yaml.is_file() and pnpm_workspace_has_packages(ws_yaml):
+        facts["monorepo"].append("pnpm-workspace.yaml")
+    for marker in ("turbo.json", "nx.json"):
         if (target / marker).is_file():
             facts["monorepo"].append(marker)
 
@@ -127,18 +155,37 @@ def detect(target: Path):
     ui = False
     if globs(target, "next.config.*"):
         add("Next.js", "react-nextjs"); ui = True
-    if globs(target, "angular.json"):
+    # Angular: angular.json (classic CLI), @angular/core in the root manifest,
+    # or Nx project.json files (depth ≤2) naming @nx/angular or @angular
+    # executors — Nx workspaces carry no angular.json.
+    angular = bool(globs(target, "angular.json")) or '"@angular/core"' in pkg_text
+    if not angular:
+        for pj in globs(target, "project.json", depth_dirs=("", "*", "*/*")):
+            if "node_modules" in pj.parts:
+                continue
+            try:
+                pj_text = pj.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if "@nx/angular" in pj_text or "@angular" in pj_text:
+                angular = True
+                break
+    if angular:
         add("Angular", "angular-patterns"); ui = True
     if globs(target, "nest-cli.json"):
         add("NestJS", "nestjs-patterns")
     if globs(target, "astro.config.*"):
-        add("Astro", "react-nextjs"); ui = True
+        # react-nextjs applies only when Astro actually hosts React islands.
+        if '"@astrojs/react"' in pkg_text or '"react"' in pkg_text:
+            add("Astro", "react-nextjs")
+        else:
+            add("Astro", None)
+        ui = True
     if globs(target, "vite.config.*"):
         add("Vite", None); ui = True
     if globs(target, "schema.prisma", "prisma/schema.prisma", "drizzle.config.*"):
         add("Prisma/Drizzle", "sql-migrations")
-    if globs(target, "tailwind.config.*") or (
-            pkg_json.is_file() and '"tailwindcss"' in pkg_json.read_text(encoding="utf-8")):
+    if globs(target, "tailwind.config.*") or '"tailwindcss"' in pkg_text:
         add("Tailwind", "tailwind")
     if (target / "pyproject.toml").is_file() or globs(target, "*.py", "scripts/*.py", "harness/*.py"):
         add("Python", "python-standards")
@@ -167,10 +214,17 @@ def detect(target: Path):
     elif pkg_json.is_file():
         facts["class"] = "app"
     else:
+        # md-ratio over TEXT files only — images, binaries and .gitkeep dilute
+        # the signal without saying anything about the repo's nature.
+        non_text = {".webp", ".png", ".jpg", ".jpeg", ".svg", ".gif", ".ico", ".pdf", ".zip"}
         tracked = [p for p in target.rglob("*") if p.is_file()
-                   and ".git" not in p.parts and "node_modules" not in p.parts]
+                   and ".git" not in p.parts and "node_modules" not in p.parts
+                   and p.suffix.lower() not in non_text and p.name != ".gitkeep"]
         md = [p for p in tracked if p.suffix == ".md"]
-        facts["class"] = "specs" if tracked and len(md) / len(tracked) >= 0.6 else "other"
+        ratio = len(md) / len(tracked) if tracked else 0.0
+        # Name-signal tiebreak: a `<x>-specs` basename biases to specs from 0.4.
+        threshold = 0.4 if target.name.endswith("-specs") else 0.6
+        facts["class"] = "specs" if tracked and ratio >= threshold else "other"
     return facts
 
 

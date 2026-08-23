@@ -63,6 +63,8 @@ trap 'rm -rf "$FIX"' EXIT
 git init -q -b qa "$FIX/qa-repo"
 git init -q -b feature-x "$FIX/feature-repo"
 git init -q -b master "$FIX/master-repo"
+git -C "$FIX/master-repo" -c user.email=t@t -c user.name=t commit -q --allow-empty -m x
+git -C "$FIX/master-repo" branch production
 git init -q -b production "$FIX/prod-repo"
 git init -q -b main "$FIX/detached-repo"
 git -C "$FIX/detached-repo" -c user.email=t@t -c user.name=t commit -q --allow-empty -m x
@@ -108,6 +110,31 @@ run_case "claude-commit-detached-head" 0 '{
   "tool_name": "Bash",
   "tool_input": {"command": "git commit --allow-empty -m x"},
   "cwd": "'"$FIX/detached-repo"'"
+}'
+
+# Compound commands that switch branch before committing
+run_case "claude-switch-c-then-commit-from-qa" 0 '{
+  "tool_name": "Bash",
+  "tool_input": {"command": "git switch -c hotfix-1 && git commit -m fix"},
+  "cwd": "'"$FIX/qa-repo"'"
+}'
+
+run_case "claude-checkout-b-then-commit-from-qa" 0 '{
+  "tool_name": "Bash",
+  "tool_input": {"command": "git checkout -b feature-y && git commit -m fix"},
+  "cwd": "'"$FIX/qa-repo"'"
+}'
+
+run_case "claude-switch-to-production-then-commit-from-master" 2 '{
+  "tool_name": "Bash",
+  "tool_input": {"command": "git switch production && git commit -m fix"},
+  "cwd": "'"$FIX/master-repo"'"
+}'
+
+run_case "claude-unparseable-switch-then-commit-from-qa" 2 '{
+  "tool_name": "Bash",
+  "tool_input": {"command": "git switch - && git commit -m fix"},
+  "cwd": "'"$FIX/qa-repo"'"
 }'
 
 # Grok-shaped, repo resolved from `git -C` rather than cwd
