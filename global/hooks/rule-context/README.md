@@ -78,6 +78,12 @@ edit-heavy session from paying the same pointer on every write.
   workflows, CSS, and the Angular/NestJS shared suffixes.
 - **Tool policy** (`Bash` / `run_terminal_command` / `shell`): `agent-browser` →
   `browser-automation-reference.md` (the language-rules reference behind the always-on gate stub).
+- **Workspace placement** (`Write` / `Edit` / `apply_patch` paths): a write landing under
+  `_support/`, a `*-specs/` repo, `sessions/`, or a `docs|scripts|evidence|plan/` folder
+  outside `src/`/`app/` → points at the **`workspace-conventions` skill** (a skill, not a
+  rule file — the message says so). Write-time backstop under the router's
+  propose-placement trigger: the router should fire when a path is named in prose; this
+  net catches the write when it did not.
 
 Codex runs edits through `apply_patch` inside a shell call, so the file kind is read from the
 patch header instead of a `file_path` field. Without that branch the hook would be inert on

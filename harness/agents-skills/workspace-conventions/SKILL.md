@@ -2,12 +2,17 @@
 name: workspace-conventions
 description: >
   Load BEFORE creating/naming artifacts outside app source (_support, plans, specs, ADRs,
-  contracts, evidence, sessions), naming any infra resource (bucket, cluster, service,
+  contracts, evidence, sessions) AND before proposing in an answer or plan where any
+  artifact, script, report, or doc will live — "where should this live", "dónde lo
+  colocarías", "dónde lo guardamos", "en qué carpeta va", or naming a _support/, scripts/,
+  docs/, evidence/ path in prose: the path named in the answer is the act, and it happens
+  before any file exists. Also before naming any infra resource (bucket, cluster, service,
   security group, DB, subdomain, env branch), designing a cross-service contract, or
   answering "what's next"/offering /flow-* with a ledger. Every harness, Claude Code
   included: these rules are path-scoped there and load only after a matching file is read,
-  which is usually too late to pick a name or a location.
-  Triggers: _support/, *-specs, flow, IaC, naming, contract.
+  which is too late to pick a name or a location.
+  Triggers: _support/, *-specs, sessions/, flow, IaC, naming, contract, "dónde va",
+  "where should this live".
 ---
 
 # workspace-conventions — router to workspace, session, contract, and naming conventions

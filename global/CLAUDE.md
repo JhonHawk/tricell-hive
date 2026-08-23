@@ -152,7 +152,7 @@ Consulting the router is never the blocking step: read it and keep going in the 
 |---|---|---|
 | `task-routing` | the first `Write`/`Edit` on project code OR the first `git` command of the session — whichever comes first — or before the first delegation | who takes the task, delegation gates, plan gap analysis; git mechanics: branch, session mode, commit semantics, PRs, promotion, close |
 | `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
-| `workspace-conventions` | writing a file outside application source, or typing an infra resource name | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
+| `workspace-conventions` | writing a file outside application source, typing an infra resource name, or stating in an answer/plan where an artifact, script, report, or doc will live (a path or folder named in prose is the act) | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
 | `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
 | `language-rules` | Grok — the first `Write`/`Edit` of code; Claude Code — about to drive a browser (its language rules load natively, but the browser CLI reference lives only here) | full language conventions; `browser-automation-reference.md` |
 
