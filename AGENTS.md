@@ -249,6 +249,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 `_support/workspace/` is **git-ignored** scratch — never a commit target. When work concludes, each artifact either moves to `_support/archive/<audits|docs>/` with a date-prefixed name (`YYYY-MM-DD-{slug}`) if worth keeping, or is deleted. To commit a generated file, relocate it to `archive/` first. Existing archive entries keep their legacy names — no renames.
 
 ## Git Conventions
+- **Tracker: GitHub Issues** (this repo, via `gh`). Declared per `memory-routing.md > Tracker sync`: reads are standing-authorized; a ticket moves to in-progress when its work starts, closes/comments batch to the plan's close confirmation.
 - **Conventional commits:** `feat:`, `fix:`, `chore:`, `docs:` prefixes required.
 - **Direct commits to `master` are this hub's declared workflow** (no PR gate, no CI on branches). **The review gate sits before the commit, not before the push:** present the diff, commit on the user's approval, and push in the same step — that one approval covers both, so never ask a second time for the push. Confirm-gated; force-push and history rewrites stay separately gated.
 - This is a **configuration-only repo** — no build system, no CI/CD, no runtime. Changes are validated by reading/reviewing agent files, not by running builds or tests.
