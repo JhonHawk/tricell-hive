@@ -30,9 +30,9 @@ reads `product/`; a developer plans from `epics/`.
 │   └── <epic-id>/            # in-vivo reports (test-report-template.md), text-only — no images; raw stays in _support/
 ├── releases/                # Client-facing release notes per promotion (release-notes-template.md): YYYY-MM-DD-<env>.md
 ├── epics/
-│   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd
-│       ├── PRODUCT.md        # The DELTA: what changes and why — written at the specs stage, gate: the spec-writing playbook's business gate
-│       ├── TECH.md           # How — written when foundation exists; cites real code paths
+│   └── <EPIC-ID>-<slug>/     # e.g. E07-mensajeria or TRI-360-cicd — set & gates: "Per-epic artifact set" below
+│       ├── PRODUCT.md        # The DELTA: what changes and why — always, written at the specs stage
+│       ├── TECH.md           # How — before code; cites real code paths
 │       └── tasks.md          # Task list mirroring the tracker, Gherkin ACs per task — derived post-gate
 │                             # ── EXECUTION (what actually happened) ──
 ├── audit/                    # Multi-lens audit instance (audit-playbook.md): README.md = protocol instance + history table
@@ -42,6 +42,31 @@ reads `product/`; a developer plans from `epics/`.
     ├── previously/           # reset quarantine (loose/legacy artifacts swept in at bootstrap)
     └── YYYY-MM-DD-<slug>/     # <slug>-plan.md (declares `Implements:`), <slug>-findings.md, optional analysis/ reports/
 ```
+
+## Per-epic artifact set
+
+The artifacts one epic can carry, each with its gate — canonical here; the layout comments
+above and the Conventions below point to this block:
+
+- **PRODUCT.md — always.** Written at the specs stage: the epic's DELTA (what changes and
+  why), never product state. It merges only after passing the spec-writing playbook's
+  **business gate** (rules, scope, verifiability — technical findings get parked, not
+  resolved).
+- **tasks.md — derived only AFTER the business gate passes.** Task decomposition (units of
+  work, repo assignment, per-task Gherkin) is delivery planning over *gated* rules —
+  writing it pre-gate means every business finding invalidates already-synced tasks.
+  Business acceptance scenarios (happy + negative) belong in PRODUCT.md/the vistas and ARE
+  gated; the tracker never sees pre-gate tasks.
+- **TECH.md — after PRODUCT.md, before code.** It cites real code paths, so it cannot be
+  written before the foundation exists, and it goes stale loudly (paths stop resolving)
+  rather than silently; it closes the epic's parked technical questions, verified at
+  native plan mode's plan gate (the **technical gate**).
+- **Contracts — top-level in `contracts/`**, never inside the epic folder: linked from the
+  epic when a cross-service surface changes (they are the cross-repo source of truth, not
+  a per-epic artifact).
+
+**Epic index.** The README epic-table row links exactly the artifacts that exist — no
+placeholder links — in the fixed order **PRODUCT · TECH · tasks · contrato**.
 
 ## product/ — the product map and vistas (business truth in force)
 
@@ -153,21 +178,13 @@ Then <verifiable outcome>
   to the vista pages and the `Influenciada por` entries are added: the vista absorbs the
   *decided* rules, even before they are built — the epic index status tells the reader
   what is decided vs delivered.
-- **PRODUCT.md before TECH.md, TECH.md before code — and each has its own gate.** A
-  PRODUCT.md merges only after passing the spec-writing playbook's business gate (the
-  **business gate**: rules, scope, verifiability — technical findings get parked, not
-  resolved). TECH.md cites real paths — it cannot be written before the foundation exists,
-  and it goes stale loudly (paths stop resolving) rather than silently; it closes the
-  epic's parked technical questions, verified at native plan mode's plan gate (the
-  **technical gate**).
-- **tasks.md is derived AFTER the business gate.** Task decomposition (units of work,
-  repo assignment, per-task Gherkin) is delivery planning over *gated* rules — writing
-  it pre-gate means every business finding invalidates already-synced tasks. Business
-  acceptance scenarios (happy + negative) belong in PRODUCT.md/the vistas and ARE gated;
-  the tracker never sees pre-gate tasks.
+- **Per-epic artifacts, ordering, and gates:** the "Per-epic artifact set" block above is
+  canonical — PRODUCT.md always and before TECH.md, TECH.md before code, tasks.md only
+  after the business gate.
 - **README.md is the index, not a document.** One table: epic ID, name, status
-  (draft / reviewed / in development / delivered), links. Same role the ledger plays for
-  the workspace — if it's not in the index, it's invisible.
+  (draft / reviewed / in development / delivered), links — each row linking exactly the
+  artifacts that exist, in the "Per-epic artifact set" fixed order. Same role the ledger
+  plays for the workspace — if it's not in the index, it's invisible.
 - **Status lives in the spec header**, mirrored to the README table. Vocabulary:
   `draft → reviewed → in development → delivered` (+ `parked`). Convention files
   (`conventions/`, or repo-scoped ones in `<repo>/_support/docs/`) carry their own lifecycle

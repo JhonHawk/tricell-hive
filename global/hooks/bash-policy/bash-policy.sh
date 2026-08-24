@@ -68,10 +68,13 @@ fi
 # CLAUDE_CODE_SHELL, where these names are ordinary variables — a deny there
 # would only produce false positives. Word-boundary pattern so repo_path= and
 # file_path= pass; covers plain, +=, and typeset/local/export/declare forms.
+# Heredoc bodies are not shell: only the text BEFORE the first heredoc operator
+# (`<<`, `<<-`, quoted or unquoted delimiter) is checked — an assignment after
+# it is document content (e.g. a python3 heredoc), where fail-open is correct.
 # ---------------------------------------------------------------------------
 if [ "$tool_name" = "run_terminal_command" ]; then
   zsh_special_re='(^|[;&|({[:space:]])((typeset|local|export|declare)[[:space:]]+(-[A-Za-z]+[[:space:]]+)*)?(path|status)\+?='
-  if [[ "$command" =~ $zsh_special_re ]]; then
+  if [[ "${command%%<<*}" =~ $zsh_special_re ]]; then
     deny "bash-policy: this tool shell is zsh — 'path' is tied to PATH (assigning it wipes the entire PATH) and 'status' is read-only. Rename the variable (repo_path, dir, st, exit_status) and retry. See CLAUDE.md > Shell."
   fi
 fi

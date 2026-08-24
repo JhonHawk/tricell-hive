@@ -55,6 +55,31 @@ run_case "claude-ls" 0 '{
   "cwd": "/tmp"
 }'
 
+# --- (b2) zsh special-name deny (Grok scope) — heredoc bodies are not shell --
+run_case "grok-path-assign-plain" 2 '{
+  "toolName": "run_terminal_command",
+  "toolInput": {"command": "path=/x"},
+  "cwd": "/tmp"
+}'
+
+run_case "grok-path-in-python-heredoc" 0 '{
+  "toolName": "run_terminal_command",
+  "toolInput": {"command": "python3 <<'\''PY'\''\npath=\"/x\"\nprint(path)\nPY"},
+  "cwd": "/tmp"
+}'
+
+run_case "grok-status-after-heredoc-marker" 0 '{
+  "toolName": "run_terminal_command",
+  "toolInput": {"command": "cat <<EOF\nstatus=1\nEOF"},
+  "cwd": "/tmp"
+}'
+
+run_case "grok-path-assign-before-heredoc" 2 '{
+  "toolName": "run_terminal_command",
+  "toolInput": {"command": "path=/x; cat <<EOF\nhello\nEOF"},
+  "cwd": "/tmp"
+}'
+
 # --- (d) protected environment branches -------------------------------------
 # Fixture repos: one per branch state. No commits needed except the detached
 # case (symbolic-ref works on an unborn branch).
