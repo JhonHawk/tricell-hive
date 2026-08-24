@@ -20,6 +20,11 @@ compact report returns.
 frontmatter, elsewhere because the caller dispatches it. Everything comes from `$ARGUMENTS`
 and disk; report facts, and the main thread decides what they mean.
 
+**Fallback — a mode that cannot spawn subagents** (e.g. Grok plan mode rejects
+`spawn_subagent`): run the same sweep inline with read-only commands, keeping each payload
+compact (`--json` + filters, never raw page dumps) — the isolation is lost but the
+discipline of this file still governs what is read and how it is reported.
+
 ## 1 — Resolve scope from disk
 
 - `$ARGUMENTS` names a repo → scope to it. `all` or empty → every git repo at or below cwd
