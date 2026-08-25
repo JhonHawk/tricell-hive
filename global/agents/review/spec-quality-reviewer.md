@@ -6,6 +6,7 @@ description: >
   challenging whether the feature should exist (that is product-critic).
 tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
+effort: high
 permissionMode: plan
 color: cyan
 hooks:
