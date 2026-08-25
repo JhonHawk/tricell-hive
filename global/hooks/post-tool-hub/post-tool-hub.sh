@@ -13,6 +13,7 @@
 #   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
 #   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
 #   5. Git-mode ask advisory     (edit tools) — git-mechanics.md > Commits
+#   6. Remote-apply counter      (shell)      — debugging.md > remote-apply breaker
 #
 # Section 0 is the one that WRITES (via the capture hook it calls) rather than
 # only advising. It lives here because it needs the earliest event that can see
@@ -237,6 +238,51 @@ git_mode_section() {
 }
 
 # ---------------------------------------------------------------------------
+# 6. Remote-apply counter — counts remote apply/deploy/migration ATTEMPTS,
+# never failures. Counting failures would mean parsing output, and one failed
+# run gets polled repeatedly while it is investigated: the count would inflate
+# on a single failure, which is the false positive this hub refuses. An attempt
+# is unambiguous from the command alone, and the breaker caps attempts anyway.
+#
+# Fires from the THIRD, not the second: `debugging.md` ends remote execution at
+# the second FAILED attempt, and this hook cannot tell success from failure.
+# Same shape as section 1 — inject the SIGNAL, let the rule decide.
+# ---------------------------------------------------------------------------
+is_remote_apply() {
+  local cmd="$1" sep='(^|[[:space:]]|[;&|])'
+
+  [[ "$cmd" =~ ${sep}terraform([[:space:]]+-chdir=[^[:space:]]+)*[[:space:]]+apply ]] && return 0
+  [[ "$cmd" =~ ${sep}gh[[:space:]]+workflow[[:space:]]+run ]] && return 0
+  [[ "$cmd" =~ ${sep}gh[[:space:]]+run[[:space:]]+rerun ]] && return 0
+  [[ "$cmd" =~ ${sep}aws[[:space:]]+ecs[[:space:]]+update-service ]] && return 0
+  [[ "$cmd" =~ ${sep}(vercel|flyctl|fly|dokploy)[[:space:]]+deploy ]] && return 0
+  # A push whose refspec NAMES an environment branch. A bare `git push` from an
+  # already-checked-out env branch is invisible here and stays a false negative,
+  # which this hub accepts; a false positive it does not.
+  [[ "$cmd" =~ ${sep}git[[:space:]]+push([[:space:]]+-[^[:space:]]+)*[[:space:]]+[^[:space:]]+[[:space:]]+(qa|staging|stage|prod|production)([[:space:]]|$) ]] && return 0
+  return 1
+}
+
+remote_apply_section() {
+  local marker count
+  [ "$is_shell" -eq 1 ] || return 0
+  [ -n "$command" ] || return 0
+  is_remote_apply "$command" || return 0
+
+  marker="${TMPDIR:-/tmp}/claude-remote-apply-${session_id}"
+  count=0
+  [ -f "$marker" ] && read -r count < "$marker" 2>/dev/null
+  case "$count" in *[!0-9]*|"") count=0 ;; esac
+  count=$((count + 1))
+  printf '%s' "$count" > "$marker" 2>/dev/null || true
+
+  if [ "$count" -ge 3 ]; then
+    # Inject the SIGNAL only; `debugging.md` owns what to do about it.
+    printf 'Remote apply/deploy/migration attempt #%s this session (non-blocking): the SECOND FAILED such attempt within a milestone ends remote execution for the session. If two of these failed, stop — checkpoint and re-plan from offline evidence (enumerate action×resource×context, versions, the exact plan) before attempting again; a new failure class does not reset the count. The preventive half is the observation path in devops-principles.md. See debugging.md.' "$count"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Collect and emit once.
 # ---------------------------------------------------------------------------
 context=""
@@ -251,6 +297,7 @@ append "$(delegation_section)"
 append "$(verification_loop_section)"
 append "$(zsh_signature_section)"
 append "$(git_mode_section)"
+append "$(remote_apply_section)"
 
 if [ -n "$context" ]; then
   jq -n --arg ctx "$context" '{
