@@ -7,9 +7,13 @@
 #
 # Safety model:
 #   - Defaults to --dry-run. Nothing is written anywhere until --apply is passed.
-#   - Even under --apply, manifest-based orphan deletion (and the settings.json /
-#     hooks.json purge that rides with it) requires the separate --delete-orphans
-#     flag. The script never auto-confirms a delete on its own.
+#   - Under --apply, manifest-confirmed orphans are deleted as part of the run
+#     (with the settings.json / hooks.json purge that rides with it): the orphan
+#     set is by construction sources the user already removed from the repo, and
+#     deploys are user-initiated. --keep-orphans opts out (list-only); the
+#     size-based refusal (>20 entries or >=25% of the manifest) stays as the
+#     anomaly brake and still requires --force-delete-orphans to override.
+#     --delete-orphans is accepted as a deprecated no-op alias.
 #   - Targets zsh-invoked bash on macOS + BSD userland: no GNU-only flags, no
 #     bash 4+ features (associative arrays, mapfile) — the system /bin/bash on
 #     macOS is 3.2.
@@ -66,7 +70,7 @@ readonly ORPHAN_MAX_PCT=25
 # accidentally sets --apply and expects --dry-run behavior (or vice versa).
 APPLY=0
 VERBOSE=0
-DELETE_ORPHANS=0
+KEEP_ORPHANS=0
 FORCE_DELETE_ORPHANS=0
 RUN_CLAUDE=1
 RUN_CODEX=1
@@ -107,12 +111,15 @@ deploy-global.sh — deploy tricell-hive global/ + harness/ to the local machine
 
 USAGE:
   deploy-global.sh [--dry-run | --apply] [--only SCOPE[,SCOPE...]]
-                    [--delete-orphans] [--force-delete-orphans] [--verbose] [--help]
+                    [--keep-orphans] [--force-delete-orphans] [--verbose] [--help]
 
 FLAGS:
   --dry-run          Report what would change; write nothing. DEFAULT.
+                      Orphans are only listed, never deleted, in a dry run.
   --apply            Perform the deploy for real (copies, backup, manifest write).
-                      Does NOT by itself delete orphaned files — see --delete-orphans.
+                      Manifest-confirmed orphans are DELETED as part of the run
+                      (and their settings.json/hooks.json entries purged) — see
+                      --keep-orphans to opt out and the size-based refusal below.
   --only SCOPE       Restrict the run to one or more scopes. Repeatable, or
                       comma-separated. One of:
                         claude    -> global/ into ~/.claude
@@ -122,17 +129,20 @@ FLAGS:
                                      + generated agents into ~/.grok/agents
                         harness   -> alias for "codex,opencode,grok"
                         all       -> everything (default when --only is omitted)
-  --delete-orphans   Under --apply, actually delete manifest-confirmed orphans
-                      (and purge their settings.json/hooks.json entries).
-                      Without this flag, orphans are only listed, never removed —
-                      this is the confirmation gate the original procedure asks
-                      the user for; the script never auto-confirms it. Refused
-                      (not deleted) when the orphan set exceeds 20 entries or 25%
-                      of the manifest — see --force-delete-orphans.
+  --keep-orphans     Under --apply, list manifest-confirmed orphans WITHOUT
+                      deleting them (the pre-2026-08 default). Their manifest
+                      entries are preserved so a later run can still delete them.
+                      Orphan deletion is otherwise part of the apply flow: the
+                      orphan set is by construction sources the user already
+                      removed from the repo, and the full list is printed before
+                      deletion. Deletion is refused (not performed) when the set
+                      exceeds 20 entries or 25% of the manifest — the anomaly
+                      brake; see --force-delete-orphans.
   --force-delete-orphans
-                      Implies --delete-orphans and bypasses the size-based
-                      refusal above. Only pass this when a large orphan set is
-                      genuinely expected.
+                      Bypasses the size-based refusal above. Only pass this when
+                      a large orphan set is genuinely expected.
+  --delete-orphans   Deprecated no-op alias (deletion is now the --apply
+                      default); accepted for compatibility.
   --verbose, -v      Print every file-level action, not just per-category summaries.
   --help, -h         This message.
 
@@ -182,12 +192,16 @@ parse_args() {
                 only_raw="${only_raw:+${only_raw},}${1#--only=}"
                 shift
                 ;;
+            --keep-orphans)
+                KEEP_ORPHANS=1
+                shift
+                ;;
             --delete-orphans)
-                DELETE_ORPHANS=1
+                # Deprecated no-op alias: deletion is the --apply default now.
+                printf 'NOTE: --delete-orphans is deprecated (orphan deletion is the --apply default; use --keep-orphans to opt out).\n' >&2
                 shift
                 ;;
             --force-delete-orphans)
-                DELETE_ORPHANS=1
                 FORCE_DELETE_ORPHANS=1
                 shift
                 ;;
@@ -734,8 +748,8 @@ manifest_entry_map() {
 }
 
 ORPHANS=()
-# Orphans detected this run but NOT deleted (no --delete-orphans, or the size
-# breaker refused). step_write_manifest re-emits these entries so a later run
+# Orphans detected this run but NOT deleted (dry run, --keep-orphans, or the
+# size breaker refused). step_write_manifest re-emits these entries so a later run
 # can still confirm and delete them — dropping them would leave the stale
 # files untracked forever.
 KEPT_ORPHANS=()
@@ -793,7 +807,7 @@ step_detect_orphans() {
     done
     report "orphans: ${#ORPHANS[@]} found (${pct}% of ${MANIFEST_TOTAL} manifest entries)"
 
-    if [[ "${APPLY}" -eq 1 && "${DELETE_ORPHANS}" -eq 1 ]]; then
+    if [[ "${APPLY}" -eq 1 && "${KEEP_ORPHANS}" -ne 1 ]]; then
         if [[ "${FORCE_DELETE_ORPHANS}" -ne 1 ]] && { [[ ${#ORPHANS[@]} -gt ${ORPHAN_MAX_ABS} ]] || [[ "${pct}" -ge "${ORPHAN_MAX_PCT}" ]]; }; then
             KEPT_ORPHANS=("${ORPHANS[@]}")
             log "REFUSING to delete: ${#ORPHANS[@]} orphans (${pct}%) exceeds the safety threshold (>${ORPHAN_MAX_ABS} entries or >=${ORPHAN_MAX_PCT}% of the manifest). This looks like a broken checkout (missing global/ or harness/ sources) rather than a routine cleanup. Pass --force-delete-orphans to override if this volume of removal is genuinely expected. Their manifest entries are preserved so a later run can still delete them."
@@ -801,15 +815,19 @@ step_detect_orphans() {
         else
             step_delete_orphans
         fi
+    elif [[ "${APPLY}" -eq 1 ]]; then
+        KEPT_ORPHANS=("${ORPHANS[@]}")
+        log "Not deleting (--keep-orphans). Manifest entries are preserved so a later run can still delete them."
+        report "orphans: not deleted (--keep-orphans; entries preserved in manifest)"
     else
         KEPT_ORPHANS=("${ORPHANS[@]}")
-        log "Not deleting (pass --apply --delete-orphans to confirm removal). Manifest entries are preserved so a later run can still delete them."
-        report "orphans: not deleted (requires --apply --delete-orphans; entries preserved in manifest)"
+        log "Dry run: orphans listed only — an --apply run deletes them (pass --keep-orphans to opt out). Manifest entries are preserved."
+        report "orphans: not deleted (dry run; an --apply run deletes them unless --keep-orphans)"
     fi
 }
 
 step_delete_orphans() {
-    log "== Deleting confirmed orphans (--delete-orphans) =="
+    log "== Deleting manifest-confirmed orphans =="
     local rel deleted=0
     for rel in "${ORPHANS[@]}"; do
         manifest_entry_map "${rel}"

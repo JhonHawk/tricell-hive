@@ -115,8 +115,9 @@ its own location regardless of cwd):
 | `--dry-run` | Report what would change; write nothing. **Default.** |
 | `--apply` | Perform the deploy for real. |
 | `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. |
-| `--delete-orphans` | Under `--apply`, actually delete manifest-confirmed orphans (files whose source was removed from `global/`/`harness/`) and purge their `settings.json`/`hooks.json` entries. **Without this flag orphans are only listed, never removed** — this is the confirmation gate; present the orphan list to the user before ever passing it. Refused (not deleted) if the orphan set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup. Undeleted orphans (listed-only or refused) keep their manifest entries, so a later `--delete-orphans` / `--force-delete-orphans` run can still confirm and remove them. |
-| `--force-delete-orphans` | Implies `--delete-orphans` and bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
+| `--keep-orphans` | Under `--apply`, list manifest-confirmed orphans WITHOUT deleting them (the old default). By default orphan deletion is part of the apply flow: an orphan is by construction a source the user already removed from `global/`/`harness/`, deploys are user-initiated, and the full list prints in the report before deletion — so a separate confirmation flag re-asked what the repo's own history already answered. The deletion also purges the orphans' `settings.json`/`hooks.json` entries. Refused (not deleted) if the set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup; the refusal is the anomaly brake. Undeleted orphans (dry-run, kept, or refused) keep their manifest entries, so a later run can still remove them. |
+| `--force-delete-orphans` | Bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
+| `--delete-orphans` | Deprecated no-op alias, accepted for compatibility — deletion is now the `--apply` default. |
 | `--verbose`, `-v` | Per-file logging instead of per-category summaries. |
 | `--help`, `-h` | Flag reference. |
 
@@ -132,8 +133,9 @@ surface every `WARNING:` to the user, don't just report success.
 
 ## What the script guarantees
 
-- Never deletes anything outside the manifest-confirmed orphan set, and never deletes even
-  those without `--apply --delete-orphans` explicitly passed.
+- Never deletes anything outside the manifest-confirmed orphan set, never deletes anything
+  in a dry run or under `--keep-orphans`, and always prints the full orphan list in the
+  report before any deletion.
 - Backs up `~/.claude` (tar, keeps 5 most recent) before any overwrite — but only when the
   `claude` scope is active; there's no equivalent snapshot for `~/.codex` or
   `~/.config/opencode` in this procedure. The `grok` scope needs none: it writes only
@@ -155,7 +157,7 @@ surface every `WARNING:` to the user, don't just report success.
   for scopes you didn't just run stays accurate on the next deploy.
 - Refuses to run at all against a checkout that doesn't look like tricell-hive (missing
   `global/CLAUDE.md`, `global/rules`, or `global/agents`), and refuses an oversized orphan
-  deletion (see `--delete-orphans` above) — both are the compensating controls for a
+  deletion (see `--keep-orphans` above) — both are the compensating controls for a
   mis-resolved repo root turning "nothing to deploy" into "delete everything".
 
 ## After a deploy
