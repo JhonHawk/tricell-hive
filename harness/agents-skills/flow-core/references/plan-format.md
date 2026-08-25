@@ -115,6 +115,11 @@ Accepting pauses IS choosing `interactive` for those stretches: each pause is a 
 chain resumes on it. Under `hold` it does not apply — everything is a diff at close. The chosen
 answer goes in the plan and binds execution; a plan that runs past its own pause is a defect.
 
+**Review-workload forecast rides the same gate.** Estimate the change-group's changed lines; past
+~400 (the same threshold `agent-routing.md` uses for refuter fan-out — one operative number in the
+system), the gate proposes the PR split (chained or stacked, cut at the plan's own seams) alongside
+the pauses — the chain strategy is the user's pick. Splitting at push time saves nothing.
+
 ## Task block
 
 Every task is independently executable and independently trackable.

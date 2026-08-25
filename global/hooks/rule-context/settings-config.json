@@ -1,5 +1,5 @@
 {
-  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). ADVISORY ONLY: rule-context never denies and always exits 0 — it names the situational rule that applies at the moment it starts applying (a file kind about to be written, a tool with its own routing policy about to run). Kept separate from bash-policy.sh on purpose: that hook is a gate (exit 2 / decision JSON), and a security gate must not depend on extension mapping. Both may match Bash; that is expected. Policy: rules/languages/*, rules/tools/browser-automation.md, rules/tools/code-search.md.",
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). ADVISORY ONLY: rule-context never denies and always exits 0 — it names the situational rule that applies at the moment it starts applying (a file kind about to be written, a tool with its own routing policy about to run). Kept separate from bash-policy.sh on purpose: that hook is a gate (exit 2 / decision JSON), and a security gate must not depend on extension mapping. Both may match Bash; that is expected. Policy: rules/languages/*, rules-situational/browser-automation-reference.md, rules/tools/code-search.md.",
   "hooks": {
     "PreToolUse": [
       {

@@ -38,7 +38,7 @@ match: any
 
 ## Typography
 - Set the type scale in **px/rem from a small hand-picked set** (e.g. 12/14/16/18/20/24/30/36/48/60/72). Avoid `em` for the scale (nested `em` compounds off-scale) and modular/ratio scales (fractional px).
-- Body measure **45–75 characters per line** (~20–35em); cap with `max-width` even inside a wider container — never `max-width: none` on prose. **Product UI only** — a single-document deliverable (report, published Artifact) inverts this: `quality/communication-format.md > Layout floor`.
+- Body measure **45–75 characters per line** (~20–35em); cap with `max-width` even inside a wider container — never `max-width: none` on prose. **Product UI only** — a single-document deliverable (report, published Artifact) inverts this: `rules-situational/communication-format-mechanics.md > Layout floor` (a `flow-report` reference).
 - Line-height is proportional to measure and inverse to size: body **1.5–2** (taller for wider columns), large headings **≈1**.
 - Align mixed font sizes by **baseline** (`align-items: baseline`), not center.
 - Right-align numeric table columns; center only headings or blocks ≤ 2–3 lines; if text is justified, set `hyphens: auto`.

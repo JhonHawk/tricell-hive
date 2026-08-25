@@ -24,7 +24,8 @@ alwaysApply: true
 
 Branching model, commit semantics and the session mode, PRs and promotion, end-of-work
 hygiene, and recovery are situational: they apply once you are already branching, committing,
-or opening a PR. They load through the `git-mechanics` skill — **invoke it before the first
-git verb of a session**, since choosing a branch name or a session mode happens before any
-of it is on screen. The gates above stay here because their trigger is an action whose cost
-is irreversible, and a gate that depends on a model invoking a skill is not a gate.
+or opening a PR. They load through the `task-routing` skill (which also fires at first
+edit-intent) — **invoke it before the first git verb of a session**, since choosing a branch
+name or a session mode happens before any of it is on screen. The gates above stay here
+because their trigger is an action whose cost is irreversible, and a gate that depends on a
+model invoking a skill is not a gate.

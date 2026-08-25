@@ -983,21 +983,26 @@ merge_hook_configs() {
 # ---------------------------------------------------------------------------
 
 step_harness_rebuild() {
-    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] || return 0
-    log "== Harness rebuild =="
+    # Unconditional — every scope. build.py also assembles the always-on cores
+    # (global/CLAUDE.md + harness/AGENTS.md) from global/core-sections/, and this
+    # step runs BEFORE step_deploy_claude so the deployed CLAUDE.md is the fresh
+    # assembly, not a stale output. Under set -e a failing build (e.g. a
+    # hand-edited core, which build.py refuses to overwrite) aborts the deploy
+    # before anything is copied.
+    log "== Harness rebuild + core assembly =="
     if [[ "${APPLY}" -eq 1 ]]; then
         (cd "${REPO_ROOT}" && python3 harness/build.py)
         local dirty
-        dirty=$(cd "${REPO_ROOT}" && git status --porcelain harness/ 2>/dev/null || true)
+        dirty=$(cd "${REPO_ROOT}" && git status --porcelain harness/ global/CLAUDE.md 2>/dev/null || true)
         if [[ -n "${dirty}" ]]; then
-            log "WARNING: harness/ is dirty after rebuild — canonical sources changed without a commit. Deploying anyway; remind the user to commit the diff."
+            log "WARNING: harness/ or global/CLAUDE.md is dirty after rebuild — canonical sources changed without a commit. Deploying anyway; remind the user to commit the diff."
             report "harness rebuild: dirty (uncommitted regenerated output)"
         else
-            log "harness/ rebuild clean."
+            log "harness/ + cores rebuild clean."
             report "harness rebuild: clean"
         fi
     else
-        log "[DRY-RUN] would run: python3 harness/build.py (then check harness/ for a dirty diff)"
+        log "[DRY-RUN] would run: python3 harness/build.py (then check harness/ and global/CLAUDE.md for a dirty diff)"
         report "harness rebuild: [DRY-RUN]"
     fi
 }
@@ -1503,9 +1508,9 @@ main() {
     step_diff
     step_backup
     step_detect_orphans
+    step_harness_rebuild
     step_deploy_claude
     step_deploy_hooks
-    step_harness_rebuild
     step_deploy_shared_harness
     step_deploy_codex
     step_deploy_opencode

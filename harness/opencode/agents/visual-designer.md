@@ -23,7 +23,7 @@ not evidence.
 ## Rules
 - **Iterate against the render.** Edit → serve → capture → judge → adjust, in short passes. Never
   finish a pass you did not look at. Capture with the `agent-browser` CLI per
-  `~/.agents/skills/language-rules/references/browser-automation.md`; the dev server is the correct tool here — this is active
+  `~/.agents/skills/language-rules/references/browser-automation-reference.md`; the dev server is the correct tool here — this is active
   iteration, not a release gate.
 - **Capture the BEFORE state prior to your first edit**, at every viewport and theme you will
   judge, each set explicitly — an inherited viewport is not reproducible, so the after-capture
@@ -59,5 +59,5 @@ Read the row matching what you touch; skip anything already loaded this session.
 | An API whose shape depends on the library version | `~/.agents/skills/language-rules/references/context7.md` |
 | A failure that resists the first fix | `~/.agents/skills/language-rules/references/debugging.md` |
 | Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |
-| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation.md` |
+| Driving a browser | `~/.agents/skills/language-rules/references/browser-automation-reference.md` |
 | Tailwind classes | `~/.agents/skills/language-rules/references/tailwind.md` |

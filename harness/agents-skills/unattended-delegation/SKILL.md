@@ -1,9 +1,10 @@
 ---
 name: unattended-delegation
 description: >
-  Codex/opencode: load on an explicit user handover of unattended control ("full control
+  Load on an explicit user handover of unattended control ("full control
   tonight", "tienes control total", "run unattended", "ve cerrando los tickets") BEFORE
-  declaring the mode accepted. Never activates from silence or a long task. Declare
+  declaring the mode accepted — every harness: the mode's full mechanics live only in
+  this skill's reference. Never activates from silence or a long task. Declare
   scope/gates/decision-log first.
 ---
 
@@ -14,11 +15,15 @@ log, reversible checkpoints, queued escalations, automatic expiry) — without t
 controls the delegation is not in effect. Loading this skill IS how those controls enter
 the run, on every harness.
 
-**Where the reference lives** — same canonical file, two paths:
+**Where the reference lives** — same canonical file (`rules-situational/unattended-autonomy-mode.md`), two paths:
 
 | Harness | Read from |
 |---|---|
-| Codex / opencode | `references/unattended-autonomy.md` (injected at build time) |
+| Claude Code / Grok | `~/.agents/skills/unattended-delegation/references/unattended-autonomy-mode.md` |
+| Codex / opencode | `references/unattended-autonomy-mode.md` (injected at build time) |
+
+The always-on stub (`rules/workflow/unattended-autonomy.md`) carries only the activation
+guard and the gate pointers — it is not the mode's mechanics.
 
 ## Rules of use
 

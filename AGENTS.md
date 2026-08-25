@@ -115,10 +115,10 @@ When creating, editing, or deleting agents or rules, review and adjust impacted 
 - `global/rules-situational/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk.
 - **Per-harness loading READMEs** (`global/README.md`, `harness/{codex,opencode,grok}/README.md`) — each carries a *What this harness loads* table whose rows cite an official doc URL with a verification date. A change to what a harness receives (a rule gaining `paths:`, a new generated tree, a hook target) updates the affected table; a claim about upstream behavior carries a URL that was fetched, or is marked **undocumented** rather than given a plausible-looking link. Prompt-convention. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
-- Multi-harness layer: after editing any agent or skill, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
+- Multi-harness layer: after editing any agent, skill, or core section under `global/core-sections/`, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
 - **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
 - **Placement in `harness/AGENTS.md`: gate and pointer here, mechanics in the router — never both.** The core is paid in full at the start of every session in every project, so it holds only **safety gates** and **policy whose trigger is an action rather than a file**, plus the one-line pointer to the router that carries the rest. When the same content lives in the core AND in a router reference, the core is paying twice for what the router already delivers — that duplication — not prose length — is what makes the core expensive. **There is no size threshold on the file and none is wanted:** no harness caps it (verified 2026-08-18; bibliography), so `build.py` reports its size and per-session token cost and enforces nothing. Adding to the core: decide the layer first. A rising number is a cue to audit placement, never a reason to reword paragraphs that earned their place.
-- **AlwaysApply rules don't pass through `build.py` — but router-skill references DO.** `global/rules/` and `global/CLAUDE.md` deploy only to `~/.claude/` (Claude Code); Codex and opencode read the condensed `harness/AGENTS.md` always-on core. A new or changed alwaysApply rule that applies to all harnesses is reflected MANUALLY in `harness/AGENTS.md` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references — `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` is the authoritative skill←rule mapping (do not restate it here; it drifts) — where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
+- **The two always-on cores are GENERATED from `global/core-sections/`.** `global/CLAUDE.md` (deploys to `~/.claude/`, Claude Code) and `harness/AGENTS.md` (the condensed core Codex and opencode read) are assembled by `harness/build.py` from the section files in `global/core-sections/` (format: its README) — edit a section, rebuild, commit both outputs. The build regenerates a stale output silently and REFUSES a hand-edited one (differs from both the regeneration and HEAD — the edit stays on disk); `python3 harness/build.py --check` runs the parity checks without writing (deploy preflight / pre-commit). A policy stated by both cores CAN live in one shared section (`targets: [claude, agents]`) and four do today; the remaining condensed twins are still per-target section pairs synced by hand — only the delegation thresholds carry their own parity check — so prefer promoting a twin to shared when editing it. AlwaysApply rules under `global/rules/` still deploy only to `~/.claude/`: a new or changed rule that applies to all harnesses is condensed into a core section targeting `agents` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references — `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` is the authoritative skill←rule mapping (do not restate it here; it drifts) — where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
 - **Grok scope (`deploy-global --only grok` / part of `harness`):** (1) always-on rules — Grok's scan is NOT recursive and ignores `paths:`, so each always-on rule is symlinked flat into `~/.grok/rules/` as `<dir>__<file>.md` → `~/.claude/rules/` copy; a new always-on rule is picked up on the next deploy; **giving an existing rule `paths:` removes it from Grok**, so situational content must reach Grok via a router skill's `SKILL_REFERENCE_INJECTIONS` (same as Codex); rule filenames must never contain `__` (flatten separator). (2) agents — `harness/build.py` emits `harness/grok/agents/*.md` from `global/agents/`; deploy copies them to `~/.grok/agents/` so `spawn_subagent` can use the hub roster by name. (3) hooks — **not** re-copied under `~/.grok/hooks/`; Grok merges `~/.claude/settings.json` via compat, and hive hook scripts are dual-runtime (Claude + Grok payloads). (4) skills — **no deploy step and no generated tree**: Grok scans `~/.claude/skills/` by default (`[compat.claude] skills = true`), so `global/skills/` reaches it through the Claude deploy alone, and Grok honors `disable-model-invocation` natively, so the `flow-*` gate holds there without translation. Two consequences: never build a `harness/grok/skills/` tree (pure duplication — unlike Codex, which needs a generated `openai.yaml` for the same gate), and note that `~/.claude/skills/` is Grok's LOWEST-precedence source, so a same-named Grok-native or repo skill wins. Grok also loads `~/.claude/CLAUDE.md` natively (undocumented upstream; verified empirically via `grok inspect`, which lists every rules file Grok loads — the deterministic scope auditor, analog of `codex debug prompt-input`).
 
 ## File Structure
@@ -128,11 +128,12 @@ AGENTS.md                          # Canonical guide for all harnesses
 CLAUDE.md                          # Imports AGENTS.md via @AGENTS.md; adds Claude Code-specific content
 global/                            # Mirrors ~/.claude/ — deployable source of truth
 ├── README.md                      # What Claude Code loads + the official doc backing each mechanism (verified URLs)
-├── CLAUDE.md                      # Core config (always loaded)
+├── CLAUDE.md                      # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
+├── core-sections/                 # Canonical section files for BOTH always-on cores (global/CLAUDE.md + harness/AGENTS.md)
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
-│   │   ├── communication-format.md # HTML-first policy for substantial human-targeted output
+│   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)
 │   │   ├── critical-thinking.md
 │   │   ├── debugging.md           # Root-cause discipline: reproduce before fix, one change at a time, 3-fix circuit breaker
 │   │   ├── development-principles.md
@@ -161,9 +162,9 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
 │   │   ├── session-capture.md     # Session layer + subfolder vocabulary (split out of project-structure)
 │   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
-│   │   └── unattended-autonomy.md # The delegated-run mode
+│   │   └── unattended-autonomy.md # Gate stub: activation guard + gate pointers (mode mechanics → rules-situational/)
 │   └── tools/                     # External tools & MCP protocols (3 always-on)
-│       ├── browser-automation.md  # agent-browser CLI vs MCP browser servers
+│       ├── browser-automation.md  # Gate block: delegation, profile, viewport (CLI reference → rules-situational/)
 │       ├── code-search.md         # search routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
 ├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable only via a
@@ -171,9 +172,12 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │                                  # (delegating, planning), which `paths:` cannot express.
 │   ├── README.md
 │   ├── agent-routing.md
+│   ├── browser-automation-reference.md   # CLI mechanics + MCP escalation (via language-rules)
+│   ├── communication-format-mechanics.md # Layout floor, in-thread form, diagram norm (via flow-report)
 │   ├── gap-resolution.md
 │   ├── git-mechanics.md
-│   └── memory-routing.md
+│   ├── memory-routing.md
+│   └── unattended-autonomy-mode.md       # Full delegated-run mechanics (via unattended-delegation)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon
 │   ├── agents-md-primary/         # /agents-md-primary — convert projects to AGENTS.md-canonical + CLAUDE.md import
@@ -192,8 +196,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
 │   ├── monorepo-cutover/          # /monorepo-cutover — cutover playbook (multi-repo → monorepo)
 │   ├── status-fetch/              # Fetches live external state in an isolated subagent
-│   ├── git-mechanics/             # Router (model-invoked): branching, commits, PRs, promotion, close
-│   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis
+│   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis + git mechanics (branching, commits, PRs, promotion, close)
 │   ├── language-rules/            # Router (model-invoked): language rules for Codex/Grok — references injected by build.py
 │   ├── memory-policy/             # Router (model-invoked): Engram policy for Codex/opencode — references injected by build.py
 │   ├── workspace-conventions/     # Router (model-invoked): workspace/session/contract conventions — references injected by build.py
@@ -211,7 +214,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
     └── docs/                      # magenta
 harness/                           # Per-CLI layer — sources + VERSIONED generated trees (deployed by /deploy-global 13b)
 ├── README.md                      # The layer as a whole + the two manual-merge snippets
-├── AGENTS.md                      # Condensed cross-harness guidance (deployed by /deploy-global 13b to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md)
+├── AGENTS.md                      # GENERATED condensed cross-harness core (assembled from global/core-sections/; deployed by /deploy-global 13b to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md)
 ├── build.py                       # Regenerates every generated tree below from global/ — run after agent/skill edits
 ├── build/                         # convert-agents.py + convert-rules.py + convert-skills.py (build tooling)
 ├── agents-skills/                 # GENERATED — cleaned universal skills → ~/.agents/skills (Codex + opencode)
@@ -246,24 +249,17 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 `_support/workspace/` is **git-ignored** scratch — never a commit target. When work concludes, each artifact either moves to `_support/archive/<audits|docs>/` with a date-prefixed name (`YYYY-MM-DD-{slug}`) if worth keeping, or is deleted. To commit a generated file, relocate it to `archive/` first. Existing archive entries keep their legacy names — no renames.
 
 ## Git Conventions
+- **Tracker: GitHub Issues** (this repo, via `gh`). Declared per `memory-routing.md > Tracker sync`: reads are standing-authorized; a ticket moves to in-progress when its work starts, closes/comments batch to the plan's close confirmation.
 - **Conventional commits:** `feat:`, `fix:`, `chore:`, `docs:` prefixes required.
 - **Direct commits to `master` are this hub's declared workflow** (no PR gate, no CI on branches). **The review gate sits before the commit, not before the push:** present the diff, commit on the user's approval, and push in the same step — that one approval covers both, so never ask a second time for the push. Confirm-gated; force-push and history rewrites stay separately gated.
 - This is a **configuration-only repo** — no build system, no CI/CD, no runtime. Changes are validated by reading/reviewing agent files, not by running builds or tests.
 
 ## Rule Exclusions (this repo)
 
-This repo is config-only. The following inherited global rules do **not** apply to changes here:
-
-- **`quality/testing.md`** — no runtime code to test. Agent prompts, rule files, and skills are not "production code".
-- **`Build & Lint`** (from global `CLAUDE.md`) — no build system. Validation is read-review of rule/agent files.
-- **`security.md` → Supply Chain Security** — no installable dependencies; no OSV checks to run.
-- **`patterns-antipatterns.md`** — code-pattern rules (Promise.all, fs.readFileSync, useState) do not apply to markdown.
-- **`critical-thinking.md` → Pre-ship ownership test** (questions 1-2 about runtime load and customer impact) — does not apply to agent/rule text. Risk-surfacing and tradeoff-flagging still apply.
-
-Build/test/lint enforcement is restored automatically in any other repo with runtime code.
+Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); regenerate with `python3 harness/hive-compile.py . --apply` when `global/rules/` or the classifier move (the `session-hygiene-report` hook advises when it goes stale). Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
 
 ## Replicating Global Harness Config
-- Source file: `harness/AGENTS.md`.
+- Source file: `harness/AGENTS.md` — itself GENERATED from `global/core-sections/`: edit the sections and run `python3 harness/build.py` first, never the output.
 - Codex global target: `~/.codex/AGENTS.md`.
 - OpenCode global target: `~/.config/opencode/AGENTS.md`.
 - Before changing behavior that depends on how Codex or OpenCode loads, scopes, resumes, or prioritizes `AGENTS.md`, validate against current Codex and OpenCode documentation when applicable.
@@ -294,3 +290,25 @@ Build/test/lint enforcement is restored automatically in any other repo with run
 - **Shell is the exception — it has a real linter.** After touching any `.sh`, run `find global .claude harness -name '*.sh' -print0 | xargs -0 shellcheck -S style` and keep it at zero findings. A genuine false positive gets `# shellcheck disable=SC####` with the reason inline, placed **before the compound command** (`while`/`if`), never before its `done`/`fi` — a misplaced directive makes shellcheck skip the whole block instead of one line. `_support/backup|archive/**` is third-party or frozen; leave it out of scope.
 - For changes to `AGENTS.md` or `harness/AGENTS.md`, verify the files do not reference Claude-only tools as if they were available in other harnesses.
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
+
+<!-- hive-profile:start -->
+Hive profile v1 · hive@ded1395 · 2026-08-22 · class: config-hub
+
+## Hive Profile
+
+- **Class:** config-hub
+- **Stack detected:** Python, shell scripts
+
+**Path-scoped rule families that apply here** (load on touching matching files): `python-standards`, `shell-standards`.
+
+**Rule Exclusions (class: config-hub — no runtime):**
+- `quality/testing.md` — no runtime code to test; files here are reviewed by reading.
+- `Build & Lint` (global `CLAUDE.md`) — no build system; validation is read-review/diff review.
+- `security.md` > Supply Chain Security — no installable dependencies; no OSV checks to run.
+- `patterns-antipatterns.md` — code-pattern rules do not apply to markdown.
+- `critical-thinking.md` > Pre-ship ownership test (questions 1-2) — no runtime load or customer impact; risk-surfacing and tradeoffs still apply.
+
+Build/test/lint enforcement is restored automatically in any repo with runtime code.
+
+**Creating the FIRST file of a kind in a session:** read its rule from `~/.claude/rules/languages/` first — path-scoped rules fire on read/edit, not on create.
+<!-- hive-profile:end -->

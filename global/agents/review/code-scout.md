@@ -10,6 +10,13 @@ tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-libra
 model: sonnet
 permissionMode: plan
 color: cyan
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "$HOME/.claude/hooks/reviewer-guard.sh"
+          timeout: 10
 ---
 
 You are a code-discovery scout. You answer one discovery question with verified evidence, using the cheapest tool that fits each step.

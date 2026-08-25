@@ -77,6 +77,20 @@ map_path() {
         # Angular and NestJS share these suffixes; the project decides which.
         add_rule "angular-patterns.md or nestjs-patterns.md (whichever the project uses)" ;;
     esac
+
+    # Workspace-placement backstop: a write landing in the workspace layer means
+    # the placement decision already happened — name the skill that owns it.
+    # (The router should have fired at the propose-in-prose moment; this is the
+    # deterministic write-time net under it.)
+    case "$path" in
+      */_support/*|*-specs/*|*/sessions/*)
+        add_rule "workspace-conventions" ;;
+      */docs/*|*/scripts/*|*/evidence/*|*/plan/*)
+        case "$path" in
+          */src/*|*/app/*|*/node_modules/*) ;;
+          *) add_rule "workspace-conventions" ;;
+        esac ;;
+    esac
 }
 
 case "$tool_name" in
@@ -102,7 +116,7 @@ case "$tool_name" in
     [ -n "$command" ] || exit 0
 
     case "$command" in
-      *agent-browser*) add_rule "browser-automation.md" ;;
+      *agent-browser*) add_rule "browser-automation-reference.md" ;;
     esac
     case "$command" in
     esac
@@ -137,7 +151,11 @@ done
 
 [ -n "$fresh" ] || exit 0
 
-ctx="Situational rules that apply here: ${fresh}. Read them before proceeding unless already loaded this session — where they are not always-on they live behind the language-rules router (Codex/Grok) or load by glob (Claude Code, opencode). Advisory: this never blocks."
+ctx="Situational rules that apply here: ${fresh}. Read them before proceeding unless already loaded this session — where they are not always-on they live in the language-rules skill references (every harness for browser-automation-reference.md) or load by glob (Claude Code, opencode). Advisory: this never blocks."
+case "$fresh" in
+  *workspace-conventions*)
+    ctx="${ctx} 'workspace-conventions' is a SKILL, not a rule file — invoke it: it owns placement and naming for _support/, specs repos, sessions/, and docs/scripts/evidence/plan folders." ;;
+esac
 
 jq -n --arg ctx "$ctx" '{
   hookSpecificOutput: {

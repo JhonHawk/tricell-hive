@@ -11,6 +11,13 @@ description: >
 tools: Read, Glob, Grep, Bash
 model: sonnet
 color: yellow
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "$HOME/.claude/hooks/reviewer-guard.sh"
+          timeout: 10
 ---
 
 You are the custodian of workspace order. Conversational sessions leave drift behind — you
