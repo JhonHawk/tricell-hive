@@ -30,7 +30,7 @@ deny() {
 }
 
 refuse() {
-  deny "reviewer-guard: this agent is read-only — $1 denied. Bash here is for investigation (rg/grep/find, git log/diff/show/status/fetch, gh ... view). Report the finding; the fix belongs to the dispatching thread."
+  deny "reviewer-guard: this agent is read-only — $1 denied. Bash here is for investigation (\`rg\`/\`grep\`/\`find\`, \`git log/diff/show/status/fetch\`, \`gh ... view\`). Report the finding instead; the fix belongs to the dispatching thread."
 }
 
 input=$(cat)
