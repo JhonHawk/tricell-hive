@@ -24,7 +24,14 @@ tracker line is emitted ONLY from an explicit override declaration: tracker
 declarations are confirm-gated, the tool only mirrors one already made.
 
 Usage:
-    python3 harness/hive-compile.py <target-repo> [--apply] [--create] [--check]
+    python3 harness/hive-compile.py <target-repo> [--apply] [--create] [--check] [--force]
+    python3 harness/hive-compile.py --self-test   # idempotency + fail-closed proof
+
+`--apply` refuses two unsafe states unless repaired (or, for the second, forced):
+malformed fences (a lone start or end marker, duplicates, end before start) are
+never rewritten over — repair by hand first; a target whose AGENTS.md no harness
+would load (CLAUDE.md present without the `@AGENTS.md` import and no other
+harness marker) is refused with the fix named — `--force` overrides.
 """
 import datetime
 import re
@@ -270,6 +277,26 @@ def render_block(facts, override):
     return "\n".join(lines) + "\n"
 
 
+def check_fences(agents_md: Path, text: str):
+    """Fail-closed on any malformed block: a lone fence, duplicates, or end
+    before start. Rewriting over an unparseable block risks regenerating from
+    an empty base and destroying user prose — refuse and ask for a repair."""
+    n_start, n_end = text.count(MARK_START), text.count(MARK_END)
+    if n_start == 0 and n_end == 0:
+        return
+    problems = []
+    if n_start != n_end:
+        problems.append(f"{n_start}× start vs {n_end}× end fences")
+    if n_start > 1 or n_end > 1:
+        problems.append("duplicate fences")
+    if n_start == 1 and n_end == 1 and text.index(MARK_START) > text.index(MARK_END):
+        problems.append("end fence before start fence")
+    if problems:
+        sys.exit(f"ERROR: {agents_md} holds a malformed hive-profile block "
+                 f"({'; '.join(problems)}) — repair the fences by hand first; "
+                 "refusing to rewrite over an unparseable block.")
+
+
 def upsert(agents_md: Path, block: str, create: bool):
     if not agents_md.is_file():
         if not create:
@@ -278,9 +305,8 @@ def upsert(agents_md: Path, block: str, create: bool):
         agents_md.write_text(f"# Agent Configuration\n\n{block}", encoding="utf-8")
         return "created"
     text = agents_md.read_text(encoding="utf-8")
+    check_fences(agents_md, text)
     if MARK_START in text:
-        if MARK_END not in text:
-            sys.exit(f"ERROR: {agents_md} has {MARK_START} but no {MARK_END} — repair the fences first.")
         pattern = re.escape(MARK_START) + r".*?" + re.escape(MARK_END) + r"\n?"
         new = re.sub(pattern, block, text, count=1, flags=re.S)
         verdict = "unchanged" if new == text else "replaced"
@@ -292,11 +318,30 @@ def upsert(agents_md: Path, block: str, create: bool):
     return verdict
 
 
+def target_loads_agents_md(target: Path):
+    """Would ANY harness load this repo's AGENTS.md?
+
+    Codex/opencode/Grok read AGENTS.md natively; Claude Code reads it only
+    through a CLAUDE.md that imports `@AGENTS.md`. The dead spot: a repo whose
+    CLAUDE.md lacks the import and shows no other-harness marker — there the
+    profile would be written where nothing reads it."""
+    claude_md = target / "CLAUDE.md"
+    if not claude_md.is_file():
+        return True   # AGENTS.md is the repo's primary instruction doc
+    # Known limitation: the import match is the literal `@AGENTS.md` — a variant
+    # spelling (`@./AGENTS.md`) reads as missing; --force covers that case.
+    if "@AGENTS.md" in claude_md.read_text(encoding="utf-8"):
+        return True
+    markers = (".codex", ".opencode", "opencode.jsonc", "opencode.json", ".grok")
+    return any((target / m).exists() for m in markers)
+
+
 def check_stale(agents_md: Path):
     if not agents_md.is_file():
         print(f"no AGENTS.md at {agents_md} — nothing to check.")
         return 0
     text = agents_md.read_text(encoding="utf-8")
+    check_fences(agents_md, text)  # a malformed block is a finding, not a clean exit
     m = re.search(r"hive-profile:start -->\nHive profile v\d+ · hive@([0-9a-f]+)", text)
     if not m:
         print("no hive-profile block (or unparseable stamp) — nothing to check.")
@@ -320,13 +365,79 @@ def check_stale(agents_md: Path):
     return 0
 
 
+def self_test():
+    """Executable proof of the injection contract: second --apply is a
+    byte-identical no-op, malformed fences refuse, target-loads detects the
+    Claude-only dead spot. Runs against throwaway temp repos only."""
+    import tempfile
+    checks = 0
+
+    def expect_exit(fn, label):
+        nonlocal checks
+        try:
+            fn()
+        except SystemExit as e:
+            assert e.code, f"{label}: exited zero instead of refusing"
+            checks += 1
+            return
+        raise AssertionError(f"{label}: did not refuse")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "fake-app"
+        repo.mkdir()
+        (repo / "package.json").write_text('{"name": "fake"}\n', encoding="utf-8")
+        agents = repo / "AGENTS.md"
+        agents.write_text("# Fake repo\n\nUser prose stays intact.\n", encoding="utf-8")
+
+        # Idempotency: first apply appends; second is a byte-identical no-op.
+        v1 = upsert(agents, render_block(detect(repo), {}), create=False)
+        assert v1 == "appended", f"first apply: {v1}"
+        after1 = agents.read_bytes()
+        v2 = upsert(agents, render_block(detect(repo), {}), create=False)
+        after2 = agents.read_bytes()
+        assert v2 == "unchanged", f"second apply: {v2}"
+        assert after1 == after2, "second apply was not byte-identical"
+        assert b"User prose stays intact." in after2, "user prose lost"
+        checks += 3
+
+        # Fail-closed fences: lone start, lone end, end-before-start, duplicates.
+        for label, content in (
+            ("lone-start", f"# X\n{MARK_START}\norphan\n"),
+            ("lone-end", f"# X\norphan\n{MARK_END}\n"),
+            ("end-before-start", f"# X\n{MARK_END}\nmid\n{MARK_START}\n"),
+            ("duplicate-blocks", f"{MARK_START}\na\n{MARK_END}\n{MARK_START}\nb\n{MARK_END}\n"),
+        ):
+            agents.write_text(content, encoding="utf-8")
+            expect_exit(lambda: upsert(agents, "BLOCK\n", create=False), label)
+            assert agents.read_text(encoding="utf-8") == content, f"{label}: file was modified"
+
+        # Target-loads: CLAUDE.md without the import and no harness marker -> not loaded;
+        # adding the import (or a harness marker, or having no CLAUDE.md) -> loaded.
+        assert target_loads_agents_md(repo), "no CLAUDE.md should count as loaded"
+        (repo / "CLAUDE.md").write_text("# Standalone\n", encoding="utf-8")
+        assert not target_loads_agents_md(repo), "importless CLAUDE.md should refuse"
+        (repo / "opencode.jsonc").write_text("{}\n", encoding="utf-8")
+        assert target_loads_agents_md(repo), "harness marker should count as loaded"
+        (repo / "opencode.jsonc").unlink()
+        (repo / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
+        assert target_loads_agents_md(repo), "@AGENTS.md import should count as loaded"
+        checks += 4
+
+    print(f"self-test: {checks} checks passed (idempotency, fail-closed fences, target-loads).")
+
+
 def main():
     args = sys.argv[1:]
     flags = {a for a in args if a.startswith("--")}
-    unknown = flags - {"--apply", "--create", "--check", "--dry-run"}
+    unknown = flags - {"--apply", "--create", "--check", "--dry-run", "--force", "--self-test"}
     if unknown:
         sys.exit(f"ERROR: unknown flag(s): {sorted(unknown)}\n{__doc__}")
     positional = [a for a in args if not a.startswith("--")]
+    if "--self-test" in flags:
+        if positional:
+            sys.exit("ERROR: --self-test takes no target (it runs against temp repos).")
+        self_test()
+        return
     if len(positional) != 1:
         sys.exit(f"ERROR: exactly one target repo path required.\n{__doc__}")
     target = Path(positional[0]).resolve()
@@ -345,6 +456,13 @@ def main():
         print(f"# dry-run (default) — nothing written. Target: {agents_md}")
         print(block, end="")
     else:
+        if not target_loads_agents_md(target) and "--force" not in flags:
+            sys.exit(
+                f"ERROR: {target}/CLAUDE.md does not import @AGENTS.md and no other "
+                "harness marker (.codex/, .opencode/, opencode.json[c], .grok/) is "
+                "present — the profile written to AGENTS.md would be loaded by NO "
+                "harness in this repo. Fix: add an `@AGENTS.md` line to CLAUDE.md "
+                "(the Claude Code import), then re-run; or pass --force to write anyway.")
         verdict = upsert(agents_md, block, create="--create" in flags)
         print(f"hive-profile {verdict} -> {agents_md}")
 

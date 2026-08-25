@@ -57,7 +57,7 @@ cwd=$(printf '%s' "$input" | jq -r '[.cwd, .workspaceRoot, (.workspace_roots // 
 pip_re='(^|[;&|]|sudo[[:space:]]+)[[:space:]]*pip3?([[:space:]]|$)'
 pip_stripped=${command//uv pip/ }
 if [[ "$command" == *"--break-system-packages"* ]] || [[ "$pip_stripped" =~ $pip_re ]]; then
-  deny "bash-policy: pip is banned — use uv (uv pip install / uv run). See CLAUDE.md > Python Dependency Management."
+  deny "bash-policy: pip is banned — re-run with \`uv pip install\` or \`uv run\`. See CLAUDE.md > Python Dependency Management."
 fi
 
 # ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ fi
 if [ "$tool_name" = "run_terminal_command" ]; then
   zsh_special_re='(^|[;&|({[:space:]])((typeset|local|export|declare)[[:space:]]+(-[A-Za-z]+[[:space:]]+)*)?(path|status)\+?='
   if [[ "${command%%<<*}" =~ $zsh_special_re ]]; then
-    deny "bash-policy: this tool shell is zsh — 'path' is tied to PATH (assigning it wipes the entire PATH) and 'status' is read-only. Rename the variable (repo_path, dir, st, exit_status) and retry. See CLAUDE.md > Shell."
+    deny "bash-policy: this tool shell is zsh — 'path' is tied to PATH (assigning it wipes the entire PATH) and 'status' is read-only. Rename the variable (\`repo_path\`, \`dir\`, \`st\`, \`exit_status\`) and retry. See CLAUDE.md > Shell."
   fi
 fi
 
@@ -109,7 +109,7 @@ if cmd_pm=$(mutating_manager "$command") && [ -n "$cwd" ]; then
     lock_pm=${lock_hit%%|*}
     lock_path=${lock_hit#*|}
     if [ "$cmd_pm" != "$lock_pm" ]; then
-      deny "bash-policy: never mix package managers — '$cmd_pm' denied, this tree is '$lock_pm' ($lock_path). Use $lock_pm. See CLAUDE.md > Package Manager."
+      deny "bash-policy: never mix package managers — '$cmd_pm' denied, this tree is '$lock_pm' ($lock_path). Re-run the operation with \`$lock_pm\`. See CLAUDE.md > Package Manager."
     fi
   fi
 fi
@@ -165,7 +165,7 @@ while IFS= read -r segment; do
     fi
   fi
 
-  deny "bash-policy: never delete or regenerate lockfiles unless the user explicitly asks ($lk_named) — surface the problem instead. Sole exception: 'git rm' of a per-package lockfile that is redundant with a same-named one at the repo root. See CLAUDE.md > Package Manager."
+  deny "bash-policy: never delete or regenerate lockfiles unless the user explicitly asks ($lk_named) — surface the problem to the user instead. Sole exception: \`git rm\` of a per-package lockfile that is redundant with a same-named one at the repo root. See CLAUDE.md > Package Manager."
 done < <(printf '%s\n' "$command" | tr ';&|' '\n')
 
 # ---------------------------------------------------------------------------
@@ -260,7 +260,7 @@ while IFS= read -r pb_seg; do
 
   if [ "$pb_verb" = "commit" ]; then
     if [ -n "$pb_branch" ] && pb_protected "$pb_branch"; then
-      deny "bash-policy: 'git commit' on protected branch '$pb_branch' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Switch to a work branch (or run the branch switch as its own command first), or have the user confirm the promotion."
+      deny "bash-policy: 'git commit' on protected branch '$pb_branch' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Switch to a work branch first (\`git switch -c <branch>\` as its own command), or have the user confirm the promotion."
     fi
     continue
   fi
@@ -293,7 +293,7 @@ while IFS= read -r pb_seg; do
   fi
   for pb_dst in $pb_targets; do
     if pb_protected "$pb_dst"; then
-      deny "bash-policy: 'git push' targeting protected branch '$pb_dst' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Push a work branch instead (or run the branch switch as its own command first), or have the user confirm the promotion."
+      deny "bash-policy: 'git push' targeting protected branch '$pb_dst' — promotion into production/qa is confirm-gated through the USER (git-workflow.md > Safety gates); the agent never self-confirms. Push a work branch instead (\`git push origin <work-branch>\`), or have the user confirm the promotion."
     fi
   done
 done < <(printf '%s\n' "$command" | tr ';&|' '\n')

@@ -46,7 +46,7 @@ Deterministic delivery of prompt-convention reminders. The hook injects signals 
 
 ## Deploy
 
-> **WARNING — this consolidation needs `/deploy-global --apply --delete-orphans`.** A plain apply merges the new block but leaves the absorbed hooks' entries in `~/.claude/settings.json` and their scripts in `~/.claude/hooks/`, so `delegation-reminder.sh`, `verification-loop-reminder.sh`, and `code-search-routing.sh` would keep firing alongside this one — duplicate counters and doubled reminders. `--delete-orphans` purges both.
+> **WARNING — this consolidation needs the orphan purge that `/deploy-global --apply` performs by default.** The purge removes the absorbed hooks' entries from `~/.claude/settings.json` and their scripts from `~/.claude/hooks/`; an apply run with `--keep-orphans` skips it, leaving `delegation-reminder.sh`, `verification-loop-reminder.sh`, and `code-search-routing.sh` firing alongside this one — duplicate counters and doubled reminders.
 
 ## Smoke test
 

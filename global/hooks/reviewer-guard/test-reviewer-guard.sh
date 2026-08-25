@@ -64,6 +64,32 @@ run_case "heredoc-read"          0 'python3 - <<EOF
 print("analysis only")
 EOF'
 
+# --- structural: every deny message names its executable continuation --------
+# Each deny must name the exact way out — a backticked command to run, or an
+# explicit user action. A future deny shipped without one fails here.
+# shellcheck disable=SC2016 # literal backticks are the pattern, not expansion
+cont_re='`[^`]+`|have the user|ask the user|user explicitly'
+deny_count=0
+while IFS= read -r msg; do
+  [ -n "$msg" ] || continue
+  deny_count=$((deny_count + 1))
+  if printf '%s' "$msg" | grep -qE "$cont_re"; then
+    printf 'ok   deny-continuation %d\n' "$deny_count"
+  else
+    printf 'FAIL deny-continuation missing: %s\n' "$msg"
+    fail=$((fail + 1))
+  fi
+done < <(grep -oE 'deny "[^"]+"' "$SCRIPT" | sed -E 's/^deny "//; s/"$//')
+if [ "$deny_count" -eq 0 ]; then
+  printf 'FAIL deny-continuation: no deny messages extracted from %s\n' "$SCRIPT"
+  fail=$((fail + 1))
+fi
+deny_lines=$(grep -c 'deny "' "$SCRIPT")
+if [ "$deny_count" -ne "$deny_lines" ]; then
+  printf 'FAIL deny-continuation: extracted %d message(s) but the source has %d deny call(s) — a deny escapes the single-line extraction pattern\n' "$deny_count" "$deny_lines"
+  fail=$((fail + 1))
+fi
+
 if [ "$fail" -ne 0 ]; then
   printf '\n%d case(s) failed\n' "$fail"
   exit 1

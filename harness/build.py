@@ -2,8 +2,9 @@
 """Regenerate every generated tree under harness/ from the canonical sources.
 
 Single entry point (run from the repo root):
-    python3 harness/build.py            # assemble + regenerate + parity checks
-    python3 harness/build.py --check    # parity checks only, nothing written
+    python3 harness/build.py                    # assemble + regenerate + parity checks
+    python3 harness/build.py --check            # parity checks only, nothing written
+    python3 harness/build.py --bless-core-size  # deliberately re-bless the core-size ratchet
 
 Core outputs are guarded at assembly time: a stale core (matches HEAD, differs
 from the new assembly) regenerates silently; a hand-edited core (differs from
@@ -53,6 +54,10 @@ BUILD = ROOT / "harness" / "build"
 # here, mechanics in the router), a quality question, not a size one. The build
 # reports the file's size and its per-session token cost as a FACT, so the cost
 # stays visible without pretending to be a gate.
+# The core-size RATCHET (harness/.core-size-baseline) is NOT that budget coming
+# back: it imposes no number of its own — it freezes the last BLESSED state, so
+# growth is a deliberate, visible act (`--bless-core-size`) instead of drift,
+# and it re-blesses downward automatically when a core shrinks.
 # NO harness caps the global instruction file — verified 2026-08-18 in source
 # and reproduced empirically, so neither threshold below is about truncation:
 #   Codex — the global is read whole (`codex-home/src/instructions/mod.rs`) into
@@ -293,6 +298,88 @@ def check_core_assembly_parity():
           "global/core-sections/.")
 
 
+CORE_SIZE_BASELINE = ROOT / "harness" / ".core-size-baseline"
+
+CORE_SIZE_BASELINE_HEADER = """\
+# Core-size ratchet baseline — blessed per-session token counts (bytes/4) for
+# the generated always-on cores. The build FAILS when a core exceeds its
+# blessed count; update deliberately with:
+#     python3 harness/build.py --bless-core-size
+# Shrinking re-blesses automatically on the next full build (the ratchet only
+# moves down on its own).
+#
+# What this does NOT catch: it counts tokens, not quality. A policy loss that
+# SHRINKS the core blesses itself silently, and growth that earned its place
+# still fails until blessed. The ratchet freezes the blessed state — it
+# imposes no number and no budget (see the header note in harness/build.py).
+"""
+
+
+def _core_token_counts():
+    return {
+        dest.relative_to(ROOT).as_posix(): (dest.stat().st_size if dest.exists() else 0) // 4
+        for dest in CORE_TARGETS.values()
+    }
+
+
+def _read_core_size_baseline():
+    if not CORE_SIZE_BASELINE.exists():
+        return None
+    blessed = {}
+    for raw in CORE_SIZE_BASELINE.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) != 2 or not parts[1].isdigit():
+            sys.exit(f"ERROR: core-size ratchet: malformed baseline line {raw!r} in "
+                     f"{CORE_SIZE_BASELINE.relative_to(ROOT)} — expected '<path> <tokens>'.")
+        blessed[parts[0]] = int(parts[1])
+    return blessed
+
+
+def _write_core_size_baseline(counts):
+    body = "".join(f"{path} {tokens}\n" for path, tokens in sorted(counts.items()))
+    CORE_SIZE_BASELINE.write_text(CORE_SIZE_BASELINE_HEADER + body, encoding="utf-8")
+
+
+def check_core_size_ratchet(allow_write=True):
+    """Fail when a generated core EXCEEDS its blessed token count.
+
+    Not a budget: the ratchet imposes no number — it freezes the blessed state
+    so growth is a deliberate act (`--bless-core-size`), never drift. Shrinking
+    re-blesses in a full build (allow_write) and passes read-only in --check.
+    """
+    current = _core_token_counts()
+    blessed = _read_core_size_baseline()
+    if blessed is None:
+        sys.exit(f"ERROR: core-size ratchet: {CORE_SIZE_BASELINE.relative_to(ROOT)} is "
+                 "missing — bless the current sizes with: "
+                 "python3 harness/build.py --bless-core-size")
+    failures = []
+    shrank = False
+    for path, tokens in sorted(current.items()):
+        b = blessed.get(path)
+        if b is None:
+            failures.append(f"  {path}: ~{tokens:,} tokens, no blessed entry")
+        elif tokens > b:
+            failures.append(f"  {path}: ~{tokens:,} tokens vs blessed ~{b:,} "
+                            f"(+{tokens - b:,})")
+        elif tokens < b:
+            shrank = True
+    if failures:
+        sys.exit("ERROR: core-size ratchet: a core exceeds its blessed size:\n"
+                 + "\n".join(failures)
+                 + "\nGrowth is a deliberate act: re-audit placement (gate and pointer "
+                 "in the core, mechanics in the router), then bless the new state "
+                 "with: python3 harness/build.py --bless-core-size")
+    if shrank and allow_write:
+        _write_core_size_baseline(current)
+        print("core-size ratchet: cores shrank — baseline re-blessed downward.")
+    else:
+        print("core-size ratchet: cores within blessed sizes.")
+
+
 GENERATED_README = """# Generated — do not edit
 
 Everything in this directory is derived from canonical sources in `global/`
@@ -504,7 +591,18 @@ def main():
         check_delegation_threshold_parity()
         check_router_index_parity()
         check_core_assembly_parity()
+        check_core_size_ratchet(allow_write=False)
         print("check-only run: nothing written.")
+        return
+
+    # --bless-core-size: deliberately update the ratchet baseline — only from
+    # a verified regenerated state, never from a stale or hand-edited core.
+    if "--bless-core-size" in sys.argv[1:]:
+        check_core_assembly_parity()
+        counts = _core_token_counts()
+        _write_core_size_baseline(counts)
+        for path, tokens in sorted(counts.items()):
+            print(f"blessed {path}: ~{tokens:,} tokens")
         return
 
     # Always-on cores first, so the size reports below measure generated output
@@ -582,6 +680,7 @@ def main():
     check_delegation_threshold_parity()
     check_router_index_parity()
     check_core_assembly_parity()
+    check_core_size_ratchet(allow_write=True)
 
 
 if __name__ == "__main__":
