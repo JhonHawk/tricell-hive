@@ -12,8 +12,10 @@ description: >
   before the code, not at the verification gate. Any request to review, audit, investigate,
   diagnose, refactor across files, or "how would you approach X" is this decision, even when
   the user never says the word delegate — they ask for a result, not for a routing choice.
-  NOT for: a read-only investigation, a short question, or work outside a software project —
-  none reach either trigger, and the trivial carve-out (typo, rename, one-line config) is out too.
+  NOT for: a short question, work outside a software project, or a SMALL read-only
+  investigation (≤3 files, ≤3 queries — the inline thresholds): that stays inline; one
+  crossing the delegation thresholds routes like any task. The trivial carve-out (typo,
+  rename, one-line config) is out too.
   Triggers: implement, build, feature, fix, review, audit, investigate, diagnose, plan,
   approach, refactor, verify, branch, commit, push, PR, merge, promote, release;
   implementa, construye, arregla, revisar, auditar, investigar, diagnosticar, planear,

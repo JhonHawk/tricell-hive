@@ -16,7 +16,7 @@
 
 ### Save cadence — batch to close; save now only what would hurt to lose
 
-The plugin-injected protocol wins on *mechanics* (tools, envelopes, judgment flow); this layer governs *when* to save. Its per-task "save immediately" triggers name what is save-worthy — not a command to write mid-task.
+The plugin-injected protocol wins on *mechanics* (tools, envelopes, judgment flow) and names WHAT is save-worthy; THIS layer alone decides WHEN — the protocol's emphatic "immediately"/"MANDATORY" reads as save-worthiness, never as timing. Compactions update the living summary/topic upsert, never spawn parallel observations.
 
 - **Mid-session `mem_save` is reserved for facts that would hurt to lose if the session died now:** an architecture/scope decision, a root cause, a new convention, a user correction. Micro-decisions and incremental progress consolidate into `mem_session_summary` and the close-time upserts.
 - **One living fact = one upsert.** An evolving fact revisited during the session updates once at close via its `topic_key` — never N observations tracking each intermediate state.
