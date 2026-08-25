@@ -328,6 +328,8 @@ def target_loads_agents_md(target: Path):
     claude_md = target / "CLAUDE.md"
     if not claude_md.is_file():
         return True   # AGENTS.md is the repo's primary instruction doc
+    # Known limitation: the import match is the literal `@AGENTS.md` — a variant
+    # spelling (`@./AGENTS.md`) reads as missing; --force covers that case.
     if "@AGENTS.md" in claude_md.read_text(encoding="utf-8"):
         return True
     markers = (".codex", ".opencode", "opencode.jsonc", "opencode.json", ".grok")
@@ -339,6 +341,7 @@ def check_stale(agents_md: Path):
         print(f"no AGENTS.md at {agents_md} — nothing to check.")
         return 0
     text = agents_md.read_text(encoding="utf-8")
+    check_fences(agents_md, text)  # a malformed block is a finding, not a clean exit
     m = re.search(r"hive-profile:start -->\nHive profile v\d+ · hive@([0-9a-f]+)", text)
     if not m:
         print("no hive-profile block (or unparseable stamp) — nothing to check.")

@@ -189,6 +189,11 @@ if [ "$deny_count" -eq 0 ]; then
   printf 'FAIL deny-continuation: no deny messages extracted from %s\n' "$SCRIPT"
   fail=$((fail + 1))
 fi
+deny_lines=$(grep -c 'deny "' "$SCRIPT")
+if [ "$deny_count" -ne "$deny_lines" ]; then
+  printf 'FAIL deny-continuation: extracted %d message(s) but the source has %d deny call(s) — a deny escapes the single-line extraction pattern\n' "$deny_count" "$deny_lines"
+  fail=$((fail + 1))
+fi
 
 if [ "$fail" -ne 0 ]; then
   printf '\n%d case(s) failed\n' "$fail"

@@ -1004,9 +1004,11 @@ step_harness_rebuild() {
     # Unconditional — every scope. build.py also assembles the always-on cores
     # (global/CLAUDE.md + harness/AGENTS.md) from global/core-sections/, and this
     # step runs BEFORE step_deploy_claude so the deployed CLAUDE.md is the fresh
-    # assembly, not a stale output. Under set -e a failing build (e.g. a
-    # hand-edited core, which build.py refuses to overwrite) aborts the deploy
-    # before anything is copied.
+    # assembly, not a stale output. Under set -e a failing build (a hand-edited
+    # core, or the core-size ratchet refusing unblessed growth) aborts the
+    # deploy before anything is copied — and it runs BEFORE step_detect_orphans
+    # so the abort also precedes any orphan deletion or settings purge: an
+    # aborted run must not have half-mutated the machine.
     log "== Harness rebuild + core assembly =="
     if [[ "${APPLY}" -eq 1 ]]; then
         (cd "${REPO_ROOT}" && python3 harness/build.py)
@@ -1392,7 +1394,7 @@ step_write_manifest() {
                 scope=$(manifest_entry_scope "${rel}")
                 case "${scope}" in
                     claude) [[ "${RUN_CLAUDE}" -eq 1 ]] && continue ;;
-                    shared) [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] && continue ;;
+                    shared) [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] && continue ;;
                     codex) [[ "${RUN_CODEX}" -eq 1 ]] && continue ;;
                     opencode) [[ "${RUN_OPENCODE}" -eq 1 ]] && continue ;;
                     grok) [[ "${RUN_GROK}" -eq 1 ]] && continue ;;
@@ -1525,8 +1527,8 @@ main() {
     step_preview
     step_diff
     step_backup
-    step_detect_orphans
     step_harness_rebuild
+    step_detect_orphans
     step_deploy_claude
     step_deploy_hooks
     step_deploy_shared_harness
