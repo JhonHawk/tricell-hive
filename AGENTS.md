@@ -23,7 +23,7 @@ The user is a software architect and developer. Agents must not repeat global ru
 | Marketing / landing | 3 | |
 | Dormant (>90d) | 10 | all of `ebitware`, untouched since 2026-03 |
 
-Three live client groups — `sample-workspace`, `sample-organization`, and Tricell's own work; `hitss/` is empty, `ebitware/` frozen. Work concentrates hard: `ark-monorepo` alone carries ~40% of his commit volume.
+Three live client groups — `sample-workspace`, `sample-organization`, and Tricell's own work; `ebitware/` frozen. Global Hitss ended 2026-08-26 (no local `hitss/` tree). Work concentrates hard: `ark-monorepo` alone carries ~40% of his commit volume.
 
 **Monorepos are the default shape from here on** — Turborepo + workspaces with a shared contracts package between front and back. Seven active repos already follow it (ark, hooli-frontend, sample-project, fleetsystem-frontend, internal-apps, educavita, umbrella); two more are Nx (globex-web-client-reforge, e-hub-web-frontend). Assume new work is a monorepo unless told otherwise.
 
@@ -292,7 +292,7 @@ Carried by the compiled hive profile at the end of this file (`hive-profile` blo
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
 
 <!-- hive-profile:start -->
-Hive profile v1 · hive@7922b5f · 2026-08-25 · class: config-hub
+Hive profile v1 · hive@17b39e6 · 2026-08-26 · class: config-hub
 
 ## Hive Profile
 

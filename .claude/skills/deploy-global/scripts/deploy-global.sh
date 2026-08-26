@@ -573,7 +573,8 @@ diff_grok_rules() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 4 (backup) — ~/.claude only; scoped to RUN_CLAUDE.
+# Step 4 (backup) — ~/.claude tar, scoped to RUN_CLAUDE; step 4b snapshots the
+# mutable config files this deploy touches OUTSIDE ~/.claude.
 # ---------------------------------------------------------------------------
 
 BACKUP_FILE=""
@@ -619,6 +620,65 @@ step_backup() {
     else
         log "[DRY-RUN] would back up: ${tar_args[*]} -> ${BACKUP_FILE}"
         report "backup: [DRY-RUN] would write ${BACKUP_FILE} from: ${tar_args[*]}"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Step 4b (harness-config backup) — the ~/.claude tar above covers ~/.claude and
+# nothing else, yet a codex/opencode run MUTATES two files outside it: the hooks
+# merge writes ~/.codex/hooks.json (step 13d), the orphan sweep purges blocks
+# from that same file, and the permission merge writes opencode.json. Each merge
+# validates into a temp file before moving, so corruption is unlikely — but a
+# purge that removes a block the user hand-added had nothing to restore from.
+# Scoped per harness: a scope that does not run is not snapshotted.
+# ---------------------------------------------------------------------------
+
+HARNESS_BACKUP_FILE=""
+
+step_backup_harness_config() {
+    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] || return 0
+    log "== Backup (harness config) =="
+
+    local -a tar_args=()
+    local -a restore_hints=()
+    if [[ "${RUN_CODEX}" -eq 1 && -f "${CODEX_HOME}/hooks.json" ]]; then
+        tar_args+=(-C "${CODEX_HOME}" "hooks.json")
+        restore_hints+=("hooks.json -> ${CODEX_HOME}")
+    fi
+    if [[ "${RUN_OPENCODE}" -eq 1 && -f "${OPENCODE_HOME}/opencode.json" ]]; then
+        tar_args+=(-C "${OPENCODE_HOME}" "opencode.json")
+        restore_hints+=("opencode.json -> ${OPENCODE_HOME}")
+    fi
+
+    if [[ ${#tar_args[@]} -eq 0 ]]; then
+        log "No harness config present to back up"
+        report "harness-config backup: nothing present to back up"
+        return 0
+    fi
+
+    HARNESS_BACKUP_FILE="${BACKUP_DIR}/harness-config-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+    if [[ "${APPLY}" -eq 1 ]]; then
+        mkdir -p "${BACKUP_DIR}"
+        tar -czf "${HARNESS_BACKUP_FILE}" "${tar_args[@]}"
+        local size
+        size=$(wc -c <"${HARNESS_BACKUP_FILE}" | tr -d ' ')
+        log "Harness-config backup written: ${HARNESS_BACKUP_FILE} (${size} bytes)"
+        report "harness-config backup: ${HARNESS_BACKUP_FILE} (${size} bytes) — ${restore_hints[*]}"
+
+        # Same retention as the ~/.claude tar: keep the 5 most recent.
+        local -a old_backups
+        old_backups=()
+        # shellcheck disable=SC2012  # filenames are script-generated (harness-config-backup-<timestamp>.tar.gz); ls -t is the portable mtime sort on BSD
+        while IFS= read -r line; do
+            old_backups+=("${line}")
+        done < <(ls -t "${BACKUP_DIR}"/harness-config-backup-*.tar.gz 2>/dev/null | tail -n +6)
+        if [[ ${#old_backups[@]} -gt 0 ]]; then
+            rm -f "${old_backups[@]}"
+            log "Pruned ${#old_backups[@]} old harness-config backup(s)"
+        fi
+    else
+        log "[DRY-RUN] would back up: ${restore_hints[*]} -> ${HARNESS_BACKUP_FILE}"
+        report "harness-config backup: [DRY-RUN] would write ${HARNESS_BACKUP_FILE} from: ${restore_hints[*]}"
     fi
 }
 
@@ -1497,6 +1557,16 @@ step_final_report() {
         echo "Restore with:"
         echo "  tar -xzf ${BACKUP_FILE} -C ${CLAUDE_HOME}/"
     fi
+    if [[ -n "${HARNESS_BACKUP_FILE}" && "${APPLY}" -eq 1 ]]; then
+        echo ""
+        echo "Restore harness config with (per file, they have different roots):"
+        if [[ "${RUN_CODEX}" -eq 1 ]]; then
+            echo "  tar -xzf ${HARNESS_BACKUP_FILE} -C ${CODEX_HOME} hooks.json"
+        fi
+        if [[ "${RUN_OPENCODE}" -eq 1 ]]; then
+            echo "  tar -xzf ${HARNESS_BACKUP_FILE} -C ${OPENCODE_HOME} opencode.json"
+        fi
+    fi
     if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]]; then
         echo ""
         echo "Reminder: harness/{codex,opencode}/*.snippet config merges (plugin/hook"
@@ -1527,6 +1597,7 @@ main() {
     step_preview
     step_diff
     step_backup
+    step_backup_harness_config
     step_harness_rebuild
     step_detect_orphans
     step_deploy_claude

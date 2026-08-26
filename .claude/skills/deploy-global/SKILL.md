@@ -114,7 +114,7 @@ its own location regardless of cwd):
 |---|---|
 | `--dry-run` | Report what would change; write nothing. **Default.** |
 | `--apply` | Perform the deploy for real. |
-| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. Note: under `--apply`, `--only harness`/`--only grok` deletes that scope's orphans by default with NO backup snapshot — backups cover only `~/.claude`; the content is regenerable from the repo, but the deletion runs unshielded. |
+| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. Note: under `--apply`, `--only harness`/`--only grok` deletes that scope's orphans by default without a full-tree snapshot — the `~/.claude` tar covers only that scope, and the harness-config tar covers only the two config files the deploy writes, not the deployed agents/skills/rules themselves. Those are regenerable from the repo, but the deletion runs unshielded. |
 | `--keep-orphans` | Under `--apply`, list manifest-confirmed orphans WITHOUT deleting them (the old default). By default orphan deletion is part of the apply flow: an orphan is by construction a source the user already removed from `global/`/`harness/`, deploys are user-initiated, and the full list prints in the report before deletion — so a separate confirmation flag re-asked what the repo's own history already answered. The deletion also purges the orphans' `settings.json`/`hooks.json` entries. Refused (not deleted) if the set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup; the refusal is the anomaly brake. Undeleted orphans (dry-run, kept, or refused) keep their manifest entries, so a later run can still remove them. |
 | `--force-delete-orphans` | Bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
 | `--delete-orphans` | Deprecated no-op alias, accepted for compatibility — deletion is now the `--apply` default. |
@@ -141,10 +141,13 @@ surface every `WARNING:` to the user, don't just report success.
   (legacy of the pre-nested layout), removed under `--apply`; (3) **backup rotation** —
   keeps the 5 most recent `~/.claude` snapshots, removes older ones. `--keep-orphans` does
   NOT exempt classes 2-3.
-- Backs up `~/.claude` (tar, keeps 5 most recent) before any overwrite — but only when the
-  `claude` scope is active; there's no equivalent snapshot for `~/.codex` or
-  `~/.config/opencode` in this procedure. The `grok` scope needs none: it writes only
-  symlinks, so removing them can never destroy a rule.
+- Backs up `~/.claude` (tar, keeps 5 most recent) before any overwrite, when the `claude`
+  scope is active — and, when the `codex`/`opencode` scopes are, snapshots the two mutable
+  config files that live outside it into `harness-config-backup-<ts>.tar.gz` (same
+  directory, same 5-deep retention): `~/.codex/hooks.json` (written by the hooks merge,
+  and purged from by the orphan sweep) and `~/.config/opencode/opencode.json` (the
+  permission merge). Both restore commands print in the final report. The `grok` scope
+  needs none: it writes only symlinks, so removing them can never destroy a rule.
 - The `grok` scope skips (with a WARNING, never a dangling link) any rule not yet present
   under `~/.claude/rules/` — run the `claude` scope at least once first.
 - Never overwrites `~/.claude/settings.json`, `~/.codex/hooks.json`, or
