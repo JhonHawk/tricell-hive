@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; script=\"$root/.codex/hooks/agent-line-count.sh\"; [ -x \"$script\" ] || exit 0; exec bash \"$script\"'",
+            "timeout": 10,
+            "statusMessage": "Checking agent line count..."
+          }
+        ]
+      }
+    ]
+  }
+}
