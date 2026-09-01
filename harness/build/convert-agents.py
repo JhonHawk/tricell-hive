@@ -489,6 +489,9 @@ def to_grok(agent) -> str:
     """Grok Build agent definition (.md under ~/.grok/agents/).
 
     Model is always inherit — Claude opus/sonnet aliases are not Grok slugs.
+    Do not emit capability_mode (removed as a spawn argument in grok 1.0.6;
+    tools come from the agent type / this allowlist). The runtime withholds
+    the workflow tool from subagents (1.0.8+); no frontmatter needed.
     """
     # NOT rebased: Grok scans ~/.claude/skills and never ~/.agents/skills.
     body = agent["body"]

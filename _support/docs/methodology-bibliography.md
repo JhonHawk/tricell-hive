@@ -1123,6 +1123,14 @@ section records the authority tags and the findings that the tables only flag.
 - **Dead URLs, verified 404 on 2026-08-20:** `github.com/xai-org/grok-cli`,
   `docs.x.ai/docs/grok-cli`, `docs.x.ai/build/project-rules` (the real path carries
   `/features/`), and any `xai-org/grok-build/blob/main/docs/...` path.
+- `[Authoritative]` **Grok 1.0.6–1.0.13** (CLI 1.0.13 `5e9a58528b76`, bundled
+  `~/.grok/docs/user-guide/{10-hooks,16-subagents}.md` + [x.ai/build/changelog](https://x.ai/build/changelog),
+  read 2026-08-31). Spawn-time `capability_mode` removed (1.0.6 — tools from the agent type).
+  `workflow` tool is top-level only (1.0.8/1.0.9). PreToolUse may `ask`/`defer`/`updatedInput`,
+  and the 1.0.13 guide documents `additionalContext` arriving **after** the call; UserPromptSubmit
+  allowing stdout and SessionStart/PostToolUse stdout remain discarded. The 2026-08-21 Stop-only
+  injection probe was not re-run on 1.0.13. Grounds: `harness/grok/README.md` injection map,
+  `agent-routing.md` spawn/workflow bullets, `flow-core/references/harness-mechanics.md`.
 
 **Verdict: supported, with three corrections and three undocumented surfaces recorded.**
 The corrections (Codex host, opencode org, Grok docs exist) were applied to this file and

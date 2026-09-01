@@ -45,13 +45,14 @@ payload (2026-08-21):
   the banner wording changes. Detection is by payload shape, never by a flag: one command
   serves both harnesses, so there is nothing to pass.
 
-**What Grok does NOT get: the `additionalContext` injection.** Measured 2026-08-21, not
-inferred: a probe hook on five events showed that only `Stop`/`SubagentStop` reaches a Grok
-model — every other event runs and has its stdout discarded (full map: `harness/grok/README.md`),
-so no hook event on the approval itself can hand the model a pointer. The durable half still works — the
-plan lands in the sessions layer, which is the point (day-2 continuity is a repo file, not
-harness state, and `/flow-build` adopts it) — but on Grok the model is not told. What
-reaches the model there is the rules layer it already loads, not this hook.
+**What Grok does NOT get: the `additionalContext` injection.** This hook is `PostToolUse`;
+the 1.0.13 bundled guide still ignores stdout on that event (`harness/grok/README.md`
+injection map). A 2026-08-21 probe on an older CLI saw injection only on
+`Stop`/`SubagentStop`; PreToolUse post-call notes are a different event and do not
+announce this capture. The durable half still works — the plan lands in the sessions
+layer, which is the point (day-2 continuity is a repo file, not harness state, and
+`/flow-build` adopts it) — but on Grok the model is not told. What reaches the model
+there is the rules layer it already loads, not this hook.
 
 ## Why a recovery mode exists (`--from-transcript`)
 
