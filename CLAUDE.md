@@ -8,10 +8,7 @@ When editing any `flow-*` skill (or `flow-core`), evaluate whether `_support/doc
 
 ### Agent Management
 
-Use `/manage-agents` for all agent operations:
-- `/manage-agents validate` — check all agents against design principles; also run after routing changes
-- `/manage-agents optimize <name>` — guided optimization of a single agent
-- `/manage-agents report` — generate live analysis report with metrics
+`/manage-agents validate [--all] [--deep]` checks agents against the design principles below; run it after routing changes too.
 
 After editing files under `global/agents/**`, offer `/manage-agents validate` at close; after editing `global/rules/**`, offer `/manage-rules validate`. Offer, don't run uninvited.
 

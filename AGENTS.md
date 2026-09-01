@@ -234,10 +234,9 @@ _support/                          # Workspace material (see global/rules/workfl
 ├── spec/                          # Design specs and decision records (e.g., dual-mode git workflow)
 └── workspace/                     # Ephemeral scratch — content is relocated or deleted when work concludes
 .claude/skills/                    # Project-only skills (NOT deployed to ~/.claude/)
-├── manage-agents/                 # /manage-agents — validate, optimize, report
-│   ├── SKILL.md
-│   └── references/template.md     # Agent template (bundled resource)
-├── manage-rules/                  # /manage-rules — validate, audit, create
+├── manage-agents/                 # /manage-agents — validate
+│   └── SKILL.md
+├── manage-rules/                  # /manage-rules — validate, create
 │   └── SKILL.md
 └── deploy-global/                 # /deploy-global — meta-skill that deploys global/ to ~/.claude/
 .agents/skills/                    # Symlinks -> .claude/skills/* so a non-Claude harness in THIS repo

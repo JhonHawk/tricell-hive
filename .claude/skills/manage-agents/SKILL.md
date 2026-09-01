@@ -1,13 +1,13 @@
 ---
 name: manage-agents
 description: >
-  Manage Claude Code agent definitions — validate, optimize, or generate reports.
-  Use with: /manage-agents validate, /manage-agents optimize <agent-name>,
-  or /manage-agents report. Triggers when working with agent files in global/agents/,
-  reviewing agent quality, creating new agents, or analyzing agent metrics.
+  Validate Claude Code agent definitions in global/agents/ against the hub's design
+  principles — the judgment checks no hook or build step covers. Use with:
+  /manage-agents validate [--all] [--deep]. Triggers after editing agent files,
+  after routing changes, or when reviewing agent quality.
 ---
 
-Manage agent definitions in this workspace. Parse `$ARGUMENTS` to determine the subcommand.
+Validate agent definitions in this workspace. Parse `$ARGUMENTS` to determine the subcommand.
 
 ## Subcommands
 
@@ -29,35 +29,6 @@ Default scope: the agent files changed in the working tree / recent commits, or 
 
 Output a summary table, then list specific issues per agent with suggestions.
 
-### `optimize <agent-name>` — Optimize a single agent
-
-`<agent-name>` is the filename without `.md`, e.g., `backend-developer`.
-
-1. **Read the original** from `_support/workspace/<agent-name>.md`. If not found, list available agents.
-2. **Read the template** from `references/template.md` (bundled in this skill).
-3. **Analyze** — identify: line count, filler sections (apply "What to eliminate" from CLAUDE.md), rules duplicating global config, frontmatter issues, description quality.
-4. **Present findings** — show what will be cut and why, with educational explanation.
-5. **Rewrite** using the template structure — aim for 30-120 lines.
-6. **Save** to the correct subdirectory in `global/agents/` based on color role.
-7. **Report** — original vs optimized line count, % reduction, what was cut, what was preserved.
-
-Rules:
-- Check if an optimized version already exists — show diff if so.
-- Use context7 MCP for framework-specific docs when the agent covers a technology.
-- Never add rules that belong in global rules.
-- Ask the user before saving if reduction is >70%.
-- **Research-driven**: before writing the agent's Rules section, research current industry best practices for that agent's domain (web search, context7, authoritative sources). Don't limit the agent's rules to what the global config already says — the agent should encode domain-specific expertise that goes beyond the global rules.
-
-### `report` — Generate analysis report
-
-Scan `global/agents/` and `_support/workspace/` to generate a live optimization report:
-
-1. Count all optimized agents with line counts, grouped by subdirectory/color.
-2. For each agent that has an original in `_support/workspace/`, calculate % reduction.
-3. Identify the largest agent, smallest agent, and average lines.
-4. List agents in `_support/workspace/` that have NO optimized version (candidates for optimization).
-5. Output a markdown report with summary table and coverage analysis.
-
 ### No arguments — Show help
 
-If `$ARGUMENTS` is empty, show the available subcommands with usage examples.
+If `$ARGUMENTS` is empty, show `validate [--all] [--deep]` with usage examples.

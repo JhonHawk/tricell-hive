@@ -10,7 +10,7 @@ Generic AGENTS-compatible harness config lives under `harness/`. **What each har
 ```bash
 # Inside this repo with Claude Code:
 /deploy-global        # Syncs global/ → ~/.claude/
-/manage-agents report # Live analysis of all agents
+/manage-agents validate --all  # Judgment checks on every agent
 ```
 
 ## Prerequisites
@@ -112,8 +112,8 @@ harness/                      # Multi-harness layer (Codex + opencode + Grok), d
 └── cursor/                          # README only — no generated tree, no deploy step
 
 .claude/skills/
-├── manage-agents/                   # /manage-agents — validate, optimize, report
-├── manage-rules/                    # /manage-rules — validate, audit, create
+├── manage-agents/                   # /manage-agents — validate
+├── manage-rules/                    # /manage-rules — validate, create
 └── deploy-global/                   # /deploy-global — sync global/ → ~/.claude/
 
 _support/                            # Workspace material, not deployed
@@ -154,7 +154,7 @@ _support/                            # Workspace material, not deployed
 | `devops-engineer` | ops | red | Read, Write, Edit, Bash, Glob, Grep (explicit allowlist; `Agent` denied) |
 | `technical-writer` | docs | magenta | Read, Write, Edit, Glob, Grep |
 
-Use `/manage-agents report` for live line counts and reduction metrics instead of relying on static README totals.
+Line counts live on disk (`wc -l global/agents/*/*.md`); `/manage-agents validate --all` checks this table against it.
 
 ## Rules (31 files + 7 router-reached)
 
@@ -206,6 +206,6 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `workspace-conventions` | global | Router: workspace/session/contract conventions for Codex + opencode (model-invoked) |
 | `memory-policy` | global | Router: Engram policy layer for Codex + opencode (model-invoked) |
 | `unattended-delegation` | global | Router: explicitly-delegated unattended runs for Codex + opencode (model-invoked) |
-| `/manage-agents` | repo | `validate` \| `optimize <name>` \| `report` — agent lifecycle management |
-| `/manage-rules` | repo | `validate` \| `audit` \| `create` — rule lifecycle management, incl. `global/CLAUDE.md` and the always-on rule corpus |
+| `/manage-agents` | repo | `validate [--all] [--deep]` — judgment checks on agent definitions |
+| `/manage-rules` | repo | `validate [--all] [--deep]` \| `create` — rule lifecycle management, incl. the core sections and the always-on rule corpus |
 | `/deploy-global` | repo | Sync `global/` to `~/.claude/` (user-initiated only) |

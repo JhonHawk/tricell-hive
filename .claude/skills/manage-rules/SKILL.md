@@ -1,11 +1,10 @@
 ---
 name: manage-rules
 description: >
-  Manage global rule files in global/rules/ — validate frontmatter and content,
-  audit coverage across technology stacks, or create new rules. Use with:
-  /manage-rules validate, /manage-rules audit, or /manage-rules create <name>.
-  Triggers when working with rule files, reviewing global config coverage,
-  adding new technology standards, or checking rule quality.
+  Manage global rule files in global/rules/ — validate frontmatter, content, reachability
+  and enforcement honesty (with the always-on load report on --all), or create new rules.
+  Use with: /manage-rules validate [--all] [--deep] or /manage-rules create <name>.
+  Triggers after editing rule or core-section files, or when checking rule quality.
 ---
 
 Manage rule files in `global/rules/`. Parse `$ARGUMENTS` to determine the subcommand.
@@ -42,26 +41,9 @@ Default scope: the rule files changed in the working tree / recent commits, or n
    - **Transition hazard, flag it every time it appears in a diff:** adding `paths:` to a previously always-on rule silently removes it from Grok; removing `paths:` silently adds it to every Grok session.
    - **`SKILL_REFERENCE_INJECTIONS` has a second writer:** `/agents-md-primary apply` edits that map via its `inject-to-router` outcome. This check is what verifies those edits — run it after one, and treat an injection added there as in-scope here even when no rule file changed.
 
+10. **Load report (`--all` only)** — what a session actually pays, in BYTES (the corpus grows by mass, not by rule count): always-on total (`global/CLAUDE.md` + every rule with no `paths:`) with the tokenizer proxy (`bytes ÷ 3.7`) and each file's share; per-stack totals (always-on + that stack's path-scoped rules); and the trend since the last prune (bytes added vs deleted), not just the level. `build.py` reports the two cores' size — this report adds the rule corpus around them.
+
 Output a summary table, then specific issues per rule with suggestions.
-
-### `audit` — Coverage report
-
-Analyze what technology stacks are covered by rules and which have gaps:
-
-1. **Inventory** — List all rules with: name, scope type (always/path-scoped), line count, and glob patterns.
-2. **Stack coverage** — Map rules to technology stacks based on their paths and content:
-   - TypeScript/JavaScript: which rules apply?
-   - Angular: which rules apply?
-   - Java/Kotlin: which rules apply?
-   - CSS/Tailwind: which rules apply?
-   - Python: any rules? (user has Python projects)
-3. **Gap analysis** — Identify stacks in the user's ecosystem (from CLAUDE.md context: Next.js, Angular, NestJS, Express, Spring, Kotlin, Python, DevOps) that have no dedicated path-scoped rule.
-4. **Load analysis** — What a session actually pays, in BYTES (the corpus grows by mass, not by
-   rule count — line or rule counts report it stable while cost compounds):
-   - Always-on total: `global/CLAUDE.md` + every rule with no `paths:`. Report bytes and the
-     tokenizer proxy (`bytes ÷ 3.7`), plus each file's share so the biggest are visible.
-   - Per-stack: always-on + that stack's path-scoped rules.
-   - The trend, not just the level: bytes added vs deleted across the window since the last prune.
 
 ### `create <name>` — Create a new rule
 
