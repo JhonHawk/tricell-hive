@@ -240,7 +240,24 @@ _support/                          # Workspace material (see global/rules/workfl
 ├── manage-rules/                  # /manage-rules — validate, audit, create
 │   └── SKILL.md
 └── deploy-global/                 # /deploy-global — meta-skill that deploys global/ to ~/.claude/
+.agents/skills/                    # Symlinks -> .claude/skills/* so a non-Claude harness in THIS repo
+                                   # runs the same three skills (copies drifted; symlinks cannot)
+.codex/                            # hooks.json + hooks/agent-line-count.sh -> ../../.claude/hooks/ (same file)
 ```
+
+**opencode is not used in this repo, and that is what closes an otherwise real exposure.** opencode
+discovers `.agents/skills/<name>/SKILL.md` project-locally (walking up to the git worktree) and
+*disregards frontmatter fields it does not recognize* — `disable-model-invocation` among them — so the
+`deploy-global` symlink above would be model-invocable there, where Claude Code and Grok both honor the
+gate. Documented rather than mitigated: the exposure needs opencode to be run here to exist. Revisit if
+that changes. (Per its published docs, 2026-08-27; not verified by running opencode.)
+
+**Repo-local Codex hooks require trust before they run.** `.codex/hooks.json` is read (verified by
+experiment, Codex 0.149.1: the same hook fires with `--dangerously-bypass-hook-trust` and stays silent
+without it, matcher held constant). Trust is persisted per hook in `~/.codex/config.toml` under
+`[hooks.state."<abs path>:<event>:<i>:<j>"]` as `trusted_hash` + `enabled = true`, keyed to a hash of the
+hook config — so editing `hooks.json` invalidates it. Until the trust prompt is accepted in an
+interactive Codex session here, the hook is inert and fails silently: no error, no notice.
 
 Path-scoped rules only load when matching files are touched. Agents are discovered recursively — subdirectories provide organizational namespace for humans, not routing logic. Deploy with `/deploy-global`.
 
