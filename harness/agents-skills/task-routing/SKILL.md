@@ -1,25 +1,17 @@
 ---
 name: task-routing
 description: >
-  Load before the FIRST `Write`/`Edit` on project code OR the first git verb of the
-  session — whichever comes first: a commit-only session fires on the git verb without
-  ever reaching edit-intent. Covers deciding HOW work gets done — which specialist takes
-  it, whether to delegate at all, how a multi-domain task is chained and verified, and what
-  must be settled before a plan's tasks are written — AND the git mechanics: branching
-  model per repo class, the session git mode and commit semantics, PR/promotion with the
-  two review phases, end-of-work pruning, recovery. It carries the gap analysis whose
-  prerequisites (accounts and roles, seed rows, running services) are cheapest resolved
-  before the code, not at the verification gate. Any request to review, audit, investigate,
-  diagnose, refactor across files, or "how would you approach X" is this decision, even when
-  the user never says the word delegate — they ask for a result, not for a routing choice.
-  NOT for: a short question, work outside a software project, or a SMALL read-only
-  investigation (≤3 files, ≤3 queries — the inline thresholds): that stays inline; one
-  crossing the delegation thresholds routes like any task. The trivial carve-out (typo,
-  rename, one-line config) is out too.
-  Triggers: implement, build, feature, fix, review, audit, investigate, diagnose, plan,
-  approach, refactor, verify, branch, commit, push, PR, merge, promote, release;
-  implementa, construye, arregla, revisar, auditar, investigar, diagnosticar, planear,
-  "cómo lo abordarías".
+  Load before the FIRST `Write`/`Edit` on project code OR the first git verb of the session —
+  whichever comes first: a commit-only session fires on the git verb without ever reaching
+  edit-intent. Covers HOW work gets done — which specialist takes it, whether to delegate at all,
+  how a multi-domain task is chained and verified, the gap analysis that settles prerequisites
+  before a plan's tasks are written — AND the git mechanics: branching, session git mode, commits,
+  PR/promotion, close. Any request to review, audit, investigate, diagnose, refactor across files,
+  or "how would you approach X" is this decision, even when the user never says "delegate" — they
+  ask for a result, not a routing choice. NOT for: a short question, work outside a software
+  project, a SMALL read-only investigation (≤3 files, ≤3 queries), or the trivial carve-out (typo,
+  rename, one-line config). Triggers: review, audit, investigate, diagnose, refactor, plan,
+  branch, commit, PR, merge, promote; revisar, auditar, investigar, planear.
 ---
 
 # task-routing — who does the work, what must be settled first, and how git carries it

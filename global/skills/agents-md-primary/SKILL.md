@@ -1,19 +1,14 @@
 ---
 name: agents-md-primary
 description: >
-  Convert a project to the AGENTS.md-primary pattern: AGENTS.md becomes the single
-  canonical harness-instructions file and CLAUDE.md becomes its `@AGENTS.md` import
-  (plus genuinely Claude-specific content below the import). Use on projects where
-  AGENTS.md and CLAUDE.md duplicate content, where only one of the pair exists, or to
-  find conversion candidates across many projects (scan). Also audits project
-  AGENTS.md/CLAUDE.md content against the deployed global canon — per-rule harness-coverage
-  matrix, dedup, stale-fork detection, promotion/injection routing — plus content quality:
-  agent-discoverable rules, stale file paths, missing git-workflow declarations and ledger
-  pointers, instruction budget, and verification parity between the repo's local hooks and
-  its CI (audit | apply). Ground-truth checks compare declared state against git and disk:
-  CLAUDE.local.md claims (read, never written), workspace skills that route to dead paths or
-  lack an invocation gate, repos mentioned nowhere, branches and merge strategies that git
-  refutes, retired command names still offered, and ledger staleness. Idempotent.
+  Convert a project to the AGENTS.md-primary pattern: AGENTS.md becomes the single canonical
+  harness-instructions file and CLAUDE.md becomes its `@AGENTS.md` import (plus genuinely
+  Claude-specific content below the import). Use on projects where AGENTS.md and CLAUDE.md
+  duplicate content, where only one of the pair exists, or to find conversion candidates across
+  many projects (scan). Also audits a project's AGENTS.md/CLAUDE.md against the deployed global
+  canon — harness coverage, duplication, stale forks, content quality, and instruction budget —
+  and checks every declared claim against git and disk rather than taking the document's word for
+  it. Subcommands: audit | apply. Idempotent.
 argument-hint: "[path | scan <root> | audit [path] | apply]"
 disable-model-invocation: true
 ---
