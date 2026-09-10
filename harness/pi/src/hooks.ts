@@ -175,16 +175,32 @@ function firstExistingDirectory(candidates: readonly string[]): string {
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0] ?? process.cwd();
 }
 
+export interface HookRootCandidates {
+  readonly configuredDir?: string;
+  readonly deployedDir: string;
+  readonly cwdDir: string;
+  readonly sourceDir: string;
+}
+
+export function resolveHookRoot(candidates: HookRootCandidates): string {
+  return firstExistingDirectory([
+    ...(candidates.configuredDir ? [candidates.configuredDir] : []),
+    candidates.deployedDir,
+    candidates.cwdDir,
+    candidates.sourceDir,
+  ]);
+}
+
 export function defaultHookPaths(): HookPaths {
   const sourceDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)), "global/hooks");
   const deployedDir = resolve(fileURLToPath(new URL("..", import.meta.url)), "global/hooks");
   const configuredDir = process.env.PI_HIVE_HOOK_DIR;
-  const root = firstExistingDirectory([
-    configuredDir ?? "",
-    resolve(process.cwd(), "global/hooks"),
+  const root = resolveHookRoot({
+    configuredDir,
     deployedDir,
+    cwdDir: resolve(process.cwd(), "global/hooks"),
     sourceDir,
-  ]);
+  });
   return {
     bashPolicy: join(root, "bash-policy/bash-policy.sh"),
     reviewerGuard: join(root, "reviewer-guard/reviewer-guard.sh"),

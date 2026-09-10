@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -10,6 +10,7 @@ import {
   HIVE_CONTEXT7_MCP_TOOLS,
   REQUIRED_HOOK_KEYS,
   registerGeneralHiveHooks,
+  resolveHookRoot,
 } from "../src/hooks.ts";
 import type { HookPaths } from "../src/types.ts";
 
@@ -117,6 +118,26 @@ process.stdin.on("end", () => {
   chmodSync(hook, 0o755);
   return hook;
 }
+
+test("hook root resolution prefers explicit, deployed, cwd and source roots in that order", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-hook-roots-"));
+  const configuredDir = join(directory, "configured");
+  const deployedDir = join(directory, "deployed");
+  const cwdDir = join(directory, "cwd");
+  const sourceDir = join(directory, "source");
+  for (const root of [configuredDir, deployedDir, cwdDir, sourceDir]) mkdirSync(root);
+  const candidates = { configuredDir, deployedDir, cwdDir, sourceDir };
+  try {
+    assert.equal(resolveHookRoot(candidates), configuredDir);
+    assert.equal(resolveHookRoot({ ...candidates, configuredDir: undefined }), deployedDir);
+    rmSync(deployedDir, { recursive: true, force: true });
+    assert.equal(resolveHookRoot({ ...candidates, configuredDir: undefined }), cwdDir);
+    rmSync(cwdDir, { recursive: true, force: true });
+    assert.equal(resolveHookRoot({ ...candidates, configuredDir: undefined }), sourceDir);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 test("advisory hook failures warn once per session and script while context remains reusable", async () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-advisory-dedupe-"));
@@ -318,7 +339,7 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({ additionalCo
     const resumedContext = makeContext(directory, "session-a", "base", entries, reloaded.notifications);
     registerGeneralHiveHooks(reloaded.api, { paths });
     await invoke(reloaded, "session_start", { type: "session_start", reason: "startup" }, resumedContext);
-    assert.equal(reloaded.messages.length, 0, "a persisted hidden custom_message must suppress replay after restart");
+    assert.equal(reloaded.messages.length, 0, "a native hidden custom_message in resumed session state must suppress replay");
 
     entries.length = 0;
     await invoke(fake, "session_start", { type: "session_start", reason: "new" }, context);
