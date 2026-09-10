@@ -1141,9 +1141,20 @@ section records the authority tags and the findings that the tables only flag.
   `toolResult`, so Claude-shaped readers work unchanged. SessionStart / UserPromptSubmit stdout
   still discarded; `exit_plan_mode` still has no matcher alias. Nothing else in 1.0.15–1.0.24
   touches what the hive deploys (SessionStart hooks run in the background since 1.0.18; `/loop`
-  always background since 1.0.19; built-in tools win MCP name collisions since 1.0.22). The
-  five-event injection probe was not re-run. Grounds: `harness/grok/README.md` injection map,
-  `global/hooks/flow-plan-capture/README.md`, `global/hooks/post-tool-hub/post-tool-hub.sh`.
+  always background since 1.0.19; built-in tools win MCP name collisions since 1.0.22).
+  **Five-event probe re-run on 1.0.25 (2026-09-09, headless `grok -p`, same method as
+  2026-08-21):** all five ran; the model saw the `PreToolUse` (post-call), `PostToolUse` and
+  `Stop` tokens, not `SessionStart` or `UserPromptSubmit` — matches the guide. End-to-end: a
+  zsh `bad substitution` under `SHELL=/bin/zsh` made the deployed `post-tool-hub` note reach
+  the model as `<system-reminder>` from `global/settings:post_tool_use[1].hooks[0]`. Side
+  findings: payload keys arrive in both spellings and `hookEventName` is snake_case
+  (`post_tool_use`); `toolResult` on the terminal tool is a tagged object (`type: "Bash"`,
+  `output_for_prompt`, `exit_code`, `output` as a byte array); non-error `Stop` feedback does
+  not set `stopHookActive` (the turn ran to the 8-continuation cap); and `run_terminal_command`
+  spawns `$SHELL` — a probe launched from Claude's Bash tool (SHELL=/opt/homebrew/bin/bash)
+  ran bash 5.3, the user's terminal gives zsh 5.9. Grounds: `harness/grok/README.md` injection
+  map + `$SHELL` section, `global/hooks/flow-plan-capture/README.md`,
+  `global/hooks/post-tool-hub/post-tool-hub.sh`.
 
 **Verdict: supported, with three corrections and three undocumented surfaces recorded.**
 The corrections (Codex host, opencode org, Grok docs exist) were applied to this file and

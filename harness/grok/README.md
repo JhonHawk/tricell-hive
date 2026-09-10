@@ -19,21 +19,23 @@ Companion files: `global/README.md` (Claude Code), `harness/codex/README.md`,
 | Global instructions | `~/.claude/CLAUDE.md` | *(read in place)* | Nothing to deploy |
 | Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh`, `post-tool-hub.sh` and `flow-plan-capture.sh` are dual-runtime. Two Grok specifics: a matcher must name Grok's own tool name when no alias exists (`exit_plan_mode` has none), and stdout injection is event-specific — see the injection map below |
 
-### Hook injection map — 2026-08-21 probe, qualified against grok 1.0.25
+### Hook injection map — measured on grok 1.0.25 (2026-09-09)
 
-A probe hook registered on five events in `~/.grok/hooks/`, each emitting a distinct token as
-`additionalContext`, then asked the model which tokens it could see (2026-08-21, older CLI).
-The bundled guide (`~/.grok/docs/user-guide/10-hooks.md`, read at 1.0.25) is the documentary
-source for `PreToolUse` and `PostToolUse` — the latter gained model-facing feedback in 1.0.14;
-the probe was not re-run after 1.0.13.
+A probe hook registered on five events in `~/.grok/hooks/`, each writing a breadcrumb and
+emitting a distinct token as `additionalContext`, then a headless `grok -p` run asked the model
+which tokens it could see. Run on 2026-08-21 (older CLI: only `Stop` landed) and re-run on
+1.0.25 (2026-09-09): the rows below are the 1.0.25 measurement, and they match the bundled
+guide (`~/.grok/docs/user-guide/10-hooks.md`). Payload keys arrive in BOTH spellings
+(`toolName`/`tool_name`, `toolResult`/`tool_response`), and `hookEventName` is snake_case
+(`post_tool_use`).
 
 | Event | Hook runs? | Model receives its `additionalContext`? |
 |---|---|---|
 | `SessionStart` | yes | **no** (guide: stdout ignored) |
 | `UserPromptSubmit` | yes | **no** (guide: allowing stdout discarded) |
-| `PreToolUse` | yes | **after the call** (1.0.13 guide); also `ask` / `deny` / `allow` / `defer` / `updatedInput`. 2026-08-21 probe on older CLI saw none |
-| `PostToolUse` | yes | **YES, since 1.0.14** — `additionalContext`, `decision: "block"` + `reason`, and `updatedToolOutput` (replaces the model's copy of the result); all land after the tool result, in the same turn. Exit 2 now feeds stderr to the model — a hook must end with an explicit `exit 0` to stay silent |
-| `Stop` / `SubagentStop` | yes | **YES** — and it keeps the turn working (capped at 8 continuations) |
+| `PreToolUse` | yes | **YES, after the call** (measured 1.0.25; the 2026-08-21 probe saw none); also `ask` / `deny` / `allow` / `defer` / `updatedInput` |
+| `PostToolUse` | yes | **YES, since 1.0.14** (measured 1.0.25: the hive's `post-tool-hub` note reached the model as `<system-reminder>` naming the hook) — `additionalContext`, `decision: "block"` + `reason`, and `updatedToolOutput` (replaces the model's copy of the result); all land after the tool result, in the same turn. Exit 2 now feeds stderr to the model — a hook must end with an explicit `exit 0` to stay silent |
+| `Stop` / `SubagentStop` | yes | **YES** — and it keeps the turn working (capped at 8 continuations). Measured: non-error feedback does NOT set `stopHookActive`, so a hook that emits on every run rides to the cap — gate on your own marker, not on that flag |
 
 A hook on a non-injecting event can still ACT (write a file, deny a call). Consequences for
 this repo's hooks in Grok: `bash-policy` works (its product is a deny, not context);
@@ -46,6 +48,16 @@ carry a rule the model needed before it; use hooks in Grok for effects, for post
 feedback, and for PreToolUse `ask`/`deny`/`updatedInput` when a call must be gated.
 `instructions-audit` is a separate case: its `InstructionsLoaded` event does not exist in
 Grok at all.
+
+### The terminal tool runs `$SHELL`
+
+Measured on 1.0.25 (2026-09-09): `run_terminal_command` spawns whatever `$SHELL` the `grok`
+process inherited — `/bin/zsh` from the user's terminal (zsh 5.9), `/opt/homebrew/bin/bash`
+when launched from a Claude Code Bash tool that exports it. "Grok stays on zsh"
+(`global/CLAUDE.md > Shell`) is therefore a fact about the launching terminal, not about Grok;
+a probe launched from another agent's shell measures that agent's shell. Changing the launch
+`SHELL` is a separate decision with its own trade-offs (login-shell env, tool resolution) and
+is not recommended here.
 
 There is deliberately **no** `harness/grok/skills/` tree: it would duplicate what
 `~/.claude/skills/` already provides. Contrast with Codex, which needs a generated
