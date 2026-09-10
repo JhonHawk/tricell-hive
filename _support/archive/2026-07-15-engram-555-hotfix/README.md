@@ -1,3 +1,9 @@
+> **Retired 2026-09-09.** Upstream fixed #555 in PR #768 (merged 2026-08-25): the Claude Code
+> (plugin 0.1.2) and Codex (0.1.4) hooks and the opencode `engram.ts` now resolve the project
+> through the server's `/project/current`, which honors `.engram/config.json`. The LaunchAgent,
+> `~/.local/bin/ensure-engram-555` and `~/.engram/hotfix-555` were uninstalled and `deploy-global`
+> step 13c removed. Kept as history; nothing here should be applied again.
+
 # Engram detect_project hotfix — issue #555 (portable, all three harnesses)
 
 Upstream bug: the Engram harness plugins' `detect_project` ignores `.engram/config.json`

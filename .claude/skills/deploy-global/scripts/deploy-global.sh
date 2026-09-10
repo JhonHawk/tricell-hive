@@ -1170,58 +1170,6 @@ step_deploy_opencode() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 13c — Engram #555 detect_project hotfix re-assertion (codex-scoped, temporary)
-# ---------------------------------------------------------------------------
-
-step_engram_hotfix() {
-    [[ "${RUN_CODEX}" -eq 1 ]] || return 0
-    log "== Engram #555 hotfix re-assertion =="
-
-    local ensure_script=""
-    if [[ -x "${HOME}/.local/bin/ensure-engram-555" ]]; then
-        ensure_script="${HOME}/.local/bin/ensure-engram-555"
-    elif [[ -x "${HOME}/.engram/hotfix-555/ensure-engram-555.sh" ]]; then
-        ensure_script="${HOME}/.engram/hotfix-555/ensure-engram-555.sh"
-    elif [[ -x "${REPO_ROOT}/_support/archive/2026-07-15-engram-555-hotfix/ensure-engram-555.sh" ]]; then
-        if [[ "${APPLY}" -eq 1 ]]; then
-            # Bare (unwrapped) command would abort the whole deploy under
-            # set -e on failure. Step 13c's documented contract is "a failure
-            # here is not a deploy abort" — wrap it like its `apply` sibling
-            # below.
-            if "${REPO_ROOT}/_support/archive/2026-07-15-engram-555-hotfix/ensure-engram-555.sh" install; then
-                ensure_script="${HOME}/.local/bin/ensure-engram-555"
-            else
-                log "WARNING: engram #555 hotfix kit install failed — skipping hotfix re-assertion this run."
-                report "engram #555 hotfix: WARNING (install failed)"
-                return 0
-            fi
-        else
-            log "[DRY-RUN] would install the engram #555 hotfix kit from _support/archive/2026-07-15-engram-555-hotfix/"
-            report "engram #555 hotfix: [DRY-RUN] would install + apply"
-            return 0
-        fi
-    fi
-
-    if [[ -n "${ensure_script}" ]]; then
-        if [[ "${APPLY}" -eq 1 ]]; then
-            if "${ensure_script}" apply; then
-                log "engram #555 hotfix: OK"
-                report "engram #555 hotfix: OK"
-            else
-                log "WARNING: engram #555 ensure failed — memories may split across project aliases until fixed"
-                report "engram #555 hotfix: WARNING (ensure failed)"
-            fi
-        else
-            log "[DRY-RUN] would run: ${ensure_script} apply"
-            report "engram #555 hotfix: [DRY-RUN] would apply"
-        fi
-    else
-        log "WARNING: engram #555 ensure script not found — see _support/archive/2026-07-15-engram-555-hotfix/"
-        report "engram #555 hotfix: WARNING (ensure script not found)"
-    fi
-}
-
-# ---------------------------------------------------------------------------
 # Step 13d — Codex hooks (register into ~/.codex/hooks.json)
 # ---------------------------------------------------------------------------
 
@@ -1605,7 +1553,6 @@ main() {
     step_deploy_shared_harness
     step_deploy_codex
     step_deploy_opencode
-    step_engram_hotfix
     step_deploy_codex_hooks
     step_deploy_opencode_plugin
     step_merge_opencode_permissions

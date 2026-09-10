@@ -126,7 +126,7 @@ its own location regardless of cwd):
 Narration streams to stderr as the script works; a structured report prints to stdout at
 the end — diff summary (new/modified/unchanged per category), backup path, orphans found
 (and whether they were deleted), per-scope deploy counts, the hook-merge outcome for
-`settings.json` and `~/.codex/hooks.json`, the Engram #555 hotfix result, and a restore
+`settings.json` and `~/.codex/hooks.json`, and a restore
 command. A `WARNING:` line means that one step degraded safely (e.g. a hook merge left
 `settings.json` untouched, or `harness/` came out dirty) — the rest of the deploy still ran;
 surface every `WARNING:` to the user, don't just report success.
