@@ -7,7 +7,7 @@ to be written, or a tool with its own routing policy about to run.
 
 ## Where it actually fires
 
-**Claude Code and Grok only.** In Codex it does not run — verified in both TUI and
+**The canonical shell hook runs in Claude Code and Grok only.** In Codex it does not run — verified in both TUI and
 `codex exec`, zero injections in either rollout, even though Codex's own hook panel lists
 `PreToolUse — 1 installed, 1 active`. It is registered and recognized; it just never reaches
 the model.
@@ -22,6 +22,11 @@ Separately: **`codex exec` runs no hooks at all** — not SessionStart, not any.
 zero while a TUI session carries the hive's SessionStart. Relevant to any automation built on
 `codex exec` (CI, scripts): hooks do not guard it.
 
+Pi uses the same rule contract through its parent extension: it translates the Pi tool name
+and input into the canonical `Write`/`Edit`/`Bash` payload and invokes this advisory surface
+before the tool. That adapter is a delivery path for Pi, not a claim that Pi exposes Claude's
+`PreToolUse` event.
+
 ## Why it exists
 
 Situational rules reach each harness through a different channel, and two of the four have
@@ -33,6 +38,7 @@ no channel at all for the main thread:
 | opencode | `opencode-rules` plugin, by glob | yes |
 | Codex | `MANDATORY FIRST ACTION` in `harness/AGENTS.md` | **yes** — an instruction acts before the decision |
 | Grok | this hook, plus the router skills | no for the hook; the routers depend on invocation |
+| Pi | Hive parent extension with translated tool payloads | **yes** for the advisory invocation; it still cannot deny the tool |
 
 Claude Code's own `paths:` mechanism has the same gap, and for a different reason: per the docs,
 *"path-scoped rules trigger when Claude reads files matching the pattern, not on every tool
@@ -51,7 +57,8 @@ Two more consequences worth knowing before moving rules off always-on:
 Subagents get their policy inlined into their own prompt. The main thread had nothing — on
 Codex and Grok it has been writing React or Terraform with none of those rules present. This
 hook closes that, and on the other two it still helps: the reminder fires with the concrete
-file in hand rather than as a general norm at session start.
+file in hand rather than as a general norm at session start. The Pi adapter emits this
+advisory only in the parent session; child prompts and their original guards are unchanged.
 
 ## Why it is not part of `bash-policy`
 
@@ -70,6 +77,11 @@ reference reads on Grok.
 
 One reminder per rule per session: a marker per `(session, rule)` under `$TMPDIR` keeps an
 edit-heavy session from paying the same pointer on every write.
+
+The Pi adapter serializes the advisory invocation, uses the canonical JSON stdin shape, and
+keeps the same per-session marker. A missing script, malformed advisory output, or timeout
+is a warning that leaves the tool call available; only the separate blocking guards can
+deny an operation.
 
 ## Coverage
 
@@ -91,11 +103,12 @@ the harness that most needs it.
 
 ## Limits
 
-**The reminder lands after the write, not before it — by design, not by accident.** Claude
-Code's hook reference defines the field as *"added to the Claude Code context when the tool
-completes"*, and states the consequence outright: the context *"cannot influence the permission
-decision — it arrives after the tool has already executed."* Observed twice before the docs were
-checked, in a running session and a fresh one.
+**The canonical Claude/Grok shell reminder lands after the write, not before it — by design,
+not by accident.** Claude Code's hook reference defines the field as *"added to the Claude Code
+context when the tool completes"*, and states the consequence outright: the context *"cannot
+influence the permission decision — it arrives after the tool has already executed."* Observed
+twice before the docs were checked, in a running session and a fresh one. Pi's adapter invokes
+the same advisory contract before its tool event, but the advisory still cannot deny that call.
 
 Of `PreToolUse`'s three `permissionDecision` values (`allow`, `deny`, `escalate`), only `allow`
 and `deny` are pre-emptive. An advisory hook has no pre-emptive path available: the first write

@@ -1,12 +1,14 @@
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
+  getHiveHookStatuses,
   guardHiveMcpInput,
   HIVE_CONTEXT7_MCP_TOOLS,
+  REQUIRED_HOOK_KEYS,
   registerGeneralHiveHooks,
 } from "../src/hooks.ts";
 import type { HookPaths } from "../src/types.ts";
@@ -20,10 +22,16 @@ interface FakeEvents {
 interface FakePi {
   readonly api: ExtensionAPI;
   readonly handlers: Map<string, StoredHandler>;
+  readonly messages: Array<{ readonly message: unknown; readonly options: unknown }>;
+  readonly notifications: string[];
+  readonly tools: unknown[];
 }
 
-function createFakePi(): FakePi {
+function createFakePi(persistedEntries: unknown[] = []): FakePi {
   const handlers = new Map<string, StoredHandler>();
+  const messages: Array<{ readonly message: unknown; readonly options: unknown }> = [];
+  const notifications: string[] = [];
+  const tools: unknown[] = [];
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
   const events: FakeEvents = {
     on(channel, handler) {
@@ -38,20 +46,35 @@ function createFakePi(): FakePi {
     on(event: string, handler: unknown) {
       handlers.set(event, handler as StoredHandler);
     },
-    registerTool: () => undefined,
+    registerTool: (tool: unknown) => tools.push(tool),
+    sendMessage: (message: unknown, options: unknown) => {
+      messages.push({ message, options });
+      const hasDeliveryMode = typeof options === "object" && options !== null && "deliverAs" in options;
+      if (!hasDeliveryMode && typeof message === "object" && message !== null && "customType" in message) {
+        persistedEntries.push({ type: "custom_message", customType: message.customType });
+      }
+    },
   } as unknown as ExtensionAPI;
-  return { api, handlers };
+  return { api, handlers, messages, notifications, tools };
 }
 
-function makeContext(directory: string, sessionId: string, systemPrompt = "base"): ExtensionContext {
+function makeContext(
+  directory: string,
+  sessionId: string,
+  systemPrompt = "base",
+  entries: unknown[] = [],
+  notifications: string[] = [],
+): ExtensionContext {
   return {
     cwd: directory,
     signal: undefined,
     sessionManager: {
       getSessionId: () => sessionId,
       getSessionFile: () => undefined,
+      getBranch: () => entries,
+      buildContextEntries: () => entries,
     } as unknown as ExtensionContext["sessionManager"],
-    ui: {} as ExtensionContext["ui"],
+    ui: { notify: (message: string) => notifications.push(message) } as unknown as ExtensionContext["ui"],
   } as unknown as ExtensionContext;
 }
 
@@ -73,7 +96,26 @@ function pathsFor(directory: string): HookPaths {
     postToolHub: join(directory, "missing-post-tool-hub.sh"),
     flowContext: join(directory, "missing-flow-context.sh"),
     flowPlanCapture: join(directory, "missing-plan-capture.sh"),
+    flowSessionContext: join(directory, "missing-flow-session-context.sh"),
+    ruleContext: join(directory, "missing-rule-context.sh"),
+    sessionHygieneReport: join(directory, "missing-session-hygiene-report.sh"),
   };
+}
+
+function makeAdvisoryHook(directory: string, name: string, context: string, extraSource = ""): string {
+  const hook = join(directory, name);
+  writeFileSync(hook, `#!/usr/bin/env node
+const fs = require("node:fs");
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  ${extraSource}
+  process.stdout.write(JSON.stringify({ additionalContext: ${JSON.stringify(context)} }));
+});
+`);
+  chmodSync(hook, 0o755);
+  return hook;
 }
 
 test("advisory hook failures warn once per session and script while context remains reusable", async () => {
@@ -228,6 +270,179 @@ test("general Hive hooks reject the generic MCP script tool in child processes",
   } finally {
     if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
     else process.env.PI_SUBAGENT_CHILD = previousChild;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("parent session advisories preserve freshness, order, native pending context and compact delivery", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-parent-advisories-"));
+  const flowLog = join(directory, "flow.log");
+  const flowSessionContext = makeAdvisoryHook(directory, "flow-session-context.sh", "flow", `fs.appendFileSync(${JSON.stringify(flowLog)}, JSON.parse(input).source + "\\n");`);
+  const sessionHygieneReport = join(directory, "session-hygiene-report.sh");
+  writeFileSync(sessionHygieneReport, `#!/usr/bin/env node
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => process.stdout.write(JSON.stringify({ additionalContext: "hygiene claude=" + (process.env.CLAUDECODE ?? "unset") + " repo=" + (process.env.HIVE_REPO ?? "unset") })));
+`);
+  chmodSync(sessionHygieneReport, 0o755);
+  const paths = { ...pathsFor(directory), flowSessionContext, sessionHygieneReport };
+  const entries: unknown[] = [];
+  const fake = createFakePi(entries);
+  const context = makeContext(directory, "session-a", "base", entries, fake.notifications);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  const previousParent = process.env.PI_SUBAGENT_PARENT_SESSION;
+  const previousClaude = process.env.CLAUDECODE;
+  const previousRepo = process.env.HIVE_REPO;
+  try {
+    delete process.env.PI_SUBAGENT_CHILD;
+    delete process.env.PI_SUBAGENT_PARENT_SESSION;
+    process.env.CLAUDECODE = "present";
+    process.env.HIVE_REPO = "/known/hive";
+    registerGeneralHiveHooks(fake.api, { paths });
+
+    await invoke(fake, "session_start", { type: "session_start", reason: "startup" }, context);
+    assert.equal(fake.messages.length, 1);
+    const initial = JSON.stringify(fake.messages[0]);
+    assert.ok(initial.indexOf("flow") < initial.indexOf("hygiene"));
+    assert.match(initial, /claude=unset/u);
+    assert.match(initial, /repo=\/known\/hive/u);
+    assert.match(initial, /triggerTurn.*false/u);
+    assert.doesNotMatch(initial, /deliverAs/u);
+    assert.match(readFileSync(flowLog, "utf8"), /^startup\n$/u);
+
+    await invoke(fake, "session_start", { type: "session_start", reason: "reload" }, context);
+    assert.equal(fake.messages.length, 1, "reload before the first model turn must not enqueue a second native nextTurn message");
+
+    const reloaded = createFakePi(entries);
+    const resumedContext = makeContext(directory, "session-a", "base", entries, reloaded.notifications);
+    registerGeneralHiveHooks(reloaded.api, { paths });
+    await invoke(reloaded, "session_start", { type: "session_start", reason: "startup" }, resumedContext);
+    assert.equal(reloaded.messages.length, 0, "a persisted hidden custom_message must suppress replay after restart");
+
+    entries.length = 0;
+    await invoke(fake, "session_start", { type: "session_start", reason: "new" }, context);
+    assert.equal(fake.messages.length, 2);
+    assert.match(readFileSync(flowLog, "utf8"), /startup\nclear\n/u);
+
+    await invoke(fake, "session_compact", { type: "session_compact", willRetry: true }, context);
+    assert.equal(fake.messages.length, 3);
+    assert.match(JSON.stringify(fake.messages[2]), /steer/u);
+    assert.match(readFileSync(flowLog, "utf8"), /compact\n/u);
+    await invoke(fake, "session_compact_failed", { type: "session_compact_failed" }, context);
+    assert.equal(fake.messages.length, 3);
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    if (previousParent === undefined) delete process.env.PI_SUBAGENT_PARENT_SESSION;
+    else process.env.PI_SUBAGENT_PARENT_SESSION = previousParent;
+    if (previousClaude === undefined) delete process.env.CLAUDECODE;
+    else process.env.CLAUDECODE = previousClaude;
+    if (previousRepo === undefined) delete process.env.HIVE_REPO;
+    else process.env.HIVE_REPO = previousRepo;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("parent-only advisory hooks do not run in PI child sessions and resumed startup stays quiet", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-parent-only-"));
+  const flowSessionContext = makeAdvisoryHook(directory, "flow-session-context.sh", "flow");
+  const sessionHygieneReport = makeAdvisoryHook(directory, "session-hygiene-report.sh", "hygiene");
+  const paths = { ...pathsFor(directory), flowSessionContext, sessionHygieneReport };
+  const entries: unknown[] = [{ type: "message", message: { role: "user", content: [] } }];
+  const fake = createFakePi();
+  const notifications: string[] = [];
+  const context = makeContext(directory, "child-session", "base", entries, notifications);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  try {
+    process.env.PI_SUBAGENT_CHILD = "1";
+    registerGeneralHiveHooks(fake.api, { paths });
+    await invoke(fake, "session_start", { type: "session_start", reason: "startup" }, context);
+    assert.equal(fake.messages.length, 0);
+    assert.equal(notifications.length, 0);
+
+    delete process.env.PI_SUBAGENT_CHILD;
+    const resumed = createFakePi();
+    registerGeneralHiveHooks(resumed.api, { paths });
+    await invoke(resumed, "session_start", { type: "session_start", reason: "startup" }, context);
+    assert.equal(resumed.messages.length, 0, "startup with active message history is a CLI resume");
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("hook readiness keeps five required hooks authoritative while exposing all eight statuses", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-hook-status-"));
+  const fake = createFakePi();
+  const paths = pathsFor(directory);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  try {
+    delete process.env.PI_SUBAGENT_CHILD;
+    for (const key of REQUIRED_HOOK_KEYS) {
+      writeFileSync(paths[key], "#!/bin/sh\nexit 0\n");
+      chmodSync(paths[key], 0o755);
+    }
+    registerGeneralHiveHooks(fake.api, { paths });
+    const statuses = getHiveHookStatuses(fake.api, paths);
+    assert.equal(Object.keys(statuses).length, 8);
+    assert.equal(statuses.flowSessionContext?.wired, true);
+    assert.equal(statuses.ruleContext?.wired, true);
+    assert.equal(statuses.sessionHygieneReport?.wired, true);
+    assert.equal(statuses.flowPlanCapture?.wired, false);
+    assert.equal(statuses.reviewerGuard?.wired, false);
+    const readiness = fake.tools.find((tool): tool is { readonly name: string; readonly execute: (...args: readonly unknown[]) => Promise<unknown> } => (
+      typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_hook_readiness" && "execute" in tool && typeof tool.execute === "function"
+    ));
+    assert.ok(readiness);
+    const execute = readiness.execute;
+    return execute({}).then((result) => {
+      assert.equal(typeof result, "object");
+      assert.equal(JSON.stringify(result).includes("flowSessionContext"), true);
+      assert.equal(JSON.stringify(result).includes("ready"), true);
+      assert.match(JSON.stringify(result), /"ready":true/u, "missing advisory scripts must not block required readiness");
+    });
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule context maps parent Write/Edit/Bash calls and serializes hidden steer messages", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-context-"));
+  const log = join(directory, "rule.log");
+  const ruleContext = join(directory, "rule-context.sh");
+  writeFileSync(ruleContext, `#!/usr/bin/env node
+const fs = require("node:fs");
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  const payload = JSON.parse(input);
+  fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(payload) + "\\n");
+  process.stdout.write(JSON.stringify({ additionalContext: payload.tool_name }));
+});
+`);
+  chmodSync(ruleContext, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleContext } });
+    await Promise.all([
+      invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context),
+      invoke(fake, "tool_call", { type: "tool_call", toolCallId: "edit-1", toolName: "edit", input: { file_path: "b.ts", old_string: "b", new_string: "c" } }, context),
+    ]);
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.deepEqual(payloads.map((payload) => payload.tool_name), ["Write", "Edit"]);
+    assert.equal(payloads[0]?.harness, "pi");
+    assert.deepEqual(payloads[0]?.tool_input, { file_path: "a.ts", content: "a" });
+    assert.equal(fake.messages.length, 2);
+    assert.equal(JSON.stringify(fake.messages[0]?.options).includes("steer"), true);
+    assert.match(JSON.stringify(fake.messages[0]?.message), /Write/u);
+    assert.match(JSON.stringify(fake.messages[1]?.message), /Edit/u);
+  } finally {
     rmSync(directory, { recursive: true, force: true });
   }
 });

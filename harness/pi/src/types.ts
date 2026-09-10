@@ -16,6 +16,8 @@ export interface HookInvocation {
   readonly payload: unknown;
   readonly mode: HookMode;
   readonly outputKind?: HookOutputKind;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly unsetEnv?: readonly string[];
   readonly signal?: AbortSignal;
   readonly timeoutMs?: number;
 }
@@ -53,6 +55,9 @@ export interface HookPaths {
   readonly postToolHub: string;
   readonly flowContext: string;
   readonly flowPlanCapture: string;
+  readonly flowSessionContext: string;
+  readonly ruleContext: string;
+  readonly sessionHygieneReport: string;
 }
 
 export interface HookReadiness {

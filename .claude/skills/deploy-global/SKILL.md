@@ -1,15 +1,16 @@
 ---
 name: deploy-global
-description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, and ~/.grok/agents/, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). The isolated PI scope deploys generated PI files and additive PI config under PI_CODING_AGENT_DIR with its own manifest and rollback backups. Use when ready to deploy config changes.
+description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, ~/.grok/agents/, and the PI agent root, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). PI is included by default/all/harness selections and can be selected with shared skills through PI_CODING_AGENT_DIR; PI and shared-skills manifests and rollback backups preserve user-owned state while other harnesses retain their legacy backup paths. Use when ready to deploy config changes.
 disable-model-invocation: true
 ---
 
-Deploys `global/` to `~/.claude/`, then the multi-harness layer (Codex + opencode, derived
+Deploys `global/` to `~/.claude/`, then the multi-harness layer (Codex + opencode + Grok + Pi, derived
 from the same sources under `harness/`) — via `scripts/deploy-global.sh`, a real, idempotent
 shell script. This skill is the interface over it; it does not restate the procedure.
 
 **User-initiated only.** Never invoke this skill or the script on your own — deploying to
-`~/.claude/`, `~/.codex/`, `~/.config/opencode/`, or `~/.grok/` is always the user's explicit call.
+`~/.claude/`, `~/.codex/`, `~/.config/opencode/`, `~/.grok/`, `~/.agents/`, or the PI root
+is always the user's explicit call.
 
 ## The `grok` scope
 
@@ -50,18 +51,14 @@ and commit first:
 python3 harness/build.py && git status --porcelain harness/ global/CLAUDE.md
 ```
 
-The PI source tree is generated alongside the other harness outputs. A PI-only dry run
-does not rebuild or write generated files; run the generator first when PI sources have
-changed.
-The script also rebuilds automatically under `--apply` (every scope, before deploying
-`global/CLAUDE.md`, so the deployed core is the fresh assembly) and warns if `harness/`
-or `global/CLAUDE.md` comes out dirty — but a clean, committed tree going in is the
-judgment call the script can't make for you. A hand-edited core aborts the rebuild (and
-with it the deploy) before anything is copied. **The dry-run diff for harness-derived
-categories (`agents-skills`, `codex-agents`, `opencode-agents`, etc.) is labeled
-`(pre-rebuild)`**: dry-run never rebuilds `harness/` (it never writes anything, full stop),
-so that diff reflects whatever `harness/` held on disk at run time, not what a fresh
-`build.py` would produce. Rebuild first if you need the diff to be current.
+The PI source tree is generated alongside the other harness outputs. All selected roots
+complete preflight before the first target write. A dry run remains read-only: it does not
+rebuild or write generated files, and it runs `harness/build.py --check` for generated-tree
+parity. Under `--apply`, the script runs `harness/build.py` exactly once before the diff,
+then preflights the selected roots before backups and copies. Apply does not run a second
+generated-tree check. A stale or hand-edited generated output aborts the selected apply
+before target writes; run the generator explicitly first when you want to inspect the
+generated diff in advance.
 
 ## Machine preflight — agent shell config (report-only, never mutates)
 
@@ -118,7 +115,7 @@ its own location regardless of cwd):
 |---|---|
 | `--dry-run` | Report what would change; write nothing. **Default.** |
 | `--apply` | Perform the deploy for real. |
-| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `pi` (→ `${PI_CODING_AGENT_DIR:-~/.pi/agent}`), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. `pi` is intentionally isolated and must be the only selected scope; it never creates or updates `~/.claude/.deploy-manifest`. The PI helper maintains `.hive-deploy-manifest.json`, `.hive-deploy-backups/`, and conflict-aware file/config merges under the PI root. |
+| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `pi` (→ `${PI_CODING_AGENT_DIR:-~/.pi/agent}`), `harness` (alias for `codex,opencode,grok,pi`), or `all` (default: every harness). Repeatable or comma-separated; mixed selections are allowed. `pi` includes the neutral shared-skills preflight and writes only PI plus shared skills, never other harness installations or the legacy Claude manifest. The neutral engine owns Pi/shared-skills manifests and backups; other selected harnesses retain their legacy writer and backup path. |
 | `--keep-orphans` | Under `--apply`, list manifest-confirmed orphans WITHOUT deleting them (the old default). By default orphan deletion is part of the apply flow: an orphan is by construction a source the user already removed from `global/`/`harness/`, deploys are user-initiated, and the full list prints in the report before deletion — so a separate confirmation flag re-asked what the repo's own history already answered. The deletion also purges the orphans' `settings.json`/`hooks.json` entries. Refused (not deleted) if the set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup; the refusal is the anomaly brake. Undeleted orphans (dry-run, kept, or refused) keep their manifest entries, so a later run can still remove them. |
 | `--force-delete-orphans` | Bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
 | `--delete-orphans` | Deprecated no-op alias, accepted for compatibility — deletion is now the `--apply` default. |
@@ -137,15 +134,17 @@ proxy with direct tools disabled and its two included selectors in `mcp.json`, a
 Existing PI config, credentials,
 sessions, trust state, unrelated providers, and unrelated packages remain in place.
 
-Install the five pinned native packages into `${PI_CODING_AGENT_DIR:-~/.pi/agent}/npm`
-before applying. The helper does not install packages: it fails closed unless
-`pi-subagents@0.67.0` is present with the reviewed package identity and both patch
-source files are present in the checkout. Apply atomically rewrites the two reviewed
-`pi-subagents` files only when their bytes match the recorded pristine hashes, records
-the patched hashes in the PI manifest, and re-applies the patch after a pristine same-
-version reinstall. A modified or symlinked package target is preserved as an error;
-the same backup and conflict-aware rollback journal covers package files as the rest
-of the PI tree.
+Install the five exact native packages into `${PI_CODING_AGENT_DIR:-~/.pi/agent}/npm`
+before applying: `pi-subagents@0.67.0`, `gentle-engram@0.1.12`,
+`pi-mcp-adapter@2.32.1`, `@juicesharp/rpiv-ask-user-question@2.9.0`, and
+`pi-web-access@0.29.0`. The helper never installs packages: it fails closed unless
+all five identities and versions are present, PI 0.85.1 is the selected runtime, and
+the reviewed patch metadata and target hashes match. Apply atomically rewrites the two
+reviewed `pi-subagents` files only when their bytes match the recorded pristine hashes,
+records the patched hashes in the PI manifest, and re-applies the patch after a pristine
+same-version reinstall. A modified or symlinked package target is preserved as an error;
+the same backup and conflict-aware rollback engine covers package files as the rest of
+the PI root.
 
 The PI route defaults to dry-run just like the other scopes:
 
@@ -167,15 +166,34 @@ python3 harness/pi/deploy.py rollback --apply \
   --backup-dir "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/.hive-deploy-backups/<stamp>"
 ```
 
+### PI deployment matrix
+
+| Surface | Copied or staged | Wired or registered | Failure policy |
+|---|---|---|---|
+| Core and roles | `harness/AGENTS.md`, generated PI roles, runtime, extensions, and canonical hook scripts | Pi agent discovery, extension entries, and `pi-subagents` role selection | Missing or stale generated output blocks the selected apply before target writes |
+| Managed settings | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five package pins, `forceTopLevelAsync`, closed Context7 `mcp`, and OpenAI web search | Invalid JSON or an ownership conflict blocks; unrelated user fields remain unchanged |
+| Packages and patch | Preinstalled exact packages plus the reviewed `pi-subagents` patch metadata | Package identities and before/after target hashes | No auto-install; missing pins, symlinks, third hashes, or patch mismatch block |
+| Shared skills | Generated universal skills in the neutral shared-skills target | Shared manifest and neutral backup/rollback records | Legacy conflicts are preserved and reported with hash/source-commit provenance |
+| Advisory hooks | Canonical scripts and PI adapter wiring | Parent-only flow, rule-context, and hygiene advisories | Missing advisory output warns and continues; blocking guards remain fail-closed |
+
+The neutral shared-skills manifest is `~/.agents/.hive-deploy-manifest.json` with adjacent
+private backups. The old path-only Claude manifest is read-only migration evidence: only
+matching current bytes or matching blobs at its recorded `source_commit` can be adopted.
+Unknown differences remain untouched and are reported as conflicts. Pi and shared-skills roots
+are backed up before their first neutral-engine write and have their own rollback records;
+other selected harnesses retain their legacy backup path. A partial apply reports the affected
+root instead of claiming a global transaction.
+
 ## Reading the output
 
 Narration streams to stderr as the script works; a structured report prints to stdout at
-the end — diff summary (new/modified/unchanged per category), backup path, orphans found
-(and whether they were deleted), per-scope deploy counts, the hook-merge outcome for
-`settings.json` and `~/.codex/hooks.json`, and a restore
-command. A `WARNING:` line means that one step degraded safely (e.g. a hook merge left
-`settings.json` untouched, or `harness/` came out dirty) — the rest of the deploy still ran;
-surface every `WARNING:` to the user, don't just report success.
+the end — preflight and generated-tree parity, diff summary (new/modified/unchanged per
+category), backup/rollback records, orphans found (and whether they were deleted),
+per-scope deploy counts, and the hook/config merge outcomes. A `WARNING:` line means that
+one advisory step degraded safely (for example, an advisory hook is unavailable) — the
+rest of the deploy still ran; surface every `WARNING:` to the user, don't just report
+success. A failed preflight or ownership conflict is a blocking error and occurs before
+the selected apply writes targets.
 
 ## What the script guarantees
 
@@ -187,13 +205,12 @@ surface every `WARNING:` to the user, don't just report success.
   (legacy of the pre-nested layout), removed under `--apply`; (3) **backup rotation** —
   keeps the 5 most recent `~/.claude` snapshots, removes older ones. `--keep-orphans` does
   NOT exempt classes 2-3.
-- Backs up `~/.claude` (tar, keeps 5 most recent) before any overwrite, when the `claude`
-  scope is active — and, when the `codex`/`opencode` scopes are, snapshots the two mutable
-  config files that live outside it into `harness-config-backup-<ts>.tar.gz` (same
-  directory, same 5-deep retention): `~/.codex/hooks.json` (written by the hooks merge,
-  and purged from by the orphan sweep) and `~/.config/opencode/opencode.json` (the
-  permission merge). Both restore commands print in the final report. The `grok` scope
-  needs none: it writes only symlinks, so removing them can never destroy a rule.
+- Uses the neutral deploy/rollback engine for the selected Pi and shared-skills roots. Each
+  of those roots is backed up before its first neutral-engine write, and the report names the
+  root-specific restore record. Shared skills use `~/.agents/.hive-deploy-manifest.json` and
+  adjacent private backups; the Pi root keeps its managed package/config journal. Other
+  selected harnesses retain their legacy writer and backup path. No engine snapshots or
+  rewrites an unselected root.
 - The `grok` scope skips (with a WARNING, never a dangling link) any rule not yet present
   under `~/.claude/rules/` — run the `claude` scope at least once first.
 - Never overwrites `~/.claude/settings.json`, `~/.codex/hooks.json`, or
@@ -206,9 +223,10 @@ surface every `WARNING:` to the user, don't just report success.
   and skips a `permission` set to a bare action string. Only `opencode.json` is merged —
   a comments-bearing `opencode.jsonc` is reported and left alone, since `jq` cannot
   round-trip comments.
-- A partial run (`--only claude`, `--only codex`, etc.) preserves the untouched scopes'
-  entries in `~/.claude/.deploy-manifest` rather than dropping them — so orphan detection
-  for scopes you didn't just run stays accurate on the next deploy.
+- A partial run preserves untouched scope ownership and manifest entries rather than
+  dropping them. Legacy path-only manifests are read-only migration evidence: only entries
+  whose bytes match current source or the recorded `source_commit` are adopted; unknown
+  differences remain in place and are reported as conflicts.
 - Refuses to run at all against a checkout that doesn't look like tricell-hive (missing
   `global/CLAUDE.md`, `global/rules`, or `global/agents`), and refuses an oversized orphan
   deletion (see `--keep-orphans` above) — both are the compensating controls for a
@@ -216,9 +234,9 @@ surface every `WARNING:` to the user, don't just report success.
 
 ## After a deploy
 
-Remind the user to restart Claude Code / Codex / opencode (or start a new session) to
-reload — a running session does not pick up the new files. **On a fresh machine (or any run
-touching the `codex`/`opencode` scopes for the first time)**, also point them at
+Remind the user to restart Claude Code / Codex / opencode / Grok / Pi (or start a new
+session) to reload — a running session does not pick up the new files. **On a fresh machine
+(or any run touching the `codex`/`opencode` scopes for the first time)**, also point them at
 `harness/{codex,opencode}/README.md`: the `*.snippet` config merges (plugin/hook
 registration in `opencode.jsonc` / `config.toml`) are one-time and manual — this script writes
 no part of those files except the opencode `permission` keys above, so hooks and rules can land

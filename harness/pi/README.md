@@ -29,6 +29,29 @@ the managed Pi state must live elsewhere. Deployment is additive and owns only
 the Hive files and package entries it declares; credentials, sessions, theme,
 model defaults, trust decisions, and unrelated packages remain operator-owned.
 
+`/deploy-global` includes Pi in its default, `all`, and `harness` selections, and
+comma-separated harness selectors may be mixed. `--only pi` is the isolated write
+boundary: it preflights Pi and the neutral shared-skills surface, writes only those
+targets, and leaves Claude, Codex, opencode, and Grok installations untouched.
+
+## Deployment surface
+
+The deployment contract separates bytes copied into the Pi root from the registrations
+that make them active, and from the policy used when a prerequisite is missing:
+
+| Surface | Copied or staged | Wired or registered | Failure policy |
+|---|---|---|---|
+| Core and roles | `harness/AGENTS.md` and the 25 generated files under `harness/pi/agents/` | Pi agent discovery and `pi-subagents` role selection | Missing, stale, or hand-edited generated output fails the selected preflight |
+| Runtime and extensions | `harness/pi/src/`, `extensions/`, and the canonical hook scripts | Managed extension/package entries under the PI root | Missing or non-executable required files block; advisory extension failures warn and continue |
+| Managed configuration | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five exact package entries, `forceTopLevelAsync`, the closed Context7 `mcp` proxy, and OpenAI web search | Invalid config, ownership conflict, or missing required pin blocks before a selected write; unrelated user fields remain intact |
+| Packages and patch | Preinstalled packages under `<PI root>/npm` plus the reviewed patch metadata in this checkout | Exact package identities, versions, and patch target hashes | No auto-install; a missing package, third hash, symlink, or patch mismatch blocks before writes |
+| Shared skills | Generated universal skills through the neutral shared-skills target | Shared manifest and neutral backup/rollback engine | Legacy conflicts remain untouched and are reported with hash/source-commit provenance |
+
+The neutral deploy engine records the Pi and shared-skills manifests and rollback backups. A
+legacy path-only manifest is read-only migration evidence: matching current bytes, or matching
+blobs at its recorded source commit, may be adopted; unknown differences are preserved as
+conflicts. Other selected harnesses retain their legacy writers and backup paths.
+
 ## What Pi receives
 
 `python3 harness/build.py` generates the Pi role files alongside the Codex,
@@ -112,6 +135,27 @@ also select `hive_reviewer_readiness`. The corresponding child extensions are
 reviewer set. `pi-subagents` 0.67.0 derives the required child-tool checks
 from the explicit `tools` selection.
 
+### Parent advisory hooks
+
+The parent extension delivers the three canonical advisory surfaces without changing
+the existing child guards:
+
+| Advisory | Parent trigger | Durable behavior | Failure policy |
+|---|---|---|---|
+| `flow-session-context` | Fresh context and successful compaction | Fresh flow context is restored once; compaction receives the condensed Flow recovery; pending initial context survives reload | Missing or malformed advisory output warns and continues |
+| `rule-context` | Before a tool invocation | Translates Pi `Write`/`Edit`/`Bash` inputs to the canonical JSON payload and keeps canonical per-session rule markers | Advisory only; it never replaces the blocking Bash/reviewer/plan/capture guards |
+| `session-hygiene-report` | Fresh parent context | Reuses the canonical report-only scan and its six-hour fingerprint cooldown | Missing report warns and continues; it never kills a process or blocks the parent |
+
+Freshness comes from active context entries, not from treating every startup as a new
+session. A resumed CLI context may therefore emit the fresh advisory when its active
+context is absent. The Pi adapter queues the initial advisory as a native hidden
+`custom_message` with `triggerTurn: false` and no `deliverAs`; native session entries
+carry it through an extension reload and deliver it once before model work. Pi 0.85.1's
+`SessionManager` does not create the session file until the first assistant response, so
+disk durability cannot be promised before that response. Children receive no new advisory
+injection. Advisory invocations use the canonical JSON stdin contract, serialized calls,
+and the bounded 10-second runner.
+
 Children run in the background through `pi-subagents`, which keeps the parent
 responsive and exposes lifecycle state. The default context is fresh, with
 Hive project/global instructions and shared skills explicitly inherited. Child
@@ -140,7 +184,7 @@ guard are the stable plan-safe surface.
 
 ### `pi-subagents` 0.67.0 compatibility patch
 
-Pi 0.67.0 needs the reviewed compatibility patch in
+`pi-subagents` 0.67.0 needs the reviewed compatibility patch in
 [`patches/pi-subagents-0.67.0.patch`](patches/pi-subagents-0.67.0.patch), with
 its exact metadata in
 [`patches/pi-subagents-0.67.0.json`](patches/pi-subagents-0.67.0.json). It
@@ -225,25 +269,33 @@ python3 global/hooks/flow-plan-capture/test_pi_capture.py
 The capture suite does not replace the Pi typecheck, package checks, or
 disposable runtime smoke.
 
-The PI-only deployment order is deliberate:
+The selected deployment order is deliberate:
 
-1. Install the exact `pi-subagents@0.67.0` package into the target PI root
-   before invoking the helper. For a non-default root, pass the same
-   `PI_CODING_AGENT_DIR` to Pi's package installer; begin with:
+1. Install all five exact packages into the target PI root before invoking the helper:
+   `pi-subagents@0.67.0`, `gentle-engram@0.1.12`, `pi-mcp-adapter@2.32.1`,
+   `@juicesharp/rpiv-ask-user-question@2.9.0`, and `pi-web-access@0.29.0`.
+   For a non-default root, pass the same `PI_CODING_AGENT_DIR` to Pi's package
+   manager; for example:
 
    ```sh
    PI_CODING_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}" \
      pi install npm:pi-subagents@0.67.0
    ```
 
-   Stage and audit the remaining pinned packages before activation. The helper
-   records all five pins but does not install packages or run OSV auditing.
+   Repeat the native package-manager operation for the other four pins and stage
+   the reviewed patch before activation. The helper never installs packages or
+   runs OSV auditing; it fails closed when any exact pin, package identity, or
+   patch hash is missing.
 2. Run the generator, native `shasum` preflight, type checks, package checks,
-   and the PI dry run. The dry run is `/deploy-global --only pi`; it refuses a
-   missing, wrong-version, or hash-mismatched `pi-subagents` tree.
-3. Review the dry-run report, then add `--apply` to copy PI files and hooks,
-   merge owned settings, apply the compatibility patch, and create a
-   conflict-aware backup under `PI_CODING_AGENT_DIR` (default `~/.pi/agent`).
+   and a read-only dry run. The dry run is `/deploy-global` with the desired
+   selectors (for example `--only pi`); it preflights every selected root and runs the
+   read-only generated-tree parity check without writing tracked files.
+3. Review the dry-run report, then add `--apply`. Apply runs the generated build
+   once before the diff, preflights all selected roots, and only then creates backups and
+   copies files, merges owned settings, and applies the compatibility patch. Apply does not
+   run a second generated-tree check.
+   `--only pi` writes PI plus shared skills; mixed selections write only their
+   named harnesses and shared metadata.
 4. Run the disposable parent/child/tool smoke after apply. A second dry run
    should report no file/config changes when the managed state is current.
 
@@ -267,8 +319,10 @@ helper apply, including pristine package files; it does not undo earlier native
 `pi install` calls. Before first installation, retain the original settings and
 package inventory. A full removal also removes only the newly installed packages
 with the native package manager, preserving unrelated packages and preferences.
-The deploy route remains isolated from Claude, Grok, opencode, and unrelated
-Codex configuration.
+The PI-only route remains isolated from Claude, Grok, opencode, and unrelated
+Codex configuration. The neutral engine covers the Pi and shared-skills roots; the default,
+`all`, `harness`, and mixed routes retain the legacy writer and backup path for other
+explicitly selected harness roots.
 
 Before considering the integration usable, run the disposable repository smoke
 for a Grok parent, an OpenAI-backed child, the structured question tool,

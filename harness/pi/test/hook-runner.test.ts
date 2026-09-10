@@ -182,6 +182,30 @@ test("runHook handles a pre-aborted signal without an uncaught stdin EPIPE", asy
   }
 });
 
+test("runHook applies per-invocation environment and removes requested variables", async () => {
+  const hook = makeHook(`#!/usr/bin/env node
+process.stdout.write(JSON.stringify({ additionalContext: JSON.stringify({ claude: process.env.CLAUDECODE ?? null, repo: process.env.HIVE_REPO ?? null }) }));
+`);
+  const previousClaude = process.env.CLAUDECODE;
+  try {
+    process.env.CLAUDECODE = "inherited";
+    const result = await runHook({
+      scriptPath: hook.path,
+      cwd: hook.directory,
+      payload: {},
+      mode: "advisory",
+      env: { HIVE_REPO: "/known/repo" },
+      unsetEnv: ["CLAUDECODE"],
+    });
+    assert.equal(result.outcome, "warning");
+    assert.equal(result.additionalContext, JSON.stringify({ claude: null, repo: "/known/repo" }));
+  } finally {
+    if (previousClaude === undefined) delete process.env.CLAUDECODE;
+    else process.env.CLAUDECODE = previousClaude;
+    rmSync(hook.directory, { recursive: true, force: true });
+  }
+});
+
 test("advisory failures warn while missing hooks block only in blocking mode", async () => {
   const advisory = makeHook(`#!/usr/bin/env node
 process.stderr.write("advisory failure");

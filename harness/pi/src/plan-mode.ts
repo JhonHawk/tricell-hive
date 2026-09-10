@@ -4,7 +4,15 @@ import { isAbsolute, resolve } from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext, ToolCallEvent } from "@earendil-works/pi-coding-agent";
 import { checkHookReadiness, runHook } from "./hook-runner.ts";
 import { createGitReadTool } from "./git-read.ts";
-import { defaultHookPaths, guardHiveMcpInput, type HiveHookExtensionOptions } from "./hooks.ts";
+import {
+  defaultHookPaths,
+  getHiveHookStatuses,
+  guardHiveMcpInput,
+  markHiveHookWired,
+  recordHiveHookError,
+  requiredHookPaths,
+  type HiveHookExtensionOptions,
+} from "./hooks.ts";
 import { attachChildLifecycle, defaultChildRegistry, reconcileActiveChildren } from "./child-registry.ts";
 import type { ChildRegistry, HookPaths, PlanCaptureResult, PlanModeState } from "./types.ts";
 
@@ -218,6 +226,7 @@ export async function readPlanFile(path: string, cwd: string): Promise<string> {
 }
 
 async function capturePlan(
+  pi: ExtensionAPI,
   paths: HookPaths,
   cwd: string,
   plan: string,
@@ -236,9 +245,17 @@ async function capturePlan(
     },
     runnerOptions,
   );
-  if (result.outcome === "block") throw new Error(result.reason ?? "Plan capture hook failed.");
+  if (result.outcome === "block") {
+    recordHiveHookError(pi, paths, "flowPlanCapture", result.reason ?? "Plan capture hook failed.");
+    throw new Error(result.reason ?? "Plan capture hook failed.");
+  }
+  recordHiveHookError(pi, paths, "flowPlanCapture", undefined);
   const captured = parseCaptureOutput(result.stdout);
-  if (!captured) throw new Error("Plan capture hook returned invalid or missing JSON.");
+  if (!captured) {
+    const reason = "Plan capture hook returned invalid or missing JSON.";
+    recordHiveHookError(pi, paths, "flowPlanCapture", reason);
+    throw new Error(reason);
+  }
   return captured;
 }
 
@@ -248,6 +265,7 @@ export interface HivePlanExtensionOptions extends HiveHookExtensionOptions {
 
 export function registerHivePlanMode(pi: ExtensionAPI, options: HivePlanExtensionOptions = {}): void {
   const paths = { ...defaultHookPaths(), ...options.paths };
+  markHiveHookWired(pi, paths, "flowPlanCapture");
   const childRegistry = options.childRegistry ?? defaultChildRegistry;
   let parentSession = process.env.PI_SUBAGENT_PARENT_SESSION ?? "";
   let inheritedChildPlan = false;
@@ -327,11 +345,14 @@ export function registerHivePlanMode(pi: ExtensionAPI, options: HivePlanExtensio
       ? `${String(Buffer.byteLength(state.candidate, "utf8"))} bytes${state.candidateSha256 ? ` (sha256: ${state.candidateSha256})` : ""}`
       : "none";
     const capture = state.capturePath ?? state.lastCaptureStatus ?? "none";
-    const readiness = checkHookReadiness(Object.values(paths));
+    const readiness = checkHookReadiness(requiredHookPaths(paths));
     const hooks = readiness.ready ? "ready" : `not_ready (${readiness.missing.join(", ")})`;
     const tools = [...pi.getActiveTools()].sort().join(", ") || "none";
+    const hookStatuses = Object.entries(getHiveHookStatuses(pi, paths))
+      .map(([name, hook]) => `${name}: installed=${String(hook.installed)} wired=${String(hook.wired)} error=${hook.error ?? "none"}`)
+      .join("\n");
     ctx.ui.notify(
-      `Hive plan status\nmode: ${mode}\ncandidate: ${candidate}\ncapture: ${capture}\nhooks: ${hooks}\ntools: ${tools}`,
+      `Hive plan status\nmode: ${mode}\ncandidate: ${candidate}\ncapture: ${capture}\nhooks: ${hooks}\nhook_status:\n${hookStatuses}\ntools: ${tools}`,
       "info",
     );
   };
@@ -375,7 +396,7 @@ export function registerHivePlanMode(pi: ExtensionAPI, options: HivePlanExtensio
 
       let capture: PlanCaptureResult;
       try {
-        capture = await capturePlan(paths, ctx.cwd, plan, ctx.signal, options.runnerOptions);
+        capture = await capturePlan(pi, paths, ctx.cwd, plan, ctx.signal, options.runnerOptions);
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
         return;

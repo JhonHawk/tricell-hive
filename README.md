@@ -24,10 +24,23 @@ The config assumes these are installed; nothing here installs them for you.
 | Codex | Engram Codex plugin (`engram@engram`, bundled hooks) | Plugin cache under `~/.codex/plugins/`. **Never run `engram setup` for Codex** — it sets `model_instructions_file`, which replaces Codex's base system prompt (`harness/codex/README.md`) |
 | Codex | Config additions (`project_doc_max_bytes = 65536`, `commit_attribution = ""`, subagent limits) | Merge `harness/codex/config.toml.snippet` into `~/.codex/config.toml`, once |
 | opencode | `opencode-rules@0.6.4` plugin (glob-conditional language rules; pinned, audited) + flow-skill gating | Merge `harness/opencode/opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`, once |
-| Pi | Pi 0.85.1, Node 22.19+, and the pinned Hive package set | `/deploy-global --only pi` previews the additive PI configuration; add `--apply` to activate it under `~/.pi/agent/` (override with `PI_CODING_AGENT_DIR`) |
+| Pi | Pi 0.85.1, Node 22.19+, the five exact Hive package pins, and the reviewed `pi-subagents` patch | The default/`all` and `harness` selections include PI; `--only pi` previews the PI + shared-skills selection without writing other harnesses. Install the pins before `--apply`; the helper never auto-installs. |
 
 Merge/verify commands and the reasoning live in `harness/README.md` (snippets are the one
 layer `/deploy-global` cannot automate). After any merge, start a fresh session.
+
+### Deployment selections
+
+`/deploy-global` defaults to all five harnesses: Claude Code, Codex, opencode, Grok, and
+Pi. `--only all` and `--only harness` use the same scope sets, and comma-separated
+selectors may be mixed. Every selected root is preflighted before the first target write.
+
+`--only pi` is the isolated write boundary: it preflights Pi and the neutral shared-skills
+surface, writes only the Pi root and shared skills, and leaves Claude, Codex, opencode, and
+Grok installations untouched. The shared deploy engine records source-commit and content
+hash provenance; a legacy path-only manifest is migration evidence only. Matching bytes (or
+matching bytes at its recorded source commit) can be adopted, while unknown differences are
+preserved and reported as conflicts.
 
 ### CLIs and MCPs the rules assume present
 
@@ -101,7 +114,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   └── docs/                        # magenta — technical-writer
 └── README.md                        # What Claude Code loads + the official doc backing each mechanism
 
-harness/                      # Multi-harness layer (Codex + opencode + Grok + Pi), deployed by /deploy-global step 13b
+harness/                      # Multi-harness layer (Codex + opencode + Grok + Pi), deployed by /deploy-global with selected scopes
 ├── README.md                        # The layer as a whole + the manual-merge snippets
 ├── AGENTS.md                        # Always-on cross-harness core (depth behind router skills)
 ├── build.py                         # Regenerates generated trees + injects router-skill references
@@ -115,7 +128,7 @@ harness/                      # Multi-harness layer (Codex + opencode + Grok + P
 .claude/skills/
 ├── manage-agents/                   # /manage-agents — validate
 ├── manage-rules/                    # /manage-rules — validate, create
-└── deploy-global/                   # /deploy-global — sync global/ → ~/.claude/
+└── deploy-global/                   # /deploy-global — sync global/ + selected harness targets
 
 _support/                            # Workspace material, not deployed
 ├── archive/                         # Dated historical snapshots (audits/, docs/)

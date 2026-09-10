@@ -17,6 +17,7 @@ import json
 import os
 import re
 import stat
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
@@ -69,6 +70,10 @@ MANAGED_CONFIGS = (
 MANIFEST_NAME = ".hive-deploy-manifest.json"
 BACKUP_DIR_NAME = ".hive-deploy-backups"
 MANIFEST_VERSION = 1
+SHARED_MANIFEST_NAME = ".hive-deploy-manifest.json"
+SHARED_SCOPE = "shared-skills"
+SHARED_SOURCE_ROOT = "harness/agents-skills"
+SHARED_TARGET_ROOT = "skills"
 
 
 class DeployError(RuntimeError):
@@ -339,11 +344,19 @@ def _package_root(pi_dir: Path) -> Path:
         raise DeployError(
             f"PI prerequisite missing: install {PATCH_PACKAGE}@{PATCH_VERSION} under {npm_root} before apply"
         )
-    package_root = npm_root / "node_modules" / PATCH_PACKAGE
-    if not package_root.is_dir():
-        raise DeployError(
-            f"PI prerequisite missing: install {PATCH_PACKAGE}@{PATCH_VERSION} under {npm_root} before apply"
-        )
+    package_root = _installed_package_root(pi_dir, PATCH_PACKAGE)
+    package_json = package_root / "package.json"
+    package = _read_json(package_json)
+    if package.get("name") != PATCH_PACKAGE or package.get("version") != PATCH_VERSION:
+        raise DeployError(f"Installed package must be {PATCH_PACKAGE}@{PATCH_VERSION}: {package_json}")
+    return package_root
+
+
+def _installed_package_root(pi_dir: Path, package_name: str) -> Path:
+    npm_root = pi_dir / "npm"
+    package_root = npm_root / "node_modules" / package_name
+    if package_root.is_symlink() or not package_root.is_dir():
+        raise DeployError(f"PI prerequisite missing: install {package_name} under {npm_root}")
     try:
         package_root.resolve().relative_to(npm_root.resolve())
     except ValueError as error:
@@ -351,10 +364,49 @@ def _package_root(pi_dir: Path) -> Path:
     package_json = package_root / "package.json"
     if package_json.is_symlink() or not package_json.is_file():
         raise DeployError(f"PI package manifest is not a regular file: {package_json}")
-    package = _read_json(package_json)
-    if package.get("name") != PATCH_PACKAGE or package.get("version") != PATCH_VERSION:
-        raise DeployError(f"Installed package must be {PATCH_PACKAGE}@{PATCH_VERSION}: {package_json}")
     return package_root
+
+
+def _validate_installed_packages(pi_dir: Path) -> None:
+    """Require every pinned package before a selected PI deployment."""
+
+    for pin in PACKAGE_PINS:
+        source = _package_source(pin)
+        if source is None:
+            raise DeployError(f"Invalid managed package pin: {pin}")
+        package_name = _package_name(pin)
+        package_root = _installed_package_root(pi_dir, package_name)
+        package_json = package_root / "package.json"
+        package = _read_json(package_json)
+        expected_version = source.rsplit("@", 1)[-1]
+        if package.get("name") != package_name or package.get("version") != expected_version:
+            raise DeployError(
+                f"Installed package must be {package_name}@{expected_version}: {package_json}"
+            )
+
+
+def _validate_enabled_settings(pi_dir: Path) -> None:
+    """Require all managed packages to be present and enabled in settings."""
+
+    settings_path = pi_dir / "settings.json"
+    if settings_path.is_symlink() or not settings_path.is_file():
+        raise DeployError(f"PI settings prerequisite missing: {settings_path}")
+    settings = _read_json(settings_path)
+    packages = settings.get("packages")
+    if not isinstance(packages, list):
+        raise DeployError(f"{settings_path}.packages must list all managed PI packages")
+    by_name: dict[str, list[Any]] = {}
+    for item in packages:
+        name = _package_name(item)
+        if name in PACKAGE_NAMES:
+            by_name.setdefault(name, []).append(item)
+    for pin in PACKAGE_PINS:
+        name = _package_name(pin)
+        values = by_name.get(name, [])
+        if len(values) != 1 or _package_source(values[0]) != pin:
+            raise DeployError(f"PI settings do not enable the exact managed pin: {pin}")
+        if isinstance(values[0], dict) and values[0].get("autoload") is False:
+            raise DeployError(f"PI settings disable the managed package: {pin}")
 
 
 def _package_patch_records(
@@ -427,6 +479,13 @@ def _safe_target(root: Path, relative: str) -> Path:
                 pass
         raise DeployError(f"Refusing target outside PI directory: {relative}") from error
     return candidate
+
+
+def _root_path(path: Path, label: str) -> Path:
+    expanded = path.expanduser()
+    if expanded.is_symlink():
+        raise DeployError(f"{label} root is a symlink; refusing to follow it: {expanded}")
+    return expanded.resolve()
 
 
 def _relative_source(repo_root: Path, path: Path) -> str:
@@ -560,12 +619,12 @@ def _source_files(repo_root: Path) -> list[tuple[str, Path]]:
     return result
 
 
-def _load_manifest(path: Path) -> dict[str, Any]:
+def _load_manifest(path: Path, scope: str = "pi") -> dict[str, Any]:
     if not path.exists():
         return {}
     value = _read_json(path)
-    if value.get("schemaVersion") != MANIFEST_VERSION or value.get("scope") != "pi":
-        raise DeployError(f"Unsupported or foreign PI manifest: {path}")
+    if value.get("schemaVersion") != MANIFEST_VERSION or value.get("scope") != scope:
+        raise DeployError(f"Unsupported or foreign {scope} manifest: {path}")
     if not isinstance(value.get("managedFiles", {}), dict) or not isinstance(value.get("managedConfig", {}), dict):
         raise DeployError(f"Malformed PI manifest: {path}")
     return value
@@ -596,16 +655,170 @@ def _source_records(
     return records, patch_data
 
 
-def _plan_files(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None:
-    desired, patch_data = _source_records(repo_root, pi_dir)
+def _shared_source_records(repo_root: Path) -> tuple[dict[str, dict[str, Any]], dict[str, bytes]]:
+    """Describe generated universal skills without claiming foreign files."""
+
+    source_root = repo_root / SHARED_SOURCE_ROOT
+    if not source_root.is_dir():
+        raise DeployError(f"Missing generated shared skills: {source_root}")
+    records: dict[str, dict[str, Any]] = {}
+    data_by_relative: dict[str, bytes] = {}
+    for source in sorted(source_root.rglob("*")):
+        if not source.is_file():
+            continue
+        if source.is_symlink():
+            raise DeployError(f"Shared skill source is a symlink: {source}")
+        relative_source = source.relative_to(source_root).as_posix()
+        relative = f"{SHARED_TARGET_ROOT}/{relative_source}"
+        if relative in records:
+            raise DeployError(f"Two shared skill sources map to the same target: {relative}")
+        data = source.read_bytes()
+        records[relative] = {
+            "sha256": _sha256_bytes(data),
+            "mode": _file_mode(source),
+            "source": f"{SHARED_SOURCE_ROOT}/{relative_source}",
+        }
+        data_by_relative[relative] = data
+    if not records:
+        raise DeployError(f"Generated shared skills tree is empty: {source_root}")
+    return records, data_by_relative
+
+
+def _legacy_source_blob(repo_root: Path, commit: str, relative_source: str) -> bytes | None:
+    """Read one exact generated blob from the legacy manifest's source commit."""
+
+    completed = subprocess.run(
+        ["git", "-C", str(repo_root), "show", f"{commit}:{relative_source}"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return completed.stdout if completed.returncode == 0 else None
+
+
+def _legacy_shared_prior(
+    repo_root: Path,
+    shared_root: Path,
+    legacy_manifest: Path,
+) -> dict[str, Any]:
+    """Adopt only legacy shared files whose bytes are provably generated."""
+
+    if legacy_manifest.is_symlink():
+        raise DeployError(f"Legacy shared manifest is a symlink; refusing to follow it: {legacy_manifest}")
+    if not legacy_manifest.exists():
+        return {"schemaVersion": MANIFEST_VERSION, "scope": SHARED_SCOPE, "managedFiles": {}, "managedConfig": {}}
+    if not legacy_manifest.is_file():
+        raise DeployError(f"Legacy shared manifest is not a regular file: {legacy_manifest}")
+    try:
+        lines = legacy_manifest.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as error:
+        raise DeployError(f"Cannot read legacy shared manifest: {legacy_manifest}: {error}") from error
+    commit = ""
+    for line in lines:
+        if line.startswith("# source_commit:"):
+            commit = line.split(":", 1)[1].strip()
+            break
+    if commit and not re.fullmatch(r"[0-9a-fA-F]{7,64}", commit):
+        raise DeployError(f"Legacy shared manifest has an invalid source_commit: {commit}")
+
+    records: dict[str, dict[str, Any]] = {}
+    for line in lines:
+        if not line.startswith("agents-skills/"):
+            continue
+        relative_source = line.removeprefix("agents-skills/")
+        if not relative_source or "\\" in relative_source or any(
+            part in {"", ".", ".."} for part in Path(relative_source).parts
+        ):
+            raise DeployError(f"Invalid legacy shared manifest entry: {line}")
+        relative = f"{SHARED_TARGET_ROOT}/{relative_source}"
+        target = _safe_target(shared_root, relative)
+        if not target.exists() and not target.is_symlink():
+            continue
+        if target.is_symlink() or target.is_dir() or not target.is_file():
+            raise DeployError(f"Legacy shared target is not a regular file: {target}")
+        current_source = repo_root / SHARED_SOURCE_ROOT / relative_source
+        candidates: list[bytes] = []
+        if current_source.is_file() and not current_source.is_symlink():
+            candidates.append(current_source.read_bytes())
+        if commit:
+            historical = _legacy_source_blob(repo_root, commit, f"{SHARED_SOURCE_ROOT}/{relative_source}")
+            if historical is not None:
+                candidates.append(historical)
+        target_bytes = target.read_bytes()
+        if not any(target_bytes == candidate for candidate in candidates):
+            raise DeployError(
+                f"Legacy shared target cannot be adopted safely; unknown edits: {target}"
+            )
+        records[relative] = {
+            "sha256": _sha256_bytes(target_bytes),
+            "mode": _file_mode(target),
+            "source": f"{SHARED_SOURCE_ROOT}/{relative_source}",
+        }
+    return {
+        "schemaVersion": MANIFEST_VERSION,
+        "scope": SHARED_SCOPE,
+        "managedFiles": records,
+        "managedConfig": {},
+    }
+
+
+def _shared_prior(
+    repo_root: Path,
+    shared_root: Path,
+    manifest_path: Path,
+    legacy_manifest: Path,
+) -> dict[str, Any]:
+    if manifest_path.is_symlink():
+        raise DeployError(f"Shared manifest is a symlink; refusing to follow or replace it: {manifest_path}")
+    if manifest_path.exists():
+        return _load_manifest(manifest_path, scope=SHARED_SCOPE)
+    return _legacy_shared_prior(repo_root, shared_root, legacy_manifest)
+
+
+def _plan_file_records(
+    repo_root: Path,
+    target_root: Path,
+    desired: dict[str, dict[str, Any]],
+    data_by_relative: dict[str, bytes],
+    prior: dict[str, Any],
+    plan: DeployPlan,
+    *,
+    strict_conflicts: bool = False,
+) -> None:
+    """Plan managed files for one owner, without mutating its target root."""
+
     previous = prior.get("managedFiles", {}) if prior else {}
     if not isinstance(previous, dict):
-        raise DeployError("Malformed managedFiles in PI manifest")
+        raise DeployError("Malformed managedFiles in manifest")
     plan.desired_files = desired
     plan.next_files = dict(desired)
 
+    def conflict(message: str, relative: str, previous_record: Any = None) -> None:
+        plan.file_actions.append(FileAction(relative, "conflict"))
+        plan.conflicts.append(message)
+        if strict_conflicts:
+            plan.errors.append(message)
+        if isinstance(previous_record, dict):
+            plan.next_files[relative] = previous_record
+        else:
+            plan.next_files.pop(relative, None)
+
+    def write_action(relative: str, record: dict[str, Any]) -> None:
+        data = data_by_relative.get(relative)
+        if data is None:
+            raise DeployError(f"Missing source data for managed file: {relative}")
+        plan.file_actions.append(
+            FileAction(
+                relative,
+                "write",
+                source=None if record.get("kind") == "package-patch" else _source_path(repo_root, record),
+                data=data,
+                mode=record["mode"],
+            )
+        )
+
     for relative, record in desired.items():
-        target = _safe_target(pi_dir, relative)
+        target = _safe_target(target_root, relative)
         previous_record = previous.get(relative)
         if record.get("kind") == "package-patch":
             if target.is_symlink() or target.is_dir() or not target.is_file():
@@ -619,78 +832,37 @@ def _plan_files(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: Depl
             if current_hash != record["sha256Before"]:
                 plan.errors.append(f"Package patch target changed from its reviewed preimage: {target}")
                 continue
-            plan.file_actions.append(
-                FileAction(
-                    relative,
-                    "write",
-                    data=patch_data[relative],
-                    mode=record["mode"],
-                )
-            )
+            write_action(relative, record)
             continue
         if target.is_symlink():
-            plan.file_actions.append(FileAction(relative, "conflict"))
-            plan.conflicts.append(f"{relative}: target is a symlink; preserved")
-            plan.next_files.pop(relative, None)
+            conflict(f"{relative}: target is a symlink; preserved", relative, previous_record)
             continue
         if target.exists() and target.is_dir():
             plan.errors.append(f"Target is a directory, expected a file: {target}")
             continue
         if not target.exists():
-            plan.file_actions.append(
-                FileAction(
-                    relative,
-                    "write",
-                    source=None if record.get("kind") == "package-patch" else _source_path(repo_root, record),
-                    data=patch_data.get(relative)
-                    if record.get("kind") == "package-patch"
-                    else _rendered_source(_source_path(repo_root, record), pi_dir),
-                    mode=record["mode"],
-                )
-            )
+            write_action(relative, record)
             continue
 
         current_hash = _sha256_file(target)
         if current_hash == record["sha256"]:
-            if _file_mode(target) == record["mode"]:
+            current_mode = _file_mode(target)
+            if current_mode == record["mode"]:
                 continue
             previous_mode = previous_record.get("mode") if isinstance(previous_record, dict) else None
-            if previous_mode is not None and _file_mode(target) != previous_mode:
-                plan.file_actions.append(FileAction(relative, "conflict"))
-                plan.conflicts.append(f"{relative}: target mode changed outside the last PI deploy; preserved")
-                plan.next_files[relative] = previous_record
-                continue
-            plan.file_actions.append(
-                FileAction(
+            if previous_mode is not None and current_mode != previous_mode:
+                conflict(
+                    f"{relative}: target mode changed outside the last deploy; preserved",
                     relative,
-                    "write",
-                    source=None if record.get("kind") == "package-patch" else _source_path(repo_root, record),
-                    data=patch_data.get(relative)
-                    if record.get("kind") == "package-patch"
-                    else _rendered_source(_source_path(repo_root, record), pi_dir),
-                    mode=record["mode"],
+                    previous_record,
                 )
-            )
+                continue
+            write_action(relative, record)
             continue
         if isinstance(previous_record, dict) and current_hash == previous_record.get("sha256"):
-            plan.file_actions.append(
-                FileAction(
-                    relative,
-                    "write",
-                    source=None if record.get("kind") == "package-patch" else _source_path(repo_root, record),
-                    data=patch_data.get(relative)
-                    if record.get("kind") == "package-patch"
-                    else _rendered_source(_source_path(repo_root, record), pi_dir),
-                    mode=record["mode"],
-                )
-            )
+            write_action(relative, record)
             continue
-        plan.file_actions.append(FileAction(relative, "conflict"))
-        plan.conflicts.append(f"{relative}: target changed outside the last PI deploy; preserved")
-        if not isinstance(previous_record, dict):
-            plan.next_files.pop(relative, None)
-        else:
-            plan.next_files[relative] = previous_record
+        conflict(f"{relative}: target changed outside the last deploy; preserved", relative, previous_record)
 
     for relative, previous_record in previous.items():
         if relative in desired:
@@ -698,20 +870,36 @@ def _plan_files(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: Depl
         if not isinstance(previous_record, dict):
             plan.errors.append(f"Malformed managed file entry: {relative}")
             continue
-        target = _safe_target(pi_dir, relative)
+        target = _safe_target(target_root, relative)
         if not target.exists() and not target.is_symlink():
             continue
         if target.is_symlink() or target.is_dir():
-            plan.conflicts.append(f"{relative}: orphan target is not a regular file; preserved")
+            message = f"{relative}: orphan target is not a regular file; preserved"
+            plan.conflicts.append(message)
             plan.next_files[relative] = previous_record
+            if strict_conflicts:
+                plan.errors.append(message)
             continue
         if _sha256_file(target) == previous_record.get("sha256"):
             plan.file_actions.append(FileAction(relative, "delete"))
             plan.next_files.pop(relative, None)
         else:
+            message = f"{relative}: orphan was modified after deployment; preserved"
             plan.file_actions.append(FileAction(relative, "conflict"))
-            plan.conflicts.append(f"{relative}: orphan was modified after deployment; preserved")
+            plan.conflicts.append(message)
             plan.next_files[relative] = previous_record
+            if strict_conflicts:
+                plan.errors.append(message)
+
+
+def _plan_files(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None:
+    desired, patch_data = _source_records(repo_root, pi_dir)
+    data_by_relative = dict(patch_data)
+    for relative, record in desired.items():
+        if record.get("kind") != "package-patch":
+            source = _source_path(repo_root, record)
+            data_by_relative[relative] = _rendered_source(source, pi_dir)
+    _plan_file_records(repo_root, pi_dir, desired, data_by_relative, prior, plan)
 
 
 def _source_path(repo_root: Path, record: dict[str, Any]) -> Path:
@@ -906,10 +1094,10 @@ def _plan_configs(pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None
             plan.config_actions.append(ConfigAction(relative, "unchanged", data=merged))
 
 
-def _manifest_for(plan: DeployPlan) -> dict[str, Any]:
+def _manifest_for(plan: DeployPlan, scope: str = "pi") -> dict[str, Any]:
     return {
         "schemaVersion": MANIFEST_VERSION,
-        "scope": "pi",
+        "scope": scope,
         "managedFiles": {key: plan.next_files[key] for key in sorted(plan.next_files)},
         "managedConfig": {key: plan.next_owned[key] for key in sorted(plan.next_owned)},
     }
@@ -934,17 +1122,24 @@ def _ensure_private_dir(path: Path) -> None:
     path.chmod(0o700)
 
 
-def _create_backup(pi_dir: Path, manifest_path: Path, relatives: Iterable[str]) -> Path:
-    backup_root = pi_dir / BACKUP_DIR_NAME
+def _create_backup(
+    root: Path,
+    manifest_path: Path,
+    relatives: Iterable[str],
+    *,
+    manifest_name: str = MANIFEST_NAME,
+    scope: str = "pi",
+) -> Path:
+    backup_root = root / BACKUP_DIR_NAME
     _ensure_private_dir(backup_root)
     backup_dir = _backup_stamp(backup_root)
     _ensure_private_dir(backup_dir)
     payload = backup_dir / "payload"
     _ensure_private_dir(payload)
     entries: dict[str, dict[str, Any]] = {}
-    unique_relatives = sorted(set(relatives) | {MANIFEST_NAME})
+    unique_relatives = sorted(set(relatives) | {manifest_name})
     for relative in unique_relatives:
-        target = manifest_path if relative == MANIFEST_NAME else _safe_target(pi_dir, relative)
+        target = manifest_path if relative == manifest_name else _safe_target(root, relative)
         existed = target.is_file()
         before_hash = _sha256_file(target) if existed else None
         before_mode = _file_mode(target) if existed else None
@@ -961,7 +1156,13 @@ def _create_backup(pi_dir: Path, manifest_path: Path, relatives: Iterable[str]) 
             entry["sha256Before"] = before_hash
             entry["mode"] = before_mode
         entries[relative] = entry
-    metadata = {"schemaVersion": 1, "scope": "pi", "files": entries}
+    metadata = {
+        "schemaVersion": 1,
+        "scope": scope,
+        "manifest": manifest_name,
+        "root": str(root.resolve()),
+        "files": entries,
+    }
     _atomic_write(backup_dir / "metadata.json", _json_bytes(metadata), 0o600)
     return backup_dir
 
@@ -1007,11 +1208,14 @@ def _assert_before_state(backup_dir: Path, relative: str, target: Path) -> None:
 
 
 def _apply_plan(
-    pi_dir: Path,
+    root: Path,
     manifest_path: Path,
     prior: dict[str, Any],
     plan: DeployPlan,
     manifest: dict[str, Any],
+    *,
+    manifest_name: str = MANIFEST_NAME,
+    scope: str = "pi",
 ) -> Path | None:
     changed_files = [action.relative for action in plan.file_actions if action.action in {"write", "delete"}]
     changed_configs = [action.relative for action in plan.config_actions if action.action == "write"]
@@ -1021,13 +1225,24 @@ def _apply_plan(
         return None
 
     backup_relatives = changed_files + changed_configs
-    backup_dir = _create_backup(pi_dir, manifest_path, backup_relatives)
+    if manifest_name == MANIFEST_NAME and scope == "pi":
+        # Preserve the small positional seam used by callers that inject a
+        # backup race in tests and by older local wrappers.
+        backup_dir = _create_backup(root, manifest_path, backup_relatives)
+    else:
+        backup_dir = _create_backup(
+            root,
+            manifest_path,
+            backup_relatives,
+            manifest_name=manifest_name,
+            scope=scope,
+        )
     try:
         for action in plan.file_actions:
             if action.action == "write":
                 if action.source is None and action.data is None:
                     raise DeployError(f"Missing source data for {action.relative}")
-                target = _safe_target(pi_dir, action.relative)
+                target = _safe_target(root, action.relative)
                 if target.is_symlink() or target.is_dir():
                     raise DeployError(f"Target changed before apply: {target}")
                 _assert_before_state(backup_dir, action.relative, target)
@@ -1039,7 +1254,7 @@ def _apply_plan(
                 _atomic_write(target, data, mode)
                 _journal_applied(backup_dir, action.relative, after_hash, mode)
             elif action.action == "delete":
-                target = _safe_target(pi_dir, action.relative)
+                target = _safe_target(root, action.relative)
                 if target.is_symlink() or target.is_dir():
                     raise DeployError(f"Target changed before apply: {target}")
                 _assert_before_state(backup_dir, action.relative, target)
@@ -1050,7 +1265,7 @@ def _apply_plan(
                 _journal_applied(backup_dir, action.relative, None, None)
         for action in plan.config_actions:
             if action.action == "write" and action.data is not None:
-                target = _safe_target(pi_dir, action.relative)
+                target = _safe_target(root, action.relative)
                 if target.is_symlink() or target.is_dir():
                     raise DeployError(f"Config target changed before apply: {target}")
                 _assert_before_state(backup_dir, action.relative, target)
@@ -1063,20 +1278,28 @@ def _apply_plan(
                 _journal_applied(backup_dir, action.relative, after_hash, mode)
         if manifest_changed:
             if manifest_path.is_symlink() or manifest_path.is_dir():
-                raise DeployError(f"PI manifest changed before apply: {manifest_path}")
-            _assert_before_state(backup_dir, MANIFEST_NAME, manifest_path)
-            _journal_pending(backup_dir, MANIFEST_NAME, _sha256_bytes(manifest_bytes), 0o600)
-            _assert_before_state(backup_dir, MANIFEST_NAME, manifest_path)
+                raise DeployError(f"{scope} manifest changed before apply: {manifest_path}")
+            _assert_before_state(backup_dir, manifest_name, manifest_path)
+            _journal_pending(backup_dir, manifest_name, _sha256_bytes(manifest_bytes), 0o600)
+            _assert_before_state(backup_dir, manifest_name, manifest_path)
             _atomic_write(manifest_path, manifest_bytes, 0o600)
-            _journal_applied(backup_dir, MANIFEST_NAME, _sha256_bytes(manifest_bytes), 0o600)
+            _journal_applied(backup_dir, manifest_name, _sha256_bytes(manifest_bytes), 0o600)
     except (DeployError, OSError) as error:
-        raise DeployError(f"PI apply failed after backup {backup_dir}: {error}") from error
+        failure_label = "PI" if scope == "pi" else scope
+        raise DeployError(f"{failure_label} apply failed after backup {backup_dir}: {error}") from error
     return backup_dir
 
 
-def _print_plan(plan: DeployPlan, pi_dir: Path, apply: bool, backup_dir: Path | None = None) -> None:
+def _print_plan(
+    plan: DeployPlan,
+    root: Path,
+    apply: bool,
+    backup_dir: Path | None = None,
+    *,
+    label: str = "PI deploy",
+) -> None:
     mode = "APPLY" if apply else "DRY-RUN"
-    print(f"PI deploy — {mode} — {pi_dir}")
+    print(f"{label} — {mode} — {root}")
     writes = sum(action.action == "write" for action in plan.file_actions)
     deletes = sum(action.action == "delete" for action in plan.file_actions)
     file_conflicts = sum(action.action == "conflict" for action in plan.file_actions)
@@ -1100,7 +1323,7 @@ def _print_plan(plan: DeployPlan, pi_dir: Path, apply: bool, backup_dir: Path | 
 
 def deploy(repo_root: Path, pi_dir: Path, apply: bool) -> int:
     repo_root = repo_root.resolve()
-    pi_dir = pi_dir.expanduser().resolve()
+    pi_dir = _root_path(pi_dir, "PI agent")
     manifest_path = pi_dir / MANIFEST_NAME
     if manifest_path.is_symlink():
         raise DeployError(f"PI manifest is a symlink; refusing to follow or replace it: {manifest_path}")
@@ -1119,16 +1342,93 @@ def deploy(repo_root: Path, pi_dir: Path, apply: bool) -> int:
     return 0
 
 
-def _rollback(backup_dir: Path, pi_dir: Path, apply: bool) -> int:
+def _pi_preflight(repo_root: Path, pi_dir: Path) -> int:
+    """Validate the installed PI and Hive package surface without writing."""
+
+    repo_root = repo_root.resolve()
+    pi_dir = _root_path(pi_dir, "PI agent")
+    _validate_installed_packages(pi_dir)
+    _validate_enabled_settings(pi_dir)
+    manifest_path = pi_dir / MANIFEST_NAME
+    if manifest_path.is_symlink():
+        raise DeployError(f"PI manifest is a symlink; refusing to follow or replace it: {manifest_path}")
+    prior = _load_manifest(manifest_path)
+    plan = DeployPlan()
+    _plan_files(repo_root, pi_dir, prior, plan)
+    _plan_configs(pi_dir, prior, plan)
+    if plan.errors:
+        _print_plan(plan, pi_dir, False, label="PI preflight")
+        return 2
+    print(f"PI preflight — OK — {pi_dir}")
+    return 0
+
+
+def deploy_shared(
+    repo_root: Path,
+    shared_root: Path,
+    legacy_manifest: Path,
+    apply: bool,
+) -> int:
+    """Deploy generated universal skills under their neutral owner."""
+
+    repo_root = repo_root.resolve()
+    shared_root = _root_path(shared_root, "Shared")
+    manifest_path = shared_root / SHARED_MANIFEST_NAME
+    prior = _shared_prior(repo_root, shared_root, manifest_path, legacy_manifest.expanduser())
+    desired, data_by_relative = _shared_source_records(repo_root)
+    plan = DeployPlan()
+    _plan_file_records(
+        repo_root,
+        shared_root,
+        desired,
+        data_by_relative,
+        prior,
+        plan,
+        strict_conflicts=True,
+    )
+    if plan.errors:
+        _print_plan(plan, shared_root, apply, label="shared skills preflight")
+        return 2
+    manifest = _manifest_for(plan, scope=SHARED_SCOPE)
+    backup_dir: Path | None = None
+    if apply:
+        backup_dir = _apply_plan(
+            shared_root,
+            manifest_path,
+            prior,
+            plan,
+            manifest,
+            manifest_name=SHARED_MANIFEST_NAME,
+            scope=SHARED_SCOPE,
+        )
+    _print_plan(plan, shared_root, apply, backup_dir, label="shared skills deploy")
+    return 0
+
+
+def _rollback(
+    backup_dir: Path,
+    root: Path,
+    apply: bool,
+    *,
+    manifest_name: str = MANIFEST_NAME,
+    label: str = "PI rollback",
+    scope: str = "pi",
+) -> int:
     backup_dir = backup_dir.expanduser()
     if backup_dir.is_symlink():
         raise DeployError(f"Backup directory is a symlink; refusing to follow it: {backup_dir}")
     backup_dir = backup_dir.resolve()
-    pi_dir = pi_dir.expanduser().resolve()
+    root = _root_path(root, "Rollback")
     metadata_path = backup_dir / "metadata.json"
     if metadata_path.is_symlink() or not metadata_path.is_file():
         raise DeployError(f"Backup metadata not found: {metadata_path}")
     metadata = _read_json(metadata_path)
+    if metadata.get("scope") != scope:
+        raise DeployError(f"Backup scope {metadata.get('scope')!r} does not match rollback scope {scope!r}")
+    if metadata.get("manifest") != manifest_name:
+        raise DeployError(f"Backup manifest identity does not match rollback target: {metadata_path}")
+    if metadata.get("root") != str(root):
+        raise DeployError(f"Backup root does not match rollback target: {root}")
     files = metadata.get("files")
     if not isinstance(files, dict):
         raise DeployError(f"Malformed backup metadata: {metadata_path}")
@@ -1141,7 +1441,7 @@ def _rollback(backup_dir: Path, pi_dir: Path, apply: bool) -> int:
     for relative, entry in files.items():
         if not isinstance(entry, dict):
             raise DeployError(f"Malformed backup entry: {relative}")
-        target = pi_dir / MANIFEST_NAME if relative == MANIFEST_NAME else _safe_target(pi_dir, relative)
+        target = root / manifest_name if relative == manifest_name else _safe_target(root, relative)
         if target.is_symlink() or target.is_dir():
             conflicts.append(f"{relative}: target is not a regular file; preserved")
             continue
@@ -1199,7 +1499,7 @@ def _rollback(backup_dir: Path, pi_dir: Path, apply: bool) -> int:
         if should_restore:
             restorable.append(relative)
 
-    print(f"PI rollback — {'APPLY' if apply else 'DRY-RUN'} — {backup_dir}")
+    print(f"{label} — {'APPLY' if apply else 'DRY-RUN'} — {backup_dir}")
     for conflict in conflicts:
         print(f"CONFLICT: {conflict}")
     for relative in restorable:
@@ -1210,7 +1510,7 @@ def _rollback(backup_dir: Path, pi_dir: Path, apply: bool) -> int:
         return 0
 
     for relative in restorable:
-        target = pi_dir / MANIFEST_NAME if relative == MANIFEST_NAME else _safe_target(pi_dir, relative)
+        target = root / manifest_name if relative == manifest_name else _safe_target(root, relative)
         entry = files[relative]
         if entry.get("existed"):
             source = _safe_target(payload, relative)
@@ -1235,23 +1535,73 @@ def _parser() -> argparse.ArgumentParser:
         command_parser.add_argument("--verbose", action="store_true")
     deploy_parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
     rollback_parser.add_argument("--backup-dir", required=True)
+
+    shared_parser = subparsers.add_parser("shared", help="manage the neutral universal-skills owner")
+    shared_subparsers = shared_parser.add_subparsers(dest="shared_command", required=True)
+    shared_deploy = shared_subparsers.add_parser("deploy", help="deploy generated universal skills")
+    shared_deploy.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
+    shared_deploy.add_argument("--shared-root", default="~/.agents")
+    shared_deploy.add_argument("--legacy-manifest", default="~/.claude/.deploy-manifest")
+    shared_deploy_mode = shared_deploy.add_mutually_exclusive_group()
+    shared_deploy_mode.add_argument("--apply", action="store_true", help="write changes")
+    shared_deploy_mode.add_argument("--dry-run", action="store_true", help="report changes without writing (default)")
+    shared_deploy.add_argument("--verbose", action="store_true")
+
+    shared_rollback = shared_subparsers.add_parser("rollback", help="restore one shared-skills backup")
+    shared_rollback.add_argument("--shared-root", default="~/.agents")
+    shared_rollback.add_argument("--backup-dir", required=True)
+    shared_rollback_mode = shared_rollback.add_mutually_exclusive_group()
+    shared_rollback_mode.add_argument("--apply", action="store_true", help="write changes")
+    shared_rollback_mode.add_argument("--dry-run", action="store_true", help="report changes without writing (default)")
+    shared_rollback.add_argument("--verbose", action="store_true")
+
+    preflight_parser = subparsers.add_parser("preflight", help="validate installed PI prerequisites without writing")
+    preflight_parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
+    preflight_parser.add_argument("--pi-dir", default=os.environ.get("PI_CODING_AGENT_DIR", "~/.pi/agent"))
+    preflight_parser.add_argument("--verbose", action="store_true")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     raw_args = list(sys.argv[1:] if argv is None else argv)
-    if raw_args and raw_args[0] not in {"deploy", "rollback", "-h", "--help"}:
+    if raw_args and raw_args[0] not in {"deploy", "rollback", "shared", "preflight", "-h", "--help"}:
         raw_args.insert(0, "deploy")
     args = parser.parse_args(raw_args)
     command = args.command or "deploy"
     apply = bool(getattr(args, "apply", False))
-    pi_dir = Path(getattr(args, "pi_dir", os.environ.get("PI_CODING_AGENT_DIR", "~/.pi/agent")))
     try:
         if command == "rollback":
-            return _rollback(Path(args.backup_dir), pi_dir, apply)
+            return _rollback(
+                Path(args.backup_dir),
+                Path(args.pi_dir),
+                apply,
+            )
+        if command == "preflight":
+            return _pi_preflight(Path(args.repo_root), Path(args.pi_dir))
+        if command == "shared":
+            shared_root = Path(args.shared_root)
+            if args.shared_command == "rollback":
+                return _rollback(
+                    Path(args.backup_dir),
+                    shared_root,
+                    apply,
+                    manifest_name=SHARED_MANIFEST_NAME,
+                    label="shared skills rollback",
+                    scope=SHARED_SCOPE,
+                )
+            return deploy_shared(
+                Path(args.repo_root),
+                shared_root,
+                Path(args.legacy_manifest),
+                apply,
+            )
         repo_root = Path(getattr(args, "repo_root", str(Path(__file__).resolve().parents[2])))
-        return deploy(repo_root, pi_dir, apply)
+        return deploy(
+            repo_root,
+            Path(getattr(args, "pi_dir", os.environ.get("PI_CODING_AGENT_DIR", "~/.pi/agent"))),
+            apply,
+        )
     except DeployError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2

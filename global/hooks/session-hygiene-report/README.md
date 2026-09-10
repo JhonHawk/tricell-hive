@@ -17,6 +17,13 @@ la siguiente sesión fresca recoge lo que quedó.
 
 - Corre solo en sesiones frescas (`startup`/`clear`); silencio en `resume`/`compact`.
   Sin input parseable (runner de Codex) → reporta por default.
+- En el adaptador de Pi, `startup` no se interpreta por sí solo como una sesión fresca:
+  la frescura se decide con las entradas de contexto activas. Un `resume` puede emitir el
+  reporte fresco si esas entradas ya no existen; el adaptador lo encola como un
+  `custom_message` nativo oculto (`triggerTurn: false`, sin `deliverAs`) y lo recarga una
+  sola vez antes del trabajo del modelo. Pi 0.85.1 crea el archivo de sesión hasta después
+  de la primera respuesta del asistente, así que no se promete durabilidad en disco antes
+  de esa respuesta. La advisory pertenece al padre; los hijos no reciben una inyección nueva.
 - **Detecta dos clases, ambas con antigüedad ≥ 2 h (`AGE_MIN=120`):**
   1. Procesos `agent-browser` / `Chrome for Testing` — reporta conteo y edad del
      más viejo, sugiere revisar `agent-browser session list` con el usuario y
@@ -69,6 +76,9 @@ la siguiente sesión fresca recoge lo que quedó.
 - **Solo-reporte, nunca mata nada.** Un proceso listado puede pertenecer a otra
   sesión activa en paralelo; el mensaje instruye ofrecer la limpieza al usuario y
   no ejecutarla sin su confirmación.
+- Si falta el script, el payload es inválido o el reporte advisory expira por timeout, Pi
+  emite una advertencia y continúa. La ausencia del reporte nunca bloquea al padre ni cambia
+  las guardas blocking existentes.
 - **Encabezado adaptativo:** el intro y las instrucciones finales se componen
   según las clases realmente presentes — un reporte solo-drift ya no afirma
   "processes likely leaked".
@@ -88,7 +98,9 @@ la siguiente sesión fresca recoge lo que quedó.
 `settings-config.json` en `~/.claude/settings.json` (paso 13). La variante Codex se
 despliega por el paso 13d (genérico sobre `global/hooks/*/codex-hooks.json`): copia a
 `~/.codex/hooks/` y merge en `~/.codex/hooks.json`; queda inerte hasta que Codex
-confirme el trust prompt del comando (`[hooks.state]` en `~/.codex/config.toml`).
+confirme el trust prompt del comando (`[hooks.state]` en `~/.codex/config.toml`). En Pi,
+el runtime padre adapta el mismo payload y ejecuta el script advisory bajo el runner
+acotado de 10 segundos; la copia del script forma parte del despliegue del root de Pi.
 
 ## Prueba manual
 

@@ -35,6 +35,16 @@ PATCH_FILES = (
     "harness/pi/patches/pi-subagents-0.67.0.patch",
     "harness/pi/patches/pi-subagents-0.67.0.json",
 )
+PI_PACKAGE_PINS = (
+    ("pi-subagents", "0.67.0"),
+    ("gentle-engram", "0.1.12"),
+    ("pi-mcp-adapter", "2.32.1"),
+    ("@juicesharp/rpiv-ask-user-question", "2.9.0"),
+    ("pi-web-access", "0.29.0"),
+)
+PI_PACKAGE_SOURCES = tuple(
+    f"npm:{name}@{version}" for name, version in PI_PACKAGE_PINS
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -54,6 +64,22 @@ def seed_installed_package(pi_dir: Path) -> None:
         destination = package_root / target["path"]
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
+
+
+def seed_full_pi_prerequisites(pi_dir: Path) -> None:
+    """Create the exact installed package/settings surface for preflight tests."""
+
+    seed_installed_package(pi_dir)
+    for package_name, version in PI_PACKAGE_PINS[1:]:
+        package_root = pi_dir / "npm/node_modules" / package_name
+        package_root.mkdir(parents=True, exist_ok=True)
+        (package_root / "package.json").write_text(
+            json.dumps({"name": package_name, "version": version}) + "\n",
+            encoding="utf-8",
+        )
+    settings = pi_dir / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text(json.dumps({"packages": list(PI_PACKAGE_SOURCES)}) + "\n", encoding="utf-8")
 
 
 def seed_minimal_source(source: Path) -> None:
@@ -89,6 +115,17 @@ def run_helper(
         ["python3", str(HELPER), *arguments],
         cwd=REPO_ROOT,
         check=check,
+        text=True,
+        capture_output=True,
+    )
+
+
+def run_global_script(*arguments: str, home: Path, pi_dir: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [str(SCRIPT), *arguments],
+        cwd=REPO_ROOT,
+        env={**os.environ, "HOME": str(home), "PI_CODING_AGENT_DIR": str(pi_dir)},
+        check=False,
         text=True,
         capture_output=True,
     )
@@ -130,7 +167,7 @@ class PiDeployTests(unittest.TestCase):
             self.assertEqual(global_manifest.read_text(encoding="utf-8"), "global-owned\n")
             self.assertFalse(pi_dir.exists())
 
-    def test_pi_scope_rejects_mixed_harnesses(self) -> None:
+    def test_pi_scope_accepts_mixed_selection_but_fails_preflight_before_writes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp) / "home"
             home.mkdir()
@@ -142,9 +179,263 @@ class PiDeployTests(unittest.TestCase):
                 capture_output=True,
             )
 
-            self.assertEqual(result.returncode, 1)
-            self.assertIn("isolated", result.stderr)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("prerequisite missing", result.stderr)
+            self.assertNotIn("isolated", result.stderr)
             self.assertFalse((home / ".claude").exists())
+
+    def test_pi_preflight_rejects_missing_or_incompatible_package_before_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            home = root / "home"
+            home.mkdir()
+            pi_dir = root / "pi-agent"
+            result = run_global_script("--only", "pi", "--apply", home=home, pi_dir=pi_dir)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("prerequisite missing", result.stderr)
+            self.assertFalse((home / ".agents").exists())
+            self.assertFalse((home / ".claude").exists())
+
+            seed_full_pi_prerequisites(pi_dir)
+            bad_package = pi_dir / "npm/node_modules/gentle-engram/package.json"
+            bad_package.write_text(json.dumps({"name": "gentle-engram", "version": "9.9.9"}) + "\n", encoding="utf-8")
+            result = run_global_script("--only", "pi", "--apply", home=home, pi_dir=pi_dir)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("must be gentle-engram@0.1.12", result.stderr)
+            self.assertFalse((home / ".agents/.hive-deploy-manifest.json").exists())
+            self.assertFalse((pi_dir / ".hive-deploy-backups").exists())
+
+    def test_pi_preflight_accepts_exact_installed_pins_and_enabled_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            seed_full_pi_prerequisites(pi_dir)
+            result = run_helper(
+                "preflight", "--repo-root", str(FIXTURE_ROOT),
+                "--pi-dir", str(pi_dir),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("PI preflight", result.stdout)
+            self.assertFalse((pi_dir / ".hive-deploy-manifest.json").exists())
+            self.assertFalse((pi_dir / ".hive-deploy-backups").exists())
+
+    def test_mixed_preflight_rejects_selected_codex_symlink_before_pi_or_shared_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            home = root / "home"
+            codex = home / ".codex"
+            codex.mkdir(parents=True)
+            outside = root / "operator-owned.md"
+            outside.write_text("operator\n", encoding="utf-8")
+            (codex / "AGENTS.md").symlink_to(outside)
+
+            result = run_global_script(
+                "--only", "pi,codex", "--apply",
+                home=home, pi_dir=root / "pi-agent",
+            )
+
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("Codex AGENTS.md target is a symlink", result.stderr)
+            self.assertFalse((home / ".agents").exists())
+            self.assertFalse((root / "pi-agent").exists())
+            self.assertEqual(outside.read_text(encoding="utf-8"), "operator\n")
+
+    def test_pi_only_apply_writes_pi_and_neutral_shared_owner_preserving_legacy_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            seed_minimal_source(source)
+            shared_source = source / "harness/agents-skills/demo/SKILL.md"
+            shared_source.parent.mkdir(parents=True)
+            shared_source.write_text("generated\n", encoding="utf-8")
+            home = root / "home"
+            claude = home / ".claude"
+            claude.mkdir(parents=True)
+            legacy = claude / ".deploy-manifest"
+            legacy_bytes = b"# deploy-global manifest\n# deployed_at: fixture\n"
+            legacy.write_bytes(legacy_bytes)
+            pi_dir = root / "pi-agent"
+            deploy_module = load_deploy_module()
+            seed_installed_package(pi_dir)
+            self.assertEqual(deploy_module.deploy(source, pi_dir, True), 0)
+            self.assertEqual(
+                deploy_module.deploy_shared(
+                    source, home / ".agents", legacy, True
+                ),
+                0,
+            )
+            self.assertEqual(legacy.read_bytes(), legacy_bytes)
+            self.assertTrue((pi_dir / "AGENTS.md").exists())
+            neutral_manifest = home / ".agents/.hive-deploy-manifest.json"
+            self.assertTrue(neutral_manifest.exists())
+            self.assertEqual(json.loads(neutral_manifest.read_text(encoding="utf-8"))["scope"], "shared-skills")
+            self.assertTrue((home / ".agents/skills/demo/SKILL.md").exists())
+            self.assertFalse((home / ".codex").exists())
+            self.assertFalse((home / ".config").exists())
+
+    def test_shared_owner_preserves_foreign_files_and_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            skill = source / "harness/agents-skills/demo/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("generated\n", encoding="utf-8")
+            shared_root = root / "home/.agents"
+            foreign = shared_root / "skills/foreign/SKILL.md"
+            foreign.parent.mkdir(parents=True)
+            foreign.write_text("operator\n", encoding="utf-8")
+            arguments = [
+                "shared", "deploy", "--repo-root", str(source),
+                "--shared-root", str(shared_root),
+                "--legacy-manifest", str(root / "home/.claude/.deploy-manifest"),
+                "--apply",
+            ]
+
+            first = run_helper(*arguments)
+            self.assertIn("shared skills deploy", first.stdout)
+            backups = sorted((shared_root / ".hive-deploy-backups").iterdir())
+            self.assertEqual((shared_root / "skills/demo/SKILL.md").read_text(encoding="utf-8"), "generated\n")
+            self.assertEqual(foreign.read_text(encoding="utf-8"), "operator\n")
+            manifest = json.loads((shared_root / ".hive-deploy-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["scope"], "shared-skills")
+            self.assertIn("skills/demo/SKILL.md", manifest["managedFiles"])
+
+            second = run_helper(*arguments)
+            self.assertIn("files: 0 write, 0 delete, 0 conflict", second.stdout)
+            self.assertEqual(backups, sorted((shared_root / ".hive-deploy-backups").iterdir()))
+
+    def test_shared_rollback_restores_only_the_shared_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            skill = source / "harness/agents-skills/demo/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("generated\n", encoding="utf-8")
+            shared_root = root / "home/.agents"
+            foreign = shared_root / "skills/foreign/SKILL.md"
+            foreign.parent.mkdir(parents=True)
+            foreign.write_text("operator\n", encoding="utf-8")
+            arguments = [
+                "shared", "deploy", "--repo-root", str(source),
+                "--shared-root", str(shared_root),
+                "--legacy-manifest", str(root / "home/.claude/.deploy-manifest"),
+                "--apply",
+            ]
+            self.assertEqual(run_helper(*arguments).returncode, 0)
+            backup = sorted((shared_root / ".hive-deploy-backups").iterdir())[-1]
+            rollback = run_helper(
+                "shared", "rollback", "--shared-root", str(shared_root),
+                "--backup-dir", str(backup), "--apply",
+            )
+            self.assertEqual(rollback.returncode, 0)
+            self.assertFalse((shared_root / "skills/demo/SKILL.md").exists())
+            self.assertFalse((shared_root / ".hive-deploy-manifest.json").exists())
+            self.assertEqual(foreign.read_text(encoding="utf-8"), "operator\n")
+
+    def test_shared_legacy_adoption_uses_recorded_source_commit_without_mutating_legacy_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            skill = source / "harness/agents-skills/demo/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("old generated\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=source, check=True)
+            subprocess.run(["git", "config", "user.name", "Hive Test"], cwd=source, check=True)
+            subprocess.run(["git", "add", "."], cwd=source, check=True)
+            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=source, check=True)
+            commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
+            skill.write_text("new generated\n", encoding="utf-8")
+            shared_root = root / "home/.agents"
+            target = shared_root / "skills/demo/SKILL.md"
+            target.parent.mkdir(parents=True)
+            target.write_text("old generated\n", encoding="utf-8")
+            legacy = root / "home/.claude/.deploy-manifest"
+            legacy.parent.mkdir(parents=True)
+            legacy_bytes = f"# source_commit: {commit}\nagents-skills/demo/SKILL.md\n".encode()
+            legacy.write_bytes(legacy_bytes)
+
+            result = run_helper(
+                "shared", "deploy", "--repo-root", str(source),
+                "--shared-root", str(shared_root),
+                "--legacy-manifest", str(legacy), "--apply",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(target.read_text(encoding="utf-8"), "new generated\n")
+            self.assertEqual(legacy.read_bytes(), legacy_bytes)
+            self.assertTrue((shared_root / ".hive-deploy-manifest.json").exists())
+
+    def test_shared_unknown_edit_and_symlink_root_fail_before_any_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            skill = source / "harness/agents-skills/demo/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("generated\n", encoding="utf-8")
+            shared_root = root / "home/.agents"
+            target = shared_root / "skills/demo/SKILL.md"
+            target.parent.mkdir(parents=True)
+            target.write_text("operator edit\n", encoding="utf-8")
+            legacy = root / "home/.claude/.deploy-manifest"
+            legacy.parent.mkdir(parents=True)
+            legacy.write_text("# source_commit: deadbeef\nagents-skills/demo/SKILL.md\n", encoding="utf-8")
+            result = run_helper(
+                "shared", "deploy", "--repo-root", str(source),
+                "--shared-root", str(shared_root),
+                "--legacy-manifest", str(legacy), "--apply", check=False,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("unknown edits", result.stderr)
+            self.assertEqual(target.read_text(encoding="utf-8"), "operator edit\n")
+            self.assertFalse((shared_root / ".hive-deploy-manifest.json").exists())
+            self.assertFalse((shared_root / ".hive-deploy-backups").exists())
+
+            link_parent = root / "link-parent"
+            link_parent.mkdir()
+            link = root / "linked-agents"
+            link.symlink_to(shared_root, target_is_directory=True)
+            result = run_helper(
+                "shared", "deploy", "--repo-root", str(source),
+                "--shared-root", str(link),
+                "--legacy-manifest", str(root / "missing-manifest"), check=False,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("root is a symlink", result.stderr)
+
+    def test_rollback_rejects_backup_from_another_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            seed_minimal_source(source)
+            shared_skill = source / "harness/agents-skills/demo/SKILL.md"
+            shared_skill.parent.mkdir(parents=True)
+            shared_skill.write_text("generated\n", encoding="utf-8")
+            pi_dir = root / "pi-agent"
+            seed_installed_package(pi_dir)
+            self.assertEqual(run_helper("deploy", "--repo-root", str(source), "--pi-dir", str(pi_dir), "--apply").returncode, 0)
+            pi_backup = sorted((pi_dir / ".hive-deploy-backups").iterdir())[-1]
+            shared_root = root / "home/.agents"
+            shared_result = run_helper(
+                "shared", "deploy", "--repo-root", str(source),
+                "--shared-root", str(shared_root),
+                "--legacy-manifest", str(root / "home/.claude/.deploy-manifest"),
+                "--apply",
+            )
+            self.assertEqual(shared_result.returncode, 0)
+            shared_backup = sorted((shared_root / ".hive-deploy-backups").iterdir())[-1]
+
+            wrong_shared = run_helper(
+                "shared", "rollback", "--shared-root", str(shared_root),
+                "--backup-dir", str(pi_backup), "--apply", check=False,
+            )
+            self.assertEqual(wrong_shared.returncode, 2)
+            self.assertIn("Backup scope", wrong_shared.stderr)
+            wrong_pi = run_helper(
+                "rollback", "--pi-dir", str(pi_dir),
+                "--backup-dir", str(shared_backup), "--apply", check=False,
+            )
+            self.assertEqual(wrong_pi.returncode, 2)
+            self.assertIn("Backup scope", wrong_pi.stderr)
 
     def test_missing_required_source_fails_before_any_target_write(self) -> None:
         missing_paths = (

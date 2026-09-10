@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext, ToolCallEvent } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { defaultHookPaths, type HiveHookExtensionOptions } from "./hooks.ts";
+import { defaultHookPaths, markHiveHookWired, recordHiveHookError, type HiveHookExtensionOptions } from "./hooks.ts";
 import { checkHookReadiness, runHook } from "./hook-runner.ts";
 
 const readinessSchema = Type.Object({});
@@ -41,6 +41,7 @@ function payload(ctx: ExtensionContext, event: ToolCallEvent): Record<string, un
 
 export function registerHiveReviewerGuard(pi: ExtensionAPI, options: HiveHookExtensionOptions = {}): void {
   const paths = { ...defaultHookPaths(), ...options.paths };
+  markHiveHookWired(pi, paths, "reviewerGuard");
   pi.registerTool(createReviewerReadinessTool(paths.reviewerGuard));
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName.toLowerCase() !== "bash") return undefined;
@@ -55,11 +56,13 @@ export function registerHiveReviewerGuard(pi: ExtensionAPI, options: HiveHookExt
       options.runnerOptions,
     );
     if (result.outcome === "block") {
+      recordHiveHookError(pi, paths, "reviewerGuard", result.reason ?? "Reviewer guard blocked this command.");
       return {
         block: true,
         reason: result.reason ?? "Reviewer guard blocked this command.",
       };
     }
+    recordHiveHookError(pi, paths, "reviewerGuard", undefined);
     return undefined;
   });
 }

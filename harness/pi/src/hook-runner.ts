@@ -113,9 +113,15 @@ export function runHook(invocation: HookInvocation, options: HookRunnerOptions =
   return new Promise<HookResult>((resolve) => {
     let child: ChildProcessWithoutNullStreams;
     try {
+      const env: NodeJS.ProcessEnv = {
+        ...process.env,
+        ...options.env,
+        ...invocation.env,
+      };
+      for (const name of invocation.unsetEnv ?? []) delete env[name];
       child = spawnProcess(invocation.scriptPath, invocation.args ?? [], {
         cwd: invocation.cwd,
-        env: { ...process.env, ...options.env },
+        env,
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
         detached: process.platform !== "win32",

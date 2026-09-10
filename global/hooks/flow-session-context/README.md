@@ -1,6 +1,10 @@
 # flow-session-context
 
-SessionStart context for the flow pack v2, delivered across all three harnesses. Merges what were two separate SessionStart hooks (the old `session-hygiene-context`) plus the flow-pack process map into ONE injection. On a **fresh context** (`startup|clear`) it emits two independent, self-gating sections; on **`compact`** it emits a third, narrower payload instead.
+SessionStart context for the flow pack v2, delivered across Claude Code, Codex, and
+opencode, with a Pi parent-extension adapter. It merges what were two separate SessionStart
+hooks (the old `session-hygiene-context`) plus the flow-pack process map into ONE injection.
+On a **fresh context** (`startup|clear`) it emits two independent, self-gating sections; on
+**`compact`** it emits a third, narrower payload instead.
 
 1. **Flow protocol** — injected ONLY inside a flow workspace (a `_support/PROJECT.md` ledger at or above cwd). A static `<flow-process-protocol>` block: the intent→playbook map (idea → spec → plan → execute → deploy/QA) so the model can work the matching playbook, or OFFER `/flow-build`, when user intent matches. It never forces a stage — `/flow-build` stays user-gated (global CLAUDE.md > Skill Auto-invocation).
 2. **Git hygiene** — injected in ANY git repo (not flow-gated). Deterministic backstop for the end-of-work hygiene ritual (`git-mechanics.md > End-of-work hygiene`): most closes are silent, so the ceremony runs at the next fresh seam. Injects pending-hygiene FACTS — local branches fully merged into the integration target, and branches whose upstream is `[gone]` — capped at 8 each, silent when none. State only, never routing instructions.
@@ -23,12 +27,39 @@ The compact payload is **deliberately not the startup payload**. It is recovery,
 | Claude Code | `settings.json` hooks block (SessionStart, no matcher; script filters `startup\|clear\|compact`) | `flow-session-context.sh` → `~/.claude/hooks/` |
 | Codex | `~/.codex/hooks.json` (`SessionStart` matcher `startup\|clear\|compact`) | `flow-session-context.sh` → `~/.codex/hooks/` |
 | opencode | auto-loaded local plugin (`experimental.chat.system.transform`, once per session) | `flow-session-context.ts` → `~/.config/opencode/plugins/` |
+| Pi | Hive parent extension maps fresh/compact lifecycle events to the same advisory sections and owns `/hive-plan` | `harness/pi/src/` + generated Pi extensions |
 
 One settings entry, not two: `deploy-global`'s merge keys on the inner `.command`, so both topologies merge cleanly — branching inside the script keeps the ledger walk and the git section on a single path. Whether Codex emits a `compact` source is **unverified**; adding it to the matcher is inert if it never does.
 
 **opencode has no post-compaction recovery.** Its plugin gates on a per-session `Set`, and opencode exposes no compaction signal to `experimental.chat.system.transform`. Inverting the gate to presence-based (re-inject whenever the `<flow-process-protocol>` marker is absent from the system array) would cover it organically, but only if opencode reliably passes transformed system arrays back through — unverified, and re-injecting on every step is the failure mode if it does not. Left as-is deliberately; revisit with a verified answer.
 
-The `.sh` is shared by Claude Code and Codex (identical stdin JSON schema for SessionStart). The `.ts` reimplements sections 1–2 for opencode, gated by a per-session `Set` plus a `<flow-process-protocol>` content-marker guard against double injection.
+The `.sh` is shared by Claude Code and Codex (identical stdin JSON schema for SessionStart). The `.ts` reimplements sections 1–2 for opencode, gated by a per-session `Set` plus a `<flow-process-protocol>` content-marker guard against double injection. Pi uses its parent extension as the harness adapter; it does not claim an upstream Pi-native plan mode.
+
+The protocol line that says planning intent uses the harness's native plan mechanism is an
+abstraction over this adapter boundary. Claude Code, Codex, and the other harnesses use their
+own plan surfaces; Pi's implementation is Hive's `/hive-plan enter|approve|cancel|status`
+extension, which captures the approved plan through the canonical hook. The canonical shell
+script stays harness-neutral and does not grow Pi-specific branches.
+
+## Parent-only freshness and recovery
+
+The three advisory surfaces are delivered to the parent session only: Flow context on a fresh
+context or successful compaction, `rule-context` before a tool invocation, and
+`session-hygiene-report` on a fresh context under its fingerprint cooldown. Freshness is
+derived from active context entries; a startup event alone is not proof of a new context. A
+resumed CLI context may re-emit the fresh advisory when its active context is absent. In Pi,
+the adapter queues it as a native hidden `custom_message` with `triggerTurn: false` and no
+`deliverAs`; native session entries carry it through an extension reload and deliver it once
+before model work. Pi 0.85.1 creates the session file only after the first assistant
+response, so disk durability is not promised before that response. Children receive no new
+advisory injection, and missing advisory output warns and continues. The existing blocking
+guards keep their original fail-closed behavior.
+
+| Advisory surface | Copied or staged | Wired or registered | Failure policy |
+|---|---|---|---|
+| Flow fresh/compact | Canonical `flow-session-context.sh` plus the Pi adapter source | SessionStart/compact channels for the native harnesses; Pi parent lifecycle events | Missing or malformed output warns and continues; only successful compaction emits recovery |
+| Rule context | Canonical `rule-context.sh` plus translated Pi payloads | Claude/Grok hook channels and Pi parent `tool_call` before `Write`/`Edit`/`Bash` | Advisory only; per-session deduplication remains, and the call cannot deny the tool |
+| Hygiene report | Canonical `session-hygiene-report.sh` | Fresh parent context and Pi parent lifecycle, using the shared fingerprint state | Report-only with the canonical cooldown; missing output warns and continues |
 
 **Codex caveat:** `~/.codex/hooks.json` scripts run only when the hook file's `trusted_hash` matches and hooks are enabled in the Codex config; a changed script must be re-trusted (or hooks re-enabled) before Codex will execute it. Deploy re-registers the hash — a manual copy does not.
 

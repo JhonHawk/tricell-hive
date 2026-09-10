@@ -92,6 +92,85 @@ export interface HiveHookExtensionOptions {
   readonly childRegistry?: ChildRegistry;
 }
 
+export type HiveHookKey = keyof HookPaths;
+
+export interface HiveHookStatus {
+  readonly installed: boolean;
+  readonly wired: boolean;
+  readonly error?: string;
+}
+
+export type HiveHookStatusSnapshot = Readonly<Record<HiveHookKey, HiveHookStatus>>;
+
+export const REQUIRED_HOOK_KEYS: readonly HiveHookKey[] = [
+  "bashPolicy",
+  "reviewerGuard",
+  "postToolHub",
+  "flowContext",
+  "flowPlanCapture",
+];
+
+export const ADVISORY_HOOK_KEYS: readonly HiveHookKey[] = [
+  "flowSessionContext",
+  "ruleContext",
+  "sessionHygieneReport",
+];
+
+export const ALL_HOOK_KEYS: readonly HiveHookKey[] = [...REQUIRED_HOOK_KEYS, ...ADVISORY_HOOK_KEYS];
+
+interface MutableHiveHookStatus {
+  installed: boolean;
+  wired: boolean;
+  error?: string;
+}
+
+interface HiveHookRuntimeStatus {
+  readonly paths: HookPaths;
+  readonly statuses: Record<HiveHookKey, MutableHiveHookStatus>;
+}
+
+const hookRuntimeStatuses = new WeakMap<object, HiveHookRuntimeStatus>();
+
+function statusForPaths(paths: HookPaths): Record<HiveHookKey, MutableHiveHookStatus> {
+  return Object.fromEntries(ALL_HOOK_KEYS.map((key) => [key, { installed: isExecutable(paths[key]), wired: false }])) as Record<HiveHookKey, MutableHiveHookStatus>;
+}
+
+function ensureHookRuntimeStatus(pi: ExtensionAPI, paths: HookPaths): HiveHookRuntimeStatus {
+  const existing = hookRuntimeStatuses.get(pi as object);
+  if (existing) {
+    Object.assign(existing.paths, paths);
+    for (const key of ALL_HOOK_KEYS) existing.statuses[key].installed = isExecutable(paths[key]);
+    return existing;
+  }
+  const created: HiveHookRuntimeStatus = { paths: { ...paths }, statuses: statusForPaths(paths) };
+  hookRuntimeStatuses.set(pi as object, created);
+  return created;
+}
+
+export function markHiveHookWired(pi: ExtensionAPI, paths: HookPaths, key: HiveHookKey): void {
+  const runtime = ensureHookRuntimeStatus(pi, paths);
+  runtime.statuses[key].wired = true;
+}
+
+export function recordHiveHookError(pi: ExtensionAPI, paths: HookPaths, key: HiveHookKey, error: string | undefined): void {
+  const runtime = ensureHookRuntimeStatus(pi, paths);
+  runtime.statuses[key].error = error;
+}
+
+export function getHiveHookStatuses(pi: ExtensionAPI, paths: HookPaths): HiveHookStatusSnapshot {
+  const runtime = ensureHookRuntimeStatus(pi, paths);
+  return Object.fromEntries(
+    ALL_HOOK_KEYS.map((key) => {
+      const status = runtime.statuses[key];
+      return [key, {
+        installed: status.installed,
+        wired: status.wired,
+        ...(status.error ? { error: status.error } : {}),
+      }];
+    }),
+  ) as HiveHookStatusSnapshot;
+}
+
 function firstExistingDirectory(candidates: readonly string[]): string {
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0] ?? process.cwd();
 }
@@ -112,6 +191,9 @@ export function defaultHookPaths(): HookPaths {
     postToolHub: join(root, "post-tool-hub/post-tool-hub.sh"),
     flowContext: join(root, "flow-context/flow-context.sh"),
     flowPlanCapture: join(root, "flow-plan-capture/flow-plan-capture.sh"),
+    flowSessionContext: join(root, "flow-session-context/flow-session-context.sh"),
+    ruleContext: join(root, "rule-context/rule-context.sh"),
+    sessionHygieneReport: join(root, "session-hygiene-report/session-hygiene-report.sh"),
   };
 }
 
@@ -154,9 +236,23 @@ function isExecutable(path: string): boolean {
   }
 }
 
+export function requiredHookPaths(paths: HookPaths): readonly string[] {
+  return REQUIRED_HOOK_KEYS.map((key) => paths[key]);
+}
+
+function hookStatusLines(statuses: HiveHookStatusSnapshot): string {
+  return ALL_HOOK_KEYS.map((key) => {
+    const status = statuses[key];
+    return `${key}: installed=${String(status.installed)} wired=${String(status.wired)} error=${status.error ?? "none"}`;
+  }).join("\n");
+}
+
 const readinessSchema = Type.Object({});
 
-export function createHookReadinessTool(paths: HookPaths): ToolDefinition<typeof readinessSchema> {
+export function createHookReadinessTool(
+  paths: HookPaths,
+  statusReader?: () => HiveHookStatusSnapshot,
+): ToolDefinition<typeof readinessSchema> {
   return {
     name: "hive_hook_readiness",
     label: "Hive hook readiness",
@@ -165,16 +261,23 @@ export function createHookReadinessTool(paths: HookPaths): ToolDefinition<typeof
     parameters: readinessSchema,
     executionMode: "sequential",
     async execute() {
-      const required = Object.values(paths);
+      const required = requiredHookPaths(paths);
       const missing = required.filter((path) => !isExecutable(path));
       const ready = missing.length === 0;
+      const hooks = statusReader?.() ?? getStandaloneHookStatuses(paths);
       return {
-        content: [{ type: "text" as const, text: ready ? "Hive hooks ready." : `Missing or non-executable hooks:\n${missing.join("\n")}` }],
-        details: { ready, missing },
+        content: [{ type: "text" as const, text: ready ? `Hive hooks ready.\n${hookStatusLines(hooks)}` : `Missing or non-executable hooks:\n${missing.join("\n")}\n${hookStatusLines(hooks)}` }],
+        details: { ready, missing, hooks },
         isError: !ready,
       };
     },
   };
+}
+
+function getStandaloneHookStatuses(paths: HookPaths): HiveHookStatusSnapshot {
+  return Object.fromEntries(
+    ALL_HOOK_KEYS.map((key) => [key, { installed: isExecutable(paths[key]), wired: false }]),
+  ) as HiveHookStatusSnapshot;
 }
 
 interface AdvisoryHookResult {
@@ -200,6 +303,128 @@ function advisoryText(
   return result.additionalContext ? `${warning}\n${result.additionalContext}` : warning;
 }
 
+const INITIAL_CONTEXT_MESSAGE_TYPE = "hive-pi-hook-context";
+const ACTIVE_CONTEXT_ENTRY_TYPES = new Set(["message", "custom_message", "compaction", "branch_summary"]);
+
+interface SessionEntryReader {
+  buildContextEntries?: () => readonly unknown[];
+  getBranch?: () => readonly unknown[];
+}
+
+function activeContextEntries(ctx: ExtensionContext): readonly unknown[] {
+  const manager = ctx.sessionManager as unknown as SessionEntryReader;
+  if (typeof manager.buildContextEntries === "function") return manager.buildContextEntries();
+  if (typeof manager.getBranch === "function") return manager.getBranch();
+  return [];
+}
+
+function hasActiveConversation(ctx: ExtensionContext): boolean {
+  return activeContextEntries(ctx).some((entry) => isPlainObject(entry) && typeof entry.type === "string" && ACTIVE_CONTEXT_ENTRY_TYPES.has(entry.type));
+}
+
+function initialHookSource(reason: unknown, ctx: ExtensionContext): "startup" | "clear" | undefined {
+  if (reason === "new" || reason === "clear") return "clear";
+  if (reason !== "startup" || hasActiveConversation(ctx)) return undefined;
+  return "startup";
+}
+
+function notifyAdvisoryFailure(ctx: ExtensionContext, key: HiveHookKey, reason: string): void {
+  const notify = (ctx.ui as unknown as { notify?: (message: string, level?: "info" | "warning" | "error") => void }).notify;
+  notify?.(`[Hive hook warning] ${key}: ${reason}`, "warning");
+}
+
+function notifyAdvisoryFailureOnce(
+  ctx: ExtensionContext,
+  key: HiveHookKey,
+  scriptPath: string,
+  reason: string,
+  sessionId: string,
+  failureKeys: Set<string>,
+): void {
+  const failureKey = `${sessionId}\u0000${scriptPath}`;
+  if (failureKeys.has(failureKey)) return;
+  failureKeys.add(failureKey);
+  notifyAdvisoryFailure(ctx, key, reason);
+}
+
+async function runAdvisoryHook(
+  pi: ExtensionAPI,
+  paths: HookPaths,
+  key: HiveHookKey,
+  invocation: Parameters<typeof runHook>[0],
+  runnerOptions: HookRunnerOptions | undefined,
+  failureKeys: Set<string>,
+  ctx: ExtensionContext,
+): Promise<string | undefined> {
+  let result: AdvisoryHookResult;
+  try {
+    result = await runHook(invocation, runnerOptions);
+  } catch (error) {
+    const reason = `Advisory hook failed: ${hookFailureReason(error)}`;
+    recordHiveHookError(pi, paths, key, reason);
+    const firstFailureKey = `${currentSessionId(ctx)}\u0000${paths[key]}`;
+    if (!failureKeys.has(firstFailureKey)) notifyAdvisoryFailure(ctx, key, reason);
+    return advisoryText({ outcome: "warning", reason }, paths[key], currentSessionId(ctx), failureKeys);
+  }
+  const session = currentSessionId(ctx);
+  const firstFailureKey = `${session}\u0000${paths[key]}`;
+  const failureReason = result.reason;
+  const failed = (result.outcome === "warning" || result.outcome === "error") && failureReason !== undefined;
+  if (failed && failureReason !== undefined) {
+    recordHiveHookError(pi, paths, key, failureReason);
+    if (!failureKeys.has(firstFailureKey)) notifyAdvisoryFailure(ctx, key, failureReason);
+  } else {
+    recordHiveHookError(pi, paths, key, undefined);
+  }
+  return advisoryText(result, paths[key], session, failureKeys);
+}
+
+async function sendHiddenContext(
+  pi: ExtensionAPI,
+  content: string | undefined,
+  deliverAs: "steer" | "nextTurn" | undefined,
+  details: Record<string, unknown>,
+  triggerTurn?: boolean,
+): Promise<void> {
+  if (!content || content.trim().length === 0) return;
+  await pi.sendMessage(
+    {
+      customType: INITIAL_CONTEXT_MESSAGE_TYPE,
+      content,
+      display: false,
+      details,
+    },
+    { ...(deliverAs === undefined ? {} : { deliverAs }), ...(triggerTurn === undefined ? {} : { triggerTurn }) },
+  );
+}
+
+function ruleToolName(toolName: string): "Write" | "Edit" | "Bash" | undefined {
+  switch (toolName.toLowerCase()) {
+    case "write":
+      return "Write";
+    case "edit":
+      return "Edit";
+    case "bash":
+      return "Bash";
+    default:
+      return undefined;
+  }
+}
+
+function ruleContextPayload(ctx: ExtensionContext, event: ToolCallEvent, toolName: "Write" | "Edit" | "Bash"): Record<string, unknown> {
+  return {
+    harness: "pi",
+    cwd: ctx.cwd,
+    session_id: currentSessionId(ctx),
+    tool_name: toolName,
+    tool_input: event.input,
+  };
+}
+
+function hookFailureReason(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function registerGeneralHiveHooks(
   pi: ExtensionAPI,
   options: HiveHookExtensionOptions = {},
@@ -208,11 +433,23 @@ export function registerGeneralHiveHooks(
   const runnerOptions = options.runnerOptions;
   const childRegistry = options.childRegistry ?? defaultChildRegistry;
   const advisoryFailureKeys = new Set<string>();
+  const parentAdvisoriesEnabled = process.env.PI_SUBAGENT_CHILD !== "1";
+  let ruleQueue: Promise<void> = Promise.resolve();
+  let initialContextQueuedSession: string | undefined;
   let parentSession = process.env.PI_SUBAGENT_PARENT_SESSION ?? "";
   attachChildLifecycle(pi, childRegistry, () => parentSession || process.env.PI_SUBAGENT_PARENT_SESSION || "");
-  pi.registerTool(createHookReadinessTool(paths));
+  ensureHookRuntimeStatus(pi, paths);
+  markHiveHookWired(pi, paths, "bashPolicy");
+  markHiveHookWired(pi, paths, "postToolHub");
+  markHiveHookWired(pi, paths, "flowContext");
+  if (parentAdvisoriesEnabled) {
+    markHiveHookWired(pi, paths, "flowSessionContext");
+    markHiveHookWired(pi, paths, "ruleContext");
+    markHiveHookWired(pi, paths, "sessionHygieneReport");
+  }
+  pi.registerTool(createHookReadinessTool(paths, () => getHiveHookStatuses(pi, paths)));
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on("session_start", async (event, ctx) => {
     const session = currentSessionId(ctx);
     parentSession = session;
     for (const key of advisoryFailureKeys) {
@@ -220,6 +457,64 @@ export function registerGeneralHiveHooks(
     }
     if (!process.env.PI_SUBAGENT_PARENT_SESSION) process.env.PI_SUBAGENT_PARENT_SESSION = session;
     process.env.PI_HIVE_SESSION = session;
+    if (!parentAdvisoriesEnabled) return;
+
+    const reason = (event as unknown as { reason?: unknown }).reason;
+    const source = initialHookSource(reason, ctx);
+    if (source === undefined) return;
+    if (reason === "startup" && initialContextQueuedSession === session) return;
+    const payload = {
+      harness: "pi",
+      cwd: ctx.cwd,
+      session_id: session,
+      source,
+    };
+    const flowContext = await runAdvisoryHook(
+      pi,
+      paths,
+      "flowSessionContext",
+      {
+        scriptPath: paths.flowSessionContext,
+        cwd: ctx.cwd,
+        payload,
+        mode: "advisory",
+        signal: ctx.signal,
+      },
+      runnerOptions,
+      advisoryFailureKeys,
+      ctx,
+    );
+    const hygieneContext = await runAdvisoryHook(
+      pi,
+      paths,
+      "sessionHygieneReport",
+      {
+        scriptPath: paths.sessionHygieneReport,
+        cwd: ctx.cwd,
+        payload,
+        mode: "advisory",
+        env: process.env.HIVE_REPO ? { HIVE_REPO: process.env.HIVE_REPO } : undefined,
+        unsetEnv: ["CLAUDECODE"],
+        signal: ctx.signal,
+      },
+      runnerOptions,
+      advisoryFailureKeys,
+      ctx,
+    );
+    try {
+      await sendHiddenContext(
+        pi,
+        [flowContext, hygieneContext].filter((value): value is string => value !== undefined).join("\n\n"),
+        undefined,
+        { source, sessionId: session, hooks: ["flowSessionContext", "sessionHygieneReport"] },
+        false,
+      );
+      initialContextQueuedSession = session;
+    } catch (error) {
+      const reason = `Unable to queue initial PI hook context: ${hookFailureReason(error)}`;
+      recordHiveHookError(pi, paths, "flowSessionContext", reason);
+      notifyAdvisoryFailureOnce(ctx, "flowSessionContext", paths.flowSessionContext, reason, session, advisoryFailureKeys);
+    }
   });
 
   pi.on("tool_call", async (event, ctx) => {
@@ -236,7 +531,46 @@ export function registerGeneralHiveHooks(
     if (/^(?:subagent|delegate|spawn)(?:[-_]|$)/iu.test(event.toolName)) {
       childRegistry.register(parentSession || currentSessionId(ctx), event.toolCallId);
     }
-    if (event.toolName.toLowerCase() !== "bash") return undefined;
+
+    if (parentAdvisoriesEnabled) {
+      const mappedTool = ruleToolName(event.toolName);
+      if (mappedTool) {
+        const previous = ruleQueue;
+        const current = previous.then(async () => {
+          const context = await runAdvisoryHook(
+            pi,
+            paths,
+            "ruleContext",
+            {
+              scriptPath: paths.ruleContext,
+              cwd: ctx.cwd,
+              payload: ruleContextPayload(ctx, event, mappedTool),
+              mode: "advisory",
+              signal: ctx.signal,
+            },
+            runnerOptions,
+            advisoryFailureKeys,
+            ctx,
+          );
+          try {
+            await sendHiddenContext(
+              pi,
+              context,
+              "steer",
+              { source: "tool_call", sessionId: currentSessionId(ctx), hook: "ruleContext", tool: mappedTool },
+            );
+          } catch (error) {
+            const reason = `Unable to queue rule context: ${hookFailureReason(error)}`;
+            recordHiveHookError(pi, paths, "ruleContext", reason);
+            notifyAdvisoryFailureOnce(ctx, "ruleContext", paths.ruleContext, reason, currentSessionId(ctx), advisoryFailureKeys);
+          }
+        }, async () => undefined);
+        ruleQueue = current.then(() => undefined, () => undefined);
+        await current;
+      }
+    }
+
+    if (toolName !== "bash") return undefined;
     const result = await runHook(
       {
         scriptPath: paths.bashPolicy,
@@ -248,8 +582,10 @@ export function registerGeneralHiveHooks(
       runnerOptions,
     );
     if (result.outcome === "block") {
+      recordHiveHookError(pi, paths, "bashPolicy", result.reason ?? "Blocked by Hive bash policy.");
       return { block: true, reason: result.reason ?? "Blocked by Hive bash policy." };
     }
+    recordHiveHookError(pi, paths, "bashPolicy", undefined);
     return undefined;
   });
 
@@ -257,7 +593,10 @@ export function registerGeneralHiveHooks(
     if (/^(?:subagent|delegate|spawn)(?:[-_]|$)/iu.test(event.toolName)) {
       childRegistry.settle(event.toolCallId);
     }
-    const result = await runHook(
+    const context = await runAdvisoryHook(
+      pi,
+      paths,
+      "postToolHub",
       {
         scriptPath: paths.postToolHub,
         cwd: ctx.cwd,
@@ -266,8 +605,9 @@ export function registerGeneralHiveHooks(
         signal: ctx.signal,
       },
       runnerOptions,
+      advisoryFailureKeys,
+      ctx,
     );
-    const context = advisoryText(result, paths.postToolHub, currentSessionId(ctx), advisoryFailureKeys);
     if (!context) return undefined;
     return {
       content: [...event.content, { type: "text" as const, text: context }],
@@ -277,7 +617,10 @@ export function registerGeneralHiveHooks(
   });
 
   pi.on("before_agent_start", async (event, ctx) => {
-    const result = await runHook(
+    const context = await runAdvisoryHook(
+      pi,
+      paths,
+      "flowContext",
       {
         scriptPath: paths.flowContext,
         cwd: ctx.cwd,
@@ -291,11 +634,46 @@ export function registerGeneralHiveHooks(
         signal: ctx.signal,
       },
       runnerOptions,
+      advisoryFailureKeys,
+      ctx,
     );
-    const context = advisoryText(result, paths.flowContext, currentSessionId(ctx), advisoryFailureKeys);
     const additions = [context, PI_MCP_GUIDANCE].filter((value): value is string => value !== undefined);
     return { systemPrompt: `${event.systemPrompt}\n\n${additions.join("\n\n")}` };
   });
+
+  if (parentAdvisoriesEnabled) {
+    pi.on("session_compact", async (event, ctx) => {
+      const session = currentSessionId(ctx);
+      const context = await runAdvisoryHook(
+        pi,
+        paths,
+        "flowSessionContext",
+        {
+          scriptPath: paths.flowSessionContext,
+          cwd: ctx.cwd,
+          payload: { harness: "pi", cwd: ctx.cwd, session_id: session, source: "compact" },
+          mode: "advisory",
+          signal: ctx.signal,
+        },
+        runnerOptions,
+        advisoryFailureKeys,
+        ctx,
+      );
+      try {
+        await sendHiddenContext(
+          pi,
+          context,
+          event.willRetry ? "steer" : "nextTurn",
+          { source: "compact", sessionId: session, hook: "flowSessionContext" },
+        );
+      } catch (error) {
+        const reason = `Unable to queue compact context: ${hookFailureReason(error)}`;
+        recordHiveHookError(pi, paths, "flowSessionContext", reason);
+        notifyAdvisoryFailureOnce(ctx, "flowSessionContext", paths.flowSessionContext, reason, session, advisoryFailureKeys);
+      }
+    });
+    pi.on("session_compact_failed", async () => undefined);
+  }
 }
 
 export function createGeneralHiveHooksExtension(options: HiveHookExtensionOptions = {}) {
