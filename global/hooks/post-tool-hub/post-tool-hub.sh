@@ -164,7 +164,7 @@ zsh_signature_section() {
   # object would re-escape them as the two characters `\` `n`, which defeats the
   # line anchor below: the character before `zsh:` would read as alphanumeric.
   out=$(printf '%s' "$input" | jq -r '
-    (.tool_response // .toolOutput // empty) as $r
+    (.tool_response // .toolResult // empty) as $r
     | if ($r | type) == "object" then [$r | .. | strings] | join("\n")
       else ($r | tostring) end' 2>/dev/null)
   [ -n "$out" ] || return 0

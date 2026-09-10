@@ -28,7 +28,7 @@ Design decisions (user-approved 2026-07-10):
   `[grok]` tag marks the harness when the payload was Grok's).
 - Non-blocking: exit 0 always; silent outside flow workspaces.
 
-## Grok: same entry point, different payload — and no context injection
+## Grok: same entry point, different payload — same injection since 1.0.14
 
 Grok reads `~/.claude/settings.json` through its Claude compat layer, so it runs this very
 hook — but two things differ, both verified against its hooks doc and a real session
@@ -45,14 +45,13 @@ payload (2026-08-21):
   the banner wording changes. Detection is by payload shape, never by a flag: one command
   serves both harnesses, so there is nothing to pass.
 
-**What Grok does NOT get: the `additionalContext` injection.** This hook is `PostToolUse`;
-the 1.0.13 bundled guide still ignores stdout on that event (`harness/grok/README.md`
-injection map). A 2026-08-21 probe on an older CLI saw injection only on
-`Stop`/`SubagentStop`; PreToolUse post-call notes are a different event and do not
-announce this capture. The durable half still works — the plan lands in the sessions
-layer, which is the point (day-2 continuity is a repo file, not harness state, and
-`/flow-build` adopts it) — but on Grok the model is not told. What reaches the model
-there is the rules layer it already loads, not this hook.
+**The `additionalContext` reaches Grok's model since 1.0.14.** `PostToolUse` stdout was
+discarded through 1.0.13 (a 2026-08-21 probe saw injection only on `Stop`/`SubagentStop`), so
+on those versions the hook captured the plan without announcing it; from 1.0.14 the bundled
+guide reads `PostToolUse` stdout and delivers the note with the tool result, in the same
+turn (`harness/grok/README.md` injection map). The script emits the same JSON on both
+harnesses — nothing changed here when Grok started listening. The durable half never
+depended on it: the plan lands in the sessions layer, and `/flow-build` adopts it.
 
 ## Why a recovery mode exists (`--from-transcript`)
 
@@ -166,7 +165,7 @@ Your plan has been saved at: $ws/plan.md
 
 Status: planned" '{hookEventName:"PostToolUse",toolName:"exit_plan_mode",cwd:$cwd,toolResult:$res}' \
   | ./flow-plan-capture.sh
-find "$ws/_support/sessions" -name '*-plan.md'   # -> captured; stdout ignored BY grok, emitted anyway
+find "$ws/_support/sessions" -name '*-plan.md'   # -> captured; additionalContext lands on grok >= 1.0.14
 
 # No planContent -> silence, and NO breadcrumb (this is every ordinary session).
 printf '{"type":"user","message":{"role":"user","content":"hola"}}\n' > "$ws/plain.jsonl"
