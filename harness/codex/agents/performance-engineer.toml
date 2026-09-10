@@ -6,10 +6,11 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
-# Claude model alias: opus -> gpt-5.6-sol @ high
+# Claude model alias: opus -> gpt-6-astra @ medium
+# Claude effort: high (OpenAI Astra tier policy uses medium on Codex)
 nickname_candidates = ["performance-engineer"]
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model = "gpt-6-astra"
+model_reasoning_effort = "medium"
 
 developer_instructions = """
 You are a senior performance engineer specializing in profiling, load testing, database optimization, and infrastructure tuning across Node.js, JVM, and cloud environments.

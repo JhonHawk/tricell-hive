@@ -18,13 +18,16 @@ semantics travel with the skill.
 
 1. Merge `config.toml.snippet` into `~/.codex/config.toml` (Linear MCP + subagent
    limits).
-2. Run `/deploy-global` from the hub; start a fresh Codex session.
+2. Run `/deploy-global` from the hub; start a fresh Codex session. The PI rollout
+   selectively activates the five Astra role files listed below; it does not copy
+   the rest of the Codex roster into the machine-level override.
 
 ## What this harness loads
 
 Every URL below was fetched and its quote extracted from the page body on the date in the
 last column. Companion files: `global/README.md` (Claude Code),
-`harness/opencode/README.md`, `harness/grok/README.md` — all four share this layout.
+`harness/opencode/README.md`, `harness/grok/README.md`, and `harness/pi/README.md` —
+all share this layout where the harness has an equivalent loading surface.
 
 > **The documentation host moved.** Every `developers.openai.com/codex/*` URL now redirects
 > to `learn.chatgpt.com/docs/*`. Write the destination host; the old one only resolves by
@@ -130,12 +133,36 @@ parts in Codex TOML and makes non-equivalent fields visible:
 - `skills:` becomes a developer instruction to use the named skill when
   available; do not assume it is preloaded.
 - Claude model aliases are translated by the tier map in
-  `harness/build/convert-agents.py`: `opus` → `gpt-5.6-sol` @ `high` (judgment),
+  `harness/build/convert-agents.py`: `opus` → `gpt-6-astra` @ `medium` (the five approved judgment roles),
   `sonnet` → `gpt-5.6-luna` @ `max` (execution), `haiku` → `gpt-5.6-luna` @ `high`.
   The tier's effort overrides the Claude `effort` frontmatter, which is calibrated
   for Claude's models; the original value stays as a comment.
 - `inherit` emits no `model`, so those agents resolve to `[agents]
   default_subagent_model` in `config.toml` before falling back to the session model.
+
+### Astra role activation
+
+The canonical Claude frontmatter remains `model: opus` and `effort: high`. The
+Codex generator deliberately overrides that pair for these five roles:
+
+| Role | Generated Codex model | Generated effort |
+|---|---|---|
+| `code-reviewer` | `gpt-6-astra` | `medium` |
+| `product-critic` | `gpt-6-astra` | `medium` |
+| `database-specialist` | `gpt-6-astra` | `medium` |
+| `performance-engineer` | `gpt-6-astra` | `medium` |
+| `prompt-engineer` | `gpt-6-astra` | `medium` |
+
+The source effort is retained in the generated compatibility comment for auditability.
+Other roles and the Claude/Grok generated trees keep their existing policy. Rebuild
+before checking the generated TOMLs:
+
+```bash
+python3 harness/build.py
+for agent in code-reviewer product-critic database-specialist performance-engineer prompt-engineer; do
+  rg -n '^(model|model_reasoning_effort) = ' "harness/codex/agents/$agent.toml"
+done
+```
 
 `python3 harness/build.py` prints warnings for lossy fields so review catches
 semantic drift before deploy.

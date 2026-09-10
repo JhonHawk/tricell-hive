@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "package": "pi-subagents",
+  "version": "0.67.0",
+  "patchFile": "pi-subagents-0.67.0.patch",
+  "patchFormat": "unified-diff",
+  "apply": "patch -p1 < pi-subagents-0.67.0.patch",
+  "files": {
+    "src/runs/shared/child-tool-plan.ts": {
+      "sha256Before": "90a8135c4afa87e56ff739acea8fa83b151e56323ea8eea167d832dfd70c1ddb",
+      "sha256After": "39c081aab64fb2617703043bfdb9184f2a38c7a48f7293e34649754c6c8c432b"
+    },
+    "src/runs/shared/subagent-prompt-runtime.ts": {
+      "sha256Before": "ab6b6176dc55fa330bd8d0174bce143fe68203b05d50a10809102c629e58a641",
+      "sha256After": "d46f26e9cc1b01a58c64ab6b32e7cc720877f50e30902bf92dbad5e7bc8330d1"
+    }
+  },
+  "patchSha256": "fb534c3f1c9acd8d2c8c7e83459bf2d0115747264381b76e577966967312f3d1"
+}

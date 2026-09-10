@@ -1,9 +1,8 @@
 # Agent Configuration Hub
 
-Source of truth for global agent configuration. Claude Code config lives under `global/` and deploys to `~/.claude/` via `/deploy-global`.
+Source of truth for global agent configuration. Claude Code config lives under `global/` and deploys to `~/.claude/` via `/deploy-global`. Pi is integrated through the adapter under `harness/pi/` and uses the same canonical agents, skills, and hooks.
 
-Generic AGENTS-compatible harness config lives under `harness/`. **What each harness actually loads — and the official doc backing every loading mechanism, with a verified date — has one README per harness:** `global/README.md` (Claude Code), `harness/codex/README.md`, `harness/opencode/README.md`, `harness/grok/README.md`,
-`harness/cursor/README.md`. Root `AGENTS.md` is only the local guide for working on this repo from harnesses that do not read `CLAUDE.md`.
+Generic AGENTS-compatible harness config lives under `harness/`. **What each harness actually loads — and the official doc backing every loading mechanism, with a verified date — has one README per harness:** `global/README.md` (Claude Code), `harness/codex/README.md`, `harness/opencode/README.md`, `harness/grok/README.md`, `harness/cursor/README.md`, and `harness/pi/README.md`. Root `AGENTS.md` is only the local guide for working on this repo from harnesses that do not read `CLAUDE.md`.
 
 ## Quick Start
 
@@ -25,6 +24,7 @@ The config assumes these are installed; nothing here installs them for you.
 | Codex | Engram Codex plugin (`engram@engram`, bundled hooks) | Plugin cache under `~/.codex/plugins/`. **Never run `engram setup` for Codex** — it sets `model_instructions_file`, which replaces Codex's base system prompt (`harness/codex/README.md`) |
 | Codex | Config additions (`project_doc_max_bytes = 65536`, `commit_attribution = ""`, subagent limits) | Merge `harness/codex/config.toml.snippet` into `~/.codex/config.toml`, once |
 | opencode | `opencode-rules@0.6.4` plugin (glob-conditional language rules; pinned, audited) + flow-skill gating | Merge `harness/opencode/opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`, once |
+| Pi | Pi 0.85.1, Node 22.19+, and the pinned Hive package set | `/deploy-global --only pi` previews the additive PI configuration; add `--apply` to activate it under `~/.pi/agent/` (override with `PI_CODING_AGENT_DIR`) |
 
 Merge/verify commands and the reasoning live in `harness/README.md` (snippets are the one
 layer `/deploy-global` cannot automate). After any merge, start a fresh session.
@@ -38,7 +38,7 @@ layer `/deploy-global` cannot automate). After any merge, start a fresh session.
 | `pnpm` | default package manager | `pnpm --version` |
 | `gh` | GitHub operations (PRs, API) | `gh auth status` |
 | `cwebp` | evidence retention (WebP lossless) | `cwebp -version` |
-| context7 MCP | context7 rule (library docs at write time) | plugin/MCP config per harness |
+| context7 MCP | context7 rule (library docs at write time) | plugin/MCP config per harness; Pi uses `https://mcp.context7.com/mcp` |
 | chrome-devtools / playwright MCP | Lighthouse/perf; browser fallback | MCP config per harness |
 
 ### Terminal workspace: herdr (recommended)
@@ -101,7 +101,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   └── docs/                        # magenta — technical-writer
 └── README.md                        # What Claude Code loads + the official doc backing each mechanism
 
-harness/                      # Multi-harness layer (Codex + opencode + Grok), deployed by /deploy-global step 13b
+harness/                      # Multi-harness layer (Codex + opencode + Grok + Pi), deployed by /deploy-global step 13b
 ├── README.md                        # The layer as a whole + the manual-merge snippets
 ├── AGENTS.md                        # Always-on cross-harness core (depth behind router skills)
 ├── build.py                         # Regenerates generated trees + injects router-skill references
@@ -109,6 +109,7 @@ harness/                      # Multi-harness layer (Codex + opencode + Grok), d
 ├── codex/                           # README + config.toml.snippet + GENERATED TOML agents
 ├── opencode/                        # README + opencode.jsonc.snippet + commands/ + GENERATED agents & rules
 ├── grok/                            # README + GENERATED agents (rules reach Grok as flat symlinks)
+├── pi/                              # Pi runtime, package manifest, tests, and Pi README
 └── cursor/                          # README only — no generated tree, no deploy step
 
 .claude/skills/

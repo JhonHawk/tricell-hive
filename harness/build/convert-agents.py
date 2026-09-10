@@ -6,10 +6,11 @@ Outputs:
   - Codex CLI:  <out>/codex/<name>.toml      (developer_instructions = body)
   - opencode:   <out>/opencode/<name>.md     (mode: subagent, permission map)
   - Grok Build: <out>/grok/<name>.md         (subagent types under ~/.grok/agents/)
+  - Pi:         <out>/pi/<name>.md          (pi-subagents custom agents)
 
 Run by /deploy-global before copying to ~/.codex/agents/,
-~/.config/opencode/agents/, and ~/.grok/agents/. Never edit generated files by
-hand — edit the canonical agent and redeploy.
+~/.config/opencode/agents/, ~/.grok/agents/, and the Pi agent directory. Never
+edit generated files by hand — edit the canonical agent and redeploy.
 
 Usage: convert-agents.py <agents-src-dir> <out-dir>
 """
@@ -39,16 +40,37 @@ CODEX_REASONING_EFFORTS = {"minimal", "low", "medium", "high", "xhigh", "max", "
 # instead — keep in sync with `additional_speed_tiers`/`supported_reasoning_levels`
 # in ~/.codex/models_cache.json.
 CODEX_UNSUPPORTED_EFFORTS = {"gpt-5.6-luna": frozenset({"ultra"})}
-# Claude model-alias tiers → (Codex model slug, reasoning effort). Single place to
-# update when OpenAI rotates the family. Execution runs on luna at max reasoning;
-# judgment roles run on sol. Agents on "inherit" (or an unmapped alias) emit no
-# `model` line: they resolve to the [agents] default in config.toml, then to the
-# session model.
-CODEX_TIER_MAP = {
-    "opus": ("gpt-5.6-sol", "high"),
+# Claude model-alias tiers → (OpenAI model slug, reasoning effort). Codex and Pi
+# share this map so a role keeps the same OpenAI tier in both harnesses. Agents on
+# "inherit" (or an unmapped alias) emit no model line in either target.
+OPENAI_TIER_MAP = {
+    "opus": ("gpt-6-astra", "medium"),
     "sonnet": ("gpt-5.6-luna", "max"),
     "haiku": ("gpt-5.6-luna", "high"),
 }
+# Keep the existing name as the Codex-facing compatibility surface used by the
+# converter and its tests; the value is intentionally shared, not copied.
+CODEX_TIER_MAP = OPENAI_TIER_MAP
+
+PI_MODEL_PREFIX = "openai-codex/"
+PI_THINKING_LEVELS = {
+    "off",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+}
+PI_ROOT_PLACEHOLDER = "__HIVE_PI_ROOT__"
+PI_GENERAL_EXTENSION = f"{PI_ROOT_PLACEHOLDER}/extensions/hive-hooks.ts"
+PI_REVIEWER_EXTENSION = f"{PI_ROOT_PLACEHOLDER}/extensions/hive/reviewer-guard.ts"
+PI_READ_MEMORY_TOOLS = ("mem_search", "mem_context", "mem_get_observation")
+PI_WRITE_MEMORY_TOOLS = ("mem_save",)
+PI_CHILD_TOOLS = ("contact_supervisor",)
+PI_GIT_READ_TOOL = "hive_git_read"
+PI_HOOK_READINESS_TOOL = "hive_hook_readiness"
+PI_REVIEWER_READINESS_TOOL = "hive_reviewer_readiness"
 
 
 def validate_tier_map():
@@ -117,6 +139,10 @@ def parse_agent(path: Path):
         "skills": skills,
         "memory": memory,
         "mcp_servers": mcp_servers,
+        # Claude's nested hook frontmatter is deliberately not converted as a
+        # hook object. The reviewer guard is a required PI child extension, so
+        # retain only the observable source contract that selects it.
+        "has_reviewer_guard": "reviewer-guard.sh" in fm_text,
         "field_names": field_names,
         "body": body.strip(),
     }
@@ -126,9 +152,9 @@ def can_write(agent):
     # Either write tool still available => the agent can write. Denying only one
     # of them (in-vivo-qa-tester denies Edit but keeps Write for its report) must
     # not zero out write capability in the generated trees.
-    if agent["tools"] is None:
-        return bool({"Write", "Edit"} - set(agent["disallowed"]))
-    return bool({"Write", "Edit"} & set(agent["tools"]))
+    available = {"Write", "Edit"} if agent["tools"] is None else set(agent["tools"])
+    available.difference_update(agent["disallowed"])
+    return bool(available & {"Write", "Edit"})
 
 
 def denies_agent(agent):
@@ -144,8 +170,10 @@ def denies_agent(agent):
 
 
 def has_bash(agent):
+    if "Bash" in agent["disallowed"]:
+        return False
     if agent["tools"] is None:
-        return "Bash" not in agent["disallowed"]
+        return True
     return "Bash" in agent["tools"]
 
 
@@ -174,12 +202,25 @@ def codex_model(agent):
     return tier[0] if tier else None
 
 
+def openai_opus_effort_override(agent):
+    """Return whether the OpenAI tier policy overrides Claude's declared effort."""
+    return (
+        (agent["model"] or "").strip() == "opus"
+        and (agent["effort"] or "").strip() == "high"
+    )
+
+
 def codex_reasoning_effort(agent):
-    """An explicit `effort:` in the frontmatter wins: a role deliberately kept
-    cheap (mechanical fetch/watch) must not inherit the tier's reasoning depth.
-    Absent — or not advertised by the target model — the tier's effort applies."""
+    """Resolve Codex effort, including the shared Astra medium policy.
+
+    Explicit effort remains authoritative for every role except the deliberate
+    ``opus``/``high`` mapping: those judgment roles move from the old Sol/high
+    tier to Astra/medium in Codex and PI together.
+    """
     model = codex_model(agent)
     declared = (agent["effort"] or "").strip()
+    if openai_opus_effort_override(agent):
+        return OPENAI_TIER_MAP["opus"][1]
     if declared in CODEX_REASONING_EFFORTS and declared not in CODEX_UNSUPPORTED_EFFORTS.get(
         model, frozenset()
     ):
@@ -214,6 +255,10 @@ def codex_compatibility_comments(agent):
         comments.append(note)
     if agent["effort"] and not resolved_effort:
         comments.append(f"# Claude effort: {comment_escape(agent['effort'])}")
+    elif openai_opus_effort_override(agent):
+        comments.append(
+            "# Claude effort: high (OpenAI Astra tier policy uses medium on Codex)"
+        )
     elif agent["effort"] and agent["effort"].strip() != resolved_effort:
         comments.append(
             f"# Claude effort: {comment_escape(agent['effort'])} (tier default wins on Codex)"
@@ -336,14 +381,20 @@ OPENCODE_COLOR = {
 # without a skill tool — the only mechanism all four harnesses share. There are
 # exactly two roots, and which one is correct depends on the harness:
 #   ~/.claude/skills  — Claude Code (deployed there) and Grok (scans it)
-#   ~/.agents/skills  — Codex and opencode
-# Sources are written with the Claude root; this rebases it for the other two.
+#   ~/.agents/skills  — Codex, opencode, and PI (shared universal skills)
+# Sources are written with the Claude root; each converter rebases it for its
+# target harness.
 CLAUDE_SKILL_ROOT = "~/.claude/skills/"
 AGENTS_SKILL_ROOT = "~/.agents/skills/"
+PI_SKILL_ROOT = AGENTS_SKILL_ROOT
 
 
 def rebase_skill_root(body: str) -> str:
     return body.replace(CLAUDE_SKILL_ROOT, AGENTS_SKILL_ROOT)
+
+
+def rebase_pi_skill_root(body: str) -> str:
+    return body.replace(CLAUDE_SKILL_ROOT, PI_SKILL_ROOT)
 
 
 def opencode_extra_instructions(agent):
@@ -397,6 +448,206 @@ def to_opencode(agent) -> str:
         body = body + "\n\n## opencode compatibility instructions\n\n" + "\n".join(
             f"- {instruction}" for instruction in extra
         )
+    return "\n".join(fm) + "\n\n" + body + "\n"
+
+
+# Claude tool names → pi-subagents tool names. Unknown Claude-only tools are
+# omitted; MCP entries use the adapter's stable gateway proxy.
+PI_TOOL_MAP = {
+    "Read": "read",
+    "Write": "write",
+    "Edit": "edit",
+    "MultiEdit": "edit",
+    "Bash": "bash",
+    "Glob": "find",
+    "ListDir": "ls",
+    "Grep": "grep",
+    "WebSearch": "web_search",
+    "WebFetch": "fetch_content",
+    "Task": "subagent",
+    "Agent": "subagent",
+    "NotebookEdit": None,
+}
+# A missing Claude `tools:` field means the role inherits the full Claude
+# surface. PI requires an explicit list for extension-tool readiness checks, so
+# retain the corresponding PI builtins and installed research/MCP tools before
+# applying source disallowedTools. The role-specific additions below then add
+# memory, supervision, Git, and Hive readiness sentinels.
+PI_INHERITED_TOOL_BASELINE = (
+    "read",
+    "write",
+    "edit",
+    "bash",
+    "find",
+    "ls",
+    "grep",
+    "web_search",
+    "fetch_content",
+    "get_search_content",
+    "source_check",
+    "mcp",
+    "subagent",
+)
+
+
+def pi_mcp_server(tool):
+    """Map Claude's mcp__server__tool spelling to PI's stable gateway tool."""
+    if not tool.startswith("mcp__"):
+        return None
+    parts = tool.split("__", 2)
+    if len(parts) != 3 or not parts[1] or not parts[2]:
+        return None
+    return "mcp"
+
+
+def pi_mcp_exclusion_names(tool):
+    """Map a denied MCP operation to the stable gateway's deny entry."""
+    if not tool.startswith("mcp__"):
+        return []
+    parts = tool.split("__", 2)
+    if len(parts) != 3 or not parts[1] or not parts[2]:
+        return []
+    return ["mcp"]
+
+
+def pi_tool_name(tool):
+    return pi_mcp_server(tool) or PI_TOOL_MAP.get(tool)
+
+
+def pi_tools(agent, field):
+    """Map an allow/deny field while preserving order and removing duplicates."""
+    values = agent[field]
+    mapped = []
+    seen = set()
+    for tool in values or []:
+        resolved_names = (
+            pi_mcp_exclusion_names(tool)
+            if field == "disallowed"
+            else [pi_tool_name(tool)]
+        )
+        if field == "disallowed" and not resolved_names:
+            resolved_names = [pi_tool_name(tool)]
+        for resolved in resolved_names:
+            if resolved and resolved not in seen:
+                seen.add(resolved)
+                mapped.append(resolved)
+    return mapped
+
+
+def pi_allowlist(agent):
+    """Build a strict PI list, including the inherited source-tool surface."""
+    if agent["tools"] is None:
+        denied = set(pi_tools(agent, "disallowed"))
+        return [tool for tool in PI_INHERITED_TOOL_BASELINE if tool not in denied]
+    return pi_tools(agent, "tools")
+
+
+def pi_model(agent):
+    """Resolve a source model to a fully-qualified OpenAI provider model."""
+    model = (agent["model"] or "").strip()
+    if not model:
+        return None
+    if model == "inherit":
+        return "inherit"
+    if "/" in model:
+        return model
+    tier = OPENAI_TIER_MAP.get(model)
+    slug = tier[0] if tier else None
+    if not slug and (model.startswith("gpt-") or re.match(r"^o\d", model)):
+        slug = model
+    return f"{PI_MODEL_PREFIX}{slug}" if slug else None
+
+
+def pi_thinking(agent):
+    """Resolve PI thinking while applying the same Astra exception as Codex."""
+    declared = (agent["effort"] or "").strip()
+    if openai_opus_effort_override(agent):
+        return OPENAI_TIER_MAP["opus"][1]
+    if declared in PI_THINKING_LEVELS:
+        return declared
+    tier = OPENAI_TIER_MAP.get((agent["model"] or "").strip())
+    return tier[1] if tier and tier[1] in PI_THINKING_LEVELS else None
+
+
+def pi_additional_tools(agent):
+    """Return native PI capabilities required by the role contract."""
+    memory = PI_WRITE_MEMORY_TOOLS if can_write(agent) else PI_READ_MEMORY_TOOLS
+    tools = [*memory, *PI_CHILD_TOOLS]
+    # PI's plan-mode Bash policy can remove the shell before a child runs. The
+    # structured read-only Git tool therefore follows the canonical Bash
+    # capability, including non-reviewer verifiers such as finding-refuter.
+    # `has_bash` applies source deny-wins semantics for both allowlists and
+    # disallowedTools; reviewer-guard selection is independent of Git access.
+    if has_bash(agent):
+        tools.append(PI_GIT_READ_TOOL)
+    return tools
+
+
+def pi_readiness_tools(agent):
+    """Return extension sentinels required before the agent's first turn."""
+    tools = [PI_HOOK_READINESS_TOOL]
+    if agent["has_reviewer_guard"]:
+        tools.append(PI_REVIEWER_READINESS_TOOL)
+    return tools
+
+
+def pi_context7_instructions(agent):
+    """Give PI agents with Context7 source tools the guarded gateway calls."""
+    if not agent["tools"] or not any(tool.startswith("mcp__") for tool in agent["tools"]):
+        return ""
+    return (
+        "\n\n## PI Context7 usage\n\n"
+        "For version-sensitive claims, use the shared `mcp` gateway in this order:\n"
+        "1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`\n"
+        "2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`"
+    )
+
+
+def to_pi(agent) -> str:
+    """Render a pi-subagents v0.67 custom agent definition."""
+    tools = pi_allowlist(agent)
+    seen = set(tools)
+    for tool in [*pi_additional_tools(agent), *pi_readiness_tools(agent)]:
+        if tool not in seen:
+            seen.add(tool)
+            tools.append(tool)
+    excluded = pi_tools(agent, "disallowed")
+    extensions = [PI_GENERAL_EXTENSION]
+    if agent["has_reviewer_guard"]:
+        extensions.append(PI_REVIEWER_EXTENSION)
+
+    fm = [
+        "---",
+        f"# {GENERATED_NOTE}",
+        f"name: {agent['name']}",
+        "description: >",
+        f"  {agent['description']}",
+    ]
+    model = pi_model(agent)
+    if model:
+        fm.append(f"model: {model}")
+    thinking = pi_thinking(agent)
+    if thinking:
+        fm.append(f"thinking: {thinking}")
+    if tools:
+        fm.append(f"tools: {', '.join(tools)}")
+    if excluded:
+        fm.append(f"excludeTools: {', '.join(excluded)}")
+    fm.extend([
+        f"subagentOnlyExtensions: {', '.join(extensions)}",
+        "async: true",
+        "defaultContext: fresh",
+        "systemPromptMode: append",
+        "inheritProjectContext: true",
+        "inheritGlobalContext: true",
+        "inheritSkills: true",
+        "allowNestedSubagents: false",
+        "memory:",
+        "  scope: project",
+        f"  path: hive/{agent['name']}",
+        "---",
+    ])
+    body = rebase_pi_skill_root(agent["body"]) + pi_context7_instructions(agent)
     return "\n".join(fm) + "\n\n" + body + "\n"
 
 
@@ -526,10 +777,16 @@ def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
-    codex_dir, oc_dir, grok_dir = out / "codex", out / "opencode", out / "grok"
+    codex_dir, oc_dir, grok_dir, pi_dir = (
+        out / "codex",
+        out / "opencode",
+        out / "grok",
+        out / "pi",
+    )
     codex_dir.mkdir(parents=True, exist_ok=True)
     oc_dir.mkdir(parents=True, exist_ok=True)
     grok_dir.mkdir(parents=True, exist_ok=True)
+    pi_dir.mkdir(parents=True, exist_ok=True)
 
     count = 0
     for path in sorted(src.rglob("*.md")):
@@ -543,10 +800,15 @@ def main():
         (grok_dir / f"{agent['name']}.md").write_text(
             to_grok(agent), encoding="utf-8"
         )
+        (pi_dir / f"{agent['name']}.md").write_text(
+            to_pi(agent), encoding="utf-8"
+        )
         for warning in codex_warnings(agent):
             print(f"WARNING {agent['name']}: {warning}", file=sys.stderr)
         count += 1
-    print(f"converted {count} agents -> {codex_dir} , {oc_dir} , {grok_dir}")
+    print(
+        f"converted {count} agents -> {codex_dir} , {oc_dir} , {grok_dir} , {pi_dir}"
+    )
 
 
 if __name__ == "__main__":

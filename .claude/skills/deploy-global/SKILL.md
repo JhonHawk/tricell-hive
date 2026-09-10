@@ -1,6 +1,6 @@
 ---
 name: deploy-global
-description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, and ~/.grok/agents/, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). Use when ready to deploy config changes.
+description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, and ~/.grok/agents/, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). The isolated PI scope deploys generated PI files and additive PI config under PI_CODING_AGENT_DIR with its own manifest and rollback backups. Use when ready to deploy config changes.
 disable-model-invocation: true
 ---
 
@@ -49,6 +49,10 @@ and commit first:
 ```bash
 python3 harness/build.py && git status --porcelain harness/ global/CLAUDE.md
 ```
+
+The PI source tree is generated alongside the other harness outputs. A PI-only dry run
+does not rebuild or write generated files; run the generator first when PI sources have
+changed.
 The script also rebuilds automatically under `--apply` (every scope, before deploying
 `global/CLAUDE.md`, so the deployed core is the fresh assembly) and warns if `harness/`
 or `global/CLAUDE.md` comes out dirty — but a clean, committed tree going in is the
@@ -114,12 +118,54 @@ its own location regardless of cwd):
 |---|---|
 | `--dry-run` | Report what would change; write nothing. **Default.** |
 | `--apply` | Perform the deploy for real. |
-| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. Note: under `--apply`, `--only harness`/`--only grok` deletes that scope's orphans by default without a full-tree snapshot — the `~/.claude` tar covers only that scope, and the harness-config tar covers only the two config files the deploy writes, not the deployed agents/skills/rules themselves. Those are regenerable from the repo, but the deletion runs unshielded. |
+| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `pi` (→ `${PI_CODING_AGENT_DIR:-~/.pi/agent}`), `harness` (alias for `codex,opencode,grok`), or `all` (default). Repeatable or comma-separated. `pi` is intentionally isolated and must be the only selected scope; it never creates or updates `~/.claude/.deploy-manifest`. The PI helper maintains `.hive-deploy-manifest.json`, `.hive-deploy-backups/`, and conflict-aware file/config merges under the PI root. |
 | `--keep-orphans` | Under `--apply`, list manifest-confirmed orphans WITHOUT deleting them (the old default). By default orphan deletion is part of the apply flow: an orphan is by construction a source the user already removed from `global/`/`harness/`, deploys are user-initiated, and the full list prints in the report before deletion — so a separate confirmation flag re-asked what the repo's own history already answered. The deletion also purges the orphans' `settings.json`/`hooks.json` entries. Refused (not deleted) if the set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup; the refusal is the anomaly brake. Undeleted orphans (dry-run, kept, or refused) keep their manifest entries, so a later run can still remove them. |
 | `--force-delete-orphans` | Bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
 | `--delete-orphans` | Deprecated no-op alias, accepted for compatibility — deletion is now the `--apply` default. |
 | `--verbose`, `-v` | Per-file logging instead of per-category summaries. |
 | `--help`, `-h` | Flag reference. |
+
+For PI, `--apply` deploys `harness/AGENTS.md`, generated `harness/pi/agents/`, the
+TypeScript runtime and extension entrypoints (`src/` and `extensions/`), and canonical
+shell hooks under `global/hooks/` in the PI agent directory (the Claude-only
+`instructions-audit.sh` hook is excluded). It
+also merges only the owned fields: the five pinned package entries in `settings.json`,
+including PI package objects with their existing filters,
+`forceTopLevelAsync` in `extensions/subagent/config.json`, the lazy Context7 native
+proxy with direct tools disabled and its two included selectors in `mcp.json`, and `provider: openai` with
+`openaiSearchProviders: [openai-codex]` plus `workflow: none` in `web-search.json`.
+Existing PI config, credentials,
+sessions, trust state, unrelated providers, and unrelated packages remain in place.
+
+Install the five pinned native packages into `${PI_CODING_AGENT_DIR:-~/.pi/agent}/npm`
+before applying. The helper does not install packages: it fails closed unless
+`pi-subagents@0.67.0` is present with the reviewed package identity and both patch
+source files are present in the checkout. Apply atomically rewrites the two reviewed
+`pi-subagents` files only when their bytes match the recorded pristine hashes, records
+the patched hashes in the PI manifest, and re-applies the patch after a pristine same-
+version reinstall. A modified or symlinked package target is preserved as an error;
+the same backup and conflict-aware rollback journal covers package files as the rest
+of the PI tree.
+
+The PI route defaults to dry-run just like the other scopes:
+
+```bash
+.claude/skills/deploy-global/scripts/deploy-global.sh --only pi
+PI_CODING_AGENT_DIR="$HOME/.pi/agent" \
+  .claude/skills/deploy-global/scripts/deploy-global.sh --only pi --apply
+```
+
+The deploy helper also exposes conflict-aware rollback without invoking a package
+installer:
+
+```bash
+python3 harness/pi/deploy.py rollback \
+  --pi-dir "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}" \
+  --backup-dir "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/.hive-deploy-backups/<stamp>"
+python3 harness/pi/deploy.py rollback --apply \
+  --pi-dir "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}" \
+  --backup-dir "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/.hive-deploy-backups/<stamp>"
+```
 
 ## Reading the output
 

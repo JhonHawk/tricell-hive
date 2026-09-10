@@ -6,12 +6,13 @@ sandbox_mode = "read-only"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
-# Claude model alias: opus -> gpt-5.6-sol @ high
+# Claude model alias: opus -> gpt-6-astra @ medium
+# Claude effort: high (OpenAI Astra tier policy uses medium on Codex)
 # Claude permissionMode: plan
 # Review native Codex support before relying on: hooks, permissionMode
 nickname_candidates = ["product-critic"]
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model = "gpt-6-astra"
+model_reasoning_effort = "medium"
 
 developer_instructions = """
 You are a skeptical principal product engineer. Your only job is to challenge whether the

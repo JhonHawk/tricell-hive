@@ -1176,3 +1176,23 @@ Backs `CLAUDE.md > Dependency Decisions > A new dependency is the last rung` (an
 
 - `[External — measured, single model]` **DietrichGebert/optional reference project v4.9.0** — "lazy senior dev" skill: a 7-rung ladder (YAGNI → reuse → stdlib → native platform → installed dependency → one line → minimum) injected every session and subagent via `SessionStart`/`SubagentStart`/`UserPromptSubmit` hooks, with lite/full/ultra levels and five helper skills. Agentic benchmark (`benchmarks/results/2026-06-18-agentic.md`): headless `claude -p` on `fastapi/full-stack-fastapi-template@cd83fc1`, Haiku 4.5, n=4, LOC = `git diff` added lines; −54% LOC mean across 12 feature tickets, 100% safe on 20 adversarial runs. *Adjusted:* the cut concentrates where a native `<input>` replaces a hand-built component (date picker −94%, color picker −92%) and is ~0 on irreducible CRUD; the author records that a reasoning model (GPT-5.5) spends more tokens deliberating the rungs. Only rungs 3-5 were absent from the hive — everything else (YAGNI, reuse, Rule of Three, root cause, security floor, over-engineering review) already lives in `development-principles.md`, `critical-thinking.md`, `debugging.md`, `code-reviewer` and `/simplify`. **Not adopted:** the plugin itself (re-states three hive rules per session and per subagent; persona voice; "code first, three lines" conflicts with `reporting-integrity.md`; "ONE runnable check, no frameworks" is weaker than the verifiable test gate; mode flag files and a statusline nudge that writes `~/.claude/settings.json`), and the bare native-control preference for product UI — this portfolio's design systems (HeroUI, Angular Material) own that surface, hence the carve-out in the rule.
 - `[External — method]` **Agentic benchmark harness pattern** worth reusing for tool evaluations here: one arm per process with `--setting-sources project,local` plus a single `--plugin-dir`, fresh repo copy per cell, score the leftover `git diff`, execute produced functions against adversarial input for the safety axis. Their first run (`2026-06-17-agentic-safety.md`, superseded) reported a ~4% gap because the plugin's `SessionStart` hook fired on the baseline arm too — a global-plugin contamination any benchmark run from this machine (hive hooks always-on) must isolate the same way.
+
+## PI integration surfaces (2026-09-10)
+
+Backs `harness/pi/README.md`, the PI agent converter, and the explicit PI capture
+contract in `workflow/session-capture.md`. Version anchor: PI 0.85.1 and the pins
+listed in the PI README; re-check package-specific behavior when upgrading.
+
+- `[Authoritative — official docs]` [PI extensions](https://pi.dev/docs/latest/extensions),
+  [settings](https://pi.dev/docs/latest/settings), [skills](https://pi.dev/docs/latest/skills)
+  and [packages](https://pi.dev/docs/latest/packages), fetched 2026-09-10 and compared
+  with installed documentation. Extension lifecycle, explicit package pins and shared
+  skill discovery are native surfaces. Hive plan approval and canonical hook adaptation
+  are local extension contracts, not upstream plan-mode or sandbox guarantees.
+- `[Authoritative — package source]` [pi-subagents agent configuration](https://github.com/nicobailon/pi-subagents/blob/main/docs/agents.md),
+  examined at installed 0.67.0. Background child loading, trusted agent frontmatter,
+  child-only extension selection and explicit MCP tool selectors underpin the adapter.
+  A model-visible environment binding is not a trusted reviewer identity.
+- `[Authoritative — package source]` [Engram PI plugin](https://github.com/Gentleman-Programming/engram/tree/main/plugin/pi),
+  installed as gentle-engram 0.1.12. Native HTTP integration is used independently
+  of Context7 MCP; the adapter does not initialize a second Engram stdio server.

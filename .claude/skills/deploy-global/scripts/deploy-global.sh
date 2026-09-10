@@ -51,6 +51,8 @@ readonly AGENTS_SKILLS_HOME="${HOME}/.agents/skills"
 readonly GROK_HOME="${GROK_HOME:-${HOME}/.grok}"
 readonly GROK_RULES_HOME="${GROK_HOME}/rules"
 readonly GROK_AGENTS_HOME="${GROK_HOME}/agents"
+readonly PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-${HOME}/.pi/agent}"
+readonly PI_DEPLOY_HELPER="${REPO_ROOT}/harness/pi/deploy.py"
 readonly MANIFEST="${CLAUDE_HOME}/.deploy-manifest"
 readonly BACKUP_DIR="${CLAUDE_HOME}/backups"
 readonly CODEX_DOC_MAX_BYTES=49152
@@ -76,6 +78,8 @@ RUN_CLAUDE=1
 RUN_CODEX=1
 RUN_OPENCODE=1
 RUN_GROK=1
+RUN_PI=0
+PI_ONLY=0
 
 REPORT_LOG=""
 TMP_FILES=()
@@ -127,6 +131,7 @@ FLAGS:
                         opencode  -> harness/ opencode-specific targets (~/.config/opencode)
                         grok      -> always-on rules symlinked into ~/.grok/rules
                                      + generated agents into ~/.grok/agents
+                        pi        -> isolated PI layer under $PI_CODING_AGENT_DIR
                         harness   -> alias for "codex,opencode,grok"
                         all       -> everything (default when --only is omitted)
   --keep-orphans     Under --apply, list manifest-confirmed orphans WITHOUT
@@ -159,6 +164,10 @@ SCOPE NOTES:
   is NOT recursive and does NOT honor `paths:`, so only always-on rules
   (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
   Path-scoped rules reach Grok through the router skills instead.
+
+  The "pi" scope is isolated and must be selected alone. It delegates to the
+  stdlib helper under harness/pi/, which owns only the PI agent directory and
+  its own manifest/backups; it never reads or writes ~/.claude state.
 
 EXIT STATUS:
   0  ran to completion (dry-run or apply)
@@ -234,6 +243,7 @@ parse_args() {
                 codex) RUN_CODEX=1 ;;
                 opencode) RUN_OPENCODE=1 ;;
                 grok) RUN_GROK=1 ;;
+                pi) RUN_PI=1 ;;
                 harness)
                     RUN_CODEX=1
                     RUN_OPENCODE=1
@@ -245,10 +255,39 @@ parse_args() {
                     RUN_OPENCODE=1
                     RUN_GROK=1
                     ;;
-                *) die "Unknown --only scope: ${s} (expected claude|codex|opencode|grok|harness|all)" ;;
+                *) die "Unknown --only scope: ${s} (expected claude|codex|opencode|grok|pi|harness|all)" ;;
             esac
         done
+        if [[ "${RUN_PI}" -eq 1 ]]; then
+            if [[ "${RUN_CLAUDE}" -eq 1 || "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]]; then
+                die "The pi scope is isolated; use --only pi by itself so no other harness manifest is touched"
+            fi
+            PI_ONLY=1
+        fi
     fi
+}
+
+# The PI deploy is deliberately an early, isolated route. It must not run the
+# regular dependency check or any step that creates/merges ~/.claude state.
+check_pi_deps() {
+    command -v python3 >/dev/null 2>&1 || die "Missing required tool: python3 (needed for the PI deploy helper)"
+    command -v shasum >/dev/null 2>&1 || die "Missing required tool: shasum (needed by the PI plan-capture hook)"
+    [[ -f "${PI_DEPLOY_HELPER}" ]] || die "Missing PI deploy helper: ${PI_DEPLOY_HELPER}"
+    [[ -f "${REPO_ROOT}/harness/AGENTS.md" ]] || die "Missing generated PI core: ${REPO_ROOT}/harness/AGENTS.md"
+    [[ -d "${REPO_ROOT}/harness/pi/agents" ]] || die "Missing generated PI agents: ${REPO_ROOT}/harness/pi/agents"
+    [[ -d "${REPO_ROOT}/harness/pi/src" ]] || die "Missing PI runtime source: ${REPO_ROOT}/harness/pi/src"
+    [[ -d "${REPO_ROOT}/harness/pi/extensions" ]] || die "Missing PI extension tree: ${REPO_ROOT}/harness/pi/extensions"
+    [[ -d "${REPO_ROOT}/global/hooks" ]] || die "Missing canonical hooks: ${REPO_ROOT}/global/hooks"
+}
+
+step_deploy_pi() {
+    log "== PI deploy (isolated) =="
+    local -a cmd=(python3 "${PI_DEPLOY_HELPER}" deploy --repo-root "${REPO_ROOT}" --pi-dir "${PI_AGENT_DIR}")
+    if [[ "${APPLY}" -eq 1 ]]; then
+        cmd+=(--apply)
+    fi
+    [[ "${VERBOSE}" -eq 1 ]] && cmd+=(--verbose)
+    "${cmd[@]}"
 }
 
 # ---------------------------------------------------------------------------
@@ -1534,6 +1573,13 @@ step_final_report() {
 
 main() {
     parse_args "$@"
+    if [[ "${PI_ONLY}" -eq 1 ]]; then
+        check_pi_deps
+        log "deploy-global.sh — mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN)"
+        log "scopes — pi:1 (isolated; no ~/.claude manifest or other harness state)"
+        step_deploy_pi
+        return 0
+    fi
     check_deps
 
     REPORT_LOG=$(mktemp)

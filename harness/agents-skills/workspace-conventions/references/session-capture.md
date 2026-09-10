@@ -5,7 +5,7 @@ alwaysApply: true
 
 ## Session Capture & Support Vocabulary
 
-> Path-scoped: loads when the session touches `_support/**`, a specs repo, or `sessions/**`. Codex/opencode/Grok reach it through the `workspace-conventions` skill. Split out of `workflow/project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
+> Path-scoped: loads when the session touches `_support/**`, a specs repo, or `sessions/**`. Codex/opencode/Grok/PI reach it through the `workspace-conventions` skill. Split out of `workflow/project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
 
 ### Canonical subfolder vocabulary
 
@@ -26,6 +26,8 @@ alwaysApply: true
 A **session** is one unit of real execution (dev session, sprint close, analysis pass) — distinct from the **intention** layer (business rules and prior analysis: `product/` (business rules in force), `decisions/`, `contracts/`, `epics/`, `conventions/`). Two axes that reference each other, never duplicate:
 
 **Trigger — durable output on explicit signal, not flow membership.** A session folder is created or reused when execution produces a durable artifact on an **explicit signal**: the user asked for the analysis/report, or asks to keep a conclusion. `/flow-build` reuses it for execution, and on Claude Code an approved native plan-mode plan in a flow workspace is captured automatically (`flow-plan-capture` hook) unless the plan carries `Session: no`. Without an explicit signal, OFFER the artifact — don't write it. Boundary vs memory (`memory-routing.md`): `findings.md` is for conclusions a later session re-reads, with an Engram observation pointing at it; a conversational discovery goes to Engram alone. Trivial work with no durable artifact creates no session folder.
+
+**PI approval (deterministic extension + explicit user command).** `/hive-plan approve` captures the settled plan before starting execution. Use the Flow session home when a ledger exists, otherwise the standalone Git repository session home. Outside both, report session-only execution; honor `Session: no` explicitly. Capture errors keep plan mode active. Capture never authorizes commit or push.
 
 **A command's own working state is not a deliverable, and is written without asking.** A manifest one subcommand produces for another (`agents-md-primary audit` → `apply`, `memory-sync audit` → `apply`) lands in `_support/workspace/<name>-<YYYY-MM-DD>.md` — gitignored, dated, disposable — because it is how an expensive analysis survives the session that produced it, not something the user keeps. The explicit-signal rule above governs `sessions/`; this never lands there. Two limits: an analysis whose only consumer is the conversation stays in the conversation, and **live state is never persisted** (a board read, a check status, a deploy job) — a stale copy reads as current, which is worse than not having it.
 

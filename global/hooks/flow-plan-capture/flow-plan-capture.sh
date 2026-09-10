@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# flow-plan-capture.sh — plan capture, NON-BLOCKING. Three entry points:
+# flow-plan-capture.sh — legacy advisory capture; explicit PI capture fails closed.
 #
 #   (default)             Claude Code PostToolUse:ExitPlanMode, or Grok
 #                         PostToolUse:exit_plan_mode — plan approved. One entry
@@ -15,8 +15,11 @@
 #                         there, but Codex fires this event for its own injected
 #                         message, so BOTH approval buttons land here.
 #
-# All three converge on the same capture: same slug, same `Session: no` opt-out,
-# same index row, same idempotency.
+#   --from-pi-command    PI explicit approval; structured result, exact plan bytes,
+#                         Git-root fallback and nonzero capture errors.
+#
+# Entry points share slug, opt-out and session index conventions. PI uses
+# immutable snapshots; legacy captures overwrite revisions while still planned.
 #
 # The organic bridge of the flow pack: when a native plan-mode plan is APPROVED
 # inside a flow workspace (a `_support/PROJECT.md` ledger at or above cwd), the
@@ -34,9 +37,10 @@
 #
 # Idempotency: same slug with `Status: planned` → overwrite in place (a
 # re-approved revision). Status already advanced (building/built/verified) →
-# a `-2`/`-3` suffixed sibling, never clobbering executed state.
+# a `-2`/`-3` suffixed sibling, never clobbering executed state. PI always suffixes
+# differing content; sequential identical approvals reuse the exact snapshot.
 #
-# Never blocks (exit 0 always); silent outside flow workspaces. Every write or
+# Legacy entry points exit 0 and stay silent outside flow workspaces. Every write or
 # skip appends one breadcrumb line to $TMPDIR/claude-flow-plan-capture.log so
 # the mechanism is auditable.
 
@@ -48,15 +52,40 @@ crumb() { printf '%s %s\n' "$(date '+%F %T')" "$1" >> "$BREADCRUMB" 2>/dev/null 
 mode="hook"
 harness="claude"
 case "${1:-}" in
+  --from-pi-command) mode="pi"; harness="pi" ;;
   --from-transcript)  mode="recovery" ;;
   --from-codex-prompt) mode="codex" ;;
 esac
 
+capture_error() {
+  crumb "error($mode): $1"
+  if [ "$mode" = "pi" ]; then
+    jq -cn --arg reason "$1" '{status:"error",reason:$reason}'
+    exit 1
+  fi
+  exit 0
+}
+
+capture_success() {
+  local digest
+  digest=$(tail -n +5 "$1" | shasum -a 256) || capture_error "cannot-hash-plan"
+  digest=${digest%% *}
+  jq -cn --arg path "$1" --arg sha256 "$digest" '{status:"captured",path:$path,sha256:$sha256}'
+}
+
 input=$(cat)
+if [ "$mode" = "pi" ]; then
+  printf '%s' "$input" | jq -e '(.cwd | type) == "string" and (.tool_response.plan | type) == "string" and (.tool_response.plan | length) > 0' >/dev/null 2>&1 \
+    || capture_error "invalid-payload"
+fi
 cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
+cwd=$(cd "$cwd" 2>/dev/null && pwd -P) || capture_error "invalid-cwd"
 
-if [ "$mode" = "codex" ]; then
+if [ "$mode" = "pi" ]; then
+  plan_b64=$(printf '%s' "$input" | jq -r '.tool_response.plan | @base64')
+  plan=$(printf '%s' "$plan_b64" | base64 -d) || capture_error "invalid-plan"
+elif [ "$mode" = "codex" ]; then
   # Codex UserPromptSubmit — see "Codex: one hook, both approval paths" in the
   # README. Codex has no ExitPlanMode tool, but it DOES fire UserPromptSubmit for
   # the message it injects itself (Claude Code does not), so both plan-approval
@@ -132,20 +161,28 @@ else
   fi
 fi
 
+# User opt-out: a `Session: no` line anywhere in the plan header block.
+if printf '%s\n' "$plan" | head -20 | grep -qiE '^Session:[[:space:]]*no[[:space:]]*$'; then
+  crumb "skip: plan declares Session: no (cwd=$cwd)"
+  [ "$mode" != "pi" ] || printf '%s\n' '{"status":"skipped","reason":"session-no"}'
+  exit 0
+fi
+
 # Flow workspace? Walk up for the ledger.
 dir="$cwd"; root=""
 while [ -n "$dir" ] && [ "$dir" != "/" ]; do
   if [ -f "$dir/_support/PROJECT.md" ]; then root="$dir"; break; fi
   dir=$(dirname "$dir")
 done
+if [ -z "$root" ] && [ "$mode" = "pi" ]; then
+  root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root=""
+  if [ -z "$root" ]; then
+    printf '%s\n' '{"status":"session_only","reason":"no-repository"}'
+    exit 0
+  fi
+fi
 if [ -z "$root" ]; then
   crumb "skip: no ledger above $cwd (plan present)"
-  exit 0
-fi
-
-# User opt-out: a `Session: no` line anywhere in the plan header block.
-if printf '%s\n' "$plan" | head -20 | grep -qiE '^Session:[[:space:]]*no[[:space:]]*$'; then
-  crumb "skip: plan declares Session: no (root=$root)"
   exit 0
 fi
 
@@ -166,6 +203,22 @@ slug=$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' \
 [ -n "$slug" ] || slug="plan"
 today=$(date +%F)
 
+ensure_index() {
+  local entry="$1" index="$sessions_home/README.md"
+  if [ ! -f "$index" ]; then
+    if ! (set -C; printf '# Sessions index\n\n' > "$index") 2>/dev/null && [ ! -f "$index" ]; then
+      [ "$mode" != "pi" ] || capture_error "cannot-create-index"
+      return 0
+    fi
+  fi
+  if ! grep -Fq -- "$entry" "$index" 2>/dev/null; then
+    # shellcheck disable=SC2016 # Markdown backticks are literal.
+    if ! printf -- '- `%s` — in-progress (plan captured from native plan mode)\n' "$entry" >> "$index" 2>/dev/null; then
+      [ "$mode" != "pi" ] || capture_error "cannot-update-index"
+    fi
+  fi
+}
+
 # Re-entry guard for both non-ExitPlanMode paths. A `/resume` of a
 # context-cleared session replays the same `planContent` under a NEW session id,
 # so the once-per-session marker in post-tool-hub cannot stop it; on Codex, a
@@ -173,22 +226,36 @@ today=$(date +%F)
 # whatever the date or Status → stop here; without this, a plan already advanced
 # to `building` would land a `-2` sibling reset to `planned`.
 if [ "$mode" != "hook" ]; then
-  for existing in "$sessions_home"/*/"$slug"-plan.md "$sessions_home"/*/"$slug"-[0-9]-plan.md; do
+  for existing in "$sessions_home"/*/"$slug"-plan.md "$sessions_home"/*/"$slug"-[0-9]*-plan.md; do
     [ -f "$existing" ] || continue
-    if [ "$(tail -n +5 "$existing" 2>/dev/null)" = "$plan" ]; then
+    if { [ "$mode" = "pi" ] && [ "$(tail -n +5 "$existing" | base64 | tr -d '\n')" = "$plan_b64" ]; } ||
+       { [ "$mode" != "pi" ] && [ "$(tail -n +5 "$existing" 2>/dev/null)" = "$plan" ]; }; then
       crumb "skip(recovery): already captured at $existing"
+      if [ "$mode" = "pi" ]; then
+        ensure_index "$(basename "$(dirname "$existing")")"
+        capture_success "$existing"
+      fi
       exit 0
     fi
   done
 fi
 
-# Idempotency: overwrite while still `planned`; suffix once Status advanced.
+# Legacy revisions overwrite while planned; PI reserves immutable snapshots.
+if [ "$mode" = "pi" ]; then
+  mkdir -p "$sessions_home" 2>/dev/null || capture_error "cannot-create-destination"
+fi
 candidate="$slug"; n=1
 while :; do
   target_dir="$sessions_home/$today-$candidate"
   target="$target_dir/$candidate-plan.md"
-  if [ ! -f "$target" ]; then break; fi
-  if head -3 "$target" | grep -qiE '^Status:[[:space:]]*planned[[:space:]]*$'; then break; fi
+  if [ "$mode" = "pi" ]; then
+    # Reserve a distinct snapshot atomically across concurrent approvals.
+    if mkdir "$target_dir" 2>/dev/null; then break; fi
+    [ -e "$target_dir" ] || capture_error "cannot-reserve-destination"
+  else
+    if [ ! -f "$target" ]; then break; fi
+    if head -3 "$target" | grep -qiE '^Status:[[:space:]]*planned[[:space:]]*$'; then break; fi
+  fi
   n=$((n + 1)); candidate="$slug-$n"
 done
 
@@ -199,26 +266,36 @@ done
 captured_caveat=""
 [ "$mode" = "recovery" ] && captured_caveat="; recovered after the fact — Status is unverified against git"
 
-mkdir -p "$target_dir" 2>/dev/null || { crumb "skip: cannot create $target_dir"; exit 0; }
+mkdir -p "$target_dir" 2>/dev/null || capture_error "cannot-create-destination"
+write_target="$target"
+if [ "$mode" = "pi" ]; then
+  write_target=$(mktemp "$target_dir/.capture.XXXXXX") || capture_error "cannot-create-temporary-file"
+  trap 'rm -f "$write_target"' EXIT
+fi
 {
   printf '%s\n' "Status: planned"
   printf '%s\n' "Implements: <fill: epic/task refs or —>"
   printf '%s\n' "Captured: $today (native plan mode, flow-plan-capture)${captured_caveat}"
-  printf '\n%s\n' "$plan"
-} > "$target" 2>/dev/null || { crumb "skip: cannot write $target"; exit 0; }
+  if [ "$mode" = "pi" ]; then
+    printf '\n'
+    printf '%s' "$plan_b64" | base64 -d
+  else
+    printf '\n%s\n' "$plan"
+  fi
+} > "$write_target" 2>/dev/null || capture_error "cannot-write-plan"
+if [ "$mode" = "pi" ]; then
+  mv "$write_target" "$target" || capture_error "cannot-publish-plan"
+  trap - EXIT
+fi
 
-# Sessions index row (idempotent: skip if the slug is already listed).
-index="$sessions_home/README.md"
-if [ ! -f "$index" ]; then
-  printf '# Sessions index\n\n' > "$index" 2>/dev/null || true
-fi
-if [ -f "$index" ] && ! grep -q "$today-$candidate" "$index" 2>/dev/null; then
-  # shellcheck disable=SC2016  # backticks are markdown and %s is the printf format; nothing here is meant to expand
-  printf -- '- `%s` — in-progress (plan captured from native plan mode)\n' \
-    "$today-$candidate" >> "$index" 2>/dev/null || true
-fi
+ensure_index "$today-$candidate"
 
 crumb "write${mode:+($mode)}${harness:+[$harness]}: $target"
+
+if [ "$mode" = "pi" ]; then
+  capture_success "$target"
+  exit 0
+fi
 
 rel_target="${target#"$root"/}"
 whence="captured"

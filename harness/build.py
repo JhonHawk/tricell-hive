@@ -17,6 +17,7 @@ Generates (delete-and-recreate, never incremental):
     harness/codex/agents/         <- global/agents   (Codex TOML subagents)
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
     harness/grok/agents/          <- global/agents   (Grok Build markdown agents)
+    harness/pi/agents/            <- global/agents   (PI pi-subagents agents)
     harness/opencode/rules/       <- global/rules/languages (opencode-rules plugin format)
 
 Hand-written sources are never touched: harness/codex/{README, *.snippet},
@@ -629,6 +630,7 @@ def main():
             ("codex", ROOT / "harness" / "codex" / "agents"),
             ("opencode", ROOT / "harness" / "opencode" / "agents"),
             ("grok", ROOT / "harness" / "grok" / "agents"),
+            ("pi", ROOT / "harness" / "pi" / "agents"),
         ):
             regen_dir(dst)
             for f in sorted((Path(tmp) / src_name).iterdir()):

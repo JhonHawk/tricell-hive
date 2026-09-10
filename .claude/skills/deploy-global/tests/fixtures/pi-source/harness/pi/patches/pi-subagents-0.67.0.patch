@@ -1,0 +1,10 @@
+--- a/src/runs/shared/child-tool-plan.ts
++++ b/src/runs/shared/child-tool-plan.ts
+@@ -1,1 +1,1 @@
+-export const childTools = ["host", "coordination"];
++export const childTools = ["host", "pi-native", "coordination"];
+--- a/src/runs/shared/subagent-prompt-runtime.ts
++++ b/src/runs/shared/subagent-prompt-runtime.ts
+@@ -1,1 +1,1 @@
+-export const runtimeCheck = true;
++export const runtimeCheck = false;

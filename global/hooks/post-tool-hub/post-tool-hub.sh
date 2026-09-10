@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # post-tool-hub.sh — PostToolUse (all tools) hub, NON-BLOCKING.
 #
-# Dual-runtime: Claude Code and Grok Build payloads. Field fallbacks must stay
+# Claude Code, Grok Build, Cursor, and normalized PI payloads. Field fallbacks must stay
 # in sync with bash-policy.sh.
 #
 # One process, one stdin read, five independent sections. Each section
@@ -29,6 +29,7 @@
 set -uo pipefail
 
 input=$(cat)
+harness=$(printf '%s' "$input" | jq -r '.harness // empty' 2>/dev/null)
 # Tri-runtime field normalization (Claude snake_case | Grok camelCase | Cursor).
 session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty' 2>/dev/null)
 tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // empty' 2>/dev/null)
@@ -54,6 +55,7 @@ HOOK_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd) || HOOK_DIR=""
 # The marker is written BEFORE the attempt: a failure must not retry every call.
 # ---------------------------------------------------------------------------
 plan_recovery_section() {
+  [ "$harness" != "pi" ] || return 0
   local marker out
   marker="${TMPDIR:-/tmp}/claude-flow-plan-recovery-${session_id}"
   [ -f "$marker" ] && return 0
@@ -82,7 +84,7 @@ delegation_section() {
 
   # Delegation observed -> reset the counter and stay silent.
   case "$tool_name" in
-    Task|Agent|spawn_subagent)
+    Task|Agent|spawn_subagent|subagent)
       printf '%s|0' "$agent_id" > "$marker" 2>/dev/null || true
       return 0 ;;
   esac
@@ -189,7 +191,9 @@ zsh_signature_section() {
   else return 0; fi
 
   # shellcheck disable=SC2016  # single quotes intentional: ${!var}/${(P)var}/$BASH_VERSION are literal text for the model, never expanded here
-  if [ "$tool_name" = "run_terminal_command" ]; then
+  if [ "$harness" = "pi" ]; then
+    printf 'zsh failure signature detected (%s). Inspect the configured shell and apply the shell-standards reference before retrying.' "$sig"
+  elif [ "$tool_name" = "run_terminal_command" ]; then
     printf 'zsh failure signature detected (%s). This tool shell is zsh: `status`/`path` are special — rename such variables (st, repo_path); `${!var}` is `${(P)var}`; no `declare -A`/`mapfile`/`read -p`; unmatched globs abort, even as flag values. Fix per CLAUDE.md > Shell and retry.' "$sig"
   else
     printf 'zsh failure signature under the Bash tool (%s), which should be running bash 5 via CLAUDE_CODE_SHELL — the override may have drifted or a restart is pending. Verify with `echo $BASH_VERSION`; until it says 5.x, apply the zsh rules in CLAUDE.md > Shell.' "$sig"
@@ -208,6 +212,7 @@ zsh_signature_section() {
 # design — a question asked where PostToolUse cannot see it is not counted.
 # ---------------------------------------------------------------------------
 git_mode_section() {
+  [ "$harness" != "pi" ] || return 0
   local askq_marker marker cwd
   askq_marker="${TMPDIR:-/tmp}/claude-askq-seen-${session_id}"
 

@@ -1,6 +1,7 @@
 # flow-plan-capture
 
-PostToolUse hook on `ExitPlanMode` (Claude Code) / `exit_plan_mode` (Grok) — the organic bridge of the flow
+PostToolUse hook on `ExitPlanMode` (Claude Code) / `exit_plan_mode` (Grok), plus the
+explicit `--from-pi-command` entry point used by Pi, is the organic bridge of the flow
 pack ("Artifact-Attached Flow" design, 2026-07-10). When a native plan-mode plan is
 approved inside a flow workspace (ledger `_support/PROJECT.md` at or above cwd), the plan
 is captured to the session-capture layer (`sessions/YYYY-MM-DD-<slug>/<slug>-plan.md`,
@@ -9,24 +10,75 @@ working plan from there. `/flow-build` adopts that file (ADOPT step). opencode h
 equivalent event — it gets the same convention as instructions via the workspace
 `AGENTS.md` template in `flow-core/templates/workspace-agents.md`.
 
-**Three entry points, one capture** — same slug rules, same `Session: no` opt-out, same
-index row, same idempotency:
+**Four entry points, one capture** — same slug rules, same `Session: no` opt-out, same
+index row, same idempotency. The first three preserve their historical advisory
+behavior; the explicit Pi path is a fail-closed command boundary:
 
 | Flag | Harness / event | Covers |
 |---|---|---|
 | *(none)* | Claude Code `PostToolUse:ExitPlanMode` · Grok `PostToolUse:exit_plan_mode` | the plain approval, on either harness — told apart by the payload, see below |
 | `--from-transcript` | Claude Code, called by `post-tool-hub` | the approval that clears the context — it denies the tool, so no PostToolUse fires |
 | `--from-codex-prompt` | Codex `UserPromptSubmit` | **both** Codex approval buttons |
+| `--from-pi-command` | Pi plan extension | the settled candidate passed by the explicit `/hive-plan approve` command |
 
 Design decisions (user-approved 2026-07-10):
 - **No size threshold** — entering plan mode is the proportionality filter.
 - **Opt-out rides the plan** (`Session: no` line) — the skip is explicit in the approved
   text, never a silent heuristic.
-- **Idempotent by slug**: overwrite while `Status: planned`; `-2` suffix once advanced.
+- **Legacy idempotency by slug**: overwrite while `Status: planned`; `-2` suffix once
+  advanced. The PI command keeps immutable snapshots: exact plan content returns the
+  existing path, while different content always receives a suffix, even when the prior
+  snapshot still says `Status: planned`.
 - **Breadcrumb log** at `$TMPDIR/claude-flow-plan-capture.log` — every write/skip auditable
   (`write(hook)` for the PostToolUse path, `write(recovery)` for the one below; a
   `[grok]` tag marks the harness when the payload was Grok's).
-- Non-blocking: exit 0 always; silent outside flow workspaces.
+- Legacy paths remain non-blocking: exit 0 and silence outside flow workspaces. The Pi
+  path returns structured JSON and a non-zero exit for malformed input, write failures,
+  or any other capture error so the plan extension cannot execute without a durable
+  capture result.
+
+## Pi: explicit command capture
+
+The Pi extension invokes the script without a shell command string:
+
+```json
+{
+  "harness": "pi",
+  "cwd": "/path/to/repository",
+  "tool_response": {
+    "plan": "Session: yes\n\n# Plan\n\nexact bytes, including the final newline\n"
+  }
+}
+```
+
+It passes that JSON on stdin to `flow-plan-capture.sh --from-pi-command`. Successful
+responses are one of:
+
+```json
+{"status":"captured","path":"/path/to/repository/_support/sessions/2026-09-10-plan/plan-plan.md","sha256":"<64 lowercase hex characters>"}
+{"status":"session_only","reason":"no-repository"}
+{"status":"skipped","reason":"session-no"}
+```
+
+The plan body is written byte-for-byte after four metadata lines; command substitution
+does not trim the plan because the implementation transports it as base64. The
+`sha256` value is the native `shasum -a 256` digest of those exact plan bytes after
+the four lines, including the blank separator (the three metadata lines plus that
+separator), rather than the hash of the complete artifact. A Flow
+workspace uses the nearest `_support/PROJECT.md` ledger. A repository without that
+ledger uses its standalone `_support/sessions` layer. Outside a Git repository the
+script reports `session_only` and creates no durable artifact. `Session: no` in the
+first 20 lines reports `skipped` and creates no artifact. A malformed payload, missing
+plan, non-string plan, invalid destination, or failed write returns
+`{"status":"error",...}` and exits non-zero.
+
+The command is idempotent by exact plan content: an existing captured plan returns its
+path without rewriting it. A concurrent or later plan with the same title but different
+bytes receives a new suffixed snapshot; it never overwrites the first PI capture. The
+caller must treat only `captured`, `session_only`, and `skipped` as approval-independent
+completion states; an error is a hard stop. The PI plan runtime compares the returned
+digest with the SHA-256 of the approved candidate before restoring tools or starting
+execution; a mismatch remains blocked.
 
 ## Grok: same entry point, different payload — same injection since 1.0.14
 
