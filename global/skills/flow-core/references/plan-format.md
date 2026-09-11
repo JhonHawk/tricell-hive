@@ -281,7 +281,9 @@ Changing a progress row must leave `contract_sha256` unchanged.
 release, or deploy permission. Those operations require corresponding active
 grants and the session's existing Git and deployment gates. A plan may carry
 those grants from the initial approval, so one explicit authorization can
-cover implementation and publication when the user clearly requested both.
+cover implementation and publication when the user clearly requested both —
+the session git mode chosen at the plan gate supplies them
+(`> Delivery grants from the session mode`).
 
 ## Task block
 
@@ -341,6 +343,32 @@ frozen contract records new user evidence and increments the authorization revis
 changing the contract digest. Narrowing or revoking a grant updates Authorization or revocations
 without a contract revision; an operation or target outside the frozen contract scope requires
 one. A positive review is evidence of quality, not a new grant.
+
+### Delivery grants from the session mode
+
+The session git mode chosen at the plan gate (`git-mechanics.md > Commits`) IS the delivery
+consent: the user picks a mode, never `commit`/`push`/`pr`/`merge` one by one. Record the mode
+as grants, every target the exact base branch:
+
+| Mode | Grants | Condition on every delivery grant |
+|---|---|---|
+| `interactive` | `commit`, `push`, `pr`, `merge` | `user-validated-in-vivo` — evidence empty until the user validates the running build |
+| `automatic` | `commit`, `push`, `pr`, `merge` | none; the same condition is added when the change-group lands on a user-judged surface |
+| `direct-base` | `commit`, `push` | none |
+| `hold` | none | the commit lands on the user's approval of the diff |
+
+The `merge` grant is checked at run time against the four conditions `interactive` names
+(checks green, no conflicts with the base, no blocking Phase B finding, base not the
+production-deploying branch) — gates the agent verifies, not consent it asks for; one failing
+asks, naming which. Once the user's validation fills the condition's evidence, the chain runs
+commit → push → PR → Phase B → merge with no second ask: **the merge is the agent's under both
+modes, never reserved for the user.** What stays the user's in every mode is the in-vivo
+validation itself and any merge or promotion into the production-deploying branch
+(`git-workflow.md > Safety gates`). A plan that omits `merge` under `interactive` or `automatic`
+records a narrowing the user asked for explicitly, never the default reading of the mode.
+`deploy` is granted only when the user names it. A repo or session declaring the `human`
+review route (`git-mechanics.md > PRs & promotion`) drops `merge` from the grant set: the
+change-group closes at the open PR handed to that reviewer.
 
 When adopting a legacy or organic plan, normalize it before treating it as executable. A legacy
 status, location or native harness approval supplies no authority. If the normalized contract is

@@ -21,13 +21,16 @@ implicit publication.
    preserve `Session: no` as conversation-only and make no durable resume claim for it. Write
    `## Current handoff` with the paths produced, decisions left, input for the next phase and the
    next suggested action.
-4. **Evidence.** Keep versioned reports written by the verification gate. Purge only raw,
+4. **Memory.** Upsert every living status record (`topic_key`) this run falsified — a delivery
+   observed in step 2 supersedes the "open, not merged" fact written earlier, in the same close;
+   it never waits for the user to declare the session over (`memory-routing.md`).
+5. **Evidence.** Keep versioned reports written by the verification gate. Purge only raw,
    gitignored evidence whose retention rule allows it; do not delete open-finding evidence or
    anything needed to substantiate a pending delivery.
-5. **Docs impact.** State the change-group's specs/product-doc delta: paths updated in the specs
+6. **Docs impact.** State the change-group's specs/product-doc delta: paths updated in the specs
    repo, or `none` with the reason. An operator-facing behavior with no required documentation
    delta is a gap to close in the same change-group.
-6. **Report.** Distinguish tasks implemented, tasks verified, delivery actions completed and
+7. **Report.** Distinguish tasks implemented, tasks verified, delivery actions completed and
    delivery actions still pending. Include paths and exact commands actually run, what was
    unverified or blocked, executor substitutions, servers started/stopped and the next
    suggested scope. `verified` is a quality result, not a delivery claim.

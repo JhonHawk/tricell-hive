@@ -91,8 +91,10 @@ these outcomes distinct:
 - approval of the problem, scope or design permits planning to continue but does not authorize
   implementation;
 - explicit implementation consent permits `/flow-build` to edit the authorized scope;
-- explicit delivery consent may include commit, push, PR, merge or deploy targets, as named by
-  the user and allowed by the repository's mandatory gates.
+- explicit delivery consent is the session git mode chosen at the gate, recorded as the grant
+  set `plan-format.md > Delivery grants from the session mode` maps it to (`interactive` and
+  `automatic` both include `merge` into the base; `deploy` only when the user names it), within
+  the repository's mandatory gates.
 
 Record the user's evidence and the resulting action/target scope in Authorization, including any
 conditions that delivery must satisfy. Later fresh evidence may mark a preauthorized condition
