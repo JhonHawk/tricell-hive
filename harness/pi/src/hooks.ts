@@ -12,6 +12,7 @@ import { Type } from "typebox";
 import { attachChildLifecycle, defaultChildRegistry } from "./child-registry.ts";
 import { createGitReadTool } from "./git-read.ts";
 import { checkHookReadiness, runHook } from "./hook-runner.ts";
+import { formatHiveResearchStatus, registerHiveResearchReadiness } from "./research.ts";
 import type { ChildRegistry, HookPaths, HookRunnerOptions } from "./types.ts";
 
 export const HIVE_CONTEXT7_MCP_TOOLS = {
@@ -291,13 +292,14 @@ export function createHookReadinessTool(
 
 function registerHiveStatusCommand(pi: ExtensionAPI, paths: HookPaths): void {
   pi.registerCommand("hive-status", {
-    description: "Inspect Hive hook readiness and active tools",
+    description: "Inspect Hive hook, research, and active tool readiness",
     handler: async (_args, ctx) => {
       const readiness = checkHookReadiness(requiredHookPaths(paths));
       const hooks = readiness.ready ? "ready" : `not_ready (${readiness.missing.join(", ")})`;
-      const tools = [...pi.getActiveTools()].sort().join(", ") || "none";
+      const activeTools = pi.getActiveTools();
+      const tools = [...activeTools].sort().join(", ") || "none";
       ctx.ui.notify(
-        `Hive status\nhooks: ${hooks}\nhook_status:\n${hookStatusLines(getHiveHookStatuses(pi, paths))}\ntools: ${tools}`,
+        `Hive status\nhooks: ${hooks}\nhook_status:\n${hookStatusLines(getHiveHookStatuses(pi, paths))}\n${formatHiveResearchStatus(activeTools)}\ntools: ${tools}`,
         "info",
       );
     },
@@ -478,6 +480,7 @@ export function registerGeneralHiveHooks(
     markHiveHookWired(pi, paths, "sessionHygieneReport");
   }
   pi.registerTool(createHookReadinessTool(paths, () => getHiveHookStatuses(pi, paths)));
+  registerHiveResearchReadiness(pi);
   pi.registerTool(createGitReadTool(pi));
   registerHiveStatusCommand(pi, paths);
 

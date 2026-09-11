@@ -5,7 +5,7 @@ description: >
   Adversarially verify a finding, claim, or diagnosis produced by another agent or an investigation — attempt to REFUTE it, not confirm it. Use by default (per agent-routing triage) whenever a task asks "is this claim true", "does this bug exist", "verify this finding" — including findings from Explore reports, review agents, or the main thread's own analysis. NOT for reviewing whole diffs (code-reviewer) or challenging feature necessity/scope (product-critic).
 model: inherit
 thinking: high
-tools: read, find, grep, bash, web_search, fetch_content, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, find, grep, bash, fetch_content, get_search_content, web_search, source_check, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness, hive_research_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -60,3 +60,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 For version-sensitive claims, use the shared `mcp` gateway in this order:
 1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
 2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`
+
+## PI research readiness
+
+Before external research, call `hive_research_readiness` with profile `web`. It inspects this agent's active tools and reports `available`, `missing`, and `ready`. Treat a missing research tool as informational: continue local tasks, but do not pretend an unavailable tool or provider is ready.

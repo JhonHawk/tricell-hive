@@ -5,7 +5,7 @@ description: >
   Fetch and watch low-reasoning external state and return it compact: the DECLARED tracker's board and tickets (Linear via MCP, Jira via acli, GitHub Issues via gh — or tasks.md when untracked), PR checks and merge state (gh), and deploy jobs (Amplify, Vercel, pipelines). Also executes an ALREADY-APPROVED batch of outward tracker writes, reading payloads from disk. Use when a board read, check watch, deploy-job poll, or ticket batch would otherwise inflate the main thread — the result matters, not the search. NOT for deciding what work exists (the specs layer), what is stale (/memory-sync), or file/ledger hygiene (workspace-custodian).
 model: openai-codex/gpt-5.6-luna
 thinking: medium
-tools: read, bash, find, ls, grep, web_search, fetch_content, get_search_content, source_check, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, bash, find, ls, grep, web_search, fetch_content, get_search_content, source_check, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness, hive_research_readiness
 excludeTools: write, edit, subagent
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
@@ -71,3 +71,7 @@ you never conclude beyond what the sources state.
 - **Executed batch**: per-item `confirmed | no_write | unknown` with URL/key, and which
   items were left unexecuted after an `unknown` — never a rolled-up "done".
 - **Proposals**: anything outside the approved batch, as exact lines or diffs for the caller.
+
+## PI research readiness
+
+Before external research, call `hive_research_readiness` with profile `web`. It inspects this agent's active tools and reports `available`, `missing`, and `ready`. Treat a missing research tool as informational: continue local tasks, but do not pretend an unavailable tool or provider is ready.

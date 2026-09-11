@@ -45,12 +45,29 @@ consent.
    condition already granted may be marked satisfied with fresh evidence without new approval;
    changed, expired or failed conditions stop the action. Mandatory safety and repository gates
    still apply. A hash proves content integrity, not who originated the consent.
-4. **Read observed state.** Reconcile the execution table with the filesystem, Git diff/log and
-   verification evidence. A task marked complete without the expected evidence is pending. Under
-   `hold`, a clean commit is not required: verified working-tree changes and their commands are
-   valid evidence. Do not rewrite the frozen contract to record progress; update only the
-   execution section.
-5. **Determine the pending stage.** Use the state and observed evidence as follows:
+4. **Check recovery before repeating meaningful work.** For a task, delegation, fix, review
+   round, or remote operation that may be repeated, call the read-only helper with its canonical
+   `kind` and semantic `scope`:
+
+   ```sh
+   python3 path/to/plan.py recovery-check <plan> --kind <kind> --scope <scope>
+   ```
+
+   A present recovery block with `attempts: []` is an initialized empty history and may continue.
+   An absent block is legacy `unknown`; reconcile observed state and initialize the block before
+   repeating work. An open or ambiguous attempt stops the repeat until its workspace, Git,
+   process, or remote result is reconciled. A `completed` result closes the same review
+   `kind`/`scope`, including after a contract digest change; an exhausted budget also stops that
+   scope. Counters remain attached to the same semantic `kind` and `scope` across contract digests;
+   an unrelated scope has an independent budget. This check never supplies consent or satisfies an
+   action grant.
+5. **Read observed state.** Reconcile the execution table, recovery attempts, filesystem, Git
+   diff/log and verification evidence. A task marked complete without the expected evidence is
+   pending. Under `hold`, a clean commit is not required: verified working-tree changes and their
+   commands are valid evidence. Do not rewrite the frozen contract to record progress; update
+   only the execution and recovery metadata sections; authorization changes follow the grant
+   rules above.
+6. **Determine the pending stage.** Use the state and observed evidence as follows:
 
    | State + observed evidence | Do |
    |---|---|
@@ -66,12 +83,12 @@ consent.
    The observed tree is authoritative for actual files; the plan is authoritative for intended
    scope and action permissions. When they conflict, stop and surface the conflict instead of
    guessing which side to keep.
-6. **In-vivo timing.** If the plan has `in-vivo: yes` or `design-review: yes` tasks, defer browser
+7. **In-vivo timing.** If the plan has `in-vivo: yes` or `design-review: yes` tasks, defer browser
    walks to `built` by default so the change-group is judged as a whole. Run them inline only when
    independent gated tasks would materially benefit from early feedback or the plan explicitly
    chooses that timing. Persist the choice in execution state for this run; it does not modify the
    frozen contract.
 
-`verify` performs steps 1–6, skips implementation, and enters the verification gate when the
+`verify` performs steps 1–7, skips implementation, and enters the verification gate when the
 observed state is `built`. Its explicit invocation is the verification authority; it never creates
 a delivery grant and never publishes.

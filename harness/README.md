@@ -173,3 +173,13 @@ from verification. Native plan-mode transitions are not Hive authorization event
 validator checks declared state and content integrity when invoked; its invocation and consent
 provenance remain workflow conventions. General shell and reviewer guards retain their own
 harness-specific enforcement.
+
+Verification follows the shared matrix in task-routing: passive content, ordinary behavior
+and sensitive surfaces retain their applicable checks without repeating equivalent reviews.
+Recovery stays in the same plan outside its frozen contract. The read-only recovery check
+derives retry budgets from recorded attempts and asks for reconciliation when history or an
+outcome is unknown; it does not grant implementation or delivery authority.
+
+PI additionally exposes research readiness for the active agent's documentation and web
+tools. A ready parent does not establish readiness in a child with a different tool selection,
+and available tools do not establish network or provider access.

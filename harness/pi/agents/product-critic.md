@@ -5,7 +5,7 @@ description: >
   Adversarial pre-implementation critique of a spec, épica, or proposed feature: challenges necessity, scope, and shape with full workspace context. Use BEFORE implementation begins (the business gate of the spec-writing playbook) — NOT for spec completeness or formatting (that is spec-quality-reviewer).
 model: openai-codex/gpt-6-astra
 thinking: medium
-tools: read, find, grep, bash, web_search, fetch_content, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness, hive_reviewer_readiness
+tools: read, find, grep, bash, fetch_content, get_search_content, web_search, source_check, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness, hive_reviewer_readiness, hive_research_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts, __HIVE_PI_ROOT__/extensions/hive/reviewer-guard.ts
 async: true
 defaultContext: fresh
@@ -66,3 +66,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 For version-sensitive claims, use the shared `mcp` gateway in this order:
 1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
 2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`
+
+## PI research readiness
+
+Before external research, call `hive_research_readiness` with profile `web`. It inspects this agent's active tools and reports `available`, `missing`, and `ready`. Treat a missing research tool as informational: continue local tasks, but do not pretend an unavailable tool or provider is ready.

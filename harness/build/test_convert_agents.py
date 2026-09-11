@@ -183,13 +183,89 @@ class ConverterTests(unittest.TestCase):
         )
         pi = CONVERTER.to_pi(agent)
         self.assertIn(
-            "tools: read, write, edit, web_search, mcp, "
+            "tools: read, write, edit, fetch_content, get_search_content, web_search, "
+            "source_check, mcp, "
             "mem_save, contact_supervisor",
             pi,
         )
         self.assertIn("excludeTools: write, mcp", pi)
         self.assertIn("subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts", pi)
         self.assertNotIn("mcp:", pi)
+
+    def test_pi_research_capabilities_expand_and_add_non_blocking_readiness(self):
+        documentation = fixture_agent(
+            "name: documentation-research\n"
+            "description: Documentation research fixture\n"
+            "tools: Read, WebFetch\n"
+        )
+        documentation_pi = CONVERTER.to_pi(documentation)
+        self.assertIn(
+            "tools: read, fetch_content, get_search_content, "
+            "mem_search, mem_context, mem_get_observation, contact_supervisor, "
+            "hive_hook_readiness, hive_research_readiness",
+            documentation_pi,
+        )
+        self.assertIn("profile `documentation`", documentation_pi)
+        self.assertNotIn("web_search, source_check", documentation_pi.split("tools: ", 1)[1].split("\n", 1)[0])
+
+        web = fixture_agent(
+            "name: web-research\n"
+            "description: Web research fixture\n"
+            "tools: Read, WebSearch\n"
+        )
+        web_pi = CONVERTER.to_pi(web)
+        self.assertIn(
+            "tools: read, fetch_content, get_search_content, web_search, source_check, "
+            "mem_search, mem_context, mem_get_observation, contact_supervisor, "
+            "hive_hook_readiness, hive_research_readiness",
+            web_pi,
+        )
+        self.assertIn("profile `web`", web_pi)
+
+        local = fixture_agent(
+            "name: local-only\n"
+            "description: Local-only fixture\n"
+            "tools: Read, Bash\n"
+        )
+        local_pi = CONVERTER.to_pi(local)
+        self.assertNotIn("hive_research_readiness", local_pi)
+        self.assertNotIn("PI research readiness", local_pi)
+
+        inherited = fixture_agent(
+            "name: inherited-research\n"
+            "description: Inherited research fixture\n"
+        )
+        inherited_pi = CONVERTER.to_pi(inherited)
+        inherited_tools = inherited_pi.split("tools: ", 1)[1].split("\n", 1)[0]
+        self.assertIn("web_search, fetch_content, get_search_content, source_check", inherited_tools)
+        self.assertIn("hive_research_readiness", inherited_pi)
+        self.assertIn("profile `web`", inherited_pi)
+
+    def test_pi_research_expanded_denies_win_for_explicit_and_inherited_roles(self):
+        explicit = fixture_agent(
+            "name: denied-web\n"
+            "description: Denied web research fixture\n"
+            "tools: Read, WebSearch\n"
+            "disallowedTools: WebSearch\n"
+        )
+        explicit_pi = CONVERTER.to_pi(explicit)
+        self.assertIn(
+            "excludeTools: fetch_content, get_search_content, web_search, source_check",
+            explicit_pi,
+        )
+        self.assertIn("hive_research_readiness", explicit_pi)
+
+        inherited = fixture_agent(
+            "name: denied-inherited\n"
+            "description: Denied inherited research fixture\n"
+            "disallowedTools: WebFetch\n"
+        )
+        inherited_pi = CONVERTER.to_pi(inherited)
+        tools_line = inherited_pi.split("tools: ", 1)[1].split("\n", 1)[0]
+        self.assertNotIn("fetch_content", tools_line)
+        self.assertNotIn("get_search_content", tools_line)
+        self.assertIn("web_search, source_check", tools_line)
+        self.assertIn("hive_research_readiness", inherited_pi)
 
     def test_pi_context7_agents_use_one_guarded_mcp_gateway(self):
         expected_agents = {

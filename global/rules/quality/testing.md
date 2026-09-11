@@ -7,9 +7,12 @@ alwaysApply: true
 > Tests are mandatory whenever a change alters behavior. The bar is the **verifiable test gate** below — not a ritual, a checkable result.
 
 ### Does NOT apply to
-- Config-only repos with no runtime (CLAUDE.md hubs, IaC-only repos, documentation-only repos). Each declares its scope in its own `CLAUDE.md > Rule Exclusions`.
+- Repositories with no runtime-test target (CLAUDE.md hubs, IaC-only repos, documentation-only repos) are exempt from runtime-test requirements only; the verification matrix's review and readback gates still apply to behavior-bearing configuration. Each declares its scope in its own `CLAUDE.md > Rule Exclusions`.
 - Disposable utilities under `_support/scripts/` that exist only for the current dev session.
-- Edits to agent prompts, skill definitions, or markdown rule files — those are reviewed by reading, not by running tests.
+- Passive documentation-only edits with no effect on runtime behavior, agent instructions, skill
+  definitions, hooks or configuration — those use diff and consistency review, with runtime
+  verification recorded as not-applicable. Agent instructions, skills, hooks and configuration
+  belong to the standard-behavior review row when they can change behavior.
 - **Trivial changes**, as defined by the carve-out in `quality/critical-thinking.md` (the canonical definition — not restated here). No new tests required, but existing tests must still pass.
 
 ### Coverage by change type

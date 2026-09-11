@@ -69,6 +69,12 @@ operations:
 { tool: "context7_query-docs", args: { libraryId, query } }
 ```
 
+The source WebFetch grant expands to Pi's
+fetch_content/get_search_content retrieval pair. WebSearch expands to that
+pair plus web_search/source_check for the full web profile. Source
+disallowedTools entries expand to the same Pi names and remain authoritative
+through the generated excludeTools field.
+
 The 25 roles keep the Hive roster and prompts. Their OpenAI-backed model policy
 is:
 
@@ -100,9 +106,15 @@ provide as a single native Hive surface:
   unsafe arguments, disables external diff/pager/fsmonitor behavior, caps
   output, and never accepts a shell command. The general extension registers it
   for every Hive role, including reviewers.
+- `research.ts` exposes `hive_research_readiness`, which inspects the active
+  tools in the current Pi agent. The `documentation` profile requires
+  `fetch_content` and `get_search_content`; the `web` profile additionally
+  requires `web_search` and `source_check`. It reports `available`,
+  `missing`, and `ready` without blocking local work when a research tool
+  is unavailable.
 - `hive-status` reports the current hook readiness, per-hook status, and active
-  tools. `hive_hook_readiness` remains the structured readiness check used by
-  generated roles.
+  tools, including both research profiles. `hive_hook_readiness` remains the
+  structured hook check used by generated roles.
 - Flow planning and execution use the shared `/flow-plan` and `/flow-build`
   skills. Pi has no Hive-specific plan mode, plan approval state, or plan
   capture adapter; the workflow artifacts and their approvals remain
@@ -116,8 +128,9 @@ Role identity comes from the generated agent definition; it is never inferred
 from a prompt or environment variable. A missing required child extension is
 an infrastructure error, not a reason to silently continue without the guard.
 The generated `tools` allowlists carry the readiness sentinels:
-`hive_hook_readiness` is selected by all 25 roles, and those six reviewer roles
-also select `hive_reviewer_readiness`. The corresponding child extensions are
+`hive_hook_readiness` is selected by all 25 roles, and research-capable roles
+also select `hive_research_readiness`; the six reviewer roles additionally
+select `hive_reviewer_readiness`. The corresponding child extensions are
 `hive-hooks.ts` for every role and `hive/reviewer-guard.ts` for the six-role
 reviewer set. `pi-subagents` 0.67.0 derives the required child-tool checks
 from the explicit `tools` selection.

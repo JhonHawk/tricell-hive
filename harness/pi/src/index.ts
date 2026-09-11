@@ -6,6 +6,7 @@ export * from "./git-read.ts";
 export * from "./hook-runner.ts";
 export * from "./hooks.ts";
 export * from "./reviewer.ts";
+export * from "./research.ts";
 export * from "./types.ts";
 
 export default function hivePiExtension(pi: ExtensionAPI): void {

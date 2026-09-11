@@ -444,12 +444,14 @@ test("general Hive extension keeps status and Git read without registering plan 
     assert.equal(fake.commands.has("hive-plan"), false);
     assert.equal(fake.commands.has("hive-status"), true);
     assert.equal(fake.tools.some((tool) => typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_hook_readiness"), true);
+    assert.equal(fake.tools.some((tool) => typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_research_readiness"), true);
     assert.equal(fake.tools.some((tool) => typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_git_read"), true);
 
     const status = fake.commands.get("hive-status");
     assert.ok(status);
     await status("", context);
     assert.match(fake.notifications.join("\n"), /Hive status/u);
+    assert.match(fake.notifications.join("\n"), /research_readiness:/u);
     assert.doesNotMatch(fake.notifications.join("\n"), /plan mode/u);
   } finally {
     rmSync(directory, { recursive: true, force: true });

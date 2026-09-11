@@ -28,6 +28,8 @@ def render_plan(
     revocations: list[dict] | None = None,
     execution: str = "| T1 | pending | |",
     contract: str = "\n# Fixture plan\n\n## Contract\n\nGoal: exercise the validator.\n",
+    recovery: dict | None = None,
+    include_recovery: bool = False,
 ) -> Path:
     contract_bytes = contract.encode("utf-8")
     authorization = {
@@ -62,6 +64,12 @@ def render_plan(
         "| Task | State | Evidence |\n|---|---|---|\n"
     ).encode("utf-8")
     document += execution.encode("utf-8")
+    if include_recovery:
+        document += (
+            "\n\n<!-- hive-plan:recovery:start -->\n```json\n"
+            + json.dumps(recovery, indent=2, sort_keys=True)
+            + "\n```\n<!-- hive-plan:recovery:end -->"
+        ).encode("utf-8")
     document += (
         "\n\n<!-- hive-plan:authorization:start -->\n```json\n"
         + json.dumps(authorization, indent=2, sort_keys=True)
@@ -141,6 +149,38 @@ class PlanValidatorTests(unittest.TestCase):
         with self.assertRaises(PLAN.PlanError) as raised:
             PLAN.validate_plan(self.plan, "implement", "repo:fixture")
         self.assertEqual(raised.exception.code, "contract_drift")
+
+    def test_validate_rejects_recovery_history_bound_to_another_plan(self):
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "another-plan",
+                "attempts": [],
+            },
+            include_recovery=True,
+        )
+        with self.assertRaises(PLAN.PlanError) as raised:
+            PLAN.validate_plan(plan, "implement", "repo:fixture")
+        self.assertEqual(raised.exception.code, "recovery_plan_mismatch")
+
+        cli = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "validate",
+                str(plan),
+                "--action",
+                "implement",
+                "--target",
+                "repo:fixture",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(cli.returncode, 0)
+        self.assertEqual(json.loads(cli.stdout)["error"]["code"], "recovery_plan_mismatch")
 
     def test_undeclared_operation_and_destination_are_distinct(self):
         with self.assertRaises(PLAN.PlanError) as operation:
@@ -297,6 +337,406 @@ class PlanValidatorTests(unittest.TestCase):
         with self.assertRaises(PLAN.PlanError) as raised:
             PLAN.inspect_plan(self.plan)
         self.assertEqual(raised.exception.code, "duplicate_json_key")
+
+    def test_legacy_plan_reports_unknown_recovery_history(self):
+        inspected = PLAN.inspect_plan(self.plan)
+        self.assertEqual(inspected["recovery"]["status"], "unknown")
+        self.assertFalse(inspected["recovery"]["history_known"])
+        self.assertEqual(inspected["recovery"]["attempts"], 0)
+
+        result = PLAN.recovery_check(self.plan, "delegation", "T1")
+        self.assertFalse(result["allowed"])
+        self.assertEqual(result["decision"], "reconcile")
+        self.assertEqual(result["status"], "unknown")
+
+    def test_empty_recovery_history_is_known_and_does_not_change_digest(self):
+        recovery = {
+            "schema": PLAN.SCHEMA_RECOVERY,
+            "plan_id": "fixture-plan",
+            "attempts": [],
+        }
+        plan = render_plan(
+            self.root,
+            recovery=recovery,
+            include_recovery=True,
+        )
+        original = PLAN.digest_plan(plan)
+        inspected = PLAN.inspect_plan(plan)
+        self.assertEqual(inspected["recovery"]["status"], "known")
+        self.assertTrue(inspected["recovery"]["history_known"])
+        self.assertEqual(inspected["recovery"]["attempts"], 0)
+        self.assertEqual(PLAN.digest_plan(plan), original)
+
+        result = PLAN.recovery_check(plan, "delegation", "T1")
+        self.assertTrue(result["allowed"])
+        self.assertEqual(result["decision"], "continue")
+
+    def test_recovery_counts_delegation_rerun_and_preserves_independent_scope(self):
+        recovery = {
+            "schema": PLAN.SCHEMA_RECOVERY,
+            "plan_id": "fixture-plan",
+            "attempts": [
+                {
+                    "id": "attempt-1",
+                    "sequence": 1,
+                    "kind": "delegation",
+                    "scope": "T1",
+                    "contract_sha256": PLAN.digest_plan(self.plan),
+                    "started_at": "2026-09-10T18:00:00-06:00",
+                    "ended_at": "2026-09-10T18:01:00-06:00",
+                    "outcome": "failed",
+                    "evidence": "child returned no usable result",
+                },
+                {
+                    "id": "attempt-2",
+                    "sequence": 2,
+                    "kind": "delegation",
+                    "scope": "T2",
+                    "contract_sha256": "0" * 64,
+                    "started_at": "2026-09-10T18:02:00-06:00",
+                    "ended_at": "2026-09-10T18:03:00-06:00",
+                    "outcome": "failed",
+                    "evidence": "independent task failed",
+                },
+            ],
+        }
+        plan = render_plan(self.root, recovery=recovery, include_recovery=True)
+        self.assertTrue(PLAN.recovery_check(plan, "delegation", "T1")["allowed"])
+        self.assertEqual(PLAN.recovery_check(plan, "delegation", "T1")["attempts"]["charged"], 1)
+        self.assertTrue(PLAN.recovery_check(plan, "delegation", "T2")["allowed"])
+
+    def test_recovery_exhausts_delegation_after_one_rerun(self):
+        digest = PLAN.digest_plan(self.plan)
+        attempts = [
+            {
+                "id": f"attempt-{index}",
+                "sequence": index,
+                "kind": "delegation",
+                "scope": "T1",
+                "contract_sha256": digest,
+                "started_at": f"2026-09-10T18:0{index}:00-06:00",
+                "ended_at": f"2026-09-10T18:0{index}:30-06:00",
+                "outcome": "failed",
+                "evidence": f"delegation failure {index}",
+            }
+            for index in (1, 2)
+        ]
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": attempts,
+            },
+            include_recovery=True,
+        )
+        result = PLAN.recovery_check(plan, "delegation", "T1")
+        self.assertFalse(result["allowed"])
+        self.assertEqual(result["decision"], "exhausted")
+        self.assertEqual(result["limit"], 2)
+
+    def test_open_recovery_attempt_requires_reconciliation_and_cli_returns_nonzero(self):
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": [
+                    {
+                        "id": "attempt-open",
+                        "sequence": 1,
+                        "kind": "remote",
+                        "scope": "push",
+                        "contract_sha256": PLAN.digest_plan(self.plan),
+                        "started_at": "2026-09-10T18:00:00-06:00",
+                        "outcome": "started",
+                        "evidence": "push process was launched",
+                    }
+                ],
+            },
+            include_recovery=True,
+        )
+        before = plan.read_bytes()
+        result = PLAN.recovery_check(plan, "remote", "push")
+        self.assertFalse(result["allowed"])
+        self.assertEqual(result["decision"], "reconcile")
+        self.assertEqual(result["attempts"]["open"], 1)
+        self.assertEqual(plan.read_bytes(), before)
+
+        self.assertTrue(PLAN.validate_plan(plan, "implement", "repo:fixture")["valid"])
+
+        cli = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "recovery-check",
+                str(plan),
+                "--kind",
+                "remote",
+                "--scope",
+                "push",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(cli.returncode, 0)
+        self.assertEqual(json.loads(cli.stdout)["decision"], "reconcile")
+
+    def test_remote_verified_transient_failure_is_exempt_once(self):
+        digest = PLAN.digest_plan(self.plan)
+        attempts = [
+            {
+                "id": "remote-transient",
+                "sequence": 1,
+                "kind": "remote",
+                "scope": "deploy",
+                "contract_sha256": digest,
+                "started_at": "2026-09-10T18:00:00-06:00",
+                "ended_at": "2026-09-10T18:01:00-06:00",
+                "outcome": "failed",
+                "evidence": "transport timed out before response",
+                "exception": {
+                    "type": "verified_transient",
+                    "evidence": "provider status confirmed a transient timeout",
+                },
+            },
+            {
+                "id": "remote-failed",
+                "sequence": 2,
+                "kind": "remote",
+                "scope": "deploy",
+                "contract_sha256": "0" * 64,
+                "started_at": "2026-09-10T18:02:00-06:00",
+                "ended_at": "2026-09-10T18:03:00-06:00",
+                "outcome": "failed",
+                "evidence": "deployment rejected by provider",
+            },
+        ]
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": attempts,
+            },
+            include_recovery=True,
+        )
+        result = PLAN.recovery_check(plan, "remote", "deploy")
+        self.assertTrue(result["allowed"])
+        self.assertEqual(result["attempts"]["charged"], 1)
+        self.assertEqual(result["attempts"]["transient_exemptions"], 1)
+
+    def test_fix_and_review_budgets_count_failed_corrections_by_scope(self):
+        digest = PLAN.digest_plan(self.plan)
+        attempts = []
+        sequence = 0
+        for kind, scope, count in (("fix", "bug-1", 3), ("review", "cycle-1", 2)):
+            for _ in range(count):
+                sequence += 1
+                attempts.append(
+                    {
+                        "id": f"attempt-{sequence}",
+                        "sequence": sequence,
+                        "kind": kind,
+                        "scope": scope,
+                        "contract_sha256": digest,
+                        "started_at": f"2026-09-10T18:{sequence:02d}:00-06:00",
+                        "ended_at": f"2026-09-10T18:{sequence:02d}:30-06:00",
+                        "outcome": "failed",
+                        "evidence": f"{kind} correction failed",
+                    }
+                )
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": attempts,
+            },
+            include_recovery=True,
+        )
+        self.assertEqual(PLAN.recovery_check(plan, "fix", "bug-1")["decision"], "exhausted")
+        self.assertEqual(PLAN.recovery_check(plan, "review", "cycle-1")["decision"], "exhausted")
+        self.assertTrue(PLAN.recovery_check(plan, "fix", "other-bug")["allowed"])
+
+    def test_successful_review_completes_scope_across_digest_revisions(self):
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": [
+                    {
+                        "id": "review-success",
+                        "sequence": 1,
+                        "kind": "review",
+                        "scope": "cycle-1",
+                        "contract_sha256": "0" * 64,
+                        "started_at": "2026-09-10T18:00:00-06:00",
+                        "ended_at": "2026-09-10T18:01:00-06:00",
+                        "outcome": "succeeded",
+                        "evidence": "review approved the current correction",
+                    }
+                ],
+            },
+            include_recovery=True,
+        )
+        result = PLAN.recovery_check(plan, "review", "cycle-1")
+        self.assertFalse(result["allowed"])
+        self.assertEqual(result["decision"], "completed")
+        self.assertEqual(result["attempts"]["charged"], 1)
+        self.assertTrue(PLAN.recovery_check(plan, "review", "new-cycle")["allowed"])
+
+        cli = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "recovery-check",
+                str(plan),
+                "--kind",
+                "review",
+                "--scope",
+                "cycle-1",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(cli.returncode, 0)
+        self.assertEqual(json.loads(cli.stdout)["decision"], "completed")
+
+    def test_successful_remote_does_not_close_milestone_scope(self):
+        digest = PLAN.digest_plan(self.plan)
+        attempts = [
+            {
+                "id": "remote-success",
+                "sequence": 1,
+                "kind": "remote",
+                "scope": "milestone-1",
+                "contract_sha256": "0" * 64,
+                "started_at": "2026-09-10T18:00:00-06:00",
+                "ended_at": "2026-09-10T18:01:00-06:00",
+                "outcome": "succeeded",
+                "evidence": "provider accepted the first operation",
+            },
+            {
+                "id": "remote-failure-1",
+                "sequence": 2,
+                "kind": "remote",
+                "scope": "milestone-1",
+                "contract_sha256": digest,
+                "started_at": "2026-09-10T18:02:00-06:00",
+                "ended_at": "2026-09-10T18:03:00-06:00",
+                "outcome": "failed",
+                "evidence": "provider rejected the second operation",
+            },
+        ]
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": attempts,
+            },
+            include_recovery=True,
+        )
+        result = PLAN.recovery_check(plan, "remote", "milestone-1")
+        self.assertTrue(result["allowed"])
+        self.assertEqual(result["decision"], "continue")
+        self.assertEqual(result["attempts"]["charged"], 1)
+        self.assertTrue(PLAN.recovery_check(plan, "remote", "new-milestone")["allowed"])
+
+        attempts.append(
+            {
+                "id": "remote-failure-2",
+                "sequence": 3,
+                "kind": "remote",
+                "scope": "milestone-1",
+                "contract_sha256": digest,
+                "started_at": "2026-09-10T18:04:00-06:00",
+                "ended_at": "2026-09-10T18:05:00-06:00",
+                "outcome": "failed",
+                "evidence": "provider rejected the third operation",
+            }
+        )
+        render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": attempts,
+            },
+            include_recovery=True,
+        )
+        exhausted = PLAN.recovery_check(plan, "remote", "milestone-1")
+        self.assertFalse(exhausted["allowed"])
+        self.assertEqual(exhausted["decision"], "exhausted")
+        self.assertEqual(exhausted["attempts"]["charged"], 2)
+
+    def test_recovery_structure_rejects_duplicate_sequence_and_unknown_predecessor(self):
+        digest = PLAN.digest_plan(self.plan)
+        base = {
+            "schema": PLAN.SCHEMA_RECOVERY,
+            "plan_id": "fixture-plan",
+            "attempts": [
+                {
+                    "id": "attempt-1",
+                    "sequence": 1,
+                    "kind": "fix",
+                    "scope": "bug-1",
+                    "contract_sha256": digest,
+                    "started_at": "2026-09-10T18:00:00-06:00",
+                    "ended_at": "2026-09-10T18:01:00-06:00",
+                    "outcome": "failed",
+                    "evidence": "test still fails",
+                },
+                {
+                    "id": "attempt-2",
+                    "sequence": 1,
+                    "kind": "fix",
+                    "scope": "bug-1",
+                    "contract_sha256": digest,
+                    "started_at": "2026-09-10T18:02:00-06:00",
+                    "ended_at": "2026-09-10T18:03:00-06:00",
+                    "outcome": "failed",
+                    "evidence": "test still fails",
+                    "predecessor": "missing-attempt",
+                },
+            ],
+        }
+        plan = render_plan(self.root, recovery=base, include_recovery=True)
+        with self.assertRaises(PLAN.PlanError) as raised:
+            PLAN.inspect_plan(plan)
+        self.assertEqual(raised.exception.code, "invalid_recovery_sequence")
+
+    def test_recovery_structure_rejects_duplicate_ids(self):
+        digest = PLAN.digest_plan(self.plan)
+        attempt = {
+            "id": "same-id",
+            "sequence": 1,
+            "kind": "task",
+            "scope": "T1",
+            "contract_sha256": digest,
+            "started_at": "2026-09-10T18:00:00-06:00",
+            "ended_at": "2026-09-10T18:01:00-06:00",
+            "outcome": "succeeded",
+            "evidence": "task evidence",
+        }
+        duplicate = dict(attempt)
+        duplicate["sequence"] = 2
+        plan = render_plan(
+            self.root,
+            recovery={
+                "schema": PLAN.SCHEMA_RECOVERY,
+                "plan_id": "fixture-plan",
+                "attempts": [attempt, duplicate],
+            },
+            include_recovery=True,
+        )
+        with self.assertRaises(PLAN.PlanError) as raised:
+            PLAN.inspect_plan(plan)
+        self.assertEqual(raised.exception.code, "duplicate_recovery_id")
 
 
 if __name__ == "__main__":

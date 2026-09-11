@@ -8,7 +8,7 @@ instructions.
 
 ## Layout and ownership
 
-The plan has four independent areas:
+The plan has five independent areas:
 
 1. `Status:` is one mutable line outside the contract. It is one of `draft`,
    `planned`, `building`, `built`, or `verified`.
@@ -18,6 +18,9 @@ The plan has four independent areas:
    contract digest to user evidence and exact action/target grants.
 4. The execution table is ordinary Markdown outside the contract. It records
    task progress and delivery evidence; edits to it do not change the digest.
+5. Recovery is an optional fenced JSON block outside the contract and
+   authorization. It records meaningful attempts so a resumed run can
+   reconcile an interrupted operation before repeating it.
 
 The contract markers are exact and must occur once each:
 
@@ -32,6 +35,18 @@ The authorization markers are exact and must occur once each:
 <!-- hive-plan:authorization:start -->
 <!-- hive-plan:authorization:end -->
 ```
+
+The recovery markers are optional, but when present they are exact and must
+occur once each:
+
+```markdown
+<!-- hive-plan:recovery:start -->
+<!-- hive-plan:recovery:end -->
+```
+
+Recovery metadata must stay outside both the contract and authorization
+blocks. A plan created before recovery support has no recovery history; that
+absence is reported as `unknown` and is never treated as zero attempts.
 
 The bytes hashed are every UTF-8 byte after the contract start marker and
 before the contract end marker, including their leading and trailing
@@ -90,6 +105,16 @@ Commit: feat(<scope>): T1 <subject>
 | Task | State | Evidence |
 |---|---|---|
 | T1 | pending | |
+
+<!-- hive-plan:recovery:start -->
+```json
+{
+  "schema": "hive-plan/recovery.v1",
+  "plan_id": "feature-slug",
+  "attempts": []
+}
+```
+<!-- hive-plan:recovery:end -->
 
 <!-- hive-plan:authorization:start -->
 ```json
@@ -153,7 +178,7 @@ not attest tests, deployments, or human consent.
 `validate <plan> --action <action> --target <target>` is the authority check
 for one concrete action. It succeeds only when:
 
-1. the document and authorization metadata are well-formed;
+1. the document, authorization metadata and optional recovery metadata are well-formed;
 2. the plan is not `draft`;
 3. the authorization digest matches the current contract;
 4. the exact action and target occur in an active grant; and
@@ -170,6 +195,55 @@ An action absent from all grants is `undeclared_operation`. An action present
 with a different target is `undeclared_destination`. A matching grant covered
 by a revocation is `grant_revoked`. These are separate machine-readable error
 codes in the CLI result.
+
+## Recovery metadata
+
+The recovery block is mutable operational evidence. It is not part of the
+contract digest, does not authenticate the user, and does not grant or revoke
+any action. The coordinator is the only writer; delegated workers return
+evidence to the coordinator instead of editing the plan concurrently.
+
+`recovery.plan_id` must match the bound authorization's `plan_id`; this binds
+the history to the same plan instance without claiming that the history is
+tamper-proof.
+
+`attempts` is an ordered list. Each entry has a unique `id`, strictly
+increasing positive `sequence`, one canonical `kind` (`task`, `delegation`,
+`fix`, `review`, or `remote`), a stable semantic `scope`, the
+`contract_sha256` observed when the attempt began, `started_at`, `outcome`, and
+non-empty `evidence`. A completed entry also has `ended_at`. `started` means
+the attempt is still open; `unknown` and `interrupted` mean its result must be
+reconciled before another attempt. Optional `task` and `predecessor` fields
+connect an entry to a plan task or an earlier attempt. A `predecessor` must
+refer to an earlier entry.
+
+The same semantic `kind` and `scope` retain their counters across contract
+digests. A different scope has an independent budget. The validator does not
+infer that a changed digest is a new budget or that an absent history is an
+empty budget; the reconciler decides that from observed evidence. A remote
+failed attempt may carry one `exception` with type `verified_transient` and
+its evidence. It is excluded from the remote failed-operation count only as
+that narrow exception.
+
+The bounded budgets are:
+
+| Kind | Budget | Counted attempts |
+|---|---:|---|
+| `task` | none | ordinary task state; no retry budget is inferred |
+| `delegation` | 2 total | initial dispatch plus one rerun |
+| `fix` | 3 | failed attempts for the same problem scope |
+| `review` | 2 total | correction rounds for the same review scope, including a successful closure |
+| `remote` | 2 | failed operations, excluding one verified transient exception |
+
+These limits do not authorize a run. They only answer whether the recorded
+scope can continue. An open or ambiguous attempt requires reconciliation of
+the workspace, Git, process, or remote state before repeating it. A successful
+`review` attempt returns `completed` and closes that review kind/scope
+permanently, including across later contract digests; use a new semantic scope
+for an independent review. Successful task, delegation, fix and remote
+attempts remain evidence while their scope may continue according to its own
+budget. A completed result remains evidence even when a later delivery was
+interrupted.
 
 ## Status and execution state
 
@@ -251,6 +325,8 @@ python3 path/to/plan.py inspect path/to/plan.md
 python3 path/to/plan.py digest path/to/plan.md
 python3 path/to/plan.py validate path/to/plan.md \
   --action implement --target repo:feature-slug
+python3 path/to/plan.py recovery-check path/to/plan.md \
+  --kind delegation --scope T1
 ```
 
 Successful commands exit zero. Rejected or malformed plans emit an `error`
@@ -259,6 +335,15 @@ well-formed bound authorization from an `unbound` digest, while `can_implement`
 is true only for a non-draft plan with an active, condition-satisfied
 `implement` grant. A design-only plan may be bound and inspectable while
 returning `can_implement: false`.
+
+`inspect` includes a recovery summary. `status: known` means the block is
+present, including an explicitly initialized empty `attempts` list;
+`status: unknown` means the plan predates recovery metadata and must be
+reconciled before repeating work. `recovery-check` is read-only and returns a
+structured `continue`, `reconcile`, `completed`, or `exhausted` decision. It
+exits zero only for `continue`; unresolved, completed, or exhausted recovery
+exits non-zero. It never checks or creates action grants, so callers still run
+`validate` for an authorized implementation or delivery action.
 
 Verification uses `inspect`, not `validate --action verify`: it requires the current digest,
 authorization status `valid` or `conditional`, and observed status `built` or `verified`. An

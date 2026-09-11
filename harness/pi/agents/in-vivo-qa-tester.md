@@ -5,7 +5,7 @@ description: >
   Drive a running app in a real browser (agent-browser CLI) to verify functional acceptance criteria with a QA mindset — each AC's happy path AND its adversarial/negative paths. Use for the flow-build verify gate in-vivo check (local production build) and the post-deploy QA walk per flow-core/references/promotion-playbook.md (QA URLs). NOT for UX friction (ui-reviewer) and NOT for writing automated suites (test-engineer).
 model: openai-codex/gpt-5.6-luna
 thinking: high
-tools: read, write, bash, find, ls, grep, web_search, fetch_content, get_search_content, source_check, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, bash, find, ls, grep, web_search, fetch_content, get_search_content, source_check, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness, hive_research_readiness
 excludeTools: edit, subagent
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
@@ -87,3 +87,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 |---|---|
 | Driving a browser | `~/.agents/skills/language-rules/references/browser-automation-reference.md` |
 | Judging whether the test gate is met | `~/.agents/skills/language-rules/references/testing.md` |
+
+## PI research readiness
+
+Before external research, call `hive_research_readiness` with profile `web`. It inspects this agent's active tools and reports `available`, `missing`, and `ready`. Treat a missing research tool as informational: continue local tasks, but do not pretend an unavailable tool or provider is ready.

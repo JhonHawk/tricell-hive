@@ -45,7 +45,7 @@ straight to the Gate (it assumes `built`) and closes without reconciling deliver
 |---|---|---|
 | OPEN — reconcile | `references/reconcile.md` | Every invocation: resolve the plan, normalize legacy content before approval, validate authority and read the pending state from disk/Git/evidence |
 | Execute (`planned`/`building` → `built`) | `references/execute.md` | The reconciled state is `planned` or `building` and implementation is explicitly authorized; skipped by `verify` |
-| Gate (`built` → `verified`) | `references/verify-gate.md` | The reconciled state is `built`, or the `verify` subcommand — two-stage review, in-vivo gate, design gate, integrated smoke |
+| Gate (`built` → `verified`) | `references/verify-gate.md` | The reconciled state is `built`, or the `verify` subcommand — matrix-selected independent review, fresh affected checks, in-vivo gate, design gate, integrated smoke |
 | CLOSE | `references/close.md` | Every invocation, after the run's last stage |
 
 Stable path after deploy: `~/.claude/skills/flow-build/references/<file>.md`.

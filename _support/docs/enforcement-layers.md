@@ -73,6 +73,14 @@ Operationalized in `global/CLAUDE.md > Communication > Name the enforcement laye
   conventions. Progress and delivery records are claims to reconcile, not evidence by themselves.
 - Draft planning has no ambient parent-write blockade. General shell, MCP and reviewer
   guards keep their own coverage; native plan-mode transitions grant no Hive authority.
+- Recovery structure and budget checks are deterministic when invoked, over recorded entries.
+  Recording attempts, preserving history and reconciling real outcomes are prompt-conventions;
+  an editable plan is not an immutable history or an idempotency mechanism.
+- The verification matrix is prompt-convention. Independent execution and review supply
+  evidence; neither a selected profile nor a green check grants publication authority.
+- PI research readiness deterministically compares required names with active tools in the
+  current agent. Invoking it is prompt-convention; it does not check provider credentials,
+  network reachability or evidence quality.
 
 ## Related
 

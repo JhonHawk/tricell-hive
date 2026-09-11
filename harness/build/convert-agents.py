@@ -71,6 +71,7 @@ PI_CHILD_TOOLS = ("contact_supervisor",)
 PI_GIT_READ_TOOL = "hive_git_read"
 PI_HOOK_READINESS_TOOL = "hive_hook_readiness"
 PI_REVIEWER_READINESS_TOOL = "hive_reviewer_readiness"
+PI_RESEARCH_READINESS_TOOL = "hive_research_readiness"
 
 
 def validate_tier_map():
@@ -468,6 +469,14 @@ PI_TOOL_MAP = {
     "Agent": "subagent",
     "NotebookEdit": None,
 }
+# Claude's research tools are capability groups in Pi. A source WebFetch grant
+# needs both retrieval operations, while WebSearch also needs source checking.
+# The expansion is used for allowlists and deny entries so an explicit source
+# deny remains authoritative over every mapped Pi tool.
+PI_TOOL_EXPANSIONS = {
+    "WebFetch": ("fetch_content", "get_search_content"),
+    "WebSearch": ("fetch_content", "get_search_content", "web_search", "source_check"),
+}
 # A missing Claude `tools:` field means the role inherits the full Claude
 # surface. PI requires an explicit list for extension-tool readiness checks, so
 # retain the corresponding PI builtins and installed research/MCP tools before
@@ -510,8 +519,17 @@ def pi_mcp_exclusion_names(tool):
     return ["mcp"]
 
 
+def pi_tool_names(tool):
+    expanded = PI_TOOL_EXPANSIONS.get(tool)
+    if expanded:
+        return list(expanded)
+    mapped = pi_mcp_server(tool) or PI_TOOL_MAP.get(tool)
+    return [mapped] if mapped else []
+
+
 def pi_tool_name(tool):
-    return pi_mcp_server(tool) or PI_TOOL_MAP.get(tool)
+    names = pi_tool_names(tool)
+    return names[0] if names else None
 
 
 def pi_tools(agent, field):
@@ -523,10 +541,10 @@ def pi_tools(agent, field):
         resolved_names = (
             pi_mcp_exclusion_names(tool)
             if field == "disallowed"
-            else [pi_tool_name(tool)]
+            else pi_tool_names(tool)
         )
         if field == "disallowed" and not resolved_names:
-            resolved_names = [pi_tool_name(tool)]
+            resolved_names = pi_tool_names(tool)
         for resolved in resolved_names:
             if resolved and resolved not in seen:
                 seen.add(resolved)
@@ -583,11 +601,25 @@ def pi_additional_tools(agent):
     return tools
 
 
+def pi_research_profile(agent):
+    """Return the research profile implied by the source tool surface."""
+    if agent["tools"] is None:
+        return "web"
+    source_tools = set(agent["tools"])
+    if "WebSearch" in source_tools:
+        return "web"
+    if "WebFetch" in source_tools:
+        return "documentation"
+    return None
+
+
 def pi_readiness_tools(agent):
     """Return extension sentinels required before the agent's first turn."""
     tools = [PI_HOOK_READINESS_TOOL]
     if agent["has_reviewer_guard"]:
         tools.append(PI_REVIEWER_READINESS_TOOL)
+    if pi_research_profile(agent) is not None:
+        tools.append(PI_RESEARCH_READINESS_TOOL)
     return tools
 
 
@@ -600,6 +632,20 @@ def pi_context7_instructions(agent):
         "For version-sensitive claims, use the shared `mcp` gateway in this order:\n"
         "1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`\n"
         "2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`"
+    )
+
+
+def pi_research_instructions(agent):
+    """Add a non-blocking readiness instruction to research-capable roles."""
+    profile = pi_research_profile(agent)
+    if profile is None:
+        return ""
+    return (
+        "\n\n## PI research readiness\n\n"
+        f"Before external research, call `hive_research_readiness` with profile `{profile}`. "
+        "It inspects this agent's active tools and reports `available`, `missing`, and `ready`. "
+        "Treat a missing research tool as informational: continue local tasks, but do not "
+        "pretend an unavailable tool or provider is ready."
     )
 
 
@@ -647,7 +693,11 @@ def to_pi(agent) -> str:
         f"  path: hive/{agent['name']}",
         "---",
     ])
-    body = rebase_pi_skill_root(agent["body"]) + pi_context7_instructions(agent)
+    body = (
+        rebase_pi_skill_root(agent["body"])
+        + pi_context7_instructions(agent)
+        + pi_research_instructions(agent)
+    )
     return "\n".join(fm) + "\n\n" + body + "\n"
 
 

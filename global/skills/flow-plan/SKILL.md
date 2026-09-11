@@ -57,6 +57,9 @@ Use the canonical plan format for one Markdown file with three separate concerns
 - **Execution:** status, task evidence, verification results and delivery reconciliation.
   Progress belongs here, never in the frozen contract. Use ordinary ordered steps; do not turn
   the contract's steps into progress checkboxes.
+  Keep recovery attempts in the same plan, outside the contract, using the plan-format schema.
+  Initialize a new, never-started plan with known empty history; reconcile an existing plan
+  before recording its history as known. Missing history is not evidence of zero attempts.
 
 Use the proportional phase model:
 

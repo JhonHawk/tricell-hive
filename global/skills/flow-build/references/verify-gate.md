@@ -4,13 +4,16 @@ The verification gate. `verify` jumps straight here (assumes `built`); the defau
 after Execute. Run the applicable checks against the integrated working-tree or committed state
 for the tasks not yet gated:
 
-1. **Two-stage review, fresh contexts, parallel dispatch** — (a) **spec compliance**: the task
-   diff against the task text + ACs (missing, extra, misunderstood — nothing else); (b) **code
-   quality** (code-reviewer) over the same diff. Neither consumes the other's output — dispatch
-   both in ONE message and merge findings; a trivial diff outside hot surfaces
-   (`agent-routing.md > Independent review scales by surface`) collapses to a single reviewer
-   carrying both lenses. The diff is the input;
-   the builder's report travels as claims to check, never as context to trust.
+1. **Matrix-selected independent review, fresh context** — classify the change with
+   `agent-routing.md > Verification matrix`. For standard behavior, dispatch one reviewer that
+   did not implement the change; it covers both spec compliance (the task diff against task text
+   and ACs) and code/behavior quality in one pass. A sensitive change adds the required specialist
+   lens or reviewer; a passive documentation change uses diff and consistency review. The diff is
+   the input; the builder's report travels as claims to check, never as context to trust.
+   The reviewer or verifier runs the tooling-selected affected subset or deterministic validator
+   for standard and sensitive behavior when one exists; otherwise it performs a fresh readback
+   consistency check and records runtime verification as not-applicable with the reason. Passive
+   documentation uses its diff and consistency check.
 2. **In-vivo gate** for `in-vivo: yes` tasks (now, if timing was deferred): dispatch
    **in-vivo-qa-tester** against the running app — it walks the Gherkin ACs AND the
    negative/adversarial catalog the agent owns. Raw evidence → `_support/evidence/YYYY-MM-DD-<slug>/` (gitignored); the

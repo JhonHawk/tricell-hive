@@ -3,14 +3,15 @@
 
 The contract block remains ordinary Markdown written for a human. Its exact
 UTF-8 bytes are the only bytes covered by the digest. The status line,
-authorization metadata, and execution table live outside that block so the
-plan can advance without changing the approved contract.
+authorization, recovery metadata, and execution table live outside that block
+so the plan can advance without changing the approved contract.
 """
 
 from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 import hashlib
 import json
 from pathlib import Path
@@ -20,10 +21,25 @@ from typing import Any, Mapping
 
 
 SCHEMA_AUTHORIZATION = "hive-plan/authorization.v1"
+SCHEMA_RECOVERY = "hive-plan/recovery.v1"
 STATUSES = ("draft", "planned", "building", "built", "verified")
 ACTION_PATTERN = re.compile(r"^[a-z][a-z0-9._-]*$")
 DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[T ]\S+)?$")
+RECOVERY_KINDS = frozenset(("task", "delegation", "fix", "review", "remote"))
+RECOVERY_OUTCOMES = frozenset(
+    ("started", "succeeded", "failed", "blocked", "interrupted", "unknown")
+)
+RECOVERY_TERMINAL_OUTCOMES = frozenset(
+    ("succeeded", "failed", "blocked", "interrupted", "unknown")
+)
+RECOVERY_LIMITS: dict[str, int | None] = {
+    "task": None,
+    "delegation": 2,
+    "fix": 3,
+    "review": 2,
+    "remote": 2,
+}
 WILDCARD_CHARS = frozenset("*?[]")
 ACTION_ALLOWED_STATUSES = {
     "implement": frozenset(("planned", "building")),
@@ -48,6 +64,10 @@ BLOCK_MARKERS = {
         b"<!-- hive-plan:authorization:start -->",
         b"<!-- hive-plan:authorization:end -->",
     ),
+    "recovery": (
+        b"<!-- hive-plan:recovery:start -->",
+        b"<!-- hive-plan:recovery:end -->",
+    ),
 }
 
 
@@ -68,6 +88,7 @@ class PlanDocument:
     contract_markdown: str
     authorization: Mapping[str, Any]
     status: str
+    recovery: Mapping[str, Any] | None
 
     @property
     def contract_sha256(self) -> str:
@@ -160,15 +181,57 @@ def _read_block(raw: bytes, block_name: str) -> tuple[bytes, Mapping[str, Any]]:
     return body, _parse_json_fence(body, block_name)
 
 
-def _require_mapping(value: Any, label: str) -> Mapping[str, Any]:
+def _read_optional_block(
+    raw: bytes,
+    block_name: str,
+    *,
+    must_be_outside: tuple[str, ...] = (),
+) -> Mapping[str, Any] | None:
+    start_marker, end_marker = BLOCK_MARKERS[block_name]
+    start_count = raw.count(start_marker)
+    end_count = raw.count(end_marker)
+    if start_count == 0 and end_count == 0:
+        return None
+    if start_count != 1 or end_count != 1:
+        raise PlanError(
+            "malformed_document",
+            f"plan must contain exactly one {block_name} block when present",
+        )
+
+    marker_start = raw.index(start_marker)
+    marker_end = raw.index(end_marker, marker_start) + len(end_marker)
+    for frozen_block in must_be_outside:
+        frozen_start_marker, frozen_end_marker = BLOCK_MARKERS[frozen_block]
+        frozen_start = raw.index(frozen_start_marker)
+        frozen_end = raw.index(frozen_end_marker, frozen_start) + len(frozen_end_marker)
+        if frozen_start < marker_start < frozen_end or frozen_start < marker_end < frozen_end:
+            raise PlanError(
+                "malformed_document",
+                f"{block_name} block must remain outside the {frozen_block} block",
+            )
+
+    return _read_block(raw, block_name)[1]
+
+
+def _require_mapping(
+    value: Any,
+    label: str,
+    *,
+    error_code: str = "incomplete_authorization",
+) -> Mapping[str, Any]:
     if not isinstance(value, dict):
-        raise PlanError("incomplete_authorization", f"{label} must be an object")
+        raise PlanError(error_code, f"{label} must be an object")
     return value
 
 
-def _require_string(value: Any, label: str) -> str:
+def _require_string(
+    value: Any,
+    label: str,
+    *,
+    error_code: str = "incomplete_authorization",
+) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise PlanError("incomplete_authorization", f"{label} must be a non-empty string")
+        raise PlanError(error_code, f"{label} must be a non-empty string")
     return value
 
 
@@ -204,6 +267,211 @@ def _reject_wildcard(value: str, label: str) -> None:
             "wildcard_target",
             f"{label} cannot contain wildcard characters; list exact targets",
         )
+
+
+def _parse_recovery_time(value: Any, label: str) -> datetime:
+    timestamp = _require_string(value, label, error_code="incomplete_recovery")
+    if not DATE_PATTERN.fullmatch(timestamp):
+        raise PlanError("invalid_recovery_time", f"{label} is not ISO-like")
+    try:
+        return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PlanError("invalid_recovery_time", f"{label} is not a valid timestamp") from exc
+
+
+def _validate_recovery_evidence(value: Any, label: str) -> Any:
+    if isinstance(value, str):
+        if not value.strip():
+            raise PlanError("incomplete_recovery", f"{label} must not be empty")
+        return value
+    if isinstance(value, list) and value:
+        for index, item in enumerate(value):
+            _require_string(item, f"{label}[{index}]", error_code="incomplete_recovery")
+        return value
+    raise PlanError(
+        "incomplete_recovery",
+        f"{label} must be a non-empty string or list of strings",
+    )
+
+
+def _validate_recovery(
+    recovery: Mapping[str, Any],
+) -> dict[str, Any]:
+    if recovery.get("schema") != SCHEMA_RECOVERY:
+        raise PlanError(
+            "unsupported_recovery_schema",
+            f"recovery schema must be {SCHEMA_RECOVERY}",
+        )
+
+    plan_id = _require_string(
+        recovery.get("plan_id"),
+        "recovery.plan_id",
+        error_code="incomplete_recovery",
+    )
+    attempts = recovery.get("attempts")
+    if not isinstance(attempts, list):
+        raise PlanError("incomplete_recovery", "recovery.attempts must be a list")
+
+    normalized_attempts: list[dict[str, Any]] = []
+    attempt_ids: set[str] = set()
+    sequence_values: set[int] = set()
+    transient_exception_scopes: set[tuple[str, str]] = set()
+    previous_sequence = 0
+    for index, attempt in enumerate(attempts):
+        label = f"recovery.attempts[{index}]"
+        attempt_map = _require_mapping(
+            attempt,
+            label,
+            error_code="incomplete_recovery",
+        )
+        attempt_id = _require_string(
+            attempt_map.get("id"),
+            f"{label}.id",
+            error_code="incomplete_recovery",
+        )
+        if attempt_id in attempt_ids:
+            raise PlanError("duplicate_recovery_id", f"duplicate recovery attempt id: {attempt_id}")
+        attempt_ids.add(attempt_id)
+
+        sequence = attempt_map.get("sequence")
+        if not isinstance(sequence, int) or isinstance(sequence, bool) or sequence < 1:
+            raise PlanError(
+                "invalid_recovery_sequence",
+                f"{label}.sequence must be a positive integer",
+            )
+        if sequence in sequence_values or sequence <= previous_sequence:
+            raise PlanError(
+                "invalid_recovery_sequence",
+                "recovery attempt sequence must be strictly increasing",
+            )
+        sequence_values.add(sequence)
+        previous_sequence = sequence
+
+        kind = _require_string(
+            attempt_map.get("kind"),
+            f"{label}.kind",
+            error_code="incomplete_recovery",
+        )
+        if kind not in RECOVERY_KINDS:
+            raise PlanError("unsupported_recovery_kind", f"unsupported recovery kind: {kind}")
+        scope = _require_string(
+            attempt_map.get("scope"),
+            f"{label}.scope",
+            error_code="incomplete_recovery",
+        )
+        attempt_digest = _require_string(
+            attempt_map.get("contract_sha256"),
+            f"{label}.contract_sha256",
+            error_code="incomplete_recovery",
+        )
+        if not DIGEST_PATTERN.fullmatch(attempt_digest):
+            raise PlanError("incomplete_recovery", f"{label}.contract_sha256 is not SHA-256")
+
+        started_at = _parse_recovery_time(attempt_map.get("started_at"), f"{label}.started_at")
+        ended_at_value = attempt_map.get("ended_at")
+        ended_at: datetime | None = None
+        if ended_at_value is not None:
+            ended_at = _parse_recovery_time(ended_at_value, f"{label}.ended_at")
+            try:
+                ends_before_start = ended_at < started_at
+            except TypeError as exc:
+                raise PlanError(
+                    "invalid_recovery_time",
+                    f"{label}.started_at and ended_at must use compatible timezone forms",
+                ) from exc
+            if ends_before_start:
+                raise PlanError("invalid_recovery_time", f"{label}.ended_at precedes started_at")
+
+        outcome = _require_string(
+            attempt_map.get("outcome"),
+            f"{label}.outcome",
+            error_code="incomplete_recovery",
+        )
+        if outcome not in RECOVERY_OUTCOMES:
+            raise PlanError(
+                "unsupported_recovery_outcome",
+                f"unsupported recovery outcome: {outcome}",
+            )
+        if outcome == "started" and ended_at is not None:
+            raise PlanError("invalid_recovery_outcome", f"{label}.started cannot have ended_at")
+        if outcome in RECOVERY_TERMINAL_OUTCOMES and ended_at is None:
+            raise PlanError("invalid_recovery_outcome", f"{label}.{outcome} requires ended_at")
+
+        evidence = _validate_recovery_evidence(attempt_map.get("evidence"), f"{label}.evidence")
+        predecessor = attempt_map.get("predecessor")
+        if predecessor is not None:
+            predecessor = _require_string(
+                predecessor,
+                f"{label}.predecessor",
+                error_code="incomplete_recovery",
+            )
+            if predecessor not in attempt_ids:
+                raise PlanError(
+                    "invalid_recovery_reference",
+                    f"{label}.predecessor must reference an earlier attempt",
+                )
+
+        task = attempt_map.get("task")
+        if task is not None:
+            task = _require_string(task, f"{label}.task", error_code="incomplete_recovery")
+
+        exception = attempt_map.get("exception")
+        if exception is not None:
+            exception_map = _require_mapping(
+                exception,
+                f"{label}.exception",
+                error_code="incomplete_recovery",
+            )
+            exception_type = _require_string(
+                exception_map.get("type"),
+                f"{label}.exception.type",
+                error_code="incomplete_recovery",
+            )
+            if exception_type != "verified_transient":
+                raise PlanError(
+                    "unsupported_recovery_exception",
+                    f"unsupported recovery exception: {exception_type}",
+                )
+            if kind != "remote" or outcome != "failed":
+                raise PlanError(
+                    "invalid_recovery_exception",
+                    f"{label}.exception is valid only for failed remote attempts",
+                )
+            scope_key = (kind, scope)
+            if scope_key in transient_exception_scopes:
+                raise PlanError(
+                    "duplicate_recovery_exception",
+                    f"scope {scope} has more than one verified transient exception",
+                )
+            transient_exception_scopes.add(scope_key)
+            exception_evidence = _validate_recovery_evidence(
+                exception_map.get("evidence"),
+                f"{label}.exception.evidence",
+            )
+            exception = {"type": exception_type, "evidence": exception_evidence}
+
+        normalized_attempts.append(
+            {
+                "id": attempt_id,
+                "sequence": sequence,
+                "kind": kind,
+                "scope": scope,
+                "contract_sha256": attempt_digest,
+                "started_at": attempt_map["started_at"],
+                "ended_at": attempt_map.get("ended_at"),
+                "outcome": outcome,
+                "evidence": evidence,
+                "predecessor": predecessor,
+                "task": task,
+                "exception": exception,
+            }
+        )
+
+    return {
+        "schema": SCHEMA_RECOVERY,
+        "plan_id": plan_id,
+        "attempts": normalized_attempts,
+    }
 
 
 def _validate_contract_markdown(contract_markdown: str) -> str:
@@ -381,6 +649,179 @@ def _validate_action_state(action: str, status: str) -> None:
         )
 
 
+def _bind_recovery(
+    recovery: Mapping[str, Any] | None,
+    authorization_info: Mapping[str, Any],
+) -> Mapping[str, Any] | None:
+    if recovery is None:
+        return None
+    plan_id = authorization_info.get("plan_id")
+    if isinstance(plan_id, str) and recovery.get("plan_id") != plan_id:
+        raise PlanError(
+            "recovery_plan_mismatch",
+            "recovery.plan_id does not match authorization.plan_id",
+        )
+    return recovery
+
+
+def _recovery_summary(recovery: Mapping[str, Any] | None) -> dict[str, Any]:
+    if recovery is None:
+        return {
+            "status": "unknown",
+            "history_known": False,
+            "schema": None,
+            "attempts": 0,
+            "recorded_entries": 0,
+            "open": 0,
+            "ambiguous": 0,
+            "completed": 0,
+        }
+
+    attempts = list(recovery["attempts"])
+    open_attempts = [attempt for attempt in attempts if attempt["outcome"] == "started"]
+    ambiguous_attempts = [
+        attempt
+        for attempt in attempts
+        if attempt["outcome"] in {"unknown", "interrupted"}
+    ]
+    completed_attempts = [
+        attempt
+        for attempt in attempts
+        if attempt["outcome"] in {"succeeded", "failed", "blocked"}
+    ]
+    return {
+        "status": "known",
+        "history_known": True,
+        "schema": recovery["schema"],
+        "attempts": len(attempts),
+        "recorded_entries": len(attempts),
+        "open": len(open_attempts),
+        "ambiguous": len(ambiguous_attempts),
+        "completed": len(completed_attempts),
+    }
+
+
+def _recovery_attempt_stats(attempts: list[Mapping[str, Any]], kind: str) -> dict[str, Any]:
+    open_count = sum(attempt["outcome"] == "started" for attempt in attempts)
+    ambiguous_count = sum(
+        attempt["outcome"] in {"unknown", "interrupted"} for attempt in attempts
+    )
+    transient_exemptions = sum(
+        (attempt.get("exception") or {}).get("type") == "verified_transient"
+        for attempt in attempts
+    )
+    if kind == "delegation":
+        charged = len(attempts)
+    elif kind == "review":
+        charged = len(attempts)
+    elif kind == "fix":
+        charged = sum(attempt["outcome"] == "failed" for attempt in attempts)
+    elif kind == "remote":
+        charged = sum(
+            attempt["outcome"] == "failed"
+            and (attempt.get("exception") or {}).get("type") != "verified_transient"
+            for attempt in attempts
+        )
+    else:
+        charged = 0
+    return {
+        "total": len(attempts),
+        "completed": len(attempts) - open_count - ambiguous_count,
+        "open": open_count,
+        "ambiguous": ambiguous_count,
+        "failed": sum(attempt["outcome"] == "failed" for attempt in attempts),
+        "succeeded": sum(attempt["outcome"] == "succeeded" for attempt in attempts),
+        "charged": charged,
+        "transient_exemptions": transient_exemptions,
+    }
+
+
+def recovery_check(path: str | Path, kind: str, scope: str) -> dict[str, Any]:
+    """Return a read-only continuation decision for one recovery scope."""
+
+    document = _load(Path(path))
+    authorization_info = _validate_authorization(
+        document.authorization,
+        document.contract_sha256,
+    )
+    recovery = _bind_recovery(document.recovery, authorization_info)
+    if not isinstance(kind, str) or kind not in RECOVERY_KINDS:
+        raise PlanError("unsupported_recovery_kind", f"unsupported recovery kind: {kind}")
+    _require_string(scope, "requested recovery scope", error_code="incomplete_recovery")
+
+    if recovery is None:
+        return {
+            "ok": True,
+            "valid": False,
+            "allowed": False,
+            "decision": "reconcile",
+            "status": "unknown",
+            "history_known": False,
+            "reason": "legacy plan has no recovery history; reconcile before repeating work",
+            "plan_id": authorization_info["plan_id"],
+            "kind": kind,
+            "scope": scope,
+            "contract_sha256": document.contract_sha256,
+            "attempts": {
+                "total": 0,
+                "completed": 0,
+                "open": 0,
+                "ambiguous": 0,
+                "failed": 0,
+                "succeeded": 0,
+                "charged": 0,
+                "transient_exemptions": 0,
+            },
+            "recorded_entries": 0,
+            "limit": RECOVERY_LIMITS[kind],
+        }
+
+    matching_attempts = [
+        attempt
+        for attempt in recovery["attempts"]
+        if attempt["kind"] == kind and attempt["scope"] == scope
+    ]
+    attempts = _recovery_attempt_stats(matching_attempts, kind)
+    limit = RECOVERY_LIMITS[kind]
+    if attempts["open"] or attempts["ambiguous"]:
+        decision = "reconcile"
+        status = "reconcile"
+        reason = "open or ambiguous attempt requires reconciliation before repeating work"
+        allowed = False
+    elif kind == "review" and attempts["succeeded"]:
+        decision = "completed"
+        status = "completed"
+        reason = "the review scope already has a successful round and cannot be reopened"
+        allowed = False
+    elif limit is not None and attempts["charged"] >= limit:
+        decision = "exhausted"
+        status = "exhausted"
+        reason = f"{kind} recovery budget is exhausted for scope {scope}"
+        allowed = False
+    else:
+        decision = "continue"
+        status = "ready"
+        reason = "no open or ambiguous attempt and the recovery budget remains available"
+        allowed = True
+
+    return {
+        "ok": True,
+        "valid": allowed,
+        "allowed": allowed,
+        "decision": decision,
+        "status": status,
+        "history_known": True,
+        "reason": reason,
+        "plan_id": authorization_info["plan_id"],
+        "kind": kind,
+        "scope": scope,
+        "contract_sha256": document.contract_sha256,
+        "attempts": attempts,
+        "recorded_entries": len(recovery["attempts"]),
+        "limit": limit,
+    }
+
+
 def _load(path: Path) -> PlanDocument:
     try:
         raw = path.read_bytes()
@@ -395,6 +836,16 @@ def _load(path: Path) -> PlanDocument:
     _validate_contract_markdown(contract_markdown)
     status = _parse_status(raw)
     _, authorization = _read_block(raw, "authorization")
+    recovery_payload = _read_optional_block(
+        raw,
+        "recovery",
+        must_be_outside=("contract", "authorization"),
+    )
+    recovery = (
+        _validate_recovery(recovery_payload)
+        if recovery_payload is not None
+        else None
+    )
     return PlanDocument(
         path=path,
         raw=raw,
@@ -402,6 +853,7 @@ def _load(path: Path) -> PlanDocument:
         contract_markdown=contract_markdown,
         authorization=authorization,
         status=status,
+        recovery=recovery,
     )
 
 
@@ -431,6 +883,7 @@ def inspect_plan(path: str | Path) -> dict[str, Any]:
             document.authorization,
             document.contract_sha256,
         )
+        _bind_recovery(document.recovery, authorization_info)
         has_conditions = any(
             not condition["evidence"].strip()
             for grant in authorization_info["active_grants"]
@@ -463,6 +916,7 @@ def inspect_plan(path: str | Path) -> dict[str, Any]:
             "active_grants": len(authorization_info.get("active_grants", [])),
             "revoked_grants": len(authorization_info.get("revoked_ids", [])),
         },
+        "recovery": _recovery_summary(document.recovery),
     }
 
 
@@ -477,6 +931,7 @@ def validate_plan(path: str | Path, action: str, target: str) -> dict[str, Any]:
         document.authorization,
         document.contract_sha256,
     )
+    _bind_recovery(document.recovery, authorization_info)
 
     if not isinstance(action, str) or not ACTION_PATTERN.fullmatch(action):
         raise PlanError("invalid_action", f"invalid requested action: {action}")
@@ -569,6 +1024,11 @@ def _build_parser() -> argparse.ArgumentParser:
     validate.add_argument("plan", type=Path)
     validate.add_argument("--action", required=True)
     validate.add_argument("--target", required=True)
+
+    recovery_check_parser = commands.add_parser("recovery-check")
+    recovery_check_parser.add_argument("plan", type=Path)
+    recovery_check_parser.add_argument("--kind", required=True)
+    recovery_check_parser.add_argument("--scope", required=True)
     return parser
 
 
@@ -579,6 +1039,8 @@ def main(argv: list[str] | None = None) -> int:
             result: dict[str, Any] = {"ok": True, "sha256": digest_plan(args.plan)}
         elif args.command == "inspect":
             result = inspect_plan(args.plan)
+        elif args.command == "recovery-check":
+            result = recovery_check(args.plan, args.kind, args.scope)
         else:
             result = validate_plan(args.plan, args.action, args.target)
     except PlanError as exc:
@@ -586,6 +1048,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    if args.command == "recovery-check" and result.get("decision") != "continue":
+        return 2
     return 0
 
 

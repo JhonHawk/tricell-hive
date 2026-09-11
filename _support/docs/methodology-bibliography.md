@@ -1210,3 +1210,18 @@ listed in the PI README; re-check package-specific behavior when upgrading.
 - Hive enforcement classification: deterministic structure/digest checks run only when
   invoked; invocation and conversational consent provenance remain workflow conventions.
   A digest is not a user signature or an ambient write sandbox.
+
+## Proportional verification and recovery (2026-09-10)
+
+- [NIST Secure Software Development Framework](https://csrc.nist.gov/projects/ssdf),
+  fetched 2026-09-10: adapt and prioritize practices by risk, applicability and feasibility.
+  Supports proportional verification; Hive's concrete profiles and mandatory review floors
+  are local policy, not a NIST-prescribed classification algorithm.
+- [AWS — Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/),
+  fetched 2026-09-10: ambiguous outcomes require reconciliation or an idempotent operation
+  before retrying. Hive records attempts and checks budgets; recording an attempt does not
+  make an arbitrary shell command idempotent.
+- optional external research source,
+  inspected at the pinned source revision: research declarations distinguish document and
+  open-web capabilities. Hive adapts this to active tools in the actual PI agent, including
+  bounded result retrieval for documentation. Tool presence does not attest provider access.

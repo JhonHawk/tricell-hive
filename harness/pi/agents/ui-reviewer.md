@@ -5,7 +5,7 @@ description: >
   Navigate a live mock/prototype or QA deployment and detect UX friction AND visual-craft defects against a fixed two-axis rubric (Flow + Visual craft). Use to review navigable prototypes (mock review sessions; rubric: flow-core/references/ux-rubric.md) or deployed flows — NOT for static code review of components (that is code-reviewer) and NOT for changing what it reviews — it observes only (redesigning a screen is visual-designer).
 model: openai-codex/gpt-5.6-luna
 thinking: high
-tools: read, bash, find, ls, grep, web_search, fetch_content, get_search_content, source_check, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, bash, find, ls, grep, web_search, fetch_content, get_search_content, source_check, mcp, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness, hive_research_readiness
 excludeTools: write, edit, subagent
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
@@ -90,3 +90,7 @@ Read the row matching what you touch; skip anything already loaded this session.
 |---|---|
 | Driving a browser | `~/.agents/skills/language-rules/references/browser-automation-reference.md` |
 | Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |
+
+## PI research readiness
+
+Before external research, call `hive_research_readiness` with profile `web`. It inspects this agent's active tools and reports `available`, `missing`, and `ready`. Treat a missing research tool as informational: continue local tasks, but do not pretend an unavailable tool or provider is ready.
