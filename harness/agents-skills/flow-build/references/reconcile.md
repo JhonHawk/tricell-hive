@@ -22,7 +22,10 @@ consent.
    contract is unchanged and the current user request explicitly authorizes implementation for
    its covered scope, record that request as the new `implement` grant evidence and continue; if
    it does not cover the exact scope, clarify the scope before any project edit. A legacy status
-   never supplies that grant.
+   never supplies that grant. Completed legacy plans remain untouched. For an active legacy plan,
+   resolve the `Test approach:` of each pending task during reconciliation; do not silently add a
+   material verification requirement to its frozen contract. A material change to the task's
+   verification requires a new contract revision and approval.
 3. **Inspect before validating the requested next action.** Run `plan.py inspect` and require the
    current contract digest plus authorization status `valid` or `conditional`. For verification,
    inspect is the authority check: the observed plan status must be `built` or `verified`, and no
@@ -61,12 +64,17 @@ consent.
    scope. Counters remain attached to the same semantic `kind` and `scope` across contract digests;
    an unrelated scope has an independent budget. This check never supplies consent or satisfies an
    action grant.
-5. **Read observed state.** Reconcile the execution table, recovery attempts, filesystem, Git
-   diff/log and verification evidence. A task marked complete without the expected evidence is
-   pending. Under `hold`, a clean commit is not required: verified working-tree changes and their
-   commands are valid evidence. Do not rewrite the frozen contract to record progress; update
-   only the execution and recovery metadata sections; authorization changes follow the grant
-   rules above.
+5. **Read observed state.** Reconcile the execution table, mutable `Test evidence` table,
+   recovery attempts, filesystem, Git diff/log and verification evidence. A task marked complete
+   without its declared test-approach evidence is pending. A `tdd` task with missing observed RED
+   is pending an explicit user resolution; preserve the workspace and do not infer RED from a later
+   green run. An accepted exception may continue only after the actual fail-to-pass comparison,
+   pass-to-pass evidence and applicable independent checks are recorded, with completion labeled
+   `exception-accepted`. Under `hold`, a clean commit is not required: verified working-tree
+   changes and their commands are valid evidence. Reuse test evidence only while its covered code,
+   configuration and toolchain remain current. Do not rewrite the frozen contract to record
+   progress; update only the execution and test/recovery metadata sections; authorization changes
+   follow the grant rules above.
 6. **Determine the pending stage.** Use the state and observed evidence as follows:
 
    | State + observed evidence | Do |
@@ -74,7 +82,7 @@ consent.
    | `draft` | Report the missing approval and stop; no project edit |
    | `planned` with pending tasks and an `implement` grant | Run `references/execute.md` |
    | `planned`/`building` with pending tasks and no `implement` grant | Report the missing implementation authority and stop |
-   | `building` with an `implement` grant | Resume from the first task whose evidence is absent; never repeat verified work |
+   | `building` with an `implement` grant | Resume from the first task whose test approach or execution evidence is absent; never repeat verified work |
    | `built` | Run `references/verify-gate.md` after validating verification authority |
    | `verified` with a named, authorized delivery still pending | Reconcile only that delivery action; `verify` never performs it |
    | `verified` with delivery pending but no matching grant | Report the missing delivery authority and stop |

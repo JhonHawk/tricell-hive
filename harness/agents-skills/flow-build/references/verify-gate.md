@@ -10,6 +10,16 @@ for the tasks not yet gated:
    and ACs) and code/behavior quality in one pass. A sensitive change adds the required specialist
    lens or reviewer; a passive documentation change uses diff and consistency review. The diff is
    the input; the builder's report travels as claims to check, never as context to trust.
+   Before the gate passes, reconcile every task's `Test approach:` and mutable `Test evidence`
+   against `quality/testing.md`: a normal `tdd` task needs observed RED evidence before its
+   implementation unless the user accepts the explicit chronology exception below, a
+   `characterization` task needs its green baseline, and `not-applicable` needs its concrete
+   reason and applicable review. A missed RED on a `tdd` task blocks `built`→`verified` and
+   delivery until the user accepts that exception. An accepted exception still requires an actual
+   fail-to-pass comparison, pass-to-pass evidence and the applicable
+   independent checks; record completion as `exception-accepted`, never strict TDD.
+   RED/GREEN/refactor runs are implementation evidence and do not add another independent review
+   or boundary layer.
    The reviewer or verifier runs the tooling-selected affected subset or deterministic validator
    for standard and sensitive behavior when one exists; otherwise it performs a fresh readback
    consistency check and records runtime verification as not-applicable with the reason. Passive

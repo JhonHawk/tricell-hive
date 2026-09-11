@@ -90,12 +90,20 @@ Classify from the diff and the source that consumes it. If impact is unknown, in
 source and consumers; until the impact is resolved, apply the stricter row and report the evidence
 gap without asserting an unverified risk fact.
 
+The task's `Test approach:` and its RED/GREEN or characterization evidence come from
+`quality/testing.md`; this matrix decides who reviews and which boundary checks run. For standard
+and sensitive behavior, an unresolved missing RED or an unapproved exception blocks the gate and
+publication. An accepted exception waives chronology only; the reviewer still requires actual
+fail-to-pass, pass-to-pass and applicable independent checks, and records `exception-accepted`
+instead of strict TDD. A planned `not-applicable` entry must state why no useful automatic check
+exists.
+
 Record the selected class, classification reason, applicable gates and check evidence in the
 existing execution record. Reuse review or check evidence only when the covered content,
 configuration and toolchain are unchanged and no new failure or nondeterminism appeared; do not
 repeat a review merely because work crossed a phase or commit.
 
-- **The verifier runs the checks, it does not read about them:** for standard and sensitive behavior it re-establishes the verifiable test gate (`quality/testing.md`) from an actual tooling-selected affected subset or deterministic validator when one exists, or performs a fresh readback consistency check with a reasoned not-applicable record when none exists; it inspects the diff for test-gaming (the list lives in `testing.md`; a green report over weakened tests fails the gate). Passive documentation uses its diff/consistency check and records runtime verification as not-applicable. The full suite belongs to the merge boundary.
+- **The verifier runs the checks, it does not read about them:** for standard and sensitive behavior it re-establishes the declared test approach and verifiable gate (`quality/testing.md`) from the recorded RED/GREEN or characterization runs plus an actual tooling-selected affected subset or deterministic validator when one exists, or performs a fresh readback consistency check with a reasoned not-applicable record when none exists. It inspects the diff for test-gaming (the list lives in `testing.md`; a green report over weakened tests fails the gate). Passive documentation uses its diff/consistency check and records runtime verification as not-applicable. The full suite belongs to the merge boundary; implementation RED/GREEN/refactor runs are not duplicate review layers.
 - **The implementer's handoff carries evidence, not adjectives:** test paths added and the verify command with its actual output — `pnpm test messages.spec → 12 passing`, not "implemented with tests".
 - **Verifiers overlap independent work — never idle-block.** Launch the reviewer/refuter, then continue work that doesn't depend on its verdict (remaining checks, docs, close prep); collect the verdict at the session mode's gate — pre-merge on the PR in PR modes, the commit gate otherwise (`git-mechanics.md > PRs & promotion`). Idle-polling a running agent while independent work remains wastes the wall-clock the delegation bought.
 - **A multi-repo change-group fans out the review layer:** one blind reviewer per non-trivially-changed repo (each sees only its repo's diff), plus one cross-implementation reviewer — only when a shared contract surface changed (`cross-service-workflow.md` trigger) — whose input is the contract spec and the N diffs filtered to interface surfaces (DTOs, clients, controllers, schemas), and whose mandate is limited to the seams: request/response shapes, status codes, auth/cookie semantics, event payloads, error propagation — never a re-review of what the blind reviewers saw. Dispatched in ONE parallel message; still ONE review layer with one verdict collection.

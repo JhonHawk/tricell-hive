@@ -183,3 +183,10 @@ outcome is unknown; it does not grant implementation or delivery authority.
 PI additionally exposes research readiness for the active agent's documentation and web
 tools. A ready parent does not establish readiness in a child with a different tool selection,
 and available tools do not establish network or provider access.
+
+Automatically testable behavior follows the canonical TDD policy in the testing rule:
+observed RED before implementation, GREEN and scoped refactoring. Plans declare each task's
+test approach and keep cycle evidence outside the frozen contract. Behavior-preserving
+refactors use characterization; justified non-applicable surfaces keep their review gates.
+Missing historical RED requires an explicit exception, not a reconstructed chronology.
+The shared workflow applies to direct work too; it adds no native plan-mode dependency.

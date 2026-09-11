@@ -81,6 +81,10 @@ Operationalized in `global/CLAUDE.md > Communication > Name the enforcement laye
 - PI research readiness deterministically compares required names with active tools in the
   current agent. Invoking it is prompt-convention; it does not check provider credentials,
   network reachability or evidence quality.
+- TDD ordering and Markdown cycle evidence are prompt-conventions checked by independent
+  review; `plan.py` does not validate TDD evidence or authenticate its chronology. A missing
+  observed RED requires a confirm-gated exception before acceptance, while behavioral
+  verification remains required. An expected RED is task progress, not a recovery failure.
 
 ## Related
 

@@ -73,7 +73,10 @@ being reviewed is itself the deliverable; do not manufacture a second equivalent
 
 Before presenting the gate, resolve technical prerequisites that are discoverable and record
 missing user-held prerequisites explicitly. Do not write implementation tasks whose files,
-interfaces, verification command or expected result remain unknown.
+interfaces, test approach, verification command or expected result remain unknown. Every task
+declares `Test approach: tdd`, `characterization`, or `not-applicable` according to
+`quality/testing.md`; a `not-applicable` choice includes its concrete reason in the task and
+mutable test-evidence table.
 
 ## APPROVAL — freeze the contract
 
@@ -94,6 +97,15 @@ a green review or an invocation of `/flow-plan` is not consent to implement or p
 authorizes implementation and delivery in one instruction, retain both grants for later
 reconciliation without asking again unless the scope, target, condition or mandatory safety gate
 changes.
+
+The implementation grant covers the normal RED→GREEN→refactor cycle declared by each task; do not
+request approval between those phases. If execution later discovers that implementation already
+exists for a `tdd` task without observed RED evidence, preserve the work and stop the task at the
+exception gate described in `quality/testing.md`; the explicit user exception is separate from
+ordinary plan approval. For direct work or `Session: no`, keep the approach and run evidence in the current
+conversation and report that no durable cross-harness resume guarantee exists. An accepted
+exception permits completion only with the actual fail-to-pass comparison, pass-to-pass evidence
+and applicable independent checks, labeled `exception-accepted` rather than strict TDD.
 
 Set `draft` while the contract is being formed or awaiting approval. Before setting `planned`,
 run the shared read-only validator against the structure, contract digest and authorization

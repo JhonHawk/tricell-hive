@@ -18,6 +18,8 @@ The plan has five independent areas:
    contract digest to user evidence and exact action/target grants.
 4. The execution table is ordinary Markdown outside the contract. It records
    task progress and delivery evidence; edits to it do not change the digest.
+   A separate mutable test-evidence table records the declared test approach
+   and its RED/GREEN or characterization evidence.
 5. Recovery is an optional fenced JSON block outside the contract and
    authorization. It records meaningful attempts so a resumed run can
    reconcile an interrupted operation before repeating it.
@@ -87,6 +89,7 @@ Integration: <branch, merge mechanics, and applicable CI gates>
 in-vivo: yes | no
 design-review: yes
 Agent: <agent name, when a routing row applies>
+Test approach: tdd | characterization | not-applicable
 Files:
   - Create: <exact path>
   - Modify: <exact path>
@@ -105,6 +108,12 @@ Commit: feat(<scope>): T1 <subject>
 | Task | State | Evidence |
 |---|---|---|
 | T1 | pending | |
+
+## Test evidence
+
+| Task/case | Approach | Baseline | RED | GREEN | Refactor | Exception |
+|---|---|---|---|---|---|---|
+| T1/<case> | tdd | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | |
 
 <!-- hive-plan:recovery:start -->
 ```json
@@ -284,6 +293,13 @@ contract must be self-contained for an engineer on another harness:
 - `design-review: yes` opts a user-facing UI task into the visual-craft gate.
 - `Agent:` is an optional routing annotation. A harness without that roster
   executes the recipe directly and reports the substitution.
+- `Test approach:` is mandatory for every task and is one of `tdd`,
+  `characterization`, or `not-applicable`, as defined by `quality/testing.md`.
+  `tdd` covers automatically checkable behavior and reproducible bugs;
+  `characterization` covers pure refactors; and `not-applicable` requires a
+  concrete reason when no useful automatic check exists. The task's approach
+  and evidence are repeated in the mutable `Test evidence` table outside the
+  contract digest.
 - `Verify:` pairs a command with its expected output. A step without an
   observable expected result is not a verification step.
 - `Commit:` carries the local task tag (`T1`, `T2`, and so on). It describes
@@ -293,6 +309,22 @@ contract must be self-contained for an engineer on another harness:
 When a decision blocks task detail, resolve it in `Decisions to close before
 executing` and include the resolution in the approved contract. Do not leave
 `TBD` decisions for the implementation stage.
+
+The TDD cycle is implementation evidence, not a second approval boundary:
+observe RED before the corresponding implementation, then GREEN and any
+necessary refactor check. A test approach cannot imply an unobserved RED. If
+implementation for a `tdd` task already exists without RED evidence, preserve
+it, record the missing RED in `Test evidence`, and request an explicit user
+exception. Until the user accepts the exception, the task cannot be complete,
+the plan cannot reach `built` or `verified`, and delivery cannot proceed. An
+accepted exception waives chronology only: the actual
+fail-to-pass comparison, pass-to-pass evidence and independent checks remain
+required, using a safe isolated pre-change baseline when needed; record the
+completion label `exception-accepted`, never strict TDD. Do not alter a
+completed legacy plan to retrofit this table. When an active legacy plan
+resumes, resolve the approach for each pending task without silently changing
+its frozen contract; a material verification change requires a new contract
+revision and approval.
 
 ## Proportionality and delivery
 
