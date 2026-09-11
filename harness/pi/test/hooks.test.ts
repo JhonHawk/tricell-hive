@@ -268,6 +268,18 @@ test("Hive MCP guard admits allowlisted Linear and HeroUI tools and passes their
   }
 });
 
+test("Hive MCP guard suggests the prefixed name when a bare tool name is unambiguous", () => {
+  const bare = guardHiveMcpInput({ tool: "list_issues", args: { team: "FAC" } });
+  assert.equal(bare.allowed, false);
+  assert.match(bare.allowed ? "" : bare.reason, /did you mean linear_list_issues/iu);
+  const docs = guardHiveMcpInput({ tool: "get_docs", args: {} });
+  assert.match(docs.allowed ? "" : docs.reason, /did you mean heroui_get_docs/iu);
+  const none = guardHiveMcpInput({ tool: "run_sql", args: {} });
+  assert.doesNotMatch(none.allowed ? "" : none.reason, /did you mean/iu);
+  assert.match(PI_MCP_GUIDANCE, /always <server>_<tool>/u);
+  assert.match(PI_MCP_GUIDANCE, /never list_issues/u);
+});
+
 test("Hive MCP guard rejects non-allowlisted servers, write tools and unsafe argument payloads", () => {
   const rejected: ReadonlyArray<{ readonly input: unknown; readonly reason: RegExp }> = [
     // invalid {tool, args} shape

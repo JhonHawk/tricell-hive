@@ -120,12 +120,19 @@ const HIVE_MCP_MAX_ARGS_DEPTH = 4;
 const HIVE_MCP_MAX_ARGS_LENGTH = 16384;
 const HIVE_MCP_FORBIDDEN_ARG_KEYS: readonly string[] = ["__proto__", "constructor", "prototype"];
 
-function unknownToolRejection(allowlist: HiveMcpAllowlist): string {
+function unknownToolRejection(allowlist: HiveMcpAllowlist, tool?: string): string {
   if (allowlist.error !== undefined) {
     return `Hive MCP bridge: allowlist unavailable (${allowlist.error}); all MCP calls are refused.`;
   }
   const servers = Object.keys(allowlist.servers).map((server) => `${server}_*`);
-  return `Hive MCP bridge: unknown tool; allowlisted servers are ${servers.join(", ")}.`;
+  const base = `Hive MCP bridge: unknown tool; allowlisted servers are ${servers.join(", ")}.`;
+  // A bare name (list_issues) that belongs to exactly one server gets the prefixed spelling back.
+  const owners = tool === undefined
+    ? []
+    : Object.entries(allowlist.servers)
+        .filter(([, policy]) => Object.prototype.hasOwnProperty.call(policy.tools, tool))
+        .map(([server]) => `${server}_${tool}`);
+  return owners.length === 1 ? `${base} Did you mean ${owners[0]}? Tool names are always <server>_<tool>.` : base;
 }
 
 function requiredArgsRejection(tool: string, keys: readonly string[]): string {
@@ -188,7 +195,6 @@ export type HiveMcpGuard = (value: unknown, options?: HiveMcpGuardOptions) => Hi
 /** Build the input guard for one allowlist; an unreadable allowlist refuses everything. */
 export function createHiveMcpGuard(allowlist: HiveMcpAllowlist): HiveMcpGuard {
   const allowedTools = allowedToolsFor(allowlist);
-  const unknownTool = unknownToolRejection(allowlist);
   return (value, options) => {
     if (!isPlainObject(value) || !hasExactlyKeys(value, ["tool", "args"])) {
       return { allowed: false, reason: HIVE_MCP_SHAPE_REJECTION };
@@ -199,7 +205,7 @@ export function createHiveMcpGuard(allowlist: HiveMcpAllowlist): HiveMcpGuard {
       ? allowedTools[tool]
       : undefined;
     if (typeof tool !== "string" || policy === undefined) {
-      return { allowed: false, reason: unknownTool };
+      return { allowed: false, reason: unknownToolRejection(allowlist, typeof tool === "string" ? tool : undefined) };
     }
     const childSession = options?.childSession ?? process.env.PI_SUBAGENT_CHILD === "1";
     if (policy.write === true && childSession) {
@@ -258,7 +264,7 @@ export const PI_SKILL_PATH_GUIDANCE =
   "~/.agents/skills/ holds only Hive's shared skills; package skills (e.g. pi-subagents, council-mode) live under the PI agent directory's npm/node_modules/<package>/skills/.";
 
 export const PI_MCP_GUIDANCE = [
-  "PI MCP bridge: use mcp only with {tool, args}.",
+  "PI MCP bridge: use mcp only with {tool, args}. Tool names are always <server>_<tool> (call linear_list_issues, never list_issues).",
   context7GuidanceSentence(),
   ...Object.entries(HIVE_MCP_ALLOWLIST.servers)
     .filter(([server]) => server !== "context7")
