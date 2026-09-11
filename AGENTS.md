@@ -130,7 +130,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── README.md                      # What Claude Code loads + the official doc backing each mechanism (verified URLs)
 ├── CLAUDE.md                      # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                 # Canonical section files for BOTH always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)
@@ -190,7 +190,8 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   │                          #   judgment-criteria, ux-rubric, spec-rubric, requirements-rubric + the playbooks:
 │   │   │                          #   bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion
 │   │   └── templates/             # workspace-agents, workspace-claude, sessions-permissions
-│   ├── flow-build/                # /flow-build — execute or resume a captured plan (reconciler + verify gate)
+│   ├── flow-plan/                 # /flow-plan — portable planning, approval and scoped authorization
+│   ├── flow-build/                # /flow-build — execute or resume an authorized plan (reconciler + verify gate)
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth

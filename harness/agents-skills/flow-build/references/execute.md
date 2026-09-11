@@ -1,41 +1,33 @@
 # flow-build — Execute (`planned`/`building` → `built`)
 
-Builds the plan's pending tasks. Reached when the reconciled state is `planned` or
-`building`; the `verify` subcommand skips this stage.
+Builds the portable plan's pending tasks. Reached when reconciliation has confirmed explicit
+implementation authority and the state is `planned` or `building`; the `verify` subcommand skips
+this stage.
 
-Per task, in plan order — integration strictly serialized so sibling branches never coexist
-unmerged (each task's gate validates the integrated state of every task before it):
+1. **Open the authorized workspace.** Confirm the contract digest, implementation scope, session
+   Git mode, required repositories and any task prerequisites. If the current tree contains a
+   change outside the authorized scope, pause and surface it before writing.
+2. **Mark execution.** Set the execution state to `building` and record the run start without
+   touching the frozen contract or its digest. The execution table is the only progress record;
+   the ordinary contract steps remain unchanged.
+3. **Build each pending task in plan order.** Dispatch to the specialist required by the task's
+   routing row in a fresh context, or implement the recipe directly when the current harness has
+   no specialist roster. Give dependent tasks the concrete outputs of their predecessors. Do not
+   redo a task whose evidence has already been reconciled.
+4. **Verify each task claim.** Run the task's `Verify:` command and compare its output with the
+   expected result. An unverified “it works” is not done. Record the command, result and relevant
+   paths in the task's execution evidence. A task may be marked complete while changes remain in
+   the working tree under `hold`; a commit is not a prerequisite for evidence.
+5. **Review at the applicable boundary.** Apply the review and in-vivo timing selected during
+   reconciliation. Findings route back to the builder; the affected task or gate runs again.
+   Review success proves quality for the covered scope and grants no new action permission.
+6. **Close the build stage.** When every task has verified evidence, set `Status: built`. This
+   state means implementation is complete for the plan's scope; it does not mean the change was
+   committed, pushed, merged, deployed or otherwise delivered.
 
-1. **Branch** — checkout the integration branch, pull, cut the task branch (per the plan's naming;
-   never from a sibling branch — task N+1 branches from the trunk that already contains N).
-2. **Build the task** — dispatch to its specialist per the handoff protocol (intent + consumer,
-   the task's Files/Interfaces/steps as bounded context, conventions, return contract), or
-   implement the recipe directly on a harness without specialists. Dependent tasks receive the
-   predecessor's concrete outputs.
-3. **Verify the claim** — run the task's `Verify:` command and confirm it matches the expected
-   output. An unverified "it works" is not done; the orchestrator re-checks via the shell.
-4. **Per-task gate** — the two-stage review (`references/verify-gate.md`) on the task diff; if
-   in-vivo timing is **inline** and the task is `in-vivo: yes`, its walk runs now. Findings route
-   back to the builder; the affected stage re-runs.
-5. **Commit, PR, CI, merge** — one commit per verified task with the `Commit: feat(<scope>):
-   T<n> …` tag (the tag is how state is read from git — never batch tasks into one commit). A
-   plan may declare **change-groups** (cohesive runs of small tasks): one branch/PR per group,
-   tasks landing as sequential tagged commits on it, gates amortizing per `testing.md > Execution
-   Scope`; undeclared → one PR per task. Push, open the PR, and **overlap the CI wait**
-   (`gh pr checks <n> --watch`) with the task's non-integrative ceremony (ledger notes, evidence
-   filing, next dispatch prep) — never merge red or pending; the session owns the wait, it is
-   never handed to the user. The merge also waits for the PR's bug-hunt pass per the repo's
-   declared or session-chosen route (`git-mechanics.md > PRs & promotion`, Phase B; `none` →
-   checks-only, reported; the verify-gate review already discharged Phase A). CI failure → route to the builder, fix
-   on the same PR, re-run the local gate on the affected subset BEFORE re-pushing. Then merge per
-   the plan's mechanics, delete the task branch (local + remote), checkout the integration branch,
-   pull.
+Delivery is reconciled only after the verification gate has advanced the observed plan to
+`verified`, in CLOSE. A delivery grant on a plan still in `planned`, `building` or `built` never
+permits a commit, push, PR, merge or deployment during Execute.
 
-- **Three failed fixes on the same symptom = stop.** Do not dispatch a fourth — the pattern is
-  the suspect, not the hypothesis. Bring the symptom, the attempts, and the architecture question
-  to the user (`debugging.md`).
-- **Git is autonomous inside this flow** (invoking `/flow-build` is the authorization): per-task
-  commits + the PR/CI/merge cycle. `qa`/prod promotions run via git conventions
-  (`git-workflow.md`) with `flow-core/references/promotion-playbook.md`; the safety
-  gates of `git-workflow.md` (protected branches, no force-push/rewrites) never relax.
-- When every task is in git → set `Status: built`.
+Three failed fixes on the same symptom = stop. Do not dispatch a fourth; surface the symptom,
+attempts and architecture question to the user (`debugging.md`).

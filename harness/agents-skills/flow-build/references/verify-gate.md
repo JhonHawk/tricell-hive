@@ -1,7 +1,8 @@
 # flow-build — Gate (`built` → `verified`), also the `verify` subcommand
 
 The verification gate. `verify` jumps straight here (assumes `built`); the default reaches here
-after Execute. Run, for the tasks not yet gated:
+after Execute. Run the applicable checks against the integrated working-tree or committed state
+for the tasks not yet gated:
 
 1. **Two-stage review, fresh contexts, parallel dispatch** — (a) **spec compliance**: the task
    diff against the task text + ACs (missing, extra, misunderstood — nothing else); (b) **code
@@ -31,7 +32,7 @@ after Execute. Run, for the tasks not yet gated:
    reviewer walking that wreckage reports defects that do not exist.
 3. **Design gate — REQUIRED for any task with a user-facing surface**, not opt-in (canonical
    statement of the gate: `agent-routing.md > Verification runs in fresh context`, which binds a
-   native plan too — this file carries its mechanics). Dispatch **ui-reviewer** against the running app.
+   portable plan too — this file carries its mechanics). Dispatch **ui-reviewer** against the running app.
    **The axis scope is DERIVED from what a mock review actually covered for THIS feature — never
    from whether the project owns a mocks repo.** A mock review ran → the gate takes **Visual
    craft** (`flow-core/references/ux-rubric.md` #11–18) plus the five Flow dimensions a prototype
@@ -69,4 +70,6 @@ after Execute. Run, for the tasks not yet gated:
    validates the state QA receives. Stop any server this flow started (verify per port:
    `lsof -nP -iTCP:<port> -sTCP:LISTEN`).
 5. **test-engineer** only if the goal includes a coverage push — specialists test their own code.
-- Gate passes → set `Status: verified`.
+- Gate passes → set `Status: verified`. This records the quality result only. Reconcile any
+  separately authorized commit, push, PR, merge or deploy action afterward; the `verify`
+  subcommand never performs publication.

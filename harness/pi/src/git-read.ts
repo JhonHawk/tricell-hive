@@ -223,7 +223,7 @@ export function createGitReadTool(pi: ExtensionAPI): ToolDefinition<typeof gitRe
     label: "Hive Git read",
     description: "Read bounded Git state without invoking a shell or mutating the repository.",
     promptSnippet: "Read Git state through Hive's bounded, read-only interface",
-    promptGuidelines: ["Use hive_git_read for Git inspection while plan mode is active.", "Do not use generic bash for Git operations."],
+    promptGuidelines: ["Use hive_git_read for bounded, read-only Git inspection.", "Do not use generic bash for Git operations."],
     parameters: gitReadSchema,
     executionMode: "sequential",
     async execute(_toolCallId, params, signal, _onUpdate, ctx: ExtensionContext) {

@@ -27,7 +27,6 @@ harness changes how it loads rules.
 | `pi/` | Pi runtime, package manifest, tests, and generated-role source → `~/.pi/agent/` (or `PI_CODING_AGENT_DIR`) | Runtime hand-maintained; roles **generated** by `build.py`; included by default/`all`/`harness`; `--only pi` is the isolated PI + shared-skills write boundary |
 | `opencode/commands/` | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) → `~/.config/opencode/commands/` | Hand-edited (one per user-invoked skill) |
 | `(global/hooks/flow-session-context/)` | Cross-harness SessionStart context → Claude `settings.json` + `~/.claude/hooks/`, `~/.codex/hooks.json` + `~/.codex/hooks/`, `~/.config/opencode/plugins/`; Pi maps the same advisories through its parent extension | Copied by `/deploy-global` (source under `global/`, not `harness/`); Pi wiring lives under `harness/pi/` |
-| `(global/hooks/flow-plan-capture/)` | Plan capture on approval, four harnesses through ONE canonical script: Claude Code + Grok use the `settings-config.json` block from `~/.claude/settings.json` (matcher `ExitPlanMode\|exit_plan_mode`), Codex gets `codex-hooks.json` → `~/.codex/hooks.json` on `UserPromptSubmit`, and Pi calls `--from-pi-command` from its plan extension. opencode has no equivalent event and takes the convention as instructions instead. **Grok captures but cannot inject:** only `Stop` reaches a Grok model (measured — `grok/README.md`) | Copied by `/deploy-global` (source under `global/`, not `harness/`) |
 | `codex/config.toml.snippet` | Codex config additions | **Manual merge, once** |
 | `opencode/opencode.jsonc.snippet` | opencode config additions | **Manual merge, once** |
 
@@ -104,7 +103,7 @@ unless a snippet itself changes (e.g. `project_doc_max_bytes` gets a new value).
   TOML note: it is a top-level key — it must stay **above** the `[agents]` table.
 - **`[agents] max_threads / max_depth`** — subagent coordination for flow-build-style
   sessions (`max_depth = 1` is enough: orchestrator → workers).
-- **Linear MCP** (commented) — only if you drive flow-specs/flow-plan/flow-build with Linear and
+- **Linear MCP** (commented) — only if you drive flow-plan/flow-build with Linear and
   don't already have Codex's native Linear plugin.
 
 ### `opencode/opencode.jsonc.snippet` → `~/.config/opencode/opencode.json`
@@ -165,3 +164,12 @@ The **always-on rules** under `global/rules/` still do not pass through
 `agents`, or covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS`
 in `build.py`). Path-scoped rules under `global/rules/{languages,workflow}/` **do** pass
 through: they are rebuilt into `opencode/rules/` on every run.
+
+## Portable planning
+
+`flow-plan` prepares one Markdown contract with approval, scoped authorization and execution
+evidence; `flow-build` validates it before acting and reconciles authorized delivery separately
+from verification. Native plan-mode transitions are not Hive authorization events. The shared
+validator checks declared state and content integrity when invoked; its invocation and consent
+provenance remain workflow conventions. General shell and reviewer guards retain their own
+harness-specific enforcement.

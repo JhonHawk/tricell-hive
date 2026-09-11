@@ -573,9 +573,9 @@ def pi_additional_tools(agent):
     """Return native PI capabilities required by the role contract."""
     memory = PI_WRITE_MEMORY_TOOLS if can_write(agent) else PI_READ_MEMORY_TOOLS
     tools = [*memory, *PI_CHILD_TOOLS]
-    # PI's plan-mode Bash policy can remove the shell before a child runs. The
-    # structured read-only Git tool therefore follows the canonical Bash
-    # capability, including non-reviewer verifiers such as finding-refuter.
+    # Structured read-only Git follows the canonical Bash capability, including
+    # non-reviewer verifiers such as finding-refuter. It is independent of
+    # planning authorization and remains available under reviewer restrictions.
     # `has_bash` applies source deny-wins semantics for both allowlists and
     # disallowedTools; reviewer-guard selection is independent of Git access.
     if has_bash(agent):

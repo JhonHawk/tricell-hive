@@ -122,6 +122,13 @@ its own location regardless of cwd):
 | `--verbose`, `-v` | Per-file logging instead of per-category summaries. |
 | `--help`, `-h` | Flag reference. |
 
+When a managed hook is retired, orphan cleanup removes only the exact Hive command
+registration for that hook and prunes an event block only after its inner hook list is
+empty. Co-located user hooks, commands at another path, and commands with other arguments
+remain. The retired plan-capture script is removed only when its historical Hive bytes still
+match; an edited or unprovable copy is preserved and reported while its exact legacy
+registration is still removed so native approval cannot keep running the retired bridge.
+
 For PI, `--apply` deploys `harness/AGENTS.md`, generated `harness/pi/agents/`, the
 TypeScript runtime and extension entrypoints (`src/` and `extensions/`), and canonical
 shell hooks under `global/hooks/` in the PI agent directory (the Claude-only

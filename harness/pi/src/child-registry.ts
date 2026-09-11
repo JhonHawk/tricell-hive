@@ -202,12 +202,12 @@ async function querySubagentStatus(events: EventBus, parentSession: string, time
       version: 1,
       requestId,
       method: "status",
-      source: { extension: "hive-plan" },
+      source: { extension: "hive-hooks" },
     });
   });
 }
 
-/** Refresh durable child state for one parent session before plan entry. */
+/** Refresh durable child state for one parent session before a lifecycle-sensitive action. */
 export async function reconcileActiveChildren(
   pi: Pick<ExtensionAPI, "events">,
   registry: ChildRegistry,
@@ -232,7 +232,7 @@ export async function reconcileActiveChildren(
 }
 
 /**
- * Project pi-subagents lifecycle events into the plan-mode registry.
+ * Project pi-subagents lifecycle events into the Hive child registry.
  * Event names are intentionally string literals so this bridge remains
  * optional when users load the Hive extension without pi-subagents.
  */

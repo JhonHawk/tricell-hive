@@ -24,7 +24,6 @@ PACKAGE_FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "pi-packag
 PI_HOOKS = (
     "bash-policy/bash-policy.sh",
     "flow-context/flow-context.sh",
-    "flow-plan-capture/flow-plan-capture.sh",
     "flow-session-context/flow-session-context.sh",
     "post-tool-hub/post-tool-hub.sh",
     "reviewer-guard/reviewer-guard.sh",
@@ -439,7 +438,7 @@ class PiDeployTests(unittest.TestCase):
 
     def test_missing_required_source_fails_before_any_target_write(self) -> None:
         missing_paths = (
-            "global/hooks/flow-plan-capture/flow-plan-capture.sh",
+            "global/hooks/flow-context/flow-context.sh",
             "harness/pi/src/index.ts",
             "harness/pi/extensions/hive/reviewer-guard.ts",
         )
@@ -637,7 +636,6 @@ class PiDeployTests(unittest.TestCase):
                 self.assertNotIn("__HIVE_PI_ROOT__", role_text)
                 self.assertIn(str(pi_dir), role_text)
             self.assertFalse((pi_dir / "agents/README.md").exists())
-            self.assertTrue((pi_dir / "global/hooks/flow-plan-capture/flow-plan-capture.sh").exists())
             self.assertTrue((pi_dir / "global/hooks/post-tool-hub/post-tool-hub.sh").exists())
             self.assertTrue((pi_dir / "global/hooks/reviewer-guard/reviewer-guard.sh").stat().st_mode & 0o111)
             self.assertFalse((pi_dir / "global/hooks/instructions-audit/instructions-audit.sh").exists())
@@ -656,7 +654,7 @@ class PiDeployTests(unittest.TestCase):
             metadata = json.loads((source / PATCH_FILES[1]).read_text(encoding="utf-8"))
 
             first = run_helper(*arguments)
-            self.assertIn("files: 15 write, 0 delete, 0 conflict", first.stdout)
+            self.assertIn("files: 14 write, 0 delete, 0 conflict", first.stdout)
             manifest = json.loads((pi_dir / ".hive-deploy-manifest.json").read_text(encoding="utf-8"))
             for record in metadata["targets"]:
                 target = pi_dir / "npm/node_modules/pi-subagents" / record["path"]

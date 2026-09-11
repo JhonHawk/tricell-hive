@@ -282,7 +282,6 @@ parse_args() {
 
 check_pi_deps() {
     command -v python3 >/dev/null 2>&1 || die "Missing required tool: python3 (needed for the PI deploy helper)"
-    command -v shasum >/dev/null 2>&1 || die "Missing required tool: shasum (needed by the PI plan-capture hook)"
     command -v pi >/dev/null 2>&1 || die "Missing required tool: pi (required version 0.85.1; automatic installation is disabled)"
     local pi_version
     pi_version=$(pi --version 2>/dev/null | sed -n '1p')
@@ -390,7 +389,7 @@ preflight_tree_targets() {
         rel="${source#"${source_root}"/}"
         target="${target_root}/${rel}"
         preflight_target_file "${label}" "${target}"
-    done < <(find "${source_root}" -type f -print0 2>/dev/null)
+    done < <(find "${source_root}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print0 2>/dev/null)
 }
 
 preflight_flat_targets() {
@@ -491,8 +490,8 @@ count_files_lines() {
     shift
     local files=0 lines=0
     if [[ -d "${dir}" ]]; then
-        files=$(find "${dir}" -type f "$@" 2>/dev/null | wc -l | tr -d ' ')
-        lines=$(find "${dir}" -type f "$@" -print0 2>/dev/null | xargs -0 cat 2>/dev/null | wc -l | tr -d ' ')
+        files=$(find "${dir}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' "$@" 2>/dev/null | wc -l | tr -d ' ')
+        lines=$(find "${dir}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' "$@" -print0 2>/dev/null | xargs -0 cat 2>/dev/null | wc -l | tr -d ' ')
     fi
     printf '%s %s' "${files}" "${lines}"
 }
@@ -516,7 +515,7 @@ diff_category() {
         else
             modified=$((modified + 1))
         fi
-    done < <(find "${src}" -type f "$@" -print0 2>/dev/null)
+    done < <(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' "$@" -print0 2>/dev/null)
     log "  ${label}: ${new} new, ${modified} modified, ${unchanged} unchanged"
     report "  ${label}: ${new} new, ${modified} modified, ${unchanged} unchanged"
 }
@@ -561,15 +560,21 @@ diff_hooks() {
 # deploy_tree LABEL SRC_DIR TGT_DIR — recursive overlay copy (never deletes).
 deploy_tree() {
     local label="$1" src="$2" tgt="$3"
-    if [[ ! -d "${src}" ]] || [[ -z "$(find "${src}" -type f -print -quit 2>/dev/null)" ]]; then
+    if [[ ! -d "${src}" ]] || [[ -z "$(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print -quit 2>/dev/null)" ]]; then
         vlog "${label}: source empty or not found, skip"
         return 0
     fi
     local count
-    count=$(find "${src}" -type f 2>/dev/null | wc -l | tr -d ' ')
+    count=$(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | wc -l | tr -d ' ')
     if [[ "${APPLY}" -eq 1 ]]; then
         mkdir -p "${tgt}"
-        cp -R "${src}/." "${tgt}/"
+        local file rel target_dir
+        while IFS= read -r -d '' file; do
+            rel="${file#"${src}"/}"
+            target_dir="${tgt}/$(dirname "${rel}")"
+            mkdir -p "${target_dir}"
+            cp "${file}" "${tgt}/${rel}"
+        done < <(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print0 2>/dev/null)
         log "Deployed ${label}: ${count} files -> ${tgt}"
     else
         log "[DRY-RUN] would deploy ${label}: ${count} files -> ${tgt}"
@@ -1084,10 +1089,42 @@ step_detect_orphans() {
 
 step_delete_orphans() {
     log "== Deleting manifest-confirmed orphans =="
-    local rel deleted=0
+    local rel deleted=0 expected_hash target_hash
     for rel in "${ORPHANS[@]}"; do
         manifest_entry_map "${rel}"
         [[ -n "${MAP_TGT}" ]] || continue
+
+        # Retired hooks need a content check because the legacy line manifest
+        # predates per-file ownership hashes. A user edit at the old path is
+        # preserved and reported instead of being treated as disposable Hive
+        # state. New manifests retain the same path ownership model for the
+        # rest of the managed tree.
+        expected_hash=$(retired_hook_hash "$(basename "${rel}")")
+        target_hash=""
+        if [[ -n "${expected_hash}" ]]; then
+            if [[ ! -e "${MAP_TGT}" ]]; then
+                target_hash="${expected_hash}" # The file is already absent; still purge its exact config entry.
+            elif [[ -L "${MAP_TGT}" ]] || ! command -v shasum >/dev/null 2>&1; then
+                log "Preserved retired hook (ownership/content could not be proven): ${MAP_TGT}"
+                report "orphan: preserved retired hook (ownership/content could not be proven) ${rel}"
+                case "${rel}" in
+                    hooks/*) purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")" "claude" ;;
+                    codex-hooks/*) purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")" "codex" ;;
+                esac
+                continue
+            fi
+            [[ -n "${target_hash}" ]] || target_hash=$(shasum -a 256 "${MAP_TGT}" 2>/dev/null | awk '{print $1}')
+            if [[ "${target_hash}" != "${expected_hash}" ]]; then
+                log "Preserved edited retired hook: ${MAP_TGT}"
+                report "orphan: preserved edited retired hook ${rel}"
+                case "${rel}" in
+                    hooks/*) purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")" "claude" ;;
+                    codex-hooks/*) purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")" "codex" ;;
+                esac
+                continue
+            fi
+        fi
+
         if [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; then
             rm -rf "${MAP_TGT}"
             log "Deleted orphan: ${MAP_TGT}"
@@ -1095,10 +1132,10 @@ step_delete_orphans() {
         fi
         case "${rel}" in
             hooks/*)
-                purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")"
+                purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")" "claude"
                 ;;
             codex-hooks/*)
-                purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")"
+                purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")" "codex"
                 ;;
         esac
     done
@@ -1107,14 +1144,24 @@ step_delete_orphans() {
     report "orphans: ${deleted} deleted"
 }
 
-# purge_hook_block SETTINGS_FILE ORPHAN_BASENAME
+# Legacy manifests recorded only managed paths. Keep a bounded allowlist for
+# hooks retired by this change so an old deployment can be cleaned safely while
+# an operator-edited file at the same path remains untouched.
+retired_hook_hash() {
+    case "$1" in
+        flow-plan-capture.sh) printf '%s' 'f577745eb18fcc8d92149dc5f92eaa7e8a145e5164b0efe4c0d745be004ab483' ;;
+        *) printf '%s' '' ;;
+    esac
+}
+
+# purge_hook_block SETTINGS_FILE ORPHAN_BASENAME KIND
 purge_hook_block() {
-    local settings_file="$1" bn="$2"
+    local settings_file="$1" bn="$2" kind="$3"
     [[ -f "${settings_file}" ]] || return 0
     local tmp
     tmp=$(mktemp)
     register_tmp "${tmp}"
-    if jq --arg bn "${bn}" -f "${HOOK_PURGE_FILTER}" "${settings_file}" >"${tmp}" && jq empty "${tmp}" 2>/dev/null; then
+    if jq --arg bn "${bn}" --arg kind "${kind}" -f "${HOOK_PURGE_FILTER}" "${settings_file}" >"${tmp}" && jq empty "${tmp}" 2>/dev/null; then
         mv "${tmp}" "${settings_file}"
         log "${settings_file}: purged orphan hook block for ${bn}"
     else
@@ -1654,7 +1701,7 @@ step_write_manifest() {
         # paths that DO exist) already reached stdout.
         if [[ "${RUN_CLAUDE}" -eq 1 ]]; then
             [[ -f "${REPO_ROOT}/global/CLAUDE.md" ]] && echo "CLAUDE.md"
-            find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
+            find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
             find "${REPO_ROOT}/global/hooks" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|' || true
             # Injected references are deployed into ~/.claude/skills by
             # deploy_injected_references but exist ONLY in the generated tree, so

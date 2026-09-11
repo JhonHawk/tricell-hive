@@ -10,6 +10,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { attachChildLifecycle, defaultChildRegistry } from "./child-registry.ts";
+import { createGitReadTool } from "./git-read.ts";
 import { checkHookReadiness, runHook } from "./hook-runner.ts";
 import type { ChildRegistry, HookPaths, HookRunnerOptions } from "./types.ts";
 
@@ -107,7 +108,6 @@ export const REQUIRED_HOOK_KEYS: readonly HiveHookKey[] = [
   "reviewerGuard",
   "postToolHub",
   "flowContext",
-  "flowPlanCapture",
 ];
 
 export const ADVISORY_HOOK_KEYS: readonly HiveHookKey[] = [
@@ -206,7 +206,6 @@ export function defaultHookPaths(): HookPaths {
     reviewerGuard: join(root, "reviewer-guard/reviewer-guard.sh"),
     postToolHub: join(root, "post-tool-hub/post-tool-hub.sh"),
     flowContext: join(root, "flow-context/flow-context.sh"),
-    flowPlanCapture: join(root, "flow-plan-capture/flow-plan-capture.sh"),
     flowSessionContext: join(root, "flow-session-context/flow-session-context.sh"),
     ruleContext: join(root, "rule-context/rule-context.sh"),
     sessionHygieneReport: join(root, "session-hygiene-report/session-hygiene-report.sh"),
@@ -288,6 +287,21 @@ export function createHookReadinessTool(
       };
     },
   };
+}
+
+function registerHiveStatusCommand(pi: ExtensionAPI, paths: HookPaths): void {
+  pi.registerCommand("hive-status", {
+    description: "Inspect Hive hook readiness and active tools",
+    handler: async (_args, ctx) => {
+      const readiness = checkHookReadiness(requiredHookPaths(paths));
+      const hooks = readiness.ready ? "ready" : `not_ready (${readiness.missing.join(", ")})`;
+      const tools = [...pi.getActiveTools()].sort().join(", ") || "none";
+      ctx.ui.notify(
+        `Hive status\nhooks: ${hooks}\nhook_status:\n${hookStatusLines(getHiveHookStatuses(pi, paths))}\ntools: ${tools}`,
+        "info",
+      );
+    },
+  });
 }
 
 function getStandaloneHookStatuses(paths: HookPaths): HiveHookStatusSnapshot {
@@ -464,6 +478,8 @@ export function registerGeneralHiveHooks(
     markHiveHookWired(pi, paths, "sessionHygieneReport");
   }
   pi.registerTool(createHookReadinessTool(paths, () => getHiveHookStatuses(pi, paths)));
+  pi.registerTool(createGitReadTool(pi));
+  registerHiveStatusCommand(pi, paths);
 
   pi.on("session_start", async (event, ctx) => {
     const session = currentSessionId(ctx);
@@ -644,7 +660,6 @@ export function registerGeneralHiveHooks(
           harness: "pi",
           cwd: ctx.cwd,
           session_id: currentSessionId(ctx),
-          permission_mode: process.env.PI_HIVE_PLAN_MODE === "1" ? "plan" : "normal",
         },
         mode: "advisory",
         signal: ctx.signal,

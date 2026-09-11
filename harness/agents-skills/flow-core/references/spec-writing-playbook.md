@@ -88,7 +88,7 @@ is only steps 1–2.
 ## `review <spec-ref>` — the BUSINESS gate
 
 This gate closes *business* questions: rules, scope, actors, verifiability. It never
-resolves technical ones — the technical gate is TECH.md at native plan mode's plan gate,
+resolves technical ones — the technical gate is TECH.md at the `/flow-plan` approval gate,
 once the bootstrap playbook's foundation stage ran.
 
 1. **Resolve `<spec-ref>` to an epic folder** (against the specs repo found at OPEN):

@@ -1,27 +1,33 @@
 # flow-build — CLOSE
 
-Runs at the end of every `/flow-build` invocation, after the run's last stage.
+Runs at the end of every `/flow-build` invocation, after the run's last stage. Close records
+observed state and authorized delivery; it does not turn a successful verification into an
+implicit publication.
 
-1. **Tracker** — move task states, comment evidence + merged-PR refs (via the declared access;
-   mechanics: `flow-core/references/tracker-access.md`; a batch big enough to inflate the
-   close dispatches `state-fetcher` with it; manual → list them; none → update `tasks.md`).
-2. **Git** — confirm nothing open: `gh pr list --state open` in every repo touched, output in the
-   report; non-empty is a blocker NOW, never a "next step". No unmerged task branches.
-3. **Ledger** — update PROJECT.md (phase/epic progress, artifacts, decisions, **Promotion
-   prerequisites** for qa/prod). Finalize the session/initiative if created: mark `finalized` in
-   the sessions index, seal back-references (`Session: <slug>` on `tasks.md` rows, `Implementado
-   en: sessions/<slug>` on decisions/epics), promote durable findings, save the slug to Engram.
-4. **Evidence** — versioned reports already written by the gate; **purge ephemeral raw** from
-   `_support/evidence/` (confirm gitignored). The report survives, the screenshots do not.
-5. **Docs impact** — state the change-group's specs/product-doc delta: files updated in the
-   specs repo (product state, conventions, manual pages), or `none` with the reason. An
-   operator-facing change (screen, role capability, business rule) with no delta is a gap to
-   close in the change-group, never a "next step".
-6. **Report** — tasks done vs pending, merges (PR#, CI results), docs impact (item 5), what
-   was verified (paths) vs not, **executor substitutions** (a gate or `Agent:`-annotated task
-   run inline instead of via its routing-row agent — name it with the one-line why; a silent
-   substitution is a close defect), servers started/stopped, suggested next scope. Deferred tasks are a one-line count, never
-   a pending list; promotion is never the suggested next work — if integration is ahead of `qa`,
-   close with a one-line offer to run the QA promotion walk now
-   (`flow-core/references/promotion-playbook.md`; the user decides; never expand its
-   plan, never list it as a user to-do).
+1. **Tracker.** Move task states and attach evidence plus any authorized delivery references via
+   the declared tracker access (`flow-core/references/tracker-access.md`). A tracker with no
+   declared access remains unchanged; report that fact rather than inventing an integration.
+2. **Git and delivery.** Report the current branch, working-tree state, commits and remote
+   delivery observed. Under `hold`, a non-clean tree is an expected result and is not a close
+   failure. In a normal run, reconcile a delivery action only after the observed plan is
+   `verified` and its Authorization grant names that action and target; a grant on a `planned`,
+   `building` or `built` plan remains pending. A `verify` invocation never reconciles delivery,
+   even when its gate advances the plan to `verified`; leave the authorized action pending for a
+   subsequent normal run. If an authorized action remains pending, name the exact action and
+   reason. Do not create a commit, push, PR, merge or promotion unless the Authorization section
+   and mandatory repository gates permit it.
+3. **Ledger, when present.** Update PROJECT.md with the phase, artifacts, decisions, authorization scope and
+   delivery state. Finalize the session/initiative only when its lifecycle actually concluded;
+   preserve `Session: no` as conversation-only and make no durable resume claim for it. Write
+   `## Current handoff` with the paths produced, decisions left, input for the next phase and the
+   next suggested action.
+4. **Evidence.** Keep versioned reports written by the verification gate. Purge only raw,
+   gitignored evidence whose retention rule allows it; do not delete open-finding evidence or
+   anything needed to substantiate a pending delivery.
+5. **Docs impact.** State the change-group's specs/product-doc delta: paths updated in the specs
+   repo, or `none` with the reason. An operator-facing behavior with no required documentation
+   delta is a gap to close in the same change-group.
+6. **Report.** Distinguish tasks implemented, tasks verified, delivery actions completed and
+   delivery actions still pending. Include paths and exact commands actually run, what was
+   unverified or blocked, executor substitutions, servers started/stopped and the next
+   suggested scope. `verified` is a quality result, not a delivery claim.

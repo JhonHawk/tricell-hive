@@ -3,6 +3,8 @@
 
 import hashlib
 import importlib.util
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,6 +31,26 @@ def snapshot(root: Path) -> dict[str, tuple[str, int, str]]:
 
 
 class GeneratedTreeParityTests(unittest.TestCase):
+    def test_skill_generation_excludes_python_runtime_cache(self):
+        with tempfile.TemporaryDirectory(prefix="hive-skill-cache-") as tmp:
+            root = Path(tmp)
+            source = root / "source" / "flow-core"
+            script = source / "scripts" / "plan.py"
+            script.parent.mkdir(parents=True)
+            script.write_text("print('validator')\n", encoding="utf-8")
+            cache = script.parent / "__pycache__"
+            cache.mkdir()
+            (cache / "plan.cpython-314.pyc").write_bytes(b"machine-specific cache")
+            (source / "SKILL.md").write_text("# Shared flow library\n", encoding="utf-8")
+            output = root / "generated"
+            subprocess.run(
+                [sys.executable, str(ROOT / "harness/build/convert-skills.py"),
+                 str(root / "source"), str(output)],
+                check=True, capture_output=True, text=True,
+            )
+            self.assertEqual((output / "flow-core/scripts/plan.py").read_bytes(), script.read_bytes())
+            self.assertFalse((output / "flow-core/scripts/__pycache__").exists())
+
     def create_generated_fixture(self, parent: Path) -> Path:
         fixture = parent / "actual"
         BUILD_MODULE.generate_generated_trees(fixture)

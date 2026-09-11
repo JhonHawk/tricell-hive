@@ -63,6 +63,17 @@ request for a deterministic backstop (hook, deny permission), not for stronger w
 Operationalized in `global/CLAUDE.md > Communication > Name the enforcement layer` and in
 `/manage-rules validate` (criterion 8, "Enforcement honesty").
 
+## Portable planning
+
+- The shared plan validator deterministically checks structure, contract digest and declared
+  action/target scope when invoked. It is read-only and does not launch or intercept tools.
+- Plan approval is confirm-gated. Recorded conversational evidence and a matching digest
+  are not a cryptographic user signature.
+- Invoking the validator, checking live evidence and honoring its result are prompt
+  conventions. Progress and delivery records are claims to reconcile, not evidence by themselves.
+- Draft planning has no ambient parent-write blockade. General shell, MCP and reviewer
+  guards keep their own coverage; native plan-mode transitions grant no Hive authority.
+
 ## Related
 
 - `global/skills/flow-core/references/harness-mechanics.md > Enforcement differences to

@@ -8,18 +8,11 @@
 # self-gates on tool name and returns its reminder text; whatever fires is
 # newline-joined into a SINGLE additionalContext emission.
 #
-#   0. Plan-capture recovery     (first call) — delegates to flow-plan-capture.sh
-#   1. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
-#   2. Full-suite run counter    (shell)      — testing.md > Execution Scope
+#   0. Delegation counter        (all tools)  — agent-routing.md > Delegation Gates
+#   1. Full-suite run counter    (shell)      — testing.md > Execution Scope
 #   4. zsh-signature teacher     (shell)      — CLAUDE.md > Shell
 #   5. Git-mode ask advisory     (edit tools) — git-mechanics.md > Commits
 #   6. Remote-apply counter      (shell)      — debugging.md > remote-apply breaker
-#
-# Section 0 is the one that WRITES (via the capture hook it calls) rather than
-# only advising. It lives here because it needs the earliest event that can see
-# the fresh session's first user turn, and this hub already spawns on every tool
-# call — a dedicated registration would double the per-call process cost to
-# catch a once-per-session condition.
 #
 # The counters keep SEPARATE state files and are never coupled: one section
 # firing must not reset or advance another's count.
@@ -43,30 +36,8 @@ case "$tool_name" in
   Bash|run_terminal_command|Shell) is_shell=1 ;;
 esac
 
-HOOK_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd) || HOOK_DIR=""
-
 # ---------------------------------------------------------------------------
-# 0. Plan-capture recovery — approving a plan WITH context cleared resolves
-# ExitPlanMode as a permission deny, so PostToolUse:ExitPlanMode never fires and
-# flow-plan-capture never sees the plan. The fresh session's first user turn
-# carries it in `planContent`; this fires the capture hook in recovery mode on
-# the FIRST tool call of any session and stays quiet everywhere else.
-#
-# The marker is written BEFORE the attempt: a failure must not retry every call.
-# ---------------------------------------------------------------------------
-plan_recovery_section() {
-  [ "$harness" != "pi" ] || return 0
-  local marker out
-  marker="${TMPDIR:-/tmp}/claude-flow-plan-recovery-${session_id}"
-  [ -f "$marker" ] && return 0
-  : > "$marker" 2>/dev/null || true
-  [ -n "$HOOK_DIR" ] && [ -x "$HOOK_DIR/flow-plan-capture.sh" ] || return 0
-  out=$(printf '%s' "$input" | "$HOOK_DIR/flow-plan-capture.sh" --from-transcript 2>/dev/null)
-  [ -n "$out" ] && printf '%s' "$out"
-}
-
-# ---------------------------------------------------------------------------
-# 1. Delegation counter — every non-delegation tool call increments; a
+# 0. Delegation counter — every non-delegation tool call increments; a
 # Task/Agent/spawn_subagent call resets to 0; a reminder fires on each
 # multiple of 20.
 #
@@ -111,7 +82,7 @@ delegation_section() {
 }
 
 # ---------------------------------------------------------------------------
-# 2. Full-suite run counter — counts repeated whole-suite verification runs.
+# 1. Full-suite run counter — counts repeated whole-suite verification runs.
 #
 # Detection is deliberately conservative: a command carrying `--filter` is the
 # sanctioned affected-subset run and never counts, and anything followed by a
@@ -297,7 +268,6 @@ append() {
   context="${context:+$context$newline}$1"
 }
 
-append "$(plan_recovery_section)"
 append "$(delegation_section)"
 append "$(verification_loop_section)"
 append "$(zsh_signature_section)"

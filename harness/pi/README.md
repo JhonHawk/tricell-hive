@@ -3,8 +3,8 @@
 This directory contains the Hive integration for [Pi](https://pi.dev/), the
 terminal coding harness. It keeps the canonical agent definitions and Bash
 hooks shared with Claude Code, Codex, and Grok while adding the Pi-specific
-runtime needed for subagents, plan mode, bounded Git reads, and package-backed
-tools.
+runtime needed for subagents, portable Flow planning, bounded Git reads, and
+package-backed tools.
 
 The source and runtime have one boundary:
 
@@ -98,28 +98,15 @@ provide as a single native Hive surface:
 - `git-read.ts` exposes `hive_git_read`, a bounded read-only tool for status,
   diff, log, show, blame, file listing, branches, and remotes. It rejects
   unsafe arguments, disables external diff/pager/fsmonitor behavior, caps
-  output, and never accepts a shell command.
-- The plan extension exposes `/hive-plan enter`, `/hive-plan approve [path]`,
-  `/hive-plan cancel`, and `/hive-plan status`. While active, the parent can
-  use bounded reads and structured Git inspection but has no generic Bash or
-  project-write tool. Approval captures the settled plan and starts execution
-  in the same explicit action; it does not approve a plan merely because a
-  child finished.
-- Plan entry snapshots the exact active tool set. Approval and cancellation
-  restore that snapshot, and a child launched while planning keeps its
-  restrictions for the rest of its lifetime. Entry is rejected while the
-  parent or an existing child is active.
-- The plan capture bridge calls the canonical
-  `global/hooks/flow-plan-capture/flow-plan-capture.sh --from-pi-command` with
-  `{ "harness": "pi", "cwd": "...", "tool_response": { "plan": "..." } }`.
-  It preserves the plan bytes, returns `{ status: "captured", path, sha256 }`
-  for a durable capture, and fails closed for malformed or failed captures. The
-  digest is the native `shasum -a 256` hash of the exact plan bytes after the
-  artifact's four metadata lines. Before execution, the runtime compares that
-  digest with the approved candidate and blocks on a mismatch. A Flow workspace
-  uses its ledger, a standalone repository uses its session layer, and a
-  directory outside a repository returns `session_only`. `Session: no` returns
-  `skipped`.
+  output, and never accepts a shell command. The general extension registers it
+  for every Hive role, including reviewers.
+- `hive-status` reports the current hook readiness, per-hook status, and active
+  tools. `hive_hook_readiness` remains the structured readiness check used by
+  generated roles.
+- Flow planning and execution use the shared `/flow-plan` and `/flow-build`
+  skills. Pi has no Hive-specific plan mode, plan approval state, or plan
+  capture adapter; the workflow artifacts and their approvals remain
+  harness-independent.
 
 The general extension is loaded for every Hive role. The reviewer guard is
 loaded only for the six canonical roles whose source agent declares the
@@ -143,7 +130,7 @@ the existing child guards:
 | Advisory | Parent trigger | Durable behavior | Failure policy |
 |---|---|---|---|
 | `flow-session-context` | Fresh context and successful compaction | Fresh flow context is restored once; compaction receives the condensed Flow recovery; pending initial context survives reload | Missing or malformed advisory output warns and continues |
-| `rule-context` | Before a tool invocation | Translates Pi `Write`/`Edit`/`Bash` inputs to the canonical JSON payload and keeps canonical per-session rule markers | Advisory only; it never replaces the blocking Bash/reviewer/plan/capture guards |
+| `rule-context` | Before a tool invocation | Translates Pi `Write`/`Edit`/`Bash` inputs to the canonical JSON payload and keeps canonical per-session rule markers | Advisory only; it never replaces the blocking Bash or reviewer guards |
 | `session-hygiene-report` | Fresh parent context | Reuses the canonical report-only scan and its six-hour fingerprint cooldown | Missing report warns and continues; it never kills a process or blocks the parent |
 
 Freshness comes from active context entries, not from treating every startup as a new
@@ -160,8 +147,8 @@ Children run in the background through `pi-subagents`, which keeps the parent
 responsive and exposes lifecycle state. The default context is fresh, with
 Hive project/global instructions and shared skills explicitly inherited. Child
 agents do not recursively delegate. The parent session pointer
-`PI_SUBAGENT_PARENT_SESSION` is used for plan inheritance and lifecycle
-association; it is not a trusted role identity.
+`PI_SUBAGENT_PARENT_SESSION` is used for child lifecycle association; it is not
+a trusted role identity.
 
 ## Pinned packages and external surfaces
 
@@ -180,7 +167,7 @@ For `pi-mcp-adapter` 2.32.1, the managed Context7 entry sets
 `lifecycle: "lazy"`. Context7 advertises `ttlMs: 0`, so the adapter discards
 its cache and direct or namespace tools do not remain registered; an eager
 lifecycle does not change that. The native `mcp` proxy and its closed input
-guard are the stable plan-safe surface.
+guard are the stable bounded surface.
 
 ### `pi-subagents` 0.67.0 compatibility patch
 
@@ -236,7 +223,7 @@ the Pi core documentation does not define them.
 | Background children | Hive uses `pi-subagents` async children with explicit child-only extensions | [pi-subagents package](https://pi.dev/packages/pi-subagents?type=extension) · [tool and extension selection](https://github.com/nicobailon/pi-subagents/blob/main/docs/agents.md) | Package reference |
 | Engram memory bridge | `gentle-engram@0.1.12` provides Pi-native memory tools and the native HTTP path used here | [gentle-engram package](https://pi.dev/packages/gentle-engram) | Package reference; this integration does not run `pi-engram init` |
 | Required child extensions | `hive-hooks.ts` on all 25 roles; `hive/reviewer-guard.ts` on six roles; explicit `tools` sentinels `hive_hook_readiness` and `hive_reviewer_readiness` | — | Undocumented upstream; enforced by generated tool selection and runtime checks |
-| Bounded plan mode | Hive-specific commands and exact tool snapshot/restore | — | Undocumented upstream; enforced by runtime tests |
+| Portable Flow planning | Shared `/flow-plan` and `/flow-build` skills own phases, artifacts, and approvals; Pi contributes no native plan mode | — | Hive workflow |
 | Canonical Bash hooks | Hive-specific JSON adapter around existing scripts | [Pi extensions](https://pi.dev/docs/latest/extensions) for lifecycle extension points | Bridge behavior is Hive-specific |
 | OS sandbox | Not enabled | [Pi containerization](https://pi.dev/docs/latest/containerization) | Explicitly excluded |
 
@@ -250,24 +237,10 @@ From the repository root:
 
 ```sh
 python3 harness/build.py
-command -v shasum >/dev/null && shasum -a 256 </dev/null
 cd harness/pi
 pnpm typecheck
 pnpm test
 ```
-
-The `shasum` line is a required PI preflight: the canonical capture hook uses
-the native command to produce the returned digest.
-
-The source capture regression suite is an independent check of the canonical
-hook contract and should run before the disposable Pi smoke:
-
-```sh
-python3 global/hooks/flow-plan-capture/test_pi_capture.py
-```
-
-The capture suite does not replace the Pi typecheck, package checks, or
-disposable runtime smoke.
 
 The selected deployment order is deliberate:
 
@@ -326,5 +299,6 @@ explicitly selected harness roots.
 
 Before considering the integration usable, run the disposable repository smoke
 for a Grok parent, an OpenAI-backed child, the structured question tool,
-Context7, the web tools, plan capture, and the reviewer guard. No smoke should
-publish a commit, push, or production change.
+Context7, the web tools, `hive-status` and hook readiness, bounded Git reads,
+and the reviewer guard. No smoke should publish a commit, push, or production
+change.

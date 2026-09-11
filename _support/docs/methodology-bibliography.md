@@ -1196,3 +1196,17 @@ listed in the PI README; re-check package-specific behavior when upgrading.
 - `[Authoritative — package source]` [Engram PI plugin](https://github.com/Gentleman-Programming/engram/tree/main/plugin/pi),
   installed as gentle-engram 0.1.12. Native HTTP integration is used independently
   of Context7 MCP; the adapter does not initialize a second Engram stdio server.
+
+## Portable Hive planning (2026-09-10)
+
+- [Anthropic — Building effective agents](https://www.anthropic.com/engineering/building-effective-agents),
+  fetched 2026-09-10: simple composable workflows and programmatic checks between steps
+  support a shared skill contract and read-only artifact validator. This is architectural
+  guidance, not a claim about current harness permission APIs.
+- optional external research source,
+  fetched 2026-09-10: explicit workflow selection and separation of review from delivery
+  authority inform Hive's portable planning. Hive uses its own phases and artifacts;
+  it does not depend on optional reference project or its runtime.
+- Hive enforcement classification: deterministic structure/digest checks run only when
+  invoked; invocation and conversational consent provenance remain workflow conventions.
+  A digest is not a user signature or an ambient write sandbox.

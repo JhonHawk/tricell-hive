@@ -97,7 +97,8 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
 │   ├── flow-core/                   # Process library (non-invocable): contract, templates, playbooks
 │   │                                #   (bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion)
-│   ├── flow-build/                  # Execute a captured plan: reconciler + verify gate
+│   ├── flow-plan/                   # Plan and authorize a portable work contract
+│   ├── flow-build/                  # Execute an authorized plan: reconciler + verify gate
 │   ├── flow-report/                 # Self-contained HTML reports for artifacts that outlive the thread (6 archetypes; `paper` is the printable one)
 │   ├── language-rules/              # Router skill: language rules for Codex/Grok; browser CLI reference for every harness (references injected by build.py)
 │   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
@@ -152,11 +153,11 @@ _support/                            # Workspace material, not deployed
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob |
 | `code-scout` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only discovery) |
-| `code-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
+| `code-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
 | `finding-refuter` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (executes claims, never modifies) |
-| `product-critic` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
-| `security-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
-| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation under plan mode) |
+| `product-critic` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
+| `security-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
+| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
 | `ui-reviewer` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
 | `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit, Agent (drives a real browser; Write for the in-vivo report) |
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
@@ -209,7 +210,8 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `/adversarial-research` | global | N independent generators (one may be Codex) + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon |
 | `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the deployed canon (harness-coverage matrix) + completeness checks (project pointers, Git Workflow declarations) + content quality (agent-discoverable rules, stale paths, instruction budget). Hub-destined proposals (promote-to-core, injection map) are reported, never executed by the skill |
 | `flow-core` | global | Process library (non-invocable): flow contract, templates, and the playbooks — bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion |
-| `/flow-build` | global | Execute or resume a captured plan: state-driven reconciler + verify gate. The one remaining process command — everything else is a playbook |
+| `/flow-plan` | global | Prepare a portable plan with explicit approval, scoped authorization and separate execution evidence; also available through an explicit conversational planning request |
+| `/flow-build` | global | Execute or resume an authorized plan; reconcile working-tree/Git evidence, verification and pending authorized delivery. `verify` never publishes |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |
 | `flow-report` | global | Renders substantial output as self-contained HTML in six archetypes — document, paper, explainer, review, comparison, deck (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |

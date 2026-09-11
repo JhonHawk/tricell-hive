@@ -130,8 +130,7 @@ alone** — flag the pair, never keep both.
 workspace lacks one; fall back to `<audited-root>/_support/` where `workspace/` is not the
 convention). One entry per rule: file, line, evidence, outcome, proposed action — the same
 table the report shows. An audit is expensive to produce and outlives the session that ran
-it, exactly like a captured plan (`flow-plan-capture`: day-2 continuity is a repo file, not
-harness state). It also makes the manifest reviewable outside the terminal, which is where
+it, like a portable Hive plan: day-2 continuity lives in a repo file, not harness state. It also makes the manifest reviewable outside the terminal, which is where
 the user reads everything else. Same-day re-audit overwrites; a later date gets its own file.
 
 **The floor — what a root file keeps even when everything else goes.** One sentence saying

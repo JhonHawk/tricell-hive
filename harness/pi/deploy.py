@@ -48,7 +48,6 @@ WEB_SEARCH_FIELDS = {
 PI_HOOK_RELATIVES = (
     "bash-policy/bash-policy.sh",
     "flow-context/flow-context.sh",
-    "flow-plan-capture/flow-plan-capture.sh",
     "flow-session-context/flow-session-context.sh",
     "post-tool-hub/post-tool-hub.sh",
     "reviewer-guard/reviewer-guard.sh",

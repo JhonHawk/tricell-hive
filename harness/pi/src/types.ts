@@ -54,7 +54,6 @@ export interface HookPaths {
   readonly reviewerGuard: string;
   readonly postToolHub: string;
   readonly flowContext: string;
-  readonly flowPlanCapture: string;
   readonly flowSessionContext: string;
   readonly ruleContext: string;
   readonly sessionHygieneReport: string;
@@ -64,22 +63,6 @@ export interface HookReadiness {
   readonly ready: boolean;
   readonly missing: readonly string[];
 }
-
-export interface PlanModeState {
-  readonly enabled: boolean;
-  readonly executionStarted: boolean;
-  readonly toolsBeforePlanMode?: readonly string[];
-  readonly candidate?: string;
-  readonly candidateAfterEntryId?: string;
-  readonly candidateSha256?: string;
-  readonly capturePath?: string;
-  readonly lastCaptureStatus?: "captured" | "session_only" | "skipped";
-}
-
-export type PlanCaptureResult =
-  | { readonly status: "captured"; readonly path: string; readonly sha256: string }
-  | { readonly status: "session_only"; readonly reason: string }
-  | { readonly status: "skipped"; readonly reason: string };
 
 export type GitReadOperation =
   | "status"

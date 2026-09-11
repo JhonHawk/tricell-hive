@@ -23,6 +23,7 @@ interface FakeEvents {
 interface FakePi {
   readonly api: ExtensionAPI;
   readonly handlers: Map<string, StoredHandler>;
+  readonly commands: Map<string, StoredHandler>;
   readonly messages: Array<{ readonly message: unknown; readonly options: unknown }>;
   readonly notifications: string[];
   readonly tools: unknown[];
@@ -30,6 +31,7 @@ interface FakePi {
 
 function createFakePi(persistedEntries: unknown[] = []): FakePi {
   const handlers = new Map<string, StoredHandler>();
+  const commands = new Map<string, StoredHandler>();
   const messages: Array<{ readonly message: unknown; readonly options: unknown }> = [];
   const notifications: string[] = [];
   const tools: unknown[] = [];
@@ -47,7 +49,11 @@ function createFakePi(persistedEntries: unknown[] = []): FakePi {
     on(event: string, handler: unknown) {
       handlers.set(event, handler as StoredHandler);
     },
+    registerCommand: (name: string, options: { readonly handler: StoredHandler }) => {
+      commands.set(name, options.handler);
+    },
     registerTool: (tool: unknown) => tools.push(tool),
+    getActiveTools: () => ["read", "bash", "mcp"],
     sendMessage: (message: unknown, options: unknown) => {
       messages.push({ message, options });
       const hasDeliveryMode = typeof options === "object" && options !== null && "deliverAs" in options;
@@ -56,7 +62,7 @@ function createFakePi(persistedEntries: unknown[] = []): FakePi {
       }
     },
   } as unknown as ExtensionAPI;
-  return { api, handlers, messages, notifications, tools };
+  return { api, handlers, commands, messages, notifications, tools };
 }
 
 function makeContext(
@@ -96,7 +102,6 @@ function pathsFor(directory: string): HookPaths {
     reviewerGuard: join(directory, "missing-reviewer-guard.sh"),
     postToolHub: join(directory, "missing-post-tool-hub.sh"),
     flowContext: join(directory, "missing-flow-context.sh"),
-    flowPlanCapture: join(directory, "missing-plan-capture.sh"),
     flowSessionContext: join(directory, "missing-flow-session-context.sh"),
     ruleContext: join(directory, "missing-rule-context.sh"),
     sessionHygieneReport: join(directory, "missing-session-hygiene-report.sh"),
@@ -394,7 +399,7 @@ test("parent-only advisory hooks do not run in PI child sessions and resumed sta
   }
 });
 
-test("hook readiness keeps five required hooks authoritative while exposing all eight statuses", () => {
+test("hook readiness keeps four required hooks authoritative while exposing all seven statuses", () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-hook-status-"));
   const fake = createFakePi();
   const paths = pathsFor(directory);
@@ -407,11 +412,10 @@ test("hook readiness keeps five required hooks authoritative while exposing all 
     }
     registerGeneralHiveHooks(fake.api, { paths });
     const statuses = getHiveHookStatuses(fake.api, paths);
-    assert.equal(Object.keys(statuses).length, 8);
+    assert.equal(Object.keys(statuses).length, 7);
     assert.equal(statuses.flowSessionContext?.wired, true);
     assert.equal(statuses.ruleContext?.wired, true);
     assert.equal(statuses.sessionHygieneReport?.wired, true);
-    assert.equal(statuses.flowPlanCapture?.wired, false);
     assert.equal(statuses.reviewerGuard?.wired, false);
     const readiness = fake.tools.find((tool): tool is { readonly name: string; readonly execute: (...args: readonly unknown[]) => Promise<unknown> } => (
       typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_hook_readiness" && "execute" in tool && typeof tool.execute === "function"
@@ -427,6 +431,55 @@ test("hook readiness keeps five required hooks authoritative while exposing all 
   } finally {
     if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
     else process.env.PI_SUBAGENT_CHILD = previousChild;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("general Hive extension keeps status and Git read without registering plan mode", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-general-surface-"));
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: pathsFor(directory) });
+    assert.equal(fake.commands.has("hive-plan"), false);
+    assert.equal(fake.commands.has("hive-status"), true);
+    assert.equal(fake.tools.some((tool) => typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_hook_readiness"), true);
+    assert.equal(fake.tools.some((tool) => typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_git_read"), true);
+
+    const status = fake.commands.get("hive-status");
+    assert.ok(status);
+    await status("", context);
+    assert.match(fake.notifications.join("\n"), /Hive status/u);
+    assert.doesNotMatch(fake.notifications.join("\n"), /plan mode/u);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("general flow context ignores the legacy PI plan environment", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-no-plan-env-"));
+  const flowContext = join(directory, "flow-context.sh");
+  writeFileSync(flowContext, `#!/usr/bin/env node
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+const payload = JSON.parse(input);
+process.stdout.write(JSON.stringify({ additionalContext: "permission_mode=" + String(payload.permission_mode ?? "absent") }));
+});
+`);
+  chmodSync(flowContext, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a");
+  const previousPlanMode = process.env.PI_HIVE_PLAN_MODE;
+  try {
+    process.env.PI_HIVE_PLAN_MODE = "1";
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), flowContext } });
+    const result = await invoke(fake, "before_agent_start", { systemPrompt: "base" }, context);
+    assert.match(JSON.stringify(result), /permission_mode=absent/u);
+  } finally {
+    if (previousPlanMode === undefined) delete process.env.PI_HIVE_PLAN_MODE;
+    else process.env.PI_HIVE_PLAN_MODE = previousPlanMode;
     rmSync(directory, { recursive: true, force: true });
   }
 });

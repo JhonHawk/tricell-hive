@@ -41,7 +41,7 @@ all share this layout where the harness has an equivalent loading surface.
 | Skills | 16 skills with injected `references/` | `~/.agents/skills/` | User-scope skill folder, read natively | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"USER $HOME/.agents/skills — Any skills checked into the user's personal folder."* | 2026-08-20 |
 | Skill gating | `agents/openai.yaml` per gated skill | inside each skill dir | Codex ignores Claude's `disable-model-invocation`; the YAML policy carries the gate | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"allow_implicit_invocation (default: true): When false, Codex won't implicitly invoke the skill based on user prompt"* | 2026-08-20 |
 | Agents | 25 generated `.toml` | `~/.codex/agents/` | Standalone TOML files per agent | [agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) — *"add standalone TOML files under ~/.codex/agents/ for personal agents"* | 2026-08-20 |
-| Hooks | 4 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
+| Hooks | 3 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
 | Prompt auditor | — | — | `codex debug prompt-input` renders the model-visible prompt as JSON | [developer-commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli) — *"Render the model-visible prompt input list as JSON"* | 2026-08-20 |
 
 **`project_doc_max_bytes` default is 32 KiB, not 65536.** The `65536` in
@@ -166,3 +166,13 @@ done
 
 `python3 harness/build.py` prints warnings for lossy fields so review catches
 semantic drift before deploy.
+
+## Hive planning contract
+
+`flow-plan` and `flow-build` use the shared plan artifact and read-only validator. Approval,
+action/target scope and execution evidence travel with the plan; entering or leaving native
+plan mode grants no Hive authority. During drafting, the parent's no-implementation boundary
+is a prompt convention, not a universal write sandbox. `Session: no` retains conversation-only
+operation without durable validation or cross-harness resume guarantees.
+
+Source: `global/skills/flow-core/references/plan-format.md` (Hive convention, 2026-09-10).
