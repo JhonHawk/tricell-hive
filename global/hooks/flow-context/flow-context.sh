@@ -100,12 +100,19 @@ EOF
 fi
 
 # ─── Emit whichever sections passed their gates (phase first) ────────────────
+# One JSON envelope, same shape as the sibling hooks: Claude Code and Grok read
+# `hookSpecificOutput.additionalContext`; the PI adapter rejects plain stdout as
+# invalid JSON (advisory warning) — never print bare text here.
 [ -n "$phase_out$planning_out" ] || exit 0
-if [ -n "$phase_out" ]; then
-  printf '%s\n' "$phase_out"
-fi
+ctx="$phase_out"
 if [ -n "$planning_out" ]; then
-  [ -n "$phase_out" ] && printf '\n'
-  printf '%s\n' "$planning_out"
+  [ -n "$ctx" ] && ctx="${ctx}"$'\n\n'
+  ctx="${ctx}${planning_out}"
 fi
+jq -n --arg ctx "$ctx" '{
+  hookSpecificOutput: {
+    hookEventName: "UserPromptSubmit",
+    additionalContext: $ctx
+  }
+}'
 exit 0

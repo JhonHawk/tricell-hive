@@ -21,7 +21,7 @@ Claude Code only (UserPromptSubmit is a Claude Code/Grok compatibility concept).
 
 ## Test payloads
 
-The script reads UserPromptSubmit JSON on stdin and prints plain text (no JSON envelope for UserPromptSubmit).
+The script reads UserPromptSubmit JSON on stdin and prints ONE JSON envelope — `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}` — the same shape as the sibling hooks. Claude Code would also accept bare stdout for UserPromptSubmit, but the PI adapter (`harness/pi/src/hook-runner.ts`) treats non-JSON stdout as `Hook returned invalid JSON` and surfaces a warning, so bare text is never emitted. In the examples below, read the text through `jq -r .hookSpecificOutput.additionalContext`.
 
 ### (i) Flow workspace, first prompt → phase and portable planning sections
 
