@@ -143,7 +143,7 @@ sessions, trust state, unrelated providers, and unrelated packages remain in pla
 
 Install the five exact native packages into `${PI_CODING_AGENT_DIR:-~/.pi/agent}/npm`
 before applying: `pi-subagents@0.67.0`, `gentle-engram@0.1.12`,
-`pi-mcp-adapter@2.32.1`, `@juicesharp/rpiv-ask-user-question@2.9.0`, and
+`pi-mcp-adapter@2.33.0`, `@juicesharp/rpiv-ask-user-question@2.9.0`, and
 `pi-web-access@0.29.0`. The helper never installs packages: it fails closed unless
 all five identities and versions are present, PI 0.85.1 is the selected runtime, and
 the reviewed patch metadata and target hashes match. Apply atomically rewrites the two

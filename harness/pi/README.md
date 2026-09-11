@@ -169,13 +169,13 @@ a trusted role identity.
 |---|---|---|---|
 | `pi-subagents` | `0.67.0` | Background children, role discovery, lifecycle, and bounded orchestration | Required |
 | `gentle-engram` | `0.1.12` | Native Engram HTTP memory integration | Required; no `pi-engram init` |
-| `pi-mcp-adapter` | `2.32.1` | MCP transport for Context7 | Required |
+| `pi-mcp-adapter` | `2.33.0` | MCP transport for Context7 | Required |
 | `@juicesharp/rpiv-ask-user-question` | `2.9.0` | Structured user questions in the parent session | Required; children use `contact_supervisor` |
 | `pi-web-access` | `0.29.0` | OpenAI-backed web search and source access | Required for research roles |
 | Context7 | `https://mcp.context7.com/mcp` | Version-anchored library documentation through the native `mcp` proxy | Closed guard allows only `context7_resolve-library-id` and `context7_query-docs` |
 | Web | provider `openai`, search provider `openai-codex` | External research | No workflow provider |
 
-For `pi-mcp-adapter` 2.32.1, the managed Context7 entry sets
+For `pi-mcp-adapter` 2.33.0, the managed Context7 entry sets
 `directTools: false`, sets `includeTools` to those two operations, and uses
 `lifecycle: "lazy"`. Context7 advertises `ttlMs: 0`, so the adapter discards
 its cache and direct or namespace tools do not remain registered; an eager
@@ -258,7 +258,7 @@ pnpm test
 The selected deployment order is deliberate:
 
 1. Install all five exact packages into the target PI root before invoking the helper:
-   `pi-subagents@0.67.0`, `gentle-engram@0.1.12`, `pi-mcp-adapter@2.32.1`,
+   `pi-subagents@0.67.0`, `gentle-engram@0.1.12`, `pi-mcp-adapter@2.33.0`,
    `@juicesharp/rpiv-ask-user-question@2.9.0`, and `pi-web-access@0.29.0`.
    For a non-default root, pass the same `PI_CODING_AGENT_DIR` to Pi's package
    manager; for example:

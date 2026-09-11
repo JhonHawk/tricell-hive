@@ -37,7 +37,7 @@ PATCH_FILES = (
 PI_PACKAGE_PINS = (
     ("pi-subagents", "0.67.0"),
     ("gentle-engram", "0.1.12"),
-    ("pi-mcp-adapter", "2.32.1"),
+    ("pi-mcp-adapter", "2.33.0"),
     ("@juicesharp/rpiv-ask-user-question", "2.9.0"),
     ("pi-web-access", "0.29.0"),
 )
@@ -610,7 +610,7 @@ class PiDeployTests(unittest.TestCase):
             self.assertTrue({
                 "npm:pi-subagents@0.67.0",
                 "npm:gentle-engram@0.1.12",
-                "npm:pi-mcp-adapter@2.32.1",
+                "npm:pi-mcp-adapter@2.33.0",
                 "npm:@juicesharp/rpiv-ask-user-question@2.9.0",
                 "npm:pi-web-access@0.29.0",
             }.issubset(package_sources))
