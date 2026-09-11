@@ -5,9 +5,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
+  createHiveMcpGuard,
   getHiveHookStatuses,
   guardHiveMcpInput,
+  loadHiveMcpAllowlist,
   HIVE_CONTEXT7_MCP_TOOLS,
+  PI_MCP_GUIDANCE,
   REQUIRED_HOOK_KEYS,
   registerGeneralHiveHooks,
   resolveHookRoot,
@@ -29,7 +32,10 @@ interface FakePi {
   readonly tools: unknown[];
 }
 
-function createFakePi(persistedEntries: unknown[] = []): FakePi {
+function createFakePi(
+  persistedEntries: unknown[] = [],
+  activeTools: readonly string[] = ["read", "bash", "mcp"],
+): FakePi {
   const handlers = new Map<string, StoredHandler>();
   const commands = new Map<string, StoredHandler>();
   const messages: Array<{ readonly message: unknown; readonly options: unknown }> = [];
@@ -53,7 +59,7 @@ function createFakePi(persistedEntries: unknown[] = []): FakePi {
       commands.set(name, options.handler);
     },
     registerTool: (tool: unknown) => tools.push(tool),
-    getActiveTools: () => ["read", "bash", "mcp"],
+    getActiveTools: () => [...activeTools],
     sendMessage: (message: unknown, options: unknown) => {
       messages.push({ message, options });
       const hasDeliveryMode = typeof options === "object" && options !== null && "deliverAs" in options;
@@ -206,7 +212,7 @@ test("ordinary advisory additional context is preserved on every invocation", as
   }
 });
 
-test("Hive MCP guard accepts only the two closed Context7 calls", () => {
+test("Hive MCP guard keeps the Context7 required-argument contract", () => {
   const resolveInput = {
     tool: HIVE_CONTEXT7_MCP_TOOLS.resolveLibraryId,
     args: { query: "react", libraryName: "react" },
@@ -238,6 +244,219 @@ test("Hive MCP guard accepts only the two closed Context7 calls", () => {
   }
 });
 
+test("Hive MCP guard admits allowlisted Linear and HeroUI tools and passes their args through", () => {
+  const listIssues = { tool: "linear_list_issues", args: { team: "FAC", limit: 20 } };
+  const listIssuesResult = guardHiveMcpInput(listIssues);
+  assert.equal(listIssuesResult.allowed, true);
+  assert.ok(listIssuesResult.allowed);
+  assert.deepEqual(listIssuesResult.input.args, { team: "FAC", limit: 20 });
+
+  const allowed: unknown[] = [
+    { tool: "linear_get_issue", args: { id: "FAC-12" } },
+    { tool: "linear_save_issue", args: { title: "x", team: "FAC" } },
+    { tool: "linear_save_comment", args: { issueId: "FAC-12", body: "done" } },
+    { tool: "linear_list_comments", args: {} },
+    { tool: "heroui_get_component_docs", args: { component: "Button" } },
+    { tool: "heroui_list_components", args: {} },
+    {
+      tool: "linear_save_issue",
+      args: { nested: { level2: { level3: ["a", 1, true, null] } } },
+    },
+  ];
+  for (const input of allowed) {
+    assert.equal(guardHiveMcpInput(input).allowed, true, JSON.stringify(input));
+  }
+});
+
+test("Hive MCP guard rejects non-allowlisted servers, write tools and unsafe argument payloads", () => {
+  const rejected: ReadonlyArray<{ readonly input: unknown; readonly reason: RegExp }> = [
+    // invalid {tool, args} shape
+    { input: { search: "context7" }, reason: /call mcp with exactly \{tool, args\}/u },
+    { input: { tool: "linear_list_issues", args: { team: "FAC" }, extra: true }, reason: /exactly \{tool, args\}/u },
+    // tool outside the allowlist — the reason names the allowlisted servers
+    { input: { tool: "linear_delete_attachment", args: { id: "x" } }, reason: /context7_\*, linear_\*, heroui_\*/u },
+    { input: { tool: "linear_merge_diff", args: { id: "x" } }, reason: /unknown tool/u },
+    { input: { tool: "linear_create_issue", args: { title: "x" } }, reason: /unknown tool/u },
+    { input: { tool: "heroui_nonexistent", args: {} }, reason: /unknown tool/u },
+    { input: { tool: "neon_run_sql", args: { sql: "select 1" } }, reason: /unknown tool/u },
+    { input: { tool: "toString", args: {} }, reason: /unknown tool/u },
+    { input: { tool: "constructor", args: {} }, reason: /unknown tool/u },
+    { input: { tool: "valueOf", args: {} }, reason: /unknown tool/u },
+    { input: { tool: "hasOwnProperty", args: {} }, reason: /unknown tool/u },
+    { input: { tool: "__proto__", args: {} }, reason: /unknown tool/u },
+    { input: { tool: "isPrototypeOf", args: {} }, reason: /unknown tool/u },
+    // args is not a plain object
+    { input: { tool: "linear_list_issues", args: "{}" }, reason: /args must be a plain object/u },
+    { input: { tool: "linear_list_issues", args: [1, 2] }, reason: /args must be a plain object/u },
+    // Context7 required-argument contract
+    {
+      input: { tool: HIVE_CONTEXT7_MCP_TOOLS.queryDocs, args: { libraryId: "x", query: "" } },
+      reason: /context7_query-docs requires exactly \{libraryId, query\} as non-empty strings/u,
+    },
+    {
+      input: { tool: HIVE_CONTEXT7_MCP_TOOLS.resolveLibraryId, args: { query: "x" } },
+      reason: /context7_resolve-library-id requires exactly \{query, libraryName\}/u,
+    },
+    // args carry data the bridge cannot serialize
+    { input: { tool: "linear_list_issues", args: { onDone: () => undefined } }, reason: /only JSON data/u },
+    { input: { tool: "linear_list_issues", args: { when: new Date(0) } }, reason: /only JSON data/u },
+    // nesting and size budgets name their limit
+    {
+      input: { tool: "linear_list_issues", args: { deep: { a: { b: { c: { d: 1 } } } } } },
+      reason: /maximum depth of 4/u,
+    },
+    { input: { tool: "linear_list_issues", args: { big: "x".repeat(16_385) } }, reason: /16384 bytes/u },
+  ];
+  for (const { input, reason } of rejected) {
+    const result = guardHiveMcpInput(input, { childSession: false });
+    assert.equal(result.allowed, false, JSON.stringify(input));
+    assert.ok(!result.allowed);
+    assert.match(result.reason, reason, JSON.stringify(input));
+  }
+});
+
+test("Hive MCP guard rejects prototype-polluting argument keys at any depth", () => {
+  const payloads = [
+    '{"tool":"linear_list_issues","args":{"__proto__":{"x":1}}}',
+    '{"tool":"linear_list_issues","args":{"constructor":{"x":1}}}',
+    '{"tool":"linear_list_issues","args":{"prototype":{"x":1}}}',
+    '{"tool":"linear_list_issues","args":{"filter":{"__proto__":{"x":1}}}}',
+    '{"tool":"linear_list_issues","args":{"filter":[{"constructor":1}]}}',
+    '{"tool":"linear_save_issue","args":{"a":{"b":{"prototype":1}}}}',
+  ];
+  for (const payload of payloads) {
+    const result = guardHiveMcpInput(JSON.parse(payload), { childSession: false });
+    assert.equal(result.allowed, false, payload);
+    assert.ok(!result.allowed);
+    assert.match(result.reason, /must not contain the keys __proto__, constructor or prototype/u, payload);
+  }
+});
+
+test("an unreadable allowlist makes the Hive MCP guard refuse every call", () => {
+  const missing = join(tmpdir(), "hive-pi-absent-allowlist.json");
+  const allowlist = loadHiveMcpAllowlist(missing);
+  assert.ok(allowlist.error !== undefined);
+  assert.deepEqual(allowlist.servers, {});
+
+  const guard = createHiveMcpGuard(allowlist);
+  for (const input of [
+    { tool: HIVE_CONTEXT7_MCP_TOOLS.queryDocs, args: { libraryId: "/facebook/react", query: "hooks" } },
+    { tool: "linear_list_issues", args: {} },
+  ]) {
+    const result = guard(input, { childSession: false });
+    assert.equal(result.allowed, false, JSON.stringify(input));
+    assert.ok(!result.allowed);
+    assert.match(result.reason, /allowlist unavailable \(.+\); all MCP calls are refused\./u);
+  }
+});
+
+test("a failed allowlist load blocks MCP tool calls and warns once per session", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-allowlist-failure-"));
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  try {
+    delete process.env.PI_SUBAGENT_CHILD;
+    registerGeneralHiveHooks(fake.api, {
+      paths: pathsFor(directory),
+      mcpAllowlist: loadHiveMcpAllowlist(join(directory, "absent.json")),
+    });
+    const blocked = await invoke(fake, "tool_call", {
+      type: "tool_call",
+      toolCallId: "mcp-1",
+      toolName: "mcp",
+      input: {
+        tool: HIVE_CONTEXT7_MCP_TOOLS.queryDocs,
+        args: { libraryId: "/facebook/react", query: "hooks" },
+      },
+    }, context);
+    assert.match(JSON.stringify(blocked), /allowlist unavailable/u);
+
+    await invoke(fake, "before_agent_start", { systemPrompt: "base" }, context);
+    await invoke(fake, "before_agent_start", { systemPrompt: "base" }, context);
+    const warnings = fake.notifications.filter((message) => /Hive MCP warning/u.test(message));
+    assert.equal(warnings.length, 1, JSON.stringify(fake.notifications));
+    assert.match(warnings[0] ?? "", /allowlist/u);
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("Hive MCP guard confines Linear write tools to the parent session", () => {
+  const saveIssue = { tool: "linear_save_issue", args: { title: "Bridge", team: "FAC" } };
+  const saveComment = { tool: "linear_save_comment", args: { issueId: "FAC-12", body: "done" } };
+  const listIssues = { tool: "linear_list_issues", args: { team: "FAC" } };
+
+  assert.equal(guardHiveMcpInput(saveIssue, { childSession: false }).allowed, true);
+  assert.equal(guardHiveMcpInput(saveComment, { childSession: false }).allowed, true);
+  assert.equal(guardHiveMcpInput(listIssues, { childSession: false }).allowed, true);
+  assert.equal(guardHiveMcpInput(listIssues, { childSession: true }).allowed, true);
+
+  for (const input of [saveIssue, saveComment]) {
+    assert.deepEqual(guardHiveMcpInput(input, { childSession: true }), {
+      allowed: false,
+      reason: "Hive MCP bridge: write tools (save_issue, save_comment) are only callable from the parent session.",
+    });
+  }
+});
+
+test("the Hive MCP guard reads the PI child marker when no session option is given", () => {
+  const saveIssue = { tool: "linear_save_issue", args: { title: "Bridge", team: "FAC" } };
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  try {
+    process.env.PI_SUBAGENT_CHILD = "1";
+    assert.equal(guardHiveMcpInput(saveIssue).allowed, false);
+    assert.equal(guardHiveMcpInput({ tool: "linear_list_issues", args: {} }).allowed, true);
+    delete process.env.PI_SUBAGENT_CHILD;
+    assert.equal(guardHiveMcpInput(saveIssue).allowed, true);
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+  }
+});
+
+test("the PI MCP guidance names every allowlisted server within its budget", async () => {
+  assert.match(PI_MCP_GUIDANCE, /^PI MCP bridge: use mcp only with \{tool, args\}\./u);
+  assert.match(PI_MCP_GUIDANCE, /linear_list_issues/u);
+  assert.match(PI_MCP_GUIDANCE, /heroui_get_component_docs/u);
+  assert.match(PI_MCP_GUIDANCE, /save_issue, save_comment/u);
+  assert.match(PI_MCP_GUIDANCE, /parent session/u);
+  // Budget: this text is injected once per session and per child, so it is capped.
+  assert.ok(PI_MCP_GUIDANCE.length <= 1200, `guidance is ${PI_MCP_GUIDANCE.length} characters`);
+
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-mcp-guidance-"));
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a");
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: pathsFor(directory) });
+    const started = JSON.stringify(await invoke(fake, "before_agent_start", { systemPrompt: "base" }, context));
+    assert.match(started, /linear_list_issues/u);
+    assert.match(started, /heroui_get_component_docs/u);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("the MCP guidance reaches only roles whose active tools include mcp", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-mcp-guidance-scope-"));
+  const withoutMcp = createFakePi([], ["read", "bash", "grep"]);
+  const withMcp = createFakePi([], ["read", "bash", "mcp"]);
+  const context = makeContext(directory, "session-a");
+  try {
+    registerGeneralHiveHooks(withoutMcp.api, { paths: pathsFor(directory) });
+    const quiet = await invoke(withoutMcp, "before_agent_start", { systemPrompt: "base" }, context);
+    assert.doesNotMatch(JSON.stringify(quiet), /PI MCP bridge/u);
+
+    registerGeneralHiveHooks(withMcp.api, { paths: pathsFor(directory) });
+    const guided = await invoke(withMcp, "before_agent_start", { systemPrompt: "base" }, context);
+    assert.match(JSON.stringify(guided), /PI MCP bridge/u);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("general Hive hooks reject invalid MCP gateway input before adapter execution", async () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-mcp-hook-"));
   const fake = createFakePi();
@@ -254,7 +473,7 @@ test("general Hive hooks reject invalid MCP gateway input before adapter executi
     }, context);
     assert.deepEqual(blocked, {
       block: true,
-      reason: "Hive MCP bridge only allows Context7 resolve-library-id or query-docs with their required string arguments.",
+      reason: "Hive MCP bridge: call mcp with exactly {tool, args}.",
       terminate: true,
     });
     const allowed = await invoke(fake, "tool_call", {

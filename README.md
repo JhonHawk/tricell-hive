@@ -51,7 +51,7 @@ preserved and reported as conflicts.
 | `pnpm` | default package manager | `pnpm --version` |
 | `gh` | GitHub operations (PRs, API) | `gh auth status` |
 | `cwebp` | evidence retention (WebP lossless) | `cwebp -version` |
-| context7 MCP | context7 rule (library docs at write time) | plugin/MCP config per harness; Pi uses `https://mcp.context7.com/mcp` |
+| context7 | context7 rule (library docs at write time) | plugin/MCP config per harness; Pi uses `https://mcp.context7.com/mcp` |
 | chrome-devtools / playwright MCP | Lighthouse/perf; browser fallback | MCP config per harness |
 
 ### Terminal workspace: herdr (recommended)
@@ -146,12 +146,12 @@ _support/                            # Workspace material, not deployed
 | `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep |
 | `requirement-analyst` | design | blue | Read, Glob, Grep |
 | `system-designer` | design | blue | Read, Write, Edit, Glob, Grep |
-| `visual-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep |
-| `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
+| `visual-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep, context7, heroui-pro |
+| `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep, context7 |
 | `backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
-| `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob |
+| `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob, context7, heroui-pro |
 | `code-scout` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only discovery) |
 | `code-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
 | `finding-refuter` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (executes claims, never modifies) |

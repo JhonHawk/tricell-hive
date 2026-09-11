@@ -6,7 +6,7 @@ description: >
   migrations). Use for any React project without another framework owner: component
   architecture, data fetching, routing, rendering strategy. Not Angular
   (angular-developer).
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__heroui-pro
 model: sonnet
 color: green
 ---

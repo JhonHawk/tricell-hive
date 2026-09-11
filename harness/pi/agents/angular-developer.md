@@ -5,7 +5,7 @@ description: >
   Build and maintain Angular applications -- components, services, directives, pipes, routing, and state management. Use when the task involves an Angular project specifically (not React or Vue). Covers Angular 15 through 22+.
 model: openai-codex/gpt-5.6-luna
 thinking: max
-tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -54,3 +54,9 @@ Read the row matching what you touch; skip anything already loaded this session.
 | A failure that resists the first fix | `~/.agents/skills/language-rules/references/debugging.md` |
 | Angular components, services, routing | `~/.agents/skills/language-rules/references/angular-patterns.md` |
 | TypeScript | `~/.agents/skills/language-rules/references/typescript-standards.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

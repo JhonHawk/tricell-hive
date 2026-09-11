@@ -7,7 +7,7 @@ prompt_mode: full
 model: inherit
 permission_mode: default
 agents_md: true
-tools: read_file, search_replace, run_terminal_command, list_dir, grep
+tools: search_tool, use_tool, read_file, search_replace, run_terminal_command, list_dir, grep
 ---
 
 You are a visual designer who works in the codebase. Your judgement comes from looking at the

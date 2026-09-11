@@ -43,7 +43,7 @@ that make them active, and from the policy used when a prerequisite is missing:
 |---|---|---|---|
 | Core and roles | `harness/AGENTS.md` and the 25 generated files under `harness/pi/agents/` | Pi agent discovery and `pi-subagents` role selection | Missing, stale, or hand-edited generated output fails the selected preflight |
 | Runtime and extensions | `harness/pi/src/`, `extensions/`, and the canonical hook scripts | Managed extension/package entries under the PI root | Missing or non-executable required files block; advisory extension failures warn and continue |
-| Managed configuration | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five exact package entries, `forceTopLevelAsync`, the closed Context7 `mcp` proxy, and OpenAI web search | Invalid config, ownership conflict, or missing required pin blocks before a selected write; unrelated user fields remain intact |
+| Managed configuration | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five exact package entries, `forceTopLevelAsync`, the managed Context7, Linear, and HeroUI Pro `mcp` proxies, and OpenAI web search | Invalid config, ownership conflict, or missing required pin blocks before a selected write; unrelated user fields remain intact |
 | Packages and patch | Preinstalled packages under `<PI root>/npm` plus the reviewed patch metadata in this checkout | Exact package identities, versions, and patch target hashes | No auto-install; a missing package, third hash, symlink, or patch mismatch blocks before writes |
 | Shared skills | Generated universal skills through the neutral shared-skills target | Shared manifest and neutral backup/rollback engine | Legacy conflicts remain untouched and are reported with hash/source-commit provenance |
 
@@ -60,14 +60,29 @@ opencode, and Grok outputs. The generated files are derived from
 emits the Pi model, thinking level, context inheritance, tool selection, and
 extension fields that Pi can enforce. A `__HIVE_PI_ROOT__` placeholder is
 resolved only while deploying, so generated files do not contain a machine
-specific home path. MCP-backed Context7 access uses the native `mcp` proxy in
-the generated tool allowlists. Hive's closed input guard admits only these two
-operations:
+specific home path. MCP access uses the native `mcp` proxy in the generated
+tool allowlists.
+
+[`src/mcp-allowlist.json`](src/mcp-allowlist.json) is the single source of the
+cut, applied in two layers: the runtime guard in `src/hooks.ts` validates every
+`mcp` call, and `deploy.py` writes the same tool names as `includeTools` on each
+managed `mcp.json` server entry. Proxy tool names are `<server>_<tool>`:
 
 ```text
-{ tool: "context7_resolve-library-id", args: { query, libraryName } }
 { tool: "context7_query-docs", args: { libraryId, query } }
+{ tool: "linear_list_issues", args: { team: "FAC", limit: 20 } }
+{ tool: "heroui_get_component_docs", args: { component: "Button" } }
 ```
+
+Context7 tools keep their exact required string arguments. Linear and HeroUI
+tools accept JSON-serializable plain arguments up to depth 4 and 16 KiB.
+Everything outside the allowlist — other servers included — is blocked before the
+adapter runs, each rejection naming its own cause. Linear writes are limited to
+`save_issue` and `save_comment`, and the guard refuses them in child sessions
+(`PI_SUBAGENT_CHILD=1`): they run from the parent session only, with no approval
+dialog. An unreadable allowlist fails closed — every `mcp` call is refused and the
+parent is warned once per session. The guidance above reaches only roles whose
+active tools include `mcp`.
 
 The source WebFetch grant expands to Pi's
 fetch_content/get_search_content retrieval pair. WebSearch expands to that
@@ -172,18 +187,33 @@ a trusted role identity.
 |---|---|---|---|
 | `pi-subagents` | `0.67.0` | Background children, role discovery, lifecycle, and bounded orchestration | Required |
 | `gentle-engram` | `0.1.12` | Native Engram HTTP memory integration | Required; no `pi-engram init` |
-| `pi-mcp-adapter` | `2.33.0` | MCP transport for Context7 | Required |
+| `pi-mcp-adapter` | `2.33.0` | MCP transport for Context7, Linear, and HeroUI Pro | Required |
 | `@juicesharp/rpiv-ask-user-question` | `2.9.0` | Structured user questions in the parent session | Required; children use `contact_supervisor` |
 | `pi-web-access` | `0.29.0` | OpenAI-backed web search and source access | Required for research roles |
-| Context7 | `https://mcp.context7.com/mcp` | Version-anchored library documentation through the native `mcp` proxy | Closed guard allows only `context7_resolve-library-id` and `context7_query-docs` |
+| Context7 | `https://mcp.context7.com/mcp` | Version-anchored library documentation through the native `mcp` proxy | Allowlisted `context7_resolve-library-id` and `context7_query-docs` |
+| Linear | `https://mcp.linear.app/mcp` | Tracker reads for ledger-declared `Tracker access: mcp`, plus approved ticket and comment writes | Allowlisted read tools + `save_issue`/`save_comment` (parent session only); `auth: "oauth"` |
+| HeroUI Pro | `https://mcp.heroui.pro/mcp` | Component, CSS, theme, and design-system documentation for roles whose tool allowlist includes `mcp` | Allowlisted read tools; token from `HEROUI_PERSONAL_TOKEN` in the environment that launches `pi` |
+
+`HEROUI_PERSONAL_TOKEN` has no fallback: the adapter interpolates `${VAR}` in
+`headers` and substitutes an empty string when the variable is unset — only `url`
+raises on a missing variable (`utils.ts`: `interpolateEnvRecord` versus
+`resolveServerUrl`), so an unset token yields an empty header and authentication
+fails on first use. The deploy plan warns for any unset `${VAR}` in an allowlist
+header; it never blocks.
 | Web | provider `openai`, search provider `openai-codex` | External research | No workflow provider |
 
-For `pi-mcp-adapter` 2.33.0, the managed Context7 entry sets
-`directTools: false`, sets `includeTools` to those two operations, and uses
-`lifecycle: "lazy"`. Context7 advertises `ttlMs: 0`, so the adapter discards
-its cache and direct or namespace tools do not remain registered; an eager
-lifecycle does not change that. The native `mcp` proxy and its closed input
-guard are the stable bounded surface.
+For `pi-mcp-adapter` 2.33.0, every managed entry sets `directTools: false`,
+sets `includeTools` to its allowlisted tools, and uses `lifecycle: "lazy"`.
+Context7 advertises `ttlMs: 0`, so the adapter discards its cache and direct or
+namespace tools do not remain registered; an eager lifecycle does not change
+that. The HeroUI entry stores the literal `${HEROUI_PERSONAL_TOKEN}` string in
+`headers`, which the adapter interpolates from the environment at connect time —
+no token is ever written to a file. Linear authenticates through the adapter's
+own OAuth flow: a browser authorization on first use, independent of Claude
+Code's Linear token. The managed block also sets `settings.scriptMode: false`,
+which hides the `mcpScript` tool that no Hive guard can validate in the parent
+session. The native `mcp` proxy and its input guard are the stable bounded
+surface.
 
 ### `pi-subagents` 0.67.0 compatibility patch
 
@@ -315,6 +345,6 @@ explicitly selected harness roots.
 
 Before considering the integration usable, run the disposable repository smoke
 for a Grok parent, an OpenAI-backed child, the structured question tool,
-Context7, the web tools, `hive-status` and hook readiness, bounded Git reads,
+Context7, Linear, HeroUI Pro, the web tools, `hive-status` and hook readiness, bounded Git reads,
 and the reviewer guard. No smoke should publish a commit, push, or production
 change.

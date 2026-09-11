@@ -4,7 +4,7 @@ description: >
   Build and maintain Angular applications -- components, services, directives, pipes,
   routing, and state management. Use when the task involves an Angular project specifically
   (not React or Vue). Covers Angular 15 through 22+.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 color: green
 ---

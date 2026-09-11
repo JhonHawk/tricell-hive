@@ -1,4 +1,4 @@
-import { constants, existsSync, statSync } from "node:fs";
+import { constants, existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
@@ -22,18 +22,24 @@ export const HIVE_CONTEXT7_MCP_TOOLS = {
 
 export type HiveContext7McpToolName = (typeof HIVE_CONTEXT7_MCP_TOOLS)[keyof typeof HIVE_CONTEXT7_MCP_TOOLS];
 
-export interface HiveContext7McpInput {
-  readonly tool: HiveContext7McpToolName;
-  readonly args: Readonly<Record<string, string>>;
+interface HiveMcpToolPolicy {
+  readonly requiredStringArgs?: readonly string[];
+  /** Mutating tool: callable from the parent session only. */
+  readonly write?: boolean;
 }
 
-export type HiveMcpGuardResult =
-  | { readonly allowed: true; readonly input: HiveContext7McpInput }
-  | { readonly allowed: false; readonly reason: string };
+interface HiveMcpServerPolicy {
+  readonly url: string;
+  readonly auth?: string;
+  readonly headers?: Readonly<Record<string, string>>;
+  readonly tools: Readonly<Record<string, HiveMcpToolPolicy>>;
+}
 
-const HIVE_MCP_REJECTION =
-  "Hive MCP bridge only allows Context7 resolve-library-id or query-docs with their required string arguments.";
-const HIVE_MCP_SCRIPT_CHILD_REJECTION = "Hive child agents cannot use the generic MCP script tool.";
+export interface HiveMcpAllowlist {
+  readonly servers: Readonly<Record<string, HiveMcpServerPolicy>>;
+  /** Set when the allowlist could not be read: the guard then refuses everything. */
+  readonly error?: string;
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -45,6 +51,87 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   }
 }
 
+/**
+ * Read the allowlist that both the guard and the deploy-time `includeTools` cut
+ * derive from. A read or shape failure never throws: it yields an empty
+ * allowlist, which makes the guard refuse every MCP call.
+ */
+export function loadHiveMcpAllowlist(source: string | URL): HiveMcpAllowlist {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(source, "utf8")) as unknown;
+  } catch (error) {
+    return { servers: {}, error: error instanceof Error ? error.message : String(error) };
+  }
+  if (!isPlainObject(parsed)) {
+    return { servers: {}, error: `${String(source)} does not contain a JSON object` };
+  }
+  for (const [server, policy] of Object.entries(parsed)) {
+    if (!isPlainObject(policy) || typeof policy.url !== "string" || !isPlainObject(policy.tools)) {
+      return { servers: {}, error: `${String(source)} has a malformed "${server}" entry` };
+    }
+  }
+  return { servers: parsed as Readonly<Record<string, HiveMcpServerPolicy>> };
+}
+
+const HIVE_MCP_ALLOWLIST = loadHiveMcpAllowlist(new URL("./mcp-allowlist.json", import.meta.url));
+
+interface HiveMcpServerGuidance {
+  readonly label: string;
+  /** Proxy name shown as the call example, so the prefix is unambiguous. */
+  readonly example: string;
+}
+
+const MCP_SERVER_GUIDANCE: Readonly<Record<string, HiveMcpServerGuidance>> = {
+  linear: { label: "Linear", example: "linear_list_issues" },
+  heroui: { label: "HeroUI", example: "heroui_get_component_docs" },
+};
+
+function allowedToolsFor(allowlist: HiveMcpAllowlist): Readonly<Record<string, HiveMcpToolPolicy>> {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(allowlist.servers).flatMap(([server, policy]) =>
+        Object.entries(policy.tools).map(([tool, toolPolicy]) => [`${server}_${tool}`, toolPolicy] as const),
+      ),
+    ),
+  );
+}
+
+export const HIVE_MCP_ALLOWED_TOOLS = allowedToolsFor(HIVE_MCP_ALLOWLIST);
+
+export interface HiveMcpInput {
+  readonly tool: string;
+  readonly args: Readonly<Record<string, unknown>>;
+}
+
+/** @deprecated Retained for importers written against the Context7-only bridge. */
+export type HiveContext7McpInput = HiveMcpInput;
+
+export type HiveMcpGuardResult =
+  | { readonly allowed: true; readonly input: HiveMcpInput }
+  | { readonly allowed: false; readonly reason: string };
+
+const HIVE_MCP_SCRIPT_CHILD_REJECTION = "Hive child agents cannot use the generic MCP script tool.";
+const HIVE_MCP_SHAPE_REJECTION = "Hive MCP bridge: call mcp with exactly {tool, args}.";
+const HIVE_MCP_ARGS_OBJECT_REJECTION = "Hive MCP bridge: args must be a plain object.";
+const HIVE_MCP_WRITE_CHILD_REJECTION =
+  "Hive MCP bridge: write tools (save_issue, save_comment) are only callable from the parent session.";
+const HIVE_MCP_MAX_ARGS_DEPTH = 4;
+const HIVE_MCP_MAX_ARGS_LENGTH = 16384;
+const HIVE_MCP_FORBIDDEN_ARG_KEYS: readonly string[] = ["__proto__", "constructor", "prototype"];
+
+function unknownToolRejection(allowlist: HiveMcpAllowlist): string {
+  if (allowlist.error !== undefined) {
+    return `Hive MCP bridge: allowlist unavailable (${allowlist.error}); all MCP calls are refused.`;
+  }
+  const servers = Object.keys(allowlist.servers).map((server) => `${server}_*`);
+  return `Hive MCP bridge: unknown tool; allowlisted servers are ${servers.join(", ")}.`;
+}
+
+function requiredArgsRejection(tool: string, keys: readonly string[]): string {
+  return `Hive MCP bridge: ${tool} requires exactly {${keys.join(", ")}} as non-empty strings.`;
+}
+
 function hasExactlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
   const actual = Object.keys(value);
   return actual.length === keys.length && keys.every((key) => Object.prototype.hasOwnProperty.call(value, key));
@@ -54,44 +141,132 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-/** Validate the closed input accepted by the PI MCP bridge before adapter execution. */
-export function guardHiveMcpInput(value: unknown): HiveMcpGuardResult {
-  if (!isPlainObject(value) || !hasExactlyKeys(value, ["tool", "args"])) {
-    return { allowed: false, reason: HIVE_MCP_REJECTION };
-  }
+type HiveMcpArgsFault = "data" | "key" | "depth";
 
-  const tool = value.tool;
-  if (tool !== HIVE_CONTEXT7_MCP_TOOLS.resolveLibraryId && tool !== HIVE_CONTEXT7_MCP_TOOLS.queryDocs) {
-    return { allowed: false, reason: HIVE_MCP_REJECTION };
+/** Locate the first reason the args are not plain JSON data within budget. */
+function findArgsFault(value: unknown, depth: number): HiveMcpArgsFault | undefined {
+  if (value === null) return undefined;
+  const kind = typeof value;
+  if (kind === "string" || kind === "boolean") return undefined;
+  if (kind === "number") return Number.isFinite(value) ? undefined : "data";
+  if (depth > HIVE_MCP_MAX_ARGS_DEPTH) return "depth";
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const fault = findArgsFault(item, depth + 1);
+      if (fault !== undefined) return fault;
+    }
+    return undefined;
   }
-  const args = value.args;
-  if (!isPlainObject(args)) return { allowed: false, reason: HIVE_MCP_REJECTION };
-
-  const argKeys = tool === HIVE_CONTEXT7_MCP_TOOLS.resolveLibraryId
-    ? ["query", "libraryName"]
-    : ["libraryId", "query"];
-  if (!hasExactlyKeys(args, argKeys) || !argKeys.every((key) => isNonEmptyString(args[key]))) {
-    return { allowed: false, reason: HIVE_MCP_REJECTION };
+  if (isPlainObject(value)) {
+    for (const key of Object.keys(value)) {
+      if (HIVE_MCP_FORBIDDEN_ARG_KEYS.includes(key)) return "key";
+      const fault = findArgsFault(value[key], depth + 1);
+      if (fault !== undefined) return fault;
+    }
+    return undefined;
   }
+  return "data";
+}
 
-  return {
-    allowed: true,
-    input: {
-      tool,
-      args: Object.fromEntries(argKeys.map((key) => [key, args[key] as string])),
-    },
+function argsFaultRejection(fault: HiveMcpArgsFault): string {
+  if (fault === "key") {
+    return `Hive MCP bridge: args must not contain the keys ${HIVE_MCP_FORBIDDEN_ARG_KEYS.join(", ").replace(/, ([^,]*)$/u, " or $1")}.`;
+  }
+  if (fault === "depth") {
+    return `Hive MCP bridge: args nesting exceeds the maximum depth of ${HIVE_MCP_MAX_ARGS_DEPTH}.`;
+  }
+  return "Hive MCP bridge: args must contain only JSON data (objects, arrays, strings, finite numbers, booleans, null).";
+}
+
+export interface HiveMcpGuardOptions {
+  /** Defaults to the PI child marker in the environment. */
+  readonly childSession?: boolean;
+}
+
+export type HiveMcpGuard = (value: unknown, options?: HiveMcpGuardOptions) => HiveMcpGuardResult;
+
+/** Build the input guard for one allowlist; an unreadable allowlist refuses everything. */
+export function createHiveMcpGuard(allowlist: HiveMcpAllowlist): HiveMcpGuard {
+  const allowedTools = allowedToolsFor(allowlist);
+  const unknownTool = unknownToolRejection(allowlist);
+  return (value, options) => {
+    if (!isPlainObject(value) || !hasExactlyKeys(value, ["tool", "args"])) {
+      return { allowed: false, reason: HIVE_MCP_SHAPE_REJECTION };
+    }
+
+    const tool = value.tool;
+    const policy = typeof tool === "string" && Object.prototype.hasOwnProperty.call(allowedTools, tool)
+      ? allowedTools[tool]
+      : undefined;
+    if (typeof tool !== "string" || policy === undefined) {
+      return { allowed: false, reason: unknownTool };
+    }
+    const childSession = options?.childSession ?? process.env.PI_SUBAGENT_CHILD === "1";
+    if (policy.write === true && childSession) {
+      return { allowed: false, reason: HIVE_MCP_WRITE_CHILD_REJECTION };
+    }
+    const args = value.args;
+    if (!isPlainObject(args)) return { allowed: false, reason: HIVE_MCP_ARGS_OBJECT_REJECTION };
+
+    const argKeys = policy.requiredStringArgs;
+    if (argKeys !== undefined) {
+      if (!hasExactlyKeys(args, argKeys) || !argKeys.every((key) => isNonEmptyString(args[key]))) {
+        return { allowed: false, reason: requiredArgsRejection(tool, argKeys) };
+      }
+      return {
+        allowed: true,
+        input: {
+          tool,
+          args: Object.fromEntries(argKeys.map((key) => [key, args[key] as string])),
+        },
+      };
+    }
+
+    const fault = findArgsFault(args, 1);
+    if (fault !== undefined) return { allowed: false, reason: argsFaultRejection(fault) };
+    if (JSON.stringify(args).length > HIVE_MCP_MAX_ARGS_LENGTH) {
+      return {
+        allowed: false,
+        reason: `Hive MCP bridge: args exceed the maximum serialized size of ${HIVE_MCP_MAX_ARGS_LENGTH} bytes.`,
+      };
+    }
+    return { allowed: true, input: { tool, args } };
   };
 }
 
-const PI_MCP_GUIDANCE = [
+/** Validate the allowlisted input accepted by the PI MCP bridge before adapter execution. */
+export const guardHiveMcpInput: HiveMcpGuard = createHiveMcpGuard(HIVE_MCP_ALLOWLIST);
+
+function context7GuidanceSentence(): string {
+  const calls = Object.entries(HIVE_MCP_ALLOWLIST.servers.context7?.tools ?? {}).map(
+    ([tool, policy]) => `context7_${tool} with {${(policy.requiredStringArgs ?? []).join(", ")}}`,
+  );
+  return `Allowed calls: ${calls.join("; ")}.`;
+}
+
+function serverGuidanceSentence(server: string, policy: HiveMcpServerPolicy): string {
+  const tools = Object.keys(policy.tools);
+  const guidance = MCP_SERVER_GUIDANCE[server];
+  const label = guidance?.label ?? server;
+  const example = guidance?.example ?? `${server}_${tools[0] ?? ""}`;
+  return `${label} (e.g. ${example}): ${tools.join(", ")}.`;
+}
+
+export const PI_MCP_GUIDANCE = [
   "PI MCP bridge: use mcp only with {tool, args}.",
-  `Allowed calls: ${HIVE_CONTEXT7_MCP_TOOLS.resolveLibraryId} with {query, libraryName}; ${HIVE_CONTEXT7_MCP_TOOLS.queryDocs} with {libraryId, query}.`,
+  context7GuidanceSentence(),
+  ...Object.entries(HIVE_MCP_ALLOWLIST.servers)
+    .filter(([server]) => server !== "context7")
+    .map(([server, policy]) => serverGuidanceSentence(server, policy)),
+  "Linear writes (save_issue, save_comment) are callable from the parent session only.",
 ].join(" ");
 
 export interface HiveHookExtensionOptions {
   readonly paths?: Partial<HookPaths>;
   readonly runnerOptions?: HookRunnerOptions;
   readonly childRegistry?: ChildRegistry;
+  /** Defaults to the allowlist shipped next to this module. */
+  readonly mcpAllowlist?: HiveMcpAllowlist;
 }
 
 export type HiveHookKey = keyof HookPaths;
@@ -365,6 +540,28 @@ function notifyAdvisoryFailure(ctx: ExtensionContext, key: HiveHookKey, reason: 
   notify?.(`[Hive hook warning] ${key}: ${reason}`, "warning");
 }
 
+/** Unknown active tools (no API) keeps the guidance: only a confirmed absence skips it. */
+function mcpToolActive(pi: ExtensionAPI): boolean {
+  const getter = (pi as { getActiveTools?: () => readonly string[] }).getActiveTools;
+  if (typeof getter !== "function") return true;
+  return getter.call(pi).some((tool) => tool.toLowerCase() === "mcp");
+}
+
+function warnOnMcpAllowlistFailureOnce(
+  ctx: ExtensionContext,
+  allowlist: HiveMcpAllowlist,
+  sessionId: string,
+  warnedSessions: Set<string>,
+): void {
+  if (allowlist.error === undefined || warnedSessions.has(sessionId)) return;
+  warnedSessions.add(sessionId);
+  const notify = (ctx.ui as unknown as { notify?: (message: string, level?: "info" | "warning" | "error") => void }).notify;
+  notify?.(
+    `[Hive MCP warning] allowlist unavailable (${allowlist.error}); every MCP call is refused until it is restored.`,
+    "warning",
+  );
+}
+
 function notifyAdvisoryFailureOnce(
   ctx: ExtensionContext,
   key: HiveHookKey,
@@ -464,6 +661,9 @@ export function registerGeneralHiveHooks(
   const paths = mergePaths(options.paths);
   const runnerOptions = options.runnerOptions;
   const childRegistry = options.childRegistry ?? defaultChildRegistry;
+  const mcpAllowlist = options.mcpAllowlist ?? HIVE_MCP_ALLOWLIST;
+  const guardMcpInput = options.mcpAllowlist ? createHiveMcpGuard(options.mcpAllowlist) : guardHiveMcpInput;
+  const mcpAllowlistWarnedSessions = new Set<string>();
   const advisoryFailureKeys = new Set<string>();
   const parentAdvisoriesEnabled = process.env.PI_SUBAGENT_CHILD !== "1";
   let ruleQueue: Promise<void> = Promise.resolve();
@@ -558,7 +758,7 @@ export function registerGeneralHiveHooks(
       return { block: true, reason: HIVE_MCP_SCRIPT_CHILD_REJECTION, terminate: true };
     }
     if (toolName === "mcp") {
-      const guard = guardHiveMcpInput(event.input);
+      const guard = guardMcpInput(event.input);
       if (!guard.allowed) {
         return { block: true, reason: guard.reason, terminate: true };
       }
@@ -671,7 +871,15 @@ export function registerGeneralHiveHooks(
       advisoryFailureKeys,
       ctx,
     );
-    const additions = [context, PI_MCP_GUIDANCE].filter((value): value is string => value !== undefined);
+    // The guidance costs context in every session and child, so only roles that
+    // can actually call the proxy receive it.
+    const mcpActive = mcpToolActive(pi);
+    if (mcpActive) {
+      warnOnMcpAllowlistFailureOnce(ctx, mcpAllowlist, currentSessionId(ctx), mcpAllowlistWarnedSessions);
+    }
+    const additions = [context, mcpActive ? PI_MCP_GUIDANCE : undefined].filter(
+      (value): value is string => value !== undefined,
+    );
     return { systemPrompt: `${event.systemPrompt}\n\n${additions.join("\n\n")}` };
   });
 

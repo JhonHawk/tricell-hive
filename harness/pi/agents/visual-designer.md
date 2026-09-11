@@ -5,7 +5,7 @@ description: >
   Design and implement the visual layer of a screen that already exists — composition, brand surface, hierarchy, spacing, and type — by iterating against the rendered page, not against a description. Use for redesigns and visual polish of a running UI ("this screen looks wrong", "restyle the login", "apply the brand"). NOT for building new features or flows (that is the framework specialist), NOT for reviewing without changing (that is ui-reviewer).
 model: inherit
 thinking: high
-tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -72,3 +72,9 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Type, spacing, contrast, hierarchy | `~/.agents/skills/language-rules/references/ui-visual-design.md` |
 | Driving a browser | `~/.agents/skills/language-rules/references/browser-automation-reference.md` |
 | Tailwind classes | `~/.agents/skills/language-rules/references/tailwind.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

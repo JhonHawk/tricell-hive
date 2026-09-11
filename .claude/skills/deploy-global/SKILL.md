@@ -135,8 +135,9 @@ shell hooks under `global/hooks/` in the PI agent directory (the Claude-only
 `instructions-audit.sh` hook is excluded). It
 also merges only the owned fields: the five pinned package entries in `settings.json`,
 including PI package objects with their existing filters,
-`forceTopLevelAsync` in `extensions/subagent/config.json`, the lazy Context7 native
-proxy with direct tools disabled and its two included selectors in `mcp.json`, and `provider: openai` with
+`forceTopLevelAsync` in `extensions/subagent/config.json`, the managed Context7, Linear, and
+HeroUI proxies in `mcp.json` (each lazy, direct tools disabled, `includeTools` from
+`harness/pi/src/mcp-allowlist.json`) plus `settings.scriptMode: false`, and `provider: openai` with
 `openaiSearchProviders: [openai-codex]` plus `workflow: none` in `web-search.json`.
 Existing PI config, credentials,
 sessions, trust state, unrelated providers, and unrelated packages remain in place.
@@ -178,7 +179,7 @@ python3 harness/pi/deploy.py rollback --apply \
 | Surface | Copied or staged | Wired or registered | Failure policy |
 |---|---|---|---|
 | Core and roles | `harness/AGENTS.md`, generated PI roles, runtime, extensions, and canonical hook scripts | Pi agent discovery, extension entries, and `pi-subagents` role selection | Missing or stale generated output blocks the selected apply before target writes |
-| Managed settings | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five package pins, `forceTopLevelAsync`, closed Context7 `mcp`, and OpenAI web search | Invalid JSON or an ownership conflict blocks; unrelated user fields remain unchanged |
+| Managed settings | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five package pins, `forceTopLevelAsync`, the managed Context7, Linear, and HeroUI `mcp` proxies, and OpenAI web search | Invalid JSON or an ownership conflict blocks; unrelated user fields remain unchanged |
 | Packages and patch | Preinstalled exact packages plus the reviewed `pi-subagents` patch metadata | Package identities and before/after target hashes | No auto-install; missing pins, symlinks, third hashes, or patch mismatch block |
 | Shared skills | Generated universal skills in the neutral shared-skills target | Shared manifest and neutral backup/rollback records | Legacy conflicts are preserved and reported with hash/source-commit provenance |
 | Advisory hooks | Canonical scripts and PI adapter wiring | Parent-only flow, rule-context, and hygiene advisories | Missing advisory output warns and continues; blocking guards remain fail-closed |

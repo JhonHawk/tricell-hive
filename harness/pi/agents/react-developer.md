@@ -5,7 +5,7 @@ description: >
   Build and architect React applications — generic React (Vite, React Router, CRA legacy) AND Next.js as its specialization (App Router, Server Components, caching, Pages Router migrations). Use for any React project without another framework owner: component architecture, data fetching, routing, rendering strategy. Not Angular (angular-developer).
 model: openai-codex/gpt-5.6-luna
 thinking: max
-tools: read, write, edit, bash, grep, find, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, edit, bash, grep, find, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -65,3 +65,9 @@ Read the row matching what you touch; skip anything already loaded this session.
 | React, Next.js, App Router | `~/.agents/skills/language-rules/references/react-nextjs.md` |
 | TypeScript | `~/.agents/skills/language-rules/references/typescript-standards.md` |
 | Tailwind classes | `~/.agents/skills/language-rules/references/tailwind.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

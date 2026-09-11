@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -44,6 +46,8 @@ PI_PACKAGE_PINS = (
 PI_PACKAGE_SOURCES = tuple(
     f"npm:{name}@{version}" for name, version in PI_PACKAGE_PINS
 )
+MCP_ALLOWLIST_REL = "harness/pi/src/mcp-allowlist.json"
+MCP_ALLOWLIST = json.loads((REPO_ROOT / MCP_ALLOWLIST_REL).read_text(encoding="utf-8"))
 
 
 def sha256_file(path: Path) -> str:
@@ -81,6 +85,22 @@ def seed_full_pi_prerequisites(pi_dir: Path) -> None:
     settings.write_text(json.dumps({"packages": list(PI_PACKAGE_SOURCES)}) + "\n", encoding="utf-8")
 
 
+def fixture_repo_root(temp: Path) -> Path:
+    """Materialize the versioned PI fixture plus the canonical allowlist.
+
+    The allowlist is a security file: the fixture tree never carries a copy that
+    could drift from ``harness/pi/src/mcp-allowlist.json``.
+    """
+
+    root = temp / "fixture-repo"
+    if not root.exists():
+        shutil.copytree(FIXTURE_ROOT, root)
+        destination = root / MCP_ALLOWLIST_REL
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPO_ROOT / MCP_ALLOWLIST_REL, destination)
+    return root
+
+
 def seed_minimal_source(source: Path) -> None:
     (source / "harness/pi/agents").mkdir(parents=True)
     (source / "harness/pi/src").mkdir(parents=True)
@@ -88,6 +108,7 @@ def seed_minimal_source(source: Path) -> None:
     (source / "harness/AGENTS.md").write_text("core\n", encoding="utf-8")
     (source / "harness/pi/agents/demo.md").write_text("agent\n", encoding="utf-8")
     (source / "harness/pi/src/index.ts").write_text("runtime\n", encoding="utf-8")
+    shutil.copy2(REPO_ROOT / MCP_ALLOWLIST_REL, source / MCP_ALLOWLIST_REL)
     (source / "harness/pi/extensions/hive-hooks.ts").write_text("extension\n", encoding="utf-8")
     (source / "harness/pi/extensions/hive/reviewer-guard.ts").write_text("reviewer\n", encoding="utf-8")
     for relative in PATCH_FILES:
@@ -209,7 +230,7 @@ class PiDeployTests(unittest.TestCase):
             pi_dir = Path(temp) / "pi-agent"
             seed_full_pi_prerequisites(pi_dir)
             result = run_helper(
-                "preflight", "--repo-root", str(FIXTURE_ROOT),
+                "preflight", "--repo-root", str(fixture_repo_root(Path(temp))),
                 "--pi-dir", str(pi_dir),
             )
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -580,7 +601,12 @@ class PiDeployTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (pi_dir / "mcp.json").write_text(
-                json.dumps({"mcpServers": {"other": {"url": "https://other"}}, "settings": {"keep": True}}),
+                json.dumps(
+                    {
+                        "mcpServers": {"other": {"url": "https://other"}},
+                        "settings": {"keep": True, "idleTimeout": 10},
+                    }
+                ),
                 encoding="utf-8",
             )
             (pi_dir / "web-search.json").write_text(
@@ -588,7 +614,7 @@ class PiDeployTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            arguments = ["deploy", "--repo-root", str(FIXTURE_ROOT), "--pi-dir", str(pi_dir), "--apply"]
+            arguments = ["deploy", "--repo-root", str(fixture_repo_root(Path(temp))), "--pi-dir", str(pi_dir), "--apply"]
             first = run_helper(*arguments)
             self.assertIn("configs: 4 write", first.stdout)
             backups = sorted((pi_dir / ".hive-deploy-backups").iterdir())
@@ -623,6 +649,30 @@ class PiDeployTests(unittest.TestCase):
             self.assertFalse(mcp["mcpServers"]["context7"]["directTools"])
             self.assertEqual(mcp["mcpServers"]["context7"]["includeTools"], ["resolve-library-id", "query-docs"])
             self.assertEqual(mcp["mcpServers"]["context7"]["lifecycle"], "lazy")
+            self.assertEqual(mcp["mcpServers"]["linear"]["url"], "https://mcp.linear.app/mcp")
+            self.assertEqual(mcp["mcpServers"]["linear"]["auth"], "oauth")
+            self.assertEqual(
+                mcp["mcpServers"]["linear"]["includeTools"],
+                list(MCP_ALLOWLIST["linear"]["tools"]),
+            )
+            self.assertIn("save_comment", mcp["mcpServers"]["linear"]["includeTools"])
+            self.assertNotIn("delete_issue", mcp["mcpServers"]["linear"]["includeTools"])
+            self.assertFalse(mcp["mcpServers"]["linear"]["directTools"])
+            self.assertEqual(mcp["mcpServers"]["linear"]["lifecycle"], "lazy")
+            self.assertEqual(mcp["mcpServers"]["heroui"]["url"], "https://mcp.heroui.pro/mcp")
+            self.assertEqual(
+                mcp["mcpServers"]["heroui"]["headers"]["x-heroui-personal-token"],
+                "${HEROUI_PERSONAL_TOKEN}",
+            )
+            self.assertEqual(
+                mcp["mcpServers"]["heroui"]["includeTools"],
+                list(MCP_ALLOWLIST["heroui"]["tools"]),
+            )
+            self.assertNotIn("auth", mcp["mcpServers"]["heroui"])
+            for server in ("context7", "linear", "heroui"):
+                self.assertNotIn("approveTools", mcp["mcpServers"][server])
+            self.assertFalse(mcp["settings"]["scriptMode"])
+            self.assertEqual(mcp["settings"]["idleTimeout"], 10)
             self.assertTrue(mcp["settings"]["keep"])
 
             web = json.loads((pi_dir / "web-search.json").read_text(encoding="utf-8"))
@@ -640,6 +690,7 @@ class PiDeployTests(unittest.TestCase):
             self.assertTrue((pi_dir / "global/hooks/reviewer-guard/reviewer-guard.sh").stat().st_mode & 0o111)
             self.assertFalse((pi_dir / "global/hooks/instructions-audit/instructions-audit.sh").exists())
             self.assertTrue((pi_dir / "src/index.ts").exists())
+            self.assertTrue((pi_dir / "src/mcp-allowlist.json").exists())
 
             second = run_helper(*arguments)
             self.assertIn("files: 0 write, 0 delete, 0 conflict", second.stdout)
@@ -654,7 +705,7 @@ class PiDeployTests(unittest.TestCase):
             metadata = json.loads((source / PATCH_FILES[1]).read_text(encoding="utf-8"))
 
             first = run_helper(*arguments)
-            self.assertIn("files: 14 write, 0 delete, 0 conflict", first.stdout)
+            self.assertIn("files: 15 write, 0 delete, 0 conflict", first.stdout)
             manifest = json.loads((pi_dir / ".hive-deploy-manifest.json").read_text(encoding="utf-8"))
             for record in metadata["targets"]:
                 target = pi_dir / "npm/node_modules/pi-subagents" / record["path"]
@@ -799,7 +850,7 @@ class PiDeployTests(unittest.TestCase):
     def test_user_config_edits_are_preserved_as_conflicts(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             pi_dir = Path(temp) / "pi-agent"
-            arguments = ["deploy", "--repo-root", str(FIXTURE_ROOT), "--pi-dir", str(pi_dir), "--apply"]
+            arguments = ["deploy", "--repo-root", str(fixture_repo_root(Path(temp))), "--pi-dir", str(pi_dir), "--apply"]
             run_helper(*arguments)
 
             settings = json.loads((pi_dir / "settings.json").read_text(encoding="utf-8"))
@@ -816,6 +867,9 @@ class PiDeployTests(unittest.TestCase):
             mcp["mcpServers"]["context7"]["url"] = "https://user.example/mcp"
             mcp["mcpServers"]["context7"]["directTools"] = True
             mcp["mcpServers"]["context7"]["lifecycle"] = "eager"
+            mcp["mcpServers"]["linear"]["lifecycle"] = "eager"
+            mcp["mcpServers"]["heroui"]["headers"] = {"x-heroui-personal-token": "literal-token"}
+            mcp["settings"]["scriptMode"] = True
             (pi_dir / "mcp.json").write_text(json.dumps(mcp), encoding="utf-8")
             web = json.loads((pi_dir / "web-search.json").read_text(encoding="utf-8"))
             web["provider"] = "xai"
@@ -833,6 +887,15 @@ class PiDeployTests(unittest.TestCase):
             self.assertEqual(mcp_after["mcpServers"]["context7"]["url"], "https://user.example/mcp")
             self.assertTrue(mcp_after["mcpServers"]["context7"]["directTools"])
             self.assertEqual(mcp_after["mcpServers"]["context7"]["lifecycle"], "eager")
+            self.assertEqual(mcp_after["mcpServers"]["linear"]["lifecycle"], "eager")
+            self.assertEqual(
+                mcp_after["mcpServers"]["heroui"]["headers"],
+                {"x-heroui-personal-token": "literal-token"},
+            )
+            self.assertIn("mcp.json.mcpServers.linear.lifecycle", result.stdout)
+            self.assertIn("mcp.json.mcpServers.heroui.headers", result.stdout)
+            self.assertTrue(mcp_after["settings"]["scriptMode"])
+            self.assertIn("mcp.json.settings.scriptMode", result.stdout)
             web_after = json.loads((pi_dir / "web-search.json").read_text(encoding="utf-8"))
             self.assertEqual(web_after["provider"], "xai")
 
@@ -865,7 +928,7 @@ class PiDeployTests(unittest.TestCase):
     def test_removed_managed_config_is_preserved_as_a_conflict(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             pi_dir = Path(temp) / "pi-agent"
-            arguments = ["deploy", "--repo-root", str(FIXTURE_ROOT), "--pi-dir", str(pi_dir), "--apply"]
+            arguments = ["deploy", "--repo-root", str(fixture_repo_root(Path(temp))), "--pi-dir", str(pi_dir), "--apply"]
             run_helper(*arguments)
 
             settings = json.loads((pi_dir / "settings.json").read_text(encoding="utf-8"))
@@ -890,6 +953,8 @@ class PiDeployTests(unittest.TestCase):
             self.assertNotIn("forceTopLevelAsync", subagent_after)
             mcp_after = json.loads((pi_dir / "mcp.json").read_text(encoding="utf-8"))
             self.assertNotIn("context7", mcp_after["mcpServers"])
+            self.assertIn("linear", mcp_after["mcpServers"])
+            self.assertIn("heroui", mcp_after["mcpServers"])
             web_after = json.loads((pi_dir / "web-search.json").read_text(encoding="utf-8"))
             self.assertNotIn("workflow", web_after)
 
@@ -902,7 +967,7 @@ class PiDeployTests(unittest.TestCase):
             web_search.write_bytes(original)
             web_search.chmod(0o644)
 
-            run_helper("deploy", "--repo-root", str(FIXTURE_ROOT), "--pi-dir", str(pi_dir), "--apply")
+            run_helper("deploy", "--repo-root", str(fixture_repo_root(Path(temp))), "--pi-dir", str(pi_dir), "--apply")
 
             backup_root = pi_dir / ".hive-deploy-backups"
             backup_dir = sorted(backup_root.iterdir())[-1]
@@ -914,10 +979,76 @@ class PiDeployTests(unittest.TestCase):
             self.assertEqual(backup_file.stat().st_mode & 0o777, 0o600)
             self.assertEqual(backup_file.read_bytes(), original)
 
+    def test_managed_servers_derive_from_the_allowlist_in_the_deployed_repo_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            seed_minimal_source(source)
+            pi_dir = Path(temp) / "pi-agent"
+            (source / MCP_ALLOWLIST_REL).write_text(
+                json.dumps(
+                    {
+                        "demo": {
+                            "url": "https://demo.example/mcp",
+                            "tools": {"list_things": {}, "save_thing": {"write": True}},
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = run_helper("deploy", "--repo-root", str(source), "--pi-dir", str(pi_dir), "--apply")
+
+            self.assertEqual(result.returncode, 0)
+            mcp = json.loads((pi_dir / "mcp.json").read_text(encoding="utf-8"))
+            self.assertEqual(list(mcp["mcpServers"]), ["demo"])
+            self.assertEqual(mcp["mcpServers"]["demo"]["url"], "https://demo.example/mcp")
+            self.assertEqual(mcp["mcpServers"]["demo"]["includeTools"], ["list_things", "save_thing"])
+            self.assertNotIn("linear", mcp["mcpServers"])
+
+    def test_malformed_allowlist_fails_as_a_deploy_error_and_rollback_still_works(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            seed_minimal_source(source)
+            pi_dir = (Path(temp) / "pi-agent").resolve()
+            seed_installed_package(pi_dir)
+            self.assertEqual(deploy_module.deploy(source, pi_dir, True), 0)
+            backup = sorted((pi_dir / ".hive-deploy-backups").iterdir())[-1]
+
+            (source / MCP_ALLOWLIST_REL).write_text("{ not json", encoding="utf-8")
+            with self.assertRaises(deploy_module.DeployError) as failure:
+                deploy_module.deploy(source, pi_dir, False)
+            self.assertIn("mcp-allowlist.json", str(failure.exception))
+
+            # rollback never reads the allowlist
+            self.assertEqual(deploy_module._rollback(backup, pi_dir, True), 0)
+
+    def test_plan_warns_when_a_header_environment_variable_is_unset(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            seed_minimal_source(source)
+            pi_dir = (Path(temp) / "pi-agent").resolve()
+            seed_installed_package(pi_dir)
+
+            environment = {key: value for key, value in os.environ.items() if key != "HEROUI_PERSONAL_TOKEN"}
+            output = io.StringIO()
+            with mock.patch.dict(os.environ, environment, clear=True):
+                with contextlib.redirect_stdout(output):
+                    self.assertEqual(deploy_module.deploy(source, pi_dir, False), 0)
+            self.assertIn("WARNING: mcp.json heroui: HEROUI_PERSONAL_TOKEN is not set", output.getvalue())
+
+            quiet = io.StringIO()
+            with mock.patch.dict(os.environ, {**environment, "HEROUI_PERSONAL_TOKEN": "token"}, clear=True):
+                with contextlib.redirect_stdout(quiet):
+                    self.assertEqual(deploy_module.deploy(source, pi_dir, False), 0)
+            self.assertNotIn("HEROUI_PERSONAL_TOKEN", quiet.getvalue())
+
     def test_rollback_restores_first_apply(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             pi_dir = Path(temp) / "pi-agent"
-            arguments = ["deploy", "--repo-root", str(FIXTURE_ROOT), "--pi-dir", str(pi_dir), "--apply"]
+            arguments = ["deploy", "--repo-root", str(fixture_repo_root(Path(temp))), "--pi-dir", str(pi_dir), "--apply"]
             metadata = json.loads((FIXTURE_ROOT / PATCH_FILES[1]).read_text(encoding="utf-8"))
             run_helper(*arguments)
             backup = sorted((pi_dir / ".hive-deploy-backups").iterdir())[-1]
@@ -938,7 +1069,7 @@ class PiDeployTests(unittest.TestCase):
     def test_rollback_preserves_post_deploy_edits(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             pi_dir = Path(temp) / "pi-agent"
-            run_helper("deploy", "--repo-root", str(FIXTURE_ROOT), "--pi-dir", str(pi_dir), "--apply")
+            run_helper("deploy", "--repo-root", str(fixture_repo_root(Path(temp))), "--pi-dir", str(pi_dir), "--apply")
             backup = sorted((pi_dir / ".hive-deploy-backups").iterdir())[-1]
             target = pi_dir / "AGENTS.md"
             target.write_text("user edit\n", encoding="utf-8")

@@ -33,13 +33,77 @@ PACKAGE_PINS = (
     "npm:@juicesharp/rpiv-ask-user-question@2.9.0",
     "npm:pi-web-access@0.29.0",
 )
-CONTEXT7_SERVER = {
-    "url": "https://mcp.context7.com/mcp",
-    "protocolVersion": "auto",
-    "directTools": False,
-    "includeTools": ["resolve-library-id", "query-docs"],
-    "lifecycle": "lazy",
-}
+MCP_ALLOWLIST_REL = "harness/pi/src/mcp-allowlist.json"
+# scriptMode false hides the adapter's mcpScript tool, which no Hive guard covers
+# in the parent session.
+MANAGED_MCP_SETTINGS = {"scriptMode": False}
+# Keyed by path plus mtime/size so an edited allowlist is never served stale.
+_MANAGED_MCP_CACHE: dict[tuple[Path, int, int], dict[str, dict[str, Any]]] = {}
+
+
+def _managed_mcp_servers(repo_root: Path) -> dict[str, dict[str, Any]]:
+    """Build the managed ``mcp.json`` entries from the deployed allowlist.
+
+    The Hive guard in ``src/hooks.ts`` and the adapter-side ``includeTools`` cut
+    read the same file out of the repository being deployed, so they cannot drift.
+    Loaded on demand: a subcommand that writes no config (``rollback``) never
+    needs it.
+    """
+
+    path = (repo_root.resolve() / MCP_ALLOWLIST_REL)
+    try:
+        stats = path.stat()
+        cache_key = (path, stats.st_mtime_ns, stats.st_size)
+        cached = _MANAGED_MCP_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+        allowlist = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise DeployError(f"Cannot parse the PI MCP allowlist {path}: {error}") from error
+    if not isinstance(allowlist, dict):
+        raise DeployError(f"Expected a JSON object in the PI MCP allowlist {path}")
+    servers: dict[str, dict[str, Any]] = {}
+    for name, policy in allowlist.items():
+        if not isinstance(policy, dict) or not isinstance(policy.get("url"), str) or not isinstance(policy.get("tools"), dict):
+            raise DeployError(f'Malformed "{name}" entry in the PI MCP allowlist {path}')
+        entry: dict[str, Any] = {
+            "url": policy["url"],
+            "protocolVersion": "auto",
+            "directTools": False,
+            "includeTools": list(policy["tools"]),
+            "lifecycle": "lazy",
+        }
+        if "auth" in policy:
+            entry["auth"] = policy["auth"]
+        if "headers" in policy:
+            entry["headers"] = copy.deepcopy(policy["headers"])
+        servers[name] = entry
+    _MANAGED_MCP_CACHE[cache_key] = servers
+    return servers
+
+
+ENV_PLACEHOLDER_PATTERN = re.compile(r"^\$\{([A-Z0-9_]+)\}$")
+
+
+def _header_env_warnings(servers: dict[str, dict[str, Any]], relative: str) -> list[str]:
+    """Report `${VAR}` header placeholders the current environment cannot fill."""
+
+    warnings: list[str] = []
+    for name, entry in servers.items():
+        headers = entry.get("headers")
+        if not isinstance(headers, dict):
+            continue
+        for value in headers.values():
+            match = ENV_PLACEHOLDER_PATTERN.match(value) if isinstance(value, str) else None
+            if match is None or match.group(1) in os.environ:
+                continue
+            warnings.append(
+                f"{relative} {name}: {match.group(1)} is not set in this shell; "
+                "the header will be empty until the environment that launches pi exports it"
+            )
+    return warnings
+
+
 WEB_SEARCH_FIELDS = {
     "provider": "openai",
     "openaiSearchProviders": ["openai-codex"],
@@ -57,6 +121,7 @@ PI_HOOK_RELATIVES = (
 PI_REQUIRED_FILES = (
     ("harness/AGENTS.md", "generated PI core"),
     ("harness/pi/src/index.ts", "PI runtime entrypoint"),
+    (MCP_ALLOWLIST_REL, "PI MCP allowlist"),
     ("harness/pi/extensions/hive-hooks.ts", "general PI extension entrypoint"),
     ("harness/pi/extensions/hive/reviewer-guard.ts", "reviewer PI extension entrypoint"),
 )
@@ -563,6 +628,7 @@ class DeployPlan:
     file_actions: list[FileAction] = field(default_factory=list)
     config_actions: list[ConfigAction] = field(default_factory=list)
     conflicts: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 
@@ -1002,7 +1068,46 @@ def _merge_packages(data: dict[str, Any], previous: dict[str, Any], conflicts: l
     data["packages"] = merged
 
 
-def _merge_mcp(data: dict[str, Any], previous: dict[str, Any], conflicts: list[str], relative: str) -> None:
+def _merge_mcp_settings(
+    data: dict[str, Any],
+    previous_settings: Any,
+    conflicts: list[str],
+    relative: str,
+) -> None:
+    if "settings" not in data:
+        if isinstance(previous_settings, dict):
+            conflicts.append(f"{relative}.settings: user removed the managed settings map; preserved")
+            return
+        data["settings"] = copy.deepcopy(MANAGED_MCP_SETTINGS)
+        return
+    settings = data["settings"]
+    if not isinstance(settings, dict):
+        conflicts.append(f"{relative}.settings: user value is not an object; preserved")
+        return
+    for key, desired in MANAGED_MCP_SETTINGS.items():
+        before = previous_settings.get(key) if isinstance(previous_settings, dict) else None
+        if key not in settings:
+            if before is not None:
+                conflicts.append(f"{relative}.settings.{key}: user removed the managed value; preserved")
+                continue
+            settings[key] = copy.deepcopy(desired)
+            continue
+        if before is not None and settings[key] != before and settings[key] != desired:
+            conflicts.append(
+                f"{relative}.settings.{key}: user value differs from the last managed value; preserved"
+            )
+            continue
+        settings[key] = copy.deepcopy(desired)
+
+
+def _merge_mcp(
+    data: dict[str, Any],
+    previous: dict[str, Any],
+    conflicts: list[str],
+    relative: str,
+    managed_servers: dict[str, dict[str, Any]],
+) -> None:
+    _merge_mcp_settings(data, _owned_value(previous, relative, "settings"), conflicts, relative)
     previous_servers = _owned_value(previous, relative, "mcpServers")
     if "mcpServers" not in data:
         if isinstance(previous_servers, dict):
@@ -1014,25 +1119,26 @@ def _merge_mcp(data: dict[str, Any], previous: dict[str, Any], conflicts: list[s
         servers = data["mcpServers"]
     if not isinstance(servers, dict):
         raise DeployError(f"{relative}.mcpServers must be an object")
-    current = servers.get("context7")
-    previous_context7 = previous_servers.get("context7") if isinstance(previous_servers, dict) else None
-    if "context7" not in servers:
-        if isinstance(previous_context7, dict):
-            conflicts.append(f"{relative}.mcpServers.context7: user removed the managed server; preserved")
-            return
-        servers["context7"] = copy.deepcopy(CONTEXT7_SERVER)
-        return
-    if not isinstance(current, dict):
-        conflicts.append(f"{relative}.mcpServers.context7: user value is not an object; preserved")
-        return
-    for key, desired in CONTEXT7_SERVER.items():
-        before = previous_context7.get(key) if isinstance(previous_context7, dict) else None
-        if before is not None and current.get(key) != before and current.get(key) != desired:
-            conflicts.append(
-                f"{relative}.mcpServers.context7.{key}: user value differs from the last managed value; preserved"
-            )
+    for name, desired_server in managed_servers.items():
+        current = servers.get(name)
+        previous_server = previous_servers.get(name) if isinstance(previous_servers, dict) else None
+        if name not in servers:
+            if isinstance(previous_server, dict):
+                conflicts.append(f"{relative}.mcpServers.{name}: user removed the managed server; preserved")
+                continue
+            servers[name] = copy.deepcopy(desired_server)
             continue
-        current[key] = desired
+        if not isinstance(current, dict):
+            conflicts.append(f"{relative}.mcpServers.{name}: user value is not an object; preserved")
+            continue
+        for key, desired in desired_server.items():
+            before = previous_server.get(key) if isinstance(previous_server, dict) else None
+            if before is not None and current.get(key) != before and current.get(key) != desired:
+                conflicts.append(
+                    f"{relative}.mcpServers.{name}.{key}: user value differs from the last managed value; preserved"
+                )
+                continue
+            current[key] = copy.deepcopy(desired)
 
 
 def _config_desired(
@@ -1040,12 +1146,13 @@ def _config_desired(
     data: dict[str, Any],
     previous: dict[str, Any],
     conflicts: list[str],
+    managed_servers: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     merged = copy.deepcopy(data)
     if relative == "settings.json":
         _merge_packages(merged, previous, conflicts, relative)
     elif relative == "mcp.json":
-        _merge_mcp(merged, previous, conflicts, relative)
+        _merge_mcp(merged, previous, conflicts, relative, managed_servers)
     elif relative == "web-search.json":
         for key, desired in WEB_SEARCH_FIELDS.items():
             _merge_scalar(merged, key, desired, previous, relative, conflicts)
@@ -1056,7 +1163,8 @@ def _config_desired(
     return merged
 
 
-def _plan_configs(pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None:
+def _plan_configs(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None:
+    managed_servers = _managed_mcp_servers(repo_root)
     previous_owned = prior.get("managedConfig", {}) if prior else {}
     if not isinstance(previous_owned, dict):
         raise DeployError("Malformed managedConfig in PI manifest")
@@ -1077,11 +1185,15 @@ def _plan_configs(pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None
         else:
             current = {}
         conflicts_before = len(plan.conflicts)
-        merged = _config_desired(relative, current, previous_owned, plan.conflicts)
+        merged = _config_desired(relative, current, previous_owned, plan.conflicts, managed_servers)
         if relative == "settings.json":
             owned = {"packages": list(PACKAGE_PINS)}
         elif relative == "mcp.json":
-            owned = {"mcpServers": {"context7": copy.deepcopy(CONTEXT7_SERVER)}}
+            owned = {
+                "mcpServers": copy.deepcopy(managed_servers),
+                "settings": copy.deepcopy(MANAGED_MCP_SETTINGS),
+            }
+            plan.warnings.extend(_header_env_warnings(managed_servers, relative))
         elif relative == "web-search.json":
             owned = dict(WEB_SEARCH_FIELDS)
         else:
@@ -1309,6 +1421,8 @@ def _print_plan(
         print(f"backup: {backup_dir}")
     for error in plan.errors:
         print(f"ERROR: {error}")
+    for warning in plan.warnings:
+        print(f"WARNING: {warning}")
     for conflict in plan.conflicts:
         print(f"CONFLICT: {conflict}")
     if not apply:
@@ -1329,7 +1443,7 @@ def deploy(repo_root: Path, pi_dir: Path, apply: bool) -> int:
     prior = _load_manifest(manifest_path)
     plan = DeployPlan()
     _plan_files(repo_root, pi_dir, prior, plan)
-    _plan_configs(pi_dir, prior, plan)
+    _plan_configs(repo_root, pi_dir, prior, plan)
     if plan.errors:
         _print_plan(plan, pi_dir, apply)
         return 2
@@ -1354,7 +1468,7 @@ def _pi_preflight(repo_root: Path, pi_dir: Path) -> int:
     prior = _load_manifest(manifest_path)
     plan = DeployPlan()
     _plan_files(repo_root, pi_dir, prior, plan)
-    _plan_configs(pi_dir, prior, plan)
+    _plan_configs(repo_root, pi_dir, prior, plan)
     if plan.errors:
         _print_plan(plan, pi_dir, False, label="PI preflight")
         return 2
