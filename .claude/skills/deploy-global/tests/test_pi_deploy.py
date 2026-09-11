@@ -979,6 +979,52 @@ class PiDeployTests(unittest.TestCase):
             self.assertEqual(backup_file.stat().st_mode & 0o777, 0o600)
             self.assertEqual(backup_file.read_bytes(), original)
 
+    def test_removed_mcp_settings_map_is_preserved_as_a_conflict(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            arguments = [
+                "deploy", "--repo-root", str(fixture_repo_root(Path(temp))),
+                "--pi-dir", str(pi_dir), "--apply",
+            ]
+            first = run_helper(*arguments)
+
+            # never managed before: the map is inserted
+            self.assertEqual(first.returncode, 0)
+            mcp = json.loads((pi_dir / "mcp.json").read_text(encoding="utf-8"))
+            self.assertFalse(mcp["settings"]["scriptMode"])
+
+            mcp.pop("settings")
+            (pi_dir / "mcp.json").write_text(json.dumps(mcp), encoding="utf-8")
+
+            result = run_helper(*arguments)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn(
+                "mcp.json.settings: user removed the managed settings map; preserved",
+                result.stdout,
+            )
+            self.assertNotIn("settings", json.loads((pi_dir / "mcp.json").read_text(encoding="utf-8")))
+
+    def test_non_object_mcp_settings_is_preserved_without_raising(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            pi_dir.mkdir(parents=True)
+            (pi_dir / "mcp.json").write_text(
+                json.dumps({"mcpServers": {}, "settings": "scriptMode=false"}),
+                encoding="utf-8",
+            )
+
+            result = run_helper(
+                "deploy", "--repo-root", str(fixture_repo_root(Path(temp))),
+                "--pi-dir", str(pi_dir), "--apply",
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("mcp.json.settings: user value is not an object; preserved", result.stdout)
+            mcp = json.loads((pi_dir / "mcp.json").read_text(encoding="utf-8"))
+            self.assertEqual(mcp["settings"], "scriptMode=false")
+            self.assertIn("context7", mcp["mcpServers"])
+
     def test_managed_servers_derive_from_the_allowlist_in_the_deployed_repo_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "source"
