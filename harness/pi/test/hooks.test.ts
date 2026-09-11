@@ -452,6 +452,14 @@ test("the MCP guidance reaches only roles whose active tools include mcp", async
     registerGeneralHiveHooks(withMcp.api, { paths: pathsFor(directory) });
     const guided = await invoke(withMcp, "before_agent_start", { systemPrompt: "base" }, context);
     assert.match(JSON.stringify(guided), /PI MCP bridge/u);
+    // Skill-path guidance is model-facing for every role: a session read a
+    // package skill at ~/.agents/skills/<name> after reading a Hive skill there.
+    for (const result of [quiet, guided]) {
+      const prompt = JSON.stringify(result);
+      assert.match(prompt, /<available_skills>/u);
+      assert.match(prompt, /never guess/u);
+      assert.match(prompt, /~\/\.agents\/skills\//u);
+    }
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

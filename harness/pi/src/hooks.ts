@@ -252,6 +252,11 @@ function serverGuidanceSentence(server: string, policy: HiveMcpServerPolicy): st
   return `${label} (e.g. ${example}): ${tools.join(", ")}.`;
 }
 
+/** Model-facing: a session guessed a package skill under ~/.agents/skills after reading a Hive skill there. */
+export const PI_SKILL_PATH_GUIDANCE =
+  "PI skills: read a skill only at the <location> listed in <available_skills>; never guess its path. " +
+  "~/.agents/skills/ holds only Hive's shared skills; package skills (e.g. pi-subagents, council-mode) live under the PI agent directory's npm/node_modules/<package>/skills/.";
+
 export const PI_MCP_GUIDANCE = [
   "PI MCP bridge: use mcp only with {tool, args}.",
   context7GuidanceSentence(),
@@ -877,7 +882,7 @@ export function registerGeneralHiveHooks(
     if (mcpActive) {
       warnOnMcpAllowlistFailureOnce(ctx, mcpAllowlist, currentSessionId(ctx), mcpAllowlistWarnedSessions);
     }
-    const additions = [context, mcpActive ? PI_MCP_GUIDANCE : undefined].filter(
+    const additions = [context, PI_SKILL_PATH_GUIDANCE, mcpActive ? PI_MCP_GUIDANCE : undefined].filter(
       (value): value is string => value !== undefined,
     );
     return { systemPrompt: `${event.systemPrompt}\n\n${additions.join("\n\n")}` };
