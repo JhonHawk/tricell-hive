@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { relative, resolve, isAbsolute } from "node:path";
 import { Type, type Static } from "typebox";
 import type { ExtensionAPI, ExtensionContext, ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { GitReadOperation, GitReadRequest } from "./types.ts";
@@ -13,7 +14,8 @@ const OPERATION_VALUES: GitReadOperation[] = ["status", "diff", "log", "show", "
 
 export const gitReadSchema = Type.Object({
   operation: Type.Union(OPERATION_VALUES.map((operation) => Type.Literal(operation))),
-  path: Type.Optional(Type.String()),
+  repo: Type.Optional(Type.String({ description: "Repository directory, relative to the workspace cwd (multi-repo workspaces). Must stay inside the workspace. Omit when cwd is the repository." })),
+  path: Type.Optional(Type.String({ description: "Pathspec inside the repository (a file or folder), never the repository itself." })),
   revision: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: MAX_LOG_ENTRIES })),
   staged: Type.Optional(Type.Boolean()),
@@ -38,6 +40,16 @@ function assertSafeRevision(revision: string | undefined): void {
 
 function assertSafeLine(line: string | undefined): void {
   if (line !== undefined && !/^\d+(?:,\d+)?$/u.test(line)) throw new Error("Git blame line must be N or N,M.");
+}
+
+export function resolveRepoDirectory(workspaceCwd: string, repo: string | undefined): string {
+  if (repo === undefined) return workspaceCwd;
+  if (!isSafeArgument(repo)) throw new Error("Git repo directory must be non-empty, non-control text and cannot start with '-'.");
+  const root = resolve(workspaceCwd);
+  const target = resolve(root, repo);
+  const rel = relative(root, target);
+  if (rel.startsWith("..") || isAbsolute(rel)) throw new Error("Git repo directory must stay inside the workspace.");
+  return target;
 }
 
 function commonGitArguments(): string[] {
@@ -221,15 +233,17 @@ export function createGitReadTool(pi: ExtensionAPI): ToolDefinition<typeof gitRe
   return {
     name: "hive_git_read",
     label: "Hive Git read",
-    description: "Read bounded Git state without invoking a shell or mutating the repository.",
+    description: "Read bounded Git state without invoking a shell or mutating the repository. In a multi-repo workspace pass `repo` (the repository directory); `path` is a pathspec inside it.",
     promptSnippet: "Read Git state through Hive's bounded, read-only interface",
-    promptGuidelines: ["Use hive_git_read for bounded, read-only Git inspection.", "Do not use generic bash for Git operations."],
+    promptGuidelines: ["Use hive_git_read for bounded, read-only Git inspection.", "When cwd is a multi-repo workspace, pass `repo` with the repository directory; `path` never selects a repository.", "Do not use generic bash for Git operations."],
     parameters: gitReadSchema,
     executionMode: "sequential",
     async execute(_toolCallId, params, signal, _onUpdate, ctx: ExtensionContext) {
       let args: string[];
+      let cwd: string;
       try {
         args = buildGitArguments(params);
+        cwd = resolveRepoDirectory(ctx.cwd, params.repo);
       } catch (error) {
         return {
           content: [{ type: "text" as const, text: error instanceof Error ? error.message : String(error) }],
@@ -238,7 +252,7 @@ export function createGitReadTool(pi: ExtensionAPI): ToolDefinition<typeof gitRe
         };
       }
 
-      const result = await runBoundedGit(args, ctx.cwd, signal);
+      const result = await runBoundedGit(args, cwd, signal);
       const output = truncateOutput(result.stdout.length > 0 ? result.stdout : result.stderr);
       return {
         content: [{ type: "text" as const, text: output }],

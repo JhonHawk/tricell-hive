@@ -1,7 +1,11 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { mkdirSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildGitArguments, runBoundedGit } from "../src/git-read.ts";
+import { buildGitArguments, createGitReadTool, resolveRepoDirectory, runBoundedGit, type GitReadParams } from "../src/git-read.ts";
 
 test("git read disables pager, fsmonitor and external diff and keeps paths after --", () => {
   const args = buildGitArguments({ operation: "diff", path: "folder with spaces/file.ts", staged: true });
@@ -57,4 +61,34 @@ test("git read terminates and bounds an over-producing process", async () => {
   assert.equal(result.outputLimit, true);
   assert.equal(result.killed, true);
   assert.ok(Buffer.byteLength(result.stdout, "utf8") <= 200_000);
+});
+
+test("git read resolves a repo directory only inside the workspace", () => {
+  const workspace = mkdtempSync(join(tmpdir(), "hive-git-read-repo-"));
+  assert.equal(resolveRepoDirectory(workspace, undefined), workspace);
+  assert.equal(resolveRepoDirectory(workspace, "child"), join(workspace, "child"));
+  assert.equal(resolveRepoDirectory(workspace, join(workspace, "child")), join(workspace, "child"));
+  assert.throws(() => resolveRepoDirectory(workspace, "../sibling"), /inside the workspace/u);
+  assert.throws(() => resolveRepoDirectory(workspace, "/tmp"), /inside the workspace/u);
+  assert.throws(() => resolveRepoDirectory(workspace, "-flag"), /cannot start with '-'/u);
+});
+
+test("git read runs inside the requested child repository of a multi-repo workspace", async () => {
+  const workspace = mkdtempSync(join(tmpdir(), "hive-git-read-workspace-"));
+  const child = join(workspace, "child-repo");
+  mkdirSync(child);
+  execFileSync("git", ["init", "-q", "-b", "main", child]);
+  execFileSync("git", ["-C", child, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "init"]);
+
+  const tool = createGitReadTool({} as never);
+  const ctx = { cwd: workspace } as ExtensionContext;
+  const result = await tool.execute("call-1", { operation: "branch", repo: "child-repo" } as unknown as GitReadParams, undefined, undefined, ctx);
+  const details = result.details as { readonly exitCode: number | null };
+  assert.equal(details.exitCode, 0, JSON.stringify(result.content));
+  const first = result.content[0];
+  assert.match(first?.type === "text" ? first.text : "", /main/u);
+
+  const escaped = await tool.execute("call-2", { operation: "branch", repo: "../outside" } as unknown as GitReadParams, undefined, undefined, ctx);
+  const escapedDetails = escaped.details as { readonly blocked?: boolean };
+  assert.equal(escapedDetails.blocked, true);
 });

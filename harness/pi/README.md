@@ -104,8 +104,11 @@ provide as a single native Hive surface:
 - `git-read.ts` exposes `hive_git_read`, a bounded read-only tool for status,
   diff, log, show, blame, file listing, branches, and remotes. It rejects
   unsafe arguments, disables external diff/pager/fsmonitor behavior, caps
-  output, and never accepts a shell command. The general extension registers it
-  for every Hive role, including reviewers.
+  output, and never accepts a shell command. In a multi-repo workspace the
+  optional `repo` parameter selects the repository directory (resolved against
+  the session cwd and refused outside it); `path` is always a pathspec inside
+  that repository. The general extension registers it for every Hive role,
+  including reviewers.
 - `research.ts` exposes `hive_research_readiness`, which inspects the active
   tools in the current Pi agent. The `documentation` profile requires
   `fetch_content` and `get_search_content`; the `web` profile additionally
