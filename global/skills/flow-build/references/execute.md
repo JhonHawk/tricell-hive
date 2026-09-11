@@ -20,9 +20,12 @@ this stage.
    or ambiguous attempt first. A legacy plan without a recovery block has unknown history and is
    initialized only after the observed workspace and delivery state are reconciled.
 
-   Follow the task's `Test approach:` before changing the corresponding behavior. For `tdd`,
-   write and run the intended check, record the observed RED failure, then implement the smallest
-   change. For `characterization`, establish the green baseline before a pure refactor. For
+   Follow the task's `Test approach:` before changing the corresponding behavior. The dispatch
+   prompt to a specialist carries that approach verbatim; for `tdd` it instructs the specialist
+   to write and run the intended check FIRST and to return the observed RED output before touching
+   the implementation — a specialist report without that RED is sent back, never accepted. For
+   `tdd`, write and run the intended check, record the observed RED failure, then implement the
+   smallest change. For `characterization`, establish the green baseline before a pure refactor. For
    `not-applicable`, confirm the recorded reason and use the applicable readback, consistency or
    visual review. RED is implementation evidence, not a failed fix, review, delegation or remote
    attempt, and the normal cycle needs no approval between phases.
