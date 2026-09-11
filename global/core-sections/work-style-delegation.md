@@ -36,9 +36,9 @@ join: tight
 | Spec/épica completeness, Gherkin verifiability, quality gate | sdd-spec-reviewer | sdd-product-critic, review-code |
 | Challenge necessity/scope/shape of a feature BEFORE implementation | sdd-product-critic | sdd-spec-reviewer |
 | Raw client requirements, project intake analysis | sdd-spec-reviewer (intake mode) | the main thread |
-| "Where is X / how does Y work / does Z exist" — discovery needing a verified conclusion | sdd-explore | the implementing agent, the main thread |
+| "Where is X / how does Y work", think through an idea, or a question only docs/web settle | sdd-explore | the implementing agent, the main thread's own fetches |
 | Prompt design, LLM integration, structured output | prompt-engineer | backend-developer |
-| README, ADR, API docs, setup guide — in-repo Markdown | sdd-spec-writer | the implementing agent |
+| README, ADR, API docs, setup guide — in-repo Markdown; draft or revise an épica/delta spec | sdd-spec-writer (`docs` / `spec`) | the implementing agent, the main thread |
 | Workspace file hygiene, misplaced artifacts, ledger repair | workspace-custodian | secrets-auditor |
 | Low-reasoning external state: tracker board, PR checks, deploy jobs, an APPROVED tracker batch | state-fetcher | a research subagent |
 

@@ -109,7 +109,7 @@ carrier has to be a durable file any harness reads cold, not session state.
 
 | Transition | Carrier (what the next phase reads) | What the consumer does |
 |---|---|---|
-| research → write | `<slug>-findings.md` | `/flow-plan` turns the chosen approach + gaps into the executable plan |
+| research → write | `<slug>-findings.md` — `sdd-explore` (`approaches` / `evidence`) returns the report; the orchestrator writes the file on an explicit signal | `/flow-plan` turns the chosen approach + gaps into the executable plan |
 | write → build | `<slug>-plan.md` (`plan-format.md`) | `build` reconciles the frozen contract, authorization, execution evidence and observed workspace |
 | build → verify | `Status: built` + task evidence | the in-vivo/review gate walks the `in-vivo: yes` tasks |
 | verify → close | `Status: verified` + the versioned in-vivo report | the ledger CLOSE records the outcome and seals back-references |

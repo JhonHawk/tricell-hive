@@ -24,7 +24,8 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | API endpoints, backend logic, microservices (no DB/perf focus) | backend-developer | database-specialist, performance-engineer |
 | Kotlin Multiplatform (KMP), Android, Compose, shared mobile code | kotlin-multiplatform-developer | backend-developer |
 | server-only Kotlin (Ktor/Spring, no Android or multiplatform target) | backend-developer | kotlin-multiplatform-developer |
-| README, ADR, API docs, setup guide — in-repo Markdown | sdd-spec-writer | the implementing agent; pages inside a Starlight docs site (`/starlight-docs-site page`) |
+| README, ADR, API docs, setup guide — in-repo Markdown | sdd-spec-writer (`docs`) | the implementing agent; pages inside a Starlight docs site (`/starlight-docs-site page`) |
+| draft or revise an épica/PRD/delta spec in the specs repo from findings, a proposal, or raw notes | sdd-spec-writer (`spec`) | the main thread (a one-vista delta may stay inline), sdd-spec-reviewer |
 | raw client requirements doc, project intake analysis (no quotation involved) | sdd-spec-reviewer (intake mode, `requirements-rubric.md`) | the main thread, sdd-product-critic |
 | spec/épica completeness, Gherkin verifiability, quality gate on written specs | sdd-spec-reviewer | sdd-product-critic, review-code |
 | challenge necessity/scope/shape of a feature BEFORE implementation | sdd-product-critic | sdd-spec-reviewer, architect-style review |
@@ -35,7 +36,9 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 | low-reasoning external state: declared-tracker board/ticket reads, PR-check watches, deploy-job polling, or executing an APPROVED tracker batch | state-fetcher | workspace-custodian (files/ledger), /memory-sync (decides staleness), the main thread (a single quick state call stays inline) |
 | refute or adversarially verify a finding, claim, or diagnosis produced by another agent or investigation | review-refuter | review-code, the main thread |
 | "where is X implemented" / "how does Y work" / "does Z exist" — code discovery needing a verified conclusion (unknown terminology, legacy code, cross-repo) | sdd-explore | Explore (file location only), the main thread |
-| 80/20 convention census — which pattern dominates a UI/service surface, does a declared convention cover it | sdd-explore | the implementing agent, the main thread (the resulting `Status: proposed` draft is authored at the plan gate, not by the census agent) |
+| "think through / investigate this feature or idea" — current state, affected areas, options compared, one recommendation | sdd-explore (`approaches`) | the main thread, sdd-design |
+| a question only official docs or the web can settle — library capability, standard, ecosystem claim — needing claims mapped to sources with a resolved/partial outcome | sdd-explore (`evidence`) | Explore, the main thread's own fetches, `/adversarial-research` (disputes only) |
+| 80/20 convention census — which pattern dominates a UI/service surface, does a declared convention cover it | sdd-explore (`discovery`, census framing) | the implementing agent, the main thread (the resulting `Status: proposed` draft is authored at the plan gate, not by the census agent) |
 | review a diff/PR for correctness, maintainability, and cleanup — the default when no other row's signal is primary | review-code | the implementing agent |
 
 ### Skill & Browser Disambiguation

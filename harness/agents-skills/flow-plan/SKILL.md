@@ -40,6 +40,12 @@ drafting aid; it never changes the Hive plan, authorization or phase state.
 4. Run only the bounded read-only exploration needed to identify the affected files, repos,
    contracts, prerequisites and applicable specialists. Preserve the distinction between
    facts, decisions and open questions.
+5. **Offer research when the exploration leaves a question only official docs or the web can
+   settle** (a library capability, a standard, an ecosystem claim): ONE prose offer of an
+   evidence pass — `sdd-explore` in `evidence` mode — before tasks are written. Offered, never
+   auto-run; a no holds for this plan. Accepted: `resolved` claims enter the contract's
+   decisions with their citations; a `partial` outcome is an open question at the gate, never
+   a decision (`gap-resolution.md > Consequential-design classes carry their citations`).
 
 ## BUILD — write the portable plan
 

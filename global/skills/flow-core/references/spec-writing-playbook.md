@@ -62,8 +62,11 @@ is only steps 1–2.
    epic introduces gets its map entry drafted as part of this step — an epic may not
    reference a vista that exists nowhere. Business rules are drafted *for the vista
    pages*; PRODUCT.md carries only the delta (`specs-structure.md > product/`).
-3. Create or amend `epics/<EPIC-ID>-<slug>/` with PRODUCT.md per the structure reference —
-   **business only**: the delta plus its acceptance scenarios (Success Criteria /
+3. Create or amend `epics/<EPIC-ID>-<slug>/` with PRODUCT.md per the structure reference.
+   **Dispatch `sdd-spec-writer` (mode `spec`)** per the handoff protocol with the requirements
+   doc, the sibling epics, the vista drafts from step 2 and the rubric path — it writes
+   PRODUCT.md and returns its rubric self-score and Open Questions; a one-vista delta may
+   stay inline. The content is **business only**: the delta plus its acceptance scenarios (Success Criteria /
    Validation, happy AND negative paths). NO tasks.md yet — task decomposition is
    delivery planning and waits for the gate (step 4). TECH.md comes later, once
    the bootstrap playbook's foundation stage ran — its Relevant Code section needs real paths. PRODUCT.md carries
