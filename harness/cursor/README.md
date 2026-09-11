@@ -56,7 +56,7 @@ than compat.
   `model`, `readonly`, `is_background` — no `tools`/`disallowedTools`. The seven cyan
   reviewers, whose read-only is *enforced* by the `tools:` allowlist, arrive unconstrained;
   `readonly: true` is the only lever and it is wrong for agents that must run commands
-  (`in-vivo-qa-tester` drives `agent-browser` over Bash). Their never-mutate prompt clause is
+  (`sdd-verify` drives `agent-browser` over Bash). Their never-mutate prompt clause is
   what holds, behaviorally.
 - **`InstructionsLoaded`.** The only hive hook with no Cursor event; the other 7 map. Purely
   observational, so nothing operative is lost.

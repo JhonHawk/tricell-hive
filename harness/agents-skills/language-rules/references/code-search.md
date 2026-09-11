@@ -8,10 +8,10 @@
 | Operation | Tool |
 |---|---|
 | Exhaustive literal search, usage counts, existence checks | `rg` — the only valid evidence for an absence claim |
-| Intent discovery, unknown terminology, legacy/untyped code | `rg` with a broad vocabulary sweep (English AND Spanish domain terms, plural/singular, abbreviations), then Read the hits; delegate to `code-scout` when the sweep spans repos or the terminology is unknown |
+| Intent discovery, unknown terminology, legacy/untyped code | `rg` with a broad vocabulary sweep (English AND Spanish domain terms, plural/singular, abbreviations), then Read the hits; delegate to `sdd-explore` when the sweep spans repos or the terminology is unknown |
 | Callers / impact / affected tests, structural questions on a known symbol | `rg` for the call sites, then Read; the test selection comes from the runner (`vitest related`, `jest --findRelatedTests`, `turbo --affected`), never from a code index |
 | Ambiguous scope questions (mixed design-vs-code, "where do we handle…") | rg + Read first; concretize the question before widening the sweep |
-| Conclusions, flows, "does X exist?" answered for a decision | agent loop (code-scout / Explore) + finding-refuter on negative claims |
+| Conclusions, flows, "does X exist?" answered for a decision | agent loop (sdd-explore / Explore) + review-refuter on negative claims |
 | Sweep spanning 2+ repos, or 3+ concurrent searches (subagent fan-out) over the workspace | `tgw` when installed — same flags and output as `rg`, served from the trigram index of `~/Development/projects`; falls back to `rg` by itself when its server is down. Single-repo searches stay on `rg`. Under evaluation: `_support/docs/tgrep-workspace-server.md` in the hive |
 
 ## Anti-conclusion discipline

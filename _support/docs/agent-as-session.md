@@ -12,7 +12,7 @@ The `agent` setting in `settings.json` runs the entire Claude Code session as a 
 
 ```json
 {
-  "agent": "code-reviewer"
+  "agent": "review-code"
 }
 ```
 
@@ -27,7 +27,7 @@ Works at any scope:
 ### Via CLI flag (one-off)
 
 ```bash
-claude --agent code-reviewer
+claude --agent review-code
 ```
 
 CLI flag overrides the settings.json value if both are present.
@@ -36,7 +36,7 @@ CLI flag overrides the settings.json value if both are present.
 
 ```bash
 claude --agents '{
-  "code-reviewer": {
+  "review-code": {
     "description": "Expert code reviewer",
     "prompt": "You are a senior code reviewer...",
     "tools": ["Read", "Grep", "Glob", "Bash"],
@@ -109,7 +109,7 @@ tools: Read, Bash
 |-------------|-------|--------|
 | NestJS backend | `backend-developer` | Session with NestJS rules, thin controllers, DTOs |
 | Angular frontend | `angular-developer` | Session with Angular patterns, signals, standalone |
-| Docs-heavy repo | `technical-writer` | Session focused on documentation |
+| Docs-heavy repo | `sdd-spec-writer` | Session focused on documentation |
 | Config repo (tricell-hive) | None (default) | Normal session, automatic agent routing |
 
 ### Session agent with initialPrompt
@@ -133,7 +133,7 @@ Opening a session with `claude --agent pr-reviewer` would automatically start th
 | Risk | Detail |
 |------|--------|
 | Losing default system prompt | The default prompt includes tool usage patterns, git workflows, parallelism guidance. An agent replaces all of this. The agent must be self-sufficient or rely on CLAUDE.md/rules. |
-| Reduced versatility | Automatic routing to other agents is lost. A `backend-developer` session won't auto-delegate to `security-reviewer`. |
+| Reduced versatility | Automatic routing to other agents is lost. A `backend-developer` session won't auto-delegate to `review-security`. |
 | Global scope is risky | Setting `agent` in `~/.claude/settings.json` affects every project. Only for an "orchestrator" agent. |
 | Project scope is the sweet spot | Each repo gets the agent matching its domain. |
 

@@ -2,7 +2,7 @@
 # Generated file — do not edit by hand; edit the canonical agent and rebuild.
 name: visual-designer
 description: >
-  Design and implement the visual layer of a screen that already exists — composition, brand surface, hierarchy, spacing, and type — by iterating against the rendered page, not against a description. Use for redesigns and visual polish of a running UI ("this screen looks wrong", "restyle the login", "apply the brand"). NOT for building new features or flows (that is the framework specialist), NOT for reviewing without changing (that is ui-reviewer).
+  Design and implement the visual layer of a screen that already exists — composition, brand surface, hierarchy, spacing, and type — by iterating against the rendered page, not against a description. Use for redesigns and visual polish of a running UI ("this screen looks wrong", "restyle the login", "apply the brand"). NOT for building new features or flows (that is the framework specialist), NOT for reviewing without changing (that is review-ux).
 model: inherit
 thinking: high
 tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness

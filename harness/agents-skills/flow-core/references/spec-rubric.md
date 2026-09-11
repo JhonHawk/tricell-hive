@@ -1,6 +1,6 @@
 # Spec quality rubric
 
-Scored 1-5 per dimension by `spec-quality-reviewer`. Plain markdown on purpose: the same
+Scored 1-5 per dimension by `sdd-spec-reviewer`. Plain markdown on purpose: the same
 rubric is consumable from any harness (Claude Code agent, Codex prompt). The agent brings
 the judgment; this file brings the domain checklist.
 

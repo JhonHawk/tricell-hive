@@ -151,7 +151,7 @@ def parse_agent(path: Path):
 
 def can_write(agent):
     # Either write tool still available => the agent can write. Denying only one
-    # of them (in-vivo-qa-tester denies Edit but keeps Write for its report) must
+    # of them (sdd-verify denies Edit but keeps Write for its report) must
     # not zero out write capability in the generated trees.
     available = {"Write", "Edit"} if agent["tools"] is None else set(agent["tools"])
     available.difference_update(agent["disallowed"])
@@ -592,7 +592,7 @@ def pi_additional_tools(agent):
     memory = PI_WRITE_MEMORY_TOOLS if can_write(agent) else PI_READ_MEMORY_TOOLS
     tools = [*memory, *PI_CHILD_TOOLS]
     # Structured read-only Git follows the canonical Bash capability, including
-    # non-reviewer verifiers such as finding-refuter. It is independent of
+    # non-reviewer verifiers such as review-refuter. It is independent of
     # planning authorization and remains available under reviewer restrictions.
     # `has_bash` applies source deny-wins semantics for both allowlists and
     # disallowedTools; reviewer-guard selection is independent of Git access.

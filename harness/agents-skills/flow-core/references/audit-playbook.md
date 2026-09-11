@@ -20,13 +20,13 @@ a project README that hardcodes agent names drifts when the roster changes.
 
 | Lens | Focus | Typical resolver (today) |
 |---|---|---|
-| `arch` | layers, module boundaries, circular deps, cross-service contracts, data ownership | code-reviewer (altitude) + system-designer doctrine |
-| `smells` | naming, duplication, twin encodings of one rule, premature/missing abstractions | code-reviewer (per repo) + the stack specialist |
-| `security` | OWASP, audience/cookies, input validation, CORS/CSRF | security-reviewer |
+| `arch` | layers, module boundaries, circular deps, cross-service contracts, data ownership | review-code (altitude) + sdd-design doctrine |
+| `smells` | naming, duplication, twin encodings of one rule, premature/missing abstractions | review-code (per repo) + the stack specialist |
+| `security` | OWASP, audience/cookies, input validation, CORS/CSRF | review-security |
 | `db` | schema, indexes, N+1, partition/pagination patterns | database-specialist |
 | `perf` | sync I/O in handlers, sequential awaits, bundle size, caching | performance-engineer |
 | `secrets` | gitleaks sweep, .env.example correctness, committed keys | secrets-auditor |
-| `conventions` | 80/20 census: declared convention files (`<repo>/_support/docs/*-patterns.md`, `<project>-specs/conventions/`) vs code — per-file conformance list, drift since adoption, surfaces with no convention | code-scout (census) + code-reviewer (verdict) |
+| `conventions` | 80/20 census: declared convention files (`<repo>/_support/docs/*-patterns.md`, `<project>-specs/conventions/`) vs code — per-file conformance list, drift since adoption, surfaces with no convention | sdd-explore (census) + review-code (verdict) |
 
 Per-agent finding cap (default 25) exists to bound the consolidated TOTAL to something
 navigable (~175 on a 7-lens run); scale it down when lenses × repos grows. An agent that
@@ -61,7 +61,7 @@ finds more prioritizes by impact and says so in its scope notes.
    Each reader also returns: counts by severity/repo, its top-3 P0+P1, and scope notes (what
    was excluded and why).
 4. **Dedup, then refute.** Merge findings across readers (same file:line + same defect = one).
-   Dispatch finding-refuter over the deduped set — refuter count per
+   Dispatch review-refuter over the deduped set — refuter count per
    `agent-routing.md > Verification runs in fresh context` (that rule owns the budget). Refuted
    findings drop to a "refuted" appendix; the inventory reports UNIQUE, surviving findings, and
    says so (raw counts stay in a per-agent section).
@@ -82,7 +82,7 @@ finds more prioritizes by impact and says so in its scope notes.
 
 ## What the audit is NOT
 
-- Not per-PR code review (that stays with code-reviewer per PR), not lint/build (CI's job),
+- Not per-PR code review (that stays with review-code per PR), not lint/build (CI's job),
   not test execution (readers READ tests as audit material — test-shape smells count — but
   never run them), not runtime verification (static read-only; in-vivo checks are a separate
   flow), and never a re-report of known debt.

@@ -46,7 +46,7 @@ preserved and reported as conflicts.
 
 | Tool | Used by | Check |
 |---|---|---|
-| `agent-browser` CLI (+ `AGENT_BROWSER_PROFILE=Tricell` in `~/.zshenv`) | browser-automation rule, in-vivo verification, `in-vivo-qa-tester` | `agent-browser --version` |
+| `agent-browser` CLI (+ `AGENT_BROWSER_PROFILE=Tricell` in `~/.zshenv`) | browser-automation rule, in-vivo verification, `sdd-verify` | `agent-browser --version` |
 | `uv` | Python rule (pip is banned) | `uv --version` |
 | `pnpm` | default package manager | `pnpm --version` |
 | `gh` | GitHub operations (PRs, API) | `gh auth status` |
@@ -107,12 +107,12 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (every harness)
 │   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
 ├── agents/                          # Optimized agents by role
-│   ├── design/                      # blue    — cloud-architect, requirement-analyst, system-designer, visual-designer
+│   ├── design/                      # blue    — cloud-architect, sdd-design, visual-designer
 │   ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
-│   ├── review/                      # cyan    — code-reviewer, code-scout, finding-refuter, product-critic, security-reviewer, spec-quality-reviewer, ui-reviewer
+│   ├── review/                      # cyan    — review-code, sdd-explore, review-refuter, sdd-product-critic, review-security, sdd-spec-reviewer, review-ux
 │   ├── quality/                     # yellow  — performance, prompt, secrets, state-fetcher, test, workspace-custodian
 │   ├── ops/                         # red     — devops-engineer
-│   └── docs/                        # magenta — technical-writer
+│   └── docs/                        # magenta — sdd-spec-writer
 └── README.md                        # What Claude Code loads + the official doc backing each mechanism
 
 harness/                      # Multi-harness layer (Codex + opencode + Grok + Pi), deployed by /deploy-global with selected scopes
@@ -139,27 +139,26 @@ _support/                            # Workspace material, not deployed
 └── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
-## Agents (25 agents)
+## Agents (24 agents)
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
 | `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep |
-| `requirement-analyst` | design | blue | Read, Glob, Grep |
-| `system-designer` | design | blue | Read, Write, Edit, Glob, Grep |
+| `sdd-design` | design | blue | Read, Write, Edit, Glob, Grep |
 | `visual-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep, context7, heroui-pro |
 | `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep, context7 |
 | `backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob, context7, heroui-pro |
-| `code-scout` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only discovery) |
-| `code-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
-| `finding-refuter` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (executes claims, never modifies) |
-| `product-critic` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
-| `security-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
-| `spec-quality-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
-| `ui-reviewer` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
-| `in-vivo-qa-tester` | quality | yellow | All except Edit, NotebookEdit, Agent (drives a real browser; Write for the in-vivo report) |
+| `sdd-explore` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only discovery & research) |
+| `review-code` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
+| `review-refuter` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (executes claims, never modifies) |
+| `sdd-product-critic` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
+| `review-security` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
+| `sdd-spec-reviewer` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
+| `review-ux` | review | cyan | All except Write, Edit, NotebookEdit, Agent (needs browser MCP via ToolSearch) |
+| `sdd-verify` | quality | yellow | All except Edit, NotebookEdit, Agent (drives a real browser; Write for the in-vivo report) |
 | `performance-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `prompt-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `secrets-auditor` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
@@ -167,7 +166,7 @@ _support/                            # Workspace material, not deployed
 | `test-engineer` | quality | yellow | Read, Write, Edit, Bash, Glob, Grep |
 | `workspace-custodian` | quality | yellow | Read, Glob, Grep, Bash (read-only audit) |
 | `devops-engineer` | ops | red | Read, Write, Edit, Bash, Glob, Grep (explicit allowlist; `Agent` denied) |
-| `technical-writer` | docs | magenta | Read, Write, Edit, Glob, Grep |
+| `sdd-spec-writer` | docs | magenta | Read, Write, Edit, Glob, Grep |
 
 Line counts live on disk (`wc -l global/agents/*/*.md`); `/manage-agents validate --all` checks this table against it.
 
@@ -207,7 +206,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 
 | Skill | Scope | Purpose |
 |-------|-------|---------|
-| `/adversarial-research` | global | N independent generators (one may be Codex) + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon |
+| `/adversarial-research` | global | N independent generators (one may be Codex) + review-refuter cross-exam → refuted/weakened/surviving/net-new canon |
 | `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the deployed canon (harness-coverage matrix) + completeness checks (project pointers, Git Workflow declarations) + content quality (agent-discoverable rules, stale paths, instruction budget). Hub-destined proposals (promote-to-core, injection map) are reported, never executed by the skill |
 | `flow-core` | global | Process library (non-invocable): flow contract, templates, and the playbooks — bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion |
 | `/flow-plan` | global | Prepare a portable plan with explicit approval, scoped authorization and separate execution evidence; also available through an explicit conversational planning request |

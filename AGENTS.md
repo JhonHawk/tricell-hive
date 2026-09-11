@@ -65,15 +65,15 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 - **Unique rules only.** If the global CLAUDE.md already covers it (e.g., "no `any`", "thin controllers"), don't repeat it.
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
-- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, `rg`, dependency audits), plus WebSearch/WebFetch and the context7 MCP tools for external verification (version-sensitive APIs, CVEs/advisories, ecosystem claims — read-only in effect) — never Write/Edit. They also carry `permissionMode: plan`, but **the `tools:` allowlist is what actually enforces read-only**: a parent session in auto mode (the default on Pro/Max/Team) makes a subagent inherit auto mode and ignore its frontmatter `permissionMode` entirely (`_support/docs/enforcement-layers.md`). Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (finding-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (ui-reviewer and in-vivo-qa-tester drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
-- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (spec-quality-reviewer, ui-reviewer, in-vivo-qa-tester) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
+- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, `rg`, dependency audits), plus WebSearch/WebFetch and the context7 MCP tools for external verification (version-sensitive APIs, CVEs/advisories, ecosystem claims — read-only in effect) — never Write/Edit. They also carry `permissionMode: plan`, but **the `tools:` allowlist is what actually enforces read-only**: a parent session in auto mode (the default on Pro/Max/Team) makes a subagent inherit auto mode and ignore its frontmatter `permissionMode` entirely (`_support/docs/enforcement-layers.md`). Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (review-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (review-ux and sdd-verify drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
+- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (sdd-spec-reviewer, review-ux, sdd-verify) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
 - **Calibrate to the floor model, not the ceiling.** Rules and agents must work on the least capable model the user runs day-to-day (as of jul-2026: Sonnet 5 — the executor-tier agents; sessions and top-tier agents run Fable 5, permanent on the plan, with a pinned `opus` tier between). Before cutting a rule as "the model does this by default", verify the *floor* model does it — top-model capability is not a pruning criterion.
 - **Path-scoped rules only load when matching files are touched; do not duplicate them into agents.**
 
 ### Naming Rules
 - 3-50 characters, lowercase letters, numbers, and hyphens only.
 - Must start and end with alphanumeric. No underscores, spaces, or special characters.
-- `code-reviewer` ✅ — `my_agent` ❌ — `ag` ❌ (too short) — `-agent-` ❌ (starts/ends with hyphen)
+- `review-code` ✅ — `my_agent` ❌ — `ag` ❌ (too short) — `-agent-` ❌ (starts/ends with hyphen)
 
 ### Description Best Practices
 - 1-3 sentences for agents with obvious routing (e.g., "backend" tasks go to `backend-developer`).
@@ -88,17 +88,17 @@ description: >
   user: "Design the service boundaries for the new module"
   assistant: "I'll design the contracts and boundaries..."
   <commentary>
-  Invoke system-designer for pre-implementation macro design, not code-level review.
+  Invoke sdd-design for pre-implementation macro design, not code-level review.
   </commentary>
   </example>
 ```
 
 ### Color Assignment by Role
-- **blue** — design, analysis (system-designer)
-- **cyan** — review, research (code-reviewer, security-reviewer)
+- **blue** — design, analysis (sdd-design)
+- **cyan** — review, research (review-code, review-security)
 - **green** — implementation, building (backend-developer, angular-developer, react-developer)
 - **yellow** — validation, quality, testing (test-engineer, prompt-engineer)
-- **magenta** — creative, documentation, content (technical-writer)
+- **magenta** — creative, documentation, content (sdd-spec-writer)
 - **red** — critical operations, security, devops (devops-engineer)
 
 ### What to Eliminate
@@ -179,7 +179,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── memory-routing.md
 │   └── unattended-autonomy-mode.md       # Full delegated-run mechanics (via unattended-delegation)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
-│   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon
+│   ├── adversarial-research/      # /adversarial-research — N independent generators + review-refuter cross-exam → refuted/weakened/surviving/net-new canon
 │   ├── agents-md-primary/         # /agents-md-primary — convert projects to AGENTS.md-canonical + CLAUDE.md import
 │   ├── engram-init-workspace/     # /engram-init-workspace — unified .engram/config.json for multi-repo workspaces
 │   │   ├── SKILL.md

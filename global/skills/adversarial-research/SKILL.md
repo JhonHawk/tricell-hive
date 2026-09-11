@@ -8,7 +8,7 @@ description: >
   being wrong is expensive and a single investigation would anchor on one framing:
   architecture mappings, root-cause disputes, "which of these designs matches reality",
   migration/compat claims. Do NOT use for single-fact lookups, questions one grep or file
-  read answers, or verifying one already-stated claim (dispatch finding-refuter directly
+  read answers, or verifying one already-stated claim (dispatch review-refuter directly
   per agent-routing).
 argument-hint: "<question | claim | design decision> [n=<generators>] [no codex]"
 disable-model-invocation: true
@@ -63,7 +63,7 @@ the question is and stop.
 
 ## 3 — Refute
 
-- Dispatch `finding-refuter` (M in parallel when M>1) with: all surviving proposals labeled
+- Dispatch `review-refuter` (M in parallel when M>1) with: all surviving proposals labeled
   A/B/C…, the same corpus manifest, and this instruction: for EVERY numbered claim, attempt
   refutation against ground truth and return a per-claim verdict — REFUTED (with the
   counterexample citation), WEAKENED (what is off + the minimal fix), or CONFIRMED

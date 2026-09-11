@@ -11,17 +11,17 @@ session's Bash). Deploy is automatic: `/deploy-global` copies every `*.sh` under
 
 The `tools:` allowlist of a review agent omits `Write`/`Edit`, but unrestricted `Bash`
 keeps a mutation path open, and `permissionMode: plan` is ignored when the parent session
-runs in auto mode (verified 2026-08-15: a `code-reviewer` subagent created a file via
+runs in auto mode (verified 2026-08-15: a `review-code` subagent created a file via
 `touch` unblocked). This hook closes that gap deterministically for the agents whose
 doctrine is investigate-and-report.
 
 ## Roster (strict — carries the hook)
 
-`code-reviewer`, `security-reviewer`, `product-critic`, `spec-quality-reviewer`,
-`code-scout`, `workspace-custodian`.
+`review-code`, `review-security`, `sdd-product-critic`, `sdd-spec-reviewer`,
+`sdd-explore`, `workspace-custodian`.
 
-**Exempt (execute-to-observe by doctrine — no hook):** `finding-refuter` (runs tests and
-repro commands), `in-vivo-qa-tester` and `ui-reviewer` (drive a real browser and its
+**Exempt (execute-to-observe by doctrine — no hook):** `review-refuter` (runs tests and
+repro commands), `sdd-verify` and `review-ux` (drive a real browser and its
 session files), `state-fetcher` (executes approved tracker writes). Their read-only-ness
 stays `tools:`-allowlist + prompt-convention. Rationale recorded in
 `_support/docs/enforcement-layers.md`.

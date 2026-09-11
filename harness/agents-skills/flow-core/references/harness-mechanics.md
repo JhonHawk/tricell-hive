@@ -27,8 +27,8 @@ shared skills as `$flow-plan` and `$flow-build`; in Pi, invoke them as `/skill:f
 
 ## Enforcement differences to respect
 
-- **Read-only reviewers** (spec-quality-reviewer, product-critic, ui-reviewer,
-  workspace-custodian, code-reviewer, security-reviewer, requirement-analyst, code-scout): Claude
+- **Read-only reviewers** (sdd-spec-reviewer, sdd-product-critic, review-ux,
+  workspace-custodian, review-code, review-security, sdd-explore): Claude
   Code enforces via tool allowlists; Codex via `sandbox_mode = "read-only"` in the agent
   TOML; opencode via `permission` denies; Grok by withholding `search_replace`, its only
   write tool. If your harness lost the enforcement in translation, honor it behaviorally —

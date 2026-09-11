@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-07
 **Status:** installed on this machine, under evaluation — scoped to cross-repo sweeps and concurrent fan-outs
-**Rule:** `global/rules/tools/code-search.md` (workspace row); consumer: `code-scout`
+**Rule:** `global/rules/tools/code-search.md` (workspace row); consumer: `sdd-explore`
 **Upstream:** [microsoft/tgrep](https://github.com/microsoft/tgrep) v1.0.4 — trigram-indexed, ripgrep-compatible grep with a client/server mode
 
 ## Why this scope and no wider
@@ -66,4 +66,4 @@ rm ~/Library/LaunchAgents/com.jmartinez.tgrep-workspace.plist
 rm -rf ~/.cache/tgrep ~/.local/bin/tgw ~/.local/bin/tgrep
 ```
 
-Then drop the workspace row from `code-search.md` and the `tgw` bullet from `code-scout.md`.
+Then drop the workspace row from `code-search.md` and the `tgw` bullet from `sdd-explore.md`.

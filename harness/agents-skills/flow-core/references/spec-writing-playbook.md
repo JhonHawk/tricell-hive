@@ -101,11 +101,11 @@ once the bootstrap playbook's foundation stage ran.
    - **No argument** → show the epics index and ask which to review; do not guess.
 2. Dispatch BOTH reviewers in parallel (one message, two Agent calls), per the handoff
    protocol (`~/.claude/skills/flow-core/references/handoff-protocol.md`):
-   - **spec-quality-reviewer** — pass: the epic path, the rubric path
+   - **sdd-spec-reviewer** — pass: the epic path, the rubric path
      (`${CLAUDE_SKILL_DIR}/references/spec-rubric.md`), pointers to sibling epics and
      contracts for implicit-rule hunting, and the intent: "findings feed a go/no-go gate
      before implementation; the user fixes the spec, not the client".
-   - **product-critic** — pass: the epic path, the workspace layout (where the other
+   - **sdd-product-critic** — pass: the epic path, the workspace layout (where the other
      epics, contracts, and runtime repos live), and its standing question: "challenge
      whether this should exist in this shape".
    Do NOT review the spec yourself — your job is dispatch and synthesis.

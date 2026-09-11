@@ -25,7 +25,7 @@ for the tasks not yet gated:
    consistency check and records runtime verification as not-applicable with the reason. Passive
    documentation uses its diff and consistency check.
 2. **In-vivo gate** for `in-vivo: yes` tasks (now, if timing was deferred): dispatch
-   **in-vivo-qa-tester** against the running app — it walks the Gherkin ACs AND the
+   **sdd-verify** against the running app — it walks the Gherkin ACs AND the
    negative/adversarial catalog the agent owns. Raw evidence → `_support/evidence/YYYY-MM-DD-<slug>/` (gitignored); the
    **versioned report** → the versioned layer (specs repo `<project>-specs/evidence/<epic-id>/`,
    else `<repo>/_support/sessions/<slug>/reports/`) per `flow-core/references/test-report-template.md`. **A
@@ -45,7 +45,7 @@ for the tasks not yet gated:
    reviewer walking that wreckage reports defects that do not exist.
 3. **Design gate — REQUIRED for any task with a user-facing surface**, not opt-in (canonical
    statement of the gate: `agent-routing.md > Verification runs in fresh context`, which binds a
-   portable plan too — this file carries its mechanics). Dispatch **ui-reviewer** against the running app.
+   portable plan too — this file carries its mechanics). Dispatch **review-ux** against the running app.
    **The axis scope is DERIVED from what a mock review actually covered for THIS feature — never
    from whether the project owns a mocks repo.** A mock review ran → the gate takes **Visual
    craft** (`flow-core/references/ux-rubric.md` #11–18) plus the five Flow dimensions a prototype

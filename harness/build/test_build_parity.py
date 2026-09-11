@@ -82,7 +82,7 @@ class GeneratedTreeParityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hive-build-parity-") as tmp:
             fixture = self.create_generated_fixture(Path(tmp))
             stale_paths = (
-                Path("harness/pi/agents/code-reviewer.md"),
+                Path("harness/pi/agents/review-code.md"),
                 Path(
                     "harness/agents-skills/language-rules/references/"
                     "python-standards.md"
@@ -103,7 +103,7 @@ class GeneratedTreeParityTests(unittest.TestCase):
     def test_reports_missing_and_extra_entries_together(self):
         with tempfile.TemporaryDirectory(prefix="hive-build-parity-") as tmp:
             fixture = self.create_generated_fixture(Path(tmp))
-            missing = Path("harness/codex/agents/code-reviewer.toml")
+            missing = Path("harness/codex/agents/review-code.toml")
             extra = Path("harness/grok/agents/orphan.md")
             (fixture / missing).unlink()
             (fixture / extra).write_text("orphan\n", encoding="utf-8")

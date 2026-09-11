@@ -1,6 +1,6 @@
 # UX rubric
 
-Checked per flow by `ui-reviewer` while navigating the live mock or QA deployment.
+Checked per flow by `review-ux` while navigating the live mock or QA deployment.
 Plain markdown so any harness can consume it. **Pass/fail per dimension, per flow** — both tables.
 Two axes: **Flow** (does the journey work?) and **Visual craft** (is it built to the design
 criteria?). Craft derives from `languages/ui-visual-design.md` (the implementer's front-loaded

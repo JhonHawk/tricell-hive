@@ -74,7 +74,7 @@ last column.
 | Always-on rules | 12 flat symlinks `<dir>__<file>.md` | `~/.grok/rules/` | Every `*.md` in a rules dir is loaded regardless of name | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) — *"every `*.md` file in a `.grok/rules/` directory"*; `.claude/rules/` also read for compat | 2026-08-20 |
 | Path-scoped rules | **none** | — | No file-pattern scoping key exists — see *What does NOT reach it* | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) (absence) | 2026-08-20 |
 | Skills | 16 skills, incl. the router `references/` | `~/.claude/skills/` (read in place) | Claude-compat scan at the **lowest** precedence; `disable-model-invocation` honored natively | [docs.x.ai/build/features/skills-plugins-marketplaces](https://docs.x.ai/build/features/skills-plugins-marketplaces) — *"`disable-model-invocation`: Slash command only; no automatic invoke. Default `false`."* Bundled 1.0.25 `08-skills.md` still matches | 2026-09-09 |
-| Agents | 25 Grok-shaped `.md` (real files, not symlinks) | `~/.grok/agents/` | `.md` agent definitions in `~/.grok/agents/` | [docs.x.ai/build/features/subagents](https://docs.x.ai/build/features/subagents); spawn args in bundled `16-subagents.md` (grok 1.0.25) — no `capability_mode` | 2026-09-09 |
+| Agents | 24 Grok-shaped `.md` (real files, not symlinks) | `~/.grok/agents/` | `.md` agent definitions in `~/.grok/agents/` | [docs.x.ai/build/features/subagents](https://docs.x.ai/build/features/subagents); spawn args in bundled `16-subagents.md` (grok 1.0.25) — no `capability_mode` | 2026-09-09 |
 | Hooks | shared with Claude Code | `~/.claude/settings.json` (merged by compat) | Grok hooks + Claude settings compat; matcher aliases cover only common Claude tool names; stdout injection is event-specific (map above) | [docs.x.ai/build/features/hooks](https://docs.x.ai/build/features/hooks); alias list, `ask`/`defer`, and per-event stdout rules (PostToolUse feedback since 1.0.14) from bundled `~/.grok/docs/user-guide/10-hooks.md` (grok 1.0.25) | 2026-09-09 |
 | Scope & precedence table | — | — | Which dirs are scanned, in what order | bundled doc `~/.grok/docs/user-guide/12-project-rules.md` + `08-skills.md` (grok 1.0.25) — local file, not a URL | 2026-09-09 |
 
@@ -121,7 +121,7 @@ grok inspect          # lists every config source, rules file, skill, plugin, ho
                       # analogous to `codex debug prompt-input`
 
 ls -la ~/.grok/rules/ # should be 12 symlinks named <dir>__<file>.md → ~/.claude/rules/...
-ls    ~/.grok/agents/ # should be 25 real .md files
+ls    ~/.grok/agents/ # should be 24 real .md files
 ```
 
 The bundled user guide under `~/.grok/docs/user-guide/` ships with the CLI and is version-

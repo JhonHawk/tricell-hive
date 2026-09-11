@@ -38,14 +38,14 @@ Two honest subtleties:
   `permissionMode: plan` against this, but **it is not a layer to count on**: when the parent
   session runs in auto mode — the default on Pro/Max/Team unless `permissions.defaultMode`
   says otherwise — a subagent inherits auto mode and its frontmatter `permissionMode` is
-  ignored. Verified empirically 2026-08-15: a `code-reviewer` subagent had no `ExitPlanMode`
+  ignored. Verified empirically 2026-08-15: a `review-code` subagent had no `ExitPlanMode`
   and created a file via `touch` unblocked. **Since F4 the agent-scoped `reviewer-guard`
   hook closes the common Bash-mutation paths** (git mutations, deleters, in-place edits,
-  installs, non-temp writes) for the strict roster — `code-reviewer`, `security-reviewer`,
-  `product-critic`, `spec-quality-reviewer`, `code-scout`, `workspace-custodian` — via a
+  installs, non-temp writes) for the strict roster — `review-code`, `review-security`,
+  `sdd-product-critic`, `sdd-spec-reviewer`, `sdd-explore`, `workspace-custodian` — via a
   frontmatter `hooks:` PreToolUse block on `Bash`. **Exempt by doctrine
-  (execute-to-observe):** `finding-refuter` (runs tests/repro commands), `in-vivo-qa-tester`
-  and `ui-reviewer` (drive a browser), `state-fetcher` (executes approved tracker writes) —
+  (execute-to-observe):** `review-refuter` (runs tests/repro commands), `sdd-verify`
+  and `review-ux` (drive a browser), `state-fetcher` (executes approved tracker writes) —
   for them the deterministic layer remains the `tools:` allowlist, with never-mutate as
   prompt-convention. Residual gap even under the guard: an interpreter one-liner can still
   write — the hook is a guardrail, not a sandbox. Harness scope: `hooks:` is Claude-only
@@ -95,5 +95,5 @@ Operationalized in `global/CLAUDE.md > Communication > Name the enforcement laye
 ---
 
 *Origin: adversarial research session 2026-07-17 (two independent proposals cross-examined
-by `finding-refuter` against the rule corpus). Full artifact:
+by `review-refuter` against the rule corpus). Full artifact:
 `_support/archive/docs/2026-07-17-sistema-magia-isekai.html`.*

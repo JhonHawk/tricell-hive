@@ -30,10 +30,10 @@ def fixture_agent(frontmatter):
 class ConverterTests(unittest.TestCase):
     def test_opus_judgment_roles_use_astra_medium_in_codex_and_pi(self):
         expected = {
-            "code-reviewer",
+            "review-code",
             "database-specialist",
             "performance-engineer",
-            "product-critic",
+            "sdd-product-critic",
             "prompt-engineer",
         }
         for name in expected:
@@ -86,7 +86,7 @@ class ConverterTests(unittest.TestCase):
         self.assertIn("model: openai-codex/gpt-6-astra", pi)
         self.assertIn("thinking: high", pi)
 
-    def test_cli_generates_all_25_pi_agents_and_common_policy(self):
+    def test_cli_generates_all_24_pi_agents_and_common_policy(self):
         with tempfile.TemporaryDirectory(prefix="hive-agent-output-") as tmp:
             result = subprocess.run(
                 [sys.executable, str(CONVERTER_PATH), "global/agents", tmp],
@@ -95,16 +95,16 @@ class ConverterTests(unittest.TestCase):
                 text=True,
                 check=True,
             )
-            self.assertIn("converted 25 agents", result.stdout)
+            self.assertIn("converted 24 agents", result.stdout)
             pi_dir = Path(tmp) / "pi"
             files = sorted(pi_dir.glob("*.md"))
-            self.assertEqual(len(files), 25)
+            self.assertEqual(len(files), 24)
             reviewer_guard_agents = {
-                "code-reviewer",
-                "code-scout",
-                "product-critic",
-                "security-reviewer",
-                "spec-quality-reviewer",
+                "review-code",
+                "sdd-explore",
+                "sdd-product-critic",
+                "review-security",
+                "sdd-spec-reviewer",
                 "workspace-custodian",
             }
             for path in files:
@@ -129,9 +129,9 @@ class ConverterTests(unittest.TestCase):
                     self.assertNotIn("hive/reviewer-guard.ts", text)
                     self.assertNotIn("hive_reviewer_readiness", text)
             reviewer = CONVERTER.parse_agent(
-                ROOT / "global" / "agents" / "review" / "code-reviewer.md"
+                ROOT / "global" / "agents" / "review" / "review-code.md"
             )
-            reviewer_text = (pi_dir / "code-reviewer.md").read_text(encoding="utf-8")
+            reviewer_text = (pi_dir / "review-code.md").read_text(encoding="utf-8")
             reviewer_tools = reviewer_text.split("tools: ", 1)[1].split("\n", 1)[0]
             self.assertEqual(reviewer_tools.split(", ").count("mcp"), 1)
             self.assertNotIn("mcp:", reviewer_tools)
@@ -269,12 +269,12 @@ class ConverterTests(unittest.TestCase):
 
     def test_pi_context7_agents_use_one_guarded_mcp_gateway(self):
         expected_agents = {
-            "code-reviewer",
-            "code-scout",
-            "finding-refuter",
-            "product-critic",
-            "security-reviewer",
-            "spec-quality-reviewer",
+            "review-code",
+            "sdd-explore",
+            "review-refuter",
+            "sdd-product-critic",
+            "review-security",
+            "sdd-spec-reviewer",
         }
         with tempfile.TemporaryDirectory(prefix="hive-agent-output-") as tmp:
             subprocess.run(
@@ -302,7 +302,7 @@ class ConverterTests(unittest.TestCase):
                 )
 
     def test_pi_structured_git_read_follows_bash_for_non_guarded_refuter(self):
-        refuter = source_agent(Path("review") / "finding-refuter.md")
+        refuter = source_agent(Path("review") / "review-refuter.md")
         self.assertTrue(CONVERTER.has_bash(refuter))
         self.assertFalse(refuter["has_reviewer_guard"])
         pi = CONVERTER.to_pi(refuter)
@@ -332,7 +332,7 @@ class ConverterTests(unittest.TestCase):
         self.assertNotIn("mem_save", denied_writes_pi)
 
     def test_pi_rebases_role_rule_paths_to_shared_skill_root(self):
-        agent = source_agent(Path("review") / "code-reviewer.md")
+        agent = source_agent(Path("review") / "review-code.md")
         pi = CONVERTER.to_pi(agent)
         self.assertIn("~/.agents/skills/language-rules/references/", pi)
         self.assertNotIn("~/.claude/skills/language-rules/references/", pi)

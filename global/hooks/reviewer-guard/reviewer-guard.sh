@@ -2,8 +2,8 @@
 # reviewer-guard.sh — PreToolUse (Bash), DENY-FIRST. Agent-scoped.
 #
 # Deterministic backstop for the read-only doctrine of review/audit agents that
-# carry Bash for investigation only (code-reviewer, security-reviewer,
-# product-critic, spec-quality-reviewer, code-scout, workspace-custodian).
+# carry Bash for investigation only (review-code, review-security,
+# sdd-product-critic, sdd-spec-reviewer, sdd-explore, workspace-custodian).
 # Wired through each agent's frontmatter `hooks:` block — NOT through
 # settings.json — so it fires only inside those agents. Roster and the
 # execute-to-observe exemptions: _support/docs/enforcement-layers.md.

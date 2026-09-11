@@ -5,7 +5,7 @@ description: >
   surface, hierarchy, spacing, and type — by iterating against the rendered page, not against a
   description. Use for redesigns and visual polish of a running UI ("this screen looks wrong",
   "restyle the login", "apply the brand"). NOT for building new features or flows (that is the
-  framework specialist), NOT for reviewing without changing (that is ui-reviewer).
+  framework specialist), NOT for reviewing without changing (that is review-ux).
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__heroui-pro
 model: inherit
 effort: high

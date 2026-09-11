@@ -1,6 +1,6 @@
 # Requirements intake rubric
 
-Scored 1-5 per dimension by `requirement-analyst`. Plain markdown so any harness can
+Scored 1-5 per dimension by `sdd-spec-reviewer` in intake mode. Plain markdown so any harness can
 consume it. This rubric judges a RAW client document — it tolerates informality but not
 silence: a dimension the document never touches scores 1, and that absence is the finding.
 
