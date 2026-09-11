@@ -12,9 +12,9 @@ disable-model-invocation: true
 Follow the flow contract (`~/.agents/skills/flow-core/SKILL.md`). This is the planning half of
 the daily chain. It may inspect the workspace and write the portable plan and, when a ledger
 exists, its handoff, but it never edits project code itself. It does not commit, push, merge,
-publish or deploy. When the same explicit user request also authorizes implementation and
-delivery, it may hand off immediately to `/flow-build` or the direct route after the approval
-record is complete; a second slash command is not required.
+publish or deploy. `/flow-build` is user-gated (`disable-model-invocation`): never invoke it from
+this skill, even when the approval also authorizes implementation and delivery — complete the
+approval record, then ask the user to run `/flow-build` (or take the direct route if they choose it).
 
 The user must invoke `/flow-plan` or make an equivalent explicit request such as “planeemos X”.
 When a harness does not expose the slash command, that request follows this same procedure
@@ -127,9 +127,11 @@ When a ledger exists, update its phase, artifact index and `## Current handoff` 
 contract revision, decisions, open questions and the next suggested action. Report whether the
 plan is `draft` or `planned`, which permissions were explicitly granted, and which remain absent.
 
-If the approval includes implementation authority, hand off to `/flow-build` or the direct route
-in the same run, preserving the authorization evidence and delivery grants. If it is planning-only,
-return the plan and offer the next execution route; a user may also use the direct route for a
-small change. The plan does not force a full ceremony where proportionality says it adds no value.
+If the approval includes implementation authority, stop after the approval record and ask the
+user to run `/flow-build`, naming the direct route as the alternative; the recorded authorization
+evidence and delivery grants carry over to whichever route they pick. Never call `/flow-build`
+yourself — the harness refuses it. If it is planning-only, return the plan and offer the next
+execution route; a user may also use the direct route for a small change. The plan does not force
+a full ceremony where proportionality says it adds no value.
 
 Stable path after deploy: `~/.agents/skills/flow-plan/SKILL.md`.
