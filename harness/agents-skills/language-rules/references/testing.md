@@ -56,6 +56,12 @@ For `tdd`, strict TDD clears the gate only when all three hold:
 - **Pass-to-pass** — every previously-passing test still passes. The change does not delete, weaken, or loosen existing tests to go green.
 - **Verification runs the checks** — RED, GREEN and any required refactor check are actual runs with commands and results, never claims that they would pass.
 
+**Two failure modes that read green through all three** — a passing suite and a rising test count are not coverage, and neither review nor CI separates them from the real thing:
+- **A retired test's coverage is compared by FIXTURE, not by assertion.** Replacing a test means putting the old and new fixtures side by side and naming what precondition the substitute needed in order to pass. A new precondition in the fixture is a new condition in production: what the original covered unconditionally is now covered only under it.
+- **A check counts as protection only once it has been seen to fail.** Before a new or repaired check is claimed to guard something, break what it guards — invert the precedence, revert the normalization, reintroduce the defect — confirm red, restore, and verify no residue. An assertion whose fixture cannot produce the failure its name claims is vacuous.
+
+Prompt-convention; a mutation-testing runner is the deterministic backstop where one is configured.
+
 When a user accepts a missing-RED exception, the chronology requirement is waived only. The gate
 still requires an actual fail-to-pass comparison (use a safe isolated pre-change baseline when the
 working tree already contains the implementation), pass-to-pass evidence and the applicable
