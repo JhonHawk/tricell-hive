@@ -48,6 +48,35 @@ Resource envelope observed: 60 MB RSS idle, up to ~460 MB after heavy querying (
 
 Claude Code's Grep tool has no documented way to swap its bundled ripgrep (verified against `code.claude.com/docs/en/env-vars` and `tools-reference`, 2026-09-07). On this machine the agents search through `rg` in Bash anyway, so `tgw` reaches them only as an explicit command named by the rule — never as an `rg` shim, which would carry the staleness risk to every search.
 
+## Re-measured 2026-09-11 — selectivity decides, not scope
+
+The usage log showed real sweeps at 3.7 s, 14.2 s and 38.2 s. Re-measured on this machine
+(median of 5, `tgw` vs `rg`, output line counts compared):
+
+| Pattern | Scope | tgw | rg | |
+|---|---|---:|---:|---|
+| rare literal (`verifyEdgeAccessToken`) | 1 repo | 0.035 s | 0.039 s | tie |
+| rare literal | workspace | 0.033 s | 0.496 s | **tgw 15× better** |
+| common literal (`organizationId`, 2,817 matches) | 1 repo | 0.073 s | 0.044 s | 1.7× worse |
+| short term (`auth`, 1,901 matches) | 1 repo | 0.640 s | 0.040 s | **16× worse** |
+| 5-term alternation | 1 repo | 1.212 s | 0.046 s | 26× worse |
+| 5-term alternation | workspace | 1.272 s | 0.645 s | 2.0× worse |
+| 3-term alternation, all rare | 1 repo | 0.030 s | 0.040 s | tgw better |
+
+**The variable is the pattern's trigram selectivity, not the scope and not the alternation
+count.** `auth` has FEWER matches than `organizationId` and costs 9× more, because it is a
+substring of `author`/`authentication`/`oauth`/`authorize`: the index returns a huge candidate
+set that must then be verified. An alternation of rare terms is fast; a single short term is
+slow. This is the earlier "hot patterns are bounded by match delivery" bullet, stated in terms
+of what an agent can decide from the pattern before running it.
+
+Consequence for `code-search.md`: the workspace row now carries the selectivity condition, and
+the vocabulary sweep is routed to `rg` at every scope — a broad sweep uses exactly the short,
+common terms that lose here, cross-repo included.
+
+Parity re-checked at workspace scope: the only divergence remains PDFs that `rg` scans as text
+and tgrep skips by extension. Source-code parity is exact.
+
 ## Expansion criteria — revisit with the usage log
 
 Expand (per-repo servers, or `tgw` as the default for single-repo sweeps) only when the log shows one of:
