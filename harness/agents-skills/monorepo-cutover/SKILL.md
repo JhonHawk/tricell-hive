@@ -77,5 +77,5 @@ lockfile shape, the CD auth path, the deployed SHA, and the archived remotes are
 - Recovery mechanisms (overlay, version pins) get DELETED after cutover, not kept "just
   in case" — leftovers silently become the default again.
 - Reusable tokens (remote cache, registries) follow `security.md > Authentication &
-  Secrets`: secret manager (`op`, else OS keychain), fetched once per session into an
-  ephemeral `0600` copy.
+  Secrets`: use the user-approved manager, with 1Password only on explicit request;
+  after authorized retrieval, reuse an ephemeral `0600` session copy.
