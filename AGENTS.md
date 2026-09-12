@@ -309,7 +309,7 @@ Carried by the compiled hive profile at the end of this file (`hive-profile` blo
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
 
 <!-- hive-profile:start -->
-Hive profile v1 · hive@62e4582 · 2026-09-11 · class: config-hub
+Hive profile v1 · hive@44143e9 · 2026-09-11 · class: config-hub
 
 ## Hive Profile
 
