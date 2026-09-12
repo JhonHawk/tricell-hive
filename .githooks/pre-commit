@@ -37,10 +37,14 @@ python3 harness/build.py 1>&2
 git add -A -- "${GENERATED[@]}"
 
 # The profile block lives inside a hand-written file: refresh it only when the
-# rest of AGENTS.md carries no unstaged edits that a `git add` would sweep in.
+# compiled body actually differs (--check is content-based; a stamp-only refresh
+# is churn) and the rest of AGENTS.md carries no unstaged edits a `git add`
+# would sweep in.
 if git diff --quiet -- AGENTS.md; then
-  python3 harness/hive-compile.py . --apply 1>&2
-  git add -- AGENTS.md
+  if ! python3 harness/hive-compile.py . --check 1>&2; then
+    python3 harness/hive-compile.py . --apply 1>&2
+    git add -- AGENTS.md
+  fi
 else
   echo "pre-commit: AGENTS.md has unstaged edits — hive profile NOT refreshed; run harness/hive-compile.py . --apply after committing them" >&2
 fi
