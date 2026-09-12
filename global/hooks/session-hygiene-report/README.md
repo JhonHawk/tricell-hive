@@ -34,10 +34,10 @@ la siguiente sesión fresca recoge lo que quedó.
      8080-8089 — reporta puerto, PID, edad y cwd del proceso.
 - **Además (sin umbral de edad): hive-profile stale.** Si el repo raíz del `cwd`
   de la sesión tiene un `AGENTS.md` con bloque `hive-profile:start` (generado por
-  `harness/hive-compile.py`), extrae el SHA del stamp (`hive@<sha>`) y lo compara
-  contra el HEAD del checkout del hive (`HIVE_REPO`, default
-  `~/Development/projects/tricell/tricell-hive`): stale = el hive avanzó tocando
-  `global/rules/` o el clasificador (`git log --name-only <stamp>..HEAD`), o el
+  `harness/hive-compile.py`), delega el veredicto a `hive-compile.py <repo> --check`
+  del checkout del hive (`HIVE_REPO`, default `~/Development/projects/tricell/tricell-hive`):
+  stale = el hive avanzó tocando `global/rules/` o el clasificador Y el perfil que
+  compilaría hoy difiere del bloque en disco (sin contar la línea de stamp), o el
   stamp es desconocido para el checkout. Emite UNA línea advisory sugiriendo
   regenerar (ofrecer, nunca regenerar sin pedirlo); silencio si no hay checkout
   del hive en la máquina o el repo no lleva perfil. Clave de cooldown:

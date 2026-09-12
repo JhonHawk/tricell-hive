@@ -45,8 +45,10 @@ ever reached it. The scope closes that gap in two parts:
 
 `harness/` is generated from `global/agents` and `global/skills` by `harness/build.py`,
 which also assembles the two always-on cores (`global/CLAUDE.md` and `harness/AGENTS.md`)
-from `global/core-sections/`. If canonical sources changed since the last build, rebuild
-and commit first:
+from `global/core-sections/`. The versioned `.githooks/pre-commit` regenerates and stages
+those outputs with any commit that touches a canonical source (enable once per clone:
+`git config core.hooksPath .githooks`). A "dirty after rebuild" warning from this script
+means the hook is not enabled or sources changed without a commit — rebuild and commit first:
 ```bash
 python3 harness/build.py && git status --porcelain harness/ global/CLAUDE.md
 ```

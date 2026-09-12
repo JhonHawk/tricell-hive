@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# pre-commit — generated outputs travel in the same commit as their canonical sources.
+#
+# Enabled per clone (git never versions hook activation):
+#     git config core.hooksPath .githooks
+#
+# When a canonical input of harness/build.py or harness/hive-compile.py is staged,
+# regenerate every derived artifact and stage it. Derived trees are 100% output,
+# so staging everything under them is correct by construction; a hand-edited
+# output makes build.py refuse, which aborts the commit with its message.
+# Known limit: the generators read the working tree, not the index — a
+# partially staged source (`git add -p`) regenerates from the full file.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+readonly ROOT
+cd "$ROOT"
+
+readonly -a SOURCES=(global/ harness/build.py harness/build/ harness/hive-compile.py)
+readonly -a GENERATED=(
+  global/CLAUDE.md
+  harness/AGENTS.md
+  harness/agents-skills
+  harness/codex/agents
+  harness/opencode/agents
+  harness/opencode/rules
+  harness/grok/agents
+  harness/pi/agents
+)
+
+if git diff --cached --quiet -- "${SOURCES[@]}"; then
+  exit 0
+fi
+
+echo "pre-commit: canonical sources staged — regenerating harness/ and the hive profile" >&2
+python3 harness/build.py 1>&2
+git add -A -- "${GENERATED[@]}"
+
+# The profile block lives inside a hand-written file: refresh it only when the
+# rest of AGENTS.md carries no unstaged edits that a `git add` would sweep in.
+if git diff --quiet -- AGENTS.md; then
+  python3 harness/hive-compile.py . --apply 1>&2
+  git add -- AGENTS.md
+else
+  echo "pre-commit: AGENTS.md has unstaged edits — hive profile NOT refreshed; run harness/hive-compile.py . --apply after committing them" >&2
+fi
