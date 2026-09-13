@@ -143,9 +143,9 @@ _support/                            # Workspace material, not deployed
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
-| `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep |
+| `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep, WebSearch/WebFetch, context7 |
 | `sdd-design` | design | blue | Read, Write, Edit, Glob, Grep |
-| `solution-architect` | design | blue | Read, Write, Edit, Glob, Grep |
+| `solution-architect` | design | blue | Read, Write, Edit, Glob, Grep, WebSearch/WebFetch, context7 |
 | `visual-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep, context7, heroui-pro |
 | `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep, context7 |
 | `backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |

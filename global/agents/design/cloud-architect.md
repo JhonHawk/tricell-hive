@@ -7,7 +7,7 @@ description: >
   Use for "how should we lay out our AWS accounts / network / multi-region DR", migration
   planning, or cost-architecture decisions — NOT for writing the Terraform or pipelines
   (that is devops-engineer).
-tools: Read, Write, Edit, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep, WebSearch, WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
 effort: high
 color: blue

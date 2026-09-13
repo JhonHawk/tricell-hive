@@ -5,7 +5,7 @@ description: >
   Design cloud infrastructure topology BEFORE provisioning: account/landing-zone structure, network and region layout, disaster-recovery strategy (RTO/RPO), cloud migration planning (6Rs), and FinOps cost strategy. Produces an infra spec/ADR that devops-engineer implements. Use for "how should we lay out our AWS accounts / network / multi-region DR", migration planning, or cost-architecture decisions — NOT for writing the Terraform or pipelines (that is devops-engineer).
 model: inherit
 thinking: high
-tools: read, write, edit, find, grep, mem_save, contact_supervisor, hive_hook_readiness
+tools: read, write, edit, find, grep, fetch_content, get_search_content, web_search, source_check, mcp, mem_save, contact_supervisor, hive_hook_readiness, hive_research_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -64,3 +64,13 @@ Read the row matching what you touch; skip anything already loaded this session.
 | When | Read |
 |---|---|
 | Pipeline and environment topology | `~/.agents/skills/language-rules/references/devops-principles.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`
+
+## PI research readiness
+
+Before external research, call `hive_research_readiness` with profile `web`. It inspects this agent's active tools and reports `available`, `missing`, and `ready`. Treat a missing research tool as informational: continue local tasks, but do not pretend an unavailable tool or provider is ready.
