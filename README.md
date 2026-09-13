@@ -107,7 +107,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (every harness)
 │   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
 ├── agents/                          # Optimized agents by role
-│   ├── design/                      # blue    — cloud-architect, sdd-design, visual-designer
+│   ├── design/                      # blue    — cloud-architect, sdd-design, solution-architect, visual-designer
 │   ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
 │   ├── review/                      # cyan    — review-code, sdd-explore, review-refuter, sdd-product-critic, review-security, sdd-spec-reviewer, review-ux
 │   ├── quality/                     # yellow  — performance, prompt, secrets, state-fetcher, test, workspace-custodian
@@ -139,12 +139,13 @@ _support/                            # Workspace material, not deployed
 └── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
-## Agents (24 agents)
+## Agents (25 agents)
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
 | `cloud-architect` | design | blue | Read, Write, Edit, Glob, Grep |
 | `sdd-design` | design | blue | Read, Write, Edit, Glob, Grep |
+| `solution-architect` | design | blue | Read, Write, Edit, Glob, Grep |
 | `visual-designer` | design | blue | Read, Write, Edit, Bash, Glob, Grep, context7, heroui-pro |
 | `angular-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep, context7 |
 | `backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
