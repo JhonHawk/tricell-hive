@@ -1,6 +1,6 @@
 # Hive Control Plane
 
-Status: Parked (2026-09-13)
+Status: Rejected (2026-09-13)
 
 Date: 2026-08-26
 
@@ -9,10 +9,11 @@ is a design proposal, not an implementation record and not an approval to change
 Hive. It was parked on 2026-08-31: the 2026-08-26 measurement found the cost it
 targets (re-deriving lifecycle state from conversation) near zero against a
 fixed rule load of ~27,200 tokens per session. A re-measurement over a fresh
-corpus started on 2026-09-13; its verdict is recorded in
-`_support/archive/audits/2026-09-13-hive-control-remeasurement.md`. Until that
-verdict says proceed, no implementation, deployment, or global installation is
-authorized.
+corpus on 2026-09-13 (38 sessions, 20 resumes, 0 compactions, 14 reconstruction
+calls = 1.1% of the fixed rule load) rejected the premise; the verdict and the
+condition that would reopen it are recorded in
+`_support/archive/audits/2026-09-13-hive-control-remeasurement.md`. No
+implementation, deployment, or global installation is authorized.
 
 ## Executive summary
 
