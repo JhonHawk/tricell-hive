@@ -22,7 +22,7 @@ last column. When a mechanism changes upstream, this is where you go to check.
 | Situational rules | 7 files under `global/rules-situational/` | `~/.claude/skills/<router>/references/` | **Not** deployed to `rules/` — reachable only by invoking a router skill | (no upstream mechanism; a repo convention — see below) | — |
 | Skills | 16 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
 | Agents | 25 subagents | `~/.claude/agents/**` | Discovered recursively; `tools:` is the enforcing allowlist, `model:` defaults to `inherit` | [sub-agents#supported-frontmatter-fields](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields) | 2026-08-20 |
-| Hooks | 7 hook dirs (`*.sh` + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
+| Hooks | 8 hook dirs (`*.sh` + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
 | Settings precedence | merged blocks only | `~/.claude/settings.json` | Managed › CLI args › Local › Project › User | [settings#settings-precedence](https://code.claude.com/docs/en/settings#settings-precedence) | 2026-08-20 |
 
 **There is no `/docs/en/rules` page.** The entire `.claude/rules/` mechanism — the `paths:`
@@ -33,7 +33,7 @@ is a 404; do not write one.
 
 Nothing. Claude Code is the superset: it is the only harness that receives all 31 rules
 with working conditional loading, all 16 skills with their native gates, all 25 agents with
-enforced tool allowlists, and all 7 hooks. Every constraint documented in the other three
+enforced tool allowlists, and all 8 hooks. Every constraint documented in the other three
 READMEs is a subtraction from this baseline.
 
 The one asymmetry is internal, not a harness limit: `global/rules-situational/` is

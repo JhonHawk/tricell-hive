@@ -59,6 +59,7 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 | Tracker | linear (team FAC) / jira (project ATSCL) / none |
 | Tracker access | mcp / cli (acli) / api (env <TOKEN_VAR>) / manual — ordered by preference when several work |
 | Deferred marker | linear label "deferred" / jira label / tasks.md `[deferred]` / none — how paused-by-decision work is marked |
+| Executor dispatch | free (default) / plan-required — `plan-required` makes the `executor-dispatch-gate` hook DENY dispatching an executor agent while no plan holds implementation authority; `free` only advises |
 | Release notes | OPTIONAL — overrides for `release-notes-template.md` (canal: correo / whatsapp / slack · idioma · tono); absent = template defaults |
 | Last updated | YYYY-MM-DD (<what changed>) |
 

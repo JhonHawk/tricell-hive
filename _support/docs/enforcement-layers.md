@@ -22,7 +22,13 @@ is not, and a gate described loosely invites an agent to argue past it.
   `production`/`qa`, and `git push` targeting them or bare-pushed from them — the
   deterministic backstop of the promotion confirm-gate; `master`/`main` stay out: trunk-
   direct is a declared workflow, prompt-convention by design) and the **reviewer guard**
-  (`reviewer-guard.sh`, agent-scoped via frontmatter `hooks:` — see below).
+  (`reviewer-guard.sh`, agent-scoped via frontmatter `hooks:` — see below); since 2026-09-14
+  the **executor-dispatch gate** (`executor-dispatch-gate.sh`, `PreToolUse` on `Agent`): in a
+  flow workspace with no plan holding implementation authority, dispatching a code-writing
+  agent gets an in-the-act advisory — deterministic trigger, prompt-convention effect — and a
+  DENY when the ledger declares `Executor dispatch: plan-required`. It backs
+  `CLAUDE.md > Communication > Mid-discussion agreement is not implementation authorization`,
+  which failed as pure prompt-convention on 2026-09-13 (a git-mode answer read as approval).
 - **Confirm-gated:** production deploys and protected-branch merges, force-push and history
   rewrites, destructive operations (`CLAUDE.md > Destructive Operations`), writing a real
   secret to a file (allowed only on explicit user request after a risk confirmation —

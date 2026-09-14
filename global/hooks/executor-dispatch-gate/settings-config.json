@@ -1,0 +1,17 @@
+{
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). PreToolUse on the subagent tool (`Agent` today; `Task` is the former name, kept so an older build still matches). The script gates on a flow-workspace ledger (`_support/PROJECT.md` above cwd) AND an executor subagent (roster whose `tools:` carries Write/Edit); with no plan holding implementation authority (plan.py inspect → can_implement) it emits an ADVISORY via additionalContext once per session and plan-state signature — or a DENY (exit 2 + decision JSON) when the ledger declares `| Executor dispatch | plan-required |`. Any internal error exits 0 silently. Policy: CLAUDE.md > Communication (mid-discussion agreement is not implementation authorization), flow-plan's approval contract.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/executor-dispatch-gate.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
