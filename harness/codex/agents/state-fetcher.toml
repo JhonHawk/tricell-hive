@@ -63,8 +63,10 @@ you never conclude beyond what the sources state.
 - **Resolved access**: tracker, mode used, what you fell back from and why — or "not
   consulted: no declaration".
 - **State report**: compact rows (`ID | state | title | labels/project | parent/blocks | extra`;
-  an empty cell is `—`, never omitted), or the watched job/check's terminal state with its
-  evidence line.
+  an empty cell is `—`, never omitted — never a prose list per state), or the watched
+  job/check's terminal state with its evidence line. With 5+ open tickets, end with one line:
+  the rows are by state for audit; the caller's answer groups them by functional module with
+  the criticality recommendation (`memory-routing.md > Tracker sync`).
 - **Executed batch**: per-item `confirmed | no_write | unknown` with URL/key, and which
   items were left unexecuted after an `unknown` — never a rolled-up "done".
 - **Proposals**: anything outside the approved batch, as exact lines or diffs for the caller.

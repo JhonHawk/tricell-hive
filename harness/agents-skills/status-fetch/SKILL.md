@@ -59,10 +59,11 @@ refilter — board call after board call until something looks right — never t
 fan-out. A truncated response (page cap, `hasNextPage`) is declared as truncated: a page's
 count is never reported as a total.
 
-**The tracker is reported as a table or list — one row per ticket, carrying its ID, its
-labels/project and its parent/blocks relations — never as a prose count.** An unlisted number
-cannot be audited, and it is the form that has silently come back wrong; the labels and
-relations are what let the main thread group the backlog by module and keep an initiative's
+**The tracker is reported as a table — one row per ticket:
+`ID | state | title | labels/project | parent/blocks`, `—` in an empty cell, never omitted —
+never as a prose count and never as a prose list per state.** An unlisted number cannot be
+audited, and a per-state list without labels is the form that has come back wrong: the labels
+and relations are what let the main thread group the backlog by module and keep an initiative's
 phases together without inferring from titles.
 
 ## 3 — Report facts, not conclusions
@@ -84,6 +85,10 @@ its last success.
   unreadable repo: name it. Silence about a gap reports it as absence.
 - **No recommendations, no priorities, no next steps.** Deciding what work exists and what
   to do about it belongs to the main thread. Ranking tickets here is out of scope.
+- **With 5+ open tickets, the report ends with one line to the caller:** `Tracker rows above
+  are by state for audit; the answer to the user groups them by functional module, with the
+  criticality recommendation (memory-routing.md > Tracker sync).` The main thread sees only
+  this report, and its shape is what it has copied.
 - Distinguish a **record** (ledger, tracker) from **live state** (git, deploys); on
   conflict, live state wins and the record is what needs correcting.
 
