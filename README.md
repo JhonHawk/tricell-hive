@@ -216,6 +216,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `flow-report` | global | Renders substantial output as self-contained HTML in six archetypes — document, paper, explainer, review, comparison, deck (auto-invoked) |
 | `/memory-sync` | global | `audit` \| `apply` — reconcile Engram + native memory vs ground truth |
 | `/monorepo-cutover` | global | `intake` \| `execute` \| `verify` — migrate a multi-repo product to a monorepo (or bootstrap one greenfield); stack fork at intake (JS/TS lane fully specified; polyglot → orchestrator decision), candidate tracking via Engram upsert |
+| `/workspace-archive` | global | `run` \| `normalize` — move `verified` sessions older than 15 days to `sessions/archived/` (git mv + index links); on request only, deterministic script + one confirmation |
 | `/status-fetch` | global | Live external state (git, declared tracker, PRs, deploys) as compact facts — runs in a forked `state-fetcher` so the sweep stays out of the session |
 | `/starlight-docs-site` | global | `scaffold` \| `page` \| `audit` — Astro Starlight docs sites |
 | `language-rules` | global | Router: full language rules for Codex; quality depth rows for Codex + opencode (references injected by `build.py`) |

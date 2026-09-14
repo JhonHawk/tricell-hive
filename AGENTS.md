@@ -196,6 +196,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
 │   ├── monorepo-cutover/          # /monorepo-cutover — cutover playbook (multi-repo → monorepo)
+│   ├── workspace-archive/         # /workspace-archive — run | normalize: archive verified sessions > 15 days to sessions/archived/ (on request)
 │   ├── status-fetch/              # Fetches live external state in an isolated subagent
 │   ├── task-routing/              # Router (model-invoked): who gets the task + plan gap analysis + git mechanics (branching, commits, PRs, promotion, close)
 │   ├── language-rules/            # Router (model-invoked): language rules for Codex/Grok — references injected by build.py

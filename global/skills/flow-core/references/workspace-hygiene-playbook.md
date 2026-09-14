@@ -5,7 +5,8 @@ scratch, broken ledger pointers, specs-repo nonconformance. The `workspace-custo
 agent performs the audit and proposes; it never executes. Risk judgment for what may be
 applied automatically vs confirmed: `judgment-criteria.md`. A pre-pack project entering
 the workspace convention for the first time uses `migration-playbook.md` instead — this
-file is the lighter recurring pass.
+file is the lighter recurring pass. Moving closed sessions out of `sessions/` is not this
+audit: that is the deterministic `/workspace-archive` skill, run on request.
 
 
 

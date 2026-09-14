@@ -40,6 +40,7 @@ reads `product/`; a developer plans from `epics/`.
 └── sessions/                 # Execution journal (by time) — full convention below
     ├── README.md             # Sessions index (versioned, co-located): slug · date · state · implements
     ├── previously/           # reset quarantine (loose/legacy artifacts swept in at bootstrap)
+    ├── archived/             # sessions closed > 15 days ago, moved here by /workspace-archive (same folder name)
     └── YYYY-MM-DD-<slug>/     # <slug>-plan.md (declares `Implements:`), <slug>-findings.md, optional analysis/ reports/
 ```
 
@@ -268,6 +269,11 @@ slug as the origin — `gap-resolution.md > Divergence Between Sources`.
 
 **Lifecycle** (recorded in the sessions index, never the ledger): `in-progress` (active
 `<slug>-plan.md`) → `concluded` (work done, promotion pending — the workspace-hygiene-playbook
-flags it) → `finalized` (durable outputs promoted, raw pruned). A concluded/finalized session is
+flags it) → `finalized` (durable outputs promoted, raw pruned, and the folder moved to
+`sessions/archived/` by `/workspace-archive` once its `Status: verified` is older than 15 days —
+never a `planned`/`building`/`built` plan, whatever its age). `sessions/` therefore holds only
+active and recently closed work; a back-reference by slug resolves in `sessions/` first, then in
+`sessions/archived/`, and the index row keeps its place with the link rewritten. A
+concluded/finalized session is
 immutable — a later correction supersedes with a new linked record, never an in-place
 edit.

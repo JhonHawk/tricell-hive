@@ -45,7 +45,7 @@ content integrity, not consent provenance.
 
 **Raw stays out of git.** Logs, dumps, build output, raw screenshots, video → `_support/workspace|evidence/YYYY-MM-DD-<slug>/` (gitignored), under the SAME dated slug; the versioned session references them by path.
 
-**Naming & lifecycle:** folders `YYYY-MM-DD-<kebab-slug>`; session top-level files carry the SLUG, not the date (`<slug>-plan.md`, `<slug>-findings.md` — self-identifying in basename-only surfaces). Structure is proportional (no fixed skeleton); a multi-session effort groups under an **initiative** folder. Lifecycle `in-progress → concluded → finalized`, tracked in the sessions index. **Full convention (naming rationale, initiative mechanics, back-references):** `flow-core/references/specs-structure.md > Session & initiative conventions`.
+**Naming & lifecycle:** folders `YYYY-MM-DD-<kebab-slug>`; session top-level files carry the SLUG, not the date (`<slug>-plan.md`, `<slug>-findings.md` — self-identifying in basename-only surfaces). Structure is proportional (no fixed skeleton); a multi-session effort groups under an **initiative** folder. Lifecycle `in-progress → concluded → finalized`, tracked in the sessions index; `finalized` sessions older than 15 days move to `sessions/archived/` on request via `/workspace-archive` (never by age alone for a non-terminal plan). **Full convention (naming rationale, initiative mechanics, back-references):** `flow-core/references/specs-structure.md > Session & initiative conventions`.
 
 **Out of scope:** cross-cutting permanent docs (READMEs, conventions, guidelines) are not session artifacts; a session finding may be *promoted* into `conventions/` — the convention lives in the intention layer.
 
