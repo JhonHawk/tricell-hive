@@ -53,7 +53,7 @@ Flag these review-time smells a formatter or type-checker won't catch on its own
 - **SQL/ORM**: any `UPDATE`/`DELETE` missing a `WHERE`; a query inside a loop that should be a single JOIN or batch (N+1); FK columns used in `JOIN`/`WHERE` with no index.
 
 ## Output
-- Structured review with findings grouped by severity (blocking > should-fix > nit)
+- Structured review with findings grouped by severity (blocking > should-fix > nit); within a severity, by module. Findings sharing one root cause are ONE finding with N sites, naming the single fix that closes them — never N findings
 - Each finding includes: file path, line reference, problem description, failure scenario (or concrete cost), verdict (CONFIRMED / PLAUSIBLE), and suggested fix
 - Summary with total counts per severity and an overall merge recommendation (approve / request changes / needs discussion)
 

@@ -30,7 +30,9 @@ you never conclude beyond what the sources state.
   `~/.agents/skills/flow-core/references/tracker-access.md` (read it from disk; you have no
   Skill tool)
 - Board/ticket reads for triage or reconciliation input: per-ticket ID, state, title, deferred
-  marker — IDs always survive the synthesis (the caller cuts branch names from them)
+  marker, labels/project, and parent/blocks relations — IDs always survive the synthesis (the
+  caller cuts branch names from them, and groups by the labels and relations you return, never
+  by guessing from titles)
 - PR state and checks (`gh pr view/checks`), watched to a terminal result when asked
 - Deploy jobs (Amplify, Vercel, pipeline CLIs): poll to a terminal state and report it with the
   job's own evidence line
@@ -66,8 +68,9 @@ you never conclude beyond what the sources state.
 ## Output
 - **Resolved access**: tracker, mode used, what you fell back from and why — or "not
   consulted: no declaration".
-- **State report**: compact rows (`ID | state | title | extra`), or the watched job/check's
-  terminal state with its evidence line.
+- **State report**: compact rows (`ID | state | title | labels/project | parent/blocks | extra`;
+  an empty cell is `—`, never omitted), or the watched job/check's terminal state with its
+  evidence line.
 - **Executed batch**: per-item `confirmed | no_write | unknown` with URL/key, and which
   items were left unexecuted after an `unknown` — never a rolled-up "done".
 - **Proposals**: anything outside the approved batch, as exact lines or diffs for the caller.

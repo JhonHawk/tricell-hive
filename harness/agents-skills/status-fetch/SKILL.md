@@ -59,9 +59,11 @@ refilter — board call after board call until something looks right — never t
 fan-out. A truncated response (page cap, `hasNextPage`) is declared as truncated: a page's
 count is never reported as a total.
 
-**The tracker is reported as a table or list — one row per ticket, carrying its ID — never as
-a prose count.** An unlisted number cannot be audited, and it is the form that has silently
-come back wrong.
+**The tracker is reported as a table or list — one row per ticket, carrying its ID, its
+labels/project and its parent/blocks relations — never as a prose count.** An unlisted number
+cannot be audited, and it is the form that has silently come back wrong; the labels and
+relations are what let the main thread group the backlog by module and keep an initiative's
+phases together without inferring from titles.
 
 ## 3 — Report facts, not conclusions
 
