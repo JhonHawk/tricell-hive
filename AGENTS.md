@@ -49,7 +49,7 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 ## Rules
 - Never run `/deploy-global` or copy files to `~/.claude/` unless the user explicitly asks for deployment.
 - Do not treat `harness/AGENTS.md` as part of `/deploy-global`; it belongs to the generic harness track.
-- `harness/agents-skills/`, `harness/codex/agents/`, and `harness/opencode/agents/` are GENERATED trees. Never hand-edit them; edit the canonical source under `global/` and run `python3 harness/build.py`, committing the regenerated output.
+- `harness/agents-skills/`, `harness/codex/agents/`, and `harness/opencode/agents/` are GENERATED trees. Never hand-edit them; edit the canonical source under `global/`. The versioned `.githooks/pre-commit` regenerates and stages every generated output (and the hive profile) whenever a canonical source is staged — enable it once per clone with `git config core.hooksPath .githooks`; without it, run `python3 harness/build.py` and commit the output by hand.
 - Do not alias or symlink `AGENTS.md` to `harness/AGENTS.md`; they serve different scopes.
 - When changing routing or domains, check `global/rules-situational/agent-routing.md` (router: `task-routing`).
 - When a rule or convention is grounded in external authority (standards, canonical books, official docs), record the source in `_support/docs/methodology-bibliography.md` and consult it before re-researching.
@@ -65,15 +65,15 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 - **Unique rules only.** If the global CLAUDE.md already covers it (e.g., "no `any`", "thin controllers"), don't repeat it.
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
-- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, `rg`, dependency audits), plus WebSearch/WebFetch and the context7 MCP tools for external verification (version-sensitive APIs, CVEs/advisories, ecosystem claims — read-only in effect) — never Write/Edit. They also carry `permissionMode: plan`, but **the `tools:` allowlist is what actually enforces read-only**: a parent session in auto mode (the default on Pro/Max/Team) makes a subagent inherit auto mode and ignore its frontmatter `permissionMode` entirely (`_support/docs/enforcement-layers.md`). Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (finding-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (ui-reviewer and in-vivo-qa-tester drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
-- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (spec-quality-reviewer, ui-reviewer, in-vivo-qa-tester) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
+- **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, `rg`, dependency audits), plus WebSearch/WebFetch and the context7 MCP tools for external verification (version-sensitive APIs, CVEs/advisories, ecosystem claims — read-only in effect) — never Write/Edit. They also carry `permissionMode: plan`, but **the `tools:` allowlist is what actually enforces read-only**: a parent session in auto mode (the default on Pro/Max/Team) makes a subagent inherit auto mode and ignore its frontmatter `permissionMode` entirely (`_support/docs/enforcement-layers.md`). Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (review-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (review-ux and sdd-verify drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
+- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (sdd-spec-reviewer, review-ux, sdd-verify) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
 - **Calibrate to the floor model, not the ceiling.** Rules and agents must work on the least capable model the user runs day-to-day (as of jul-2026: Sonnet 5 — the executor-tier agents; sessions and top-tier agents run Fable 5, permanent on the plan, with a pinned `opus` tier between). Before cutting a rule as "the model does this by default", verify the *floor* model does it — top-model capability is not a pruning criterion.
 - **Path-scoped rules only load when matching files are touched; do not duplicate them into agents.**
 
 ### Naming Rules
 - 3-50 characters, lowercase letters, numbers, and hyphens only.
 - Must start and end with alphanumeric. No underscores, spaces, or special characters.
-- `code-reviewer` ✅ — `my_agent` ❌ — `ag` ❌ (too short) — `-agent-` ❌ (starts/ends with hyphen)
+- `review-code` ✅ — `my_agent` ❌ — `ag` ❌ (too short) — `-agent-` ❌ (starts/ends with hyphen)
 
 ### Description Best Practices
 - 1-3 sentences for agents with obvious routing (e.g., "backend" tasks go to `backend-developer`).
@@ -88,17 +88,17 @@ description: >
   user: "Design the service boundaries for the new module"
   assistant: "I'll design the contracts and boundaries..."
   <commentary>
-  Invoke system-designer for pre-implementation macro design, not code-level review.
+  Invoke sdd-design for pre-implementation macro design, not code-level review.
   </commentary>
   </example>
 ```
 
 ### Color Assignment by Role
-- **blue** — design, analysis (system-designer)
-- **cyan** — review, research (code-reviewer, security-reviewer)
+- **blue** — design, analysis (sdd-design)
+- **cyan** — review, research (review-code, review-security)
 - **green** — implementation, building (backend-developer, angular-developer, react-developer)
 - **yellow** — validation, quality, testing (test-engineer, prompt-engineer)
-- **magenta** — creative, documentation, content (technical-writer)
+- **magenta** — creative, documentation, content (sdd-spec-writer)
 - **red** — critical operations, security, devops (devops-engineer)
 
 ### What to Eliminate
@@ -115,7 +115,7 @@ When creating, editing, or deleting agents or rules, review and adjust impacted 
 - `global/rules-situational/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk.
 - **Per-harness loading READMEs** (`global/README.md`, `harness/{codex,opencode,grok}/README.md`) — each carries a *What this harness loads* table whose rows cite an official doc URL with a verification date. A change to what a harness receives (a rule gaining `paths:`, a new generated tree, a hook target) updates the affected table; a claim about upstream behavior carries a URL that was fetched, or is marked **undocumented** rather than given a plausible-looking link. Prompt-convention. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
-- Multi-harness layer: after editing any agent, skill, or core section under `global/core-sections/`, run `python3 harness/build.py` and commit the regenerated trees (deploy also runs it and flags a dirty `harness/`); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
+- Multi-harness layer: after editing any agent, skill, or core section under `global/core-sections/`, the pre-commit hook regenerates and stages the trees with the commit (deploy also runs `build.py` and flags a dirty `harness/` — the sign the hook is not enabled in this clone); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
 - **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
 - **Placement in `harness/AGENTS.md`: gate and pointer here, mechanics in the router — never both.** The core is paid in full at the start of every session in every project, so it holds only **safety gates** and **policy whose trigger is an action rather than a file**, plus the one-line pointer to the router that carries the rest. When the same content lives in the core AND in a router reference, the core is paying twice for what the router already delivers — that duplication — not prose length — is what makes the core expensive. **There is no size threshold on the file and none is wanted:** no harness caps it (verified 2026-08-18; bibliography), so `build.py` reports its size and per-session token cost and enforces nothing. Adding to the core: decide the layer first. A rising number is a cue to audit placement, never a reason to reword paragraphs that earned their place.
 - **The two always-on cores are GENERATED from `global/core-sections/`.** `global/CLAUDE.md` (deploys to `~/.claude/`, Claude Code) and `harness/AGENTS.md` (the condensed core Codex and opencode read) are assembled by `harness/build.py` from the section files in `global/core-sections/` (format: its README) — edit a section, rebuild, commit both outputs. The build regenerates a stale output silently and REFUSES a hand-edited one (differs from both the regeneration and HEAD — the edit stays on disk); `python3 harness/build.py --check` runs the parity checks without writing (deploy preflight / pre-commit). A policy stated by both cores CAN live in one shared section (`targets: [claude, agents]`) and four do today; the remaining condensed twins are still per-target section pairs synced by hand — only the delegation thresholds carry their own parity check — so prefer promoting a twin to shared when editing it. AlwaysApply rules under `global/rules/` still deploy only to `~/.claude/`: a new or changed rule that applies to all harnesses is condensed into a core section targeting `agents` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references — `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` is the authoritative skill←rule mapping (do not restate it here; it drifts) — where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
@@ -130,7 +130,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── README.md                      # What Claude Code loads + the official doc backing each mechanism (verified URLs)
 ├── CLAUDE.md                      # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                 # Canonical section files for BOTH always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, flow-plan-capture, session-hygiene-report)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, instructions-audit, post-tool-hub, flow-session-context, flow-context, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)
@@ -179,7 +179,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── memory-routing.md
 │   └── unattended-autonomy-mode.md       # Full delegated-run mechanics (via unattended-delegation)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
-│   ├── adversarial-research/      # /adversarial-research — N independent generators + finding-refuter cross-exam → refuted/weakened/surviving/net-new canon
+│   ├── adversarial-research/      # /adversarial-research — N independent generators + review-refuter cross-exam → refuted/weakened/surviving/net-new canon
 │   ├── agents-md-primary/         # /agents-md-primary — convert projects to AGENTS.md-canonical + CLAUDE.md import
 │   ├── engram-init-workspace/     # /engram-init-workspace — unified .engram/config.json for multi-repo workspaces
 │   │   ├── SKILL.md
@@ -190,7 +190,8 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   │   │                          #   judgment-criteria, ux-rubric, spec-rubric, requirements-rubric + the playbooks:
 │   │   │                          #   bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion
 │   │   └── templates/             # workspace-agents, workspace-claude, sessions-permissions
-│   ├── flow-build/                # /flow-build — execute or resume a captured plan (reconciler + verify gate)
+│   ├── flow-plan/                 # /flow-plan — portable planning, approval and scoped authorization
+│   ├── flow-build/                # /flow-build — execute or resume an authorized plan (reconciler + verify gate)
 │   ├── flow-report/               # Renders substantial output as self-contained HTML
 │   │   └── SKILL.md
 │   ├── memory-sync/               # /memory-sync — audit | apply: reconcile Engram + native memory vs ground truth
@@ -233,6 +234,7 @@ _support/                          # Workspace material (see global/rules/workfl
 │   └── methodology-bibliography.md # Sources backing global/rules conventions (append-only, consult before re-researching)
 ├── spec/                          # Design specs and decision records (e.g., dual-mode git workflow)
 └── workspace/                     # Ephemeral scratch — content is relocated or deleted when work concludes
+.githooks/pre-commit               # Regenerates + stages harness/, global/CLAUDE.md and the hive profile with the commit (enable: git config core.hooksPath .githooks)
 .claude/skills/                    # Project-only skills (NOT deployed to ~/.claude/)
 ├── manage-agents/                 # /manage-agents — validate
 │   └── SKILL.md
@@ -272,7 +274,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 ## Rule Exclusions (this repo)
 
-Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); regenerate with `python3 harness/hive-compile.py . --apply` when `global/rules/` or the classifier move (the `session-hygiene-report` hook advises when it goes stale). Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
+Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); the pre-commit hook refreshes it with any commit that touches `global/rules/` or the classifier (by hand: `python3 harness/hive-compile.py . --apply`). Staleness is content-based — `hive-compile.py --check` compares the profile it would compile today against the block on disk, stamp excluded — so a rules commit that leaves the profile identical is not stale; the `session-hygiene-report` hook delegates its advisory to that check. Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
 
 ## Replicating Global Harness Config
 - Source file: `harness/AGENTS.md` — itself GENERATED from `global/core-sections/`: edit the sections and run `python3 harness/build.py` first, never the output.
@@ -308,7 +310,7 @@ Carried by the compiled hive profile at the end of this file (`hive-profile` blo
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
 
 <!-- hive-profile:start -->
-Hive profile v1 · hive@17b39e6 · 2026-08-26 · class: config-hub
+Hive profile v1 · hive@793086f · 2026-09-12 · class: config-hub
 
 ## Hive Profile
 

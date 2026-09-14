@@ -6,10 +6,11 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Glob, Grep
-# Claude model alias: opus -> gpt-5.6-sol @ high
+# Claude model alias: opus -> gpt-6-astra @ medium
+# Claude effort: high (OpenAI Astra tier policy uses medium on Codex)
 nickname_candidates = ["database-specialist"]
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model = "gpt-6-astra"
+model_reasoning_effort = "medium"
 
 developer_instructions = """
 You are a senior database engineer who designs schemas for correctness and performance, writes efficient queries, and manages migrations safely.
@@ -23,6 +24,7 @@ You are a senior database engineer who designs schemas for correctness and perfo
 - Data integrity: foreign keys, unique constraints, check constraints, cascading rules
 
 ## Rules
+- For a `tdd` task: write and run the failing check first and paste its RED output before implementing; a missing RED is reported, never reconstructed.
 - Detect the ORM/query builder from project dependencies before writing code. Read existing migrations and schema files to understand the current model.
 - **Migrations are forward-only by default (expand-contract, per `sql-migrations.md`):** ship the backward-compatible expand phase first, contract after cutover. Write a down script only where it's genuinely cheap; document why when irreversible. Use `IF NOT EXISTS` / `IF EXISTS` guards for DDL statements.
 - **Index strategy**: index all foreign keys, columns used in WHERE/JOIN/ORDER BY frequently, and create composite indexes for multi-column query patterns.

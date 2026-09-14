@@ -59,8 +59,8 @@ above and the Conventions below point to this block:
   gated; the tracker never sees pre-gate tasks.
 - **TECH.md — after PRODUCT.md, before code.** It cites real code paths, so it cannot be
   written before the foundation exists, and it goes stale loudly (paths stop resolving)
-  rather than silently; it closes the epic's parked technical questions, verified at
-  native plan mode's plan gate (the **technical gate**).
+  rather than silently; it closes the epic's parked technical questions, verified at the
+  `/flow-plan` approval gate (the **technical gate**).
 - **Contracts — top-level in `contracts/`**, never inside the epic folder: linked from the
   epic when a cross-service surface changes (they are the cross-repo source of truth, not
   a per-epic artifact).
@@ -257,7 +257,7 @@ slug-not-date rule governs files, not this container); sub-sessions carry their 
 so a later day nests inside the initiative instead of fragmenting into a sibling folder.
 Each plan part carries its own `Status` (`plan-format.md`); the master plan's part index
 lists them. **One-off work stays a flat session** — promote to an initiative only when it
-grows (the move is the workspace-hygiene-playbook's; native plan-mode writing proposes the
+grows (the move is the workspace-hygiene-playbook's; `/flow-plan` proposes the
 split when scope density warrants it).
 
 **Back-reference (by slug).** A session's `<slug>-plan.md` declares `Implements:` the

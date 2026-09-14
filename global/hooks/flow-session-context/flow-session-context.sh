@@ -65,15 +65,15 @@ if [ "$source_evt" = "compact" ]; then
   # session" assumption is void once the context was compacted away.
   if [ -n "$session_id" ]; then
     rm -f "${TMPDIR:-/tmp}/claude-flow-context-phase-${session_id}" \
-          "${TMPDIR:-/tmp}/claude-flow-context-plan-${session_id}" 2>/dev/null || true
+          "${TMPDIR:-/tmp}/claude-flow-context-planning-${session_id}" 2>/dev/null || true
   fi
 
   emit '<flow-process-protocol source="post-compaction">
 Flow workspace — context was compacted; the process map is re-injected because the pre-compaction copy may not have survived. Same rules, condensed. Never force ceremony onto a small change:
 - IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer (quality/critical-thinking.md).
 - SPEC: a decided idea needs formalization -> flow-core/references/spec-writing-playbook.md. Its business gate is mandatory BEFORE delivery is derived.
-- PLAN: planning intent ALWAYS uses the harness native plan mechanism; the plan-capture hook adopts the approved plan. ONE plan per unit of work (flow-core/references/plan-format.md).
-- EXECUTE: a captured plan with pending tasks -> offer /flow-build ONCE, naming the direct route as the alternative; never invoke it uninvited.
+- PLAN: planning intent uses the Hive portable /flow-plan command. ONE plan per unit of work (flow-core/references/plan-format.md); native harness planning remains optional and never grants Hive authorization.
+- EXECUTE: an approved plan with pending tasks -> offer /flow-build ONCE, naming the direct route as the alternative; never invoke it uninvited.
 Pending-plan state re-emits on the next prompt (flow-context markers were cleared). Verify any Status against git before trusting it.
 </flow-process-protocol>'
 fi
@@ -85,8 +85,8 @@ if [ -n "$ledger" ]; then
 Flow workspace — the process knowledge for this project lives in flow-core references, not in commands. Work the matching playbook conversationally when intent matches; never force ceremony onto a small change:
 - IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer with one light decision note (quality/critical-thinking.md). Contested, load-bearing questions -> offer /adversarial-research.
 - SPEC: a decided idea needs formalization -> flow-core/references/spec-writing-playbook.md (its business gate is mandatory before delivery is derived).
-- PLAN: planning intent ALWAYS uses the harness'"'"'s native plan mechanism; the plan-capture hook adopts the approved plan — never a parallel planning ceremony. ONE plan per unit of work. Format and Preflight: flow-core/references/plan-format.md.
-- EXECUTE: a captured plan with pending tasks exists -> offer /flow-build to execute or resume it, ONCE per session, with the direct route named as the alternative; a no is sticky for the session. A hand-run still owes the plan'"'"'s per-task gates.
+- PLAN: planning intent uses Hive'"'"'s portable /flow-plan command — native harness planning is optional and never grants Hive authorization. ONE plan per unit of work. Format and Preflight: flow-core/references/plan-format.md.
+- EXECUTE: an approved plan with pending tasks exists -> offer /flow-build to execute or resume it, ONCE per session, with the direct route named as the alternative; a no is sticky for the session. A hand-run still owes the plan'"'"'s per-task gates.
 - After a deploy/promotion (git conventions own the flow): offer the in-vivo QA walk (flow-core/references/promotion-playbook.md). Epic close / tech-debt baseline -> flow-core/references/audit-playbook.md.
 - Greenfield bootstrap -> flow-core/references/bootstrap-playbook.md. Pre-pack project entering the convention -> flow-core/references/migration-playbook.md. Workspace health concerns -> flow-core/references/workspace-hygiene-playbook.md (dispatch workspace-custodian).
 </flow-process-protocol>'

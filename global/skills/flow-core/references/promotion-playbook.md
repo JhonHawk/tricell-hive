@@ -50,7 +50,7 @@ from `git-mechanics.md > Branching` and say so.
      default — most client projects have a human QA who owns the QA environment — so do
      NOT run it automatically and do NOT block the close on it. Never let it pass
      silently: at close, state that functional QA is pending and OFFER the
-     **in-vivo-qa-tester** agent against the QA URLs (authenticated real-user session
+     **sdd-verify** agent against the QA URLs (authenticated real-user session
      walking the promoted ACs + the negative catalog, versioned report per
      `test-report-template.md`). The user decides — human QA covers it, or dispatch the
      agent.

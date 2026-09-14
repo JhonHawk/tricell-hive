@@ -12,7 +12,7 @@ The idea/brief arrives in **any** form: raw notes, a conversation, a client emai
 document. This stage *produces* the requirements doc from that input — it never demands a
 written one as a prerequisite (that demand is exactly what got the old step bypassed).
 
-1. Dispatch **requirement-analyst** per the handoff protocol
+1. Dispatch **sdd-spec-reviewer** in intake mode (rubric: `requirements-rubric.md`) per the handoff protocol
    (`~/.claude/skills/flow-core/references/handoff-protocol.md`) with: the raw input,
    the rubric path (`${CLAUDE_SKILL_DIR}/references/requirements-rubric.md` — after deploy,
    `~/.claude/skills/flow-core/references/requirements-rubric.md`), whatever
@@ -106,7 +106,7 @@ project collapses the repo dialogue into one derivation + one dispatch.
 3. **Parallel dispatch** — per the handoff protocol
    (`~/.claude/skills/flow-core/references/handoff-protocol.md`), in parallel where
    independent:
-   - **system-designer** — base OpenAPI contracts into `<project>-specs/contracts/`, derived
+   - **sdd-design** — base OpenAPI contracts into `<project>-specs/contracts/`, derived
      from the requirements/reviewed epics, honoring the naming table's code-layer conventions
      (API JSON casing; identifiers English). Every implementation agent later builds against
      these exactly.

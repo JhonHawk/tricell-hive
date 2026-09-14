@@ -8,7 +8,7 @@ asumir que un subagente "ya sabe" el contexto de la conversación.
 
 ### 1. Subagente efímero (el default)
 
-Un `Agent` estándar (Explore, un especialista de dominio, finding-refuter) **nace sin
+Un `Agent` estándar (Explore, un especialista de dominio, review-refuter) **nace sin
 memoria alguna de la conversación**. Su única fuente de verdad es el prompt de invocación:
 lo que no está escrito ahí, para él no existe. Vive una misión, entrega su informe final y
 se disuelve — solo ese informe regresa al hilo principal.
@@ -65,5 +65,5 @@ Subagents vs Agent Teams` — esta guía no la duplica. La forma corta:
 ---
 
 *Origen: research adversarial 2026-07-17 — dos propuestas independientes examinadas por
-`finding-refuter`; las tres figuras emergieron como corrección a ambas. Artefacto completo:
+`review-refuter`; las tres figuras emergieron como corrección a ambas. Artefacto completo:
 `_support/archive/docs/2026-07-17-sistema-magia-isekai.html`.*

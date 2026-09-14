@@ -37,8 +37,8 @@ last column. Companion files: `global/README.md` (Claude Code),
 | Always-on core | `harness/AGENTS.md` (condensed cross-harness core) | `~/.config/opencode/AGENTS.md` | Global rules file, applied to every session | [opencode.ai/docs/rules](https://opencode.ai/docs/rules) — *"You can also have global rules in a `~/.config/opencode/AGENTS.md` file. This gets applied across all opencode sessions."* | 2026-08-20 |
 | Glob-scoped rules | 18 rules, `paths:` rewritten to `globs:` + `match: any` | `~/.config/opencode/rules/` | Loaded conditionally by touched-file glob via the **`opencode-rules` plugin** (pinned 0.6.4) | [github.com/frap129/opencode-rules](https://github.com/frap129/opencode-rules) — *"`globs` (optional): Array of glob patterns for file-based matching"* | 2026-08-20 |
 | Skills | 16 skills with injected `references/` | `~/.agents/skills/` | Agent-compatible global skill folder | [opencode.ai/docs/skills](https://opencode.ai/docs/skills) — *"Global agent-compatible: `~/.agents/skills/<name>/SKILL.md`"* | 2026-08-20 |
-| Commands | 8 wrappers, one per user-invoked skill | `~/.config/opencode/commands/` | Global command folder | [opencode.ai/docs/commands](https://opencode.ai/docs/commands) — *"Global: ~/.config/opencode/commands/"* | 2026-08-20 |
-| Agents | 25 generated `.md` | `~/.config/opencode/agents/` | Global agent folder | [opencode.ai/docs/agents](https://opencode.ai/docs/agents) — *"Global: ~/.config/opencode/agents/"* | 2026-08-20 |
+| Commands | 9 wrappers, one per user-invoked skill | `~/.config/opencode/commands/` | Global command folder | [opencode.ai/docs/commands](https://opencode.ai/docs/commands) — *"Global: ~/.config/opencode/commands/"* | 2026-08-20 |
+| Agents | 24 generated `.md` | `~/.config/opencode/agents/` | Global agent folder | [opencode.ai/docs/agents](https://opencode.ai/docs/agents) — *"Global: ~/.config/opencode/agents/"* | 2026-08-20 |
 | Plugin | `flow-session-context.ts` | `~/.config/opencode/plugins/` | Global plugin folder | [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins) — *"`~/.config/opencode/plugins/` - Global plugins"* | 2026-08-20 |
 | Permissions | `permission-config.json` | `permission.*` in `~/.config/opencode/opencode.json` | Per-tool permission keys, wildcard-overridable | [opencode.ai/docs/permissions](https://opencode.ai/docs/permissions) | 2026-08-20 |
 
@@ -105,7 +105,7 @@ that migration arriving. Until it is decided, what actually reaches an opencode 
 
 ```bash
 ls ~/.config/opencode/rules/   | wc -l   # expect 18
-ls ~/.config/opencode/agents/  | wc -l   # expect 25
+ls ~/.config/opencode/agents/  | wc -l   # expect 24
 ls ~/.config/opencode/commands/| wc -l   # expect 8
 jq '.permission' ~/.config/opencode/opencode.json
 ```
@@ -123,3 +123,13 @@ adapter edits; only a renamed agent or a new skill requires touching this folder
 as a `` !`echo ~/…` `` shell injection, so opencode expands it to an absolute path at
 prompt-build time. The Read tool does not expand tilde, and a model that passes the
 literal `~` gets a failed read plus a recovery detour.
+
+## Hive planning contract
+
+`flow-plan` and `flow-build` use the shared plan artifact and read-only validator. Approval,
+action/target scope and execution evidence travel with the plan; entering or leaving native
+plan mode grants no Hive authority. During drafting, the parent's no-implementation boundary
+is a prompt convention, not a universal write sandbox. `Session: no` retains conversation-only
+operation without durable validation or cross-harness resume guarantees.
+
+Source: `global/skills/flow-core/references/plan-format.md` (Hive convention, 2026-09-10).

@@ -101,26 +101,28 @@ with its output, and anything you couldn't complete with the reason.
 ## Phase handoff — the research → write → build → verify chain
 
 Everything above governs **agent dispatch** (skill → agent). The dev trinity
-(research → native plan mode, captured by the plan-capture hook → `flow-build` → its
-`verify` gate) also hands off **phase → phase**, and its carrier is an **artifact**, not
+(research → `/flow-plan` → `flow-build` → its `verify` gate) also hands off **phase → phase**,
+and its carrier is an **artifact**, not
 the ledger's `## Current handoff`.
 This matters because a phase may run on a *different harness* than the one before it: the
 carrier has to be a durable file any harness reads cold, not session state.
 
 | Transition | Carrier (what the next phase reads) | What the consumer does |
 |---|---|---|
-| research → write | `<slug>-findings.md` | `write` turns the chosen approach + gaps into the executable plan |
-| write → build | `<slug>-plan.md` (`plan-format.md`) | `build` reconciles `Status` + git and executes the pending tasks |
-| build → verify | `Status: built` + git (the landed task commits) | the in-vivo/review gate walks the `in-vivo: yes` tasks |
+| research → write | `<slug>-findings.md` — `sdd-explore` (`approaches` / `evidence`) returns the report; the orchestrator writes the file on an explicit signal | `/flow-plan` turns the chosen approach + gaps into the executable plan |
+| write → build | `<slug>-plan.md` (`plan-format.md`) | `build` reconciles the frozen contract, authorization, execution evidence and observed workspace |
+| build → verify | `Status: built` + task evidence | the in-vivo/review gate walks the `in-vivo: yes` tasks |
 | verify → close | `Status: verified` + the versioned in-vivo report | the ledger CLOSE records the outcome and seals back-references |
 
 - **The plan is the cross-harness carrier.** Unlike the ledger handoff (consumed by the same
   orchestrator at the next phase), `plan.md` is consumed by whoever runs `flow-build` — which
   may be a cheaper model on another harness. So it obeys `plan-format.md`: self-contained,
   harness-neutral, state-bearing.
-- **Status advances forward only, and is verified against git.** No phase trusts the header
-  alone — `built` is believed because the task commits are in the log, `verified` because the
-  report exists. A header that contradicts git is stale; git wins (`memory-routing.md`).
+- **Status advances forward only, and is verified against observed evidence.** No phase trusts
+  the header alone — `built` requires every task's expected evidence, which may be a verified
+  working-tree diff under `hold`; `verified` requires the versioned report. A header that
+  contradicts the contract or observed workspace is stale; surface the conflict instead of
+  guessing (`memory-routing.md`).
 - **The ledger still closes each phase.** The artifact chain carries the *work*; the ledger's
   `## Current handoff` still carries the *coordination* note (paths produced, next phase
   suggested) per the flow contract. The two are complementary — artifact for the executor,

@@ -56,7 +56,7 @@ than compat.
   `model`, `readonly`, `is_background` — no `tools`/`disallowedTools`. The seven cyan
   reviewers, whose read-only is *enforced* by the `tools:` allowlist, arrive unconstrained;
   `readonly: true` is the only lever and it is wrong for agents that must run commands
-  (`in-vivo-qa-tester` drives `agent-browser` over Bash). Their never-mutate prompt clause is
+  (`sdd-verify` drives `agent-browser` over Bash). Their never-mutate prompt clause is
   what holds, behaviorally.
 - **`InstructionsLoaded`.** The only hive hook with no Cursor event; the other 7 map. Purely
   observational, so nothing operative is lost.
@@ -94,3 +94,13 @@ sees, which is a model claim, not a resolved manifest. Weigh findings accordingl
 **Name collision:** the installer creates BOTH `cursor-agent` and `agent` in `~/.local/bin`,
 and `agent` collides with Grok's own (`~/.grok/bin/agent`), which wins on PATH order here.
 Always invoke `cursor-agent`.
+
+## Hive planning contract
+
+`flow-plan` and `flow-build` use the shared plan artifact and read-only validator. Approval,
+action/target scope and execution evidence travel with the plan; entering or leaving native
+plan mode grants no Hive authority. During drafting, the parent's no-implementation boundary
+is a prompt convention, not a universal write sandbox. `Session: no` retains conversation-only
+operation without durable validation or cross-harness resume guarantees.
+
+Source: `global/skills/flow-core/references/plan-format.md` (Hive convention, 2026-09-10).

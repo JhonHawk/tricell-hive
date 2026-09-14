@@ -4,6 +4,13 @@
 
 **Status:** accepted (2026-06-22)
 
+**Partial supersession — 2026-09-10:** the recommendation-only test-first decision below
+is replaced by the approved TDD workflow plan (historical evidence omitted from public history).
+Observed TDD is required for automatically testable behavior; outcome verification and
+anti-gaming controls remain. The historical rationale below is retained as written, not as
+current policy. Its TDAD figure should read a regression rate **of 9.94%**, not an increase
+of 9.94%; the limited benchmark does not establish that TDD is generally harmful.
+
 **Scope:** `global/rules/quality/{testing,security,critical-thinking,development-principles}.md`, `global/CLAUDE.md`, `global/rules/workflow/agent-routing.md`, the flow skills that referenced maturity tiers, and the condensed cross-harness mirror `harness/AGENTS.md`.
 
 ---

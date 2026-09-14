@@ -86,7 +86,7 @@ def main():
     count = 0
     for skill_dir in sorted(p for p in src.iterdir() if p.is_dir()):
         dst = out / skill_dir.name
-        shutil.copytree(skill_dir, dst)
+        shutil.copytree(skill_dir, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         skill_md = dst / "SKILL.md"
         if skill_md.exists():
             source_text = skill_md.read_text(encoding="utf-8")

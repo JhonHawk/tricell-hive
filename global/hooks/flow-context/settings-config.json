@@ -1,5 +1,5 @@
 {
-  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). UserPromptSubmit with no matcher; the script gates on a flow-workspace ledger, then runs two independent sections: a phase section (once per session, re-firing when the ledger mtime changes) and a plan section (permission_mode == \"plan\", once per session). Advisory only — never blocks.",
+  "_comment": "/deploy-global merges this block into ~/.claude/settings.json idempotently (additive upsert by command — see deploy-global step 13). UserPromptSubmit with no matcher; the script gates on a flow-workspace ledger, then runs two independent sections: a phase section (once per session, re-firing when the ledger mtime changes) and a portable planning section (once per session). Advisory only — never blocks.",
   "hooks": {
     "UserPromptSubmit": [
       {

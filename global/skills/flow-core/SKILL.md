@@ -1,7 +1,8 @@
 ---
 name: flow-core
 description: >
-  Shared protocol and templates for the flow pack: the live skills (flow-build, flow-report)
+  Shared protocol and templates for the flow pack: the live skills (flow-plan, flow-build,
+  flow-report)
   and the playbooks that preserve the retired flow-* commands' knowledge (bootstrap,
   migration, spec-writing, workspace-hygiene, audit, promotion). Not a workflow itself — it
   is the library every flow-* skill and playbook reads for the flow contract, the
@@ -21,30 +22,33 @@ session.
 
 Every `flow-*` skill follows this contract.
 
-1. **OPEN (DoR)** — read `<project>/_support/PROJECT.md` (the ledger). If it does not
-   exist: stop and follow `references/bootstrap-playbook.md` to establish it first.
-   Never improvise workspace structure. Then **consume the `## Current handoff` section**
-   if the previous phase left one — it is the bounded context that phase produced for you
-   (paths, decisions, what changed, the repos to treat as input). Verify the phase's
-   entry preconditions; if a needed input is missing, that gap is the first thing to
-   surface, not something to work around. Once consumed, collapse the handoff to one line
-   in `## Handoff history` (poda — see the phase transition contract below).
+1. **OPEN (DoR)** — read `<project>/_support/PROJECT.md` (the ledger) when it exists. If the
+   workspace declares a ledger and it is missing, stop and follow `references/bootstrap-playbook.md`
+   to establish it; a standalone repository may use its natural `_support/sessions/` home without
+   bootstrapping a ledger merely to plan or execute an explicitly identified plan. Never
+   improvise workspace structure. Then **consume the `## Current handoff` section** when present —
+   it is the bounded context that phase produced for you (paths, decisions, what changed, the
+   repos to treat as input). Verify the phase's entry preconditions; if a needed input is missing,
+   that gap is the first thing to surface, not something to work around. Once consumed, collapse
+   the handoff to one line in `## Handoff history` (poda — see the phase transition contract below).
 2. **EXPLORE (when the phase needs it)** — when you cannot yet name the concrete files,
    paths, or repos a dispatch will need, run a bounded read-only exploration FIRST and let
    it return the map. Proportional: a bootstrap phase (kickoff) explores nothing; a specs
    review or dev session usually must. Dispatch the read-only explorer
    (`references/harness-mechanics.md` translates the mechanic per harness) rather than
    exploring inline — discovery noise stays out of the orchestrator's context.
-3. **ROUTE FILES** — before writing any file, apply the file-routing rule below.
+3. **ROUTE FILES** — before writing any file, apply the file-routing rule below. A plan is a
+   portable carrier only when its contract, authorization and execution state use the canonical
+   plan format; a native harness plan is merely an optional source to normalize.
 4. **ORCHESTRATE** — the main thread routes and synthesizes. It does NOT implement,
    review, or verify by itself. Every substantive work unit goes to an agent in a fresh
    context; only summaries return to the main thread. Declared exceptions: mock work
-   units (built via native plan mode/flow-build like any other unit — prototype carve-out) and
+   units (built via `/flow-plan`/`flow-build` like any other unit — prototype carve-out) and
    flow-build on a harness without specialist agents may implement in the main thread —
    review and verification stay in fresh contexts everywhere.
 5. **HANDOFF** — every agent prompt follows `references/handoff-protocol.md`: intent and
    bounded context are what keep the dispatched work aligned.
-6. **CLOSE (DoD)** — update PROJECT.md (phase, artifacts with paths, decisions and whether
+6. **CLOSE (DoD)** — update PROJECT.md when a ledger exists (phase, artifacts with paths, decisions and whether
    they were promoted, open questions), **then write the `## Current handoff` section**:
    what this phase produced (paths), decisions left, what it changed backward (spec-changes
    triggered), the repos the next phase consumes as input, and the **next phase suggested
@@ -73,9 +77,9 @@ scales to the cost of undoing its writes, never uniform:
 
 | Phase writes | Gate |
 |---|---|
-| Production / real code (native plan mode/flow-build) | Strong plan gate — already defined in those skills |
+| Production / real code (`/flow-plan` + `/flow-build`) | Strong portable plan gate — the contract and implementation authority are explicit |
 | Resources derived from a signed naming table (bootstrap-playbook foundation stage, repo matrix) | Signal-gated: proceed-and-report on clean derivation; gate on a new naming exception, unsettled repo split, or client-org blast radius (highest-risk bootstrap gate) |
-| A mock work unit (a whole repo cheap-to-rebuild but costly-to-redo) | Light plan gate via native plan mode: epics/screens/stack/order, approved before building |
+| A mock work unit (a whole repo cheap-to-rebuild but costly-to-redo) | Light `/flow-plan` gate: epics/screens/stack/order, approved before building |
 | A draft that re-enters its own review gate (the spec-writing playbook's `epic` step) | The review gate IS the gate; no separate plan gate |
 | Bootstrap-playbook conversational stages (intake scorecard, workspace bootstrap confirm) | Per-stage conversational gate — a scorecard/confirm the user answers, no plan file |
 | Promotion to an environment (qa/prod) | Git-workflow safety gates (`git-workflow.md`) + `references/promotion-playbook.md` — not a flow skill gate |
@@ -85,10 +89,12 @@ A gate heavier than the phase's reversibility is ceremony; lighter is a foot-gun
 
 ## Phase artifact persistence (Engram resume-mirror)
 
-`PROJECT.md` (the ledger) is the primary, durable phase state — always update it on CLOSE.
-Engram is a *resume-mirror*, not the source of truth: it lets a compacted session recover a
-phase's intermediate artifact without re-deriving it. When a flow skill mirrors one, use a
-**deterministic `topic_key`** so the save upserts instead of duplicating:
+When a ledger exists, `PROJECT.md` is the primary, durable phase state and flow skills update it
+on CLOSE. A standalone plan without a ledger keeps its durable state in the plan's metadata and
+execution evidence; do not create a ledger solely to satisfy this mirror. Engram is a
+*resume-mirror*, not the source of truth: it lets a compacted session recover a phase's
+intermediate artifact without re-deriving it. When a flow skill mirrors one, use a **deterministic
+`topic_key`** so the save upserts instead of duplicating:
 
 ```
 topic_key = flow/{epic-or-project-slug}/{artifact}
@@ -142,7 +148,7 @@ Without a specs repo, the standard session form above applies unchanged.
 | `references/audit-playbook.md` | Running or instantiating a multi-lens preventive audit |
 | `references/migration-playbook.md` | Bringing a pre-pack project into the flow |
 | `references/handoff-protocol.md` | Before dispatching ANY agent from a flow skill; also the research→write→build→verify phase-handoff chain |
-| `references/plan-format.md` | Writing an executable plan (native plan mode, captured by the plan-capture hook) or executing one (`flow-build`) — the plan-as-state contract |
+| `references/plan-format.md` | Writing the portable plan (`/flow-plan`) or executing one (`/flow-build`) — the frozen contract, authorization and execution-state contract |
 | `references/naming-template.md` | Instantiating the project naming table (bootstrap-playbook foundation stage) or auditing it (promotion `verify`) |
 | `references/promotion-playbook.md` | Promoting to qa/prod via git conventions — read by deploy sessions and `devops-engineer`, offered by the session hook |
 | `references/ux-rubric.md` | The design/UX gate — consumed by `flow-build`'s design gate and by mock-review work |
@@ -167,14 +173,14 @@ The pack is organized by **project stage**, not a fixed phase sequence. The dail
 unit of work; a mock is just a work TYPE that runs the same loop.
 
 Most former per-stage commands are dissolved: their knowledge lives as playbooks in
-`references/`, applied directly rather than invoked. Only `flow-build` and `flow-report`
-remain live commands.
+`references/`, applied directly rather than invoked. `flow-plan`, `flow-build` and
+`flow-report` are the live skills.
 
 | Project stage | How it runs |
 |---|---|
 | `arranque` | Applied via `references/bootstrap-playbook.md` — greenfield: intake + workspace bootstrap + foundation (repos, naming table, CI/CD), fused into one conversational flow. Pre-pack projects enter via `references/migration-playbook.md` (specs repo, tiering, gated migration manifest) |
 | `specs` | Applied via `references/spec-writing-playbook.md` — specs repo (`init`), epic drafting + tracker sync (`epic`), quality gate (`review`) |
-| `desarrollo` | the daily chain, per unit of work: idea exploration (converges on proceed/discard/defer per `rules/quality/critical-thinking.md`) → `references/spec-writing-playbook.md` → native plan mode (captured by the plan-capture hook) → `/flow-build` executes and verifies. Mock work units run the same chain |
+| `desarrollo` | the daily chain, per unit of work: idea exploration (converges on proceed/discard/defer per `rules/quality/critical-thinking.md`) → `references/spec-writing-playbook.md` → `/flow-plan` freezes the portable contract and authorization → `/flow-build` executes and verifies. Mock work units run the same chain |
 | `operación` | promotion to qa/prod via git conventions (`git-workflow.md`) + `references/promotion-playbook.md` — no dedicated skill |
 
 Transversal (not a stage):
@@ -183,5 +189,6 @@ Transversal (not a stage):
 |---|---|
 | `references/workspace-hygiene-playbook.md` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
 | `references/audit-playbook.md` | Multi-lens preventive audit of runtime repos (epic close, pre-architectural change): parallel readers → dedup → refuters → versioned HTML report |
+| `flow-plan` | User-invoked planning skill: creates or normalizes the portable plan and records its approval scope; it never implements or publishes |
 | `flow-report` | Shared rendering skill (like flow-core, not a stage): renders substantial human-targeted output as self-contained HTML; auto-invokes per `rules/quality/communication-format.md` |
 | `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill and playbook reads |

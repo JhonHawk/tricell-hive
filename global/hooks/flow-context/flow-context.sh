@@ -10,9 +10,9 @@
 #     ledger's MTIME so a phase transition mid-session RE-FIRES (stale injected
 #     state would misroute the offer).
 #
-#   - Plan section: only in native plan mode, injects the artifact conventions
-#     the plan should follow so flow-plan-capture lands well-formed. Fires at
-#     most ONCE per session (a plan's conventions don't change mid-plan).
+#   - Planning section: injects the portable Hive planning command and artifact
+#     conventions once per session. It does not inspect or depend on a native
+#     harness plan mode; native planning remains optional user tooling.
 #
 # One marker per section (a shared marker would let the once-per-session plan
 # gate suppress the mtime-driven phase re-fire, or vice versa). Payload is
@@ -26,7 +26,6 @@ input=$(cat)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty' 2>/dev/null)
-mode=$(printf '%s' "$input" | jq -r '.permission_mode // .permissionMode // empty' 2>/dev/null)
 
 # Flow workspace? Walk up for the ledger. Not a flow workspace → nothing to do.
 dir="$cwd"; ledger=""
@@ -39,11 +38,9 @@ done
 # ─── Phase section: captured plans that still have work outstanding ──────────
 #
 # The trigger is the ARTIFACT, never the ledger's declared phase. A plan file
-# exists because native plan mode produced one and the plan-capture hook adopted
-# it — so the signal is produced upstream of any flow command, instead of by the
-# very command it would suggest (the old ledger-phase source could only be fed by
-# a run that never happened, so it never fired). Entering plan mode IS the
-# proportionality filter: a small change makes no plan and earns no offer.
+# exists because Hive's portable planning flow produced one, so the signal is
+# produced upstream of any execution command instead of by the command it would
+# suggest. A small change can still take the direct route and earns no offer.
 phase_out=""
 root=${ledger%/_support/PROJECT.md}
 sessions_home=""
@@ -81,35 +78,41 @@ if [ "$phase_fire" = "1" ] && [ -n "$pending" ]; then
   [ -n "$session_id" ] && printf '%s' "$sig" > "$phase_marker" 2>/dev/null || true
 fi
 
-# ─── Plan section: plan mode only, once per session ──────────────────────────
-plan_out=""
-if [ "$mode" = "plan" ]; then
-  plan_fire=1
-  if [ -n "$session_id" ]; then
-    plan_marker="${TMPDIR:-/tmp}/claude-flow-context-plan-${session_id}"
-    if [ -f "$plan_marker" ]; then plan_fire=0; fi
-  fi
-  if [ "$plan_fire" = "1" ]; then
-    plan_out=$(cat <<'EOF'
-Flow workspace, plan mode. Conventions for the plan you are writing:
-- On approval it is captured automatically to sessions/YYYY-MM-DD-<slug>/<slug>-plan.md (flow-plan-capture); that copy becomes the working plan.
+# ─── Planning section: portable Hive flow, once per session ──────────────────
+planning_out=""
+planning_fire=1
+if [ -n "$session_id" ]; then
+  planning_marker="${TMPDIR:-/tmp}/claude-flow-context-planning-${session_id}"
+  if [ -f "$planning_marker" ]; then planning_fire=0; fi
+fi
+if [ "$planning_fire" = "1" ]; then
+  planning_out=$(cat <<'EOF'
+Flow workspace, portable planning conventions:
+- Planning intent uses `/flow-plan`; it creates or updates Hive's durable plan artifact and does not depend on native harness Plan Mode.
+- Explicit approval authorizes the recorded plan revision; native harness planning remains optional and never grants Hive authorization by itself.
 - Include a `Session: yes` header line; the user flips it to `Session: no` to decline the session folder — their call, never yours.
-- Large scope (multi-session): structure the plan as an initiative — parts with a per-part Status — so /flow-build can adopt and resume part by part.
-- Investigation conclusions the user asks to keep go to <slug>-findings.md in the same session folder.
-- Do not embed git/integration semantics (branching, PR/merge, CI) the conversation did not settle — /flow-build confirms that delta at adoption.
+- Large scope (multi-session): structure the plan as an initiative — parts with a per-part Status — so `/flow-build` can adopt and resume part by part.
+- Investigation conclusions the user asks to keep go to `<slug>-findings.md` in the same session folder.
+- Do not embed git/integration semantics (branching, PR/merge, CI) the conversation did not settle — `/flow-build` confirms that delta at adoption.
 EOF
 )
-    [ -n "$session_id" ] && : > "$plan_marker" 2>/dev/null || true
-  fi
+  [ -n "$session_id" ] && : > "$planning_marker" 2>/dev/null || true
 fi
 
 # ─── Emit whichever sections passed their gates (phase first) ────────────────
-[ -n "$phase_out$plan_out" ] || exit 0
-if [ -n "$phase_out" ]; then
-  printf '%s\n' "$phase_out"
+# One JSON envelope, same shape as the sibling hooks: Claude Code and Grok read
+# `hookSpecificOutput.additionalContext`; the PI adapter rejects plain stdout as
+# invalid JSON (advisory warning) — never print bare text here.
+[ -n "$phase_out$planning_out" ] || exit 0
+ctx="$phase_out"
+if [ -n "$planning_out" ]; then
+  [ -n "$ctx" ] && ctx="${ctx}"$'\n\n'
+  ctx="${ctx}${planning_out}"
 fi
-if [ -n "$plan_out" ]; then
-  [ -n "$phase_out" ] && printf '\n'
-  printf '%s\n' "$plan_out"
-fi
+jq -n --arg ctx "$ctx" '{
+  hookSpecificOutput: {
+    hookEventName: "UserPromptSubmit",
+    additionalContext: $ctx
+  }
+}'
 exit 0

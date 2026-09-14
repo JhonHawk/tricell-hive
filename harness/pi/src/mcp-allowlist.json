@@ -1,0 +1,52 @@
+{
+  "context7": {
+    "url": "https://mcp.context7.com/mcp",
+    "tools": {
+      "resolve-library-id": { "requiredStringArgs": ["query", "libraryName"] },
+      "query-docs": { "requiredStringArgs": ["libraryId", "query"] }
+    }
+  },
+  "linear": {
+    "url": "https://mcp.linear.app/mcp",
+    "auth": "oauth",
+    "tools": {
+      "list_issues": {},
+      "get_issue": {},
+      "list_issue_statuses": {},
+      "get_issue_status": {},
+      "list_projects": {},
+      "get_project": {},
+      "list_cycles": {},
+      "list_comments": {},
+      "list_teams": {},
+      "get_team": {},
+      "list_users": {},
+      "get_user": {},
+      "list_milestones": {},
+      "get_milestone": {},
+      "list_documents": {},
+      "get_document": {},
+      "list_issue_labels": {},
+      "list_project_labels": {},
+      "search_documentation": {},
+      "save_issue": { "write": true },
+      "save_comment": { "write": true }
+    }
+  },
+  "heroui": {
+    "url": "https://mcp.heroui.pro/mcp",
+    "headers": { "x-heroui-personal-token": "${HEROUI_PERSONAL_TOKEN}" },
+    "tools": {
+      "list_components": {},
+      "get_component_docs": {},
+      "get_component_source_code": {},
+      "get_css": {},
+      "get_docs": {},
+      "get_theme_variables": {},
+      "get_chat_export_manifest": {},
+      "get_chat_export_files": {},
+      "get_design_system_manifest": {},
+      "get_design_system_export": {}
+    }
+  }
+}

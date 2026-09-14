@@ -38,14 +38,14 @@ Two honest subtleties:
   `permissionMode: plan` against this, but **it is not a layer to count on**: when the parent
   session runs in auto mode — the default on Pro/Max/Team unless `permissions.defaultMode`
   says otherwise — a subagent inherits auto mode and its frontmatter `permissionMode` is
-  ignored. Verified empirically 2026-08-15: a `code-reviewer` subagent had no `ExitPlanMode`
+  ignored. Verified empirically 2026-08-15: a `review-code` subagent had no `ExitPlanMode`
   and created a file via `touch` unblocked. **Since F4 the agent-scoped `reviewer-guard`
   hook closes the common Bash-mutation paths** (git mutations, deleters, in-place edits,
-  installs, non-temp writes) for the strict roster — `code-reviewer`, `security-reviewer`,
-  `product-critic`, `spec-quality-reviewer`, `code-scout`, `workspace-custodian` — via a
+  installs, non-temp writes) for the strict roster — `review-code`, `review-security`,
+  `sdd-product-critic`, `sdd-spec-reviewer`, `sdd-explore`, `workspace-custodian` — via a
   frontmatter `hooks:` PreToolUse block on `Bash`. **Exempt by doctrine
-  (execute-to-observe):** `finding-refuter` (runs tests/repro commands), `in-vivo-qa-tester`
-  and `ui-reviewer` (drive a browser), `state-fetcher` (executes approved tracker writes) —
+  (execute-to-observe):** `review-refuter` (runs tests/repro commands), `sdd-verify`
+  and `review-ux` (drive a browser), `state-fetcher` (executes approved tracker writes) —
   for them the deterministic layer remains the `tools:` allowlist, with never-mutate as
   prompt-convention. Residual gap even under the guard: an interpreter one-liner can still
   write — the hook is a guardrail, not a sandbox. Harness scope: `hooks:` is Claude-only
@@ -63,6 +63,29 @@ request for a deterministic backstop (hook, deny permission), not for stronger w
 Operationalized in `global/CLAUDE.md > Communication > Name the enforcement layer` and in
 `/manage-rules validate` (criterion 8, "Enforcement honesty").
 
+## Portable planning
+
+- The shared plan validator deterministically checks structure, contract digest and declared
+  action/target scope when invoked. It is read-only and does not launch or intercept tools.
+- Plan approval is confirm-gated. Recorded conversational evidence and a matching digest
+  are not a cryptographic user signature.
+- Invoking the validator, checking live evidence and honoring its result are prompt
+  conventions. Progress and delivery records are claims to reconcile, not evidence by themselves.
+- Draft planning has no ambient parent-write blockade. General shell, MCP and reviewer
+  guards keep their own coverage; native plan-mode transitions grant no Hive authority.
+- Recovery structure and budget checks are deterministic when invoked, over recorded entries.
+  Recording attempts, preserving history and reconciling real outcomes are prompt-conventions;
+  an editable plan is not an immutable history or an idempotency mechanism.
+- The verification matrix is prompt-convention. Independent execution and review supply
+  evidence; neither a selected profile nor a green check grants publication authority.
+- PI research readiness deterministically compares required names with active tools in the
+  current agent. Invoking it is prompt-convention; it does not check provider credentials,
+  network reachability or evidence quality.
+- TDD ordering and Markdown cycle evidence are prompt-conventions checked by independent
+  review; `plan.py` does not validate TDD evidence or authenticate its chronology. A missing
+  observed RED requires a confirm-gated exception before acceptance, while behavioral
+  verification remains required. An expected RED is task progress, not a recovery failure.
+
 ## Related
 
 - `global/skills/flow-core/references/harness-mechanics.md > Enforcement differences to
@@ -72,5 +95,5 @@ Operationalized in `global/CLAUDE.md > Communication > Name the enforcement laye
 ---
 
 *Origin: adversarial research session 2026-07-17 (two independent proposals cross-examined
-by `finding-refuter` against the rule corpus). Full artifact:
+by `review-refuter` against the rule corpus). Full artifact:
 `_support/archive/docs/2026-07-17-sistema-magia-isekai.html`.*

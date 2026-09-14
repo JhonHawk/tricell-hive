@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # deploy-global.sh — deploys tricell-hive's global/ (+ the multi-harness layer
-# under harness/) to ~/.claude, ~/.codex, ~/.config/opencode, and ~/.agents/skills.
+# under harness/) to ~/.claude, ~/.codex, ~/.config/opencode, ~/.grok, the PI
+# agent directory, and the neutral shared skills owner under ~/.agents/skills.
 #
 # Faithful port of the procedure documented in ../SKILL.md. Read that file for
 # the "why" of each step; this script is the "how".
@@ -45,12 +46,15 @@ readonly HOOK_PURGE_FILTER="${FILTERS_DIR}/hook-purge.jq"
 readonly CLAUDE_HOME="${HOME}/.claude"
 readonly CODEX_HOME="${HOME}/.codex"
 readonly OPENCODE_HOME="${HOME}/.config/opencode"
+readonly AGENTS_HOME="${HOME}/.agents"
 readonly AGENTS_SKILLS_HOME="${HOME}/.agents/skills"
 # Grok relocates its config root via GROK_HOME (documented in its user guide);
 # honor it so a relocated install is not silently deployed to ~/.grok.
 readonly GROK_HOME="${GROK_HOME:-${HOME}/.grok}"
 readonly GROK_RULES_HOME="${GROK_HOME}/rules"
 readonly GROK_AGENTS_HOME="${GROK_HOME}/agents"
+readonly PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-${HOME}/.pi/agent}"
+readonly PI_DEPLOY_HELPER="${REPO_ROOT}/harness/pi/deploy.py"
 readonly MANIFEST="${CLAUDE_HOME}/.deploy-manifest"
 readonly BACKUP_DIR="${CLAUDE_HOME}/backups"
 readonly CODEX_DOC_MAX_BYTES=49152
@@ -76,6 +80,7 @@ RUN_CLAUDE=1
 RUN_CODEX=1
 RUN_OPENCODE=1
 RUN_GROK=1
+RUN_PI=1
 
 REPORT_LOG=""
 TMP_FILES=()
@@ -95,6 +100,21 @@ cleanup() {
     for f in "${TMP_FILES[@]:-}"; do
         [[ -n "${f}" && -e "${f}" ]] && rm -f "${f}"
     done
+    if [[ "${exit_code}" -ne 0 && "${APPLY}" -eq 1 ]]; then
+        printf '%s\n' "PARTIAL DEPLOY: selected roots may have different states; no automatic cross-root rollback was attempted." >&2
+        if [[ -n "${PI_BACKUP_PATH}" ]]; then
+            printf '%s\n' "PI rollback: python3 ${PI_DEPLOY_HELPER} rollback --pi-dir \"${PI_AGENT_DIR}\" --backup-dir \"${PI_BACKUP_PATH}\" --apply" >&2
+        fi
+        if [[ -n "${SHARED_BACKUP_PATH}" ]]; then
+            printf '%s\n' "Shared-skills rollback: python3 ${PI_DEPLOY_HELPER} shared rollback --shared-root \"${AGENTS_HOME}\" --backup-dir \"${SHARED_BACKUP_PATH}\" --apply" >&2
+        fi
+        if [[ -n "${BACKUP_FILE}" ]]; then
+            printf '%s\n' "Claude rollback: tar -xzf \"${BACKUP_FILE}\" -C \"${CLAUDE_HOME}/\"" >&2
+        fi
+        if [[ -n "${HARNESS_BACKUP_FILE}" ]]; then
+            printf '%s\n' "Harness-config rollback: tar -xzf \"${HARNESS_BACKUP_FILE}\" (restore only the selected config roots)" >&2
+        fi
+    fi
     return "${exit_code}"
 }
 trap cleanup EXIT
@@ -127,7 +147,8 @@ FLAGS:
                         opencode  -> harness/ opencode-specific targets (~/.config/opencode)
                         grok      -> always-on rules symlinked into ~/.grok/rules
                                      + generated agents into ~/.grok/agents
-                        harness   -> alias for "codex,opencode,grok"
+                        pi        -> isolated PI layer under $PI_CODING_AGENT_DIR
+                        harness   -> alias for "codex,opencode,grok,pi"
                         all       -> everything (default when --only is omitted)
   --keep-orphans     Under --apply, list manifest-confirmed orphans WITHOUT
                       deleting them (the pre-2026-08 default). Their manifest
@@ -159,6 +180,10 @@ SCOPE NOTES:
   is NOT recursive and does NOT honor `paths:`, so only always-on rules
   (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
   Path-scoped rules reach Grok through the router skills instead.
+
+  The "pi" scope delegates to the stdlib helper under harness/pi/. It owns the
+  PI agent directory and the neutral shared-skills owner under ~/.agents; it
+  reads the legacy ~/.claude manifest only for exact, read-only migration.
 
 EXIT STATUS:
   0  ran to completion (dry-run or apply)
@@ -224,6 +249,7 @@ parse_args() {
         RUN_CODEX=0
         RUN_OPENCODE=0
         RUN_GROK=0
+        RUN_PI=0
         local IFS=','
         local -a scopes
         read -r -a scopes <<<"${only_raw}"
@@ -234,21 +260,57 @@ parse_args() {
                 codex) RUN_CODEX=1 ;;
                 opencode) RUN_OPENCODE=1 ;;
                 grok) RUN_GROK=1 ;;
+                pi) RUN_PI=1 ;;
                 harness)
                     RUN_CODEX=1
                     RUN_OPENCODE=1
                     RUN_GROK=1
+                    RUN_PI=1
                     ;;
                 all)
                     RUN_CLAUDE=1
                     RUN_CODEX=1
                     RUN_OPENCODE=1
                     RUN_GROK=1
+                    RUN_PI=1
                     ;;
-                *) die "Unknown --only scope: ${s} (expected claude|codex|opencode|grok|harness|all)" ;;
+                *) die "Unknown --only scope: ${s} (expected claude|codex|opencode|grok|pi|harness|all)" ;;
             esac
         done
     fi
+}
+
+check_pi_deps() {
+    command -v python3 >/dev/null 2>&1 || die "Missing required tool: python3 (needed for the PI deploy helper)"
+    command -v pi >/dev/null 2>&1 || die "Missing required tool: pi (required version 0.85.1; automatic installation is disabled)"
+    local pi_version
+    pi_version=$(pi --version 2>/dev/null | sed -n '1p')
+    [[ "${pi_version}" == "0.85.1" ]] || die "Unsupported PI version: ${pi_version:-unknown} (required 0.85.1; automatic installation is disabled)"
+    [[ -f "${PI_DEPLOY_HELPER}" ]] || die "Missing PI deploy helper: ${PI_DEPLOY_HELPER}"
+    [[ -f "${REPO_ROOT}/harness/AGENTS.md" ]] || die "Missing generated PI core: ${REPO_ROOT}/harness/AGENTS.md"
+    [[ -d "${REPO_ROOT}/harness/pi/agents" ]] || die "Missing generated PI agents: ${REPO_ROOT}/harness/pi/agents"
+    [[ -d "${REPO_ROOT}/harness/pi/src" ]] || die "Missing PI runtime source: ${REPO_ROOT}/harness/pi/src"
+    [[ -d "${REPO_ROOT}/harness/pi/extensions" ]] || die "Missing PI extension tree: ${REPO_ROOT}/harness/pi/extensions"
+    [[ -d "${REPO_ROOT}/global/hooks" ]] || die "Missing canonical hooks: ${REPO_ROOT}/global/hooks"
+}
+
+step_deploy_pi() {
+    [[ "${RUN_PI}" -eq 1 ]] || return 0
+    log "== Deploy: pi scope =="
+    local -a cmd=(python3 "${PI_DEPLOY_HELPER}" deploy --repo-root "${REPO_ROOT}" --pi-dir "${PI_AGENT_DIR}")
+    if [[ "${APPLY}" -eq 1 ]]; then
+        cmd+=(--apply)
+    fi
+    [[ "${VERBOSE}" -eq 1 ]] && cmd+=(--verbose)
+    local output
+    if ! output=$("${cmd[@]}" 2>&1); then
+        PI_BACKUP_PATH=$(printf '%s\n' "${output}" | sed -n 's/.*after backup \([^:]*\):.*/\1/p' | tail -n 1)
+        printf '%s\n' "${output}" >&2
+        return 1
+    fi
+    printf '%s\n' "${output}"
+    PI_BACKUP_PATH=$(printf '%s\n' "${output}" | sed -n 's/^backup: //p' | tail -n 1)
+    report "PI deploy: completed${PI_BACKUP_PATH:+; backup ${PI_BACKUP_PATH}}"
 }
 
 # ---------------------------------------------------------------------------
@@ -268,14 +330,154 @@ check_deps() {
     command -v jq >/dev/null 2>&1 || missing+=("jq")
     command -v tar >/dev/null 2>&1 || missing+=("tar")
     command -v find >/dev/null 2>&1 || missing+=("find")
-    if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]]; then
-        command -v python3 >/dev/null 2>&1 || missing+=("python3 (needed to rebuild harness/)")
-    fi
+    command -v python3 >/dev/null 2>&1 || missing+=("python3 (needed to rebuild harness/ and PI preflight)")
     if [[ ${#missing[@]} -gt 0 ]]; then
         die "Missing required tool(s): ${missing[*]}"
     fi
     [[ -f "${HOOK_MERGE_FILTER}" ]] || die "Missing bundled filter: ${HOOK_MERGE_FILTER}"
     [[ -f "${HOOK_PURGE_FILTER}" ]] || die "Missing bundled filter: ${HOOK_PURGE_FILTER}"
+}
+
+shared_scope_selected() {
+    [[ "${RUN_PI}" -eq 1 || "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]]
+}
+
+preflight_parent_chain() {
+    local label="$1" path="$2" parent
+    parent=$(dirname "${path}")
+    while [[ "${parent}" != "/" && "${parent}" != "${HOME}" && -n "${parent}" ]]; do
+        if [[ -L "${parent}" ]]; then
+            die "${label} target parent is a symlink: ${parent}"
+        fi
+        parent=$(dirname "${parent}")
+    done
+}
+
+preflight_target_root() {
+    local label="$1" root="$2"
+    preflight_parent_chain "${label}" "${root}"
+    if [[ -L "${root}" ]]; then
+        die "${label} target root is a symlink: ${root}"
+    fi
+    if [[ -e "${root}" && ! -d "${root}" ]]; then
+        die "${label} target root is not a directory: ${root}"
+    fi
+    if [[ -d "${root}" && ! -w "${root}" ]]; then
+        die "${label} target root is not writable: ${root}"
+    fi
+}
+
+preflight_target_file() {
+    local label="$1" target="$2"
+    preflight_parent_chain "${label}" "${target}"
+    if [[ -L "${target}" ]]; then
+        die "${label} target is a symlink: ${target}"
+    fi
+    if [[ -e "${target}" && ! -f "${target}" ]]; then
+        die "${label} target is not a regular file: ${target}"
+    fi
+    if [[ -e "${target}" && ! -w "${target}" ]]; then
+        die "${label} target is not writable: ${target}"
+    fi
+}
+
+preflight_tree_targets() {
+    local label="$1" source_root="$2" target_root="$3"
+    [[ -d "${source_root}" ]] || return 0
+    local source rel target
+    while IFS= read -r -d '' source; do
+        rel="${source#"${source_root}"/}"
+        target="${target_root}/${rel}"
+        preflight_target_file "${label}" "${target}"
+    done < <(find "${source_root}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print0 2>/dev/null)
+}
+
+preflight_flat_targets() {
+    local label="$1" source_root="$2" target_root="$3"
+    [[ -d "${source_root}" ]] || return 0
+    local source target
+    while IFS= read -r -d '' source; do
+        target="${target_root}/$(basename "${source}")"
+        preflight_target_file "${label}" "${target}"
+    done < <(find "${source_root}" -type f -print0 2>/dev/null)
+}
+
+step_preflight_generic_targets() {
+    if [[ "${RUN_CLAUDE}" -eq 1 ]]; then
+        preflight_target_root "Claude" "${CLAUDE_HOME}"
+        preflight_target_root "Claude rules" "${CLAUDE_HOME}/rules"
+        preflight_target_root "Claude agents" "${CLAUDE_HOME}/agents"
+        preflight_target_root "Claude skills" "${CLAUDE_HOME}/skills"
+        preflight_target_root "Claude hooks" "${CLAUDE_HOME}/hooks"
+        preflight_target_file "Claude CLAUDE.md" "${CLAUDE_HOME}/CLAUDE.md"
+        preflight_target_file "Claude settings.json" "${CLAUDE_HOME}/settings.json"
+        preflight_tree_targets "Claude rules" "${REPO_ROOT}/global/rules" "${CLAUDE_HOME}/rules"
+        preflight_tree_targets "Claude agents" "${REPO_ROOT}/global/agents" "${CLAUDE_HOME}/agents"
+        preflight_tree_targets "Claude skills" "${REPO_ROOT}/global/skills" "${CLAUDE_HOME}/skills"
+        preflight_flat_targets "Claude hooks" "${REPO_ROOT}/global/hooks" "${CLAUDE_HOME}/hooks"
+    fi
+    if [[ "${RUN_CODEX}" -eq 1 ]]; then
+        preflight_target_root "Codex" "${CODEX_HOME}"
+        preflight_target_root "Codex agents" "${CODEX_HOME}/agents"
+        preflight_target_root "Codex hooks" "${CODEX_HOME}"
+        preflight_target_file "Codex AGENTS.md" "${CODEX_HOME}/AGENTS.md"
+        preflight_target_file "Codex hooks.json" "${CODEX_HOME}/hooks.json"
+        preflight_flat_targets "Codex agents" "${REPO_ROOT}/harness/codex/agents" "${CODEX_HOME}/agents"
+        local codex_hooks_config hookdir
+        while IFS= read -r codex_hooks_config; do
+            [[ -n "${codex_hooks_config}" ]] || continue
+            hookdir=$(dirname "${codex_hooks_config}")
+            preflight_flat_targets "Codex hooks" "${hookdir}" "${CODEX_HOME}/hooks"
+        done < <(find "${REPO_ROOT}/global/hooks" -name codex-hooks.json 2>/dev/null)
+    fi
+    if [[ "${RUN_OPENCODE}" -eq 1 ]]; then
+        preflight_target_root "OpenCode" "${OPENCODE_HOME}"
+        preflight_target_root "OpenCode agents" "${OPENCODE_HOME}/agents"
+        preflight_target_root "OpenCode commands" "${OPENCODE_HOME}/commands"
+        preflight_target_root "OpenCode rules" "${OPENCODE_HOME}/rules"
+        preflight_target_root "OpenCode plugins" "${OPENCODE_HOME}/plugins"
+        preflight_target_file "OpenCode AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
+        preflight_target_file "OpenCode opencode.json" "${OPENCODE_HOME}/opencode.json"
+        preflight_tree_targets "OpenCode agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents"
+        preflight_tree_targets "OpenCode commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands"
+        preflight_tree_targets "OpenCode rules" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules"
+        preflight_target_file "OpenCode session plugin" "${OPENCODE_HOME}/plugins/flow-session-context.ts"
+    fi
+    if [[ "${RUN_GROK}" -eq 1 ]]; then
+        preflight_target_root "Grok" "${GROK_HOME}"
+        preflight_target_root "Grok rules" "${GROK_RULES_HOME}"
+        preflight_target_root "Grok agents" "${GROK_AGENTS_HOME}"
+        preflight_flat_targets "Grok agents" "${REPO_ROOT}/harness/grok/agents" "${GROK_AGENTS_HOME}"
+        local grok_rule_relative grok_rule_flat grok_rule_target
+        while IFS= read -r grok_rule_relative; do
+            [[ -n "${grok_rule_relative}" ]] || continue
+            grok_rule_flat="${grok_rule_relative//\//__}"
+            grok_rule_target="${GROK_RULES_HOME}/${grok_rule_flat}"
+            if [[ -e "${grok_rule_target}" && ! -L "${grok_rule_target}" ]]; then
+                die "Grok rule target is not a symlink: ${grok_rule_target}"
+            fi
+        done < <(grok_always_on_rules)
+    fi
+}
+
+# All selected roots are validated before the first target write. The helper's
+# dry-runs also validate legacy shared ownership and strict conflict handling;
+# they never create the neutral manifest or its backup directory.
+step_preflight_selected() {
+    log "== Preflight: selected scopes =="
+    step_preflight_generic_targets
+    if [[ "${RUN_PI}" -eq 1 ]]; then
+        local -a pi_cmd=(python3 "${PI_DEPLOY_HELPER}" preflight --repo-root "${REPO_ROOT}" --pi-dir "${PI_AGENT_DIR}")
+        [[ "${VERBOSE}" -eq 1 ]] && pi_cmd+=(--verbose)
+        "${pi_cmd[@]}"
+        report "PI preflight: OK"
+    fi
+    if shared_scope_selected; then
+        local -a shared_cmd=(python3 "${PI_DEPLOY_HELPER}" shared deploy --repo-root "${REPO_ROOT}" --shared-root "${AGENTS_HOME}" --legacy-manifest "${MANIFEST}" --dry-run)
+        [[ "${VERBOSE}" -eq 1 ]] && shared_cmd+=(--verbose)
+        "${shared_cmd[@]}"
+        report "shared skills preflight: OK"
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -288,8 +490,8 @@ count_files_lines() {
     shift
     local files=0 lines=0
     if [[ -d "${dir}" ]]; then
-        files=$(find "${dir}" -type f "$@" 2>/dev/null | wc -l | tr -d ' ')
-        lines=$(find "${dir}" -type f "$@" -print0 2>/dev/null | xargs -0 cat 2>/dev/null | wc -l | tr -d ' ')
+        files=$(find "${dir}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' "$@" 2>/dev/null | wc -l | tr -d ' ')
+        lines=$(find "${dir}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' "$@" -print0 2>/dev/null | xargs -0 cat 2>/dev/null | wc -l | tr -d ' ')
     fi
     printf '%s %s' "${files}" "${lines}"
 }
@@ -313,7 +515,7 @@ diff_category() {
         else
             modified=$((modified + 1))
         fi
-    done < <(find "${src}" -type f "$@" -print0 2>/dev/null)
+    done < <(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' "$@" -print0 2>/dev/null)
     log "  ${label}: ${new} new, ${modified} modified, ${unchanged} unchanged"
     report "  ${label}: ${new} new, ${modified} modified, ${unchanged} unchanged"
 }
@@ -358,15 +560,21 @@ diff_hooks() {
 # deploy_tree LABEL SRC_DIR TGT_DIR — recursive overlay copy (never deletes).
 deploy_tree() {
     local label="$1" src="$2" tgt="$3"
-    if [[ ! -d "${src}" ]] || [[ -z "$(find "${src}" -type f -print -quit 2>/dev/null)" ]]; then
+    if [[ ! -d "${src}" ]] || [[ -z "$(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print -quit 2>/dev/null)" ]]; then
         vlog "${label}: source empty or not found, skip"
         return 0
     fi
     local count
-    count=$(find "${src}" -type f 2>/dev/null | wc -l | tr -d ' ')
+    count=$(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | wc -l | tr -d ' ')
     if [[ "${APPLY}" -eq 1 ]]; then
         mkdir -p "${tgt}"
-        cp -R "${src}/." "${tgt}/"
+        local file rel target_dir
+        while IFS= read -r -d '' file; do
+            rel="${file#"${src}"/}"
+            target_dir="${tgt}/$(dirname "${rel}")"
+            mkdir -p "${target_dir}"
+            cp "${file}" "${tgt}/${rel}"
+        done < <(find "${src}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print0 2>/dev/null)
         log "Deployed ${label}: ${count} files -> ${tgt}"
     else
         log "[DRY-RUN] would deploy ${label}: ${count} files -> ${tgt}"
@@ -502,7 +710,7 @@ step_preview() {
         read -r f l <<<"$(count_files_lines "${REPO_ROOT}/global/hooks")"
         log "  hooks: ${f} files, ${l} lines"
     fi
-    if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]]; then
+    if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_PI}" -eq 1 ]]; then
         log "  (harness/ counts reported after rebuild, in the deploy step)"
     fi
 }
@@ -520,35 +728,26 @@ step_diff() {
         diff_category "skills" "${REPO_ROOT}/global/skills" "${CLAUDE_HOME}/skills"
         diff_hooks
     fi
-    if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]]; then
-        # harness/ is only rebuilt under --apply (step_harness_rebuild), and
-        # that rebuild runs AFTER this diff. In dry-run — and even under
-        # --apply, since this diff runs before the rebuild — the lines below
-        # compare against whatever harness/ currently holds on disk (last
-        # commit/build), NOT what `python3 harness/build.py` would produce if
-        # canonical sources (global/agents, global/skills) changed since.
-        # Deliberately not fixed by moving the rebuild earlier: that would
-        # make dry-run mutate files under harness/ (even though repo-internal,
-        # it breaks dry-run's "writes nothing, ever" guarantee, and risks a
-        # collision if another process is rebuilding the same tree concurrently).
-        # SKILL.md's "Before running" section is the compensating control:
-        # rebuild + commit harness/ before invoking this script at all.
-        log "  (harness/ diff below is pre-rebuild — see SKILL.md 'Before running')"
-        diff_category "agents-skills (pre-rebuild)" "${REPO_ROOT}/harness/agents-skills" "${AGENTS_SKILLS_HOME}"
+    if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_PI}" -eq 1 ]]; then
+        # step_harness_rebuild already ran the apply build or the read-only
+        # parity check before this diff, so the counts describe the generated
+        # tree that the deployment steps will consume.
+        log "  (harness/ diff below uses the generated tree validated above)"
+        diff_category "agents-skills" "${REPO_ROOT}/harness/agents-skills" "${AGENTS_SKILLS_HOME}"
     fi
     if [[ "${RUN_CODEX}" -eq 1 ]]; then
-        diff_category "codex-agents (pre-rebuild)" "${REPO_ROOT}/harness/codex/agents" "${CODEX_HOME}/agents" -name '*.toml'
-        diff_file "harness AGENTS.md -> codex (pre-rebuild)" "${REPO_ROOT}/harness/AGENTS.md" "${CODEX_HOME}/AGENTS.md"
+        diff_category "codex-agents" "${REPO_ROOT}/harness/codex/agents" "${CODEX_HOME}/agents" -name '*.toml'
+        diff_file "harness AGENTS.md -> codex" "${REPO_ROOT}/harness/AGENTS.md" "${CODEX_HOME}/AGENTS.md"
     fi
     if [[ "${RUN_OPENCODE}" -eq 1 ]]; then
-        diff_category "opencode-agents (pre-rebuild)" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents" -name '*.md' ! -name 'README.md'
-        diff_category "opencode-commands (pre-rebuild)" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands" -name '*.md'
-        diff_category "opencode-rules (pre-rebuild)" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules" -name '*.md' ! -name 'README.md'
-        diff_file "harness AGENTS.md -> opencode (pre-rebuild)" "${REPO_ROOT}/harness/AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
+        diff_category "opencode-agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents" -name '*.md' ! -name 'README.md'
+        diff_category "opencode-commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands" -name '*.md'
+        diff_category "opencode-rules" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules" -name '*.md' ! -name 'README.md'
+        diff_file "harness AGENTS.md -> opencode" "${REPO_ROOT}/harness/AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
     fi
     if [[ "${RUN_GROK}" -eq 1 ]]; then
         diff_grok_rules
-        diff_category "grok-agents (pre-rebuild)" "${REPO_ROOT}/harness/grok/agents" "${GROK_AGENTS_HOME}" -name '*.md' ! -name 'README.md'
+        diff_category "grok-agents" "${REPO_ROOT}/harness/grok/agents" "${GROK_AGENTS_HOME}" -name '*.md' ! -name 'README.md'
     fi
 }
 
@@ -578,6 +777,8 @@ diff_grok_rules() {
 # ---------------------------------------------------------------------------
 
 BACKUP_FILE=""
+PI_BACKUP_PATH=""
+SHARED_BACKUP_PATH=""
 
 step_backup() {
     [[ "${RUN_CLAUDE}" -eq 1 ]] || return 0
@@ -828,16 +1029,16 @@ step_detect_orphans() {
     local rel scope
     while IFS= read -r rel; do
         case "${rel}" in '#'* | '') continue ;; esac
-        MANIFEST_TOTAL=$((MANIFEST_TOTAL + 1))
         scope=$(manifest_entry_scope "${rel}")
         case "${scope}" in
             claude) [[ "${RUN_CLAUDE}" -eq 1 ]] || continue ;;
-            shared) [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]] || continue ;;
+            shared) continue ;; # legacy shared ownership is read-only here
             codex) [[ "${RUN_CODEX}" -eq 1 ]] || continue ;;
             opencode) [[ "${RUN_OPENCODE}" -eq 1 ]] || continue ;;
             grok) [[ "${RUN_GROK}" -eq 1 ]] || continue ;;
             *) continue ;; # unknown prefix — never touch
         esac
+        MANIFEST_TOTAL=$((MANIFEST_TOTAL + 1))
         manifest_entry_map "${rel}"
         if [[ -z "${MAP_SRC}" || ! -e "${MAP_SRC}" ]]; then
             # -L as well as -e: a dangling symlink (grok-rules/ pointing at a
@@ -888,10 +1089,42 @@ step_detect_orphans() {
 
 step_delete_orphans() {
     log "== Deleting manifest-confirmed orphans =="
-    local rel deleted=0
+    local rel deleted=0 expected_hash target_hash
     for rel in "${ORPHANS[@]}"; do
         manifest_entry_map "${rel}"
         [[ -n "${MAP_TGT}" ]] || continue
+
+        # Retired hooks need a content check because the legacy line manifest
+        # predates per-file ownership hashes. A user edit at the old path is
+        # preserved and reported instead of being treated as disposable Hive
+        # state. New manifests retain the same path ownership model for the
+        # rest of the managed tree.
+        expected_hash=$(retired_hook_hash "$(basename "${rel}")")
+        target_hash=""
+        if [[ -n "${expected_hash}" ]]; then
+            if [[ ! -e "${MAP_TGT}" ]]; then
+                target_hash="${expected_hash}" # The file is already absent; still purge its exact config entry.
+            elif [[ -L "${MAP_TGT}" ]] || ! command -v shasum >/dev/null 2>&1; then
+                log "Preserved retired hook (ownership/content could not be proven): ${MAP_TGT}"
+                report "orphan: preserved retired hook (ownership/content could not be proven) ${rel}"
+                case "${rel}" in
+                    hooks/*) purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")" "claude" ;;
+                    codex-hooks/*) purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")" "codex" ;;
+                esac
+                continue
+            fi
+            [[ -n "${target_hash}" ]] || target_hash=$(shasum -a 256 "${MAP_TGT}" 2>/dev/null | awk '{print $1}')
+            if [[ "${target_hash}" != "${expected_hash}" ]]; then
+                log "Preserved edited retired hook: ${MAP_TGT}"
+                report "orphan: preserved edited retired hook ${rel}"
+                case "${rel}" in
+                    hooks/*) purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")" "claude" ;;
+                    codex-hooks/*) purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")" "codex" ;;
+                esac
+                continue
+            fi
+        fi
+
         if [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; then
             rm -rf "${MAP_TGT}"
             log "Deleted orphan: ${MAP_TGT}"
@@ -899,26 +1132,36 @@ step_delete_orphans() {
         fi
         case "${rel}" in
             hooks/*)
-                purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")"
+                purge_hook_block "${CLAUDE_HOME}/settings.json" "$(basename "${rel}")" "claude"
                 ;;
             codex-hooks/*)
-                purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")"
+                purge_hook_block "${CODEX_HOME}/hooks.json" "$(basename "${rel}")" "codex"
                 ;;
         esac
     done
     # Prune now-empty managed directories.
-    find "${CLAUDE_HOME}/rules" "${CLAUDE_HOME}/agents" "${CLAUDE_HOME}/skills" "${AGENTS_SKILLS_HOME}" "${GROK_RULES_HOME}" -type d -empty -delete 2>/dev/null || true
+    find "${CLAUDE_HOME}/rules" "${CLAUDE_HOME}/agents" "${CLAUDE_HOME}/skills" "${GROK_RULES_HOME}" -type d -empty -delete 2>/dev/null || true
     report "orphans: ${deleted} deleted"
 }
 
-# purge_hook_block SETTINGS_FILE ORPHAN_BASENAME
+# Legacy manifests recorded only managed paths. Keep a bounded allowlist for
+# hooks retired by this change so an old deployment can be cleaned safely while
+# an operator-edited file at the same path remains untouched.
+retired_hook_hash() {
+    case "$1" in
+        flow-plan-capture.sh) printf '%s' 'f577745eb18fcc8d92149dc5f92eaa7e8a145e5164b0efe4c0d745be004ab483' ;;
+        *) printf '%s' '' ;;
+    esac
+}
+
+# purge_hook_block SETTINGS_FILE ORPHAN_BASENAME KIND
 purge_hook_block() {
-    local settings_file="$1" bn="$2"
+    local settings_file="$1" bn="$2" kind="$3"
     [[ -f "${settings_file}" ]] || return 0
     local tmp
     tmp=$(mktemp)
     register_tmp "${tmp}"
-    if jq --arg bn "${bn}" -f "${HOOK_PURGE_FILTER}" "${settings_file}" >"${tmp}" && jq empty "${tmp}" 2>/dev/null; then
+    if jq --arg bn "${bn}" --arg kind "${kind}" -f "${HOOK_PURGE_FILTER}" "${settings_file}" >"${tmp}" && jq empty "${tmp}" 2>/dev/null; then
         mv "${tmp}" "${settings_file}"
         log "${settings_file}: purged orphan hook block for ${bn}"
     else
@@ -1082,15 +1325,32 @@ step_harness_rebuild() {
             report "harness rebuild: clean"
         fi
     else
-        log "[DRY-RUN] would run: python3 harness/build.py (then check harness/ and global/CLAUDE.md for a dirty diff)"
-        report "harness rebuild: [DRY-RUN]"
+        (cd "${REPO_ROOT}" && python3 harness/build.py --check)
+        log "Harness parity check passed."
+        report "harness rebuild: parity check passed"
     fi
 }
 
 step_deploy_shared_harness() {
     # Universal skills land in ~/.agents/skills (Codex, opencode, Grok all scan it).
-    [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] || return 0
-    deploy_tree "agents-skills (universal skills)" "${REPO_ROOT}/harness/agents-skills" "${AGENTS_SKILLS_HOME}"
+    shared_scope_selected || return 0
+    log "== Deploy: shared skills owner =="
+    local output
+    local -a cmd=(python3 "${PI_DEPLOY_HELPER}" shared deploy --repo-root "${REPO_ROOT}" --shared-root "${AGENTS_HOME}" --legacy-manifest "${MANIFEST}")
+    if [[ "${APPLY}" -eq 1 ]]; then
+        cmd+=(--apply)
+    else
+        cmd+=(--dry-run)
+    fi
+    [[ "${VERBOSE}" -eq 1 ]] && cmd+=(--verbose)
+    if ! output=$("${cmd[@]}" 2>&1); then
+        SHARED_BACKUP_PATH=$(printf '%s\n' "${output}" | sed -n 's/.*after backup \([^:]*\):.*/\1/p' | tail -n 1)
+        printf '%s\n' "${output}" >&2
+        return 1
+    fi
+    printf '%s\n' "${output}"
+    SHARED_BACKUP_PATH=$(printf '%s\n' "${output}" | sed -n 's/^backup: //p' | tail -n 1)
+    report "shared skills deploy: completed${SHARED_BACKUP_PATH:+; backup ${SHARED_BACKUP_PATH}}"
 }
 
 deploy_flat_pattern() {
@@ -1379,6 +1639,11 @@ step_deploy_grok() {
 
 step_write_manifest() {
     log "== Manifest =="
+    if [[ "${RUN_CLAUDE}" -eq 0 && "${RUN_CODEX}" -eq 0 && "${RUN_OPENCODE}" -eq 0 && "${RUN_GROK}" -eq 0 ]]; then
+        log "PI-only run: leaving legacy ${MANIFEST} untouched; shared skills use the neutral manifest."
+        report "manifest: legacy manifest untouched (PI-only)"
+        return 0
+    fi
     if [[ "${APPLY}" -eq 0 ]]; then
         log "[DRY-RUN] would write ${MANIFEST}"
         report "manifest: [DRY-RUN] not written"
@@ -1402,7 +1667,13 @@ step_write_manifest() {
                 scope=$(manifest_entry_scope "${rel}")
                 case "${scope}" in
                     claude) [[ "${RUN_CLAUDE}" -eq 1 ]] && continue ;;
-                    shared) [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]] && continue ;;
+                    shared)
+                        if [[ "${RUN_CLAUDE}" -eq 1 && "${RUN_CODEX}" -eq 1 && "${RUN_OPENCODE}" -eq 1 && "${RUN_GROK}" -eq 1 && "${RUN_PI}" -eq 1 ]]; then
+                            continue
+                        fi
+                        echo "${rel}"
+                        continue
+                        ;;
                     codex) [[ "${RUN_CODEX}" -eq 1 ]] && continue ;;
                     opencode) [[ "${RUN_OPENCODE}" -eq 1 ]] && continue ;;
                     grok) [[ "${RUN_GROK}" -eq 1 ]] && continue ;;
@@ -1430,7 +1701,7 @@ step_write_manifest() {
         # paths that DO exist) already reached stdout.
         if [[ "${RUN_CLAUDE}" -eq 1 ]]; then
             [[ -f "${REPO_ROOT}/global/CLAUDE.md" ]] && echo "CLAUDE.md"
-            find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
+            find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
             find "${REPO_ROOT}/global/hooks" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|' || true
             # Injected references are deployed into ~/.claude/skills by
             # deploy_injected_references but exist ONLY in the generated tree, so
@@ -1447,16 +1718,6 @@ step_write_manifest() {
                     echo "skills/${inj_skill}/references/${inj_base}"
                 done
             done
-        fi
-        if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 || "${RUN_GROK}" -eq 1 ]]; then
-            # Walk the tree that is actually DEPLOYED (harness/agents-skills),
-            # never global/skills. The generated tree carries files the source
-            # does not — agents/openai.yaml, the injected references/ — and a
-            # deployed file missing from the manifest is immortal: no orphan
-            # sweep can ever confirm it. Cost of getting this wrong, measured
-            # 2026-08-18: five agents/openai.yaml of dissolved skills survived a
-            # --force-delete-orphans run because the manifest never knew them.
-            find "${REPO_ROOT}/harness/agents-skills" -type f 2>/dev/null | sed "s|^${REPO_ROOT}/harness/agents-skills/|agents-skills/|" || true
         fi
         if [[ "${RUN_CODEX}" -eq 1 ]]; then
             find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|\.md$|.toml|; s|^|codex-agents/|' || true
@@ -1495,7 +1756,7 @@ step_write_manifest() {
 step_final_report() {
     echo "===================================================================="
     echo "deploy-global.sh report — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN) | scopes: claude=${RUN_CLAUDE} codex=${RUN_CODEX} opencode=${RUN_OPENCODE} grok=${RUN_GROK}"
+    echo "mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN) | scopes: claude=${RUN_CLAUDE} codex=${RUN_CODEX} opencode=${RUN_OPENCODE} grok=${RUN_GROK} pi=${RUN_PI}"
     echo "===================================================================="
     if [[ -s "${REPORT_LOG}" ]]; then
         cat "${REPORT_LOG}"
@@ -1515,6 +1776,16 @@ step_final_report() {
             echo "  tar -xzf ${HARNESS_BACKUP_FILE} -C ${OPENCODE_HOME} opencode.json"
         fi
     fi
+    if [[ -n "${PI_BACKUP_PATH}" && "${APPLY}" -eq 1 ]]; then
+        echo ""
+        echo "PI rollback:"
+        echo "  python3 ${PI_DEPLOY_HELPER} rollback --pi-dir \"${PI_AGENT_DIR}\" --backup-dir \"${PI_BACKUP_PATH}\" --apply"
+    fi
+    if [[ -n "${SHARED_BACKUP_PATH}" && "${APPLY}" -eq 1 ]]; then
+        echo ""
+        echo "Shared-skills rollback:"
+        echo "  python3 ${PI_DEPLOY_HELPER} shared rollback --shared-root \"${AGENTS_HOME}\" --backup-dir \"${SHARED_BACKUP_PATH}\" --apply"
+    fi
     if [[ "${RUN_CODEX}" -eq 1 || "${RUN_OPENCODE}" -eq 1 ]]; then
         echo ""
         echo "Reminder: harness/{codex,opencode}/*.snippet config merges (plugin/hook"
@@ -1525,7 +1796,7 @@ step_final_report() {
         echo "itself to register them — this reminder is that prompt."
     fi
     echo ""
-    echo "Reminder: restart Claude Code / Codex / opencode / Grok (or open a new session) to reload."
+    echo "Reminder: restart Claude Code / Codex / opencode / Grok / PI (or open a new session) to reload selected scopes."
 }
 
 # ---------------------------------------------------------------------------
@@ -1535,19 +1806,22 @@ step_final_report() {
 main() {
     parse_args "$@"
     check_deps
+    [[ "${RUN_PI}" -eq 1 ]] && check_pi_deps
 
     REPORT_LOG=$(mktemp)
     register_tmp "${REPORT_LOG}"
 
     log "deploy-global.sh — mode: $([[ ${APPLY} -eq 1 ]] && echo APPLY || echo DRY-RUN)"
-    log "scopes — claude:${RUN_CLAUDE} codex:${RUN_CODEX} opencode:${RUN_OPENCODE} grok:${RUN_GROK}"
+    log "scopes — claude:${RUN_CLAUDE} codex:${RUN_CODEX} opencode:${RUN_OPENCODE} grok:${RUN_GROK} pi:${RUN_PI}"
 
+    step_harness_rebuild
+    step_preflight_selected
     step_preview
     step_diff
     step_backup
     step_backup_harness_config
-    step_harness_rebuild
     step_detect_orphans
+    step_deploy_pi
     step_deploy_claude
     step_deploy_hooks
     step_deploy_shared_harness

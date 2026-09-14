@@ -23,6 +23,9 @@ __pycache__/
 .engram/*
 !.engram/config.json
 
+# PI runtime development dependencies
+/harness/pi/node_modules/
+
 # Private optional research sources
 /_support/workspace/
 /CLAUDE.local.md

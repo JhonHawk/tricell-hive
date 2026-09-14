@@ -166,8 +166,8 @@ UI login.
 | Remote Cache | Ephemeral runners lose local cache. `TURBO_TOKEN` + `TURBO_REMOTE_CACHE_SIGNATURE_KEY` as Actions secrets, `TURBO_TEAM` as variable, `"remoteCache": {"signature": true}`. HMAC key is `openssl rand -hex 32`, never the Vercel token itself |
 
 Vercel token: `vercel tokens add` from the CLI can 403 — create it in the UI
-(vercel.com/account/tokens, team scope). Store per `security.md` (secret manager; `op`
-else keychain). Seed repos via `gh secret set TURBO_TOKEN` from stdin. Without the token
+(vercel.com/account/tokens, team scope). Store per `security.md` in the user-approved
+manager; 1Password requires an explicit request. Seed repos via `gh secret set TURBO_TOKEN` from stdin. Without the token
 the hygiene PR still merges — the cache is opt-in.
 
 NOT in this batch: pnpm catalogs, Changesets, Knip, CODEOWNERS, Dependabot, Docker layer

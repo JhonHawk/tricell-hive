@@ -1,209 +1,412 @@
 # Plan format — the executable, harness-agnostic plan
 
-A plan written in native plan mode (captured by the plan-capture hook) is **two things at
-once**: the contract another harness executes, and the durable state of that execution.
-Both roles impose the same discipline — the plan must be self-sufficient.
+A Hive plan is a human-readable Markdown contract plus mutable approval and
+execution metadata. The contract is the part another harness executes; its
+exact bytes are bound to the approval by SHA-256. The metadata lets a plan
+advance, pause, resume, or record delivery without changing the approved
+instructions.
 
-## Two invariants
+## Layout and ownership
 
-1. **Self-contained — written for an engineer with zero context.** The executor may be a
-   different model on a different harness that never saw the research, the conversation, or
-   the spec discussion. Every task carries its exact files, interfaces, atomic steps, and a
-   verification command with its expected output. No "as discussed", no "similar to T2", no
-   "TBD". The judgment was front-loaded by the planner; the executor runs and compares.
-2. **Harness-neutral.** No step names a Claude-Code-only mechanic. Where a step needs a
-   harness mechanic (dispatch, plan-gate, review), describe the *action* and let
-   `references/harness-mechanics.md` translate it. The plan must read the same to grok on
-   opencode and to Claude Code.
+The plan has five independent areas:
 
-## Plan header
+1. `Status:` is one mutable line outside the contract. It is one of `draft`,
+   `planned`, `building`, `built`, or `verified`.
+2. The contract is ordinary Markdown between the contract markers. It contains
+   the goal, scope, decisions, interfaces, tasks, and verification recipe.
+3. Authorization is one fenced JSON block outside the contract. It binds the
+   contract digest to user evidence and exact action/target grants.
+4. The execution table is ordinary Markdown outside the contract. It records
+   task progress and delivery evidence; edits to it do not change the digest.
+   A separate mutable test-evidence table records the declared test approach
+   and its RED/GREEN or characterization evidence.
+5. Recovery is an optional fenced JSON block outside the contract and
+   authorization. It records meaningful attempts so a resumed run can
+   reconcile an interrupted operation before repeating it.
+
+The contract markers are exact and must occur once each:
 
 ```markdown
-# <Feature> — Plan
+<!-- hive-plan:contract:start -->
+<!-- hive-plan:contract:end -->
+```
 
-Status: planned        ← planned | building | built | verified  (see state machine below)
-Implements: <epic / task / decision refs>     ← back-reference to the intention layer
-Spec: <path to design spec, if any>
+The authorization markers are exact and must occur once each:
+
+```markdown
+<!-- hive-plan:authorization:start -->
+<!-- hive-plan:authorization:end -->
+```
+
+The recovery markers are optional, but when present they are exact and must
+occur once each:
+
+```markdown
+<!-- hive-plan:recovery:start -->
+<!-- hive-plan:recovery:end -->
+```
+
+Recovery metadata must stay outside both the contract and authorization
+blocks. A plan created before recovery support has no recovery history; that
+absence is reported as `unknown` and is never treated as zero attempts.
+
+The bytes hashed are every UTF-8 byte after the contract start marker and
+before the contract end marker, including their leading and trailing
+whitespace. Status, authorization, and execution text are outside that byte
+range.
+
+The contract stays Markdown. Do not replace it with a JSON schema or put
+machine metadata inside it. The validator checks only that the contract is
+valid UTF-8, non-empty, and contains a Markdown heading; the flow and review
+stages own its domain-specific completeness.
+
+## Canonical shape
+
+````markdown
+# Feature — Plan
+
+Status: planned
+
+<!-- hive-plan:contract:start -->
+## Contract
+
+Implements: <epic, issue, or decision reference>
+Spec: <path to the design spec, if any>
 Goal: <one line>
-Architecture: <2-3 sentences>
-Integration: <integration branch · merge mechanics · which CI gates each PR>
-```
-
-`Status` is the only line that mutates during execution — keep it on its own line, first,
-for cheap reads (`flow-build` reads it before anything else).
-
-## The state machine (the plan IS the state)
-
-The pair *(`Status` header, git)* is the entire execution state — no separate ledger,
-nothing in session memory. Any harness reconciles from these two and continues.
-
-```
-planned ──build──► building ──all tasks landed──► built ──in-vivo gate──► verified
-```
-
-| `Status` | Meaning | Source of truth |
-|---|---|---|
-| `planned` | written, approved, nothing executed | — |
-| `building` | execution in progress | which tasks are done = which appear in `git log` |
-| `built` | every task landed in git | git log shows all task IDs |
-| `verified` | the in-vivo/review gate passed | the versioned in-vivo report |
-
-- **Task-level state lives in git, never in the plan.** A task is done when its commit is in
-  the log — not when a box is checked. This is why the plan stays trustworthy across
-  harnesses and compactions: git is the authority, the header is a coordination flag the
-  reviewer re-checks against git before trusting (same ledger-vs-git discipline as the rest
-  of the pack).
-- **`flow-build` advances `Status`**, never the planner. The reviewer advances `built →
-  verified`.
+Scope: <what changes>
+Exclusions: <what remains outside this plan>
+Architecture: <the selected approach and its boundaries>
+Integration: <branch, merge mechanics, and applicable CI gates>
 
 ## Decisions to close before executing
 
-When any decision blocks task detail, the plan carries a **Decisions to close BEFORE executing**
-section above the tasks — the approval gate resolves them so execution is mechanical, never a
-drip of mid-task questions (`gap-resolution.md > Decisions to close before executing`).
+| Decision | Resolution | Type | Blocks |
+|---|---|---|---|
+| D1 | <resolved choice> | technical or stakeholder | T1 |
 
-```markdown
-## Decisions to close BEFORE executing
+### T1: <imperative title>
 
-| Decision | Point | What's decided | Type | Recommendation | Blocks |
-|---|---|---|---|---|---|
-| D1 | <spec/AC ref> | <the choice> | technical | <your call> | T3, T4 |
-| D2 | <spec/AC ref> | <the choice> | stakeholder | <your call> | T1 |
+in-vivo: yes | no
+design-review: yes
+Agent: <agent name, when a routing row applies>
+Test approach: tdd | characterization | not-applicable
+Files:
+  - Create: <exact path>
+  - Modify: <exact path>
+Interfaces:
+  - Consumes: <known input>
+  - Produces: <output consumed later>
 
-> Resolution path: technical rows confirmed with a peer/tool; stakeholder rows ratified in the
-> approval gate.
+- Step 1: <one action>
+- Step 2: <one action>
+Verify: `<command>` — Expected: `<result>`
+Commit: feat(<scope>): T1 <subject>
+<!-- hive-plan:contract:end -->
+
+## Execution
+
+| Task | State | Evidence |
+|---|---|---|
+| T1 | pending | |
+
+## Test evidence
+
+| Task/case | Approach | Baseline | RED | GREEN | Refactor | Exception |
+|---|---|---|---|---|---|---|
+| T1/<case> | tdd | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | |
+
+<!-- hive-plan:recovery:start -->
+```json
+{
+  "schema": "hive-plan/recovery.v1",
+  "plan_id": "feature-slug",
+  "attempts": []
+}
+```
+<!-- hive-plan:recovery:end -->
+
+<!-- hive-plan:authorization:start -->
+```json
+{
+  "schema": "hive-plan/authorization.v1",
+  "plan_id": "feature-slug",
+  "contract_sha256": "<64 lowercase hexadecimal characters>",
+  "approval": {
+    "evidence": "The user's explicit authorization or an exact reference to it.",
+    "date": "2026-09-10",
+    "revision": 1
+  },
+  "grants": [
+    {
+      "id": "grant-implement",
+      "action": "implement",
+      "targets": ["repo:feature-slug"],
+      "conditions": [],
+      "evidence": "The user's explicit instruction authorizing implementation."
+    }
+  ],
+  "revocations": []
+}
+```
+<!-- hive-plan:authorization:end -->
+````
+
+`plan.py digest <plan>` computes the digest after the contract has been
+written. The resulting value is copied into `authorization.contract_sha256`.
+The authorization block is then updated without touching the contract.
+
+## Authorization metadata
+
+The authorization object is intentionally narrow:
+
+- `schema` must be `hive-plan/authorization.v1`.
+- `plan_id` identifies the plan instance and is reported during inspection.
+- `contract_sha256` must equal the digest of the exact current contract bytes.
+- `approval.evidence` records the user evidence. It documents provenance; it
+  is not a cryptographic signature or proof of human identity.
+- `approval.date` is an ISO-like local date or timestamp, and `revision` is a
+  positive integer incremented when the authorization is replaced.
+- The `grants` list may be empty for an approved design-only plan. Each grant
+  has a unique `id`, one lowercase action name, one or more exact `targets`, a
+  `conditions` list, and non-empty `evidence` binding that grant to the user
+  instruction. Targets are compared by exact equality;
+  wildcard characters are rejected and no implicit path, branch, or resource
+  inheritance exists.
+- A revocation names an existing grant by `grant_id`, records a non-empty
+  `reason`, `evidence`, and `revoked_at`, and takes effect for the current authorization.
+  To grant the same action again, add a new grant with a new ID and a new
+  authorization revision.
+
+Each condition is an object with a non-empty `requirement` and an `evidence`
+string. Empty evidence means the condition is pending and validation fails
+closed. Non-empty evidence records that the condition was satisfied; the flow
+still owns freshness and independent verification. A satisfied condition does
+not require asking for the same user approval again. This small validator does
+not attest tests, deployments, or human consent.
+
+`validate <plan> --action <action> --target <target>` is the authority check
+for one concrete action. It succeeds only when:
+
+1. the document, authorization metadata and optional recovery metadata are well-formed;
+2. the plan is not `draft`;
+3. the authorization digest matches the current contract;
+4. the exact action and target occur in an active grant; and
+5. that grant has no unresolved conditions.
+
+Action/state compatibility is closed by the validator: `implement` is valid
+only in `planned` or `building`; `verify` is valid in `built` or `verified`;
+`commit`, `push`, `pr`, `merge`, and `deploy` are valid only in `verified`.
+Unknown actions and actions at another status fail closed. This keeps a
+publication grant from bypassing verification and prevents `verified` from
+silently reopening implementation.
+
+An action absent from all grants is `undeclared_operation`. An action present
+with a different target is `undeclared_destination`. A matching grant covered
+by a revocation is `grant_revoked`. These are separate machine-readable error
+codes in the CLI result.
+
+## Recovery metadata
+
+The recovery block is mutable operational evidence. It is not part of the
+contract digest, does not authenticate the user, and does not grant or revoke
+any action. The coordinator is the only writer; delegated workers return
+evidence to the coordinator instead of editing the plan concurrently.
+
+`recovery.plan_id` must match the bound authorization's `plan_id`; this binds
+the history to the same plan instance without claiming that the history is
+tamper-proof.
+
+`attempts` is an ordered list. Each entry has a unique `id`, strictly
+increasing positive `sequence`, one canonical `kind` (`task`, `delegation`,
+`fix`, `review`, or `remote`), a stable semantic `scope`, the
+`contract_sha256` observed when the attempt began, `started_at`, `outcome`, and
+non-empty `evidence`. A completed entry also has `ended_at`. `started` means
+the attempt is still open; `unknown` and `interrupted` mean its result must be
+reconciled before another attempt. Optional `task` and `predecessor` fields
+connect an entry to a plan task or an earlier attempt. A `predecessor` must
+refer to an earlier entry.
+
+The same semantic `kind` and `scope` retain their counters across contract
+digests. A different scope has an independent budget. The validator does not
+infer that a changed digest is a new budget or that an absent history is an
+empty budget; the reconciler decides that from observed evidence. A remote
+failed attempt may carry one `exception` with type `verified_transient` and
+its evidence. It is excluded from the remote failed-operation count only as
+that narrow exception.
+
+The bounded budgets are:
+
+| Kind | Budget | Counted attempts |
+|---|---:|---|
+| `task` | none | ordinary task state; no retry budget is inferred |
+| `delegation` | 2 total | initial dispatch plus one rerun |
+| `fix` | 3 | failed attempts for the same problem scope |
+| `review` | 2 total | correction rounds for the same review scope, including a successful closure |
+| `remote` | 2 | failed operations, excluding one verified transient exception |
+
+These limits do not authorize a run. They only answer whether the recorded
+scope can continue. An open or ambiguous attempt requires reconciliation of
+the workspace, Git, process, or remote state before repeating it. A successful
+`review` attempt returns `completed` and closes that review kind/scope
+permanently, including across later contract digests; use a new semantic scope
+for an independent review. Successful task, delegation, fix and remote
+attempts remain evidence while their scope may continue according to its own
+budget. A completed result remains evidence even when a later delivery was
+interrupted.
+
+## Status and execution state
+
+The status line is outside the frozen contract and can change without
+changing its digest:
+
+```text
+draft ──approval──> planned ──start──> building ──tasks done──> built ──gate──> verified
 ```
 
-- *Technical* rows the planner confirms with a peer/tool (a second model, context7, a quick test);
-  *stakeholder* rows fold into the plan-approval question block.
-- A row that blocks no task does not belong here — resolve it inline. Omit the whole section when
-  no decision blocks detail; never include it empty.
-
-## Preflight — resources confirmed at plan time, not at point of use
-
-The plan's approval is the last interruption; a missing credential found mid-execution kills the
-autonomy. Derive the resource list from the WHOLE flow (implementation, the in-vivo gate, and what
-promoting to qa/prod will need) and resolve it NOW. Check presence, never print values:
-
-| Resource class | Verify |
+| Status | Meaning |
 |---|---|
-| Env/config | `.env.<env>` and config files the tasks read exist |
-| CLI auth | `gh auth status`, `aws sts get-caller-identity` / `hcloud` for the accounts touched |
-| Domain tools | CLIs beyond gh/aws/hcloud (tunnels, webhook simulators, provider CLIs) — `which`/`--version`; missing → ask before installing |
-| Services | DB/Redis/queues reachable (or note how they start) |
-| Integrations | tracker access works; external sandbox tokens present — including the in-vivo gate's credentials |
-| Test baseline | the touched suite runs before T1 (affected subset per `testing.md`); a red baseline is a Preflight decision for the user, never absorbed silently |
+| `draft` | Contract is being prepared; execution is not authorized. |
+| `planned` | Contract and authorization are bound; implementation has not started. |
+| `building` | An authorized implementation is in progress. |
+| `built` | Planned implementation tasks have landed and their task checks ran. |
+| `verified` | Applicable verification and review gates passed. Delivery may still be pending. |
 
-What is checkable gets reported `ok`/`missing`; what needs the user goes in a **Preflight section**
-of the plan as explicit asks. The plan is not ready for approval while a known-needed resource is
-unresolved. This applies to any plan that will be executed, including one written in native plan
-mode and captured by the plan-capture hook.
+The execution table is a mutable report, not an authorization source. It can
+record `pending`, `in_progress`, `done`, or `blocked` per task, plus evidence
+for commits, tests, review, and delivery. The reconciler compares those
+claims with the workspace, Git, and executed checks before advancing status.
+Changing a progress row must leave `contract_sha256` unchanged.
 
-## Delivery pauses — how many times the user sees it before the plan ends
-
-One review of everything at the end is where a plan turns into a pile of rework. **Plans with 4+
-file-modifying tasks** (the checkpoint threshold in `git-mechanics.md > Commits`) close this at the
-plan gate, BEFORE the first edit — splitting at push time saves nothing, the lines are already
-written. The gate proposes, it does not ask for a number:
-
-1. **N pauses**, each one named: after which task it falls and what the user can exercise there.
-   The cuts land on seams the plan already declares — a task whose `Interfaces: Produces` closes a
-   contract the following ones consume, never an arbitrary count of tasks.
-2. **One review when the whole plan is met** — a single delivery.
-
-Accepting pauses IS choosing `interactive` for those stretches: each pause is a validation, and the
-chain resumes on it. Under `hold` it does not apply — everything is a diff at close. The chosen
-answer goes in the plan and binds execution; a plan that runs past its own pause is a defect.
-
-**Review-workload forecast rides the same gate.** Estimate the change-group's changed lines; past
-~400 (the same threshold `agent-routing.md` uses for refuter fan-out — one operative number in the
-system), the gate proposes the PR split (chained or stacked, cut at the plan's own seams) alongside
-the pauses — the chain strategy is the user's pick. Splitting at push time saves nothing.
+`verified` means quality gates passed. It does not grant commit, push, merge,
+release, or deploy permission. Those operations require corresponding active
+grants and the session's existing Git and deployment gates. A plan may carry
+those grants from the initial approval, so one explicit authorization can
+cover implementation and publication when the user clearly requested both —
+the session git mode chosen at the plan gate supplies them
+(`> Delivery grants from the session mode`).
 
 ## Task block
 
-Every task is independently executable and independently trackable.
+Every task is independently executable and independently trackable. The
+contract must be self-contained for an engineer on another harness:
 
-```markdown
-### T<n>: <imperative title>
+- `in-vivo:` is mandatory. Set `yes` when the task needs a live walk; otherwise
+  set `no`.
+- `design-review: yes` opts a user-facing UI task into the visual-craft gate.
+- `Agent:` is an optional routing annotation. A harness without that roster
+  executes the recipe directly and reports the substitution.
+- `Test approach:` is mandatory for every task and is one of `tdd`,
+  `characterization`, or `not-applicable`, as defined by `quality/testing.md`.
+  `tdd` covers automatically checkable behavior and reproducible bugs;
+  `characterization` covers pure refactors; and `not-applicable` requires a
+  concrete reason when no useful automatic check exists. The task's approach
+  and evidence are repeated in the mutable `Test evidence` table outside the
+  contract digest.
+- `Verify:` pairs a command with its expected output. A step without an
+  observable expected result is not a verification step.
+- `Commit:` carries the local task tag (`T1`, `T2`, and so on). It describes
+  the intended commit; the execution table and Git remain the evidence that it
+  happened.
 
-in-vivo: yes | no        ← does this task need a live walk? planner decides (UI/integration → yes; pure logic → no)
-design-review: yes       ← opt-in: user-facing UI task → flow-build's Visual-craft gate walks it; omit the line for non-UI tasks
-Agent: <agent-name>      ← optional routing annotation: the routing-table executor when a row covers the task (agent-routing.md); omit when none applies
-Files:
-  - Create: <exact/path>
-  - Modify: <exact/path:lines>
-Interfaces:
-  - Consumes: <signatures/types from earlier tasks — exact>
-  - Produces: <signatures/types later tasks depend on>
+When a decision blocks task detail, resolve it in `Decisions to close before
+executing` and include the resolution in the approved contract. Do not leave
+`TBD` decisions for the implementation stage.
 
-- [ ] Step 1: <one action — code, command, or edit>
-- [ ] Step 2: ...
-Verify: `<command>` — Expected: `<result>`
-Commit: feat(<scope>): T<n> <subject>
+The TDD cycle is implementation evidence, not a second approval boundary:
+observe RED before the corresponding implementation, then GREEN and any
+necessary refactor check. A test approach cannot imply an unobserved RED. If
+implementation for a `tdd` task already exists without RED evidence, preserve
+it, record the missing RED in `Test evidence`, and request an explicit user
+exception. Until the user accepts the exception, the task cannot be complete,
+the plan cannot reach `built` or `verified`, and delivery cannot proceed. An
+accepted exception waives chronology only: the actual
+fail-to-pass comparison, pass-to-pass evidence and independent checks remain
+required, using a safe isolated pre-change baseline when needed; record the
+completion label `exception-accepted`, never strict TDD. Do not alter a
+completed legacy plan to retrofit this table. When an active legacy plan
+resumes, resolve the approach for each pending task without silently changing
+its frozen contract; a material verification change requires a new contract
+revision and approval.
+
+## Proportionality and delivery
+
+Small work may combine definition and planning in one short contract. Larger
+work can include separate specification, design, and task sections or split
+into parts. The approval boundary remains the contract digest and its active
+grants; adding a file or editing the execution table does not silently expand
+the approved scope.
+
+An approval can grant implementation and publication together. A material change to the
+objective, contract scope, interfaces, tasks, or verification requires a new contract revision
+and new user approval. Expanding Authorization to an operation or target already covered by the
+frozen contract records new user evidence and increments the authorization revision without
+changing the contract digest. Narrowing or revoking a grant updates Authorization or revocations
+without a contract revision; an operation or target outside the frozen contract scope requires
+one. A positive review is evidence of quality, not a new grant.
+
+### Delivery grants from the session mode
+
+The session git mode chosen at the plan gate (`git-mechanics.md > Commits`) IS the delivery
+consent: the user picks a mode, never `commit`/`push`/`pr`/`merge` one by one. Record the mode
+as grants, every target the exact base branch:
+
+| Mode | Grants | Condition on every delivery grant |
+|---|---|---|
+| `interactive` | `commit`, `push`, `pr`, `merge` | `user-validated-in-vivo` — evidence empty until the user validates the running build |
+| `automatic` | `commit`, `push`, `pr`, `merge` | none; the same condition is added when the change-group lands on a user-judged surface |
+| `direct-base` | `commit`, `push` | none |
+| `hold` | none | the commit lands on the user's approval of the diff |
+
+The `merge` grant is checked at run time against the four conditions `interactive` names
+(checks green, no conflicts with the base, no blocking Phase B finding, base not the
+production-deploying branch) — gates the agent verifies, not consent it asks for; one failing
+asks, naming which. Once the user's validation fills the condition's evidence, the chain runs
+commit → push → PR → Phase B → merge with no second ask: **the merge is the agent's under both
+modes, never reserved for the user.** What stays the user's in every mode is the in-vivo
+validation itself and any merge or promotion into the production-deploying branch
+(`git-workflow.md > Safety gates`). A plan that omits `merge` under `interactive` or `automatic`
+records a narrowing the user asked for explicitly, never the default reading of the mode.
+`deploy` is granted only when the user names it. A repo or session declaring the `human`
+review route (`git-mechanics.md > PRs & promotion`) drops `merge` from the grant set: the
+change-group closes at the open PR handed to that reviewer.
+
+When adopting a legacy or organic plan, normalize it before treating it as executable. A legacy
+status, location or native harness approval supplies no authority. If the normalized contract is
+unchanged and the current user request explicitly covers implementation, record that request as
+the `implement` grant evidence; otherwise clarify the exact scope before editing.
+
+## CLI
+
+The standard-library validator is read-only and emits JSON. It never writes a
+plan, changes status, updates progress, or authenticates the human evidence.
+
+```sh
+python3 path/to/plan.py inspect path/to/plan.md
+python3 path/to/plan.py digest path/to/plan.md
+python3 path/to/plan.py validate path/to/plan.md \
+  --action implement --target repo:feature-slug
+python3 path/to/plan.py recovery-check path/to/plan.md \
+  --kind delegation --scope T1
 ```
 
-Rules:
-- **`<n>` is local to the plan** (`T1`, `T2`…), not a tracker ID. The mapping to Linear/Jira
-  is an optional downstream projection — the plan never depends on the tracker to know what
-  is done. The commit's `T<n>` tag is what derives task-state from `git log`.
-- **`in-vivo:` is mandatory per task** so the gate is never assumed or omitted. `flow-build`
-  reads these to know which tasks need a walk; the *timing* (inline vs deferred) is a
-  once-per-run decision, not per task (see `flow-build`). **`design-review:` is its opt-in
-  sibling** — set `yes` on user-facing UI tasks to route them through flow-build's
-  Visual-craft design gate; absent means no.
-- **The walk of an `in-vivo: yes` task runs via `in-vivo-qa-tester` wherever the agent roster
-  exists** — the same dispatch `flow-build`'s gate makes mechanical, and it includes the role's
-  adversarial half, not just the plan's happy-path checklist. `Agent:` makes any other
-  routing-row executor plan-visible without breaking harness-neutrality: a harness without the
-  roster executes the recipe directly. Running a walk or an `Agent:`-annotated task inline
-  when the roster IS available is a **substitution** — reported at close with its one-line
-  justification, never silent. This duty travels with the plan: a protocol run by hand outside
-  `/flow-build` inherits it identically.
-- **`Verify:` pairs a command with its expected output** (handoff-protocol element 4). A step
-  whose expected result you cannot state is not a verification step yet. This is what lets a
-  cheaper executor verify mechanically instead of judging.
-- **`Commit:` uses the `T<n>` tag** — one commit per completed-and-verified task, never a
-  batch. The tag is load-bearing: it is how any harness reads execution state from git.
+Successful commands exit zero. Rejected or malformed plans emit an `error`
+object with a stable `code` and exit non-zero. `inspect` distinguishes a
+well-formed bound authorization from an `unbound` digest, while `can_implement`
+is true only for a non-draft plan with an active, condition-satisfied
+`implement` grant. A design-only plan may be bound and inspectable while
+returning `can_implement: false`.
 
-## Large scope — split into parts (an initiative)
+`inspect` includes a recovery summary. `status: known` means the block is
+present, including an explicitly initialized empty `attempts` list;
+`status: unknown` means the plan predates recovery metadata and must be
+reconciled before repeating work. `recovery-check` is read-only and returns a
+structured `continue`, `reconcile`, `completed`, or `exhausted` decision. It
+exits zero only for `continue`; unresolved, completed, or exhausted recovery
+exits non-zero. It never checks or creates action grants, so callers still run
+`validate` for an authorized implementation or delivery action.
 
-When the scope proves too dense for one plan during native plan-mode writing, propose
-splitting and create an **initiative** (`project-structure.md > Session capture layer`):
-
-```
-sessions/<start-date>-<slug>/
-  plan/
-    <slug>-plan.md     ← master: header + the part index (lists 00-NN with their Status)
-    00-<part>.md       ← each part is a full plan body (own Status, own tasks T1..Tn)
-    01-<part>.md
-```
-
-- **Each part carries its own `Status`.** A part can be `verified` while another is `planned`
-  — `flow-build` targets the part you point it at and reconciles that part independently.
-- **The master plan's part index is a dashboard.** To avoid drift, the truth of each part's
-  status is the part file's own header; the master lists the parts and may mirror their
-  status, but the part file wins.
-- A single-file plan (one `<slug>-plan.md`, no `plan/` folder) is the default; only split
-  when density warrants it.
-
-## Example (single task)
-
-```markdown
-### T3: Add idempotency key to the send-message endpoint
-
-in-vivo: yes
-Agent: backend-developer
-Files:
-  - Modify: src/modules/messages/messages.controller.ts
-  - Modify: src/modules/messages/dto/send-message.dto.ts
-Interfaces:
-  - Consumes: SendMessageDto (from T2)
-  - Produces: header `Idempotency-Key` honored; duplicate within 10m → 200 with prior result
-
-- [ ] Step 1: add `idempotencyKey?: string` to SendMessageDto with @IsUUID() @IsOptional()
-- [ ] Step 2: in the controller, look up the key in Redis before persisting; on hit, return the stored response
-- [ ] Step 3: on miss, persist (key → response, TTL 10m) after a successful send
-Verify: `pnpm test messages.idempotency.spec` — Expected: `4 passing, 0 failing`
-Commit: feat(messages): T3 idempotency key on send endpoint
-```
+Verification uses `inspect`, not `validate --action verify`: it requires the current digest,
+authorization status `valid` or `conditional`, and observed status `built` or `verified`. An
+explicit `verify` request or an explicit normal `/flow-build` invocation reaching the Gate is
+the verification authority; no `implement` grant is required. `validate` is reserved for an
+action and target that require an active grant, including implementation and delivery.

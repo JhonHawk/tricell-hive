@@ -159,26 +159,21 @@ fi
 
 # --- 4. Stale hive-profile block (report-only) --------------------------------
 # A repo carrying a compiled hive profile (harness/hive-compile.py) stamps the
-# hive SHA it was generated from. When the hive has moved past that SHA
-# touching global/rules/ or the classifier itself, the block may assert stale
-# facts — ONE advisory line, never a mutation. Skipped silently when the hive
-# checkout is absent (other machines) or the cwd repo carries no profile.
+# hive SHA it was generated from. The verdict is delegated to the compiler's
+# own `--check` (one source of truth: SHA range as the cheap signal, compiled
+# content as the verdict — a rules commit that leaves the profile identical is
+# not staleness). ONE advisory line, never a mutation. Skipped silently when
+# the hive checkout is absent (other machines) or the cwd repo carries no profile.
 hive_profile_stale=""
 hive_stamp=""
 HIVE_REPO="${HIVE_REPO:-$HOME/Development/projects/tricell/tricell-hive}"
-if [ -n "$session_cwd" ] && [ -d "$HIVE_REPO/.git" ]; then
+if [ -n "$session_cwd" ] && [ -f "$HIVE_REPO/harness/hive-compile.py" ]; then
   profile_root=$(git -C "$session_cwd" rev-parse --show-toplevel 2>/dev/null || true)
   if [ -n "$profile_root" ] && [ -f "$profile_root/AGENTS.md" ] \
      && grep -q 'hive-profile:start' "$profile_root/AGENTS.md" 2>/dev/null; then
     hive_stamp=$(grep -oE 'hive@[0-9a-f]+' "$profile_root/AGENTS.md" 2>/dev/null | head -1 | cut -d@ -f2)
-    hive_head=$(git -C "$HIVE_REPO" rev-parse --short HEAD 2>/dev/null || true)
-    if [ -n "$hive_stamp" ] && [ -n "$hive_head" ] && [ "$hive_stamp" != "$hive_head" ]; then
-      if ! git -C "$HIVE_REPO" rev-parse --verify --quiet "${hive_stamp}^{commit}" >/dev/null 2>&1; then
-        hive_profile_stale="hive-profile stale (stamp hive@${hive_stamp} unknown to the hive checkout); run harness/hive-compile.py"
-      elif [ -n "$(git -C "$HIVE_REPO" log --name-only "${hive_stamp}..HEAD" -- global/rules/ harness/hive-compile.py 2>/dev/null)" ]; then
-        hive_profile_stale="hive-profile stale (hive moved ${hive_stamp}→${hive_head} touching rules/); run harness/hive-compile.py"
-      fi
-    fi
+    check_out=$(python3 "$HIVE_REPO/harness/hive-compile.py" "$profile_root" --check 2>&1) || \
+      hive_profile_stale="hive-profile ${check_out}"
   fi
 fi
 if [ -n "$hive_profile_stale" ]; then

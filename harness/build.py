@@ -17,6 +17,7 @@ Generates (delete-and-recreate, never incremental):
     harness/codex/agents/         <- global/agents   (Codex TOML subagents)
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
     harness/grok/agents/          <- global/agents   (Grok Build markdown agents)
+    harness/pi/agents/            <- global/agents   (PI pi-subagents agents)
     harness/opencode/rules/       <- global/rules/languages (opencode-rules plugin format)
 
 Hand-written sources are never touched: harness/codex/{README, *.snippet},
@@ -34,7 +35,6 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BUILD = ROOT / "harness" / "build"
 
 # AGENTS.md is the always-on core shared by Codex, opencode and Grok — paid in
 # full at the start of EVERY session, in every project. That cost, not a byte
@@ -387,11 +387,155 @@ by `harness/build.py`. Edit the canonical file and rebuild; hand edits here
 are overwritten on the next build.
 """
 
+GENERATED_TREE_RELATIVE_PATHS = (
+    Path("harness/agents-skills"),
+    Path("harness/codex/agents"),
+    Path("harness/opencode/agents"),
+    Path("harness/grok/agents"),
+    Path("harness/pi/agents"),
+    Path("harness/opencode/rules"),
+)
+
 
 def regen_dir(path: Path):
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True)
+
+
+def generate_generated_trees(output_root: Path, source_root: Path = ROOT):
+    """Generate every non-core derived tree beneath output_root.
+
+    source_root supplies the canonical inputs and converter scripts. Keeping the
+    output root independent lets --check use this exact pipeline in a temporary
+    directory without touching the working tree.
+    """
+    build_dir = source_root / "harness" / "build"
+
+    # Universal skills (Codex + opencode read ~/.agents/skills)
+    skills_out = output_root / "harness" / "agents-skills"
+    regen_dir(skills_out)
+    subprocess.run(
+        [sys.executable, str(build_dir / "convert-skills.py"),
+         str(source_root / "global" / "skills"), str(skills_out)],
+        check=True,
+    )
+    (skills_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
+
+    # Per-harness agents
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(
+            [sys.executable, str(build_dir / "convert-agents.py"),
+             str(source_root / "global" / "agents"), tmp],
+            check=True,
+        )
+        for src_name, relative in (
+            ("codex", Path("harness/codex/agents")),
+            ("opencode", Path("harness/opencode/agents")),
+            ("grok", Path("harness/grok/agents")),
+            ("pi", Path("harness/pi/agents")),
+        ):
+            destination = output_root / relative
+            regen_dir(destination)
+            for generated_file in sorted((Path(tmp) / src_name).iterdir()):
+                shutil.copy2(generated_file, destination / generated_file.name)
+            (destination / "README.md").write_text(
+                GENERATED_README, encoding="utf-8"
+            )
+
+    # Path-scoped rules -> opencode-rules plugin format (the converter skips
+    # alwaysApply files, so the workflow pass only picks up path-scoped ones)
+    rules_out = output_root / "harness" / "opencode" / "rules"
+    regen_dir(rules_out)
+    for rules_src in ("languages", "workflow"):
+        subprocess.run(
+            [sys.executable, str(build_dir / "convert-rules.py"),
+             str(source_root / "global" / "rules" / rules_src), str(rules_out)],
+            check=True,
+        )
+    (rules_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
+
+    # Router skills: inject canonical rule files as frontmatter-stripped
+    # references so each skill body's routing table resolves.
+    for skill_name, sources in SKILL_REFERENCE_INJECTIONS.items():
+        refs = skills_out / skill_name / "references"
+        if not (skills_out / skill_name).exists():
+            sys.exit(f"ERROR: SKILL_REFERENCE_INJECTIONS names '{skill_name}' but "
+                     f"global/skills/{skill_name}/ does not exist.")
+        refs.mkdir(parents=True, exist_ok=True)
+        injected = 0
+        for subdir, pattern in sources:
+            matches = sorted((source_root / "global" / subdir).glob(pattern))
+            if not matches:
+                sys.exit(f"ERROR: no files match global/{subdir}/{pattern} "
+                         f"(reference injection for '{skill_name}').")
+            for rule in matches:
+                text = rule.read_text(encoding="utf-8")
+                match = re.match(r"^---\n.*?\n---\n?", text, re.S)
+                (refs / rule.name).write_text(
+                    text[match.end():] if match else text, encoding="utf-8"
+                )
+                injected += 1
+        print(f"injected {injected} references -> {refs}")
+
+
+def _tree_entries(tree: Path):
+    """Return relative node names mapped to type and byte content."""
+    entries = {}
+    if not tree.is_dir():
+        return entries
+    for path in sorted(tree.rglob("*")):
+        relative = path.relative_to(tree).as_posix()
+        if path.is_symlink():
+            entries[relative] = ("symlink", str(path.readlink()).encode())
+        elif path.is_dir():
+            entries[relative] = ("directory", b"")
+        elif path.is_file():
+            entries[relative] = ("file", path.read_bytes())
+        else:
+            entries[relative] = ("other", b"")
+    return entries
+
+
+def check_generated_tree_parity(actual_root: Path = ROOT):
+    """Regenerate to a temporary root and compare every derived tree read-only."""
+    issues = []
+    with tempfile.TemporaryDirectory(prefix="hive-generated-check-") as tmp:
+        expected_root = Path(tmp)
+        generate_generated_trees(expected_root)
+        for relative in GENERATED_TREE_RELATIVE_PATHS:
+            expected_tree = expected_root / relative
+            actual_tree = actual_root / relative
+            if not actual_tree.exists() and not actual_tree.is_symlink():
+                issues.append(("missing", relative.as_posix()))
+                continue
+            if not actual_tree.is_dir() or actual_tree.is_symlink():
+                issues.append(("stale", relative.as_posix()))
+                continue
+
+            expected = _tree_entries(expected_tree)
+            actual = _tree_entries(actual_tree)
+            for node in sorted(expected.keys() - actual.keys()):
+                issues.append(("missing", (relative / node).as_posix()))
+            for node in sorted(actual.keys() - expected.keys()):
+                issues.append(("extra", (relative / node).as_posix()))
+            for node in sorted(expected.keys() & actual.keys()):
+                if expected[node] != actual[node]:
+                    issues.append(("stale", (relative / node).as_posix()))
+
+    if issues:
+        details = "\n".join(f"  {kind}: {path}" for kind, path in issues)
+        sys.exit(
+            "ERROR: generated-tree parity: derived harness outputs do not match "
+            "their canonical global/ sources:\n"
+            f"{details}\n"
+            "Run python3 harness/build.py to regenerate them; never hand-edit "
+            "generated trees."
+        )
+    print(
+        f"generated trees: {len(GENERATED_TREE_RELATIVE_PATHS)} trees match "
+        "their canonical global/ sources."
+    )
 
 
 def report_agents_size():
@@ -591,6 +735,7 @@ def main():
         check_delegation_threshold_parity()
         check_router_index_parity()
         check_core_assembly_parity()
+        check_generated_tree_parity()
         check_core_size_ratchet(allow_write=False)
         print("check-only run: nothing written.")
         return
@@ -607,67 +752,7 @@ def main():
 
     # Always-on cores first, so the size reports below measure generated output
     assemble_cores()
-
-    # Universal skills (Codex + opencode read ~/.agents/skills)
-    skills_out = ROOT / "harness" / "agents-skills"
-    regen_dir(skills_out)
-    subprocess.run(
-        [sys.executable, str(BUILD / "convert-skills.py"),
-         str(ROOT / "global" / "skills"), str(skills_out)],
-        check=True,
-    )
-    (skills_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
-
-    # Per-harness agents
-    with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run(
-            [sys.executable, str(BUILD / "convert-agents.py"),
-             str(ROOT / "global" / "agents"), tmp],
-            check=True,
-        )
-        for src_name, dst in (
-            ("codex", ROOT / "harness" / "codex" / "agents"),
-            ("opencode", ROOT / "harness" / "opencode" / "agents"),
-            ("grok", ROOT / "harness" / "grok" / "agents"),
-        ):
-            regen_dir(dst)
-            for f in sorted((Path(tmp) / src_name).iterdir()):
-                shutil.copy2(f, dst / f.name)
-            (dst / "README.md").write_text(GENERATED_README, encoding="utf-8")
-
-    # Path-scoped rules -> opencode-rules plugin format (the converter skips
-    # alwaysApply files, so the workflow pass only picks up path-scoped ones)
-    rules_out = ROOT / "harness" / "opencode" / "rules"
-    regen_dir(rules_out)
-    for rules_src in ("languages", "workflow"):
-        subprocess.run(
-            [sys.executable, str(BUILD / "convert-rules.py"),
-             str(ROOT / "global" / "rules" / rules_src), str(rules_out)],
-            check=True,
-        )
-    (rules_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
-
-    # Router skills: inject canonical rule files as frontmatter-stripped
-    # references so each skill body's routing table resolves.
-    for skill_name, sources in SKILL_REFERENCE_INJECTIONS.items():
-        refs = skills_out / skill_name / "references"
-        if not (skills_out / skill_name).exists():
-            sys.exit(f"ERROR: SKILL_REFERENCE_INJECTIONS names '{skill_name}' but "
-                     f"global/skills/{skill_name}/ does not exist.")
-        refs.mkdir(parents=True, exist_ok=True)
-        injected = 0
-        for subdir, pattern in sources:
-            matches = sorted((ROOT / "global" / subdir).glob(pattern))
-            if not matches:
-                sys.exit(f"ERROR: no files match global/{subdir}/{pattern} "
-                         f"(reference injection for '{skill_name}').")
-            for rule in matches:
-                text = rule.read_text(encoding="utf-8")
-                m = re.match(r"^---\n.*?\n---\n?", text, re.S)
-                (refs / rule.name).write_text(
-                    text[m.end():] if m else text, encoding="utf-8")
-                injected += 1
-        print(f"injected {injected} references -> {refs}")
+    generate_generated_trees(ROOT)
 
     report_agents_size()
     report_codex_chain()
@@ -680,6 +765,7 @@ def main():
     check_delegation_threshold_parity()
     check_router_index_parity()
     check_core_assembly_parity()
+    check_generated_tree_parity()
     check_core_size_ratchet(allow_write=True)
 
 

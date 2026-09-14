@@ -18,13 +18,16 @@ semantics travel with the skill.
 
 1. Merge `config.toml.snippet` into `~/.codex/config.toml` (Linear MCP + subagent
    limits).
-2. Run `/deploy-global` from the hub; start a fresh Codex session.
+2. Run `/deploy-global` from the hub; start a fresh Codex session. The PI rollout
+   selectively activates the five Astra role files listed below; it does not copy
+   the rest of the Codex roster into the machine-level override.
 
 ## What this harness loads
 
 Every URL below was fetched and its quote extracted from the page body on the date in the
 last column. Companion files: `global/README.md` (Claude Code),
-`harness/opencode/README.md`, `harness/grok/README.md` — all four share this layout.
+`harness/opencode/README.md`, `harness/grok/README.md`, and `harness/pi/README.md` —
+all share this layout where the harness has an equivalent loading surface.
 
 > **The documentation host moved.** Every `developers.openai.com/codex/*` URL now redirects
 > to `learn.chatgpt.com/docs/*`. Write the destination host; the old one only resolves by
@@ -37,8 +40,8 @@ last column. Companion files: `global/README.md` (Claude Code),
 | Path-scoped rules | **none** | — | Codex has no conditional-rule channel — see *What does NOT reach it* | (absence) | 2026-08-20 |
 | Skills | 16 skills with injected `references/` | `~/.agents/skills/` | User-scope skill folder, read natively | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"USER $HOME/.agents/skills — Any skills checked into the user's personal folder."* | 2026-08-20 |
 | Skill gating | `agents/openai.yaml` per gated skill | inside each skill dir | Codex ignores Claude's `disable-model-invocation`; the YAML policy carries the gate | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"allow_implicit_invocation (default: true): When false, Codex won't implicitly invoke the skill based on user prompt"* | 2026-08-20 |
-| Agents | 25 generated `.toml` | `~/.codex/agents/` | Standalone TOML files per agent | [agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) — *"add standalone TOML files under ~/.codex/agents/ for personal agents"* | 2026-08-20 |
-| Hooks | 4 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
+| Agents | 24 generated `.toml` | `~/.codex/agents/` | Standalone TOML files per agent | [agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) — *"add standalone TOML files under ~/.codex/agents/ for personal agents"* | 2026-08-20 |
+| Hooks | 3 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
 | Prompt auditor | — | — | `codex debug prompt-input` renders the model-visible prompt as JSON | [developer-commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli) — *"Render the model-visible prompt input list as JSON"* | 2026-08-20 |
 
 **`project_doc_max_bytes` default is 32 KiB, not 65536.** The `65536` in
@@ -78,7 +81,7 @@ codex debug prompt-input        # exact model-visible prompt: global AGENTS.md f
                                 # `--- project-doc ---` with per-file headers
 codex debug --help              # confirms the subcommand still exists in your build
 grep -n project_doc_max_bytes ~/.codex/config.toml
-ls ~/.codex/agents/ | wc -l     # expect 25
+ls ~/.codex/agents/ | wc -l     # expect 24
 ```
 
 `python3 harness/build.py` reports **two** chain sizes on every run — at the repo root and
@@ -110,7 +113,7 @@ Check with: `grep -n model_instructions_file ~/.codex/config.toml` (should retur
   first, then `--- project-doc ---` with per-file headers) without burning a model turn —
   the deterministic auditor for what Codex actually loads. Grok's analog is `grok inspect`.
 - **Custom-agent name resolution verified working** (2026-08-15, codex 0.147.0,
-  `multi_agent = true` — undocumented, see above): `spawn_agent(agent_type="finding-refuter")` resolves and spawns —
+  `multi_agent = true` — undocumented, see above): `spawn_agent(agent_type="review-refuter")` resolves and spawns —
   upstream issues #15250/#14579 report it broken in some tool-backed contexts; if it
   regresses, the fallback is reading the target `~/.codex/agents/<name>.toml` and inlining
   its `developer_instructions` into `spawn_agent(agent_type="worker")`.
@@ -130,12 +133,46 @@ parts in Codex TOML and makes non-equivalent fields visible:
 - `skills:` becomes a developer instruction to use the named skill when
   available; do not assume it is preloaded.
 - Claude model aliases are translated by the tier map in
-  `harness/build/convert-agents.py`: `opus` → `gpt-5.6-sol` @ `high` (judgment),
+  `harness/build/convert-agents.py`: `opus` → `gpt-6-astra` @ `medium` (the five approved judgment roles),
   `sonnet` → `gpt-5.6-luna` @ `max` (execution), `haiku` → `gpt-5.6-luna` @ `high`.
   The tier's effort overrides the Claude `effort` frontmatter, which is calibrated
   for Claude's models; the original value stays as a comment.
 - `inherit` emits no `model`, so those agents resolve to `[agents]
   default_subagent_model` in `config.toml` before falling back to the session model.
 
+### Astra role activation
+
+The canonical Claude frontmatter remains `model: opus` and `effort: high`. The
+Codex generator deliberately overrides that pair for these five roles:
+
+| Role | Generated Codex model | Generated effort |
+|---|---|---|
+| `review-code` | `gpt-6-astra` | `medium` |
+| `sdd-product-critic` | `gpt-6-astra` | `medium` |
+| `database-specialist` | `gpt-6-astra` | `medium` |
+| `performance-engineer` | `gpt-6-astra` | `medium` |
+| `prompt-engineer` | `gpt-6-astra` | `medium` |
+
+The source effort is retained in the generated compatibility comment for auditability.
+Other roles and the Claude/Grok generated trees keep their existing policy. Rebuild
+before checking the generated TOMLs:
+
+```bash
+python3 harness/build.py
+for agent in review-code sdd-product-critic database-specialist performance-engineer prompt-engineer; do
+  rg -n '^(model|model_reasoning_effort) = ' "harness/codex/agents/$agent.toml"
+done
+```
+
 `python3 harness/build.py` prints warnings for lossy fields so review catches
 semantic drift before deploy.
+
+## Hive planning contract
+
+`flow-plan` and `flow-build` use the shared plan artifact and read-only validator. Approval,
+action/target scope and execution evidence travel with the plan; entering or leaving native
+plan mode grants no Hive authority. During drafting, the parent's no-implementation boundary
+is a prompt convention, not a universal write sandbox. `Session: no` retains conversation-only
+operation without durable validation or cross-harness resume guarantees.
+
+Source: `global/skills/flow-core/references/plan-format.md` (Hive convention, 2026-09-10).

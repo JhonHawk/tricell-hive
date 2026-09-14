@@ -1,7 +1,7 @@
 ---
 name: language-rules
 description: >
-  Codex/Grok: load before code write/edit/review/debug/generate — full language
+  Codex/Grok/PI: load before code write/edit/review/debug/generate — full language
   conventions (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle,
   Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). opencode gets language
   rules by glob via its plugin; Claude Code loads its rules natively and needs only the
@@ -14,7 +14,7 @@ description: >
 # language-rules — deterministic router to the full language conventions
 
 The full, canonical rules live in `references/` (injected at build time from
-`global/rules/` — single source of truth). This skill exists because Codex and Grok
+`global/rules/` — single source of truth). This skill exists because Codex, Grok and PI
 have no path-scoped / glob-conditional rule loading: the COMPLETE rules load only
 when the stack is touched.
 
@@ -23,6 +23,7 @@ when the stack is touched.
 | Harness | What this skill is for | Reference path |
 |---|---|---|
 | Codex | Everything below — no conditional rule channel exists | `references/<file>` |
+| PI | Everything below — Hive exposes references through skills | `references/<file>` |
 | Grok | Everything below — always-on rules only; no `paths:` | `references/<file>` |
 | opencode | Browser + quality rows + pre-file naming. Language rows arrive via the rules plugin | `references/<file>` |
 | Claude Code | Only the browser row — `browser-automation-reference.md` (demoted from always-on; everything else loads natively) | `references/<file>` |

@@ -2,7 +2,7 @@
 
 Written per the bootstrap-playbook (foundation stage) to `<project>-specs/conventions/naming.md`,
 consumed by `devops-engineer`, the promotion walk (gate + `verify` audit, via
-`promotion-playbook.md`), contract authors (system-designer, specs-stage spec sessions),
+`promotion-playbook.md`), contract authors (sdd-design, specs-stage spec sessions),
 and any session that creates an infra resource or defines a cross-layer identifier. The generic rule lives in the global rule
 `workflow/infra-naming.md`; this file is its **instantiation**: the concrete name of every
 resource this project will have, plus the **code-layer boundary conventions** (API JSON

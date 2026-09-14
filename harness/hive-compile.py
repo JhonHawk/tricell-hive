@@ -15,8 +15,10 @@ minimal fences above are the only comment lines this block pays for).
 
 Contract mirrors deploy-global: DRY-RUN is the default (prints the block),
 `--apply` writes, `--create` allows creating a missing AGENTS.md, `--check`
-exits non-zero when the target's existing block is stale (the hive moved past
-the stamped SHA touching global/rules/ or this classifier).
+exits non-zero when the target's existing block is stale: the hive moved past
+the stamped SHA touching global/rules/ or this classifier AND the profile it
+would compile today differs from the one on disk (stamp line excluded — a
+rules commit that leaves the classifier's output identical is not staleness).
 
 Optional per-repo override file `.hive-profile.yaml` (flat `key: value` lines;
 keys: class, tracker, exclusions, notes) — overrides win over detection. A
@@ -297,6 +299,14 @@ def check_fences(agents_md: Path, text: str):
                  "refusing to rewrite over an unparseable block.")
 
 
+def profile_body(text: str):
+    """The hive-profile block minus its stamp line. Two profiles compiled from
+    different hive SHAs on different days are the SAME profile when their
+    bodies match — the stamp records provenance, it is not content."""
+    m = re.search(re.escape(MARK_START) + r"\n[^\n]*\n(.*?)" + re.escape(MARK_END), text, flags=re.S)
+    return m.group(1) if m else None
+
+
 def upsert(agents_md: Path, block: str, create: bool):
     if not agents_md.is_file():
         if not create:
@@ -336,7 +346,7 @@ def target_loads_agents_md(target: Path):
     return any((target / m).exists() for m in markers)
 
 
-def check_stale(agents_md: Path):
+def check_stale(target: Path, agents_md: Path):
     if not agents_md.is_file():
         print(f"no AGENTS.md at {agents_md} — nothing to check.")
         return 0
@@ -358,10 +368,18 @@ def check_stale(agents_md: Path):
         return 1
     rc, out = sh(["git", "log", "--name-only", f"{stamp}..HEAD", "--"] + STALE_PATHS, cwd=HIVE_ROOT)
     if rc == 0 and out:
-        print(f"STALE: hive moved {stamp}→{current} touching {' / '.join(STALE_PATHS)} — regenerate: "
+        # The SHA range is only the cheap signal; the verdict is the content.
+        # Most rule commits leave the classifier's output byte-identical, and a
+        # refresh that changes nothing but the stamp is churn, not freshness.
+        fresh = render_block(detect(target), read_override(target))
+        if profile_body(fresh) == profile_body(text):
+            print(f"hive-profile fresh (hive moved {stamp}→{current} touching rules, "
+                  "but the compiled profile is unchanged).")
+            return 0
+        print(f"STALE: hive moved {stamp}→{current} and the compiled profile differs — regenerate: "
               "python3 harness/hive-compile.py <repo> --apply")
         return 1
-    print(f"hive-profile fresh enough (hive moved {stamp}→{current} without touching rules or the classifier).")
+    print(f"hive-profile fresh (hive moved {stamp}→{current} without touching rules or the classifier).")
     return 0
 
 
@@ -423,7 +441,17 @@ def self_test():
         assert target_loads_agents_md(repo), "@AGENTS.md import should count as loaded"
         checks += 4
 
-    print(f"self-test: {checks} checks passed (idempotency, fail-closed fences, target-loads).")
+        # Content-based staleness: two blocks that differ only in the stamp line
+        # (SHA, date) are the same profile; a body change is a real difference.
+        a = f"{MARK_START}\nHive profile v1 · hive@aaaaaaa · 2026-01-01 · class: app\n\nbody\n{MARK_END}\n"
+        b = f"{MARK_START}\nHive profile v1 · hive@bbbbbbb · 2026-02-02 · class: app\n\nbody\n{MARK_END}\n"
+        c = f"{MARK_START}\nHive profile v1 · hive@bbbbbbb · 2026-02-02 · class: app\n\nother\n{MARK_END}\n"
+        assert profile_body(f"# X\n\n{a}") == profile_body(b), "stamp-only difference must compare equal"
+        assert profile_body(b) != profile_body(c), "body difference must compare unequal"
+        checks += 2
+
+    print(f"self-test: {checks} checks passed (idempotency, fail-closed fences, target-loads, "
+          "content-based staleness).")
 
 
 def main():
@@ -446,7 +474,7 @@ def main():
     agents_md = target / "AGENTS.md"
 
     if "--check" in flags:
-        sys.exit(check_stale(agents_md))
+        sys.exit(check_stale(target, agents_md))
 
     override = read_override(target)
     facts = detect(target)

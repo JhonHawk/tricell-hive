@@ -15,7 +15,7 @@ alwaysApply: true
 
 ## Cross-Service Coordination
 
-> Path-scoped: loads on contract surfaces (`_support/spec/**`, a specs repo, OpenAPI/AsyncAPI files). `system-designer` has no `Skill` tool, so it reaches this by absolute path from its own Role rules table — not through a router.
+> Path-scoped: loads on contract surfaces (`_support/spec/**`, a specs repo, OpenAPI/AsyncAPI files). `sdd-design` has no `Skill` tool, so it reaches this by absolute path from its own Role rules table — not through a router.
 
 > Spec-first for shared contracts: the contract is designed before code implements it, and nobody deviates from a spec without updating it first. Confirmation is by signal (below), not a per-contract stop. Contract specs live in `<project>-specs/contracts/`; pre-specs-repo fallback: `<project>/_support/spec/` (repo-local contracts: `<repo>/_support/spec/`).
 
@@ -24,7 +24,7 @@ Spec check + contract design happen BEFORE implementation when the change touche
 
 ### Workflow
 1. **Check for an existing spec** covering the contract. Exists → implement against it.
-2. **No spec → write it first.** Dispatch scales with blast radius: a new contract or multi-consumer/multi-shape change → system-designer; a 1-field, 1-consumer change → inline spec edit by the implementing agent.
+2. **No spec → write it first.** Dispatch scales with blast radius: a new contract or multi-consumer/multi-shape change → sdd-design; a 1-field, 1-consumer change → inline spec edit by the implementing agent.
 3. **Confirmation is by signal.** An approved plan that includes the contract IS the confirmation. Outside a plan gate, confirm up-front only for externally-visible or hard-to-change contracts — public/partner API, event schema, a shape that persists into a DB, a webhook a third party consumes, or invented domain semantics. An internal contract with both sides in the same change-group proceeds with the spec written, flagged in the close summary.
 4. **Never deviate from the spec without updating it first.** A missing endpoint or unclear field is a gap: update the spec, then implement — never a workaround. When the fix is the implementer's to make, the update is a non-blocking note in the close report; contested cases follow `gap-resolution.md > Divergence Between Sources`.
 

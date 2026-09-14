@@ -23,22 +23,22 @@ join: tight
 | Schema design, migration, ORM config | database-specialist | backend-developer |
 | Slow query, EXPLAIN, N+1, index tuning | performance-engineer | backend-developer |
 | CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | backend-developer, cloud-architect |
-| Cloud topology, landing zone, DR (RTO/RPO), FinOps architecture | cloud-architect | devops-engineer, system-designer |
-| New API contract, cross-service schema, service boundaries | system-designer | code-reviewer |
-| Review a diff/PR for correctness and cleanup — the DEFAULT when no other row is primary | code-reviewer | the implementing agent |
-| Vulnerability, OWASP, secrets, auth bypass | security-reviewer | code-reviewer |
-| Secret scanning, leaked credentials | secrets-auditor | security-reviewer |
-| Refute or adversarially verify a finding, claim or diagnosis | finding-refuter | code-reviewer, the main thread |
+| Cloud topology, landing zone, DR (RTO/RPO), FinOps architecture | cloud-architect | devops-engineer, sdd-design |
+| New API contract, cross-service schema, service boundaries | sdd-design | review-code |
+| Review a diff/PR for correctness and cleanup — the DEFAULT when no other row is primary | review-code | the implementing agent |
+| Vulnerability, OWASP, secrets, auth bypass | review-security | review-code |
+| Secret scanning, leaked credentials | secrets-auditor | review-security |
+| Refute or adversarially verify a finding, claim or diagnosis | review-refuter | review-code, the main thread |
 | Tests as the primary objective (coverage push, new E2E suite) | test-engineer | the implementing agent |
-| Functional verification of a running app in a real browser: walk ACs + adversarial paths | in-vivo-qa-tester | ui-reviewer, code-reviewer |
-| UX friction in a live mock or deployed flow, navigation review | ui-reviewer | code-reviewer, react-developer |
-| Redesign or visually polish a screen that already exists | visual-designer | the framework specialist, ui-reviewer |
-| Spec/épica completeness, Gherkin verifiability, quality gate | spec-quality-reviewer | product-critic, code-reviewer |
-| Challenge necessity/scope/shape of a feature BEFORE implementation | product-critic | spec-quality-reviewer |
-| Raw client requirements, project intake analysis | requirement-analyst | spec-quality-reviewer |
-| "Where is X / how does Y work / does Z exist" — discovery needing a verified conclusion | code-scout | the implementing agent, the main thread |
+| Functional verification of a running app in a real browser: walk ACs + adversarial paths | sdd-verify | review-ux, review-code |
+| UX friction in a live mock or deployed flow, navigation review | review-ux | review-code, react-developer |
+| Redesign or visually polish a screen that already exists | visual-designer | the framework specialist, review-ux |
+| Spec/épica completeness, Gherkin verifiability, quality gate | sdd-spec-reviewer | sdd-product-critic, review-code |
+| Challenge necessity/scope/shape of a feature BEFORE implementation | sdd-product-critic | sdd-spec-reviewer |
+| Raw client requirements, project intake analysis | sdd-spec-reviewer (intake mode) | the main thread |
+| "Where is X / how does Y work", think through an idea, or a question only docs/web settle | sdd-explore | the implementing agent, the main thread's own fetches |
 | Prompt design, LLM integration, structured output | prompt-engineer | backend-developer |
-| README, ADR, API docs, setup guide — in-repo Markdown | technical-writer | the implementing agent |
+| README, ADR, API docs, setup guide — in-repo Markdown; draft or revise an épica/delta spec | sdd-spec-writer (`docs` / `spec`) | the implementing agent, the main thread |
 | Workspace file hygiene, misplaced artifacts, ledger repair | workspace-custodian | secrets-auditor |
 | Low-reasoning external state: tracker board, PR checks, deploy jobs, an APPROVED tracker batch | state-fetcher | a research subagent |
 

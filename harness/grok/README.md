@@ -17,7 +17,7 @@ Companion files: `global/README.md` (Claude Code), `harness/codex/README.md`,
 | Subagents | `harness/grok/agents/` (generated, versioned) | `~/.grok/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit. Spawn takes no `capability_mode` (removed 1.0.6; tools come from the agent type). The `workflow` tool is top-level only (1.0.8+) — generated children never receive it |
 | Skills | `~/.claude/skills/` | *(read in place)* | Nothing to deploy — `[compat.claude] skills = true` |
 | Global instructions | `~/.claude/CLAUDE.md` | *(read in place)* | Nothing to deploy |
-| Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh`, `post-tool-hub.sh` and `flow-plan-capture.sh` are dual-runtime. Two Grok specifics: a matcher must name Grok's own tool name when no alias exists (`exit_plan_mode` has none), and stdout injection is event-specific — see the injection map below |
+| Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh` and `post-tool-hub.sh` are dual-runtime. Matchers use Grok tool names where aliases do not exist; stdout injection is event-specific — see the injection map below |
 
 ### Hook injection map — measured on grok 1.0.25 (2026-09-09)
 
@@ -39,7 +39,7 @@ guide (`~/.grok/docs/user-guide/10-hooks.md`). Payload keys arrive in BOTH spell
 
 A hook on a non-injecting event can still ACT (write a file, deny a call). Consequences for
 this repo's hooks in Grok: `bash-policy` works (its product is a deny, not context);
-`post-tool-hub` and `flow-plan-capture` inject since 1.0.14 (`post-tool-hub` reads Claude's
+`post-tool-hub` injects since 1.0.14 (`post-tool-hub` reads Claude's
 `.tool_response`, which grok emits as an alias of `toolResult`); `rule-context` lands as a
 post-call note; `flow-session-context`, `session-hygiene-report` (`SessionStart`) and
 `flow-context` (`UserPromptSubmit`) run but their injection never lands. **Policy still
@@ -74,7 +74,7 @@ last column.
 | Always-on rules | 12 flat symlinks `<dir>__<file>.md` | `~/.grok/rules/` | Every `*.md` in a rules dir is loaded regardless of name | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) — *"every `*.md` file in a `.grok/rules/` directory"*; `.claude/rules/` also read for compat | 2026-08-20 |
 | Path-scoped rules | **none** | — | No file-pattern scoping key exists — see *What does NOT reach it* | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) (absence) | 2026-08-20 |
 | Skills | 16 skills, incl. the router `references/` | `~/.claude/skills/` (read in place) | Claude-compat scan at the **lowest** precedence; `disable-model-invocation` honored natively | [docs.x.ai/build/features/skills-plugins-marketplaces](https://docs.x.ai/build/features/skills-plugins-marketplaces) — *"`disable-model-invocation`: Slash command only; no automatic invoke. Default `false`."* Bundled 1.0.25 `08-skills.md` still matches | 2026-09-09 |
-| Agents | 25 Grok-shaped `.md` (real files, not symlinks) | `~/.grok/agents/` | `.md` agent definitions in `~/.grok/agents/` | [docs.x.ai/build/features/subagents](https://docs.x.ai/build/features/subagents); spawn args in bundled `16-subagents.md` (grok 1.0.25) — no `capability_mode` | 2026-09-09 |
+| Agents | 24 Grok-shaped `.md` (real files, not symlinks) | `~/.grok/agents/` | `.md` agent definitions in `~/.grok/agents/` | [docs.x.ai/build/features/subagents](https://docs.x.ai/build/features/subagents); spawn args in bundled `16-subagents.md` (grok 1.0.25) — no `capability_mode` | 2026-09-09 |
 | Hooks | shared with Claude Code | `~/.claude/settings.json` (merged by compat) | Grok hooks + Claude settings compat; matcher aliases cover only common Claude tool names; stdout injection is event-specific (map above) | [docs.x.ai/build/features/hooks](https://docs.x.ai/build/features/hooks); alias list, `ask`/`defer`, and per-event stdout rules (PostToolUse feedback since 1.0.14) from bundled `~/.grok/docs/user-guide/10-hooks.md` (grok 1.0.25) | 2026-09-09 |
 | Scope & precedence table | — | — | Which dirs are scanned, in what order | bundled doc `~/.grok/docs/user-guide/12-project-rules.md` + `08-skills.md` (grok 1.0.25) — local file, not a URL | 2026-09-09 |
 
@@ -121,8 +121,18 @@ grok inspect          # lists every config source, rules file, skill, plugin, ho
                       # analogous to `codex debug prompt-input`
 
 ls -la ~/.grok/rules/ # should be 12 symlinks named <dir>__<file>.md → ~/.claude/rules/...
-ls    ~/.grok/agents/ # should be 25 real .md files
+ls    ~/.grok/agents/ # should be 24 real .md files
 ```
 
 The bundled user guide under `~/.grok/docs/user-guide/` ships with the CLI and is version-
 stamped: check `grok --version` before trusting a quote from it.
+
+## Hive planning contract
+
+`flow-plan` and `flow-build` use the shared plan artifact and read-only validator. Approval,
+action/target scope and execution evidence travel with the plan; entering or leaving native
+plan mode grants no Hive authority. During drafting, the parent's no-implementation boundary
+is a prompt convention, not a universal write sandbox. `Session: no` retains conversation-only
+operation without durable validation or cross-harness resume guarantees.
+
+Source: `global/skills/flow-core/references/plan-format.md` (Hive convention, 2026-09-10).
