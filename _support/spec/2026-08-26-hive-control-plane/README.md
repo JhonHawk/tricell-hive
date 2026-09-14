@@ -1,13 +1,18 @@
 # Hive Control Plane
 
-Status: Proposed
+Status: Parked (2026-09-13)
 
 Date: 2026-08-26
 
 This folder describes a possible deterministic control plane for Tricell Hive. It
 is a design proposal, not an implementation record and not an approval to change
-Hive. The working mode for this proposal is hold: documentation may be reviewed
-locally, but no commit, push, deployment, or global installation is authorized.
+Hive. It was parked on 2026-08-31: the 2026-08-26 measurement found the cost it
+targets (re-deriving lifecycle state from conversation) near zero against a
+fixed rule load of ~27,200 tokens per session. A re-measurement over a fresh
+corpus started on 2026-09-13; its verdict is recorded in
+`_support/archive/audits/2026-09-13-hive-control-remeasurement.md`. Until that
+verdict says proceed, no implementation, deployment, or global installation is
+authorized.
 
 ## Executive summary
 
@@ -184,7 +189,8 @@ The first version must not:
 ## Relationship to optional reference project RDD
 
 The design borrows the useful boundary from the inspected optional reference project snapshot
-`7afe50d1` (`v2.5.0-rc.1`): a native executable owns candidate identity,
+`7afe50d1` (`v2.5.0-rc.1`; the local reference checkout is at `v2.8.2`,
+`266574b0`, as of 2026-09-13): a native executable owns candidate identity,
 state transitions, immutable evidence, bounded continuation, and local
 authority; adapters transport opaque commands and results. The proposal is not a
 port of optional reference project's review lifecycle.
