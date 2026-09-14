@@ -114,6 +114,7 @@ Interfaces:
 - Step 1 (RED): <one action>
   - <sub-action when the step needs more than one line>
 - Step 2 (GREEN): <one action>
+- Step 3 (SECOND-LAYER, optional): <check over behavior already green — evidenced by fail-to-pass, never RED>
 Verify:
 ```sh
 <one command per line>
@@ -130,9 +131,9 @@ Commit: feat(<scope>): T1 <subject>
 
 ## Test evidence
 
-| Task/case | Approach | Baseline | RED | GREEN | Refactor | Exception |
+| Task/case | Approach | Baseline | RED | GREEN | Refactor | Fail-to-pass |
 |---|---|---|---|---|---|---|
-| T1/<case> | tdd | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | |
+| T1/<case> | tdd | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | <mutation command/result when RED was not observed, or `exception: <reason>`> |
 
 <!-- hive-plan:recovery:start -->
 ```json
@@ -357,16 +358,19 @@ executing` and include the resolution in the approved contract. Do not leave
 
 The TDD cycle is implementation evidence, not a second approval boundary:
 observe RED before the corresponding implementation, then GREEN and any
-necessary refactor check. A test approach cannot imply an unobserved RED. If
+necessary refactor check. A test approach cannot imply an unobserved RED. RED
+is owed once per behavior, at the seam the task names; a `SECOND-LAYER` step
+runs after GREEN and records its fail-to-pass comparison, never a RED. If
 implementation for a `tdd` task already exists without RED evidence, preserve
-it, record the missing RED in `Test evidence`, and request an explicit user
-exception. Until the user accepts the exception, the task cannot be complete,
-the plan cannot reach `built` or `verified`, and delivery cannot proceed. An
-accepted exception waives chronology only: the actual
-fail-to-pass comparison, pass-to-pass evidence and independent checks remain
-required, using a safe isolated pre-change baseline when needed; record the
-completion label `exception-accepted`, never strict TDD. Do not alter a
-completed legacy plan to retrofit this table. When an active legacy plan
+it and record the isolated fail-to-pass comparison in the `Fail-to-pass`
+column with completion label `fail-to-pass`, never strict TDD — agent work,
+not a user question. Only when that comparison cannot be produced does the
+task stop at an explicit user exception: it cannot be complete, the plan
+cannot reach `built` or `verified`, and delivery cannot proceed until the user
+accepts it; label that completion `exception-accepted`. Pass-to-pass evidence
+and independent checks remain required on every path. Do not alter a
+completed legacy plan to retrofit this table (its `Exception` column reads as
+`Fail-to-pass`). When an active legacy plan
 resumes, resolve the approach for each pending task without silently changing
 its frozen contract; a material verification change requires a new contract
 revision and approval.

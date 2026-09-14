@@ -31,14 +31,20 @@ claim that the check would fail, a dependency or environment failure, a failed f
 remote operation failure is not RED. A normal RED→GREEN→refactor cycle does not require a new user
 approval between phases; the approved plan covers the declared task.
 
-If a `tdd` task's implementation code already exists before RED was observed, preserve the work.
-Record the missing RED and request an explicit user exception; never invent retrospective evidence
-or force a revert solely to recreate the sequence. Until the user accepts the exception, the task
-cannot be reported complete, advance to `built` or `verified`, or be published.
-An accepted exception waives chronology only: demonstrate the actual fail-to-pass behavior with a
-safe isolated comparison against the pre-change baseline when needed, keep pass-to-pass and
-independent checks, and label completion `exception-accepted`, never strict TDD. A planned
-`not-applicable` classification is resolved at the plan gate; a missed RED is a later exception.
+If a `tdd` task's implementation already exists before RED was observed, preserve the work and
+never invent retrospective evidence (moving the module aside to obtain "module not found" is
+invention, not RED) or force a revert solely to recreate the sequence. The missing chronology is
+agent-executable, never a question for the user: produce an isolated fail-to-pass comparison —
+break what the check guards (reintroduce the defect, invert the branch) or run the check against
+a pre-change baseline copy, observe the failure, restore, verify no residue — keep pass-to-pass
+and independent checks, and label completion `fail-to-pass`, never strict TDD. Ask for a user
+exception only when no such comparison can be produced (the behavior cannot be broken in
+isolation and no baseline exists); until it is accepted the task cannot be reported complete,
+advance to `built` or `verified`, or be published, and its completion is labeled
+`exception-accepted`. RED is owed once per behavior, at the seam the plan names: a second check
+over behavior already green (an integration spec after the unit spec that drove it) cannot RED
+and is not missing one — declare it a second-layer check and evidence it by fail-to-pass. A
+planned `not-applicable` classification is resolved at the plan gate.
 
 ### Coverage by change type
 
@@ -62,10 +68,11 @@ For `tdd`, strict TDD clears the gate only when all three hold:
 
 Prompt-convention; a mutation-testing runner is the deterministic backstop where one is configured.
 
-When a user accepts a missing-RED exception, the chronology requirement is waived only. The gate
-still requires an actual fail-to-pass comparison (use a safe isolated pre-change baseline when the
-working tree already contains the implementation), pass-to-pass evidence and the applicable
-independent review/checks. Record the completion as `exception-accepted`; it is not strict TDD.
+For `fail-to-pass` completions the gate substitutes the observed fail-to-pass comparison for the
+chronological RED (a safe isolated pre-change baseline when the working tree already contains the
+implementation) and keeps pass-to-pass evidence and the applicable independent review/checks. A
+user-accepted exception (`exception-accepted`) waives chronology only and is reached solely when
+that comparison could not be produced; neither is strict TDD.
 
 For `characterization`, the gate requires an observed green baseline before the refactor and a
 green affected check afterward, plus pass-to-pass evidence. For `not-applicable`, the gate

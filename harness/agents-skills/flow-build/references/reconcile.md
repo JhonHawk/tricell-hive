@@ -67,10 +67,11 @@ consent.
 5. **Read observed state.** Reconcile the execution table, mutable `Test evidence` table,
    recovery attempts, filesystem, Git diff/log and verification evidence. A task marked complete
    without its declared test-approach evidence is pending. A `tdd` task with missing observed RED
-   is pending an explicit user resolution; preserve the workspace and do not infer RED from a later
-   green run. An accepted exception may continue only after the actual fail-to-pass comparison,
-   pass-to-pass evidence and applicable independent checks are recorded, with completion labeled
-   `exception-accepted`. Under `hold`, a clean commit is not required: verified working-tree
+   and no recorded fail-to-pass comparison is pending that comparison (agent work) or, where it
+   cannot be produced, an explicit user resolution; preserve the workspace and do not infer RED
+   from a later green run. Completion is labeled `fail-to-pass` or `exception-accepted`, each with
+   pass-to-pass evidence and applicable independent checks recorded. Under `hold`, a clean commit
+   is not required: verified working-tree
    changes and their commands are valid evidence. Reuse test evidence only while its covered code,
    configuration and toolchain remain current. Do not rewrite the frozen contract to record
    progress; update only the execution and test/recovery metadata sections; authorization changes

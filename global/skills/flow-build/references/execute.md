@@ -23,9 +23,15 @@ this stage.
    Follow the task's `Test approach:` before changing the corresponding behavior. The dispatch
    prompt to a specialist carries that approach verbatim; for `tdd` it instructs the specialist
    to write and run the intended check FIRST and to return the observed RED output before touching
-   the implementation — a specialist report without that RED is sent back, never accepted. For
-   `tdd`, write and run the intended check, record the observed RED failure, then implement the
-   smallest change. For `characterization`, establish the green baseline before a pure refactor. For
+   the implementation — a specialist report without that RED is sent back, never accepted. A
+   `tdd` task that creates the unit under test (a `Create:` entry for the implementation file)
+   is dispatched in two turns: the first writes the check(s) and returns at RED with no
+   implementation file touched (the task's specialist or `test-engineer`); the second implements
+   against the red check with that RED output in hand. One dispatch suffices only when the check
+   is added beside code that already exists. For `tdd`, write and run the intended check, record
+   the observed RED failure, then implement the smallest change. RED is owed once per behavior,
+   at the seam the plan names; a declared second-layer check runs after GREEN and is evidenced by
+   fail-to-pass. For `characterization`, establish the green baseline before a pure refactor. For
    `not-applicable`, confirm the recorded reason and use the applicable readback, consistency or
    visual review. RED is implementation evidence, not a failed fix, review, delegation or remote
    attempt, and the normal cycle needs no approval between phases.
@@ -38,12 +44,13 @@ this stage.
    remain in the working tree under `hold`; a commit is not a prerequisite for evidence.
 
    If implementation for a `tdd` task already exists without observed RED evidence, preserve the
-   work and record the missing RED as an exception pending explicit user resolution. Do not invent
-   the failure or force a revert. Until the exception is explicitly accepted, leave the task
-   incomplete and do not advance the plan to `built` or `verified`, or perform delivery. An
-   accepted exception still requires the actual fail-to-pass comparison, pass-to-pass
-   evidence and applicable independent checks; use a safe isolated pre-change baseline when needed
-   and record completion as `exception-accepted`, never strict TDD.
+   work; do not invent the failure or force a revert. Resolve it without asking: produce the
+   isolated fail-to-pass comparison (`quality/testing.md`), record it in the `Fail-to-pass`
+   column with pass-to-pass evidence and the applicable independent checks, and label completion
+   `fail-to-pass`, never strict TDD. Only when that comparison cannot be produced does the task
+   stop at a user exception: leave it incomplete, do not advance the plan to `built` or
+   `verified` or perform delivery until the exception is accepted, then label it
+   `exception-accepted`.
 5. **Review at the applicable boundary.** Apply the review and in-vivo timing selected during
    reconciliation. Findings route back to the builder; the affected task or gate runs again.
    Review success proves quality for the covered scope and grants no new action permission.

@@ -96,11 +96,11 @@ gap without asserting an unverified risk fact.
 
 The task's `Test approach:` and its RED/GREEN or characterization evidence come from
 `quality/testing.md`; this matrix decides who reviews and which boundary checks run. For standard
-and sensitive behavior, an unresolved missing RED or an unapproved exception blocks the gate and
-publication. An accepted exception waives chronology only; the reviewer still requires actual
-fail-to-pass, pass-to-pass and applicable independent checks, and records `exception-accepted`
-instead of strict TDD. A planned `not-applicable` entry must state why no useful automatic check
-exists.
+and sensitive behavior, a missed RED with no recorded fail-to-pass comparison, or an unapproved
+exception, blocks the gate and publication. The reviewer requires actual fail-to-pass,
+pass-to-pass and applicable independent checks on every path and records `fail-to-pass`
+(agent-produced comparison) or `exception-accepted` (user-gated, comparison impossible) instead of
+strict TDD. A planned `not-applicable` entry must state why no useful automatic check exists.
 
 Record the selected class, classification reason, applicable gates and check evidence in the
 existing execution record. Reuse review or check evidence only when the covered content,

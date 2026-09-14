@@ -110,12 +110,12 @@ changes.
 
 The implementation grant covers the normal RED→GREEN→refactor cycle declared by each task; do not
 request approval between those phases. If execution later discovers that implementation already
-exists for a `tdd` task without observed RED evidence, preserve the work and stop the task at the
-exception gate described in `quality/testing.md`; the explicit user exception is separate from
-ordinary plan approval. For direct work or `Session: no`, keep the approach and run evidence in the current
-conversation and report that no durable cross-harness resume guarantee exists. An accepted
-exception permits completion only with the actual fail-to-pass comparison, pass-to-pass evidence
-and applicable independent checks, labeled `exception-accepted` rather than strict TDD.
+exists for a `tdd` task without observed RED evidence, preserve the work and resolve it with the
+isolated fail-to-pass comparison described in `quality/testing.md` (labeled `fail-to-pass`); the
+task stops at a user exception only when that comparison cannot be produced, and that exception
+is separate from ordinary plan approval (`exception-accepted`). For direct work or `Session: no`,
+keep the approach and run evidence in the current conversation and report that no durable
+cross-harness resume guarantee exists.
 
 Set `draft` while the contract is being formed or awaiting approval. Before setting `planned`,
 run the shared read-only validator against the structure, contract digest and authorization

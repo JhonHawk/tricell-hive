@@ -11,13 +11,13 @@ for the tasks not yet gated:
    lens or reviewer; a passive documentation change uses diff and consistency review. The diff is
    the input; the builder's report travels as claims to check, never as context to trust.
    Before the gate passes, reconcile every task's `Test approach:` and mutable `Test evidence`
-   against `quality/testing.md`: a normal `tdd` task needs observed RED evidence before its
-   implementation unless the user accepts the explicit chronology exception below, a
-   `characterization` task needs its green baseline, and `not-applicable` needs its concrete
-   reason and applicable review. A missed RED on a `tdd` task blocks `built`→`verified` and
-   delivery until the user accepts that exception. An accepted exception still requires an actual
-   fail-to-pass comparison, pass-to-pass evidence and the applicable
-   independent checks; record completion as `exception-accepted`, never strict TDD.
+   against `quality/testing.md`: a `tdd` task needs observed RED evidence before its
+   implementation, or the isolated fail-to-pass comparison labeled `fail-to-pass` where the
+   chronology was missed; a `characterization` task needs its green baseline, and
+   `not-applicable` needs its concrete reason and applicable review. A missed RED with no
+   fail-to-pass comparison blocks `built`→`verified` and delivery until the user accepts the
+   exception (`exception-accepted`); every path keeps pass-to-pass evidence and the applicable
+   independent checks, and none is strict TDD.
    RED/GREEN/refactor runs are implementation evidence and do not add another independent review
    or boundary layer.
    The reviewer or verifier runs the tooling-selected affected subset or deterministic validator
