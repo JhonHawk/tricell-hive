@@ -688,7 +688,6 @@ class PiDeployTests(unittest.TestCase):
             self.assertFalse((pi_dir / "agents/README.md").exists())
             self.assertTrue((pi_dir / "global/hooks/post-tool-hub/post-tool-hub.sh").exists())
             self.assertTrue((pi_dir / "global/hooks/reviewer-guard/reviewer-guard.sh").stat().st_mode & 0o111)
-            self.assertFalse((pi_dir / "global/hooks/instructions-audit/instructions-audit.sh").exists())
             self.assertTrue((pi_dir / "src/index.ts").exists())
             self.assertTrue((pi_dir / "src/mcp-allowlist.json").exists())
 

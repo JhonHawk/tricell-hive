@@ -67,9 +67,10 @@ find global/rules -name '*.md' | sort | while read -r f; do
 done
 ```
 
-Inside a Claude Code session, the `instructions-audit` hook (`InstructionsLoaded`) records
-which instruction files actually loaded and why — the observational ground truth for this
-table.
+To observe which instruction files actually load in a session and why, register an
+`InstructionsLoaded` hook: the hive's `instructions-audit` instrument was retired on
+2026-09-13 once the always-on reduction was verified (last use:
+`_support/archive/audits/2026-09-13-hive-control-remeasurement.md`).
 
 ## Hive planning contract
 

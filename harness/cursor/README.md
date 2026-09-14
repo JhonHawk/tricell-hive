@@ -58,8 +58,8 @@ than compat.
   `readonly: true` is the only lever and it is wrong for agents that must run commands
   (`sdd-verify` drives `agent-browser` over Bash). Their never-mutate prompt clause is
   what holds, behaviorally.
-- **`InstructionsLoaded`.** The only hive hook with no Cursor event; the other 7 map. Purely
-  observational, so nothing operative is lost.
+- **Every hive hook maps to a Cursor event** since `instructions-audit` (`InstructionsLoaded`,
+  which has no Cursor equivalent) was retired on 2026-09-13.
 
 ## Payload shape — why the shell gate needed a fix
 

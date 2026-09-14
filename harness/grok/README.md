@@ -46,8 +46,6 @@ post-call note; `flow-session-context`, `session-hygiene-report` (`SessionStart`
 belongs in the rules and skills layer** — a hook that speaks only after the call cannot
 carry a rule the model needed before it; use hooks in Grok for effects, for post-call
 feedback, and for PreToolUse `ask`/`deny`/`updatedInput` when a call must be gated.
-`instructions-audit` is a separate case: its `InstructionsLoaded` event does not exist in
-Grok at all.
 
 ### The terminal tool runs `$SHELL`
 

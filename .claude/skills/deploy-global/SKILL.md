@@ -133,8 +133,7 @@ registration is still removed so native approval cannot keep running the retired
 
 For PI, `--apply` deploys `harness/AGENTS.md`, generated `harness/pi/agents/`, the
 TypeScript runtime and extension entrypoints (`src/` and `extensions/`), and canonical
-shell hooks under `global/hooks/` in the PI agent directory (the Claude-only
-`instructions-audit.sh` hook is excluded). It
+shell hooks under `global/hooks/` in the PI agent directory. It
 also merges only the owned fields: the five pinned package entries in `settings.json`,
 including PI package objects with their existing filters,
 `forceTopLevelAsync` in `extensions/subagent/config.json`, the managed Context7, Linear, and

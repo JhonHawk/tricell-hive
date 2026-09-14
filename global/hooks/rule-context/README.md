@@ -50,9 +50,10 @@ Two more consequences worth knowing before moving rules off always-on:
 - Path-scoped rules **do not survive compaction**: *"rules with `paths:` frontmatter are not
   re-injected automatically; they reload the next time Claude reads a file matching the rule's
   patterns."* A long session loses them silently.
-- The `InstructionsLoaded` hook logs which instruction files loaded, when, and why — the docs
+- An `InstructionsLoaded` hook logs which instruction files loaded, when, and why — the docs
   name it for *"debugging path-specific rules or lazy-loaded files"*. That is the measuring
-  instrument for verifying any always-on reduction.
+  instrument for verifying an always-on reduction; the hive's `instructions-audit` hook served
+  that role and was retired on 2026-09-13 once the reduction was verified — re-add one to measure again.
 
 Subagents get their policy inlined into their own prompt. The main thread had nothing — on
 Codex and Grok it has been writing React or Terraform with none of those rules present. This
