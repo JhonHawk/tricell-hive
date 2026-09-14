@@ -221,7 +221,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `language-rules` | global | Router: full language rules for Codex; quality depth rows for Codex + opencode (references injected by `build.py`) |
 | `workspace-conventions` | global | Router: workspace/session/contract conventions for Codex + opencode (model-invoked) |
 | `memory-policy` | global | Router: Engram policy layer for Codex + opencode (model-invoked) |
-| `unattended-delegation` | global | Router: explicitly-delegated unattended runs for Codex + opencode (model-invoked) |
+| `unattended-delegation` | global | Router: explicitly-delegated unattended runs and ledger-declared standing jobs for Codex + opencode (model-invoked) |
 | `/manage-agents` | repo | `validate [--all] [--deep]` — judgment checks on agent definitions |
 | `/manage-rules` | repo | `validate [--all] [--deep]` \| `create` — rule lifecycle management, incl. the core sections and the always-on rule corpus |
 | `/deploy-global` | repo | Sync `global/` to `~/.claude/` (user-initiated only) |

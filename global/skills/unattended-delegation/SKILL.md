@@ -3,9 +3,10 @@ name: unattended-delegation
 description: >
   Load on an explicit user handover of unattended control ("full control
   tonight", "tienes control total", "run unattended", "ve cerrando los tickets") BEFORE
-  declaring the mode accepted — every harness: the mode's full mechanics live only in
-  this skill's reference. Never activates from silence or a long task. Declare
-  scope/gates/decision-log first.
+  declaring the mode accepted, and on a scheduled or background turn whose project
+  ledger declares a matching `## Standing jobs` row — every harness: the mode's full
+  mechanics live only in this skill's reference. Never activates from silence or a long
+  task. Declare scope/gates/decision-log first.
 ---
 
 # unattended-delegation — explicitly-delegated unattended runs
@@ -42,5 +43,10 @@ guard and the gate pointers — it is not the mode's mechanics.
 - A tracker-scoped handover ("work the sprint board while I'm away") is the same mode
   with the project's DECLARED tracker bounding the scope: one reversible change-group
   and one decision-log entry per ticket; tracker writes batch to the close report.
-- A non-delegated unattended turn (cron, background job, workflow stage) is NOT this
-  mode: it stays fail-closed — stop and report blocked rather than assume approval.
+- A standing job (a `## Standing jobs` row in the ledger: trigger, scope, expiry) is the
+  same mode activated by the declaration instead of a handover: name the row in every
+  report, log one decision-log entry per run, and never land — push its own branch, open
+  or update PRs, comment, open tickets; merging and promotion stay with the human.
+- A non-delegated unattended turn (cron, background job, workflow stage — a scheduled
+  turn with no matching declared job included) is NOT this mode: it stays fail-closed —
+  stop and report blocked rather than assume approval.

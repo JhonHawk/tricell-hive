@@ -117,6 +117,17 @@ Drop the row once satisfied.
 |---|---|---|---|
 | qa / production | <env var / credential / webhook to register> | pending review / configured | YYYY-MM-DD |
 
+## Standing jobs
+
+Recurring, signal-driven work delegated without a per-run handover
+(`unattended-autonomy-mode.md > Standing jobs`). A row is the activation key: a scheduled or
+background turn runs delegated only under a row whose trigger matches it, else it fails closed.
+Max action is always propose-never-land. Edit or drop the row to revoke.
+
+| Job | Trigger | Scope | May do | Expires | Decision log |
+|---|---|---|---|---|---|
+| <name> | schedule <cron> / PR opened on <repo> / CI red on <branch> / <channel> | <repo(s), paths> | push own branch · open/update PR · comment · open ticket — never merge or promote | YYYY-MM-DD or <condition> | <project>-specs/sessions/standing-<job>/decision-log.md |
+
 ## Next session
 
 <1-3 lines: where work should resume, suggested scope.>

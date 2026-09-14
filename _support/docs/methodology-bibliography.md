@@ -1233,3 +1233,13 @@ listed in the PI README; re-check package-specific behavior when upgrading.
   inspected at the pinned source revision: research declarations distinguish document and
   open-web capabilities. Hive adapts this to active tools in the actual PI agent, including
   bounded result retrieval for documentation. Tool presence does not attest provider access.
+
+## Standing jobs — recurring delegated work (2026-09-13)
+
+- [Cursor — Introducing Projects](https://cursor.com/blog/projects), fetched 2026-09-13:
+  a coordinator that delegates rather than executes, shared context files, and
+  subscriptions (a Slack channel, a schedule, PR events) that let it act on signals without
+  a prompt. Hive takes the declared-signal unit (`PROJECT.md > Standing jobs`) and the
+  fix-the-cause example (a lint rule after the second identical mistake); it rejects the
+  persistent thread as home, undeclared always-on activation, and "as the fixes hold up,
+  you review less". Decision: `_support/spec/2026-09-13-standing-jobs-design.md`.
