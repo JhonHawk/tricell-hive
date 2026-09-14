@@ -109,6 +109,22 @@ class PlanValidatorTests(unittest.TestCase):
         self.assertEqual(cli.returncode, 0, cli.stderr)
         self.assertTrue(json.loads(cli.stdout)["valid"])
 
+    def test_inspect_warns_on_long_contract_lines_but_stays_ok(self):
+        long_line = "Scope: " + "x" * 300
+        (self.root / "long").mkdir(exist_ok=True)
+        plan = render_plan(
+            self.root / "long",
+            contract=f"\n# Fixture plan\n\n## Contract\n\n{long_line}\n\n```sh\necho {'y' * 300}\n```\n",
+        )
+        result = PLAN.inspect_plan(plan)
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["warnings"],
+            [{"code": "long_line", "line": 10, "length": len(long_line)}],  # file line: marker on 5, Scope 6th contract line
+        )
+        clean = PLAN.inspect_plan(self.plan)
+        self.assertEqual(clean["warnings"], [])
+
     def test_malformed_document_is_rejected(self):
         self.plan.write_text("<!-- hive-plan:contract:start -->\n", encoding="utf-8")
         with self.assertRaises(PLAN.PlanError) as raised:

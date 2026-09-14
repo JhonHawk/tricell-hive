@@ -85,8 +85,11 @@ mutable test-evidence table.
 
 ## APPROVAL — freeze the contract
 
-Present the complete candidate and ask for one explicit decision covering the contract. Keep
-these outcomes distinct:
+Present the candidate as a **summary in the conversation; the file is the detail.** The gate
+message carries: the goal in one line, the `Tasks at a glance` table, the decisions the gate
+closes, the permissions being requested (implementation, session git mode, conditions), and the
+plan path for the full contract. Never paste the whole contract into the chat. Then ask for one
+explicit decision covering the contract. Keep these outcomes distinct:
 
 - approval of the problem, scope or design permits planning to continue but does not authorize
   implementation;
@@ -132,8 +135,12 @@ clarify the scope before editing.
 ## CLOSE — hand off or return the plan
 
 When a ledger exists, update its phase, artifact index and `## Current handoff` with the plan path,
-contract revision, decisions, open questions and the next suggested action. Report whether the
-plan is `draft` or `planned`, which permissions were explicitly granted, and which remain absent.
+contract revision, decisions, open questions and the next suggested action. The close message is a
+fixed summary, in this order — the file stays the detail: plan path and where it was published;
+**plan state** (`draft` or `planned`, short contract digest, authorization revision); **permissions
+granted** (targets, session git mode and what each part's delivery waits on, recorded conditions);
+**permissions absent** (what was not requested and is not in the plan); ledger and memory updated;
+the next step with the direct route named as the alternative.
 
 If the approval includes implementation authority, stop after the approval record and ask the
 user to run `/flow-build`, naming the direct route as the alternative; the recorded authorization

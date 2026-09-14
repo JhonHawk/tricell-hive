@@ -67,22 +67,36 @@ stages own its domain-specific completeness.
 
 Status: planned
 
+<!-- Execution, test evidence, recovery and authorization live at the end of this file. -->
+
 <!-- hive-plan:contract:start -->
 ## Contract
 
 Implements: <epic, issue, or decision reference>
 Spec: <path to the design spec, if any>
-Goal: <one line>
-Scope: <what changes>
-Exclusions: <what remains outside this plan>
-Architecture: <the selected approach and its boundaries>
-Integration: <branch, merge mechanics, and applicable CI gates>
+Goal: <one line, ≤ 140 characters>
+Scope:
+- <one change per line>
+- <one change per line>
+Exclusions:
+- <one exclusion per line>
+Architecture:
+- <one decision or boundary per line>
+Integration:
+- <branch, base, merge mechanics>
+- <CI gates that apply>
+
+## Tasks at a glance
+
+| T | Title | Agent | Test | In-vivo | Commit |
+|---|---|---|---|---|---|
+| T1 | <imperative title> | <agent> | tdd | no | feat(<scope>): T1 <subject> |
 
 ## Decisions to close before executing
 
-| Decision | Resolution | Type | Blocks |
-|---|---|---|---|
-| D1 | <resolved choice> | technical or stakeholder | T1 |
+- D1 (technical · blocks T1): <resolved choice, one sentence>
+  - <evidence or evaluated risk, one line — or nothing>
+- D2 (stakeholder · blocks T2): <resolved choice, one sentence>
 
 ### T1: <imperative title>
 
@@ -91,15 +105,20 @@ design-review: yes
 Agent: <agent name, when a routing row applies>
 Test approach: tdd | characterization | not-applicable
 Files:
-  - Create: <exact path>
-  - Modify: <exact path>
+  - Create: <exact path> — <note, ≤ 8 words>
+  - Modify: <exact path> — <note, ≤ 8 words>
 Interfaces:
   - Consumes: <known input>
   - Produces: <output consumed later>
 
-- Step 1: <one action>
-- Step 2: <one action>
-Verify: `<command>` — Expected: `<result>`
+- Step 1 (RED): <one action>
+  - <sub-action when the step needs more than one line>
+- Step 2 (GREEN): <one action>
+Verify:
+```sh
+<one command per line>
+```
+Expected: `<result>`
 Commit: feat(<scope>): T1 <subject>
 <!-- hive-plan:contract:end -->
 
@@ -285,6 +304,29 @@ cover implementation and publication when the user clearly requested both —
 the session git mode chosen at the plan gate supplies them
 (`> Delivery grants from the session mode`).
 
+## Readable form
+
+The plan is read raw, in an editor, by a person deciding whether to approve it. The shape
+above is the readable form; these are its rules:
+
+- **No paragraphs in the contract.** `Goal:` is one line of at most 140 characters; `Scope`,
+  `Exclusions`, `Architecture` and `Integration` are the label alone followed by a list, one
+  item per line. No contract line exceeds 160 characters.
+- **Tasks at a glance comes before the decisions and the task blocks.** One row per task:
+  id, title, agent, test approach, in-vivo, commit subject. It is part of the frozen contract.
+- **Decisions are a list, never a table.** One line per decision: id, type, what it blocks,
+  the resolution in one sentence; evidence or evaluated risk indented on its own line, or
+  omitted. Tables with long cells are unreadable raw.
+- **Task blocks stay lists.** A `Files:` entry is a path plus a note of at most 8 words; a
+  `Step` is one action, split into sub-bullets when it needs more; `Verify:` is a fenced
+  block with one command per line and `Expected:` below it.
+- **Machine blocks stay last**, after the execution and test-evidence tables, behind the
+  one-line comment at the top of the file that says so.
+
+`inspect` reports contract lines over 200 characters (outside fenced code) as advisory
+`warnings`, numbered by file line; it never rejects the plan for them. Prompt-convention with
+that advisory as its backstop.
+
 ## Task block
 
 Every task is independently executable and independently trackable. The
@@ -302,8 +344,9 @@ contract must be self-contained for an engineer on another harness:
   concrete reason when no useful automatic check exists. The task's approach
   and evidence are repeated in the mutable `Test evidence` table outside the
   contract digest.
-- `Verify:` pairs a command with its expected output. A step without an
-  observable expected result is not a verification step.
+- `Verify:` pairs one or more commands (a fenced block, one per line) with the
+  expected output on the `Expected:` line below. A step without an observable
+  expected result is not a verification step.
 - `Commit:` carries the local task tag (`T1`, `T2`, and so on). It describes
   the intended commit; the execution table and Git remain the evidence that it
   happened.
@@ -390,7 +433,9 @@ python3 path/to/plan.py recovery-check path/to/plan.md \
 ```
 
 Successful commands exit zero. Rejected or malformed plans emit an `error`
-object with a stable `code` and exit non-zero. `inspect` distinguishes a
+object with a stable `code` and exit non-zero. `inspect` also returns an advisory
+`warnings` list (`long_line` entries with the file line and length) for contract lines
+over 200 characters outside fenced code; a warning never changes `ok` or the exit code. `inspect` distinguishes a
 well-formed bound authorization from an `unbound` digest, while `can_implement`
 is true only for a non-draft plan with an active, condition-satisfied
 `implement` grant. A design-only plan may be bound and inspectable while

@@ -490,6 +490,26 @@ def _validate_contract_markdown(contract_markdown: str) -> str:
     raise PlanError("incomplete_plan", "contract Markdown must contain a heading")
 
 
+READABLE_LINE_MAX = 200
+
+
+def _readability_warnings(document: "PlanDocument") -> list[dict[str, Any]]:
+    """Advisory only: long contract lines outside fenced code, numbered by file line.
+    Never rejects a plan."""
+
+    start_marker = BLOCK_MARKERS["contract"][0]
+    lines_before = document.raw[: document.raw.index(start_marker)].count(b"\n")
+    warnings: list[dict[str, Any]] = []
+    in_fence = False
+    for number, line in enumerate(document.contract_markdown.splitlines(), start=lines_before + 1):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence and len(line) > READABLE_LINE_MAX:
+            warnings.append({"code": "long_line", "line": number, "length": len(line)})
+    return warnings
+
+
 def _parse_status(raw: bytes) -> str:
     try:
         raw.decode("utf-8")
@@ -917,6 +937,7 @@ def inspect_plan(path: str | Path) -> dict[str, Any]:
             "revoked_grants": len(authorization_info.get("revoked_ids", [])),
         },
         "recovery": _recovery_summary(document.recovery),
+        "warnings": _readability_warnings(document),
     }
 
 
