@@ -1797,8 +1797,8 @@ step_final_report() {
         echo ""
         echo "Reminder: harness/{codex,opencode}/*.snippet config merges (plugin/hook"
         echo "registration in opencode.jsonc / config.toml) are ONE-TIME and MANUAL — this"
-        echo "deploy writes no part of those files except the opencode permission keys"
-        echo "(harness/opencode/permission-config.json). See harness/{codex,opencode}/README.md."
+        echo "deploy writes no part of those files except the opencode permission and shell"
+        echo "keys (harness/opencode/permission-config.json). See harness/{codex,opencode}/README.md."
         echo "On a fresh machine, hooks and rules land on disk with no prompt from the tool"
         echo "itself to register them — this reminder is that prompt."
     fi
