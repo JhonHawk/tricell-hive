@@ -14,7 +14,7 @@ natively.
 | Glob-scoped rules | `harness/opencode/rules/` (generated, versioned) | `~/.config/opencode/rules/` | **Generated** by `harness/build.py` from `global/rules/{languages,workflow}/` — never edit |
 | SessionStart plugin | `global/hooks/flow-session-context/flow-session-context.ts` | `~/.config/opencode/plugins/` | `/deploy-global` (copy) |
 | Config additions | `opencode.jsonc.snippet` | merge into `~/.config/opencode/opencode.json` | Manual, once |
-| Permission keys | `permission-config.json` | `permission.*` in `~/.config/opencode/opencode.json` | `/deploy-global` (surgical jq merge, idempotent) |
+| Permission keys + `shell` | `permission-config.json` | `permission.*` and `shell` (Homebrew bash 5) in `~/.config/opencode/opencode.json` | `/deploy-global` (surgical jq merge, idempotent; user values win) |
 
 ## One-time setup
 

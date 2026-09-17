@@ -104,6 +104,7 @@ def _header_env_warnings(servers: dict[str, dict[str, Any]], relative: str) -> l
     return warnings
 
 
+SHELL_PATH = "/opt/homebrew/bin/bash"  # bash 5: parity with CLAUDE_CODE_SHELL and opencode `shell`
 WEB_SEARCH_FIELDS = {
     "provider": "openai",
     "openaiSearchProviders": ["openai-codex"],
@@ -429,6 +430,14 @@ def _installed_package_root(pi_dir: Path, package_name: str) -> Path:
     if package_json.is_symlink() or not package_json.is_file():
         raise DeployError(f"PI package manifest is not a regular file: {package_json}")
     return package_root
+
+
+def _validate_shell_path() -> None:
+    """Refuse to point Pi's bash tool at a shell that is not there."""
+
+    shell = Path(SHELL_PATH)
+    if not (shell.is_file() and os.access(shell, os.X_OK)):
+        raise DeployError(f"{SHELL_PATH} is missing or not executable; install Homebrew bash 5 before deploying shellPath")
 
 
 def _validate_installed_packages(pi_dir: Path) -> None:
@@ -1151,6 +1160,7 @@ def _config_desired(
     merged = copy.deepcopy(data)
     if relative == "settings.json":
         _merge_packages(merged, previous, conflicts, relative)
+        _merge_scalar(merged, "shellPath", SHELL_PATH, previous, relative, conflicts)
     elif relative == "mcp.json":
         _merge_mcp(merged, previous, conflicts, relative, managed_servers)
     elif relative == "web-search.json":
@@ -1462,6 +1472,7 @@ def _pi_preflight(repo_root: Path, pi_dir: Path) -> int:
     pi_dir = _root_path(pi_dir, "PI agent")
     _validate_installed_packages(pi_dir)
     _validate_enabled_settings(pi_dir)
+    _validate_shell_path()
     manifest_path = pi_dir / MANIFEST_NAME
     if manifest_path.is_symlink():
         raise DeployError(f"PI manifest is a symlink; refusing to follow or replace it: {manifest_path}")

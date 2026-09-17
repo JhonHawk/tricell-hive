@@ -86,6 +86,11 @@ P=$(command -v pnpm) && readlink -f "$P"
 grep -c '^[^#]*--corepack-enabled' "$HOME/.zshrc"
     # expect 0 (non-comment lines only): fnm's --corepack-enabled flag re-shims
     # pnpm through corepack in every new shell, shadowing the standalone install
+jq -r '.shell // "MISSING"' ~/.config/opencode/opencode.json
+jq -r '.shellPath // "MISSING"' "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/settings.json"
+    # expect /opt/homebrew/bin/bash on both: opencode `shell` and Pi `shellPath` are
+    # deploy-managed (user value wins); MISSING after a deploy means the merge was
+    # skipped (jsonc-only opencode config, or the binary is absent)
 ```
 
 - Missing/non-executable `CLAUDE_CODE_SHELL` → Claude Code degrades to zsh auto-detection
@@ -134,7 +139,8 @@ registration is still removed so native approval cannot keep running the retired
 For PI, `--apply` deploys `harness/AGENTS.md`, generated `harness/pi/agents/`, the
 TypeScript runtime and extension entrypoints (`src/` and `extensions/`), and canonical
 shell hooks under `global/hooks/` in the PI agent directory. It
-also merges only the owned fields: the five pinned package entries in `settings.json`,
+also merges only the owned fields: the five pinned package entries and `shellPath`
+(Homebrew bash 5) in `settings.json`,
 including PI package objects with their existing filters,
 `forceTopLevelAsync` in `extensions/subagent/config.json`, the managed Context7, Linear, and
 HeroUI proxies in `mcp.json` (each lazy, direct tools disabled, `includeTools` from
@@ -248,6 +254,6 @@ session) to reload — a running session does not pick up the new files. **On a 
 (or any run touching the `codex`/`opencode` scopes for the first time)**, also point them at
 `harness/{codex,opencode}/README.md`: the `*.snippet` config merges (plugin/hook
 registration in `opencode.jsonc` / `config.toml`) are one-time and manual — this script writes
-no part of those files except the opencode `permission` keys above, so hooks and rules can land
+no part of those files except the opencode `permission` and `shell` keys above, so hooks and rules can land
 on disk with nothing registering them until that merge happens. The script's own final report repeats this reminder whenever the
 `codex` or `opencode` scope ran.

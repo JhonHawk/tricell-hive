@@ -47,7 +47,7 @@ uv venv .venv && source .venv/bin/activate && uv pip install reportlab
 
 ## Shell — tool runtime per harness
 
-- **Claude Code: the Bash tool runs bash 5** (`CLAUDE_CODE_SHELL=/opt/homebrew/bin/bash` in settings `env`; validated by the deploy-global preflight) — write plain bash. If zsh-style errors appear (`(eval):N:` prefix, `read-only variable`, `no matches found`), the override has drifted to zsh: flag it and apply the zsh rules below until fixed.
+- **Claude Code, opencode and Pi run bash 5** (`CLAUDE_CODE_SHELL=/opt/homebrew/bin/bash` in Claude settings `env`; opencode `shell` and Pi `shellPath` are deploy-managed; all three validated by the deploy-global preflight) — write plain bash. If zsh-style errors appear (`(eval):N:` prefix, `read-only variable`, `no matches found`), the override has drifted to zsh: flag it and apply the zsh rules below until fixed.
 - **Grok and Codex tool shells are zsh via eval** — and so is any shell not confirmed otherwise. For them:
   - **Never assign zsh special names as variables:** `path` (tied to `PATH` — `path=/x` replaces the entire PATH and later commands die with `command not found`), `status` (read-only), `cwd`, `argv`, `pipestatus`, `fpath`, `cdpath`, `manpath`. Use `dir`, `repo_path`, `st`, `exit_status`. Enforcement: prompt-convention here; deterministic deny for `path=`/`status=` in the `bash-policy` hook (Grok scope).
   - **No bash-4isms:** `declare -A`, `${!var}` (zsh form: `${(P)var}`), `${!arr[@]}`, `mapfile`, `read -p`.
