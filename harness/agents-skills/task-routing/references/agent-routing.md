@@ -65,7 +65,7 @@ Delegate on growing complexity, not only on explicit request. A task falling cle
 - **~20 tool calls, 5 exploratory reads, or 2 non-mechanical edits without delegating** → re-plan in flight: delegate the remainder instead of pushing the session further.
 - **3+ external reads in one answer** (tracker tickets, PR checks, deploy jobs, memory search, any third-party MCP) or **2+ fetches to pin one fact** → delegate the sweep: project state to `/status-fetch`, docs/web to `Explore`. Their full payloads are re-sent every turn afterwards, so the cost is the rest of the session, not the call. Memory *reads* delegate; close-time writes stay here.
 
-**Enforcement:** the undelegated-call gate has a deterministic advisory — `post-tool-hub` counts main-thread tool calls, resets on any delegation, and fires on each multiple of the threshold. Every other gate here, the one-route rule, and the half-delegating violation are prompt-convention.
+**Enforcement:** the undelegated-call gate has a deterministic advisory — `post-tool-hub` counts main-thread tool calls, resets on any delegation, and fires on each multiple of the threshold; from the third firing on the message also names the act (research → `sdd-explore`, state sweep → `state-fetcher`), because by then this file may have left context at a compaction. Every other gate here, the one-route rule, and the half-delegating violation are prompt-convention.
 
 Inline vs delegate — quick reference:
 

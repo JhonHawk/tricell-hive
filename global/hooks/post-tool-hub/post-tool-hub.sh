@@ -78,6 +78,11 @@ delegation_section() {
   if [ "$count" -ge 20 ] && [ $((count % 20)) -eq 0 ]; then
     # Inject the SIGNAL only; `agent-routing.md > Delegation Gates` owns what to do about it.
     printf 'Delegation gate (non-blocking): ~%s main-thread tool calls since the last delegation — see agent-routing.md > Delegation Gates.' "$count"
+    # From the third firing on, the pointer alone has failed twice (often because the rule
+    # left context at a compaction): name the act, still non-blocking.
+    if [ "$count" -ge 60 ]; then
+      printf ' The rule may be out of context: an investigation or research in progress routes to sdd-explore, a state sweep to state-fetcher; delegate the remainder now instead of the next call.'
+    fi
   fi
 }
 

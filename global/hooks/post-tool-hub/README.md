@@ -10,7 +10,7 @@ One process carrying every post-execution advisory. Absorbs `delegation-reminder
 
 Each section self-gates on `tool_name` and returns text; whatever fires is newline-joined into **one** `additionalContext` emission per event.
 
-**0. Delegation counter** (all tools) — every non-delegation tool call increments a per-session counter; a `Task`/`Agent`/`subagent` call resets it to 0; a reminder fires on each multiple of 20. Keyed to the session's first-seen `agent_id` so subagent tool calls (same `session_id`) don't inflate the main thread's count. Policy: `agent-routing.md > Delegation Gates`.
+**0. Delegation counter** (all tools) — every non-delegation tool call increments a per-session counter; a `Task`/`Agent`/`subagent` call resets it to 0; a reminder fires on each multiple of 20, and from the third firing (≥60) it also names the act to take (research → `sdd-explore`, state sweep → `state-fetcher`) since the routing rule may have left context. Keyed to the session's first-seen `agent_id` so subagent tool calls (same `session_id`) don't inflate the main thread's count. Policy: `agent-routing.md > Delegation Gates`.
 
 **1. Full-suite run counter** (`Bash` only) — counts repeated whole-suite verification runs (`turbo run test`, `pnpm [-r] [run] test`, followed only by flags). A command carrying `--filter` is the sanctioned affected-subset run and never counts; a non-flag argument (`pnpm test messages.spec`) or a scoped script (`pnpm test:unit`) is treated as scoped. The first run is the legitimate merge-boundary gate and stays silent; run #2 onward reminds. Policy: `testing.md > Execution Scope`.
 
