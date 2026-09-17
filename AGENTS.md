@@ -277,6 +277,8 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); the pre-commit hook refreshes it with any commit that touches `global/rules/` or the classifier (by hand: `python3 harness/hive-compile.py . --apply`). Staleness is content-based — `hive-compile.py --check` compares the profile it would compile today against the block on disk, stamp excluded — so a rules commit that leaves the profile identical is not stale; the `session-hygiene-report` hook delegates its advisory to that check. Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
 
+**Per-repo override — `.hive-profile.yaml` at the target repo's root** (flat `key: value` lines, no nesting; keys: `class`, `tracker`, `exclusions` (comma-separated rule paths), `notes`). Overrides win over detection; `tracker` is emitted only from this file, never inferred. Read by `hive-compile.py`; no repo declares one today — it exists for the case detection gets a repo wrong or a repo needs an extra exclusion.
+
 ## Replicating Global Harness Config
 - Source file: `harness/AGENTS.md` — itself GENERATED from `global/core-sections/`: edit the sections and run `python3 harness/build.py` first, never the output.
 - Codex global target: `~/.codex/AGENTS.md`.
