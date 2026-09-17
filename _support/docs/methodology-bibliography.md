@@ -1243,3 +1243,8 @@ listed in the PI README; re-check package-specific behavior when upgrading.
   fix-the-cause example (a lint rule after the second identical mistake); it rejects the
   persistent thread as home, undeclared always-on activation, and "as the fixes hold up,
   you review less". Decision: `_support/spec/2026-09-13-standing-jobs-design.md`.
+
+## Skill evaluation pilot (2026-09-16)
+
+- `[Authoritative — method]` OpenAI, [Testing Agent Skills Systematically with Evals](https://developers.openai.com/blog/eval-skills), fetched 2026-09-16: define outcome, process, style and efficiency criteria; capture traces and artifacts; use focused positive and negative prompts to identify regressions. Applied in `harness/evals/`. The article motivates the method, not equivalence between harnesses or models.
+- `[Empirical — adapter semantics]` Installed PI 0.85.1, `dist/core/skills.js` (`loadSkills`, `formatSkillsForPrompt`) and `dist/core/agent-session.js` (`_expandSkillCommand`), executed 2026-09-16: `--skill` registers a path, gated skills are omitted from the automatic catalog, and `/skill:name` expands the body. The isolated pilot retains this boundary; a missing body read is not treated as success.

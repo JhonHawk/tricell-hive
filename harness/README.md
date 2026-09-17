@@ -15,6 +15,10 @@ harness changes how it loads rules.
 
 ## Layout
 
+The [`evals/`](evals/) subtree contains the isolated 30-case skill evaluation pilot
+and its rubric. It is run-only test material; it does not deploy global configuration
+or represent full production harness parity.
+
 | Path | What | Maintained how |
 |---|---|---|
 | `AGENTS.md` | Always-on cross-harness core → `~/.codex/AGENTS.md` + `~/.config/opencode/AGENTS.md`; situational depth lives behind router skills | **Generated** — assembled from `global/core-sections/` by `build.py` (edit the sections, never this file). **No harness caps the global instructions file** (verified 2026-08-18, bibliography), so `build.py` reports its size and per-session token cost and enforces nothing — growth is governed by placement, not a byte budget |

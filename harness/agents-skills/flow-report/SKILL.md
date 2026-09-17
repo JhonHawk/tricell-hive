@@ -7,14 +7,18 @@ description: >
   research, PR review, option grid, pitch). `paper` is the formal, printable one: serif,
   numbered sections, footnotes, cover page. NOT for answering the user: an analysis, diagnosis, review verdict, status,
   or option comparison reported back in-thread stays prose however long or rich. Requires
-  the artifact test in rules/quality/communication-format.md, plus ≥~300 words and 2+ info
+  the artifact test, plus ≥~300 words and 2+ info
   kinds (tables, diagrams, code, mockups) as necessary-not-sufficient conditions. Never for
   handoffs or live playgrounds.
 ---
 
 # flow-report
 
-Produces a single self-contained `.html` file under `_support/workspace/` or `_support/plan/`. Apply only when triggers in `rules/quality/communication-format.md` fire.
+Produces a single self-contained `.html` file under `_support/workspace/` or `_support/plan/`.
+Apply the artifact test and triggers from `~/.claude/rules/quality/communication-format.md`
+when loaded from the Claude skill tree; in the universal skill tree, read
+`references/communication-format.md` relative to this skill directory (injected from the
+same canonical rule).
 
 ## Universal rules
 
