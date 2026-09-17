@@ -10,4 +10,4 @@
 # still fails until blessed. The ratchet freezes the blessed state — it
 # imposes no number and no budget (see the header note in harness/build.py).
 global/CLAUDE.md 9357
-harness/AGENTS.md 10461
+harness/AGENTS.md 10507

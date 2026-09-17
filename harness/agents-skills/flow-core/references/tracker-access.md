@@ -18,7 +18,11 @@
    install-scoped: discover, never assume) · `cli` — `acli` for Jira (often the most
    effective route), `gh issue` for GitHub · `api` — REST/GraphQL with the named env token ·
    `manual` — list the updates for the user. `Tracker: none` → `tasks.md` is the source of
-   truth.
+   truth. Linear names, so the `mcp` step costs one lookup instead of a search loop — Grok
+   (observed): `linear__get_issue`, `linear__list_issues`, `linear__save_issue`,
+   `linear__save_comment`; the operations are Linear's own, so other harnesses expose them
+   under their MCP prefix (`mcp__<server>__save_issue`) — confirm the prefix once per session.
+   A name not listed here is still discovered, never assumed.
 
 ## Writes
 
