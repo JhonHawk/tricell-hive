@@ -5,7 +5,7 @@ description: >
   whichever comes first: a commit-only session fires on the git verb without ever reaching
   edit-intent. Covers HOW work gets done — which specialist takes it, whether to delegate at all,
   how a multi-domain task is chained and verified, the gap analysis that settles prerequisites
-  before a plan's tasks are written — AND the git mechanics: branching, session git mode, commits,
+  before a plan's tasks are written, the direct route's task record before the first write — AND the git mechanics: branching, session git mode, commits,
   PR/promotion, close. Any request to review, audit, investigate, diagnose, refactor across files,
   or "how would you approach X" is this decision, even when the user never says "delegate" — they
   ask for a result, not a routing choice. NOT for: a short question, work outside a software
@@ -35,6 +35,7 @@ the plan gate; committing without them means a session mode and branch chosen by
 | Judging whether a change is TRIVIAL (the carve-out that scales review, tests and risk-surfacing down); deciding who OWNS an open decision; whether an alternative is worth surfacing | `critical-thinking.md` |
 | Cutting a branch, picking its name, or deciding the repo's branching model and base branch | `git-mechanics.md > Branching` |
 | First edit-intent of the session (the git mode question), or writing a commit message | `git-mechanics.md > Commits` |
+| Starting implementation with no `/flow-plan` contract (the direct route), before the first write — whether a task record is created | `agent-routing.md > Direct Route` |
 | Opening a PR, choosing the review route, waiting on CI, merging, promoting to an environment | `git-mechanics.md > PRs & promotion` |
 | The plan or change-group finished: pruning merged branches, handling unmerged ones | `git-mechanics.md > End-of-work hygiene` |
 | A push 404s on a private repo | `git-mechanics.md > Recovery` |

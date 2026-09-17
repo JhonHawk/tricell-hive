@@ -739,6 +739,130 @@
       "required_files": [],
       "output_contains": [],
       "file_contains": {}
+    },
+    {
+      "id": "routing-explicit-task-record",
+      "skill": "task-routing",
+      "category": "explicit",
+      "prompt": "Usa la skill task-routing. Implementa dos cambios: (1) agrega una función farewell(name) en src/greeting.py que devuelva f\"Adiós, {name}\"; (2) haz que src/cli.py imprima también la despedida. Trabajo en ruta directa, sin plan. Usa el slug greeting-farewell para cualquier registro que la convención requiera. No instales ni ejecutes herramientas.",
+      "fixtures": {
+        ".python-version": "3.12\n",
+        "README.md": "# Greeting sample\n\nThis sample returns a greeting.\n",
+        "src/greeting.py": "def greeting(name: str) -> str:\n    \"\"\"Return a greeting.\"\"\"\n    return f\"Hola, {name}\"\n",
+        "src/cli.py": "from greeting import greeting\n\n\ndef main() -> None:\n    print(greeting(\"mundo\"))\n"
+      },
+      "protected_files": [
+        ".python-version",
+        "README.md"
+      ],
+      "expected_activation": true,
+      "required_reads": [
+        "task-routing/references/agent-routing.md"
+      ],
+      "allowed_writes": [
+        "src/greeting.py",
+        "src/cli.py",
+        "_support/workspace/tasks/greeting-farewell.md",
+        ".gitignore"
+      ],
+      "required_files": [
+        "src/greeting.py",
+        "src/cli.py",
+        "_support/workspace/tasks/greeting-farewell.md"
+      ],
+      "file_contains": {
+        "src/greeting.py": [
+          "def farewell"
+        ],
+        "src/cli.py": [
+          "farewell"
+        ],
+        "_support/workspace/tasks/greeting-farewell.md": [
+          "T1",
+          "T2",
+          "Test approach"
+        ]
+      },
+      "output_contains": [
+        "greeting-farewell"
+      ]
+    },
+    {
+      "id": "routing-implicit-task-record",
+      "skill": "task-routing",
+      "category": "implicit",
+      "prompt": "Implementa dos cambios: (1) agrega una función farewell(name) en src/greeting.py que devuelva f\"Adiós, {name}\"; (2) haz que src/cli.py imprima también la despedida. Sin plan; si la convención pide dejar registro de tareas, usa el slug greeting-farewell. No instales ni ejecutes herramientas.",
+      "fixtures": {
+        ".python-version": "3.12\n",
+        "README.md": "# Greeting sample\n\nThis sample returns a greeting.\n",
+        "src/greeting.py": "def greeting(name: str) -> str:\n    \"\"\"Return a greeting.\"\"\"\n    return f\"Hola, {name}\"\n",
+        "src/cli.py": "from greeting import greeting\n\n\ndef main() -> None:\n    print(greeting(\"mundo\"))\n"
+      },
+      "protected_files": [
+        ".python-version",
+        "README.md"
+      ],
+      "expected_activation": true,
+      "required_reads": [
+        "task-routing/references/agent-routing.md"
+      ],
+      "allowed_writes": [
+        "src/greeting.py",
+        "src/cli.py",
+        "_support/workspace/tasks/greeting-farewell.md",
+        ".gitignore"
+      ],
+      "required_files": [
+        "src/greeting.py",
+        "src/cli.py",
+        "_support/workspace/tasks/greeting-farewell.md"
+      ],
+      "file_contains": {
+        "src/greeting.py": [
+          "def farewell"
+        ],
+        "src/cli.py": [
+          "farewell"
+        ],
+        "_support/workspace/tasks/greeting-farewell.md": [
+          "T1",
+          "T2"
+        ]
+      },
+      "output_contains": [
+        "greeting-farewell"
+      ]
+    },
+    {
+      "id": "routing-negative-trivial-no-record",
+      "skill": "task-routing",
+      "category": "negative",
+      "prompt": "En src/greeting.py cambia únicamente el texto \"Hola\" por \"Hola de nuevo\". No toques otros archivos; no instales ni ejecutes herramientas.",
+      "fixtures": {
+        ".python-version": "3.12\n",
+        "README.md": "# Greeting sample\n\nThis sample returns a greeting.\n",
+        "src/greeting.py": "def greeting(name: str) -> str:\n    \"\"\"Return a greeting.\"\"\"\n    return f\"Hola, {name}\"\n",
+        "src/cli.py": "from greeting import greeting\n\n\ndef main() -> None:\n    print(greeting(\"mundo\"))\n"
+      },
+      "protected_files": [
+        ".python-version",
+        "README.md",
+        "src/cli.py"
+      ],
+      "expected_activation": false,
+      "required_reads": [],
+      "allowed_writes": [
+        "src/greeting.py"
+      ],
+      "required_files": [
+        "src/greeting.py"
+      ],
+      "file_contains": {
+        "src/greeting.py": [
+          "Hola de nuevo"
+        ]
+      },
+      "output_contains": []
     }
   ]
 }

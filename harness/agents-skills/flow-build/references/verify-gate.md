@@ -19,7 +19,10 @@ for the tasks not yet gated:
    exception (`exception-accepted`); every path keeps pass-to-pass evidence and the applicable
    independent checks, and none is strict TDD.
    RED/GREEN/refactor runs are implementation evidence and do not add another independent review
-   or boundary layer.
+   or boundary layer. The verdict names the candidate it read: record the commit SHA (or, for a working tree,
+   `git diff HEAD -- <reviewed paths> | shasum -a 256` plus the untracked reviewed paths) in
+   the review evidence; a later change to the reviewed files re-reviews the delta and never
+   inherits the verdict. Prompt-convention.
    The reviewer or verifier runs the tooling-selected affected subset or deterministic validator
    for standard and sensitive behavior when one exists; otherwise it performs a fresh readback
    consistency check and records runtime verification as not-applicable with the reason. Passive

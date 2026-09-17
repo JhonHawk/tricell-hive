@@ -2,14 +2,16 @@
 
 This directory contains the first reproducible pilot for Hive skills. It applies the
 method from [Testing Agent Skills Systematically with Evals](https://developers.openai.com/blog/eval-skills)
-to three skills:
+to three skills, plus three cases for a fourth:
 
 - `language-rules`
 - `flow-plan`
 - `flow-report`
+- `task-routing` (direct-route task record only)
 
-The dataset has 30 cases: 10 per skill, with explicit, implicit, contextual and
-negative controls. The pilot runs each selected case twice, using the same model and
+The dataset has 33 cases: 10 per skill for the three pilot skills (explicit, implicit,
+contextual and negative controls) plus 3 for `task-routing` covering only the
+direct-route task record (explicit, implicit, negative; no contextual case). The pilot runs each selected case twice, using the same model and
 reasoning setting for the comparison:
 
 | Harness | Version | Model | Effort | Repeats |

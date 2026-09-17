@@ -21,7 +21,8 @@ this stage.
    initialized only after the observed workspace and delivery state are reconciled.
 
    Follow the task's `Test approach:` before changing the corresponding behavior. The dispatch
-   prompt to a specialist carries that approach verbatim; for `tdd` it instructs the specialist
+   prompt to a specialist carries that approach verbatim — and the size line from
+   `agent-routing.md > Delegation hygiene` verbatim too; for `tdd` it instructs the specialist
    to write and run the intended check FIRST and to return the observed RED output before touching
    the implementation — a specialist report without that RED is sent back, never accepted. A
    `tdd` task that creates the unit under test (a `Create:` entry for the implementation file)
