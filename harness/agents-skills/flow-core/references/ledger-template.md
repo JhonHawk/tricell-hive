@@ -61,6 +61,7 @@ pointer in the workspace CLAUDE.md). Write for both: terse, scannable, paths alw
 | Deferred marker | linear label "deferred" / jira label / tasks.md `[deferred]` / none — how paused-by-decision work is marked |
 | Executor dispatch | free (default) / plan-required — `plan-required` makes the `executor-dispatch-gate` hook DENY dispatching an executor agent while no plan holds implementation authority; `free` only advises |
 | Release notes | OPTIONAL — overrides for `release-notes-template.md` (canal: correo / whatsapp / slack · idioma · tono); absent = template defaults |
+| QA walk | OPTIONAL — who runs the functional walk after a QA promotion: `sdd-verify` (dispatched automatically after liveness, report versioned) / `offer` (default — stated pending at close, `sdd-verify` offered) / `none` (client QA owns it; never run or offer, close is liveness only) |
 | Last updated | YYYY-MM-DD (<what changed>) |
 
 ## Stage status

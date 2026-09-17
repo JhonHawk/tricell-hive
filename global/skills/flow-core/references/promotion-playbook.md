@@ -44,16 +44,23 @@ from `git-mechanics.md > Branching` and say so.
    - **Liveness (always runs):** health endpoints + the project's smoke E2E suite against
      the QA URLs. This proves the server responds; it does NOT prove the UI renders. An
      HTTP/curl smoke is liveness, never functional validation.
-   - **Functional validation — a handoff, not an auto-gate:** when the promotion touches
-     UI, auth/session, or an integration, liveness alone does not prove it works (a
-     logged-in screen full of untranslated keys still returns 200). This is QA's by
-     default — most client projects have a human QA who owns the QA environment — so do
-     NOT run it automatically and do NOT block the close on it. Never let it pass
-     silently: at close, state that functional QA is pending and OFFER the
-     **sdd-verify** agent against the QA URLs (authenticated real-user session
-     walking the promoted ACs + the negative catalog, versioned report per
-     `test-report-template.md`). The user decides — human QA covers it, or dispatch the
-     agent.
+   - **Functional validation — per project, declared in the ledger's `QA walk` row** (a
+     workspace `CLAUDE.md`/`AGENTS.md` declaration counts the same). When the promotion
+     touches UI, auth/session, or an integration, liveness alone does not prove it works (a
+     logged-in screen full of untranslated keys still returns 200). The row decides who
+     walks it:
+     - `sdd-verify` — dispatch the **sdd-verify** agent against the QA URLs right after
+       liveness, without asking (authenticated real-user session walking the promoted ACs +
+       the negative catalog, versioned report per `test-report-template.md`). The close
+       reports its verdict; a promotion closed with the walk not run is reported
+       not-verified, never "pending".
+     - `offer` (the default when the row is absent) — a handoff, not an auto-gate: most
+       client projects have a human QA who owns the QA environment, so do NOT run it
+       automatically and do NOT block the close on it. Never let it pass silently: at
+       close, state that functional QA is pending and OFFER `sdd-verify`. The user decides.
+     - `none` — the client's QA team owns it: never run or offer it; the close is
+       liveness only.
+     Prompt-convention; the row is read at step 1 with the promotable state.
 5. **Release notes.** Draft client-facing notes from merged PRs + tracker states since the
    last promotion, per `release-notes-template.md`. Versioned (plain markdown, the durable
    record of what shipped): with a specs repo → `<project>-specs/releases/YYYY-MM-DD-<env>.md`;
