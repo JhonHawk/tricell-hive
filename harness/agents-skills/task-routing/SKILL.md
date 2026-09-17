@@ -62,8 +62,9 @@ and Grok) or `~/.agents/skills/task-routing/references/<file>.md` (Codex and ope
   with the precedence that governs all of it (explicit user verb > invoked flow skill's
   declared git scope > session defaults). Read that one for *whether you may*; the
   `git-mechanics.md` reference for *how*.
-- A repo's own `AGENTS.md`/`CLAUDE.md` declaration (`Base branch`, `Git mode`, `PR review`)
-  wins over anything here; read the repo before reading this.
+- A repo's own `AGENTS.md`/`CLAUDE.md` declaration (`Base branch`, `Issue tracker`) wins
+  over anything here; `PR review` is the RECOMMENDED option of a question still asked every
+  session that opens a PR (`git-mechanics.md > PRs & promotion`). Read the repo before this.
 - A task in one clear domain routes to that specialist without reading anything: the table
   exists for the ambiguous cases and for the chains.
 - **Trivial mechanical work is never delegated** — that answer needs no reference.

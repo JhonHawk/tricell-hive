@@ -200,8 +200,8 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
   above is what carries the reader back up. Two copies of one rule with no arbiter is the
   drift this skill exists to remove; creating it while conforming the pair is a regression.
 - **`## Git Workflow` declarations**: `Base branch:` / `PR review:` /
-  `Issue tracker:` per `git-workflow.md`'s declaration block. Each declared value removes a
-  per-session question. `Base branch` is a repo FACT: verify it against branch topology, never ask. The
+  `Issue tracker:` per `git-workflow.md`'s declaration block. A declared value settles a fact
+  or seeds a recommendation; it never silences a decision. `Base branch` is a repo FACT: verify it against branch topology, never ask. The
   other three are DECISIONS no repo file can settle on its own. **The block lives in the
   REPO's `AGENTS.md`, one per repo — never at the workspace root:** the values differ per repo
   and a child-repo session never loads the root file; the root keeps only what crosses repos
@@ -212,9 +212,12 @@ before reporting: most broken paths are MOVED, not absent, and the two take oppo
     token is a stale default that answers nothing. Removing it keeps whatever the line carried
     BEYOND the token — which surface needs visual validation, a standing push authorization —
     as its own line; that knowledge is the repo's, not the mode's.
-  - **`PR review`** — the review apps wired to the repo tell you WHICH app; they never
-    authorize spending it. Confirm that a paid app's trigger rides the user's sign-off
-    (`git-mechanics.md > PRs & promotion`).
+  - **`PR review`** — the review apps wired to the repo tell you WHICH app to RECOMMEND;
+    the route is still asked every session that opens a PR, with the declared app first and
+    marked recommended and `none` among the options, and a paid app's trigger rides the
+    user's sign-off (`git-mechanics.md > PRs & promotion`). A declaration phrased as a
+    standing order ("after the push, comment `bugbot run`") is a FINDING: rewrite it as the
+    recommendation it is.
   - **`Issue tracker`** — standing write authorization to an external system, confirm-gated in
     its own right (`memory-routing.md > Tracker sync`); never carried over as settled because a
     previous version of the file already said it.
