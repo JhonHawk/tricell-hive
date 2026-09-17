@@ -10,6 +10,7 @@ description: >
   convention.
 tools: Read, Glob, Grep, Bash
 model: sonnet
+effort: medium
 color: yellow
 hooks:
   PreToolUse:

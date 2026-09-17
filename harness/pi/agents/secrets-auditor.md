@@ -4,7 +4,7 @@ name: secrets-auditor
 description: >
   Scan repositories for exposed secrets using gitleaks and remediate findings. Use when auditing a repo or workspace for leaked API keys, passwords, tokens, IPs, SSH keys, or connection strings in any file type.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: medium
 tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

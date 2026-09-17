@@ -52,9 +52,9 @@ class ConverterTests(unittest.TestCase):
             next((ROOT / "global" / "agents").rglob("backend-developer.md"))
         )
         self.assertEqual(CONVERTER.codex_model(sonnet), "gpt-5.6-luna")
-        self.assertEqual(CONVERTER.codex_reasoning_effort(sonnet), "max")
+        self.assertEqual(CONVERTER.codex_reasoning_effort(sonnet), "high")
         self.assertIn("model: openai-codex/gpt-5.6-luna", CONVERTER.to_pi(sonnet))
-        self.assertIn("thinking: max", CONVERTER.to_pi(sonnet))
+        self.assertIn("thinking: high", CONVERTER.to_pi(sonnet))
 
         inherited = fixture_agent(
             "name: inherited\n"

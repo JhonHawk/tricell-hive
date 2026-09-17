@@ -45,7 +45,7 @@ CODEX_UNSUPPORTED_EFFORTS = {"gpt-5.6-luna": frozenset({"ultra"})}
 # "inherit" (or an unmapped alias) emit no model line in either target.
 OPENAI_TIER_MAP = {
     "opus": ("gpt-6-astra", "medium"),
-    "sonnet": ("gpt-5.6-luna", "max"),
+    "sonnet": ("gpt-5.6-luna", "high"),
     "haiku": ("gpt-5.6-luna", "high"),
 }
 # Keep the existing name as the Codex-facing compatibility surface used by the

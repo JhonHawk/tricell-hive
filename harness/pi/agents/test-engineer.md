@@ -4,7 +4,7 @@ name: test-engineer
 description: >
   Design test strategies, generate comprehensive test suites, and improve coverage across vitest, jest, Playwright, TestBed, pytest, and JUnit. Use when writing tests is the primary task — not as a side effect of feature development.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

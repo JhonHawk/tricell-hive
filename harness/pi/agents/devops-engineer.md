@@ -4,7 +4,7 @@ name: devops-engineer
 description: >
   CI/CD pipelines, deployment automation, infrastructure provisioning, and cloud operations across GitHub Actions, AWS, Hetzner, Vercel, and Dokploy. Use for pipeline setup, Docker/Kubernetes config, monitoring, security scanning, and deployment strategies.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 excludeTools: subagent
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts

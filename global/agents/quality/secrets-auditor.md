@@ -6,6 +6,7 @@ description: >
   IPs, SSH keys, or connection strings in any file type.
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
+effort: medium
 maxTurns: 25
 color: yellow
 ---

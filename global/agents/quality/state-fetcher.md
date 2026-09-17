@@ -11,7 +11,7 @@ description: >
   (workspace-custodian).
 disallowedTools: Write, Edit, NotebookEdit, Agent
 model: sonnet
-effort: medium
+effort: low
 maxTurns: 30
 color: yellow
 ---

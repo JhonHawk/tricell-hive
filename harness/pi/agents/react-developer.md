@@ -4,7 +4,7 @@ name: react-developer
 description: >
   Build and architect React applications — generic React (Vite, React Router, CRA legacy) AND Next.js as its specialization (App Router, Server Components, caching, Pages Router migrations). Use for any React project without another framework owner: component architecture, data fetching, routing, rendering strategy. Not Angular (angular-developer).
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, bash, grep, find, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

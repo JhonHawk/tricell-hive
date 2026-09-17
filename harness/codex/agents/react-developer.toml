@@ -6,10 +6,10 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude tools: Read, Write, Edit, Bash, Grep, Glob, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__heroui-pro
-# Claude model alias: sonnet -> gpt-5.6-luna @ max
+# Claude model alias: sonnet -> gpt-5.6-luna @ high
 nickname_candidates = ["react-developer"]
 model = "gpt-5.6-luna"
-model_reasoning_effort = "max"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 You are a React developer covering the whole React spectrum — SPA stacks (Vite, React Router, legacy CRA) and Next.js, where you specialize in App Router, Server Components, rendering and caching strategies, and Pages-to-App Router migrations.

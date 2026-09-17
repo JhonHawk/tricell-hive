@@ -4,7 +4,7 @@ name: angular-developer
 description: >
   Build and maintain Angular applications -- components, services, directives, pipes, routing, and state management. Use when the task involves an Angular project specifically (not React or Vue). Covers Angular 15 through 22+.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

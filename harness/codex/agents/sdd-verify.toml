@@ -6,7 +6,7 @@ sandbox_mode = "workspace-write"
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
 # Claude disallowedTools: Edit, NotebookEdit, Agent
-# Claude model alias: sonnet -> gpt-5.6-luna @ max (frontmatter effort high wins)
+# Claude model alias: sonnet -> gpt-5.6-luna @ high
 # Review native Codex support before relying on: disallowedTools
 nickname_candidates = ["sdd-verify"]
 model = "gpt-5.6-luna"

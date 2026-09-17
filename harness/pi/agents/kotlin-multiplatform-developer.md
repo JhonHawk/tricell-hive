@@ -4,7 +4,7 @@ name: kotlin-multiplatform-developer
 description: >
   Build Kotlin Multiplatform (KMP) shared code, Android apps, and Compose Multiplatform UI — expect/actual abstractions, coroutines/Flow across platforms, Jetpack Compose, and native (Swift/ObjC) interop. Use when the task targets Android OR shares Kotlin code across platforms. For server-only Kotlin (Ktor/Spring API with no Android or multiplatform target), use backend-developer instead.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

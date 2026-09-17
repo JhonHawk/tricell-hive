@@ -4,7 +4,7 @@ name: sdd-spec-writer
 description: >
   Write or restructure Markdown artifacts that others implement or read from. Two inputs: SPEC — an épica/PRD/delta spec for a specs repo (dispatched by the spec-writing playbook from findings, a proposal, or raw notes; output contract `spec-rubric.md`); DOCS — READMEs, ADRs, API docs, setup and contribution guides inside a repository. Use when the writing is the task; NOT for reviewing a spec (that is sdd-spec-reviewer) and NOT for pages inside a Starlight docs site (`/starlight-docs-site page`).
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, find, grep, mem_save, contact_supervisor, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

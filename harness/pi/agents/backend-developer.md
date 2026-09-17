@@ -4,7 +4,7 @@ name: backend-developer
 description: >
   Build server-side APIs, microservices, and backend systems across NestJS, Express, Spring Boot, Kotlin, and Python. Use when implementing API endpoints, database integration, authentication, or service architecture.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: high
 tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true

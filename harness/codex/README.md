@@ -134,9 +134,10 @@ parts in Codex TOML and makes non-equivalent fields visible:
   available; do not assume it is preloaded.
 - Claude model aliases are translated by the tier map in
   `harness/build/convert-agents.py`: `opus` → `gpt-6-astra` @ `medium` (the five approved judgment roles),
-  `sonnet` → `gpt-5.6-luna` @ `max` (execution), `haiku` → `gpt-5.6-luna` @ `high`.
-  The tier's effort overrides the Claude `effort` frontmatter, which is calibrated
-  for Claude's models; the original value stays as a comment.
+  `sonnet` → `gpt-5.6-luna` @ `high` (execution), `haiku` → `gpt-5.6-luna` @ `high`.
+  A Claude `effort` declared in the frontmatter wins over the tier's effort, except
+  `opus`/`high`, which the Astra policy pins to `medium`; the mapping is recorded as
+  a comment in the TOML.
 - `inherit` emits no `model`, so those agents resolve to `[agents]
   default_subagent_model` in `config.toml` before falling back to the session model.
 

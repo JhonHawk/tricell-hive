@@ -4,7 +4,7 @@ name: workspace-custodian
 description: >
   Audit the documentary hygiene of a client workspace: misplaced files, unpromoted decisions, stale scratch, broken ledger pointers, specs-repo nonconformance. Also produces the migration manifest when a pre-pack project first adopts the workspace convention (specs-repo creation, activity tiering, per-artifact routing). Read-only — it proposes actions, never executes them; execution is a separate, user-approved pass. Use when a workspace feels disordered, or when a project is being brought into the convention.
 model: openai-codex/gpt-5.6-luna
-thinking: max
+thinking: medium
 tools: read, find, grep, bash, mem_search, mem_context, mem_get_observation, contact_supervisor, hive_git_read, hive_hook_readiness, hive_reviewer_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts, __HIVE_PI_ROOT__/extensions/hive/reviewer-guard.ts
 async: true
