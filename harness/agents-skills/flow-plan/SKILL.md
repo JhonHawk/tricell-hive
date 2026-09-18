@@ -76,6 +76,14 @@ A bounded change may combine define and design/plan. A larger change may need se
 specification, design or contract artifacts. A review gate remains the gate when the artifact
 being reviewed is itself the deliverable; do not manufacture a second equivalent approval.
 
+Classify every decision by owner before writing it (`critical-thinking.md > Decide by owner`). A
+fork you can settle from the repo, the docs or a recorded decision is `technical` — settle it and
+write it resolved. One with 2+ viable options that turns on the user's priorities, or that widens
+scope past what the ticket names, is `stakeholder · open`: write the question and its options,
+never a pre-answered choice. **A plan whose decisions are ALL resolved asserts the user had
+nothing to decide — verify that rather than defaulting to it**, since the format makes
+pre-answering the path of least resistance.
+
 Before presenting the gate, resolve technical prerequisites that are discoverable and record
 missing user-held prerequisites explicitly. Do not write implementation tasks whose files,
 interfaces, test approach, verification command or expected result remain unknown. Every task
@@ -86,10 +94,21 @@ mutable test-evidence table.
 ## APPROVAL — freeze the contract
 
 Present the candidate as a **summary in the conversation; the file is the detail.** The gate
-message carries: the goal in one line, the `Tasks at a glance` table, the decisions the gate
-closes, the permissions being requested (implementation, session git mode, conditions), and the
-plan path for the full contract. Never paste the whole contract into the chat. Then ask for one
-explicit decision covering the contract. Keep these outcomes distinct:
+message carries: the goal in one line, the `Tasks at a glance` table, the decisions split by
+owner, the permissions being requested (implementation, session git mode, conditions), and the
+plan path for the full contract. Never paste the whole contract into the chat.
+
+- **`open` decisions are ASKED with the question tool before the contract approval** — one at a
+  time, recommended option first. Approving a contract authorizes executing it, never having
+  decided its scope (`critical-thinking.md > Decide by owner`), so a blanket yes does not answer
+  one. Write each answer into the contract as `resolved`, then compute the digest. None open →
+  say so and go straight to the contract approval.
+- **`technical` and already-`resolved` decisions are REPORTED**, under a heading naming them as
+  decided, each keeping its owner tag so the user can redirect one instead of ratifying a flat
+  list. `blocks Tn` is dependency ordering, never a blocker status
+  (`reporting-integrity.md > "Blocker" is a status`).
+
+Then ask for one explicit decision covering the contract. Keep these outcomes distinct:
 
 - approval of the problem, scope or design permits planning to continue but does not authorize
   implementation;

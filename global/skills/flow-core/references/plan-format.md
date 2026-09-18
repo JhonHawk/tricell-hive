@@ -94,9 +94,17 @@ Integration:
 
 ## Decisions to close before executing
 
+Each decision carries owner and state. `technical` is the implementer's and is written resolved.
+`stakeholder` is the user's: `open` when 2+ options are viable and nothing on record settles it —
+written as the question, asked at the gate, never pre-answered; `resolved` only when the user
+already decided it, citing that evidence.
+
 - D1 (technical · blocks T1): <resolved choice, one sentence>
   - <evidence or evaluated risk, one line — or nothing>
-- D2 (stakeholder · blocks T2): <resolved choice, one sentence>
+- D2 (stakeholder · open · blocks T2): <the question, one sentence>
+  - Options: <A> | <B> — recommended <A>, <one line why>
+- D3 (stakeholder · resolved · blocks none): <choice, one sentence>
+  - Decided by: <user evidence — ticket, prior message, recorded decision>
 
 ### T1: <imperative title>
 
