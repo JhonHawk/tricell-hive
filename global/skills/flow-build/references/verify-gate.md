@@ -14,7 +14,10 @@ for the tasks not yet gated:
    against `quality/testing.md`: a `tdd` task needs observed RED evidence before its
    implementation, or the isolated fail-to-pass comparison labeled `fail-to-pass` where the
    chronology was missed; a `characterization` task needs its green baseline, and
-   `not-applicable` needs its concrete reason and applicable review. A missed RED with no
+   `not-applicable` needs its concrete reason and applicable review. **Each row also carries its
+   `Run state`** (`verified` | `blocked` | `not-reached`): a check that exists and did not run is
+   recorded there with its obstacle and NEVER rewritten to `not-applicable` — the gate does not
+   pass by relabeling what it could not verify. A missed RED with no
    fail-to-pass comparison blocks `built`→`verified` and delivery until the user accepts the
    exception (`exception-accepted`); every path keeps pass-to-pass evidence and the applicable
    independent checks, and none is strict TDD.

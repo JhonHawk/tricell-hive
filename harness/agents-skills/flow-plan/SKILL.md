@@ -122,7 +122,19 @@ defaulting to it — the format makes pre-answering the path of least resistance
 loud at the gate.
 
 Before presenting the gate, resolve technical prerequisites that are discoverable and record
-missing user-held prerequisites explicitly. Do not write implementation tasks whose files,
+missing user-held prerequisites explicitly — run the gap analysis in `references/gap-resolution.md`,
+which no other path loads during planning.
+
+**Resolve the IN-VIVO half before the first file edit, never at the verify gate**, for every task
+declared `in-vivo: yes`: the account with the right role, the tenant/org/branch the screen scopes
+to, the seed rows the list or dropdown reads, and the state the flow starts from. Missing is a
+PREREQUISITE — seed it or create it and say so in the plan — never a blocker and never a reason
+to reclassify the check. Name in the plan what the walk needs and where it comes from (the seed
+script, the fixture, the environment). A feature whose whole point is a filter needs the rows on
+both sides of that filter to exist: discovering that after the code is written is the failure this
+check exists to prevent.
+
+Do not write implementation tasks whose files,
 interfaces, test approach, verification command or expected result remain unknown. Every task
 declares `Test approach: tdd`, `characterization`, or `not-applicable` according to
 `quality/testing.md`; a `not-applicable` choice includes its concrete reason in the task and

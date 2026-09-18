@@ -140,9 +140,17 @@ Commit: feat(<scope>): T1 <subject>
 
 ## Test evidence
 
-| Task/case | Approach | Baseline | RED | GREEN | Refactor | Fail-to-pass |
-|---|---|---|---|---|---|---|
-| T1/<case> | tdd | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | <mutation command/result when RED was not observed, or `exception: <reason>`> |
+| Task/case | Approach | Run state | Baseline | RED | GREEN | Refactor | Fail-to-pass |
+|---|---|---|---|---|---|---|---|
+| T1/<case> | tdd | verified | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | <mutation command/result when RED was not observed, or `exception: <reason>`> |
+
+`Approach` is what the task PROMISED (`tdd` | `characterization` | `not-applicable`, per
+`quality/testing.md`); **`Run state` is what actually happened** — `verified` (it ran and passed),
+`blocked` (a named, externally pointable obstacle stopped it), or `not-reached` (never attempted).
+The two columns never substitute for each other: a check that exists and is useful but did not run
+is `not-applicable` in NEITHER column — it keeps its real `Approach` and records `blocked` or
+`not-reached` with the obstacle. Collapsing an unrun check into `not-applicable` reads to the next
+session as "there was never anything to verify here", which is the one thing it does not mean.
 
 <!-- hive-plan:recovery:start -->
 ```json
@@ -351,9 +359,11 @@ contract must be self-contained for an engineer on another harness:
   `characterization`, or `not-applicable`, as defined by `quality/testing.md`.
   `tdd` covers automatically checkable behavior and reproducible bugs;
   `characterization` covers pure refactors; and `not-applicable` requires a
-  concrete reason when no useful automatic check exists. The task's approach
-  and evidence are repeated in the mutable `Test evidence` table outside the
-  contract digest.
+  concrete reason when no useful automatic check exists — never as a retroactive
+  label for a check that exists and simply did not run (that is a `Run state` of
+  `blocked` or `not-reached`). The task's approach and evidence are repeated in
+  the mutable `Test evidence` table outside the contract digest, which carries
+  the `Run state` the approach alone cannot express.
 - `Verify:` pairs one or more commands (a fenced block, one per line) with the
   expected output on the `Expected:` line below. A step without an observable
   expected result is not a verification step.
