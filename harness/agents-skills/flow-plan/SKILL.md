@@ -79,10 +79,18 @@ being reviewed is itself the deliverable; do not manufacture a second equivalent
 Classify every decision by owner before writing it (`critical-thinking.md > Decide by owner`). A
 fork you can settle from the repo, the docs or a recorded decision is `technical` — settle it and
 write it resolved. One with 2+ viable options that turns on the user's priorities, or that widens
-scope past what the ticket names, is `stakeholder · open`: write the question and its options,
-never a pre-answered choice. **A plan whose decisions are ALL resolved asserts the user had
-nothing to decide — verify that rather than defaulting to it**, since the format makes
-pre-answering the path of least resistance.
+scope past what the ticket names, is the user's.
+
+**Ask the user's decisions HERE, while the plan is being designed — as many questions, in as many
+rounds, as the design actually needs.** No question budget, no obligation to batch: use the
+question tool, one decision at a time, recommended option first. Each answer is written into the
+contract as `stakeholder · resolved` citing the user's evidence; only a question they left
+unanswered stays `open` and travels to the gate. A doubt answered here costs one exchange — the
+same doubt discovered after the contract is frozen costs a revision.
+
+**A plan that asked nothing asserts the user had nothing to decide.** Verify that rather than
+defaulting to it — the format makes pre-answering the path of least resistance — and say it out
+loud at the gate.
 
 Before presenting the gate, resolve technical prerequisites that are discoverable and record
 missing user-held prerequisites explicitly. Do not write implementation tasks whose files,
@@ -98,15 +106,17 @@ message carries: the goal in one line, the `Tasks at a glance` table, the decisi
 owner, the permissions being requested (implementation, session git mode, conditions), and the
 plan path for the full contract. Never paste the whole contract into the chat.
 
-- **`open` decisions are ASKED with the question tool before the contract approval** — one at a
-  time, recommended option first. Approving a contract authorizes executing it, never having
-  decided its scope (`critical-thinking.md > Decide by owner`), so a blanket yes does not answer
-  one. Write each answer into the contract as `resolved`, then compute the digest. None open →
-  say so and go straight to the contract approval.
-- **`technical` and already-`resolved` decisions are REPORTED**, under a heading naming them as
-  decided, each keeping its owner tag so the user can redirect one instead of ratifying a flat
-  list. `blocks Tn` is dependency ordering, never a blocker status
-  (`reporting-integrity.md > "Blocker" is a status`).
+- **The only MANDATORY question block at this gate is the session git mode and the PR review
+  route** (`git-mechanics.md > Commits`, `> PRs & promotion`). Design questions belong to BUILD,
+  asked and answered before the tasks were written; a decision the user left `open` joins this
+  same block instead of opening a second ceremony.
+- **Decisions are REPORTED here**, under a heading naming them as decided, each keeping its owner
+  tag so the user can redirect one instead of ratifying a flat list. `blocks Tn` is dependency
+  ordering, never a blocker status (`reporting-integrity.md > "Blocker" is a status`).
+- **State explicitly whether the design raised questions** — either name the decisions the user
+  answered during BUILD, or say in one line that the design raised none. Never leave it to be
+  inferred from an absence: approving a contract authorizes executing it, never having decided
+  its scope (`critical-thinking.md > Decide by owner`).
 
 Then ask for one explicit decision covering the contract. Keep these outcomes distinct:
 

@@ -95,16 +95,16 @@ Integration:
 ## Decisions to close before executing
 
 Each decision carries owner and state. `technical` is the implementer's and is written resolved.
-`stakeholder` is the user's: `open` when 2+ options are viable and nothing on record settles it —
-written as the question, asked at the gate, never pre-answered; `resolved` only when the user
-already decided it, citing that evidence.
+`stakeholder` is the user's and is ASKED while the plan is designed (`flow-plan > BUILD`), never
+pre-answered: it lands here as `resolved` citing their answer. `open` is the exception — a
+question they have not answered yet — and travels to the gate with the git/review block.
 
 - D1 (technical · blocks T1): <resolved choice, one sentence>
   - <evidence or evaluated risk, one line — or nothing>
-- D2 (stakeholder · open · blocks T2): <the question, one sentence>
+- D2 (stakeholder · resolved · blocks T2): <the choice the user made, one sentence>
+  - Decided by: <their answer during BUILD, the ticket, or a recorded prior decision>
+- D3 (stakeholder · open · blocks none): <the question, one sentence — the exception, unanswered>
   - Options: <A> | <B> — recommended <A>, <one line why>
-- D3 (stakeholder · resolved · blocks none): <choice, one sentence>
-  - Decided by: <user evidence — ticket, prior message, recorded decision>
 
 ### T1: <imperative title>
 
