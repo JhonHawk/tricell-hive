@@ -43,7 +43,9 @@ mismo ámbito.
 3. Resuelve `sessions_home` como `flow-context.sh` (`*-specs/sessions` bajo la raíz, si no
    `_support/sessions`) y corre `plan.py inspect` sobre cada `*-plan.md` (maxdepth 2).
    Si alguno devuelve `can_implement: true` → exit 0 sin salida: hay autoridad.
-   Un plan malformado no autoriza. Si `plan.py` no está instalado en
+   Un plan malformado no autoriza, y el mensaje lo nombra con el `error.code` del validador
+   (`<ruta> (<code>)`) — un plan en ejecución que una escritura dejó inválido no se reporta
+   como "no hay plan". Si `plan.py` no está instalado en
    `~/.claude/skills/flow-core/scripts/`, aproxima con `Status: planned|building` y lo dice en
    el mensaje (`HIVE_PLAN_PY` sobreescribe la ruta; lo usa el test).
 4. Sin autoridad, lee la fila `| Executor dispatch | <valor> |` de la tabla de cabecera del

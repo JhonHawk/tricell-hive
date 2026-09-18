@@ -256,8 +256,9 @@ tamper-proof.
 `attempts` is an ordered list. Each entry has a unique `id`, strictly
 increasing positive `sequence`, one canonical `kind` (`task`, `delegation`,
 `fix`, `review`, or `remote`), a stable semantic `scope`, the
-`contract_sha256` observed when the attempt began, `started_at`, `outcome`, and
-non-empty `evidence`. A completed entry also has `ended_at`. `started` means
+`contract_sha256` observed when the attempt began, `started_at`, `outcome`
+(`started`, `succeeded`, `failed`, `blocked`, `interrupted`, or `unknown` — any
+other value invalidates the whole plan), and non-empty `evidence`. A completed entry also has `ended_at`. `started` means
 the attempt is still open; `unknown` and `interrupted` mean its result must be
 reconciled before another attempt. Optional `task` and `predecessor` fields
 connect an entry to a plan task or an earlier attempt. A `predecessor` must
@@ -416,19 +417,23 @@ The session git mode chosen at the plan gate (`git-mechanics.md > Commits`) IS t
 consent: the user picks a mode, never `commit`/`push`/`pr`/`merge` one by one. Record the mode
 as grants, every target the exact base branch:
 
-| Mode | Grants | Condition on every delivery grant |
+| Mode | Grants | Condition on the publishing grants (`push`, `pr`, `merge`) |
 |---|---|---|
 | `interactive` | `commit`, `push`, `pr`, `merge` | `user-validated-in-vivo` — evidence empty until the user validates the running build |
 | `automatic` | `commit`, `push`, `pr`, `merge` | none; the same condition is added when the change-group lands on a user-judged surface |
 | `direct-base` | `commit`, `push` | none |
 | `hold` | none | the commit lands on the user's approval of the diff |
 
+`commit` never carries that condition: the seam commits land on the work branch before the
+stop (`git-mechanics.md > Commits`; under `/flow-build`, at CLOSE once the plan is `verified`)
+— what waits for the user is everything that leaves the machine.
+
 The `merge` grant is checked at run time against the four conditions `interactive` names
 (checks green, no conflicts with the base, no open Phase B finding at medium or above, base
 not the production-deploying branch) — gates the agent verifies, not consent it asks for; one
 failing asks, naming which — except an open finding, which is fixed by severity, never
 dispositioned by the agent (`git-mechanics.md`, Phase B bullet). Once the user's validation fills the condition's evidence, the chain runs
-commit → push → PR → Phase B → merge with no second ask: **the merge is the agent's under both
+push → PR → Phase B → merge with no second ask: **the merge is the agent's under both
 modes, never reserved for the user.** What stays the user's in every mode is the in-vivo
 validation itself and any merge or promotion into the production-deploying branch
 (`git-workflow.md > Safety gates`). A plan that omits `merge` under `interactive` or `automatic`

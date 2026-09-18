@@ -10,8 +10,10 @@ this stage.
 2. **Mark execution.** Set the execution state to `building` and record the run start without
    touching the frozen contract or its digest. Before each meaningful task, delegation, fix,
    review round, or remote operation, append an open recovery attempt with its stable semantic
-   scope, sequence, contract digest, and start time. Close it with an outcome and evidence when
-   the operation settles. The coordinator is the only plan writer; workers return evidence.
+   scope, sequence, contract digest, and start time. Close it with a terminal outcome from
+   `plan-format.md > attempts` (`succeeded`, `failed`, `blocked`, `interrupted`, `unknown`) and
+   evidence when the operation settles, and run `plan.py inspect` after every plan write — an
+   invalid plan holds no implementation authority until repaired. The coordinator is the only plan writer; workers return evidence.
 3. **Build each pending task in plan order.** Dispatch to the specialist required by the task's
    routing row in a fresh context, or implement the recipe directly when the current harness has
    no specialist roster. Give dependent tasks the concrete outputs of their predecessors. Do not

@@ -56,7 +56,7 @@ uv venv .venv && source .venv/bin/activate && uv pip install reportlab
   - Never unquoted `=word`/`===` as separators or arguments (zsh `=cmd` expansion).
 - macOS userland is BSD for every harness (`sed -i ''`, `grep`, `awk` differ from GNU).
 - Parsing `gh auth status`: never take the account from `$NF` (the last field is `(keyring)`) — take the token after `account`, or use `gh api user --jq .login`.
-- Complex quoting or multiline text → a `python3` heredoc, not heroic shell escaping.
+- Complex quoting or multiline text **in a command's arguments** → a `python3` heredoc, not heroic shell escaping. File content is authored and edited with the harness's file tools, never through the shell.
 - After a state-mutating one-liner, verify the post-state — never trust the success banner (a pipeline can exit 0 having silently no-oped).
 
 ## Spanish

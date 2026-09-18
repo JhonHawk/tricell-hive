@@ -116,6 +116,7 @@ WS_C2=$(make_workspace ws-c2 -)
 render_plan "$WS_C2/_support/sessions" "2026-09-14-draft" draft implement
 render_plan "$WS_C2/_support/sessions" "2026-09-14-nogrant" planned none
 run_case "c2-plans-without-authority" advisory "$(claude_payload test-engineer "$WS_C2/src" s-c2)"
+LAST_OUT_C2="$LAST_OUT"
 case "$LAST_OUT" in
   *"2 plan(s) checked"*) printf 'ok   c2-message-counts-both\n' ;;
   *) printf 'FAIL c2-message-counts-both: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
@@ -171,6 +172,16 @@ WS_J=$(make_workspace ws-j -)
 mkdir -p "$WS_J/_support/sessions/broken"
 printf 'Status: planned\n\nno markers at all\n' > "$WS_J/_support/sessions/broken/broken-plan.md"
 run_case "j-malformed-plan-advisory" advisory "$(claude_payload backend-developer "$WS_J/src" s-j)"
+# an invalid plan is named with the validator's error code — never folded into "no plan"
+case "$LAST_OUT" in
+  *"broken/broken-plan.md (malformed_document)"*) printf 'ok   j-message-names-invalid-plan\n' ;;
+  *) printf 'FAIL j-message-names-invalid-plan: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
+esac
+# valid plans never show up in that list
+case "$LAST_OUT_C2" in
+  *"failed validation"*) printf 'FAIL c2-no-invalid-list: %s\n' "$LAST_OUT_C2"; fail=$((fail + 1)) ;;
+  *) printf 'ok   c2-no-invalid-list\n' ;;
+esac
 
 # ─── (k) specs-repo sessions home is found before _support/sessions ──────────
 WS_K=$(make_workspace ws-k -)
