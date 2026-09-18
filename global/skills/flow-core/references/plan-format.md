@@ -424,9 +424,10 @@ as grants, every target the exact base branch:
 | `hold` | none | the commit lands on the user's approval of the diff |
 
 The `merge` grant is checked at run time against the four conditions `interactive` names
-(checks green, no conflicts with the base, no blocking Phase B finding, base not the
-production-deploying branch) — gates the agent verifies, not consent it asks for; one failing
-asks, naming which. Once the user's validation fills the condition's evidence, the chain runs
+(checks green, no conflicts with the base, no open Phase B finding at medium or above, base
+not the production-deploying branch) — gates the agent verifies, not consent it asks for; one
+failing asks, naming which — except an open finding, which is fixed by severity, never
+dispositioned by the agent (`git-mechanics.md`, Phase B bullet). Once the user's validation fills the condition's evidence, the chain runs
 commit → push → PR → Phase B → merge with no second ask: **the merge is the agent's under both
 modes, never reserved for the user.** What stays the user's in every mode is the in-vivo
 validation itself and any merge or promotion into the production-deploying branch
