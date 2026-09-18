@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# executor-dispatch-gate.sh — PreToolUse on `Agent|Task`, flow workspaces only.
+# executor-dispatch-gate.sh — PreToolUse on `Agent|Task` and on the file-edit
+# tools, flow workspaces only.
 #
 # Deterministic backstop for a rule that is otherwise prompt-convention: in a
 # flow workspace (a `_support/PROJECT.md` ledger above cwd), dispatching an
@@ -7,10 +8,18 @@
 # implementing, and implementing needs a plan with implementation authority or
 # the user's explicit verb in this conversation. The main thread has read a
 # git-mode answer or a design decision as if it were that approval and
-# dispatched anyway; this hook fires at the moment of the act.
+# dispatched anyway; this hook fires at the moment of the act. The same act
+# happens INLINE — the main thread editing project code itself (2026-09-17:
+# a Grok session implemented and committed a ticket from a design remark) —
+# so the file-edit tools are gated by the same logic, scoped to PROJECT CODE:
+# a path under the workspace root that is not a doc/text file and not under
+# `_support/`, a `*-specs/` repo, `docs/`, or a harness config dir. Ledger,
+# plans, task records, memory, README and every `.md`/`.txt` stay silent —
+# the gate must never trip on the files that record the decision.
 #
 #   No ledger above cwd            → exit 0, silent (direct route, untouched).
 #   Non-executor subagent          → exit 0, silent.
+#   Edit outside project code      → exit 0, silent.
 #   A plan with can_implement=true → exit 0, silent (authority exists).
 #   Otherwise, ledger row
 #     `| Executor dispatch | plan-required |` → DENY (exit 2 + decision JSON,
@@ -45,24 +54,65 @@ readonly EXECUTORS="angular-developer backend-developer database-specialist devo
 # `HIVE_PLAN_PY` overrides the validator path (tests point it at the repo copy).
 readonly PLAN_PY="${HIVE_PLAN_PY:-$HOME/.claude/skills/flow-core/scripts/plan.py}"
 
+# File-edit tools, Claude Code and Grok names (Codex/opencode/PI never reach
+# this hook). Read-only tools and Bash are out: a shell write is bash-policy's.
+readonly EDIT_TOOLS="Write Edit MultiEdit NotebookEdit search_replace write_file create_file edit_file"
+
+# Project code = under the workspace root, not a doc/text format, not in a
+# folder that holds records rather than code. `rel` is root-relative.
+is_project_code() {
+  local rel="$1" base ext
+  case "$rel" in
+    _support/*|*/_support/*) return 1 ;;
+    *-specs/*) return 1 ;;
+    docs/*|*/docs/*) return 1 ;;
+    .claude/*|*/.claude/*|.codex/*|*/.codex/*|.grok/*|*/.grok/*|.agents/*|*/.agents/*|.engram/*|*/.engram/*) return 1 ;;
+  esac
+  base=${rel##*/}
+  case "$base" in
+    *.*) ext=${base##*.} ;;
+    *) ext="" ;;
+  esac
+  case "$ext" in
+    md|markdown|mdx|txt|rst|adoc|csv|tsv|log) return 1 ;;
+  esac
+  case "$base" in
+    LICENSE*|CHANGELOG*|NOTICE*) return 1 ;;
+  esac
+  return 0
+}
+
 main() {
-  local input subagent cwd session_id dir ledger root sessions_home
+  local input tool_name subagent act path cwd session_id dir ledger root sessions_home
   local plans n authority plan st insp ci sig marker rel dispatch reason how
 
   input=$(cat)
 
+  tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // empty' 2>/dev/null)
   subagent=$(printf '%s' "$input" | jq -r '
     .tool_input.subagent_type // .toolInput.subagentType //
     .toolInput.subagent_type // empty' 2>/dev/null)
-  [ -n "$subagent" ] || return 0
 
-  case " ${EXCLUDED} " in
-    *" ${subagent} "*) return 0 ;;   # pre-plan artifact writer: never gated
-  esac
-  case " ${EXECUTORS} " in
-    *" ${subagent} "*) ;;
-    *) return 0 ;;
-  esac
+  if [ -n "$subagent" ]; then
+    act="dispatch"
+    case " ${EXCLUDED} " in
+      *" ${subagent} "*) return 0 ;;   # pre-plan artifact writer: never gated
+    esac
+    case " ${EXECUTORS} " in
+      *" ${subagent} "*) ;;
+      *) return 0 ;;
+    esac
+  else
+    act="inline"
+    case " ${EDIT_TOOLS} " in
+      *" ${tool_name} "*) ;;
+      *) return 0 ;;
+    esac
+    path=$(printf '%s' "$input" | jq -r '
+      .tool_input.file_path // .tool_input.notebook_path // .tool_input.path //
+      .toolInput.file_path // .toolInput.filePath // .toolInput.path // empty' 2>/dev/null)
+    [ -n "$path" ] || return 0
+  fi
 
   cwd=$(printf '%s' "$input" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)
   [ -n "$cwd" ] || cwd="$PWD"
@@ -77,6 +127,13 @@ main() {
   [ -n "$ledger" ] || return 0
 
   root=${ledger%/_support/PROJECT.md}
+  if [ "$act" = "inline" ]; then
+    case "$path" in
+      "$root"/*) ;;
+      *) return 0 ;;                 # outside the workspace: never project code
+    esac
+    is_project_code "${path#"$root"/}" || return 0
+  fi
   sessions_home=""
   sessions_home=$(find "$root" -maxdepth 2 -type d -path '*-specs/sessions' 2>/dev/null | head -1)
   if [ -z "$sessions_home" ] && [ -d "$root/_support/sessions" ]; then
@@ -118,7 +175,12 @@ main() {
     reason="executor-dispatch-gate: no plan with implementation authority in this flow workspace (no sessions folder found under ${root}; 0 plans checked)."
   fi
   [ "$how" = "status-grep" ] && reason="${reason} plan.py was not found at ${PLAN_PY}, so a Status header of planned/building stood in for its can_implement check."
-  reason="${reason} Dispatching ${subagent} means implementing. That needs either an approved /flow-plan (Status: planned with an implement grant) or the user's explicit implementation verb in THIS conversation (\"hazlo\", \"implementa\", \"aplica\"). A git-mode answer, a design-decision answer, or \"los atacaremos\" is not that verb."
+  if [ "$act" = "dispatch" ]; then
+    reason="${reason} Dispatching ${subagent} means implementing."
+  else
+    reason="${reason} Editing ${path#"$root"/} inline means implementing."
+  fi
+  reason="${reason} That needs either an approved /flow-plan (Status: planned with an implement grant) or the user's explicit implementation verb in THIS conversation (\"hazlo\", \"implementa\", \"aplica\"). A git-mode answer, a design-decision answer, or \"los atacaremos\" is not that verb."
 
   case "$dispatch" in
     plan-required*)
@@ -136,7 +198,11 @@ main() {
     fi
     printf '%s' "$sig" > "$marker" 2>/dev/null || true
   fi
-  printf 'ADVISE\n%s\n' "${reason} If the verb was given, proceed and quote it in the dispatch prompt; otherwise offer /flow-plan or ask \"¿lo aplico?\" first."
+  if [ "$act" = "dispatch" ]; then
+    printf 'ADVISE\n%s\n' "${reason} If the verb was given, proceed and quote it in the dispatch prompt; otherwise offer /flow-plan or ask \"¿lo aplico?\" first."
+  else
+    printf 'ADVISE\n%s\n' "${reason} If the verb was given, proceed; otherwise stop before this edit and ask \"¿lo aplico?\" or offer /flow-plan. Docs, the ledger, plans and task records are not gated — record the decision there freely."
+  fi
   return 0
 }
 

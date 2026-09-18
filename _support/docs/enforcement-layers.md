@@ -23,9 +23,10 @@ is not, and a gate described loosely invites an agent to argue past it.
   deterministic backstop of the promotion confirm-gate; `master`/`main` stay out: trunk-
   direct is a declared workflow, prompt-convention by design) and the **reviewer guard**
   (`reviewer-guard.sh`, agent-scoped via frontmatter `hooks:` — see below); since 2026-09-14
-  the **executor-dispatch gate** (`executor-dispatch-gate.sh`, `PreToolUse` on `Agent`): in a
-  flow workspace with no plan holding implementation authority, dispatching a code-writing
-  agent gets an in-the-act advisory — deterministic trigger, prompt-convention effect — and a
+  the **executor-dispatch gate** (`executor-dispatch-gate.sh`, `PreToolUse` on `Agent` and on
+  the file-edit tools): in a flow workspace with no plan holding implementation authority,
+  dispatching a code-writing agent — or editing project code inline (never docs, the ledger,
+  plans or task records) — gets an in-the-act advisory — deterministic trigger, prompt-convention effect — and a
   DENY when the ledger declares `Executor dispatch: plan-required`. It backs
   `CLAUDE.md > Communication > Mid-discussion agreement is not implementation authorization`,
   which failed as pure prompt-convention on 2026-09-13 (a git-mode answer read as approval).

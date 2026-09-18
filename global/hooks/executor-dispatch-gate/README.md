@@ -1,9 +1,12 @@
-# executor-dispatch-gate — backstop determinista al despachar un agente ejecutor sin plan
+# executor-dispatch-gate — backstop determinista al implementar sin plan: despacho de un ejecutor o edición inline de código
 
 PreToolUse hook sobre la herramienta de subagentes (`Agent`; `Task` es el nombre anterior y
-sigue en el matcher), registrado globalmente vía `settings-config.json`. Solo actúa en un
-**flow workspace** (un `_support/PROJECT.md` por encima del cwd) y solo cuando el subagente
-despachado es un **ejecutor** (su `tools:` lleva Write o Edit). Fuera de eso, silencio.
+sigue en el matcher) y sobre las herramientas de edición de archivos (Claude `Write`/`Edit`/
+`MultiEdit`/`NotebookEdit`; Grok `search_replace`/`write_file`/`create_file`/`edit_file`),
+registrado globalmente vía `settings-config.json`. Solo actúa en un **flow workspace** (un
+`_support/PROJECT.md` por encima del cwd) y solo ante uno de dos actos: el despacho de un
+**ejecutor** (subagente cuyo `tools:` lleva Write o Edit) o la **edición inline de código de
+proyecto** desde el hilo principal. Fuera de eso, silencio.
 
 ## Qué resuelve
 
@@ -16,10 +19,25 @@ contrato de aprobación de `/flow-plan`) y son prompt-convention: fallaron. Este
 **en el momento del acto** — el despacho del ejecutor — que es el punto observable donde
 "analizar" se convierte en "implementar".
 
+Segundo incidente (2026-09-17, sesión Grok en ark, ~21 h y 3 compactaciones): tras una
+conversación de diseño el usuario dijo "necesito validaciones serias en ese input" y el hilo
+principal implementó y commiteó el ticket **inline**, sin despachar a nadie — el camino que el
+hook no veía. Desde entonces gatea también la edición inline, con el mismo criterio y el
+mismo ámbito.
+
 ## Comportamiento
 
 1. Lee `subagent_type` (Claude: `tool_input.subagent_type`; Grok: `toolInput.subagentType`).
-   Vacío o no ejecutor → exit 0 sin salida.
+   Con valor: no ejecutor → exit 0 sin salida. Vacío: si la herramienta es de edición, lee
+   `file_path` (o `notebook_path`/`path`/`filePath`); otra herramienta o sin ruta → exit 0.
+1b. **Solo código de proyecto (ruta inline).** La ruta debe estar bajo la raíz del workspace
+   y no ser un registro: fuera quedan `_support/**`, cualquier `*-specs/`, `docs/`, los
+   directorios de harness (`.claude/`, `.codex/`, `.grok/`, `.agents/`, `.engram/`), las
+   extensiones de texto (`md`, `markdown`, `mdx`, `txt`, `rst`, `adoc`, `csv`, `tsv`, `log`)
+   y `LICENSE*`/`CHANGELOG*`/`NOTICE*`. Así el ledger, los planes, el registro de tareas de la
+   ruta directa, la memoria y los README nunca disparan: el hook no puede entrar en bucle
+   sobre los archivos donde se anota la decisión que lo desbloquea. Todo lo demás bajo la
+   raíz es código (tests incluidos: el RED de TDD ya es implementar).
 2. Walk-up desde `cwd` buscando `_support/PROJECT.md`. Sin ledger → exit 0 sin salida (no es
    flow workspace; la ruta directa no se toca).
 3. Resuelve `sessions_home` como `flow-context.sh` (`*-specs/sessions` bajo la raíz, si no
@@ -31,7 +49,9 @@ contrato de aprobación de `/flow-plan`) y son prompt-convention: fallaron. Este
 4. Sin autoridad, lee la fila `| Executor dispatch | <valor> |` de la tabla de cabecera del
    ledger (solo cuenta el token inicial del valor; el resto puede ser comentario):
    - `plan-required` → **deny**: exit 2, la razón en stderr y `{"decision":"deny","reason":…}`
-     en stdout (la forma de `bash-policy.sh`). Se repite en cada despacho.
+     en stdout (la forma de `bash-policy.sh`). Se repite en cada despacho y en cada edición
+     inline de código; las ediciones de registros (1b) siguen pasando, que es lo que permite
+     escribir el plan que lo destraba.
    - cualquier otro valor o fila ausente → **advisory** vía
      `hookSpecificOutput.additionalContext` (la forma de `rule-context.sh`), **una vez por
      sesión y por firma del estado** (marker en `${TMPDIR:-/tmp}` con el cksum de la lista
@@ -40,7 +60,8 @@ contrato de aprobación de `/flow-plan`) y son prompt-convention: fallaron. Este
 5. Cualquier error interno → exit 0 sin salida. El hook es backstop: no puede romper un
    despacho por un bug propio. Timeout 15 s.
 
-El mensaje nombra cuántos planes revisó y dónde, qué agente se despacha, qué autoriza
+El mensaje nombra cuántos planes revisó y dónde, qué agente se despacha (o qué archivo se
+edita inline), qué autoriza
 (un `/flow-plan` aprobado con grant de implementación, o el verbo explícito del usuario en
 ESTA conversación), qué no autoriza (una respuesta de modo git, una decisión de diseño, un
 "los atacaremos") y la continuación: citar el verbo en el prompt del despacho, u ofrecer
@@ -73,13 +94,15 @@ también los de solo lectura y los que ejecutan para observar: `sdd-explore`, `r
 
 ## Límites conocidos
 
-- **No ve ediciones inline del hilo principal.** Fuera de un plan, el hilo principal edita
-  directo por diseño (medido en sesiones reales); `Write`/`Edit` no pasan por este hook. Cubre
-  el despacho de ejecutores, que es donde ocurrió el incidente.
-- **`plan-required` empuja al modelo a editar inline si no hay plan.** Cerrar el despacho
-  sin cerrar la edición directa desplaza el trabajo al camino que el hook no ve. Por eso el
-  deny es opt-in: sirve en workspaces donde el usuario quiere que TODO pase por `/flow-plan`
-  y acepta ese desplazamiento como señal visible, no como default.
+- **Un `Bash` que escribe código (`sed -i`, heredoc) no pasa por aquí.** Ese camino es de
+  `bash-policy`; el hook cubre las herramientas de edición, que es donde ocurrieron los dos
+  incidentes.
+- **El ámbito "código de proyecto" es una lista de exclusiones, no un detector.** Un formato
+  de registro que no esté en la lista (1b) se gatea como código; añadirlo es un cambio de
+  una línea con su caso de test.
+- **`plan-required` deniega cada edición de código sin plan.** Es el efecto buscado en
+  workspaces donde TODO pasa por `/flow-plan`; el mensaje nombra la salida (escribir el plan,
+  o el usuario edita la declaración). Sigue siendo opt-in por ledger.
 - **Claude Code y Grok solamente.** Grok merge `~/.claude/settings.json` por compat y envía
   el payload en camelCase (cubierto). Codex, opencode y PI no leen `settings.json`: allí la
   regla sigue siendo prompt-convention.
@@ -96,5 +119,9 @@ draft/sin grant; `plan-required` deny (repetible, y cede ante un plan con autori
 default de la plantilla (`free …`) → advisory; agentes no ejecutores y payload sin
 `subagent_type`; payload Grok camelCase; marker (misma sesión y estado → silencio; cambio de
 estado → re-dispara; sin `session_id` → siempre); fallback sin `plan.py`; plan malformado;
-`sessions_home` en el specs repo; roster vs disco; cada deny nombra su continuación.
+`sessions_home` en el specs repo; roster vs disco; cada deny nombra su continuación; ruta
+inline (casos l): código → advisory/deny según el ledger, y silencio para `.md`/`.txt`,
+`_support/`, ledger, specs repo, `.claude/`, `docs/`, fuera de la raíz, sin ledger, herramienta
+de lectura, con autoridad; payload Grok `search_replace`; una edición y un despacho en el
+mismo estado comparten el marker; el mensaje nombra el archivo.
 Mantenerlo en verde; `shellcheck -S style` sobre ambos `.sh` en cero hallazgos.

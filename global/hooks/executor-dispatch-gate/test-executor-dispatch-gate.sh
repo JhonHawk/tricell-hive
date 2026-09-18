@@ -178,6 +178,42 @@ mkdir -p "$WS_K/fixture-specs/sessions"
 render_plan "$WS_K/fixture-specs/sessions" "2026-09-14-ok" planned implement
 run_case "k-specs-sessions-home" silent "$(claude_payload backend-developer "$WS_K/src" s-k)"
 
+# ─── (l) inline edits of project code in the main thread — same gate, same scope
+edit_payload() {
+  # edit_payload <tool_name> <file_path> <cwd> <session>
+  jq -n --arg t "$1" --arg f "$2" --arg c "$3" --arg s "$4" \
+    '{tool_name: $t, tool_input: {file_path: $f, content: "x"}, cwd: $c, session_id: $s}'
+}
+grok_edit_payload() {
+  jq -n --arg t "$1" --arg f "$2" --arg c "$3" --arg s "$4" \
+    '{toolName: $t, toolInput: {file_path: $f, old_string: "a", new_string: "b"}, workspaceRoot: $c, sessionId: $s}'
+}
+WS_L=$(make_workspace ws-l -)
+mkdir -p "$WS_L/app/src" "$WS_L/app/_support/workspace/tasks" "$WS_L/fixture-specs/sessions" "$WS_L/app/.claude" "$WS_L/app/docs"
+run_case "l-inline-code-advisory" advisory "$(edit_payload Write "$WS_L/app/src/thing.ts" "$WS_L/app" s-l)"
+run_case "l2-inline-md-silent" silent "$(edit_payload Edit "$WS_L/app/README.md" "$WS_L/app" s-l2)"
+run_case "l3-inline-txt-silent" silent "$(edit_payload Write "$WS_L/app/notes.txt" "$WS_L/app" s-l3)"
+run_case "l4-inline-support-silent" silent "$(edit_payload Write "$WS_L/app/_support/workspace/tasks/t.json" "$WS_L/app" s-l4)"
+run_case "l5-inline-ledger-silent" silent "$(edit_payload Edit "$WS_L/_support/PROJECT.md" "$WS_L/app" s-l5)"
+run_case "l6-inline-specs-repo-silent" silent "$(edit_payload Write "$WS_L/fixture-specs/sessions/x/x-plan.md" "$WS_L/app" s-l6)"
+run_case "l7-inline-dot-claude-silent" silent "$(edit_payload Write "$WS_L/app/.claude/settings.json" "$WS_L/app" s-l7)"
+run_case "l8-inline-docs-dir-silent" silent "$(edit_payload Write "$WS_L/app/docs/guide.html" "$WS_L/app" s-l8)"
+run_case "l9-inline-outside-root-silent" silent "$(edit_payload Write "$WORK/elsewhere/tool.py" "$WS_L/app" s-l9)"
+run_case "l10-inline-no-ledger-silent" silent "$(edit_payload Write "$WORK/plain/src/a.ts" "$WORK/plain/src" s-l10)"
+run_case "l11-grok-search-replace-advisory" advisory "$(grok_edit_payload search_replace "$WS_L/app/src/thing.ts" "$WS_L/app" s-l11)"
+run_case "l12-read-tool-silent" silent "$(edit_payload Read "$WS_L/app/src/thing.ts" "$WS_L/app" s-l12)"
+run_case "l13-inline-with-authority-silent" silent "$(edit_payload Write "$WS_C/src/a.ts" "$WS_C/src" s-l13)"
+run_case "l14-plan-required-code-deny" deny "$(edit_payload Write "$WS_D/src/a.ts" "$WS_D/src" s-l14)"
+run_case "l15-plan-required-md-silent" silent "$(edit_payload Edit "$WS_D/CHANGELOG.md" "$WS_D/src" s-l15)"
+run_case "l16-plan-required-ledger-silent" silent "$(edit_payload Edit "$WS_D/_support/PROJECT.md" "$WS_D/src" s-l16)"
+run_case "l17-inline-then-dispatch-same-state-silent" advisory "$(edit_payload Write "$WS_L/app/src/b.ts" "$WS_L/app" s-l17)"
+run_case "l17b-dispatch-after-inline-silent" silent "$(claude_payload backend-developer "$WS_L/app" s-l17)"
+run_case "l18-inline-message-names-the-file" advisory "$(edit_payload Write "$WS_L/app/src/c.ts" "$WS_L/app" s-l18)"
+case "$LAST_OUT" in
+  *"app/src/c.ts"*) printf 'ok   l18-message-names-file\n' ;;
+  *) printf 'FAIL l18-message-names-file: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
+esac
+
 # ─── (h) executor list = Write/Edit roster on disk minus the declared exclusions
 declared=$(grep -m1 -E '^readonly EXECUTORS=' "$SCRIPT" | sed -E 's/^readonly EXECUTORS="(.*)"$/\1/' | tr ' ' '\n' | sort)
 excluded=$(grep -m1 -E '^readonly EXCLUDED=' "$SCRIPT" | sed -E 's/^readonly EXCLUDED="(.*)"$/\1/' | tr ' ' '\n' | sort)
