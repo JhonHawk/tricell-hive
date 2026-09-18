@@ -81,11 +81,20 @@ fork you can settle from the repo, the docs or a recorded decision is `technical
 write it resolved. One with 2+ viable options that turns on the user's priorities, or that widens
 scope past what the ticket names, is the user's.
 
-**Ask the user's decisions HERE, while the plan is being designed — as many questions, in as many
-rounds, as the design actually needs.** No question budget, no obligation to batch: use the
-question tool, one decision at a time, recommended option first. Each answer is written into the
-contract as `stakeholder · resolved` citing the user's evidence; only a question they left
-unanswered stays `open` and travels to the gate. A doubt answered here costs one exchange — the
+**Ask the user's decisions HERE, while the plan is being designed. What routes a question is what
+its ANSWER does to the design — never how many have been asked already.**
+
+- **It redirects, narrows, expands or resequences the design → ASK IT IN THE MOMENT**, with the
+  question tool, before writing another task. The test: would a different answer change what gets
+  written next? Then writing first means discarding that work. No question budget applies here —
+  three such questions are three interruptions worth taking.
+- **It is a follow-up, or its answer changes nothing structural → carry it to the gate in ONE
+  PROSE BLOCK**, each item with its recommendation or the effect it would have. These refine a
+  design that already holds; interrupting for them spends the user's attention where nothing
+  turns on it.
+
+Each answer is written into the contract as `stakeholder · resolved` citing the user's evidence;
+only a question they left unanswered stays `open`. A doubt answered here costs one exchange — the
 same doubt discovered after the contract is frozen costs a revision.
 
 **A plan that asked nothing asserts the user had nothing to decide.** Verify that rather than
@@ -107,9 +116,12 @@ owner, the permissions being requested (implementation, session git mode, condit
 plan path for the full contract. Never paste the whole contract into the chat.
 
 - **The only MANDATORY question block at this gate is the session git mode and the PR review
-  route** (`git-mechanics.md > Commits`, `> PRs & promotion`). Design questions belong to BUILD,
-  asked and answered before the tasks were written; a decision the user left `open` joins this
-  same block instead of opening a second ceremony.
+  route** (`git-mechanics.md > Commits`, `> PRs & promotion`). A structural design question was
+  answered in the moment during BUILD; it never arrives here. A decision the user left `open`
+  joins this same block instead of opening a second ceremony.
+- **Low-impact and follow-up questions ride here as ONE PROSE BLOCK**, each with its
+  recommendation or the effect it would have — prose, not the question tool, which is reserved
+  for what blocks the design or the delivery.
 - **Decisions are REPORTED here**, under a heading naming them as decided, each keeping its owner
   tag so the user can redirect one instead of ratifying a flat list. `blocks Tn` is dependency
   ordering, never a blocker status (`reporting-integrity.md > "Blocker" is a status`).
