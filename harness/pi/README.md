@@ -187,7 +187,7 @@ a trusted role identity.
 | Package or service | Pin / endpoint | Purpose | Loading status |
 |---|---|---|---|
 | `pi-subagents` | `0.67.0` | Background children, role discovery, lifecycle, and bounded orchestration | Required |
-| `gentle-engram` | `0.1.12` | Native Engram HTTP memory integration | Required; no `pi-engram init` |
+| `gentle-engram` | `0.1.13` | Native Engram HTTP memory integration | Required; no `pi-engram init` |
 | `pi-mcp-adapter` | `2.33.0` | MCP transport for Context7, Linear, and HeroUI Pro | Required |
 | `@juicesharp/rpiv-ask-user-question` | `2.9.0` | Structured user questions in the parent session | Required; children use `contact_supervisor` |
 | `pi-web-access` | `0.29.0` | OpenAI-backed web search and source access | Required for research roles |
@@ -268,7 +268,7 @@ the Pi core documentation does not define them.
 | Shared skills | Pi discovers `~/.agents/skills/` and project `.agents/skills/` | [Pi skills](https://pi.dev/docs/latest/skills) | Official |
 | Custom agents | Generated files load from `~/.pi/agent/agents/**/*.md` | [pi-subagents agents reference](https://github.com/nicobailon/pi-subagents/blob/main/docs/agents.md) | Package reference |
 | Background children | Hive uses `pi-subagents` async children with explicit child-only extensions | [pi-subagents package](https://pi.dev/packages/pi-subagents?type=extension) · [tool and extension selection](https://github.com/nicobailon/pi-subagents/blob/main/docs/agents.md) | Package reference |
-| Engram memory bridge | `gentle-engram@0.1.12` provides Pi-native memory tools and the native HTTP path used here | [gentle-engram package](https://pi.dev/packages/gentle-engram) | Package reference; this integration does not run `pi-engram init` |
+| Engram memory bridge | `gentle-engram@0.1.13` provides Pi-native memory tools and the native HTTP path used here | [gentle-engram package](https://pi.dev/packages/gentle-engram) | Package reference; this integration does not run `pi-engram init` |
 | Required child extensions | `hive-hooks.ts` on all 24 roles; `hive/reviewer-guard.ts` on six roles; explicit `tools` sentinels `hive_hook_readiness` and `hive_reviewer_readiness` | — | Undocumented upstream; enforced by generated tool selection and runtime checks |
 | Portable Flow planning | Shared `/flow-plan` and `/flow-build` skills own phases, artifacts, and approvals; Pi contributes no native plan mode | — | Hive workflow |
 | Canonical Bash hooks | Hive-specific JSON adapter around existing scripts | [Pi extensions](https://pi.dev/docs/latest/extensions) for lifecycle extension points | Bridge behavior is Hive-specific |
@@ -292,7 +292,7 @@ pnpm test
 The selected deployment order is deliberate:
 
 1. Install all five exact packages into the target PI root before invoking the helper:
-   `pi-subagents@0.67.0`, `gentle-engram@0.1.12`, `pi-mcp-adapter@2.33.0`,
+   `pi-subagents@0.67.0`, `gentle-engram@0.1.13`, `pi-mcp-adapter@2.33.0`,
    `@juicesharp/rpiv-ask-user-question@2.9.0`, and `pi-web-access@0.29.0`.
    For a non-default root, pass the same `PI_CODING_AGENT_DIR` to Pi's package
    manager; for example:

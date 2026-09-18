@@ -1202,7 +1202,7 @@ listed in the PI README; re-check package-specific behavior when upgrading.
   child-only extension selection and explicit MCP tool selectors underpin the adapter.
   A model-visible environment binding is not a trusted reviewer identity.
 - `[Authoritative — package source]` [Engram PI plugin](https://github.com/Gentleman-Programming/engram/tree/main/plugin/pi),
-  installed as gentle-engram 0.1.12. Native HTTP integration is used independently
+  pinned at gentle-engram 0.1.13. Native HTTP integration is used independently
   of Context7 MCP; the adapter does not initialize a second Engram stdio server.
 
 ## Portable Hive planning (2026-09-10)

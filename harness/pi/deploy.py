@@ -28,7 +28,7 @@ from typing import Any, Iterable
 
 PACKAGE_PINS = (
     "npm:pi-subagents@0.67.0",
-    "npm:gentle-engram@0.1.12",
+    "npm:gentle-engram@0.1.13",
     "npm:pi-mcp-adapter@2.33.0",
     "npm:@juicesharp/rpiv-ask-user-question@2.9.0",
     "npm:pi-web-access@0.29.0",
