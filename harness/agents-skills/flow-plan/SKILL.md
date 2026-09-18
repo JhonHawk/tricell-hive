@@ -85,17 +85,37 @@ scope past what the ticket names, is the user's.
 its ANSWER does to the design — never how many have been asked already.**
 
 - **It redirects, narrows, expands or resequences the design → ASK IT IN THE MOMENT**, with the
-  question tool, before writing another task. The test: would a different answer change what gets
-  written next? Then writing first means discarding that work. No question budget applies here —
-  three such questions are three interruptions worth taking.
-- **It is a follow-up, or its answer changes nothing structural → carry it to the gate in ONE
-  PROSE BLOCK**, each item with its recommendation or the effect it would have. These refine a
-  design that already holds; interrupting for them spends the user's attention where nothing
-  turns on it.
+  harness's question tool, before writing another task. The test: would a different answer change
+  what gets written next? Then writing first means discarding that work. No question budget
+  applies here — three such questions are three interruptions worth taking.
+- **It is a follow-up, or its answer changes nothing structural → ACCUMULATE it**, and emit the
+  batch the moment it reaches FOUR, or when the design finishes, whichever comes first.
+  **Emitting the batch PAUSES the plan — wait for the answers before writing more.** Either the
+  harness's question tool or the prose form below; prose when the effects are too long to live in
+  an option label.
 
-Each answer is written into the contract as `stakeholder · resolved` citing the user's evidence;
-only a question they left unanswered stays `open`. A doubt answered here costs one exchange — the
-same doubt discovered after the contract is frozen costs a revision.
+```text
+Preguntas de seguimiento — responde solo lo que quieras cambiar;
+lo que no contestes queda en la opción recomendada.
+
+1) <pregunta>
+   a) (Recomendado) <opción> — <efecto, una línea>
+   b) <opción> — <efecto, una línea>
+2) <pregunta binaria>
+   a) (Recomendado) <opción> — <efecto>
+   b) <opción> — <efecto>
+```
+
+The user answers `1) b - nota`, `2) a`, or nothing. What the format enforces: **every option
+carries its effect in one line** — a bare option list makes the user pick labels; **answering is
+BY EXCEPTION** — silence takes the recommendation; **no padding to three** — a binary question
+takes two options, an open one takes none. Never append the task id: the effect already says
+whether it matters.
+
+**Every question is answered before the plan summary is presented — one still open means the
+plan is not finished.** Each answer is written into the contract as `stakeholder · resolved`
+citing the user's evidence. A doubt answered here costs one exchange; the same doubt discovered
+after the contract is frozen costs a revision.
 
 **A plan that asked nothing asserts the user had nothing to decide.** Verify that rather than
 defaulting to it — the format makes pre-answering the path of least resistance — and say it out
@@ -116,12 +136,9 @@ owner, the permissions being requested (implementation, session git mode, condit
 plan path for the full contract. Never paste the whole contract into the chat.
 
 - **The only MANDATORY question block at this gate is the session git mode and the PR review
-  route** (`git-mechanics.md > Commits`, `> PRs & promotion`). A structural design question was
-  answered in the moment during BUILD; it never arrives here. A decision the user left `open`
-  joins this same block instead of opening a second ceremony.
-- **Low-impact and follow-up questions ride here as ONE PROSE BLOCK**, each with its
-  recommendation or the effect it would have — prose, not the question tool, which is reserved
-  for what blocks the design or the delivery.
+  route** (`git-mechanics.md > Commits`, `> PRs & promotion`). Design questions were all answered
+  during BUILD — in the moment when structural, in the accumulated batch otherwise — so none
+  arrives here; the summary is not presented while one is open.
 - **Decisions are REPORTED here**, under a heading naming them as decided, each keeping its owner
   tag so the user can redirect one instead of ratifying a flat list. `blocks Tn` is dependency
   ordering, never a blocker status (`reporting-integrity.md > "Blocker" is a status`).

@@ -96,14 +96,15 @@ Integration:
 
 Each decision carries owner and state. `technical` is the implementer's and is written resolved.
 `stakeholder` is the user's and is ASKED while the plan is designed (`flow-plan > BUILD`), never
-pre-answered: it lands here as `resolved` citing their answer. `open` is the exception — a
-question they have not answered yet — and travels to the gate with the git/review block.
+pre-answered: it lands here as `resolved` citing their answer. `open` is transient — asked, not
+yet answered — and **a plan is never PRESENTED carrying one**: an unanswered decision means the
+design is unfinished, not that the gate inherits it.
 
 - D1 (technical · blocks T1): <resolved choice, one sentence>
   - <evidence or evaluated risk, one line — or nothing>
 - D2 (stakeholder · resolved · blocks T2): <the choice the user made, one sentence>
   - Decided by: <their answer during BUILD, the ticket, or a recorded prior decision>
-- D3 (stakeholder · open · blocks none): <the question, one sentence — the exception, unanswered>
+- D3 (stakeholder · open · blocks none): <the question — transient, only while design is in flight>
   - Options: <A> | <B> — recommended <A>, <one line why>
 
 ### T1: <imperative title>
