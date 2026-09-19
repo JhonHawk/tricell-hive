@@ -62,6 +62,7 @@ Always-on core for every harness; situational depth lives behind the router skil
 |---|---|---|
 | Angular components, services, routing; `angular.json` present | angular-developer | react-developer |
 | Next.js, App Router, Server Components; `next.config` present | react-developer | angular-developer |
+| Next.js Route Handlers, Server Actions, `middleware`/`proxy` | react-developer | ts-backend-developer |
 | React with no Next.js (Vite, React Router, CRA) | react-developer | ts-backend-developer, the main thread |
 | Node/TypeScript backend (NestJS, Express/Fastify, Prisma/Drizzle, BullMQ) | ts-backend-developer | backend-developer, database-specialist |
 | Backend on any non-Node stack (Java/Spring, Kotlin server, Python) | backend-developer | ts-backend-developer, database-specialist |
@@ -71,23 +72,24 @@ Always-on core for every harness; situational depth lives behind the router skil
 | Slow query, EXPLAIN, N+1, index tuning | performance-engineer | the backend agents |
 | CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | the backend agents, cloud-architect |
 | Cloud topology, landing zone, DR (RTO/RPO), FinOps architecture | cloud-architect | devops-engineer, sdd-design |
+| Architecture decision before contracts: which component owns a capability, scale or replace a system | solution-architect | sdd-design, cloud-architect, sdd-explore |
 | New API contract, cross-service schema, service boundaries | sdd-design | review-code |
 | Review a diff/PR for correctness and cleanup — the DEFAULT when no other row is primary | review-code | the implementing agent |
 | Vulnerability, OWASP, secrets, auth bypass | review-security | review-code |
 | Secret scanning, leaked credentials | secrets-auditor | review-security |
 | Refute or adversarially verify a finding, claim or diagnosis | review-refuter | review-code, the main thread |
 | Tests as the primary objective (coverage push, new E2E suite) | test-engineer | the implementing agent |
-| Functional verification of a running app in a real browser: walk ACs + adversarial paths | sdd-verify | review-ux, review-code |
+| Functional verification of a running app in a real browser: walk ACs + adversarial paths | sdd-verify | review-ux, test-engineer |
 | UX friction in a live mock or deployed flow, navigation review | review-ux | review-code, react-developer |
 | Redesign or visually polish a screen that already exists | visual-designer | the framework specialist, review-ux |
 | Spec/épica completeness, Gherkin verifiability, quality gate | sdd-spec-reviewer | sdd-product-critic, review-code |
 | Challenge necessity/scope/shape of a feature BEFORE implementation | sdd-product-critic | sdd-spec-reviewer |
 | Raw client requirements, project intake analysis | sdd-spec-reviewer (intake mode) | the main thread |
-| "Where is X / how does Y work", think through an idea, or a question only docs/web settle | sdd-explore | the implementing agent, the main thread's own fetches |
+| "Where is X / how does Y work", think through an idea, or a question only docs/web settle | sdd-explore | the main thread's own searches and fetches, sdd-design |
 | Prompt design, LLM integration, structured output | prompt-engineer | the backend agents |
 | README, ADR, API docs, setup guide — in-repo Markdown; draft or revise an épica/delta spec | sdd-spec-writer (`docs` / `spec`) | the implementing agent, the main thread |
 | Workspace file hygiene, misplaced artifacts, ledger repair | workspace-custodian | secrets-auditor |
-| Low-reasoning external state: tracker board, PR checks, deploy jobs, an APPROVED tracker batch | state-fetcher | a research subagent |
+| Low-reasoning external state: tracker board, PR checks, deploy jobs, an APPROVED tracker batch | state-fetcher | workspace-custodian, the main thread beyond one quick call |
 
 - Work depending on external tools/credentials/services: verify the full set (`which`, `--version`) — implementation, verification, promotion — before committing to a plan; missing items become explicit asks; promotion credentials documented durably.
 - Product-specific slash commands, skills, and agent names are workflow references unless the harness exposes them; inspect or edit the underlying files when unavailable.
@@ -106,7 +108,7 @@ Always-on core for every harness; situational depth lives behind the router skil
 - Tool shell on macOS: Codex and Grok run zsh via eval; Claude Code, opencode and Pi run bash 5 by deployed config (`CLAUDE_CODE_SHELL`, opencode `shell`, Pi `shellPath`) — a bash 5 that errors with `(eval):N:` or `read-only variable` has drifted to zsh. Under zsh: NEVER assign zsh special names as variables — `path` (tied to PATH; `path=/x` wipes it → `command not found`), `status` (read-only), `cwd`, `argv`, `pipestatus`; use `dir`, `repo_path`, `st`. No bash-4isms (`declare -A`, `${!var}`, `mapfile`, `read -p`). Unquoted `$var` does NOT word-split, unmatched globs ERROR (even as flag values: `--include=*.ts`), BSD userland; `gh auth status` account is never `$NF` (it's `(keyring)`); complex quoting/multiline in command arguments → `python3` heredoc; file content is authored with the file tools, never through the shell; after a state-mutating one-liner verify the post-state — never trust the success banner. Depth: the language-rules `shell-standards` reference.
 - Detect the package manager from lockfiles, then `packageManager`; never mix managers or regenerate lockfiles; no signal → `pnpm`. Never install pnpm via corepack (absent from Node 25+): standalone script (`curl -fsSL https://get.pnpm.io/install.sh | sh -`) on machines/servers/CI, `pnpm/setup` action on GitHub Actions, `ghcr.io/pnpm/pnpm` image in Docker; pinning lives in `packageManager` (pnpm ≥10 honors it natively). Python: never `pip`/`pip3`/`--break-system-packages`; use `uv` for package operations and script execution.
 - Silent ≠ hung: installs, builds, and migrations can print nothing for minutes in a non-TTY shell. Never kill a long-running command on silence alone — check liveness first (process CPU, growing target dir, the manager's lock); killing an install leaves a half-built tree and forces a full redo. Run expected-long commands in the background where the harness offers it (otherwise a generous explicit timeout) and continue independent work; prefer streaming reporters (`pnpm install --reporter=append-only`).
-- A new dependency is the last rung: stdlib → native platform feature (HTML input, CSS over JS, DB constraint) → an already-installed dependency → only then a new one; in product UI the design-system component outranks a bare native control. Adding one resolves by inference (project convention or preferred default); 2-3 curated options, folded into the plan gate, only for an architectural pick with no default; overlap with an existing dependency → flag consolidate-or-keep and proceed. Never Moment.js for new date logic.
+- A new dependency is the last rung: stdlib → native platform feature (HTML input, CSS over JS, DB constraint) → an already-installed dependency → only then a new one; in product UI the design-system component outranks a bare native control. Adding one resolves by inference (project convention or preferred default); 2-3 curated options, folded into the plan gate, only for an architectural pick with no default; overlap with an existing dependency → flag consolidate-or-keep and proceed. Preferred defaults: `zod` (validation), `date-fns` (never Moment.js), `nanoid`, `vitest`, `playwright`.
 - Code defaults (reuse-first search, naming, typed errors, schema validation, DTO boundaries): the language-rules `development-principles` reference.
 
 ## Debugging
