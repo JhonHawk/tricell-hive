@@ -16,7 +16,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash(python3 ${CLAUDE_SKILL_DIR}/s
 # flow-report
 
 Produces a single self-contained `.html` file under `_support/workspace/` or `_support/plan/`.
-Apply the artifact test and triggers from `~/.claude/rules/quality/communication-format.md`
+Apply the artifact test and triggers from `communication-format.md`
 when loaded from the Claude skill tree; in the universal skill tree, read
 `references/communication-format.md` relative to this skill directory (injected from the
 same canonical rule).

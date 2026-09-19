@@ -9,7 +9,7 @@
 |---|---|---|---|
 | `docs/` | ✓ | ✓ | Durable documentation (workspace-level: only until a specs repo absorbs it) |
 | `spec/` | ✓ | ✓ | Specs, contracts, technical decisions (OpenAPI, schemas, ADRs); workspace-level: pre-specs-repo only |
-| `plan/` | ✓ | ✓ | Implementation plans (format per `quality/communication-format.md`) |
+| `plan/` | ✓ | ✓ | Implementation plans (format per `communication-format.md`) |
 | `workspace/` | ✓ | ✓ | **Ephemeral** scratch, AI notes — relocate or delete when work concludes; never let it accumulate |
 | `evidence/` | ✓ | ✓ | Screenshots, bug evidence, validation artifacts (curated subset only — retention in `support-artifacts.md`) |
 | `scripts/` | — | ✓ | Disposable dev-session utilities |
@@ -52,6 +52,6 @@ content integrity, not consent provenance.
 
 ### Plans: portable session plan vs native drafts
 
-- **`<scope>/_support/plan/`** — durable plan artifacts scoped to the project or repo; format per `quality/communication-format.md`.
+- **`<scope>/_support/plan/`** — durable plan artifacts scoped to the project or repo; format per `communication-format.md`.
 - **`sessions/YYYY-MM-DD-<slug>/<slug>-plan.md`** — canonical portable Hive plan: one Markdown file with frozen contract, authorization and execution evidence.
 - **`~/.claude/plans/*.md`** — optional native Claude Code drafting surface (Shift+Tab); it must be normalized and explicitly approved through `/flow-plan` before `/flow-build` can use it.

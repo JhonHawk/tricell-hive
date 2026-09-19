@@ -53,7 +53,7 @@ Accepts the same fields as file-based agent frontmatter. Useful for CI/CD or qui
 |--------|----------|
 | System prompt | **Replaced** by agent's markdown body |
 | CLAUDE.md | Loaded normally |
-| Rules (`~/.claude/rules/`) | Loaded normally |
+| Rules | Arrive inlined in `CLAUDE.md` (core includes), by the `rule-delivery` hold, by a router skill, or by `packs:` |
 | Tools | Defined by agent's `tools` field (or inherits all if omitted) |
 | Model | Defined by agent's `model` field (or inherits if omitted) |
 | Permissions | Inherited from session, overridable via `permissionMode` |

@@ -53,7 +53,7 @@ Environments: `development | qa | production` (full token, always last)
 
 ## Repo branch model
 
-Classes and semantics: global rule `workflow/git-mechanics.md > Branching`. This mapping is
+Classes and semantics: global rule `git-mechanics.md > Branching`. This mapping is
 what the promotion walk (`promotion-playbook.md`) reads to resolve promotion source/target
 branches.
 

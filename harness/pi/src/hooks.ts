@@ -698,9 +698,30 @@ function ruleDeliveryToolName(toolName: string): "Write" | "Edit" | "Read" | "Ba
   }
 }
 
-/** Only a write can be held; a read or a shell call is observation. */
-function ruleDeliveryGates(tool: "Write" | "Edit" | "Read" | "Bash"): boolean {
-  return tool === "Write" || tool === "Edit";
+/**
+ * A write is held outright at PreToolUse. A command is held too — a rule can
+ * declare `commands` with no file to announce it (git mechanics before a
+ * commit, the browser CLI before `agent-browser`). So is a READ: a `readers`
+ * rule scopes a read-only agent's first read of a file it names — the hook
+ * never denies the read of a rule's OWN reference text (that would wedge the
+ * exact call that releases it) and never denies a Read for a caller that can
+ * write, so this cannot hold a writer. Every tool the hook can send a `deny`
+ * for is therefore blocked here; the harness's read tool is simply the one
+ * the manifest's `readers` rules speak about.
+ */
+function ruleDeliveryBlocks(_tool: "Write" | "Edit" | "Read" | "Bash"): boolean {
+  return true;
+}
+
+/**
+ * A read releases the gate by being read; a shell call releases it by having
+ * displayed the rule's text (`cat <rule>`). Bash and Read are therefore BOTH
+ * blocked at PreToolUse and OBSERVED at PostToolUse: a Write/Edit is never
+ * observed (there is nothing to read in a write), but a Read or a Bash call
+ * that was NOT denied still needs its outcome recorded once it has run.
+ */
+function ruleDeliveryObserves(tool: "Write" | "Edit" | "Read" | "Bash"): boolean {
+  return tool === "Read" || tool === "Bash";
 }
 
 function hookFailureReason(error: unknown): string {
@@ -758,7 +779,7 @@ async function runRuleDeliveryGate(
     return undefined;
   }
   recordHiveHookError(pi, paths, "ruleDelivery", undefined);
-  if (hookEvent !== "PreToolUse" || !ruleDeliveryGates(tool)) return undefined;
+  if (hookEvent !== "PreToolUse" || !ruleDeliveryBlocks(tool)) return undefined;
 
   const parsed = parseHookJson(stdout);
   const decision = typeof parsed?.decision === "string" ? parsed.decision : undefined;
@@ -884,12 +905,15 @@ export function registerGeneralHiveHooks(
     }
 
     // rule-delivery is a GATE, not an advisory: PI can refuse a tool call, so a
-    // held write is blocked with the hook's own short reason and nothing is
-    // steered into the session (the gate carries no rule text). It runs in
-    // CHILD sessions too — those are the ones that write code; the parent-only
-    // rule above exists for steered-context noise, and a block steers nothing.
-    // Skipped when the script is not installed: an absent hook must never turn
-    // into a blocked write (readiness is what reports it).
+    // held write OR command is blocked with the hook's own short reason and
+    // nothing is steered into the session (the gate carries no rule text). It
+    // runs in CHILD sessions too — those are the ones that write code and run
+    // commands; the parent-only rule above exists for steered-context noise,
+    // and a block steers nothing. Skipped when the script is not installed: an
+    // absent hook must never turn into a blocked write or command (readiness
+    // is what reports it). This runs BEFORE bash-policy below, so a rule-
+    // delivery block short-circuits it; when rule-delivery allows, bash-policy
+    // still gets the final say over the same command.
     const deliveryTool = ruleDeliveryToolName(event.toolName);
     if (deliveryTool && isExecutable(paths.ruleDelivery)) {
       const held = await runRuleDeliveryGate(
@@ -922,9 +946,17 @@ export function registerGeneralHiveHooks(
       childRegistry.settle(event.toolCallId);
     }
     // PI's post-tool point: a read is recorded only once it has RUN, the same
-    // split the Claude and Codex wiring makes with PostToolUse.
+    // split the Claude and Codex wiring makes with PostToolUse. A blocked Bash
+    // call never reaches here in the ordinary case — the `tool_call` handler
+    // returned a block and the tool never ran — but `ruleDeliveryPayload`
+    // carries no `tool_response`, so the hook's own `call_failed` check can
+    // never see a Pi failure: `event.isError` is the only signal this bridge
+    // has, and a call that ran and FAILED (a `cat` that could not open the
+    // file, or a runtime that synthesizes a failed result for a denied call)
+    // must never be forwarded as an observation — it showed the model
+    // nothing, and observation parses the command TEXT, never the output.
     const observedTool = ruleDeliveryToolName(event.toolName);
-    if (observedTool && !ruleDeliveryGates(observedTool) && isExecutable(paths.ruleDelivery)) {
+    if (observedTool && ruleDeliveryObserves(observedTool) && !event.isError && isExecutable(paths.ruleDelivery)) {
       await runRuleDeliveryGate(
         pi, paths, observedTool, event, ctx, runnerOptions, advisoryFailureKeys, hiveAgent, "PostToolUse",
       );

@@ -33,7 +33,7 @@ with `cursor-agent 2026.08.11`. Measured, not inferred from docs.
 | Agents — project level | **yes** | **yes** | `.cursor/agents/` and `.claude/agents/`, subdirectories included; dispatched through the CLI's Task tool | [cursor.com/docs/subagents](https://cursor.com/docs/subagents) |
 | Agents — user level | **no** | **yes** | `~/.claude/agents/` read via compat; `.cursor/` wins name conflicts. The CLI loads neither it nor the native `~/.cursor/agents/` — see below | [cursor.com/docs/subagents](https://cursor.com/docs/subagents) |
 | Hooks | **yes** | **yes** | `~/.claude/settings.json` hooks are read and merged; 8 events map 1:1 | [reference/third-party-hooks](https://cursor.com/docs/reference/third-party-hooks) |
-| Rules | **no** | **no** | `~/.claude/rules/` is in no scan list — see below | [cursor.com/docs/rules](https://cursor.com/docs/rules) |
+| Rules | **no** | **no** | `~/.claude/rules/` is in no scan list — and nothing is deployed there any more — see below | [cursor.com/docs/rules](https://cursor.com/docs/rules) |
 | `AGENTS.md` / `CLAUDE.md` | **yes** | **yes** | Project root only, nested subdirectories supported | [cursor.com/docs/rules](https://cursor.com/docs/rules) |
 
 **Better skill parity than Codex or opencode:** Cursor honors `disable-model-invocation`
@@ -58,10 +58,12 @@ because `~/.agents/skills` is native rather than compat. A CLI equivalent of the
 
 ## What does NOT reach it
 
-- **Every rule.** `~/.claude/rules/` appears in no scan list, so neither the 12 always-on
-  rules nor the 28 texts under `global/rules-situational/` reach it as rule files. Cursor's
-  own rules are `.cursor/rules/*.mdc` per project (`alwaysApply:` ≡ always-on, `globs:` ≡
-  conditional), project `AGENTS.md`, and User Rules as a Settings text field. A **global rules directory** is not documented;
+- **Every rule.** `~/.claude/rules/` appears in no scan list — and this repo deploys
+  nothing there any more — so none of the 41 texts under `global/rules-situational/` reaches
+  it as a rule file, the 7 the Claude core inlines included (Cursor does not read
+  `~/.claude/CLAUDE.md` either). Cursor's own rules are `.cursor/rules/*.mdc` per project
+  (`alwaysApply:` ≡ always-on, `globs:` ≡ conditional), project `AGENTS.md`, and User Rules
+  as a Settings text field. A **global rules directory** is not documented;
   `~/.cursor/rules/` exists on this machine and appears to work, but that is unverified and
   there are open upstream feature requests asking for exactly it.
 - **`global/CLAUDE.md`.** Cursor reads `CLAUDE.md` at the PROJECT root, never `~/.claude/CLAUDE.md`.

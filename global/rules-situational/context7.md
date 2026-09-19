@@ -1,5 +1,17 @@
 ---
-alwaysApply: true
+commands:
+  - "pnpm add"
+  - "pnpm install +"
+  - "npm install +"
+  - "npm i +"
+  - "pnpm i +"
+  - "npm add"
+  - "yarn add"
+  - "bun add"
+  - "uv add"
+  - "uv pip install"
+  - "cargo add"
+  - "go get"
 ---
 
 When working with libraries, frameworks, or APIs — use Context7 MCP to fetch current documentation instead of relying on training data.

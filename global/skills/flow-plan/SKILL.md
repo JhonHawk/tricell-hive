@@ -138,7 +138,7 @@ check exists to prevent.
 Do not write implementation tasks whose files,
 interfaces, test approach, verification command or expected result remain unknown. Every task
 declares `Test approach: tdd`, `characterization`, or `not-applicable` according to
-`quality/testing.md`; a `not-applicable` choice includes its concrete reason in the task and
+`testing.md`; a `not-applicable` choice includes its concrete reason in the task and
 mutable test-evidence table.
 
 ## APPROVAL — freeze the contract
@@ -182,7 +182,7 @@ changes.
 The implementation grant covers the normal RED→GREEN→refactor cycle declared by each task; do not
 request approval between those phases. If execution later discovers that implementation already
 exists for a `tdd` task without observed RED evidence, preserve the work and resolve it with the
-isolated fail-to-pass comparison described in `quality/testing.md` (labeled `fail-to-pass`); the
+isolated fail-to-pass comparison described in `testing.md` (labeled `fail-to-pass`); the
 task stops at a user exception only when that comparison cannot be produced, and that exception
 is separate from ordinary plan approval (`exception-accepted`). For direct work or `Session: no`,
 keep the approach and run evidence in the current conversation and report that no durable

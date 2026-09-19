@@ -475,10 +475,9 @@ def rebase_skill_root(body: str) -> str:
     return body.replace(CLAUDE_SKILL_ROOT, AGENTS_SKILL_ROOT)
 
 
-RULES_DIR = Path(__file__).resolve().parents[2] / "global" / "rules"
-RULES_SITUATIONAL_DIR = (
-    Path(__file__).resolve().parents[2] / "global" / "rules-situational"
-)
+# One flat store for every rule text, always-on ones included: a core section
+# `include:`s the text it carries, it does not hold a copy.
+RULES_DIR = Path(__file__).resolve().parents[2] / "global" / "rules-situational"
 ROLE_RULES_SECTION = re.compile(r"^## Role rules\n.*?(?=^## |\Z)", re.M | re.S)
 ROLE_RULE_TARGET = re.compile(r"/references/([A-Za-z0-9_-]+\.md)`")
 
@@ -519,19 +518,26 @@ def _rule_files():
 
     Two exclusions that are not style: a DIRECTORY named `x.md` (reading it
     raises a bare IsADirectoryError instead of naming the offending pack), and
-    anything whose real path leaves its store — a symlink inside global/rules/
-    pointing anywhere on the machine would otherwise be inlined into all five
-    harnesses.
+    anything whose real path leaves the store — a symlink inside it pointing
+    anywhere on the machine would otherwise be inlined into all five harnesses.
     """
-    for directory, recursive in ((RULES_DIR, True), (RULES_SITUATIONAL_DIR, False)):
-        paths = directory.rglob("*.md") if recursive else directory.glob("*.md")
-        for path in sorted(paths):
-            if path.name == "README.md" or not path.is_file():
-                continue
-            store = directory.resolve()
-            if store != path.resolve() and store not in path.resolve().parents:
-                continue
-            yield path
+    # The store itself must be real: the escape check below compares against
+    # the RESOLVED store, so a symlinked store resolves to wherever it points
+    # and then confirms every file under it is "inside" — the same vacuity the
+    # core-assembly include check guards (`build.py > _resolve_core_include`).
+    if RULES_DIR.is_symlink() or not RULES_DIR.is_dir():
+        raise ValueError(
+            f"{_display_path(RULES_DIR)} is not a real directory (a symlink, a "
+            f"file, or missing). Pack resolution anchors its escape check on "
+            f"the store, so a symlinked store would inline whatever it points at."
+        )
+    store = RULES_DIR.resolve()
+    for path in sorted(RULES_DIR.glob("*.md")):
+        if path.name == "README.md" or not path.is_file():
+            continue
+        if store != path.resolve() and store not in path.resolve().parents:
+            continue
+        yield path
 
 
 def _display_path(path: Path) -> str:
@@ -540,14 +546,6 @@ def _display_path(path: Path) -> str:
         return path.relative_to(Path(__file__).resolve().parents[2]).as_posix()
     except ValueError:
         return str(path)
-
-
-def _rule_is_always_on(path: Path) -> bool:
-    """Under global/rules/ with no `paths:` — Claude Code's own criterion."""
-    if RULES_DIR not in path.parents:
-        return False
-    fm = re.match(r"^---\n(.*?)\n---\n", path.read_text(encoding="utf-8"), re.S)
-    return not (fm and re.search(r"^paths:", fm.group(1), re.M))
 
 
 # The ONE accepted spelling. Anything else matching `^packs\s*:` is an error:
@@ -650,22 +648,18 @@ def resolve_pack(agent_name, pack):
     """Pack name -> rule text, frontmatter stripped. Fails loudly, never quietly.
 
     A pack IS a rule file's basename without `.md`, matched EXACTLY against the
-    rule files — never as a glob, so a name can neither escape the two stores
-    nor match several files by wildcard. `parse_packs` has already vetted the
+    rule files — never as a glob, so a name can neither escape the store nor
+    match several files by wildcard. `parse_packs` has already vetted the
     spelling; this resolves it.
     """
     candidates = [path for path in _rule_files() if path.stem == pack]
     if not candidates:
         raise ValueError(
             f"{agent_name}: unknown pack '{pack}' — no {pack}.md under "
-            f"global/rules/** or global/rules-situational/."
+            f"global/rules-situational/."
         )
-    if len(candidates) > 1:
-        found = ", ".join(_display_path(path) for path in candidates)
-        raise ValueError(
-            f"{agent_name}: ambiguous pack '{pack}' — it resolves to {found}. "
-            f"A pack must name exactly one rule text; delete or rename one."
-        )
+    # No ambiguity branch: the store is one flat directory, so a stem resolves
+    # to at most one file by construction. It had one while two stores existed.
     path = candidates[0]
     raw = path.read_text(encoding="utf-8")
     match = re.match(r"^---\n.*?\n---\n?", raw, re.S)
@@ -674,13 +668,6 @@ def resolve_pack(agent_name, pack):
         raise ValueError(
             f"{agent_name}: pack '{pack}' ({_display_path(path)}) has no text "
             f"outside its frontmatter — inlining it would carry nothing."
-        )
-    if _rule_is_always_on(path):
-        print(
-            f"WARNING {agent_name}: pack '{pack}' names a rule that is still "
-            f"always-on ({_display_path(path)}) — Grok links it flat into "
-            f"~/.grok/rules, so that harness receives the text twice.",
-            file=sys.stderr,
         )
     return text
 
@@ -695,12 +682,13 @@ def carried_rules_section(agent):
     return "\n".join(parts)
 
 
-def packed_body(agent, native=frozenset(), rebase=None):
+def packed_body(agent, rebase=None):
     """Agent body with pack-covered rows dropped and the pack texts appended.
 
-    `native` adds the rows a harness already loads by itself (Grok's flat rule
-    symlinks). Both filters run in one pass over the Role rules table, so a row
-    covered by either disappears and an emptied section goes with it.
+    Only a PACK drops a row now. The other filter — rows a harness loaded by
+    itself — died with the always-on store: no harness reads a rule file
+    natively any more, so a dropped row is a rule the agent is never told
+    about rather than one it already holds.
 
     `rebase` rewrites the skill root — and applies to the AGENT's body ONLY. A
     Role rules row cites the root its harness reads, so it must be rebased; a
@@ -709,8 +697,8 @@ def packed_body(agent, native=frozenset(), rebase=None):
     became "Claude Code and Grok read it from ~/.agents/skills"). Carried text
     is carried verbatim.
     """
-    drop = frozenset(f"{pack}.md" for pack in agent["packs"]) | native
-    body = drop_native_role_rules(agent["body"], drop) if drop else agent["body"]
+    drop = frozenset(f"{pack}.md" for pack in agent["packs"])
+    body = drop_covered_role_rules(agent["body"], drop) if drop else agent["body"]
     if rebase:
         body = rebase(body)
     if not agent["packs"]:
@@ -718,22 +706,8 @@ def packed_body(agent, native=frozenset(), rebase=None):
     return f"{body}\n\n{carried_rules_section(agent)}"
 
 
-def native_always_on_rules(rules_dir: Path = RULES_DIR) -> frozenset:
-    """Basenames of the rules with no `paths:` — the deploy's always-on criterion.
-
-    Grok receives these through its flat rule symlinks, so a Role rules row
-    pointing at the same file makes the agent re-read what it already holds.
-    """
-    names = set()
-    for path in rules_dir.rglob("*.md"):
-        fm = re.match(r"^---\n(.*?)\n---\n", path.read_text(encoding="utf-8"), re.S)
-        if not (fm and re.search(r"^paths:", fm.group(1), re.M)):
-            names.add(path.name)
-    return frozenset(names)
-
-
-def drop_native_role_rules(body: str, native: frozenset) -> str:
-    """Remove Role rules rows whose target is natively loaded; drop an emptied section."""
+def drop_covered_role_rules(body: str, carried: frozenset) -> str:
+    """Remove Role rules rows the agent already carries inlined; drop an emptied section."""
 
     def filtered(section):
         lines = section.group(0).splitlines(keepends=True)
@@ -741,7 +715,7 @@ def drop_native_role_rules(body: str, native: frozenset) -> str:
             ln
             for ln in lines
             if not (
-                (target := ROLE_RULE_TARGET.search(ln)) and target.group(1) in native
+                (target := ROLE_RULE_TARGET.search(ln)) and target.group(1) in carried
             )
         ]
         if not any(ROLE_RULE_TARGET.search(ln) for ln in kept):
@@ -1153,7 +1127,7 @@ def to_grok(agent) -> str:
     the workflow tool from subagents (1.0.8+); no frontmatter needed.
     """
     # NOT rebased: Grok scans ~/.claude/skills and never ~/.agents/skills.
-    body = packed_body(agent, native_always_on_rules())
+    body = packed_body(agent)
     extra = grok_extra_instructions(agent)
     if extra:
         body = body + "\n\n## Grok compatibility instructions\n\n" + "\n".join(
@@ -1204,9 +1178,9 @@ def claude_frontmatter(agent):
 def to_claude(agent) -> str:
     """Claude Code agent definition (.md under ~/.claude/agents/<role>/).
 
-    Claude Code keeps its native path-scoping, so Role rules rows survive here
-    unless a pack covers them — and an agent with no packs renders its source
-    body unchanged.
+    No harness loads a rule file by itself any more, so Role rules rows
+    survive here unless a pack covers them — and an agent with no packs
+    renders its source body unchanged.
     """
     fm = ["---", f"# {GENERATED_NOTE}", *claude_frontmatter(agent), "---"]
     return "\n".join(fm) + "\n\n" + packed_body(agent) + "\n"

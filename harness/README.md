@@ -162,12 +162,13 @@ regenerates a stale output silently and refuses a hand-edited one (differs from 
 regeneration and HEAD — the edit stays on disk); `python3 harness/build.py --check` runs
 the parity checks for every generated tree without writing. Condensed per-target twins of the same policy still
 exist and sync by hand — only the delegation thresholds have their own parity check.
-The **always-on rules** under `global/rules/` do not pass through `build.py` as files: a
-cross-harness change to them is condensed into a core section targeting `agents`, or
-covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in
-`build.py`). Everything under `global/rules-situational/` passes through both: injected
-into the router skills' `references/`, inlined into the agents that declare it in `packs:`,
-and indexed in `rule-manifest.json` for the `rule-delivery` hook.
+**Every rule text lives in `global/rules-situational/` and passes through `build.py`**: the 7
+an `include:` names are inlined into `global/CLAUDE.md` (Claude Code and Grok read that core;
+Codex and opencode read the condensed `AGENTS.md`), and all of them are injected into the
+router skills' `references/`, inlined into the agents that declare them in `packs:`, and
+indexed in `rule-manifest.json` for the `rule-delivery` hook. A cross-harness change to a
+core-included rule is condensed into a core section targeting `agents`, or covered by a
+router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in `build.py`).
 
 ## Portable planning
 

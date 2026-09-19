@@ -15,7 +15,7 @@ Generates (delete-and-recreate, never incremental):
     harness/AGENTS.md             <- global/core-sections (assembled always-on core, Codex/opencode/Grok)
     harness/agents-skills/        <- global/skills   (cleaned universal skills)
     harness/claude/agents/        <- global/agents   (Claude Code agents, packs inlined)
-    harness/rule-manifest.json    <- global/rules(-situational) (rule delivery map)
+    harness/rule-manifest.json    <- global/rules-situational (rule delivery map)
     harness/codex/agents/         <- global/agents   (Codex TOML subagents)
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
     harness/grok/agents/          <- global/agents   (Grok Build markdown agents)
@@ -99,23 +99,34 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules-situational", "tailwind.md"),
         ("rules-situational", "typescript-standards.md"),
         ("rules-situational", "ui-visual-design.md"),
-        ("rules/quality", "development-principles.md"),
+        ("rules-situational", "development-principles.md"),
         # Extracted out of development-principles.md + debugging.md, both injected
         # here: without this line Codex and opencode silently lose both sections.
-        ("rules/quality", "reporting-integrity.md"),
-        ("rules/quality", "testing.md"),
-        ("rules/quality", "debugging.md"),
+        ("rules-situational", "reporting-integrity.md"),
+        ("rules-situational", "testing.md"),
+        ("rules-situational", "debugging.md"),
         ("rules-situational", "patterns-antipatterns.md"),
         ("rules-situational", "devops-principles.md"),
-        ("rules/tools", "browser-automation.md"),
-        # F2 demotion: the CLI mechanics moved out of the always-on rule; the
-        # stub above keeps the gate, this file carries the reference.
+        # NOT security-floor.md, and the reason is checkable rather than
+        # inferred: its section is `targets: [claude]`, but harness/AGENTS.md
+        # carries the condensed twin of the same policy (exposure gate,
+        # injection/SSRF, parameterized queries, auth-by-default on new
+        # endpoints; secrets and 1Password above it), so Codex, opencode and
+        # Grok already hold the floor from their own core. Injecting it would
+        # deploy a reference file no routing table names. This is the
+        # SITUATIONAL half — input handling, error handling, the supply-chain
+        # check — and it IS the file the language-rules table names.
+        ("rules-situational", "security.md"),
+        # Held on the first code write; the full `testing.md` stays the planning
+        # reference next to it.
+        ("rules-situational", "test-gate.md"),
+        # Both halves of the browser rule: the reference carries the CLI
+        # mechanics, the stub is what an `agent-browser` command holds on —
+        # and the hook can only hold on a rule it can name a reference for.
+        ("rules-situational", "browser-automation.md"),
         ("rules-situational", "browser-automation-reference.md"),
-        ("rules/tools", "code-search.md"),
-        # Claude Code and Grok get this always-on, but on Codex and opencode the
-        # agent Role rules table is the ONLY pointer to the Context7 protocol —
-        # and it pointed at a file this map never generated.
-        ("rules/tools", "context7.md"),
+        ("rules-situational", "code-search.md"),
+        ("rules-situational", "context7.md"),
     ],
     "workspace-conventions": [
         ("rules-situational", "project-structure.md"),
@@ -135,7 +146,7 @@ SKILL_REFERENCE_INJECTIONS = {
         # The core gates behavior on "trivial" (review scaling, test ritual) but
         # only this file defines it — and no router carried it, so Codex/opencode
         # judged the threshold with nothing to judge it by.
-        ("rules/quality", "critical-thinking.md"),
+        ("rules-situational", "critical-thinking.md"),
     ],
     # /flow-plan writes a plan file, never project code, so the `task-routing`
     # trigger (first Write/Edit on project code) never fires during planning —
@@ -148,7 +159,7 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules-situational", "memory-routing.md"),
     ],
     "flow-report": [
-        ("rules/quality", "communication-format.md"),
+        ("rules-situational", "communication-format.md"),
         ("rules-situational", "communication-format-mechanics.md"),
     ],
     "unattended-delegation": [
@@ -196,11 +207,19 @@ def _core_section_files():
             sys.exit(f"ERROR: core assembly: overlay {overlay.name} targets {target!r} "
                      f"but {stem}.md declares targets: {primary_targets} — the overlay "
                      "is dead. Add the target to the primary or delete the overlay.")
+    _core_includes(CORE_SECTIONS_DIR)  # fails closed on a duplicated include
     return primaries
 
 
-def _parse_core_section(path):
-    """-> (targets, {target: order}, join, body). Exits on malformed frontmatter."""
+# An include names ONE rule text in the store, directly. The alphabet is the
+# rule-file basename alphabet (same as `packs:`), and the folder is fixed —
+# together they make traversal and absolute paths unspellable rather than
+# merely detected.
+CORE_INCLUDE_SPELLING = re.compile(r"^rules-situational/[a-z0-9][a-z0-9-]*\.md$")
+
+
+def _section_meta(path):
+    """-> (frontmatter dict, raw body). Exits on a missing/malformed block."""
     text = path.read_text(encoding="utf-8")
     m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     if not m:
@@ -215,6 +234,122 @@ def _parse_core_section(path):
             sys.exit(f"ERROR: core assembly: malformed frontmatter line {raw!r} "
                      f"in {path.name}.")
         meta[key.strip()] = val.strip()
+    return meta, text[m.end():].strip("\n")
+
+
+def _resolve_core_include(path, meta, body, sections_dir):
+    """-> (rule path relative to the repo root, rule body), or None.
+
+    A gate that loads every session is still ONE rule text: the section names
+    it, the store holds it. Ways that can lie, all fatal — a target outside the
+    rule store, a target that does not exist, a target that is ALSO
+    hook-delivered (`globs:`/`commands:` would push a packed agent the text it
+    already carries always-on), a section carrying a body the include would
+    shadow, and (checked by the caller) two sections claiming the same text.
+
+    CONTAINMENT IS THE POINT, not a formality: this value reaches the
+    filesystem and its body is inlined into both generated cores — tracked
+    files in a public repo — and from there into five harnesses. `..` climbs
+    out of global/, an absolute path discards the left side of the join, and
+    `.resolve()` follows a symlink anywhere on the machine. The owner's
+    gitignored CLAUDE.local.md sits one level up. Same class as the `packs:`
+    escape (`convert-agents.py > _rule_files`), closed the same way.
+    """
+    include = meta.get("include")
+    if include is None:
+        return None
+    if body.strip():
+        sys.exit(f"ERROR: core assembly: {path.name} declares `include:` AND carries "
+                 f"a body. The include would shadow the body: move the text into "
+                 f"{include}, or drop the include.")
+    if not CORE_INCLUDE_SPELLING.match(include):
+        sys.exit(f"ERROR: core assembly: {path.name} includes {include!r}. An "
+                 f"include is spelled exactly `rules-situational/<name>.md` — one "
+                 f"rule text from the store, named directly. No `..`, no absolute "
+                 f"path, no other directory: the body lands verbatim in both "
+                 f"generated cores, which are tracked and public.")
+    # The STORE itself must be a real directory. Containment compares against
+    # the resolved store, so a symlinked store resolves to wherever it points
+    # and then confirms the target is "inside" it — every escape closed by the
+    # spelling rule reopens, and on a case-insensitive filesystem a store
+    # pointing at the repo root makes `claude.md` reach CLAUDE.local.md's
+    # neighbour. Checked before resolution, since is_dir() follows links.
+    store_path = sections_dir.parent / "rules-situational"
+    if store_path.is_symlink() or not store_path.is_dir():
+        sys.exit(f"ERROR: core assembly: {store_path} is not a real directory "
+                 f"(a symlink, a file, or missing). The rule store is where "
+                 f"include containment is anchored: a symlinked store would "
+                 f"make that check confirm whatever it points at.")
+    # Both sides resolved before comparing: on macOS /var is a symlink to
+    # /private/var, so an unresolved root never contains a resolved target.
+    # With the store proven real, resolving it cannot leave its own parent, so
+    # "resolves to exactly <global>/rules-situational" needs no second compare.
+    root = sections_dir.parent.parent.resolve()
+    store = store_path.resolve()
+    target = (sections_dir.parent / include).resolve()
+    if store not in target.parents:
+        sys.exit(f"ERROR: core assembly: {path.name} includes {include}, which "
+                 f"resolves to {target} — outside global/rules-situational/. A "
+                 f"symlink out of the store is the usual way this happens.")
+    if not target.is_file():
+        sys.exit(f"ERROR: core assembly: {path.name} includes {include}, which does "
+                 f"not exist under global/rules-situational/ (or is not a regular "
+                 f"file). Name a rule text in the store.")
+    text = target.read_text(encoding="utf-8")
+    frontmatter = _rule_frontmatter(text)
+    for key in ("globs", "commands"):
+        if _declared_globs(frontmatter, key) is not None:
+            sys.exit(
+                f"ERROR: core assembly: {path.name} includes {include}, which "
+                f"declares `{key}:`. A rule is delivered always-on (inlined into "
+                f"the core by a section) or on a touch (by the rule-delivery "
+                f"hook) — never both, or the hook pushes what the core already "
+                f"carries. Drop the `{key}:` key, or the include."
+            )
+    m = re.match(r"^---\n.*?\n---\n?", text, re.S)
+    # From the RESOLVED path, never the authored string: a `..`-spelled include
+    # produced a key matching no manifest source, so `always_on` stayed False
+    # for a rule the core carries in full — the hook kept holding on it and a
+    # pack could inline it twice. The duplicate-include guard compares these
+    # keys too, so two spellings of one rule used to pass it.
+    relative = target.relative_to(root)
+    return relative.as_posix(), (text[m.end():] if m else text).strip("\n")
+
+
+def _core_includes(sections_dir: Path) -> dict:
+    """{rule path relative to the repo root: including section stem}.
+
+    Empty when the directory does not exist — the manifest runs against
+    fixture trees that carry no core sections at all.
+    """
+    if not sections_dir.is_dir():
+        return {}
+    included = {}
+    for path in sorted(sections_dir.glob("*.md")):
+        if path.name == "README.md" or path.name.endswith(CORE_OVERLAY_SUFFIXES):
+            continue
+        meta, body = _section_meta(path)
+        resolved = _resolve_core_include(path, meta, body, sections_dir)
+        if resolved is None:
+            continue
+        relative, _ = resolved
+        if relative in included:
+            sys.exit(f"ERROR: core assembly: {included[relative]}.md and {path.stem}.md "
+                     f"both include {relative} — the core would carry the same rule "
+                     f"text twice. Delete one of the sections.")
+        included[relative] = path.stem
+    return included
+
+
+def _parse_core_section(path):
+    """-> (targets, {target: order}, join, body). Exits on malformed frontmatter."""
+    meta, body = _section_meta(path)
+    # The section's OWN directory, never the module-level one: resolving a
+    # fixture tree's include against the real repo is how a test passes while
+    # reading a file it never wrote.
+    resolved = _resolve_core_include(path, meta, body, path.parent)
+    if resolved is not None:
+        body = resolved[1]
     targets = [t.strip() for t in meta.get("targets", "").strip("[]").split(",")
                if t.strip()]
     if not targets or any(t not in CORE_TARGETS for t in targets):
@@ -231,7 +366,7 @@ def _parse_core_section(path):
     if join not in ("loose", "tight"):
         sys.exit(f"ERROR: core assembly: {path.name} `join:` must be 'loose' or "
                  f"'tight' (default 'loose'; got {join!r}).")
-    return targets, orders, join, text[m.end():].strip("\n")
+    return targets, orders, join, body
 
 
 def _assemble_core(target):
@@ -434,8 +569,10 @@ GENERATED_FILE_RELATIVE_PATHS = (
 # SKILL_REFERENCE_INJECTIONS above, so a rule that moves or changes its globs
 # cannot leave a consumer pointing at the old shape.
 RULE_MANIFEST_RELATIVE_PATH = Path("harness/rule-manifest.json")
-RULE_SOURCE_DIRS = (Path("global/rules"), Path("global/rules-situational"))
-RULE_MANIFEST_NOTE = ("Generated by harness/build.py from global/rules/** and "
+# ONE store. An always-on rule is no longer a rule that lives somewhere else —
+# it is a rule a core section `include:`s, and its text sits here with the rest.
+RULE_SOURCE_DIRS = (Path("global/rules-situational"),)
+RULE_MANIFEST_NOTE = ("Generated by harness/build.py from "
                       "global/rules-situational/** — do not edit by hand.")
 # Deployed roots for an injected reference. Which one a harness reads:
 #   ~/.claude/skills — Claude Code (deployed there) and Grok (scans it)
@@ -445,13 +582,19 @@ RULE_REFERENCE_ROOTS = {
     "agents": "~/.agents/skills",
 }
 # Rules a READER needs, not only a writer: a reviewer opening `_support/**` has
-# to know where artifacts belong before it can judge placement. Every other
-# rule is delivered on a write, so a read-only agent never receives it.
-RULE_READER_NAMES = frozenset({"project-structure.md", "session-capture.md"})
-# `paths:` is Claude Code's key and the ONLY one it reads; `globs:` is the
-# store's spelling (global/rules-situational/), which no harness reads natively.
-# The manifest emits one `globs` list from whichever key the file uses, but only
-# `paths:` decides always-on — and `globs:` inside global/rules/ is an error.
+# to know where artifacts belong before it can judge placement, and `review-ux`
+# DRIVES agent-browser — a command trigger, with no file to announce it, on an
+# agent that never writes. Every other rule is delivered on a write, so a
+# read-only agent never receives it.
+RULE_READER_NAMES = frozenset({"project-structure.md", "session-capture.md",
+                               "browser-automation.md"})
+# `paths:` was Claude Code's native key and the mechanism is retired: the store
+# spells its scope `globs:`, which no harness reads natively. A rule reaches a
+# model through three channels that stand alone — a core section's `include:`
+# (always-on), a router skill's references, an agent's `packs:` — and one that
+# takes two halves: a hook trigger (`globs:` on a touched file, `commands:` on
+# a command) PLUS the reference the hold names. The build refuses a rule with
+# no channel, and a trigger whose other half is missing.
 
 
 def _rule_frontmatter(text: str) -> str:
@@ -494,6 +637,96 @@ def _declared_globs(frontmatter: str, key: str):
     return [line.split("-", 1)[1].strip().strip("\"'")
             for line in items.splitlines()
             if line.strip().startswith("-")]
+
+
+# A command prefix is matched token-for-token by the hook, and a trailing `+`
+# is a matching RULE ("at least one further non-option argument"), not text.
+# Both make the value load-bearing in a way a typo cannot announce: the hook
+# drops a whole rule whose `commands` is not a list of non-empty strings, and
+# it does so silently, so the build refuses to emit one.
+# argv[0] is matched by BASENAME, case-sensitively, so a program token is
+# spelled the way it is typed: lowercase, and carrying at least one letter
+# (`1.2.3` is a version, not a program).
+COMMAND_PROGRAM = re.compile(r"^[a-z0-9_][a-z0-9_.-]*$")
+# Mirrored from the hook rather than imported: the build does not load a hook
+# at build time, and check_command_wrapper_parity() below pins the two copies
+# so they cannot drift. The hook STRIPS these before matching, so a prefix that
+# opens with one is compared against a command that no longer carries it.
+RULE_DELIVERY_SOURCE = ROOT / "global" / "hooks" / "rule-delivery" / "rule-delivery.py"
+COMMAND_SHELL_WRAPPERS = frozenset({"bash", "sh", "zsh", "dash", "ksh"})
+COMMAND_IGNORED_PREFIXES = frozenset({"sudo", "env", "command", "nohup", "time",
+                                      "nice", "exec"})
+# The hook tokenizes with shlex (posix quotes, punctuation_chars): an operator
+# is always its own token and quotes are removed, so an authored token carrying
+# any of these can never equal an argv token.
+COMMAND_METACHARACTERS = frozenset(";&|<>()'\"`")
+
+
+def _declared_commands(frontmatter: str, source: str):
+    """Command prefixes, verbatim and in file order. None when absent.
+
+    Validated the way the hook tokenizes them (`.split()`), so this refuses
+    exactly what would fire on nobody and nothing more — extra spacing inside
+    a prefix is the consumer's business, not an error.
+    """
+    entries = _declared_globs(frontmatter, "commands")
+    if entries is None:
+        return None
+    if not entries:
+        sys.exit(f"ERROR: rule manifest: {source} declares `commands:` with no "
+                 f"command prefix. A declared trigger that fires on nothing "
+                 f"reads as gated while gating nothing — list a prefix or drop "
+                 f"the key.")
+    for entry in entries:
+        tokens = entry.split()
+        problem = None
+        if ": " in entry or entry.endswith(":"):
+            problem = "looks like a nested mapping, not a command prefix"
+        elif not tokens:
+            problem = "is empty"
+        elif "+" in tokens[:-1]:
+            # The hook compiles a non-trailing `+` as a literal token and then
+            # demands a real `+` in argv — a silent no-op trigger.
+            problem = ("uses `+` somewhere other than the last token; the "
+                       "'requires a further argument' marker is only meaningful "
+                       "in trailing position")
+        elif tokens[-1] == "+" and len(tokens) < 3:
+            problem = ("is a bare program plus `+`, which is indistinguishable "
+                       "from a typo for the fuller prefix — name the subcommand "
+                       "the marker qualifies (`npm install +`)")
+        elif entry.rstrip().endswith("+") and tokens[-1] != "+":
+            # `npm install+` declares the literal token `install+`.
+            problem = ("glues `+` to the previous token; the marker is a token "
+                       "of its own (` +`)")
+        elif tokens[0].startswith("-"):
+            problem = "starts with an option; a prefix starts with the program"
+        elif not COMMAND_PROGRAM.match(tokens[0]):
+            problem = (f"opens with {tokens[0]!r}, which is not a program name — "
+                       f"argv[0] is matched by basename, case-sensitively")
+        elif not any(character.isalpha() for character in tokens[0]):
+            problem = f"opens with {tokens[0]!r}, which carries no letter"
+        elif tokens[0] in COMMAND_IGNORED_PREFIXES | COMMAND_SHELL_WRAPPERS:
+            problem = (f"opens with {tokens[0]!r}, which the hook STRIPS before "
+                       f"matching — it would be compared against a command that "
+                       f"no longer carries it, so it fires on nobody. Name the "
+                       f"program the wrapper runs")
+        else:
+            bad = next((token for token in tokens
+                        if COMMAND_METACHARACTERS & set(token)), None)
+            if bad is not None:
+                problem = (f"contains the token {bad!r}; the hook tokenizes with "
+                           f"shlex, where an operator is its own token and quotes "
+                           f"are removed, so no argv token can ever equal it")
+            elif any(token.startswith("#") for token in tokens):
+                problem = ("carries a `#` token, which shlex reads as the start "
+                           "of a comment — it never becomes an argv token")
+        if problem:
+            sys.exit(f"ERROR: rule manifest: {source} declares the command "
+                     f"prefix {entry!r}, which {problem}. The rule-delivery "
+                     f"hook needs `commands:` as a list of non-empty command "
+                     f"prefixes; a malformed one makes the whole rule "
+                     f"undeliverable, silently.")
+    return entries
 
 
 def _rule_reference_skill(relative: Path) -> str | None:
@@ -572,8 +805,10 @@ def _read_only_agents(source_root: Path) -> list:
 def build_rule_manifest(source_root: Path = ROOT) -> dict:
     """Describe every rule text: where it lives, what it scopes to, who ships it."""
     entries = []
+    agents = _agent_packs(source_root)
+    packed = {name for packs in agents.values() for name in packs}
+    included = _core_includes(source_root / "global" / "core-sections")
     for rules_dir in RULE_SOURCE_DIRS:
-        in_core = rules_dir == Path("global/rules")
         for path in sorted((source_root / rules_dir).rglob("*.md")):
             if path.name == "README.md":
                 continue
@@ -586,33 +821,27 @@ def build_rule_manifest(source_root: Path = ROOT) -> dict:
                     f"and the mechanism is retired — rules are delivered by the "
                     f"rule-delivery hook, off `globs:`. A file still carrying it "
                     f"reads as scoped while loading unconditionally. Use "
-                    f"`globs:` in global/rules-situational/, or nothing at all "
-                    f"in global/rules/, which is always-on by definition."
+                    f"`globs:`, or `commands:` for a command-triggered rule."
                 )
-            store_globs = _declared_globs(frontmatter, "globs")
-            if in_core and store_globs is not None:
-                sys.exit(
-                    f"ERROR: rule manifest: {relative.as_posix()} declares "
-                    f"`globs:`, but global/rules/ loads unconditionally — the "
-                    f"file would claim a scope nothing applies. Drop the key, or "
-                    f"move the rule to global/rules-situational/, which is "
-                    f"reachable only through a router skill or this hook."
-                )
-            globs = store_globs or []
             skill = _rule_reference_skill(relative)
             entries.append({
                 "name": path.stem,
                 "source": relative.as_posix(),
-                "globs": globs,
+                "globs": _declared_globs(frontmatter, "globs") or [],
+                # Command prefixes the hook matches a Bash invocation against —
+                # the second delivery trigger, for policy whose moment is an
+                # ACT (`git commit`, `pnpm add`) rather than a touched file.
+                # Verbatim, in file order: a trailing ` +` is the hook's
+                # "needs one more argument" rule, not decoration.
+                "commands": _declared_commands(frontmatter, relative.as_posix()) or [],
                 # Rules whose globs overlap because two frameworks share a file
                 # convention (`*.service.ts`). Carrying the named pack proves
                 # which framework this is, and this rule is then not delivered.
                 "exclusive_with": _declared_globs(frontmatter, "exclusive-with") or [],
-                # With `paths:` retired, the directory IS the criterion:
-                # global/rules/ loads unconditionally, and a rules-situational
-                # file is never always-on — nothing loads that directory by
-                # itself — however its `globs:` read.
-                "always_on": in_core,
+                # Always-on is INCLUSION, not location: a core section carries
+                # this text into global/CLAUDE.md, so the hook must never push
+                # it and a pack must never inline it a second time.
+                "always_on": relative.as_posix() in included,
                 "references": {
                     root: f"{base}/{skill}/references/{path.name}"
                     for root, base in RULE_REFERENCE_ROOTS.items()
@@ -620,6 +849,39 @@ def build_rule_manifest(source_root: Path = ROOT) -> dict:
                 "readers": path.name in RULE_READER_NAMES,
             })
     entries.sort(key=lambda entry: (entry["name"], entry["source"]))
+    # A rule text nothing can deliver is not a rule: it is a document in a
+    # directory no harness reads. The store has no ambient loading of its own,
+    # so "it is in global/rules-situational/" reaches no model by itself.
+    unreachable = [entry["source"] for entry in entries
+                   if not (entry["globs"] or entry["commands"] or entry["always_on"]
+                           or entry["references"] or entry["name"] in packed)]
+    if unreachable:
+        sys.exit(
+            "ERROR: rule manifest: rule text no channel delivers:\n"
+            + "\n".join(f"  {source}" for source in unreachable)
+            + "\nGive it one: an `include:` from a core section (always-on), an "
+            "entry in SKILL_REFERENCE_INJECTIONS (router skill), a `packs:` line "
+            "on an agent, or `globs:`/`commands:` TOGETHER WITH a "
+            "SKILL_REFERENCE_INJECTIONS entry — a trigger says when to hold, the "
+            "reference is what the hold tells the agent to read, and the hook "
+            "drops a rule that has only one of the two. Delete it if none "
+            "applies — it reaches no model today."
+        )
+    # A trigger without a reference path is inert: the rule-delivery hook gates
+    # only what it can tell the agent to READ, so a rule with globs or commands
+    # and no router injection holds nobody — and nothing downstream reports a
+    # trigger that fires on no one. A pack carrying the text does not redeem
+    # it: then the trigger is what is wrong.
+    inert = [entry["source"] for entry in entries
+             if (entry["globs"] or entry["commands"]) and not entry["references"]]
+    if inert:
+        sys.exit(
+            "ERROR: rule manifest: a rule declares a hook trigger but no router "
+            "reference, so the rule-delivery hook has no file to name and the "
+            "trigger fires on nobody:\n"
+            + "\n".join(f"  {source}" for source in inert)
+            + "\nAdd it to SKILL_REFERENCE_INJECTIONS, or drop `globs:`/`commands:`."
+        )
     # `exclusive-with` is a cross-reference between rule files, and a typo in it
     # fails silently forever: the hook keeps delivering a rule nobody meant it
     # to deliver. Resolve every name against the set the build just read.
@@ -635,7 +897,7 @@ def build_rule_manifest(source_root: Path = ROOT) -> dict:
                 )
     return {
         "_generated": RULE_MANIFEST_NOTE,
-        "agents": _agent_packs(source_root),
+        "agents": agents,
         "read_only_agents": _read_only_agents(source_root),
         "rules": entries,
     }
@@ -909,6 +1171,38 @@ DELEGATION_CORE_ANCHOR = "- **Delegation gates are hard.**"
 THRESHOLD_TOKEN = re.compile(r"~\d+|\d+\+")
 
 
+def check_command_wrapper_parity():
+    """Fail the build when the mirrored wrapper sets drift from the hook's.
+
+    The validator refuses a prefix opening with a wrapper because the HOOK
+    strips it. If the hook's list grows and this copy does not, the build
+    starts accepting a prefix that fires on nobody — the exact failure the
+    validator exists to catch. Fails closed on the anchors too: a renamed
+    constant means the check can no longer see what it claims to verify.
+    """
+    text = RULE_DELIVERY_SOURCE.read_text(encoding="utf-8")
+    for name, mirrored in (("SHELL_WRAPPERS", COMMAND_SHELL_WRAPPERS),
+                           ("IGNORED_PREFIXES", COMMAND_IGNORED_PREFIXES)):
+        match = re.search(rf"^{name}\s*=\s*{{(.*?)}}", text, re.M | re.S)
+        if not match:
+            sys.exit(f"ERROR: command-wrapper parity: {name} not found in "
+                     f"{RULE_DELIVERY_SOURCE.relative_to(ROOT)}. Restore it or "
+                     f"update check_command_wrapper_parity in harness/build.py.")
+        theirs = frozenset(re.findall(r'"([^"]+)"', match.group(1)))
+        if theirs != mirrored:
+            sys.exit(
+                "ERROR: command-wrapper parity: harness/build.py's mirror of the "
+                f"rule-delivery hook's {name} has drifted.\n"
+                f"  hook:  {sorted(theirs)}\n"
+                f"  build: {sorted(mirrored)}\n"
+                f"  only in hook:  {sorted(theirs - mirrored) or 'none'}\n"
+                f"  only in build: {sorted(mirrored - theirs) or 'none'}\n"
+                "The hook is the source of truth — mirror it in "
+                "COMMAND_SHELL_WRAPPERS / COMMAND_IGNORED_PREFIXES.")
+    print(f"command wrappers: build mirrors the hook "
+          f"({len(COMMAND_SHELL_WRAPPERS | COMMAND_IGNORED_PREFIXES)} names).")
+
+
 def check_delegation_threshold_parity():
     """Fail the build when the core's delegation numbers drift from the canon.
 
@@ -1004,6 +1298,7 @@ def main():
     # — nothing is written, so a stale or hand-edited core FAILS here instead
     # of being regenerated or refused mid-write.
     if "--check" in sys.argv[1:]:
+        check_command_wrapper_parity()
         check_delegation_threshold_parity()
         check_router_index_parity()
         check_core_assembly_parity()
@@ -1034,6 +1329,7 @@ def main():
 
     # Last: the trees are already regenerated and the commit reminder already
     # printed, so a drift exit signals only the drift.
+    check_command_wrapper_parity()
     check_delegation_threshold_parity()
     check_router_index_parity()
     check_core_assembly_parity()

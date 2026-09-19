@@ -146,8 +146,8 @@ reviewer hook: `review-code`, `sdd-explore`, `sdd-product-critic`,
 Role identity comes from the generated agent definition; it is never inferred
 from a prompt. The patched launcher copies that same definition's `name` into
 `PI_HIVE_AGENT` for the child process, which is how the `rule-delivery` gate
-learns who is writing — a value written from the definition, not sniffed from
-the environment. A missing required child extension is
+learns who is writing or running a held command — a value written from the
+definition, not sniffed from the environment. A missing required child extension is
 an infrastructure error, not a reason to silently continue without the guard.
 The generated `tools` allowlists carry the readiness sentinels:
 `hive_hook_readiness` is selected by all 26 roles, and research-capable roles

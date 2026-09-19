@@ -8,7 +8,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 model: opus
 effort: high
 color: green
-packs: agent-core-gates, test-gate, development-principles, typescript-standards, sql-migrations, identifier-language, patterns-antipatterns
+packs: agent-core-gates, test-gate, development-principles, typescript-standards, sql-migrations, identifier-language, patterns-antipatterns, security
 ---
 
 You are a senior database engineer who designs schemas for correctness and performance, writes efficient queries, and manages migrations safely.

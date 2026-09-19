@@ -1,12 +1,8 @@
----
-alwaysApply: true
----
-
 ## Communication Format
 
 > **In-thread prose is the default.** HTML is for output with a life outside this conversation — something the user keeps, shares, or returns to. Length, richness, and effort spent never promote an answer into a page.
 >
-> This rule is the canonical source for the `flow-report` auto-invoke trigger. Other files reference it; the conditions are not restated elsewhere. Rendering mechanics (HTML layout floor, in-thread prose form, extended answer-length bullets, ASCII-diagram norm) live in `rules-situational/communication-format-mechanics.md`, a `flow-report` reference.
+> This rule is the canonical source for the `flow-report` auto-invoke trigger. Other files reference it; the conditions are not restated elsewhere. Rendering mechanics (HTML layout floor, in-thread prose form, extended answer-length bullets, ASCII-diagram norm) live in `communication-format-mechanics.md`, a `flow-report` reference.
 
 ### Routing by output shape
 

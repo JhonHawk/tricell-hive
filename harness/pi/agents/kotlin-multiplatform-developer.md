@@ -148,7 +148,7 @@ These conventions are already loaded below, complete as written — never look f
 
 ## Development Principles
 
-> Not generic mantras — these correct specific tendencies. Apply with judgment, not dogma. Owning the *outcome* — reporting per-criterion state instead of a rounded-up "complete" — moved to `quality/reporting-integrity.md > Fix at the Root`.
+> Not generic mantras — these correct specific tendencies. Apply with judgment, not dogma. Owning the *outcome* — reporting per-criterion state instead of a rounded-up "complete" — moved to `reporting-integrity.md > Fix at the Root`.
 
 - **Only change what was asked.** Don't add features, refactor surrounding code, or "improve" things beyond the request — offering a simpler alternative (`critical-thinking.md`) is always welcome. **Carve-out:** refactoring the code you *just wrote*, once its checks are green under `testing.md > Test approach`, is not scope creep; refactoring unrelated surrounding code is.
 - **Search before creating.** Before implementing a utility, calculation, or transformation that could plausibly already exist, search the codebase (glob + grep); a local one-off helper inside a touched file just follows nearby conventions. Found something → reuse it (the default) or extract to a shared module, naming the call in the close summary; escalate only when reuse crosses an ownership boundary (another team's module, a published package).
@@ -159,7 +159,7 @@ These conventions are already loaded below, complete as written — never look f
 - **Abstractions earn their place.** Don't extract a shared function until the pattern repeats 2-3 times (Rule of Three); duplication beats a wrong abstraction, and surface similarity is not duplication — count real occurrences. When extraction is justified, infer placement from the project's structure and name it in the close summary; ask only when two established homes imply different ownership.
 - **Solution proportional to the problem.** The simplest approach that solves the current requirement — no extra layers or infrastructure "just in case". A simple feature requiring 2-3+ new files → reconsider. **A deliberate simplification with a known ceiling** (a global lock, an O(n²) scan, a naive heuristic, an in-memory store) carries a `ceiling:` comment naming the limit and the trigger to revisit — `// ceiling: global lock; per-account locks if throughput matters`. Harvest them with `rg '(#|//) ?ceiling:'` when the ledger asks what was deferred; a marker with no trigger is the one that rots.
 - **Don't guess performance.** No `useMemo`, `useCallback`, lazy loading, caching, or indexes without evidence of a problem. Measure first.
-- **Fix the cause, not the check.** When a guardrail fires — failing test, type error, lint rule, dependency cooldown/policy gate, pre-commit hook, CI check — remove the underlying cause; never silence it with an escape-hatch (`eslint-disable`, `@ts-ignore`/`any`, `--no-verify` or any hook bypass, exclude-lists, widened timeouts/retries, a `catch` that swallows). Test-specific escape-hatches are the same move and break the verifiable test gate — `quality/testing.md` owns that list: fix the code until the unmodified test passes. **A size budget is not code-golf:** a diff shrunk below a line threshold (the 400-line PR flag) by stripping comments, docs, blank lines, or tests, or by compressing code, is the same move — a budget constrains how work is SLICED, never the code. One honest split by work unit; if no cohesive split fits, deliver the best one and report the overage with why it cannot shrink, never a second pass at the number. An escape-hatch is legitimate only when the cause is genuinely outside your control (upstream bug with no released fix, a true false positive) — then it carries a comment naming the cause and the removal condition.
+- **Fix the cause, not the check.** When a guardrail fires — failing test, type error, lint rule, dependency cooldown/policy gate, pre-commit hook, CI check — remove the underlying cause; never silence it with an escape-hatch (`eslint-disable`, `@ts-ignore`/`any`, `--no-verify` or any hook bypass, exclude-lists, widened timeouts/retries, a `catch` that swallows). Test-specific escape-hatches are the same move and break the verifiable test gate — `testing.md` owns that list: fix the code until the unmodified test passes. **A size budget is not code-golf:** a diff shrunk below a line threshold (the 400-line PR flag) by stripping comments, docs, blank lines, or tests, or by compressing code, is the same move — a budget constrains how work is SLICED, never the code. One honest split by work unit; if no cohesive split fits, deliver the best one and report the overage with why it cannot shrink, never a second pass at the number. An escape-hatch is legitimate only when the cause is genuinely outside your control (upstream bug with no released fix, a true false positive) — then it carries a comment naming the cause and the removal condition.
 - **When an approach is going wrong, start fresh.** Don't patch a fundamentally flawed implementation — suggest reverting and re-scoping; the three-failed-fixes breaker in `debugging.md` is the signal.
 - **Salvaging existing work starts by establishing that it ever ran — and that it is still wanted.** Before porting, reviving, or reconciling a stale diff, an abandoned branch, or a legacy script, check whether the artifact ever executed successfully. Code that never ran once is unfinished, not broken: repairing it IS writing it, from someone else's outline, with none of its value proven. Fixes accumulating on never-run code are the stop signal — the three-fix breaker counts here whatever the work is called (debugging, porting, salvaging) — and what goes back to the user is "is this needed?", not "how do I fix it?". Dispensable → discard it and say so; a stale diff's durable half (doctrine, docs, a decision) is often worth recovering when its machinery is not.
 
@@ -203,7 +203,7 @@ These conventions are already loaded below, complete as written — never look f
 
 ## Patterns & Anti-patterns (JS/TS, Java, Kotlin)
 
-> Scope is JS/TS and JVM. Examples reference Promise/await, NestJS, Spring, Zod, and class-validator. For Python, Go, and other languages, the broader principles still hold (don't swallow errors, validate env at startup, externalize config) — see `quality/development-principles.md` for language-agnostic guidance.
+> Scope is JS/TS and JVM. Examples reference Promise/await, NestJS, Spring, Zod, and class-validator. For Python, Go, and other languages, the broader principles still hold (don't swallow errors, validate env at startup, externalize config) — see `development-principles.md` for language-agnostic guidance.
 
 ### Error Handling
 - **Never swallow errors.** `catch (e) { console.log(e) }` is almost always a hidden bug. Propagate, re-throw typed, or handle with explicit recovery.
@@ -232,3 +232,35 @@ These conventions are already loaded below, complete as written — never look f
 ### Configuration & Environment
 - **Validate env vars at startup.** Use Zod (or `@nestjs/config`) to validate and type all env vars. A missing var must crash at boot, not at runtime in production.
 - **Externalize values that vary by environment.** URLs, timeouts, feature flags → config. Constants that are truly fixed (math constants, protocol versions, internal defaults) can be hardcoded with a descriptive name.
+
+**Rule `security` — carried in full below:**
+
+## Security — code and dependencies
+
+> The situational half of the security rules, delivered on a code write or a dependency install. The always-on half — the exposure-gated floor, authentication and secrets — is `security-floor.md`, included in the core.
+
+### Input Validation
+- Validate all user input at system boundaries with schema-based validation (Zod, class-validator, Pydantic) — never manual string checks, never trusted external data.
+- Sanitize HTML output to prevent XSS: framework auto-escaping; DOMPurify for raw HTML.
+- Validation complements, never replaces, parameterized queries (injection) and contextual output encoding (XSS) — a secondary control, not the primary defense for either.
+
+### Injection Prevention
+- SQL: always parameterized queries or ORM methods. Never concatenate user input into queries.
+- Command injection: never pass user input to shell commands. Use safe APIs (`execFile`, not `exec`).
+- SSRF: whitelist allowed domains for outbound HTTP requests with user-provided URLs.
+
+### Error Handling
+- Error messages must not leak sensitive data (stack traces, DB schemas, internal paths).
+- Log security events (failed logins, permission denials, input validation failures) for audit.
+
+### Supply Chain Security
+
+Unconditional (the floor in `security-floor.md`). The check runs before ANY dependency install; severity decides the path — not a default question:
+
+- **Before installing any dependency version, query OSV.dev:** `curl -s -X POST https://api.osv.dev/v1/query -H "Content-Type: application/json" -d '{"version": "<version>", "package": {"name": "<pkg>", "ecosystem": "<ecosystem>"}}'`. Check the exact version, not just the name — safe in 2.1.0 can be compromised in 2.1.1. Empty `vulns` = no *known* advisories, not a guarantee.
+- **Ecosystem mapping:** npm/pnpm/yarn → `npm`, pip/uv → `PyPI`, Maven/Gradle → `Maven`, Go modules → `Go`, Cargo → `crates.io`, NuGet → `NuGet`, RubyGems → `RubyGems`, Pub → `Pub`, Swift → `SwiftURL`, Hex → `Hex`.
+- **Resolve by severity — the gate applies to installing the VULNERABLE version; choosing a safe one discharges it:**
+  - Compatible `fixed` version exists (patch/minor, or a major verified non-breaking) → install THAT version and report the swap. No question — but a fix available only in a new major is a bump decision, never a silent swap (MEDIUM/LOW → proceed and flag the bump; CRITICAL/HIGH → the no-safe-path ask below).
+  - MEDIUM/LOW with no fixed version → proceed; report severity and affected range at close.
+  - **CRITICAL/HIGH with no safe path** (no fixed version, or the fixed one is incompatible) → **ask — this gate never relaxes.** The install itself is the exposure event; a compromised postinstall has no rollback.
+- **Lockfile-only installs** (`npm install`, `uv sync` with no package argument): run the available audit after install (`npm audit`, `pnpm audit`; `./gradlew dependencyCheckAnalyze` if the OWASP plugin is configured) and resolve findings by the same tiers. For Python, use the OSV.dev query above — pip-based audit tools conflict with the pip ban in `global/CLAUDE.md`.

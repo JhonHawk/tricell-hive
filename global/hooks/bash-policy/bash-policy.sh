@@ -20,7 +20,7 @@
 # `permissionDecision: "allow"` is emitted ONLY inside the push advisory — a
 # global allow would auto-approve arbitrary shell.
 #
-# Policy owners: rules/tools/code-search.md, CLAUDE.md > Python Dependency
+# Policy owners: code-search.md, CLAUDE.md > Python Dependency
 # Management, CLAUDE.md > Package Manager, CLAUDE.md > Build & Lint.
 
 set -uo pipefail

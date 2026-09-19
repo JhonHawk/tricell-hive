@@ -38,7 +38,7 @@ mitad de tu turno, y tú puedes continuarlo con su contexto intacto. Es la únic
 
 ## Cuándo usar cada una
 
-La política canónica vive en `global/rules/workflow/agent-routing.md > Workflow Tool vs
+La política canónica vive en `global/rules-situational/agent-routing.md > Workflow Tool vs
 Subagents vs Agent Teams` — esta guía no la duplica. La forma corta:
 
 - **Default: subagente efímero** — un `Agent` con el especialista correcto cubre el trabajo

@@ -8,7 +8,7 @@ sesiones de agente anteriores y los presenta al inicio de la sesión nueva.
 El patrón documentado el 2026-07-23 en `family-jk`: 13 sesiones headless de
 `agent-browser` huérfanas (17–27 h), un `next dev` de otro workspace ocupando el
 puerto 3000 por 12 h. Las reglas "never orphan" (dev servers en `global/CLAUDE.md`,
-sesiones de browser en `rules/tools/browser-automation.md`) son prompt-convention y
+sesiones de browser en `browser-automation.md`) son prompt-convention y
 tienen un caso límite legítimo — "déjalo corriendo mientras reviso" termina el turno
 con el server vivo por diseño, y nadie regresa a apagarlo. Este hook es el backstop:
 la siguiente sesión fresca recoge lo que quedó.
@@ -36,7 +36,7 @@ la siguiente sesión fresca recoge lo que quedó.
   de la sesión tiene un `AGENTS.md` con bloque `hive-profile:start` (generado por
   `harness/hive-compile.py`), delega el veredicto a `hive-compile.py <repo> --check`
   del checkout del hive (`HIVE_REPO`, default `~/Development/projects/tricell/tricell-hive`):
-  stale = el hive avanzó tocando `global/rules/`, `global/rules-situational/` o el clasificador Y el perfil que
+  stale = el hive avanzó tocando `global/rules-situational/` o el clasificador Y el perfil que
   compilaría hoy difiere del bloque en disco (sin contar la línea de stamp), o el
   stamp es desconocido para el checkout. Emite UNA línea advisory sugiriendo
   regenerar (ofrecer, nunca regenerar sin pedirlo); silencio si no hay checkout

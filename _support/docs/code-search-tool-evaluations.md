@@ -2,7 +2,7 @@
 
 **Living document.** Append a section per tool evaluated; never date-stamp the file.
 Companion: `tgrep-workspace-server.md` is the operations doc for the one tool we KEPT.
-Routing rule these feed: `global/rules/tools/code-search.md`.
+Routing rule these feed: `global/rules-situational/code-search.md`.
 
 This exists because zvec-grep was evaluated twice — 2026-09-02 and 2026-09-11 — and the
 second evaluation did not know about the first. A verdict that lives only in memory gets

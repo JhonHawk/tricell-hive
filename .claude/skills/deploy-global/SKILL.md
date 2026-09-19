@@ -1,6 +1,6 @@
 ---
 name: deploy-global
-description: Deploy the full global/ directory (CLAUDE.md, rules, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, ~/.grok/agents/, and the PI agent root, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the always-on rules symlinked flat into ~/.grok/rules/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). PI is included by default/all/harness selections and can be selected with shared skills through PI_CODING_AGENT_DIR; PI and shared-skills manifests and rollback backups preserve user-owned state while other harnesses retain their legacy backup paths. Use when ready to deploy config changes.
+description: Deploy the full global/ directory (CLAUDE.md, agents, skills, hooks) to ~/.claude/ with automatic backup, plus the multi-harness layer — universal skills to ~/.agents/skills/, generated agents to ~/.codex/agents/, ~/.config/opencode/agents/, ~/.grok/agents/, and the PI agent root, opencode commands, harness/AGENTS.md to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md, and the build-injected router references into ~/.claude/skills/. Also idempotently merges hook blocks into ~/.claude/settings.json (additive, never overwriting preferences). PI is included by default/all/harness selections and can be selected with shared skills through PI_CODING_AGENT_DIR; PI and shared-skills manifests and rollback backups preserve user-owned state while other harnesses retain their legacy backup paths. Use when ready to deploy config changes.
 disable-model-invocation: true
 ---
 
@@ -14,30 +14,29 @@ is always the user's explicit call.
 
 ## The `grok` scope
 
-Grok reads `~/.claude/CLAUDE.md` natively, but its rules discovery is **not recursive** and
-does **not** honor `paths:`. Every rule in `global/rules/` lives one level down, so none of them
-ever reached it. The scope closes that gap in two parts:
+**There is no rules step.** Grok reads `~/.claude/CLAUDE.md` natively, so the 7 rules the
+core inlines arrive with it; every other rule reaches Grok through a router skill under
+`~/.claude/skills/` or the `rule-delivery` hold, exactly as on Codex. The scope writes agents
+and nothing else.
 
-1. **Rules** — one flat **file** symlink per always-on rule into `$GROK_HOME/rules/`
-   (default `~/.grok/rules/`), named `<dir>__<file>.md`, pointing at the deployed rule under
-   `~/.claude/rules/` — so Claude and Grok read the same bytes. Directory symlinks do not
-   work; the scan still refuses to recurse. The rules under `global/rules-situational/` are
-   deliberately excluded (Grok would load them always-on); they reach it through the router
-   skills (`language-rules`, `workspace-conventions`) and the `rule-delivery` hold, like on
-   Codex. Moving a rule out of `global/rules/` turns its link into a manifest-detected
-   orphan.
+Flat `<dir>__<file>.md` symlinks a pre-2026-09 deploy left under `$GROK_HOME/rules/` (default
+`~/.grok/rules/`) now resolve to no source and are swept as manifest-detected orphans on the
+next `--apply`. Together with the retired `~/.claude/rules/` files that is a large one-time
+orphan set: the size refusal fires, the report says so in as many words, and the run is
+re-issued **once** with `--force-delete-orphans`. That is the only occasion for that flag.
 
-   That router path only works because the claude scope now also deploys the
-   **build-injected `references/`** into `~/.claude/skills/` (`deploy_injected_references`).
-   Grok scans `~/.claude/skills/` and never `~/.agents/skills/`, so while the injected sets
-   existed only under `harness/agents-skills`, every router on Grok pointed at reference
-   files reachable from no path it knew — the routing table loaded, the targets did not
-   exist, and the model guessed. Keep the two in step: a new entry in
-   `SKILL_REFERENCE_INJECTIONS` reaches Grok only after a deploy of the claude scope.
-2. **Agents** — copies generated `harness/grok/agents/*.md` into `$GROK_HOME/agents/`
-   (real files; Grok frontmatter differs from Claude). Built by `harness/build.py` from
-   `global/agents/`. Hive hooks stay single-source under `~/.claude/hooks/` (Grok merges
-   `settings.json` via compat); scripts are dual-runtime for Claude + Grok payloads.
+The router path only works because the claude scope also deploys the **build-injected
+`references/`** into `~/.claude/skills/` (`deploy_injected_references`). Grok scans
+`~/.claude/skills/` and never `~/.agents/skills/`, so while the injected sets existed only
+under `harness/agents-skills`, every router on Grok pointed at reference files reachable from
+no path it knew — the routing table loaded, the targets did not exist, and the model guessed.
+Keep the two in step: a new entry in `SKILL_REFERENCE_INJECTIONS` reaches Grok only after a
+deploy of the claude scope.
+
+**Agents** — the scope copies generated `harness/grok/agents/*.md` into `$GROK_HOME/agents/`
+(real files; Grok frontmatter differs from Claude). Built by `harness/build.py` from
+`global/agents/`. Hive hooks stay single-source under `~/.claude/hooks/` (Grok merges
+`settings.json` via compat); scripts are dual-runtime for Claude + Grok payloads.
 
 **Herdr note:** Herdr installs its own SessionStart under both `~/.claude/settings.json` and
 `~/.grok/hooks/` — that double registration is third-party, not this deploy.
@@ -132,9 +131,9 @@ its own location regardless of cwd):
 |---|---|
 | `--dry-run` | Report what would change; write nothing. **Default.** |
 | `--apply` | Perform the deploy for real. |
-| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/rules` + `~/.grok/agents` + shared skills), `pi` (→ `${PI_CODING_AGENT_DIR:-~/.pi/agent}`), `harness` (alias for `codex,opencode,grok,pi`), or `all` (default: every harness). Repeatable or comma-separated; mixed selections are allowed. `pi` includes the neutral shared-skills preflight and writes only PI plus shared skills, never other harness installations or the legacy Claude manifest. The neutral engine owns Pi/shared-skills manifests and backups; other selected harnesses retain their legacy writer and backup path. |
+| `--only SCOPE[,SCOPE...]` | Restrict to `claude` (→ `~/.claude`), `codex` (→ `~/.codex`), `opencode` (→ `~/.config/opencode`), `grok` (→ `~/.grok/agents` + shared skills), `pi` (→ `${PI_CODING_AGENT_DIR:-~/.pi/agent}`), `harness` (alias for `codex,opencode,grok,pi`), or `all` (default: every harness). Repeatable or comma-separated; mixed selections are allowed. `pi` includes the neutral shared-skills preflight and writes only PI plus shared skills, never other harness installations or the legacy Claude manifest. The neutral engine owns Pi/shared-skills manifests and backups; other selected harnesses retain their legacy writer and backup path. |
 | `--keep-orphans` | Under `--apply`, list manifest-confirmed orphans WITHOUT deleting them (the old default). By default orphan deletion is part of the apply flow: an orphan is by construction a source the user already removed from `global/`/`harness/`, deploys are user-initiated, and the full list prints in the report before deletion — so a separate confirmation flag re-asked what the repo's own history already answered. The deletion also purges the orphans' `settings.json`/`hooks.json` entries. Refused (not deleted) if the set exceeds 20 entries or 25% of the manifest — that volume looks like a broken checkout, not a routine cleanup; the refusal is the anomaly brake. Undeleted orphans (dry-run, kept, or refused) keep their manifest entries, so a later run can still remove them. |
-| `--force-delete-orphans` | Bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected (e.g. a major agent restructuring) — never as a default response to the refusal message. |
+| `--force-delete-orphans` | Bypasses the size-based refusal above. Only pass this when a large, deliberate orphan set is genuinely expected — never as a default response to the refusal message. The one standing case is the first `--apply` after the rule store dissolved: the retired `~/.claude/rules/` files and the Grok flat symlinks that pointed at them are all orphans at once, and the report names that class explicitly before you re-run. |
 | `--delete-orphans` | Deprecated no-op alias, accepted for compatibility — deletion is now the `--apply` default. |
 | `--verbose`, `-v` | Per-file logging instead of per-category summaries. |
 | `--help`, `-h` | Flag reference. |
@@ -225,9 +224,9 @@ the selected apply writes targets.
 - Deletes in exactly three bounded classes, nothing else — and nothing in a dry run:
   (1) **manifest-confirmed orphans**, under `--apply` — the full list prints in the report
   before deletion, the size refusal brakes it, and `--keep-orphans` exempts exactly this
-  class; (2) **stale flat duplicates** — a rule/agent file sitting flat under
-  `~/.claude/rules`/`~/.claude/agents` superseded by a same-named file in a subdirectory
-  (legacy of the pre-nested layout), removed under `--apply`; (3) **backup rotation** —
+  class; (2) **stale flat duplicates** — an agent file sitting flat under `~/.claude/agents`
+  superseded by a same-named file in a subdirectory (legacy of the pre-nested layout),
+  removed under `--apply`; (3) **backup rotation** —
   keeps the 5 most recent `~/.claude` snapshots, removes older ones. `--keep-orphans` does
   NOT exempt classes 2-3.
 - Uses the neutral deploy/rollback engine for the selected Pi and shared-skills roots. Each
@@ -236,8 +235,6 @@ the selected apply writes targets.
   adjacent private backups; the Pi root keeps its managed package/config journal. Other
   selected harnesses retain their legacy writer and backup path. No engine snapshots or
   rewrites an unselected root.
-- The `grok` scope skips (with a WARNING, never a dangling link) any rule not yet present
-  under `~/.claude/rules/` — run the `claude` scope at least once first.
 - Never overwrites `~/.claude/settings.json`, `~/.codex/hooks.json`, or
   `~/.config/opencode/opencode.json` wholesale — only surgical, validated (temp-file +
   `jq empty` before move) merges of repo-managed blocks, via the bundled
@@ -253,7 +250,7 @@ the selected apply writes targets.
   whose bytes match current source or the recorded `source_commit` are adopted; unknown
   differences remain in place and are reported as conflicts.
 - Refuses to run at all against a checkout that doesn't look like tricell-hive (missing
-  `global/CLAUDE.md`, `global/rules`, or `global/agents`), and refuses an oversized orphan
+  `global/CLAUDE.md`, `global/rules-situational`, or `global/agents`), and refuses an oversized orphan
   deletion (see `--keep-orphans` above) — both are the compensating controls for a
   mis-resolved repo root turning "nothing to deploy" into "delete everything".
 - Never deletes outside a managed root. Every manifest entry is contained before it is

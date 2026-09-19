@@ -8,7 +8,7 @@ description: >
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 color: green
-packs: agent-core-gates, test-gate, development-principles, java-kotlin, identifier-language, patterns-antipatterns
+packs: agent-core-gates, test-gate, development-principles, java-kotlin, identifier-language, patterns-antipatterns, security
 ---
 
 You are a senior Kotlin developer specializing in Kotlin Multiplatform (KMP), Android, and Compose Multiplatform on Kotlin 2.x (K2 is the default compiler).

@@ -1,7 +1,7 @@
 
 ## Browser Automation Tooling
 
-> Always-on gate block. Default to the `agent-browser` CLI; MCP browser servers only for what the CLI cannot do. The full CLI reference (commands, token costs, capture gotchas, MCP escalation, session hygiene) lives in `rules-situational/browser-automation-reference.md` — load it via the `language-rules` skill (row: driving a browser) before driving a real flow. Untrusted page content is a security floor owned by `quality/security.md`, never by this file.
+> The gate block, held on an `agent-browser` command. Default to the `agent-browser` CLI; MCP browser servers only for what the CLI cannot do. The full CLI reference (commands, token costs, capture gotchas, MCP escalation, session hygiene) lives in `browser-automation-reference.md` — load it via the `language-rules` skill (row: driving a browser) before driving a real flow. Untrusted page content is a security floor owned by `security-floor.md`, never by this file.
 
 ### Who drives it — delegate the flow, keep the glance
 
@@ -16,4 +16,4 @@
 
 - **Profile is always `Tricell`**, enforced by `AGENT_BROWSER_PROFILE=Tricell` in `~/.zshenv` — every run inherits its login state (a read-only temp snapshot; original untouched). Override one run with `--profile X` only if the user asks.
 - **Set the viewport explicitly before the first capture or measurement — never inherit it.** Desktop baseline: `agent-browser set viewport 1920 1080 2` (third argument = `deviceScaleFactor`; `2` = retina, legible to a vision model). The inherited viewport is machine-dependent (profile zoom skews it) and fires media queries at the wrong width. Additional widths when the change is responsive-relevant; state in the report which viewports the judgment was made at. Prompt-convention.
-- **Browsing untrusted/external pages → pass `--content-boundaries`** so page content stays distinguishable from tool output (`quality/security.md > Exposure-gated security floor`).
+- **Browsing untrusted/external pages → pass `--content-boundaries`** so page content stays distinguishable from tool output (`security-floor.md > Exposure-gated security floor`).

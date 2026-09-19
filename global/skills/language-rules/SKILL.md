@@ -3,17 +3,20 @@ name: language-rules
 description: >
   Codex/Grok/opencode/PI: load before code write/edit/review/debug/generate — full language
   conventions (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle,
-  Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). Claude Code: only the browser
-  row (`browser-automation-reference.md` — the CLI mechanics are not always-on). Match files
-  in play. Exception on every harness: naming identifiers BEFORE the file exists (new fields, enums, table/spec properties) fires
-  nothing — load this skill and read identifier-language.md before choosing the names.
+  Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). Claude Code: load it when
+  planning a change or writing tests (`testing.md`), when choosing a search strategy or about
+  to claim something does not exist (`code-search.md`), and when about to drive a browser
+  (`browser-automation-reference.md`) — nothing holds those three; the stack rows arrive on a
+  matching write. Match files in play. Exception on every harness: naming identifiers BEFORE
+  the file exists (new fields, enums, table/spec properties) fires nothing — load this skill
+  and read identifier-language.md before choosing the names.
 ---
 
 # language-rules — deterministic router to the full language conventions
 
 The full, canonical rules live in `references/` (injected at build time from
-`global/rules-situational/` and `global/rules/` — single source of truth). This skill exists
-because no harness loads these rules by file kind: they are not deployed to any harness's
+`global/rules-situational/` — the single rule-text store). This skill exists because no
+harness loads these rules by file kind: they are not deployed to any harness's
 conditional-rule directory.
 
 **Per-harness scope — read only what your harness lacks:**
@@ -22,9 +25,9 @@ conditional-rule directory.
 |---|---|---|
 | Codex | Everything below — no conditional rule channel exists | `references/<file>` |
 | PI | Everything below — Hive exposes references through skills; the `rule-delivery` hold names the same files | `references/<file>` |
-| Grok | Everything below — it receives the always-on rules and nothing else | `references/<file>` |
+| Grok | Everything below — it receives the always-on core and nothing else | `references/<file>` |
 | opencode | Everything below — its rules plugin is retired, this skill is the only channel | `references/<file>` |
-| Claude Code | Only the browser row — `browser-automation-reference.md`. Language rows arrive through the `rule-delivery` hold on a matching write | `references/<file>` |
+| Claude Code | The three rows nothing holds — `testing.md` (planning or writing tests), `code-search.md` (search strategy, absence claims), `browser-automation-reference.md` (CLI mechanics). The stack rows, plus `test-gate`, `development-principles` and `security`, arrive through the `rule-delivery` hold on a matching write or command; the other quality gates are already in the core | `references/<file>` |
 
 ## Routing table — read every row that matches the files/manifests in play
 
@@ -42,10 +45,12 @@ conditional-rule directory.
 | `Dockerfile*`, `*.tf`, `.github/workflows/*` | `references/iac-devops.md` + `references/devops-principles.md` |
 | Building or styling UI (any stack) | `references/ui-visual-design.md` |
 | Non-trivial implementation (new feature, refactor — any stack) | `references/development-principles.md` + `references/patterns-antipatterns.md` |
-| Writing/modifying tests, or any behavior change | `references/testing.md` |
+| Writing/modifying tests, or any behavior change | `references/test-gate.md` (the gate, held on the first code write) + `references/testing.md` (full mechanics, when planning) |
 | Non-obvious bug: intermittent, multi-layer, or resists the first fix | `references/debugging.md` |
-| Driving a browser / in-vivo verification of a running app | `references/browser-automation-reference.md` (full CLI mechanics) + `references/browser-automation.md` (the always-on gate stub, if not already in context) |
+| Driving a browser / in-vivo verification of a running app | `references/browser-automation-reference.md` (full CLI mechanics) + `references/browser-automation.md` (the gate stub, held on an `agent-browser` command, if not already in context) |
 | Code discovery/search (routing by operation, absence claims, hit verification) | `references/code-search.md` |
+| Installing or integrating a dependency, or writing version-sensitive framework code | `references/context7.md` + `references/security.md` (supply chain) |
+| Writing input handling, queries, shell calls, auth or error responses | `references/security.md` |
 | Naming identifiers with no file yet on disk — new fields, enums, table/column names, spec/API properties | `references/identifier-language.md` |
 
 ## Stacking — combinations are the norm, not the exception
@@ -70,11 +75,15 @@ conditional-rule directory.
 - **`rule-delivery` holds your first matching write** on Claude Code, Grok, Codex and PI,
   naming the reference to read — reading it from here first skips the hold. On Codex the
   hold does not re-arm after a compaction; opencode has no hook channel at all.
-- **Claude Code:** the quality rows are always-on and the language rows arrive through that
-  hold. Load this skill unprompted only for `browser-automation-reference.md` (the CLI
-  mechanics behind the always-on gate stub).
-- **Grok:** always-on rules arrive via `~/.grok/rules/`; the language/quality/devops rows do
-  not — read every matching row below from `references/`.
+- **Claude Code:** the gate halves are in the always-on core (`CLAUDE.md`), and the stack rows
+  plus `test-gate`, `development-principles` and `security` arrive through that hold. Load this
+  skill unprompted for the three rows nothing holds: `testing.md` when planning a change or
+  writing tests (the core carries the gate, not the test approach or the execution scope),
+  `code-search.md` when choosing a search strategy or before claiming something does not exist,
+  and `browser-automation-reference.md` (the CLI mechanics behind the gate stub).
+- **Grok:** the always-on gates arrive inside `~/.claude/CLAUDE.md`, which Grok loads
+  natively; the language/quality/devops rows do not — read every matching row below from
+  `references/`.
 - **opencode:** every matching row is read from here — the rules plugin that once delivered
   the language rows is retired.
 - **Naming identifiers has no write to hold:** the pre-file naming row applies on every

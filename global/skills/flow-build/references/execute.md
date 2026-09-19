@@ -48,7 +48,7 @@ this stage.
 
    If implementation for a `tdd` task already exists without observed RED evidence, preserve the
    work; do not invent the failure or force a revert. Resolve it without asking: produce the
-   isolated fail-to-pass comparison (`quality/testing.md`), record it in the `Fail-to-pass`
+   isolated fail-to-pass comparison (`testing.md`), record it in the `Fail-to-pass`
    column with pass-to-pass evidence and the applicable independent checks, and label completion
    `fail-to-pass`, never strict TDD. Only when that comparison cannot be produced does the task
    stop at a user exception: leave it incomplete, do not advance the plan to `built` or

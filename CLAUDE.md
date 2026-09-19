@@ -8,9 +8,9 @@ When editing any `flow-*` skill (or `flow-core`), evaluate whether `_support/doc
 
 ### Agent Management
 
-`/manage-agents validate [--all] [--deep]` checks agents against the design principles below; run it after routing changes too.
+`/manage-agents validate [--all] [--deep]` checks agents against the design principles below, and rule texts against the judgment checks the build cannot make; run it after routing changes too.
 
-After editing files under `global/agents/**`, offer `/manage-agents validate` at close; after editing `global/rules/**`, offer `/manage-rules validate`. Offer, don't run uninvited.
+After editing files under `global/agents/**`, `global/rules-situational/**` or `global/core-sections/**`, offer `/manage-agents validate` at close. Offer, don't run uninvited.
 
 ### Agent Frontmatter Reference
 

@@ -120,10 +120,11 @@ def run_deploy(repo: Path, home: Path, *args: str) -> subprocess.CompletedProces
 def repo_entries(repo: Path, limit: int) -> list[str]:
     """Manifest filler from a COPIED repo: real sources, so never orphans.
 
-    `global/agents` joined the pool when the 19 glob-scoped rules left
-    `global/rules`: rules + skills alone fell to 97 files, under the 100 the
-    breaker tests below ask for. Any root added here must (a) have a manifest
-    prefix `manifest_entry_scope` recognizes — an unrecognized entry is skipped
+    `global/agents` joined the pool when the glob-scoped rules left the
+    always-on store; the store itself is gone now, so the pool is two roots:
+    skills (87) + agents (26) = 113, against the 100 the breaker tests below
+    ask for. Any root added here must (a) have a manifest prefix
+    `manifest_entry_scope` recognizes — an unrecognized entry is skipped
     before MANIFEST_TOTAL counts it, padding the file without padding the
     denominator the percentage breaker divides by — and (b) resolve to a real
     source, which for `agents/*.md` is the GENERATED harness/claude/agents
@@ -131,13 +132,13 @@ def repo_entries(repo: Path, limit: int) -> list[str]:
     """
     entries = [
         str(path.relative_to(repo / "global"))
-        for root in ("global/rules", "global/skills", "global/agents")
+        for root in ("global/skills", "global/agents")
         for path in sorted((repo / root).rglob("*"))
         if path.is_file() and "__pycache__" not in path.parts
     ]
     assert len(entries) >= limit, (
         f"expected at least {limit} non-orphan manifest entries, found {len(entries)} "
-        "across global/{rules,skills,agents} — add a root with a recognized "
+        "across global/{skills,agents} — add a root with a recognized "
         "manifest prefix rather than lowering the limit"
     )
     return entries[:limit]
@@ -168,13 +169,13 @@ def deployable_entries(limit: int) -> list[str]:
     """
     entries = [
         str(path.relative_to(REPO_ROOT / "global"))
-        for root in ("global/rules", "global/skills", "global/agents")
+        for root in ("global/skills", "global/agents")
         for path in sorted((REPO_ROOT / root).rglob("*"))
         if path.is_file() and "__pycache__" not in path.parts
     ]
     assert len(entries) >= limit, (
         f"expected at least {limit} non-orphan manifest entries, found {len(entries)} "
-        "across global/{rules,skills,agents}"
+        "across global/{skills,agents}"
     )
     return entries[:limit]
 
@@ -506,6 +507,41 @@ class EndToEndApplyTests(unittest.TestCase):
             self.assertIn("CLAUDE.md", manifest)
 
 
+class GrokRulesPreflightTests(unittest.TestCase):
+    """The sweep still deletes inside ~/.grok/rules, so the root is preflighted.
+
+    `manifest_entry_map` deliberately keeps the `grok-rules/*` case — that is
+    what makes the legacy flat symlinks sweepable — so `--apply` still runs
+    `rm -rf` in there. Without a preflight, an unwritable root fails the rm
+    under `set -euo pipefail` and the deploy aborts MID-SWEEP, before
+    `step_write_manifest`: a half-deleted tree with a manifest still claiming
+    everything. The preflight dies up front with a readable message instead.
+    """
+
+    def test_an_unwritable_grok_rules_root_is_refused_before_any_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            home = make_home(temp)
+            grok_rules = home / ".grok/rules"
+            grok_rules.mkdir(parents=True)
+            (grok_rules / "quality__testing.md").write_text("x\n", encoding="utf-8")
+            grok_rules.chmod(0o500)
+            try:
+                # The preflight step in isolation: a full run would abort on
+                # the core-size ratchet long before reaching it.
+                result = run_sourced(
+                    "RUN_CLAUDE=0; RUN_CODEX=0; RUN_OPENCODE=0; RUN_PI=0; "
+                    "RUN_GROK=1; step_preflight_generic_targets",
+                    home,
+                )
+            finally:
+                # Restored INSIDE the temp dir's lifetime: an addCleanup would
+                # run after it is gone and raise instead of restoring.
+                grok_rules.chmod(0o700)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout[-2000:])
+            self.assertIn("Grok rules", result.stderr)
+
+
 class CircuitBreakerTests(unittest.TestCase):
     """>ORPHAN_MAX_ABS entries or >=ORPHAN_MAX_PCT% of the manifest refuses."""
 
@@ -556,6 +592,86 @@ class CircuitBreakerTests(unittest.TestCase):
             self.assertIn("orphans: 3 deleted", report_of(home))
             for target in targets:
                 self.assertFalse(target.exists())
+
+    def test_a_refused_set_that_is_only_retired_rules_says_so(self) -> None:
+        """The one deploy that legitimately trips the breaker.
+
+        Dissolving the always-on rule store retires two whole classes at once:
+        the 12 files under ~/.claude/rules and the 12 flat symlinks under
+        ~/.grok/rules that pointed at them. 24 orphans is over ORPHAN_MAX_ABS
+        by construction, and raising the threshold would blunt the brake for
+        every other run — so the report names this case and the flag that
+        clears it instead.
+        """
+        with tempfile.TemporaryDirectory() as temp:
+            home = make_home(temp)
+            (home / ".claude/rules/quality").mkdir(parents=True)
+            (home / ".grok/rules").mkdir(parents=True)
+            entries = []
+            for index in range(12):
+                rule = home / f".claude/rules/quality/retired-{index}.md"
+                rule.write_text("# retired\n", encoding="utf-8")
+                entries.append(f"rules/quality/retired-{index}.md")
+                link = home / f".grok/rules/quality__retired-{index}.md"
+                link.symlink_to(rule)
+                entries.append(f"grok-rules/quality__retired-{index}.md")
+            write_manifest(home, entries + deployable_entries(100))
+
+            result = run_sourced("APPLY=1; step_detect_orphans; orphan_guard_exit_status", home)
+
+            self.assertEqual(result.returncode, 0, result.stderr[-3000:])
+            self.assertIn("REFUSING to delete", result.stderr)
+            self.assertIn("--force-delete-orphans", result.stderr)
+            report = report_of(home)
+            self.assertIn("retired rule-store", report)
+            self.assertIn("24 of 24", report)
+            self.assertIn("--force-delete-orphans", report)
+            # Nothing was deleted: the brake held, the note is advisory.
+            self.assertTrue((home / ".claude/rules/quality/retired-0.md").exists())
+            self.assertTrue((home / ".grok/rules/quality__retired-0.md").is_symlink())
+
+    def test_a_refused_set_of_other_classes_does_not_claim_the_rule_retirement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            home = make_home(temp)
+            self._stage_orphans(home, 21, deployable_entries(100))
+
+            run_sourced("APPLY=1; step_detect_orphans; orphan_guard_exit_status", home)
+
+            self.assertNotIn("retired rule-store", report_of(home))
+
+    def test_one_unrelated_orphan_does_not_silence_the_expected_note(self) -> None:
+        """The real M4 deploy carries a content change set alongside the store
+        dissolution — renamed references, retired hooks, agent renames — so an
+        all-or-nothing note is a note that will not print on the one run it
+        exists for. It counts instead, and says what rides along."""
+        with tempfile.TemporaryDirectory() as temp:
+            home = make_home(temp)
+            (home / ".claude/rules/quality").mkdir(parents=True)
+            (home / ".grok/rules").mkdir(parents=True)
+            entries = []
+            for index in range(12):
+                rule = home / f".claude/rules/quality/retired-{index}.md"
+                rule.write_text("# retired\n", encoding="utf-8")
+                entries.append(f"rules/quality/retired-{index}.md")
+                link = home / f".grok/rules/quality__retired-{index}.md"
+                link.symlink_to(rule)
+                entries.append(f"grok-rules/quality__retired-{index}.md")
+            # One unrelated orphan rides along, as it will in the real run.
+            stray = home / ".claude/agents/renamed-agent.md"
+            stray.write_text("# renamed\n", encoding="utf-8")
+            entries.append("agents/renamed-agent.md")
+            write_manifest(home, entries + deployable_entries(100))
+
+            result = run_sourced("APPLY=1; step_detect_orphans; orphan_guard_exit_status", home)
+
+            self.assertEqual(result.returncode, 0, result.stderr[-3000:])
+            report = report_of(home)
+            self.assertIn("retired rule-store", report)
+            self.assertIn("--force-delete-orphans", report)
+            # It counts rather than claiming the whole set.
+            self.assertIn("24 of 25", report)
+            self.assertIn("1", report)
+            self.assertTrue(stray.exists())
 
     def test_refused_orphans_stay_in_the_manifest_for_a_later_run(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

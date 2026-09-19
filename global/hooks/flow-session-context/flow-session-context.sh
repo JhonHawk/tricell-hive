@@ -70,7 +70,7 @@ if [ "$source_evt" = "compact" ]; then
 
   emit '<flow-process-protocol source="post-compaction">
 Flow workspace — context was compacted; the process map is re-injected because the pre-compaction copy may not have survived. Same rules, condensed. Never force ceremony onto a small change:
-- IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer (quality/critical-thinking.md).
+- IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer (critical-thinking.md).
 - SPEC: a decided idea needs formalization -> flow-core/references/spec-writing-playbook.md. Its business gate is mandatory BEFORE delivery is derived.
 - PLAN: planning intent uses the Hive portable /flow-plan command. ONE plan per unit of work (flow-core/references/plan-format.md); native harness planning remains optional and never grants Hive authorization.
 - EXECUTE: an approved plan with pending tasks -> offer /flow-build ONCE, naming the direct route as the alternative; never invoke it uninvited.
@@ -83,7 +83,7 @@ flow_section=""
 if [ -n "$ledger" ]; then
   flow_section='<flow-process-protocol>
 Flow workspace — the process knowledge for this project lives in flow-core references, not in commands. Work the matching playbook conversationally when intent matches; never force ceremony onto a small change:
-- IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer with one light decision note (quality/critical-thinking.md). Contested, load-bearing questions -> offer /adversarial-research.
+- IDEA: exploring whether something is worth doing -> converge on proceed/discard/defer with one light decision note (critical-thinking.md). Contested, load-bearing questions -> offer /adversarial-research.
 - SPEC: a decided idea needs formalization -> flow-core/references/spec-writing-playbook.md (its business gate is mandatory before delivery is derived).
 - PLAN: planning intent uses Hive'"'"'s portable /flow-plan command — native harness planning is optional and never grants Hive authorization. ONE plan per unit of work. Format and Preflight: flow-core/references/plan-format.md.
 - EXECUTE: an approved plan with pending tasks exists -> offer /flow-build to execute or resume it, ONCE per session, with the direct route named as the alternative; a no is sticky for the session. A hand-run still owes the plan'"'"'s per-task gates.

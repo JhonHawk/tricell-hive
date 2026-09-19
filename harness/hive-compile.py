@@ -16,7 +16,7 @@ minimal fences above are the only comment lines this block pays for).
 Contract mirrors deploy-global: DRY-RUN is the default (prints the block),
 `--apply` writes, `--create` allows creating a missing AGENTS.md, `--check`
 exits non-zero when the target's existing block is stale: the hive moved past
-the stamped SHA touching global/rules/ or this classifier AND the profile it
+the stamped SHA touching global/rules-situational/ or this classifier AND the profile it
 would compile today differs from the one on disk (stamp line excluded — a
 rules commit that leaves the classifier's output identical is not staleness).
 
@@ -47,12 +47,20 @@ MARK_END = "<!-- hive-profile:end -->"
 OVERRIDE_FILE = ".hive-profile.yaml"
 # Paths whose movement makes an emitted profile stale (also used by the
 # session-hygiene-report staleness advisory — keep the two in sync).
-STALE_PATHS = ["global/rules/", "global/rules-situational/", "harness/hive-compile.py"]
+STALE_PATHS = ["global/rules-situational/", "harness/hive-compile.py"]
 
 # Exclusion set for classes with no runtime — mirrors the hand-written pattern
 # of tricell-hive's AGENTS.md > Rule Exclusions.
+#
+# These are a DECLARATION, not a suppression: the gates they name are inlined
+# into ~/.claude/CLAUDE.md by a core section, or delivered by the rule-delivery
+# hook, and neither is excludable file by file. The profile states them so an
+# agent reading this repo knows they do not apply here.
 NO_RUNTIME_EXCLUSIONS = [
-    ("`quality/testing.md`", "no runtime code to test; files here are reviewed by reading"),
+    ("`testing.md` + `test-gate.md`",
+     "no runtime code to test; files here are reviewed by reading. The hold on "
+     "`test-gate.md` still fires on a `.py`/`.sh` write — it is not suppressible; "
+     "read it once and apply this exclusion, which outranks it here"),
     ("`Build & Lint` (global `CLAUDE.md`)", "no build system; validation is read-review/diff review"),
     ("`security.md` > Supply Chain Security", "no installable dependencies; no OSV checks to run"),
     ("`critical-thinking.md` > Pre-ship ownership test (questions 1-2)",
@@ -270,7 +278,12 @@ def render_block(facts, override):
             lines += [f"- {rule} — {why}." for rule, why in NO_RUNTIME_EXCLUSIONS]
         for extra in filter(None, (s.strip() for s in override.get("exclusions", "").split(","))):
             lines.append(f"- {extra}")
-        lines += ["", "Build/test/lint enforcement is restored automatically in any repo with runtime code."]
+        lines += ["",
+                  "These exclusions are a declaration you READ, not a filter something "
+                  "applies: the gates above are inlined into the always-on core or "
+                  "delivered by the rule-delivery hook, and neither is suppressible file "
+                  "by file. Honor them here; they are restored automatically in any repo "
+                  "with runtime code."]
 
     lines += ["",
               "**Creating the FIRST file of a kind in a session:** read its rule from "
@@ -465,10 +478,11 @@ def self_test():
             "the profile still claims rules load on touching a matching file"
         checks += 3
 
-    # Every rule family the classifier can emit resolves to a real rule file,
-    # in whichever store it lives — detection names basenames, not paths.
-    stores = (HIVE_ROOT / "global" / "rules", HIVE_ROOT / "global" / "rules-situational")
-    on_disk = {p.stem for store in stores if store.is_dir() for p in store.rglob("*.md")}
+    # Every rule family the classifier can emit resolves to a real rule file.
+    # One store now: an always-on gate is a rule text a core section includes,
+    # not a file living somewhere else.
+    store = HIVE_ROOT / "global" / "rules-situational"
+    on_disk = {p.stem for p in store.glob("*.md")}
     families = {"typescript-standards", "react-nextjs", "angular-patterns",
                 "nestjs-patterns", "sql-migrations", "tailwind", "python-standards",
                 "java-kotlin", "shell-standards", "ui-visual-design", "iac-devops"}
@@ -476,18 +490,33 @@ def self_test():
     assert not missing, f"rule families with no rule file: {missing}"
     checks += 1
 
-    # An exclusion only excludes something the repo actually deploys: the
-    # no-runtime list names rules under ~/.claude/rules, which mirrors
-    # global/rules. One that moved out excludes nothing and misleads whoever
-    # copies the printed claudeMdExcludes example.
-    core_store = HIVE_ROOT / "global" / "rules"
+    # An exclusion has to name a rule that exists: it is read by an agent, not
+    # applied by a mechanism, so a stale name is a declaration about nothing
+    # and nothing else will catch it.
     for rule_name, _ in NO_RUNTIME_EXCLUSIONS:
         for named in re.findall(r"`([\w./-]+\.md)`", rule_name):
             if named == "CLAUDE.md":  # the core, not a rule file
                 continue
-            assert list(core_store.rglob(Path(named).name)), \
-                f"no-runtime exclusion names {named}, which no longer deploys " \
-                "to ~/.claude/rules — it excludes nothing"
+            assert (store / Path(named).name).is_file(), \
+                f"no-runtime exclusion names {named}, which is not a rule text " \
+                f"under {store.relative_to(HIVE_ROOT)} — it declares nothing"
+    checks += 1
+
+    # The exclusion has to name what the HOOK DELIVERS, not the rule the policy
+    # used to live in. `test-gate.md` is the glob-scoped half of the testing
+    # rule and its globs cover `*.py` and `*.sh` — this repo's own code — so on
+    # a code write here the hold names test-gate.md while the profile excluded
+    # only `testing.md`: two authoritative sources saying opposite things at the
+    # same moment. Anchored on the rule's real globs, so re-splitting the rule
+    # moves this assertion instead of leaving it true and meaningless.
+    gate_globs = (store / "test-gate.md").read_text(encoding="utf-8")
+    if "*.sh" in gate_globs or "*.py" in gate_globs:
+        excluded = " ".join(name for name, _ in NO_RUNTIME_EXCLUSIONS)
+        assert "test-gate.md" in excluded, (
+            "test-gate.md is glob-delivered on this repo's own file types, so a "
+            "no-runtime profile that does not name it contradicts the hold the "
+            "agent is about to receive"
+        )
     checks += 1
 
     print(f"self-test: {checks} checks passed (idempotency, fail-closed fences, target-loads, "
@@ -534,12 +563,9 @@ def main():
         verdict = upsert(agents_md, block, create="--create" in flags)
         print(f"hive-profile {verdict} -> {agents_md}")
 
-    repo_class = override.get("class", facts["class"])
-    if repo_class in ("specs", "config-hub"):
-        print()
-        print("# optional manual step (never written by this tool): trim what CLAUDE.md pulls in")
-        print(f"# for this no-runtime repo via {target}/.claude/settings.local.json:")
-        print('#   { "claudeMdExcludes": ["rules/quality/testing.md"] }')
+    # No `claudeMdExcludes` hint any more: it suppressed a DEPLOYED rule file
+    # under ~/.claude/rules, and no rule deploys there. The exclusions travel
+    # as profile text, which is what the block above now says.
 
 
 if __name__ == "__main__":

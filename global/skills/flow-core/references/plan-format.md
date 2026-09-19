@@ -145,7 +145,7 @@ Commit: feat(<scope>): T1 <subject>
 | T1/<case> | tdd | verified | <command/result> | <command/result> | <command/result> | <command/result or not-needed> | <mutation command/result when RED was not observed, or `exception: <reason>`> |
 
 `Approach` is what the task PROMISED (`tdd` | `characterization` | `not-applicable`, per
-`quality/testing.md`); **`Run state` is what actually happened** — `verified` (it ran and passed),
+`testing.md`); **`Run state` is what actually happened** — `verified` (it ran and passed),
 `blocked` (a named, externally pointable obstacle stopped it), or `not-reached` (never attempted).
 The two columns never substitute for each other: a check that exists and is useful but did not run
 is `not-applicable` in NEITHER column — it keeps its real `Approach` and records `blocked` or
@@ -357,7 +357,7 @@ contract must be self-contained for an engineer on another harness:
 - `Agent:` is an optional routing annotation. A harness without that roster
   executes the recipe directly and reports the substitution.
 - `Test approach:` is mandatory for every task and is one of `tdd`,
-  `characterization`, or `not-applicable`, as defined by `quality/testing.md`.
+  `characterization`, or `not-applicable`, as defined by `testing.md`.
   `tdd` covers automatically checkable behavior and reproducible bugs;
   `characterization` covers pure refactors; and `not-applicable` requires a
   concrete reason when no useful automatic check exists — never as a retroactive

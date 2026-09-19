@@ -48,13 +48,14 @@ yourself.
 
 ## What does NOT reach it
 
-- **The 28 rule texts under `global/rules-situational/`, as files.** There is no glob
-  channel on this harness: every one of them arrives injected inside a router skill
-  (`language-rules`, `workspace-conventions`, …), which the model must invoke, or inlined
-  into a packed agent. opencode is the harness where not invoking the router is literally
-  not having the rule — the `rule-delivery` hook has no channel here.
-- **The 12 always-on rules, as files.** They are not deployed here at all; their condensed
-  form is already in `harness/AGENTS.md`, which loads every session.
+- **The 34 rule texts under `global/rules-situational/` that the core does not inline, as
+  files.** There is no glob or command channel on this harness: every one of them arrives
+  injected inside a router skill (`language-rules`, `workspace-conventions`, …), which the
+  model must invoke, or inlined into a packed agent. opencode is the harness where not
+  invoking the router is literally not having the rule — the `rule-delivery` hook has no
+  channel here.
+- **The 7 core-included rules, as files.** They are not deployed here at all; their
+  condensed form is already in `harness/AGENTS.md`, which loads every session.
 - **Claude Code's `disable-model-invocation`.** opencode does not honor it — the gate is
   reproduced by `permission.skill."flow-*": "ask"` in `opencode.json` plus the command
   wrappers, which are the only way a gated skill is exposed.

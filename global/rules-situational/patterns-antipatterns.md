@@ -5,7 +5,7 @@ globs:
 
 ## Patterns & Anti-patterns (JS/TS, Java, Kotlin)
 
-> Scope is JS/TS and JVM. Examples reference Promise/await, NestJS, Spring, Zod, and class-validator. For Python, Go, and other languages, the broader principles still hold (don't swallow errors, validate env at startup, externalize config) — see `quality/development-principles.md` for language-agnostic guidance.
+> Scope is JS/TS and JVM. Examples reference Promise/await, NestJS, Spring, Zod, and class-validator. For Python, Go, and other languages, the broader principles still hold (don't swallow errors, validate env at startup, externalize config) — see `development-principles.md` for language-agnostic guidance.
 
 ### Error Handling
 - **Never swallow errors.** `catch (e) { console.log(e) }` is almost always a hidden bug. Propagate, re-throw typed, or handle with explicit recovery.

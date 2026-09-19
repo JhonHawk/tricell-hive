@@ -1,43 +1,89 @@
-# rules-situational — the rule-text store: delivered by hook, router, or pack
+# rules-situational — the one rule-text store
 
-Rules here are **not deployed to `~/.claude/rules/`**, so they are never always-on and never
-symlinked into `~/.grok/rules/`. No harness loads them by file kind. They reach an agent
-three ways, and `harness/build.py` is what wires all three:
+Every rule text lives here, in one flat directory. Nothing here is deployed to
+`~/.claude/rules/` and nothing is symlinked into `~/.grok/rules/`: no harness loads a file
+here by file kind. A rule reaches a model through the channels below, and `harness/build.py`
+wires all of them. **A rule with no channel is a build error** — "it is in
+`global/rules-situational/`" reaches nobody.
 
-| Channel | How it arrives | Applies to |
+| Channel | How it arrives | Declared by |
 |---|---|---|
-| `rule-delivery` hook | holds a matching write until the deployed reference is read, then the re-issued call passes (Claude Code, Grok, Codex, PI; a read, inside a read-only agent scoped by `readers`) | a file here **with `globs:`** |
-| Router skill | injected into a `references/` directory (`SKILL_REFERENCE_INJECTIONS`); present only when the model invokes the router | every file here except the pack-only texts |
-| `packs:` | inlined into the agent's prompt at build — a build-time guarantee, not a routing probability | the agents that declare it |
+| Core include | a `global/core-sections/rule-<name>.md` section carries `include: rules-situational/<name>.md`; the build inlines the body into `global/CLAUDE.md`, always-on in every session | the core section (the rule file itself says nothing) |
+| `rule-delivery` hook | denies the first matching write — or the first matching command — naming the reference to read; the re-issued call passes (Claude Code, Grok, Codex, PI) | `globs:` and/or `commands:` **plus** a router reference |
+| Router skill | injected into a skill's `references/`; present only when the model invokes the router | `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` |
+| `packs:` | inlined into an agent's prompt at build — a guarantee, not a routing probability | the `packs:` line on the agent |
 
-**The contract: `globs:` is what makes a file hook-deliverable.** Without it the hook never
-fires for that rule, whatever its content — the router (or a pack) is then the only channel.
+**A trigger counts only together with a router reference.** The hook can gate only what it can
+tell the agent to READ, so `globs:`/`commands:` with no `SKILL_REFERENCE_INJECTIONS` entry is a
+build error, and a pack carrying the text does not excuse it. **A rule the core includes may
+not also declare a trigger** — the hook would push what the core already carries; the build
+refuses that too.
 
-## What belongs here instead of in `global/rules/`
+Today: 41 rule texts — 7 always-on, 25 triggered, 8 router-only, 1 pack-only
+(`agent-core-gates.md`). Recount from `harness/rule-manifest.json`, never by subtraction.
 
-`global/rules/` holds only the always-on rules: safety gates and policy whose trigger is an
-action rather than a file, paid every session in every project. Everything else lives here,
-in one of four shapes:
+## Adding a rule — decide the shape first
 
-- **Intent-triggered** (delegating, planning, saving memory) — no `globs:`, router only.
-  `globs:` cannot express "I am about to delegate"; an artificial glob would fire on the
-  wrong files and still miss the moment that matters.
-- **Glob-scoped** (`globs:`) — the language, workspace and devops rules: hook, router and
-  packs all deliver them.
-- **The detail half of a demoted always-on rule.** The gate stays always-on as a stub in
-  `global/rules/`; the mechanics land here and reach every harness through the owning
-  skill's `references/` (`browser-automation-reference.md` → `language-rules`,
-  `communication-format-mechanics.md` → `flow-report`, `unattended-autonomy-mode.md` →
-  `unattended-delegation`).
-- **Pack-only texts** (`agent-core-gates.md`, `test-gate.md`). No router, no globs, never
-  hook-delivered. `agent-core-gates` is required in every packed agent: on Claude Code a
-  packed agent runs with `omitClaudeMd: true` and this text is what puts the gates back.
-  Accepted cost: Codex, opencode, Grok and Pi have no per-agent corpus switch, so a packed
-  agent there receives these gates on top of the core it already loads.
+| The rule governs… | Shape | Wire |
+|---|---|---|
+| how the agent thinks or answers in EVERY session, with no observable act to hang it on (a safety gate, a reporting duty, a decision discipline) | **core include** | the text here + `global/core-sections/rule-<name>.md` carrying only `order:`, `targets:`, `include:`. No trigger, no body in the section |
+| an observable act — writing a file of a kind, running a command | **triggered** | `globs:` and/or `commands:` + a `SKILL_REFERENCE_INJECTIONS` entry + a row in that router's routing table + `RULE_READER_NAMES` if read-only agents need it + `packs:` on the specialized agents that should carry it + `exclusive-with:` where another rule claims the same file conventions |
+| an intent with no act (delegating, planning, saving memory) | **router-only** | a `SKILL_REFERENCE_INJECTIONS` entry and its routing-table row. When absence is unsafe, a one-line gate in the core naming the router and its trigger |
+| only what a specialized executor does, and the main thread never needs it | **pack-only** | the `packs:` line on each agent. No trigger, no injection |
+
+A trigger is written as an ACT a third party could point to in the transcript — the write, the
+command — never as an intent. If you cannot name the act, the shape is core include or
+router-only, not a sentinel glob.
+
+## Frontmatter
+
+Only these keys, and only on a rule that needs them:
+
+```yaml
+---
+globs:                       # hook trigger: paths this rule scopes, matched by segment
+  - "**/*.{ts,tsx}"          #   against the target's absolute realpath
+commands:                    # hook trigger: command PREFIXES, matched on a parsed stage
+  - "git commit"             #   token for token after argv[0]'s basename
+  - "npm install +"          #   trailing ` +` = needs one more non-option argument
+exclusive-with:              # rule stems whose pack excludes this one (framework overlap)
+  - "nestjs-patterns"
+---
+```
+
+`paths:` is a build error — it was Claude Code's native key and that mechanism is retired.
+`readers` and `always_on` are **derived**, never authored: `readers` from `RULE_READER_NAMES`
+in `harness/build.py` (a rule a reviewer needs, not only a writer), `always_on` from the core
+section that includes the file.
+
+## Before you finish
+
+- **Run the build.** `python3 harness/build.py` regenerates the manifest, the cores and every
+  generated tree; `--check` runs the parity checks without writing. It refuses: a rule no
+  channel delivers, a trigger with no reference, an `include:` over a triggered rule, two
+  sections including the same text, an `exclusive-with:` naming no rule, a malformed command
+  prefix, `paths:` anywhere.
+- **Run the hook's tests.** `python3 global/hooks/rule-delivery/test_rule_delivery.py` — its
+  matrix runs against the real manifest, so a new trigger is exercised there, not only parsed.
+- **Cost the rule before keeping it.** A core include is paid by every session in every
+  project — state its KB. A trigger is paid in denial ROUNDS on a first write or command:
+  check how many rules the new one joins on that trigger, and that the reason still names it
+  whole inside Grok's ~264-character budget (a path that cannot be named whole is simply not
+  gated there).
+- **Exercise it in vivo, in a sandbox outside the temp roots.** `$TMPDIR`, `/tmp`,
+  `/private/tmp` and `/var/folders` are ungated by design, so a probe run there proves nothing
+  about a hold.
+- **Update the inventories** the change touches: `README.md`'s rules section, `global/README.md`
+  and the per-harness loading tables, `AGENTS.md`'s File Structure.
 
 ## The cost of living here
 
-A rule here is present only when its channel fires — a router the model must invoke, or a
-hook the model must obey after a hold. Never move one whose absence is unsafe; that is what
-always-on is for. The compensating control is a one-line pointer in `global/CLAUDE.md`
-naming the router and its trigger.
+Outside the core-include shape, a rule is present only when its channel fires — a router the
+model must invoke, or a hook the model must obey after a hold. Never leave one whose absence is
+unsafe to those channels; that is what the core include is for. The compensating control for
+the rest is a one-line pointer in `global/CLAUDE.md` naming the router and its trigger.
+
+Packed agents run with `omitClaudeMd: true` on Claude Code, so `agent-core-gates.md` is
+required in every `packs:` line — it is what puts the core gates back. Codex, opencode, Grok
+and PI have no per-agent corpus switch, so a packed agent there receives those gates on top of
+the core it already loads.

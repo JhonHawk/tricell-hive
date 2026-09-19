@@ -1,7 +1,3 @@
----
-alwaysApply: true
----
-
 ## Git Workflow
 
 > Universal conventions. Project `CLAUDE.md`/`AGENTS.md` overrides (protected branches, branching model, commit semantics) win. **Precedence:** explicit user verb > invoked flow skill's declared git scope > session defaults — never re-ask at a lower level what a higher level settled. Safety gates apply at every level.
@@ -24,8 +20,9 @@ alwaysApply: true
 
 Branching model, commit semantics and the session mode, PRs and promotion, end-of-work
 hygiene, and recovery are situational: they apply once you are already branching, committing,
-or opening a PR. They load through the `task-routing` skill (which also fires at first
-edit-intent) — **invoke it before the first git verb of a session**, since choosing a branch
+or opening a PR. They are held on the first git command of the session and load through the
+`task-routing` skill (which also fires at first edit-intent) — **invoke it before the first
+git verb of a session**, since choosing a branch
 name or a session mode happens before any of it is on screen. The gates above stay here
 because their trigger is an action whose cost is irreversible, and a gate that depends on a
 model invoking a skill is not a gate.

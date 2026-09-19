@@ -69,9 +69,8 @@ def required_pack(value):
 
 
 def every_pack_name():
-    """Every rule text a `packs:` entry can resolve to, both stores."""
-    names = {p.stem for p in (ROOT / "global" / "rules").rglob("*.md")}
-    names |= {p.stem for p in (ROOT / "global" / "rules-situational").glob("*.md")}
+    """Every rule text a `packs:` entry can resolve to — one flat store."""
+    names = {p.stem for p in (ROOT / "global" / "rules-situational").glob("*.md")}
     return sorted(names - {"README"})
 
 
@@ -396,35 +395,35 @@ class ConverterTests(unittest.TestCase):
         self.assertIn("~/.agents/skills/language-rules/references/", pi)
         self.assertNotIn("~/.claude/skills/language-rules/references/", pi)
 
-    def test_native_always_on_rules_come_from_rules_without_paths(self):
-        native = CONVERTER.native_always_on_rules(ROOT / "global" / "rules")
-        self.assertIn("testing.md", native)
-        self.assertIn("context7.md", native)
-        self.assertNotIn("typescript-standards.md", native)
-
-    def test_grok_drops_role_rule_rows_it_already_loads_natively(self):
+    def test_grok_keeps_every_role_rule_row_no_pack_covers(self):
+        # Grok used to load the always-on store through flat symlinks into
+        # ~/.grok/rules, so rows pointing at those files were dropped as
+        # duplicates. That store is gone and so are the symlinks: Grok now
+        # reaches a rule through the hook or the router, exactly like Codex —
+        # a dropped row is a rule the agent is never told about.
         agent = source_agent(Path("development") / "backend-developer.md")
         grok = CONVERTER.to_grok(agent)
-        for native in (
-            "testing.md",
-            "development-principles.md",
-            "debugging.md",
-            "context7.md",
-            "code-search.md",
-        ):
-            self.assertNotIn(f"language-rules/references/{native}", grok, native)
-        self.assertIn("## Role rules", grok)
-        self.assertIn("language-rules/references/java-kotlin.md", grok)
-        self.assertIn("language-rules/references/identifier-language.md", grok)
+        claude = CONVERTER.to_claude(agent)
+        rows = CONVERTER.ROLE_RULE_TARGET.findall
+        self.assertEqual(rows(grok), rows(claude))
+        for still_listed in ("testing.md", "development-principles.md",
+                             "debugging.md", "java-kotlin.md"):
+            self.assertIn(f"language-rules/references/{still_listed}", grok,
+                          still_listed)
 
-    def test_grok_drops_the_role_rules_section_when_no_row_survives(self):
-        agent = source_agent(Path("review") / "review-code.md")
-        grok = CONVERTER.to_grok(agent)
-        self.assertNotIn("## Role rules", grok)
-        self.assertNotIn("| When | Read |", grok)
-        self.assertIn("## Output", grok)
+    def test_the_native_always_on_filter_is_gone(self):
+        # A filter whose input directory no longer exists returns "nothing is
+        # native" forever — protection nobody provides. It was deleted with
+        # the store it read.
+        self.assertFalse(hasattr(CONVERTER, "native_always_on_rules"))
+        self.assertFalse(hasattr(CONVERTER, "_rule_is_always_on"))
+        self.assertFalse(hasattr(CONVERTER, "RULES_SITUATIONAL_DIR"))
+        self.assertEqual(CONVERTER.RULES_DIR.name, "rules-situational")
 
-    def test_harnesses_without_native_rule_loading_keep_every_role_rule_row(self):
+    def test_no_harness_loads_a_rule_natively_any_more(self):
+        # Claude Code's path-scoping went first, Grok's flat symlinks with M4:
+        # every harness now receives a rule through the hook, a router
+        # reference or a pack, so every Role rules row survives everywhere.
         agent = source_agent(Path("review") / "review-code.md")
         for rendered in (
             CONVERTER.to_codex(agent),
@@ -432,6 +431,9 @@ class ConverterTests(unittest.TestCase):
             CONVERTER.to_pi(agent),
         ):
             self.assertIn("~/.agents/skills/language-rules/references/testing.md", rendered)
+        for rendered in (CONVERTER.to_grok(agent), CONVERTER.to_claude(agent)):
+            self.assertIn("~/.claude/skills/language-rules/references/testing.md", rendered)
+            self.assertIn("## Role rules", rendered)
 
 
 class PackInliningTests(unittest.TestCase):
@@ -474,7 +476,6 @@ class PackInliningTests(unittest.TestCase):
         rendered = rendered_everywhere(self.packed())
         for harness, text in rendered.items():
             self.assertIn("## Carried rules", text, harness)
-            # Resolution order: global/rules/** first, then rules-situational/.
             self.assertEqual(text.count("## TypeScript & JS Standards"), 1, harness)
             self.assertEqual(
                 text.count("## Git Mechanics — branching, commits, PRs"), 1, harness
@@ -653,32 +654,13 @@ class PackInliningTests(unittest.TestCase):
                 self.assertIn("packed-fixture", message)
                 self.assertIn(pack, message)
 
-    def test_a_pack_resolving_to_two_rule_files_names_both_paths(self):
-        with tempfile.TemporaryDirectory(prefix="hive-dup-pack-") as tmp:
-            rules = Path(tmp) / "rules"
-            (rules / "languages").mkdir(parents=True)
-            situational = Path(tmp) / "rules-situational"
-            situational.mkdir()
-            (rules / "languages" / "twinned.md").write_text("a\n", encoding="utf-8")
-            (situational / "twinned.md").write_text("b\n", encoding="utf-8")
-            with self.patched_rule_dirs(rules, situational):
-                with self.assertRaises(ValueError) as raised:
-                    self.packed(packs="twinned")
-            message = str(raised.exception)
-            self.assertIn("packed-fixture", message)
-            self.assertIn("twinned", message)
-            self.assertIn("languages/twinned.md", message)
-            self.assertIn("rules-situational/twinned.md", message)
-
     def test_a_pack_whose_text_is_empty_is_refused(self):
         with tempfile.TemporaryDirectory(prefix="hive-empty-pack-") as tmp:
-            rules = Path(tmp) / "rules"
-            rules.mkdir()
-            situational = Path(tmp) / "rules-situational"
-            situational.mkdir()
-            (rules / "hollow.md").write_text("---\npaths:\n  - \"*\"\n---\n\n",
+            store = Path(tmp) / "rules-situational"
+            store.mkdir()
+            (store / "hollow.md").write_text("---\nglobs:\n  - \"*\"\n---\n\n",
                                              encoding="utf-8")
-            with self.patched_rule_dirs(rules, situational):
+            with self.patched_rule_dir(store):
                 with self.assertRaises(ValueError) as raised:
                     self.packed(packs="hollow")
             self.assertIn("hollow", str(raised.exception))
@@ -712,11 +694,10 @@ class PackInliningTests(unittest.TestCase):
             outside = Path(tmp) / "outside" / "private.md"
             outside.parent.mkdir(parents=True)
             outside.write_text("PRIVATE NOTES\n", encoding="utf-8")
-            rules = Path(tmp) / "rules"
-            rules.mkdir()
-            (Path(tmp) / "rules-situational").mkdir()
-            (rules / "escapee.md").symlink_to(outside)
-            with self.patched_rule_dirs(rules, Path(tmp) / "rules-situational"):
+            store = Path(tmp) / "rules-situational"
+            store.mkdir()
+            (store / "escapee.md").symlink_to(outside)
+            with self.patched_rule_dir(store):
                 with self.assertRaises(ValueError) as raised:
                     self.packed(packs="escapee")
             message = str(raised.exception)
@@ -724,12 +705,30 @@ class PackInliningTests(unittest.TestCase):
             self.assertIn("escapee", message)
             self.assertNotIn("PRIVATE NOTES", message)
 
+    def test_a_symlinked_rule_store_is_refused_before_any_pack_resolves(self):
+        # Same vacuity as the core-assembly include check: the escape guard
+        # compares against the RESOLVED store, so a symlinked store resolves
+        # to wherever it points and then confirms every file under it is
+        # "inside". A hard link inside a real store stays fine — that is a
+        # copy in the store, not an escape from it.
+        with tempfile.TemporaryDirectory(prefix="hive-store-link-") as tmp:
+            outside = Path(tmp) / "private-notes"
+            outside.mkdir()
+            (outside / "leak.md").write_text("PRIVATE NOTES\n", encoding="utf-8")
+            store = Path(tmp) / "rules-situational"
+            store.symlink_to(outside, target_is_directory=True)
+            with self.patched_rule_dir(store):
+                with self.assertRaises(ValueError) as raised:
+                    self.packed(packs="leak")
+            message = str(raised.exception)
+            self.assertIn("not a real directory", message)
+            self.assertNotIn("PRIVATE NOTES", message)
+
     def test_a_directory_named_like_a_rule_is_not_a_pack(self):
         with tempfile.TemporaryDirectory(prefix="hive-dir-pack-") as tmp:
-            rules = Path(tmp) / "rules"
-            (rules / "folder.md").mkdir(parents=True)
-            (Path(tmp) / "rules-situational").mkdir()
-            with self.patched_rule_dirs(rules, Path(tmp) / "rules-situational"):
+            store = Path(tmp) / "rules-situational"
+            (store / "folder.md").mkdir(parents=True)
+            with self.patched_rule_dir(store):
                 with self.assertRaises(ValueError) as raised:
                     self.packed(packs="folder")
             self.assertIn("unknown pack 'folder'", str(raised.exception))
@@ -846,15 +845,15 @@ class PackInliningTests(unittest.TestCase):
                     )
                 self.assertIn("oddly-spelled", str(raised.exception))
 
-    def patched_rule_dirs(self, rules, situational):
+    def patched_rule_dir(self, store):
         @contextlib.contextmanager
         def patch():
-            originals = (CONVERTER.RULES_DIR, CONVERTER.RULES_SITUATIONAL_DIR)
-            CONVERTER.RULES_DIR, CONVERTER.RULES_SITUATIONAL_DIR = rules, situational
+            original = CONVERTER.RULES_DIR
+            CONVERTER.RULES_DIR = store
             try:
                 yield
             finally:
-                CONVERTER.RULES_DIR, CONVERTER.RULES_SITUATIONAL_DIR = originals
+                CONVERTER.RULES_DIR = original
         return patch()
 
     def test_cli_mirrors_the_source_role_folders_into_the_claude_tree(self):
@@ -904,29 +903,6 @@ class RequiredPackTests(unittest.TestCase):
 
     def test_the_production_requirement_names_the_core_gates_pack(self):
         self.assertEqual(CONVERTER.REQUIRED_PACK, "agent-core-gates")
-
-
-class PackWarningTests(unittest.TestCase):
-    def test_a_pack_that_is_still_always_on_warns_without_failing(self):
-        # Grok links every always-on rule flat into ~/.grok/rules, so packing
-        # one there delivers it twice.
-        with required_pack(None):
-            stderr = tempfile.TemporaryFile(mode="w+", encoding="utf-8")
-            original = sys.stderr
-            sys.stderr = stderr
-            try:
-                agent = fixture_agent(
-                    "name: doubled\ndescription: Fixture\npacks: security",
-                    body=ROLE_RULES_BODY,
-                )
-            finally:
-                sys.stderr = original
-            stderr.seek(0)
-            captured = stderr.read()
-            self.assertIn("doubled", captured)
-            self.assertIn("security", captured)
-            self.assertIn("WARNING", captured)
-            self.assertEqual(agent["packs"], ["security"])
 
 
 if __name__ == "__main__":

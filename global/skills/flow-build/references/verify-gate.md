@@ -11,7 +11,7 @@ for the tasks not yet gated:
    lens or reviewer; a passive documentation change uses diff and consistency review. The diff is
    the input; the builder's report travels as claims to check, never as context to trust.
    Before the gate passes, reconcile every task's `Test approach:` and mutable `Test evidence`
-   against `quality/testing.md`: a `tdd` task needs observed RED evidence before its
+   against `testing.md`: a `tdd` task needs observed RED evidence before its
    implementation, or the isolated fail-to-pass comparison labeled `fail-to-pass` where the
    chronology was missed; a `characterization` task needs its green baseline, and
    `not-applicable` needs its concrete reason and applicable review. **Each row also carries its
@@ -67,7 +67,7 @@ for the tasks not yet gated:
    root and re-walk; `friction`/`polish` may pass with the user's recorded acknowledgement.
    - **When the task changes an existing screen, capture the pre-change state BEFORE the run's
      first edit** — same viewports and themes the walk will use, each set explicitly per
-     `tools/browser-automation.md`, into the run's raw-evidence
+     `browser-automation.md`, into the run's raw-evidence
      folder — and hand both captures to the reviewer for dimension 18. Missing pre-change capture
      → the design gate reports **not-verified**, never pass.
 3b. **Evidence appraisal — prepared at gate close, presented in the close report.** Partition the

@@ -8,7 +8,7 @@ and offered by the session hook after a deploy ("you deployed → run the QA wal
 **This file owns procedure, not authorization.** The gates live elsewhere and are not
 restated here:
 
-- **Authorization & gates** — `workflow/git-workflow.md`. Promotion into a
+- **Authorization & gates** — `git-workflow.md`. Promotion into a
   production-deploying branch always confirms; promotion into `qa` follows the non-prod
   carve-out (declared, not asked); push is confirm-gated. Promotion moves the source
   branch's whole current state, not just this session's changes.

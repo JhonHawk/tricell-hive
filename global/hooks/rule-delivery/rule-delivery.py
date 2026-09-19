@@ -12,6 +12,11 @@ short reason:
     Read <rule file> ->  (PostToolUse) observed; the rule is now KNOWN
     Write src/a.ts   ->  allowed
 
+A rule that no file announces declares a COMMAND prefix instead — `git
+commit`, `pnpm add`, `agent-browser` — and a terminal call whose parsed stage
+starts with one is held exactly the same way, by the same reason, released by
+the same read.
+
 Two events, one job each:
 
   PreToolUse   gate only. Never marks anything known.
@@ -67,6 +72,7 @@ PATCH_TOOL = "apply_patch"
 PATCH_FILE_LINE = re.compile(
     r"^\*\*\* (?:Add File|Update File|Move to): *(.+?)\s*$", re.M)
 PATCH_OPENING = "*** Begin Patch"
+PATCH_CLOSING = "*** End Patch"
 # Nobody reads a rule file through a 64 KB command, and nobody should pay to
 # parse one. Past this, a shell command is neither parsed nor scanned.
 MAX_COMMAND_CHARS = 64 * 1024
@@ -136,6 +142,69 @@ def compile_globs(globs):
                 segments = ["**"] + segments
             compiled.append(segments)
     return compiled
+
+
+# --- command prefixes ----------------------------------------------------
+#
+# Some rules have no file that announces them and every reason to be read
+# before a particular COMMAND runs: the supply-chain check before an install,
+# git mechanics before a commit, the browser CLI before `agent-browser`. The
+# manifest carries them as `commands` — command PREFIXES, matched
+# TOKEN-FOR-TOKEN against the leading tokens of a stage the shell parser
+# already produced. No new parser, and no evaluation of control flow: `git
+# commit` matches, `git commit-tree` and `echo git commit` do not.
+
+COMMAND_ARGUMENT = "+"    # trailing prefix token: demands a further argument
+
+
+def compile_commands(commands):
+    """Prefixes as `(tokens, requires_argument)`; a trailing `+` demands one.
+
+    `npm install` with no package is a lockfile install and a different
+    decision from `npm install <pkg>`, so a prefix may insist on at least one
+    further non-option argument.
+    """
+    compiled = []
+    for raw in commands:
+        tokens = raw.split()
+        requires_argument = bool(tokens) and tokens[-1] == COMMAND_ARGUMENT
+        if requires_argument:
+            tokens = tokens[:-1]
+        if tokens:
+            compiled.append((tokens, requires_argument))
+    return compiled
+
+
+def skippable(argv, index):
+    """A tool's own global option, or the value one takes.
+
+    `git -C <dir> commit`, `git --no-pager commit` and `pnpm --filter x add`
+    are the same verbs as their bare forms. Which options take a value is not
+    knowable without a table per tool, so a token following an option (unless
+    that option carried its value with `=`) counts as one — the expected token
+    is always tried FIRST, so `--no-pager commit` never swallows `commit`.
+    """
+    token = argv[index]
+    if token.startswith("-"):
+        return True
+    previous = argv[index - 1]
+    return previous.startswith("-") and "=" not in previous
+
+
+def prefix_matches(argv, tokens, requires_argument):
+    """Does this simple command start with that prefix?"""
+    if not argv or os.path.basename(argv[0]) != tokens[0]:
+        return False
+    index = 1
+    for token in tokens[1:]:
+        while index < len(argv) and argv[index] != token and skippable(argv, index):
+            index += 1
+        if index >= len(argv) or argv[index] != token:
+            return False
+        index += 1
+    if not requires_argument:
+        return True
+    return any(not later.startswith("-") for later in argv[index:])
 
 
 def segment_match(pattern, text):
@@ -360,16 +429,16 @@ def resolve(path, base):
     return path
 
 
-def patch_targets(command, base, limit=None):
+def patch_targets(command, base):
     """Files a patch body authors.
 
     A header counts only when it starts a line AND the text opens a patch: a
     commit message quoting `*** Update File:` writes nothing. The substring
-    check also keeps the scan off every large command that is not a patch.
+    check also keeps the scan off every large command that is not a patch —
+    which is why this one has no size limit: a patch too big to LEX still
+    authors the files its headers name.
     """
     if not isinstance(command, str) or PATCH_OPENING not in command:
-        return []
-    if limit is not None and len(command) > limit:
         return []
     found = [resolve(name, base) for name in PATCH_FILE_LINE.findall(command)]
     return [path for path in found if path]
@@ -426,16 +495,33 @@ def same_file(left, right):
 
 READER_COMMANDS = {"cat", "head", "tail", "sed", "less", "bat", "nl"}
 SHELL_WRAPPERS = {"bash", "sh", "zsh", "dash", "ksh"}
-IGNORED_PREFIXES = {"sudo", "env", "command", "nohup", "time", "exec"}
+IGNORED_PREFIXES = {"sudo", "env", "command", "nohup", "time", "nice", "exec"}
+LOOKUP_ONLY = {"command"}  # `command -v X` resolves X; it does not run it
 PIPELINE_BREAKS = {";", "&&", "||", "&", "\n"}
+# With `punctuation_chars=True` an operator is always its OWN token made of
+# these characters alone. Testing a substring instead took the de-quoted script
+# of `bash -lc 'pnpm add zod 2>&1'` for a redirection and never unwrapped it.
+# `|` belongs here for `>|` (the noclobber override) — a token of these
+# characters is a redirection only when it also carries `<` or `>`, so `|`,
+# `||` and `&&` fall through to the pipeline splits below.
+REDIRECT_CHARS = frozenset("<>&|")
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# Where one command ends and the next begins, for the lenient scan: no shell
+# rules, no quoting — `echo don't&&git commit` has to yield both stages.
+OPERATOR_RUN = re.compile(r"[;|&]+")
 ZERO_COUNT = re.compile(r"^-(?:[nc])?0+$")
 
 
 def lex(text):
-    """Shell tokens with operators separated; raises ValueError if unparsable."""
+    """Shell tokens with operators separated; raises ValueError if unparsable.
+
+    Comments are removed by `split_lines`, which can tell a word-initial `#`
+    from `foo#bar`; `shlex` cannot, and cutting a line at a mid-word `#` loses
+    every stage after it.
+    """
     lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
+    lexer.commenters = ""
     return list(lexer)
 
 
@@ -443,33 +529,81 @@ def split_lines(text):
     """Lines of a multi-line command, honouring quotes.
 
     `shlex` swallows a newline as ordinary whitespace, which would glue
-    `echo a` and `cat rule.md` into one nonsense command.
+    `echo a` and `cat rule.md` into one nonsense command. Three things are
+    resolved here, where the quoting state is known:
+
+    - a `\\`+newline **continuation** joins the two lines: it is one command,
+      and the half-line left behind is unlexable (`No escaped character`);
+    - a **comment** starting a word is dropped to the end of the line, so an
+      apostrophe in it never unbalances the quoting;
+    - a backslash escape is consumed with the character it escapes.
     """
     lines, current, quote = [], [], None
-    for char in text:
+    index = 0
+    while index < len(text):
+        char = text[index]
         if quote:
             current.append(char)
             if char == quote:
                 quote = None
+            elif quote == '"' and char == "\\" and index + 1 < len(text):
+                index += 1
+                current.append(text[index])
+            index += 1
+            continue
+        if char == "\\" and index + 1 < len(text):
+            if text[index + 1] == "\n":
+                index += 2  # a continuation: the next line is this same command
+                continue
+            current.append(char)
+            current.append(text[index + 1])
+            index += 2
             continue
         if char in "'\"":
             quote = char
             current.append(char)
+            index += 1
+            continue
+        if char == "#" and (not current or current[-1] in " \t"):
+            while index < len(text) and text[index] != "\n":
+                index += 1
             continue
         if char == "\n":
             lines.append("".join(current))
             current = []
+            index += 1
             continue
         current.append(char)
+        index += 1
     lines.append("".join(current))
     return [line for line in lines if line.strip()]
 
 
 def strip_prefixes(argv):
+    """The command itself, with what merely introduces it removed.
+
+    A wrapper's own OPTIONS are not the command either — `env -i git commit`,
+    `time -p git commit`. The value an option takes is deliberately NOT
+    skipped: `env -i git …` and `sudo -u bob git …` are indistinguishable
+    without a table per wrapper, and skipping one token too many would hide a
+    real command (`sudo -u bob git commit` stays a documented miss).
+    """
     index = 0
-    while index < len(argv) and (ASSIGNMENT.match(argv[index])
-                                 or os.path.basename(argv[index]) in IGNORED_PREFIXES):
-        index += 1
+    while index < len(argv):
+        if ASSIGNMENT.match(argv[index]):
+            index += 1
+            continue
+        name = os.path.basename(argv[index])
+        if name in IGNORED_PREFIXES:
+            index += 1
+            # `command -v X` LOOKS X UP instead of running it, and its only
+            # options do exactly that — skipping them would hold a presence
+            # check for the tool it asked about.
+            if name not in LOOKUP_ONLY:
+                while index < len(argv) and argv[index].startswith("-"):
+                    index += 1
+            continue
+        break
     return argv[index:]
 
 
@@ -486,24 +620,51 @@ def wrapped_script(argv):
     return None
 
 
-def pipelines(command, depth=0):
-    """[[ (argv, redirected), … ], …] — one list per pipeline, stages in order."""
+def redirects(token):
+    """An operator token, never a word that merely contains one of its chars."""
+    return bool(token) and REDIRECT_CHARS.issuperset(token)
+
+
+def pipelines(command, depth=0, unparsed=None):
+    """[[ (argv, redirected), … ], …] — one list per pipeline, stages in order.
+
+    `unparsed` is the HOLD side's channel, and the only asymmetry between the
+    two sides of this hook. Pass a list and two things change, both of them
+    "rather hold than skip":
+
+    - a line the lexer refuses is collected there instead of failing the whole
+      call — one apostrophe in a heredoc body must not drop every other line;
+    - a `bash -c` script is unwrapped even when the wrapper's stdout is
+      redirected, because a redirection hides output from the model without
+      stopping the command from RUNNING.
+
+    The observation side passes None and stays strict: a lenient observation
+    would record a rule as read on a call nobody could parse.
+    """
     if depth > 2:
         return []
+    holding = unparsed is not None
     if isinstance(command, list):
         tokens = [str(part) for part in command if isinstance(part, (str, int, float))]
         raw = [[(tokens, False)]] if tokens else []
     else:
         raw = []
         for line in split_lines(command):
+            try:
+                tokens = lex(line)
+            except ValueError:
+                if not holding:
+                    raise
+                unparsed.append(line)
+                continue
             stage, pipeline = [], []
             redirected = False
             skip_next = False
-            for token in lex(line):
+            for token in tokens:
                 if skip_next:
                     skip_next = False
                     continue
-                if ">" in token:
+                if redirects(token) and ">" in token:
                     # `2>` / `2>&1` redirect stderr; the model still sees stdout.
                     if stage and stage[-1] == "2":
                         stage.pop()
@@ -511,7 +672,7 @@ def pipelines(command, depth=0):
                         redirected = True
                     skip_next = True
                     continue
-                if "<" in token:
+                if redirects(token) and "<" in token:
                     skip_next = True  # an input redirection names no argument
                     continue
                 if token == "|":
@@ -532,9 +693,9 @@ def pipelines(command, depth=0):
         expanded = []
         for argv, redirected in pipeline:
             argv = strip_prefixes(argv)
-            script = None if redirected else wrapped_script(argv)
+            script = None if redirected and not holding else wrapped_script(argv)
             if script is not None:
-                resolved.extend(pipelines(script, depth + 1))
+                resolved.extend(pipelines(script, depth + 1, unparsed))
                 continue
             if argv:
                 expanded.append((argv, redirected))
@@ -639,26 +800,36 @@ def moved_base(pipeline, base):
     return target if target and os.path.isdir(target) else None
 
 
-def displayed_files(command, base):
-    """Every file this shell call showed the model — parsed ONCE per call.
+def command_size(command):
+    """Characters to parse, or more than the limit when this is not a command."""
+    if isinstance(command, list):
+        return sum(len(str(part)) for part in command)
+    if isinstance(command, str):
+        return len(command)
+    return MAX_COMMAND_CHARS + 1
+
+
+def parse_command(command):
+    """The pipelines of a shell call — parsed ONCE per call, never per rule.
 
     The previous shape re-lexed the whole command for each rule in the
-    manifest, which put a 1 MB heredoc at 5.4 s on every terminal call.
+    manifest, which put a 1 MB heredoc at 5.4 s on every terminal call. Past
+    MAX_COMMAND_CHARS nothing is parsed at all, and an unparsable command
+    yields nothing rather than a guess — this is the OBSERVATION side, where
+    guessing would be a false release.
     """
-    if isinstance(command, list):
-        size = sum(len(str(part)) for part in command)
-    elif isinstance(command, str):
-        size = len(command)
-    else:
+    if command_size(command) > MAX_COMMAND_CHARS:
         return []
-    if size > MAX_COMMAND_CHARS:
-        return []  # not parsed, so not observed
     try:
-        parsed = pipelines(command)
+        return pipelines(command)
     except ValueError:
-        return []  # unparsable: never assume it was a read
+        return []
+
+
+def displayed_files(command, base):
+    """Every file this shell call showed the model."""
     shown = []
-    for pipeline in parsed:
+    for pipeline in parse_command(command):
         destination = moved_base(pipeline, base)
         if destination is not None:
             base = destination  # every later stage resolves from there
@@ -673,6 +844,105 @@ def displayed_files(command, base):
                 continue
             shown.extend(stage_arguments(stage, base))
     return shown
+
+
+def lenient_stages(chunk):
+    """Stages of a chunk read as PHYSICAL LINES — whitespace tokens only.
+
+    A quote the lexer could not balance is the model's prose (`fix: don't
+    crash`), not a different command: splitting on whitespace and stripping the
+    quote characters recovers `git commit` from `git commit -m 'x`. Each
+    physical line is its own command, cut on `;`, `|` and `&` wherever they
+    appear — an unbalanced quote swallows every line after it, and an EVEN
+    number of stray quotes welds two lines into one the lexer then parses
+    happily, hiding whatever sat between them.
+
+    HOLD side only: a false hold costs one read, a false skip costs the rule.
+    """
+    stages = []
+    for line in chunk.split("\n"):
+        for piece in OPERATOR_RUN.split(line):
+            stage = [token.strip("'\"") for token in piece.split()]
+            stages.append(strip_prefixes(stage))
+    return [argv for argv in stages if argv]
+
+
+def without_patch_bodies(command):
+    """The command with every patch it carries removed — that part is DATA.
+
+    Applies to an argv array element by element: Codex sends the whole call as
+    `["bash", "-lc", "apply_patch <<'P' … P"]`, and a body that is data in the
+    string form is data there too.
+
+    A patch body is what the call WRITES, not what it runs, and its context
+    lines read exactly like commands (` pnpm add zod` in a patch to a doc or a
+    workflow). Removing them before the command parse drops that false hold and
+    keeps the parse off a body that can be 60 KB of source. The write path is
+    unaffected: it reads the same headers straight out of the raw text.
+
+    An unterminated patch cuts nothing — losing a real stage is the worse error.
+    """
+    if isinstance(command, list):
+        return [without_patch_bodies(part) if isinstance(part, str) else part
+                for part in command]
+    if not isinstance(command, str):
+        return command
+    while True:
+        start = command.find(PATCH_OPENING)
+        if start < 0:
+            return command
+        end = command.find(PATCH_CLOSING, start)
+        if end < 0:
+            return command
+        command = command[:start] + command[end + len(PATCH_CLOSING):]
+
+
+def multiline_chunks(command):
+    """The pieces of a call whose PHYSICAL LINES are scanned leniently too.
+
+    The strict parse succeeding on a chunk says nothing about the lines it
+    welded together: an even number of stray quotes (a prose heredoc either
+    side of the command) glues them into one line the lexer is happy with,
+    and whatever sat between them is gone. So the lenient scan is not a
+    fallback for a failed parse — it is a second reading of every multi-line
+    chunk, unioned with the first.
+
+    A single-line chunk needs no second reading: nothing can be hidden by a
+    weld that did not happen, and the lexer either parsed it or said so.
+    """
+    if isinstance(command, list):
+        return [part for part in command if isinstance(part, str) and "\n" in part]
+    if isinstance(command, str) and "\n" in command:
+        return [command]
+    return []
+
+
+def hold_stages(command):
+    """Every simple command of a shell call, as argv — the HOLD side's parse.
+
+    Same parser as the observation side (`bash -lc`, argv arrays, a leading
+    `VAR=v`/`sudo`/`env`/`command`, split on `;`, `&&`, `||`, `|`), unioned
+    with a lenient reading of every multi-line chunk and of anything the lexer
+    refused. Operators are split on, never evaluated — see *Known limits*.
+
+    Patch bodies come out FIRST, before the size check: a 69 KB patch is 69 KB
+    of data around a handful of commands, and measuring the whole thing made
+    "too big to lex" a way to run a declared command unheld.
+    """
+    command = without_patch_bodies(command)
+    stages, unparsed = [], []
+    if command_size(command) <= MAX_COMMAND_CHARS:
+        stages = [argv for pipeline in pipelines(command, unparsed=unparsed)
+                  for argv, _redirected in pipeline]
+    chunks = multiline_chunks(command) or unparsed
+    if not stages and not chunks:
+        # Over the limit and single-line: the lexer is out of reach, so the
+        # whole thing is read leniently rather than waved through.
+        chunks = [part for part in (command if isinstance(command, list) else [command])
+                  if isinstance(part, str)]
+    for chunk in chunks:
+        stages.extend(lenient_stages(chunk))
+    return stages
 
 
 def shows_reference(shown, reference):
@@ -714,14 +984,30 @@ def load_manifest():
     return data
 
 
+def string_list(value):
+    """A usable list of non-empty strings, or None when the entry is malformed.
+
+    `[]` and an absent key are both "no trigger of this kind"; anything else
+    that is not a list of non-empty strings makes the whole rule undeliverable
+    rather than half-matched.
+    """
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        return None
+    if not all(isinstance(item, str) and item for item in value):
+        return None
+    return value
+
+
 def deliverable(manifest, root, agent):
     """(gateable rules in manifest order, is this agent read-only).
 
-    A rule is gateable when its globs are a usable non-empty list of strings,
-    it is not always-on, its text lives in the one store this hook owns, the
-    agent does not already carry it as a pack nor a pack the rule declares
-    itself exclusive with, and the reference deployed for this harness is a
-    readable regular file.
+    A rule is gateable when it carries a usable trigger — globs, command
+    prefixes, or both — it is not always-on, its text lives in the one store
+    this hook owns, the agent does not already carry it as a pack nor a pack
+    the rule declares itself exclusive with, and the reference deployed for
+    this harness is a readable regular file.
     """
     agents = manifest.get("agents")
     packs = set()
@@ -735,15 +1021,19 @@ def deliverable(manifest, root, agent):
     for entry in rules if isinstance(rules, list) else []:
         if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
             continue
-        globs = entry.get("globs")
-        if not isinstance(globs, list) or not globs:
+        globs = string_list(entry.get("globs"))
+        commands = string_list(entry.get("commands"))
+        if globs is None or commands is None:
             continue
-        if not all(isinstance(item, str) and item for item in globs):
+        commands = compile_commands(commands)
+        if not globs and not commands:
             continue
         if entry.get("always_on"):
             continue
-        # A rule still under global/rules/ is loaded natively by Claude Code;
-        # gating it would ask for a read of what the session already holds.
+        # `global/rules-situational/` is the ONE store this hook delivers from:
+        # every rule text lives there, and the always-on ones are already
+        # inlined in the core (skipped just above). A source anywhere else is
+        # not a rule this gate can point at, so it is never gated on.
         if not str(entry.get("source", "")).startswith("global/rules-situational/"):
             continue
         if entry["name"] in packs:
@@ -765,12 +1055,13 @@ def deliverable(manifest, root, agent):
         reference = os.path.expanduser(raw)
         if not os.path.isfile(reference) or not os.access(reference, os.R_OK):
             continue
-        compiled = compile_globs(globs)
-        if not compiled:
+        compiled = compile_globs(globs) if globs else []
+        if globs and not compiled:
             continue  # a brace bomb: nobody can afford to match it
         gateable.append({
             "name": entry["name"],
             "globs": compiled,
+            "commands": commands,
             "reference": reference,
         })
     return gateable, read_only
@@ -954,16 +1245,33 @@ def count_denial(directory, name):
     return True
 
 
-def gate(directory, rules, targets, harness):
+def reads_only(stages):
+    """Does this call do nothing but display files (and move between them)?"""
+    return bool(stages) and all(
+        argv and os.path.basename(argv[0]) in READER_COMMANDS | {"cd"}
+        for argv in stages)
+
+
+def triggered(rules, targets, invocations):
+    """The rules this call fires: by a path it authors or a command it runs."""
+    fired = []
+    for entry in rules:
+        if targets and entry["globs"] and any(
+                path_matches(target, entry["globs"]) for target in targets):
+            fired.append(entry)
+        elif invocations and entry["commands"] and any(
+                prefix_matches(argv, tokens, requires_argument)
+                for argv in invocations
+                for tokens, requires_argument in entry["commands"]):
+            fired.append(entry)
+    return fired
+
+
+def gate(directory, fired, harness):
     """The denial reason for this call, or None to let it through."""
     budget = REASON_BUDGETS[harness]
-    pending = []
-    for entry in rules:
-        if not any(path_matches(target, entry["globs"]) for target in targets):
-            continue
-        if has_marker(directory, known_marker(entry["name"])):
-            continue
-        pending.append(entry)
+    pending = [entry for entry in fired
+               if not has_marker(directory, known_marker(entry["name"]))]
     if not pending:
         return None
 
@@ -1081,7 +1389,11 @@ def observe(payload):
 
 
 def hold(payload):
-    """PreToolUse: deny a write of a file whose rule this agent has not read."""
+    """PreToolUse: deny a call whose rule this agent has not read.
+
+    A write of a file a rule scopes, or a command a rule declares — both hold
+    the same way, name the same reason and are released by the same read.
+    """
     tool = tool_name(payload)
     writing = tool in WRITE_TOOLS or tool == PATCH_TOOL
     reading = tool in READ_TOOLS
@@ -1090,15 +1402,22 @@ def hold(payload):
         return
 
     targets = []
+    command = ""
     if terminal:
         # `apply_patch` is a shell verb too: the same headers inside a shell
-        # command author the same files. This is the ONE case in which a
-        # terminal call is denied.
-        targets = patch_targets(command_text(payload), workspace(payload),
-                                limit=MAX_COMMAND_CHARS)
-        if not targets:
-            return
-        writing = True
+        # command author the same files. A call is therefore BOTH — `apply_patch
+        # <<'PATCH' … PATCH` followed by `git commit` authors a file AND runs a
+        # declared command — so both paths are evaluated and either one holds
+        # it. Calling such a call "a write, not a command" let one call through
+        # the command gate entirely.
+        # No size limit here: the scan short-circuits on a substring test when
+        # the text opens no patch, and a patch too big to LEX still authors the
+        # files its headers name.
+        targets = patch_targets(command_text(payload), workspace(payload))
+        writing = bool(targets)
+        # The RAW value, never the flattened text: joining an argv array erases
+        # the boundary `bash -lc '<script>'` depends on.
+        command = tool_input(payload).get("command")
 
     prepared = rules_for(payload)
     if prepared is None:
@@ -1106,21 +1425,46 @@ def hold(payload):
     rules, read_only, directory, harness = prepared
 
     # Writers are gated on writes; an agent that cannot write is gated on its
-    # first READ of a file a `readers` rule scopes, and on nothing else.
-    if (reading and not read_only) or (writing and read_only):
+    # first READ of a file a `readers` rule scopes, and on nothing else. A
+    # COMMAND is gated for both — a reviewer drives `agent-browser` too — and
+    # a rule it does not match gates nothing, so `git log` is never held.
+    if reading and not read_only:
+        return
+    if writing and read_only and not terminal:
         return
 
-    targets = targets or target_paths(payload)
-    if not targets:
+    invocations = []
+    if terminal:
+        if any(entry["commands"] for entry in rules):
+            invocations = hold_stages(command)
+        if read_only:
+            targets = []  # a reviewer is not gated on what a call AUTHORS
+    else:
+        targets = target_paths(payload)
+        if not targets:
+            return
+        # Never deny the read the gate itself asked for: a `readers` rule whose
+        # globs also match its own deployed text would otherwise wedge the agent.
+        if reading and any(same_file(targets[0], entry["reference"]) for entry in rules):
+            return
+    targets = [path for path in (gate_path(target) for target in targets) if path]
+    if not targets and not invocations:
         return
-    # Never deny the read the gate itself asked for: a `readers` rule whose
-    # globs also match its own deployed text would otherwise wedge the agent.
-    if reading and any(same_file(targets[0], entry["reference"]) for entry in rules):
+
+    fired = triggered(rules, targets, invocations)
+    if fired and terminal and reads_only(invocations):
+        # A call that ONLY reads is the observation the gate asked for. A mixed
+        # `cat <rule> && git commit` is not: the commit runs before the model
+        # has seen a byte, and denying it wedges nothing — `cat <rule>` alone
+        # matches no prefix and was never denied — so the model re-issues the
+        # two halves as two calls.
+        shown = displayed_files(command, workspace(payload))
+        if shown:
+            fired = [entry for entry in fired
+                     if not shows_reference(shown, entry["reference"])]
+    if not fired:
         return
-    scoped = [path for path in (gate_path(target) for target in targets) if path]
-    if not scoped:
-        return
-    reason = gate(directory, rules, scoped, harness)
+    reason = gate(directory, fired, harness)
     if reason:
         emit_deny(reason)
 

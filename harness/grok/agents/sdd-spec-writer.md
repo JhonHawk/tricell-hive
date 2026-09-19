@@ -56,3 +56,4 @@ Read the row matching what you touch; skip anything already loaded this session.
 | When | Read |
 |---|---|
 | Writing a spec | `~/.claude/skills/flow-core/references/spec-rubric.md` |
+| Anything the docs describe as done | `~/.claude/skills/language-rules/references/development-principles.md` |

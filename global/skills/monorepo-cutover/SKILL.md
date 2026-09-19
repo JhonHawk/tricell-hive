@@ -77,6 +77,6 @@ lockfile shape, the CD auth path, the deployed SHA, and the archived remotes are
   with explicit registry write access is the end state.
 - Recovery mechanisms (overlay, version pins) get DELETED after cutover, not kept "just
   in case" — leftovers silently become the default again.
-- Reusable tokens (remote cache, registries) follow `security.md > Authentication &
+- Reusable tokens (remote cache, registries) follow `security-floor.md > Authentication &
   Secrets`: use the user-approved manager, with 1Password only on explicit request;
   after authorized retrieval, reuse an ephemeral `0600` session copy.

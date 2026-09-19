@@ -5,7 +5,7 @@ targets: [claude]
 
 ### Dependency Decisions
 - **A new dependency is the last rung.** Stop at the first that holds: the standard library (`Intl`, `structuredClone`, `crypto.randomUUID`) → a native platform feature (an HTML input, CSS over JS, a DB constraint over app-side checks) → a dependency the project already has → only then the preferred list below. **Carve-out:** in product UI the design system owns the surface — its component outranks a bare native control; native wins only where no design system is in play or the component does not exist.
-- **One decision point, one report.** Adding a dependency resolves by inference, not by a default question: a preferred library below or an established project convention decides the pick; the OSV check resolves the version; context7 validates the integration on version-sensitivity signals (`rules/tools/context7.md`). The close report names pick, version, and check results once.
+- **One decision point, one report.** Adding a dependency resolves by inference, not by a default question: a preferred library below or an established project convention decides the pick; the OSV check resolves the version; context7 validates the integration on version-sensitivity signals (`context7.md`). The close report names pick, version, and check results once.
 - **Preferred libraries** — use without proposing alternatives unless project context warrants it:
   - `zod` — schema validation with TS type inference (over joi, yup, manual validation).
   - `date-fns` — date manipulation; **never moment.js** (over dayjs).

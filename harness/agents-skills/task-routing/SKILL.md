@@ -71,4 +71,4 @@ and Grok) or `~/.agents/skills/task-routing/references/<file>.md` (Codex and ope
 - A reference already loaded this session is not reloaded.
 - Only these four files live here. Rules cited by name from inside them belong elsewhere:
   `testing.md` and the quality depth rules → `language-rules/references/`;
-  `git-workflow.md`, `security.md` and the other gates are always-on and already in context.
+  `git-workflow.md`, `security-floor.md` and the other gates are always-on and already in context.

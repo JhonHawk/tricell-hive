@@ -86,11 +86,7 @@ CLAUDE.md                            # Claude-facing project guide, not deployed
 global/                              # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                        # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                   # Canonical section files for both always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── rules/                           # Always-on rules only (12 files, deployed to ~/.claude/rules/)
-│   ├── quality/                     # Code principles (7 files)
-│   ├── workflow/                    # Git gates, unattended autonomy (2 files)
-│   └── tools/                       # External tools & MCP protocols (3 files)
-├── rules-situational/               # Every other rule text (28 files: 19 with globs: → held by the rule-delivery hook on a matching write; injected into skill references by build.py; or inlined into agents via packs:; never deployed to ~/.claude/rules/)
+├── rules-situational/               # THE rule-text store (41 texts): 7 inlined into the core by a rule-* section, 25 held by the rule-delivery hook on a matching write or command, 8 router-only, 1 pack-only. Never deployed to ~/.claude/rules/ — see its README for the procedure
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs deployed canon + content quality
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
@@ -126,8 +122,7 @@ harness/                      # Multi-harness layer (Codex + opencode + Grok + P
 └── cursor/                          # README only — no generated tree, no deploy step
 
 .claude/skills/
-├── manage-agents/                   # /manage-agents — validate
-├── manage-rules/                    # /manage-rules — validate, create
+├── manage-agents/                   # /manage-agents — validate (agents + rule texts)
 └── deploy-global/                   # /deploy-global — sync global/ + selected harness targets
 
 _support/                            # Workspace material, not deployed
@@ -171,23 +166,25 @@ _support/                            # Workspace material, not deployed
 
 Line counts live on disk (`wc -l global/agents/*/*.md`); `/manage-agents validate --all` checks this table against it.
 
-## Rules (12 always-on + 28 delivered)
+## Rules (41 texts, one store)
 
-Two homes, and the home decides the delivery:
+`global/rules-situational/` holds every rule text; the channel decides how each reaches a model, and a rule with no channel is a build error:
 
-| Home | Files | How it reaches an agent |
+| Delivery | Texts | How it reaches an agent |
 |---|---:|---|
-| `global/rules/` — `quality/` 7, `tools/` 3, `workflow/` 2 | 12 | Deployed to `~/.claude/rules/`, loaded unconditionally every session; flat-symlinked into `~/.grok/rules/`; condensed into `harness/AGENTS.md` for Codex and opencode |
-| `global/rules-situational/` — 19 with `globs:`, 9 without | 28 | Never deployed to `rules/`. A `globs:` rule is held by the `rule-delivery` hook on a matching write until its reference is read; every file but the pack-only two is also injected into a router skill's `references/` (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`); the packed agents carry theirs inlined |
+| Core include | 7 | A `global/core-sections/rule-<name>.md` section carries `include:`; `harness/build.py` inlines the body into `global/CLAUDE.md`, always-on in every session. Grok reads that same core natively; Codex and opencode read the condensed `harness/AGENTS.md` |
+| Hook trigger | 25 | `globs:` (a matching write) and/or `commands:` (a matching command prefix) — the `rule-delivery` hook denies the call and names the reference to read. Claude Code, Grok, Codex and PI; a trigger counts only together with the router reference the hold names |
+| Router only | 8 | Injected into a skill's `references/` (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`), present when the model invokes the router |
+| Pack only | 1 | `agent-core-gates.md` — no trigger, no injection; inlined into every packed agent, which runs with `omitClaudeMd: true` |
 
-`agent-core-gates.md` and `test-gate.md` have no router and no globs: they reach an agent only inlined through its `packs:`.
+The packed agents also carry their triggered rules inlined, so a pack is a build-time guarantee where the hook is a probability. Counts come from `harness/rule-manifest.json` (`python3 -c "import json;m=json.load(open('harness/rule-manifest.json'));print(len(m['rules']))"`), never from subtraction. The procedure for adding one — which shape, what to wire, what to check before finishing — is `global/rules-situational/README.md`.
 
-**`paths:` is the only frontmatter key Claude Code reads** (*"rules without a `paths` field are loaded unconditionally"*), and no rule here carries it any more — a file under `global/rules/` is always-on by construction, and `globs:` in `rules-situational/` is read by `harness/build.py`, not by any harness. `alwaysApply: true` states intent; the file loads identically without it.
+**`paths:` is a build error.** It was Claude Code's native path-scoping key (*"rules without a `paths` field are loaded unconditionally"*); this repo retired that channel because it fires on a READ, misses the creation of the first file of a kind, charges every read-only agent that opens a `.ts`, and does not survive compaction.
 
-Always-on footprint (`global/CLAUDE.md` + the 12 rules): **668 lines / 121 KB / ~30k tokens**, paid on every session before any work starts. Measure it with:
+Always-on footprint, now that the gates are inlined into the core: **405 lines / 87,461 B / ~21.9k tokens** — down from 37.5 KB of core plus 83 KB of always-on rule files. Paid on every session before any work starts; measure it with:
 
 ```sh
-cat global/CLAUDE.md global/rules/*/*.md | wc -lc
+wc -lc global/CLAUDE.md
 ```
 
 ## Agent Design Criteria
@@ -220,6 +217,5 @@ cat global/CLAUDE.md global/rules/*/*.md | wc -lc
 | `workspace-conventions` | global | Router: workspace/session/contract conventions, every harness (model-invoked) |
 | `memory-policy` | global | Router: Engram policy layer, every harness (model-invoked) |
 | `unattended-delegation` | global | Router: explicitly-delegated unattended runs and ledger-declared standing jobs, every harness (model-invoked) |
-| `/manage-agents` | repo | `validate [--all] [--deep]` — judgment checks on agent definitions |
-| `/manage-rules` | repo | `validate [--all] [--deep]` \| `create` — rule lifecycle management, incl. the core sections and the always-on rule corpus |
+| `/manage-agents` | repo | `validate [--all] [--deep]` — judgment checks on agent definitions and on rule texts / core sections (trigger honesty, glob breadth, hold cost, pack coverage, enforcement honesty) |
 | `/deploy-global` | repo | Sync `global/` to `~/.claude/` (user-initiated only) |

@@ -33,8 +33,8 @@ is not, and a gate described loosely invites an agent to argue past it.
 - **Confirm-gated:** production deploys and protected-branch merges, force-push and history
   rewrites, destructive operations (`CLAUDE.md > Destructive Operations`), writing a real
   secret to a file (allowed only on explicit user request after a risk confirmation —
-  `security.md`), `/deploy-global`, CRITICAL/HIGH supply-chain installs with no safe path.
-- **Prompt-convention:** most `alwaysApply` rules ("never mix package managers", commit
+  `security-floor.md`), `/deploy-global`, CRITICAL/HIGH supply-chain installs with no safe path.
+- **Prompt-convention:** most core-included rules ("never mix package managers", commit
   style, memory routing, delegation gates), agent-prompt constraints ("never mutate") on
   agents whose tool contract does not mechanically prevent it.
 
@@ -68,7 +68,7 @@ A rule that states a gate names its layer. Never phrase a prompt-convention as m
 impossibility ("cannot", "physically blocked") — if a gate must be unbreakable, that is a
 request for a deterministic backstop (hook, deny permission), not for stronger wording.
 Operationalized in `global/CLAUDE.md > Communication > Name the enforcement layer` and in
-`/manage-rules validate` (criterion 8, "Enforcement honesty").
+`/manage-agents validate` (rules check R5, "Enforcement honesty").
 
 ## Portable planning
 

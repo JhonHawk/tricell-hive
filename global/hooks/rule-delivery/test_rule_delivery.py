@@ -7,9 +7,10 @@ and the exit code. No harness, no network: the hook is a pure stdin/stdout
 filter over a manifest.
 
 The manifest is always a fixture here (`HIVE_RULE_MANIFEST`), never the repo's
-own: a fixture pins the shapes each test needs — including the one the real
-manifest no longer produces, a glob-scoped rule still under `global/rules/`,
-which the hook must keep refusing to gate.
+own: a fixture pins the shapes each test needs — including ones the real
+manifest does not produce, such as a rule whose text lives outside
+`global/rules-situational/`, the one store this gate delivers from, which the
+hook must keep refusing to gate.
 """
 
 import json
@@ -59,12 +60,13 @@ def reason_for(paths, *, harness="claude"):
 
 def rule(name, globs, reference, *, source_dir="global/rules-situational",
          always_on=False, readers=False, roots=("claude", "agents"),
-         exclusive_with=()):
+         exclusive_with=(), commands=()):
     """One manifest rule entry, shaped exactly like harness/build.py emits it."""
     return {
         "name": name,
         "source": f"{source_dir}/{name}.md",
         "globs": list(globs),
+        "commands": list(commands),
         "exclusive_with": list(exclusive_with),
         "always_on": always_on,
         "references": {root: str(reference) for root in roots},
@@ -188,6 +190,24 @@ def observed_codex_bash(command, **extra):
     payload = codex_bash(command, **extra)
     payload["hook_event_name"] = "PostToolUse"
     payload["tool_response"] = "export const x: number = 1;\n"
+    return payload
+
+
+def grok_bash(command, **extra):
+    return grok_call("run_terminal_command", {"command": command}, **extra)
+
+
+def pi_bash(command, *, session="p1", cwd="/repo", **extra):
+    """PI's shape: `harness`, no event name at pre-tool, tool names normalized."""
+    payload = {
+        "harness": "pi",
+        "hook_event_name": "PreToolUse",
+        "cwd": cwd,
+        "session_id": session,
+        "tool_name": "Bash",
+        "tool_input": {"command": command},
+    }
+    payload.update(extra)
     return payload
 
 
@@ -392,14 +412,23 @@ class FailOpenTests(HookCase):
 # --- what is deliverable at all ------------------------------------------
 
 class DeliverabilityTests(HookCase):
-    def test_a_rule_still_under_global_rules_is_never_gated(self):
-        # Claude Code loads global/rules/ natively; gating it here would ask the
-        # model to read a rule it already has.
-        manifest = self.write_manifest([
-            rule("ts", ["**/*.ts"], self.write_rule_text("ts"),
-                 source_dir="global/rules/languages"),
-        ])
-        self.assertAllowed(self.run_hook(claude_write("/repo/a.ts"), manifest=manifest))
+    def test_a_rule_whose_text_lives_outside_the_one_store_is_never_gated(self):
+        # `global/rules-situational/` is the only store this gate delivers
+        # from. A source anywhere else is something the gate cannot point at,
+        # whatever globs or commands it declares.
+        for index, source_dir in enumerate(("global/rules/languages",
+                                            "global/core-sections",
+                                            "docs")):
+            with self.subTest(source=source_dir):
+                manifest = self.write_manifest(
+                    [rule("ts", ["**/*.ts"], self.write_rule_text("ts"),
+                          source_dir=source_dir, commands=["git commit"])],
+                    name=f"store-{index}.json")
+                self.assertAllowed(self.run_hook(claude_write("/repo/a.ts", session=f"w{index}"),
+                                                 manifest=manifest))
+                self.assertAllowed(self.run_hook(claude_bash("git commit -m x",
+                                                             session=f"c{index}"),
+                                                 manifest=manifest))
 
     def test_an_always_on_or_unscoped_rule_is_never_gated(self):
         text = self.write_rule_text("core")
@@ -791,6 +820,25 @@ class ObservationTests(HookCase):
                     lambda session: observed_bash(command, session=session),
                     expected=False, session=f"n{index}")
 
+    def test_a_read_whose_stdout_goes_anywhere_else_is_not_a_display(self):
+        # One row per operator: whatever carries the bytes away from the model,
+        # the model did not see them. `>|` (noclobber override) and `&>` were
+        # read as ordinary words, so they released the rule.
+        for index, redirect in enumerate((">", ">>", ">|", "&>", "1>", "&>>",
+                                          "2>&1 >", "> /dev/null 2>&1")):
+            with self.subTest(redirect=redirect):
+                self.read_releases(
+                    lambda session: observed_bash(f"cat {self.text} {redirect} /dev/null",
+                                                  session=session),
+                    expected=False, session=f"x{index}")
+        # Redirecting only stderr still shows the file.
+        for index, redirect in enumerate(("2>/dev/null", "2>&1")):
+            with self.subTest(redirect=redirect):
+                self.read_releases(
+                    lambda session: observed_bash(f"cat {self.text} {redirect}",
+                                                  session=session),
+                    session=f"e{index}")
+
     def test_an_unparsable_command_is_not_an_observation(self):
         self.read_releases(
             lambda session: observed_bash(f"cat '{self.text}", session=session),
@@ -871,6 +919,612 @@ class ObservationTests(HookCase):
             with self.subTest(command=command):
                 self.assertAllowed(self.run_hook(claude_bash(command),
                                                  manifest=self.manifest))
+
+
+# --- command triggers ----------------------------------------------------
+#
+# Some rules have no file that announces them and every reason to be read
+# before a particular COMMAND runs: the supply-chain check before an install,
+# git mechanics before a commit, the browser CLI before `agent-browser`. A
+# manifest entry carries them as `commands`: command PREFIXES, matched
+# token-for-token against the leading tokens of a parsed shell stage.
+
+class CommandTriggerTests(HookCase):
+    def setUp(self):
+        super().setUp()
+        self.git = self.write_rule_text("git-mechanics")
+        self.manifest = self.write_manifest(
+            [rule("git-mechanics", [], self.git, commands=["git commit", "git push"])])
+
+    def test_a_command_with_no_globs_at_all_is_gateable(self):
+        # The whole point of the trigger: a rule nothing on disk announces.
+        reason = self.held(self.run_hook(claude_bash("git commit -m 'x'"),
+                                         manifest=self.manifest))
+        self.assertEqual(reason, reason_for([self.git]))
+        self.assertNotIn("RULE TEXT", reason, "the gate never carries the rule text")
+
+    def test_the_observed_read_releases_every_later_command(self):
+        self.held(self.run_hook(claude_bash("git commit -m 'x'"), manifest=self.manifest))
+        self.assertAllowed(self.run_hook(observed_read(str(self.git)),
+                                         manifest=self.manifest))
+        self.assertAllowed(self.run_hook(claude_bash("git commit -m 'x'"),
+                                         manifest=self.manifest))
+        self.assertAllowed(self.run_hook(claude_bash("git push origin master"),
+                                         manifest=self.manifest))
+
+    def test_a_command_outside_every_prefix_is_allowed(self):
+        for command in ("git log --oneline", "git status", "ls -la"):
+            with self.subTest(command=command):
+                self.assertAllowed(self.run_hook(claude_bash(command),
+                                                 manifest=self.manifest))
+
+    def test_a_call_that_only_reads_the_rule_is_never_held(self):
+        # A pure read — every stage a reader or a `cd` — is the observation the
+        # gate asked for, whatever a rule declares.
+        for command in (f"cat {self.git}", f"cd /repo && head -50 {self.git}"):
+            with self.subTest(command=command):
+                self.assertAllowed(self.run_hook(claude_bash(command),
+                                                 manifest=self.manifest))
+
+    def test_a_call_that_reads_the_rule_AND_runs_the_command_is_held(self):
+        # `cat <rule> && git commit` executes the commit before the model has
+        # seen a byte of the rule. Denying it wedges nothing — `cat <rule>`
+        # alone is never denied — so the model re-issues it as two calls.
+        self.assertEqual(
+            self.held(self.run_hook(claude_bash(f"cat {self.git} && git commit -m 'x'"),
+                                    manifest=self.manifest)),
+            reason_for([self.git]))
+        self.assertEqual(
+            self.held(self.run_hook(claude_bash(f"head -1 {self.git} && git commit",
+                                                session="s2"),
+                                    manifest=self.manifest)),
+            reason_for([self.git]))
+
+    def test_a_shell_patch_that_also_runs_a_command_is_held_for_both(self):
+        # A patch through the shell made the call "a write, not a command", so
+        # ONE call authored the file and ran the command with the command rules
+        # never evaluated — a single-call bypass of the command gate.
+        ts = self.write_rule_text("ts")
+        manifest = self.write_manifest(
+            [rule("ts", ["**/*.ts"], ts),
+             rule("git-mechanics", [], self.git, commands=["git commit"])],
+            name="both.json")
+        body = patch_body("*** Add File: /repo/src/a.ts")
+        commands = {
+            "patch then command": f"apply_patch <<'PATCH'\n{body}\nPATCH\ngit commit -m x",
+            "chained after the terminator":
+                f"apply_patch <<'PATCH'\n{body}\nPATCH\n&& git commit -m x",
+            "command then patch":
+                f"git commit -m x && apply_patch <<'PATCH'\n{body}\nPATCH",
+        }
+        for index, (label, command) in enumerate(commands.items()):
+            with self.subTest(case=label):
+                reason = self.held(self.run_hook(
+                    claude_bash(command, session=f"b{index}"), manifest=manifest))
+                self.assertIn(ts.name, reason, "the patch's target rule")
+                self.assertIn(self.git.name, reason, "the command's rule")
+        # Each path still holds on its own.
+        self.assertEqual(
+            self.held(self.run_hook(
+                claude_bash(f"apply_patch <<'PATCH'\n{body}\nPATCH", session="p"),
+                manifest=manifest)),
+            reason_for([ts]))
+        self.assertEqual(
+            self.held(self.run_hook(claude_bash("git commit -m x", session="c"),
+                                    manifest=manifest)),
+            reason_for([self.git]))
+
+    def test_a_declared_command_inside_a_patch_body_is_data_not_a_command(self):
+        # A patch body is what the call WRITES, never what it runs: a context
+        # line of a docs or workflow patch reads exactly like a command
+        # (` pnpm add zod`), and holding on it is a read nobody asked for. It
+        # is also what kept the command parse off a 60 KB body.
+        docs = self.write_rule_text("support-artifacts")
+        installs = self.write_rule_text("context7")
+        manifest = self.write_manifest(
+            [rule("support-artifacts", ["**/*.md"], docs),
+             rule("context7", [], installs, commands=["pnpm add"])],
+            name="patch-body.json")
+        body = patch_body("*** Add File: /repo/docs/setup.md",
+                          " pnpm add zod", "+git clone x", " agent-browser read")
+        reason = self.held(self.run_hook(
+            claude_bash(f"apply_patch <<'PATCH'\n{body}\nPATCH"), manifest=manifest))
+        self.assertEqual(reason, reason_for([docs]),
+                         "a line the patch WRITES is not a command the call runs")
+        # A real command outside the patch still holds, in the same call.
+        reason = self.held(self.run_hook(
+            claude_bash(f"apply_patch <<'PATCH'\n{body}\nPATCH\npnpm add zod",
+                        session="s2"),
+            manifest=manifest))
+        for text in (docs, installs):
+            self.assertIn(text.name, reason)
+
+    def test_a_read_only_agent_is_held_only_for_the_command_half(self):
+        # A reviewer cannot author files, so the patch half is not its gate —
+        # but the command half still is, for a `readers` rule.
+        browser = self.write_rule_text("browser")
+        manifest = self.write_manifest(
+            [rule("ts", ["**/*.ts"], self.write_rule_text("ts")),
+             rule("browser", [], browser, readers=True, commands=["agent-browser"])],
+            read_only_agents=["review-ux"], name="reviewer-both.json")
+        reviewer = {"agent_id": "r1", "agent_type": "review-ux"}
+        body = patch_body("*** Add File: /repo/src/a.ts")
+        command = f"apply_patch <<'PATCH'\n{body}\nPATCH\nagent-browser read"
+        self.assertEqual(self.held(self.run_hook(claude_bash(command, **reviewer),
+                                                 manifest=manifest)),
+                         reason_for([browser]))
+
+    def test_a_write_is_never_gated_by_a_commands_only_rule(self):
+        self.assertAllowed(self.run_hook(claude_write("/repo/a.ts"),
+                                         manifest=self.manifest))
+
+    def test_a_rule_with_both_globs_and_commands_gates_on_either(self):
+        both = self.write_rule_text("security")
+        manifest = self.write_manifest(
+            [rule("security", ["**/*.ts"], both, commands=["pnpm add"])])
+        self.assertEqual(self.held(self.run_hook(claude_write("/repo/a.ts", session="w"),
+                                                 manifest=manifest)),
+                         reason_for([both]))
+        self.assertEqual(self.held(self.run_hook(claude_bash("pnpm add zod", session="c"),
+                                                 manifest=manifest)),
+                         reason_for([both]))
+        # …and one read releases both triggers at once.
+        self.assertAllowed(self.run_hook(observed_read(str(both), session="c"),
+                                         manifest=manifest))
+        self.assertAllowed(self.run_hook(claude_bash("pnpm add zod", session="c"),
+                                         manifest=manifest))
+        self.assertAllowed(self.run_hook(claude_write("/repo/a.ts", session="c"),
+                                         manifest=manifest))
+
+    def test_an_entry_without_the_commands_key_still_gates_on_its_globs(self):
+        # The manifest predates the key; a missing one is not a malformed rule.
+        text = self.write_rule_text("ts")
+        entry = rule("ts", ["**/*.ts"], text)
+        entry.pop("commands")
+        manifest = self.write_manifest([entry], name="no-commands.json")
+        self.assertEqual(self.held(self.run_hook(claude_write("/repo/a.ts"),
+                                                 manifest=manifest)),
+                         reason_for([text]))
+
+    def test_a_malformed_commands_value_never_denies(self):
+        text = self.write_rule_text("x")
+        for label, value in (("a string", "git commit"), ("numbers", [7]),
+                             ("empty strings", ["", "   "]), ("a dict", {"a": 1})):
+            with self.subTest(commands=label):
+                entry = dict(rule("x", [], text), commands=value)
+                manifest = self.write_manifest([entry], name=f"bad-{len(label)}.json")
+                self.assertAllowed(self.run_hook(claude_bash("git commit"),
+                                                 manifest=manifest))
+
+    def test_the_kill_switch_covers_a_command_trigger(self):
+        self.assertAllowed(self.run_hook(claude_bash("git commit -m x"),
+                                         manifest=self.manifest,
+                                         env={"HIVE_RULE_DELIVERY": "off"}))
+
+    def test_three_counted_denials_release_a_command_rule(self):
+        for attempt in range(2):
+            with self.subTest(attempt=attempt):
+                self.assertEqual(self.held(self.run_hook(claude_bash("git commit"),
+                                                         manifest=self.manifest,
+                                                         env=NO_WINDOW)),
+                                 reason_for([self.git]))
+        self.assertAllowed(self.run_hook(claude_bash("git commit"),
+                                         manifest=self.manifest, env=NO_WINDOW))
+        self.assertAllowed(self.run_hook(claude_bash("git push"), manifest=self.manifest),
+                           "the valve opens the whole rule, not one command")
+
+
+class CommandTriggerScopeTests(HookCase):
+    """Who a command trigger holds — and who it must never hold."""
+
+    def setUp(self):
+        super().setUp()
+        self.git = self.write_rule_text("git-mechanics")
+        self.browser = self.write_rule_text("browser-automation-reference")
+        self.rules = [
+            rule("git-mechanics", [], self.git, commands=["git commit", "git push"]),
+            rule("browser-automation-reference", [], self.browser, readers=True,
+                 commands=["agent-browser"]),
+        ]
+
+    def test_an_agent_carrying_the_pack_is_never_held_for_its_command(self):
+        manifest = self.write_manifest(self.rules,
+                                       agents={"devops-engineer": ["git-mechanics"]})
+        packed = {"agent_id": "a1", "agent_type": "devops-engineer"}
+        self.assertAllowed(self.run_hook(claude_bash("git commit -m x", **packed),
+                                         manifest=manifest))
+        other = {"agent_id": "a2", "agent_type": "ts-backend-developer"}
+        self.assertEqual(self.held(self.run_hook(claude_bash("git commit -m x", **other),
+                                                 manifest=manifest)),
+                         reason_for([self.git]))
+
+    def test_a_command_rule_excluded_by_the_agents_framework_is_never_gated(self):
+        one = self.write_rule_text("pnpm-rules")
+        two = self.write_rule_text("npm-rules")
+        manifest = self.write_manifest(
+            [rule("pnpm-rules", [], one, commands=["pnpm add"],
+                  exclusive_with=["npm-rules"]),
+             rule("npm-rules", [], two, commands=["pnpm add"],
+                  exclusive_with=["pnpm-rules"])],
+            agents={"react-developer": ["npm-rules"]})
+        packed = {"agent_id": "a1", "agent_type": "react-developer"}
+        self.assertAllowed(self.run_hook(claude_bash("pnpm add zod", **packed),
+                                         manifest=manifest))
+        reason = self.held(self.run_hook(
+            claude_bash("pnpm add zod", agent_id="a2", agent_type="general-purpose"),
+            manifest=manifest))
+        for text in (one, two):
+            self.assertIn(text.name, reason)
+
+    def test_a_read_only_agent_is_never_held_for_a_command_it_does_not_run(self):
+        # The whole exposure of putting commands on a reviewer's path: `git log`
+        # is not `git commit`, and a rule gates only on the command it declares.
+        manifest = self.write_manifest(self.rules, read_only_agents=["review-code"])
+        reviewer = {"agent_id": "r1", "agent_type": "review-code"}
+        for command in ("git status", "git diff --stat", "git log --oneline",
+                        "git show HEAD", "rg 'pnpm add' .", "gh pr view 12"):
+            with self.subTest(command=command):
+                self.assertAllowed(self.run_hook(claude_bash(command, **reviewer),
+                                                 manifest=manifest))
+
+    def test_a_read_only_agent_is_held_for_a_readers_rule_it_does_run(self):
+        # review-ux drives the browser: the rule it needs is the one whose
+        # trigger is a command, and `readers` is what puts it on its path.
+        manifest = self.write_manifest(self.rules, read_only_agents=["review-ux"])
+        reviewer = {"agent_id": "r1", "agent_type": "review-ux"}
+        self.assertEqual(
+            self.held(self.run_hook(claude_bash("agent-browser read", **reviewer),
+                                    manifest=manifest)),
+            reason_for([self.browser]),
+            "a reviewer must still receive the rule for the CLI it drives")
+        # …and never for a rule that is not for readers, even on a match.
+        self.assertAllowed(self.run_hook(claude_bash("git commit -m x", **reviewer),
+                                         manifest=manifest))
+        self.assertAllowed(self.run_hook(observed_bash(f"cat {self.browser}", **reviewer),
+                                         manifest=manifest))
+        self.assertAllowed(self.run_hook(claude_bash("agent-browser read", **reviewer),
+                                         manifest=manifest))
+
+    def test_a_writer_is_held_for_a_readers_command_rule_too(self):
+        manifest = self.write_manifest(self.rules)
+        self.assertEqual(self.held(self.run_hook(claude_bash("agent-browser read"),
+                                                 manifest=manifest)),
+                         reason_for([self.browser]))
+
+
+class CommandTriggerHarnessTests(HookCase):
+    """Every harness's terminal payload reaches the same gate."""
+
+    def setUp(self):
+        super().setUp()
+        self.text = self.write_rule_text("git-mechanics")
+        self.manifest = self.write_manifest(
+            [rule("git-mechanics", [], self.text, commands=["git commit"])])
+
+    def test_grok_holds_and_keeps_its_own_reason_budget(self):
+        self.assertEqual(self.held(self.run_hook(grok_bash("git commit -m x"),
+                                                 manifest=self.manifest)),
+                         reason_for([self.text]))
+        self.assertAllowed(self.run_hook(grok_bash("git log"), manifest=self.manifest,
+                                         env={"HIVE_HARNESS": "claude"}))
+        # A reference Grok would clip is not gated THERE, command or not.
+        long_reference = self.reference_of_length(240, name="long")
+        wide = self.write_manifest([rule("long", [], long_reference,
+                                         commands=["git commit"])], name="long.json")
+        self.assertAllowed(self.run_hook(grok_bash("git commit"), manifest=wide,
+                                         env={"HIVE_HARNESS": "claude"}))
+
+    def test_codex_holds_with_the_command_form_of_the_reason(self):
+        result = self.run_hook(codex_bash("git commit -m x"), manifest=self.manifest,
+                               env={"HIVE_HARNESS": "codex"})
+        self.assertEqual(self.held(result), reason_for([self.text], harness="codex"))
+        # The way out is a shell read, and the reason hands Codex that command.
+        self.assertAllowed(self.run_hook(observed_codex_bash(f"cat {self.text}"),
+                                         manifest=self.manifest,
+                                         env={"HIVE_HARNESS": "codex"}))
+        self.assertAllowed(self.run_hook(codex_bash("git commit -m x"),
+                                         manifest=self.manifest,
+                                         env={"HIVE_HARNESS": "codex"}))
+
+    def test_pi_holds_on_its_own_shape_and_reason_budget(self):
+        self.assertEqual(self.held(self.run_hook(pi_bash("git commit -m x"),
+                                                 manifest=self.manifest)),
+                         reason_for([self.text]))
+        self.assertAllowed(self.run_hook(pi_bash("git log"), manifest=self.manifest))
+        # PI carries a child's roster name in PI_HIVE_AGENT, which the bridge
+        # sends as `agent_type`: a packed child is skipped there too.
+        packed = self.write_manifest(
+            [rule("git-mechanics", [], self.text, commands=["git commit"])],
+            agents={"devops-engineer": ["git-mechanics"]}, name="packed.json")
+        self.assertAllowed(self.run_hook(
+            pi_bash("git commit -m x", agent_type="devops-engineer"), manifest=packed))
+
+
+class CommandMatchingTests(HookCase):
+    """One table over commands x wrappers x global options x look-alikes.
+
+    The expectation of every row is written HERE, by hand, from the documented
+    rule — never derived from the hook's own matcher, which would only prove it
+    agrees with itself. The rule the table encodes:
+
+      a stage's argv[0] BASENAME equals the prefix's first token, and the
+      prefix's remaining tokens appear in order, skipping the tool's own
+      options and the values they take; a trailing `+` demands at least one
+      further non-option argument.
+    """
+
+    PREFIXES = ["git commit", "pnpm add", "npm install +", "agent-browser", "gh pr"]
+
+    # (label, command, held) — `held` is the oracle.
+    MATRIX = [
+        # -- the bare verbs
+        ("bare", "git commit", True),
+        ("with flags", "git commit -m 'wip'", True),
+        ("absolute argv0", "/usr/bin/git commit", True),
+        ("single-token prefix", "agent-browser open https://example.com", True),
+        ("single-token prefix alone", "agent-browser", True),
+        ("two-token prefix", "gh pr create --fill", True),
+        ("two-token prefix, other verb", "gh pr list", True),
+
+        # -- wrappers the parser already unwraps
+        ("bash -lc", "bash -lc 'git commit -m x'", True),
+        ("sh -c", 'sh -c "git commit"', True),
+        ("sudo", "sudo git commit", True),
+        ("env", "env git commit", True),
+        ("command", "command git commit", True),
+        ("leading assignment", "GIT_AUTHOR_NAME=x git commit", True),
+        ("cd chain", "cd /repo && git commit -m x", True),
+        ("later in a chain", "pnpm build && git commit -m x", True),
+        ("semicolon chain", "ls; git commit", True),
+        ("multi-line", "echo starting\ngit commit -m x", True),
+
+        # -- the tool's own global options
+        ("git -C <dir>", "git -C /repo commit -m x", True),
+        ("git --no-pager", "git --no-pager commit", True),
+        ("git -c k=v", "git -c user.name=x commit", True),
+        ("git --git-dir=", "git --git-dir=/r/.git commit", True),
+        ("pnpm --filter <x>", "pnpm --filter web add lodash", True),
+        ("pnpm -r", "pnpm -r add lodash", True),
+        ("pnpm add bare", "pnpm add", True),
+
+        # -- a prefix that demands an argument
+        ("install with a package", "npm install lodash", True),
+        ("install with flags and a package", "npm install --save-dev vitest", True),
+        ("lockfile install", "npm install", False),
+        ("lockfile install with flags", "npm install --production", False),
+        ("a prefix that was not declared", "npm i lodash", False),
+
+        # -- look-alikes
+        ("a longer verb", "git commit-tree HEAD", False),
+        ("another verb", "git log --oneline", False),
+        ("a reviewer's status", "git status", False),
+        ("a reviewer's diff", "git diff --stat", False),
+        ("another tool", "gh issue list", False),
+        ("echoed", "echo git commit", False),
+        ("a comment", "# git commit", False),
+        ("a trailing comment", "ls -la # git commit", False),
+        ("grepped", "grep 'pnpm add' notes.md", False),
+        ("searched", 'rg "git commit" .', False),
+        ("a hyphenated program", "git-commit -m x", False),
+        ("a program that merely ends in it", "mygit commit", False),
+        ("redirected into a file", 'echo "git commit" > out.txt', False),
+        ("a package NAMED like a verb", "pnpm run add", False),
+
+        # -- a backslash-newline continuation is ONE command, not two lines
+        ("continuation in a gh invocation",
+         'gh pr create --title "feat: x" \\\n  --body "y"', True),
+        ("continuation before the verb", "git commit \\\n -m x", True),
+        ("continuation in an install", "pnpm add \\\n zod", True),
+
+        # -- an unbalanced quote anywhere must not drop the rest of the call
+        ("an apostrophe in a heredoc body",
+         "git add -A && git commit -F - <<'EOF'\nfix: don't crash\nEOF", True),
+        ("an apostrophe in an unrelated heredoc",
+         "cat > n.txt <<EOF\nit's\nEOF\ngit commit -m x", True),
+        ("an apostrophe in a comment", "git status # don't\ngit commit -m x", True),
+        ("an unbalanced quote in a command substitution",
+         'git commit -m "$(cat <<\'EOF\'\nfix: 5" pipe\nEOF\n)"', True),
+        # A mid-word `#` is not a comment: treating it as one ate the rest of
+        # the line, and with it the `git commit` stage after the `&&`.
+        ("a mid-word hash is not a comment",
+         "echo foo#bar && git commit -m x", True),
+        ("a word-initial hash still is", "echo x # git commit -m y", False),
+        ("a sibling line survives an unparsable one", "echo 'oops\ngit commit -m x", True),
+
+        # -- an EVEN number of stray quotes GLUES physical lines together and
+        #    the strict lex then SUCCEEDS on the weld, hiding the stage between
+        #    them. Lines are scanned leniently whatever the strict parse said.
+        ("prose heredocs either side of the command",
+         "cat > a.md <<EOF\nI can't\nEOF\ngit commit -m x\ncat > b.md <<EOF\nwon't\nEOF", True),
+        ("a prose heredoc and a trailing apostrophe",
+         "cat > a.md <<EOF\nI can't\nEOF\ngit commit -m x # won't push yet", True),
+        ("an unbalanced double quote either side",
+         'cat > a.md <<EOF\nsay "hi\nEOF\npnpm add zod\necho "done', True),
+        ("an operator with no space around it", "echo don't&&git commit", True),
+        ("a pipe with no space before it", "echo don't |git commit -F -", True),
+
+        # -- a quoted script is not a redirection, and a redirected wrapper
+        #    still RUNS what it wraps
+        ("bash -lc with a redirect inside", "bash -lc 'git commit -m x 2>&1'", True),
+        ("bash -lc with an arrow in the message",
+         'bash -lc "git commit -m \'a -> b\'"', True),
+        ("bash -lc install with a pipe", "bash -lc 'pnpm add zod 2>&1 | tail -5'", True),
+        ("bash -lc install redirected", 'bash -lc "pnpm add zod >/dev/null"', True),
+        ("bash -lc whose own stdout is redirected",
+         "bash -lc 'git commit -m x' > out.log", True),
+        ("an ordinary redirect still parses", "git commit -m x > out.log 2>&1", True),
+
+        # -- unparsable, but plainly a declared command: hold rather than skip
+        ("unparsable and plainly declared", "git commit -m 'x", True),
+        ("unparsable and not declared", "ls -la 'x", False),
+        ("unparsable inside a wrapper", "sudo pnpm add 'zod", True),
+
+        # -- a wrapper's own options are not the command
+        ("time -p", "time -p git commit -m x", True),
+        ("env -i", "env -i git commit -m x", True),
+        ("nice", "nice git commit -m x", True),
+        # `command -v X` LOOKS X UP; `which X` never reached a prefix either.
+        ("a lookup is not an execution", "command -v agent-browser", False),
+        ("a lookup by another name", "which agent-browser", False),
+
+        # -- documented limits, asserted so a change to either shows up here
+        ("an operator is split on, never evaluated", "false && git commit", True),
+        ("a heredoc body is scanned as commands",
+         "python3 - <<'EOF'\ngit commit\nEOF", True),
+        ("a conditional hides the verb behind `then`",
+         "if false; then git commit; fi", False),
+        ("a runner is not unwrapped", "npx pnpm add lodash", False),
+        ("a subshell hides argv0", "(git commit -m x)", False),
+        ("a brace group hides argv0", "{ git commit -m x; }", False),
+        ("a negation hides argv0", "! git commit -m x", False),
+        ("eval hides its script", "eval 'git commit -m x'", False),
+        ("xargs hides the command it runs", "echo . | xargs git commit", False),
+        ("an operand-taking wrapper hides the command", "timeout 30 git push", False),
+        ("a wrapper option's value hides the command", "sudo -u bob git commit", False),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.text = self.write_rule_text("commands")
+        self.manifest = self.write_manifest(
+            [rule("commands", [], self.text, commands=self.PREFIXES)])
+
+    def test_every_row_of_the_matching_matrix(self):
+        for index, (label, command, held) in enumerate(self.MATRIX):
+            with self.subTest(case=label, command=command):
+                result = self.run_hook(claude_bash(command, session=f"m{index}"),
+                                       manifest=self.manifest)
+                if held:
+                    self.assertEqual(self.held(result), reason_for([self.text]))
+                else:
+                    self.assertAllowed(result)
+
+    def test_an_argv_array_matches_exactly_like_its_string(self):
+        # Codex sends shell argv as an array.
+        for index, (argv, held) in enumerate((
+            (["git", "commit", "-m", "x"], True),
+            (["bash", "-lc", "git commit -m x"], True),
+            (["git", "log"], False),
+        )):
+            with self.subTest(argv=argv):
+                result = self.run_hook(claude_bash(list(argv), session=f"v{index}"),
+                                       manifest=self.manifest)
+                if held:
+                    self.assertEqual(self.held(result), reason_for([self.text]))
+                else:
+                    self.assertAllowed(result)
+
+    def test_a_one_token_prefix_matches_the_whole_program_name(self):
+        # `npx`, `bunx`, `uvx`, `agent-browser`: argv[0] is compared whole, so a
+        # program whose name merely STARTS with the prefix is a different tool.
+        text = self.write_rule_text("runners")
+        manifest = self.write_manifest([rule("runners", [], text,
+                                             commands=["npx", "bunx", "uvx"])],
+                                       name="runners.json")
+        for index, (command, held) in enumerate((
+            ("npx vitest run", True),
+            ("npx", True),
+            ("npx -y create-vite", True),
+            ("/usr/local/bin/npx vitest", True),
+            ("bunx prettier --write .", True),
+            ("npxfoo bar", False),
+            ("npx-shim vitest", False),
+            ("echo npx vitest", False),
+        )):
+            with self.subTest(command=command):
+                result = self.run_hook(claude_bash(command, session=f"r{index}"),
+                                       manifest=manifest)
+                if held:
+                    self.assertEqual(self.held(result), reason_for([text]))
+                else:
+                    self.assertAllowed(result)
+
+    def test_a_command_over_the_parse_limit_is_still_matched_leniently(self):
+        # Past MAX_COMMAND_CHARS the strict lexer is skipped — nobody can afford
+        # to lex a megabyte — but a whitespace scan of the lines is cheap, and
+        # "too big to lex" was a way to run any declared command unheld.
+        self.assertEqual(self.held(self.run_hook(
+            claude_bash("git commit " + "x" * 70000), manifest=self.manifest)),
+            reason_for([self.text]))
+        heredoc = ("cat > big.txt <<'EOF'\n" + ("x" * 100 + "\n") * 700
+                   + "EOF\ngit commit -m x")
+        self.assertGreater(len(heredoc), 70000)
+        self.assertEqual(self.held(self.run_hook(claude_bash(heredoc, session="h"),
+                                                 manifest=self.manifest)),
+                         reason_for([self.text]))
+        # …and a command nothing declares still passes, however big.
+        self.assertAllowed(self.run_hook(
+            claude_bash("echo " + "x" * 70000, session="e"), manifest=self.manifest))
+
+    def test_an_oversized_shell_patch_is_gated_on_both_paths(self):
+        # The size check ran BEFORE the patch-body cut, so a 69 KB patch was
+        # neither a write (no target scan) nor a command (no parse) — the one
+        # call shape that escaped the gate entirely.
+        ts = self.write_rule_text("ts")
+        git = self.write_rule_text("git-mechanics")
+        manifest = self.write_manifest(
+            [rule("ts", ["**/*.ts"], ts),
+             rule("git-mechanics", [], git, commands=["git commit"])],
+            name="oversized.json")
+        body = ("*** Begin Patch\n*** Add File: /repo/src/a.ts\n"
+                + "+x\n" * 23000 + "*** End Patch")
+        command = f"apply_patch <<'P'\n{body}\nP\ngit commit -m x"
+        self.assertGreater(len(command), 64 * 1024)
+        reason = self.held(self.run_hook(claude_bash(command), manifest=manifest))
+        for text in (ts, git):
+            self.assertIn(text.name, reason)
+
+    def test_an_argv_array_carrying_a_patch_is_treated_like_its_string(self):
+        # Codex sends `["bash","-lc","apply_patch <<'P' … P"]`. The body cut and
+        # the lenient line scan both worked on the string form only, so the same
+        # call held on its own patch content and missed the command after it.
+        docs = self.write_rule_text("support-artifacts")
+        installs = self.write_rule_text("context7")
+        git = self.write_rule_text("git-mechanics")
+        manifest = self.write_manifest(
+            [rule("support-artifacts", ["**/*.md"], docs),
+             rule("context7", [], installs, commands=["pnpm add"]),
+             rule("git-mechanics", [], git, commands=["git commit"])],
+            name="argv-patch.json")
+        docs_patch = patch_body("*** Add File: /repo/docs/a.md", " pnpm add zod")
+        self.assertEqual(
+            self.held(self.run_hook(
+                claude_bash(["bash", "-lc", f"apply_patch <<'P'\n{docs_patch}\nP"]),
+                manifest=manifest)),
+            reason_for([docs]),
+            "a line the patch WRITES is not a command, in either form")
+        # …and the command AFTER the patch is found through the weld a prose
+        # body glues, exactly as it is in the string form.
+        welded = patch_body("*** Add File: /repo/docs/a.md", "+can't")
+        for index, command in enumerate((
+            ["bash", "-lc", f"apply_patch <<'P'\n{welded}\nP\ngit commit -am x # won't push"],
+            f"apply_patch <<'P'\n{welded}\nP\ngit commit -am x # won't push",
+        )):
+            with self.subTest(form="argv" if isinstance(command, list) else "string"):
+                reason = self.held(self.run_hook(
+                    claude_bash(command, session=f"w{index}"), manifest=manifest))
+                for text in (docs, git):
+                    self.assertIn(text.name, reason)
+
+    def test_the_lenient_fallback_is_the_hold_sides_alone(self):
+        # A lenient OBSERVATION would be a false release: the hook would record
+        # a rule as read on a call whose shape it could not even parse.
+        text = self.home / "rules" / "ts.md"
+        text.parent.mkdir(parents=True)
+        text.write_text("RULE TEXT", encoding="utf-8")
+        manifest = self.write_manifest([rule("ts", ["**/*.ts"], text)],
+                                       name="observe.json")
+        for index, command in enumerate((f"cat '{text}",
+                                         f"echo 'oops\ncat {text} '")):
+            with self.subTest(command=command):
+                session = f"u{index}"
+                self.assertAllowed(self.run_hook(observed_bash(command, session=session),
+                                                 manifest=manifest))
+                self.assertEqual(
+                    self.held(self.run_hook(claude_write("/repo/a.ts", session=session),
+                                            manifest=manifest, env=WIDE_WINDOW)),
+                    reason_for([text]),
+                    "an unparsable command must never release a rule")
 
 
 # --- concurrency ---------------------------------------------------------
@@ -1776,6 +2430,30 @@ class PerformanceTests(HookCase):
                 self.assertAllowed(result)
                 self.assertLess(elapsed, 1.5, f"{elapsed * 1000:.0f} ms on a 1 MB command")
 
+    def test_a_huge_command_is_read_leniently_and_still_stays_cheap(self):
+        # A command trigger puts a parse on the PRE event of every shell call.
+        # Past MAX_COMMAND_CHARS the LEXER is out of reach — that is what the
+        # limit buys — but a whitespace scan of a megabyte is milliseconds, and
+        # skipping it made "too big to lex" a way to run a declared command
+        # unheld. So: held, and still nowhere near the 15 s hook timeout.
+        text = self.write_rule_text("git-mechanics")
+        rules = [rule(f"r{index}", [f"**/*.e{index}"], text) for index in range(39)]
+        rules.append(rule("git", [], text, commands=["git commit", "pnpm add"]))
+        manifest = self.write_manifest(rules)
+        heredoc = "git commit -m \"$(cat <<'EOF'\n" + ("x" * 1024 + "\n") * 1024 + "EOF\n)\""
+        self.assertGreater(len(heredoc), 1_000_000)
+        started = time.monotonic()
+        result = self.run_hook(claude_bash(heredoc), manifest=manifest)
+        elapsed = time.monotonic() - started
+        self.assertEqual(self.held(result), reason_for([text]))
+        self.assertLess(elapsed, 1.5, f"{elapsed * 1000:.0f} ms on a 1 MB command")
+        # A megabyte that declares nothing is still allowed, at the same cost.
+        started = time.monotonic()
+        self.assertAllowed(self.run_hook(claude_bash("echo " + "x" * 1_000_000,
+                                                     session="quiet"),
+                                         manifest=manifest))
+        self.assertLess(time.monotonic() - started, 1.5)
+
     def test_a_huge_patch_shaped_command_is_scanned_once(self):
         manifest = self.forty_rules()
         noise = "\n".join(f"line {index} *** Update File: src/a.ts" for index in range(11000))
@@ -1887,8 +2565,9 @@ class RealManifestTests(HookCase):
     """The one place the repo's OWN manifest is the input.
 
     Every other test pins a fixture. This one asks whether the gate is armed
-    at all: while the glob-scoped rules lived under `global/rules/`, the hook
-    skipped every one of them by design and shipped gating nothing.
+    at all — a manifest whose rules the hook skips by design (a source outside
+    the one store, no deployed reference) ships a gate that holds nothing, and
+    no fixture would ever notice.
     """
 
     def stage_references(self, manifest):

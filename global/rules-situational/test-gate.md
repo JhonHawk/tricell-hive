@@ -1,3 +1,9 @@
+---
+globs:
+  - "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
+  - "**/*.sh"
+---
+
 ## Test Gate
 
 > How a change to behavior is tested, and what evidence the report has to carry.

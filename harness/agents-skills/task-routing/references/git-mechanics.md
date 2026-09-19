@@ -1,8 +1,9 @@
+
 ## Git Mechanics — branching, commits, PRs, promotion, end-of-work hygiene
 
 > The situational half of the git conventions. The **gates** — what authorizes an operation,
 > protected branches, force-push, production promotion — stay always-on in
-> `workflow/git-workflow.md` and are NOT restated here. Read that one for whether you may;
+> `git-workflow.md` and are NOT restated here. Read that one for whether you may;
 > this one for how.
 
 ### Branching

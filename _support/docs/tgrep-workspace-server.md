@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-07
 **Status:** installed on this machine, under evaluation — scoped to cross-repo sweeps and concurrent fan-outs
-**Rule:** `global/rules/tools/code-search.md` (workspace row); consumer: `sdd-explore`
+**Rule:** `global/rules-situational/code-search.md` (workspace row); consumer: `sdd-explore`
 **Upstream:** [microsoft/tgrep](https://github.com/microsoft/tgrep) v1.0.4 — trigram-indexed, ripgrep-compatible grep with a client/server mode
 
 ## Why this scope and no wider

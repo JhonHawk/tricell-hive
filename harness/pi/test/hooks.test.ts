@@ -799,11 +799,12 @@ test("rule delivery blocks a held Write/Edit with the hook's own reason", async 
   }
 });
 
-test("rule delivery observes Read and Bash calls and never blocks them", async () => {
+test("an allowed Read reaches bash-policy's Bash sibling; both are observed once each", async () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-observe-"));
   const log = join(directory, "delivery.log");
-  // A stub that would deny everything: only the tools the bridge gates can block.
-  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Write", "Edit", "Read", "Bash"]);
+  // Neither Read nor Bash is denied here, so both must reach the tool (and,
+  // for Bash, fall through to the existing bash-policy path).
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Write", "Edit"]);
   // A permissive bash-policy stub: without it the bash call is blocked by the
   // missing required hook and says nothing about rule-delivery.
   const bashPolicy = join(directory, "bash-policy.sh");
@@ -823,6 +824,267 @@ test("rule delivery observes Read and Bash calls and never blocks them", async (
     // released when the model does not use the read tool.
     assert.deepEqual(payloads.map((payload) => payload.tool_name), ["Read", "Bash"]);
     assert.deepEqual(payloads[1]?.tool_input, { command: "cat /rules/ts.md" });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery blocks a denied Read for a read-only agent with the hook's own reason", async () => {
+  // A `readers` rule denies a READ, not a write: `review-code` is read-only and
+  // has no `Write`/`Edit` path to gate, so a Read is the only channel the hook
+  // has to hold it — and, unlike a write, PI must not silently run it anyway.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-read-block-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Read"]);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  const previousAgent = process.env.PI_HIVE_AGENT;
+  try {
+    process.env.PI_HIVE_AGENT = "review-code";
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    const held = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "read-1", toolName: "read", input: { file_path: "_support/PROJECT.md" } }, context);
+    assert.deepEqual(held, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads.length, 1, "a blocked call must not also be observed");
+    assert.equal(payloads[0]?.tool_name, "Read");
+    assert.equal(payloads[0]?.hook_event_name, "PreToolUse");
+    assert.equal(payloads[0]?.agent_type, "review-code");
+    // The gate speaks through the block, never through steered context.
+    assert.equal(fake.messages.some((entry) => JSON.stringify(entry.message).includes("Held: read")), false);
+  } finally {
+    if (previousAgent === undefined) delete process.env.PI_HIVE_AGENT;
+    else process.env.PI_HIVE_AGENT = previousAgent;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("an allowed Read of the rule's own reference file is never blocked and is observed exactly once", async () => {
+  // The hook never denies the read of a rule's own text (it would otherwise
+  // wedge the exact call that releases it); this pins the bridge's side of
+  // that guarantee — an allow is never turned into a block, and the
+  // subsequent tool_result is forwarded exactly once, not skipped or doubled.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-read-allow-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, []);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    const allowed = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "read-1", toolName: "read", input: { file_path: "/rules/ts.md" } }, context);
+    assert.equal(allowed, undefined);
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "read-1", toolName: "read", input: { file_path: "/rules/ts.md" }, content: [], isError: false }, context);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.deepEqual(payloads.map((payload) => String(payload.hook_event_name)), ["PreToolUse", "PostToolUse"]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery blocks a held Bash command with the hook's own reason, before bash-policy runs", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-bash-block-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Bash"]);
+  // If the bridge fell through to bash-policy despite the rule-delivery deny,
+  // this stub's own block would appear instead of the hook's reason.
+  const bashPolicy = join(directory, "bash-policy.sh");
+  writeFileSync(bashPolicy, "#!/usr/bin/env node\nprocess.stdin.resume();\nprocess.stdin.on(\"end\", () => process.stdout.write(JSON.stringify({ decision: \"block\", reason: \"bash-policy would have run\" })));\n");
+  chmodSync(bashPolicy, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery, bashPolicy } });
+    const held = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.deepEqual(held, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads[0]?.tool_name, "Bash");
+    assert.equal(payloads[0]?.hook_event_name, "PreToolUse");
+    assert.deepEqual(payloads[0]?.tool_input, { command: "git commit -m x" });
+    // The gate speaks through the block, never through steered context.
+    assert.equal(fake.messages.some((entry) => JSON.stringify(entry.message).includes("Held: read")), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a bash-policy denial stays authoritative when rule-delivery allows the command", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-bash-order-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, []);
+  const bashPolicy = join(directory, "bash-policy.sh");
+  writeFileSync(bashPolicy, "#!/usr/bin/env node\nprocess.stdin.resume();\nprocess.stdin.on(\"end\", () => process.stdout.write(JSON.stringify({ decision: \"block\", reason: \"bash-policy denial\" })));\n");
+  chmodSync(bashPolicy, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery, bashPolicy } });
+    const held = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "rm -rf /" } }, context);
+    assert.deepEqual(held, { block: true, reason: "bash-policy denial" });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery gates a held Bash command in child sessions too, carrying the packed identity", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-bash-child-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Bash"]);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-child", "base", [], fake.notifications);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  const previousAgent = process.env.PI_HIVE_AGENT;
+  try {
+    process.env.PI_SUBAGENT_CHILD = "1";
+    process.env.PI_HIVE_AGENT = "ts-backend-developer";
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    const held = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.deepEqual(held, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads[0]?.tool_name, "Bash");
+    assert.equal(payloads[0]?.agent_type, "ts-backend-developer", "packs and read-only scoping need the identity for commands too");
+    assert.equal(payloads[0]?.session_id, "session-child");
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    if (previousAgent === undefined) delete process.env.PI_HIVE_AGENT;
+    else process.env.PI_HIVE_AGENT = previousAgent;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+function writeStatefulRuleDeliveryStub(directory: string, log: string): string {
+  // Mimics the one behavior the JSON-log stub above cannot: a read OBSERVED at
+  // PostToolUse releases a later held command, exactly like the real
+  // rule-delivery.py's marker files. `known.txt` stands in for that state.
+  const ruleDelivery = join(directory, "rule-delivery.py");
+  const knownFile = join(directory, "known.txt");
+  writeFileSync(ruleDelivery, `#!/usr/bin/env node
+const fs = require("node:fs");
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  const payload = JSON.parse(input);
+  fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(payload) + "\\n");
+  const command = String((payload.tool_input && payload.tool_input.command) || "");
+  const isKnown = fs.existsSync(${JSON.stringify(knownFile)});
+  if (payload.hook_event_name === "PostToolUse" && payload.tool_name === "Bash" && command.includes("cat /rules/ts.md")) {
+    fs.writeFileSync(${JSON.stringify(knownFile)}, "known");
+    return;
+  }
+  if (payload.hook_event_name === "PreToolUse" && payload.tool_name === "Bash" && command.includes("git commit") && !isKnown) {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Held: read /rules/ts.md first, then re-issue this call." } }));
+  }
+});
+`);
+  chmodSync(ruleDelivery, 0o755);
+  return ruleDelivery;
+}
+
+test("a bash `cat` of the held rule file releases the gate for the next matching command", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-bash-release-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeStatefulRuleDeliveryStub(directory, log);
+  const bashPolicy = join(directory, "bash-policy.sh");
+  writeFileSync(bashPolicy, "#!/usr/bin/env node\nprocess.stdin.resume();\nprocess.stdin.on(\"end\", () => {});\n");
+  chmodSync(bashPolicy, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery, bashPolicy } });
+
+    const firstAttempt = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.deepEqual(firstAttempt, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const readCommand = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-2", toolName: "bash", input: { command: "cat /rules/ts.md" } }, context);
+    assert.equal(readCommand, undefined);
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "bash-2", toolName: "bash", input: { command: "cat /rules/ts.md" }, content: [], isError: false }, context);
+
+    const secondAttempt = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-3", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.equal(secondAttempt, undefined);
+
+    const nothingMatches = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-4", toolName: "bash", input: { command: "ls" } }, context);
+    assert.equal(nothingMatches, undefined);
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "bash-4", toolName: "bash", input: { command: "ls" }, content: [], isError: false }, context);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.deepEqual(payloads.map((payload) => `${String(payload.hook_event_name)}:${String((payload.tool_input as { command?: string })?.command)}`), [
+      "PreToolUse:git commit -m x",
+      "PreToolUse:cat /rules/ts.md",
+      "PostToolUse:cat /rules/ts.md",
+      "PreToolUse:git commit -m x",
+      "PreToolUse:ls",
+      "PostToolUse:ls",
+    ]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a failed bash `cat` of the rule file is never observed, so the hold it never earned stays", async () => {
+  // Observation parses the COMMAND TEXT, never the output: a `cat` that ran and
+  // failed (file missing, permission denied, the read itself was refused) must
+  // not release a hold it never actually delivered.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-bash-failed-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeStatefulRuleDeliveryStub(directory, log);
+  const bashPolicy = join(directory, "bash-policy.sh");
+  writeFileSync(bashPolicy, "#!/usr/bin/env node\nprocess.stdin.resume();\nprocess.stdin.on(\"end\", () => {});\n");
+  chmodSync(bashPolicy, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery, bashPolicy } });
+
+    const firstAttempt = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.deepEqual(firstAttempt, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const readCommand = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-2", toolName: "bash", input: { command: "cat /rules/ts.md" } }, context);
+    assert.equal(readCommand, undefined);
+    // The read ran but FAILED: the model saw an error, never the rule's text.
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "bash-2", toolName: "bash", input: { command: "cat /rules/ts.md" }, content: [{ type: "text", text: "cat: /rules/ts.md: Permission denied" }], isError: true }, context);
+
+    const secondAttempt = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-3", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.deepEqual(secondAttempt, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." }, "a failed read must never release the hold");
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    // The failed result must not even reach the hook as an observation call.
+    assert.deepEqual(payloads.map((payload) => `${String(payload.hook_event_name)}:${String((payload.tool_input as { command?: string })?.command)}`), [
+      "PreToolUse:git commit -m x",
+      "PreToolUse:cat /rules/ts.md",
+      "PreToolUse:git commit -m x",
+    ]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a blocked bash call is never observed, even if a tool_result later fires for the same call", async () => {
+  // "A blocked Bash call never reaches here" was a comment, not an invariant
+  // the bridge enforced: if the runtime ever synthesizes a tool_result for a
+  // denied call, it necessarily carries isError, and that alone must be
+  // enough to keep it from being read as an observation.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-bash-blocked-result-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeStatefulRuleDeliveryStub(directory, log);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+
+    const blocked = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "git commit -m x" } }, context);
+    assert.deepEqual(blocked, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    // A synthesized failure result for the SAME denied call, naming the rule
+    // file the way a held model might paste it into a follow-up `cat`.
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "bash-1", toolName: "bash", input: { command: "cat /rules/ts.md && git commit -m x" }, content: [{ type: "text", text: "blocked" }], isError: true }, context);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads.length, 1, "the failed tool_result must never reach the hook as an observation");
+    assert.equal(payloads[0]?.hook_event_name, "PreToolUse");
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
