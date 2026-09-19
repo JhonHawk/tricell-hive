@@ -14,7 +14,7 @@ Companion files: `global/README.md` (Claude Code), `harness/codex/README.md`,
 | Piece | Source | Deploy target | Maintained how |
 |---|---|---|---|
 | Always-on rules | `~/.claude/rules/**` (already deployed) | `~/.grok/rules/<dir>__<file>.md` | `/deploy-global --only grok` — one **flat file symlink** per rule |
-| Subagents | `harness/grok/agents/` (generated, versioned) | `~/.grok/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit. Spawn takes no `capability_mode` (removed 1.0.6; tools come from the agent type). The `workflow` tool is top-level only (1.0.8+) — generated children never receive it |
+| Subagents | `harness/grok/agents/` (generated, versioned) | `~/.grok/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit. Spawn takes no `capability_mode` (removed 1.0.6; tools come from the agent type). The `workflow` tool is top-level only (1.0.8+) — generated children never receive it. `## Role rules` rows pointing at an always-on rule (no `paths:`) are dropped — a Grok subagent already holds those through the flat rule symlinks (its `prompt_context.json > agents_md_files` lists them); an emptied section is removed |
 | Skills | `~/.claude/skills/` | *(read in place)* | Nothing to deploy — `[compat.claude] skills = true` |
 | Global instructions | `~/.claude/CLAUDE.md` | *(read in place)* | Nothing to deploy |
 | Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh` and `post-tool-hub.sh` are dual-runtime. Matchers use Grok tool names where aliases do not exist; stdout injection is event-specific — see the injection map below |

@@ -337,6 +337,43 @@ class ConverterTests(unittest.TestCase):
         self.assertIn("~/.agents/skills/language-rules/references/", pi)
         self.assertNotIn("~/.claude/skills/language-rules/references/", pi)
 
+    def test_native_always_on_rules_come_from_rules_without_paths(self):
+        native = CONVERTER.native_always_on_rules(ROOT / "global" / "rules")
+        self.assertIn("testing.md", native)
+        self.assertIn("context7.md", native)
+        self.assertNotIn("typescript-standards.md", native)
+
+    def test_grok_drops_role_rule_rows_it_already_loads_natively(self):
+        agent = source_agent(Path("development") / "backend-developer.md")
+        grok = CONVERTER.to_grok(agent)
+        for native in (
+            "testing.md",
+            "development-principles.md",
+            "debugging.md",
+            "context7.md",
+            "code-search.md",
+        ):
+            self.assertNotIn(f"language-rules/references/{native}", grok, native)
+        self.assertIn("## Role rules", grok)
+        self.assertIn("language-rules/references/typescript-standards.md", grok)
+        self.assertIn("language-rules/references/identifier-language.md", grok)
+
+    def test_grok_drops_the_role_rules_section_when_no_row_survives(self):
+        agent = source_agent(Path("review") / "review-code.md")
+        grok = CONVERTER.to_grok(agent)
+        self.assertNotIn("## Role rules", grok)
+        self.assertNotIn("| When | Read |", grok)
+        self.assertIn("## Output", grok)
+
+    def test_harnesses_without_native_rule_loading_keep_every_role_rule_row(self):
+        agent = source_agent(Path("review") / "review-code.md")
+        for rendered in (
+            CONVERTER.to_codex(agent),
+            CONVERTER.to_opencode(agent),
+            CONVERTER.to_pi(agent),
+        ):
+            self.assertIn("~/.agents/skills/language-rules/references/testing.md", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

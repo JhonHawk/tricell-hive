@@ -394,6 +394,45 @@ def rebase_skill_root(body: str) -> str:
     return body.replace(CLAUDE_SKILL_ROOT, AGENTS_SKILL_ROOT)
 
 
+RULES_DIR = Path(__file__).resolve().parents[2] / "global" / "rules"
+ROLE_RULES_SECTION = re.compile(r"^## Role rules\n.*?(?=^## |\Z)", re.M | re.S)
+ROLE_RULE_TARGET = re.compile(r"/references/([A-Za-z0-9_-]+\.md)`")
+
+
+def native_always_on_rules(rules_dir: Path = RULES_DIR) -> frozenset:
+    """Basenames of the rules with no `paths:` — the deploy's always-on criterion.
+
+    Grok receives these through its flat rule symlinks, so a Role rules row
+    pointing at the same file makes the agent re-read what it already holds.
+    """
+    names = set()
+    for path in rules_dir.rglob("*.md"):
+        fm = re.match(r"^---\n(.*?)\n---\n", path.read_text(encoding="utf-8"), re.S)
+        if not (fm and re.search(r"^paths:", fm.group(1), re.M)):
+            names.add(path.name)
+    return frozenset(names)
+
+
+def drop_native_role_rules(body: str, native: frozenset) -> str:
+    """Remove Role rules rows whose target is natively loaded; drop an emptied section."""
+
+    def filtered(section):
+        lines = section.group(0).splitlines(keepends=True)
+        kept = [
+            ln
+            for ln in lines
+            if not (
+                (target := ROLE_RULE_TARGET.search(ln)) and target.group(1) in native
+            )
+        ]
+        if not any(ROLE_RULE_TARGET.search(ln) for ln in kept):
+            return ""
+        return "".join(kept)
+
+    trailing = body[len(body.rstrip("\n")) :]
+    return ROLE_RULES_SECTION.sub(filtered, body).rstrip("\n") + trailing
+
+
 def rebase_pi_skill_root(body: str) -> str:
     return body.replace(CLAUDE_SKILL_ROOT, PI_SKILL_ROOT)
 
@@ -795,7 +834,7 @@ def to_grok(agent) -> str:
     the workflow tool from subagents (1.0.8+); no frontmatter needed.
     """
     # NOT rebased: Grok scans ~/.claude/skills and never ~/.agents/skills.
-    body = agent["body"]
+    body = drop_native_role_rules(agent["body"], native_always_on_rules())
     extra = grok_extra_instructions(agent)
     if extra:
         body = body + "\n\n## Grok compatibility instructions\n\n" + "\n".join(

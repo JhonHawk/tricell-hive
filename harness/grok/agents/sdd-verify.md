@@ -77,7 +77,6 @@ Read the row matching what you touch; skip anything already loaded this session.
 | When | Read |
 |---|---|
 | Driving a browser | `~/.claude/skills/language-rules/references/browser-automation-reference.md` |
-| Judging whether the test gate is met | `~/.claude/skills/language-rules/references/testing.md` |
 
 ## Grok compatibility instructions
 
