@@ -194,6 +194,14 @@ case "$LAST_OUT" in
   *"2026-09-18-gated-plan.md (commit_gated_on_validation)"*) printf 'ok   j2-message-names-invalid-authorization\n' ;;
   *) printf 'FAIL j2-message-names-invalid-authorization: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
 esac
+# a verified plan holds no implementation authority, and the message names the reopening
+WS_J3=$(make_workspace ws-j3 -)
+render_plan "$WS_J3/_support/sessions" "2026-09-19-shipped" verified implement
+run_case "j3-verified-plan-advisory" advisory "$(claude_payload backend-developer "$WS_J3/src" s-j3)"
+case "$LAST_OUT" in
+  *"closed to implementation: _support/sessions/2026-09-19-shipped/2026-09-19-shipped-plan.md"*"Status: building"*) printf 'ok   j3-message-names-reopening\n' ;;
+  *) printf 'FAIL j3-message-names-reopening: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
+esac
 # valid plans never show up in that list
 case "$LAST_OUT_C2" in
   *"failed validation"*) printf 'FAIL c2-no-invalid-list: %s\n' "$LAST_OUT_C2"; fail=$((fail + 1)) ;;

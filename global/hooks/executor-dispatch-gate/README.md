@@ -46,7 +46,9 @@ mismo ámbito.
    Un plan malformado o con una autorización que el validador rechaza no autoriza, y el
    mensaje lo nombra con el código del validador (`<ruta> (<code>)`; `.error.code` para el
    documento, `.authorization.error.code` para la autorización) — un plan en ejecución que una escritura dejó inválido no se reporta
-   como "no hay plan". Si `plan.py` no está instalado en
+   como "no hay plan". Un plan `verified` tampoco autoriza (cerrado a implementación por
+   diseño): el mensaje lo nombra y apunta a la reapertura declarada — intento `review`
+   abierto → `Status: building` → fix → gate afectado (`plan-format.md`). Si `plan.py` no está instalado en
    `~/.claude/skills/flow-core/scripts/`, aproxima con `Status: planned|building` y lo dice en
    el mensaje (`HIVE_PLAN_PY` sobreescribe la ruta; lo usa el test).
 4. Sin autoridad, lee la fila `| Executor dispatch | <valor> |` de la tabla de cabecera del

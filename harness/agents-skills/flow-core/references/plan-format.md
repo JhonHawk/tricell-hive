@@ -237,6 +237,14 @@ Unknown actions and actions at another status fail closed. This keeps a
 publication grant from bypassing verification and prevents `verified` from
 silently reopening implementation.
 
+The declared reopening is a finding on the published work — a Phase B finding on the open
+PR, a red check the change caused: the coordinator appends an open `review` attempt scoped to
+it (`phase-b:<PR>`, `ci:<check>`), sets `Status: building`, fixes under the still-active
+`implement` grant, re-runs the affected gate, and returns the plan to `verified` before the
+fix is pushed — delivery grants are invalid in `building`, so an unverified fix cannot leave
+the machine. The `review` budget bounds the rounds. A `verified` plan edited with no such
+attempt open is the silent reopening the validator exists to prevent.
+
 An action absent from all grants is `undeclared_operation`. An action present
 with a different target is `undeclared_destination`. A matching grant covered
 by a revocation is `grant_revoked`. These are separate machine-readable error

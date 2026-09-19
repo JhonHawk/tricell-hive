@@ -83,7 +83,7 @@ is_project_code() {
 
 main() {
   local input tool_name subagent act path cwd session_id dir ledger root sessions_home
-  local plans n authority plan st insp ci sig marker rel dispatch reason how invalid code
+  local plans n authority plan st insp ci sig marker rel dispatch reason how invalid code verified
 
   input=$(cat)
 
@@ -142,7 +142,7 @@ main() {
   # Any plan with implementation authority → silent. plan.py decides; when it
   # is not installed, the Status header is the approximation (and the message
   # says so). A malformed plan authorizes nothing.
-  plans=""; n=0; authority=0; how="plan.py"; invalid=""
+  plans=""; n=0; authority=0; how="plan.py"; invalid=""; verified=""
   [ -f "$PLAN_PY" ] || how="status-grep"
   if [ -n "$sessions_home" ]; then
     while IFS= read -r plan; do
@@ -162,6 +162,7 @@ main() {
         case "$st" in planned|building) ci="true" ;; esac
       fi
       [ "$ci" = "true" ] && authority=1
+      [ "$st" = "verified" ] && verified="${verified}${verified:+, }${plan#"$root"/}"
       plans="${plans}"$'\n'"${plan#"$root"/}|${st}|${ci}"
     done < <(find "$sessions_home" -maxdepth 2 -type f -name '*-plan.md' 2>/dev/null | sort)
   fi
@@ -180,6 +181,7 @@ main() {
   fi
   [ "$how" = "status-grep" ] && reason="${reason} plan.py was not found at ${PLAN_PY}, so a Status header of planned/building stood in for its can_implement check."
   [ -n "$invalid" ] && reason="${reason} Of those, these failed validation and so authorize nothing: ${invalid}. If one is the plan in execution, a plan write just broke it — run plan.py inspect on it and repair it before dispatching; the authority returns with the valid plan."
+  [ -n "$verified" ] && reason="${reason} Verified, so closed to implementation: ${verified}. A fix for a Phase B finding or a red check on one of them reopens it first — open a review attempt, set Status: building, fix, re-run the affected gate (plan-format.md, action/state compatibility)."
   if [ "$act" = "dispatch" ]; then
     reason="${reason} Dispatching ${subagent} means implementing."
   else

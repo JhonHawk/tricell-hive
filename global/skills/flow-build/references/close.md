@@ -16,7 +16,10 @@ implicit publication.
    subsequent normal run. A `verified` plan with a `commit` grant lands its seam commits in
    this step, before the report: verified work left only in the working tree is a close
    failure outside `hold`, and whatever stops the commit is asked here — never noted after
-   the user has ended the conversation. If an authorized action remains pending, name the
+   the user has ended the conversation. A Phase B finding or a red check the change caused
+   reopens the plan through the declared path (`plan-format.md`, action/state compatibility:
+   open `review` attempt → `building` → fix → affected gate → `verified`) before its fix is
+   pushed — never an edit on a `verified` plan. If an authorized action remains pending, name the
    exact action and reason. Do not create a commit, push, PR, merge or promotion unless the Authorization section
    and mandatory repository gates permit it.
 3. **Ledger, when present.** Update PROJECT.md with the phase, artifacts, decisions, authorization scope and
@@ -36,4 +39,9 @@ implicit publication.
 7. **Report.** Distinguish tasks implemented, tasks verified, delivery actions completed and
    delivery actions still pending. Include paths and exact commands actually run, what was
    unverified or blocked, executor substitutions, servers started/stopped and the next
-   suggested scope. `verified` is a quality result, not a delivery claim.
+   suggested scope. `verified` is a quality result, not a delivery claim. Steps 1–6 are done
+   before this report is written — a step announced and left open is a close failure. Every
+   remaining item is classified by executor (`reporting-integrity.md > Fix at the Root`): work
+   the agent can do that waits only on a confirmation (deleting test data, a gated merge) is
+   ASKED here with its exact inventory and a recommendation, never listed as pending on the
+   user.
