@@ -1,9 +1,12 @@
 ---
 globs:
-  - "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
+  - "**/package.json"
+  - "**/pnpm-workspace.yaml"
+  - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
   - "**/*.sh"
   - "Dockerfile*"
   - "docker-compose*.{yml,yaml}"
+  - "compose.{yml,yaml}"
   - "**/*.tf"
   - "**/*.tfvars"
   - ".github/workflows/**/*.{yml,yaml}"
@@ -37,7 +40,11 @@ commands:
 
 ## Security — code and dependencies
 
-> The situational half of the security rules, delivered on a code write or a dependency install. The always-on half — the exposure-gated floor, authentication and secrets — is `security-floor.md`, included in the core.
+> The situational half of the security rules, delivered on a code, infrastructure or package-manifest write, or a dependency install. The always-on half — the exposure-gated floor, authentication and secrets — is `security-floor.md`, included in the core.
+
+### Package and workspace manifests
+- Review changed lifecycle scripts, dependency sources, overrides and build-script permissions before executing an install or script; never broaden install-script permissions to bypass a failed check.
+- Apply the install-time checks below when installing dependencies; a manifest-only metadata edit does not itself install a package.
 
 ### Input Validation
 - Validate all user input at system boundaries with schema-based validation (Zod, class-validator, Pydantic) — never manual string checks, never trusted external data.

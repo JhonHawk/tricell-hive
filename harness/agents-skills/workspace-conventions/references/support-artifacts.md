@@ -16,6 +16,7 @@ Applies to generated artifacts under `_support/workspace|evidence|archive|plan` 
 
 **Retention — reproducible-from-source ⇒ ephemeral; non-reproducible ⇒ durable.**
 - Raw run output (screenshot dumps, logs, intermediate dumps, build output) → `_support/workspace/YYYY-MM-DD-<run-slug>/`, gitignored, purged at task close. Never committed.
+- Direct-route task records in `_support/workspace/tasks/` are disposable only when the session does not meet `session-capture.md`'s retention test; otherwise store the canonical record in the dated session folder. If that changes, move the same file and update its Engram locator rather than keeping a duplicate. Removal remains confirm-gated and waits until the mirror is reconciled.
 - Durable evidence is the curated subset only → `_support/evidence/YYYY-MM-DD-<slug>/`; curation at close is an explicit appraisal step — keep what documents an AC or bug, purge the rest.
 - **Retained raster evidence → WebP lossless** (`cwebp -lossless <in> -o <out>.webp`): bit-exact, ~−75% on UI screenshots, renders natively in browsers and GitHub. Update report paths (`.png`→`.webp`) in the same step. Don't rewrite git history to shrink already-committed rasters.
 

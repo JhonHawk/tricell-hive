@@ -5,6 +5,7 @@ globs:
   - "**/Dockerfile*"
   - "**/docker-compose*.yml"
   - "**/docker-compose*.yaml"
+  - "**/compose.{yml,yaml}"
   - "**/.github/workflows/**"
   - "**/*-infra/**"
 ---

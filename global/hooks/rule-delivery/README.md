@@ -52,6 +52,16 @@ the hook) decides. A rule is gateable when ALL hold:
 With today's manifest that is the 26 rules carrying `globs:` and/or `commands:` — of 42
 texts, 7 of them always-on by include.
 
+The filename coverage includes modular TS/JS suffixes (`mts`, `cts`, `mjs`, `cjs`)
+with the same general rules as `ts`/`js`, and `compose.yaml`/`compose.yml` with the
+same rules as legacy `docker-compose` files. Next server filenames (`route.ts`,
+`actions.ts`, `middleware.ts`, `proxy.ts`) also request `react-nextjs`; its text
+limits framework-specific guidance to the owning package. `actions.ts` is only a
+filename convention: other Server Actions still rely on the router or agent pack.
+`package.json` and `pnpm-workspace.yaml` request development and security guidance;
+editing metadata does not trigger an install audit. Lockfiles have no blanket
+filename trigger. Directory exclusions and existing path-specific rules still apply.
+
 **Two frameworks can claim the same file convention** — `*.service.ts`, `*.module.ts`,
 `*.guard.ts` are Angular's and NestJS's alike — and an agent carrying one framework's
 pack would otherwise be held on the other's rule forever. A rule declares

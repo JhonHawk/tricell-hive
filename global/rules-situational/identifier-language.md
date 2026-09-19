@@ -1,6 +1,6 @@
 ---
 globs:
-  - "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
+  - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
   - "**/migrations/**"
   - "**/*openapi*.{yaml,yml,json}"
   - "**/*-specs/**/*.md"

@@ -277,10 +277,13 @@
       "name": "development-principles",
       "source": "global/rules-situational/development-principles.md",
       "globs": [
-        "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
+        "**/package.json",
+        "**/pnpm-workspace.yaml",
+        "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
         "**/*.sh",
         "Dockerfile*",
         "docker-compose*.{yml,yaml}",
+        "compose.{yml,yaml}",
         "**/*.tf",
         "**/*.tfvars",
         ".github/workflows/**/*.{yml,yaml}"
@@ -300,6 +303,7 @@
       "globs": [
         "Dockerfile*",
         "docker-compose*.{yml,yaml}",
+        "compose.{yml,yaml}",
         "**/*.tf",
         "**/*.tfvars",
         ".github/workflows/**/*.{yml,yaml}",
@@ -375,6 +379,7 @@
       "globs": [
         "Dockerfile*",
         "docker-compose*.{yml,yaml}",
+        "compose.{yml,yaml}",
         "**/*.tf",
         "**/*.tfvars",
         ".github/workflows/**/*.{yml,yaml}"
@@ -392,7 +397,7 @@
       "name": "identifier-language",
       "source": "global/rules-situational/identifier-language.md",
       "globs": [
-        "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
+        "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
         "**/migrations/**",
         "**/*openapi*.{yaml,yml,json}",
         "**/*-specs/**/*.md"
@@ -415,6 +420,7 @@
         "**/Dockerfile*",
         "**/docker-compose*.yml",
         "**/docker-compose*.yaml",
+        "**/compose.{yml,yaml}",
         "**/.github/workflows/**",
         "**/*-infra/**"
       ],
@@ -532,7 +538,8 @@
       "source": "global/rules-situational/react-nextjs.md",
       "globs": [
         "**/*.{tsx,jsx}",
-        "next.config.*"
+        "next.config.*",
+        "**/{route,actions,middleware,proxy}.ts"
       ],
       "commands": [],
       "exclusive_with": [],
@@ -560,10 +567,13 @@
       "name": "security",
       "source": "global/rules-situational/security.md",
       "globs": [
-        "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
+        "**/package.json",
+        "**/pnpm-workspace.yaml",
+        "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
         "**/*.sh",
         "Dockerfile*",
         "docker-compose*.{yml,yaml}",
+        "compose.{yml,yaml}",
         "**/*.tf",
         "**/*.tfvars",
         ".github/workflows/**/*.{yml,yaml}"
@@ -704,7 +714,7 @@
       "name": "test-gate",
       "source": "global/rules-situational/test-gate.md",
       "globs": [
-        "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
+        "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
         "**/*.sh"
       ],
       "commands": [],
@@ -733,7 +743,7 @@
       "name": "typescript-standards",
       "source": "global/rules-situational/typescript-standards.md",
       "globs": [
-        "**/*.{ts,tsx,js,jsx}"
+        "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
       ],
       "commands": [],
       "exclusive_with": [],

@@ -1748,7 +1748,7 @@ step_deploy_opencode_plugin() {
 # The state-fetcher agent reads flow-core references from ~/.claude/skills, which
 # opencode treats as an external directory and gates behind an interactive prompt —
 # so status-fetch cannot run unattended there. This merges only the repo-managed
-# permission keys plus the top-level `shell` key (bash 5 for the bash tool); every
+# permission keys plus the top-level `shell` key (discovered Bash 5+ for the bash tool); every
 # other key in opencode.json is left untouched, a rule the user already set for the
 # same pattern WINS over the repo's (right operand of `+`), and an existing user
 # `shell` is never overwritten. Leading `~` in the source is expanded to $HOME.
@@ -1778,20 +1778,21 @@ step_merge_opencode_permissions() {
 
     [[ -f "${target}" ]] || { mkdir -p "${OPENCODE_HOME}" && echo '{}' >"${target}"; }
 
-    local tmp shell_ok=0 managed_shell
+    local tmp shell_ok=0 managed_shell=""
     tmp=$(mktemp)
     register_tmp "${tmp}"
-    managed_shell=$(jq -r '.shell // empty' "${src}")
-    if [[ -n "${managed_shell}" ]]; then
-        if [[ -x "${managed_shell}" ]]; then shell_ok=1
-        else log "WARNING: ${managed_shell} not executable — opencode shell key not merged (bash 5 missing?)."; fi
+    if managed_shell=$(python3 "${REPO_ROOT}/harness/bash5.py" discover 2>/dev/null); then
+        shell_ok=1
+        log "Validated Bash 5+ for opencode shell."
+    else
+        log "WARNING: no executable Bash 5+ found — opencode shell key not merged."
     fi
     # A repo rule is added ONLY when the user has not already declared that pattern
     # (compared with ~ expanded on both sides, so `~/x` and `/Users/me/x` count as the
     # same rule). The user's literal spelling is never rewritten. `permission` set to a
     # bare action string is a valid shape the schema allows — leave it alone entirely.
     # shellcheck disable=SC2016  # single-quoted jq filter: $p/$home/$cat are jq variables, not shell
-    if jq --slurpfile p "${src}" --arg home "${HOME}" --arg shell_ok "${shell_ok}" '
+    if jq --slurpfile p "${src}" --arg home "${HOME}" --arg shell "${managed_shell}" --arg shell_ok "${shell_ok}" '
             if ((.permission // {}) | type) != "object" then .
             else
                 reduce (($p[0].permission // {}) | to_entries[]) as $cat (.;
@@ -1804,7 +1805,7 @@ step_merge_opencode_permissions() {
                                  + (.permission[$cat.key] // {}))
                          else .permission[$cat.key] end))
             end
-            | if ($p[0].shell != null and $shell_ok == "1") then (.shell //= $p[0].shell) else . end
+            | if ($shell_ok == "1") then (.shell //= $shell) else . end
         ' "${target}" >"${tmp}" && jq empty "${tmp}" 2>/dev/null; then
         mv "${tmp}" "${target}"
         log "${target}: permission block and shell key merged (idempotent, additive; user values win)."

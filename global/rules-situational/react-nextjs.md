@@ -2,9 +2,11 @@
 globs:
   - "**/*.{tsx,jsx}"
   - "next.config.*"
+  - "**/{route,actions,middleware,proxy}.ts"
 ---
 
 > **Applies when:** `react` is in `package.json` dependencies or `next.config.*` exists. Skip for Astro, Preact, or Solid projects that also use `.tsx`.
+> **Server filename matches:** apply Next-specific guidance only when the owning package uses Next. Skip this rule for unrelated `route.ts`, `actions.ts`, `middleware.ts` or `proxy.ts`; filenames alone do not establish the framework. `actions.ts` is a convention, not a reserved name or complete Server Actions detector.
 > **Plain React (no `next` in package.json — Vite, React Router, CRA legacy):** the Next-prescriptive sections below (Architecture routers/RSC/Server Actions, `next/image`, caching) do NOT apply; follow the project's own router and the framework-agnostic sections (Version Detection for React, Hooks, State, Preferred Libraries). Never introduce Next.js conventions (RSC, file routing, `use server`) into a plain React app.
 
 ## React / Next.js

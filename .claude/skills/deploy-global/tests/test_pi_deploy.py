@@ -69,6 +69,39 @@ def seed_installed_package(pi_dir: Path) -> None:
         shutil.copy2(source, destination)
 
 
+def make_fake_bash(path: Path, major: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" != "--noprofile" ] || [ "$2" != "--norc" ] || [ "$3" != "-c" ]; then exit 2; fi\n'
+        'if ! printf "%s" "$4" | grep -q BASH_VERSINFO; then exit 2; fi\n'
+        f"printf '%s\\n' '{major}'\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+    return path
+
+
+def bash5_fixture_environment(pi_dir: Path) -> dict[str, str]:
+    fixture_root = pi_dir.parent
+    prefix = fixture_root / "fixture Homebrew"
+    brew_dir = fixture_root / "fixture bin"
+    make_fake_bash(prefix / "bin/bash", "5")
+    brew = brew_dir / "brew"
+    brew.parent.mkdir(parents=True, exist_ok=True)
+    brew.write_text(
+        "#!/bin/sh\n"
+        '[ "$1" = "--prefix" ] && [ "$2" = "bash" ] || exit 2\n'
+        'printf "%s\\n" "$HIVE_TEST_BASH_PREFIX"\n',
+        encoding="utf-8",
+    )
+    brew.chmod(0o755)
+    return {
+        "PATH": f"{brew_dir}:{os.environ.get('PATH', '')}",
+        "HIVE_TEST_BASH_PREFIX": str(prefix),
+    }
+
+
 def seed_full_pi_prerequisites(pi_dir: Path) -> None:
     """Create the exact installed package/settings surface for preflight tests."""
 
@@ -131,9 +164,22 @@ def run_helper(
                 seed_installed_package(Path(arguments[index + 1]))
             elif argument.startswith("--pi-dir="):
                 seed_installed_package(Path(argument.split("=", 1)[1]))
+    pi_dir = next(
+        (Path(argument.split("=", 1)[1]) for argument in arguments if argument.startswith("--pi-dir=")),
+        None,
+    )
+    if pi_dir is None:
+        for index, argument in enumerate(arguments):
+            if argument == "--pi-dir" and index + 1 < len(arguments):
+                pi_dir = Path(arguments[index + 1])
+                break
+    environment = os.environ.copy()
+    if pi_dir is not None:
+        environment.update(bash5_fixture_environment(pi_dir))
     return subprocess.run(
         ["python3", str(HELPER), *arguments],
         cwd=REPO_ROOT,
+        env=environment,
         check=check,
         text=True,
         capture_output=True,
@@ -141,10 +187,11 @@ def run_helper(
 
 
 def run_global_script(*arguments: str, home: Path, pi_dir: Path) -> subprocess.CompletedProcess[str]:
+    environment = {**os.environ, **bash5_fixture_environment(pi_dir)}
     return subprocess.run(
         [str(SCRIPT), *arguments],
         cwd=REPO_ROOT,
-        env={**os.environ, "HOME": str(home), "PI_CODING_AGENT_DIR": str(pi_dir)},
+        env={**environment, "HOME": str(home), "PI_CODING_AGENT_DIR": str(pi_dir)},
         check=False,
         text=True,
         capture_output=True,
@@ -163,6 +210,197 @@ def load_deploy_module():
 
 
 class PiDeployTests(unittest.TestCase):
+    def test_settings_preserve_a_valid_user_shell_without_taking_ownership(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            pi_dir = root / "pi-agent"
+            custom_shell = make_fake_bash(root / "custom shell/bin/bash", "5")
+            settings = {
+                "packages": list(PI_PACKAGE_SOURCES),
+                "shellPath": str(custom_shell),
+            }
+            (pi_dir / "settings.json").parent.mkdir(parents=True)
+            (pi_dir / "settings.json").write_text(json.dumps(settings) + "\n", encoding="utf-8")
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "discover_bash5", return_value=None):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {}, plan)
+
+            settings_action = next(
+                (action for action in plan.config_actions if action.relative == "settings.json"),
+                None,
+            )
+            self.assertIsNotNone(settings_action)
+            self.assertEqual(settings_action.action, "unchanged")
+            self.assertEqual(settings_action.data["shellPath"], str(custom_shell))
+            self.assertEqual(plan.next_owned["settings.json"].get("shellPath"), None)
+            self.assertEqual(json.loads((pi_dir / "settings.json").read_text())["shellPath"], str(custom_shell))
+
+    def test_valid_legacy_shell_without_manifest_is_preserved_as_user_value(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            legacy_shell = "/opt/homebrew/bin/bash"
+            settings = pi_dir / "settings.json"
+            settings.parent.mkdir(parents=True)
+            settings.write_text(
+                json.dumps({"packages": list(PI_PACKAGE_SOURCES), "shellPath": legacy_shell}) + "\n",
+                encoding="utf-8",
+            )
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "is_bash5", return_value=True):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {}, plan)
+
+            action = next(action for action in plan.config_actions if action.relative == "settings.json")
+            self.assertEqual(action.action, "unchanged")
+            self.assertEqual(action.data["shellPath"], legacy_shell)
+            self.assertNotIn("shellPath", plan.next_owned["settings.json"])
+
+    def test_missing_shell_uses_discovered_bash_and_records_ownership(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            (pi_dir / "settings.json").parent.mkdir(parents=True)
+            (pi_dir / "settings.json").write_text(
+                json.dumps({"packages": list(PI_PACKAGE_SOURCES)}) + "\n", encoding="utf-8"
+            )
+            selected_shell = str(Path(temp) / "Homebrew with spaces/bin/bash")
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "discover_bash5", return_value=selected_shell):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {}, plan)
+
+            settings_action = next(
+                action for action in plan.config_actions if action.relative == "settings.json"
+            )
+            self.assertEqual(settings_action.data["shellPath"], selected_shell)
+            self.assertEqual(plan.next_owned["settings.json"]["shellPath"], selected_shell)
+
+    def test_missing_shell_and_missing_discovery_fail_before_config_write(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            (pi_dir / "settings.json").parent.mkdir(parents=True)
+            (pi_dir / "settings.json").write_text(
+                json.dumps({"packages": list(PI_PACKAGE_SOURCES)}) + "\n", encoding="utf-8"
+            )
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "discover_bash5", return_value=None):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {}, plan)
+
+            self.assertTrue(any("No executable Bash 5+ found" in error for error in plan.errors))
+            self.assertFalse(
+                any(action.relative == "settings.json" and action.action == "write" for action in plan.config_actions)
+            )
+            self.assertNotIn("shellPath", json.loads((pi_dir / "settings.json").read_text()))
+
+    def test_valid_user_edit_releases_shell_path_from_manifest_ownership(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            pi_dir = root / "pi-agent"
+            previous_shell = make_fake_bash(root / "previous/bin/bash", "5")
+            user_shell = make_fake_bash(root / "user shell/bin/bash", "5")
+            (pi_dir / "settings.json").parent.mkdir(parents=True)
+            (pi_dir / "settings.json").write_text(
+                json.dumps({"packages": list(PI_PACKAGE_SOURCES), "shellPath": str(user_shell)}) + "\n",
+                encoding="utf-8",
+            )
+            previous = {
+                "managedConfig": {
+                    "settings.json": {
+                        "packages": list(PI_PACKAGE_SOURCES),
+                        "shellPath": str(previous_shell),
+                    }
+                }
+            }
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "discover_bash5", return_value=None):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, previous, plan)
+
+            self.assertEqual(json.loads((pi_dir / "settings.json").read_text())["shellPath"], str(user_shell))
+            self.assertNotIn("shellPath", plan.next_owned["settings.json"])
+            self.assertTrue(any("user value differs" in conflict for conflict in plan.conflicts))
+            self.assertFalse(plan.errors)
+
+    def test_invalid_user_shell_is_preserved_and_blocks_selected_deploy(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            pi_dir = root / "pi-agent"
+            invalid_shell = make_fake_bash(root / "operator shell/bin/bash", "3")
+            (pi_dir / "settings.json").parent.mkdir(parents=True)
+            original = {
+                "packages": list(PI_PACKAGE_SOURCES),
+                "shellPath": str(invalid_shell),
+            }
+            (pi_dir / "settings.json").write_text(json.dumps(original) + "\n", encoding="utf-8")
+            discovered_shell = str(root / "discovered/bin/bash")
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "discover_bash5", return_value=discovered_shell):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {}, plan)
+
+            self.assertTrue(plan.errors)
+            self.assertTrue(any("shellPath" in error for error in plan.errors))
+            self.assertFalse(any(action.relative == "settings.json" for action in plan.config_actions))
+            self.assertEqual(json.loads((pi_dir / "settings.json").read_text()), original)
+
+    def test_invalid_legacy_shell_without_manifest_is_user_owned(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            pi_dir = Path(temp) / "pi-agent"
+            legacy_shell = "/opt/homebrew/bin/bash"
+            original = {"packages": list(PI_PACKAGE_SOURCES), "shellPath": legacy_shell}
+            settings = pi_dir / "settings.json"
+            settings.parent.mkdir(parents=True)
+            settings.write_text(json.dumps(original) + "\n", encoding="utf-8")
+            plan = deploy_module.DeployPlan()
+
+            with (
+                mock.patch.object(deploy_module, "is_bash5", return_value=False),
+                mock.patch.object(deploy_module, "discover_bash5", return_value="/usr/local/bin/bash"),
+            ):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {}, plan)
+
+            self.assertTrue(any("invalid user value" in conflict for conflict in plan.conflicts))
+            self.assertTrue(any("not executable Bash 5+" in error for error in plan.errors))
+            self.assertFalse(any(action.relative == "settings.json" for action in plan.config_actions))
+            self.assertEqual(json.loads(settings.read_text(encoding="utf-8")), original)
+
+    def test_invalid_previously_managed_shell_updates_to_discovered_bash(self) -> None:
+        deploy_module = load_deploy_module()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            pi_dir = root / "pi-agent"
+            old_shell = make_fake_bash(root / "old shell/bin/bash", "3")
+            selected_shell = str(root / "replacement shell/bin/bash")
+            (pi_dir / "settings.json").parent.mkdir(parents=True)
+            (pi_dir / "settings.json").write_text(
+                json.dumps({"packages": list(PI_PACKAGE_SOURCES), "shellPath": str(old_shell)}) + "\n",
+                encoding="utf-8",
+            )
+            previous = {
+                "settings.json": {
+                    "packages": list(PI_PACKAGE_SOURCES),
+                    "shellPath": str(old_shell),
+                }
+            }
+            plan = deploy_module.DeployPlan()
+
+            with mock.patch.object(deploy_module, "discover_bash5", return_value=selected_shell):
+                deploy_module._plan_configs(REPO_ROOT, pi_dir, {"managedConfig": previous}, plan)
+
+            settings_action = next(
+                action for action in plan.config_actions if action.relative == "settings.json"
+            )
+            self.assertEqual(settings_action.data["shellPath"], selected_shell)
+            self.assertFalse(plan.errors)
+
     def test_dry_run_is_read_only_and_does_not_create_global_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp) / "home"
@@ -173,6 +411,7 @@ class PiDeployTests(unittest.TestCase):
             global_manifest = claude_home / ".deploy-manifest"
             global_manifest.write_text("global-owned\n", encoding="utf-8")
             environment = {**os.environ, "HOME": str(home), "PI_CODING_AGENT_DIR": str(pi_dir)}
+            environment.update(bash5_fixture_environment(pi_dir))
             result = subprocess.run(
                 [str(SCRIPT), "--only", "pi"],
                 cwd=REPO_ROOT,
@@ -191,10 +430,17 @@ class PiDeployTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp) / "home"
             home.mkdir()
+            pi_dir = Path(temp) / "pi-agent"
+            environment = {
+                **os.environ,
+                **bash5_fixture_environment(pi_dir),
+                "HOME": str(home),
+                "PI_CODING_AGENT_DIR": str(pi_dir),
+            }
             result = subprocess.run(
                 [str(SCRIPT), "--only", "pi,claude"],
                 cwd=REPO_ROOT,
-                env={**os.environ, "HOME": str(home), "PI_CODING_AGENT_DIR": str(Path(temp) / "pi-agent")},
+                env=environment,
                 text=True,
                 capture_output=True,
             )

@@ -744,7 +744,7 @@
       "id": "routing-explicit-task-record",
       "skill": "task-routing",
       "category": "explicit",
-      "prompt": "Usa la skill task-routing. Implementa dos cambios: (1) agrega una función farewell(name) en src/greeting.py que devuelva f\"Adiós, {name}\"; (2) haz que src/cli.py imprima también la despedida. Trabajo en ruta directa, sin plan. Usa el slug greeting-farewell para cualquier registro que la convención requiera. No instales ni ejecutes herramientas.",
+      "prompt": "Usa la skill task-routing. Implementa dos cambios: (1) agrega una función farewell(name) en src/greeting.py que devuelva f\"Adiós, {name}\"; (2) haz que src/cli.py imprima también la despedida. Trabajo en ruta directa, sin plan. Esta sesión vale la pena conservar: la decisión de API se reutilizará en otra práctica. Usa el slug greeting-farewell; la fecha de esta sesión es 2026-09-19. Conserva un solo registro en su carpeta de sesión fechada, sin copia temporal. No instales ni ejecutes herramientas.",
       "fixtures": {
         ".python-version": "3.12\n",
         "README.md": "# Greeting sample\n\nThis sample returns a greeting.\n",
@@ -762,13 +762,12 @@
       "allowed_writes": [
         "src/greeting.py",
         "src/cli.py",
-        "_support/workspace/tasks/greeting-farewell.md",
-        ".gitignore"
+        "_support/sessions/2026-09-19-greeting-farewell/greeting-farewell-tasks.md"
       ],
       "required_files": [
         "src/greeting.py",
         "src/cli.py",
-        "_support/workspace/tasks/greeting-farewell.md"
+        "_support/sessions/2026-09-19-greeting-farewell/greeting-farewell-tasks.md"
       ],
       "file_contains": {
         "src/greeting.py": [
@@ -777,7 +776,7 @@
         "src/cli.py": [
           "farewell"
         ],
-        "_support/workspace/tasks/greeting-farewell.md": [
+        "_support/sessions/2026-09-19-greeting-farewell/greeting-farewell-tasks.md": [
           "T1",
           "T2",
           "Test approach"
@@ -791,7 +790,7 @@
       "id": "routing-implicit-task-record",
       "skill": "task-routing",
       "category": "implicit",
-      "prompt": "Implementa dos cambios: (1) agrega una función farewell(name) en src/greeting.py que devuelva f\"Adiós, {name}\"; (2) haz que src/cli.py imprima también la despedida. Sin plan; si la convención pide dejar registro de tareas, usa el slug greeting-farewell. No instales ni ejecutes herramientas.",
+      "prompt": "Implementa dos cambios: (1) agrega una función farewell(name) en src/greeting.py que devuelva f\"Adiós, {name}\"; (2) haz que src/cli.py imprima también la despedida. Sin plan; si la convención pide dejar registro de tareas, usa el slug greeting-farewell. Es un cambio desechable para este ejercicio, sin decisiones reutilizables ni evidencia que necesite retomar en otra sesión. No instales ni ejecutes herramientas.",
       "fixtures": {
         ".python-version": "3.12\n",
         "README.md": "# Greeting sample\n\nThis sample returns a greeting.\n",

@@ -2,6 +2,7 @@
 globs:
   - "Dockerfile*"
   - "docker-compose*.{yml,yaml}"
+  - "compose.{yml,yaml}"
   - "**/*.tf"
   - "**/*.tfvars"
   - ".github/workflows/**/*.{yml,yaml}"

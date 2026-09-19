@@ -6,11 +6,11 @@ recorded from the real harnesses on 2026-09-18 — and asserts on stdout, stderr
 and the exit code. No harness, no network: the hook is a pure stdin/stdout
 filter over a manifest.
 
-The manifest is always a fixture here (`HIVE_RULE_MANIFEST`), never the repo's
-own: a fixture pins the shapes each test needs — including ones the real
+Most tests use a fixture manifest (`HIVE_RULE_MANIFEST`): it pins the shapes each test needs — including ones the real
 manifest does not produce, such as a rule whose text lives outside
 `global/rules-situational/`, the one store this gate delivers from, which the
-hook must keep refusing to gate.
+hook must keep refusing to gate. RealManifestTests exercises the shipped manifest;
+CoverageManifestTests compiles the canonical inputs without writing generated outputs.
 """
 
 import json
@@ -2717,6 +2717,103 @@ class RealManifestTests(HookCase):
                     self.run_hook(claude_write(path, session=f"cd{index}"),
                                   manifest=manifest,
                                   env={"HOME": home, **NO_WINDOW})))
+
+
+class CoverageManifestTests(HookCase):
+    """Compile canonical inputs without mutating the shared generated tree."""
+
+    def setUp(self):
+        super().setUp()
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "coverage_build", REPO_ROOT / "harness/build.py",
+        )
+        build = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build)
+        self.manifest_data = build.build_rule_manifest(REPO_ROOT)
+        self.manifest = self.write_manifest(
+            self.manifest_data["rules"], self.manifest_data["agents"],
+            self.manifest_data["read_only_agents"],
+        )
+        self.hook = load_hook_module()
+        self.references = {}
+        for entry in self.manifest_data["rules"]:
+            raw = (entry.get("references") or {}).get("claude")
+            if raw:
+                target = self.home / Path(*Path(raw).parts[1:])
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(REPO_ROOT / entry["source"], target)
+                self.references[entry["name"]] = target
+
+    def matching(self, path):
+        return {
+            entry["name"] for entry in self.manifest_data["rules"]
+            if not entry["always_on"]
+            and self.hook.path_matches(path, self.hook.compile_globs(entry["globs"]))
+        }
+
+    def test_modular_suffixes_preserve_their_plain_language_coverage(self):
+        expected = {"development-principles", "identifier-language", "security",
+                    "test-gate", "typescript-standards", "patterns-antipatterns"}
+        for suffix, plain in (("mts", "ts"), ("cts", "ts"), ("mjs", "js"), ("cjs", "js")):
+            with self.subTest(suffix=suffix):
+                self.assertEqual(self.matching(f"/repo/src/tool.{plain}"), expected)
+                self.assertEqual(self.matching(f"/repo/src/tool.{suffix}"), expected)
+
+    def test_modern_compose_preserves_legacy_coverage_at_any_depth(self):
+        expected = {"development-principles", "devops-principles", "iac-devops",
+                    "infra-naming", "security"}
+        for directory in ("/repo", "/repo/infra/local"):
+            for extension in ("yaml", "yml"):
+                with self.subTest(directory=directory, extension=extension):
+                    self.assertEqual(self.matching(f"{directory}/docker-compose.{extension}"), expected)
+                    self.assertEqual(self.matching(f"{directory}/compose.{extension}"), expected)
+
+    def test_next_server_entries_trigger_the_scoped_framework_rule(self):
+        for filename in ("route.ts", "actions.ts", "middleware.ts", "proxy.ts",
+                         "page.tsx", "next.config.mjs"):
+            with self.subTest(filename=filename):
+                self.assertIn("react-nextjs", self.matching(f"/repo/apps/web/{filename}"))
+        for filename in ("routes.ts", "transactions.ts", "proxy.py", "tool.ts"):
+            with self.subTest(filename=filename):
+                self.assertNotIn("react-nextjs", self.matching(f"/repo/{filename}"))
+
+    def test_package_manifests_receive_only_the_selected_guides(self):
+        for filename in ("package.json", "pnpm-workspace.yaml"):
+            for directory in ("/repo", "/repo/apps/web"):
+                with self.subTest(filename=filename, directory=directory):
+                    self.assertEqual(self.matching(f"{directory}/{filename}"),
+                                     {"development-principles", "security"})
+        for filename in ("pnpm-lock.yaml", "package-lock.json", "config.json",
+                         "compose.txt", "package.json.bak", "tool.mtsx"):
+            with self.subTest(filename=filename):
+                self.assertEqual(self.matching(f"/repo/{filename}"), set())
+
+    def test_new_coverage_holds_then_releases_after_observed_reads(self):
+        for index, filename in enumerate(("tool.mts", "compose.yaml", "route.ts", "package.json")):
+            session = f"coverage-{index}"
+            target = f"/repo/{filename}"
+            payload = claude_write(target, session=session)
+            with self.subTest(filename=filename):
+                reason = self.held(self.run_hook(payload, manifest=self.manifest, env=NO_WINDOW))
+                for name in self.matching(target):
+                    self.assertIn(f"{name}.md", reason)
+                    self.assertAllowed(self.run_hook(
+                        observed_read(str(self.references[name]), session=session),
+                        manifest=self.manifest, env=NO_WINDOW,
+                    ))
+                self.assertAllowed(self.run_hook(payload, manifest=self.manifest, env=NO_WINDOW))
+
+    def test_new_coverage_preserves_unrelated_files_and_directory_exclusions(self):
+        for target in ("/repo/pnpm-lock.yaml", "/repo/config.json",
+                       "/repo/node_modules/dependency/package.json",
+                       "/repo/dist/tool.mts", "/tmp/probe/compose.yaml",
+                       str(self.home / ".agents/probe/route.ts")):
+            with self.subTest(target=target):
+                self.assertAllowed(self.run_hook(
+                    claude_write(target), manifest=self.manifest, env=NO_WINDOW,
+                ))
 
 
 if __name__ == "__main__":

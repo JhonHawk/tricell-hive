@@ -36,6 +36,11 @@ Any rule text as a loadable file. Everything else still arrives: the always-on c
 allowlists, and all 8 hooks — every constraint documented in the other three READMEs is a
 subtraction from this baseline.
 
+The triggered coverage includes modular TS/JS suffixes, modern and legacy Compose names,
+Next server filename conventions, and package/workspace manifests. The last request only
+development and security guidance; generated lockfiles have no blanket filename trigger.
+Framework applicability stays in the rule text, not in hook-side framework detection.
+
 The other 35 texts reach Claude Code exactly as they reach Grok and Codex: the 26 carrying
 `globs:`/`commands:` by the `rule-delivery` hook's hold on a matching write or command, all
 but the pack-only one through a router skill's `references/` (injected by `harness/build.py`,

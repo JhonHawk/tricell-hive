@@ -235,7 +235,8 @@ convention; it applies wherever sessions live (specs repo, standalone `_support/
 **Naming.** Folder: `YYYY-MM-DD-<kebab-slug>` (ISO date prefix; lexicographic =
 chronological). Multiple sessions the same day → distinct intention-revealing slugs; a
 numeric tiebreaker (`-2`) only on a real slug collision. **Session top-level files carry
-the SLUG, not the date** — `<slug>-plan.md`, `<slug>-findings.md`, `<slug>-report.html`:
+the SLUG, not the date** — `<slug>-plan.md`, `<slug>-tasks.md`, `<slug>-findings.md`,
+`<slug>-report.html`:
 the slug makes a hit self-identifying in basename-only surfaces (quick-open, editor tabs,
 filename/semantic search) where the folder path isn't shown; the date stays the folder's
 (a date on a living file asserts a fixity it doesn't have). Nested subfolder files

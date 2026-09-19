@@ -1,6 +1,12 @@
 
 ## Development Principles
 
+### Package and workspace manifests
+- Keep package membership, dependency catalogs, scripts and overrides consistent with their consumers; inspect affected packages before changing them.
+- Use the declared package manager to update dependency resolution; never hand-edit its generated lockfile.
+
+### Implementation
+
 > Not generic mantras — these correct specific tendencies. Apply with judgment, not dogma. Owning the *outcome* — reporting per-criterion state instead of a rounded-up "complete" — moved to `reporting-integrity.md > Fix at the Root`.
 
 - **Only change what was asked.** Don't add features, refactor surrounding code, or "improve" things beyond the request — offering a simpler alternative (`critical-thinking.md`) is always welcome. **Carve-out:** refactoring the code you *just wrote*, once its checks are green under `testing.md > Test approach`, is not scope creep; refactoring unrelated surrounding code is.

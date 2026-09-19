@@ -13,7 +13,7 @@ natively.
 | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) | `harness/opencode/commands/` | `~/.config/opencode/commands/` | `/deploy-global` (copy) |
 | SessionStart plugin | `global/hooks/flow-session-context/flow-session-context.ts` | `~/.config/opencode/plugins/` | `/deploy-global` (copy) |
 | Config additions | `opencode.jsonc.snippet` | merge into `~/.config/opencode/opencode.json` | Manual, once |
-| Permission keys + `shell` | `permission-config.json` | `permission.*` and `shell` (Homebrew bash 5) in `~/.config/opencode/opencode.json` | `/deploy-global` (surgical jq merge, idempotent; user values win) |
+| Permission keys + `shell` | `permission-config.json` | `permission.*` and a discovered, version-checked Bash 5+ `shell` when no user value exists | `/deploy-global` (surgical jq merge, idempotent; user values win; missing Bash only skips the optional shell key) |
 
 ## One-time setup
 

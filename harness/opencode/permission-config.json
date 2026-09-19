@@ -1,6 +1,5 @@
 {
-  "_comment": "Repo-managed opencode permission block, merged into ~/.config/opencode/opencode.json by /deploy-global (opencode scope). Additive and idempotent; a rule already present in the user's config wins. Leading ~ is expanded to $HOME at merge time so this file stays portable. Every entry is a directory opencode must reach WITHOUT an interactive prompt, because an unattended run (status-fetch, a spawned subagent) has nobody to answer it. `shell` pins the bash tool to Homebrew bash 5 (parity with CLAUDE_CODE_SHELL); it is added only when the user has no `shell` key and the binary exists.",
-  "shell": "/opt/homebrew/bin/bash",
+  "_comment": "Repo-managed opencode permission block, merged into ~/.config/opencode/opencode.json by /deploy-global (opencode scope). Additive and idempotent; a rule already present in the user's config wins. Leading ~ is expanded to $HOME at merge time so this file stays portable. Every entry is a directory opencode must reach WITHOUT an interactive prompt, because an unattended run (status-fetch, a spawned subagent) has nobody to answer it. The deploy discovers and validates an installed Bash 5+ only when the user has no `shell` key.",
   "permission": {
     "external_directory": {
       "~/.claude/skills/**": "allow",

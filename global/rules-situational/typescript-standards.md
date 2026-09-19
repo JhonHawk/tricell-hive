@@ -1,6 +1,6 @@
 ---
 globs:
-  - "**/*.{ts,tsx,js,jsx}"
+  - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
 ---
 
 ## TypeScript & JS Standards

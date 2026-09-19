@@ -33,7 +33,7 @@ conditional-rule directory.
 
 | Signal (file touched, manifest, or extension) | Read |
 |---|---|
-| `*.ts`, `*.tsx`, `*.js`, `*.jsx`, `tsconfig*.json` | `references/typescript-standards.md` |
+| `*.ts`, `*.tsx`, `*.mts`, `*.cts`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs`, `tsconfig*.json` | `references/typescript-standards.md` |
 | `next` in package.json, `next.config.*`, `app/` or `pages/` router files | `references/react-nextjs.md` + typescript |
 | `angular.json`, `@angular/core` in package.json, `*.component.*` | `references/angular-patterns.md` + typescript |
 | `nest-cli.json`, `@nestjs/core` in package.json | `references/nestjs-patterns.md` + typescript |
@@ -42,7 +42,8 @@ conditional-rule directory.
 | `schema.prisma`, `drizzle.config.*`, migration dirs, raw `*.sql` | `references/sql-migrations.md` |
 | Tailwind markers (`@import "tailwindcss"`, `@theme`, `tailwind.config.*`) | `references/tailwind.md` |
 | `*.sh`, shell script edits | `references/shell-standards.md` |
-| `Dockerfile*`, `*.tf`, `.github/workflows/*` | `references/iac-devops.md` + `references/devops-principles.md` |
+| `Dockerfile*`, `docker-compose*.{yaml,yml}`, `compose.{yaml,yml}`, `*.tf`, `.github/workflows/*` | `references/iac-devops.md` + `references/devops-principles.md` |
+| Editing `package.json` or `pnpm-workspace.yaml` | `references/development-principles.md` + `references/security.md` (package/workspace sections; install checks when installing) |
 | Building or styling UI (any stack) | `references/ui-visual-design.md` |
 | Non-trivial implementation (new feature, refactor — any stack) | `references/development-principles.md` + `references/patterns-antipatterns.md` |
 | Writing/modifying tests, or any behavior change | `references/test-gate.md` (the gate, held on the first code write) + `references/testing.md` (full mechanics, when planning) |

@@ -718,7 +718,7 @@ class GeneratedTreeParityTests(unittest.TestCase):
                 typescript["source"],
                 "global/rules-situational/typescript-standards.md",
             )
-            self.assertEqual(typescript["globs"], ["**/*.{ts,tsx,js,jsx}"])
+            self.assertEqual(typescript["globs"], ["**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"])
             self.assertFalse(typescript["always_on"])
             self.assertFalse(typescript["readers"])
             self.assertEqual(

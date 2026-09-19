@@ -25,6 +25,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+HARNESS_ROOT = Path(__file__).resolve().parents[1]
+if str(HARNESS_ROOT) not in sys.path:
+    sys.path.insert(0, str(HARNESS_ROOT))
+
+from bash5 import discover_bash5, is_bash5
+
 
 PACKAGE_PINS = (
     "npm:pi-subagents@0.67.0",
@@ -104,7 +110,6 @@ def _header_env_warnings(servers: dict[str, dict[str, Any]], relative: str) -> l
     return warnings
 
 
-SHELL_PATH = "/opt/homebrew/bin/bash"  # bash 5: parity with CLAUDE_CODE_SHELL and opencode `shell`
 WEB_SEARCH_FIELDS = {
     "provider": "openai",
     "openaiSearchProviders": ["openai-codex"],
@@ -437,12 +442,52 @@ def _installed_package_root(pi_dir: Path, package_name: str) -> Path:
     return package_root
 
 
-def _validate_shell_path() -> None:
-    """Refuse to point Pi's bash tool at a shell that is not there."""
+def _merge_pi_shell_path(
+    data: dict[str, Any],
+    previous: dict[str, Any],
+    relative: str,
+    conflicts: list[str],
+    errors: list[str],
+) -> str | None:
+    """Preserve user shells and manage only a discovered or previously owned value."""
 
-    shell = Path(SHELL_PATH)
-    if not (shell.is_file() and os.access(shell, os.X_OK)):
-        raise DeployError(f"{SHELL_PATH} is missing or not executable; install Homebrew bash 5 before deploying shellPath")
+    key = "shellPath"
+    before = _owned_value(previous, relative, key)
+    if key not in data:
+        if before is not None:
+            conflicts.append(f"{relative}.{key}: user removed the managed value; preserved")
+            return before
+        selected = discover_bash5()
+        if selected is None:
+            errors.append("No executable Bash 5+ found; install Bash before deploying Pi shellPath")
+            return None
+        data[key] = selected
+        return selected
+
+    current = data[key]
+    if isinstance(current, str) and is_bash5(current):
+        if before is None:
+            return None
+        if current != before:
+            conflicts.append(f"{relative}.{key}: user value differs from the last managed value; preserved")
+            return None
+        return current
+
+    if before is not None and current != before:
+        conflicts.append(f"{relative}.{key}: user value differs from the last managed value; preserved")
+        errors.append(f"{relative}.{key}: configured user value is not executable Bash 5+; preserved")
+        return None
+    if before is None:
+        conflicts.append(f"{relative}.{key}: invalid user value; preserved")
+        errors.append(f"{relative}.{key}: configured user value is not executable Bash 5+; preserved")
+        return None
+
+    selected = discover_bash5()
+    if selected is None:
+        errors.append("No executable Bash 5+ found; cannot replace the invalid managed Pi shellPath")
+        return None
+    data[key] = selected
+    return selected
 
 
 def _validate_installed_packages(pi_dir: Path) -> None:
@@ -1169,11 +1214,13 @@ def _config_desired(
     previous: dict[str, Any],
     conflicts: list[str],
     managed_servers: dict[str, dict[str, Any]],
-) -> dict[str, Any]:
+    errors: list[str],
+) -> tuple[dict[str, Any], str | None]:
     merged = copy.deepcopy(data)
+    managed_shell: str | None = None
     if relative == "settings.json":
         _merge_packages(merged, previous, conflicts, relative)
-        _merge_scalar(merged, "shellPath", SHELL_PATH, previous, relative, conflicts)
+        managed_shell = _merge_pi_shell_path(merged, previous, relative, conflicts, errors)
     elif relative == "mcp.json":
         _merge_mcp(merged, previous, conflicts, relative, managed_servers)
     elif relative == "web-search.json":
@@ -1183,7 +1230,7 @@ def _config_desired(
         _merge_scalar(merged, "forceTopLevelAsync", True, previous, relative, conflicts)
     else:
         raise DeployError(f"Unknown PI managed config: {relative}")
-    return merged
+    return merged, managed_shell
 
 
 def _plan_configs(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: DeployPlan) -> None:
@@ -1208,9 +1255,13 @@ def _plan_configs(repo_root: Path, pi_dir: Path, prior: dict[str, Any], plan: De
         else:
             current = {}
         conflicts_before = len(plan.conflicts)
-        merged = _config_desired(relative, current, previous_owned, plan.conflicts, managed_servers)
+        merged, managed_shell = _config_desired(
+            relative, current, previous_owned, plan.conflicts, managed_servers, plan.errors
+        )
         if relative == "settings.json":
             owned = {"packages": list(PACKAGE_PINS)}
+            if managed_shell is not None:
+                owned["shellPath"] = managed_shell
         elif relative == "mcp.json":
             owned = {
                 "mcpServers": copy.deepcopy(managed_servers),
@@ -1485,7 +1536,6 @@ def _pi_preflight(repo_root: Path, pi_dir: Path) -> int:
     pi_dir = _root_path(pi_dir, "PI agent")
     _validate_installed_packages(pi_dir)
     _validate_enabled_settings(pi_dir)
-    _validate_shell_path()
     manifest_path = pi_dir / MANIFEST_NAME
     if manifest_path.is_symlink():
         raise DeployError(f"PI manifest is a symlink; refusing to follow or replace it: {manifest_path}")

@@ -1,15 +1,24 @@
 ---
 globs:
-  - "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
+  - "**/package.json"
+  - "**/pnpm-workspace.yaml"
+  - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
   - "**/*.sh"
   - "Dockerfile*"
   - "docker-compose*.{yml,yaml}"
+  - "compose.{yml,yaml}"
   - "**/*.tf"
   - "**/*.tfvars"
   - ".github/workflows/**/*.{yml,yaml}"
 ---
 
 ## Development Principles
+
+### Package and workspace manifests
+- Keep package membership, dependency catalogs, scripts and overrides consistent with their consumers; inspect affected packages before changing them.
+- Use the declared package manager to update dependency resolution; never hand-edit its generated lockfile.
+
+### Implementation
 
 > Not generic mantras — these correct specific tendencies. Apply with judgment, not dogma. Owning the *outcome* — reporting per-criterion state instead of a rounded-up "complete" — moved to `reporting-integrity.md > Fix at the Root`.
 

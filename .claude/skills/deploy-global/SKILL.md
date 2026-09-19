@@ -97,9 +97,9 @@ grep -c '^[^#]*--corepack-enabled' "$HOME/.zshrc"
     # pnpm through corepack in every new shell, shadowing the standalone install
 jq -r '.shell // "MISSING"' ~/.config/opencode/opencode.json
 jq -r '.shellPath // "MISSING"' "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/settings.json"
-    # expect /opt/homebrew/bin/bash on both: opencode `shell` and Pi `shellPath` are
-    # deploy-managed (user value wins); MISSING after a deploy means the merge was
-    # skipped (jsonc-only opencode config, or the binary is absent)
+    # expect an executable Bash 5+ when configured. The deploy discovers one when
+    # the value is missing; existing user values remain in place. MISSING can be
+    # intentional for opencode if no compatible Bash is installed.
 ```
 
 - Missing/non-executable `CLAUDE_CODE_SHELL` → Claude Code degrades to zsh auto-detection
@@ -148,8 +148,10 @@ registration is still removed so native approval cannot keep running the retired
 For PI, `--apply` deploys `harness/AGENTS.md`, generated `harness/pi/agents/`, the
 TypeScript runtime and extension entrypoints (`src/` and `extensions/`), and canonical
 shell hooks under `global/hooks/` in the PI agent directory. It
-also merges only the owned fields: the five pinned package entries and `shellPath`
-(Homebrew bash 5) in `settings.json`,
+also merges only the owned fields: the five pinned package entries and a discovered
+Bash 5+ `shellPath` in `settings.json` when it is absent or a previous managed value
+no longer validates. A valid user value is preserved; an invalid unowned value blocks
+the PI scope without being replaced.
 including PI package objects with their existing filters,
 `forceTopLevelAsync` in `extensions/subagent/config.json`, the managed Context7, Linear, and
 HeroUI proxies in `mcp.json` (each lazy, direct tools disabled, `includeTools` from
