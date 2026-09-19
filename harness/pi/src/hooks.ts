@@ -11,8 +11,9 @@ import type {
 import { Type } from "typebox";
 import { attachChildLifecycle, defaultChildRegistry } from "./child-registry.ts";
 import { createGitReadTool } from "./git-read.ts";
-import { checkHookReadiness, runHook } from "./hook-runner.ts";
+import { checkHookReadiness, parseHookJson, runHook } from "./hook-runner.ts";
 import { formatHiveResearchStatus, registerHiveResearchReadiness } from "./research.ts";
+import { HOOK_TIMEOUT_MS } from "./types.ts";
 import type { ChildRegistry, HookPaths, HookRunnerOptions } from "./types.ts";
 
 export const HIVE_CONTEXT7_MCP_TOOLS = {
@@ -295,6 +296,9 @@ export const REQUIRED_HOOK_KEYS: readonly HiveHookKey[] = [
   "reviewerGuard",
   "postToolHub",
   "flowContext",
+  // A GATE, not an advisory: absent, writes go through ungated and nothing
+  // says so. Readiness is the only place that can surface it.
+  "ruleDelivery",
 ];
 
 export const ADVISORY_HOOK_KEYS: readonly HiveHookKey[] = [
@@ -395,6 +399,7 @@ export function defaultHookPaths(): HookPaths {
     flowContext: join(root, "flow-context/flow-context.sh"),
     flowSessionContext: join(root, "flow-session-context/flow-session-context.sh"),
     ruleContext: join(root, "rule-context/rule-context.sh"),
+    ruleDelivery: join(root, "rule-delivery/rule-delivery.py"),
     sessionHygieneReport: join(root, "session-hygiene-report/session-hygiene-report.sh"),
   };
 }
@@ -651,7 +656,7 @@ function ruleToolName(toolName: string): "Write" | "Edit" | "Bash" | undefined {
   }
 }
 
-function ruleContextPayload(ctx: ExtensionContext, event: ToolCallEvent, toolName: "Write" | "Edit" | "Bash"): Record<string, unknown> {
+function ruleContextPayload(ctx: ExtensionContext, event: ToolCallEvent, toolName: "Write" | "Edit" | "Bash" | "Read"): Record<string, unknown> {
   return {
     harness: "pi",
     cwd: ctx.cwd,
@@ -661,8 +666,118 @@ function ruleContextPayload(ctx: ExtensionContext, event: ToolCallEvent, toolNam
   };
 }
 
+/**
+ * rule-delivery reads the event name and the agent identity: the first decides
+ * gate-vs-observe, the second whether this caller already carries the rule as a
+ * pack (or cannot write at all). PI has no agent-name channel of its own, so
+ * `PI_HIVE_AGENT` is it; unset, the caller is treated as the main thread.
+ */
+function ruleDeliveryPayload(
+  ctx: ExtensionContext,
+  event: ToolCallEvent | ToolResultEvent,
+  toolName: "Write" | "Edit" | "Bash" | "Read",
+  hookEvent: "PreToolUse" | "PostToolUse",
+): Record<string, unknown> {
+  const agent = process.env.PI_HIVE_AGENT?.trim();
+  return {
+    harness: "pi",
+    hook_event_name: hookEvent,
+    cwd: ctx.cwd,
+    session_id: currentSessionId(ctx),
+    tool_name: toolName,
+    tool_input: "input" in event ? event.input : {},
+    ...(agent ? { agent_type: agent } : {}),
+  };
+}
+
+/**
+ * rule-delivery gates writes and OBSERVES reads: a read of the rule file — with
+ * the read tool or a `cat` in the shell — is the only thing that releases the
+ * gate, so both reach the hook.
+ */
+function ruleDeliveryToolName(toolName: string): "Write" | "Edit" | "Read" | "Bash" | undefined {
+  switch (toolName.toLowerCase()) {
+    case "write":
+      return "Write";
+    case "edit":
+      return "Edit";
+    case "read":
+      return "Read";
+    case "bash":
+      return "Bash";
+    default:
+      return undefined;
+  }
+}
+
+/** Only a write can be held; a read or a shell call is observation. */
+function ruleDeliveryGates(tool: "Write" | "Edit" | "Read" | "Bash"): boolean {
+  return tool === "Write" || tool === "Edit";
+}
+
 function hookFailureReason(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+const RULE_DELIVERY_FALLBACK_REASON = "Held: read the rule file named by the gate, then re-issue this call.";
+
+export interface RuleDeliveryBlock {
+  readonly block: true;
+  readonly reason: string;
+}
+
+/**
+ * Run the rule-delivery gate for one tool call. Returns a block ONLY for a real
+ * denial of a write: a crash, a timeout, invalid output or a non-zero exit
+ * leaves the call alone, because a hook that cannot answer must never be the
+ * reason a file does not get written.
+ */
+async function runRuleDeliveryGate(
+  pi: ExtensionAPI,
+  paths: HookPaths,
+  tool: "Write" | "Edit" | "Read" | "Bash",
+  event: ToolCallEvent | ToolResultEvent,
+  ctx: ExtensionContext,
+  runnerOptions: HookRunnerOptions | undefined,
+  failureKeys: Set<string>,
+  hookEvent: "PreToolUse" | "PostToolUse" = "PreToolUse",
+): Promise<RuleDeliveryBlock | undefined> {
+  let stdout: string;
+  try {
+    const result = await runHook(
+      {
+        scriptPath: paths.ruleDelivery,
+        cwd: ctx.cwd,
+        payload: ruleDeliveryPayload(ctx, event, tool, hookEvent),
+        mode: "advisory",
+        env: { HIVE_HARNESS: "pi" },
+        signal: ctx.signal,
+      },
+      runnerOptions,
+    );
+    if (result.timedOut) {
+      const reason = `Advisory hook failed: timed out after ${String(HOOK_TIMEOUT_MS)}ms`;
+      recordHiveHookError(pi, paths, "ruleDelivery", reason);
+      notifyAdvisoryFailureOnce(ctx, "ruleDelivery", paths.ruleDelivery, reason, currentSessionId(ctx), failureKeys);
+      return undefined;
+    }
+    stdout = result.stdout;
+  } catch (error) {
+    const reason = `Advisory hook failed: ${hookFailureReason(error)}`;
+    recordHiveHookError(pi, paths, "ruleDelivery", reason);
+    notifyAdvisoryFailureOnce(ctx, "ruleDelivery", paths.ruleDelivery, reason, currentSessionId(ctx), failureKeys);
+    return undefined;
+  }
+  recordHiveHookError(pi, paths, "ruleDelivery", undefined);
+  if (hookEvent !== "PreToolUse" || !ruleDeliveryGates(tool)) return undefined;
+
+  const parsed = parseHookJson(stdout);
+  const decision = typeof parsed?.decision === "string" ? parsed.decision : undefined;
+  if (decision !== "deny" && decision !== "blocked") return undefined;
+  const reason = typeof parsed?.reason === "string" && parsed.reason.length > 0
+    ? parsed.reason
+    : RULE_DELIVERY_FALLBACK_REASON;
+  return { block: true, reason };
 }
 
 export function registerGeneralHiveHooks(
@@ -685,6 +800,8 @@ export function registerGeneralHiveHooks(
   markHiveHookWired(pi, paths, "bashPolicy");
   markHiveHookWired(pi, paths, "postToolHub");
   markHiveHookWired(pi, paths, "flowContext");
+  // The gate is wired in every session, child included; the advisories are not.
+  markHiveHookWired(pi, paths, "ruleDelivery");
   if (parentAdvisoriesEnabled) {
     markHiveHookWired(pi, paths, "flowSessionContext");
     markHiveHookWired(pi, paths, "ruleContext");
@@ -779,16 +896,20 @@ export function registerGeneralHiveHooks(
     }
 
     if (parentAdvisoriesEnabled) {
-      const mappedTool = ruleToolName(event.toolName);
-      if (mappedTool) {
+      // One queue for both rule hooks: their steered messages must reach the
+      // session in call order, never interleaved by whichever process exits first.
+      const queueRuleAdvisory = async (
+        key: HiveHookKey,
+        mappedTool: "Write" | "Edit" | "Bash" | "Read",
+      ): Promise<void> => {
         const previous = ruleQueue;
         const current = previous.then(async () => {
           const context = await runAdvisoryHook(
             pi,
             paths,
-            "ruleContext",
+            key,
             {
-              scriptPath: paths.ruleContext,
+              scriptPath: paths[key],
               cwd: ctx.cwd,
               payload: ruleContextPayload(ctx, event, mappedTool),
               mode: "advisory",
@@ -803,17 +924,35 @@ export function registerGeneralHiveHooks(
               pi,
               context,
               "steer",
-              { source: "tool_call", sessionId: currentSessionId(ctx), hook: "ruleContext", tool: mappedTool },
+              { source: "tool_call", sessionId: currentSessionId(ctx), hook: key, tool: mappedTool },
             );
           } catch (error) {
             const reason = `Unable to queue rule context: ${hookFailureReason(error)}`;
-            recordHiveHookError(pi, paths, "ruleContext", reason);
-            notifyAdvisoryFailureOnce(ctx, "ruleContext", paths.ruleContext, reason, currentSessionId(ctx), advisoryFailureKeys);
+            recordHiveHookError(pi, paths, key, reason);
+            notifyAdvisoryFailureOnce(ctx, key, paths[key], reason, currentSessionId(ctx), advisoryFailureKeys);
           }
         }, async () => undefined);
         ruleQueue = current.then(() => undefined, () => undefined);
         await current;
-      }
+      };
+
+      const mappedTool = ruleToolName(event.toolName);
+      if (mappedTool) await queueRuleAdvisory("ruleContext", mappedTool);
+    }
+
+    // rule-delivery is a GATE, not an advisory: PI can refuse a tool call, so a
+    // held write is blocked with the hook's own short reason and nothing is
+    // steered into the session (the gate carries no rule text). It runs in
+    // CHILD sessions too — those are the ones that write code; the parent-only
+    // rule above exists for steered-context noise, and a block steers nothing.
+    // Skipped when the script is not installed: an absent hook must never turn
+    // into a blocked write (readiness is what reports it).
+    const deliveryTool = ruleDeliveryToolName(event.toolName);
+    if (deliveryTool && isExecutable(paths.ruleDelivery)) {
+      const held = await runRuleDeliveryGate(
+        pi, paths, deliveryTool, event, ctx, runnerOptions, advisoryFailureKeys,
+      );
+      if (held) return held;
     }
 
     if (toolName !== "bash") return undefined;
@@ -838,6 +977,14 @@ export function registerGeneralHiveHooks(
   pi.on("tool_result", async (event, ctx) => {
     if (/^(?:subagent|delegate|spawn)(?:[-_]|$)/iu.test(event.toolName)) {
       childRegistry.settle(event.toolCallId);
+    }
+    // PI's post-tool point: a read is recorded only once it has RUN, the same
+    // split the Claude and Codex wiring makes with PostToolUse.
+    const observedTool = ruleDeliveryToolName(event.toolName);
+    if (observedTool && !ruleDeliveryGates(observedTool) && isExecutable(paths.ruleDelivery)) {
+      await runRuleDeliveryGate(
+        pi, paths, observedTool, event, ctx, runnerOptions, advisoryFailureKeys, "PostToolUse",
+      );
     }
     const context = await runAdvisoryHook(
       pi,

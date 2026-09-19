@@ -61,7 +61,7 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 ## Agent Design Principles
 
 ### What Makes a Good Agent
-- **Under 120 lines.** Every line must change the agent's output vs default behavior.
+- **Every line must change the agent's output vs default behavior.** 120 lines of the agent's own text is a review threshold, never a cap: past it, look for filler; lines that carry weight stay. The rule texts an agent carries through `packs:` are inlined at build and never count.
 - **Unique rules only.** If the global CLAUDE.md already covers it (e.g., "no `any`", "thin controllers"), don't repeat it.
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
@@ -130,7 +130,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── README.md                      # What Claude Code loads + the official doc backing each mechanism (verified URLs)
 ├── CLAUDE.md                      # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                 # Canonical section files for BOTH always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, post-tool-hub, flow-session-context, flow-context, reviewer-guard, executor-dispatch-gate, session-hygiene-report)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, rule-delivery, post-tool-hub, flow-session-context, flow-context, reviewer-guard, executor-dispatch-gate, session-hygiene-report)
 ├── rules/                         # Organized by function, discovered recursively
 │   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
 │   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)
@@ -220,6 +220,9 @@ harness/                           # Per-CLI layer — sources + VERSIONED gener
 ├── build.py                       # Regenerates every generated tree below from global/ — run after agent/skill edits
 ├── build/                         # convert-agents.py + convert-rules.py + convert-skills.py (build tooling)
 ├── agents-skills/                 # GENERATED — cleaned universal skills → ~/.agents/skills (Codex + opencode)
+├── rule-manifest.json             # GENERATED — every rule text: globs, deployed reference paths, `readers`, which agents carry it as a pack, read-only agents; read by the rule-delivery hook
+├── claude/                        # README (generated marker)
+│   └── agents/                    # GENERATED — Claude Code subagents with their `packs:` inlined → ~/.claude/agents (mirrors global/agents/<role>/)
 ├── codex/                         # README + config.toml.snippet (sources)
 │   └── agents/                    # GENERATED — TOML subagents → ~/.codex/agents
 ├── opencode/                      # README + opencode.jsonc.snippet + commands/ + permission-config.json (sources)

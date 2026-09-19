@@ -30,6 +30,7 @@ PI_HOOKS = (
     "post-tool-hub/post-tool-hub.sh",
     "reviewer-guard/reviewer-guard.sh",
     "rule-context/rule-context.sh",
+    "rule-delivery/rule-delivery.py",
     "session-hygiene-report/session-hygiene-report.sh",
 )
 PATCH_FILES = (
@@ -704,7 +705,8 @@ class PiDeployTests(unittest.TestCase):
             metadata = json.loads((source / PATCH_FILES[1]).read_text(encoding="utf-8"))
 
             first = run_helper(*arguments)
-            self.assertIn("files: 15 write, 0 delete, 0 conflict", first.stdout)
+            # 16 since rule-delivery: the bundle carries one more canonical hook.
+            self.assertIn("files: 16 write, 0 delete, 0 conflict", first.stdout)
             manifest = json.loads((pi_dir / ".hive-deploy-manifest.json").read_text(encoding="utf-8"))
             for record in metadata["targets"]:
                 target = pi_dir / "npm/node_modules/pi-subagents" / record["path"]

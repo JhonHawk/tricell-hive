@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # agent-line-count.sh — PostToolUse (Write|Edit) hook, NON-BLOCKING.
 #
-# Hive-only: after writing/editing an agent under global/agents/, warn if the
-# file exceeds the 120-line agent design limit (AGENTS.md / CLAUDE.md).
+# Hive-only: after writing/editing an agent under global/agents/, flag a file
+# past the 120-line review threshold (AGENTS.md > What Makes a Good Agent). The
+# source file is the agent's own text: rule texts carried through `packs:` are
+# inlined at build, so they never reach this count.
 # Advisory only — always exits 0; never blocks the tool call.
 #
 # Lives as a script (not an inline command) so shell locals like $lines are
@@ -28,7 +30,7 @@ line_count=$(wc -l < "$file_path" | tr -d '[:space:]')
 
 if [ "$line_count" -gt 120 ] 2>/dev/null; then
   name=$(basename "$file_path")
-  printf '%s\n' "{\"systemMessage\":\"Agent ${name} has ${line_count} lines (max 120). Consider trimming filler.\",\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The agent file exceeds the 120-line limit defined in CLAUDE.md. Review and trim.\"}}"
+  printf '%s\n' "{\"systemMessage\":\"Agent ${name} has ${line_count} lines of its own text (review threshold: 120).\",\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The agent file is past the 120-line review threshold in AGENTS.md. It is a cue, not a cap: check each line changes the agent's output and cut filler; lines that carry weight stay.\"}}"
 fi
 
 exit 0

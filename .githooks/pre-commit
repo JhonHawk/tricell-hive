@@ -17,10 +17,17 @@ readonly ROOT
 cd "$ROOT"
 
 readonly -a SOURCES=(global/ harness/build.py harness/build/ harness/hive-compile.py)
+# Every output harness/build.py writes. Keep in step with its
+# GENERATED_TREE_RELATIVE_PATHS + GENERATED_FILE_RELATIVE_PATHS: an entry the
+# build regenerates but this array omits is rebuilt and then left OUT of the
+# commit, so the commit lands with a stale generated file and the next
+# `build.py --check` fails on a machine that changed nothing.
 readonly -a GENERATED=(
   global/CLAUDE.md
   harness/AGENTS.md
   harness/agents-skills
+  harness/claude
+  harness/rule-manifest.json
   harness/codex/agents
   harness/opencode/agents
   harness/opencode/rules

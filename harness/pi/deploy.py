@@ -117,7 +117,13 @@ PI_HOOK_RELATIVES = (
     "post-tool-hub/post-tool-hub.sh",
     "reviewer-guard/reviewer-guard.sh",
     "rule-context/rule-context.sh",
+    "rule-delivery/rule-delivery.py",
     "session-hygiene-report/session-hygiene-report.sh",
+)
+# Generated, not authored under global/hooks — but rule-delivery reads it from
+# beside itself and exits silently without it, so it ships in the same bundle.
+PI_HOOK_DATA_FILES = (
+    ("global/hooks/rule-delivery/rule-manifest.json", "harness/rule-manifest.json"),
 )
 PI_REQUIRED_FILES = (
     ("harness/AGENTS.md", "generated PI core"),
@@ -577,7 +583,9 @@ def _file_mode(path: Path, default: int = 0o644) -> int:
 
 def _deploy_mode(source: Path, relative: str) -> int:
     mode = _file_mode(source)
-    if relative.startswith("global/hooks/") and source.suffix == ".sh":
+    # A hook the PI bridge cannot execute is skipped in silence, and a checkout
+    # need not preserve the bit — so it is forced here, whatever the language.
+    if relative.startswith("global/hooks/") and source.suffix in {".sh", ".py"}:
         return 0o755
     return mode
 
@@ -653,6 +661,12 @@ def _canonical_hook_sources(repo_root: Path) -> Iterable[tuple[str, Path]]:
         # Keep canonical scripts there so the parent and pi-subagents' explicit
         # extension paths resolve the same files.
         yield f"global/hooks/{relative}", source
+    for target, source_relative in PI_HOOK_DATA_FILES:
+        source = repo_root / source_relative
+        # Absent only in a tree where the build has never run: the hook then
+        # finds no manifest and stays silent, which is its designed failure.
+        if source.is_file():
+            yield target, source
 
 
 def _source_files(repo_root: Path) -> list[tuple[str, Path]]:

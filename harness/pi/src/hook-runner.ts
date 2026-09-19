@@ -53,7 +53,9 @@ function parseJsonRecord(text: string, outputKind: HookOutputKind = "policy"): P
   const rawDecision = textValue(record.decision) ?? textValue(record.permissionDecision) ?? textValue(nested?.permissionDecision);
   const decision = rawDecision?.toLowerCase();
   const status = textValue(record.status);
-  const reason = textValue(record.reason) ?? textValue(nested?.reason);
+  // `permissionDecisionReason` is the Claude-shaped field the rule-delivery
+  // gate emits; without it a denial would reach the caller with its reason lost.
+  const reason = textValue(record.reason) ?? textValue(nested?.reason) ?? textValue(nested?.permissionDecisionReason);
   const additionalContext = textValue(record.additionalContext) ?? textValue(nested?.additionalContext);
   const normalizedDecision = decision?.toLowerCase();
   const validDecision = normalizedDecision !== undefined && KNOWN_DECISIONS.has(normalizedDecision);

@@ -110,6 +110,7 @@ function pathsFor(directory: string): HookPaths {
     flowContext: join(directory, "missing-flow-context.sh"),
     flowSessionContext: join(directory, "missing-flow-session-context.sh"),
     ruleContext: join(directory, "missing-rule-context.sh"),
+    ruleDelivery: join(directory, "missing-rule-delivery.py"),
     sessionHygieneReport: join(directory, "missing-session-hygiene-report.sh"),
   };
 }
@@ -638,7 +639,38 @@ test("parent-only advisory hooks do not run in PI child sessions and resumed sta
   }
 });
 
-test("hook readiness keeps four required hooks authoritative while exposing all seven statuses", () => {
+test("hook readiness fails when the declared gate is not installed", () => {
+  // rule-delivery is a GATE: if it is missing, writes go through ungated and
+  // nothing says so. A readiness check that still answers "ready" hides it.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-gate-readiness-"));
+  const fake = createFakePi();
+  const paths = pathsFor(directory);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  try {
+    delete process.env.PI_SUBAGENT_CHILD;
+    assert.equal(REQUIRED_HOOK_KEYS.includes("ruleDelivery"), true, "a gate is not advisory");
+    for (const key of REQUIRED_HOOK_KEYS) {
+      if (key === "ruleDelivery") continue;
+      writeFileSync(paths[key], "#!/bin/sh\nexit 0\n");
+      chmodSync(paths[key], 0o755);
+    }
+    registerGeneralHiveHooks(fake.api, { paths });
+    const readiness = fake.tools.find((tool): tool is { readonly name: string; readonly execute: (...args: readonly unknown[]) => Promise<unknown> } => (
+      typeof tool === "object" && tool !== null && "name" in tool && tool.name === "hive_hook_readiness" && "execute" in tool && typeof tool.execute === "function"
+    ));
+    assert.ok(readiness);
+    return readiness.execute({}).then((result) => {
+      assert.match(JSON.stringify(result), /"ready":false/u);
+      assert.match(JSON.stringify(result), /rule-delivery\.py/u);
+    });
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("hook readiness keeps the required hooks authoritative while exposing all eight statuses", () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-hook-status-"));
   const fake = createFakePi();
   const paths = pathsFor(directory);
@@ -651,9 +683,10 @@ test("hook readiness keeps four required hooks authoritative while exposing all 
     }
     registerGeneralHiveHooks(fake.api, { paths });
     const statuses = getHiveHookStatuses(fake.api, paths);
-    assert.equal(Object.keys(statuses).length, 7);
+    assert.equal(Object.keys(statuses).length, 8);
     assert.equal(statuses.flowSessionContext?.wired, true);
     assert.equal(statuses.ruleContext?.wired, true);
+    assert.equal(statuses.ruleDelivery?.wired, true);
     assert.equal(statuses.sessionHygieneReport?.wired, true);
     assert.equal(statuses.reviewerGuard?.wired, false);
     const readiness = fake.tools.find((tool): tool is { readonly name: string; readonly execute: (...args: readonly unknown[]) => Promise<unknown> } => (
@@ -759,5 +792,157 @@ process.stdin.on("end", () => {
     assert.match(JSON.stringify(fake.messages[1]?.message), /Edit/u);
   } finally {
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+function writeRuleDeliveryStub(directory: string, log: string, denyTools: readonly string[]): string {
+  const ruleDelivery = join(directory, "rule-delivery.py");
+  writeFileSync(ruleDelivery, `#!/usr/bin/env node
+const fs = require("node:fs");
+let input = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { input += chunk; });
+process.stdin.on("end", () => {
+  const payload = JSON.parse(input);
+  fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(payload) + "\\n");
+  if (${JSON.stringify(denyTools)}.includes(payload.tool_name)) {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "Held: read /rules/ts.md first, then re-issue this call." } }));
+  }
+});
+`);
+  chmodSync(ruleDelivery, 0o755);
+  return ruleDelivery;
+}
+
+test("rule delivery blocks a held Write/Edit with the hook's own reason", async () => {
+  // PI *can* refuse a tool call (the bash-policy path returns `block`), so the
+  // hook keeps its gate here instead of degrading to advice.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Write", "Edit"]);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    const held = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context);
+    assert.deepEqual(held, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads[0]?.harness, "pi");
+    assert.equal(payloads[0]?.tool_name, "Write");
+    assert.deepEqual(payloads[0]?.tool_input, { file_path: "a.ts", content: "a" });
+    // The gate speaks through the block, never through steered context.
+    assert.equal(fake.messages.some((entry) => JSON.stringify(entry.message).includes("Held: read")), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery observes Read and Bash calls and never blocks them", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-observe-"));
+  const log = join(directory, "delivery.log");
+  // A stub that would deny everything: only the tools the bridge gates can block.
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Write", "Edit", "Read", "Bash"]);
+  // A permissive bash-policy stub: without it the bash call is blocked by the
+  // missing required hook and says nothing about rule-delivery.
+  const bashPolicy = join(directory, "bash-policy.sh");
+  writeFileSync(bashPolicy, "#!/usr/bin/env node\nprocess.stdin.resume();\nprocess.stdin.on(\"end\", () => {});\n");
+  chmodSync(bashPolicy, 0o755);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery, bashPolicy } });
+    const read = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "read-1", toolName: "read", input: { file_path: "/rules/ts.md" } }, context);
+    const bash = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "bash-1", toolName: "bash", input: { command: "cat /rules/ts.md" } }, context);
+    assert.equal(read, undefined);
+    assert.equal(bash, undefined);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    // Bash reaches the hook now: a `cat` of the rule file is how the gate is
+    // released when the model does not use the read tool.
+    assert.deepEqual(payloads.map((payload) => payload.tool_name), ["Read", "Bash"]);
+    assert.deepEqual(payloads[1]?.tool_input, { command: "cat /rules/ts.md" });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery gates child sessions too and tells the hook who is writing", async () => {
+  // Children are the sessions that write code; the parent-only exclusion exists
+  // for steered-context noise, and a block steers nothing.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-child-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, ["Write", "Edit"]);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-child", "base", [], fake.notifications);
+  const previousChild = process.env.PI_SUBAGENT_CHILD;
+  const previousAgent = process.env.PI_HIVE_AGENT;
+  try {
+    process.env.PI_SUBAGENT_CHILD = "1";
+    process.env.PI_HIVE_AGENT = "ts-backend-developer";
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    const held = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context);
+    assert.deepEqual(held, { block: true, reason: "Held: read /rules/ts.md first, then re-issue this call." });
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads[0]?.hook_event_name, "PreToolUse");
+    assert.equal(payloads[0]?.agent_type, "ts-backend-developer", "packs and read-only scoping need the identity");
+    assert.equal(payloads[0]?.session_id, "session-child");
+    // Advisories stay parent-only: no steered context in a child.
+    assert.equal(fake.messages.length, 0);
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_SUBAGENT_CHILD;
+    else process.env.PI_SUBAGENT_CHILD = previousChild;
+    if (previousAgent === undefined) delete process.env.PI_HIVE_AGENT;
+    else process.env.PI_HIVE_AGENT = previousAgent;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery observes completed reads on tool_result", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-result-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, []);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "read-1", toolName: "read", input: { file_path: "/rules/ts.md" }, content: [], isError: false }, context);
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "bash-1", toolName: "bash", input: { command: "cat /rules/ts.md" }, content: [], isError: false }, context);
+    await invoke(fake, "tool_result", { type: "tool_result", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts" }, content: [], isError: false }, context);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.deepEqual(payloads.map((payload) => payload.tool_name), ["Read", "Bash"], "a completed write is not an observation");
+    assert.equal(payloads[0]?.hook_event_name, "PostToolUse");
+    assert.deepEqual(payloads[1]?.tool_input, { command: "cat /rules/ts.md" });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("rule delivery allows the write when the hook is silent or cannot run", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-open-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, []);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  try {
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    const allowed = await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context);
+    assert.equal(allowed, undefined);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+
+  // An absent hook script must never turn into a blocked write.
+  const empty = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-absent-"));
+  const fakeWithout = createFakePi();
+  const contextWithout = makeContext(empty, "session-b", "base", [], fakeWithout.notifications);
+  try {
+    registerGeneralHiveHooks(fakeWithout.api, { paths: pathsFor(empty) });
+    const allowed = await invoke(fakeWithout, "tool_call", { type: "tool_call", toolCallId: "write-2", toolName: "write", input: { file_path: "a.ts", content: "a" } }, contextWithout);
+    assert.equal(allowed, undefined);
+  } finally {
+    rmSync(empty, { recursive: true, force: true });
   }
 });

@@ -44,6 +44,11 @@ readonly HOOK_MERGE_FILTER="${FILTERS_DIR}/hook-merge.jq"
 readonly HOOK_PURGE_FILTER="${FILTERS_DIR}/hook-purge.jq"
 
 readonly CLAUDE_HOME="${HOME}/.claude"
+# Claude Code's agents ship from the GENERATED tree, not from global/agents:
+# an agent that declares `packs:` carries its rule texts only after the build
+# inlines them, and `omitClaudeMd: true` is added there too. Deploying the
+# canonical source would hand Claude Code an agent with neither.
+readonly CLAUDE_AGENTS_SRC="${REPO_ROOT}/harness/claude/agents"
 readonly CODEX_HOME="${HOME}/.codex"
 readonly OPENCODE_HOME="${HOME}/.config/opencode"
 readonly AGENTS_HOME="${HOME}/.agents"
@@ -412,7 +417,7 @@ step_preflight_generic_targets() {
         preflight_target_file "Claude CLAUDE.md" "${CLAUDE_HOME}/CLAUDE.md"
         preflight_target_file "Claude settings.json" "${CLAUDE_HOME}/settings.json"
         preflight_tree_targets "Claude rules" "${REPO_ROOT}/global/rules" "${CLAUDE_HOME}/rules"
-        preflight_tree_targets "Claude agents" "${REPO_ROOT}/global/agents" "${CLAUDE_HOME}/agents"
+        preflight_tree_targets "Claude agents" "${CLAUDE_AGENTS_SRC}" "${CLAUDE_HOME}/agents"
         preflight_tree_targets "Claude skills" "${REPO_ROOT}/global/skills" "${CLAUDE_HOME}/skills"
         preflight_flat_targets "Claude hooks" "${REPO_ROOT}/global/hooks" "${CLAUDE_HOME}/hooks"
     fi
@@ -552,7 +557,7 @@ diff_hooks() {
         else
             modified=$((modified + 1))
         fi
-    done < <(find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o \( -name '*.json' ! -name 'settings-config.json' ! -name 'codex-hooks.json' \) \) -print0 2>/dev/null)
+    done < <(find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o \( -name '*.py' ! -name 'test_*' \) -o \( -name '*.json' ! -name 'settings-config.json' ! -name 'codex-hooks.json' \) \) -print0 2>/dev/null)
     log "  hooks: ${new} new, ${modified} modified, ${unchanged} unchanged"
     report "  hooks: ${new} new, ${modified} modified, ${unchanged} unchanged"
 }
@@ -703,8 +708,8 @@ step_preview() {
         [[ -f "${REPO_ROOT}/global/CLAUDE.md" ]] && log "  CLAUDE.md: 1 file"
         read -r f l <<<"$(count_files_lines "${REPO_ROOT}/global/rules")"
         log "  rules: ${f} files, ${l} lines"
-        read -r f l <<<"$(count_files_lines "${REPO_ROOT}/global/agents")"
-        log "  agents: ${f} files, ${l} lines"
+        read -r f l <<<"$(count_files_lines "${CLAUDE_AGENTS_SRC}")"
+        log "  agents: ${f} files, ${l} lines (source: harness/claude/agents, generated)"
         read -r f l <<<"$(count_files_lines "${REPO_ROOT}/global/skills")"
         log "  skills: ${f} files, ${l} lines"
         read -r f l <<<"$(count_files_lines "${REPO_ROOT}/global/hooks")"
@@ -724,7 +729,7 @@ step_diff() {
     if [[ "${RUN_CLAUDE}" -eq 1 ]]; then
         diff_file "CLAUDE.md" "${REPO_ROOT}/global/CLAUDE.md" "${CLAUDE_HOME}/CLAUDE.md"
         diff_category "rules" "${REPO_ROOT}/global/rules" "${CLAUDE_HOME}/rules"
-        diff_category "agents" "${REPO_ROOT}/global/agents" "${CLAUDE_HOME}/agents"
+        diff_category "agents" "${CLAUDE_AGENTS_SRC}" "${CLAUDE_HOME}/agents"
         diff_category "skills" "${REPO_ROOT}/global/skills" "${CLAUDE_HOME}/skills"
         diff_hooks
     fi
@@ -921,8 +926,28 @@ manifest_entry_map() {
     MAP_SRC=""
     MAP_TGT=""
     case "${rel}" in
-        CLAUDE.md | rules/* | agents/*)
+        CLAUDE.md | rules/*)
             MAP_SRC="${REPO_ROOT}/global/${rel}"
+            MAP_TGT="${CLAUDE_HOME}/${rel}"
+            ;;
+        agents/*)
+            # `rel` already starts with `agents/`, and the generated tree keeps
+            # the source's role subfolders — so a deployed agent maps back to
+            # exactly the file that produced it. Resolving against global/agents
+            # would make a deleted agent look alive whenever the rebuild that
+            # removed it from the generated tree had not run.
+            #
+            # Only *.md though: the converter renders nothing else, so a
+            # non-markdown entry exists in global/agents alone. Older manifests
+            # DO carry such entries (the previous script enumerated
+            # `global/agents -type f`), and resolving one against the generated
+            # tree reports it as an orphan — an --apply would then delete a
+            # file from the user's home that was never generated.
+            if [[ "${rel}" == *.md ]]; then
+                MAP_SRC="${REPO_ROOT}/harness/claude/${rel}"
+            else
+                MAP_SRC="${REPO_ROOT}/global/${rel}"
+            fi
             MAP_TGT="${CLAUDE_HOME}/${rel}"
             ;;
         skills/*)
@@ -933,6 +958,17 @@ manifest_entry_map() {
             # fallback every injected file reads as an orphan and step 5 offers
             # to delete what the previous step just deployed.
             [[ -e "${MAP_SRC}" ]] || MAP_SRC="${REPO_ROOT}/harness/agents-skills/${rel#skills/}"
+            ;;
+        # The rule manifest is generated into harness/, not authored under
+        # global/hooks — the find below would never resolve it, and the sweep
+        # would offer to delete the file the deploy just placed.
+        hooks/rule-manifest.json)
+            MAP_SRC="${REPO_ROOT}/harness/rule-manifest.json"
+            MAP_TGT="${CLAUDE_HOME}/hooks/rule-manifest.json"
+            ;;
+        codex-hooks/rule-manifest.json)
+            MAP_SRC="${REPO_ROOT}/harness/rule-manifest.json"
+            MAP_TGT="${CODEX_HOME}/hooks/rule-manifest.json"
             ;;
         hooks/*)
             local bn
@@ -1201,7 +1237,7 @@ step_deploy_claude() {
     deploy_file "CLAUDE.md" "${REPO_ROOT}/global/CLAUDE.md" "${CLAUDE_HOME}/CLAUDE.md"
     deploy_tree "rules" "${REPO_ROOT}/global/rules" "${CLAUDE_HOME}/rules"
     clean_stale_duplicates "rule" "${CLAUDE_HOME}/rules"
-    deploy_tree "agents" "${REPO_ROOT}/global/agents" "${CLAUDE_HOME}/agents"
+    deploy_tree "agents" "${CLAUDE_AGENTS_SRC}" "${CLAUDE_HOME}/agents"
     clean_stale_duplicates "agent" "${CLAUDE_HOME}/agents"
     deploy_tree "skills" "${REPO_ROOT}/global/skills" "${CLAUDE_HOME}/skills"
     deploy_injected_references
@@ -1231,11 +1267,13 @@ step_deploy_hooks() {
 
     if [[ -d "${REPO_ROOT}/global/hooks" ]]; then
         local count
-        count=$(find "${REPO_ROOT}/global/hooks" -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')
+        count=$(find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' 2>/dev/null | wc -l | tr -d ' ')
         if [[ "${APPLY}" -eq 1 ]]; then
             mkdir -p "${CLAUDE_HOME}/hooks"
-            find "${REPO_ROOT}/global/hooks" -name '*.sh' -exec cp {} "${CLAUDE_HOME}/hooks/" \;
-            chmod +x "${CLAUDE_HOME}/hooks/"*.sh 2>/dev/null || true
+            # `*.py` since rule-delivery: a hook script is not necessarily
+            # shell. `test_*` is the hook's own test runner, never deployed.
+            find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' -exec cp {} "${CLAUDE_HOME}/hooks/" \;
+            chmod +x "${CLAUDE_HOME}/hooks/"*.sh "${CLAUDE_HOME}/hooks/"*.py 2>/dev/null || true
             # *.json here = runtime config a deployed hook READS from the flat dir
             # (bash-policy.json). Merge INPUTS are excluded like settings-config.json:
             # codex-hooks.json feeds the ~/.codex/hooks.json merge (Codex's native
@@ -1250,10 +1288,32 @@ step_deploy_hooks() {
         report "hooks: ${count} script(s) -> ${CLAUDE_HOME}/hooks"
     fi
 
+    deploy_rule_manifest "${CLAUDE_HOME}/hooks" "claude rule manifest"
+
     merge_hook_configs \
         "$(find "${REPO_ROOT}/global/hooks" -name settings-config.json 2>/dev/null)" \
         "${CLAUDE_HOME}/settings.json" \
         "claude settings.json"
+}
+
+# deploy_rule_manifest TARGET_HOOK_DIR LABEL
+#
+# The rule-delivery hook reads harness/rule-manifest.json from beside itself:
+# which rule texts exist, what globs scope them, and where each harness's
+# deployed copy lives. Without it the hook exits silently and no rule is ever
+# delivered — so it ships with the script, in every hook dir that gets one.
+deploy_rule_manifest() {
+    local target_dir="$1" label="$2"
+    local source="${REPO_ROOT}/harness/rule-manifest.json"
+    [[ -f "${source}" ]] || { vlog "${label}: no manifest at ${source}, skip"; return 0; }
+    if [[ "${APPLY}" -eq 1 ]]; then
+        mkdir -p "${target_dir}"
+        cp "${source}" "${target_dir}/rule-manifest.json"
+        log "Deployed rule manifest -> ${target_dir}/rule-manifest.json"
+    else
+        log "[DRY-RUN] would deploy rule manifest -> ${target_dir}/rule-manifest.json"
+    fi
+    report "${label}: rule-manifest.json -> ${target_dir}"
 }
 
 # merge_hook_configs "CONFIG_FILE_LIST(newline)" TARGET_FILE LABEL
@@ -1444,11 +1504,13 @@ step_deploy_codex_hooks() {
         local hookdir
         hookdir=$(dirname "${cj}")
         local count
-        count=$(find "${hookdir}" -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')
+        # `*.py` since rule-delivery: a hook script is not necessarily shell.
+        # `test_*` is the hook's own test runner, never deployed.
+        count=$(find "${hookdir}" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' 2>/dev/null | wc -l | tr -d ' ')
         if [[ "${APPLY}" -eq 1 ]]; then
             mkdir -p "${CODEX_HOME}/hooks"
-            find "${hookdir}" -name '*.sh' -exec cp {} "${CODEX_HOME}/hooks/" \;
-            find "${hookdir}" -name '*.sh' -print0 | while IFS= read -r -d '' s; do
+            find "${hookdir}" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' -exec cp {} "${CODEX_HOME}/hooks/" \;
+            find "${hookdir}" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' -print0 | while IFS= read -r -d '' s; do
                 chmod +x "${CODEX_HOME}/hooks/$(basename "${s}")"
             done
             [[ -f "${CODEX_HOME}/hooks.json" ]] || echo '{}' >"${CODEX_HOME}/hooks.json"
@@ -1473,6 +1535,8 @@ step_deploy_codex_hooks() {
             report "codex hooks (${hookdir##*/}): [DRY-RUN]"
         fi
     done < <(find "${REPO_ROOT}/global/hooks" -name codex-hooks.json 2>/dev/null)
+
+    [[ "${found_any}" -eq 1 ]] && deploy_rule_manifest "${CODEX_HOME}/hooks" "codex rule manifest"
 
     if [[ "${found_any}" -eq 1 ]]; then
         log "Codex trust caveat: a merged hook stays inert until its [hooks.state] slot in ~/.codex/config.toml is present and enabled=true (accepted via the Codex trust prompt, or set manually). This script never edits config.toml."
@@ -1708,8 +1772,17 @@ step_write_manifest() {
         # paths that DO exist) already reached stdout.
         if [[ "${RUN_CLAUDE}" -eq 1 ]]; then
             [[ -f "${REPO_ROOT}/global/CLAUDE.md" ]] && echo "CLAUDE.md"
-            find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/agents" "${REPO_ROOT}/global/skills" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
-            find "${REPO_ROOT}/global/hooks" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|' || true
+            find "${REPO_ROOT}/global/rules" "${REPO_ROOT}/global/skills" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | sed "s|^${REPO_ROOT}/global/||" || true
+            # Agents are enumerated from the GENERATED tree, the same source
+            # manifest_entry_map resolves `agents/*` against. Walking
+            # global/agents instead would list files the converter never
+            # renders (anything that is not *.md): the entry's source then
+            # reads as missing, orphan detection flags it, and an --apply
+            # deletes a file from the user's home that was never ours.
+            find "${CLAUDE_AGENTS_SRC}" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' 2>/dev/null | sed "s|^${CLAUDE_AGENTS_SRC}|agents|" || true
+            find "${REPO_ROOT}/global/hooks" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|hooks/|' || true
+            # Generated into harness/, deployed beside the hook that reads it.
+            [[ -f "${REPO_ROOT}/harness/rule-manifest.json" ]] && echo "hooks/rule-manifest.json"
             # Injected references are deployed into ~/.claude/skills by
             # deploy_injected_references but exist ONLY in the generated tree, so
             # the walk above never saw them. Same skip as that function: a file
@@ -1729,9 +1802,15 @@ step_write_manifest() {
         if [[ "${RUN_CODEX}" -eq 1 ]]; then
             find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|\.md$|.toml|; s|^|codex-agents/|' || true
             [[ -f "${REPO_ROOT}/harness/AGENTS.md" ]] && echo "harness-agents/codex/AGENTS.md"
-            find "${REPO_ROOT}/global/hooks" -name codex-hooks.json 2>/dev/null | while IFS= read -r cj; do
-                find "$(dirname "${cj}")" -name '*.sh' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|codex-hooks/|'
+            local codex_hook_configs
+            codex_hook_configs=$(find "${REPO_ROOT}/global/hooks" -name codex-hooks.json 2>/dev/null)
+            printf '%s\n' "${codex_hook_configs}" | while IFS= read -r cj; do
+                [[ -n "${cj}" ]] || continue
+                find "$(dirname "${cj}")" \( -name '*.sh' -o -name '*.py' \) ! -name 'test_*' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|codex-hooks/|'
             done || true
+            if [[ -n "${codex_hook_configs}" && -f "${REPO_ROOT}/harness/rule-manifest.json" ]]; then
+                echo "codex-hooks/rule-manifest.json"
+            fi
         fi
         if [[ "${RUN_OPENCODE}" -eq 1 ]]; then
             find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-agents/|' || true

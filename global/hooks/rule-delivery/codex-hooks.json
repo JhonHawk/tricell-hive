@@ -1,0 +1,29 @@
+{
+  "_comment": "Merged into ~/.codex/hooks.json by /deploy-global (step 13). PreToolUse gates `apply_patch` — the first patch authoring a file a rule scopes is denied with a short reason naming the rule file — and `Bash` ONLY for a patch written through the shell (`*** Add File:` headers author files too). PostToolUse observes `Bash`: Codex has no read tool, so a completed `cat`/`sed`/`head` of the rule file is the only way the gate is ever released. HIVE_HARNESS=codex selects the ~/.agents reference root and the wide reason budget (Codex carries 24 KB, so one denial names every pending rule).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HIVE_HARNESS=codex python3 \"$HOME/.codex/hooks/rule-delivery.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HIVE_HARNESS=codex python3 \"$HOME/.codex/hooks/rule-delivery.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

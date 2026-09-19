@@ -14,6 +14,10 @@ _support/backup/
 # Large copyrighted reference binaries — distilled into global/rules/languages/ui-visual-design.md; reproducible, never committed
 _support/refactoring-ui/
 
+# deploy-global's tests source the script from a sibling temp file so its
+# REPO_ROOT calculation still resolves; an interrupted run leaves one behind.
+.claude/skills/deploy-global/scripts/.deploy-global-test-*.sh
+
 # Python bytecode
 __pycache__/
 *.pyc

@@ -3,12 +3,13 @@
 
 Source of truth: global/agents/**/*.md (Claude Code format).
 Outputs:
+  - Claude Code: <out>/claude/<role>/<name>.md (source frontmatter + inlined packs)
   - Codex CLI:  <out>/codex/<name>.toml      (developer_instructions = body)
   - opencode:   <out>/opencode/<name>.md     (mode: subagent, permission map)
   - Grok Build: <out>/grok/<name>.md         (subagent types under ~/.grok/agents/)
   - Pi:         <out>/pi/<name>.md          (pi-subagents custom agents)
 
-Run by /deploy-global before copying to ~/.codex/agents/,
+Run by /deploy-global before copying to ~/.claude/agents/, ~/.codex/agents/,
 ~/.config/opencode/agents/, ~/.grok/agents/, and the Pi agent directory. Never
 edit generated files by hand — edit the canonical agent and redeploy.
 
@@ -16,6 +17,7 @@ Usage: convert-agents.py <agents-src-dir> <out-dir>
 """
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 # Deliberately names no source repository or path: an agent that reads its own
@@ -126,6 +128,7 @@ def parse_agent(path: Path):
     max_turns = field("maxTurns")
     skills_raw = field("skills")
     skills = [s.strip() for s in skills_raw.split(",")] if skills_raw else []
+    packs = parse_packs(name, field("packs"), fm_text)
     memory = field("memory")
     mcp_servers = field("mcpServers")
     return {
@@ -139,8 +142,15 @@ def parse_agent(path: Path):
         "permission_mode": permission_mode,
         "max_turns": max_turns,
         "skills": skills,
+        # Hive-only field. A pack is a rule file's basename: resolution and the
+        # inlined text are settled here so an unknown pack fails ONE build, not
+        # five renders.
+        "packs": packs,
+        "pack_texts": [(pack, resolve_pack(name, pack)) for pack in packs],
         "memory": memory,
         "mcp_servers": mcp_servers,
+        # The source frontmatter verbatim — only the Claude output re-emits it.
+        "frontmatter": fm_text,
         # Claude's nested hook frontmatter is deliberately not converted as a
         # hook object. The reviewer guard is a required PI child extension, so
         # retain only the observable source contract that selects it.
@@ -181,6 +191,37 @@ def has_bash(agent):
 
 def toml_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+# Characters a TOML basic string forbids RAW: every control character except
+# tab and newline, plus DEL. A multi-line basic string also normalizes CRLF to
+# LF, so a bare CR is escaped too — otherwise `\r\n` would come back as `\n`
+# and the alteration would be invisible. Escaped, every one of them round-trips
+# exactly; nothing is ever silently rewritten or dropped.
+TOML_FORBIDDEN_RAW = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+
+
+def toml_multiline_escape(s: str) -> str:
+    """Escape a body for a TOML multi-line BASIC string, losslessly.
+
+    `developer_instructions = \"\"\"…\"\"\"` is a BASIC string: TOML interprets
+    backslash sequences inside it. Agent prose never carried one, but rule
+    texts do — `infra-naming` holds `development\\|qa\\|production` (an
+    "Unescaped '\\'" parse error) and `typescript-standards` holds a literal
+    `\\n` inside backticks, which TOML turns into a real newline with nothing
+    in the rendered diff to show for it. Neither survives a review by reading.
+
+    Backslash first: every escape inserted afterwards starts with one. Then the
+    raw-forbidden characters as `\\uXXXX`, then any run of three-or-more quotes
+    — escaped whole, so runs of 4, 5, 6 … are covered by the same branch as 3.
+
+    Correctness here is not enough on its own: `verify_codex_round_trip` parses
+    the result back on every build, so a gap fails the build instead of
+    shipping.
+    """
+    s = s.replace("\\", "\\\\")
+    s = TOML_FORBIDDEN_RAW.sub(lambda m: f"\\u{ord(m.group()):04X}", s)
+    return re.sub(r'"{3,}', lambda m: '\\"' * len(m.group()), s)
 
 
 def comment_escape(s: str) -> str:
@@ -331,14 +372,53 @@ def codex_warnings(agent):
     return warnings
 
 
-def to_codex(agent) -> str:
-    sandbox = "workspace-write" if can_write(agent) else "read-only"
-    body = rebase_skill_root(agent["body"]).replace('"""', "'''")
+def codex_body(agent) -> str:
+    """The instructions Codex is MEANT to receive — before any TOML encoding.
+
+    Named separately because it is the yardstick `verify_codex_round_trip`
+    measures the emitted file against: comparing the output to itself would
+    prove nothing.
+    """
+    body = packed_body(agent, rebase=rebase_skill_root)
     extra_instructions = codex_extra_instructions(agent)
     if extra_instructions:
         body = body + "\n\n## Codex compatibility instructions\n\n" + "\n".join(
             f"- {instruction}" for instruction in extra_instructions
         )
+    return body
+
+
+def verify_codex_round_trip(agent, rendered):
+    """Parse the generated TOML back and demand the exact intended text.
+
+    The escaper being correct is a claim; this is the check. It runs on every
+    agent on every build, so a rule text with a character the escaper does not
+    handle fails the build naming the agent — instead of shipping a Codex file
+    that either refuses to load or silently says something else.
+    """
+    expected = codex_body(agent) + "\n"
+    try:
+        parsed = tomllib.loads(rendered)
+    except tomllib.TOMLDecodeError as exc:
+        raise ValueError(
+            f"{agent['name']}: the generated Codex TOML does not parse ({exc}). "
+            f"Check the line the error names: the body (toml_multiline_escape) "
+            f"or an emitted field — description or name (toml_escape)."
+        ) from None
+    actual = parsed.get("developer_instructions")
+    if actual != expected:
+        raise ValueError(
+            f"{agent['name']}: the generated Codex TOML parses, but its "
+            f"developer_instructions differ from the intended body — the "
+            f"string encoding altered the text "
+            f"({len(expected)} chars intended, "
+            f"{len(actual) if actual is not None else 'none'} read back)."
+        )
+
+
+def to_codex(agent) -> str:
+    sandbox = "workspace-write" if can_write(agent) else "read-only"
+    body = toml_multiline_escape(codex_body(agent))
     lines = [
         f"# {GENERATED_NOTE}",
         f'name = "{agent["name"]}"',
@@ -396,8 +476,244 @@ def rebase_skill_root(body: str) -> str:
 
 
 RULES_DIR = Path(__file__).resolve().parents[2] / "global" / "rules"
+RULES_SITUATIONAL_DIR = (
+    Path(__file__).resolve().parents[2] / "global" / "rules-situational"
+)
 ROLE_RULES_SECTION = re.compile(r"^## Role rules\n.*?(?=^## |\Z)", re.M | re.S)
 ROLE_RULE_TARGET = re.compile(r"/references/([A-Za-z0-9_-]+\.md)`")
+
+# --- Packs ---------------------------------------------------------------
+#
+# A specialized agent declares `packs:` and receives those rule texts inlined
+# into its prompt, in EVERY harness. That is the only delivery mechanism all
+# five share: no harness but Claude Code can preload a skill into a subagent,
+# and a Role rules row is a pointer an agent may or may not follow. Inlining
+# makes presence a build-time fact instead of a routing probability — which is
+# also why the rows a pack covers are dropped: keeping both would tell the
+# agent to go read what it is already holding.
+# A pack name IS a rule file's basename, so it is spelled like one: lowercase,
+# digits and hyphens. The pattern is a SECURITY boundary, not a style check —
+# an unconstrained name reaches the filesystem, and `../../CLAUDE.local`
+# resolved to the owner's private, gitignored file and inlined it into all five
+# harnesses. Resolution below never builds a glob out of the name either.
+PACK_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+# Every packed agent must carry this one. `omitClaudeMd: true` drops the
+# always-on corpus on Claude Code — destructive-op confirmation, secrets
+# hygiene, the package manager, the output language — and nothing else puts
+# them back. A packed agent without it is a subagent with no gates.
+REQUIRED_PACK = "agent-core-gates"
+CARRIED_RULES_HEADING = "## Carried rules"
+CARRIED_RULES_INTRO = (
+    "These conventions are already loaded below, complete as written — never "
+    "look for them in rule files, skills, or anywhere else."
+)
+PACK_LIST_FORM_HINT = (
+    "use the comma-separated form `packs: a, b` — one top-level line, "
+    "unquoted lowercase key, plain value on the same line: no YAML list, no "
+    "block scalar (`>`/`|`), no quotes, no inline comment, never empty."
+)
+
+
+def _rule_files():
+    """Every file a pack may resolve to. READMEs are not rules.
+
+    Two exclusions that are not style: a DIRECTORY named `x.md` (reading it
+    raises a bare IsADirectoryError instead of naming the offending pack), and
+    anything whose real path leaves its store — a symlink inside global/rules/
+    pointing anywhere on the machine would otherwise be inlined into all five
+    harnesses.
+    """
+    for directory, recursive in ((RULES_DIR, True), (RULES_SITUATIONAL_DIR, False)):
+        paths = directory.rglob("*.md") if recursive else directory.glob("*.md")
+        for path in sorted(paths):
+            if path.name == "README.md" or not path.is_file():
+                continue
+            store = directory.resolve()
+            if store != path.resolve() and store not in path.resolve().parents:
+                continue
+            yield path
+
+
+def _display_path(path: Path) -> str:
+    """Repo-relative when possible — an absolute temp path helps nobody."""
+    try:
+        return path.relative_to(Path(__file__).resolve().parents[2]).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _rule_is_always_on(path: Path) -> bool:
+    """Under global/rules/ with no `paths:` — Claude Code's own criterion."""
+    if RULES_DIR not in path.parents:
+        return False
+    fm = re.match(r"^---\n(.*?)\n---\n", path.read_text(encoding="utf-8"), re.S)
+    return not (fm and re.search(r"^paths:", fm.group(1), re.M))
+
+
+# The ONE accepted spelling. Anything else matching `^packs\s*:` is an error:
+# `packs : ts` parsed as no packs at all AND survived verbatim into the Claude
+# frontmatter, shipping a hive-only key to Claude Code — a silent no-op is the
+# worst outcome for a field whose whole job is delivering conventions.
+# The ONE accepted line: unquoted lowercase key at column 0, plain scalar on
+# the same line — no block-scalar indicator, no quotes, no inline comment.
+# Everything else is rejected by _packs_declarations below, so by the time
+# `claude_frontmatter` removes `^packs:` this is provably the only shape that
+# can exist: the removal cannot orphan a continuation line under the previous
+# key (`tools: Read` + an orphaned `  agent-core-gates` is one tool allowlist
+# to a YAML parser, in a file deployed to Claude Code).
+PACKS_KEY_CANONICAL = re.compile(r"^packs:[ \t]*[^\s>|'\"#][^#\n]*$")
+# A frontmatter line that declares SOME key. The value group tells a block
+# scalar apart from a plain one.
+FRONTMATTER_KEY = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<key>\"[^\"]*\"|'[^']*'|[^:\s]+)[ \t]*:(?P<value>.*)$"
+)
+
+
+def _packs_declarations(frontmatter):
+    """Every line declaring a `packs` key, however it is spelled.
+
+    Reads KEYS, never text: a block scalar's continuation lines are prose
+    (`description: >` may legitimately discuss packs) and nested YAML belongs
+    to its own key, so neither can be mistaken for a declaration. Case and
+    surrounding quotes are folded, because `Packs:`/`"packs":` used to exit 0
+    with nothing inlined — an authoring typo that silently produced an agent
+    with no packs and no required-gates check.
+    """
+    declarations = []
+    block_indent = None
+    for line in frontmatter.splitlines():
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip(" \t"))
+        if block_indent is not None:
+            if indent > block_indent:
+                continue
+            block_indent = None
+        match = FRONTMATTER_KEY.match(line)
+        if not match:
+            continue
+        if match.group("value").lstrip()[:1] in (">", "|"):
+            block_indent = indent
+        if match.group("key").strip("\"'").lower() == "packs":
+            declarations.append(line)
+    return declarations
+
+
+def parse_packs(agent_name, packs_raw, frontmatter):
+    """Validate the declared pack list before anything touches the filesystem."""
+    declarations = _packs_declarations(frontmatter)
+    if not declarations:
+        return []
+    if len(declarations) > 1:
+        raise ValueError(
+            f"{agent_name}: `packs:` is declared {len(declarations)} times — "
+            f"only one would be read and the rest would vanish silently. "
+            f"Merge them into a single line."
+        )
+    if not PACKS_KEY_CANONICAL.match(declarations[0]):
+        raise ValueError(f"{agent_name}: {PACK_LIST_FORM_HINT}")
+    # ASCII spacing only: a NBSP or a stray CR is part of the name, not
+    # padding, and a name that merely LOOKS right must fail rather than
+    # resolve to nothing or to something else.
+    packs = [p.strip(" \t") for p in (packs_raw or "").split(",")]
+    # A YAML list reaches `field()` as the first item with its dash attached
+    # (`- typescript-standards`), because the plain-value regex walks onto the
+    # continuation line — so the leading dash IS the signal, and without this
+    # branch the rest of the list would vanish silently.
+    if (not packs_raw) or any(not p for p in packs) \
+            or re.search(r"[\[\]]", packs_raw) or packs[0].startswith("-"):
+        raise ValueError(f"{agent_name}: {PACK_LIST_FORM_HINT}")
+    seen = set()
+    for pack in packs:
+        if not PACK_NAME.match(pack):
+            raise ValueError(
+                f"{agent_name}: invalid pack name '{pack}' — a pack is a rule "
+                f"file's basename: lowercase letters, digits and hyphens only."
+            )
+        if pack in seen:
+            raise ValueError(
+                f"{agent_name}: pack '{pack}' is declared twice — each pack's "
+                f"text is carried once, so a repeat is a typo, not an emphasis."
+            )
+        seen.add(pack)
+    if REQUIRED_PACK and REQUIRED_PACK not in packs:
+        raise ValueError(
+            f"{agent_name}: a packed agent must declare the '{REQUIRED_PACK}' "
+            f"pack. Its Claude output carries `omitClaudeMd: true`, which drops "
+            f"the always-on gates (destructive ops, secrets, package manager, "
+            f"output language); '{REQUIRED_PACK}' is what restores them."
+        )
+    return packs
+
+
+def resolve_pack(agent_name, pack):
+    """Pack name -> rule text, frontmatter stripped. Fails loudly, never quietly.
+
+    A pack IS a rule file's basename without `.md`, matched EXACTLY against the
+    rule files — never as a glob, so a name can neither escape the two stores
+    nor match several files by wildcard. `parse_packs` has already vetted the
+    spelling; this resolves it.
+    """
+    candidates = [path for path in _rule_files() if path.stem == pack]
+    if not candidates:
+        raise ValueError(
+            f"{agent_name}: unknown pack '{pack}' — no {pack}.md under "
+            f"global/rules/** or global/rules-situational/."
+        )
+    if len(candidates) > 1:
+        found = ", ".join(_display_path(path) for path in candidates)
+        raise ValueError(
+            f"{agent_name}: ambiguous pack '{pack}' — it resolves to {found}. "
+            f"A pack must name exactly one rule text; delete or rename one."
+        )
+    path = candidates[0]
+    raw = path.read_text(encoding="utf-8")
+    match = re.match(r"^---\n.*?\n---\n?", raw, re.S)
+    text = (raw[match.end():] if match else raw).strip("\n")
+    if not text:
+        raise ValueError(
+            f"{agent_name}: pack '{pack}' ({_display_path(path)}) has no text "
+            f"outside its frontmatter — inlining it would carry nothing."
+        )
+    if _rule_is_always_on(path):
+        print(
+            f"WARNING {agent_name}: pack '{pack}' names a rule that is still "
+            f"always-on ({_display_path(path)}) — Grok links it flat into "
+            f"~/.grok/rules, so that harness receives the text twice.",
+            file=sys.stderr,
+        )
+    return text
+
+
+def carried_rules_section(agent):
+    """The `## Carried rules` block: heading, the do-not-hunt line, pack texts."""
+    parts = [CARRIED_RULES_HEADING, "", CARRIED_RULES_INTRO]
+    for _, text in agent["pack_texts"]:
+        parts.extend(["", text])
+    return "\n".join(parts)
+
+
+def packed_body(agent, native=frozenset(), rebase=None):
+    """Agent body with pack-covered rows dropped and the pack texts appended.
+
+    `native` adds the rows a harness already loads by itself (Grok's flat rule
+    symlinks). Both filters run in one pass over the Role rules table, so a row
+    covered by either disappears and an emptied section goes with it.
+
+    `rebase` rewrites the skill root — and applies to the AGENT's body ONLY. A
+    Role rules row cites the root its harness reads, so it must be rebased; a
+    rule TEXT is documentation about the world, and rewriting it corrupts the
+    rule that explains which harness reads which root (`unattended-autonomy-mode`
+    became "Claude Code and Grok read it from ~/.agents/skills"). Carried text
+    is carried verbatim.
+    """
+    drop = frozenset(f"{pack}.md" for pack in agent["packs"]) | native
+    body = drop_native_role_rules(agent["body"], drop) if drop else agent["body"]
+    if rebase:
+        body = rebase(body)
+    if not agent["packs"]:
+        return body
+    return f"{body}\n\n{carried_rules_section(agent)}"
 
 
 def native_always_on_rules(rules_dir: Path = RULES_DIR) -> frozenset:
@@ -483,7 +799,7 @@ def to_opencode(agent) -> str:
     fm.append("permission:")
     fm.extend(perms)
     fm.append("---")
-    body = rebase_skill_root(agent["body"])
+    body = packed_body(agent, rebase=rebase_skill_root)
     extra = opencode_extra_instructions(agent)
     if extra:
         body = body + "\n\n## opencode compatibility instructions\n\n" + "\n".join(
@@ -734,7 +1050,7 @@ def to_pi(agent) -> str:
         "---",
     ])
     body = (
-        rebase_pi_skill_root(agent["body"])
+        packed_body(agent, rebase=rebase_pi_skill_root)
         + pi_context7_instructions(agent)
         + pi_research_instructions(agent)
     )
@@ -835,7 +1151,7 @@ def to_grok(agent) -> str:
     the workflow tool from subagents (1.0.8+); no frontmatter needed.
     """
     # NOT rebased: Grok scans ~/.claude/skills and never ~/.agents/skills.
-    body = drop_native_role_rules(agent["body"], native_always_on_rules())
+    body = packed_body(agent, native_always_on_rules())
     extra = grok_extra_instructions(agent)
     if extra:
         body = body + "\n\n## Grok compatibility instructions\n\n" + "\n".join(
@@ -863,16 +1179,49 @@ def to_grok(agent) -> str:
     return "\n".join(fm) + "\n\n" + body + "\n"
 
 
+def claude_frontmatter(agent):
+    """Source frontmatter, minus `packs:`, plus `omitClaudeMd:` when packed.
+
+    Everything else is re-emitted verbatim: this is the only target whose
+    frontmatter dialect IS the source dialect, so translating it would be
+    inventing differences. `packs:` is hive-only and would be an unknown key
+    to Claude Code; `omitClaudeMd: true` is what makes a pack the agent's rule
+    corpus instead of a second copy stacked on the global one.
+    """
+    lines = [
+        line for line in agent["frontmatter"].splitlines()
+        if not re.match(r"^packs:", line)
+    ]
+    if agent["packs"] and not any(
+        re.match(r"^omitClaudeMd:", line) for line in lines
+    ):
+        lines.append("omitClaudeMd: true")
+    return lines
+
+
+def to_claude(agent) -> str:
+    """Claude Code agent definition (.md under ~/.claude/agents/<role>/).
+
+    Claude Code keeps its native path-scoping, so Role rules rows survive here
+    unless a pack covers them — and an agent with no packs renders its source
+    body unchanged.
+    """
+    fm = ["---", f"# {GENERATED_NOTE}", *claude_frontmatter(agent), "---"]
+    return "\n".join(fm) + "\n\n" + packed_body(agent) + "\n"
+
+
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
-    codex_dir, oc_dir, grok_dir, pi_dir = (
+    claude_dir, codex_dir, oc_dir, grok_dir, pi_dir = (
+        out / "claude",
         out / "codex",
         out / "opencode",
         out / "grok",
         out / "pi",
     )
+    claude_dir.mkdir(parents=True, exist_ok=True)
     codex_dir.mkdir(parents=True, exist_ok=True)
     oc_dir.mkdir(parents=True, exist_ok=True)
     grok_dir.mkdir(parents=True, exist_ok=True)
@@ -881,8 +1230,15 @@ def main():
     count = 0
     for path in sorted(src.rglob("*.md")):
         agent = parse_agent(path)
+        codex_text = to_codex(agent)
+        verify_codex_round_trip(agent, codex_text)
+        # Claude keeps the source layout: the role subfolders are the human
+        # namespace of the tree /deploy-global copies into ~/.claude/agents/.
+        claude_target = claude_dir / path.relative_to(src)
+        claude_target.parent.mkdir(parents=True, exist_ok=True)
+        claude_target.write_text(to_claude(agent), encoding="utf-8")
         (codex_dir / f"{agent['name']}.toml").write_text(
-            to_codex(agent), encoding="utf-8"
+            codex_text, encoding="utf-8"
         )
         (oc_dir / f"{agent['name']}.md").write_text(
             to_opencode(agent), encoding="utf-8"
@@ -897,7 +1253,8 @@ def main():
             print(f"WARNING {agent['name']}: {warning}", file=sys.stderr)
         count += 1
     print(
-        f"converted {count} agents -> {codex_dir} , {oc_dir} , {grok_dir} , {pi_dir}"
+        f"converted {count} agents -> {claude_dir} , {codex_dir} , {oc_dir} , "
+        f"{grok_dir} , {pi_dir}"
     )
 
 

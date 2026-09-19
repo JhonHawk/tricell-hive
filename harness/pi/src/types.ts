@@ -56,6 +56,7 @@ export interface HookPaths {
   readonly flowContext: string;
   readonly flowSessionContext: string;
   readonly ruleContext: string;
+  readonly ruleDelivery: string;
   readonly sessionHygieneReport: string;
 }
 

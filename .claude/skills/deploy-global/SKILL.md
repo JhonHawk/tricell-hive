@@ -53,6 +53,15 @@ means the hook is not enabled or sources changed without a commit — rebuild an
 python3 harness/build.py && git status --porcelain harness/ global/CLAUDE.md
 ```
 
+**Claude Code's agents ship from `harness/claude/agents/`, not from `global/agents/`** —
+preview, diff, deploy, and orphan detection all resolve there. The generated tree mirrors
+the source's role subfolders and differs from the source in exactly what the build adds: the
+do-not-edit note, the rule texts an agent's `packs:` declare inlined into its body, and
+`omitClaudeMd: true` on a packed agent (its packs ARE its rule corpus, so the global one is
+dropped rather than stacked underneath). An agent with no packs renders its source body
+unchanged. Deploying `global/agents/` would hand Claude Code the unpacked source — an agent
+whose conventions silently went missing.
+
 The PI source tree is generated alongside the other harness outputs. All selected roots
 complete preflight before the first target write. A dry run remains read-only: it does not
 rebuild or write generated files, and it runs `harness/build.py --check` for generated-tree

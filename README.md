@@ -195,7 +195,7 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 
 ## Agent Design Criteria
 
-1. **Under 120 lines** — if longer, it probably has filler
+1. **Every line changes the output** — past 120 lines of its own text, review for filler (a threshold, not a cap; rule texts carried through `packs:` do not count)
 2. **Unique rules only** — inherited from global CLAUDE.md are not repeated
 3. **Concrete, not generic** — every rule must change the agent's output
 4. **Restricted tools** — only what the agent actually needs; audit-only quality agents may be read-only + Bash
