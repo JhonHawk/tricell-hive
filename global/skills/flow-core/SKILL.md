@@ -159,7 +159,7 @@ Without a specs repo, the standard session form above applies unchanged.
 
 Stable path after deploy: `~/.claude/skills/flow-core/references/<file>.md`.
 
-**Only the files listed above live here.** A `global/rules` file cited by name from inside
+**Only the files listed above live here.** A rule text (`global/rules-situational/`) cited by name from inside
 one of them belongs to a router skill, not to `flow-core`: `project-structure.md` and
 `session-capture.md` → `workspace-conventions/references/`, `memory-routing.md` →
 `memory-policy/references/`, language and framework rules → `language-rules/references/`.

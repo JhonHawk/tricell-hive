@@ -319,7 +319,7 @@ Carried by the compiled hive profile at the end of this file (`hive-profile` blo
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
 
 <!-- hive-profile:start -->
-Hive profile v1 · hive@f1e0142 · 2026-09-19 · class: config-hub
+Hive profile v1 · hive@c1ee2f1 · 2026-09-19 · class: config-hub
 
 ## Hive Profile
 
@@ -336,5 +336,5 @@ Hive profile v1 · hive@f1e0142 · 2026-09-19 · class: config-hub
 
 These exclusions are a declaration you READ, not a filter something applies: the gates above are inlined into the always-on core or delivered by the rule-delivery hook, and neither is suppressible file by file. Honor them here; they are restored automatically in any repo with runtime code.
 
-**Creating the FIRST file of a kind in a session:** read its rule from `~/.claude/skills/language-rules/references/` first — glob-scoped rules are delivered on a read/edit of a matching file, never on a create.
+**Creating the FIRST file of a kind in a session:** read its rule from `~/.claude/skills/language-rules/references/` first — the rule-delivery hook holds the write until you do, and nothing fires before the file exists (naming identifiers, choosing a path).
 <!-- hive-profile:end -->

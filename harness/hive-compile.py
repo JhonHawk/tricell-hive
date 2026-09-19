@@ -287,8 +287,9 @@ def render_block(facts, override):
 
     lines += ["",
               "**Creating the FIRST file of a kind in a session:** read its rule from "
-              "`~/.claude/skills/language-rules/references/` first — glob-scoped rules are "
-              "delivered on a read/edit of a matching file, never on a create.",
+              "`~/.claude/skills/language-rules/references/` first — the rule-delivery hook "
+              "holds the write until you do, and nothing fires before the file exists "
+              "(naming identifiers, choosing a path).",
               MARK_END]
     return "\n".join(lines) + "\n"
 

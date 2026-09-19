@@ -11,7 +11,7 @@ _support/workspace/
 # Machine-local recovery kits (personal harness configs, third-party plugin snapshots,
 # client-named migration records) — referenced by Engram, never committed
 _support/backup/
-# Large copyrighted reference binaries — distilled into global/rules/languages/ui-visual-design.md; reproducible, never committed
+# Large copyrighted reference binaries — distilled into global/rules-situational/ui-visual-design.md; reproducible, never committed
 _support/refactoring-ui/
 
 # deploy-global's tests source the script from a sibling temp file so its
