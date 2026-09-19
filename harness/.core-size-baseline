@@ -9,5 +9,5 @@
 # SHRINKS the core blesses itself silently, and growth that earned its place
 # still fails until blessed. The ratchet freezes the blessed state — it
 # imposes no number and no budget (see the header note in harness/build.py).
-global/CLAUDE.md 21692
-harness/AGENTS.md 10715
+global/CLAUDE.md 21731
+harness/AGENTS.md 10741
