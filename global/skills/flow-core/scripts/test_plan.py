@@ -289,6 +289,58 @@ class PlanValidatorTests(unittest.TestCase):
             PLAN.validate_plan(plan, "push", "origin:feature")
         self.assertEqual(raised.exception.code, "invalid_action_state")
 
+    def test_commit_grant_gated_on_user_validation_is_rejected(self):
+        grants = [
+            {
+                "id": "grant-implement",
+                "action": "implement",
+                "targets": ["repo:fixture"],
+                "conditions": [],
+                "evidence": "The user explicitly authorized implementation.",
+            },
+            {
+                "id": "grant-commit",
+                "action": "commit",
+                "targets": ["branch:feature"],
+                "conditions": [
+                    {"requirement": "user-validated-in-vivo", "evidence": ""}
+                ],
+                "evidence": "The user picked the interactive session mode.",
+            },
+        ]
+        plan = render_plan(self.root, grants=grants)
+        with self.assertRaises(PLAN.PlanError) as raised:
+            PLAN.validate_plan(plan, "implement", "repo:fixture")
+        self.assertEqual(raised.exception.code, "commit_gated_on_validation")
+        inspected = PLAN.inspect_plan(plan)
+        self.assertFalse(inspected["can_implement"])
+        self.assertEqual(inspected["authorization"]["status"], "invalid")
+        self.assertEqual(
+            inspected["authorization"]["error"]["code"], "commit_gated_on_validation"
+        )
+
+    def test_publishing_grant_gated_on_user_validation_stays_valid(self):
+        grants = [
+            {
+                "id": "grant-implement",
+                "action": "implement",
+                "targets": ["repo:fixture"],
+                "conditions": [],
+                "evidence": "The user explicitly authorized implementation.",
+            },
+            {
+                "id": "grant-push",
+                "action": "push",
+                "targets": ["origin:feature"],
+                "conditions": [
+                    {"requirement": "user-validated-in-vivo", "evidence": ""}
+                ],
+                "evidence": "The user picked the interactive session mode.",
+            },
+        ]
+        plan = render_plan(self.root, grants=grants)
+        self.assertTrue(PLAN.validate_plan(plan, "implement", "repo:fixture")["valid"])
+
     def test_satisfied_grant_alternative_ignores_pending_same_target_grant(self):
         grants = [
             {

@@ -426,7 +426,11 @@ as grants, every target the exact base branch:
 
 `commit` never carries that condition: the seam commits land on the work branch before the
 stop (`git-mechanics.md > Commits`; under `/flow-build`, at CLOSE once the plan is `verified`)
-— what waits for the user is everything that leaves the machine.
+— what waits for the user is everything that leaves the machine. Deterministic: `plan.py`
+rejects a `commit` grant carrying it (`commit_gated_on_validation`), and the plan holds no
+authority until repaired. The repair drops the condition from the `commit` grant — it restores
+the mode the user picked, so it needs no new consent. A user who asked for commits to wait
+picked `hold`.
 
 The `merge` grant is checked at run time against the four conditions `interactive` names
 (checks green, no conflicts with the base, no open Phase B finding at medium or above, base

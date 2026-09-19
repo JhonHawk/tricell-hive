@@ -50,6 +50,9 @@ ACTION_ALLOWED_STATUSES = {
     "merge": frozenset(("verified",)),
     "deploy": frozenset(("verified",)),
 }
+# The user's in-vivo validation gates what leaves the machine (push, pr, merge);
+# a commit waiting on it strands verified work in the working tree.
+USER_VALIDATION_REQUIREMENT = "user-validated-in-vivo"
 HEADING_PATTERN = re.compile(r"(?m)^#{1,6}\s+\S")
 STATUS_PATTERN = re.compile(
     r"(?m)^Status:\s*(draft|planned|building|built|verified)\s*$"
@@ -603,6 +606,15 @@ def _validate_authorization(
             grant_map.get("conditions"),
             f"authorization.grants[{index}].conditions",
         )
+        if action == "commit" and any(
+            USER_VALIDATION_REQUIREMENT in condition["requirement"].lower()
+            for condition in conditions
+        ):
+            raise PlanError(
+                "commit_gated_on_validation",
+                f"grant {grant_id}: {USER_VALIDATION_REQUIREMENT} conditions "
+                "push, pr and merge, never commit",
+            )
         normalized_grants.append(
             {
                 "id": grant_id,
@@ -935,6 +947,16 @@ def inspect_plan(path: str | Path) -> dict[str, Any]:
             "status": authorization_status,
             "active_grants": len(authorization_info.get("active_grants", [])),
             "revoked_grants": len(authorization_info.get("revoked_ids", [])),
+            **(
+                {
+                    "error": {
+                        "code": authorization_info["error"],
+                        "message": authorization_info["message"],
+                    }
+                }
+                if "error" in authorization_info
+                else {}
+            ),
         },
         "recovery": _recovery_summary(document.recovery),
         "warnings": _readability_warnings(document),

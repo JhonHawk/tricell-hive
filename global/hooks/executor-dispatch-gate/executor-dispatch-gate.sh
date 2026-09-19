@@ -154,9 +154,10 @@ main() {
       if [ "$how" = "plan.py" ]; then
         # inspect exits non-zero on an invalid plan but still prints its error
         # JSON on stdout — keep it, so the message can name the plan and the code.
+        # A rejected authorization is reported under .authorization.error instead.
         insp=$(python3 "$PLAN_PY" inspect "$plan" 2>/dev/null) || true
         ci=$(printf '%s' "$insp" | jq -r '.can_implement // false' 2>/dev/null) || ci="false"
-        code=$(printf '%s' "$insp" | jq -r '.error.code // empty' 2>/dev/null) || code=""
+        code=$(printf '%s' "$insp" | jq -r '.error.code // .authorization.error.code // empty' 2>/dev/null) || code=""
         [ -n "$code" ] && invalid="${invalid}${invalid:+, }${plan#"$root"/} (${code})"
       else
         case "$st" in planned|building) ci="true" ;; esac

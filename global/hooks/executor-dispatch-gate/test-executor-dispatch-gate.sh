@@ -34,7 +34,7 @@ make_workspace() {
 }
 
 render_plan() {
-  # render_plan <sessions-dir> <slug> <status> <grants: implement|none>
+  # render_plan <sessions-dir> <slug> <status> <grants: implement|none|commit-gated>
   local sessions="$1" slug="$2" status="$3" grants="$4" folder
   folder="$sessions/$slug"
   mkdir -p "$folder"
@@ -49,6 +49,14 @@ spec.loader.exec_module(mod)
 kwargs = {"status": status}
 if grants == "none":
     kwargs["grants"] = []
+elif grants == "commit-gated":
+    kwargs["grants"] = [
+        {"id": "grant-implement", "action": "implement", "targets": ["repo:fixture"],
+         "conditions": [], "evidence": "The user authorized implementation."},
+        {"id": "grant-commit", "action": "commit", "targets": ["branch:feature"],
+         "conditions": [{"requirement": "user-validated-in-vivo", "evidence": ""}],
+         "evidence": "The user picked the interactive session mode."},
+    ]
 path = mod.render_plan(Path(folder), **kwargs)
 path.rename(Path(folder) / f"{Path(folder).name}-plan.md")
 PY
@@ -176,6 +184,15 @@ run_case "j-malformed-plan-advisory" advisory "$(claude_payload backend-develope
 case "$LAST_OUT" in
   *"broken/broken-plan.md (malformed_document)"*) printf 'ok   j-message-names-invalid-plan\n' ;;
   *) printf 'FAIL j-message-names-invalid-plan: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
+esac
+# an authorization the validator rejects is named the same way (inspect reports it
+# under .authorization.error, not the top-level .error a malformed document gets)
+WS_J2=$(make_workspace ws-j2 -)
+render_plan "$WS_J2/_support/sessions" "2026-09-18-gated" planned commit-gated
+run_case "j2-invalid-authorization-advisory" advisory "$(claude_payload backend-developer "$WS_J2/src" s-j2)"
+case "$LAST_OUT" in
+  *"2026-09-18-gated-plan.md (commit_gated_on_validation)"*) printf 'ok   j2-message-names-invalid-authorization\n' ;;
+  *) printf 'FAIL j2-message-names-invalid-authorization: %s\n' "$LAST_OUT"; fail=$((fail + 1)) ;;
 esac
 # valid plans never show up in that list
 case "$LAST_OUT_C2" in

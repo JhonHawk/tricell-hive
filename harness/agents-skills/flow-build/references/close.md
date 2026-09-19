@@ -13,8 +13,11 @@ implicit publication.
    `verified` and its Authorization grant names that action and target; a grant on a `planned`,
    `building` or `built` plan remains pending. A `verify` invocation never reconciles delivery,
    even when its gate advances the plan to `verified`; leave the authorized action pending for a
-   subsequent normal run. If an authorized action remains pending, name the exact action and
-   reason. Do not create a commit, push, PR, merge or promotion unless the Authorization section
+   subsequent normal run. A `verified` plan with a `commit` grant lands its seam commits in
+   this step, before the report: verified work left only in the working tree is a close
+   failure outside `hold`, and whatever stops the commit is asked here — never noted after
+   the user has ended the conversation. If an authorized action remains pending, name the
+   exact action and reason. Do not create a commit, push, PR, merge or promotion unless the Authorization section
    and mandatory repository gates permit it.
 3. **Ledger, when present.** Update PROJECT.md with the phase, artifacts, decisions, authorization scope and
    delivery state. Finalize the session/initiative only when its lifecycle actually concluded;
