@@ -68,6 +68,11 @@ readonly CODEX_DOC_MAX_BYTES=49152
 # of a routine cleanup. See step_detect_orphans.
 readonly ORPHAN_MAX_ABS=20
 readonly ORPHAN_MAX_PCT=25
+# Exit status of a run that completed normally but refused at least one
+# manifest entry as uncontainable. Distinct from `die`'s 1 (nothing ran) and
+# from a mid-deploy failure: the deploy itself succeeded, the manifest is
+# corrupt. See the orphan containment guard below.
+readonly ORPHAN_GUARD_EXIT_CODE=3
 
 # ---------------------------------------------------------------------------
 # Globals set by argument parsing
@@ -105,7 +110,9 @@ cleanup() {
     for f in "${TMP_FILES[@]:-}"; do
         [[ -n "${f}" && -e "${f}" ]] && rm -f "${f}"
     done
-    if [[ "${exit_code}" -ne 0 && "${APPLY}" -eq 1 ]]; then
+    # ORPHAN_GUARD_EXIT_CODE means every deploy step ran to completion, so the
+    # partial-deploy rollback hints would be actively misleading.
+    if [[ "${exit_code}" -ne 0 && "${exit_code}" -ne "${ORPHAN_GUARD_EXIT_CODE}" && "${APPLY}" -eq 1 ]]; then
         printf '%s\n' "PARTIAL DEPLOY: selected roots may have different states; no automatic cross-root rollback was attempted." >&2
         if [[ -n "${PI_BACKUP_PATH}" ]]; then
             printf '%s\n' "PI rollback: python3 ${PI_DEPLOY_HELPER} rollback --pi-dir \"${PI_AGENT_DIR}\" --backup-dir \"${PI_BACKUP_PATH}\" --apply" >&2
@@ -1044,6 +1051,199 @@ manifest_entry_map() {
     esac
 }
 
+# ---------------------------------------------------------------------------
+# Orphan containment guard
+#
+# A manifest entry is the ONLY input that becomes an `rm -rf` argument in this
+# script, and the manifest is a plain file under ~/.claude that a corrupted
+# run, a bad merge or a hand edit can poison. `agents/../../victim.md` maps to
+# ${HOME}/victim.md — outside every root this deploy manages — and nothing
+# stood between that and the delete.
+#
+# The guard works by CONSTRUCTION, not by blocklisting one crafted string: the
+# entry's prefix names a managed root, the target is resolved physically, and
+# the result must land strictly inside that root. Symlinks are followed for the
+# target's PARENT directory only; the final component stays unresolved, so
+# deleting a symlink this deploy created still removes the LINK and never its
+# destination.
+#
+# A rejected entry is SKIPPED, not fatal. Aborting would let one poisoned line
+# block every future deploy of an otherwise healthy tree, and the user asked
+# for this deploy; skipping keeps the rest working while touching nothing
+# suspicious. To make sure a corrupt manifest is still noticed rather than
+# scrolling past, the run exits ORPHAN_GUARD_EXIT_CODE at the very end.
+# (A skipped entry is also dropped from the manifest by step_write_manifest —
+# it is neither re-scanned nor kept as an orphan — so an --apply run
+# self-heals the corrupt line without ever acting on it.)
+# ---------------------------------------------------------------------------
+
+# Entries refused this run. Names only; used for the final status.
+ORPHAN_REJECTED=()
+# Set by orphan_entry_is_contained on success: the exact path the guard
+# verified. The deletion site deletes THIS, never its own reconstruction — the
+# two layers cannot validate one path and act on another (a trailing slash on
+# a symlink made `rm -rf` resolve the link and empty its destination, while
+# dirname/basename had shown the guard the link itself).
+ORPHAN_SAFE_TGT=""
+# Managed root of the last contained entry, resolved. Bounds the empty-parent
+# pruning after a deletion.
+ORPHAN_SAFE_ROOT=""
+
+# orphan_reject REL TARGET REASON — the single rejection recorder: loud on
+# stderr, in the report, counted once (a re-check of the same entry at the
+# deletion site must not inflate the count). ALWAYS returns 1, so callers can
+# write `… || orphan_reject …` and inherit the rejection.
+orphan_reject() {
+    local rel="${1:-<empty>}" target="${2:-<none>}" reason="$3" seen
+    log "REFUSING to touch manifest entry: ${rel} -> ${target} (${reason})"
+    report "orphans: REJECTED entry ${rel} -> ${target} (${reason}) — not deleted"
+    for seen in ${ORPHAN_REJECTED[@]+"${ORPHAN_REJECTED[@]}"}; do
+        if [[ "${seen}" == "${rel}" ]]; then
+            return 1
+        fi
+    done
+    ORPHAN_REJECTED+=("${rel}")
+    return 1
+}
+
+# orphan_entry_is_wellformed REL — shape and prefix only, no filesystem. Runs
+# on EVERY manifest line, orphan or not: an entry whose scope is unknown, or
+# whose source happens to exist, never reaches the containment check, and a
+# malformed line that is silently skipped is a corrupt manifest nobody sees.
+orphan_entry_is_wellformed() {
+    local rel="$1" target="${2:-}" reason=""
+
+    if [[ -z "${rel}" ]]; then
+        reason="empty manifest entry"
+    elif [[ "${rel}" == *[[:cntrl:]]* ]]; then
+        # Newline, CR or tab. A NUL byte cannot reach this comparison at all —
+        # bash strings cannot hold one and `read` drops it — so a NUL-bearing
+        # line arrives truncated and is caught by the checks below instead.
+        reason="control character in manifest entry"
+    elif [[ "${rel}" == /* ]]; then
+        reason="absolute path in manifest entry"
+    elif [[ "/${rel}/" == */../* ]]; then
+        reason="'..' segment in manifest entry"
+    elif [[ "/${rel}/" == *//* ]]; then
+        # Kills the trailing slash and any empty segment in one rule. The
+        # trailing slash is the dangerous one: `rm -rf link/` follows the
+        # symlink on BSD and empties its DESTINATION, while dirname/basename
+        # drop the slash and show the guard the link itself.
+        reason="empty or trailing path segment in manifest entry"
+    elif [[ "/${rel}/" == */./* ]]; then
+        # `rm -rf x/.` is not just wrong, it EXITS 1 on BSD — under set -e that
+        # aborted the run before the manifest was rewritten, blocking every
+        # later deploy until someone hand-edited the file.
+        reason="'.' segment in manifest entry"
+    elif [[ -n "${target}" && "${target}" == */ ]]; then
+        reason="deploy target ends in '/' — refusing to hand it to rm"
+    elif [[ -z "$(manifest_entry_root "${rel}")" ]]; then
+        reason="no managed root for this entry prefix"
+    fi
+
+    [[ -z "${reason}" ]] || orphan_reject "${rel}" "${target}" "${reason}"
+}
+
+# manifest_entry_root REL — echoes the managed root REL's target must stay
+# inside, or empty when the prefix names none. Mirrors manifest_entry_map's
+# target construction one for one: a new branch there without a branch here
+# fails CLOSED (no root -> entry refused), never open.
+manifest_entry_root() {
+    case "$1" in
+        CLAUDE.md) echo "${CLAUDE_HOME}" ;;
+        rules/*) echo "${CLAUDE_HOME}/rules" ;;
+        agents/*) echo "${CLAUDE_HOME}/agents" ;;
+        skills/*) echo "${CLAUDE_HOME}/skills" ;;
+        hooks/*) echo "${CLAUDE_HOME}/hooks" ;;
+        agents-skills/*) echo "${AGENTS_SKILLS_HOME}" ;;
+        codex-agents/*) echo "${CODEX_HOME}/agents" ;;
+        codex-hooks/*) echo "${CODEX_HOME}/hooks" ;;
+        harness-agents/codex/*) echo "${CODEX_HOME}" ;;
+        opencode-agents/*) echo "${OPENCODE_HOME}/agents" ;;
+        opencode-commands/*) echo "${OPENCODE_HOME}/commands" ;;
+        opencode-plugins/*) echo "${OPENCODE_HOME}/plugins" ;;
+        harness-agents/opencode/*) echo "${OPENCODE_HOME}" ;;
+        grok-rules/*) echo "${GROK_RULES_HOME}" ;;
+        grok-agents/*) echo "${GROK_AGENTS_HOME}" ;;
+        *) echo "" ;;
+    esac
+}
+
+# resolve_dir_physical DIR — echoes DIR with every symlink resolved, or empty
+# when it does not exist. `cd -P` + `pwd -P` is the portable stand-in for
+# `realpath`/`readlink -f`: BSD userland on macOS ships neither with the flags
+# this needs, and the subshell keeps the caller's cwd untouched.
+resolve_dir_physical() {
+    (cd -P "$1" >/dev/null 2>&1 && pwd -P) || true
+}
+
+# orphan_entry_is_contained REL TARGET — 0 when TARGET is a path this deploy
+# may delete for REL; 1 (loudly, and recorded) otherwise. On success it
+# publishes ORPHAN_SAFE_TGT (the verified path) and ORPHAN_SAFE_ROOT.
+orphan_entry_is_contained() {
+    local rel="$1" target="$2"
+    local reason="" root="" root_real="" parent_real="" resolved=""
+    ORPHAN_SAFE_TGT=""
+    ORPHAN_SAFE_ROOT=""
+
+    # Shape first — and again here, not only in the manifest loop, because this
+    # function is what stands in front of the rm.
+    orphan_entry_is_wellformed "${rel}" "${target}" || return 1
+
+    root=$(manifest_entry_root "${rel}")
+    if [[ -z "${target}" ]]; then
+        reason="entry maps to no deploy target"
+    else
+        root_real=$(resolve_dir_physical "${root}")
+        parent_real=$(resolve_dir_physical "$(dirname "${target}")")
+        if [[ -z "${root_real}" ]]; then
+            reason="managed root does not exist: ${root}"
+        elif [[ -z "${parent_real}" ]]; then
+            reason="target's parent directory does not exist: $(dirname "${target}")"
+        else
+            # Parent resolved, final component appended verbatim. Strictly
+            # INSIDE the root: equality would mean deleting the managed
+            # directory itself, which is never a single orphan.
+            resolved="${parent_real}/$(basename "${target}")"
+            [[ "${resolved}" == "${root_real}/"* ]] ||
+                reason="resolved target ${resolved} is outside ${root_real}"
+        fi
+    fi
+
+    if [[ -n "${reason}" ]]; then
+        orphan_reject "${rel}" "${target}" "${reason}" || true
+        return 1
+    fi
+    ORPHAN_SAFE_TGT="${resolved}"
+    ORPHAN_SAFE_ROOT="${root_real}"
+    return 0
+}
+
+# prune_empty_parents DIR ROOT — rmdir DIR and each ancestor, stopping at the
+# first non-empty one and never at or above ROOT. `rmdir` refusing a non-empty
+# directory IS the stop condition, so only directories THIS run emptied are
+# removed — a `find -type d -empty -delete` sweep over the roots also deleted
+# empty directories the user created, and the roots themselves.
+prune_empty_parents() {
+    local dir="$1" root="$2"
+    [[ -n "${dir}" && -n "${root}" ]] || return 0
+    while [[ "${dir}" != "${root}" && "${dir}" == "${root}/"* ]]; do
+        rmdir "${dir}" 2>/dev/null || break
+        dir=$(dirname "${dir}")
+    done
+    return 0
+}
+
+# Final status: skipped entries never fail a step, but they must not pass
+# unnoticed either. Called last from main so the report is printed first.
+orphan_guard_exit_status() {
+    local count=${#ORPHAN_REJECTED[@]}
+    [[ "${count}" -eq 0 ]] && return 0
+    log "${count} manifest entry/entries were REFUSED by the orphan containment guard and left untouched: ${ORPHAN_REJECTED[*]}"
+    log "${MANIFEST} is corrupted or was hand-edited. Nothing outside the managed roots was deleted; the rest of the deploy completed. Exiting ${ORPHAN_GUARD_EXIT_CODE}."
+    return "${ORPHAN_GUARD_EXIT_CODE}"
+}
+
 ORPHANS=()
 # Orphans detected this run but NOT deleted (dry run, --keep-orphans, or the
 # size breaker refused). step_write_manifest re-emits these entries so a later run
@@ -1065,6 +1265,10 @@ step_detect_orphans() {
     local rel scope
     while IFS= read -r rel; do
         case "${rel}" in '#'* | '') continue ;; esac
+        # BEFORE the scope filter: a malformed line whose prefix is unknown, or
+        # whose source still exists, never reaches the orphan branch — it would
+        # be skipped silently and the corrupt manifest would stay invisible.
+        orphan_entry_is_wellformed "${rel}" || continue
         scope=$(manifest_entry_scope "${rel}")
         case "${scope}" in
             claude) [[ "${RUN_CLAUDE}" -eq 1 ]] || continue ;;
@@ -1080,7 +1284,12 @@ step_detect_orphans() {
             # -L as well as -e: a dangling symlink (grok-rules/ pointing at a
             # rule that was removed from ~/.claude/rules) fails -e, and would
             # otherwise survive every cleanup while still being loaded-by-name.
-            { [[ -n "${MAP_TGT}" ]] && { [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; }; } && ORPHANS+=("${rel}")
+            # orphan_entry_is_contained last: an entry that reaches no existing
+            # target is not refused, it is simply nothing to delete.
+            if [[ -n "${MAP_TGT}" ]] && { [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; } &&
+                orphan_entry_is_contained "${rel}" "${MAP_TGT}"; then
+                ORPHANS+=("${rel}")
+            fi
         fi
     done <"${MANIFEST}"
 
@@ -1129,6 +1338,9 @@ step_delete_orphans() {
     for rel in "${ORPHANS[@]}"; do
         manifest_entry_map "${rel}"
         [[ -n "${MAP_TGT}" ]] || continue
+        # Defense in depth: step_detect_orphans already filtered this list, but
+        # this is the one destructive call in the script — re-verify at the rm.
+        orphan_entry_is_contained "${rel}" "${MAP_TGT}" || continue
 
         # Retired hooks need a content check because the legacy line manifest
         # predates per-file ownership hashes. A user edit at the old path is
@@ -1161,10 +1373,14 @@ step_delete_orphans() {
             fi
         fi
 
-        if [[ -e "${MAP_TGT}" ]] || [[ -L "${MAP_TGT}" ]]; then
-            rm -rf "${MAP_TGT}"
-            log "Deleted orphan: ${MAP_TGT}"
+        # ORPHAN_SAFE_TGT, not MAP_TGT: rm receives the exact path the guard
+        # verified — resolved parent, literal final component, no trailing
+        # slash — so the checked path and the deleted path cannot diverge.
+        if [[ -e "${ORPHAN_SAFE_TGT}" ]] || [[ -L "${ORPHAN_SAFE_TGT}" ]]; then
+            rm -rf "${ORPHAN_SAFE_TGT}"
+            log "Deleted orphan: ${ORPHAN_SAFE_TGT}"
             deleted=$((deleted + 1))
+            prune_empty_parents "$(dirname "${ORPHAN_SAFE_TGT}")" "${ORPHAN_SAFE_ROOT}"
         fi
         case "${rel}" in
             hooks/*)
@@ -1175,8 +1391,11 @@ step_delete_orphans() {
                 ;;
         esac
     done
-    # Prune now-empty managed directories.
-    find "${CLAUDE_HOME}/rules" "${CLAUDE_HOME}/agents" "${CLAUDE_HOME}/skills" "${GROK_RULES_HOME}" -type d -empty -delete 2>/dev/null || true
+    # Empty managed directories are pruned per deletion by prune_empty_parents
+    # above — bounded to the ancestors of what this run actually deleted, and
+    # to that entry's own scope root. The previous sweep here was a
+    # `find … -type d -empty -delete` over four fixed roots: it also removed
+    # empty directories the user created, and ran even under --only codex.
     report "orphans: ${deleted} deleted"
 }
 
@@ -1920,6 +2139,7 @@ main() {
     step_write_manifest
 
     step_final_report
+    orphan_guard_exit_status
 }
 
 main "$@"

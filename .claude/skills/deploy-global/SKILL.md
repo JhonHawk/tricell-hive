@@ -255,6 +255,13 @@ the selected apply writes targets.
   `global/CLAUDE.md`, `global/rules`, or `global/agents`), and refuses an oversized orphan
   deletion (see `--keep-orphans` above) — both are the compensating controls for a
   mis-resolved repo root turning "nothing to deploy" into "delete everything".
+- Never deletes outside a managed root. Every manifest entry is contained before it is
+  reported or removed: a `..` segment, an absolute path, an unknown prefix, or a target whose
+  resolved parent leaves the root for its scope is rejected — named in the report, never
+  deleted, dropped from the rewritten manifest — and the run ends with exit code 3 so a
+  corrupted manifest gets noticed while the rest of the deploy still lands. A final-component
+  symlink is removed as a link; its destination is never followed. Deterministic
+  (`test_orphan_containment.py`).
 
 ## After a deploy
 
