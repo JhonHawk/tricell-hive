@@ -26,8 +26,10 @@ four elements below produces plausible-looking but misaligned work.
    reaches them. Do not paste global rules — agents inherit them.
 4. **Expected output shape** — what comes back and in what form: "return: files
    created/modified with paths, migration ID, what you verified (command + result), open
-   issues". The agent's final message is the only thing the orchestrator sees; an
-   unspecified return forces a follow-up round-trip. When the dispatch (or a plan step)
+   issues". Absent a named channel, the agent's final message is the only thing the
+   orchestrator sees; an unspecified return forces a follow-up round-trip. Name that channel
+   too — how the agent asks at a fork the prompt does not settle
+   (`agent-routing.md > Delegation hygiene`). When the dispatch (or a plan step)
    includes a command to run, pair it with its expected result — `Run: pnpm test
    messages.spec — Expected: 12 passing, 0 failing` — a step whose expected output you
    cannot state is not a verification step yet, and silent drift ("it ran" but not as
@@ -49,7 +51,7 @@ each is fixed — never a silent retry of the same agent unchanged:
 |---|---|---|
 | `DONE` | Complete, verified as dispatched | Verify against the diff, then proceed |
 | `DONE_WITH_CONCERNS` | Complete, but the agent flags risks or doubts | Read the concerns BEFORE consuming the output; real ones route to review or the user |
-| `NEEDS_CONTEXT` | Missing information to proceed correctly | The gap was in the handoff — re-dispatch the same task with the missing context added |
+| `NEEDS_CONTEXT` | Missing information to proceed correctly | The gap was in the handoff — resume the same agent with the missing context where the harness can continue it; re-dispatch only where it cannot. A resume is not a delegation rerun |
 | `BLOCKED` | Genuinely cannot proceed: failed verification, contradiction, a resource the agent cannot obtain. Work it has the access and the decision for is NOT blocked — that is a pending step it should have taken | Diagnose before re-dispatching: task too large → split it; reasoning beyond the agent → escalate model or specialist; plan defect → surface to the user |
 
 Instruct agents that escalating is always legitimate — "this is too hard for me" is an
