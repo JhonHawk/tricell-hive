@@ -91,7 +91,7 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── languages/                   # Language/framework standards (12 files, path-scoped)
 │   ├── workflow/                    # Git, deploys, structure, routing, naming (8 files)
 │   └── tools/                       # External tools & MCP protocols (3 files)
-├── rules-situational/               # Router-reached rules (7 files, injected into skill references by build.py; never deployed to ~/.claude/rules/)
+├── rules-situational/               # Router-reached and pack-only rules (9 files: injected into skill references by build.py, or inlined into agents via packs:; never deployed to ~/.claude/rules/)
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs deployed canon + content quality
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
@@ -139,7 +139,7 @@ _support/                            # Workspace material, not deployed
 └── workspace/                       # Ephemeral scratch (gitignored)
 ```
 
-## Agents (25 agents)
+## Agents (26 agents)
 
 | Agent | Category | Color | Tool surface |
 |-------|----------|-------|--------------|
@@ -152,6 +152,7 @@ _support/                            # Workspace material, not deployed
 | `database-specialist` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `kotlin-multiplatform-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `react-developer` | development | green | Read, Write, Edit, Bash, Grep, Glob, context7, heroui-pro |
+| `ts-backend-developer` | development | green | Read, Write, Edit, Bash, Glob, Grep |
 | `sdd-explore` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only discovery & research) |
 | `review-code` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (read-only investigation; guard coverage varies by harness) |
 | `review-refuter` | review | cyan | Read, Glob, Grep, Bash, WebSearch/WebFetch, context7 (executes claims, never modifies) |
@@ -185,7 +186,7 @@ Line counts live on disk (`wc -l global/agents/*/*.md`); `/manage-agents validat
 | `workflow/`  |     8 |         2 |           6 |
 | `tools/`     |     3 |         3 |           0 |
 
-`rules-situational/` (7 files) is outside this table: never always-on, reachable only through the router skill that injects it (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`).
+`rules-situational/` (9 files) is outside this table: never always-on, reachable only through the router skill that injects it (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`) — except `agent-core-gates.md` and `test-gate.md`, which no router serves: they reach an agent only inlined through its `packs:`.
 
 Always-on footprint (`global/CLAUDE.md` + the 18 rules without `paths:`): **913 lines / 121 KB / ~30k tokens**, paid on every session before any work starts. Measure it with:
 

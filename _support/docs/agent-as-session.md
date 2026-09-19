@@ -107,7 +107,7 @@ tools: Read, Bash
 
 | Project type | Agent | Effect |
 |-------------|-------|--------|
-| NestJS backend | `backend-developer` | Session with NestJS rules, thin controllers, DTOs |
+| NestJS backend | `ts-backend-developer` | Session with NestJS rules, thin controllers, DTOs |
 | Angular frontend | `angular-developer` | Session with Angular patterns, signals, standalone |
 | Docs-heavy repo | `sdd-spec-writer` | Session focused on documentation |
 | Config repo (tricell-hive) | None (default) | Normal session, automatic agent routing |

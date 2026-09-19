@@ -58,8 +58,11 @@ regex — `**a**a**a**a**a**b` makes a backtracking engine run for minutes.
 
 A read of a rule's own text is never denied, whatever the globs say — otherwise a `**/*.md`
 `readers` rule would deny the exact read it demands. Agent identity comes from `agent_type`
-(recorded inside subagents on Claude Code 2.1.277 and Codex 0.155.0; unverified on Grok; on PI it
-comes from `PI_HIVE_AGENT`, which nothing sets today — so packs and read-only scoping are inert
+(recorded inside subagents on Claude Code 2.1.277 and Codex 0.155.0); on Grok it is
+`subagentType` — camelCase only, present on every event inside a child and absent on the main
+thread (recorded on 1.0.34; the user guide bundled with the binary documents it), while a packed
+agent run as the PRIMARY Grok session (`grok --agent <name>`) carries no identity at all and is
+gated like the main thread; on PI it comes from `PI_HIVE_AGENT`, which nothing sets today — so packs and read-only scoping are inert
 there until something does). With no agent identity the caller is treated as the main thread,
 whose only consequence is gating a rule an agent may already carry. State is keyed by
 `agent_id` when there is one and by `agent_type` otherwise, never collapsed into the main
@@ -162,6 +165,5 @@ PI side is covered by `harness/pi` (`npm test`), the deploy side by
 
 Only a live harness can settle: that Claude/Codex/Grok/PI route these payload shapes to the
 deployed hook at all, PostToolUse included; that Grok still clips a denial reason at ~264 visible
-characters and whether PI clips at all; whether Codex emits any compaction event; whether
-`agent_type` is present inside a Grok subagent; and whether a model, told to read a file,
+characters and whether PI clips at all; whether Codex emits any compaction event; and whether a model, told to read a file,
 actually reads it rather than waiting out the valve.

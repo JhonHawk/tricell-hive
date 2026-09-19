@@ -219,8 +219,12 @@ def tool_input(payload):
 
 
 def agent_name(payload):
-    """The subagent's roster name; absent means the main thread."""
-    for key in ("agent_type", "agentType", "agent_name"):
+    """The subagent's roster name; absent means the main thread.
+
+    Grok names it `subagentType`, camelCase only, on every event that fires
+    inside a child and on none of the main thread's.
+    """
+    for key in ("agent_type", "agentType", "subagentType", "agent_name"):
         value = payload.get(key)
         if isinstance(value, str) and value:
             return value

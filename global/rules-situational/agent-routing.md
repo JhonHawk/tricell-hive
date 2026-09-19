@@ -9,20 +9,22 @@ When a task could map to multiple agents, use these signals. If a task hits mult
 
 | Signal in task | Route to | NOT to |
 |---|---|---|
-| slow query, EXPLAIN, N+1, index tuning | performance-engineer | backend-developer |
-| schema design, migration, ORM config | database-specialist | backend-developer |
+| slow query, EXPLAIN, N+1, index tuning | performance-engineer | ts-backend-developer, backend-developer |
+| schema design, migration, ORM config | database-specialist | ts-backend-developer, backend-developer |
 | write tests as the primary objective (coverage push, new E2E suite) | test-engineer | the implementing agent |
 | vulnerability, OWASP, secrets, auth bypass | review-security | review-code |
-| prompt design, LLM integration, structured output | prompt-engineer | backend-developer |
-| CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | backend-developer, cloud-architect |
+| prompt design, LLM integration, structured output | prompt-engineer | ts-backend-developer, backend-developer |
+| CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | ts-backend-developer, backend-developer, cloud-architect |
 | cloud topology, landing zone, DR (RTO/RPO), migration planning (6Rs), FinOps cost architecture | cloud-architect | devops-engineer, sdd-design |
 | architecture decision before contracts — which component owns a capability, scale/restructure/replace a system, unify a cross-project capability; output is a proposal/ADR with alternatives vs quality-attribute scenarios | solution-architect | sdd-design (contracts after the decision), cloud-architect (infra topology), sdd-explore `approaches` (options inside one module, no document), review-code |
 | secret scanning, leaked credentials | secrets-auditor | review-security |
 | new API contract, cross-service schema design, service boundaries | sdd-design | review-code |
 | Angular components, services, routing, angular.json present | angular-developer | react-developer |
 | Next.js, App Router, Server Components, next.config present | react-developer | angular-developer |
-| React app with no Next.js (Vite, React Router, CRA legacy) | react-developer | backend-developer, the main thread |
-| API endpoints, backend logic, microservices (no DB/perf focus) | backend-developer | database-specialist, performance-engineer |
+| Next.js Route Handlers (`route.ts`), Server Actions, `middleware.ts`/`proxy.ts` — server code inside a Next.js app | react-developer | ts-backend-developer |
+| React app with no Next.js (Vite, React Router, CRA legacy) | react-developer | ts-backend-developer, the main thread |
+| Node/TypeScript backend: NestJS or Express/Fastify endpoints, Prisma/Drizzle access, BullMQ workers, a monorepo contracts package (no DB/perf focus) | ts-backend-developer | backend-developer, database-specialist, performance-engineer |
+| API endpoints, backend logic, microservices on Java/Spring, Kotlin server, Python, or any non-Node stack (no DB/perf focus) | backend-developer | ts-backend-developer, database-specialist, performance-engineer |
 | Kotlin Multiplatform (KMP), Android, Compose, shared mobile code | kotlin-multiplatform-developer | backend-developer |
 | server-only Kotlin (Ktor/Spring, no Android or multiplatform target) | backend-developer | kotlin-multiplatform-developer |
 | README, ADR, API docs, setup guide — in-repo Markdown | sdd-spec-writer (`docs`) | the implementing agent; pages inside a Starlight docs site (`/starlight-docs-site page`) |

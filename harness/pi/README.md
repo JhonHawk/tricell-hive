@@ -14,7 +14,7 @@ global/agents + global/hooks
           ▼
   harness/pi runtime ──► ~/.pi/agent
           │                 ├─ extensions: Hive bridge + reviewer guard
-          │                 ├─ agents: 24 generated role definitions
+          │                 ├─ agents: 26 generated role definitions
           │                 ├─ settings: managed package/resource entries
           │                 └─ packages: pinned third-party capabilities
           ▼
@@ -41,7 +41,7 @@ that make them active, and from the policy used when a prerequisite is missing:
 
 | Surface | Copied or staged | Wired or registered | Failure policy |
 |---|---|---|---|
-| Core and roles | `harness/AGENTS.md` and the 24 generated files under `harness/pi/agents/` | Pi agent discovery and `pi-subagents` role selection | Missing, stale, or hand-edited generated output fails the selected preflight |
+| Core and roles | `harness/AGENTS.md` and the 26 generated files under `harness/pi/agents/` | Pi agent discovery and `pi-subagents` role selection | Missing, stale, or hand-edited generated output fails the selected preflight |
 | Runtime and extensions | `harness/pi/src/`, `extensions/`, and the canonical hook scripts | Managed extension/package entries under the PI root | Missing or non-executable required files block; advisory extension failures warn and continue |
 | Managed configuration | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five exact package entries, `shellPath` (Homebrew bash 5 — Pi otherwise spawns `/bin/bash`, bash 3.2 on macOS), `forceTopLevelAsync`, the managed Context7, Linear, and HeroUI Pro `mcp` proxies, and OpenAI web search | Invalid config, ownership conflict, or missing required pin blocks before a selected write; unrelated user fields remain intact |
 | Packages and patch | Preinstalled packages under `<PI root>/npm` plus the reviewed patch metadata in this checkout | Exact package identities, versions, and patch target hashes | No auto-install; a missing package, third hash, symlink, or patch mismatch blocks before writes |
@@ -90,13 +90,13 @@ pair plus web_search/source_check for the full web profile. Source
 disallowedTools entries expand to the same Pi names and remain authoritative
 through the generated excludeTools field.
 
-The 24 roles keep the Hive roster and prompts. Their OpenAI-backed model policy
+The 26 roles keep the Hive roster and prompts. Their OpenAI-backed model policy
 is:
 
 | Canonical source policy | Generated Pi `model` | Thinking level | Roles |
 |---|---|---|---|
 | `opus` + declared `high` | `openai-codex/gpt-6-astra` | `medium` | Five approved Astra roles; the source `high` declaration remains visible for auditability |
-| `sonnet` + declared `max` | `openai-codex/gpt-5.6-luna` | `max` | 11 executor and discovery roles |
+| `sonnet` + declared `max` | `openai-codex/gpt-5.6-luna` | `max` | 12 executor and discovery roles |
 | `sonnet` + declared `high` | `openai-codex/gpt-5.6-luna` | `high` | Three validator roles |
 | `sonnet` + declared `medium` | `openai-codex/gpt-5.6-luna` | `medium` | `state-fetcher` |
 | `inherit` + declared `high` | `inherit` | `high` | Five judgment roles; the generated definition keeps `model: inherit` |
@@ -147,7 +147,7 @@ Role identity comes from the generated agent definition; it is never inferred
 from a prompt or environment variable. A missing required child extension is
 an infrastructure error, not a reason to silently continue without the guard.
 The generated `tools` allowlists carry the readiness sentinels:
-`hive_hook_readiness` is selected by all 24 roles, and research-capable roles
+`hive_hook_readiness` is selected by all 26 roles, and research-capable roles
 also select `hive_research_readiness`; the six reviewer roles additionally
 select `hive_reviewer_readiness`. The corresponding child extensions are
 `hive-hooks.ts` for every role and `hive/reviewer-guard.ts` for the six-role
@@ -269,7 +269,7 @@ the Pi core documentation does not define them.
 | Custom agents | Generated files load from `~/.pi/agent/agents/**/*.md` | [pi-subagents agents reference](https://github.com/nicobailon/pi-subagents/blob/main/docs/agents.md) | Package reference |
 | Background children | Hive uses `pi-subagents` async children with explicit child-only extensions | [pi-subagents package](https://pi.dev/packages/pi-subagents?type=extension) · [tool and extension selection](https://github.com/nicobailon/pi-subagents/blob/main/docs/agents.md) | Package reference |
 | Engram memory bridge | `gentle-engram@0.1.13` provides Pi-native memory tools and the native HTTP path used here | [gentle-engram package](https://pi.dev/packages/gentle-engram) | Package reference; this integration does not run `pi-engram init` |
-| Required child extensions | `hive-hooks.ts` on all 24 roles; `hive/reviewer-guard.ts` on six roles; explicit `tools` sentinels `hive_hook_readiness` and `hive_reviewer_readiness` | — | Undocumented upstream; enforced by generated tool selection and runtime checks |
+| Required child extensions | `hive-hooks.ts` on all 26 roles; `hive/reviewer-guard.ts` on six roles; explicit `tools` sentinels `hive_hook_readiness` and `hive_reviewer_readiness` | — | Undocumented upstream; enforced by generated tool selection and runtime checks |
 | Portable Flow planning | Shared `/flow-plan` and `/flow-build` skills own phases, artifacts, and approvals; Pi contributes no native plan mode | — | Hive workflow |
 | Canonical Bash hooks | Hive-specific JSON adapter around existing scripts | [Pi extensions](https://pi.dev/docs/latest/extensions) for lifecycle extension points | Bridge behavior is Hive-specific |
 | OS sandbox | Not enabled | [Pi containerization](https://pi.dev/docs/latest/containerization) | Explicitly excluded |

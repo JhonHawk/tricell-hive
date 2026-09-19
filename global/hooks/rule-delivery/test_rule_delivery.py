@@ -1078,6 +1078,17 @@ class AgentScopeTests(HookCase):
                                                  manifest=manifest)),
                          reason_for([self.ts]))
 
+    def test_a_grok_subagent_is_identified_by_subagent_type(self):
+        # Grok carries the child's roster name as `subagentType` only — no
+        # snake alias, no `agent_type` (recorded from a 1.0.34 child payload).
+        manifest = self.write_manifest(self.rules, agents={"ts-backend-developer": ["ts"]})
+        packed = {"session": "child-1", "subagentType": "ts-backend-developer"}
+        self.assertAllowed(self.run_hook(grok_write("/repo/a.ts", **packed), manifest=manifest))
+        other = {"session": "child-2", "subagentType": "backend-developer"}
+        self.assertEqual(self.held(self.run_hook(grok_write("/repo/a.ts", **other),
+                                                 manifest=manifest)),
+                         reason_for([self.ts]))
+
     def test_a_read_only_agent_is_never_denied_a_write(self):
         manifest = self.write_manifest(self.rules, read_only_agents=["review-code"])
         reviewer = {"agent_id": "r1", "agent_type": "review-code"}

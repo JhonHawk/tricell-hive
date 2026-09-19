@@ -49,7 +49,7 @@ set -uo pipefail
 # exists (spec-writing playbook → business gate → /flow-plan), so gating them
 # on a plan would block the path that produces the plan.
 readonly EXCLUDED="cloud-architect sdd-design sdd-spec-writer solution-architect"
-readonly EXECUTORS="angular-developer backend-developer database-specialist devops-engineer kotlin-multiplatform-developer performance-engineer prompt-engineer react-developer secrets-auditor test-engineer visual-designer"
+readonly EXECUTORS="angular-developer backend-developer database-specialist devops-engineer kotlin-multiplatform-developer performance-engineer prompt-engineer react-developer secrets-auditor test-engineer ts-backend-developer visual-designer"
 
 # `HIVE_PLAN_PY` overrides the validator path (tests point it at the repo copy).
 readonly PLAN_PY="${HIVE_PLAN_PY:-$HOME/.claude/skills/flow-core/scripts/plan.py}"

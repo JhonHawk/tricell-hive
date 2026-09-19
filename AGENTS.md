@@ -76,7 +76,7 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 - `review-code` ✅ — `my_agent` ❌ — `ag` ❌ (too short) — `-agent-` ❌ (starts/ends with hyphen)
 
 ### Description Best Practices
-- 1-3 sentences for agents with obvious routing (e.g., "backend" tasks go to `backend-developer`).
+- 1-3 sentences for agents with obvious routing (e.g., a repo with `angular.json` goes to `angular-developer`).
 - **Triggers, not workflow.** A description states WHEN to invoke — it never compresses the body's procedure into steps. The body loads only on invocation; a description that summarizes the workflow gets followed instead of the body. Enumerating subcommands and what each delivers is fine; enumerating the execution sequence is not. Applies to agents and skills equally.
 - For agents where routing is ambiguous, include `<example>` blocks with `<commentary>` to help Claude decide when to invoke:
 ```
@@ -167,16 +167,19 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │       ├── browser-automation.md  # Gate block: delegation, profile, viewport (CLI reference → rules-situational/)
 │       ├── code-search.md         # search routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
-├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable only via a
-│                                  # router skill. For rules whose trigger is an intent
-│                                  # (delegating, planning), which `paths:` cannot express.
+├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable via a router
+│                                  # skill, or inlined into an agent via `packs:`. For rules whose
+│                                  # trigger is an intent (delegating, planning), which `paths:`
+│                                  # cannot express, and for pack-only texts.
 │   ├── README.md
+│   ├── agent-core-gates.md               # Pack-only: the gates a packed agent loses with the global corpus (required in every `packs:`)
 │   ├── agent-routing.md
 │   ├── browser-automation-reference.md   # CLI mechanics + MCP escalation (via language-rules)
 │   ├── communication-format-mechanics.md # Layout floor, in-thread form, diagram norm (via flow-report)
 │   ├── gap-resolution.md
 │   ├── git-mechanics.md
 │   ├── memory-routing.md
+│   ├── test-gate.md                      # Pack-only: the verifiable test gate condensed for executors
 │   └── unattended-autonomy-mode.md       # Full delegated-run mechanics (via unattended-delegation)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + review-refuter cross-exam → refuted/weakened/surviving/net-new canon

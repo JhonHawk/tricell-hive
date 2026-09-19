@@ -16,13 +16,14 @@ join: tight
 |---|---|---|
 | Angular components, services, routing; `angular.json` present | angular-developer | react-developer |
 | Next.js, App Router, Server Components; `next.config` present | react-developer | angular-developer |
-| React with no Next.js (Vite, React Router, CRA) | react-developer | backend-developer, the main thread |
-| API endpoints, backend logic, microservices (no DB/perf focus) | backend-developer | database-specialist, performance-engineer |
+| React with no Next.js (Vite, React Router, CRA) | react-developer | ts-backend-developer, the main thread |
+| Node/TypeScript backend (NestJS, Express/Fastify, Prisma/Drizzle, BullMQ) | ts-backend-developer | backend-developer, database-specialist |
+| Backend on any non-Node stack (Java/Spring, Kotlin server, Python) | backend-developer | ts-backend-developer, database-specialist |
 | Kotlin Multiplatform, Android, Compose, shared mobile code | kotlin-multiplatform-developer | backend-developer |
 | Server-only Kotlin (Ktor/Spring, no Android target) | backend-developer | kotlin-multiplatform-developer |
-| Schema design, migration, ORM config | database-specialist | backend-developer |
-| Slow query, EXPLAIN, N+1, index tuning | performance-engineer | backend-developer |
-| CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | backend-developer, cloud-architect |
+| Schema design, migration, ORM config | database-specialist | the backend agents |
+| Slow query, EXPLAIN, N+1, index tuning | performance-engineer | the backend agents |
+| CI/CD, Docker, Terraform, deploy pipeline | devops-engineer | the backend agents, cloud-architect |
 | Cloud topology, landing zone, DR (RTO/RPO), FinOps architecture | cloud-architect | devops-engineer, sdd-design |
 | New API contract, cross-service schema, service boundaries | sdd-design | review-code |
 | Review a diff/PR for correctness and cleanup — the DEFAULT when no other row is primary | review-code | the implementing agent |
@@ -37,7 +38,7 @@ join: tight
 | Challenge necessity/scope/shape of a feature BEFORE implementation | sdd-product-critic | sdd-spec-reviewer |
 | Raw client requirements, project intake analysis | sdd-spec-reviewer (intake mode) | the main thread |
 | "Where is X / how does Y work", think through an idea, or a question only docs/web settle | sdd-explore | the implementing agent, the main thread's own fetches |
-| Prompt design, LLM integration, structured output | prompt-engineer | backend-developer |
+| Prompt design, LLM integration, structured output | prompt-engineer | the backend agents |
 | README, ADR, API docs, setup guide — in-repo Markdown; draft or revise an épica/delta spec | sdd-spec-writer (`docs` / `spec`) | the implementing agent, the main thread |
 | Workspace file hygiene, misplaced artifacts, ledger repair | workspace-custodian | secrets-auditor |
 | Low-reasoning external state: tracker board, PR checks, deploy jobs, an APPROVED tracker batch | state-fetcher | a research subagent |

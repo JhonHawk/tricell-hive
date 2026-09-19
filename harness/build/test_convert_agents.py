@@ -145,7 +145,7 @@ class ConverterTests(unittest.TestCase):
         self.assertIn("model: openai-codex/gpt-6-astra", pi)
         self.assertIn("thinking: high", pi)
 
-    def test_cli_generates_all_25_pi_agents_and_common_policy(self):
+    def test_cli_generates_all_26_pi_agents_and_common_policy(self):
         with tempfile.TemporaryDirectory(prefix="hive-agent-output-") as tmp:
             result = subprocess.run(
                 [sys.executable, str(CONVERTER_PATH), "global/agents", tmp],
@@ -154,10 +154,10 @@ class ConverterTests(unittest.TestCase):
                 text=True,
                 check=True,
             )
-            self.assertIn("converted 25 agents", result.stdout)
+            self.assertIn("converted 26 agents", result.stdout)
             pi_dir = Path(tmp) / "pi"
             files = sorted(pi_dir.glob("*.md"))
-            self.assertEqual(len(files), 25)
+            self.assertEqual(len(files), 26)
             reviewer_guard_agents = {
                 "review-code",
                 "sdd-explore",
@@ -414,7 +414,7 @@ class ConverterTests(unittest.TestCase):
         ):
             self.assertNotIn(f"language-rules/references/{native}", grok, native)
         self.assertIn("## Role rules", grok)
-        self.assertIn("language-rules/references/typescript-standards.md", grok)
+        self.assertIn("language-rules/references/java-kotlin.md", grok)
         self.assertIn("language-rules/references/identifier-language.md", grok)
 
     def test_grok_drops_the_role_rules_section_when_no_row_survives(self):

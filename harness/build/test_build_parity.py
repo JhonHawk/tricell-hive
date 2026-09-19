@@ -148,7 +148,10 @@ class GeneratedTreeParityTests(unittest.TestCase):
             # A README is not a rule text; nothing downstream should deliver it.
             self.assertNotIn("README", rules)
             # One entry per rule text under global/rules/** + rules-situational/**.
-            self.assertEqual(len(manifest["rules"]), 38)
+            self.assertEqual(len(manifest["rules"]), 40)
+            # The two pack-only texts carry no globs: the hook never delivers them.
+            for pack_only in ("agent-core-gates", "test-gate"):
+                self.assertEqual(rules[pack_only]["globs"], [], pack_only)
             # The glob-scoped set the hook delivers by touched file.
             glob_scoped = sorted(n for n, e in rules.items() if e["globs"])
             self.assertEqual(len(glob_scoped), 19, glob_scoped)
@@ -204,8 +207,20 @@ class GeneratedTreeParityTests(unittest.TestCase):
                 (fixture / "harness/rule-manifest.json").read_text(encoding="utf-8")
             )
             self.assertIn("agents", manifest)
-            # No agent declares packs in this milestone.
-            self.assertEqual(manifest["agents"], {})
+            # The specialized development agents, and only they, carry packs;
+            # the generic backend agent stays hook-fed.
+            self.assertEqual(
+                sorted(manifest["agents"]),
+                [
+                    "angular-developer",
+                    "database-specialist",
+                    "kotlin-multiplatform-developer",
+                    "react-developer",
+                    "ts-backend-developer",
+                ],
+            )
+            for agent, packs in manifest["agents"].items():
+                self.assertEqual(packs[0], "agent-core-gates", agent)
             # Built from the source agents, so it cannot silently go missing.
             self.assertEqual(
                 BUILD_MODULE.build_rule_manifest()["agents"], manifest["agents"]
