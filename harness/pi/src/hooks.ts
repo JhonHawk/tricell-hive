@@ -667,18 +667,31 @@ function ruleContextPayload(ctx: ExtensionContext, event: ToolCallEvent, toolNam
 }
 
 /**
+ * PI has no agent-name channel of its own: the reviewed `pi-subagents` patch
+ * exports `PI_HIVE_AGENT` from the child launch, and this reads it ONCE, while
+ * the extension loads. The variable is process-global and the launcher rewrites
+ * it for the next child in the same runner process — serialized only from env
+ * application through `session_start` — so a per-event read could label this
+ * session's write with another agent's name and skip a rule it never carried.
+ * Blank or unset is main-thread treatment, which over-gates and never skips.
+ */
+function resolveHiveAgentIdentity(): string | undefined {
+  const agent = process.env.PI_HIVE_AGENT?.trim();
+  return agent ? agent : undefined;
+}
+
+/**
  * rule-delivery reads the event name and the agent identity: the first decides
  * gate-vs-observe, the second whether this caller already carries the rule as a
- * pack (or cannot write at all). PI has no agent-name channel of its own, so
- * `PI_HIVE_AGENT` is it; unset, the caller is treated as the main thread.
+ * pack (or cannot write at all).
  */
 function ruleDeliveryPayload(
   ctx: ExtensionContext,
   event: ToolCallEvent | ToolResultEvent,
   toolName: "Write" | "Edit" | "Bash" | "Read",
   hookEvent: "PreToolUse" | "PostToolUse",
+  agent: string | undefined,
 ): Record<string, unknown> {
-  const agent = process.env.PI_HIVE_AGENT?.trim();
   return {
     harness: "pi",
     hook_event_name: hookEvent,
@@ -740,6 +753,7 @@ async function runRuleDeliveryGate(
   ctx: ExtensionContext,
   runnerOptions: HookRunnerOptions | undefined,
   failureKeys: Set<string>,
+  agent: string | undefined,
   hookEvent: "PreToolUse" | "PostToolUse" = "PreToolUse",
 ): Promise<RuleDeliveryBlock | undefined> {
   let stdout: string;
@@ -748,7 +762,7 @@ async function runRuleDeliveryGate(
       {
         scriptPath: paths.ruleDelivery,
         cwd: ctx.cwd,
-        payload: ruleDeliveryPayload(ctx, event, tool, hookEvent),
+        payload: ruleDeliveryPayload(ctx, event, tool, hookEvent, agent),
         mode: "advisory",
         env: { HIVE_HARNESS: "pi" },
         signal: ctx.signal,
@@ -792,6 +806,7 @@ export function registerGeneralHiveHooks(
   const mcpAllowlistWarnedSessions = new Set<string>();
   const advisoryFailureKeys = new Set<string>();
   const parentAdvisoriesEnabled = process.env.PI_SUBAGENT_CHILD !== "1";
+  const hiveAgent = resolveHiveAgentIdentity();
   let ruleQueue: Promise<void> = Promise.resolve();
   let initialContextQueuedSession: string | undefined;
   let parentSession = process.env.PI_SUBAGENT_PARENT_SESSION ?? "";
@@ -950,7 +965,7 @@ export function registerGeneralHiveHooks(
     const deliveryTool = ruleDeliveryToolName(event.toolName);
     if (deliveryTool && isExecutable(paths.ruleDelivery)) {
       const held = await runRuleDeliveryGate(
-        pi, paths, deliveryTool, event, ctx, runnerOptions, advisoryFailureKeys,
+        pi, paths, deliveryTool, event, ctx, runnerOptions, advisoryFailureKeys, hiveAgent,
       );
       if (held) return held;
     }
@@ -983,7 +998,7 @@ export function registerGeneralHiveHooks(
     const observedTool = ruleDeliveryToolName(event.toolName);
     if (observedTool && !ruleDeliveryGates(observedTool) && isExecutable(paths.ruleDelivery)) {
       await runRuleDeliveryGate(
-        pi, paths, observedTool, event, ctx, runnerOptions, advisoryFailureKeys, "PostToolUse",
+        pi, paths, observedTool, event, ctx, runnerOptions, advisoryFailureKeys, hiveAgent, "PostToolUse",
       );
     }
     const context = await runAdvisoryHook(

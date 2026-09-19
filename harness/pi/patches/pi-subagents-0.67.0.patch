@@ -55,3 +55,20 @@
  	});
  	onRuntimeEvent("agent_end", async (_event: unknown, ctx: unknown) => {
  		if ((ctx as { hasUI?: boolean } | undefined)?.hasUI === true) drainObservation?.deny();
+--- a/src/runs/shared/child-launch.ts
++++ b/src/runs/shared/child-launch.ts
+@@ -161,6 +161,14 @@
+ function childProcessEnv(input: BuildInProcessChildLaunchInput, toolPlan: PiLaunchToolPlan): Record<string, string | undefined> {
+ 	const env: Record<string, string | undefined> = {};
+ 	env[PI_SUBAGENT_EXTENSION_BINDINGS_ENV] = encodeExtensionBindings(input.extensionBindings);
++	// Hive: the child's role identity, read by the rule-delivery gate. The key is
++	// ALWAYS present in this record: `applyProcessEnv` deletes a key whose value
++	// is undefined, so a launch without a name clears the previous child's
++	// identity in this process instead of leaking it into the next one.
++	// `childAgentName` is typed `string` but arrives from a run plan on disk, so a
++	// blank name is normalized to no identity here.
++	const hiveAgentName = input.childAgentName?.trim();
++	env["PI_HIVE_AGENT"] = hiveAgentName ? hiveAgentName : undefined;
+ 	if (!toolPlan.capabilityCeiling && input.mcpDirectTools?.length) env[MCP_DIRECT_TOOLS_ENV] = input.mcpDirectTools.join(",");
+ 	else if (toolPlan.capabilityCeiling && toolPlan.effectiveMcpSelections.length && !toolPlan.capabilityCeiling.denyExtensions) {
+ 		env[MCP_DIRECT_TOOLS_ENV] = toolPlan.effectiveMcpSelections.map((selection) => selection.selector).join(",");

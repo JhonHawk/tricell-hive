@@ -13,7 +13,11 @@
     "src/runs/shared/subagent-prompt-runtime.ts": {
       "sha256Before": "ab6b6176dc55fa330bd8d0174bce143fe68203b05d50a10809102c629e58a641",
       "sha256After": "d46f26e9cc1b01a58c64ab6b32e7cc720877f50e30902bf92dbad5e7bc8330d1"
+    },
+    "src/runs/shared/child-launch.ts": {
+      "sha256Before": "553aadf174f8cb3de3d4a7b8f79bf1305c4d0c5e7022f212ae751ac669ef39ef",
+      "sha256After": "c8f0ff64366daee707dc501584cf4e49380fe7941d1883178b4adad35ddcc80d"
     }
   },
-  "patchSha256": "fb534c3f1c9acd8d2c8c7e83459bf2d0115747264381b76e577966967312f3d1"
+  "patchSha256": "6416386cc2e8b0670e15dcd5b05ec458a71fafe176b502a0db3868fa881f7211"
 }

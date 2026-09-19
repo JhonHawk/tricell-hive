@@ -144,7 +144,10 @@ loaded only for the six canonical roles whose source agent declares the
 reviewer hook: `review-code`, `sdd-explore`, `sdd-product-critic`,
 `review-security`, `sdd-spec-reviewer`, and `workspace-custodian`.
 Role identity comes from the generated agent definition; it is never inferred
-from a prompt or environment variable. A missing required child extension is
+from a prompt. The patched launcher copies that same definition's `name` into
+`PI_HIVE_AGENT` for the child process, which is how the `rule-delivery` gate
+learns who is writing — a value written from the definition, not sniffed from
+the environment. A missing required child extension is
 an infrastructure error, not a reason to silently continue without the guard.
 The generated `tools` allowlists carry the readiness sentinels:
 `hive_hook_readiness` is selected by all 26 roles, and research-capable roles
@@ -222,7 +225,8 @@ surface.
 [`patches/pi-subagents-0.67.0.patch`](patches/pi-subagents-0.67.0.patch), with
 its exact metadata in
 [`patches/pi-subagents-0.67.0.json`](patches/pi-subagents-0.67.0.json). It
-corrects two upstream boundaries used by Hive:
+corrects two upstream boundaries used by Hive and adds the one channel Pi does
+not have:
 
 - Custom extension tools were classified against the built-in-only inventory
   and silently pruned. The patch preserves explicitly requested custom tools
@@ -230,9 +234,18 @@ corrects two upstream boundaries used by Hive:
 - Required child-tool validation thrown from `agent_start` could be swallowed
   or arrive too late. The patch handles the check on `input`, before the
   provider request, and stops the input when a required tool is missing.
+- Pi exposes no agent identity to an extension, so the `rule-delivery` gate
+  could not tell which role was writing — every packed role was held for rules
+  it already carries and every read-only reviewer was treated as a writer. The
+  patch exports the launching role's name as `PI_HIVE_AGENT` in the child
+  environment (`childProcessEnv`, applied by `applyProcessEnv` immediately
+  before the child's extensions load). A launch with no name sets the key to
+  `undefined`, which `applyProcessEnv` deletes: a sequence of children in one
+  runner process can never inherit the previous child's identity. `src/hooks.ts`
+  reads the variable once, while the extension loads, for the same reason.
 
 The bundle hash is
-`fb534c3f1c9acd8d2c8c7e83459bf2d0115747264381b76e577966967312f3d1`. The
+`6416386cc2e8b0670e15dcd5b05ec458a71fafe176b502a0db3868fa881f7211`. The
 target hashes below are SHA-256 values for files under the installed package
 root (`<PI root>/npm/node_modules/pi-subagents/`):
 
@@ -240,6 +253,7 @@ root (`<PI root>/npm/node_modules/pi-subagents/`):
 |---|---|---|
 | `src/runs/shared/child-tool-plan.ts` | `90a8135c4afa87e56ff739acea8fa83b151e56323ea8eea167d832dfd70c1ddb` | `39c081aab64fb2617703043bfdb9184f2a38c7a48f7293e34649754c6c8c432b` |
 | `src/runs/shared/subagent-prompt-runtime.ts` | `ab6b6176dc55fa330bd8d0174bce143fe68203b05d50a10809102c629e58a641` | `d46f26e9cc1b01a58c64ab6b32e7cc720877f50e30902bf92dbad5e7bc8330d1` |
+| `src/runs/shared/child-launch.ts` | `553aadf174f8cb3de3d4a7b8f79bf1305c4d0c5e7022f212ae751ac669ef39ef` | `c8f0ff64366daee707dc501584cf4e49380fe7941d1883178b4adad35ddcc80d` |
 
 The PI deploy helper validates the exact package name and version, patch
 bytes, and every before/after hash before it plans a write. Each target must

@@ -899,6 +899,56 @@ test("rule delivery gates child sessions too and tells the hook who is writing",
   }
 });
 
+test("rule delivery labels the write with the identity this session loaded with", async () => {
+  // A runner process hosts more than one child session, and `PI_HIVE_AGENT` is
+  // process-global: the next launch overwrites it. Read per event, this
+  // session's write would carry the other agent's name — the one failure the
+  // gate must never have, since a wrong identity can skip a rule the real
+  // caller does not carry.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-identity-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, []);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-child", "base", [], fake.notifications);
+  const previousAgent = process.env.PI_HIVE_AGENT;
+  try {
+    process.env.PI_HIVE_AGENT = "ts-backend-developer";
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    process.env.PI_HIVE_AGENT = "review-code";
+    await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal(payloads[0]?.agent_type, "ts-backend-developer", "a later launch must never relabel this session");
+  } finally {
+    if (previousAgent === undefined) delete process.env.PI_HIVE_AGENT;
+    else process.env.PI_HIVE_AGENT = previousAgent;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a blank PI_HIVE_AGENT is the main thread, never an agent with an empty name", async () => {
+  // The launcher clears the key when it has no name; a blank value that reached
+  // the payload would be an identity no manifest entry matches.
+  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-blank-"));
+  const log = join(directory, "delivery.log");
+  const ruleDelivery = writeRuleDeliveryStub(directory, log, []);
+  const fake = createFakePi();
+  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
+  const previousAgent = process.env.PI_HIVE_AGENT;
+  try {
+    process.env.PI_HIVE_AGENT = "   ";
+    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleDelivery } });
+    await invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context);
+
+    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    assert.equal("agent_type" in (payloads[0] ?? {}), false, "no identity is main-thread treatment");
+  } finally {
+    if (previousAgent === undefined) delete process.env.PI_HIVE_AGENT;
+    else process.env.PI_HIVE_AGENT = previousAgent;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("rule delivery observes completed reads on tool_result", async () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-delivery-result-"));
   const log = join(directory, "delivery.log");

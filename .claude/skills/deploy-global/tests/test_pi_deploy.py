@@ -690,6 +690,26 @@ class PiDeployTests(unittest.TestCase):
             self.assertIn("files: 0 write, 0 delete, 0 conflict", second.stdout)
             self.assertEqual(backups, sorted((pi_dir / ".hive-deploy-backups").iterdir()))
 
+    def test_reviewed_patch_exports_the_child_agent_identity(self) -> None:
+        """PI has no agent-name channel: the gate is identity-blind without this target."""
+
+        deploy_module = load_deploy_module()
+        _patch_path, metadata, sections = deploy_module._patch_bundle(REPO_ROOT)
+        target = "src/runs/shared/child-launch.ts"
+        self.assertIn(target, metadata["files"])
+        added = [
+            line[1:]
+            for _start, _count, body in sections[target]
+            for line in body
+            if line.startswith("+")
+        ]
+        assignments = [line for line in added if "PI_HIVE_AGENT" in line and "=" in line]
+        self.assertEqual(len(assignments), 1, added)
+        self.assertIn("input.childAgentName", "".join(added))
+        # A blank or absent name must resolve to undefined: applyProcessEnv deletes
+        # that key, so the previous child's identity never reaches the next launch.
+        self.assertIn("undefined", assignments[0])
+
     def test_package_patch_adopts_pristine_files_and_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "source"
@@ -700,7 +720,8 @@ class PiDeployTests(unittest.TestCase):
 
             first = run_helper(*arguments)
             # 16 since rule-delivery: the bundle carries one more canonical hook.
-            self.assertIn("files: 16 write, 0 delete, 0 conflict", first.stdout)
+            # 17 since the identity export: the patch carries a third package target.
+            self.assertIn("files: 17 write, 0 delete, 0 conflict", first.stdout)
             manifest = json.loads((pi_dir / ".hive-deploy-manifest.json").read_text(encoding="utf-8"))
             for record in metadata["targets"]:
                 target = pi_dir / "npm/node_modules/pi-subagents" / record["path"]
@@ -730,7 +751,7 @@ class PiDeployTests(unittest.TestCase):
                 shutil.copy2(pristine, target)
 
             result = run_helper(*arguments)
-            self.assertIn("files: 2 write, 0 delete, 0 conflict", result.stdout)
+            self.assertIn("files: 3 write, 0 delete, 0 conflict", result.stdout)
             for record in metadata["targets"]:
                 target = pi_dir / "npm/node_modules/pi-subagents" / record["path"]
                 self.assertEqual(sha256_file(target), record["afterSha256"])
