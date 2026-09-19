@@ -9,9 +9,7 @@ description: >
   before any file exists. Also before naming any infra resource (bucket, cluster, service,
   security group, DB, subdomain, env branch), designing a cross-service contract, or
   answering "what's next"/offering /flow-* with a ledger. Every harness, Claude Code
-  included: these rules live in no harness's rule directory, and the `rule-delivery` hook
-  holds a matching WRITE (a read, only inside a read-only agent, for project-structure and
-  session-capture) — too late to pick a name or a location.
+  included: nothing loads these rules before a name or a location is chosen.
   Triggers: _support/, *-specs, sessions/, flow, IaC, naming, contract, "dónde va",
   "where should this live".
 ---

@@ -45,6 +45,30 @@ GENERATED_OPENAI_YAML = (
 )
 
 
+# PI refuses to auto-load a skill whose description exceeds this and reports it
+# only in its startup banner ("[Skill conflicts] … description exceeds 1024
+# characters"); the other harnesses truncate or accept more. The strictest reader
+# sets the budget — a router nobody loads is a rule nobody has.
+MAX_DESCRIPTION_CHARS = 1024
+
+
+def description_length(text: str) -> int:
+    """Length of the frontmatter `description` as a harness reads it (folded)."""
+    m = re.match(r"^---\n(.*?)\n---", text, re.S)
+    if not m:
+        return 0
+    lines, collecting = [], False
+    for line in m.group(1).splitlines():
+        if re.match(r"^description:", line):
+            collecting = True
+            lines.append(re.sub(r"^description:\s*[>|]?[-+]?\s*", "", line))
+        elif collecting and (line.startswith((" ", "\t")) or not line.strip()):
+            lines.append(line)
+        elif collecting:
+            break
+    return len(" ".join(" ".join(lines).split()))
+
+
 def frontmatter_disables_model_invocation(text: str) -> bool:
     m = re.match(r"^---\n(.*?)\n---", text, re.S)
     return bool(m) and bool(
@@ -90,6 +114,13 @@ def main():
         skill_md = dst / "SKILL.md"
         if skill_md.exists():
             source_text = skill_md.read_text(encoding="utf-8")
+            size = description_length(source_text)
+            if size > MAX_DESCRIPTION_CHARS:
+                sys.exit(
+                    f"ERROR: skill '{skill_dir.name}': description is {size} characters, "
+                    f"over the {MAX_DESCRIPTION_CHARS} PI accepts — it would not auto-load there. "
+                    "Keep the triggers, move the mechanism into the body."
+                )
             skill_md.write_text(
                 clean_skill_md(source_text, skill_dir.name), encoding="utf-8"
             )

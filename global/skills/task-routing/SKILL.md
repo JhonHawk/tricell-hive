@@ -3,10 +3,10 @@ name: task-routing
 description: >
   Load before the FIRST `Write`/`Edit` on project code OR the first git verb of the session —
   whichever comes first: a commit-only session fires on the git verb without ever reaching
-  edit-intent. Covers HOW work gets done — which specialist takes it, whether to delegate at all,
-  how a multi-domain task is chained and verified, the gap analysis that settles prerequisites
-  before a plan's tasks are written, the direct route's task record before the first write — AND the git mechanics: branching, session git mode, commits,
-  PR/promotion, close. Any request to review, audit, investigate, diagnose, refactor across files,
+  edit-intent. Covers HOW work gets done — which specialist takes it, whether to delegate,
+  how a multi-domain task is chained and verified, the gap analysis before a plan's tasks,
+  the direct route's task record — AND the git mechanics: branching, session git mode,
+  commits, PR/promotion, close. Any request to review, audit, investigate, diagnose, refactor across files,
   or "how would you approach X" is this decision, even when the user never says "delegate" — they
   ask for a result, not a routing choice. NOT for: a short question, work outside a software
   project, a SMALL read-only investigation (≤3 files, ≤3 queries), or the trivial carve-out (typo,

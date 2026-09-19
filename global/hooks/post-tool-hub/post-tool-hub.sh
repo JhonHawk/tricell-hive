@@ -37,42 +37,52 @@ case "$tool_name" in
 esac
 
 # ---------------------------------------------------------------------------
-# 0. Delegation counter — every non-delegation tool call increments; a
-# Task/Agent/spawn_subagent call resets to 0; a reminder fires on each
-# multiple of 20.
+# Shared: subagent identity test. A non-empty result means this payload was
+# emitted by a child agent, never the main thread. Same key set
+# rule-delivery.py reads — Claude sets `agent_id`/`agentId`/`agent_type`/
+# `agentType` only inside a child, Grok `subagentType`, `agent_name`
+# generically; all are absent on the main thread.
+# ---------------------------------------------------------------------------
+subagent_identity() {
+  printf '%s' "$input" | jq -r '
+    [.agent_id, .agentId, .agent_type, .agentType, .subagentType, .agent_name]
+    | map(select(type == "string" and . != "")) | first // empty' 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# 0. Delegation counter — every non-delegation MAIN-THREAD tool call
+# increments; a main-thread Task/Agent/spawn_subagent call resets to 0; a
+# reminder fires on each multiple of 20.
 #
-# Subagent noise: PostToolUse may also fire for tool calls made by subagents
-# (same session_id; agent_id semantics are undocumented as of Jul 2026).
-# Mitigations: (1) the counter keys to the FIRST-SEEN agent_id — events
-# reporting a different agent_id are ignored; (2) the reset on delegation
-# leaves the counter at 0 after every delegation, so any residual noise
-# cannot accumulate across delegations.
+# Subagent noise: PostToolUse also fires for tool calls made by subagents
+# (same session_id). "Main-thread tool calls since the last delegation" is
+# the gate's own definition, so a child's calls must not count toward it and
+# must never surface the advisory to a child that has no delegation gate of
+# its own — a payload carrying `subagent_identity` returns before the marker
+# is read, written, or reset, whether or not the call itself is a further
+# (nested) delegation.
 # ---------------------------------------------------------------------------
 delegation_section() {
-  local agent_id marker owner count
-  agent_id=$(printf '%s' "$input" | jq -r '.agent_id // .agentId // "main"' 2>/dev/null)
+  local marker count
+  [ -z "$(subagent_identity)" ] || return 0
   marker="${TMPDIR:-/tmp}/claude-delegation-reminder-${session_id}"
 
-  # Delegation observed -> reset the counter and stay silent.
+  # Main-thread delegation observed -> reset the counter and stay silent.
   case "$tool_name" in
     Task|Agent|spawn_subagent|subagent)
-      printf '%s|0' "$agent_id" > "$marker" 2>/dev/null || true
+      printf 'main|0' > "$marker" 2>/dev/null || true
       return 0 ;;
   esac
 
-  owner="$agent_id"
   count=0
   if [ -f "$marker" ]; then
-    IFS='|' read -r owner count < "$marker" 2>/dev/null || true
-    owner=${owner:-$agent_id}
+    IFS='|' read -r _ count < "$marker" 2>/dev/null || true
     count=${count:-0}
-    # Ignore tool calls attributed to agents other than the first-seen one.
-    [ "$agent_id" = "$owner" ] || return 0
   fi
 
   case "$count" in *[!0-9]*|'') count=0 ;; esac
   count=$((count + 1))
-  printf '%s|%s' "$owner" "$count" > "$marker" 2>/dev/null || true
+  printf 'main|%s' "$count" > "$marker" 2>/dev/null || true
 
   # Remind exactly when crossing each multiple of 20.
   if [ "$count" -ge 20 ] && [ $((count % 20)) -eq 0 ]; then
@@ -189,19 +199,15 @@ zsh_signature_section() {
 #
 # MAIN THREAD ONLY. A subagent never owns the session's git mode: it cannot ask
 # the question, its Write is not the session's first edit-intent, and the
-# advisory reaches the user only as relayed noise. Identity keys are the same
-# set rule-delivery.py reads — Claude sets `agent_id`/`agent_type` only inside a
-# child, Grok `subagentType`; all are absent on the main thread. The check runs
-# before the markers so a child's write neither records the ask nor consumes the
-# main thread's once-per-session evaluation.
+# advisory reaches the user only as relayed noise. Uses the shared
+# `subagent_identity` test (section 0's header documents the key set). The
+# check runs before the markers so a child's write neither records the ask
+# nor consumes the main thread's once-per-session evaluation.
 # ---------------------------------------------------------------------------
 git_mode_section() {
   [ "$harness" != "pi" ] || return 0
-  local askq_marker marker cwd identity
-  identity=$(printf '%s' "$input" | jq -r '
-    [.agent_id, .agentId, .agent_type, .agentType, .subagentType, .agent_name]
-    | map(select(type == "string" and . != "")) | first // empty' 2>/dev/null)
-  [ -z "$identity" ] || return 0
+  local askq_marker marker cwd
+  [ -z "$(subagent_identity)" ] || return 0
   askq_marker="${TMPDIR:-/tmp}/claude-askq-seen-${session_id}"
 
   # Ask observed -> record it and stay silent.

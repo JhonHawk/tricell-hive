@@ -10,7 +10,7 @@ One process carrying every post-execution advisory. Absorbs `delegation-reminder
 
 Each section self-gates on `tool_name` and returns text; whatever fires is newline-joined into **one** `additionalContext` emission per event.
 
-**0. Delegation counter** (all tools) — every non-delegation tool call increments a per-session counter; a `Task`/`Agent`/`subagent` call resets it to 0; a reminder fires on each multiple of 20, and from the third firing (≥60) it also names the act to take (research → `sdd-explore`, state sweep → `state-fetcher`) since the routing rule may have left context. Keyed to the session's first-seen `agent_id` so subagent tool calls (same `session_id`) don't inflate the main thread's count. Policy: `agent-routing.md > Delegation Gates`.
+**0. Delegation counter** (all tools) — **main-thread only.** Every non-delegation MAIN-THREAD tool call increments a per-session counter; a main-thread `Task`/`Agent`/`subagent` call resets it to 0; a reminder fires on each multiple of 20, and from the third firing (≥60) it also names the act to take (research → `sdd-explore`, state sweep → `state-fetcher`) since the routing rule may have left context. The gate's own definition is "main-thread tool calls since the last delegation", so a payload carrying a subagent identity (the same test section 5 uses) is filtered before the marker is read, written, or reset — it neither advances nor resets the count, and never surfaces the advisory to a child that has no delegation gate of its own; a further (nested) delegation issued BY a subagent is filtered the same way. Policy: `agent-routing.md > Delegation Gates`.
 
 **1. Full-suite run counter** (`Bash` only) — counts repeated whole-suite verification runs (`turbo run test`, `pnpm [-r] [run] test`, followed only by flags). A command carrying `--filter` is the sanctioned affected-subset run and never counts; a non-flag argument (`pnpm test messages.spec`) or a scoped script (`pnpm test:unit`) is treated as scoped. The first run is the legitimate merge-boundary gate and stays silent; run #2 onward reminds. Policy: `testing.md > Execution Scope`.
 
@@ -40,7 +40,7 @@ advisory hook failure becomes a warning and does not stop the child.
 
 | File | Section |
 |---|---|
-| `${TMPDIR:-/tmp}/claude-delegation-reminder-<session_id>` | 0 (format `<agent_id>\|<count>`) |
+| `${TMPDIR:-/tmp}/claude-delegation-reminder-<session_id>` | 0 (format `main\|<count>` — subagent payloads never touch this file) |
 | `${TMPDIR:-/tmp}/claude-verification-loop-<session_id>` | 1 (plain integer) |
 | `${TMPDIR:-/tmp}/claude-askq-seen-<session_id>` | 5 (empty; presence = an AskUserQuestion was observed) |
 | `${TMPDIR:-/tmp}/claude-git-mode-ask-<session_id>` | 5 (empty; presence = the once-per-session evaluation ran) |
@@ -54,7 +54,7 @@ Deterministic delivery of prompt-convention reminders. The hook injects signals 
 
 ## Known limitations
 
-- `PostToolUse` may also fire for subagent tool calls within the same session; `agent_id` semantics are undocumented (verified against docs 2026-07). Section 0 mitigates via first-seen-`agent_id` keying plus the reset on delegation. Sections 1 and 3 do not filter by agent — matching their pre-merge behavior.
+- `PostToolUse` may also fire for subagent tool calls within the same session; `agent_id` semantics are undocumented (verified against docs 2026-07). Sections 0 and 5 mitigate via the shared `subagent_identity` test (any of `agent_id`/`agentId`/`agent_type`/`agentType`/`subagentType`/`agent_name`) — a harness whose subagent payload carries none of those keys is a false negative these sections accept, same as section 5's own limitation below. Sections 1 and 3 do not filter by agent — matching their pre-merge behavior.
 - Section 2 recognizes only the pnpm/turbo shapes above; other runners (jest, vitest, gradle, pytest) are silent by design.
 - Section 6 sees only the command shapes above. A bare `git push` from an already-checked-out environment branch, a `gh pr merge` that triggers a deploy, and a console-driven apply are all invisible to it — false negatives it accepts, since a false positive would nag a session whose deploys all succeeded.
 - Section 5 is Claude-only and heuristic: it counts only `AskUserQuestion` calls PostToolUse delivered to this hook (which fire after the question is answered). A mode question asked before the hook existed in the session, or on a harness whose ask tool it cannot name (Grok), is invisible to it — hence "does not appear to have been asked" in the message, never a claim that it was not. Pi owns the equivalent state in its structured question coordinator and is intentionally skipped here.
