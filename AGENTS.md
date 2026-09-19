@@ -136,8 +136,8 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │                                  # a `rule-<name>.md` section is body-less and carries `include:` — the build
 │                                  # inlines that rule text from rules-situational/ into the Claude core
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-delivery, post-tool-hub, flow-session-context, flow-context, reviewer-guard, executor-dispatch-gate, session-hygiene-report)
-├── rules-situational/             # THE rule-text store (41 texts) — NEVER deployed to ~/.claude/rules.
-│                                  # 7 inlined into the core by a `rule-*` section; 25 carrying
+├── rules-situational/             # THE rule-text store (42 texts) — NEVER deployed to ~/.claude/rules.
+│                                  # 7 inlined into the core by a `rule-*` section; 26 carrying
 │                                  # `globs:`/`commands:` → held by the rule-delivery hook on a matching
 │                                  # write or command; 8 router-only; 1 pack-only. Injection into a
 │                                  # router's references/ and inlining via `packs:` are build steps.
@@ -151,6 +151,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 │   ├── code-search.md                    # Search routing + anti-conclusion discipline (router-only)
 │   ├── communication-format.md           # CORE INCLUDE: flow-report trigger + carve-outs
 │   ├── communication-format-mechanics.md # Layout floor, in-thread form, diagram norm (via flow-report)
+│   ├── config-authoring.md               # How a directive is written into a config/rule surface (globs: CLAUDE.md, AGENTS.md, rules, skills, agents)
 │   ├── context7.md                       # Context7 MCP query protocol (commands: dependency installs)
 │   ├── critical-thinking.md              # CORE INCLUDE: trivial carve-out, decision ownership, pre-ship test
 │   ├── cross-service-workflow.md
@@ -319,7 +320,7 @@ Carried by the compiled hive profile at the end of this file (`hive-profile` blo
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
 
 <!-- hive-profile:start -->
-Hive profile v1 · hive@c1ee2f1 · 2026-09-19 · class: config-hub
+Hive profile v1 · hive@9b341d5 · 2026-09-19 · class: config-hub
 
 ## Hive Profile
 

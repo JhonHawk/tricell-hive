@@ -67,8 +67,10 @@ Two honest subtleties:
 A rule that states a gate names its layer. Never phrase a prompt-convention as mechanical
 impossibility ("cannot", "physically blocked") — if a gate must be unbreakable, that is a
 request for a deterministic backstop (hook, deny permission), not for stronger wording.
-Operationalized in `global/CLAUDE.md > Communication > Name the enforcement layer` and in
-`/manage-agents validate` (rules check R5, "Enforcement honesty").
+Operationalized in `config-authoring.md > Name the enforcement layer` — held by
+`rule-delivery` on a write to a config or rule surface, carried by the
+`workspace-conventions` skill — and in `/manage-agents validate` (rules check R5,
+"Enforcement honesty").
 
 ## Portable planning
 

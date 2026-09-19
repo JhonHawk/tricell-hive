@@ -684,9 +684,34 @@ class GeneratedTreeParityTests(unittest.TestCase):
             # 19 before the always-on store was dissolved; `development-
             # principles`, `security` (the mechanics half of the floor) and
             # `test-gate` gained a glob scope when their gate halves moved into
-            # the core. A literal, because a rule silently losing its scope is
+            # the core, and `config-authoring` when the authoring bullets left
+            # it. A literal, because a rule silently losing its scope is
             # invisible otherwise — it just stops being delivered.
-            self.assertEqual(len(glob_scoped), 22, glob_scoped)
+            self.assertEqual(len(glob_scoped), 23, glob_scoped)
+
+            # The config/rule authoring surface: every glob is an act a third
+            # party can point to in the transcript — a write to a file of that
+            # kind. Pinned whole because nothing else delivers this rule: a
+            # glob dropped here silently returns the policy to "never read".
+            config_authoring = rules["config-authoring"]
+            self.assertEqual(
+                config_authoring["globs"],
+                ["**/CLAUDE.md", "**/CLAUDE.local.md", "**/AGENTS.md",
+                 "**/.claude/{agents,commands,rules}/**", "**/skills/**/*.md",
+                 "**/rules-situational/**", "**/core-sections/**",
+                 "**/global/agents/**", "**/opencode/commands/**"],
+            )
+            self.assertEqual(config_authoring["commands"], [])
+            self.assertFalse(config_authoring["always_on"])
+            self.assertEqual(
+                config_authoring["references"],
+                {
+                    "claude": "~/.claude/skills/workspace-conventions/references/"
+                              "config-authoring.md",
+                    "agents": "~/.agents/skills/workspace-conventions/references/"
+                              "config-authoring.md",
+                },
+            )
 
             typescript = rules["typescript-standards"]
             self.assertEqual(

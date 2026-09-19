@@ -19,7 +19,7 @@ build error, and a pack carrying the text does not excuse it. **A rule the core 
 not also declare a trigger** — the hook would push what the core already carries; the build
 refuses that too.
 
-Today: 41 rule texts — 7 always-on, 25 triggered, 8 router-only, 1 pack-only
+Today: 42 rule texts — 7 always-on, 26 triggered, 8 router-only, 1 pack-only
 (`agent-core-gates.md`). Recount from `harness/rule-manifest.json`, never by subtraction.
 
 ## Adding a rule — decide the shape first

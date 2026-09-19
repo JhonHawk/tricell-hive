@@ -59,7 +59,7 @@ because `~/.agents/skills` is native rather than compat. A CLI equivalent of the
 ## What does NOT reach it
 
 - **Every rule.** `~/.claude/rules/` appears in no scan list — and this repo deploys
-  nothing there any more — so none of the 41 texts under `global/rules-situational/` reaches
+  nothing there any more — so none of the 42 texts under `global/rules-situational/` reaches
   it as a rule file, the 7 the Claude core inlines included (Cursor does not read
   `~/.claude/CLAUDE.md` either). Cursor's own rules are `.cursor/rules/*.mdc` per project
   (`alwaysApply:` ≡ always-on, `globs:` ≡ conditional), project `AGENTS.md`, and User Rules

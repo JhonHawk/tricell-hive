@@ -8,10 +8,12 @@ description: >
   docs/, evidence/ path in prose: the path named in the answer is the act, and it happens
   before any file exists. Also before naming any infra resource (bucket, cluster, service,
   security group, DB, subdomain, env branch), designing a cross-service contract, or
-  answering "what's next"/offering /flow-* with a ledger. Every harness, Claude Code
-  included: nothing loads these rules before a name or a location is chosen.
-  Triggers: _support/, *-specs, sessions/, flow, IaC, naming, contract, "dónde va",
-  "where should this live".
+  answering "what's next"/offering /flow-* with a ledger. Also before writing a
+  CLAUDE.md/AGENTS.md, rule, skill or agent prompt, or drafting one in an answer.
+  Every harness, Claude Code included: nothing loads these rules before a name or a
+  location is chosen.
+  Triggers: _support/, *-specs, sessions/, flow, IaC, naming, contract, rule/skill/agent
+  authoring, "dónde va", "where should this live".
 ---
 
 # workspace-conventions — router to workspace, session, contract, and naming conventions
@@ -20,10 +22,11 @@ This skill exists because Codex and Grok have no conditional channel for intent-
 policy: their always-on floor keeps one trigger line and the complete conventions load
 here, when the situation is actually in play.
 
-**Claude Code needs it too now.** `project-structure`, `session-capture`, `infra-naming`
-and `cross-service-workflow` reach it only through this skill or through the `rule-delivery`
-hook, which holds a matching WRITE — and naming an infra resource or choosing where an
-artifact goes happens BEFORE anything is written. That is the gap this skill covers: invoke
+**Claude Code needs it too now.** `project-structure`, `session-capture`, `infra-naming`,
+`cross-service-workflow` and `config-authoring` reach it only through this skill or through
+the `rule-delivery` hook, which holds a matching WRITE — and naming an infra resource,
+choosing where an artifact goes, or drafting a rule's text in an answer happens BEFORE
+anything is written. That is the gap this skill covers: invoke
 it when the situation applies, not when a file happens to match.
 
 References are injected at build time from `global/rules-situational/` into `references/`.
@@ -37,6 +40,7 @@ References are injected at build time from `global/rules-situational/` into `ref
 | Generated-artifact naming/grouping, retention, evidence curation, versioning, legacy folder mappings (anything under `_support/`) | `support-artifacts.md` |
 | New or changed cross-service contract (endpoint a frontend consumes, request/response shape between services, events/webhooks) | `cross-service-workflow.md` |
 | Naming ANY infra resource — bucket, cluster, ECS service, security group, DB, secret path, subdomain, env branch, repo — or adding one to a project's naming table | `infra-naming.md` |
+| Writing or editing a CLAUDE.md/AGENTS.md, rule file, skill, agent prompt or hook message — or drafting the text of one in an answer | `config-authoring.md` |
 
 ## Flow phase boundaries (harness addendum — not restated in the references)
 

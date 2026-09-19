@@ -179,6 +179,29 @@
       "readers": false
     },
     {
+      "name": "config-authoring",
+      "source": "global/rules-situational/config-authoring.md",
+      "globs": [
+        "**/CLAUDE.md",
+        "**/CLAUDE.local.md",
+        "**/AGENTS.md",
+        "**/.claude/{agents,commands,rules}/**",
+        "**/skills/**/*.md",
+        "**/rules-situational/**",
+        "**/core-sections/**",
+        "**/global/agents/**",
+        "**/opencode/commands/**"
+      ],
+      "commands": [],
+      "exclusive_with": [],
+      "always_on": false,
+      "references": {
+        "claude": "~/.claude/skills/workspace-conventions/references/config-authoring.md",
+        "agents": "~/.agents/skills/workspace-conventions/references/config-authoring.md"
+      },
+      "readers": false
+    },
+    {
       "name": "context7",
       "source": "global/rules-situational/context7.md",
       "globs": [],

@@ -48,7 +48,7 @@ yourself.
 
 ## What does NOT reach it
 
-- **The 34 rule texts under `global/rules-situational/` that the core does not inline, as
+- **The 35 rule texts under `global/rules-situational/` that the core does not inline, as
   files.** There is no glob or command channel on this harness: every one of them arrives
   injected inside a router skill (`language-rules`, `workspace-conventions`, …), which the
   model must invoke, or inlined into a packed agent. opencode is the harness where not

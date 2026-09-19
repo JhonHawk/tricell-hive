@@ -17,7 +17,7 @@ last column. When a mechanism changes upstream, this is where you go to check.
 | Layer | What | Where it lands | Mechanism | Official doc | Verified |
 |---|---|---|---|---|---|
 | Always-on core | `global/CLAUDE.md`, with the 7 always-on rule texts inlined into it by their `rule-*` core sections | `~/.claude/CLAUDE.md` | Read at launch, walking up from cwd; `@file` imports expanded inline | [memory#how-claude-md-files-load](https://code.claude.com/docs/en/memory#how-claude-md-files-load) · [memory#import-additional-files](https://code.claude.com/docs/en/memory#import-additional-files) | 2026-08-20 |
-| Delivered rules | the other 34 texts under `global/rules-situational/`, 25 of them carrying `globs:`/`commands:` | `~/.claude/skills/<router>/references/`; the pack-only text (`agent-core-gates`) reaches an agent only inlined through its `packs:` | **Not** deployed as rule files — the conditional-rule channel is retired (below). A triggered rule is held by the `rule-delivery` hook on a matching write or command until its reference is read; otherwise reachable by invoking a router skill, or carried inside a packed agent | (no upstream mechanism; a repo convention — see below) | — |
+| Delivered rules | the other 35 texts under `global/rules-situational/`, 26 of them carrying `globs:`/`commands:` | `~/.claude/skills/<router>/references/`; the pack-only text (`agent-core-gates`) reaches an agent only inlined through its `packs:` | **Not** deployed as rule files — the conditional-rule channel is retired (below). A triggered rule is held by the `rule-delivery` hook on a matching write or command until its reference is read; otherwise reachable by invoking a router skill, or carried inside a packed agent | (no upstream mechanism; a repo convention — see below) | — |
 | Skills | 17 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
 | Agents | 26 subagents, shipped from the generated `harness/claude/agents/` (the `global/agents/` source plus any `packs:` inlined) | `~/.claude/agents/**` | Discovered recursively; `tools:` is the enforcing allowlist, `model:` defaults to `inherit` | [sub-agents#supported-frontmatter-fields](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields) | 2026-08-20 |
 | Hooks | 8 hook dirs (a script + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
@@ -36,7 +36,7 @@ Any rule text as a loadable file. Everything else still arrives: the always-on c
 allowlists, and all 8 hooks — every constraint documented in the other three READMEs is a
 subtraction from this baseline.
 
-The other 34 texts reach Claude Code exactly as they reach Grok and Codex: the 25 carrying
+The other 35 texts reach Claude Code exactly as they reach Grok and Codex: the 26 carrying
 `globs:`/`commands:` by the `rule-delivery` hook's hold on a matching write or command, all
 but the pack-only one through a router skill's `references/` (injected by `harness/build.py`,
 `SKILL_REFERENCE_INJECTIONS`), or inlined into a packed agent. `paths:` still works upstream;

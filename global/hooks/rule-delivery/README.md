@@ -49,7 +49,7 @@ the hook) decides. A rule is gateable when ALL hold:
 - its globs are usable: a glob expanding past 256 brace alternatives makes the rule
   undeliverable rather than costing every call the expansion.
 
-With today's manifest that is the 25 rules carrying `globs:` and/or `commands:` — of 41
+With today's manifest that is the 26 rules carrying `globs:` and/or `commands:` — of 42
 texts, 7 of them always-on by include.
 
 **Two frameworks can claim the same file convention** — `*.service.ts`, `*.module.ts`,

@@ -2616,6 +2616,108 @@ class RealManifestTests(HookCase):
             "a TypeScript write was not held for the TypeScript rule",
         )
 
+    def config_authoring_globs(self):
+        """The shipped globs of the config/rule authoring rule."""
+        manifest = json.loads(REAL_MANIFEST.read_text(encoding="utf-8"))
+        entry = next((e for e in manifest["rules"] if e["name"] == "config-authoring"),
+                     None)
+        self.assertIsNotNone(
+            entry, "config-authoring is not in the manifest: the authoring policy "
+                   "left the always-on core and nothing delivers it")
+        self.assertTrue(entry["globs"], "config-authoring carries no trigger")
+        return manifest, entry["globs"]
+
+    def reason_or_empty(self, payload):
+        """The denial reason, or '' when the call was allowed."""
+        result = self.run_hook(payload, manifest=REAL_MANIFEST, env=NO_WINDOW)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr.strip(), "")
+        if not result.stdout.strip():
+            return ""
+        return json.loads(result.stdout)["hookSpecificOutput"][
+            "permissionDecisionReason"]
+
+    def test_the_real_manifest_holds_a_write_to_a_config_surface(self):
+        # The act the rule is scoped to: authoring a file of that kind. Run
+        # against the SHIPPED manifest — a glob that only looks right in the
+        # rule's frontmatter delivers nothing. Each path is a surface a
+        # reproduced false skip found unheld.
+        manifest, _globs = self.config_authoring_globs()
+        self.assertTrue(self.stage_references(manifest), "no reference staged")
+
+        surfaces = (
+            "/repo/proj/AGENTS.md",
+            "/repo/proj/.claude/skills/x/SKILL.md",
+            # A project-local rule store: two client repos keep one.
+            "/repo/proj/.claude/rules/i18n.md",
+            # A skill's prose beyond SKILL.md — a reference or a template is
+            # the same authoring act, wherever the skills tree lives.
+            "/repo/hub/global/skills/flow-core/references/x.md",
+            # opencode's command wrappers are prompts by another name.
+            "/repo/hub/harness/opencode/commands/x.md",
+        )
+        for index, path in enumerate(surfaces):
+            with self.subTest(path=path):
+                self.assertIn("config-authoring.md",
+                              self.reason_or_empty(claude_write(path,
+                                                                session=f"ca{index}")),
+                              f"{path} is a config surface and was not held")
+
+    def test_a_write_that_is_not_a_config_surface_is_not_held_for_it(self):
+        # The other half of a trigger: what it must NOT fire on. Scripts,
+        # tests and fixtures live INSIDE a skill directory and are code — a
+        # glob that swept the whole directory held them, and cost the write a
+        # second denial round for a rule it never needed.
+        manifest, _globs = self.config_authoring_globs()
+        self.assertTrue(self.stage_references(manifest), "no reference staged")
+
+        not_surfaces = (
+            "/repo/proj/README.md",
+            "/repo/proj/src/a.ts",
+            "/repo/proj/.claude/skills/deploy/scripts/run.sh",
+            "/repo/proj/.claude/skills/deploy/tests/test_x.py",
+            # Generated: its canonical source under global/skills/ is what
+            # gets authored, and the segment name differs on purpose.
+            "/repo/hub/harness/agents-skills/foo/SKILL.md",
+        )
+        for index, path in enumerate(not_surfaces):
+            with self.subTest(path=path):
+                self.assertNotIn("config-authoring.md",
+                                 self.reason_or_empty(claude_write(path,
+                                                                   session=f"cb{index}")),
+                                 f"{path} is not a config surface")
+
+    def test_a_config_surface_inside_a_harness_root_is_never_held(self):
+        # `**/CLAUDE.md` matches the DEPLOYED core too, and the deployed copy
+        # is written by /deploy-global, not authored. The harness-root
+        # exemption is what keeps the gate off it — asserted with a HOME
+        # outside every temp root, which is itself exempt and would make the
+        # case pass for the wrong reason. The globs come from the shipped
+        # manifest; only the reference is relocated, so HOME can be anywhere.
+        _manifest, globs = self.config_authoring_globs()
+        home = "/Users/hive-test"
+        manifest = self.write_manifest(
+            [rule("config-authoring", globs, self.write_rule_text("config-authoring"))])
+
+        for index, path in enumerate((f"{home}/.claude/CLAUDE.md",
+                                      f"{home}/.claude/agents/review-code.md",
+                                      f"{home}/.agents/skills/x/SKILL.md")):
+            with self.subTest(path=path):
+                self.assertAllowed(
+                    self.run_hook(claude_write(path, session=f"cc{index}"),
+                                  manifest=manifest,
+                                  env={"HOME": home, **NO_WINDOW}),
+                    "a harness-owned config is deployed, not authored")
+        # The same names in a project are the authoring act, and are held.
+        for index, path in enumerate(("/ws/proj/CLAUDE.md",
+                                      "/ws/proj/.claude/agents/review-code.md",
+                                      "/ws/proj/global/core-sections/gate.md")):
+            with self.subTest(path=path):
+                self.assertIn("config-authoring", self.held(
+                    self.run_hook(claude_write(path, session=f"cd{index}"),
+                                  manifest=manifest,
+                                  env={"HOME": home, **NO_WINDOW})))
+
 
 if __name__ == "__main__":
     unittest.main()

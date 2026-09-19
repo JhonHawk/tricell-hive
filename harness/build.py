@@ -129,6 +129,10 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules-situational", "context7.md"),
     ],
     "workspace-conventions": [
+        # The authoring surface is a file kind, so the hook holds the write —
+        # but naming a rule, a skill or an agent prompt in an answer happens
+        # before one exists, which is this router's own trigger.
+        ("rules-situational", "config-authoring.md"),
         ("rules-situational", "project-structure.md"),
         ("rules-situational", "session-capture.md"),
         ("rules-situational", "support-artifacts.md"),

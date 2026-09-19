@@ -86,7 +86,7 @@ CLAUDE.md                            # Claude-facing project guide, not deployed
 global/                              # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                        # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                   # Canonical section files for both always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── rules-situational/               # THE rule-text store (41 texts): 7 inlined into the core by a rule-* section, 25 held by the rule-delivery hook on a matching write or command, 8 router-only, 1 pack-only. Never deployed to ~/.claude/rules/ — see its README for the procedure
+├── rules-situational/               # THE rule-text store (42 texts): 7 inlined into the core by a rule-* section, 26 held by the rule-delivery hook on a matching write or command, 8 router-only, 1 pack-only. Never deployed to ~/.claude/rules/ — see its README for the procedure
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs deployed canon + content quality
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
@@ -166,14 +166,14 @@ _support/                            # Workspace material, not deployed
 
 Line counts live on disk (`wc -l global/agents/*/*.md`); `/manage-agents validate --all` checks this table against it.
 
-## Rules (41 texts, one store)
+## Rules (42 texts, one store)
 
 `global/rules-situational/` holds every rule text; the channel decides how each reaches a model, and a rule with no channel is a build error:
 
 | Delivery | Texts | How it reaches an agent |
 |---|---:|---|
 | Core include | 7 | A `global/core-sections/rule-<name>.md` section carries `include:`; `harness/build.py` inlines the body into `global/CLAUDE.md`, always-on in every session. Grok reads that same core natively; Codex and opencode read the condensed `harness/AGENTS.md` |
-| Hook trigger | 25 | `globs:` (a matching write) and/or `commands:` (a matching command prefix) — the `rule-delivery` hook denies the call and names the reference to read. Claude Code, Grok, Codex and PI; a trigger counts only together with the router reference the hold names |
+| Hook trigger | 26 | `globs:` (a matching write) and/or `commands:` (a matching command prefix) — the `rule-delivery` hook denies the call and names the reference to read. Claude Code, Grok, Codex and PI; a trigger counts only together with the router reference the hold names |
 | Router only | 8 | Injected into a skill's `references/` (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`), present when the model invokes the router |
 | Pack only | 1 | `agent-core-gates.md` — no trigger, no injection; inlined into every packed agent, which runs with `omitClaudeMd: true` |
 
@@ -181,7 +181,7 @@ The packed agents also carry their triggered rules inlined, so a pack is a build
 
 **`paths:` is a build error.** It was Claude Code's native path-scoping key (*"rules without a `paths` field are loaded unconditionally"*); this repo retired that channel because it fires on a READ, misses the creation of the first file of a kind, charges every read-only agent that opens a `.ts`, and does not survive compaction.
 
-Always-on footprint, now that the gates are inlined into the core: **405 lines / 87,461 B / ~21.9k tokens** — down from 37.5 KB of core plus 83 KB of always-on rule files. Paid on every session before any work starts; measure it with:
+Always-on footprint, now that the gates are inlined into the core: **405 lines / 86,768 B / ~21.7k tokens** — down from 37.5 KB of core plus 83 KB of always-on rule files. Paid on every session before any work starts; measure it with:
 
 ```sh
 wc -lc global/CLAUDE.md
