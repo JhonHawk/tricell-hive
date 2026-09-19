@@ -1297,6 +1297,164 @@ def check_router_index_parity():
           f"({', '.join(routers)}).")
 
 
+# The disambiguation table is stated twice on purpose: the canonical rule
+# carries the full signals and the reasons, the always-on core restates it
+# condensed for Codex, opencode and Pi. Nothing tied the two together, so a row
+# could contradict the canon in every session of the harnesses that read only
+# the core — and did: NOT-to cells naming a different agent than the canon, and
+# agents the canon routes to with no core row at all. This check is that tie,
+# in two directions:
+#   coverage  — both tables route to the same set of agents;
+#   soundness — every AGENT NAME in a core row's NOT-to cell is warned off by
+#               some canon row routing to the same agent.
+# What it deliberately does NOT check: an agent on disk the canon routes to
+# nowhere (that is `/manage-agents validate`'s), and the free text in a NOT-to
+# cell ("the main thread", "the framework specialist", "/memory-sync") — only
+# file stems under global/agents/** are agent names here. Deterministic: the
+# build exits non-zero on drift.
+ROUTING_CANON = DELEGATION_CANON  # same rule file; the TABLE, not the gates
+ROUTING_CORE = CORE_TARGETS["agents"]  # the generated core, i.e. what ships
+ROUTING_CANON_START = "### Single-Agent Disambiguation"
+ROUTING_CANON_END = "### Skill & Browser Disambiguation"
+ROUTING_CORE_ANCHOR = "| Signal in the task | Route to | NOT to |"
+ROUTING_AGENTS_DIR = ROOT / "global" / "agents"
+
+# The core condenses two agents into one phrase where the canon names both.
+ROUTING_GROUP_ALIASES = {
+    "the backend agents": ("backend-developer", "ts-backend-developer"),
+}
+# "sdd-spec-writer (`docs` / `spec`)" -> "sdd-spec-writer": the parenthetical is
+# the agent's MODE, not a second agent, and the two tables word it differently.
+ROUTING_MODE_SUFFIX = re.compile(r"\s*\(.*\)\s*$")
+ROUTING_SEPARATOR_CELL = re.compile(r"^:?-{2,}:?$")
+
+
+def _routing_rows(text, label):
+    """Every `| signal | route to | NOT to |` row in `text`, header excluded."""
+    rows = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) != 3:
+            continue
+        if all(ROUTING_SEPARATOR_CELL.match(cell) for cell in cells):
+            continue
+        if cells[1].lower() == "route to":
+            continue
+        rows.append((cells[0], cells[1], cells[2], label))
+    return rows
+
+
+def _routing_agent(cell):
+    """The agent a `route to` cell names, with its mode suffix and ticks gone."""
+    return ROUTING_MODE_SUFFIX.sub("", cell.replace("`", "")).strip()
+
+
+def _routing_not_to_agents(cell, known):
+    """The agent names a NOT-to cell warns off; free text is not one of them."""
+    remainder = cell.replace("`", "")
+    found = set()
+    for alias, members in ROUTING_GROUP_ALIASES.items():
+        if alias in remainder:
+            found.update(members)
+            remainder = remainder.replace(alias, " ")
+    for name in known:
+        # Bounded: `backend-developer` is a suffix of `ts-backend-developer`, and
+        # a substring scan would read one as support for the other.
+        if re.search(rf"(?<![A-Za-z0-9-]){re.escape(name)}(?![A-Za-z0-9-])", remainder):
+            found.add(name)
+    return found
+
+
+def check_routing_table_parity(canon=None, core=None, agents_dir=None):
+    """Fail the build when the core's routing table contradicts the canon.
+
+    Fails closed on the anchors and on an empty table: a renamed section or a
+    table that matched nothing means the check can no longer see what it claims
+    to verify, which is not a pass.
+    """
+    canon = ROUTING_CANON if canon is None else canon
+    core = ROUTING_CORE if core is None else core
+    agents_dir = ROUTING_AGENTS_DIR if agents_dir is None else agents_dir
+
+    canon_text = canon.read_text(encoding="utf-8")
+    start = canon_text.find(ROUTING_CANON_START)
+    end = canon_text.find(ROUTING_CANON_END, start + 1) if start != -1 else -1
+    if start == -1 or end == -1:
+        sys.exit(f"ERROR: routing-table parity: anchor {ROUTING_CANON_START!r}.."
+                 f"{ROUTING_CANON_END!r} not found in {canon}. Restore it or "
+                 f"update ROUTING_CANON_START/END in harness/build.py.")
+    canon_rows = _routing_rows(canon_text[start:end], "canon")
+
+    core_text = core.read_text(encoding="utf-8")
+    core_start = core_text.find(ROUTING_CORE_ANCHOR)
+    if core_start == -1:
+        sys.exit(f"ERROR: routing-table parity: anchor {ROUTING_CORE_ANCHOR!r} not "
+                 f"found in {core}. Restore it (source: "
+                 f"global/core-sections/work-style-delegation.md) or update "
+                 f"ROUTING_CORE_ANCHOR in harness/build.py.")
+    core_body = []
+    for line in core_text[core_start:].splitlines():
+        if not line.strip().startswith("|"):
+            break
+        core_body.append(line)
+    core_rows = _routing_rows("\n".join(core_body), "core")
+
+    for label, rows, path in (("canon", canon_rows, canon), ("core", core_rows, core)):
+        if not rows:
+            sys.exit(f"ERROR: routing-table parity: the {label} routing table in "
+                     f"{path} matched zero rows. A table that names nothing is "
+                     f"not a pass.")
+
+    canon_agents = {_routing_agent(row[1]) for row in canon_rows}
+    core_agents = {_routing_agent(row[1]) for row in core_rows}
+    if canon_agents != core_agents:
+        sys.exit(
+            "ERROR: routing-table parity: the two routing tables route to different "
+            "agents.\n"
+            f"  canon  {canon}: {sorted(canon_agents)}\n"
+            f"  core   {core}: {sorted(core_agents)}\n"
+            f"  only in canon: {sorted(canon_agents - core_agents) or 'none'}\n"
+            f"  only in core:  {sorted(core_agents - canon_agents) or 'none'}\n"
+            "Every agent one table routes to, the other routes to as well. Change "
+            "the canonical rule first, then mirror the row into the core section "
+            "(global/core-sections/work-style-delegation.md) and rebuild.")
+
+    known = {path.stem for path in agents_dir.rglob("*.md")}
+    canon_not_to = {}
+    for _, route_to, not_to, _ in canon_rows:
+        agent = _routing_agent(route_to)
+        canon_not_to.setdefault(agent, set())
+        canon_not_to[agent] |= _routing_not_to_agents(not_to, known)
+
+    contradictions = []
+    for signal, route_to, not_to, _ in core_rows:
+        agent = _routing_agent(route_to)
+        supported = canon_not_to.get(agent, set())
+        unsupported = _routing_not_to_agents(not_to, known) - supported
+        if unsupported:
+            contradictions.append(
+                f"  row    | {signal} | {route_to} | {not_to} |\n"
+                f"  core warns off, canon does not: {sorted(unsupported)}\n"
+                f"  canon rows routing to {agent} warn off: "
+                f"{sorted(supported) or 'no agent by name'}")
+    if contradictions:
+        sys.exit(
+            "ERROR: routing-table parity: the always-on core warns off agents the "
+            "canonical rule does not.\n"
+            + "\n".join(contradictions) + "\n"
+            f"  canon: {canon}\n"
+            f"  core:  {core}\n"
+            "A NOT-to cell is a routing decision: state it in the canonical rule "
+            "first, then mirror it into the core section "
+            "(global/core-sections/work-style-delegation.md) and rebuild.")
+
+    print(f"routing table: canon and core agree ({len(canon_agents)} agents, "
+          f"{len(core_rows)} core rows).")
+
+
 def main():
     # --check: run every parity check read-only (deploy preflight, pre-commit)
     # — nothing is written, so a stale or hand-edited core FAILS here instead
@@ -1305,6 +1463,7 @@ def main():
         check_command_wrapper_parity()
         check_delegation_threshold_parity()
         check_router_index_parity()
+        check_routing_table_parity()
         check_core_assembly_parity()
         check_generated_tree_parity()
         check_core_size_ratchet(allow_write=False)
@@ -1336,6 +1495,7 @@ def main():
     check_command_wrapper_parity()
     check_delegation_threshold_parity()
     check_router_index_parity()
+    check_routing_table_parity()
     check_core_assembly_parity()
     check_generated_tree_parity()
     check_core_size_ratchet(allow_write=True)

@@ -549,6 +549,239 @@ class RuleReachabilityTests(unittest.TestCase):
                     BUILD_MODULE._agent_packs = original
 
 
+class RoutingTableParityTests(unittest.TestCase):
+    """The routing table is stated twice: canon in the rule, condensed in the core.
+
+    `global/rules-situational/agent-routing.md` decides WHO takes a task;
+    `global/core-sections/work-style-delegation.md` restates it for the always-on
+    core Codex, opencode and Pi read. Nothing tied the two together, so a row
+    could disagree — and did: three NOT-to cells contradicted the canon and two
+    agents had no core row at all. These tests pin the tie.
+    """
+
+    AGENTS = (
+        "angular-developer", "backend-developer", "cloud-architect",
+        "database-specialist", "performance-engineer", "react-developer",
+        "review-code", "review-ux", "sdd-design", "sdd-explore",
+        "sdd-spec-reviewer", "sdd-spec-writer", "sdd-verify", "solution-architect",
+        "state-fetcher", "test-engineer", "ts-backend-developer",
+        "workspace-custodian",
+    )
+
+    def fixture(self, tree: Path, canon_rows, core_rows, agents=None,
+                canon_start=None, core_anchor=None):
+        """Write a canon file, a core file and an agents tree; return the paths."""
+        canon = tree / "agent-routing.md"
+        head = BUILD_MODULE.ROUTING_CANON_START if canon_start is None else canon_start
+        canon.write_text(
+            f"{head}\n\n"
+            "| Signal in task | Route to | NOT to |\n|---|---|---|\n"
+            + "".join(f"| {s} | {r} | {n} |\n" for s, r, n in canon_rows)
+            + f"\n{BUILD_MODULE.ROUTING_CANON_END}\nPost-table prose.\n",
+            encoding="utf-8",
+        )
+        core = tree / "AGENTS.md"
+        anchor = BUILD_MODULE.ROUTING_CORE_ANCHOR if core_anchor is None else core_anchor
+        core.write_text(
+            "- **Delegation gates are hard.** ~20 calls.\n\n"
+            f"{anchor}\n|---|---|---|\n"
+            + "".join(f"| {s} | {r} | {n} |\n" for s, r, n in core_rows)
+            + "\n- A bullet after the table.\n",
+            encoding="utf-8",
+        )
+        agents_dir = tree / "agents"
+        role = agents_dir / "development"
+        role.mkdir(parents=True, exist_ok=True)
+        for name in (self.AGENTS if agents is None else agents):
+            (role / f"{name}.md").write_text(f"---\nname: {name}\n---\n", encoding="utf-8")
+        return canon, core, agents_dir
+
+    def run_check(self, tree, canon_rows, core_rows, **kwargs):
+        canon, core, agents_dir = self.fixture(tree, canon_rows, core_rows, **kwargs)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            BUILD_MODULE.check_routing_table_parity(
+                canon=canon, core=core, agents_dir=agents_dir)
+        return out.getvalue()
+
+    def expect_failure(self, tree, canon_rows, core_rows, **kwargs):
+        canon, core, agents_dir = self.fixture(tree, canon_rows, core_rows, **kwargs)
+        with self.assertRaises(SystemExit) as raised:
+            with contextlib.redirect_stdout(io.StringIO()):
+                BUILD_MODULE.check_routing_table_parity(
+                    canon=canon, core=core, agents_dir=agents_dir)
+        return str(raised.exception)
+
+    def test_the_repo_tables_agree(self):
+        # Against the real files, with no fixture in sight: the check has to be
+        # satisfiable by the repo it guards, or it is a permanent red light.
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            BUILD_MODULE.check_routing_table_parity()
+        self.assertIn("routing table", out.getvalue())
+
+    def test_a_core_not_to_the_canon_does_not_support_fails_naming_the_row(self):
+        # The real drift: the core's sdd-verify row said `review-code` where the
+        # canon says test-engineer. Same agent routed to, a different agent
+        # warned off — a contradiction no reader of one file alone could see.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            message = self.expect_failure(
+                Path(tmp),
+                canon_rows=[("functional verification of a running app",
+                             "sdd-verify", "review-ux, test-engineer")],
+                core_rows=[("Functional verification in a real browser",
+                            "sdd-verify", "review-ux, review-code")],
+            )
+        self.assertIn("sdd-verify", message)
+        self.assertIn("review-code", message)
+        # The row, so the reader can find it without diffing two tables.
+        self.assertIn("Functional verification in a real browser", message)
+        # And the canon cell it was checked against.
+        self.assertIn("test-engineer", message)
+
+    def test_a_core_row_routing_to_an_agent_the_canon_never_routes_to_fails(self):
+        # The extra row's NOT-to is free text on purpose: soundness cannot fire
+        # on it, so only the coverage half can fail this — a row naming an agent
+        # would let a one-directional coverage check pass the test anyway.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            message = self.expect_failure(
+                Path(tmp),
+                canon_rows=[("review a diff", "review-code", "the implementing agent")],
+                core_rows=[("review a diff", "review-code", "the implementing agent"),
+                           ("cloud topology", "cloud-architect", "the main thread")],
+            )
+        self.assertIn("cloud-architect", message)
+        self.assertIn("only in core", message)
+
+    def test_a_canon_row_routing_to_an_agent_the_core_omits_fails(self):
+        # The other direction, and the second real drift: solution-architect and
+        # the Next.js server-code row existed in the canon and in no core row,
+        # so Codex/opencode/Pi routed those tasks by vibes.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            message = self.expect_failure(
+                Path(tmp),
+                canon_rows=[("review a diff", "review-code", "the implementing agent"),
+                            ("architecture decision before contracts",
+                             "solution-architect", "sdd-design")],
+                core_rows=[("review a diff", "review-code", "the implementing agent")],
+            )
+        self.assertIn("solution-architect", message)
+        self.assertIn("only in canon", message)
+
+    def test_mode_suffixes_and_backticks_do_not_split_an_agent_into_two(self):
+        # sdd-spec-writer (`docs`) and sdd-spec-writer (`spec`) are one agent in
+        # two modes, and the core folds them into one row. Comparing the cells
+        # verbatim would report drift on a file that is correct.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            out = self.run_check(
+                Path(tmp),
+                canon_rows=[("README, ADR, API docs", "sdd-spec-writer (`docs`)",
+                             "the implementing agent"),
+                            ("draft an épica", "sdd-spec-writer (`spec`)",
+                             "the main thread, sdd-spec-reviewer"),
+                            ("raw client requirements",
+                             "sdd-spec-reviewer (intake mode, `requirements-rubric.md`)",
+                             "the main thread")],
+                core_rows=[("README, ADR, API docs; draft an épica",
+                            "sdd-spec-writer (`docs` / `spec`)",
+                            "the implementing agent, the main thread"),
+                           ("Raw client requirements",
+                            "sdd-spec-reviewer (intake mode)", "the main thread")],
+            )
+        self.assertIn("routing table", out)
+
+    def test_a_not_to_agent_supported_by_a_sibling_canon_row_is_accepted(self):
+        # backend-developer is routed to by two canon rows with different NOT-to
+        # cells, and the core keeps both. The union is the comparison.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            out = self.run_check(
+                Path(tmp),
+                canon_rows=[("backend on a non-Node stack", "backend-developer",
+                             "ts-backend-developer, database-specialist"),
+                            ("server-only Kotlin", "backend-developer",
+                             "kotlin-multiplatform-developer")],
+                core_rows=[("Backend on any non-Node stack", "backend-developer",
+                            "ts-backend-developer, kotlin-multiplatform-developer")],
+                agents=self.AGENTS + ("kotlin-multiplatform-developer",),
+            )
+        self.assertIn("routing table", out)
+
+    def test_the_backend_agents_alias_expands_to_both_agents(self):
+        # The core writes "the backend agents" where the canon lists both by
+        # name. Treating the phrase as free text would let a real contradiction
+        # through; treating it as one name would flag a correct file.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            out = self.run_check(
+                Path(tmp),
+                canon_rows=[("schema design, migration", "database-specialist",
+                             "ts-backend-developer, backend-developer")],
+                core_rows=[("Schema design, migration", "database-specialist",
+                            "the backend agents")],
+            )
+        self.assertIn("routing table", out)
+
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            message = self.expect_failure(
+                Path(tmp),
+                canon_rows=[("schema design, migration", "database-specialist",
+                             "ts-backend-developer")],
+                core_rows=[("Schema design, migration", "database-specialist",
+                            "the backend agents")],
+            )
+        # It expands, so the half the canon does not support is named.
+        self.assertIn("backend-developer", message)
+
+    def test_free_text_not_to_entries_are_not_treated_as_agent_names(self):
+        # "the main thread", "the implementing agent", "/memory-sync" are not
+        # agents; only file stems under global/agents/ are.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            out = self.run_check(
+                Path(tmp),
+                canon_rows=[("low-reasoning external state", "state-fetcher",
+                             "workspace-custodian (files/ledger), /memory-sync "
+                             "(decides staleness), the main thread")],
+                core_rows=[("Low-reasoning external state", "state-fetcher",
+                            "workspace-custodian, the main thread beyond one "
+                            "quick call, the implementing agent")],
+            )
+        self.assertIn("routing table", out)
+
+    def test_a_substring_of_a_longer_agent_name_is_not_a_match(self):
+        # backend-developer is a suffix of ts-backend-developer: a naive
+        # substring scan reads a canon that only ever warned off
+        # `ts-backend-developer` as support for the core's `backend-developer`.
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            message = self.expect_failure(
+                Path(tmp),
+                canon_rows=[("schema design", "database-specialist",
+                             "ts-backend-developer")],
+                core_rows=[("Schema design", "database-specialist",
+                            "backend-developer")],
+            )
+        self.assertIn("backend-developer", message)
+
+    def test_missing_anchors_fail_closed(self):
+        rows = [("review a diff", "review-code", "the implementing agent")]
+        with self.subTest(anchor="canon section"):
+            with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+                message = self.expect_failure(
+                    Path(tmp), rows, rows, canon_start="### Renamed Section")
+            self.assertIn(BUILD_MODULE.ROUTING_CANON_START, message)
+        with self.subTest(anchor="core table header"):
+            with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+                message = self.expect_failure(
+                    Path(tmp), rows, rows,
+                    core_anchor="| Signal | Agent | Never |")
+            self.assertIn("ROUTING_CORE_ANCHOR", message)
+
+    def test_a_table_that_matched_zero_rows_is_not_a_pass(self):
+        with tempfile.TemporaryDirectory(prefix="hive-routing-") as tmp:
+            message = self.expect_failure(
+                Path(tmp),
+                canon_rows=[],
+                core_rows=[("review a diff", "review-code", "the implementing agent")],
+            )
+        self.assertIn("zero rows", message)
+
+
 class GeneratedTreeParityTests(unittest.TestCase):
     def test_skill_generation_excludes_python_runtime_cache(self):
         with tempfile.TemporaryDirectory(prefix="hive-skill-cache-") as tmp:
