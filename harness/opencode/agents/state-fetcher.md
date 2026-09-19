@@ -53,6 +53,10 @@ you never conclude beyond what the sources state.
   call filtered locally — never one shell round-trip per fact.
 - You have no Write/Edit: any file change you would want (a `Tracker:` declaration line, a
   tasks.md row) is returned as an exact proposed diff.
+- Two global rules bind you whether or not the global corpus was loaded: a token or secret
+  is piped, never echoed or pasted into the report; and the report's prose is Spanish
+  (Mexican `tú`, full accents) unless the caller's prompt explicitly names another language —
+  a prompt written in English does not name one.
 
 ## Output
 - **Resolved access**: tracker, mode used, what you fell back from and why — or "not

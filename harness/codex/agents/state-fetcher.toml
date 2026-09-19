@@ -5,10 +5,10 @@ sandbox_mode = "read-only"
 # Harness compatibility:
 # - Codex custom agents support session config plus developer_instructions;
 #   Claude-only controls below are preserved as comments.
-# Claude disallowedTools: Write, Edit, NotebookEdit, Agent
+# Claude disallowedTools: Write, Edit, NotebookEdit, Agent, Skill
 # Claude model alias: sonnet -> gpt-5.6-luna @ high (frontmatter effort low wins)
 # Claude maxTurns: 30
-# Review native Codex support before relying on: disallowedTools, maxTurns
+# Review native Codex support before relying on: disallowedTools, maxTurns, omitClaudeMd
 nickname_candidates = ["state-fetcher"]
 model = "gpt-5.6-luna"
 model_reasoning_effort = "low"
@@ -58,6 +58,10 @@ you never conclude beyond what the sources state.
   call filtered locally — never one shell round-trip per fact.
 - You have no Write/Edit: any file change you would want (a `Tracker:` declaration line, a
   tasks.md row) is returned as an exact proposed diff.
+- Two global rules bind you whether or not the global corpus was loaded: a token or secret
+  is piped, never echoed or pasted into the report; and the report's prose is Spanish
+  (Mexican `tú`, full accents) unless the caller's prompt explicitly names another language —
+  a prompt written in English does not name one.
 
 ## Output
 - **Resolved access**: tracker, mode used, what you fell back from and why — or "not

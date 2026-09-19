@@ -30,6 +30,7 @@ CLAUDE_ONLY_FIELDS = {
     "isolation",
     "maxTurns",
     "memory",
+    "omitClaudeMd",
     "permissionMode",
     "skills",
     "tools",
