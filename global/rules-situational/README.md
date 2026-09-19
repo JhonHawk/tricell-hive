@@ -1,43 +1,43 @@
-# rules-situational — reachable through a router skill, or carried by an agent
+# rules-situational — the rule-text store: delivered by hook, router, or pack
 
 Rules here are **not deployed to `~/.claude/rules/`**, so they are never always-on and never
-symlinked into `~/.grok/rules/`. `harness/build.py` injects them into a router skill's
-`references/` exactly like the rules under `global/rules/`; the only difference is the
-absence of an always-on copy. The pack-only texts below are the exception: no router serves
-them.
+symlinked into `~/.grok/rules/`. No harness loads them by file kind. They reach an agent
+three ways, and `harness/build.py` is what wires all three:
 
-## When a rule belongs here instead of in `global/rules/`
-
-A rule leaves `global/rules/` when it is situational, and it lands here rather than gaining
-`paths:` when its trigger is an **action**, not a file kind:
-
-| Trigger | Home | Mechanism |
+| Channel | How it arrives | Applies to |
 |---|---|---|
-| An action with a safety consequence (destructive op, git verb, secret) | `global/rules/` | always-on |
-| Touching a kind of file | `global/rules/` + `paths:` | native path-scoping |
-| An intent with no file behind it (delegating, planning, saving memory) | **here** | router skill only |
-| Being a specialized executor agent (`packs:` in its frontmatter) | **here**, no `globs:` | inlined into the agent at build |
+| `rule-delivery` hook | holds a matching write until the deployed reference is read, then the re-issued call passes (Claude Code, Grok, Codex, PI; a read, inside a read-only agent scoped by `readers`) | a file here **with `globs:`** |
+| Router skill | injected into a `references/` directory (`SKILL_REFERENCE_INJECTIONS`); present only when the model invokes the router | every file here except the pack-only texts |
+| `packs:` | inlined into the agent's prompt at build — a build-time guarantee, not a routing probability | the agents that declare it |
 
-`paths:` cannot express "I am about to delegate". Forcing an artificial glob would make the
-rule load on the wrong files and still miss the moment it matters.
+**The contract: `globs:` is what makes a file hook-deliverable.** Without it the hook never
+fires for that rule, whatever its content — the router (or a pack) is then the only channel.
 
-A second shape lives here since F2: the **detail half of a demoted always-on rule**. The
-gate stays always-on as a stub in `global/rules/` (so Grok's flat symlink and Claude Code's
-unconditional load keep it); the mechanics land here and reach every harness through the
-owning skill's `references/` (`browser-automation-reference.md` → `language-rules`,
-`communication-format-mechanics.md` → `flow-report`, `unattended-autonomy-mode.md` →
-`unattended-delegation`).
+## What belongs here instead of in `global/rules/`
 
-A third shape: **pack-only texts** (`agent-core-gates.md`, `test-gate.md`). No router, no
-globs, never hook-delivered — `harness/build.py` inlines them into every agent that declares
-them in `packs:`, so their presence is a build-time guarantee, not a routing probability.
-`agent-core-gates` is required in every packed agent: on Claude Code a packed agent runs with
-`omitClaudeMd: true` and this text is what puts the gates back. Accepted cost: Codex, opencode,
-Grok and Pi have no per-agent corpus switch, so a packed agent there receives these gates on
-top of the core it already loads.
+`global/rules/` holds only the always-on rules: safety gates and policy whose trigger is an
+action rather than a file, paid every session in every project. Everything else lives here,
+in one of four shapes:
 
-## The cost of moving a rule here
+- **Intent-triggered** (delegating, planning, saving memory) — no `globs:`, router only.
+  `globs:` cannot express "I am about to delegate"; an artificial glob would fire on the
+  wrong files and still miss the moment that matters.
+- **Glob-scoped** (`globs:`) — the language, workspace and devops rules: hook, router and
+  packs all deliver them.
+- **The detail half of a demoted always-on rule.** The gate stays always-on as a stub in
+  `global/rules/`; the mechanics land here and reach every harness through the owning
+  skill's `references/` (`browser-automation-reference.md` → `language-rules`,
+  `communication-format-mechanics.md` → `flow-report`, `unattended-autonomy-mode.md` →
+  `unattended-delegation`).
+- **Pack-only texts** (`agent-core-gates.md`, `test-gate.md`). No router, no globs, never
+  hook-delivered. `agent-core-gates` is required in every packed agent: on Claude Code a
+  packed agent runs with `omitClaudeMd: true` and this text is what puts the gates back.
+  Accepted cost: Codex, opencode, Grok and Pi have no per-agent corpus switch, so a packed
+  agent there receives these gates on top of the core it already loads.
 
-It stops being guaranteed. A rule here is present only when the model invokes its router, so
-never move one whose absence is unsafe — that is what always-on is for. The compensating
-control is a one-line pointer in `global/CLAUDE.md` naming the router and its trigger.
+## The cost of living here
+
+A rule here is present only when its channel fires — a router the model must invoke, or a
+hook the model must obey after a hold. Never move one whose absence is unsafe; that is what
+always-on is for. The compensating control is a one-line pointer in `global/CLAUDE.md`
+naming the router and its trigger.

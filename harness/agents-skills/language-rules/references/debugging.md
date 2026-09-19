@@ -19,7 +19,7 @@
 
 ### Incident Response
 
-> Fires on a CONVERSATIONAL trigger — a live production incident, an outage or breakage affecting real users NOW — so it stays always-on rather than path-scoped with the rest of `workflow/devops-principles.md`. Urgency reorders priorities; it never relaxes gates. Declare the mode visibly before acting: the mitigation route, where evidence and the timeline live, and that production gates stay closed.
+> Fires on a CONVERSATIONAL trigger — a live production incident, an outage or breakage affecting real users NOW — so it stays always-on rather than situational with the rest of `devops-principles.md`. Urgency reorders priorities; it never relaxes gates. Declare the mode visibly before acting: the mitigation route, where evidence and the timeline live, and that production gates stay closed.
 
 - **Mitigate first, diagnose after — but the mitigation is proposed, never auto-executed.** Present the documented recovery path (rollback, restart, feature flag) as ONE fast confirmation and execute only on the user's yes; the user may skip mitigation and go straight to diagnosis. This is the incident carve-out to `> Root cause before fix` above; the postmortem owns the root-cause pass.
 - **Preserve evidence before mitigation destroys it:** logs, process state, a timestamped snapshot — enough for the postmortem.

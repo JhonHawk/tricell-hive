@@ -17,7 +17,7 @@ targets: [claude]
 
 Consulting the router is never the blocking step: read it and keep going in the same turn.
 
-**Creating a NEW source file loads no rule for it — read the rule first.** Path-scoped rules trigger when a matching file is READ, so editing an existing file pulls its rule in, but writing one from scratch does not: the rule arrives after the file is already written, if at all. Before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching rule under `~/.claude/rules/languages/` — or `~/.claude/skills/language-rules/references/` on a harness that does not load that directory. Editing files whose rule is already in context needs no re-read. Path-scoped rules are also **not re-injected after compaction**: if a long session compacts and then creates a file, treat the rule as absent and read it again.
+**No rule loads by file kind — read it before writing.** The `rule-delivery` hook HOLDS the first write matching a rule and names the file to read: read it, re-issue the call, it passes. Reading it up front avoids the hold, and nothing fires before the file exists (naming identifiers, choosing a path) — so before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching `~/.claude/skills/language-rules/references/` file. Rules already in context need no re-read; the hold **re-arms after a compaction or `/clear`**, so treat the rule as absent and read it again.
 
 **The routers and the act that fires each one.** Nothing else loads them; a router not invoked is a rule you do not have.
 
@@ -27,7 +27,7 @@ Consulting the router is never the blocking step: read it and keep going in the 
 | `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
 | `workspace-conventions` | writing a file outside application source, typing an infra resource name, or stating in an answer/plan where an artifact, script, report, or doc will live (a path or folder named in prose is the act) | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
 | `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
-| `language-rules` | Grok — the first `Write`/`Edit` of code; Claude Code — about to drive a browser (its language rules load natively, but the browser CLI reference lives only here) | full language conventions; `browser-automation-reference.md` |
+| `language-rules` | Grok — the first `Write`/`Edit` of code; Claude Code — about to drive a browser (language rows arrive through the `rule-delivery` hold on the first matching write) | full language conventions; `browser-automation-reference.md` |
 
 `flow-report` is not in the table: it is a renderer, not a router, and its trigger is a property of the answer rather than an act of yours — `rules/quality/communication-format.md` is canonical for it and the conditions are never restated elsewhere.
 

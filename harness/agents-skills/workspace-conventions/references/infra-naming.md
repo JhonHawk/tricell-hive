@@ -1,8 +1,4 @@
 
----
-alwaysApply: true
----
-
 ## Infrastructure Naming
 
 > Path-scoped: loads on IaC files (`*.tf`, Dockerfile, compose, workflows, `*-infra/**`). Naming a resource with none of those open is the gap the router covers — invoke `workspace-conventions` BEFORE proposing any infra name, since a wrong name costs a recreate and migrate, not an edit.

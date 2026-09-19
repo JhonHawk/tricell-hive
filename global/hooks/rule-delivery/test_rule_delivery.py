@@ -7,12 +7,14 @@ and the exit code. No harness, no network: the hook is a pure stdin/stdout
 filter over a manifest.
 
 The manifest is always a fixture here (`HIVE_RULE_MANIFEST`), never the repo's
-own: today's real manifest has every glob-scoped rule still under
-`global/rules/`, so the hook deliberately gates nothing from it.
+own: a fixture pins the shapes each test needs — including the one the real
+manifest no longer produces, a glob-scoped rule still under `global/rules/`,
+which the hook must keep refusing to gate.
 """
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -38,17 +40,32 @@ NO_WINDOW = {"HIVE_RULE_DELIVERY_WINDOW": "0"}
 WIDE_WINDOW = {"HIVE_RULE_DELIVERY_WINDOW": "600"}
 
 
-def reason_for(paths):
-    return PREFIX + " and ".join(str(path) for path in paths) + SUFFIX
+def reason_for(paths, *, harness="claude"):
+    """The compact denial text: each directory named once, basenames after it."""
+    grouped = {}
+    for path in paths:
+        directory, name = os.path.split(str(path))
+        grouped.setdefault(directory, []).append(name)
+    listed = " and ".join(
+        f"{', '.join(names)} in {directory.rstrip('/')}/" if directory
+        else ", ".join(names)
+        for directory, names in grouped.items())
+    if harness == "codex":
+        return (PREFIX + listed + " first — run: cat "
+                + " ".join(str(path) for path in paths)
+                + " — then re-issue this call.")
+    return PREFIX + listed + SUFFIX
 
 
 def rule(name, globs, reference, *, source_dir="global/rules-situational",
-         always_on=False, readers=False, roots=("claude", "agents")):
+         always_on=False, readers=False, roots=("claude", "agents"),
+         exclusive_with=()):
     """One manifest rule entry, shaped exactly like harness/build.py emits it."""
     return {
         "name": name,
         "source": f"{source_dir}/{name}.md",
         "globs": list(globs),
+        "exclusive_with": list(exclusive_with),
         "always_on": always_on,
         "references": {root: str(reference) for root in roots},
         "readers": readers,
@@ -521,7 +538,8 @@ class CodexGateTests(HookCase):
             with self.subTest(header=header):
                 result = self.run_hook(codex_patch(patch_body(header), session=f"c-{index}"),
                                        manifest=self.manifest)
-                self.assertEqual(self.held(result), reason_for([self.ts]))
+                self.assertEqual(self.held(result),
+                                 reason_for([self.ts], harness="codex"))
 
     def test_a_delete_only_patch_authors_nothing_and_is_allowed(self):
         self.assertAllowed(self.run_hook(
@@ -530,12 +548,12 @@ class CodexGateTests(HookCase):
     def test_a_multi_file_patch_names_every_rule_it_touches(self):
         body = patch_body("*** Add File: /repo/src/a.ts", "*** Update File: /repo/db/x.sql")
         reason = self.held(self.run_hook(codex_patch(body), manifest=self.manifest))
-        self.assertEqual(reason, reason_for([self.ts, self.sql]))
+        self.assertEqual(reason, reason_for([self.ts, self.sql], harness="codex"))
 
     def test_a_rename_carries_both_the_source_and_the_destination(self):
         body = patch_body("*** Update File: /repo/src/a.txt", "*** Move to: /repo/src/a.ts")
         self.assertEqual(self.held(self.run_hook(codex_patch(body), manifest=self.manifest)),
-                         reason_for([self.ts]))
+                         reason_for([self.ts], harness="codex"))
 
     def test_a_shell_read_releases_the_patch_gate(self):
         body = patch_body("*** Add File: /repo/src/a.ts")
@@ -564,7 +582,7 @@ class CodexGateTests(HookCase):
         command = f"apply_patch <<'PATCH'\n{body}\nPATCH"
         self.assertEqual(self.held(self.run_hook(codex_bash(command),
                                                  manifest=self.manifest)),
-                         reason_for([self.ts]))
+                         reason_for([self.ts], harness="codex"))
         # …while an ordinary shell call is never denied.
         self.assertAllowed(self.run_hook(codex_bash("ls /repo/src"), manifest=self.manifest))
 
@@ -665,14 +683,57 @@ class ObservationTests(HookCase):
                     f"env cat {self.text}",
                     f"command cat {self.text}",
                     f"cd /repo && cat {self.text}",
+                    # `cd` moves the base the LATER stages resolve against: the
+                    # payload's cwd is elsewhere, which is the only way this
+                    # case proves anything.
                     f"cd {directory} && cat {self.text.name}",
-                    f"ls /repo; cat {self.text}")
+                    f"cd {directory} && cat ./{self.text.name}",
+                    f"ls /repo; cat {self.text}",
+                    # Codex writes the reason's own command back with a glob or
+                    # a brace group — expanded against the filesystem, never run.
+                    f"cat {directory}/*.md",
+                    f"cat {directory}/{{{self.text.stem},absent}}.md",
+                    f"cd {directory} && cat *.md")
         for index, command in enumerate(commands):
             with self.subTest(command=command):
                 self.read_releases(
                     lambda session: observed_bash(command, session=session,
-                                                  cwd=str(directory)),
+                                                  cwd=str(self.root)),
                     session=f"c{index}")
+
+    def test_a_wildcard_outside_the_last_component_is_not_expanded(self):
+        # One pattern, one directory listing. A wildcard in a parent component
+        # makes the expansion walk the tree — `cat ~/*/*/*/*/*/*/*/*/*` measured
+        # 6.3 s against a 15 s hook timeout — and no model needs it to read a
+        # rule whose directory the reason just named in full.
+        started = time.monotonic()
+        self.read_releases(
+            lambda session: observed_bash(
+                f"cat {self.text.parent.parent}/*/{self.text.name}", session=session),
+            expected=False)
+        self.read_releases(
+            lambda session: observed_bash(f"cat {self.text.parent}/*/*.md",
+                                          session=session),
+            expected=False, session="deep")
+        self.read_releases(
+            lambda session: observed_bash(f"cat {self.text.parent}/{{a,b}}*/*.md",
+                                          session=session),
+            expected=False, session="brace")
+        self.assertLess(time.monotonic() - started, 10)
+        # Confined to the last component, it still releases.
+        self.read_releases(
+            lambda session: observed_bash(f"cat {self.text.parent}/*.md",
+                                          session=session),
+            session="flat")
+
+    def test_a_loop_is_not_an_observation_and_never_pretends_to_be(self):
+        # `for f in …; do cat "$f"; done` shows the file, but the hook does not
+        # track loop variables: it is not observed, and Codex's reason names a
+        # command that IS.
+        self.read_releases(
+            lambda session: observed_bash(
+                f'for f in {self.text}; do cat "$f"; done', session=session),
+            expected=False)
 
     def test_an_argv_list_command_is_normalized_before_it_is_read(self):
         # Codex sends shell argv as an array (see rule-context.sh).
@@ -954,6 +1015,35 @@ class ReleaseValveTests(HookCase):
         self.assertAllowed(self.run_hook(claude_write("/repo/c.ts"),
                                          manifest=self.manifest, env=WIDE_WINDOW))
 
+    def markers(self):
+        state = self.state_root / "hive-rule-delivery"
+        return {path for directory in state.iterdir() for path in directory.iterdir()}
+
+    def test_a_rule_the_budget_left_out_still_holds_when_the_named_one_releases(self):
+        # The leak: when every rule NAMED in a denial hits its valve, the reason
+        # is empty and the write used to pass — while a rule the budget deferred
+        # had been neither read nor released. Releasing one rule is not a reason
+        # to stop holding for another.
+        first = self.reference_of_length(200, name="one")
+        second = self.reference_of_length(200, name="two")
+        manifest = self.write_manifest([rule("one", ["**/*.ts"], first),
+                                        rule("two", ["**/*.ts"], second)])
+        for attempt in range(3):
+            self.held(self.run_hook(grok_write(f"src/f{attempt}.ts"), manifest=manifest,
+                                    env=NO_WINDOW))
+        older = self.markers()
+        self.held(self.run_hook(grok_write("src/f3.ts"), manifest=manifest, env=NO_WINDOW))
+        # Age everything the FOURTH call did not create: `one` may now walk its
+        # counter to the end, `two` is still inside its window.
+        for marker in older:
+            ahead = time.time() - 3600
+            os.utime(marker, (ahead, ahead))
+
+        result = self.run_hook(grok_write("src/f4.ts"), manifest=manifest,
+                               env=WIDE_WINDOW)
+        self.assertEqual(self.held(result), reason_for([second]),
+                         "the rule the budget deferred must keep holding")
+
     def test_a_rule_left_out_of_the_reason_is_never_counted(self):
         # Grok's 260-char reason fits one of these paths at a time; the rule that
         # was not named cannot be counted, so each takes its own three rounds.
@@ -967,9 +1057,9 @@ class ReleaseValveTests(HookCase):
         for attempt in range(6):
             result = self.run_hook(grok_write(f"src/f{attempt}.ts"), manifest=manifest,
                                    env=NO_WINDOW)
-            seen.append("ALLOW" if not result.stdout.strip()
-                        else self.held(result)[len(PREFIX):-len(SUFFIX)])
-        self.assertEqual(seen, [first, second, first, second, "ALLOW", "ALLOW"],
+            seen.append("ALLOW" if not result.stdout.strip() else self.held(result))
+        named = [reason_for([first]), reason_for([second])]
+        self.assertEqual(seen, [named[0], named[1], named[0], named[1], "ALLOW", "ALLOW"],
                          "each rule takes three counted denials of its own")
 
 
@@ -1002,16 +1092,73 @@ class ReasonBudgetTests(HookCase):
         references, manifest = self.five_rules()
         body = patch_body("*** Add File: /repo/App.tsx")
         reason = self.held(self.run_hook(codex_patch(body), manifest=manifest))
-        self.assertEqual(reason, reason_for(references))
+        self.assertEqual(reason, reason_for(references, harness="codex"))
+        # Codex has no read tool, so the reason hands it the command itself.
+        self.assertIn("run: cat " + " ".join(str(path) for path in references), reason)
+
+    def test_the_codex_command_is_quoted_so_it_can_be_pasted(self):
+        # A HOME with a space makes the un-quoted form `cat /Users/Jo Smith/…`
+        # two arguments: Codex runs it, sees two errors, and the rule it was
+        # told to read stays unread for as long as the valve holds.
+        directory = self.home / "My Rules"
+        directory.mkdir(parents=True)
+        text = directory / "ts.md"
+        text.write_text("RULE TEXT", encoding="utf-8")
+        manifest = self.write_manifest([rule("ts", ["**/*.ts"], text)])
+        reason = self.held(self.run_hook(
+            codex_patch(patch_body("*** Add File: /repo/a.ts")), manifest=manifest))
+        self.assertIn(f"run: {shlex.quote(str(text))}".replace("run: ", "run: cat "),
+                      reason)
+        # And the quoted command really does name exactly one file.
+        command = reason.split("run: ")[1].split(" — then")[0]
+        self.assertEqual(shlex.split(command), ["cat", str(text)])
+
+    def test_the_reason_names_a_directory_once_and_the_basenames_after_it(self):
+        # Six absolute paths do not fit Grok's ~264 visible characters, so the
+        # gate used to spend three to five sequential denial rounds on a single
+        # `.tsx`. The rules live in ONE directory: naming it once fits them all.
+        references, _ = self.five_rules()
+        extra = references[0].with_name("ui-visual-design.md")
+        extra.write_text("RULE TEXT", encoding="utf-8")
+        references.append(extra)
+        manifest = self.write_manifest(
+            [rule(path.stem, ["**/*.tsx"], path) for path in references])
+        directory = references[0].parent
+        expected = (PREFIX + ", ".join(path.name for path in references)
+                    + f" in {directory}/" + SUFFIX)
+
+        reason = self.held(self.run_hook(grok_write("src/App.tsx"), manifest=manifest))
+        self.assertEqual(reason, expected)
+        self.assertLessEqual(len(reason), GROK_BUDGET,
+                             "six rules in one directory have to fit Grok's clip")
+        # Claude uses the same compact form: one shape to read, one to test.
+        self.assertEqual(self.held(self.run_hook(claude_write("/repo/src/App.tsx"),
+                                                 manifest=manifest)),
+                         expected)
+
+    def test_rules_in_different_directories_each_carry_their_own(self):
+        first = self.write_rule_text("ts")
+        other_dir = self.root / "elsewhere"
+        other_dir.mkdir()
+        second = other_dir / "py.md"
+        second.write_text("RULE TEXT", encoding="utf-8")
+        manifest = self.write_manifest([rule("ts", ["**/*.ts"], first),
+                                        rule("py", ["**/*.ts"], second)])
+        self.assertEqual(
+            self.held(self.run_hook(claude_write("/repo/a.ts"), manifest=manifest)),
+            f"{PREFIX}{first.name} in {self.root}/ and {second.name} "
+            f"in {other_dir}/{SUFFIX}")
 
     def test_grok_stays_inside_its_clip(self):
         references, manifest = self.five_rules()
         reason = self.held(self.run_hook(grok_write("src/App.tsx"), manifest=manifest))
         self.assertLessEqual(len(reason), GROK_BUDGET)
-        self.assertIn(str(references[0]), reason)
-        named = reason[len(PREFIX):-len(SUFFIX)].split(" and ")
-        self.assertTrue(all(name in [str(path) for path in references] for name in named),
-                        f"a clipped path reached the model: {named}")
+        # The directory is named once; every name after it is a whole basename
+        # of a pending rule, never a path the clip cut in half.
+        self.assertEqual(reason.count(str(references[0].parent)), 1)
+        listed = reason[len(PREFIX):-len(SUFFIX)].split(" in ")[0].split(", ")
+        self.assertTrue(all(name in [path.name for path in references] for name in listed),
+                        f"a clipped path reached the model: {listed}")
 
     def test_two_rules_share_one_grok_reason_when_both_paths_fit(self):
         first = self.reference_of_length(60, name="one")
@@ -1024,15 +1171,19 @@ class ReasonBudgetTests(HookCase):
         self.assertEqual(reason, reason_for([first, second]))
         self.assertLessEqual(len(reason), GROK_BUDGET)
 
+    def budget_length(self):
+        """The reference length whose rendered reason exactly fills Grok's clip."""
+        probe = "d/x.md"
+        return GROK_BUDGET - (len(reason_for([probe])) - len(probe))
+
     def test_a_path_at_grok_s_budget_is_named_whole_and_one_over_is_not_gated(self):
-        fits = self.reference_of_length(GROK_BUDGET - len(PREFIX) - len(SUFFIX), name="fits")
+        fits = self.reference_of_length(self.budget_length(), name="fits")
         manifest = self.write_manifest([rule("ts", ["**/*.ts"], fits)], name="fits.json")
         reason = self.held(self.run_hook(grok_write("src/a.ts"), manifest=manifest))
         self.assertEqual(reason, reason_for([fits]))
         self.assertEqual(len(reason), GROK_BUDGET)
 
-        over = self.reference_of_length(GROK_BUDGET - len(PREFIX) - len(SUFFIX) + 1,
-                                        name="over")
+        over = self.reference_of_length(self.budget_length() + 1, name="over")
         manifest = self.write_manifest([rule("ts", ["**/*.ts"], over)], name="over.json")
         self.assertAllowed(self.run_hook(grok_write("src/a.ts"), manifest=manifest),
                            "a path Grok cannot show whole is never gated there")
@@ -1077,6 +1228,38 @@ class AgentScopeTests(HookCase):
         self.assertEqual(self.held(self.run_hook(claude_write("/repo/a.ts", **other),
                                                  manifest=manifest)),
                          reason_for([self.ts]))
+
+    def test_a_rule_excluded_by_the_agents_framework_is_never_gated(self):
+        # `*.service.ts` belongs to Angular and to NestJS alike. An agent that
+        # carries one framework's pack must never be held on the other's rule:
+        # `exclusive-with` is the rule file saying so, per framework, once.
+        angular = self.write_rule_text("angular-patterns")
+        nest = self.write_rule_text("nestjs-patterns")
+        manifest = self.write_manifest(
+            [rule("angular-patterns", ["**/*.service.ts"], angular,
+                  exclusive_with=["nestjs-patterns"]),
+             rule("nestjs-patterns", ["**/*.service.ts"], nest,
+                  exclusive_with=["angular-patterns"])],
+            agents={"ts-backend-developer": ["nestjs-patterns"],
+                    "angular-developer": ["angular-patterns"]})
+        backend = {"agent_id": "a1", "agent_type": "ts-backend-developer"}
+        self.assertAllowed(
+            self.run_hook(claude_write("/repo/src/users/users.service.ts", **backend),
+                          manifest=manifest),
+            "a NestJS agent must not be held on the Angular rule")
+        angular_agent = {"agent_id": "a2", "agent_type": "angular-developer"}
+        self.assertAllowed(
+            self.run_hook(claude_write("/repo/src/app/user.service.ts", **angular_agent),
+                          manifest=manifest),
+            "an Angular agent must not be held on the NestJS rule")
+        # An unpacked caller keeps today's behavior: both rules are pending,
+        # which is what native path-scoping used to load.
+        reason = self.held(self.run_hook(
+            claude_write("/repo/src/users/users.service.ts",
+                         agent_id="a3", agent_type="general-purpose"),
+            manifest=manifest))
+        for text in (angular, nest):
+            self.assertIn(text.name, reason)
 
     def test_a_grok_subagent_is_identified_by_subagent_type(self):
         # Grok carries the child's roster name as `subagentType` only — no
@@ -1287,6 +1470,236 @@ class GlobTests(HookCase):
         self.assertLess(time.monotonic() - started, 5)
 
 
+class ScopeOfMatchingTests(HookCase):
+    """WHAT a glob is matched against: the absolute realpath of the target.
+
+    Three separate false skips came out of deriving a *relative* path to match
+    (`basename(cwd)/…`, then `basename(root)/…`): a `cd` into a subdirectory, a
+    `/tmp` vs `/private/tmp` spelling, and a Codex payload with an empty `cwd`.
+    The absolute path already contains the repo's folder name, so the whole
+    derivation is gone — and with it that class of defect. What remains is a
+    matrix over the shapes that produced those bugs, each case judged by the
+    oracle below rather than by a hand-written expectation.
+    """
+
+    HARNESS_ROOTS = ("/.claude", "/.codex", "/.grok", "/.agents", "/.pi",
+                     "/.config/opencode")
+    DERIVED = ("node_modules", "dist", ".next", ".turbo", ".venv",
+               "__pycache__", "coverage")
+
+    def setUp(self):
+        super().setUp()
+        self.specs = self.write_rule_text("session-capture")
+        self.python = self.write_rule_text("python-standards")
+        self.rules = {
+            "session-capture": ["**/_support/**", "**/*-specs/**",
+                                "**/_support/sessions/**", "**/*-specs/sessions/**"],
+            "python-standards": ["**/*.py"],
+        }
+        self.manifest = self.write_manifest([
+            rule("session-capture", self.rules["session-capture"], self.specs,
+                 readers=True),
+            rule("python-standards", self.rules["python-standards"], self.python),
+        ])
+
+    # -- the oracle -------------------------------------------------------
+
+    def expected(self, absolute):
+        """Held iff the absolute realpath matches a glob and nothing exempts it.
+
+        Deliberately re-derived from the rule text rather than from the hook:
+        an oracle that shares the hook's code proves only that it agrees with
+        itself.
+        """
+        resolved = os.path.realpath(absolute)
+        parts = os.path.dirname(resolved).split(os.sep)
+        if any(part in self.DERIVED for part in parts):
+            return []
+        exempt = [os.path.realpath(self.MATRIX_HOME + suffix)
+                  for suffix in self.HARNESS_ROOTS]
+        exempt += [os.path.realpath(root) for root in
+                   ("/tmp", "/private/tmp", "/var/folders", "/private/var/folders",
+                    str(self.state_root))]
+        if any(resolved == root or resolved.startswith(root.rstrip("/") + "/")
+               for root in exempt):
+            return []
+        held = []
+        for name, path in (("session-capture", self.specs),
+                           ("python-standards", self.python)):
+            if self.matches(resolved, self.rules[name]):
+                held.append(path)
+        return held
+
+    @staticmethod
+    def matches(path, globs):
+        """A plain fnmatch-per-segment oracle, independent of the hook's matcher."""
+        import fnmatch
+        parts = [part for part in path.split("/") if part]
+        for pattern in globs:
+            for expanded in ScopeOfMatchingTests.braces(pattern):
+                segments = [s for s in expanded.split("/") if s]
+                if ScopeOfMatchingTests.walk(segments, parts):
+                    return True
+        return False
+
+    @staticmethod
+    def braces(pattern):
+        import re as regex
+        found = regex.search(r"\{([^{}]*)\}", pattern)
+        if not found:
+            return [pattern]
+        out = []
+        for option in found.group(1).split(","):
+            out.extend(ScopeOfMatchingTests.braces(
+                pattern[:found.start()] + option + pattern[found.end():]))
+        return out
+
+    @staticmethod
+    def walk(segments, parts):
+        import fnmatch
+        if not segments:
+            return not parts
+        if segments[0] == "**":
+            for index in range(len(parts) + 1):
+                if ScopeOfMatchingTests.walk(segments[1:], parts[index:]):
+                    return True
+            return False
+        if not parts or not fnmatch.fnmatchcase(parts[0], segments[0]):
+            return False
+        return ScopeOfMatchingTests.walk(segments[1:], parts[1:])
+
+    # -- the matrix -------------------------------------------------------
+
+    # HOME and the projects live OUTSIDE the scratch tree on purpose: the
+    # scratch root is under /tmp, which is itself an exempt temp root, and a
+    # matrix rooted there would assert "allowed" for reasons unrelated to it.
+    # Nothing here needs to exist on disk — the gate stats no target.
+    MATRIX_HOME = "/Users/hive-test"
+
+    def locations(self):
+        """One path per LOCATION kind of the matrix."""
+        normal = Path("/ws/projects/ark-specs")
+        temp_project = Path(tempfile.mkdtemp(prefix="hive-tempproj-", dir="/tmp"))
+        self.addCleanup(shutil.rmtree, temp_project, ignore_errors=True)
+        (temp_project / "_support").mkdir()
+        return {
+            "normal project": (normal, "domains/a.py"),
+            "project under a temp root": (temp_project, "_support/a.py"),
+            "harness root": (Path(self.MATRIX_HOME) / ".claude",
+                             "projects/-Users-x-ark-specs/memory/x.py"),
+            "derived dir below a project":
+                (normal, "apps/web/node_modules/pkg/_support/a.py"),
+            "derived-named ancestor": (Path("/ws/dist/inner-specs"), "domains/a.py"),
+        }
+
+    def test_every_cwd_and_path_shape_agrees_with_the_absolute_path_oracle(self):
+        # cwd shape x target spelling x location x declared-root field. Each of
+        # the three historical false skips is one cell of this table; enumerating
+        # the class is what keeps the fourth from being found in production.
+        cases = 0
+        for location, (project, inside) in self.locations().items():
+            absolute = project / inside
+            spellings = {"absolute": str(absolute)}
+            if str(project).startswith("/tmp/"):
+                # The same file, spelled the way macOS also accepts.
+                spellings["symlinked-spelling"] = "/private" + str(absolute)
+            spellings["relative"] = inside
+            cwds = {"project root": str(project),
+                    "subdirectory": str(absolute.parent),
+                    "empty": "",
+                    "absent": None}
+            roots = {"none": {}, "workspaceRoot": {"workspaceRoot": str(project)},
+                     "workspace_roots[]": {"workspace_roots": [str(project)]}}
+            for spelling, target in spellings.items():
+                for cwd_label, cwd in cwds.items():
+                    for root_label, extra in roots.items():
+                        if spelling == "relative" and cwd in ("", None) and not extra:
+                            continue  # nothing can make this absolute; covered below
+                        cases += 1
+                        payload = claude_write(target, session=f"m{cases}", **extra)
+                        if cwd is None:
+                            payload.pop("cwd", None)
+                        else:
+                            payload["cwd"] = cwd
+                        # A relative target resolves against cwd first, then the
+                        # declared root — that is the ONLY use of either.
+                        base = cwd or (extra.get("workspaceRoot")
+                                       or (extra.get("workspace_roots") or [""])[0])
+                        resolved = (target if os.path.isabs(target)
+                                    else os.path.join(base, target))
+                        held = self.expected(resolved)
+                        with self.subTest(location=location, spelling=spelling,
+                                          cwd=cwd_label, root=root_label):
+                            result = self.run_hook(payload, manifest=self.manifest,
+                                                   env={"HOME": self.MATRIX_HOME})
+                            if held:
+                                self.assertEqual(self.held(result), reason_for(held))
+                            else:
+                                self.assertAllowed(result)
+        self.assertGreater(cases, 60, "the matrix must actually enumerate the class")
+
+    def test_the_codex_shape_that_skipped_every_root_anchored_glob(self):
+        # Verbatim from the re-verification: `cwd` empty, a RELATIVE patch path,
+        # the root only in `workspace_roots`. The relative path used to be
+        # matched bare (`domains/a.md`), so every glob anchored on the repo's own
+        # folder name — `**/*-specs/**`, `**/*-infra/**` — was skipped.
+        project = "/ws/projects/ark-specs"
+        payload = codex_patch(patch_body("*** Add File: domains/a.md"),
+                              cwd="", workspace_roots=[project])
+        self.assertEqual(self.held(self.run_hook(payload, manifest=self.manifest,
+                                                 env={"HOME": self.MATRIX_HOME})),
+                         reason_for([self.specs], harness="codex"))
+        # The same patch with the root only in `cwd` was never the broken case,
+        # and stays held.
+        self.assertEqual(self.held(self.run_hook(
+            codex_patch(patch_body("*** Add File: domains/a.md"), cwd=project,
+                        session="c2"),
+            manifest=self.manifest, env={"HOME": self.MATRIX_HOME})),
+            reason_for([self.specs], harness="codex"))
+
+    def test_a_file_named_like_a_derived_directory_is_still_source(self):
+        # The exemption is about DIRECTORIES. Widening it to the basename would
+        # skip every rule for a file someone named `dist` or `coverage` — both
+        # are ordinary names for a script or a note — and no other case in this
+        # suite distinguishes the two.
+        project = "/ws/projects/ark-specs"
+        for index, name in enumerate(("dist", "coverage", "build.dist")):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    self.held(self.run_hook(
+                        claude_write(f"{project}/_support/{name}", session=f"n{index}"),
+                        manifest=self.manifest, env={"HOME": self.MATRIX_HOME})),
+                    reason_for([self.specs]),
+                    f"a file called {name} is source, not a generated tree")
+        # …while the same name as a directory component still exempts.
+        self.assertAllowed(self.run_hook(
+            claude_write(f"{project}/_support/dist/a.py", session="dir"),
+            manifest=self.manifest, env={"HOME": self.MATRIX_HOME}))
+
+    def test_a_deleted_process_cwd_never_raises_out_of_the_hook(self):
+        # `os.getcwd()` raises FileNotFoundError when the directory the process
+        # started in has been removed; the gate must not fail open on it, and
+        # must not crash.
+        doomed = self.root / "doomed"
+        doomed.mkdir()
+        payload = claude_write("_support/sessions/n.py", session="gone")
+        payload["cwd"] = ""
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "import os, shutil, subprocess, sys, json\n"
+             "os.chdir(sys.argv[2]); shutil.rmtree(sys.argv[2])\n"
+             "print(subprocess.run([sys.executable, sys.argv[1]], input=sys.stdin.read(),"
+             " text=True, capture_output=True).stdout, end='')",
+             str(HOOK), str(doomed)],
+            input=json.dumps(payload), text=True, capture_output=True,
+            env={"PATH": os.environ.get("PATH", ""), "HOME": str(self.home),
+                 "TMPDIR": str(self.state_root),
+                 "HIVE_RULE_MANIFEST": str(self.manifest)}, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("session-capture", result.stdout,
+                      "a gone cwd must not turn the gate off")
+
+
 class HarnessDetectionTests(HookCase):
     """Which reference root a call gets, and how the hook decides."""
 
@@ -1298,6 +1711,7 @@ class HarnessDetectionTests(HookCase):
             "name": "ts",
             "source": "global/rules-situational/ts.md",
             "globs": ["**/*.ts"],
+            "exclusive_with": [],
             "always_on": False,
             "references": {"claude": str(self.claude_text), "agents": str(self.agents_text)},
             "readers": False,
@@ -1313,7 +1727,8 @@ class HarnessDetectionTests(HookCase):
                 result = self.run_hook(claude_write("/repo/a.ts", session=harness),
                                        manifest=self.manifest,
                                        env={"HIVE_HARNESS": harness})
-                self.assertEqual(self.held(result), reason_for([expected]))
+                self.assertEqual(self.held(result),
+                                 reason_for([expected], harness=harness))
 
     def test_an_unknown_or_absent_value_falls_back_to_sniffing(self):
         for value in ("", "nonsense"):
@@ -1322,7 +1737,8 @@ class HarnessDetectionTests(HookCase):
                                                    session=f"c{value}"),
                                        manifest=self.manifest,
                                        env={"HIVE_HARNESS": value} if value else None)
-                self.assertEqual(self.held(result), reason_for([self.agents_text]))
+                self.assertEqual(self.held(result),
+                                 reason_for([self.agents_text], harness="codex"))
 
     def test_grok_is_sniffed_even_when_the_env_says_claude(self):
         # Grok arrives through the Claude settings block, so it inherits
@@ -1458,6 +1874,68 @@ class WiringTests(unittest.TestCase):
         post = self.matcher(HOOK_DIR / "codex-hooks.json", event="PostToolUse")
         self.assertIn("Bash", post, "reads reach Codex as shell calls; without it the "
                                     "gate has no release")
+
+
+# --- armed against the real manifest -------------------------------------
+
+REPO_ROOT = HOOK_DIR.parent.parent.parent
+REAL_MANIFEST = REPO_ROOT / "harness/rule-manifest.json"
+INJECTED_REFERENCES = REPO_ROOT / "harness/agents-skills"
+
+
+class RealManifestTests(HookCase):
+    """The one place the repo's OWN manifest is the input.
+
+    Every other test pins a fixture. This one asks whether the gate is armed
+    at all: while the glob-scoped rules lived under `global/rules/`, the hook
+    skipped every one of them by design and shipped gating nothing.
+    """
+
+    def stage_references(self, manifest):
+        """Put each injected reference where the manifest says claude reads it.
+
+        The gate refuses to ask for a read it cannot point at, so a rule is
+        only gateable once its reference file exists under this HOME.
+        """
+        staged = 0
+        for entry in manifest["rules"]:
+            raw = (entry.get("references") or {}).get("claude")
+            if not raw:
+                continue
+            # ~/.claude/skills/<skill>/references/<rule>.md — the tail after
+            # `skills/` is exactly the path inside the generated tree.
+            parts = Path(raw).parts
+            source = INJECTED_REFERENCES.joinpath(*parts[parts.index("skills") + 1:])
+            if not source.is_file():
+                continue
+            target = self.home / Path(*parts[1:])
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            staged += 1
+        return staged
+
+    def test_the_real_manifest_arms_the_gate_for_a_glob_scoped_rule(self):
+        manifest = json.loads(REAL_MANIFEST.read_text(encoding="utf-8"))
+        armed = [
+            entry for entry in manifest["rules"]
+            if entry["globs"] and not entry["always_on"]
+            and entry["source"].startswith("global/rules-situational/")
+        ]
+        self.assertTrue(
+            armed,
+            "no glob-scoped rule lives in the store the hook owns — the gate "
+            "ships disarmed",
+        )
+        self.assertTrue(self.stage_references(manifest), "no reference staged")
+
+        result = self.run_hook(
+            claude_write("/repo/src/app.ts"), manifest=REAL_MANIFEST, env=NO_WINDOW,
+        )
+
+        self.assertIn(
+            "typescript-standards.md", self.held(result),
+            "a TypeScript write was not held for the TypeScript rule",
+        )
 
 
 if __name__ == "__main__":

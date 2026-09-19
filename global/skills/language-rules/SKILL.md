@@ -1,32 +1,30 @@
 ---
 name: language-rules
 description: >
-  Codex/Grok/PI: load before code write/edit/review/debug/generate — full language
+  Codex/Grok/opencode/PI: load before code write/edit/review/debug/generate — full language
   conventions (TS/JS, React/Next, Angular, Nest, Python, Java/Kotlin, SQL/Prisma/Drizzle,
-  Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). opencode gets language
-  rules by glob via its plugin; Claude Code loads its rules natively and needs only the
-  browser row (`browser-automation-reference.md` — the CLI mechanics are not always-on).
-  Match files in play. Exception for every harness except Claude Code: naming identifiers
-  BEFORE the file exists (new fields, enums, table/spec properties) has no glob to fire —
-  load this skill and read identifier-language.md before choosing the names.
+  Tailwind, shell, Docker/Terraform/GHA, UI, patterns, devops). Claude Code: only the browser
+  row (`browser-automation-reference.md` — the CLI mechanics are not always-on). Match files
+  in play. Exception on every harness: naming identifiers BEFORE the file exists (new fields, enums, table/spec properties) fires
+  nothing — load this skill and read identifier-language.md before choosing the names.
 ---
 
 # language-rules — deterministic router to the full language conventions
 
 The full, canonical rules live in `references/` (injected at build time from
-`global/rules/` — single source of truth). This skill exists because Codex, Grok and PI
-have no path-scoped / glob-conditional rule loading: the COMPLETE rules load only
-when the stack is touched.
+`global/rules-situational/` and `global/rules/` — single source of truth). This skill exists
+because no harness loads these rules by file kind: they are not deployed to any harness's
+conditional-rule directory.
 
 **Per-harness scope — read only what your harness lacks:**
 
 | Harness | What this skill is for | Reference path |
 |---|---|---|
 | Codex | Everything below — no conditional rule channel exists | `references/<file>` |
-| PI | Everything below — Hive exposes references through skills | `references/<file>` |
-| Grok | Everything below — always-on rules only; no `paths:` | `references/<file>` |
-| opencode | Browser + quality rows + pre-file naming. Language rows arrive via the rules plugin | `references/<file>` |
-| Claude Code | Only the browser row — `browser-automation-reference.md` (demoted from always-on; everything else loads natively) | `references/<file>` |
+| PI | Everything below — Hive exposes references through skills; the `rule-delivery` hold names the same files | `references/<file>` |
+| Grok | Everything below — it receives the always-on rules and nothing else | `references/<file>` |
+| opencode | Everything below — its rules plugin is retired, this skill is the only channel | `references/<file>` |
+| Claude Code | Only the browser row — `browser-automation-reference.md`. Language rows arrive through the `rule-delivery` hold on a matching write | `references/<file>` |
 
 ## Routing table — read every row that matches the files/manifests in play
 
@@ -69,13 +67,16 @@ when the stack is touched.
 - A reference you already loaded this session (and not compacted away) does not need
   reloading.
 - No matching row → this skill has nothing for the task; proceed without it.
-- **Claude Code:** every row except the browser one is already reaching you — language rows by `paths:` glob, the rest always-on. Load this skill only for `browser-automation-reference.md` (the CLI mechanics behind the always-on gate stub).
-- **Grok:** always-on rules arrive via `~/.grok/rules/`; path-scoped language/quality/devops
-  rows do not — read every matching row below from `references/`.
-- **opencode:** the language rows arrive automatically via the rules plugin — read only
-  the quality/verification rows (development-principles, testing, debugging,
-  browser-automation, patterns-antipatterns when implementing) from here. The plugin fires
-  on files TOUCHED: naming identifiers before any matching file exists gives it nothing to
-  match, so the pre-file naming row above applies to opencode too — the always-on gate
-  states the rule; `identifier-language.md` carries the judgment (domain translation,
-  false friends) that the gate alone has been measured to miss.
+- **`rule-delivery` holds your first matching write** on Claude Code, Grok, Codex and PI,
+  naming the reference to read — reading it from here first skips the hold. On Codex the
+  hold does not re-arm after a compaction; opencode has no hook channel at all.
+- **Claude Code:** the quality rows are always-on and the language rows arrive through that
+  hold. Load this skill unprompted only for `browser-automation-reference.md` (the CLI
+  mechanics behind the always-on gate stub).
+- **Grok:** always-on rules arrive via `~/.grok/rules/`; the language/quality/devops rows do
+  not — read every matching row below from `references/`.
+- **opencode:** every matching row is read from here — the rules plugin that once delivered
+  the language rows is retired.
+- **Naming identifiers has no write to hold:** the pre-file naming row applies on every
+  harness — the always-on gate states the rule; `identifier-language.md` carries the
+  judgment (domain translation, false friends) that the gate alone has been measured to miss.

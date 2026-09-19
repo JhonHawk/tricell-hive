@@ -58,7 +58,7 @@ for the tasks not yet gated:
    cannot produce (#3 feedback, #4 error recovery, #5 empty states, #9 role coherence, #10
    responsive & a11y — each needs a real backend, real zero-result queries, real authz). **No mock
    review for this feature → the gate takes all 18**: half the portfolio has no mocks repo at all,
-   and there the Flow axis is judged by nobody otherwise. Criteria `languages/ui-visual-design.md` — type scale, spacing system, color & WCAG-AA contrast, action
+   and there the Flow axis is judged by nobody otherwise. Criteria `ui-visual-design.md` — type scale, spacing system, color & WCAG-AA contrast, action
    hierarchy, elevation, borders restraint, component simplicity, net improvement — **plus
    BREAKAGE, which this gate owns**: layout overflow, clipped or capped text, overlapping
    elements, content not filling its container. Breakage is never `polish` — it fixes in-cycle

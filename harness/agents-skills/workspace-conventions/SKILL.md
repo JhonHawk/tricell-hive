@@ -9,8 +9,9 @@ description: >
   before any file exists. Also before naming any infra resource (bucket, cluster, service,
   security group, DB, subdomain, env branch), designing a cross-service contract, or
   answering "what's next"/offering /flow-* with a ledger. Every harness, Claude Code
-  included: these rules are path-scoped there and load only after a matching file is read,
-  which is too late to pick a name or a location.
+  included: these rules live in no harness's rule directory, and the `rule-delivery` hook
+  holds a matching WRITE (a read, only inside a read-only agent, for project-structure and
+  session-capture) — too late to pick a name or a location.
   Triggers: _support/, *-specs, sessions/, flow, IaC, naming, contract, "dónde va",
   "where should this live".
 ---
@@ -22,12 +23,12 @@ policy: their always-on floor keeps one trigger line and the complete convention
 here, when the situation is actually in play.
 
 **Claude Code needs it too now.** `project-structure`, `session-capture`, `infra-naming`
-and `cross-service-workflow` carry `paths:` there, so they load only once a matching file
-is READ — and naming an infra resource or choosing where an artifact goes usually happens
-BEFORE any such file is open. That is the gap this skill covers: invoke it when the
-situation applies, not when a file happens to match.
+and `cross-service-workflow` reach it only through this skill or through the `rule-delivery`
+hook, which holds a matching WRITE — and naming an infra resource or choosing where an
+artifact goes happens BEFORE anything is written. That is the gap this skill covers: invoke
+it when the situation applies, not when a file happens to match.
 
-References are injected at build time from `global/rules/workflow/` into `references/`.
+References are injected at build time from `global/rules-situational/` into `references/`.
 
 ## Routing table — read every row that matches the situation
 

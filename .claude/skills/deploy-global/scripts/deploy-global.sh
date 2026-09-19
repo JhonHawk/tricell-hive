@@ -189,9 +189,10 @@ SCOPE NOTES:
   at the deployed always-on rule under ~/.claude/rules — so it needs the
   "claude" scope to have run at least once for rules; (2) copies generated
   agents from harness/grok/agents into ~/.grok/agents. Grok's rules discovery
-  is NOT recursive and does NOT honor `paths:`, so only always-on rules
-  (those without `paths:`) are linked, flattened as `<dir>__<file>.md`.
-  Path-scoped rules reach Grok through the router skills instead.
+  is NOT recursive and scopes nothing, so only always-on rules are linked,
+  flattened as `<dir>__<file>.md`. Living under global/rules/ is what makes a
+  rule always-on: moving one out turns its link into a manifest-detected
+  orphan, and the rule then reaches Grok through the router skills instead.
 
   The "pi" scope delegates to the stdlib helper under harness/pi/. It owns the
   PI agent directory and the neutral shared-skills owner under ~/.agents; it
@@ -446,13 +447,11 @@ step_preflight_generic_targets() {
         preflight_target_root "OpenCode" "${OPENCODE_HOME}"
         preflight_target_root "OpenCode agents" "${OPENCODE_HOME}/agents"
         preflight_target_root "OpenCode commands" "${OPENCODE_HOME}/commands"
-        preflight_target_root "OpenCode rules" "${OPENCODE_HOME}/rules"
         preflight_target_root "OpenCode plugins" "${OPENCODE_HOME}/plugins"
         preflight_target_file "OpenCode AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
         preflight_target_file "OpenCode opencode.json" "${OPENCODE_HOME}/opencode.json"
         preflight_tree_targets "OpenCode agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents"
         preflight_tree_targets "OpenCode commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands"
-        preflight_tree_targets "OpenCode rules" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules"
         preflight_target_file "OpenCode session plugin" "${OPENCODE_HOME}/plugins/flow-session-context.ts"
     fi
     if [[ "${RUN_GROK}" -eq 1 ]]; then
@@ -662,27 +661,30 @@ deploy_injected_references() {
 # ---------------------------------------------------------------------------
 # Grok rule selection
 #
-# Grok discovers rules by scanning `rules/` NON-recursively and does not honor
-# `paths:` — both verified empirically against grok 0.2.118 with marker files
-# under a temporary GROK_HOME. Consequences encoded below:
+# Grok discovers rules by scanning `rules/` NON-recursively and scopes nothing
+# — both verified empirically against grok 0.2.118 with marker files under a
+# temporary GROK_HOME. Consequences encoded below:
 #   - the tree under global/rules/ is invisible to it, so each rule is linked
 #     flat as `<subdir>__<file>.md` (file symlinks ARE followed; directory
 #     symlinks are not);
-#   - a path-scoped rule would become always-on there, so only rules WITHOUT
-#     `paths:` are linked. The rest reach Grok through the router skills.
+#   - a scoped rule would become always-on there, so only unscoped rules are
+#     linked. The rest reach Grok through the router skills.
 # ---------------------------------------------------------------------------
 
 # rule_is_always_on FILE -> 0 when the rule loads unconditionally.
-# `paths:` in the first frontmatter block is the only key that makes a rule
-# conditional; every other key (alwaysApply:, …) is documentation, not
-# mechanism, and no frontmatter at all means always-on.
+# Living under global/rules/ is the criterion, so every file the caller walks
+# should qualify; the frontmatter check is the second line of defense against
+# a scope key left there by mistake. It tests BOTH spellings: `paths:` (the key
+# Claude Code reads, retired from this store) and `globs:` (the rules-situational
+# key, which harness/build.py refuses here — this catches it if that run is
+# skipped). No frontmatter at all means always-on.
 rule_is_always_on() {
     local f="$1" first="" fm
     [[ -f "${f}" ]] || return 1
     IFS= read -r first <"${f}" || true
     [[ "${first}" == "---" ]] || return 0
     fm=$(sed -n '2,/^---[[:space:]]*$/p' "${f}")
-    grep -q '^paths:' <<<"${fm}" && return 1
+    grep -qE '^(paths|globs):' <<<"${fm}" && return 1
     return 0
 }
 
@@ -754,7 +756,6 @@ step_diff() {
     if [[ "${RUN_OPENCODE}" -eq 1 ]]; then
         diff_category "opencode-agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents" -name '*.md' ! -name 'README.md'
         diff_category "opencode-commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands" -name '*.md'
-        diff_category "opencode-rules" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules" -name '*.md' ! -name 'README.md'
         diff_file "harness AGENTS.md -> opencode" "${REPO_ROOT}/harness/AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
     fi
     if [[ "${RUN_GROK}" -eq 1 ]]; then
@@ -1704,7 +1705,6 @@ step_deploy_opencode() {
     log "== Deploy: opencode scope =="
     deploy_flat_pattern "opencode-agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents" -name '*.md' ! -name 'README.md'
     deploy_flat_pattern "opencode-commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands" -name '*.md'
-    deploy_flat_pattern "opencode-rules" "${REPO_ROOT}/harness/opencode/rules" "${OPENCODE_HOME}/rules" -name '*.md' ! -name 'README.md'
     deploy_file "harness AGENTS.md -> opencode" "${REPO_ROOT}/harness/AGENTS.md" "${OPENCODE_HOME}/AGENTS.md"
 }
 

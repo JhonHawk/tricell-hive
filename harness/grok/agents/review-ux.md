@@ -33,8 +33,8 @@ nothing. Your evidence is what you actually saw on screen.
   for overflow, bounding-box intersection for overlap, `getComputedStyle` for clamped text) —
   measurement catches what the eye misses at a glance, the capture catches what no assertion
   was written for. Breakage is a defect to fix in-cycle, never `polish`
-- Visual craft against `~/.claude/skills/language-rules/references/ui-visual-design.md` (path-scoped rule —
-  it will NOT auto-load in this browser-driving context; Read it directly): type scale &
+- Visual craft against `~/.claude/skills/language-rules/references/ui-visual-design.md` (no harness
+  auto-loads it, and nothing here holds a write to demand it; Read it directly): type scale &
   line-length, spacing
   system (space around a group > space within it), color palette + measurable WCAG-AA contrast
   (≥4.5:1 normal / ≥3:1 large), action hierarchy (one solid primary / outline secondary / link

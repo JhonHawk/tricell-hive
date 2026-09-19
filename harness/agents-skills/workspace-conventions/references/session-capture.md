@@ -1,11 +1,7 @@
 
----
-alwaysApply: true
----
-
 ## Session Capture & Support Vocabulary
 
-> Path-scoped: loads when the session touches `_support/**`, a specs repo, or `sessions/**`. Codex/opencode/Grok/PI reach it through the `workspace-conventions` skill. Split out of `workflow/project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
+> Scoped to `_support/**` and a specs repo: every harness reaches it through the `workspace-conventions` skill, and the `rule-delivery` hook holds a matching write — a matching read, inside a read-only agent — until it is read. Split out of `project-structure.md`, which owns the 3-level hierarchy and the `_support` vs specs-repo routing decision; this file owns where inside that structure a thing lands.
 
 ### Canonical subfolder vocabulary
 

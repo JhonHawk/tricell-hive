@@ -3,7 +3,7 @@
 ## Purpose
 This is the canonical guide for all harnesses. `CLAUDE.md` imports it via `@AGENTS.md` and adds Claude Code-specific content below the import.
 
-This repo is the **source of truth** for the user's global agent configuration. Claude Code configuration lives under `global/`: global CLAUDE.md, path-scoped rules, and optimized subagent definitions. Everything under `global/` deploys to `~/.claude/` via the `/deploy-global` skill. **Deploy is always user-initiated** — never execute `/deploy-global` or copy files to `~/.claude/` without explicit user instruction.
+This repo is the **source of truth** for the user's global agent configuration. Claude Code configuration lives under `global/`: global CLAUDE.md, the rule store, and optimized subagent definitions. Everything under `global/` deploys to `~/.claude/` via the `/deploy-global` skill. **Deploy is always user-initiated** — never execute `/deploy-global` or copy files to `~/.claude/` without explicit user instruction.
 
 The reusable generic harness configuration lives in `harness/AGENTS.md`. Edit that file when changing cross-project AGENTS guidance. Do not duplicate its full contents here.
 
@@ -66,9 +66,11 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 - **Concrete, not generic.** "Use `class-validator` for DTOs" is good. "Follow best practices" is filler.
 - **Description controls routing.** The `description` field must be specific and action-oriented — not a resume.
 - **Restricted tools.** Only include tools the agent needs. Review agents (cyan) are read-only in effect: Read, Glob, Grep, plus Bash for read-only investigation (git, `rg`, dependency audits), plus WebSearch/WebFetch and the context7 MCP tools for external verification (version-sensitive APIs, CVEs/advisories, ecosystem claims — read-only in effect) — never Write/Edit. They also carry `permissionMode: plan`, but **the `tools:` allowlist is what actually enforces read-only**: a parent session in auto mode (the default on Pro/Max/Team) makes a subagent inherit auto mode and ignore its frontmatter `permissionMode` entirely (`_support/docs/enforcement-layers.md`). Exception — reviewers and verifiers (cyan or yellow) that must EXECUTE to observe run Bash outside plan mode, constrained by a `tools:` allowlist without Write/Edit (review-refuter runs tests/repro commands) or an explicit `disallowedTools` when the agent needs the inherited surface (review-ux and sdd-verify drive a browser), plus a never-mutate prompt clause. Quality agents (yellow) may be remediation-oriented (Write/Edit) or audit-oriented (read-only plus Bash when they orchestrate external analysis).
-- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (sdd-spec-reviewer, review-ux, sdd-verify) — the discovery floor per `rules/tools/code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
+- **Model by tier, not by default.** Three tiers, matching the roster in force: `inherit` for judgment roles that must match the session ceiling (designers, refuter, security); `opus` for deep-reasoning specialists; `sonnet` for executor, discovery, and the judgment roles deliberately kept at the floor (sdd-spec-reviewer, review-ux, sdd-verify) — the discovery floor per `code-search.md > Model floor for discovery agents`, never haiku there. `effort: high` accompanies every judgment role regardless of tier. Pick the tier when creating the agent; escalate per-invocation when a task proves reasoning-heavy.
 - **Calibrate to the floor model, not the ceiling.** Rules and agents must work on the least capable model the user runs day-to-day (as of jul-2026: Sonnet 5 — the executor-tier agents; sessions and top-tier agents run Fable 5, permanent on the plan, with a pinned `opus` tier between). Before cutting a rule as "the model does this by default", verify the *floor* model does it — top-model capability is not a pruning criterion.
-- **Path-scoped rules only load when matching files are touched; do not duplicate them into agents.**
+- **No rule loads by file kind.** A rule reaches an agent inlined via `packs:`, held by
+  `rule-delivery` on a matching write, or read from a router's `references/` — pick one
+  deliberately, never all three.
 
 ### Naming Rules
 - 3-50 characters, lowercase letters, numbers, and hyphens only.
@@ -114,12 +116,12 @@ description: >
 When creating, editing, or deleting agents or rules, review and adjust impacted files:
 - `global/rules-situational/agent-routing.md` — update the disambiguation table if the new agent overlaps with an existing one, or remove the entry if an agent is deleted.
 - `README.md` — the inventory of record for humans: keep the agents table (heading count + one row per agent + tool surface) and the skills table in sync with disk.
-- **Per-harness loading READMEs** (`global/README.md`, `harness/{codex,opencode,grok}/README.md`) — each carries a *What this harness loads* table whose rows cite an official doc URL with a verification date. A change to what a harness receives (a rule gaining `paths:`, a new generated tree, a hook target) updates the affected table; a claim about upstream behavior carries a URL that was fetched, or is marked **undocumented** rather than given a plausible-looking link. Prompt-convention. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
+- **Per-harness loading READMEs** (`global/README.md`, `harness/{codex,opencode,grok}/README.md`) — each carries a *What this harness loads* table whose rows cite an official doc URL with a verification date. A change to what a harness receives (a rule moving between `global/rules/` and `global/rules-situational/`, a new generated tree, a hook target) updates the affected table; a claim about upstream behavior carries a URL that was fetched, or is marked **undocumented** rather than given a plausible-looking link. Prompt-convention. Enforcement: `/manage-agents validate` checks the agents table; the skills table is prompt-convention.
 - Multi-harness layer: after editing any agent, skill, or core section under `global/core-sections/`, the pre-commit hook regenerates and stages the trees with the commit (deploy also runs `build.py` and flags a dirty `harness/` — the sign the hook is not enabled in this clone); a NEW **user-invoked** skill needs an opencode command wrapper in `harness/opencode/commands/` (model-invoked router/reference skills need none); a renamed agent/skill needs a grep through `harness/`. Changing a skill's invocation gate (adding/removing `disable-model-invocation`) is also a cross-harness change: it flips the generated Codex `openai.yaml` policy, and it does NOT make the skill organic in opencode (which only exposes gated skills via its command wrappers) — verify the wrapper still matches the intended exposure.
-- **`paths:` is the only frontmatter key Claude Code reads.** The docs are explicit: *"Rules without a `paths` field are loaded unconditionally."* So a rule is conditional if and only if it has `paths:`. `alwaysApply: true` is **documentation of intent, not a switch** — the file loads identically without it, and inventing a third scope key does NOT suppress loading. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before adding `paths:` to an existing rule, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited).
+- **The directory is the mechanism; no rule carries `paths:` any more.** Everything deployed to `~/.claude/rules/` is always-on (the docs are explicit: *"Rules without a `paths` field are loaded unconditionally"*), so `global/rules/` IS the always-on set and `alwaysApply: true` there documents intent without switching anything. `globs:` in `global/rules-situational/` is read by `harness/build.py` — it feeds `rule-manifest.json` and the `rule-delivery` hook, never a harness's own loader. Always-on is the expensive default, paid every session before any work, so keep it for safety gates and for policy whose trigger is an action rather than a file. Before moving a rule out of `global/rules/`, apply the three reachability tests in `/manage-rules validate` — a real glob, nothing safety-bearing, and consumers that can still reach it (an executor agent whose `tools:` allowlist omits `Skill` cannot invoke a router skill, and skills are not inherited; a read-only agent is never held on a write).
 - **Placement in `harness/AGENTS.md`: gate and pointer here, mechanics in the router — never both.** The core is paid in full at the start of every session in every project, so it holds only **safety gates** and **policy whose trigger is an action rather than a file**, plus the one-line pointer to the router that carries the rest. When the same content lives in the core AND in a router reference, the core is paying twice for what the router already delivers — that duplication — not prose length — is what makes the core expensive. **There is no size threshold on the file and none is wanted:** no harness caps it (verified 2026-08-18; bibliography), so `build.py` reports its size and per-session token cost and enforces nothing. Adding to the core: decide the layer first. A rising number is a cue to audit placement, never a reason to reword paragraphs that earned their place.
-- **The two always-on cores are GENERATED from `global/core-sections/`.** `global/CLAUDE.md` (deploys to `~/.claude/`, Claude Code) and `harness/AGENTS.md` (the condensed core Codex and opencode read) are assembled by `harness/build.py` from the section files in `global/core-sections/` (format: its README) — edit a section, rebuild, commit both outputs. The build regenerates a stale output silently and REFUSES a hand-edited one (differs from both the regeneration and HEAD — the edit stays on disk); `python3 harness/build.py --check` runs the parity checks without writing (deploy preflight / pre-commit). A policy stated by both cores CAN live in one shared section (`targets: [claude, agents]`) and four do today; the remaining condensed twins are still per-target section pairs synced by hand — only the delegation thresholds carry their own parity check — so prefer promoting a twin to shared when editing it. AlwaysApply rules under `global/rules/` still deploy only to `~/.claude/`: a new or changed rule that applies to all harnesses is condensed into a core section targeting `agents` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references — `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` is the authoritative skill←rule mapping (do not restate it here; it drifts) — where `build.py` regenerates it automatically. **Exception — path-scoped language rules DO pass through `build.py`:** `global/rules/languages/*.md` → `harness/opencode/rules/` (opencode-rules plugin format, `paths:`→`globs:`), deployed to `~/.config/opencode/rules/` where the `opencode-rules` plugin (pinned 0.6.4) loads them conditionally by touched-file glob — the opencode analog of Claude Code path-scoping. Codex has no equivalent; it keeps only the condensed sections. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
-- **Grok scope (`deploy-global --only grok` / part of `harness`):** (1) always-on rules — Grok's scan is NOT recursive and ignores `paths:`, so each always-on rule is symlinked flat into `~/.grok/rules/` as `<dir>__<file>.md` → `~/.claude/rules/` copy; a new always-on rule is picked up on the next deploy; **giving an existing rule `paths:` removes it from Grok**, so situational content must reach Grok via a router skill's `SKILL_REFERENCE_INJECTIONS` (same as Codex); rule filenames must never contain `__` (flatten separator). (2) agents — `harness/build.py` emits `harness/grok/agents/*.md` from `global/agents/`; deploy copies them to `~/.grok/agents/` so `spawn_subagent` can use the hub roster by name. (3) hooks — **not** re-copied under `~/.grok/hooks/`; Grok merges `~/.claude/settings.json` via compat, and hive hook scripts are dual-runtime (Claude + Grok payloads). (4) skills — **no deploy step and no generated tree**: Grok scans `~/.claude/skills/` by default (`[compat.claude] skills = true`), so `global/skills/` reaches it through the Claude deploy alone, and Grok honors `disable-model-invocation` natively, so the `flow-*` gate holds there without translation. Two consequences: never build a `harness/grok/skills/` tree (pure duplication — unlike Codex, which needs a generated `openai.yaml` for the same gate), and note that `~/.claude/skills/` is Grok's LOWEST-precedence source, so a same-named Grok-native or repo skill wins. Grok also loads `~/.claude/CLAUDE.md` natively (undocumented upstream; verified empirically via `grok inspect`, which lists every rules file Grok loads — the deterministic scope auditor, analog of `codex debug prompt-input`).
+- **The two always-on cores are GENERATED from `global/core-sections/`.** `global/CLAUDE.md` (deploys to `~/.claude/`, Claude Code) and `harness/AGENTS.md` (the condensed core Codex and opencode read) are assembled by `harness/build.py` from the section files in `global/core-sections/` (format: its README) — edit a section, rebuild, commit both outputs. The build regenerates a stale output silently and REFUSES a hand-edited one (differs from both the regeneration and HEAD — the edit stays on disk); `python3 harness/build.py --check` runs the parity checks without writing (deploy preflight / pre-commit). A policy stated by both cores CAN live in one shared section (`targets: [claude, agents]`) and four do today; the remaining condensed twins are still per-target section pairs synced by hand — only the delegation thresholds carry their own parity check — so prefer promoting a twin to shared when editing it. AlwaysApply rules under `global/rules/` still deploy only to `~/.claude/`: a new or changed rule that applies to all harnesses is condensed into a core section targeting `agents` when it belongs to the core (gates, every-session procedure) — or, for situational policy, added to a router skill's injected references — `SKILL_REFERENCE_INJECTIONS` in `harness/build.py` is the authoritative skill←rule mapping (do not restate it here; it drifts) — where `build.py` regenerates it automatically. **Everything under `global/rules-situational/` DOES pass through `build.py`:** injected into the router skills' `references/`, inlined into the agents that declare it in `packs:`, and indexed in `harness/rule-manifest.json` for the `rule-delivery` hook. opencode's glob channel (the `opencode-rules` plugin and `harness/opencode/rules/`) was retired in M3 — it never loaded a rule in the deployed state. Rule changes scoped to Claude Code's own mechanics (skill authoring, agent frontmatter) stay in `global/` only.
+- **Grok scope (`deploy-global --only grok` / part of `harness`):** (1) always-on rules — Grok's scan is NOT recursive and ignores `paths:`, so each always-on rule is symlinked flat into `~/.grok/rules/` as `<dir>__<file>.md` → `~/.claude/rules/` copy; a new always-on rule is picked up on the next deploy; **moving a rule out of `global/rules/` removes it from `~/.grok/rules/`**, so situational content reaches Grok via a router skill's `SKILL_REFERENCE_INJECTIONS` and the `rule-delivery` hold (same as Codex); rule filenames must never contain `__` (flatten separator). (2) agents — `harness/build.py` emits `harness/grok/agents/*.md` from `global/agents/`; deploy copies them to `~/.grok/agents/` so `spawn_subagent` can use the hub roster by name. (3) hooks — **not** re-copied under `~/.grok/hooks/`; Grok merges `~/.claude/settings.json` via compat, and hive hook scripts are dual-runtime (Claude + Grok payloads). (4) skills — **no deploy step and no generated tree**: Grok scans `~/.claude/skills/` by default (`[compat.claude] skills = true`), so `global/skills/` reaches it through the Claude deploy alone, and Grok honors `disable-model-invocation` natively, so the `flow-*` gate holds there without translation. Two consequences: never build a `harness/grok/skills/` tree (pure duplication — unlike Codex, which needs a generated `openai.yaml` for the same gate), and note that `~/.claude/skills/` is Grok's LOWEST-precedence source, so a same-named Grok-native or repo skill wins. Grok also loads `~/.claude/CLAUDE.md` natively (undocumented upstream; verified empirically via `grok inspect`, which lists every rules file Grok loads — the deterministic scope auditor, analog of `codex debug prompt-input`).
 
 ## File Structure
 
@@ -131,55 +133,54 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── CLAUDE.md                      # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                 # Canonical section files for BOTH always-on cores (global/CLAUDE.md + harness/AGENTS.md)
 ├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, rule-delivery, post-tool-hub, flow-session-context, flow-context, reviewer-guard, executor-dispatch-gate, session-hygiene-report)
-├── rules/                         # Organized by function, discovered recursively
-│   ├── quality/                   # Code principles (7 alwaysApply, 1 path-scoped)
+├── rules/                         # ALWAYS-ON rules only (12), deployed to ~/.claude/rules/
+│   ├── quality/                   # Code principles (7)
 │   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)
 │   │   ├── critical-thinking.md
 │   │   ├── debugging.md           # Root-cause discipline: reproduce before fix, one change at a time, 3-fix circuit breaker
 │   │   ├── development-principles.md
-│   │   ├── patterns-antipatterns.md
 │   │   ├── reporting-integrity.md # Ground-truth state claims + Fix at the Root (extracted from debugging + development-principles)
 │   │   ├── security.md
 │   │   └── testing.md
-│   ├── languages/                 # Language/framework standards (path-scoped)
-│   │   ├── angular-patterns.md
-│   │   ├── iac-devops.md          # Docker, Terraform, GH Actions
-│   │   ├── identifier-language.md # Domain-translation judgment layer (its gate stays always-on in CLAUDE.md > Code Layer)
-│   │   ├── java-kotlin.md
-│   │   ├── nestjs-patterns.md
-│   │   ├── python-standards.md
-│   │   ├── react-nextjs.md
-│   │   ├── shell-standards.md
-│   │   ├── sql-migrations.md      # SQL, Prisma, Drizzle
-│   │   ├── tailwind.md
-│   │   ├── typescript-standards.md
-│   │   └── ui-visual-design.md    # Visual craft: type scale, spacing, contrast, action hierarchy
-│   ├── workflow/                  # Git gates, coordination (2 always-on, 6 path-scoped; mechanics+routing+gaps+memory → rules-situational/)
-│   │   ├── cross-service-workflow.md
-│   │   ├── devops-principles.md   # path-scoped (Dockerfile/tf/workflows)
+│   ├── workflow/                  # Git gates, unattended autonomy (2; mechanics+routing+gaps+memory → rules-situational/)
 │   │   ├── git-workflow.md
-│   │   ├── infra-naming.md        # Generic infra naming; projects instantiate it in their specs repo
-│   │   ├── project-structure.md   # 3-level hierarchy + file-routing (_support vs specs repo)
-│   │   ├── session-capture.md     # Session layer + subfolder vocabulary (split out of project-structure)
-│   │   ├── support-artifacts.md   # Path-scoped (_support/**): generated-artifact naming, retention, versioning, legacy mappings
 │   │   └── unattended-autonomy.md # Gate stub: activation guard + gate pointers (mode mechanics → rules-situational/)
-│   └── tools/                     # External tools & MCP protocols (3 always-on)
+│   └── tools/                     # External tools & MCP protocols (3)
 │       ├── browser-automation.md  # Gate block: delegation, profile, viewport (CLI reference → rules-situational/)
 │       ├── code-search.md         # search routing + anti-conclusion discipline
 │       └── context7.md            # Context7 MCP query protocol (installed via plugin)
-├── rules-situational/             # NOT deployed to ~/.claude/rules — reachable via a router
-│                                  # skill, or inlined into an agent via `packs:`. For rules whose
-│                                  # trigger is an intent (delegating, planning), which `paths:`
-│                                  # cannot express, and for pack-only texts.
+├── rules-situational/             # Every other rule text (28) — NEVER deployed to ~/.claude/rules.
+│                                  # `globs:` (19 files) → held by the rule-delivery hook on a matching
+│                                  # write; injected into a router skill's references/; or inlined into
+│                                  # an agent via `packs:`. See its README for the four shapes.
 │   ├── README.md
 │   ├── agent-core-gates.md               # Pack-only: the gates a packed agent loses with the global corpus (required in every `packs:`)
 │   ├── agent-routing.md
+│   ├── angular-patterns.md
 │   ├── browser-automation-reference.md   # CLI mechanics + MCP escalation (via language-rules)
 │   ├── communication-format-mechanics.md # Layout floor, in-thread form, diagram norm (via flow-report)
+│   ├── cross-service-workflow.md
+│   ├── devops-principles.md              # Deploy/CI doctrine (globs: Dockerfile/tf/workflows)
 │   ├── gap-resolution.md
 │   ├── git-mechanics.md
+│   ├── iac-devops.md                     # Docker, Terraform, GH Actions
+│   ├── identifier-language.md            # Domain-translation judgment layer (its gate stays always-on in CLAUDE.md > Code Layer)
+│   ├── infra-naming.md                   # Generic infra naming; projects instantiate it in their specs repo
+│   ├── java-kotlin.md
 │   ├── memory-routing.md
+│   ├── nestjs-patterns.md
+│   ├── patterns-antipatterns.md
+│   ├── project-structure.md              # 3-level hierarchy + file-routing (_support vs specs repo)
+│   ├── python-standards.md
+│   ├── react-nextjs.md
+│   ├── session-capture.md                # Session layer + subfolder vocabulary (split out of project-structure)
+│   ├── shell-standards.md
+│   ├── sql-migrations.md                 # SQL, Prisma, Drizzle
+│   ├── support-artifacts.md              # Generated-artifact naming, retention, versioning, legacy mappings (_support/**)
+│   ├── tailwind.md
 │   ├── test-gate.md                      # Pack-only: the verifiable test gate condensed for executors
+│   ├── typescript-standards.md
+│   ├── ui-visual-design.md               # Visual craft: type scale, spacing, contrast, action hierarchy
 │   └── unattended-autonomy-mode.md       # Full delegated-run mechanics (via unattended-delegation)
 ├── skills/                        # Global skills (deployed to ~/.claude/skills/)
 │   ├── adversarial-research/      # /adversarial-research — N independent generators + review-refuter cross-exam → refuted/weakened/surviving/net-new canon
@@ -221,7 +222,7 @@ harness/                           # Per-CLI layer — sources + VERSIONED gener
 ├── README.md                      # The layer as a whole + the two manual-merge snippets
 ├── AGENTS.md                      # GENERATED condensed cross-harness core (assembled from global/core-sections/; deployed by /deploy-global 13b to ~/.codex/AGENTS.md + ~/.config/opencode/AGENTS.md)
 ├── build.py                       # Regenerates every generated tree below from global/ — run after agent/skill edits
-├── build/                         # convert-agents.py + convert-rules.py + convert-skills.py (build tooling)
+├── build/                         # convert-agents.py + convert-skills.py (build tooling)
 ├── agents-skills/                 # GENERATED — cleaned universal skills → ~/.agents/skills (Codex + opencode)
 ├── rule-manifest.json             # GENERATED — every rule text: globs, deployed reference paths, `readers`, which agents carry it as a pack, read-only agents; read by the rule-delivery hook
 ├── claude/                        # README (generated marker)
@@ -229,12 +230,11 @@ harness/                           # Per-CLI layer — sources + VERSIONED gener
 ├── codex/                         # README + config.toml.snippet (sources)
 │   └── agents/                    # GENERATED — TOML subagents → ~/.codex/agents
 ├── opencode/                      # README + opencode.jsonc.snippet + commands/ + permission-config.json (sources)
-│   ├── agents/                    # GENERATED — markdown subagents → ~/.config/opencode/agents
-│   └── rules/                     # GENERATED — path-scoped rules, paths:→globs: → ~/.config/opencode/rules
+│   └── agents/                    # GENERATED — markdown subagents → ~/.config/opencode/agents
 ├── grok/                          # README (rules reach Grok as flat symlinks; no skills tree by design)
 │   └── agents/                    # GENERATED — Grok-shaped markdown subagents → ~/.grok/agents
 └── cursor/                        # README only — reads ~/.agents/skills natively and ~/.claude/{agents,settings.json} via compat; nothing generated, nothing deployed
-_support/                          # Workspace material (see global/rules/workflow/project-structure.md)
+_support/                          # Workspace material (see global/rules-situational/project-structure.md)
 ├── archive/                       # Dated historical snapshots (audits/, docs/) — superseded reports kept for reference
 ├── archived-agents/               # Retired agents kept for reference
 ├── docs/                          # Durable docs about this hub
@@ -267,7 +267,7 @@ without it, matcher held constant). Trust is persisted per hook in `~/.codex/con
 hook config — so editing `hooks.json` invalidates it. Until the trust prompt is accepted in an
 interactive Codex session here, the hook is inert and fails silently: no error, no notice.
 
-Path-scoped rules only load when matching files are touched. Agents are discovered recursively — subdirectories provide organizational namespace for humans, not routing logic. Deploy with `/deploy-global`.
+No rule loads by file kind: `global/rules/` is always-on, and everything in `global/rules-situational/` arrives by hook hold, router skill, or pack. Agents are discovered recursively — subdirectories provide organizational namespace for humans, not routing logic. Deploy with `/deploy-global`.
 
 ### Ephemeral Workspace
 
@@ -281,7 +281,7 @@ Path-scoped rules only load when matching files are touched. Agents are discover
 
 ## Rule Exclusions (this repo)
 
-Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); the pre-commit hook refreshes it with any commit that touches `global/rules/` or the classifier (by hand: `python3 harness/hive-compile.py . --apply`). Staleness is content-based — `hive-compile.py --check` compares the profile it would compile today against the block on disk, stamp excluded — so a rules commit that leaves the profile identical is not stale; the `session-hygiene-report` hook delegates its advisory to that check. Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
+Carried by the compiled hive profile at the end of this file (`hive-profile` block, class: config-hub); the pre-commit hook refreshes it with any commit that touches `global/rules/`, `global/rules-situational/` or the classifier (by hand: `python3 harness/hive-compile.py . --apply`). Staleness is content-based — `hive-compile.py --check` compares the profile it would compile today against the block on disk, stamp excluded — so a rules commit that leaves the profile identical is not stale; the `session-hygiene-report` hook delegates its advisory to that check. Residual nuance the generator does not express: the exclusions cover agent prompts, rule files, and skills — none of them "production code" — and `critical-thinking.md`'s risk-surfacing and tradeoff-flagging still apply here.
 
 **Per-repo override — `.hive-profile.yaml` at the target repo's root** (flat `key: value` lines, no nesting; keys: `class`, `tracker`, `exclusions` (comma-separated rule paths), `notes`). Overrides win over detection; `tracker` is emitted only from this file, never inferred. Read by `hive-compile.py`; no repo declares one today — it exists for the case detection gets a repo wrong or a repo needs an extra exclusion.
 
@@ -319,23 +319,22 @@ Carried by the compiled hive profile at the end of this file (`hive-profile` blo
 - For changes to deploy behavior, verify the deploy skill still only targets `global/` unless the user explicitly requests a new deployment workflow.
 
 <!-- hive-profile:start -->
-Hive profile v1 · hive@793086f · 2026-09-12 · class: config-hub
+Hive profile v1 · hive@65ee4e2 · 2026-09-19 · class: config-hub
 
 ## Hive Profile
 
 - **Class:** config-hub
 - **Stack detected:** Python, shell scripts
 
-**Path-scoped rule families that apply here** (load on touching matching files): `python-standards`, `shell-standards`.
+**Rule families that apply here** (delivered by the rule-delivery hold on a matching write, or read from the language-rules references): `python-standards`, `shell-standards`.
 
 **Rule Exclusions (class: config-hub — no runtime):**
 - `quality/testing.md` — no runtime code to test; files here are reviewed by reading.
 - `Build & Lint` (global `CLAUDE.md`) — no build system; validation is read-review/diff review.
 - `security.md` > Supply Chain Security — no installable dependencies; no OSV checks to run.
-- `patterns-antipatterns.md` — code-pattern rules do not apply to markdown.
 - `critical-thinking.md` > Pre-ship ownership test (questions 1-2) — no runtime load or customer impact; risk-surfacing and tradeoffs still apply.
 
 Build/test/lint enforcement is restored automatically in any repo with runtime code.
 
-**Creating the FIRST file of a kind in a session:** read its rule from `~/.claude/rules/languages/` first — path-scoped rules fire on read/edit, not on create.
+**Creating the FIRST file of a kind in a session:** read its rule from `~/.claude/skills/language-rules/references/` first — glob-scoped rules are delivered on a read/edit of a matching file, never on a create.
 <!-- hive-profile:end -->

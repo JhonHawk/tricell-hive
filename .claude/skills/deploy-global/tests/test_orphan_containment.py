@@ -118,13 +118,28 @@ def run_deploy(repo: Path, home: Path, *args: str) -> subprocess.CompletedProces
 
 
 def repo_entries(repo: Path, limit: int) -> list[str]:
-    """Manifest filler from a COPIED repo: real sources, so never orphans."""
+    """Manifest filler from a COPIED repo: real sources, so never orphans.
+
+    `global/agents` joined the pool when the 19 glob-scoped rules left
+    `global/rules`: rules + skills alone fell to 97 files, under the 100 the
+    breaker tests below ask for. Any root added here must (a) have a manifest
+    prefix `manifest_entry_scope` recognizes — an unrecognized entry is skipped
+    before MANIFEST_TOTAL counts it, padding the file without padding the
+    denominator the percentage breaker divides by — and (b) resolve to a real
+    source, which for `agents/*.md` is the GENERATED harness/claude/agents
+    tree, so a stale tree would turn this filler into false orphans.
+    """
     entries = [
         str(path.relative_to(repo / "global"))
-        for path in sorted((repo / "global/rules").rglob("*"))
+        for root in ("global/rules", "global/skills", "global/agents")
+        for path in sorted((repo / root).rglob("*"))
         if path.is_file() and "__pycache__" not in path.parts
     ]
-    assert len(entries) >= limit, f"expected at least {limit} rule files, found {len(entries)}"
+    assert len(entries) >= limit, (
+        f"expected at least {limit} non-orphan manifest entries, found {len(entries)} "
+        "across global/{rules,skills,agents} — add a root with a recognized "
+        "manifest prefix rather than lowering the limit"
+    )
     return entries[:limit]
 
 
@@ -146,14 +161,21 @@ def report_of(home: Path) -> str:
 
 
 def deployable_entries(limit: int) -> list[str]:
-    """Real manifest entries whose sources exist, so they are never orphans."""
+    """Real manifest entries whose sources exist, so they are never orphans.
+
+    Same pool and the same two constraints as repo_entries above — read its
+    docstring before changing a root here.
+    """
     entries = [
         str(path.relative_to(REPO_ROOT / "global"))
-        for root in ("global/rules", "global/skills")
+        for root in ("global/rules", "global/skills", "global/agents")
         for path in sorted((REPO_ROOT / root).rglob("*"))
         if path.is_file() and "__pycache__" not in path.parts
     ]
-    assert len(entries) >= limit, f"expected at least {limit} deployable files, found {len(entries)}"
+    assert len(entries) >= limit, (
+        f"expected at least {limit} non-orphan manifest entries, found {len(entries)} "
+        "across global/{rules,skills,agents}"
+    )
     return entries[:limit]
 
 

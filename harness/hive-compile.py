@@ -47,7 +47,7 @@ MARK_END = "<!-- hive-profile:end -->"
 OVERRIDE_FILE = ".hive-profile.yaml"
 # Paths whose movement makes an emitted profile stale (also used by the
 # session-hygiene-report staleness advisory — keep the two in sync).
-STALE_PATHS = ["global/rules/", "harness/hive-compile.py"]
+STALE_PATHS = ["global/rules/", "global/rules-situational/", "harness/hive-compile.py"]
 
 # Exclusion set for classes with no runtime — mirrors the hand-written pattern
 # of tricell-hive's AGENTS.md > Rule Exclusions.
@@ -55,7 +55,6 @@ NO_RUNTIME_EXCLUSIONS = [
     ("`quality/testing.md`", "no runtime code to test; files here are reviewed by reading"),
     ("`Build & Lint` (global `CLAUDE.md`)", "no build system; validation is read-review/diff review"),
     ("`security.md` > Supply Chain Security", "no installable dependencies; no OSV checks to run"),
-    ("`patterns-antipatterns.md`", "code-pattern rules do not apply to markdown"),
     ("`critical-thinking.md` > Pre-ship ownership test (questions 1-2)",
      "no runtime load or customer impact; risk-surfacing and tradeoffs still apply"),
 ]
@@ -260,7 +259,8 @@ def render_block(facts, override):
 
     if facts["rules"]:
         lines += ["",
-                  "**Path-scoped rule families that apply here** (load on touching matching files): "
+                  "**Rule families that apply here** (delivered by the rule-delivery hold on a "
+                  "matching write, or read from the language-rules references): "
                   + ", ".join(f"`{r}`" for r in facts["rules"]) + "."]
 
     no_runtime = repo_class in ("specs", "config-hub")
@@ -274,7 +274,8 @@ def render_block(facts, override):
 
     lines += ["",
               "**Creating the FIRST file of a kind in a session:** read its rule from "
-              "`~/.claude/rules/languages/` first — path-scoped rules fire on read/edit, not on create.",
+              "`~/.claude/skills/language-rules/references/` first — glob-scoped rules are "
+              "delivered on a read/edit of a matching file, never on a create.",
               MARK_END]
     return "\n".join(lines) + "\n"
 
@@ -450,8 +451,47 @@ def self_test():
         assert profile_body(b) != profile_body(c), "body difference must compare unequal"
         checks += 2
 
+        # The first-file-of-a-kind pointer must name a directory that actually
+        # holds the rule texts. The path-scoped rules left ~/.claude/rules/, so
+        # a profile still pointing there sends every repo to an empty dir.
+        block = render_block(detect(repo), {})
+        assert "~/.claude/rules/languages/" not in block, \
+            "the profile points at ~/.claude/rules/languages/, which holds no rules"
+        assert "~/.claude/skills/language-rules/references/" in block, \
+            "the profile names no reachable home for the language rules"
+        # The families line names a DELIVERY channel: no harness loads these by
+        # touching a file any more, and this block is pasted into every repo.
+        assert "Path-scoped rule families" not in block, \
+            "the profile still claims rules load on touching a matching file"
+        checks += 3
+
+    # Every rule family the classifier can emit resolves to a real rule file,
+    # in whichever store it lives — detection names basenames, not paths.
+    stores = (HIVE_ROOT / "global" / "rules", HIVE_ROOT / "global" / "rules-situational")
+    on_disk = {p.stem for store in stores if store.is_dir() for p in store.rglob("*.md")}
+    families = {"typescript-standards", "react-nextjs", "angular-patterns",
+                "nestjs-patterns", "sql-migrations", "tailwind", "python-standards",
+                "java-kotlin", "shell-standards", "ui-visual-design", "iac-devops"}
+    missing = sorted(families - on_disk)
+    assert not missing, f"rule families with no rule file: {missing}"
+    checks += 1
+
+    # An exclusion only excludes something the repo actually deploys: the
+    # no-runtime list names rules under ~/.claude/rules, which mirrors
+    # global/rules. One that moved out excludes nothing and misleads whoever
+    # copies the printed claudeMdExcludes example.
+    core_store = HIVE_ROOT / "global" / "rules"
+    for rule_name, _ in NO_RUNTIME_EXCLUSIONS:
+        for named in re.findall(r"`([\w./-]+\.md)`", rule_name):
+            if named == "CLAUDE.md":  # the core, not a rule file
+                continue
+            assert list(core_store.rglob(Path(named).name)), \
+                f"no-runtime exclusion names {named}, which no longer deploys " \
+                "to ~/.claude/rules — it excludes nothing"
+    checks += 1
+
     print(f"self-test: {checks} checks passed (idempotency, fail-closed fences, target-loads, "
-          "content-based staleness).")
+          "content-based staleness, rule-family reachability).")
 
 
 def main():
@@ -499,7 +539,7 @@ def main():
         print()
         print("# optional manual step (never written by this tool): trim what CLAUDE.md pulls in")
         print(f"# for this no-runtime repo via {target}/.claude/settings.local.json:")
-        print('#   { "claudeMdExcludes": ["rules/quality/testing.md", "rules/quality/patterns-antipatterns.md"] }')
+        print('#   { "claudeMdExcludes": ["rules/quality/testing.md"] }')
 
 
 if __name__ == "__main__":

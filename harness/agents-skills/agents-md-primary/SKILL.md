@@ -97,7 +97,7 @@ scope that stops at repo roots misses exactly where instructions accumulate, and
 monorepo-by-default portfolio that is most of the volume. **Coverage canon = the DEPLOYED layers — what sessions actually load:**
 `~/.claude/CLAUDE.md` + always-on `~/.claude/rules/`, the condensed core at
 `~/.codex/AGENTS.md` / `~/.config/opencode/AGENTS.md`, Grok's `~/.grok/rules/` symlinks,
-the deployed router-skill references, and opencode's rules plugin. **The audit is
+and the deployed router-skill references. **The audit is
 self-contained on those layers: never locate, search for, or read the hub repo the
 deployment came from.** Promote-to-core / inject-to-router outcomes are hub edits by
 nature — report them as proposals for the user to take to a session opened in the hub;
@@ -106,7 +106,8 @@ this skill neither finds nor touches it.
 **Per rule, compute the harness-coverage matrix — never a boolean, and with a LEVEL
 axis.** Which DEPLOYED always-on layer already carries it: `~/.claude/rules` (Claude ✓,
 Grok ✓ via symlink) · the condensed deployed core (Codex ✓, opencode ✓) · a router-skill
-injection or the opencode rules plugin (situational reach). A project rule duplicating a
+injection, an agent's `packs:`, or the `rule-delivery` hold on a matching write
+(situational reach). A project rule duplicating a
 global-rules-only item is still LOAD-BEARING for Codex/opencode — deletion requires
 coverage in every harness the project uses. The LEVEL of the audited file changes what
 "coverage" means: a REPO-level file loads in child-repo sessions (all harnesses); a
@@ -294,10 +295,10 @@ what discharges the flow-report trigger; without it a long manifest keeps trippi
 **Resolve the harness set from disk, never by asking.** Which harnesses are in play is
 observable (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.grok` — the last one's
 `sessions/` and `memtrace/` show real use). And before asking whether a harness would lose a
-rule, check how it reaches it: a **situational/path-scoped** rule reaches Codex AND Grok the
-same way, through a router skill's injected references under `~/.agents/skills` — Grok is not
-a special case, and it additionally gets every always-on rule as a flat symlink, which Codex
-does not. **Verify Grok with `grok inspect`, which lists both the instruction files and the
+rule, check how it reaches it: a **situational** rule reaches Codex AND Grok the
+same way, through a router skill's injected references and the `rule-delivery` hold on a
+matching write — Grok is not a special case, and it additionally gets every always-on rule as
+a flat symlink, which Codex does not. **Verify Grok with `grok inspect`, which lists both the instruction files and the
 skills it actually loads — never by looking at `~/.grok/skills/`:** Grok scans
 `~/.agents/skills` and `~/.claude/skills`, so that directory is near-empty by design and
 reading it as "no skills reach Grok" is a false negative. Ask only what disk cannot answer.

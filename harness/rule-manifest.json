@@ -9,7 +9,8 @@
       "angular-patterns",
       "identifier-language",
       "patterns-antipatterns",
-      "tailwind"
+      "tailwind",
+      "ui-visual-design"
     ],
     "database-specialist": [
       "agent-core-gates",
@@ -36,7 +37,8 @@
       "react-nextjs",
       "identifier-language",
       "patterns-antipatterns",
-      "tailwind"
+      "tailwind",
+      "ui-visual-design"
     ],
     "ts-backend-developer": [
       "agent-core-gates",
@@ -65,6 +67,7 @@
       "name": "agent-core-gates",
       "source": "global/rules-situational/agent-core-gates.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": null,
       "readers": false
@@ -73,6 +76,7 @@
       "name": "agent-routing",
       "source": "global/rules-situational/agent-routing.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/task-routing/references/agent-routing.md",
@@ -82,12 +86,15 @@
     },
     {
       "name": "angular-patterns",
-      "source": "global/rules/languages/angular-patterns.md",
+      "source": "global/rules-situational/angular-patterns.md",
       "globs": [
         "**/*.{component,directive,pipe,service,guard,resolver,interceptor,module}.ts",
         "**/*.component.html",
         "**/app.config.ts",
         "angular.json"
+      ],
+      "exclusive_with": [
+        "nestjs-patterns"
       ],
       "always_on": false,
       "references": {
@@ -100,6 +107,7 @@
       "name": "browser-automation",
       "source": "global/rules/tools/browser-automation.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/browser-automation.md",
@@ -111,6 +119,7 @@
       "name": "browser-automation-reference",
       "source": "global/rules-situational/browser-automation-reference.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/browser-automation-reference.md",
@@ -122,6 +131,7 @@
       "name": "code-search",
       "source": "global/rules/tools/code-search.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/code-search.md",
@@ -133,6 +143,7 @@
       "name": "communication-format",
       "source": "global/rules/quality/communication-format.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/flow-report/references/communication-format.md",
@@ -144,6 +155,7 @@
       "name": "communication-format-mechanics",
       "source": "global/rules-situational/communication-format-mechanics.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/flow-report/references/communication-format-mechanics.md",
@@ -155,6 +167,7 @@
       "name": "context7",
       "source": "global/rules/tools/context7.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/context7.md",
@@ -166,6 +179,7 @@
       "name": "critical-thinking",
       "source": "global/rules/quality/critical-thinking.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/task-routing/references/critical-thinking.md",
@@ -175,7 +189,7 @@
     },
     {
       "name": "cross-service-workflow",
-      "source": "global/rules/workflow/cross-service-workflow.md",
+      "source": "global/rules-situational/cross-service-workflow.md",
       "globs": [
         "**/_support/spec/**",
         "**/*-specs/**",
@@ -184,6 +198,7 @@
         "**/asyncapi*.yml",
         "**/asyncapi*.yaml"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/workspace-conventions/references/cross-service-workflow.md",
@@ -195,6 +210,7 @@
       "name": "debugging",
       "source": "global/rules/quality/debugging.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/debugging.md",
@@ -206,6 +222,7 @@
       "name": "development-principles",
       "source": "global/rules/quality/development-principles.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/development-principles.md",
@@ -215,7 +232,7 @@
     },
     {
       "name": "devops-principles",
-      "source": "global/rules/workflow/devops-principles.md",
+      "source": "global/rules-situational/devops-principles.md",
       "globs": [
         "Dockerfile*",
         "docker-compose*.{yml,yaml}",
@@ -225,6 +242,7 @@
         "lefthook*.{yml,yaml}",
         "turbo.json"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/devops-principles.md",
@@ -236,6 +254,7 @@
       "name": "gap-resolution",
       "source": "global/rules-situational/gap-resolution.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/task-routing/references/gap-resolution.md",
@@ -247,6 +266,7 @@
       "name": "git-mechanics",
       "source": "global/rules-situational/git-mechanics.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/task-routing/references/git-mechanics.md",
@@ -258,13 +278,14 @@
       "name": "git-workflow",
       "source": "global/rules/workflow/git-workflow.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": null,
       "readers": false
     },
     {
       "name": "iac-devops",
-      "source": "global/rules/languages/iac-devops.md",
+      "source": "global/rules-situational/iac-devops.md",
       "globs": [
         "Dockerfile*",
         "docker-compose*.{yml,yaml}",
@@ -272,6 +293,7 @@
         "**/*.tfvars",
         ".github/workflows/**/*.{yml,yaml}"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/iac-devops.md",
@@ -281,13 +303,14 @@
     },
     {
       "name": "identifier-language",
-      "source": "global/rules/languages/identifier-language.md",
+      "source": "global/rules-situational/identifier-language.md",
       "globs": [
         "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}",
         "**/migrations/**",
         "**/*openapi*.{yaml,yml,json}",
         "**/*-specs/**/*.md"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/identifier-language.md",
@@ -297,7 +320,7 @@
     },
     {
       "name": "infra-naming",
-      "source": "global/rules/workflow/infra-naming.md",
+      "source": "global/rules-situational/infra-naming.md",
       "globs": [
         "**/*.tf",
         "**/*.tfvars",
@@ -307,6 +330,7 @@
         "**/.github/workflows/**",
         "**/*-infra/**"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/workspace-conventions/references/infra-naming.md",
@@ -316,10 +340,11 @@
     },
     {
       "name": "java-kotlin",
-      "source": "global/rules/languages/java-kotlin.md",
+      "source": "global/rules-situational/java-kotlin.md",
       "globs": [
         "**/*.{java,kt,kts}"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/java-kotlin.md",
@@ -331,6 +356,7 @@
       "name": "memory-routing",
       "source": "global/rules-situational/memory-routing.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/memory-policy/references/memory-routing.md",
@@ -340,7 +366,7 @@
     },
     {
       "name": "nestjs-patterns",
-      "source": "global/rules/languages/nestjs-patterns.md",
+      "source": "global/rules-situational/nestjs-patterns.md",
       "globs": [
         "**/*.module.ts",
         "**/*.controller.ts",
@@ -352,6 +378,9 @@
         "**/*.decorator.ts",
         "nest-cli.json"
       ],
+      "exclusive_with": [
+        "angular-patterns"
+      ],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/nestjs-patterns.md",
@@ -361,10 +390,11 @@
     },
     {
       "name": "patterns-antipatterns",
-      "source": "global/rules/quality/patterns-antipatterns.md",
+      "source": "global/rules-situational/patterns-antipatterns.md",
       "globs": [
         "**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs,java,kt,kts}"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/patterns-antipatterns.md",
@@ -374,11 +404,12 @@
     },
     {
       "name": "project-structure",
-      "source": "global/rules/workflow/project-structure.md",
+      "source": "global/rules-situational/project-structure.md",
       "globs": [
         "**/_support/**",
         "**/*-specs/**"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/workspace-conventions/references/project-structure.md",
@@ -388,11 +419,12 @@
     },
     {
       "name": "python-standards",
-      "source": "global/rules/languages/python-standards.md",
+      "source": "global/rules-situational/python-standards.md",
       "globs": [
         "**/*.py",
         "pyproject.toml"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/python-standards.md",
@@ -402,11 +434,12 @@
     },
     {
       "name": "react-nextjs",
-      "source": "global/rules/languages/react-nextjs.md",
+      "source": "global/rules-situational/react-nextjs.md",
       "globs": [
         "**/*.{tsx,jsx}",
         "next.config.*"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/react-nextjs.md",
@@ -418,6 +451,7 @@
       "name": "reporting-integrity",
       "source": "global/rules/quality/reporting-integrity.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/reporting-integrity.md",
@@ -429,18 +463,21 @@
       "name": "security",
       "source": "global/rules/quality/security.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": null,
       "readers": false
     },
     {
       "name": "session-capture",
-      "source": "global/rules/workflow/session-capture.md",
+      "source": "global/rules-situational/session-capture.md",
       "globs": [
         "**/_support/**",
         "**/*-specs/**",
-        "**/sessions/**"
+        "**/_support/sessions/**",
+        "**/*-specs/sessions/**"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/workspace-conventions/references/session-capture.md",
@@ -450,11 +487,12 @@
     },
     {
       "name": "shell-standards",
-      "source": "global/rules/languages/shell-standards.md",
+      "source": "global/rules-situational/shell-standards.md",
       "globs": [
         "**/*.sh",
         "**/*.bash"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/shell-standards.md",
@@ -464,13 +502,14 @@
     },
     {
       "name": "sql-migrations",
-      "source": "global/rules/languages/sql-migrations.md",
+      "source": "global/rules-situational/sql-migrations.md",
       "globs": [
         "**/*.sql",
         "**/schema.prisma",
         "**/migrations/**",
         "drizzle.config.*"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/sql-migrations.md",
@@ -480,10 +519,11 @@
     },
     {
       "name": "support-artifacts",
-      "source": "global/rules/workflow/support-artifacts.md",
+      "source": "global/rules-situational/support-artifacts.md",
       "globs": [
         "**/_support/**"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/workspace-conventions/references/support-artifacts.md",
@@ -493,7 +533,7 @@
     },
     {
       "name": "tailwind",
-      "source": "global/rules/languages/tailwind.md",
+      "source": "global/rules-situational/tailwind.md",
       "globs": [
         "**/*.{tsx,jsx,html,vue,astro,svelte}",
         "tailwind.config.*",
@@ -502,6 +542,7 @@
         "**/index.css",
         "**/styles/**/*.{css,pcss,scss}"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/tailwind.md",
@@ -513,6 +554,7 @@
       "name": "test-gate",
       "source": "global/rules-situational/test-gate.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": null,
       "readers": false
@@ -521,6 +563,7 @@
       "name": "testing",
       "source": "global/rules/quality/testing.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/testing.md",
@@ -530,10 +573,11 @@
     },
     {
       "name": "typescript-standards",
-      "source": "global/rules/languages/typescript-standards.md",
+      "source": "global/rules-situational/typescript-standards.md",
       "globs": [
         "**/*.{ts,tsx,js,jsx}"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/typescript-standards.md",
@@ -543,11 +587,12 @@
     },
     {
       "name": "ui-visual-design",
-      "source": "global/rules/languages/ui-visual-design.md",
+      "source": "global/rules-situational/ui-visual-design.md",
       "globs": [
         "**/*.{tsx,jsx,html,vue,astro,svelte}",
         "**/*.{css,pcss,scss}"
       ],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/language-rules/references/ui-visual-design.md",
@@ -559,6 +604,7 @@
       "name": "unattended-autonomy",
       "source": "global/rules/workflow/unattended-autonomy.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": true,
       "references": null,
       "readers": false
@@ -567,6 +613,7 @@
       "name": "unattended-autonomy-mode",
       "source": "global/rules-situational/unattended-autonomy-mode.md",
       "globs": [],
+      "exclusive_with": [],
       "always_on": false,
       "references": {
         "claude": "~/.claude/skills/unattended-delegation/references/unattended-autonomy-mode.md",

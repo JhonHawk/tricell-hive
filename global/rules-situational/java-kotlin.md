@@ -1,5 +1,5 @@
 ---
-paths:
+globs:
   - "**/*.{java,kt,kts}"
 ---
 

@@ -21,10 +21,11 @@ ever reached it. The scope closes that gap in two parts:
 1. **Rules** — one flat **file** symlink per always-on rule into `$GROK_HOME/rules/`
    (default `~/.grok/rules/`), named `<dir>__<file>.md`, pointing at the deployed rule under
    `~/.claude/rules/` — so Claude and Grok read the same bytes. Directory symlinks do not
-   work; the scan still refuses to recurse. Path-scoped rules are deliberately excluded
-   (Grok would load them always-on); they reach it through the router skills
-   (`language-rules`, `workspace-conventions`) like on Codex. A rule that later gains
-   `paths:` turns its link into a manifest-detected orphan.
+   work; the scan still refuses to recurse. The rules under `global/rules-situational/` are
+   deliberately excluded (Grok would load them always-on); they reach it through the router
+   skills (`language-rules`, `workspace-conventions`) and the `rule-delivery` hold, like on
+   Codex. Moving a rule out of `global/rules/` turns its link into a manifest-detected
+   orphan.
 
    That router path only works because the claude scope now also deploys the
    **build-injected `references/`** into `~/.claude/skills/` (`deploy_injected_references`).
@@ -163,7 +164,7 @@ before applying: `pi-subagents@0.67.0`, `gentle-engram@0.1.13`,
 `pi-mcp-adapter@2.33.0`, `@juicesharp/rpiv-ask-user-question@2.9.0`, and
 `pi-web-access@0.29.0`. The helper never installs packages: it fails closed unless
 all five identities and versions are present, PI 0.85.1 is the selected runtime, and
-the reviewed patch metadata and target hashes match. Apply atomically rewrites the two
+the reviewed patch metadata and target hashes match. Apply atomically rewrites the three
 reviewed `pi-subagents` files only when their bytes match the recorded pristine hashes,
 records the patched hashes in the PI manifest, and re-applies the patch after a pristine
 same-version reinstall. A modified or symlinked package target is preserved as an error;

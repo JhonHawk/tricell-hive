@@ -6,11 +6,6 @@ globs:
   - "**/openapi*.yaml"
   - "**/asyncapi*.yml"
   - "**/asyncapi*.yaml"
-match: any
----
-
----
-alwaysApply: true
 ---
 
 ## Cross-Service Coordination

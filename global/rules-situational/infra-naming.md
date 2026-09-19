@@ -7,11 +7,6 @@ globs:
   - "**/docker-compose*.yaml"
   - "**/.github/workflows/**"
   - "**/*-infra/**"
-match: any
----
-
----
-alwaysApply: true
 ---
 
 ## Infrastructure Naming

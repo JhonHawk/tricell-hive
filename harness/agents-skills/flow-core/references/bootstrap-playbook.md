@@ -41,7 +41,7 @@ tracker/convention fields.
 The copy-ready templates below live in this skill's `templates/` directory —
 `~/.claude/skills/flow-core/templates/` after deploy.
 
-1. **Structure** — create the canonical tree per `workflow/project-structure.md` (cite it,
+1. **Structure** — create the canonical tree per `project-structure.md` (cite it,
    don't restate): `projects/<group>/<project>/_support/{docs,spec,plan,workspace,evidence}`.
    Repos and the specs repo come in Stage C — no git repos here. If Stage A wrote files
    beside the source, move them into `_support/docs/` now.
@@ -84,7 +84,7 @@ ready so that first deploy is a button-press, not a project. Proportional: a sin
 project collapses the repo dialogue into one derivation + one dispatch.
 
 1. **Naming table** — instantiate `<project>-specs/conventions/naming.md` from
-   `workflow/infra-naming.md` and `~/.claude/skills/flow-core/references/naming-template.md`,
+   `infra-naming.md` and `~/.claude/skills/flow-core/references/naming-template.md`,
    using the project token recorded in the ledger. Every resource this stage creates gets its
    row BEFORE creation; client exceptions are documented with their reason and the user's
    sign-off. Include the

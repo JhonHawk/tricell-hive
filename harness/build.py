@@ -20,7 +20,6 @@ Generates (delete-and-recreate, never incremental):
     harness/opencode/agents/      <- global/agents   (opencode markdown subagents)
     harness/grok/agents/          <- global/agents   (Grok Build markdown agents)
     harness/pi/agents/            <- global/agents   (PI pi-subagents agents)
-    harness/opencode/rules/       <- global/rules/languages (opencode-rules plugin format)
 
 Hand-written sources are never touched: harness/codex/{README, *.snippet},
 harness/opencode/{README, *.snippet, commands/}. The two always-on cores are
@@ -86,15 +85,28 @@ CHAIN_CAP_BYTES = 32 * 1024  # Codex default; the conservative number for a publ
 # the single canonical source — never fork content into the skill.
 SKILL_REFERENCE_INJECTIONS = {
     "language-rules": [
-        ("rules/languages", "*.md"),
+        # Named one by one: rules-situational/ is a flat store shared with the
+        # other routers, so a wildcard there would pull their references in too.
+        ("rules-situational", "angular-patterns.md"),
+        ("rules-situational", "iac-devops.md"),
+        ("rules-situational", "identifier-language.md"),
+        ("rules-situational", "java-kotlin.md"),
+        ("rules-situational", "nestjs-patterns.md"),
+        ("rules-situational", "python-standards.md"),
+        ("rules-situational", "react-nextjs.md"),
+        ("rules-situational", "shell-standards.md"),
+        ("rules-situational", "sql-migrations.md"),
+        ("rules-situational", "tailwind.md"),
+        ("rules-situational", "typescript-standards.md"),
+        ("rules-situational", "ui-visual-design.md"),
         ("rules/quality", "development-principles.md"),
         # Extracted out of development-principles.md + debugging.md, both injected
         # here: without this line Codex and opencode silently lose both sections.
         ("rules/quality", "reporting-integrity.md"),
         ("rules/quality", "testing.md"),
         ("rules/quality", "debugging.md"),
-        ("rules/quality", "patterns-antipatterns.md"),
-        ("rules/workflow", "devops-principles.md"),
+        ("rules-situational", "patterns-antipatterns.md"),
+        ("rules-situational", "devops-principles.md"),
         ("rules/tools", "browser-automation.md"),
         # F2 demotion: the CLI mechanics moved out of the always-on rule; the
         # stub above keeps the gate, this file carries the reference.
@@ -106,11 +118,11 @@ SKILL_REFERENCE_INJECTIONS = {
         ("rules/tools", "context7.md"),
     ],
     "workspace-conventions": [
-        ("rules/workflow", "project-structure.md"),
-        ("rules/workflow", "session-capture.md"),
-        ("rules/workflow", "support-artifacts.md"),
-        ("rules/workflow", "cross-service-workflow.md"),
-        ("rules/workflow", "infra-naming.md"),
+        ("rules-situational", "project-structure.md"),
+        ("rules-situational", "session-capture.md"),
+        ("rules-situational", "support-artifacts.md"),
+        ("rules-situational", "cross-service-workflow.md"),
+        ("rules-situational", "infra-naming.md"),
     ],
     # Sources live in rules-situational/: their trigger is an intent (delegating,
     # planning), which `paths:` cannot express, so a router is their only channel.
@@ -404,7 +416,6 @@ GENERATED_TREE_RELATIVE_PATHS = (
     Path("harness/opencode/agents"),
     Path("harness/grok/agents"),
     Path("harness/pi/agents"),
-    Path("harness/opencode/rules"),
     Path("harness/claude"),
 )
 
@@ -568,27 +579,40 @@ def build_rule_manifest(source_root: Path = ROOT) -> dict:
                 continue
             relative = path.relative_to(source_root)
             frontmatter = _rule_frontmatter(path.read_text(encoding="utf-8"))
-            paths_globs = _declared_globs(frontmatter, "paths")
+            if _declared_globs(frontmatter, "paths") is not None:
+                sys.exit(
+                    f"ERROR: rule manifest: {relative.as_posix()} declares "
+                    f"`paths:`. That was Claude Code's native path-scoping key "
+                    f"and the mechanism is retired — rules are delivered by the "
+                    f"rule-delivery hook, off `globs:`. A file still carrying it "
+                    f"reads as scoped while loading unconditionally. Use "
+                    f"`globs:` in global/rules-situational/, or nothing at all "
+                    f"in global/rules/, which is always-on by definition."
+                )
             store_globs = _declared_globs(frontmatter, "globs")
             if in_core and store_globs is not None:
                 sys.exit(
                     f"ERROR: rule manifest: {relative.as_posix()} declares "
-                    f"`globs:`, but Claude Code reads only `paths:` — it would "
-                    f"load this rule unconditionally while the file claims to "
-                    f"be scoped. Use `paths:` here, or move the rule to "
-                    f"global/rules-situational/ where `globs:` is the key."
+                    f"`globs:`, but global/rules/ loads unconditionally — the "
+                    f"file would claim a scope nothing applies. Drop the key, or "
+                    f"move the rule to global/rules-situational/, which is "
+                    f"reachable only through a router skill or this hook."
                 )
-            globs = paths_globs if paths_globs is not None else (store_globs or [])
+            globs = store_globs or []
             skill = _rule_reference_skill(relative)
             entries.append({
                 "name": path.stem,
                 "source": relative.as_posix(),
                 "globs": globs,
-                # Always-on is Claude Code's own criterion and turns on ONE
-                # key: under global/rules/ with no `paths:`. A rules-situational
+                # Rules whose globs overlap because two frameworks share a file
+                # convention (`*.service.ts`). Carrying the named pack proves
+                # which framework this is, and this rule is then not delivered.
+                "exclusive_with": _declared_globs(frontmatter, "exclusive-with") or [],
+                # With `paths:` retired, the directory IS the criterion:
+                # global/rules/ loads unconditionally, and a rules-situational
                 # file is never always-on — nothing loads that directory by
                 # itself — however its `globs:` read.
-                "always_on": in_core and paths_globs is None,
+                "always_on": in_core,
                 "references": {
                     root: f"{base}/{skill}/references/{path.name}"
                     for root, base in RULE_REFERENCE_ROOTS.items()
@@ -596,6 +620,19 @@ def build_rule_manifest(source_root: Path = ROOT) -> dict:
                 "readers": path.name in RULE_READER_NAMES,
             })
     entries.sort(key=lambda entry: (entry["name"], entry["source"]))
+    # `exclusive-with` is a cross-reference between rule files, and a typo in it
+    # fails silently forever: the hook keeps delivering a rule nobody meant it
+    # to deliver. Resolve every name against the set the build just read.
+    known = {entry["name"] for entry in entries}
+    for entry in entries:
+        for name in entry["exclusive_with"]:
+            if name not in known:
+                sys.exit(
+                    f"ERROR: rule manifest: {entry['source']} declares "
+                    f"`exclusive-with: {name}`, which is not a rule under "
+                    f"{' or '.join(d.as_posix() for d in RULE_SOURCE_DIRS)}. "
+                    f"Name the rule file's stem, without the extension."
+                )
     return {
         "_generated": RULE_MANIFEST_NOTE,
         "agents": _agent_packs(source_root),
@@ -676,18 +713,6 @@ def generate_generated_trees(output_root: Path, source_root: Path = ROOT):
         (output_root / "harness" / "claude" / "README.md").write_text(
             GENERATED_README, encoding="utf-8"
         )
-
-    # Path-scoped rules -> opencode-rules plugin format (the converter skips
-    # alwaysApply files, so the workflow pass only picks up path-scoped ones)
-    rules_out = output_root / "harness" / "opencode" / "rules"
-    regen_dir(rules_out)
-    for rules_src in ("languages", "workflow"):
-        subprocess.run(
-            [sys.executable, str(build_dir / "convert-rules.py"),
-             str(source_root / "global" / "rules" / rules_src), str(rules_out)],
-            check=True,
-        )
-    (rules_out / "README.md").write_text(GENERATED_README, encoding="utf-8")
 
     # Router skills: inject canonical rule files as frontmatter-stripped
     # references so each skill body's routing table resolves.

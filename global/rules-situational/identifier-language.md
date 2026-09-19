@@ -1,5 +1,5 @@
 ---
-paths:
+globs:
   - "**/*.{ts,tsx,js,jsx,py,java,kt,kts,sql,prisma,go,rb,cs,php}"
   - "**/migrations/**"
   - "**/*openapi*.{yaml,yml,json}"

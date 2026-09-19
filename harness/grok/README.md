@@ -14,7 +14,7 @@ Companion files: `global/README.md` (Claude Code), `harness/codex/README.md`,
 | Piece | Source | Deploy target | Maintained how |
 |---|---|---|---|
 | Always-on rules | `~/.claude/rules/**` (already deployed) | `~/.grok/rules/<dir>__<file>.md` | `/deploy-global --only grok` — one **flat file symlink** per rule |
-| Subagents | `harness/grok/agents/` (generated, versioned) | `~/.grok/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit. Spawn takes no `capability_mode` (removed 1.0.6; tools come from the agent type). The `workflow` tool is top-level only (1.0.8+) — generated children never receive it. `## Role rules` rows pointing at an always-on rule (no `paths:`) are dropped — a Grok subagent already holds those through the flat rule symlinks (its `prompt_context.json > agents_md_files` lists them); an emptied section is removed |
+| Subagents | `harness/grok/agents/` (generated, versioned) | `~/.grok/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit. Spawn takes no `capability_mode` (removed 1.0.6; tools come from the agent type). The `workflow` tool is top-level only (1.0.8+) — generated children never receive it. `## Role rules` rows pointing at an always-on rule (one under `global/rules/`) are dropped — a Grok subagent already holds those through the flat rule symlinks (its `prompt_context.json > agents_md_files` lists them); an emptied section is removed |
 | Skills | `~/.claude/skills/` | *(read in place)* | Nothing to deploy — `[compat.claude] skills = true` |
 | Global instructions | `~/.claude/CLAUDE.md` | *(read in place)* | Nothing to deploy |
 | Hooks | `~/.claude/hooks/` + `~/.claude/settings.json` | *(read in place)* | Nothing to deploy; `bash-policy.sh` and `post-tool-hub.sh` are dual-runtime. Matchers use Grok tool names where aliases do not exist; stdout injection is event-specific — see the injection map below |
@@ -70,8 +70,8 @@ last column.
 |---|---|---|---|---|---|
 | Always-on core | `global/CLAUDE.md` | `~/.claude/CLAUDE.md` (read in place) | Claude-compat instruction-file discovery | [docs.x.ai/build/features/skills-plugins-marketplaces](https://docs.x.ai/build/features/skills-plugins-marketplaces) — *"Grok automatically reads Claude Code marketplaces, plugins, skills, MCPs, agents, hooks, and instruction files"* | 2026-08-20 |
 | Always-on rules | 12 flat symlinks `<dir>__<file>.md` | `~/.grok/rules/` | Every `*.md` in a rules dir is loaded regardless of name | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) — *"every `*.md` file in a `.grok/rules/` directory"*; `.claude/rules/` also read for compat | 2026-08-20 |
-| Path-scoped rules | **none** | — | No file-pattern scoping key exists — see *What does NOT reach it* | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) (absence) | 2026-08-20 |
-| Skills | 16 skills, incl. the router `references/` | `~/.claude/skills/` (read in place) | Claude-compat scan at the **lowest** precedence; `disable-model-invocation` honored natively | [docs.x.ai/build/features/skills-plugins-marketplaces](https://docs.x.ai/build/features/skills-plugins-marketplaces) — *"`disable-model-invocation`: Slash command only; no automatic invoke. Default `false`."* Bundled 1.0.25 `08-skills.md` still matches | 2026-09-09 |
+| Delivered rules | 19 glob-scoped texts | `~/.claude/skills/<router>/references/` (read in place) | No file-pattern scoping key exists; `rule-delivery` holds the first matching `write`/`edit_file` and names the reference | [docs.x.ai/build/features/project-rules](https://docs.x.ai/build/features/project-rules) (absence) + `global/hooks/rule-delivery/README.md` | 2026-09-19 |
+| Skills | 17 skills, incl. the router `references/` | `~/.claude/skills/` (read in place) | Claude-compat scan at the **lowest** precedence; `disable-model-invocation` honored natively | [docs.x.ai/build/features/skills-plugins-marketplaces](https://docs.x.ai/build/features/skills-plugins-marketplaces) — *"`disable-model-invocation`: Slash command only; no automatic invoke. Default `false`."* Bundled 1.0.25 `08-skills.md` still matches | 2026-09-09 |
 | Agents | 26 Grok-shaped `.md` (real files, not symlinks) | `~/.grok/agents/` | `.md` agent definitions in `~/.grok/agents/` | [docs.x.ai/build/features/subagents](https://docs.x.ai/build/features/subagents); spawn args in bundled `16-subagents.md` (grok 1.0.25) — no `capability_mode` | 2026-09-09 |
 | Hooks | shared with Claude Code | `~/.claude/settings.json` (merged by compat) | Grok hooks + Claude settings compat; matcher aliases cover only common Claude tool names; stdout injection is event-specific (map above) | [docs.x.ai/build/features/hooks](https://docs.x.ai/build/features/hooks); alias list, `ask`/`defer`, and per-event stdout rules (PostToolUse feedback since 1.0.14) from bundled `~/.grok/docs/user-guide/10-hooks.md` (grok 1.0.25) | 2026-09-09 |
 | Scope & precedence table | — | — | Which dirs are scanned, in what order | bundled doc `~/.grok/docs/user-guide/12-project-rules.md` + `08-skills.md` (grok 1.0.25) — local file, not a URL | 2026-09-09 |
@@ -84,13 +84,14 @@ the Rust harness and has **no `docs/` directory**; the user guide exists only on
 
 ## What does NOT reach it
 
-- **The 19 path-scoped rules.** Grok has no `paths:`-equivalent, so shipping them into
-  `~/.grok/rules/` would load all of them, always. They are excluded on purpose and reach
-  Grok the same way they reach Codex: injected into a router skill's `references/`
-  (`language-rules`, `workspace-conventions`, `task-routing`, …) plus the advisory
-  `rule-context` hook. **Consequence:** giving an existing always-on rule a `paths:` key
-  silently removes it from Grok — route that content through a router skill in the same
-  change.
+- **The 28 rule texts under `global/rules-situational/`.** Grok has no `paths:`-equivalent,
+  so shipping them into `~/.grok/rules/` would load all of them, always. They are excluded
+  on purpose and reach Grok the same way they reach Codex: injected into a router skill's
+  `references/` (`language-rules`, `workspace-conventions`, `task-routing`, …), held by the
+  `rule-delivery` hook on the first write matching a rule's `globs:`, plus the advisory
+  `rule-context` hook. **Consequence:** moving an always-on rule out of `global/rules/`
+  silently removes it from `~/.grok/rules/` — route that content through a router skill in
+  the same change.
 - **Directory symlinks.** `~/.grok/rules/` is populated with one symlink **per file**, not
   a single link to `~/.claude/rules/`. See the recursion caveat below.
 - **Nothing yet deployed to `~/.claude/rules/`.** The grok scope skips a missing rule with
@@ -119,7 +120,7 @@ grok inspect          # lists every config source, rules file, skill, plugin, ho
                       # analogous to `codex debug prompt-input`
 
 ls -la ~/.grok/rules/ # should be 12 symlinks named <dir>__<file>.md → ~/.claude/rules/...
-ls    ~/.grok/agents/ # should be 24 real .md files
+ls    ~/.grok/agents/ # should be 26 real .md files
 ```
 
 The bundled user guide under `~/.grok/docs/user-guide/` ships with the CLI and is version-

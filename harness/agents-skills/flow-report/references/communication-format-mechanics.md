@@ -8,7 +8,7 @@ Applies to every human-facing HTML deliverable whatever route produced it: `flow
 
 - **The shell is the measure.** One container; headings, prose, lists and tables all fill it. Never cap prose narrower than its container — a text column with a dead band beside it is the defect. Shorter lines wanted → narrow the shell.
 - Base `font-size: 18px` / `line-height: 1.6` (16px below 720px); tables never below ~0.95rem.
-- Product UI is the opposite case and keeps its 45–75ch cap (`languages/ui-visual-design.md > Typography`).
+- Product UI is the opposite case and keeps its 45–75ch cap (`ui-visual-design.md > Typography`).
 
 ## In-thread answers — a report's substance, none of its ceremony
 

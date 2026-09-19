@@ -17,12 +17,11 @@ last column. When a mechanism changes upstream, this is where you go to check.
 | Layer | What | Where it lands | Mechanism | Official doc | Verified |
 |---|---|---|---|---|---|
 | Always-on core | `global/CLAUDE.md` | `~/.claude/CLAUDE.md` | Read at launch, walking up from cwd; `@file` imports expanded inline | [memory#how-claude-md-files-load](https://code.claude.com/docs/en/memory#how-claude-md-files-load) · [memory#import-additional-files](https://code.claude.com/docs/en/memory#import-additional-files) | 2026-08-20 |
-| Always-on rules | 12 rule files with no `paths:` key | `~/.claude/rules/**` | Loaded unconditionally, every session, every project | [memory#path-specific-rules](https://code.claude.com/docs/en/memory#path-specific-rules) — *"Rules without a `paths` field are loaded unconditionally and apply to all files."* | 2026-08-20 |
-| Path-scoped rules | 19 rule files with `paths:` | `~/.claude/rules/**` | Injected only when a matching file is read or written | [memory#path-specific-rules](https://code.claude.com/docs/en/memory#path-specific-rules) · [memory#user-level-rules](https://code.claude.com/docs/en/memory#user-level-rules) | 2026-08-20 |
-| Situational rules | 9 files under `global/rules-situational/` | `~/.claude/skills/<router>/references/`; the two pack-only texts (`agent-core-gates`, `test-gate`) reach an agent only inlined through its `packs:` | **Not** deployed to `rules/` — reachable by invoking a router skill, or carried inside a packed agent | (no upstream mechanism; a repo convention — see below) | — |
-| Skills | 16 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
+| Always-on rules | 12 rule files under `global/rules/`, none with `paths:` | `~/.claude/rules/**` | Loaded unconditionally, every session, every project | [memory#path-specific-rules](https://code.claude.com/docs/en/memory#path-specific-rules) — *"Rules without a `paths` field are loaded unconditionally and apply to all files."* | 2026-08-20 |
+| Delivered rules | 28 rule files under `global/rules-situational/`, 19 of them with `globs:` | `~/.claude/skills/<router>/references/`; the two pack-only texts (`agent-core-gates`, `test-gate`) reach an agent only inlined through its `packs:` | **Not** deployed to `rules/`. A `globs:` rule is held by the `rule-delivery` hook on a matching write until its reference is read; otherwise reachable by invoking a router skill, or carried inside a packed agent | (no upstream mechanism; a repo convention — see below) | — |
+| Skills | 17 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
 | Agents | 26 subagents, shipped from the generated `harness/claude/agents/` (the `global/agents/` source plus any `packs:` inlined) | `~/.claude/agents/**` | Discovered recursively; `tools:` is the enforcing allowlist, `model:` defaults to `inherit` | [sub-agents#supported-frontmatter-fields](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields) | 2026-08-20 |
-| Hooks | 8 hook dirs (`*.sh` + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
+| Hooks | 9 hook dirs (a script + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
 | Settings precedence | merged blocks only | `~/.claude/settings.json` | Managed › CLI args › Local › Project › User | [settings#settings-precedence](https://code.claude.com/docs/en/settings#settings-precedence) | 2026-08-20 |
 
 **There is no `/docs/en/rules` page.** The entire `.claude/rules/` mechanism — the `paths:`
@@ -31,16 +30,20 @@ is a 404; do not write one.
 
 ## What does NOT reach it
 
-Nothing. Claude Code is the superset: it is the only harness that receives all 31 rules
-with working conditional loading, all 16 skills with their native gates, all 26 agents with
-enforced tool allowlists, and all 8 hooks. Every constraint documented in the other three
-READMEs is a subtraction from this baseline.
+The 28 rule texts under `global/rules-situational/`, as loadable files. Everything else
+still arrives: all 12 always-on rules, all 17 skills with their native gates, all 26 agents
+with enforced tool allowlists, and all 9 hooks — every constraint documented in the other
+three READMEs is a subtraction from this baseline.
 
-The one asymmetry is internal, not a harness limit: `global/rules-situational/` is
-deliberately kept out of `~/.claude/rules/` because its trigger is an *intent*
-(delegating, planning, committing) which `paths:` cannot express — or, since F2, because the file is the demoted detail half of an always-on gate stub (browser CLI mechanics, the unattended mode, rendering mechanics). Those seven files reach
-every harness the same way — injected into a router skill's `references/` by
-`harness/build.py` (`SKILL_REFERENCE_INJECTIONS`).
+Those 28 reach Claude Code exactly as they reach Grok and Codex: the 19 carrying `globs:`
+by the `rule-delivery` hook's hold on a matching write, all of them through a router skill's
+`references/` (injected by `harness/build.py`, `SKILL_REFERENCE_INJECTIONS`) or a pack
+inlined into the agent — the other 9 have no hook channel on any harness. `paths:` still
+works upstream; this repo stopped using it. It fires on a READ, so it misses the creation of
+the first file of a kind, it charges every read-only agent that opens a `.ts` for a rule it
+will never apply, and it does not survive compaction — a deny that names the file to read is
+the primitive four of the five harnesses enforce (opencode has no hook channel —
+`global/hooks/rule-delivery/README.md`).
 
 ## Unverified / undocumented dependencies
 
@@ -48,9 +51,9 @@ None. Every loading mechanism this layer depends on is covered by the official d
 
 Two upstream statements independently **corroborate** claims this repo already made:
 
-- Rules carrying `paths:` are not re-injected after `/compact` — the reason
-  `global/CLAUDE.md` tells the agent to re-read a language rule when a long session
-  compacts and then creates a file.
+- Rules carrying `paths:` are not re-injected after `/compact` — one of the reasons this
+  repo replaced that channel. `rule-delivery` drops its state on `SessionStart`
+  `compact|clear`, so the hold re-arms instead of the rule silently vanishing.
 - Claude Code does **not** fall back to `AGENTS.md` when `CLAUDE.md` is absent, which is
   why every repo here needs a `CLAUDE.md` containing `@AGENTS.md`
   (`_support/docs/methodology-bibliography.md > Harness context-loading mechanics`).
@@ -61,10 +64,10 @@ Two upstream statements independently **corroborate** claims this repo already m
 # What is actually deployed right now (dry-run; never pass --apply to inspect)
 .claude/skills/deploy-global/scripts/deploy-global.sh --only claude --verbose
 
-# Always-on vs path-scoped split, from the source tree
-find global/rules -name '*.md' | sort | while read -r f; do
-  grep -q '^paths:' "$f" && echo "scoped   $f" || echo "always   $f"
-done
+# Always-on vs delivered, from the source tree
+find global/rules -name '*.md' | wc -l                    # always-on
+find global/rules-situational -name '*.md' ! -name README.md | wc -l   # delivered
+rg -l '^globs:' global/rules-situational | wc -l          # of those, hook-deliverable
 ```
 
 To observe which instruction files actually load in a session and why, register an

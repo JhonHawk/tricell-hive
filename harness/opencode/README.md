@@ -11,7 +11,6 @@ natively.
 | Skills + rubrics | `global/skills/` | `~/.agents/skills/` | `/deploy-global` (copy) |
 | Subagents | `harness/opencode/agents/` (generated, versioned) | `~/.config/opencode/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit |
 | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) | `harness/opencode/commands/` | `~/.config/opencode/commands/` | `/deploy-global` (copy) |
-| Glob-scoped rules | `harness/opencode/rules/` (generated, versioned) | `~/.config/opencode/rules/` | **Generated** by `harness/build.py` from `global/rules/{languages,workflow}/` — never edit |
 | SessionStart plugin | `global/hooks/flow-session-context/flow-session-context.ts` | `~/.config/opencode/plugins/` | `/deploy-global` (copy) |
 | Config additions | `opencode.jsonc.snippet` | merge into `~/.config/opencode/opencode.json` | Manual, once |
 | Permission keys + `shell` | `permission-config.json` | `permission.*` and `shell` (Homebrew bash 5) in `~/.config/opencode/opencode.json` | `/deploy-global` (surgical jq merge, idempotent; user values win) |
@@ -35,26 +34,27 @@ last column. Companion files: `global/README.md` (Claude Code),
 | Layer | What | Where it lands | Mechanism | Official doc | Verified |
 |---|---|---|---|---|---|
 | Always-on core | `harness/AGENTS.md` (condensed cross-harness core) | `~/.config/opencode/AGENTS.md` | Global rules file, applied to every session | [opencode.ai/docs/rules](https://opencode.ai/docs/rules) — *"You can also have global rules in a `~/.config/opencode/AGENTS.md` file. This gets applied across all opencode sessions."* | 2026-08-20 |
-| Glob-scoped rules | 18 rules, `paths:` rewritten to `globs:` + `match: any` | `~/.config/opencode/rules/` | Loaded conditionally by touched-file glob via the **`opencode-rules` plugin** (pinned 0.6.4) | [github.com/frap129/opencode-rules](https://github.com/frap129/opencode-rules) — *"`globs` (optional): Array of glob patterns for file-based matching"* | 2026-08-20 |
-| Skills | 16 skills with injected `references/` | `~/.agents/skills/` | Agent-compatible global skill folder | [opencode.ai/docs/skills](https://opencode.ai/docs/skills) — *"Global agent-compatible: `~/.agents/skills/<name>/SKILL.md`"* | 2026-08-20 |
-| Commands | 9 wrappers, one per user-invoked skill | `~/.config/opencode/commands/` | Global command folder | [opencode.ai/docs/commands](https://opencode.ai/docs/commands) — *"Global: ~/.config/opencode/commands/"* | 2026-08-20 |
+| Skills | 17 skills with injected `references/` | `~/.agents/skills/` | Agent-compatible global skill folder | [opencode.ai/docs/skills](https://opencode.ai/docs/skills) — *"Global agent-compatible: `~/.agents/skills/<name>/SKILL.md`"* | 2026-08-20 |
+| Commands | 10 wrappers, one per user-invoked skill | `~/.config/opencode/commands/` | Global command folder | [opencode.ai/docs/commands](https://opencode.ai/docs/commands) — *"Global: ~/.config/opencode/commands/"* | 2026-08-20 |
 | Agents | 26 generated `.md` | `~/.config/opencode/agents/` | Global agent folder | [opencode.ai/docs/agents](https://opencode.ai/docs/agents) — *"Global: ~/.config/opencode/agents/"* | 2026-08-20 |
 | Plugin | `flow-session-context.ts` | `~/.config/opencode/plugins/` | Global plugin folder | [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins) — *"`~/.config/opencode/plugins/` - Global plugins"* | 2026-08-20 |
 | Permissions | `permission-config.json` | `permission.*` in `~/.config/opencode/opencode.json` | Per-tool permission keys, wildcard-overridable | [opencode.ai/docs/permissions](https://opencode.ai/docs/permissions) | 2026-08-20 |
 
-The plugin's own directory resolution — `$OPENCODE_CONFIG_DIR/rules/` →
-`$XDG_CONFIG_HOME/opencode/rules/` → `~/.config/opencode/rules/` — matches where the deploy
-writes. **The 0.6.4 pin is the latest release** (2026-04-25), not a stale one; re-check
-before assuming an upgrade is due.
+The glob channel was retired in M3: it never loaded a rule in the deployed state (below),
+and `harness/opencode/rules/` no longer exists. **Cleanup is manual** — the deploy manifest
+never tracked `~/.config/opencode/rules/`, so those files are not orphan-cleaned: delete the
+directory and drop the `opencode-rules@0.6.4` plugin key from your live `opencode.json`
+yourself.
 
 ## What does NOT reach it
 
-- **`global/rules/quality/patterns-antipatterns.md`.** `build.py` builds the rules tree from
-  `global/rules/languages/` and `global/rules/workflow/` only, so this is the one
-  path-scoped rule with no glob channel here — it arrives injected inside the
-  `language-rules` skill instead.
-- **The 12 always-on rules, as files.** They are not duplicated into `rules/`; their
-  condensed form is already in `harness/AGENTS.md`, which loads every session.
+- **The 28 rule texts under `global/rules-situational/`, as files.** There is no glob
+  channel on this harness: every one of them arrives injected inside a router skill
+  (`language-rules`, `workspace-conventions`, …), which the model must invoke, or inlined
+  into a packed agent. opencode is the harness where not invoking the router is literally
+  not having the rule — the `rule-delivery` hook has no channel here.
+- **The 12 always-on rules, as files.** They are not deployed here at all; their condensed
+  form is already in `harness/AGENTS.md`, which loads every session.
 - **Claude Code's `disable-model-invocation`.** opencode does not honor it — the gate is
   reproduced by `permission.skill."flow-*": "ask"` in `opencode.json` plus the command
   wrappers, which are the only way a gated skill is exposed.
@@ -73,12 +73,11 @@ scan is RECURSIVE, so a skill directory that vendors its own `.codex/skills/` or
 
 `~/.local/share/opencode/log/opencode.log` on opencode `1.18.18`: **160 load attempts, 160
 failures**, every plugin, current runs included. The cause is a plugin-contract change —
-`SchemaError: Missing key at ["default"]`, and for the rules plugin
-`Missing key at ["default"]["effect"] / ["setup"]`:
+`SchemaError: Missing key at ["default"]` (the now-removed rules plugin failed on
+`Missing key at ["default"]["effect"] / ["setup"]`):
 
 | Plugin | Owner | What is lost while it fails |
 |---|---|---|
-| `opencode-rules@0.6.4` | pinned dep | **every path-scoped rule** — the 19 files this deploy writes to `~/.config/opencode/rules/` never load |
 | `flow-session-context.ts` | this repo | the flow protocol never reaches an opencode session |
 | `engram.ts` | Engram | memory protocol |
 | `gk-hooks.js`, `herdr-agent-state.js` | third-party | their own features |
@@ -104,9 +103,8 @@ that migration arriving. Until it is decided, what actually reaches an opencode 
 ## How to re-verify
 
 ```bash
-ls ~/.config/opencode/rules/   | wc -l   # expect 18
-ls ~/.config/opencode/agents/  | wc -l   # expect 24
-ls ~/.config/opencode/commands/| wc -l   # expect 8
+ls ~/.config/opencode/agents/  | wc -l   # expect 26
+ls ~/.config/opencode/commands/| wc -l   # expect 10
 jq '.permission' ~/.config/opencode/opencode.json
 ```
 

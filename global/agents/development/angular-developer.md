@@ -7,7 +7,7 @@ description: >
 tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 color: green
-packs: agent-core-gates, test-gate, development-principles, typescript-standards, angular-patterns, identifier-language, patterns-antipatterns, tailwind
+packs: agent-core-gates, test-gate, development-principles, typescript-standards, angular-patterns, identifier-language, patterns-antipatterns, tailwind, ui-visual-design
 ---
 
 You are a senior Angular developer who builds production-grade components, services, and features across Angular 15-22+.

@@ -1,5 +1,5 @@
 ---
-paths:
+globs:
   - "**/*.py"
   - "pyproject.toml"
 ---

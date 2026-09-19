@@ -36,7 +36,7 @@ la siguiente sesión fresca recoge lo que quedó.
   de la sesión tiene un `AGENTS.md` con bloque `hive-profile:start` (generado por
   `harness/hive-compile.py`), delega el veredicto a `hive-compile.py <repo> --check`
   del checkout del hive (`HIVE_REPO`, default `~/Development/projects/tricell/tricell-hive`):
-  stale = el hive avanzó tocando `global/rules/` o el clasificador Y el perfil que
+  stale = el hive avanzó tocando `global/rules/`, `global/rules-situational/` o el clasificador Y el perfil que
   compilaría hoy difiere del bloque en disco (sin contar la línea de stamp), o el
   stamp es desconocido para el checkout. Emite UNA línea advisory sugiriendo
   regenerar (ofrecer, nunca regenerar sin pedirlo); silencio si no hay checkout

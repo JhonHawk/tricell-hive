@@ -1103,6 +1103,11 @@ section records the authority tags and the findings that the tables only flag.
   (`opencode.config.instruction`, `.skill`, `.policy`, `.agent`) — the 1.x schema error is
   that contract migration arriving. **Status: open follow-up**, recorded in
   `harness/opencode/README.md`; the target version is the decision that comes first.
+  - *Appended 2026-09-19:* the `opencode-rules` half is closed by removal, not by a fix. M3
+    of issue #24 retired the glob channel entirely — `harness/opencode/rules/` and the
+    plugin dependency are gone, and the rule texts reach opencode only through the router
+    skills' injected `references/`. Nothing was lost that was still working: in the deployed
+    state the plugin loaded 0 rules. The other plugins in this entry remain open.
 
 ### Grok CLI
 - `[Authoritative]` **docs.x.ai/build/overview** (`grok inspect`),

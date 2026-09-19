@@ -12,7 +12,7 @@ restated here:
   production-deploying branch always confirms; promotion into `qa` follows the non-prod
   carve-out (declared, not asked); push is confirm-gated. Promotion moves the source
   branch's whole current state, not just this session's changes.
-- **Recovery path** — `workflow/devops-principles.md`. Every deployment needs a
+- **Recovery path** — `devops-principles.md`. Every deployment needs a
   documented rollback or fix-forward path; no recovery path = not ready.
 
 Promotions are **movements through the pipeline, never direct pushes to servers**. If

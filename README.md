@@ -23,7 +23,7 @@ The config assumes these are installed; nothing here installs them for you.
 | Claude Code | Engram plugin (memory protocol) | Engram's own plugin channel (`plugin:engram`) |
 | Codex | Engram Codex plugin (`engram@engram`, bundled hooks) | Plugin cache under `~/.codex/plugins/`. **Never run `engram setup` for Codex** — it sets `model_instructions_file`, which replaces Codex's base system prompt (`harness/codex/README.md`) |
 | Codex | Config additions (`project_doc_max_bytes = 65536`, `commit_attribution = ""`, subagent limits) | Merge `harness/codex/config.toml.snippet` into `~/.codex/config.toml`, once |
-| opencode | `opencode-rules@0.6.4` plugin (glob-conditional language rules; pinned, audited) + flow-skill gating | Merge `harness/opencode/opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`, once |
+| opencode | flow-skill gating | Merge `harness/opencode/opencode.jsonc.snippet` into `~/.config/opencode/opencode.json`, once |
 | Pi | Pi 0.85.1, Node 22.19+, the five exact Hive package pins, and the reviewed `pi-subagents` patch | The default/`all` and `harness` selections include PI; `--only pi` previews the PI + shared-skills selection without writing other harnesses. Install the pins before `--apply`; the helper never auto-installs. |
 
 Merge/verify commands and the reasoning live in `harness/README.md` (snippets are the one
@@ -86,12 +86,11 @@ CLAUDE.md                            # Claude-facing project guide, not deployed
 global/                              # Mirrors ~/.claude/ — deployable source of truth
 ├── CLAUDE.md                        # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                   # Canonical section files for both always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── rules/                           # Path-scoped and alwaysApply rules
-│   ├── quality/                     # Code principles (8 files)
-│   ├── languages/                   # Language/framework standards (12 files, path-scoped)
-│   ├── workflow/                    # Git, deploys, structure, routing, naming (8 files)
+├── rules/                           # Always-on rules only (12 files, deployed to ~/.claude/rules/)
+│   ├── quality/                     # Code principles (7 files)
+│   ├── workflow/                    # Git gates, unattended autonomy (2 files)
 │   └── tools/                       # External tools & MCP protocols (3 files)
-├── rules-situational/               # Router-reached and pack-only rules (9 files: injected into skill references by build.py, or inlined into agents via packs:; never deployed to ~/.claude/rules/)
+├── rules-situational/               # Every other rule text (28 files: 19 with globs: → held by the rule-delivery hook on a matching write; injected into skill references by build.py; or inlined into agents via packs:; never deployed to ~/.claude/rules/)
 ├── skills/                          # Global skills (deployed to ~/.claude/skills/)
 │   ├── agents-md-primary/           # Convert projects to AGENTS.md-canonical + CLAUDE.md import; audit|apply dedups vs deployed canon + content quality
 │   ├── engram-init-workspace/       # Unified Engram project for multi-repo workspaces
@@ -100,12 +99,12 @@ global/                              # Mirrors ~/.claude/ — deployable source 
 │   ├── flow-plan/                   # Plan and authorize a portable work contract
 │   ├── flow-build/                  # Execute an authorized plan: reconciler + verify gate
 │   ├── flow-report/                 # Self-contained HTML reports for artifacts that outlive the thread (6 archetypes; `paper` is the printable one)
-│   ├── language-rules/              # Router skill: language rules for Codex/Grok; browser CLI reference for every harness (references injected by build.py)
-│   ├── memory-policy/               # Router skill: Engram policy layer (Codex/opencode)
+│   ├── language-rules/              # Router skill: language rules for every harness but Claude Code; browser CLI reference for all (references injected by build.py)
+│   ├── memory-policy/               # Router skill: Engram policy layer (every harness)
 │   ├── memory-sync/                 # Reconcile Engram + native memory vs ground truth
 │   ├── starlight-docs-site/         # Astro Starlight docs: scaffold | page | audit
 │   ├── unattended-delegation/       # Router skill: explicitly-delegated unattended runs (every harness)
-│   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (Codex/opencode)
+│   └── workspace-conventions/       # Router skill: workspace/session/contract conventions (every harness)
 ├── agents/                          # Optimized agents by role
 │   ├── design/                      # blue    — cloud-architect, sdd-design, solution-architect, visual-designer
 │   ├── development/                 # green   — angular, backend, database, kotlin-multiplatform, react
@@ -121,7 +120,7 @@ harness/                      # Multi-harness layer (Codex + opencode + Grok + P
 ├── build.py                         # Regenerates generated trees + injects router-skill references
 ├── agents-skills/                   # GENERATED — universal skills → ~/.agents/skills
 ├── codex/                           # README + config.toml.snippet + GENERATED TOML agents
-├── opencode/                        # README + opencode.jsonc.snippet + commands/ + GENERATED agents & rules
+├── opencode/                        # README + opencode.jsonc.snippet + commands/ + GENERATED agents
 ├── grok/                            # README + GENERATED agents (rules reach Grok as flat symlinks)
 ├── pi/                              # Pi runtime, package manifest, tests, and Pi README
 └── cursor/                          # README only — no generated tree, no deploy step
@@ -172,26 +171,23 @@ _support/                            # Workspace material, not deployed
 
 Line counts live on disk (`wc -l global/agents/*/*.md`); `/manage-agents validate --all` checks this table against it.
 
-## Rules (31 files + 7 router-reached)
+## Rules (12 always-on + 28 delivered)
 
-**`paths:` is the only frontmatter key Claude Code reads.** Per the official docs, *"rules without a `paths` field are loaded unconditionally"* — so there are two states, not three:
+Two homes, and the home decides the delivery:
 
-- **`paths: [...]`** — loads only when a matching file is touched. The only way to keep a rule out of the always-on set.
-- **No `paths:`** — always-on. We write `alwaysApply: true` to state the intent, but it is documentation, not mechanism: the file loads identically without it. An unrecognized key does **not** suppress loading.
+| Home | Files | How it reaches an agent |
+|---|---:|---|
+| `global/rules/` — `quality/` 7, `tools/` 3, `workflow/` 2 | 12 | Deployed to `~/.claude/rules/`, loaded unconditionally every session; flat-symlinked into `~/.grok/rules/`; condensed into `harness/AGENTS.md` for Codex and opencode |
+| `global/rules-situational/` — 19 with `globs:`, 9 without | 28 | Never deployed to `rules/`. A `globs:` rule is held by the `rule-delivery` hook on a matching write until its reference is read; every file but the pack-only two is also injected into a router skill's `references/` (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`); the packed agents carry theirs inlined |
 
-| Category     | Files | always-on | path-scoped |
-|--------------|------:|----------:|------------:|
-| `quality/`   |     8 |         7 |           1 |
-| `languages/` |    12 |         0 |          12 |
-| `workflow/`  |     8 |         2 |           6 |
-| `tools/`     |     3 |         3 |           0 |
+`agent-core-gates.md` and `test-gate.md` have no router and no globs: they reach an agent only inlined through its `packs:`.
 
-`rules-situational/` (9 files) is outside this table: never always-on, reachable only through the router skill that injects it (`SKILL_REFERENCE_INJECTIONS` in `harness/build.py`) — except `agent-core-gates.md` and `test-gate.md`, which no router serves: they reach an agent only inlined through its `packs:`.
+**`paths:` is the only frontmatter key Claude Code reads** (*"rules without a `paths` field are loaded unconditionally"*), and no rule here carries it any more — a file under `global/rules/` is always-on by construction, and `globs:` in `rules-situational/` is read by `harness/build.py`, not by any harness. `alwaysApply: true` states intent; the file loads identically without it.
 
-Always-on footprint (`global/CLAUDE.md` + the 18 rules without `paths:`): **913 lines / 121 KB / ~30k tokens**, paid on every session before any work starts. Measure it with:
+Always-on footprint (`global/CLAUDE.md` + the 12 rules): **668 lines / 121 KB / ~30k tokens**, paid on every session before any work starts. Measure it with:
 
 ```sh
-cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" || cat "$f"; done | wc -c
+cat global/CLAUDE.md global/rules/*/*.md | wc -lc
 ```
 
 ## Agent Design Criteria
@@ -220,10 +216,10 @@ cd global/rules && for f in $(find . -name '*.md'); do grep -q '^paths:' "$f" ||
 | `/workspace-archive` | global | `run` \| `normalize` — move `verified` sessions older than 15 days to `sessions/archived/` (git mv + index links); on request only, deterministic script + one confirmation |
 | `/status-fetch` | global | Live external state (git, declared tracker, PRs, deploys) as compact facts — runs in a forked `state-fetcher` so the sweep stays out of the session |
 | `/starlight-docs-site` | global | `scaffold` \| `page` \| `audit` — Astro Starlight docs sites |
-| `language-rules` | global | Router: full language rules for Codex; quality depth rows for Codex + opencode (references injected by `build.py`) |
-| `workspace-conventions` | global | Router: workspace/session/contract conventions for Codex + opencode (model-invoked) |
-| `memory-policy` | global | Router: Engram policy layer for Codex + opencode (model-invoked) |
-| `unattended-delegation` | global | Router: explicitly-delegated unattended runs and ledger-declared standing jobs for Codex + opencode (model-invoked) |
+| `language-rules` | global | Router: full language rules for Codex, Grok, opencode and PI; browser CLI reference for every harness (references injected by `build.py`) |
+| `workspace-conventions` | global | Router: workspace/session/contract conventions, every harness (model-invoked) |
+| `memory-policy` | global | Router: Engram policy layer, every harness (model-invoked) |
+| `unattended-delegation` | global | Router: explicitly-delegated unattended runs and ledger-declared standing jobs, every harness (model-invoked) |
 | `/manage-agents` | repo | `validate [--all] [--deep]` — judgment checks on agent definitions |
 | `/manage-rules` | repo | `validate [--all] [--deep]` \| `create` — rule lifecycle management, incl. the core sections and the always-on rule corpus |
 | `/deploy-global` | repo | Sync `global/` to `~/.claude/` (user-initiated only) |

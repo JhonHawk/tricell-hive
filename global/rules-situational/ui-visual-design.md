@@ -2,7 +2,6 @@
 globs:
   - "**/*.{tsx,jsx,html,vue,astro,svelte}"
   - "**/*.{css,pcss,scss}"
-match: any
 ---
 
 > **Scope & activation.** Distilled, verifiable visual-design criteria (from *Refactoring UI*,

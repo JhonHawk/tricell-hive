@@ -4,7 +4,7 @@ globs:
   - "**/*.component.html"
   - "**/app.config.ts"
   - "angular.json"
-match: any
+exclusive-with: nestjs-patterns
 ---
 
 > **Applies when:** `angular.json` exists in the project. Skip if working on NestJS or other non-Angular TypeScript projects.

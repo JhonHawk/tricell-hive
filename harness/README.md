@@ -26,7 +26,6 @@ or represent full production harness parity.
 | `agents-skills/` | Cleaned universal skills → `~/.agents/skills/` | **Generated** |
 | `codex/agents/` | TOML subagents → `~/.codex/agents/` | **Generated** |
 | `opencode/agents/` | Markdown subagents → `~/.config/opencode/agents/` | **Generated** |
-| `opencode/rules/` | Path-scoped rules with `paths:` → `globs:` → `~/.config/opencode/rules/` (loaded by glob via the `opencode-rules` plugin) | **Generated** |
 | `grok/agents/` | Grok-shaped markdown subagents → `~/.grok/agents/` | **Generated** |
 | `pi/` | Pi runtime, package manifest, tests, and generated-role source → `~/.pi/agent/` (or `PI_CODING_AGENT_DIR`) | Runtime hand-maintained; roles **generated** by `build.py`; included by default/`all`/`harness`; `--only pi` is the isolated PI + shared-skills write boundary |
 | `opencode/commands/` | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) → `~/.config/opencode/commands/` | Hand-edited (one per user-invoked skill) |
@@ -163,11 +162,12 @@ regenerates a stale output silently and refuses a hand-edited one (differs from 
 regeneration and HEAD — the edit stays on disk); `python3 harness/build.py --check` runs
 the parity checks for every generated tree without writing. Condensed per-target twins of the same policy still
 exist and sync by hand — only the delegation thresholds have their own parity check.
-The **always-on rules** under `global/rules/` still do not pass through
-`build.py`: a cross-harness change to them is condensed into a core section targeting
-`agents`, or covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS`
-in `build.py`). Path-scoped rules under `global/rules/{languages,workflow}/` **do** pass
-through: they are rebuilt into `opencode/rules/` on every run.
+The **always-on rules** under `global/rules/` do not pass through `build.py` as files: a
+cross-harness change to them is condensed into a core section targeting `agents`, or
+covered by a router skill's injected references (`SKILL_REFERENCE_INJECTIONS` in
+`build.py`). Everything under `global/rules-situational/` passes through both: injected
+into the router skills' `references/`, inlined into the agents that declare it in `packs:`,
+and indexed in `rule-manifest.json` for the `rule-delivery` hook.
 
 ## Portable planning
 

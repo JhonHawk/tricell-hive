@@ -48,7 +48,7 @@ below. Assign each finding a severity and group the report by it.
 
 Convention + contrast, not aesthetics — validates that the theme follows the house strategy and
 is accessible. No browser (that is the out-of-scope rendered review below). Anchors:
-`references/chassis.md > Theme strategy` and `~/.claude/rules/languages/ui-visual-design.md > Color`.
+`references/chassis.md > Theme strategy` and `~/.claude/skills/language-rules/references/ui-visual-design.md > Color`.
 
 21. **Theme strategy**: `src/styles/theme.css` exists and overrides `--sl-color-*` with **Dark =
     `:root`** and **Light = `:root[data-theme="light"]`**. error if the file is missing or the

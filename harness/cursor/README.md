@@ -58,10 +58,10 @@ because `~/.agents/skills` is native rather than compat. A CLI equivalent of the
 
 ## What does NOT reach it
 
-- **All 31 rules.** `~/.claude/rules/` appears in no scan list. Cursor's own rules are
-  `.cursor/rules/*.mdc` per project (`alwaysApply:` ≡ no `paths:`, `globs:` ≡ `paths:` — the
-  same shape `convert-rules.py` already emits for opencode), project `AGENTS.md`, and User
-  Rules as a Settings text field. A **global rules directory** is not documented;
+- **Every rule.** `~/.claude/rules/` appears in no scan list, so neither the 12 always-on
+  rules nor the 28 texts under `global/rules-situational/` reach it as rule files. Cursor's
+  own rules are `.cursor/rules/*.mdc` per project (`alwaysApply:` ≡ always-on, `globs:` ≡
+  conditional), project `AGENTS.md`, and User Rules as a Settings text field. A **global rules directory** is not documented;
   `~/.cursor/rules/` exists on this machine and appears to work, but that is unverified and
   there are open upstream feature requests asking for exactly it.
 - **`global/CLAUDE.md`.** Cursor reads `CLAUDE.md` at the PROJECT root, never `~/.claude/CLAUDE.md`.

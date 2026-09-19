@@ -4,7 +4,6 @@ globs:
   - "**/schema.prisma"
   - "**/migrations/**"
   - "drizzle.config.*"
-match: any
 ---
 
 ## SQL & Migrations

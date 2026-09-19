@@ -12,9 +12,9 @@ to be written, or a tool with its own routing policy about to run.
 `PreToolUse — 1 installed, 1 active`. It is registered and recognized; it just never reaches
 the model.
 
-That costs nothing, because Codex is covered better by another channel: the
-`MANDATORY FIRST ACTION` line in `harness/AGENTS.md` plus the router bootstrap in
-`global/CLAUDE.md`. Observed in the same test — Codex announced *"Voy a aplicar language-rules
+That costs little, because Codex is covered by two other channels: the `rule-delivery` gate
+on its `apply_patch` calls, and the `MANDATORY FIRST ACTION` line in `harness/AGENTS.md` plus
+the router bootstrap in `global/CLAUDE.md`. Observed in the same test — Codex announced *"Voy a aplicar language-rules
 porque el archivo es TSX"*, read `typescript-standards.md`, and only then wrote the file.
 An always-on instruction acts **before** the decision to write; this hook cannot.
 
@@ -27,39 +27,33 @@ and input into the canonical `Write`/`Edit`/`Bash` payload and invokes this advi
 before the tool. That adapter is a delivery path for Pi, not a claim that Pi exposes Claude's
 `PreToolUse` event.
 
-## Why it exists
+## Why it exists — and why it is now a backstop
 
-Situational rules reach each harness through a different channel, and two of the four have
-no channel at all for the main thread:
+It was written when Claude Code loaded situational rules natively by `paths:` and the other
+harnesses had nothing. **That premise is gone:** since M3 no rule carries `paths:`, and
+delivery is owned by the `rule-delivery` gate (`global/hooks/rule-delivery/README.md`), which
+denies a matching write and names the file to read. This hook is now an advisory layer on top
+of it: a pointer for the situations the gate does not cover — a `Bash` tool policy, a write
+landing in `_support/` that points at the `workspace-conventions` skill rather than at a rule
+file — and it is scheduled to retire in a later milestone of the same issue.
 
-| Harness | Channel that reaches the main thread | Arrives before the write? |
-|---|---|---|
-| Claude Code | `paths:` natively, plus this hook | no — see below |
-| opencode | `opencode-rules` plugin, by glob | yes |
-| Codex | `MANDATORY FIRST ACTION` in `harness/AGENTS.md` | **yes** — an instruction acts before the decision |
-| Grok | this hook, plus the router skills | no for the hook; the routers depend on invocation |
-| Pi | Hive parent extension with translated tool payloads | **yes** for the advisory invocation; it still cannot deny the tool |
+The reasons the `paths:` channel was abandoned are the ones this README recorded first:
 
-Claude Code's own `paths:` mechanism has the same gap, and for a different reason: per the docs,
-*"path-scoped rules trigger when Claude reads files matching the pattern, not on every tool
-use."* The trigger is a READ. Creating a new file of that kind never reads it, so the rule does
-not load for the write that would have needed it most.
-
-Two more consequences worth knowing before moving rules off always-on:
-
-- Path-scoped rules **do not survive compaction**: *"rules with `paths:` frontmatter are not
-  re-injected automatically; they reload the next time Claude reads a file matching the rule's
-  patterns."* A long session loses them silently.
+- **The trigger is a READ**: *"path-scoped rules trigger when Claude reads files matching the
+  pattern, not on every tool use."* Creating a new file of that kind never reads it, so the
+  rule did not load for the write that would have needed it most.
+- **They do not survive compaction**: *"rules with `paths:` frontmatter are not re-injected
+  automatically; they reload the next time Claude reads a file matching the rule's patterns."*
+  A long session lost them silently.
 - An `InstructionsLoaded` hook logs which instruction files loaded, when, and why — the docs
   name it for *"debugging path-specific rules or lazy-loaded files"*. That is the measuring
   instrument for verifying an always-on reduction; the hive's `instructions-audit` hook served
   that role and was retired on 2026-09-13 once the reduction was verified — re-add one to measure again.
 
 Subagents get their policy inlined into their own prompt. The main thread had nothing — on
-Codex and Grok it has been writing React or Terraform with none of those rules present. This
-hook closes that, and on the other two it still helps: the reminder fires with the concrete
-file in hand rather than as a general norm at session start. The Pi adapter emits this
-advisory only in the parent session; child prompts and their original guards are unchanged.
+Codex and Grok it was writing React or Terraform with none of those rules present. The Pi
+adapter emits this advisory only in the parent session; child prompts and their original
+guards are unchanged.
 
 ## Why it is not part of `bash-policy`
 

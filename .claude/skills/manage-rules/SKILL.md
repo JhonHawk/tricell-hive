@@ -1,30 +1,26 @@
 ---
 name: manage-rules
 description: >
-  Manage global rule files in global/rules/ — validate frontmatter, content, reachability
+  Manage global rule files in global/rules/ and global/rules-situational/ — validate frontmatter, content, reachability
   and enforcement honesty (with the always-on load report on --all), or create new rules.
   Use with: /manage-rules validate [--all] [--deep] or /manage-rules create <name>.
   Triggers after editing rule or core-section files, or when checking rule quality.
 ---
 
-Manage rule files in `global/rules/`. Parse `$ARGUMENTS` to determine the subcommand.
+Manage rule files in `global/rules/` and `global/rules-situational/`. Parse `$ARGUMENTS` to determine the subcommand.
 
 ## Subcommands
 
 ### `validate` — Validate all rules
 
-Default scope: the rule files changed in the working tree / recent commits, or named by the user; `validate --all` scans the full inventory. **The core content is in scope through `global/core-sections/**`** — `global/CLAUDE.md` is GENERATED from those section files by `harness/build.py` (edits to the output get refused or destroyed by the next build), so findings and fixes land in the section files, with the assembled output read for context only. It remains the largest always-on artifact (~19% of everything a session loads); checks 4-10 apply to the section content, checks 1-3 do not (core sections carry assembly frontmatter — `order`/`targets`/`join` — not rule frontmatter, and are never path-scoped). For each file in scope check:
+Default scope: the rule files changed in the working tree / recent commits, or named by the user; `validate --all` scans the full inventory. **The core content is in scope through `global/core-sections/**`** — `global/CLAUDE.md` is GENERATED from those section files by `harness/build.py` (edits to the output get refused or destroyed by the next build), so findings and fixes land in the section files, with the assembled output read for context only. It remains the largest always-on artifact (~19% of everything a session loads); checks 4-10 apply to the section content, checks 1-3 do not (core sections carry assembly frontmatter — `order`/`targets`/`join` — not rule frontmatter, and are always-on by definition). For each file in scope check:
 
-1. **Frontmatter — `paths:` is the only key Claude Code actually reads.** Per the official docs: *"Rules without a `paths` field are loaded unconditionally and apply to all files."* So there are exactly two real states:
-   - **`paths: [...]`** with valid globs — loads only when a matching file is touched. This is the ONLY mechanism that keeps a rule out of the always-on set.
-   - **No `paths:`** — always-on, whatever else the frontmatter says. We write `alwaysApply: true` to state the intent, but it is **documentation, not mechanism**: the file would load identically with empty frontmatter. Never treat it as a switch, and never invent a third scope key — an unrecognized key does not suppress loading.
-   - Flag: a file with both `paths:` and `alwaysApply: true` (contradictory intent), and any rule whose prose claims it is not always-on while carrying no `paths:`.
-   - **Three file classes, not two — judge each against its own contract.** A **deployed rule** (`global/rules/**`) is the case above: its frontmatter IS the mechanism. A **situational rule** (`global/rules-situational/**`) is never deployed to `~/.claude/rules/` and is reached only through a router skill — frontmatter there is inert noise (`build.py` strips it on injection, `deploy-global` never copies it), so verify it against that directory's `README.md` contract and flag any scope key as dead weight, never as intent. A **harness file** (`harness/AGENTS.md`) carries no frontmatter and is out of this check entirely.
-2. **Glob validity** — Each pattern in `paths` should match real file types. Flag patterns that would never match anything useful (e.g., `**/*.xyz`).
-3. **Scope correctness** — Rules with language-specific content (mentions `.ts`, `.java`, JSDoc, etc.) should be path-scoped, not `alwaysApply`. Rules with cross-language content should be `alwaysApply`, not path-scoped. Making a rule conditional means giving it `paths:`, and it must then pass all three reachability tests:
-   - **Trigger** — the globs must match files the model will actually touch while the rule applies. A rule that fires on an ACTION rather than a file (deploying, driving a browser, a live incident) has no honest glob and stays always-on. Do not reach for a never-matching sentinel glob to fake conditionality: it works mechanically but leaves the rule reachable only through a skill, which is the failure mode below.
+1. **The directory is the mechanism — judge each file class against its own contract.** A **deployed rule** (`global/rules/**`) is always-on by construction: everything there lands in `~/.claude/rules/`, which the docs load unconditionally (*"Rules without a `paths` field are loaded unconditionally"*). `alwaysApply: true` documents that intent; it switches nothing, and no rule here carries `paths:` any more — flag one that does, it is a leftover. A **situational rule** (`global/rules-situational/**`) is never deployed: `globs:` there is read by `harness/build.py` alone, feeding `rule-manifest.json` and the `rule-delivery` hook (`build.py` strips the frontmatter on injection into a router's `references/`). Verify it against that directory's `README.md` contract. A **harness file** (`harness/AGENTS.md`) carries no frontmatter and is out of this check entirely.
+2. **Glob validity** — Each pattern in a `globs:` list should match real file types, by path segment. Flag patterns that would never match anything useful (`**/*.xyz`), and any glob expanding past 256 brace alternatives — the hook drops those rather than pay the expansion.
+3. **Scope correctness** — Language-specific content (mentions `.ts`, `.java`, JSDoc) belongs in `global/rules-situational/` with `globs:`, never always-on in `global/rules/`; cross-language or action-triggered content is the reverse. Moving a rule out of always-on means it must pass all three reachability tests:
+   - **Trigger** — the globs must match files the model will actually touch while the rule applies. A rule that fires on an ACTION rather than a file (deploying, driving a browser, a live incident) has no honest glob: it stays always-on, or lives in `rules-situational/` WITHOUT `globs:` and is reached by its router alone. Never fake conditionality with a sentinel glob — the hook would then never hold a write for it, and the router becomes the only channel by accident rather than by decision.
    - **Nothing safety-bearing is conditional.** A gate that loads only when some glob happens to match is a broken gate; that content stays always-on.
-   - **Consumers can reach it.** Grep `global/agents/**` for citations. An agent with a `tools:` allowlist that omits `Skill` cannot invoke a router skill at all, and skills are not inherited from the parent — such a consumer needs the rule always-on, or must cite the deployed path (`~/.claude/rules/...`) and read it directly. Also fix any agent line that miscalls a rule's scope. Hybrid activation via likely entrypoint files is acceptable when a framework can be config-less (example: Tailwind v4 CSS-first), but the rule body must explicitly require marker verification before applying guidance.
+   - **Consumers can reach it.** Grep `global/agents/**` for citations. An agent with a `tools:` allowlist that omits `Skill` cannot invoke a router skill at all, and skills are not inherited from the parent — such a consumer needs the rule always-on, the rule inlined via `packs:`, or the `rule-delivery` hold naming a reference it can `Read` directly. Also fix any agent line that miscalls a rule's scope. Hybrid activation via likely entrypoint files is acceptable when a framework can be config-less (example: Tailwind v4 CSS-first), but the rule body must explicitly require marker verification before applying guidance.
 4. **No duplication with core** — Compare rule content against `global/CLAUDE.md`. Flag rules that repeat what the core config already says.
 5. **No duplication between rules** — Flag overlapping content across rule files (e.g., same library mentioned in two files).
 6. **Size check** — Flag rules under 5 lines (too thin — consider merging). **No line ceiling and no corpus budget:** a long file is not a defect, a dense or incoherent one is. Split by cohesion — a file covering two domains that load on different triggers — never by length. (A line ceiling flagged 6 files permanently and taught everyone to ignore the validator.)
@@ -35,13 +31,13 @@ Default scope: the rule files changed in the working tree / recent commits, or n
    - **Verify the claimed SCOPE, not just the layer's existence.** A rule naming a hook must match what that hook actually matches — read the script and its README. A backstop that covers one invocation shape while the rule implies all of them is an overclaim: the rule keeps the enforcement line and gains the qualifier. (Caught `testing.md`'s post-tool-hub claim, silent for every runner outside the pnpm/turbo shapes.)
 9. **Harness reachability** — Claude Code is not the only consumer; per in-scope rule verify how it reaches the other three:
    - **Always-on** → lands in Grok's flat symlink set (no `paths:`, filename without `__` — `deploy-global.sh > grok_always_on_rules`). When it belongs to the cross-harness core, it lands in a `global/core-sections/` section targeting `agents` (or both) and `build.py` assembles `harness/AGENTS.md` from it — there is no manual mirror any more; what gets recorded is the deliberate decision to keep a rule Claude-only (a `claude`-only section, or no core section at all).
-   - **Path-scoped under `languages/`** → present BOTH in the opencode rules pipeline (`build.py` conversion) AND in `language-rules`' injected references (`SKILL_REFERENCE_INJECTIONS`).
-   - **Path-scoped elsewhere** → reachable through some router skill's injections, or explicitly Claude-only by design (say so in its header).
+   - **Glob-scoped (`rules-situational/` with `globs:`)** → present in `harness/rule-manifest.json` (so the `rule-delivery` hook can hold a matching write on Claude Code, Grok and Codex) AND in a router skill's injected references (`SKILL_REFERENCE_INJECTIONS`) — opencode and PI have only the second.
+   - **Router-only (`rules-situational/` without `globs:`)** → reachable through some router skill's injections, or inlined into the agents that declare it in `packs:` (say which, in its header).
    - **Numeric parity of the delegation gates is already deterministic** — `harness/build.py` compares the structured thresholds in `agent-routing.md > Delegation Gates` against the core bullet and exits non-zero on drift. Do not re-check those numbers by hand; do flag a threshold restated in a THIRD place, which the check does not see.
-   - **Transition hazard, flag it every time it appears in a diff:** adding `paths:` to a previously always-on rule silently removes it from Grok; removing `paths:` silently adds it to every Grok session.
+   - **Transition hazard, flag it every time it appears in a diff:** moving a rule out of `global/rules/` silently removes it from Grok's flat symlink set; moving one in silently adds it to every Grok session.
    - **`SKILL_REFERENCE_INJECTIONS` has a second writer:** `/agents-md-primary apply` edits that map via its `inject-to-router` outcome. This check is what verifies those edits — run it after one, and treat an injection added there as in-scope here even when no rule file changed.
 
-10. **Load report (`--all` only)** — what a session actually pays, in BYTES (the corpus grows by mass, not by rule count): always-on total (`global/CLAUDE.md` + every rule with no `paths:`) with the tokenizer proxy (`bytes ÷ 3.7`) and each file's share; per-stack totals (always-on + that stack's path-scoped rules); and the trend since the last prune (bytes added vs deleted), not just the level. `build.py` reports the two cores' size — this report adds the rule corpus around them.
+10. **Load report (`--all` only)** — what a session actually pays, in BYTES (the corpus grows by mass, not by rule count): always-on total (`global/CLAUDE.md` + every rule under `global/rules/`) with the tokenizer proxy (`bytes ÷ 3.7`) and each file's share; per-stack totals (always-on + that stack's glob-scoped rules); and the trend since the last prune (bytes added vs deleted), not just the level. `build.py` reports the two cores' size — this report adds the rule corpus around them.
 
 Output a summary table, then specific issues per rule with suggestions.
 
@@ -50,12 +46,12 @@ Output a summary table, then specific issues per rule with suggestions.
 `<name>` is the rule filename without `.md`, e.g., `python-standards`.
 
 1. Ask the user what technology/topic this rule covers.
-2. Determine scope: if the rule is language-specific, use `paths` with appropriate globs. If cross-language, use `alwaysApply: true`.
+2. Determine the home: language- or file-specific → `global/rules-situational/<name>.md` with `globs:`; cross-language and action-triggered → `global/rules/<dir>/<name>.md` with `alwaysApply: true`.
 3. Read `global/CLAUDE.md` and existing rules to avoid duplication.
 4. Draft the rule following this structure:
    ```yaml
    ---
-   paths:            # or alwaysApply: true
+   globs:            # rules-situational/ — or alwaysApply: true under rules/
      - "**/*.ext"
    ---
 
@@ -65,7 +61,7 @@ Output a summary table, then specific issues per rule with suggestions.
    - Concrete rule 2
    ```
 5. Present the draft for review before saving.
-6. Save to `global/rules/<name>.md`.
+6. Save to the home chosen in step 2.
 
 Rules for creating:
 - Each rule must change Claude's behavior vs default. No generic advice.

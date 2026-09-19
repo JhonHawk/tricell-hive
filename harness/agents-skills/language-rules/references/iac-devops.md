@@ -1,7 +1,7 @@
 
-> Complements `workflow/devops-principles.md` (same path scope) with file-specific conventions. Read it first — don't duplicate.
+> Complements `devops-principles.md` (same globs) with file-specific conventions. Read it first — don't duplicate.
 >
-> **Naming any resource these files create** (bucket, cluster, service, security group, DB, subdomain, branch) follows `workflow/infra-naming.md` — read it before inventing a name; a wrong name costs a recreate + migrate, not an edit.
+> **Naming any resource these files create** (bucket, cluster, service, security group, DB, subdomain, branch) follows `infra-naming.md` — read it before inventing a name; a wrong name costs a recreate + migrate, not an edit.
 
 ## Infrastructure as Code
 

@@ -4,7 +4,7 @@ Written per the bootstrap-playbook (foundation stage) to `<project>-specs/conven
 consumed by `devops-engineer`, the promotion walk (gate + `verify` audit, via
 `promotion-playbook.md`), contract authors (sdd-design, specs-stage spec sessions),
 and any session that creates an infra resource or defines a cross-layer identifier. The generic rule lives in the global rule
-`workflow/infra-naming.md`; this file is its **instantiation**: the concrete name of every
+`infra-naming.md`; this file is its **instantiation**: the concrete name of every
 resource this project will have, plus the **code-layer boundary conventions** (API JSON
 casing, DB casing, ORM mapping) that per-language idioms cannot resolve alone.
 
@@ -34,7 +34,7 @@ came precisely from naming resources at deploy-request time without a written ta
 ```markdown
 # <project> — Infrastructure naming
 
-Project token: `<project-token>` · Derived from global rule `workflow/infra-naming.md`
+Project token: `<project-token>` · Derived from global rule `infra-naming.md`
 Environments: `development | qa | production` (full token, always last)
 
 ## Resource table

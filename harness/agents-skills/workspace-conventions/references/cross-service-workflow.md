@@ -1,8 +1,4 @@
 
----
-alwaysApply: true
----
-
 ## Cross-Service Coordination
 
 > Path-scoped: loads on contract surfaces (`_support/spec/**`, a specs repo, OpenAPI/AsyncAPI files). `sdd-design` has no `Skill` tool, so it reaches this by absolute path from its own Role rules table — not through a router.

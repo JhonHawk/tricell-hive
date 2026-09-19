@@ -99,7 +99,7 @@ class PreCommitHookTests(unittest.TestCase):
             )
             # A rule's scope, so the manifest genuinely changes: an agent edit
             # alone leaves it byte-identical and it would rightly be absent.
-            rule = repo / "global/rules/languages/shell-standards.md"
+            rule = repo / "global/rules-situational/shell-standards.md"
             rule.write_text(
                 rule.read_text(encoding="utf-8").replace(
                     '  - "**/*.bash"', '  - "**/*.bash"\n  - "**/*.zsh"'

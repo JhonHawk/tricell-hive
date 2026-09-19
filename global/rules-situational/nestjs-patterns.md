@@ -1,5 +1,5 @@
 ---
-paths:
+globs:
   - "**/*.module.ts"
   - "**/*.controller.ts"
   - "**/*.service.ts"
@@ -9,6 +9,7 @@ paths:
   - "**/*.pipe.ts"
   - "**/*.decorator.ts"
   - "nest-cli.json"
+exclusive-with: angular-patterns
 ---
 
 > **Applies when:** `@nestjs/core` is in `package.json` dependencies. Skip if working on Angular or non-NestJS TypeScript.

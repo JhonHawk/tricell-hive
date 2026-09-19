@@ -30,7 +30,6 @@ readonly -a GENERATED=(
   harness/rule-manifest.json
   harness/codex/agents
   harness/opencode/agents
-  harness/opencode/rules
   harness/grok/agents
   harness/pi/agents
 )

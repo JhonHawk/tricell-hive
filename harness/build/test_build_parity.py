@@ -66,7 +66,6 @@ class GeneratedTreeParityTests(unittest.TestCase):
                 Path("harness/opencode/agents"),
                 Path("harness/grok/agents"),
                 Path("harness/pi/agents"),
-                Path("harness/opencode/rules"),
                 # The whole directory, not just agents/: a stray file dropped
                 # directly under harness/claude/ is generated-tree drift too.
                 Path("harness/claude"),
@@ -124,7 +123,6 @@ class GeneratedTreeParityTests(unittest.TestCase):
                     "harness/agents-skills/language-rules/references/"
                     "python-standards.md"
                 ),
-                Path("harness/opencode/rules/python-standards.md"),
             )
             for relative in stale_paths:
                 target = fixture / relative
@@ -158,7 +156,8 @@ class GeneratedTreeParityTests(unittest.TestCase):
 
             typescript = rules["typescript-standards"]
             self.assertEqual(
-                typescript["source"], "global/rules/languages/typescript-standards.md"
+                typescript["source"],
+                "global/rules-situational/typescript-standards.md",
             )
             self.assertEqual(typescript["globs"], ["**/*.{ts,tsx,js,jsx}"])
             self.assertFalse(typescript["always_on"])
@@ -173,10 +172,20 @@ class GeneratedTreeParityTests(unittest.TestCase):
                 },
             )
 
+            # `*.service.ts` is Angular's and NestJS's alike: each rule names
+            # the pack that proves the file belongs to the other framework, so
+            # the hook never holds a packed agent on its rival's rule.
+            self.assertEqual(rules["angular-patterns"]["exclusive_with"],
+                             ["nestjs-patterns"])
+            self.assertEqual(rules["nestjs-patterns"]["exclusive_with"],
+                             ["angular-patterns"])
+            self.assertEqual(typescript["exclusive_with"], [])
+
             session_capture = rules["session-capture"]
             self.assertEqual(
                 session_capture["globs"],
-                ["**/_support/**", "**/*-specs/**", "**/sessions/**"],
+                ["**/_support/**", "**/*-specs/**", "**/_support/sessions/**",
+                 "**/*-specs/sessions/**"],
             )
             # Reviewers need these two at read time even when they carry no pack.
             self.assertTrue(session_capture["readers"])
@@ -196,6 +205,65 @@ class GeneratedTreeParityTests(unittest.TestCase):
             )
             # Injected into no router skill -> no deployed reference path.
             self.assertIsNone(rules["security"]["references"])
+
+    def test_an_exclusive_with_naming_an_unknown_rule_fails_the_build(self):
+        # The key is a cross-reference between rule files; a typo would silently
+        # gate nothing forever, so the build refuses it rather than emit it.
+        with tempfile.TemporaryDirectory(prefix="hive-build-exclusive-") as tmp:
+            source = Path(tmp)
+            store = source / "global/rules-situational"
+            store.mkdir(parents=True)
+            (store / "nestjs-patterns.md").write_text(
+                '---\nglobs:\n  - "**/*.service.ts"\n---\n', encoding="utf-8")
+            (store / "angular-patterns.md").write_text(
+                '---\nglobs:\n  - "**/*.service.ts"\nexclusive-with: nestjs-pattern\n'
+                "---\n", encoding="utf-8")
+
+            with self.assertRaises(SystemExit) as raised:
+                BUILD_MODULE.build_rule_manifest(source)
+
+            message = str(raised.exception)
+            self.assertIn("angular-patterns.md", message)
+            self.assertIn("nestjs-pattern", message)
+
+            # Spelled right, the same pair builds.
+            (store / "angular-patterns.md").write_text(
+                '---\nglobs:\n  - "**/*.service.ts"\nexclusive-with: nestjs-patterns\n'
+                "---\n", encoding="utf-8")
+            manifest = BUILD_MODULE.build_rule_manifest(source)
+            entries = {entry["name"]: entry for entry in manifest["rules"]}
+            self.assertEqual(entries["angular-patterns"]["exclusive_with"],
+                             ["nestjs-patterns"])
+
+    def test_a_rule_declaring_paths_fails_the_build_wherever_it_lives(self):
+        # `paths:` was Claude Code's native path-scoping key and the mechanism is
+        # retired: rules are delivered by the hook, off `globs:`. A file still
+        # carrying `paths:` would look scoped while loading unconditionally, so
+        # the build refuses it — under global/rules/ and rules-situational/ alike.
+        with tempfile.TemporaryDirectory(prefix="hive-build-paths-") as tmp:
+            source = Path(tmp)
+            for directory in ("global/rules/quality", "global/rules-situational"):
+                (source / directory).mkdir(parents=True)
+            scoped = source / "global/rules-situational/typescript-standards.md"
+            scoped.write_text('---\nglobs:\n  - "**/*.ts"\n---\n', encoding="utf-8")
+
+            for relative in ("global/rules/quality/testing.md",
+                             "global/rules-situational/react-nextjs.md"):
+                offender = source / relative
+                offender.write_text('---\npaths: "**/*.tsx"\n---\n', encoding="utf-8")
+                with self.subTest(rule=relative):
+                    with self.assertRaises(SystemExit) as raised:
+                        BUILD_MODULE.build_rule_manifest(source)
+                    message = str(raised.exception)
+                    self.assertIn(relative, message)
+                    self.assertIn("paths:", message)
+                offender.unlink()
+
+            # Without it the same tree builds, and a core rule stays always-on.
+            manifest = BUILD_MODULE.build_rule_manifest(source)
+            entries = {entry["name"]: entry for entry in manifest["rules"]}
+            self.assertEqual(entries["typescript-standards"]["globs"], ["**/*.ts"])
+            self.assertFalse(entries["typescript-standards"]["always_on"])
 
     def test_the_manifest_maps_each_agent_to_the_packs_it_carries(self):
         # The rule-delivery hook must skip what an agent already holds inlined,
@@ -255,15 +323,15 @@ class GeneratedTreeParityTests(unittest.TestCase):
     def test_inline_globs_keep_their_brace_groups_intact(self):
         with tempfile.TemporaryDirectory(prefix="hive-globs-") as tmp:
             source = Path(tmp)
-            rules = source / "global/rules/languages"
+            rules = source / "global/rules-situational"
             rules.mkdir(parents=True)
-            (source / "global/rules-situational").mkdir(parents=True)
+            (source / "global/rules").mkdir(parents=True)
             (rules / "listed.md").write_text(
-                '---\npaths:\n  - "**/*.{ts,tsx}"\n  - "**/*.vue"\n---\n\ntext\n',
+                '---\nglobs:\n  - "**/*.{ts,tsx}"\n  - "**/*.vue"\n---\n\ntext\n',
                 encoding="utf-8",
             )
             (rules / "inlined.md").write_text(
-                '---\npaths: "**/*.{ts,tsx,mts}"\n---\n\ntext\n', encoding="utf-8"
+                '---\nglobs: "**/*.{ts,tsx,mts}"\n---\n\ntext\n', encoding="utf-8"
             )
             rules_by_name = {
                 entry["name"]: entry
@@ -275,7 +343,7 @@ class GeneratedTreeParityTests(unittest.TestCase):
             # A comma inside braces is part of ONE glob, not a separator.
             self.assertEqual(rules_by_name["inlined"]["globs"], ["**/*.{ts,tsx,mts}"])
 
-    def test_always_on_follows_paths_alone_and_globs_is_refused_in_the_core(self):
+    def test_always_on_follows_the_directory_and_globs_is_refused_in_the_core(self):
         with tempfile.TemporaryDirectory(prefix="hive-alwayson-") as tmp:
             source = Path(tmp)
             rules = source / "global/rules/quality"
@@ -296,8 +364,8 @@ class GeneratedTreeParityTests(unittest.TestCase):
             self.assertEqual(rules_by_name["stored"]["globs"], ["**/*.ts"])
             self.assertFalse(rules_by_name["stored"]["always_on"])
 
-            # `globs:` under global/rules/ is unreadable by Claude Code — it
-            # would load the rule unconditionally while the file claims scope.
+            # `globs:` under global/rules/ claims a scope nothing applies:
+            # that directory loads unconditionally.
             (rules / "mislabeled.md").write_text(
                 '---\nglobs:\n  - "**/*.ts"\n---\n\ntext\n', encoding="utf-8"
             )
@@ -305,7 +373,7 @@ class GeneratedTreeParityTests(unittest.TestCase):
                 BUILD_MODULE.build_rule_manifest(source)
             message = str(raised.exception)
             self.assertIn("mislabeled.md", message)
-            self.assertIn("paths:", message)
+            self.assertIn("globs:", message)
 
     def test_reports_a_stale_rule_manifest(self):
         with tempfile.TemporaryDirectory(prefix="hive-build-parity-") as tmp:

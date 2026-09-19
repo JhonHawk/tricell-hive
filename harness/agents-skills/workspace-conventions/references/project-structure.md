@@ -1,8 +1,4 @@
 
----
-alwaysApply: true
----
-
 ## Project & Workspace Structure
 
 The user's projects follow a canonical 3-level hierarchy. Understand this before creating files, proposing directories, or looking for documentation.
@@ -46,8 +42,8 @@ No specs repo yet (pre-specs-repo, or outside the flow pack) → durable materia
 
 - **Canonical subfolders** — `docs/` `spec/` `plan/` `workspace/` (ephemeral) `evidence/` `sessions/` `archive/`, plus repo-only `scripts/` and `infrastructure/`. Never invent a sibling.
 - **Dated folders are ALWAYS date-first** (`YYYY-MM-DD-<slug>/`); dates only on point-in-time snapshots, never on living documents edited in place. One deliverable = one folder, atomic artifact = loose file.
-- **Full conventions** — what each subfolder holds, and scripts/plans placement: `workflow/session-capture.md`, via the `workspace-conventions` skill. Retention, versioning, evidence curation, legacy mappings: `workflow/support-artifacts.md` (path-scoped — loads on touching `_support/**`).
+- **Full conventions** — what each subfolder holds, and scripts/plans placement: `session-capture.md`, via the `workspace-conventions` skill. Retention, versioning, evidence curation, legacy mappings: `support-artifacts.md` (same skill; scoped to `_support/**`).
 
 ### Session capture layer
 
-Execution artifacts land in `sessions/YYYY-MM-DD-<slug>/` (`<slug>-plan.md`, `<slug>-findings.md`) — created only when execution produces a durable artifact on an **explicit signal**, never by default. **Moved, not deleted:** the full layer — execution-vs-intention split, where `sessions/` lives per repo shape, raw-stays-out-of-git, naming and lifecycle — is `workflow/session-capture.md`, loaded via the `workspace-conventions` skill. Read it before creating or placing a session folder.
+Execution artifacts land in `sessions/YYYY-MM-DD-<slug>/` (`<slug>-plan.md`, `<slug>-findings.md`) — created only when execution produces a durable artifact on an **explicit signal**, never by default. **Moved, not deleted:** the full layer — execution-vs-intention split, where `sessions/` lives per repo shape, raw-stays-out-of-git, naming and lifecycle — is `session-capture.md`, loaded via the `workspace-conventions` skill. Read it before creating or placing a session folder.

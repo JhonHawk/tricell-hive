@@ -38,7 +38,7 @@
 - **`next dev --turbopack` worker runaway can OOM the machine** — dev-only; serve visual/in-vivo checks from a production build, one app at a time (full mechanics: global `Execution` rule).
 - **`useActionState`** for form state with server validation — replaces manual `useState` + `useTransition` for forms.
 - **`useOptimistic`** for optimistic UI updates while Server Actions complete.
-- **Verify version-specific APIs against context7 before implementing** — `tools/context7.md` mandates this for any Next.js feature tied to a major version.
+- **Verify version-specific APIs against context7 before implementing** — `context7.md` mandates this for any Next.js feature tied to a major version.
 
 ### Type Imports
 - **Never use `React.*` globals.** Always use explicit type imports: `import type { ReactNode } from "react"`.

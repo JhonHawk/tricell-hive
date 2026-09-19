@@ -6,7 +6,6 @@ globs:
   - "**/app.css"
   - "**/index.css"
   - "**/styles/**/*.{css,pcss,scss}"
-match: any
 ---
 
 > **Activation check.** Path-scoping in Claude Code cannot inspect sibling files, so the globs above will sometimes match a JSX/CSS file in a project that does NOT use Tailwind. When that happens, exit silently — don't apply Tailwind rules to non-Tailwind projects.

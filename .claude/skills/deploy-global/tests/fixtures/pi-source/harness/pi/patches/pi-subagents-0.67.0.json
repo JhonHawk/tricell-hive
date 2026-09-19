@@ -2,8 +2,13 @@
   "package": "pi-subagents",
   "patchFile": "pi-subagents-0.67.0.patch",
   "patchFormat": "unified-diff",
-  "patchSha256": "a5e5d45d3094396feed564d009db03622d3b5ac9abd66ce5a5292f79a183b740",
+  "patchSha256": "09bf9ac080bfb1b410779a610a60dd604027bda52f8148a62d57a37a34e801d3",
   "targets": [
+    {
+      "afterSha256": "c01e2a4acf3b19fe2f1fa73fb3f2d623998616b730e1173f589bd6af7771d6e6",
+      "beforeSha256": "5beba030eef84da78a9168975ea3a1f16fe3a68b3f39edcf92d358b71f4e6274",
+      "path": "src/runs/shared/child-launch.ts"
+    },
     {
       "afterSha256": "aa5363b4522fa10ad9659120e1cf4e34df5082ba4a0cd61c8f99dc476ec5c6cd",
       "beforeSha256": "06e961075fde584fd7f171e082aca7149ef446ddaabce7636d8c78120dcadc99",

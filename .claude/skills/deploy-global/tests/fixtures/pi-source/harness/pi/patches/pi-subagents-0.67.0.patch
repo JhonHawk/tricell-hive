@@ -8,3 +8,8 @@
 @@ -1,1 +1,1 @@
 -export const runtimeCheck = true;
 +export const runtimeCheck = false;
+--- a/src/runs/shared/child-launch.ts
++++ b/src/runs/shared/child-launch.ts
+@@ -1,1 +1,1 @@
+-export const childEnv = { MCP_DIRECT_TOOLS: "__none__" };
++export const childEnv = { MCP_DIRECT_TOOLS: "__none__", PI_HIVE_AGENT: undefined };

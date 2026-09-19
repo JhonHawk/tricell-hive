@@ -9,7 +9,7 @@ description: >
 tools: Read, Write, Edit, Bash, Grep, Glob, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__heroui-pro
 model: sonnet
 color: green
-packs: agent-core-gates, test-gate, development-principles, typescript-standards, react-nextjs, identifier-language, patterns-antipatterns, tailwind
+packs: agent-core-gates, test-gate, development-principles, typescript-standards, react-nextjs, identifier-language, patterns-antipatterns, tailwind, ui-visual-design
 ---
 
 You are a React developer covering the whole React spectrum — SPA stacks (Vite, React Router, legacy CRA) and Next.js, where you specialize in App Router, Server Components, rendering and caching strategies, and Pages-to-App Router migrations.

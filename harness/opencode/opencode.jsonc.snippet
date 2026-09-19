@@ -1,11 +1,10 @@
 // Flow pack — additions for ~/.config/opencode/opencode.json
 // Merge these keys into the existing config (do not replace the file).
 {
-  // Path-scoped language rules (harness/opencode/rules/ → ~/.config/opencode/rules/)
-  // load conditionally via the opencode-rules plugin. PINNED to the audited
-  // version — bump only after re-auditing (security review 2026-07-10: SAFE WITH
-  // CONDITIONS; symlink-follow gap M1 + by-design prompt surface M2 accepted).
-  "plugin": ["opencode-rules@0.6.4"],
+  // NOTE — removed: `"plugin": ["opencode-rules@0.6.4"]`. The glob-scoped rule
+  // channel is retired; opencode now reads those rules through the router
+  // skills' references, like Codex and PI. Delete the key from your live
+  // ~/.config/opencode/opencode.json — merging this file does not remove it.
 
   // Session sharing. opencode can upload full session history to its servers
   // (opncd.ai/s/<id>). Client code must never leave the

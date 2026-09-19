@@ -1,7 +1,7 @@
 
 ## Support Artifacts — naming, grouping, retention & versioning
 
-> Loads when the session touches `_support/**`. The pre-write essentials (date-first folders, retrieval-axis file names, one-deliverable-one-folder) live in `workflow/project-structure.md`; this rule owns the full conventions.
+> Scoped to `_support/**`, reached through the `workspace-conventions` skill or the `rule-delivery` hold on a matching write. The pre-write essentials (date-first folders, retrieval-axis file names, one-deliverable-one-folder) live in `project-structure.md`; this rule owns the full conventions.
 
 ### Generated-artifact naming, grouping & retention
 

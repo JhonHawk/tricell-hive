@@ -6,16 +6,16 @@
 # routing policy is about to run.
 #
 # WHY THIS EXISTS
-# Situational rules reach each harness by a different channel, and two of the
-# four have no channel at all for the main thread:
-#   Claude Code  path-scoped rules load natively via `paths:`
-#   opencode     the opencode-rules plugin loads them by glob
-#   Codex        no equivalent — nothing loads them
-#   Grok         ignores `paths:`, and path-scoped rules are not symlinked
-# So on Codex and Grok the main thread has been writing React or Terraform with
-# none of those rules present. Subagents get the policy inlined in their own
-# prompt; the main thread had nothing. This closes that, and stays useful on
-# the other two as a reminder fired with the concrete file in hand.
+# Glob-scoped rules left global/rules/: no harness loads them by itself any
+# more. Their channels now:
+#   Claude Code  the rule-delivery hook, gated on a read of a matching file
+#   opencode     the router skills' references (the plugin channel is retired)
+#   Codex        the router skills' references
+#   Grok         the router skills' references
+# Every one of those is a read the main thread has to take. This hook names the
+# rule at the moment it starts applying, with the concrete file in hand, so the
+# read is prompted instead of remembered. Subagents get the policy inlined in
+# their own prompt; the main thread has only this.
 #
 # DELIBERATELY SEPARATE FROM bash-policy.sh
 # That hook DENIES (exit 2 / decision JSON) — it is a gate. This one only
@@ -151,7 +151,7 @@ done
 
 [ -n "$fresh" ] || exit 0
 
-ctx="Situational rules that apply here: ${fresh}. Read them before proceeding unless already loaded this session — where they are not always-on they live in the language-rules skill references (every harness for browser-automation-reference.md) or load by glob (Claude Code, opencode). Advisory: this never blocks."
+ctx="Situational rules that apply here: ${fresh}. Read them before proceeding unless already loaded this session — where they are not always-on they live in the language-rules skill references (every harness for browser-automation-reference.md). Advisory: this never blocks."
 case "$fresh" in
   *workspace-conventions*)
     ctx="${ctx} 'workspace-conventions' is a SKILL, not a rule file — invoke it: it owns placement and naming for _support/, specs repos, sessions/, and docs/scripts/evidence/plan folders." ;;
