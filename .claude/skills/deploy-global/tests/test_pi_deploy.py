@@ -39,7 +39,7 @@ PATCH_FILES = (
 )
 PI_PACKAGE_PINS = (
     ("pi-subagents", "0.67.0"),
-    ("gentle-engram", "0.1.12"),
+    ("gentle-engram", "0.1.13"),
     ("pi-mcp-adapter", "2.33.0"),
     ("@juicesharp/rpiv-ask-user-question", "2.9.0"),
     ("pi-web-access", "0.29.0"),
@@ -222,7 +222,7 @@ class PiDeployTests(unittest.TestCase):
             bad_package.write_text(json.dumps({"name": "gentle-engram", "version": "9.9.9"}) + "\n", encoding="utf-8")
             result = run_global_script("--only", "pi", "--apply", home=home, pi_dir=pi_dir)
             self.assertEqual(result.returncode, 2)
-            self.assertIn("must be gentle-engram@0.1.12", result.stderr)
+            self.assertIn("must be gentle-engram@0.1.13", result.stderr)
             self.assertFalse((home / ".agents/.hive-deploy-manifest.json").exists())
             self.assertFalse((pi_dir / ".hive-deploy-backups").exists())
 
@@ -634,13 +634,7 @@ class PiDeployTests(unittest.TestCase):
                 item if isinstance(item, str) else item.get("source")
                 for item in settings["packages"]
             }
-            self.assertTrue({
-                "npm:pi-subagents@0.67.0",
-                "npm:gentle-engram@0.1.12",
-                "npm:pi-mcp-adapter@2.33.0",
-                "npm:@juicesharp/rpiv-ask-user-question@2.9.0",
-                "npm:pi-web-access@0.29.0",
-            }.issubset(package_sources))
+            self.assertTrue(set(PI_PACKAGE_SOURCES).issubset(package_sources))
             subagent = json.loads((pi_dir / "extensions/subagent/config.json").read_text(encoding="utf-8"))
             self.assertTrue(subagent["forceTopLevelAsync"])
 
