@@ -116,7 +116,6 @@ PI_HOOK_RELATIVES = (
     "flow-session-context/flow-session-context.sh",
     "post-tool-hub/post-tool-hub.sh",
     "reviewer-guard/reviewer-guard.sh",
-    "rule-context/rule-context.sh",
     "rule-delivery/rule-delivery.py",
     "session-hygiene-report/session-hygiene-report.sh",
 )

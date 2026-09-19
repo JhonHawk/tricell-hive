@@ -186,10 +186,22 @@ zsh_signature_section() {
 # Claude's ask tool; Grok's equivalent is not observably named here, so firing
 # on its payloads would false-positive after a legitimate ask. Heuristic by
 # design — a question asked where PostToolUse cannot see it is not counted.
+#
+# MAIN THREAD ONLY. A subagent never owns the session's git mode: it cannot ask
+# the question, its Write is not the session's first edit-intent, and the
+# advisory reaches the user only as relayed noise. Identity keys are the same
+# set rule-delivery.py reads — Claude sets `agent_id`/`agent_type` only inside a
+# child, Grok `subagentType`; all are absent on the main thread. The check runs
+# before the markers so a child's write neither records the ask nor consumes the
+# main thread's once-per-session evaluation.
 # ---------------------------------------------------------------------------
 git_mode_section() {
   [ "$harness" != "pi" ] || return 0
-  local askq_marker marker cwd
+  local askq_marker marker cwd identity
+  identity=$(printf '%s' "$input" | jq -r '
+    [.agent_id, .agentId, .agent_type, .agentType, .subagentType, .agent_name]
+    | map(select(type == "string" and . != "")) | first // empty' 2>/dev/null)
+  [ -z "$identity" ] || return 0
   askq_marker="${TMPDIR:-/tmp}/claude-askq-seen-${session_id}"
 
   # Ask observed -> record it and stay silent.

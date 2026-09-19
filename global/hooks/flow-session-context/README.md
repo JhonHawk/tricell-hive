@@ -42,9 +42,9 @@ harness-specific branches.
 
 ## Parent-only freshness and recovery
 
-The three advisory surfaces are delivered to the parent session only: Flow context on a fresh
-context or successful compaction, `rule-context` before a tool invocation, and
-`session-hygiene-report` on a fresh context under its fingerprint cooldown. Freshness is
+The two advisory surfaces are delivered to the parent session only: Flow context on a fresh
+context or successful compaction, and `session-hygiene-report` on a fresh context under its
+fingerprint cooldown. Freshness is
 derived from active context entries; a startup event alone is not proof of a new context. A
 resumed CLI context may re-emit the fresh advisory when its active context is absent. In Pi,
 the adapter queues it as a native hidden `custom_message` with `triggerTurn: false` and no
@@ -57,7 +57,6 @@ guards keep their original fail-closed behavior.
 | Advisory surface | Copied or staged | Wired or registered | Failure policy |
 |---|---|---|---|
 | Flow fresh/compact | Canonical `flow-session-context.sh` plus the Pi adapter source | SessionStart/compact channels for the native harnesses; Pi parent lifecycle events | Missing or malformed output warns and continues; only successful compaction emits recovery |
-| Rule context | Canonical `rule-context.sh` plus translated Pi payloads | Claude/Grok hook channels and Pi parent `tool_call` before `Write`/`Edit`/`Bash` | Advisory only; per-session deduplication remains, and the call cannot deny the tool |
 | Hygiene report | Canonical `session-hygiene-report.sh` | Fresh parent context and Pi parent lifecycle, using the shared fingerprint state | Report-only with the canonical cooldown; missing output warns and continues |
 
 **Codex caveat:** `~/.codex/hooks.json` scripts run only when the hook file's `trusted_hash` matches and hooks are enabled in the Codex config; a changed script must be re-trusted (or hooks re-enabled) before Codex will execute it. Deploy re-registers the hash — a manual copy does not.

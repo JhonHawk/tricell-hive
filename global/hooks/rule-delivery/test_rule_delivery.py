@@ -736,7 +736,7 @@ class ObservationTests(HookCase):
             expected=False)
 
     def test_an_argv_list_command_is_normalized_before_it_is_read(self):
-        # Codex sends shell argv as an array (see rule-context.sh).
+        # Codex sends shell argv as an array.
         for index, argv in enumerate((["bash", "-lc", f"cat {self.text}"],
                                       ["cat", str(self.text)],
                                       ["/bin/cat", str(self.text)])):

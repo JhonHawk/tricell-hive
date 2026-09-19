@@ -1,4 +1,6 @@
 
+## UI Visual Design
+
 > **Scope & activation.** Distilled, verifiable visual-design criteria (from *Refactoring UI*,
 > Wathan & Schoger) to apply WHILE building UI — front-load them, don't bolt them on at the end.
 > Cross-stack (React/Angular/Vue/Svelte/HTML+CSS). These globs sometimes match a non-UI or

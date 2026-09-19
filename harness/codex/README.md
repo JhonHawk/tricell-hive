@@ -41,7 +41,7 @@ all share this layout where the harness has an equivalent loading surface.
 | Skills | 17 skills with injected `references/` | `~/.agents/skills/` | User-scope skill folder, read natively | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"USER $HOME/.agents/skills — Any skills checked into the user's personal folder."* | 2026-08-20 |
 | Skill gating | `agents/openai.yaml` per gated skill | inside each skill dir | Codex ignores Claude's `disable-model-invocation`; the YAML policy carries the gate | [build-skills](https://learn.chatgpt.com/docs/build-skills) — *"allow_implicit_invocation (default: true): When false, Codex won't implicitly invoke the skill based on user prompt"* | 2026-08-20 |
 | Agents | 26 generated `.toml` | `~/.codex/agents/` | Standalone TOML files per agent | [agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) — *"add standalone TOML files under ~/.codex/agents/ for personal agents"* | 2026-08-20 |
-| Hooks | 4 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
+| Hooks | 3 hooks shipping a `codex-hooks.json` | `~/.codex/hooks/` + merged into `~/.codex/hooks.json` | Native hooks config alongside `config.toml` | [hooks](https://learn.chatgpt.com/docs/hooks) — *"the four most useful locations are: ~/.codex/hooks.json ~/.codex/config.toml …"* | 2026-08-20 |
 | Prompt auditor | — | — | `codex debug prompt-input` renders the model-visible prompt as JSON | [developer-commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli) — *"Render the model-visible prompt input list as JSON"* | 2026-08-20 |
 
 **`project_doc_max_bytes` default is 32 KiB, not 65536.** The `65536` in
@@ -52,11 +52,10 @@ only** — the global `~/.codex/AGENTS.md` is not charged against it.
 ## What does NOT reach it
 
 - **The 28 rule texts under `global/rules-situational/`.** Codex has no `paths:`-equivalent
-  and no conditional-rule channel of any kind. They reach it three ways instead: injected
+  and no conditional-rule channel of any kind. They reach it two ways instead: injected
   into router-skill `references/` by `harness/build.py` (`SKILL_REFERENCE_INJECTIONS`),
-  held by the `rule-delivery` hook on the first `apply_patch` matching a rule's `globs:`
-  (read the named reference under `~/.agents/skills/…`, then re-issue), and named
-  just-in-time by the advisory `rule-context` hook.
+  and held by the `rule-delivery` hook on the first `apply_patch` matching a rule's
+  `globs:` (read the named reference under `~/.agents/skills/…`, then re-issue).
 - **Claude Code's per-agent tool allowlist.** Read-only reviewers are enforced by
   `sandbox_mode = "read-only"` instead; there is no per-tool deny.
 - **`$ARGUMENTS` substitution in skills.** Arguments arrive as free text.

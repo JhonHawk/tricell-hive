@@ -132,7 +132,7 @@ global/                            # Mirrors ~/.claude/ — deployable source of
 ├── README.md                      # What Claude Code loads + the official doc backing each mechanism (verified URLs)
 ├── CLAUDE.md                      # GENERATED always-on core (assembled from core-sections/ by harness/build.py)
 ├── core-sections/                 # Canonical section files for BOTH always-on cores (global/CLAUDE.md + harness/AGENTS.md)
-├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-context, rule-delivery, post-tool-hub, flow-session-context, flow-context, reviewer-guard, executor-dispatch-gate, session-hygiene-report)
+├── hooks/                         # Hook scripts + settings-config.json blocks, deployed/merged by /deploy-global (bash-policy, rule-delivery, post-tool-hub, flow-session-context, flow-context, reviewer-guard, executor-dispatch-gate, session-hygiene-report)
 ├── rules/                         # ALWAYS-ON rules only (12), deployed to ~/.claude/rules/
 │   ├── quality/                   # Code principles (7)
 │   │   ├── communication-format.md # flow-report trigger + carve-outs (gate half; rendering mechanics → rules-situational/)

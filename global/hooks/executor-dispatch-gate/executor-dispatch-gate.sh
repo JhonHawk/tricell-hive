@@ -24,10 +24,9 @@
 #   Otherwise, ledger row
 #     `| Executor dispatch | plan-required |` → DENY (exit 2 + decision JSON,
 #                                              the bash-policy shape).
-#     anything else                          → ADVISORY via additionalContext
-#                                              (the rule-context shape), once per
-#                                              session and per plan-state
-#                                              signature (marker file).
+#     anything else                          → ADVISORY via additionalContext,
+#                                              once per session and per
+#                                              plan-state signature (marker file).
 #
 # Never fails loud: any internal error exits 0 with no output — a backstop
 # must not break a dispatch through a bug of its own. Timeout is short.
@@ -228,8 +227,7 @@ case "$verb" in
     exit 2
     ;;
   ADVISE)
-    # Shape copied from rule-context.sh: PreToolUse advisory via
-    # hookSpecificOutput.additionalContext; never blocks.
+    # PreToolUse advisory via hookSpecificOutput.additionalContext; never blocks.
     jq -n --arg ctx "$msg" '{
       hookSpecificOutput: {
         hookEventName: "PreToolUse",

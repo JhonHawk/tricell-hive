@@ -21,7 +21,7 @@ last column. When a mechanism changes upstream, this is where you go to check.
 | Delivered rules | 28 rule files under `global/rules-situational/`, 19 of them with `globs:` | `~/.claude/skills/<router>/references/`; the two pack-only texts (`agent-core-gates`, `test-gate`) reach an agent only inlined through its `packs:` | **Not** deployed to `rules/`. A `globs:` rule is held by the `rule-delivery` hook on a matching write until its reference is read; otherwise reachable by invoking a router skill, or carried inside a packed agent | (no upstream mechanism; a repo convention — see below) | — |
 | Skills | 17 skills | `~/.claude/skills/**` | `SKILL.md` frontmatter drives invocation gating (`disable-model-invocation`, `user-invocable`, `allowed-tools`) | [skills#frontmatter-reference](https://code.claude.com/docs/en/skills#frontmatter-reference) — *"`user-invocable` … Set to `false` when only Claude should invoke the skill"* | 2026-08-20 |
 | Agents | 26 subagents, shipped from the generated `harness/claude/agents/` (the `global/agents/` source plus any `packs:` inlined) | `~/.claude/agents/**` | Discovered recursively; `tools:` is the enforcing allowlist, `model:` defaults to `inherit` | [sub-agents#supported-frontmatter-fields](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields) | 2026-08-20 |
-| Hooks | 9 hook dirs (a script + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
+| Hooks | 8 hook dirs (a script + a `settings-config.json` block each) | scripts → `~/.claude/hooks/`, registration → `~/.claude/settings.json` | Hooks are registered **in settings**, never auto-scanned from a directory | [hooks#hook-locations](https://code.claude.com/docs/en/hooks#hook-locations) — *"Hooks are defined in JSON settings files."* | 2026-08-20 |
 | Settings precedence | merged blocks only | `~/.claude/settings.json` | Managed › CLI args › Local › Project › User | [settings#settings-precedence](https://code.claude.com/docs/en/settings#settings-precedence) | 2026-08-20 |
 
 **There is no `/docs/en/rules` page.** The entire `.claude/rules/` mechanism — the `paths:`
@@ -32,7 +32,7 @@ is a 404; do not write one.
 
 The 28 rule texts under `global/rules-situational/`, as loadable files. Everything else
 still arrives: all 12 always-on rules, all 17 skills with their native gates, all 26 agents
-with enforced tool allowlists, and all 9 hooks — every constraint documented in the other
+with enforced tool allowlists, and all 8 hooks — every constraint documented in the other
 three READMEs is a subtraction from this baseline.
 
 Those 28 reach Claude Code exactly as they reach Grok and Codex: the 19 carrying `globs:`

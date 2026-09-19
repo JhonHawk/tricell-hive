@@ -29,7 +29,6 @@ PI_HOOKS = (
     "flow-session-context/flow-session-context.sh",
     "post-tool-hub/post-tool-hub.sh",
     "reviewer-guard/reviewer-guard.sh",
-    "rule-context/rule-context.sh",
     "rule-delivery/rule-delivery.py",
     "session-hygiene-report/session-hygiene-report.sh",
 )
@@ -719,9 +718,10 @@ class PiDeployTests(unittest.TestCase):
             metadata = json.loads((source / PATCH_FILES[1]).read_text(encoding="utf-8"))
 
             first = run_helper(*arguments)
-            # 16 since rule-delivery: the bundle carries one more canonical hook.
-            # 17 since the identity export: the patch carries a third package target.
-            self.assertIn("files: 17 write, 0 delete, 0 conflict", first.stdout)
+            # 16 since rule-context's retirement: the bundle carries one fewer
+            # canonical hook (rule-delivery and the identity-export patch target
+            # still count, so the number was 17 before this change-group).
+            self.assertIn("files: 16 write, 0 delete, 0 conflict", first.stdout)
             manifest = json.loads((pi_dir / ".hive-deploy-manifest.json").read_text(encoding="utf-8"))
             for record in metadata["targets"]:
                 target = pi_dir / "npm/node_modules/pi-subagents" / record["path"]
@@ -862,6 +862,52 @@ class PiDeployTests(unittest.TestCase):
             self.assertIn("CONFLICT", result.stdout)
             self.assertEqual(target.read_text(encoding="utf-8"), "user edit\n")
             self.assertFalse((pi_dir / "agents/demo.md").exists())
+
+    def test_a_pi_root_that_already_deployed_rule_context_gets_it_removed_by_the_next_apply(self) -> None:
+        """Retiring the rule-context advisory is a source-side change: the neutral
+        engine's manifest-based orphan cleanup, not a dedicated migration step,
+        must remove a script a PRIOR deploy installed once the current source
+        stops listing it. The prior deploy is reconstructed by hand here because
+        the retired source can no longer produce it."""
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            pi_dir = Path(temp) / "pi-agent"
+            seed_minimal_source(source)
+
+            legacy_content = b"#!/bin/sh\n"
+            target = pi_dir / "global/hooks/rule-context/rule-context.sh"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(legacy_content)
+            target.chmod(0o755)
+            manifest_path = pi_dir / ".hive-deploy-manifest.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "scope": "pi",
+                        "managedFiles": {
+                            "global/hooks/rule-context/rule-context.sh": {
+                                "sha256": hashlib.sha256(legacy_content).hexdigest(),
+                                "mode": 0o755,
+                                "source": "global/hooks/rule-context/rule-context.sh",
+                            },
+                        },
+                        "managedConfig": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_helper(
+                "deploy", "--repo-root", str(source), "--pi-dir", str(pi_dir), "--apply", check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(target.exists(), "the next apply must remove the retired hook as an orphan")
+            # The engine deletes only the managed FILE; it never prunes a
+            # directory left empty, matching its behavior for every other
+            # orphan removal (agents/demo.md in the sibling test above).
+            self.assertTrue(target.parent.is_dir())
+            self.assertEqual(list(target.parent.iterdir()), [])
 
     def test_user_config_edits_are_preserved_as_conflicts(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

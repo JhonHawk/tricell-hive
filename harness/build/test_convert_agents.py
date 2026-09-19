@@ -451,6 +451,20 @@ class PackInliningTests(unittest.TestCase):
             body=ROLE_RULES_BODY,
         )
 
+    def test_every_pack_is_labelled_with_its_rule_name(self):
+        # A rule text is not obliged to open with a title of its own
+        # (`ui-visual-design` opens with a blockquote and section headings), so
+        # without a label its sections read as a continuation of the pack above.
+        rendered = rendered_everywhere(self.packed())
+        for harness, text in rendered.items():
+            for pack, heading in (
+                ("typescript-standards", "## TypeScript & JS Standards"),
+                ("git-mechanics", "## Git Mechanics"),
+            ):
+                label = f"**Rule `{pack}` — carried in full below:**"
+                self.assertEqual(text.count(label), 1, (harness, pack))
+                self.assertLess(text.index(label), text.index(heading), (harness, pack))
+
     def test_packs_parse_as_a_declared_ordered_list(self):
         agent = self.packed()
         self.assertEqual(agent["packs"], ["typescript-standards", "git-mechanics"])

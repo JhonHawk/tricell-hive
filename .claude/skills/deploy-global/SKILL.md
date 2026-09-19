@@ -199,7 +199,7 @@ python3 harness/pi/deploy.py rollback --apply \
 | Managed settings | Owned fields in `settings.json`, `extensions/subagent/config.json`, `mcp.json`, and `web-search.json` | Five package pins, `forceTopLevelAsync`, the managed Context7, Linear, and HeroUI `mcp` proxies, and OpenAI web search | Invalid JSON or an ownership conflict blocks; unrelated user fields remain unchanged |
 | Packages and patch | Preinstalled exact packages plus the reviewed `pi-subagents` patch metadata | Package identities and before/after target hashes | No auto-install; missing pins, symlinks, third hashes, or patch mismatch block |
 | Shared skills | Generated universal skills in the neutral shared-skills target | Shared manifest and neutral backup/rollback records | Legacy conflicts are preserved and reported with hash/source-commit provenance |
-| Advisory hooks | Canonical scripts and PI adapter wiring | Parent-only flow, rule-context, and hygiene advisories | Missing advisory output warns and continues; blocking guards remain fail-closed |
+| Advisory hooks | Canonical scripts and PI adapter wiring | Parent-only flow and hygiene advisories | Missing advisory output warns and continues; blocking guards remain fail-closed |
 
 The neutral shared-skills manifest is `~/.agents/.hive-deploy-manifest.json` with adjacent
 private backups. The old path-only Claude manifest is read-only migration evidence: only

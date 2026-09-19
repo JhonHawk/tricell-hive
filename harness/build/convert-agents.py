@@ -688,8 +688,10 @@ def resolve_pack(agent_name, pack):
 def carried_rules_section(agent):
     """The `## Carried rules` block: heading, the do-not-hunt line, pack texts."""
     parts = [CARRIED_RULES_HEADING, "", CARRIED_RULES_INTRO]
-    for _, text in agent["pack_texts"]:
-        parts.extend(["", text])
+    for pack, text in agent["pack_texts"]:
+        # A rule text need not open with a title of its own; the label is what
+        # keeps its sections from reading as part of the pack above it.
+        parts.extend(["", f"**Rule `{pack}` — carried in full below:**", "", text])
     return "\n".join(parts)
 
 

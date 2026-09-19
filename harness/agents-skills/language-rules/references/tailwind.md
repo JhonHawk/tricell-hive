@@ -1,5 +1,5 @@
 
-> **Activation check.** Path-scoping in Claude Code cannot inspect sibling files, so the globs above will sometimes match a JSX/CSS file in a project that does NOT use Tailwind. When that happens, exit silently — don't apply Tailwind rules to non-Tailwind projects.
+> **Activation check.** A glob cannot inspect sibling files, so the globs above will sometimes match a JSX/CSS file in a project that does NOT use Tailwind. When that happens, exit silently — don't apply Tailwind rules to non-Tailwind projects.
 > - **v3 signal**: `tailwind.config.*` present, classic `@tailwind` directives in a stylesheet, or `tailwindcss` in `package.json`.
 > - **v4 signal**: `@import "tailwindcss"` and/or `@theme` in a stylesheet.
 > - If none of those markers exist, ignore this rule even if the file path matched.

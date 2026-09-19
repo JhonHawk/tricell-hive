@@ -109,7 +109,6 @@ function pathsFor(directory: string): HookPaths {
     postToolHub: join(directory, "missing-post-tool-hub.sh"),
     flowContext: join(directory, "missing-flow-context.sh"),
     flowSessionContext: join(directory, "missing-flow-session-context.sh"),
-    ruleContext: join(directory, "missing-rule-context.sh"),
     ruleDelivery: join(directory, "missing-rule-delivery.py"),
     sessionHygieneReport: join(directory, "missing-session-hygiene-report.sh"),
   };
@@ -670,7 +669,7 @@ test("hook readiness fails when the declared gate is not installed", () => {
   }
 });
 
-test("hook readiness keeps the required hooks authoritative while exposing all eight statuses", () => {
+test("hook readiness keeps the required hooks authoritative while exposing all seven statuses", () => {
   const directory = mkdtempSync(join(tmpdir(), "hive-pi-hook-status-"));
   const fake = createFakePi();
   const paths = pathsFor(directory);
@@ -683,9 +682,8 @@ test("hook readiness keeps the required hooks authoritative while exposing all e
     }
     registerGeneralHiveHooks(fake.api, { paths });
     const statuses = getHiveHookStatuses(fake.api, paths);
-    assert.equal(Object.keys(statuses).length, 8);
+    assert.equal(Object.keys(statuses).length, 7);
     assert.equal(statuses.flowSessionContext?.wired, true);
-    assert.equal(statuses.ruleContext?.wired, true);
     assert.equal(statuses.ruleDelivery?.wired, true);
     assert.equal(statuses.sessionHygieneReport?.wired, true);
     assert.equal(statuses.reviewerGuard?.wired, false);
@@ -754,43 +752,6 @@ process.stdout.write(JSON.stringify({ additionalContext: "permission_mode=" + St
   } finally {
     if (previousPlanMode === undefined) delete process.env.PI_HIVE_PLAN_MODE;
     else process.env.PI_HIVE_PLAN_MODE = previousPlanMode;
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
-test("rule context maps parent Write/Edit/Bash calls and serializes hidden steer messages", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "hive-pi-rule-context-"));
-  const log = join(directory, "rule.log");
-  const ruleContext = join(directory, "rule-context.sh");
-  writeFileSync(ruleContext, `#!/usr/bin/env node
-const fs = require("node:fs");
-let input = "";
-process.stdin.setEncoding("utf8");
-process.stdin.on("data", (chunk) => { input += chunk; });
-process.stdin.on("end", () => {
-  const payload = JSON.parse(input);
-  fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(payload) + "\\n");
-  process.stdout.write(JSON.stringify({ additionalContext: payload.tool_name }));
-});
-`);
-  chmodSync(ruleContext, 0o755);
-  const fake = createFakePi();
-  const context = makeContext(directory, "session-a", "base", [], fake.notifications);
-  try {
-    registerGeneralHiveHooks(fake.api, { paths: { ...pathsFor(directory), ruleContext } });
-    await Promise.all([
-      invoke(fake, "tool_call", { type: "tool_call", toolCallId: "write-1", toolName: "write", input: { file_path: "a.ts", content: "a" } }, context),
-      invoke(fake, "tool_call", { type: "tool_call", toolCallId: "edit-1", toolName: "edit", input: { file_path: "b.ts", old_string: "b", new_string: "c" } }, context),
-    ]);
-    const payloads = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
-    assert.deepEqual(payloads.map((payload) => payload.tool_name), ["Write", "Edit"]);
-    assert.equal(payloads[0]?.harness, "pi");
-    assert.deepEqual(payloads[0]?.tool_input, { file_path: "a.ts", content: "a" });
-    assert.equal(fake.messages.length, 2);
-    assert.equal(JSON.stringify(fake.messages[0]?.options).includes("steer"), true);
-    assert.match(JSON.stringify(fake.messages[0]?.message), /Write/u);
-    assert.match(JSON.stringify(fake.messages[1]?.message), /Edit/u);
-  } finally {
     rmSync(directory, { recursive: true, force: true });
   }
 });

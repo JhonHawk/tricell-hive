@@ -56,7 +56,7 @@ mismo ámbito.
      inline de código; las ediciones de registros (1b) siguen pasando, que es lo que permite
      escribir el plan que lo destraba.
    - cualquier otro valor o fila ausente → **advisory** vía
-     `hookSpecificOutput.additionalContext` (la forma de `rule-context.sh`), **una vez por
+     `hookSpecificOutput.additionalContext`, **una vez por
      sesión y por firma del estado** (marker en `${TMPDIR:-/tmp}` con el cksum de la lista
      de planes + Status + can_implement, como `flow-context.sh`); un plan nuevo o un cambio de
      Status vuelve a disparar. Sin `session_id` dispara siempre.

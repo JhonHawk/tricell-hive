@@ -303,7 +303,6 @@ export const REQUIRED_HOOK_KEYS: readonly HiveHookKey[] = [
 
 export const ADVISORY_HOOK_KEYS: readonly HiveHookKey[] = [
   "flowSessionContext",
-  "ruleContext",
   "sessionHygieneReport",
 ];
 
@@ -398,7 +397,6 @@ export function defaultHookPaths(): HookPaths {
     postToolHub: join(root, "post-tool-hub/post-tool-hub.sh"),
     flowContext: join(root, "flow-context/flow-context.sh"),
     flowSessionContext: join(root, "flow-session-context/flow-session-context.sh"),
-    ruleContext: join(root, "rule-context/rule-context.sh"),
     ruleDelivery: join(root, "rule-delivery/rule-delivery.py"),
     sessionHygieneReport: join(root, "session-hygiene-report/session-hygiene-report.sh"),
   };
@@ -643,29 +641,6 @@ async function sendHiddenContext(
   );
 }
 
-function ruleToolName(toolName: string): "Write" | "Edit" | "Bash" | undefined {
-  switch (toolName.toLowerCase()) {
-    case "write":
-      return "Write";
-    case "edit":
-      return "Edit";
-    case "bash":
-      return "Bash";
-    default:
-      return undefined;
-  }
-}
-
-function ruleContextPayload(ctx: ExtensionContext, event: ToolCallEvent, toolName: "Write" | "Edit" | "Bash" | "Read"): Record<string, unknown> {
-  return {
-    harness: "pi",
-    cwd: ctx.cwd,
-    session_id: currentSessionId(ctx),
-    tool_name: toolName,
-    tool_input: event.input,
-  };
-}
-
 /**
  * PI has no agent-name channel of its own: the reviewed `pi-subagents` patch
  * exports `PI_HIVE_AGENT` from the child launch, and this reads it ONCE, while
@@ -807,7 +782,6 @@ export function registerGeneralHiveHooks(
   const advisoryFailureKeys = new Set<string>();
   const parentAdvisoriesEnabled = process.env.PI_SUBAGENT_CHILD !== "1";
   const hiveAgent = resolveHiveAgentIdentity();
-  let ruleQueue: Promise<void> = Promise.resolve();
   let initialContextQueuedSession: string | undefined;
   let parentSession = process.env.PI_SUBAGENT_PARENT_SESSION ?? "";
   attachChildLifecycle(pi, childRegistry, () => parentSession || process.env.PI_SUBAGENT_PARENT_SESSION || "");
@@ -819,7 +793,6 @@ export function registerGeneralHiveHooks(
   markHiveHookWired(pi, paths, "ruleDelivery");
   if (parentAdvisoriesEnabled) {
     markHiveHookWired(pi, paths, "flowSessionContext");
-    markHiveHookWired(pi, paths, "ruleContext");
     markHiveHookWired(pi, paths, "sessionHygieneReport");
   }
   pi.registerTool(createHookReadinessTool(paths, () => getHiveHookStatuses(pi, paths)));
@@ -908,51 +881,6 @@ export function registerGeneralHiveHooks(
     }
     if (/^(?:subagent|delegate|spawn)(?:[-_]|$)/iu.test(event.toolName)) {
       childRegistry.register(parentSession || currentSessionId(ctx), event.toolCallId);
-    }
-
-    if (parentAdvisoriesEnabled) {
-      // One queue for both rule hooks: their steered messages must reach the
-      // session in call order, never interleaved by whichever process exits first.
-      const queueRuleAdvisory = async (
-        key: HiveHookKey,
-        mappedTool: "Write" | "Edit" | "Bash" | "Read",
-      ): Promise<void> => {
-        const previous = ruleQueue;
-        const current = previous.then(async () => {
-          const context = await runAdvisoryHook(
-            pi,
-            paths,
-            key,
-            {
-              scriptPath: paths[key],
-              cwd: ctx.cwd,
-              payload: ruleContextPayload(ctx, event, mappedTool),
-              mode: "advisory",
-              signal: ctx.signal,
-            },
-            runnerOptions,
-            advisoryFailureKeys,
-            ctx,
-          );
-          try {
-            await sendHiddenContext(
-              pi,
-              context,
-              "steer",
-              { source: "tool_call", sessionId: currentSessionId(ctx), hook: key, tool: mappedTool },
-            );
-          } catch (error) {
-            const reason = `Unable to queue rule context: ${hookFailureReason(error)}`;
-            recordHiveHookError(pi, paths, key, reason);
-            notifyAdvisoryFailureOnce(ctx, key, paths[key], reason, currentSessionId(ctx), advisoryFailureKeys);
-          }
-        }, async () => undefined);
-        ruleQueue = current.then(() => undefined, () => undefined);
-        await current;
-      };
-
-      const mappedTool = ruleToolName(event.toolName);
-      if (mappedTool) await queueRuleAdvisory("ruleContext", mappedTool);
     }
 
     // rule-delivery is a GATE, not an advisory: PI can refuse a tool call, so a

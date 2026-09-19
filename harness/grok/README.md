@@ -40,8 +40,8 @@ guide (`~/.grok/docs/user-guide/10-hooks.md`). Payload keys arrive in BOTH spell
 A hook on a non-injecting event can still ACT (write a file, deny a call). Consequences for
 this repo's hooks in Grok: `bash-policy` works (its product is a deny, not context);
 `post-tool-hub` injects since 1.0.14 (`post-tool-hub` reads Claude's
-`.tool_response`, which grok emits as an alias of `toolResult`); `rule-context` lands as a
-post-call note; `flow-session-context`, `session-hygiene-report` (`SessionStart`) and
+`.tool_response`, which grok emits as an alias of `toolResult`);
+`flow-session-context`, `session-hygiene-report` (`SessionStart`) and
 `flow-context` (`UserPromptSubmit`) run but their injection never lands. **Policy still
 belongs in the rules and skills layer** — a hook that speaks only after the call cannot
 carry a rule the model needed before it; use hooks in Grok for effects, for post-call
@@ -88,8 +88,8 @@ the Rust harness and has **no `docs/` directory**; the user guide exists only on
   so shipping them into `~/.grok/rules/` would load all of them, always. They are excluded
   on purpose and reach Grok the same way they reach Codex: injected into a router skill's
   `references/` (`language-rules`, `workspace-conventions`, `task-routing`, …), held by the
-  `rule-delivery` hook on the first write matching a rule's `globs:`, plus the advisory
-  `rule-context` hook. **Consequence:** moving an always-on rule out of `global/rules/`
+  `rule-delivery` hook on the first write matching a rule's `globs:`.
+  **Consequence:** moving an always-on rule out of `global/rules/`
   silently removes it from `~/.grok/rules/` — route that content through a router skill in
   the same change.
 - **Directory symlinks.** `~/.grok/rules/` is populated with one symlink **per file**, not

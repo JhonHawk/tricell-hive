@@ -159,13 +159,15 @@ from the explicit `tools` selection.
 
 ### Parent advisory hooks
 
-The parent extension delivers the three canonical advisory surfaces without changing
-the existing child guards:
+The parent extension delivers the two canonical advisory surfaces without changing
+the existing child guards. The `rule-context` advisory that used to sit here was
+retired: `rule-delivery` (the deterministic read-gate below) supersedes it everywhere,
+including Pi, and a Pi root that deployed the retired script has it removed by the
+next apply's manifest-based orphan cleanup.
 
 | Advisory | Parent trigger | Durable behavior | Failure policy |
 |---|---|---|---|
 | `flow-session-context` | Fresh context and successful compaction | Fresh flow context is restored once; compaction receives the condensed Flow recovery; pending initial context survives reload | Missing or malformed advisory output warns and continues |
-| `rule-context` | Before a tool invocation | Translates Pi `Write`/`Edit`/`Bash` inputs to the canonical JSON payload and keeps canonical per-session rule markers | Advisory only; it never replaces the blocking Bash or reviewer guards |
 | `session-hygiene-report` | Fresh parent context | Reuses the canonical report-only scan and its six-hour fingerprint cooldown | Missing report warns and continues; it never kills a process or blocks the parent |
 
 Freshness comes from active context entries, not from treating every startup as a new
