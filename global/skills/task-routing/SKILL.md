@@ -1,13 +1,17 @@
 ---
 name: task-routing
 description: >
-  Load before substantive research, BI analysis, architecture, infrastructure, agent
-  configuration or development work; also before the first project edit-intent, git verb,
-  delegation or plan's tasks. Covers deliverable and effects, specialist routing,
-  prerequisites, verification, task records and applicable git mechanics. Short self-contained
-  questions and trivial mechanical work skip the intake; project edit/git gates still apply.
-  Triggers: review, audit, investigate, diagnose, analyze, design, refactor, plan, branch,
-  commit, PR, merge, promote; revisar, auditar, investigar, analizar, diseñar, planear.
+  Load at the FIRST of these acts, whichever comes first: the first write or edit of project
+  code, the first git verb, the first delegation, a plan's tasks, the first read of the data
+  file or source set an answer is built from (a CSV, a query result, documents named for
+  analysis), or the first infrastructure command. Covers the deliverable and its authorized
+  effects, specialist routing, prerequisites, completion evidence, the stopping condition, and
+  git mechanics. Any request to review, audit, investigate, analyze, diagnose, design or
+  refactor across files is this decision, even when the user never says "delegate". NOT for: a
+  short self-contained question, trivial mechanical work (typo, rename, one-line config), or a
+  small read-only lookup (≤3 files, ≤3 queries). Triggers: review, audit, investigate,
+  diagnose, analyze, design, refactor, plan, branch, commit, PR, merge, promote; revisar,
+  auditar, investigar, analizar, diseñar, planear.
 ---
 
 # task-routing — deliverable, effects, execution and evidence
@@ -15,6 +19,10 @@ description: >
 Use the common intake in `agent-routing.md` for substantive work, including work outside
 software projects. Infer what the conversation settles; ask only for missing information
 that changes the work. Read git mechanics when project edits or git operations apply.
+
+Nothing loads any of this for you: **not invoking this skill is identical to not having the
+rules.** Delegating without them guesses the specialist and skips the verification layer;
+committing without them picks a branch and a session mode by accident.
 
 ## Routing table — read the row that matches
 

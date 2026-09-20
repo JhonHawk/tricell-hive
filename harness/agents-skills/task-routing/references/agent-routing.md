@@ -6,7 +6,7 @@ If the user names a specific agent (`@agent-name`, "use the X agent"), invoke it
 
 ### Common intake
 
-Before substantive research, BI analysis, architecture, infrastructure, agent configuration or development, infer the requested deliverable, scope and exclusions, authorized effects and targets, completion evidence, and stopping condition. State only consequential assumptions; ask only what changes scope, authority or correctness. No mandatory questionnaire or intake artifact. Prompt-convention.
+For any work that reaches this file, infer the requested deliverable, scope and exclusions, authorized effects and targets, completion evidence, and stopping condition. State only consequential assumptions; ask only what changes scope, authority or correctness. No mandatory questionnaire or intake artifact. Prompt-convention.
 
 - **Route by deliverable and effects.** Use the existing specialist table and relevant skills; domain labels grant no authority and waive no safety, data, security, production or contract gate. BI does not automatically route to a database specialist; schema or query-performance work does.
 - **Choose the smallest sufficient route.** A sourced answer, analysis or proposal can complete in conversation. `/flow-plan` and `/flow-build` remain explicitly requested formal development routes; substantive work does not automatically invoke them or acquire their portable authorization contract.

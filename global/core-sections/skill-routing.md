@@ -23,17 +23,17 @@ Consulting the router is never the blocking step: read it and keep going in the 
 
 | Router | Fires on — the observable act | What it governs |
 |---|---|---|
-| `task-routing` | substantive work in any domain; before project edit-intent, git, delegation or plan tasks | deliverable, authorized effects, evidence, stopping condition, specialists, prerequisites and applicable git mechanics |
+| `task-routing` | the FIRST of: a write or edit of project code · a `git` command · a delegation · a plan's tasks · a read of the data or source set an answer is built from · an infrastructure command | deliverable, authorized effects, evidence, stopping condition, specialists, prerequisites and applicable git mechanics |
 | `memory-policy` | the first `mem_*` call of the session, and the close-time summary | project identity, save cadence, invalidation, tracker sync |
 | `workspace-conventions` | writing a file outside application source, typing an infra resource name, or stating in an answer/plan where an artifact, script, report, or doc will live (a path or folder named in prose is the act) | `_support`, specs, ADRs, contracts, naming, cross-service shapes |
 | `status-fetch` | about to answer "what's pending / where are we" without having read git yet | live external state |
-| `language-rules` | Grok — the first `Write`/`Edit` of code; Claude Code — planning or writing tests, picking a search strategy, claiming an absence, driving a browser | `testing.md`, `code-search.md`, `browser-automation-reference.md`; language conventions |
+| `language-rules` | Grok — the first write or edit of code; Claude Code — planning or writing tests, picking a search strategy, claiming an absence, driving a browser | `testing.md`, `code-search.md`, `browser-automation-reference.md`; language conventions |
 
 `flow-report` is not in the table: it is a renderer, not a router, and its trigger is a property of the answer rather than an act of yours — `communication-format.md` is canonical for it and the conditions are never restated elsewhere.
 
 The gates those routers' domains carry stay always-on and need no skill: what a git verb authorizes, protected branches, force-push and production promotion live in `git-workflow.md`.
 
-**A trigger is written as an act, never as an intent.** The test: could a third party reading the transcript say whether the moment happened? "At edit-intent" fails it — it needs introspection, and a model that does not recognize the moment never reaches the rule. "The first `Write`/`Edit` on project code" passes: it is in the log. This governs the table above, every `description:` in a skill's frontmatter, and any rule whose trigger is a moment rather than a file.
+**A trigger is written as an act, never as an intent.** The test: could a third party reading the transcript say whether the moment happened? "At edit-intent" fails it — it needs introspection, and a model that does not recognize the moment never reaches the rule. "The first write or edit of project code" passes: it is in the log, and it names the capability rather than one harness's tool. This governs the table above, every `description:` in a skill's frontmatter, and any rule whose trigger is a moment rather than a file.
 
 - **`/simplify` (Claude Code built-in) may auto-invoke at a change-group's green seam** — affected tests passing, before the commit/diff-presentation boundary — scoped to the just-changed code, and declared when run. Quality cleanup only (reuse, simplification, efficiency, altitude); never a substitute for review. It edits the working tree — its edits are part of the change-group and reach the user through the same commit/diff gate as the rest. Claude Code only: Codex/Grok/opencode have no such skill — the same four dimensions reach them through the `review-code` agent.
 
