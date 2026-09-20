@@ -1,6 +1,6 @@
 # Portable harness engineering: research and design implications
 
-Research checked 2026-09-20 (America/Mexico_City). This is a source-backed design basis, not a product specification or proof that a Hive candidate improves results. The five-host rebuild scope is Claude Code, Codex, Grok Build, Pi, and OpenCode V2. A same-day local inventory reported Claude Code 2.1.278, Codex 0.155.1, Grok 1.0.34 (`3736acbc8658`, stable), Pi 0.86.0, and OpenCode 2.0.9; documentation URLs below are rolling pages unless versioned, not proof that the installed builds behave as documented. The earlier pilot and research snapshots sometimes name only four hosts; this document reflects the later five-host objective.
+Research checked 2026-09-20 (America/Mexico_City). This is a source-backed design basis, not a product specification or proof that a Hive candidate improves results. The five-host rebuild scope is Claude Code, Codex, Grok Build, Pi, and OpenCode V2. A same-day local inventory reported Claude Code 2.1.278, Codex 0.155.1, Grok 1.0.34 (`3736acbc8658`, stable), Pi 0.86.0, and OpenCode 2.0.9; documentation URLs below are rolling pages unless versioned, not proof that the installed builds behave as documented. This document reflects the five-host rebuild objective.
 
 ## Finding
 
@@ -40,17 +40,9 @@ Figure 02/03 values are “below peak,” not identical before/after workloads o
 
 Caching changes the cost and latency of reprocessing a matching prefix; it does not cause an unloaded skill or unread reference to enter context. Cache behavior depends on model, provider, request bucket, identical prefix, and idle time. OpenAI's current API docs state GPT-5.6+ has a 30-minute minimum cache lifetime after reuse; GPT-5.5/5.5 Pro typically retain entries around 30 minutes and can support up to 24 hours; earlier models vary, with `in_memory` typically 5–10 minutes inactive (up to one hour) or an optional 24-hour retention path where supported ([OpenAI prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)). This is API documentation, not a measured Codex CLI billing profile. Claude Code currently uses a one-hour main-conversation TTL for included subscription usage, while API/usage-credit requests default to five minutes; auxiliary request buckets are generally five minutes, subject to version and configuration ([Claude Code prompt caching](https://code.claude.com/docs/en/prompt-caching)). Do not claim that a 30-minute or one-hour cache makes always-loaded rules free or that all five hosts share these semantics.
 
-## Hive pilot: current evidence is insufficient for a quality claim
+## Limits of local validation
 
-The retained pilot record (historical evidence omitted from public history) reports successful deployment checks across five hosts, but those checks establish delivery, not improved behavior. Across isolated screening and later native cases:
-
-- The isolated Codex research and save cells had correct skill/reference reads and placement; exploratory model grading was 10/10 for both arms on the same fixture, and the requested model identity was unresolved.
-- Native Claude research did not load `flow-research`. The earlier corrected isolated standalone-save pair read references before the effective write; the later native save required a rerun after a permission/hook block. These are different checks, not a native baseline/candidate pair or a reliability estimate.
-- Pi research missed a required search reference; its save read a sibling Claude finding, contaminating independent attribution.
-- Grok research reused Codex output from shared Engram memory; its save read sibling findings and memory. Its candidate's one-point exploratory score difference is not causal evidence.
-- OpenCode V2's save cell was independently verified, while research missed a needed reference and made arithmetic/causal errors.
-
-The eight-answer grading was an exploratory model-agent review, not the rubric's required human review. No human validation occurred; there is no demonstrated quality improvement. In an earlier isolated Codex checkpoint, returned research instructions were 47,289 characters at baseline and 40,490 for the candidate, while standalone-save reads rose from 38,290 to 67,516. These are two task traces, not a general burden measure. Reported core reductions of 124 Claude and 6 Codex/OpenCode “tokens” came from bytes divided by four, not a tokenizer. Neither set of figures proves lower maintenance or cost. Real compaction behavior was not reached in the earlier screening; do not infer cross-host persistence.
+This research does not demonstrate a quality, reliability, or cost improvement for Hive. Earlier implementation and pilot records are outside the retained research scope and remain in Git history. The recommendations below are design hypotheses derived from the cited documentation and supplied corpus; they require independent evaluation before any claim of improvement.
 
 ## Recommendations (inference)
 
