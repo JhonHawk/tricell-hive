@@ -1,1 +1,0 @@
-../../.claude/hooks/agent-line-count.sh

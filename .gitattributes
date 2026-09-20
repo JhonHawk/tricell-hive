@@ -1,3 +1,0 @@
-# Unified diff context requires a space before upstream tab indentation.
-# Remove this exception when the versioned compatibility patch is retired.
-harness/pi/patches/pi-subagents-0.67.0.patch whitespace=-space-before-tab
