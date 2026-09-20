@@ -54,7 +54,7 @@ Never anchor to the version you remember from training data (it lags releases, a
 
 ## Mechanics
 
-`resolve-library-id` (prefer exact names and version-specific IDs; retry alternate spellings — `next.js`, not `nextjs`) → `query-docs` with the question → answer citing the version.
+`resolve-library-id` — it takes BOTH the library name AND the question (a name-only call is rejected); prefer exact names and version-specific IDs, retry alternate spellings (`next.js`, not `nextjs`) → `query-docs` with the library id and the question → answer citing the version.
 
 ## Fallback
 
