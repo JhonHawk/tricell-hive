@@ -14,9 +14,11 @@ commands:
   - "go get"
 ---
 
-## Context7 — version-correct docs in one query
+## Context7 — version-anchored docs in one query
 
-The context7 docs tool (MCP) returns the API surface of the version the project's lockfile/manifest pins: signatures, options and props, config shapes, migration notes. It replaces a web search for any library, framework, SDK, API or CLI surface, and it is both faster and version-correct where training memory is neither. Reach for it first; web search is the fallback, never the peer.
+The context7 docs tool (MCP) returns the API surface of a library at the version you anchor it to: signatures, options and props, config shapes, migration notes. It replaces a web search for any library, framework, SDK, API or CLI surface, and it is faster and closer to the installed version than training memory is. Reach for it first; web search is the fallback, never the peer.
+
+**Anchored is not guaranteed.** A pinned version can still return a snippet from `canary` or `latest` — measured, not hypothetical — and a version absent from the index falls back to latest silently. Read the `Source:` line of any snippet you are about to write code against; a mismatch means treat it as unverified, not as the answer.
 
 **The asymmetry is the threshold, not your confidence.** One unnecessary query costs seconds; one wrong signature costs a build failure or a silent bug. At the edge, query.
 
@@ -31,8 +33,6 @@ Acts, each visible in the transcript:
 - **Installing or integrating a new dependency** — validate plan, config, and examples against the docs for the version being installed.
 - **File conventions tied to a framework version** (`middleware.ts` vs `proxy.ts`, App Router layout, server actions, route handlers) — in an existing repo the disk is the primary signal (the convention already chosen is visible); query when CREATING the convention or when the framework major changed.
 - **Auth flows, middleware, transaction boundaries** — configuration shape changes enough across versions that training data is unreliable.
-- **Before PROPOSING a library-specific approach in an answer** — a recommendation carries the same version risk as the code, and it is acted on the same way.
-
 **A pattern-level answer you already hold does not cover the call detail you are about to write.** "Use App Router" is not the signature of the function you are typing.
 
 **The query that counts is the write-time one.** The obligation attaches to the exact signature, options/props, and config shape at the moment you write the version-sensitive code. A prior query — planning-phase or earlier in the session — discharges it only when it demonstrably returned that exact detail (same surface, same version). Re-query on signal: the detail isn't in what you already fetched, or the build/typecheck failed on that surface.
@@ -43,6 +43,7 @@ Enforcement: prompt-convention. The hook holds this file on a dependency-install
 
 - **Stable library on a stable surface.** APIs that haven't changed in years (`useState`, `Promise.all`, Express `app.get()`, Spring `@Service`, standard Zod schemas): anchor to the lockfile version and write directly.
 - **Language-level constructs.** Control flow, loops, string manipulation, standard data structures — no framework involved.
+- **A surface with no version band.** Before querying, name the version boundary you are unsure of; if you cannot name one, you are not resolving a doubt — write the code. A query is cheap, a turn spent on one you did not need is not.
 - **Internal codebase navigation.** Grep/Read/Explore for "where is X used in this repo"; context7 is for upstream docs, not local code.
 
 ## Anchor to the right version — by phase
@@ -54,8 +55,12 @@ Never anchor to the version you remember from training data (it lags releases, a
 
 ## Mechanics
 
-`resolve-library-id` — it takes BOTH the library name AND the question (a name-only call is rejected); prefer exact names and version-specific IDs, retry alternate spellings (`next.js`, not `nextjs`) → `query-docs` with the library id and the question → answer citing the version.
+`resolve-library-id` — it takes BOTH the library name AND the question (a name-only call is rejected); retry alternate spellings (`next.js`, not `nextjs`) → pick the library id → `query-docs` with that id and the question → answer citing the version.
+
+- **Pin the version in the LIBRARY ID, not in the question.** The resolved result lists the versions it indexes: query `/org/project/vX.Y.Z`. A version mentioned only in the query string is a hint the server may ignore.
+- **Several candidates come back** (five for `next.js`): prefer the higher Benchmark Score, then Trust Score, then snippet count — the resolver returns all three.
+- **Three calls per question is the server's own ceiling.** Past it, you are guessing at the query, not at the docs: change the question or fall back.
 
 ## Fallback
 
-Context7 returns nothing or is unavailable → web search. Neither available → anchor to the lockfile/manifest version, proceed, and declare the assumed version prominently in the close report — the declared assumption does not replace the missing docs, so flag the unverified surface too. A hard stop remains only for framework-critical patterns (auth flows, middleware, transaction management) with NO docs AND NO version anchor (greenfield without a manifest) — and that single question folds into the plan gate, never a mid-run stop.
+Context7 returns nothing or is unavailable → web search. It returns snippets whose `Source:` contradicts the pinned version → the surface is unverified: query the version-suffixed id if you did not, else web search for that detail and say which version you actually confirmed. Neither available → anchor to the lockfile/manifest version, proceed, and declare the assumed version prominently in the close report — the declared assumption does not replace the missing docs, so flag the unverified surface too. A hard stop remains only for framework-critical patterns (auth flows, middleware, transaction management) with NO docs AND NO version anchor (greenfield without a manifest) — and that single question folds into the plan gate, never a mid-run stop.
