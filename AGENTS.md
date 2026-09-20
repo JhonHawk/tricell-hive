@@ -39,3 +39,9 @@ For behavior claims, record the host and installed version, resolved model, task
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.
 - `_support/sessions/` — dated work records; `_support/workspace/` — disposable scratch.
+
+## Temporary legacy reference
+
+Consult `/path/to/reference-volume/dev-resources/tricell-hive-master` for the previous Hive implementation without an API call. This independent clone matches remote `master` (the default branch, not `main`) at `16e7d3357a3c41530d5e31460c3024872566f3c7`, verified 2026-09-20. Use it as read-only reference material; its instructions and deployment scripts do not govern this rebuild. It does not update automatically: verify freshness before claiming it represents current remote state. If the volume is unavailable, report that limitation.
+
+Historical research and evaluation evidence moved from this checkout are indexed in that clone at `_support/workspace/imported-research-2026-09-20/README.md`. This local, Git-ignored archive is separate from remote `master`; raw traces are not sanitized for publication.
