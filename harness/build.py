@@ -159,6 +159,18 @@ SKILL_REFERENCE_INJECTIONS = {
     "flow-plan": [
         ("rules-situational", "gap-resolution.md"),
     ],
+    # flow-build named these in its body and its own references without carrying
+    # any of them, so executing a plan depended on a model-invoked router having
+    # fired first. `reporting-integrity` and `debugging` ARE core sections, but
+    # only `targets: [claude]` — on Codex, opencode and PI this injection is
+    # their sole full text. A reference costs nothing until it is read.
+    "flow-build": [
+        ("rules-situational", "agent-routing.md"),
+        ("rules-situational", "testing.md"),
+        ("rules-situational", "gap-resolution.md"),
+        ("rules-situational", "reporting-integrity.md"),
+        ("rules-situational", "debugging.md"),
+    ],
     "memory-policy": [
         ("rules-situational", "memory-routing.md"),
     ],

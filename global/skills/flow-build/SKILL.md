@@ -49,3 +49,20 @@ straight to the Gate (it assumes `built`) and closes without reconciling deliver
 | CLOSE | `references/close.md` | Every invocation, after the run's last stage |
 
 Stable path after deploy: `~/.claude/skills/flow-build/references/<file>.md`.
+
+## Rules this flow runs on — carried here, one hop from this file
+
+The stage references above cite these by name; they are bundled beside them so executing a
+plan never depends on a router having fired first. Read the row when its moment arrives —
+an unread reference costs nothing.
+
+| Read | When |
+|---|---|
+| `references/agent-routing.md` | Dispatching a task to a specialist, splitting work across agents, or staging verification in fresh context — the disambiguation table, the delegation gates and the verification matrix |
+| `references/testing.md` | Choosing a task's test approach, deciding what to run, or judging whether the gate's evidence is sufficient — RED-to-GREEN, pass-to-pass, execution scope |
+| `references/gap-resolution.md` | A prerequisite blocks a task, or two authoritative sources disagree about the same decision |
+| `references/reporting-integrity.md` | Writing any state claim at the gate or at CLOSE — verified vs blocked vs not-reached, and why a marker is not a completion |
+| `references/debugging.md` | A task's check fails and the cause is not obvious — root cause before fix, one hypothesis per change, the three-failed-fixes breaker |
+
+`reporting-integrity` and `debugging` are also always-on core sections, but only on Claude
+Code and Grok; on Codex, opencode and PI these copies are the only full text.

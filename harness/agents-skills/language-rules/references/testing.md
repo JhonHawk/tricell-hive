@@ -2,6 +2,15 @@
 
 > Tests are mandatory whenever a change alters behavior that has a useful automatic check. The bar is the **verifiable test gate** below — TDD makes the implementation sequence observable, while the gate keeps the result checkable.
 
+**Contents** — read the section that matches; a partial preview of this file stops before most of them.
+
+- **Does NOT apply to** — the exemptions, including repos with no runtime-test target
+- **Test approach** — `tdd` | `characterization` | `not-applicable`, one per task
+- **Coverage by change type**
+- **Verifiable test gate** — observed RED-to-GREEN, pass-to-pass, verification that runs
+- **Execution Scope** — what to run, and the local-environment rules
+- **What to Test** · **Anti-patterns to Avoid** · **When to Update Tests**
+
 ### Does NOT apply to
 - Repositories with no runtime-test target (CLAUDE.md hubs, IaC-only repos, documentation-only repos) are exempt from runtime-test requirements only; the verification matrix's review and readback gates still apply to behavior-bearing configuration. Each declares its scope in its own `CLAUDE.md > Rule Exclusions`.
 - Disposable utilities under `_support/scripts/` that exist only for the current dev session.
