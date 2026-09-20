@@ -1,7 +1,7 @@
 ---
 name: flow-build
 description: >
-  Execute an approved plan (the executing stage of the daily dev chain) as a state-driven
+  Execute an approved development plan as a state-driven
   reconciler — resumable, never re-doing landed work. `verify` jumps straight to the
   verification gate. Runs on any harness. Point it at a plan or part.
 argument-hint: "[verify] [plan-or-part-path]"
@@ -11,7 +11,7 @@ disable-model-invocation: true
 # /flow-build — execute the portable plan
 
 Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). This is the *doing* half of
-the dev chain: it executes a portable Hive plan produced or normalized by `/flow-plan`. It is a
+the optional formal development route: it executes a portable Hive plan produced or normalized by `/flow-plan`. It is a
 **reconciler** — it reads the frozen contract, authorization and execution evidence, then
 converges toward the next pending state. Native harness Plan Mode is optional and has no
 authority over this flow.

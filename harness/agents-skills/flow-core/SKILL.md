@@ -168,9 +168,10 @@ without the rule.
 
 ## Pack map
 
-The pack is organized by **project stage**, not a fixed phase sequence. The daily work loop
-(brainstorm → spec → plan → execute) lives *inside* the `desarrollo` stage and repeats per
-unit of work; a mock is just a work TYPE that runs the same loop.
+The pack organizes **project stages**, not a mandatory work sequence. Common intake lives in
+`task-routing`: research, BI, architecture, operations and development close on their own
+deliverables and evidence. `/flow-plan` and `/flow-build` are explicitly selected formal
+development routes; the direct route remains available.
 
 Most former per-stage commands are dissolved: their knowledge lives as playbooks in
 `references/`, applied directly rather than invoked. `flow-plan`, `flow-build` and
@@ -180,7 +181,7 @@ Most former per-stage commands are dissolved: their knowledge lives as playbooks
 |---|---|
 | `arranque` | Applied via `references/bootstrap-playbook.md` — greenfield: intake + workspace bootstrap + foundation (repos, naming table, CI/CD), fused into one conversational flow. Pre-pack projects enter via `references/migration-playbook.md` (specs repo, tiering, gated migration manifest) |
 | `specs` | Applied via `references/spec-writing-playbook.md` — specs repo (`init`), epic drafting + tracker sync (`epic`), quality gate (`review`) |
-| `desarrollo` | the daily chain, per unit of work: idea exploration (converges on proceed/discard/defer per `critical-thinking.md`) → `references/spec-writing-playbook.md` → `/flow-plan` freezes the portable contract and authorization → `/flow-build` executes and verifies. Mock work units run the same chain |
+| `desarrollo` | Scope development through `task-routing`; use spec-writing when needed. When explicitly selected, `/flow-plan` freezes the portable development contract and `/flow-build` executes and verifies it. Mock work follows the same choice |
 | `operación` | promotion to qa/prod via git conventions (`git-workflow.md`) + `references/promotion-playbook.md` — no dedicated skill |
 
 Transversal (not a stage):
@@ -189,6 +190,6 @@ Transversal (not a stage):
 |---|---|
 | `references/workspace-hygiene-playbook.md` | Compensating control: audit/apply workspace hygiene for drift from conversational sessions |
 | `references/audit-playbook.md` | Multi-lens preventive audit of runtime repos (epic close, pre-architectural change): parallel readers → dedup → refuters → versioned HTML report |
-| `flow-plan` | User-invoked planning skill: creates or normalizes the portable plan and records its approval scope; it never implements or publishes |
+| `flow-plan` | User-invoked development planning skill: creates or normalizes the portable plan and records its approval scope; it never implements or publishes |
 | `flow-report` | Shared rendering skill (like flow-core, not a stage): renders substantial human-targeted output as self-contained HTML; auto-invokes per `communication-format.md` |
 | `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill and playbook reads |
