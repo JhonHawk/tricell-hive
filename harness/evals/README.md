@@ -71,13 +71,14 @@ raw stdout/stderr captured by the runner. Keep that result manifest with the run
 every case and repetition remains auditable.
 
 The isolated process must not load the user's deployed Hive hooks, MCP servers,
-Engram memory or global project instructions. The runner gives each case a fresh
-temporary workspace, stages the generated skills there, and sets isolated `HOME`,
-`CODEX_HOME` and `PI_CODING_AGENT_DIR` values. The isolated
+Engram memory or global project instructions. This original pilot runner gives each
+case a fresh temporary workspace, stages generated skills there, and sets isolated
+`HOME`, `CODEX_HOME` and `PI_CODING_AGENT_DIR` values. The isolated
 `HOME/.agents/skills` symlinks to the staged tree so generated cross-skill references
-resolve inside the fixture. Authentication, when present, is
-exposed by a symlink into the isolated home; it is never copied or printed. Do not
-run `/deploy-global`, install packages, or print existing authentication.
+resolve inside the fixture. In this historical adapter, Codex auth is symlinked and Pi
+auth was exposed by symlink; the current activity-screen adapters have a different,
+explicit auth policy documented below. Do not run `/deploy-global`, install packages,
+or print existing authentication.
 
 Codex is invoked with `--ignore-user-config`, `--ignore-rules`, `--ephemeral`,
 `--sandbox workspace-write`, `--json` and `--skip-git-repo-check`. Pi is invoked
@@ -217,3 +218,180 @@ completed, not that every case passed.
 
 The observability follow-up (historical evidence omitted from public history)
 records the actual offline comparison.
+
+## Activity-skills screen
+
+`activity-skills-screen.json` is a separate two-case screen for the activity-scoped
+`flow-research` candidate. It does not replace or rewrite the historical 33-case pilot
+above. `implicit-research` maps to `task-routing` in the baseline arm and `flow-research`
+in the candidate arm. `standalone-save` requests automatic `workspace-conventions`
+selection and a retained session finding in both arms. The prompt does not prescribe the
+artifact path or slug.
+
+Run each arm and harness as a separate invocation, preserving the source root, model,
+effort and case identifiers in the output. The source root must contain the generated
+core and skill trees for that arm. To prepare the baseline used by the initial screen:
+
+```bash
+BASELINE_ROOT=_support/workspace/YYYY-MM-DD-activity-skills-pilot/baseline
+mkdir -p "$BASELINE_ROOT"
+git archive 31d00c03c48b2ce8ad4230059634bbb77d5ddb51 | tar -x -C "$BASELINE_ROOT"
+```
+
+Replace the folder date with the local run date. Then a Codex baseline run is:
+
+```bash
+uv run --no-project python harness/evals/runner.py \
+  --manifest harness/evals/activity-skills-screen.json \
+  --source-root "$BASELINE_ROOT" \
+  --arm baseline \
+  --harness codex \
+  --model gpt-6-astra \
+  --effort medium \
+  --case implicit-research \
+  --case standalone-save \
+  --run \
+  --output _support/workspace/YYYY-MM-DD-activity-skills-pilot/codex-baseline.json
+```
+
+For the candidate, use the candidate repository root as `--source-root` and set
+`--arm candidate`; use a separate output file. For each harness, keep its actual model
+and effort fixed between arms. The activity runner accepts `codex`, `claude`, `pi`,
+`grok`, and `opencode`. These are five native CLI adapters with isolated configuration;
+this does not prove identical invocation semantics or production parity. Do not count
+deployment fixture tests as in-harness behavior runs.
+
+The selected source root supplies both the generated `harness/agents-skills/` tree and
+its generated core files: `harness/AGENTS.md` for Codex and Pi, `global/CLAUDE.md` for
+Claude Code and Grok, and a workspace `AGENTS.md` for OpenCode. Each invocation stages
+the selected core and generated skills in fresh harness-specific configuration roots.
+The case workspace starts as a clean local Git repository. User hooks, MCP servers,
+Engram memory, and deployed global project instructions are isolated; the provider's
+model service remains external. Compare source and generated skill hashes, core hashes,
+staged-tree hash, configuration hash and model metadata in each JSON result. A requested
+model name is not a resolved model unless the trace exposes that identity.
+
+Authentication remains outside the staged harness configuration. Codex and Grok use
+the existing `auth.json` through a symlink into their isolated roots. OpenCode's native
+auth is held in its SQLite database in the isolated data home, not through the former
+`auth.json` symlink ([v2 storage guidance](https://opencode.ai/v2/docs/troubleshooting),
+[upstream database implementation](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/database/database.ts)).
+Pi copies its auth file into the isolated root with mode `0600` and excludes it from
+retained artifacts. Claude Code uses `CLAUDE_CODE_OAUTH_TOKEN` from the environment or
+reads the existing default macOS Keychain access token and supplies it only in the child
+process environment; it is never written to the temporary `HOME`, logs, or retained case
+artifacts. A custom `CLAUDE_CONFIG_DIR` or `CLAUDE_SECURESTORAGE_CONFIG_DIR` requires an
+explicit environment token. If no supported credential is available, classify the run
+as blocked before behavior evaluation. Never print or persist a credential.
+
+Claude Code runs headlessly with `stream-json`, no session persistence, an empty strict
+MCP configuration, `acceptEdits`, no permission prompts, and WebSearch, WebFetch and
+Task disallowed. `HOME`, `TMPDIR` and `CLAUDE_CODE_TMPDIR` point to the disposable case
+root. This configuration can still produce a terminal run with a behavior failure or
+an unverified artifact; terminal completion alone is not a pass. The Claude skill must
+be reachable in the actual isolated `$HOME/.claude/skills` tree. Align `--add-dir` and
+the exact-tree `Edit` restriction with that runtime path; targeting a second staged
+skills directory can leave the loaded skill and permitted artifact tree mismatched.
+
+All non-Codex adapters are launched under the macOS sandbox. The OpenCode adapter is
+designed to start a native local IPC listener after provider access. In the 2026-09-20
+pilot, the v3 and v4 real-provider attempts stopped at routing before listener startup;
+neither model execution nor listener binding was observed. A separate isolated
+fake-provider probe loaded config but initially returned an empty plugin list and empty
+standalone model list. Polls against the same private server showed plugins `0 → 86`
+and providers `3 → 4` by two seconds; the exact fake model appeared later. This suggests
+startup catalog population can be delayed, but the exact requested route was not sampled
+through the initial transition, so this does not prove a startup race is the sole cause
+of `no-route`. A health response alone is not route-readiness evidence. The proposed
+private-server startup/readiness redesign was abandoned before implementation. The
+user's preferred next validation is through real harnesses after global deployment; that
+deployment has since occurred, but this diagnostic produced no model-reaching OpenCode
+result. No global config was changed during this diagnostic. The profile's SBPL
+`localhost` filtering does not prove that a listener is loopback-only. Treat network
+containment as `not_verified` until the live listener is inspected and confirmed on a
+loopback address; stop the run if it listens on a non-loopback interface.
+
+Use [`activity-skills-screen-rubric.md`](activity-skills-screen-rubric.md) for blind
+research-answer review and standalone-save placement review. Freeze the rubric before
+opening arm-labeled outputs; record the rubric version/hash and reveal the arm mapping
+only after scores are fixed. Activation, answer quality, and placement are separate
+measures. Equal scores in a small fixture do not prove equivalence or improvement.
+The 2026-09-20 exploratory review-refuter model-agent scores were Codex 10/10 for both
+arms, Claude 7/10 for both, Pi 7/10 for both, and Grok 7/10 baseline versus 8/10
+candidate. This was a model agent, not the human review required by the frozen rubric,
+so the scoring procedure deviated and no human validation occurred. The non-Codex
+answers shared errors or unsupported reasoning in percentage-point interpretation,
+candidate attribution/counterfactual wording, and the independent-review recommendation.
+Grok's candidate gained one source-grounding point in one pair only; this does not
+establish a causal or robust benefit. No quality improvement has been demonstrated.
+
+The initial 2026-09-20 Codex JSON reports remain `unknown` where the original parser did
+not recognize `nl -ba` reads or `file_change` writes. The manual trace audit (historical evidence omitted from public history)
+records how those original traces were interpreted. Later adapter versions produce new
+reports; do not rewrite the initial outcomes. Preserve each run's machine result and
+report manual observations separately. A final answer or a started tool call alone is
+not proof of a completed read or write.
+
+The pilot measurement record (historical evidence omitted from public history)
+keeps the initial Codex checkpoint separate from follow-up observations. Manual
+inspection verified four Codex cells and four each for Pi and Grok across research and
+standalone-save. Claude research reached the required source reads in both arms. An
+independent trace audit verified both corrected native Claude standalone-save cells:
+the skill and three references were read before the write, and both findings used the
+correct session date/slug and plural filename. Earlier failed Claude attempts remain
+historical. The correction was observed red→green in its regression, 57 runner unit
+tests passed, and review approved the exact flags. OpenCode v3's historical route and v4's
+current-catalog route each failed all four arm/case attempts with provider
+`no-route`/model-unavailable responses before inference; no listener was observed. The
+v4 reports carried `high` effort metadata, but the CLI effort flag was not sent, so effort
+was not controlled for those attempts. The original bounded screen remains unqualified.
+Follow-up testing in real harnesses after global deployment has now completed; the
+outcomes are summarized below and do not qualify the candidate for a full-migration design.
+The original Codex parser outcomes remain `unknown`; curated
+manual observations are separate from machine-reported evaluator statuses. The local
+follow-up evidence index is retained at
+[`evidence-index.json`](../../_support/backup/2026-09-20-activity-skills-pilot-evidence/followup/evidence-index.json).
+
+The requested global deployment completed on 2026-09-20 at 13:35:36 local across
+Claude Code, Codex, OpenCode, Grok Build and Pi (`deploy-global.sh --apply`, exit 0).
+Generated-tree checks and targeted SHA-256 checks passed; the [deployment record](../../_support/backup/2026-09-20-activity-skills-pilot-evidence/native/deploy/deploy-findings.md)
+lists their scope. This confirms delivery, not harness behavior. Bounded native
+execution is complete, but the results do not qualify the candidate:
+
+- **Codex:** research and standalone-save traces passed independent review for the
+  observed cells.
+- **Claude Code:** research did not load the actual `flow-research` skill. Its table
+  arithmetic is 2/4 as written, or 2/3 excluding C4 from the denominator; the separate
+  “5/5 effects” claim is uncalibrated. The corrected standalone-save rerun read the two
+  refs that held its first write, then produced the artifact; independent review verified
+  the refs preceded the effective write.
+- **Pi:** research completed but made an absence claim without `code-search.md`, so that
+  claim is not verified. Standalone-save read the intended skill and three refs but also
+  read a sibling Claude finding before writing, so content and placement are not
+  independently attributable.
+- **Grok Build:** research loaded its skill and fixture sources, but shared Engram
+  retrieved Codex output. Standalone-save reached the correct dated output after the
+  hook-required `.claude` refs were read, but also read Codex/Claude findings and Engram
+  memories; neither result is an independent quality measurement. A duplicate lost its
+  process stdout log to `O_EXCL`; its native history was later archived without
+  re-auditing it, so the duplicate remains `not_verified`. No further rerun is
+  planned in this milestone.
+- **OpenCode:** research completed with a sanitized export but lacked `code-search.md`
+  for its absence claim and repeated the denominator error and a causal overclaim.
+  Standalone-save's final stop/idle, skill/reference reads, write and output passed
+  independent review. Earlier inherited-working-directory and headless-permission
+  launch failures remain historical.
+
+Scoped cleanup completed: 72 native CLI-history files with hashes and three sanitized
+OpenCode exports were preserved under
+[`native/history`](../../_support/backup/2026-09-20-activity-skills-pilot-evidence/native/history/).
+Owned Claude/Pi project directories, two Codex rollout files, four Grok sessions and two
+prompt-history files, and three OpenCode sessions were removed through their native
+interfaces. OpenCode export checks returned `Session not found` for all three removed
+sessions. Engram relation-audit metadata 419/420 was automatically orphaned and left
+untouched; global history indexes and SQLite stores were not manually edited, so the
+cleanup does not claim every internal index was erased.
+
+Rollback is incomplete because previous Codex/OpenCode `AGENTS.md` files and harness
+agent/command trees were not backed up; their exact prior bytes/hash proofs are
+unavailable. The pilot therefore remains unqualified.

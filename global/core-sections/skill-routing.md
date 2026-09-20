@@ -5,17 +5,9 @@ targets: [claude]
 
 ### Skill Auto-invocation
 
-**Situational policy lives behind a router skill, so not invoking it is the same as not having the rule.** Load the matching router BEFORE acting — not after, and not "if it turns out to be needed". If a router plausibly covers the situation, read it; being wrong costs one read, skipping it costs the rule. These thoughts mean the check is being rationalized away, not that it is unnecessary:
+Before reading research sources, load `flow-research`; for research-only work it replaces the `task-routing` intake/delegation and `language-rules` discovery entries below, not Git gates or other routers (prompt-convention).
 
-| Thought | Reality |
-|---|---|
-| "This is a simple edit" | Simple edits are where conventions get silently broken. |
-| "I already know this convention" | Conventions change and are per-project. Read the current one. |
-| "I'll check the convention after writing it" | Then the wrong name is already in a migration. |
-| "I read that rule earlier in the session" | Fine — a reference already loaded is not reloaded. |
-| "The task is too small to route" | Size decides delegation, never whether the rule applies. |
-
-Consulting the router is never the blocking step: read it and keep going in the same turn.
+Read applicable routers before acting, including when applicability is uncertain; continue in the same turn. Small edits and remembered conventions do not exempt a read. Size decides delegation, not rule applicability. Reuse references already in context; reload after context loss.
 
 **No rule loads by file kind — read it before writing.** The `rule-delivery` hook HOLDS the first write matching a rule and names the file to read: read it, re-issue the call, it passes. Reading it up front avoids the hold, and nothing fires before the file exists (naming identifiers, choosing a path) — so before creating the first file of a kind in a session (`.tsx`, `.py`, `.tf`, a migration, a Dockerfile), read the matching `~/.claude/skills/language-rules/references/` file. Rules already in context need no re-read; the hold **re-arms after a compaction or `/clear`**, so treat the rule as absent and read it again.
 

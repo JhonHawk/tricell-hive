@@ -292,16 +292,23 @@ parse_args() {
 
 check_pi_deps() {
     command -v python3 >/dev/null 2>&1 || die "Missing required tool: python3 (needed for the PI deploy helper)"
-    command -v pi >/dev/null 2>&1 || die "Missing required tool: pi (required version 0.85.1; automatic installation is disabled)"
+    command -v pi >/dev/null 2>&1 || die "Missing required tool: pi (supported versions are 0.86.x; automatic installation is disabled)"
     local pi_version
     pi_version=$(pi --version 2>/dev/null | sed -n '1p')
-    [[ "${pi_version}" == "0.85.1" ]] || die "Unsupported PI version: ${pi_version:-unknown} (required 0.85.1; automatic installation is disabled)"
+    [[ "${pi_version}" =~ ^0[.]86[.][0-9]+$ ]] || die "Unsupported PI version: ${pi_version:-unknown} (supported versions are 0.86.x; automatic installation is disabled)"
     [[ -f "${PI_DEPLOY_HELPER}" ]] || die "Missing PI deploy helper: ${PI_DEPLOY_HELPER}"
     [[ -f "${REPO_ROOT}/harness/AGENTS.md" ]] || die "Missing generated PI core: ${REPO_ROOT}/harness/AGENTS.md"
     [[ -d "${REPO_ROOT}/harness/pi/agents" ]] || die "Missing generated PI agents: ${REPO_ROOT}/harness/pi/agents"
     [[ -d "${REPO_ROOT}/harness/pi/src" ]] || die "Missing PI runtime source: ${REPO_ROOT}/harness/pi/src"
     [[ -d "${REPO_ROOT}/harness/pi/extensions" ]] || die "Missing PI extension tree: ${REPO_ROOT}/harness/pi/extensions"
     [[ -d "${REPO_ROOT}/global/hooks" ]] || die "Missing canonical hooks: ${REPO_ROOT}/global/hooks"
+}
+
+opencode_is_v2() {
+    command -v opencode >/dev/null 2>&1 || return 1
+    local version
+    version=$(opencode --version 2>/dev/null | sed -n '1p') || return 1
+    [[ "${version}" =~ (^|[[:space:]])v?2[.] ]]
 }
 
 step_deploy_pi() {
@@ -447,7 +454,9 @@ step_preflight_generic_targets() {
         preflight_target_file "OpenCode opencode.json" "${OPENCODE_HOME}/opencode.json"
         preflight_tree_targets "OpenCode agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents"
         preflight_tree_targets "OpenCode commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands"
-        preflight_target_file "OpenCode session plugin" "${OPENCODE_HOME}/plugins/flow-session-context.ts"
+        if ! opencode_is_v2; then
+            preflight_target_file "OpenCode session plugin" "${OPENCODE_HOME}/plugins/flow-session-context.ts"
+        fi
     fi
     if [[ "${RUN_GROK}" -eq 1 ]]; then
         preflight_target_root "Grok" "${GROK_HOME}"
@@ -1730,6 +1739,11 @@ step_deploy_opencode_plugin() {
     [[ "${RUN_OPENCODE}" -eq 1 ]] || return 0
     local src="${REPO_ROOT}/global/hooks/flow-session-context/flow-session-context.ts"
     [[ -f "${src}" ]] || return 0
+    if opencode_is_v2; then
+        log "WARNING: skipping flow-session-context.ts because OpenCode 2 does not load V1 plugins; any existing copy is preserved."
+        report "opencode plugin: skipped (V1 plugin API unsupported by OpenCode 2)"
+        return 0
+    fi
     log "== Deploy: opencode plugin =="
     if [[ "${APPLY}" -eq 1 ]]; then
         mkdir -p "${OPENCODE_HOME}/plugins"

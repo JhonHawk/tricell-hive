@@ -152,6 +152,11 @@ SKILL_REFERENCE_INJECTIONS = {
         # judged the threshold with nothing to judge it by.
         ("rules-situational", "critical-thinking.md"),
     ],
+    "flow-research": [
+        ("rules-situational", "code-search.md"),
+        ("rules-situational", "context7.md"),
+        ("rules-situational", "agent-routing.md"),
+    ],
     # /flow-plan writes a plan file, never project code, so the `task-routing`
     # trigger (first Write/Edit on project code) never fires during planning —
     # leaving the gap analysis, and above all the in-vivo prerequisite checklist,

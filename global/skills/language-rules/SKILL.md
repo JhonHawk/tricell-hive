@@ -9,10 +9,15 @@ description: >
   (`browser-automation-reference.md`) — nothing holds those three; the stack rows arrive on a
   matching write. Match files in play. Exception on every harness: naming identifiers BEFORE
   the file exists (new fields, enums, table/spec properties) fires nothing — load this skill
-  and read identifier-language.md before choosing the names.
+  and read identifier-language.md before choosing the names. Research-only discovery uses
+  flow-research and its direct references instead of this router.
 ---
 
 # language-rules — deterministic router to the full language conventions
+
+For research-only discovery, use the matching `flow-research` references directly;
+do not load this router merely to reach code-search or version-anchored documentation.
+Implementation, code review, debugging and browser verification retain their routes below.
 
 The full, canonical rules live in `references/` (injected at build time from
 `global/rules-situational/` — the single rule-text store). This skill exists because no

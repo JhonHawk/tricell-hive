@@ -5,7 +5,8 @@ description: >
   flow-report)
   and the playbooks that preserve the retired flow-* commands' knowledge (bootstrap,
   migration, spec-writing, workspace-hygiene, audit, promotion). Not a workflow itself — it
-  is the library every flow-* skill and playbook reads for the flow contract, the
+  is the library flow skills and playbooks read for the flow contract, excluding
+  the independent flow-research activity. It provides the
   file-routing rule, and the canonical templates (ledger, handoff protocol, naming table,
   specs structure).
 user-invocable: false
@@ -13,14 +14,17 @@ user-invocable: false
 
 # flow-core — shared library for the flow pack
 
-This skill is never executed as a workflow. It holds the decisions every `flow-*` skill
-must agree on, so they live in exactly one place. Design rationale and full phase specs live
+This skill is never executed as a workflow. It holds the shared flow decisions, excluding
+the independent `flow-research` activity. Design rationale and full phase specs live
 with the pack's own source repository — not something to go looking for from a project
 session.
 
 ## The flow contract
 
-Every `flow-*` skill follows this contract.
+Flow skills and playbooks follow this contract except `flow-research`. Research uses its
+own entry and close procedure even when this library is already in context from planning;
+the OPEN/CLOSE ledger mutations, phase handoff and resume-mirror requirements below do
+not apply to it. Requested research artifacts still follow `workspace-conventions`.
 
 1. **OPEN (DoR)** — read `<project>/_support/PROJECT.md` (the ledger) when it exists. If the
    workspace declares a ledger and it is missing, stop and follow `references/bootstrap-playbook.md`
@@ -192,4 +196,4 @@ Transversal (not a stage):
 | `references/audit-playbook.md` | Multi-lens preventive audit of runtime repos (epic close, pre-architectural change): parallel readers → dedup → refuters → versioned HTML report |
 | `flow-plan` | User-invoked development planning skill: creates or normalizes the portable plan and records its approval scope; it never implements or publishes |
 | `flow-report` | Shared rendering skill (like flow-core, not a stage): renders substantial human-targeted output as self-contained HTML; auto-invokes per `communication-format.md` |
-| `flow-core` | This library: the flow contract, file-routing rule, and canonical templates every flow-* skill and playbook reads |
+| `flow-core` | This library: the flow contract, file-routing rule, and canonical templates for flow skills and playbooks, excluding independent `flow-research` |

@@ -9,14 +9,17 @@ description: >
   git mechanics. Any request to review, audit, investigate, analyze, diagnose, design or
   refactor across files is this decision, even when the user never says "delegate". NOT for: a
   short self-contained question, trivial mechanical work (typo, rename, one-line config), or a
-  small read-only lookup (≤3 files, ≤3 queries). Triggers: review, audit, investigate,
-  diagnose, analyze, design, refactor, plan, branch, commit, PR, merge, promote; revisar,
-  auditar, investigar, analizar, diseñar, planear.
+  small read-only lookup (≤3 files, ≤3 queries). Research-only investigation uses
+  flow-research for intake and references; git operations still use this skill.
 ---
 
 # task-routing — deliverable, effects, execution and evidence
 
-Use the common intake in `agent-routing.md` for substantive work, including work outside
+Research-only investigation enters through `flow-research`, including its conditional
+delegation reference; do not load this router merely to read research sources or delegate
+that investigation. Git operations and work beyond research retain their gates here.
+
+Use the common intake in `agent-routing.md` for other substantive work, including work outside
 software projects. Infer what the conversation settles; ask only for missing information
 that changes the work. Read git mechanics when project edits or git operations apply.
 

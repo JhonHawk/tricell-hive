@@ -174,7 +174,7 @@ Freshness comes from active context entries, not from treating every startup as 
 session. A resumed CLI context may therefore emit the fresh advisory when its active
 context is absent. The Pi adapter queues the initial advisory as a native hidden
 `custom_message` with `triggerTurn: false` and no `deliverAs`; native session entries
-carry it through an extension reload and deliver it once before model work. Pi 0.85.1's
+carry it through an extension reload and deliver it once before model work. Pi's
 `SessionManager` does not create the session file until the first assistant response, so
 disk durability cannot be promised before that response. Children receive no new advisory
 injection. Advisory invocations use the canonical JSON stdin contract, serialized calls,
@@ -273,7 +273,9 @@ surface, the role restrictions, canonical hooks, and the review gate.
 ## Loading matrix
 
 The following links are the upstream sources consulted for the installed Pi
-0.85.1 integration on 2026-09-10. Package-specific controls are marked when
+0.86.0 API target on 2026-09-20. The deploy gate accepts stable 0.86.x patch releases;
+the extension API check does not by itself validate every installed Pi package.
+Package-specific controls are marked when
 the Pi core documentation does not define them.
 
 | Surface | Hive behavior | Upstream source | Status |

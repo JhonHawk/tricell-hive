@@ -9,6 +9,17 @@ Sources backing the rules and conventions under `global/rules-situational/` and 
 
 ---
 
+## Activity-scoped skills pilot
+
+Backs the proposed `flow-research` entry and its conditional references. Documentary verdict: **supported**; behavioral improvement remains unverified until the pilot completes. Consulted 2026-09-20.
+
+- `[Authoritative]` OpenAI, [Rethinking skills and prompts for GPT-6 Astra](https://learn.chatgpt.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra), 2026-09-11: a short entrypoint for multi-workflow skills, conditional supporting documents, precise descriptions, and explicit consideration of model differences. This supports organization, not a claimed reliability rate.
+- `[Authoritative]` [Agent Skills specification](https://agentskills.io/specification): metadata, body and optional resources support progressive disclosure. A reference link is not deterministic enforcement.
+- `[Authoritative]` [Pi skills](https://pi.dev/docs/latest/skills) and [Grok Build skills](https://docs.x.ai/build/features/skills-plugins-marketplaces): compare native invocation and supported metadata rather than assuming Claude compatibility implies identical semantics.
+- `[Authoritative — method]` OpenAI, [Testing Agent Skills Systematically with Evals](https://developers.openai.com/blog/eval-skills): measure invocation, process, output and efficiency separately. Unknown traces and unexecuted paths are not passes.
+
+The retained research findings (historical evidence omitted from public history) contain the five-harness comparison, practitioner evidence and generalization limits. Automatic artifact placement remains owned by `workspace-conventions` and is a regression criterion of the pilot.
+
 ## Generated-artifact naming, grouping & retention
 
 Backs `workflow/support-artifacts.md > Generated-artifact naming, grouping & retention` (moved 2026-07-17 from `project-structure.md`) and its condensed mirror in `harness/AGENTS.md`. Researched jun-2026.

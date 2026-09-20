@@ -8,10 +8,10 @@ natively.
 
 | Piece | Source | Deploy target | Maintained how |
 |---|---|---|---|
-| Skills + rubrics | `global/skills/` | `~/.agents/skills/` | `/deploy-global` (copy) |
+| Skills + rubrics | 18 skills, including `flow-research` | `~/.agents/skills/` | `/deploy-global` (copy); `flow-research` is eligible for automatic invocation |
 | Subagents | `harness/opencode/agents/` (generated, versioned) | `~/.config/opencode/agents/` | **Generated** by `harness/build.py` from `global/agents/` — never edit |
 | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) | `harness/opencode/commands/` | `~/.config/opencode/commands/` | `/deploy-global` (copy) |
-| SessionStart plugin | `global/hooks/flow-session-context/flow-session-context.ts` | `~/.config/opencode/plugins/` | `/deploy-global` (copy) |
+| SessionStart plugin (V1 only) | `global/hooks/flow-session-context/flow-session-context.ts` | `~/.config/opencode/plugins/` | `/deploy-global` on V1; skipped on V2 |
 | Config additions | `opencode.jsonc.snippet` | merge into `~/.config/opencode/opencode.json` | Manual, once |
 | Permission keys + `shell` | `permission-config.json` | `permission.*` and a discovered, version-checked Bash 5+ `shell` when no user value exists | `/deploy-global` (surgical jq merge, idempotent; user values win; missing Bash only skips the optional shell key) |
 
@@ -34,11 +34,11 @@ last column. Companion files: `global/README.md` (Claude Code),
 | Layer | What | Where it lands | Mechanism | Official doc | Verified |
 |---|---|---|---|---|---|
 | Always-on core | `harness/AGENTS.md` (condensed cross-harness core) | `~/.config/opencode/AGENTS.md` | Global rules file, applied to every session | [opencode.ai/docs/rules](https://opencode.ai/docs/rules) — *"You can also have global rules in a `~/.config/opencode/AGENTS.md` file. This gets applied across all opencode sessions."* | 2026-08-20 |
-| Skills | 17 skills with injected `references/` | `~/.agents/skills/` | Agent-compatible global skill folder | [opencode.ai/docs/skills](https://opencode.ai/docs/skills) — *"Global agent-compatible: `~/.agents/skills/<name>/SKILL.md`"* | 2026-08-20 |
+| Skills | 18 skills with injected `references/`, including automatically eligible `flow-research` | `~/.agents/skills/` | Agent-compatible global skill folder | [opencode.ai/docs/skills](https://opencode.ai/docs/skills) — *"Global agent-compatible: `~/.agents/skills/<name>/SKILL.md`"* | 2026-09-20 |
 | Commands | 10 wrappers, one per user-invoked skill | `~/.config/opencode/commands/` | Global command folder | [opencode.ai/docs/commands](https://opencode.ai/docs/commands) — *"Global: ~/.config/opencode/commands/"* | 2026-08-20 |
 | Agents | 26 generated `.md` | `~/.config/opencode/agents/` | Global agent folder | [opencode.ai/docs/agents](https://opencode.ai/docs/agents) — *"Global: ~/.config/opencode/agents/"* | 2026-08-20 |
-| Plugin | `flow-session-context.ts` | `~/.config/opencode/plugins/` | Global plugin folder | [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins) — *"`~/.config/opencode/plugins/` - Global plugins"* | 2026-08-20 |
-| Permissions | `permission-config.json` | `permission.*` in `~/.config/opencode/opencode.json` | Per-tool permission keys, wildcard-overridable | [opencode.ai/docs/permissions](https://opencode.ai/docs/permissions) | 2026-08-20 |
+| Plugin | `flow-session-context.ts` | `~/.config/opencode/plugins/` | V1 global plugin folder; V2 deploy skips it | [V1 plugin docs](https://opencode.ai/docs/plugins) — global plugin folder; [V2 migration guide](https://opencode.ai/v2/docs/migrate-v1) — V1 plugin implementations do not run in V2 | 2026-09-20 |
+| Permissions | `permission-config.json` + the manual snippet | Legacy `permission.*` map in `~/.config/opencode/opencode.json` | V2 accepts and normalizes the legacy map; deploy merges only this map, so native V2 `permissions` arrays are left untouched | [V1 permissions](https://opencode.ai/docs/permissions), [V2 migration compatibility](https://opencode.ai/v2/docs/migrate-v1), [V2 permissions](https://opencode.ai/v2/docs/permissions) | 2026-09-20 |
 
 The glob channel was retired in M3: it never loaded a rule in the deployed state (below),
 and `harness/opencode/rules/` no longer exists. **Cleanup is manual** — the deploy manifest
@@ -67,7 +67,7 @@ pack skills all resolve from `~/.agents/skills` with zero duplicate names and
 scan is RECURSIVE, so a skill directory that vendors its own `.codex/skills/` or nested
 `.agents/skills/` publishes those too — `herdr` contributed three skills nobody chose.
 
-## BROKEN — the whole plugin layer fails to load (measured 2026-08-21)
+## BROKEN on OpenCode 1.x — the whole plugin layer fails to load (measured 2026-08-21)
 
 > The risk recorded below as "it can break without a release note" HAS happened, and wider
 > than the flow plugin. **Open follow-up; nothing here is fixed yet.**
@@ -87,14 +87,13 @@ Confirmed end to end: a headless run in a ledger workspace, asked whether its co
 carried the `flow-process-protocol` marker, answered **AUSENTE**. Not a headless artifact —
 the plugin never loads at all.
 
-**Do not patch the v1 plugin before deciding which opencode the pack targets.** `opencode2`
-(`v0.0.0-beta-17577`, the 2.0 preview) shares `~/.config/opencode` and carries a different
-plugin architecture entirely — capability-named plugins (`opencode.config.instruction`,
-`.skill`, `.policy`, `.agent`, `.reference`), not loose `.ts` files. The 1.x schema error is
-that migration arriving. Until it is decided, what actually reaches an opencode model is
-`AGENTS.md` and the skills tree — nothing that travels by plugin.
+The deployed plugin uses the V1 API. OpenCode 2 has a new plugin API and does not load V1
+plugin implementations. The deploy script therefore keeps deploying this file on V1 and
+skips it on V2 with a warning. It leaves any existing copy untouched. No V2 replacement has
+been implemented, so V2 sessions do not receive this plugin's flow-session context. The
+existing `AGENTS.md`, skills, agents, commands, and supported configuration continue to deploy.
 
-- **`experimental.chat.system.transform`** — the surface `flow-session-context.ts` uses to
+- **`experimental.chat.system.transform`** — the V1 surface `flow-session-context.ts` uses to
   inject SessionStart context, because opencode has no real SessionStart event. It does
   **not** appear in [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins); the only
   documented `experimental.*` hook there is `experimental.session.compacting`.

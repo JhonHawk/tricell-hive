@@ -54,7 +54,7 @@ find ~/Development/projects -maxdepth 4 -name .git | sed 's|/.git$||' | while re
 - When changing routing or domains, check `global/rules-situational/agent-routing.md` (router: `task-routing`).
 - When a rule or convention is grounded in external authority (standards, canonical books, official docs), record the source in `_support/docs/methodology-bibliography.md` and consult it before re-researching.
 - Gates in rules and docs name their enforcement layer — deterministic (hook, deny permission, allowlist), confirm-gated (the user's confirmation is the key), or prompt-convention; never phrase a convention as mechanical impossibility. Taxonomy: `_support/docs/enforcement-layers.md`.
-- **`flow-<x>` names a user-gated command of the flow pack** (`disable-model-invocation: true`). Pack infrastructure is the declared exception and carries no gate: `flow-core` (non-invocable library) and `flow-report` (model-invoked renderer; format will grow beyond HTML). A new `flow-*` skill that is not a gated command takes a non-flow name.
+- **`flow-<x>` names a user-gated command of the flow pack** (`disable-model-invocation: true`), except `flow-research` (automatically selected research activity), `flow-core` (non-invocable library) and `flow-report` (model-invoked renderer). Other new ungated skills take a non-flow name; `flow-plan` and `flow-build` retain their explicit authorization gates.
 - Use conventional commit prefixes if asked to commit.
 - Never add temporary or incident-specific details (local hotfixes, dated machine state, pending workarounds) to versioned convention docs (`AGENTS.md`, `CLAUDE.md`, `global/`, `harness/` READMEs) unless the user explicitly asks. Route them to machine-local notes (`_support/backup/`, Engram) instead.
 

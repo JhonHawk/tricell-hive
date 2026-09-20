@@ -204,6 +204,7 @@ wc -lc global/CLAUDE.md
 | `/adversarial-research` | global | N independent generators (one may be Codex) + review-refuter cross-exam → refuted/weakened/surviving/net-new canon |
 | `/agents-md-primary` | global | Convert projects to AGENTS.md-canonical + CLAUDE.md `@AGENTS.md` import; `scan` finds candidates; `audit \| apply` dedups project rules against the deployed canon (harness-coverage matrix) + completeness checks (project pointers, Git Workflow declarations) + content quality (agent-discoverable rules, stale paths, instruction budget). Hub-destined proposals (promote-to-core, injection map) are reported, never executed by the skill |
 | `flow-core` | global | Process library (non-invocable): flow contract, templates, and the playbooks — bootstrap, spec-writing, migration, workspace-hygiene, audit, promotion |
+| `flow-research` | global | Automatic research activity: source-backed answers, conditional evidence/code/version references, and artifact placement through `workspace-conventions` when requested |
 | `/flow-plan` | global | Optional formal development planning: portable contract, scoped approval and execution evidence; requires an explicit request for this route |
 | `/flow-build` | global | Execute or resume an authorized development plan; reconcile working-tree/Git evidence, verification and pending authorized delivery. `verify` never publishes |
 | `/engram-init-workspace` | global | Unified `.engram/config.json` for multi-repo workspaces |

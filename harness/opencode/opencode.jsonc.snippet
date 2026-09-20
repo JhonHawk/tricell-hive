@@ -1,4 +1,4 @@
-// Flow pack — additions for ~/.config/opencode/opencode.json
+// OpenCode V1 flow pack — additions for ~/.config/opencode/opencode.json
 // Merge these keys into the existing config (do not replace the file).
 {
   // NOTE — removed: `"plugin": ["opencode-rules@0.6.4"]`. The glob-scoped rule
@@ -14,10 +14,11 @@
   // Phase skills are user-invoked gates. opencode ignores Claude's
   // disable-model-invocation, so gate them here: "ask" lets the model propose
   // a flow skill but requires your approval; the /flow-* commands remain the
-  // normal entry point.
+  // normal entry point. Research remains automatic through the later exception.
   "permission": {
     "skill": {
-      "flow-*": "ask"
+      "flow-*": "ask",
+      "flow-research": "allow"
     },
     // Enforce the git/destructive-op safety floor that git-workflow.md states
     // as prose — here it becomes a hard gate. opencode evaluates these as
