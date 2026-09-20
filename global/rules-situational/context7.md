@@ -18,7 +18,7 @@ commands:
 
 The context7 docs tool (MCP) returns the API surface of a library at the version you anchor it to: signatures, options and props, config shapes, migration notes. It replaces a web search for any library, framework, SDK, API or CLI surface, and it is faster and closer to the installed version than training memory is. Reach for it first; web search is the fallback, never the peer.
 
-**Anchored is not guaranteed.** A pinned version can still return a snippet from `canary` or `latest` — measured, not hypothetical — and a version absent from the index falls back to latest silently. Read the `Source:` line of any snippet you are about to write code against; a mismatch means treat it as unverified, not as the answer.
+**Anchored is not guaranteed.** A pinned version can still return a snippet from `canary` — measured, not hypothetical. Read the `Source:` line of any snippet you are about to write code against; a mismatch means treat it as unverified, not as the answer. A version the index does not have is refused outright, so a wrong pin fails loudly and only the snippet's provenance needs checking.
 
 **The asymmetry is the threshold, not your confidence.** One unnecessary query costs seconds; one wrong signature costs a build failure or a silent bug. At the edge, query.
 
