@@ -1,8 +1,8 @@
 ---
 name: flow-plan
 description: >
-  Prepare and approve a portable Hive plan for a bounded unit of work. Use when the user
-  explicitly invokes `/flow-plan` or clearly asks to plan an objective; the plan owns phases,
+  Prepare and approve a portable Hive plan for a bounded development change. Use when the user
+  explicitly invokes `/flow-plan` or requests this formal development route; the plan owns phases,
   artifacts and authorization independently of the harness's native plan mode.
 argument-hint: "[objective or existing-plan-path]"
 disable-model-invocation: true
@@ -11,13 +11,13 @@ disable-model-invocation: true
 # /flow-plan — prepare the plan
 
 Follow the flow contract (`~/.claude/skills/flow-core/SKILL.md`). This is the planning half of
-the daily chain. It may inspect the workspace and write the portable plan and, when a ledger
+the optional formal development route. It may inspect the workspace and write the portable plan and, when a ledger
 exists, its handoff, but it never edits project code itself. It does not commit, push, merge,
 publish or deploy. `/flow-build` is user-gated (`disable-model-invocation`): never invoke it from
 this skill, even when the approval also authorizes implementation and delivery — complete the
 approval record, then ask the user to run `/flow-build` (or take the direct route if they choose it).
 
-The user must invoke `/flow-plan` or make an equivalent explicit request such as “planeemos X”.
+The user must invoke `/flow-plan` or make an equivalent explicit request such as “planeemos este cambio de software con el contrato de Hive”. A general request to plan research, BI or a proposal uses `task-routing` unless the user explicitly selects this development contract.
 When a harness does not expose the slash command, that request follows this same procedure
 directly. Do not infer that a question, a native harness Plan Mode transition, or a proposed
 approach is a request to create or approve a Hive plan. Native Plan Mode remains an optional

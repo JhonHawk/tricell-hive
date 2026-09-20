@@ -1,43 +1,34 @@
 ---
 name: task-routing
 description: >
-  Load before the FIRST `Write`/`Edit` on project code OR the first git verb of the session —
-  whichever comes first: a commit-only session fires on the git verb without ever reaching
-  edit-intent. Covers HOW work gets done — which specialist takes it, whether to delegate,
-  how a multi-domain task is chained and verified, the gap analysis before a plan's tasks,
-  the direct route's task record — AND the git mechanics: branching, session git mode,
-  commits, PR/promotion, close. Any request to review, audit, investigate, diagnose, refactor across files,
-  or "how would you approach X" is this decision, even when the user never says "delegate" — they
-  ask for a result, not a routing choice. NOT for: a short question, work outside a software
-  project, a SMALL read-only investigation (≤3 files, ≤3 queries), or the trivial carve-out (typo,
-  rename, one-line config). Triggers: review, audit, investigate, diagnose, refactor, plan,
-  branch, commit, PR, merge, promote; revisar, auditar, investigar, planear.
+  Load before substantive research, BI analysis, architecture, infrastructure, agent
+  configuration or development work; also before the first project edit-intent, git verb,
+  delegation or plan's tasks. Covers deliverable and effects, specialist routing,
+  prerequisites, verification, task records and applicable git mechanics. Short self-contained
+  questions and trivial mechanical work skip the intake; project edit/git gates still apply.
+  Triggers: review, audit, investigate, diagnose, analyze, design, refactor, plan, branch,
+  commit, PR, merge, promote; revisar, auditar, investigar, analizar, diseñar, planear.
 ---
 
-# task-routing — who does the work, what must be settled first, and how git carries it
+# task-routing — deliverable, effects, execution and evidence
 
-Three rule sets that govern the moment before execution: **who** a task goes to, **what has to
-be resolved** before its tasks are written, and **how the session branches, commits, reviews,
-promotes and closes**. None is always-on, because none has a file that announces it — you
-delegate, plan, and pick a branch name by intent, not by opening a `.tsx`.
-
-That is also the risk. Nothing loads these for you: **not invoking this skill is identical to
-not having the rules.** Delegating without them means guessing the specialist and skipping the
-verification layer; planning without them means gaps that surface mid-execution instead of at
-the plan gate; committing without them means a session mode and branch chosen by accident.
+Use the common intake in `agent-routing.md` for substantive work, including work outside
+software projects. Infer what the conversation settles; ask only for missing information
+that changes the work. Read git mechanics when project edits or git operations apply.
 
 ## Routing table — read the row that matches
 
 | Situation | Read |
 |---|---|
+| Starting substantive work: requested deliverable, scope, authorized effects, completion evidence and stopping condition | `agent-routing.md > Common intake` |
 | Choosing which agent gets a task; a task spanning 2+ domains; whether to delegate at all; how verification and review are staged | `agent-routing.md` |
 | Writing the tasks of a plan; a prerequisite that blocks the work; two authoritative sources that disagree | `gap-resolution.md` |
 | Judging whether a change is TRIVIAL (the carve-out that scales review, tests and risk-surfacing down); deciding who OWNS an open decision; whether an alternative is worth surfacing | `critical-thinking.md` |
 | Cutting a branch, picking its name, or deciding the repo's branching model and base branch | `git-mechanics.md > Branching` |
 | First edit-intent of the session (the git mode question), or writing a commit message | `git-mechanics.md > Commits` |
-| Starting implementation with no `/flow-plan` contract (the direct route), before the first write — whether a task record is created | `agent-routing.md > Direct Route` |
+| Work without a `/flow-plan` contract (the direct route): whether it needs a task record | `agent-routing.md > Direct Route` |
 | Opening a PR, choosing the review route, waiting on CI, merging, promoting to an environment | `git-mechanics.md > PRs & promotion` |
-| The plan or change-group finished: pruning merged branches, handling unmerged ones | `git-mechanics.md > End-of-work hygiene` |
+| Repository change-group finished: pruning merged branches, handling unmerged ones | `git-mechanics.md > End-of-work hygiene` |
 | A push 404s on a private repo | `git-mechanics.md > Recovery` |
 
 References are injected at build time from `global/rules-situational/` into `references/`.
@@ -65,8 +56,8 @@ and Grok) or `~/.agents/skills/task-routing/references/<file>.md` (Codex and ope
 - A repo's own `AGENTS.md`/`CLAUDE.md` declaration (`Base branch`, `Issue tracker`) wins
   over anything here; `PR review` is the RECOMMENDED option of a question still asked every
   session that opens a PR (`git-mechanics.md > PRs & promotion`). Read the repo before this.
-- A task in one clear domain routes to that specialist without reading anything: the table
-  exists for the ambiguous cases and for the chains.
+- A task in one clear domain uses its known specialist; ambiguity uses the table. This does
+  not skip the common intake, applicable prerequisites or authorization gates.
 - **Trivial mechanical work is never delegated** — that answer needs no reference.
 - A reference already loaded this session is not reloaded.
 - Only these four files live here. Rules cited by name from inside them belong elsewhere:
