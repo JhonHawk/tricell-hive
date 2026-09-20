@@ -26,14 +26,14 @@ The compact payload is **deliberately not the startup payload**. It is recovery,
 |---|---|---|
 | Claude Code | `settings.json` hooks block (SessionStart, no matcher; script filters `startup\|clear\|compact`) | `flow-session-context.sh` → `~/.claude/hooks/` |
 | Codex | `~/.codex/hooks.json` (`SessionStart` matcher `startup\|clear\|compact`) | `flow-session-context.sh` → `~/.codex/hooks/` |
-| opencode | auto-loaded local plugin (`experimental.chat.system.transform`, once per session) | `flow-session-context.ts` → `~/.config/opencode/plugins/` |
+| opencode | auto-loaded local plugin, **OpenCode 2 API** (`ctx.session.hook("context")`, every model invocation) | `flow-session-context.ts` → `~/.config/opencode/plugins/` (deploy skips it when it detects a non-V2 opencode) |
 | Pi | Hive parent extension maps fresh/compact lifecycle events to the same advisory sections and exposes the shared portable planning flow | `harness/pi/src/` + generated Pi extensions |
 
 One settings entry, not two: `deploy-global`'s merge keys on the inner `.command`, so both topologies merge cleanly — branching inside the script keeps the ledger walk and the git section on a single path. Whether Codex emits a `compact` source is **unverified**; adding it to the matcher is inert if it never does.
 
-**opencode has no post-compaction recovery.** Its plugin gates on a per-session `Set`, and opencode exposes no compaction signal to `experimental.chat.system.transform`. Inverting the gate to presence-based (re-inject whenever the `<flow-process-protocol>` marker is absent from the system array) would cover it organically, but only if opencode reliably passes transformed system arrays back through — unverified, and re-injecting on every step is the failure mode if it does not. Left as-is deliberately; revisit with a verified answer.
+**opencode needs no post-compaction recovery.** The V2 plugin injects on EVERY model invocation rather than once per session, so the first invocation after a compaction carries the block again. That is not a workaround: in V2 the `system` array is rebuilt per invocation (opencode's own internal plugins push into it unconditionally each time), so a once-per-session gate — what the V1 plugin had — prevented *delivery* past the first model call rather than preventing duplication. V2 also exposes a dedicated `compaction` hook, which this plugin does not need to register.
 
-The `.sh` is shared by Claude Code and Codex (identical stdin JSON schema for SessionStart). The `.ts` reimplements sections 1–2 for opencode, gated by a per-session `Set` plus a `<flow-process-protocol>` content-marker guard against double injection. Pi uses its parent extension as the harness adapter for the same portable planning contract.
+The `.sh` is shared by Claude Code and Codex (identical stdin JSON schema for SessionStart). The `.ts` reimplements sections 1–2 for opencode **2** (`export default {id, setup}`; OpenCode 1 rejects that shape and the deploy skips it there), with the advisory text cached per `sessionID` (the git probes must not re-run on every invocation) and a `<flow-process-protocol>` content-marker guard kept as a safety net — the guard covers the flow section only, so a git repo with no ledger injects hygiene text that carries no marker. Its import of `@opencode/plugin` is deliberately type-only — a local plugin file cannot resolve that package at runtime; the rationale and the measurement are in the file's header and in `harness/opencode/README.md`. Pi uses its parent extension as the harness adapter for the same portable planning contract.
 
 The protocol line that says planning intent uses `/flow-plan` is the portable contract across
 harnesses. Native harness plan surfaces remain optional user tooling; they do not capture or
@@ -65,7 +65,15 @@ Deployed by `/deploy-global` (script → `~/.claude/hooks/` + `~/.codex/hooks/`,
 
 ## Test payloads
 
-The `.sh` reads SessionStart JSON on stdin and prints either nothing or a `{hookSpecificOutput:{...}}` envelope.
+The opencode plugin has an automated suite — 12 checks driving `setup()` with a fake plugin context:
+
+```bash
+node --experimental-strip-types --test global/hooks/flow-session-context/flow-session-context.test.ts
+```
+
+It covers the plugin's logic, not opencode's loader; that the export shape actually loads is asserted against the real binary in `.claude/skills/deploy-global/tests/test_opencode_plugin_compat.py`.
+
+The `.sh` has no suite — it reads SessionStart JSON on stdin and prints either nothing or a `{hookSpecificOutput:{...}}` envelope. Payloads to exercise it by hand:
 
 ### (i) Flow workspace with pending git hygiene
 

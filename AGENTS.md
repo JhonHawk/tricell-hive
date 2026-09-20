@@ -260,7 +260,8 @@ discovers `.agents/skills/<name>/SKILL.md` project-locally (walking up to the gi
 *disregards frontmatter fields it does not recognize* — `disable-model-invocation` among them — so the
 `deploy-global` symlink above would be model-invocable there, where Claude Code and Grok both honor the
 gate. Documented rather than mitigated: the exposure needs opencode to be run here to exist. Revisit if
-that changes. (Per its published docs, 2026-08-27; not verified by running opencode.)
+that changes. (Per its published docs, 2026-08-27; re-checked against the V2 docs 2026-09-20 — V2 reads
+`metadata.opencode/autoinvoke`, still not `disable-model-invocation`. Not verified by running opencode.)
 
 **Repo-local Codex hooks require trust before they run.** `.codex/hooks.json` is read (verified by
 experiment, Codex 0.149.1: the same hook fires with `--dangerously-bypass-hook-trust` and stays silent

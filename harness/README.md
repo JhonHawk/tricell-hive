@@ -29,7 +29,7 @@ or represent full production harness parity.
 | `grok/agents/` | Grok-shaped markdown subagents → `~/.grok/agents/` | **Generated** |
 | `pi/` | Pi runtime, package manifest, tests, and generated-role source → `~/.pi/agent/` (or `PI_CODING_AGENT_DIR`) | Runtime hand-maintained; roles **generated** by `build.py`; included by default/`all`/`harness`; `--only pi` is the isolated PI + shared-skills write boundary |
 | `opencode/commands/` | Command wrappers (every user-invoked skill, gated or not; model-invoked routers get none) → `~/.config/opencode/commands/` | Hand-edited (one per user-invoked skill) |
-| `(global/hooks/flow-session-context/)` | Cross-harness SessionStart context → Claude `settings.json` + `~/.claude/hooks/`, `~/.codex/hooks.json` + `~/.codex/hooks/`, `~/.config/opencode/plugins/`; Pi maps the same advisories through its parent extension | Copied by `/deploy-global` (source under `global/`, not `harness/`); Pi wiring lives under `harness/pi/` |
+| `(global/hooks/flow-session-context/)` | Cross-harness SessionStart context → Claude `settings.json` + `~/.claude/hooks/`, `~/.codex/hooks.json` + `~/.codex/hooks/`, `~/.config/opencode/plugins/` (**OpenCode 2 API** — the deploy skips it only when it positively detects a non-V2 opencode; an absent one still gets the file); Pi maps the same advisories through its parent extension | Copied by `/deploy-global` (source under `global/`, not `harness/`); Pi wiring lives under `harness/pi/` |
 | `codex/config.toml.snippet` | Codex config additions | **Manual merge, once** |
 | `opencode/opencode.jsonc.snippet` | opencode config additions | **Manual merge, once** |
 
@@ -112,15 +112,18 @@ unless a snippet itself changes (e.g. `project_doc_max_bytes` gets a new value).
 ### `opencode/opencode.jsonc.snippet` → `~/.config/opencode/opencode.json`
 
 - **`permission.skill."flow-*": "ask"`** — opencode ignores Claude Code's
-  `disable-model-invocation`, so this gates the flow skills behind your approval.
+  `disable-model-invocation`. What V2 reads instead is `metadata.opencode/autoinvoke`,
+  which the pack's skills do not carry, so this permission is the whole gate.
 - **`instructions`** (commented, optional) — makes the shared rubrics ambient;
   reinforcement, not a requirement.
 - **No shell env is needed for skill discovery.** Skills deploy to both `~/.claude/skills`
-  and `~/.agents/skills`, and opencode scans both — but it does not double-list them:
-  measured 2026-08-21 with `opencode debug skill`, 39 skills, zero duplicate names, and
-  `~/.claude/skills` absent from every resolved location. The former
-  `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` recommendation was removed — it is undocumented
-  upstream and solved a problem that does not occur.
+  and `~/.agents/skills`, and opencode scans both ([v2 skills](https://opencode.ai/v2/docs/skills/)
+  scope table, 2026-09-20). The double-listing measurement this bullet used to cite
+  (2026-08-21, `opencode debug skill`: 39 skills, zero duplicate names, `~/.claude/skills`
+  absent from every resolved location) was taken on V1 and is **not reproducible on V2**,
+  which removed that subcommand — treat it as historical, not as current evidence. The
+  former `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` recommendation stays removed: it is
+  undocumented upstream and solved a problem that was never observed.
 
 ## Apply / verify
 

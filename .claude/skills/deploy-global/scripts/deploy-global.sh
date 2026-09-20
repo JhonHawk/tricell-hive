@@ -311,6 +311,20 @@ opencode_is_v2() {
     [[ "${version}" =~ (^|[[:space:]])v?2[.] ]]
 }
 
+# The session plugin targets the OpenCode 2 plugin API. Deploy it unless a
+# non-V2 opencode is POSITIVELY detected:
+#   - no opencode on PATH  -> deploy; the file is inert until one exists, and V2
+#                             is the current major, so this is the likely case
+#                             on a fresh machine. Not deploying would leave the
+#                             plugin missing until the next /deploy-global.
+#   - opencode 2.x         -> deploy.
+#   - opencode 1.x, or a version we cannot read -> skip; writing a file the
+#                             installed opencode refuses is the worse error.
+opencode_plugin_is_deployable() {
+    command -v opencode >/dev/null 2>&1 || return 0
+    opencode_is_v2
+}
+
 step_deploy_pi() {
     [[ "${RUN_PI}" -eq 1 ]] || return 0
     log "== Deploy: pi scope =="
@@ -454,7 +468,7 @@ step_preflight_generic_targets() {
         preflight_target_file "OpenCode opencode.json" "${OPENCODE_HOME}/opencode.json"
         preflight_tree_targets "OpenCode agents" "${REPO_ROOT}/harness/opencode/agents" "${OPENCODE_HOME}/agents"
         preflight_tree_targets "OpenCode commands" "${REPO_ROOT}/harness/opencode/commands" "${OPENCODE_HOME}/commands"
-        if ! opencode_is_v2; then
+        if opencode_plugin_is_deployable; then
             preflight_target_file "OpenCode session plugin" "${OPENCODE_HOME}/plugins/flow-session-context.ts"
         fi
     fi
@@ -1739,9 +1753,20 @@ step_deploy_opencode_plugin() {
     [[ "${RUN_OPENCODE}" -eq 1 ]] || return 0
     local src="${REPO_ROOT}/global/hooks/flow-session-context/flow-session-context.ts"
     [[ -f "${src}" ]] || return 0
-    if opencode_is_v2; then
-        log "WARNING: skipping flow-session-context.ts because OpenCode 2 does not load V1 plugins; any existing copy is preserved."
-        report "opencode plugin: skipped (V1 plugin API unsupported by OpenCode 2)"
+    if ! opencode_plugin_is_deployable; then
+        # The plugin targets the OpenCode 2 API (`export default {id, setup}`).
+        # OpenCode 1 wants a NAMED export and the `experimental.chat.system.transform`
+        # hook; the two shapes do not overlap, so writing it under V1 would install a
+        # file that only errors. Any existing copy is preserved, never deleted.
+        #
+        # `|| detected=` is load-bearing: this runs under `set -euo pipefail`, and a
+        # bare assignment from a failing command substitution aborts the deploy at
+        # step 13e — after ~13 steps of writes and BEFORE the manifest is written.
+        local detected
+        detected="$(opencode --version 2>/dev/null | sed -n '1p')" || detected=
+        detected="${detected:-unknown}"
+        log "WARNING: skipping flow-session-context.ts — it targets the OpenCode 2 plugin API and the detected opencode is ${detected}; any existing copy is preserved."
+        report "opencode plugin: skipped (needs OpenCode 2; detected ${detected})"
         return 0
     fi
     log "== Deploy: opencode plugin =="
@@ -1961,7 +1986,7 @@ step_write_manifest() {
             find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-agents/|' || true
             find "${REPO_ROOT}/harness/opencode/commands" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-commands/|' || true
             [[ -f "${REPO_ROOT}/harness/AGENTS.md" ]] && echo "harness-agents/opencode/AGENTS.md"
-            find "${REPO_ROOT}/global/hooks" -name '*.ts' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-plugins/|' || true
+            find "${REPO_ROOT}/global/hooks" -name '*.ts' ! -name '*.test.ts' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|opencode-plugins/|' || true
         fi
         if [[ "${RUN_GROK}" -eq 1 ]]; then
             find "${REPO_ROOT}/global/agents" -name '*.md' -print0 2>/dev/null | xargs -0 -n1 basename 2>/dev/null | sed 's|^|grok-agents/|' || true
