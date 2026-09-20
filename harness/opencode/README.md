@@ -137,7 +137,7 @@ every boot. Delete the ones you no longer want.
 
 | Claim | How it is verified | Reproducible |
 |---|---|---|
-| The export shape loads on 2.0.9 (`import type` + `export default`; the runtime import does not resolve) | in vivo, `opencode run --print-logs` against a probe plugin | yes, see the commands below |
+| The export shape loads on 2.0.9 (`import type` + `export default`; the runtime import does not resolve) | in vivo twice: `opencode run --print-logs` against a probe plugin, then the DEPLOYED file in the live config — `opencode plugin list` shows `flow-session-context` with a populated ID while `engram.ts`, `gk-hooks.js` and `herdr-agent-state.js` still show `-` (2026-09-20, post-deploy) | yes, see the commands below |
 | The plugin's own behavior — both sections, push-not-append, every-invocation delivery, per-session text caching, marker guard, empty array, absent directory, never-throw | `global/hooks/flow-session-context/flow-session-context.test.ts`, 12 checks driving `setup()` with a fake ctx: `node --experimental-strip-types --test global/hooks/flow-session-context/flow-session-context.test.ts` | yes |
 | `ctx.location.directory` is the SESSION's project directory | **not established.** The probe showed it populated with the directory opencode was started in; the docs describe `location` as where the plugin instance is loaded. The whole plugin (ledger walk + git probes) assumes they are the same. Falsify it by opening a session elsewhere and logging the value | no |
 | A real session shows the injected text end to end | **not done.** `opencode run` hung on every attempt in this environment after the first probe; the hang was not traced | no |
