@@ -1,12 +1,7 @@
 ---
 globs:
-  - "**/*.module.ts"
   - "**/*.controller.ts"
-  - "**/*.service.ts"
-  - "**/*.guard.ts"
-  - "**/*.interceptor.ts"
   - "**/*.filter.ts"
-  - "**/*.pipe.ts"
   - "**/*.decorator.ts"
   - "nest-cli.json"
 exclusive-with: angular-patterns

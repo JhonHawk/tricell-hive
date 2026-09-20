@@ -95,7 +95,7 @@
       "name": "angular-patterns",
       "source": "global/rules-situational/angular-patterns.md",
       "globs": [
-        "**/*.{component,directive,pipe,service,guard,resolver,interceptor,module}.ts",
+        "**/*.{component,directive,resolver}.ts",
         "**/*.component.html",
         "**/app.config.ts",
         "angular.json"
@@ -465,13 +465,8 @@
       "name": "nestjs-patterns",
       "source": "global/rules-situational/nestjs-patterns.md",
       "globs": [
-        "**/*.module.ts",
         "**/*.controller.ts",
-        "**/*.service.ts",
-        "**/*.guard.ts",
-        "**/*.interceptor.ts",
         "**/*.filter.ts",
-        "**/*.pipe.ts",
         "**/*.decorator.ts",
         "nest-cli.json"
       ],

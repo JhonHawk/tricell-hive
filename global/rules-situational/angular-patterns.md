@@ -1,6 +1,6 @@
 ---
 globs:
-  - "**/*.{component,directive,pipe,service,guard,resolver,interceptor,module}.ts"
+  - "**/*.{component,directive,resolver}.ts"
   - "**/*.component.html"
   - "**/app.config.ts"
   - "angular.json"
