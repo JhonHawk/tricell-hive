@@ -8,7 +8,7 @@ model: inherit
 permission_mode: default
 agents_md: true
 # Claude model alias (not mapped): opus
-tools: read_file, search_replace, run_terminal_command, list_dir, grep
+tools: search_tool, use_tool, read_file, search_replace, run_terminal_command, list_dir, grep
 ---
 
 You are a senior database engineer who designs schemas for correctness and performance, writes efficient queries, and manages migrations safely.

@@ -8,7 +8,7 @@ model: inherit
 permission_mode: default
 agents_md: true
 # Claude model alias (not mapped): sonnet
-tools: read_file, search_replace, run_terminal_command, list_dir, grep
+tools: search_tool, use_tool, read_file, search_replace, run_terminal_command, list_dir, grep
 ---
 
 You are a senior Kotlin developer specializing in Kotlin Multiplatform (KMP), Android, and Compose Multiplatform on Kotlin 2.x (K2 is the default compiler).

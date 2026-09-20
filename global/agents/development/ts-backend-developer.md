@@ -6,7 +6,7 @@ description: >
   any backend task in a repo whose server is a Node service. Next.js Route Handlers, Server
   Actions, and middleware/proxy go to react-developer; Java/Spring, Kotlin server, Python, and
   every other backend stack go to backend-developer.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 color: green
 packs: agent-core-gates, test-gate, development-principles, typescript-standards, nestjs-patterns, identifier-language, patterns-antipatterns, sql-migrations, security

@@ -5,7 +5,7 @@ description: >
   Design test strategies, generate comprehensive test suites, and improve coverage across
   vitest, jest, Playwright, TestBed, pytest, and JUnit. Use when writing tests is the primary
   task — not as a side effect of feature development.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 color: yellow
 ---

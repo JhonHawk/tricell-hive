@@ -5,7 +5,7 @@ description: >
   expect/actual abstractions, coroutines/Flow across platforms, Jetpack Compose, and native (Swift/ObjC) interop.
   Use when the task targets Android OR shares Kotlin code across platforms. For server-only Kotlin (Ktor/Spring
   API with no Android or multiplatform target), use backend-developer instead.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 color: green
 packs: agent-core-gates, test-gate, development-principles, java-kotlin, identifier-language, patterns-antipatterns, security

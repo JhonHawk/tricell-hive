@@ -5,7 +5,7 @@ description: >
   Design, optimize, and maintain LLM prompts and agentic flows for production applications. Use when building features that integrate language models — prompt design, structured output, tool_use patterns, cost optimization, and prompt testing.
 model: openai-codex/gpt-6-astra
 thinking: medium
-tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -62,3 +62,9 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Writing or refactoring code | `~/.agents/skills/language-rules/references/development-principles.md` |
 | An API whose shape depends on the library version | `~/.agents/skills/language-rules/references/context7.md` |
 | A failure that resists the first fix | `~/.agents/skills/language-rules/references/debugging.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

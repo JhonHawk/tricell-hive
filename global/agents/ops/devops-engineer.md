@@ -4,7 +4,7 @@ description: >
   CI/CD pipelines, deployment automation, infrastructure provisioning, and cloud operations
   across GitHub Actions, AWS, Hetzner, Vercel, and Dokploy. Use for pipeline setup,
   Docker/Kubernetes config, monitoring, security scanning, and deployment strategies.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 disallowedTools: Agent
 model: sonnet
 color: red

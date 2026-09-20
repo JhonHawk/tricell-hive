@@ -6,7 +6,7 @@ description: >
   implementing API endpoints, database integration, authentication, or service architecture
   outside Node. TypeScript/Node backends (NestJS, Express, Prisma/Drizzle, BullMQ) go to
   ts-backend-developer.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 color: green
 ---

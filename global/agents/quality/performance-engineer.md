@@ -4,7 +4,7 @@ description: >
   Identify and eliminate performance bottlenecks in applications, databases, and infrastructure.
   Use when diagnosing slow response times, optimizing database queries, planning for scalability,
   or conducting load testing.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: opus
 effort: high
 color: yellow

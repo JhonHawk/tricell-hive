@@ -1,17 +1,28 @@
 
-When working with libraries, frameworks, or APIs — use Context7 MCP to fetch current documentation instead of relying on training data.
+## Context7 — version-correct docs in one query
 
-## Query on version-sensitivity signals
+The context7 docs tool (MCP) returns the API surface of the version the project's lockfile/manifest pins: signatures, options and props, config shapes, migration notes. It replaces a web search for any library, framework, SDK, API or CLI surface, and it is both faster and version-correct where training memory is neither. Reach for it first; web search is the fallback, never the peer.
 
-Query context7 before writing code whose exact shape depends on the library version:
+**The asymmetry is the threshold, not your confidence.** One unnecessary query costs seconds; one wrong signature costs a build failure or a silent bug. At the edge, query.
 
+## The moments that call for it
+
+Acts, each visible in the transcript:
+
+- **Writing a call, decorator, config object, or schema against a library the project already has** — anchored to the installed version, never to latest.
+- **Picking options, props, flags, or CLI arguments** — the names and the defaults are what move between versions.
+- **Touching a version-banded API:** Angular signals, Nest v10→v11 (Express 5), Next App Router and async params, React 19 form actions, Prisma/Drizzle client surfaces, Playwright routing, provider structured-output parameters.
+- **A typecheck or build failure naming a library surface** — pin the installed version from the lockfile FIRST, then query anchored to that version, then explore the codebase. Include the version in the query.
 - **Installing or integrating a new dependency** — validate plan, config, and examples against the docs for the version being installed.
-- **File conventions tied to a framework version** (`middleware.ts` vs `proxy.ts`, App Router layout, server actions, route handlers) — in an existing repo the disk is the primary signal (the convention already chosen is visible); query the docs when CREATING the convention or when the framework major changed.
-- **Routing, data-fetching, or rendering APIs on a recent major** (or bumped this session): Next.js 15→16 async params, Angular signals, React 19 form actions.
+- **File conventions tied to a framework version** (`middleware.ts` vs `proxy.ts`, App Router layout, server actions, route handlers) — in an existing repo the disk is the primary signal (the convention already chosen is visible); query when CREATING the convention or when the framework major changed.
 - **Auth flows, middleware, transaction boundaries** — configuration shape changes enough across versions that training data is unreliable.
-- **Deprecation warnings or build errors naming framework conventions** — pin the installed version from the lockfile FIRST, then query context7 anchored to that version, then explore the codebase. Include the version in the query.
+- **Before PROPOSING a library-specific approach in an answer** — a recommendation carries the same version risk as the code, and it is acted on the same way.
 
-**The query that counts is the write-time one.** The obligation attaches to the exact signature, options/props, and config shape at the moment you write the version-sensitive code. A prior query — planning-phase or earlier in the session — discharges it only when it demonstrably returned that exact detail (same surface, same version); a pattern-level answer ("use App Router") does not cover the call detail you then write. Re-query on signal: the detail isn't in what you already fetched, or the build/typecheck failed on that surface.
+**A pattern-level answer you already hold does not cover the call detail you are about to write.** "Use App Router" is not the signature of the function you are typing.
+
+**The query that counts is the write-time one.** The obligation attaches to the exact signature, options/props, and config shape at the moment you write the version-sensitive code. A prior query — planning-phase or earlier in the session — discharges it only when it demonstrably returned that exact detail (same surface, same version). Re-query on signal: the detail isn't in what you already fetched, or the build/typecheck failed on that surface.
+
+Enforcement: prompt-convention. The hook holds this file on a dependency-install command; nothing verifies that a given query happened.
 
 ### Does NOT apply to
 

@@ -5,7 +5,7 @@ description: >
   Design API contracts, service boundaries, and data models BEFORE implementation begins. Use when a feature spans multiple services or repos, when defining a new service's public interface, or when frontend and backend need an agreed contract. Produces spec files that implementation agents consume. Technology-agnostic — works across any stack.
 model: inherit
 thinking: high
-tools: read, write, edit, find, grep, mem_save, contact_supervisor, hive_hook_readiness
+tools: read, write, edit, find, grep, mcp, mem_save, contact_supervisor, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -61,3 +61,9 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Naming fields, enums, tables, endpoints, or spec properties | `~/.agents/skills/language-rules/references/identifier-language.md` |
 | A contract another service consumes | `~/.agents/skills/language-rules/references/context7.md` |
 | Designing or changing a cross-service contract | `~/.agents/skills/workspace-conventions/references/cross-service-workflow.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

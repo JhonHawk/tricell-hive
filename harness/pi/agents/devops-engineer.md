@@ -5,7 +5,7 @@ description: >
   CI/CD pipelines, deployment automation, infrastructure provisioning, and cloud operations across GitHub Actions, AWS, Hetzner, Vercel, and Dokploy. Use for pipeline setup, Docker/Kubernetes config, monitoring, security scanning, and deployment strategies.
 model: openai-codex/gpt-5.6-luna
 thinking: high
-tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 excludeTools: subagent
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
@@ -66,3 +66,9 @@ Read the row matching what you touch; skip anything already loaded this session.
 | Docker, Terraform, GitHub Actions | `~/.agents/skills/language-rules/references/iac-devops.md` |
 | Pipeline and environment topology | `~/.agents/skills/language-rules/references/devops-principles.md` |
 | Shell scripts | `~/.agents/skills/language-rules/references/shell-standards.md` |
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

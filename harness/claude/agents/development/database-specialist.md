@@ -5,7 +5,7 @@ description: >
   Design database schemas, optimize queries, manage migrations, and configure ORMs across
   PostgreSQL, MySQL, MongoDB, Prisma, TypeORM, Drizzle, and Hibernate. Use when the primary
   task is data modeling, query performance, or migration management — not general API development.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: opus
 effort: high
 color: green

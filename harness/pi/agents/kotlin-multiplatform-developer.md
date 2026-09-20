@@ -5,7 +5,7 @@ description: >
   Build Kotlin Multiplatform (KMP) shared code, Android apps, and Compose Multiplatform UI — expect/actual abstractions, coroutines/Flow across platforms, Jetpack Compose, and native (Swift/ObjC) interop. Use when the task targets Android OR shares Kotlin code across platforms. For server-only Kotlin (Ktor/Spring API with no Android or multiplatform target), use backend-developer instead.
 model: openai-codex/gpt-5.6-luna
 thinking: high
-tools: read, write, edit, bash, find, grep, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
+tools: read, write, edit, bash, find, grep, mcp, mem_save, contact_supervisor, hive_git_read, hive_hook_readiness
 subagentOnlyExtensions: __HIVE_PI_ROOT__/extensions/hive-hooks.ts
 async: true
 defaultContext: fresh
@@ -274,3 +274,9 @@ Unconditional (the floor in `security-floor.md`). The check runs before ANY depe
   - MEDIUM/LOW with no fixed version → proceed; report severity and affected range at close.
   - **CRITICAL/HIGH with no safe path** (no fixed version, or the fixed one is incompatible) → **ask — this gate never relaxes.** The install itself is the exposure event; a compromised postinstall has no rollback.
 - **Lockfile-only installs** (`npm install`, `uv sync` with no package argument): run the available audit after install (`npm audit`, `pnpm audit`; `./gradlew dependencyCheckAnalyze` if the OWASP plugin is configured) and resolve findings by the same tiers. For Python, use the OSV.dev query above — pip-based audit tools conflict with the pip ban in `global/CLAUDE.md`.
+
+## PI Context7 usage
+
+For version-sensitive claims, use the shared `mcp` gateway in this order:
+1. `mcp({tool:'context7_resolve-library-id',args:{query,libraryName}})`
+2. `mcp({tool:'context7_query-docs',args:{libraryId,query}})`

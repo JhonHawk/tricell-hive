@@ -5,7 +5,7 @@ description: >
   Use when a feature spans multiple services or repos, when defining a new service's public
   interface, or when frontend and backend need an agreed contract. Produces spec files that
   implementation agents consume. Technology-agnostic — works across any stack.
-tools: Read, Write, Edit, Glob, Grep
+tools: Read, Write, Edit, Glob, Grep, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: inherit
 effort: high
 color: blue
