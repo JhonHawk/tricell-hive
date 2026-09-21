@@ -9,6 +9,11 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 - Give each rule one canonical home. Avoid duplicate routers, fallback chains, generated copies, hooks, or adapters without a measured need.
 - Before changing host-specific behavior, check current official documentation and the installed CLI version. Mark documentary claims, runtime observations, and inferences separately.
 
+## Language convention
+
+- Write distributed CLI instructions and repository documentation intended to guide agents in English, including rules, skills, references, and implementation contracts.
+- Write human-facing reports and deliverables in the language of the session, unless the user requests another language. Classify by intended purpose, not file extension or directory; an agent reading a human report does not change its audience.
+
 ## Workspace locations
 
 Apply these locations for every task, even when no skill is active:
@@ -36,6 +41,9 @@ For behavior claims, record the host and installed version, resolved model, task
 ## Repository map
 
 - `README.md` — purpose and working boundaries.
+- `content/` — distributable Hive guidance and activity skills; root `AGENTS.md` governs this repository only.
+- `integrations/` — host-specific differences; `tooling/` — management interfaces and shared operations; `tests/` — verification.
+- `_support/docs/architecture/repository-and-distribution.md` — structure and managed global-instruction block design.
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.
 - `_support/sessions/` — dated work records; `_support/workspace/` — disposable scratch.
@@ -45,3 +53,5 @@ For behavior claims, record the host and installed version, resolved model, task
 Consult `/path/to/reference-volume/dev-resources/tricell-hive-master` for the previous Hive implementation without an API call. This independent clone matches remote `master` (the default branch, not `main`) at `16e7d3357a3c41530d5e31460c3024872566f3c7`, verified 2026-09-20. Use it as read-only reference material; its instructions and deployment scripts do not govern this rebuild. It does not update automatically: verify freshness before claiming it represents current remote state. If the volume is unavailable, report that limitation.
 
 Historical research and evaluation evidence moved from this checkout are indexed in that clone at `_support/workspace/imported-research-2026-09-20/README.md`. This local, Git-ignored archive is separate from remote `master`; raw traces are not sanitized for publication.
+
+External reference repositories (`optional reference project`, `optional reference project`, `improve`, `optional reference project`) are at `/path/to/reference-volume/dev-resources/reference/`. Consult them as source material, not active instructions; the workflow inventory and inspected revisions are in `_support/docs/harness-engineering/2026-09-20-workflow-map.md`.

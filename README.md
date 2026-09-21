@@ -17,3 +17,9 @@ The [harness engineering research index](_support/docs/harness-engineering/READM
 - Curated non-reproducible evidence belongs in `_support/evidence/YYYY-MM-DD-<slug>/`.
 
 This repository does not promise a runtime, deploy mechanism, hook framework, or build/test command. Inspect what exists before relying on it. Preserve user-owned configuration, credentials, histories, third-party tools, backups, and the Engram workspace identity.
+
+## Repository structure
+
+Shared distributable content lives in `content/`; host differences in `integrations/`; management tooling in `tooling/`; and verification in `tests/`. Empty directories are reserved with `.gitkeep`, not implemented features. Generated `dist/` and local workspace contents remain ignored.
+
+See the [repository and distribution design](_support/docs/architecture/repository-and-distribution.md). The first content to develop is `content/guidance/global.md`: a shared instruction body to insert between managed markers in existing global instruction files, preserving user content. The source is intentionally empty until those rules are written.

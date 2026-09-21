@@ -7,7 +7,12 @@ CLAUDE.local.md
 **/.claude.json
 .firecrawl
 audit-coverage-gaps.html
-_support/workspace/
+# Preserve only the workspace skeleton, never local scratch or retirement scripts
+_support/workspace/*
+!_support/workspace/.gitkeep
+!_support/workspace/hive-retirement/
+_support/workspace/hive-retirement/*
+!_support/workspace/hive-retirement/.gitkeep
 # Machine-local recovery kits (personal harness configs, third-party plugin snapshots,
 # client-named migration records) — referenced by Engram, never committed
 _support/backup/
@@ -22,6 +27,9 @@ __pycache__/
 # Engram: track only the project identity, not local sync chunks
 .engram/*
 !.engram/config.json
+
+# Generated distribution artifacts are never versioned
+/dist/
 
 # Private optional research sources
 /_support/workspace/

@@ -6,6 +6,8 @@ This folder holds the research and measurement basis for rebuilding Hive as a sm
 
 - [Cross-harness findings and design implications](2026-09-20-portable-harness-research.md) — source-backed findings, limits, recommendations, and a bounded evaluation approach.
 
+- [Workflow map](2026-09-20-workflow-map.md) — human-facing report in Spanish: Hive master inventory, comparison with local references, and rebuild proposals.
+
 ## Supplied corpus
 
 The synthesis includes the five Markdown texts and inspected figures from `uber-software-factory.zip`, alongside external harness-engineering and official host documentation. The original archive remains at `/path/to/home/Downloads/uber-software-factory.zip`; its SHA-256 is `1f53cb048d8dd298d7cea81fca73933902c8093f8aa4ae03ad9a9f6c82c260bb` (rechecked on 2026-09-20). Filenames, figure interpretations, source limitations, and attribution caveats are recorded in the synthesis. The archive is a local source, not a tracked dependency.
