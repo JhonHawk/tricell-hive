@@ -36,7 +36,7 @@ Authorized scope: <effects and targets already authorized; pending actions if re
 
 - [ ] <Coherent result>. Locations: <source paths>. Depends on: <task, if needed>.
   Check: <actual command or observation>. Expected: <specific outcome>.
-  When relevant: <test approach, environment/prerequisites, gate timing, and unavailable coverage>.
+  When relevant: <test approach, environment/prerequisites, gate timing, execution mechanism and authorization, and unavailable coverage>.
 
 ## Progress and next step
 

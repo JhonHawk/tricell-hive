@@ -1,6 +1,6 @@
 # Verification by risk and surface
 
-Read when planning or implementing changes involving integration, runtime, UI, performance, hardware, test replacement/removal, or costly checks. The build skill owns the essential test-first and completion procedure; this reference selects depth and timing. Follow the project's established commands, environments, and delivery policy. Verification does not grant deployment, publication, destructive effects, or external access.
+Read when planning or executing integration, runtime, UI, performance, hardware, test replacement/removal, promotion, deployment, or costly checks. The build skill owns the essential test-first and completion procedure; this reference selects depth and timing. Follow the project's established commands, environments, and delivery policy. Verification does not grant deployment, publication, destructive effects, or external access.
 
 ## Select evidence for the change
 
@@ -19,24 +19,43 @@ Choose the lowest-cost layer that can detect the relevant failure. The following
 
 When replacing or removing tests, compare the old and new scenarios, fixtures, preconditions, and assertions; justify any retired coverage against the current contract rather than preserving obsolete tests or assuming similar assertions cover the same behavior.
 
+## Gate selection and timing
+
+Apply the shared authorization rule before substantial gates. Use existing project conventions to discover required versus offered gates, preferred mechanisms, and where availability can be checked. Keep capability, preference, execution authorization, and technical verdict distinct. Do not launch a review to test availability or infer approval from repeated historical choices. Present the concrete scope/candidate, mechanism, environment, relevant cost or effects, and expected evidence when a decision is missing. A plan may carry explicit advance authorization; its mere inclusion of a check is insufficient.
+
+| Boundary | Required decision or evidence |
+| --- | --- |
+| Research / task entry | Inspect state, risks, project commands and automatic triggers; propose experiments exceeding ordinary authorized investigation before running them. |
+| Plan / implementation brief | Select applicable checks, prerequisites and pass criteria; place substantial gates and resolve or record execution authorization. A dedicated substantial plan/design review follows the same boundary. |
+| Build iteration | Run targeted tests and routine checks; inspect the implementation's own diff. This is not a dedicated independent code-review gate. |
+| Local candidate | Complete applicable local in-vivo and UI verification, using a representative built artifact when delivery differs from dev. Propose dedicated code review separately unless already authorized. |
+| Publication / integration | Review the identified candidate with the selected mechanism and inspect actual CI coverage. Account for automatic review/deployment effects before the push or PR event that triggers them. |
+| Predeploy | Reconcile the complete promoted candidate, affected destinations, migrations, compatibility, recovery and reusable prior evidence. A promotion label does not prove the candidate was reviewed. |
+| Postdeploy | Verify active artifact/revision and routine health per affected surface. Offer the functional in-vivo/UI gate in that environment unless its concrete execution is already authorized. |
+| Close | Reconcile evidence and remaining gates. Separate published, healthy and functionally accepted; keep pending, failed and blocked checks visible. |
+
+Large integration suites, load/soak, hardware exercises and external-service scenarios need scope and effect assessment, regardless of whether their command starts locally. Their phase follows the required environment and artifact, not a universal final-stage checklist. For authorized re-review, focus on affected changes and invalidate previous evidence when relevant inputs change; do not assume unlimited rounds or a broader mechanism are covered.
+
+A technical verdict does not authorize delivery. A required gate declined or unavailable remains an unmet transition condition; an optional gate may be deferred explicitly. Interpret actual findings and terminal status rather than treating absent comments, a queued run, or a non-failing check as approval.
+
 ## Runtime and UI gates
 
-Exercise the actual changed path and relevant failure or permission states. A mocked integration or source inspection does not establish behavior in the running system. Resolve authorized local setup, accounts, roles and seed data; access only the user can supply remains a reported prerequisite.
+For local implementation, always exercise the applicable changed path and relevant failure or permission states. Perform the corresponding deployed-environment exercise only within its explicit gate authorization. A mocked integration or source inspection does not establish behavior in the running system. Resolve authorized local setup, accounts, roles and seed data; access only the user can supply remains a reported prerequisite.
 
 Use dev/HMR for iteration. At the candidate boundary, validate the built artifact in a representative execution mode when dev and delivered behavior differ. Do not invent a build step for a service without one or rebuild every app for each edit.
 
-For UI changes, inspect rendered appearance and interaction separately: layout, content, feedback, error recovery, responsive behavior, keyboard/focus and accessibility relevant to the change. Capture the prior state when comparing an existing interface and practical before editing; missing baseline limits claims of visual improvement, not unrelated functional checks. Automated accessibility or screenshot checks support, but do not replace, inspection of the affected experience.
+For UI changes, local rendered and interactive inspection is part of completion, not an optional gate: layout, content, feedback, error recovery, responsive behavior, keyboard/focus and accessibility relevant to the change. Capture the prior state when comparing an existing interface and practical before editing; missing baseline limits claims of visual improvement, not unrelated functional checks. Automated accessibility or screenshot checks support, but do not replace, inspection of the affected experience.
 
 Compare changed UI with the selected application/area’s accepted shell and screen pattern, including justified differences. Distinguish pattern conformity, functional behavior, and user suitability. A screenshot diff against a prior baseline does not establish that a new screen follows a different reference screen’s pattern. When shared UI code changes, inspect affected consumers across applications according to impact.
 
-Use an independent reviewer when consequence or scope warrants it, with concrete criteria and evidence. Reuse existing review roles where available; do not summon every specialist by default. Parallel functional and UI reviews need isolated data/accounts/sessions; otherwise serialize state-changing work.
+When consequence or scope warrants an independent reviewer, propose one with concrete criteria and evidence, and execute within the agreed gate authorization. Reuse existing review roles where available; do not summon every specialist by default. Parallel functional and UI reviews need isolated data/accounts/sessions; otherwise serialize state-changing work.
 
 ## Frequency and coverage
 
 - During implementation, run the small checks that give feedback on the current behavior. Inspect transitive impact and use existing test-selection tooling where reliable; file proximity alone may miss affected callers.
 - At a coherent increment's close, verify the final affected scope and applicable build/integration/runtime/UI gates. Avoid duplicating every edge case at every layer.
 - At integration or promotion, satisfy the project's broader regression and release gates. Confirm what CI actually executes; do not assume it covers a missing check. Local checkpoints, branch publication, merge and release are distinct boundaries, governed by the project's policy and existing authorization.
-- After authorized deployment, identify the artifact or revision actually served in the target environment and verify the affected behavior and recovery criteria. Use appropriate readbacks, logs, metrics, traces, or journeys; a successful pipeline or an available shell alone does not establish service health. Check recovery against the data/configuration changes made, not only the previous code version.
+- After authorized deployment, identify the artifact or revision actually served in each affected target and check routine health. Execute the functional walk and recovery exercises only within their authorized scope; otherwise propose them and record acceptance as pending. Use appropriate readbacks, logs, metrics, traces, or journeys; a successful pipeline or an available shell alone does not establish service health. Check recovery against the data/configuration changes made, not only the previous code version.
 - Reuse evidence only for unchanged relevant inputs. Code, configuration, dependency, environment or external-state changes can invalidate it. Performance trends, changing data/traffic and experimental noise can justify scheduled or repeated checks even without a code change.
 
 Parallelize independent checks; isolate or serialize shared state. After a correction, rerun its failing check and affected scope. Broaden for cross-cutting changes or new failure evidence. Bound review/repair loops by material findings and explicit stopping conditions rather than arbitrary repetition for confidence.

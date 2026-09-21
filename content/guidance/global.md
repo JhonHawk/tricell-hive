@@ -35,6 +35,11 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 - Verify the result using evidence appropriate to the work. Distinguish inspected facts, source claims, inference, and recommendations; include relevant versions or dates when they affect the conclusion.
 - Report what was checked, what remains uncertain, and what did not run. A successful command, a written plan, or an installed file does not by itself prove the intended behavior, completed delivery, or a general improvement.
 
+## Verification gates
+
+- Routine checks and applicable local in-vivo and UI verification belong to authorized implementation; do not ask separately to perform them. Before a substantial gate, including dedicated code review, deployed-environment in-vivo/UI verification, or costly load/hardware exercises, confirm scope and execution method unless explicitly authorized already. Offer mechanisms available to the project and current host; a saved preference, listed tool, or planned gate alone is not authorization. Local execution does not authorize external side effects.
+- Preserve outstanding acceptance criteria and promised checks across intermediate questions. Reuse authorization while its scope, target, and conditions remain valid. An explicit stop ends execution with unmet gates recorded; an unexecuted or declined gate is not a pass and does not waive a required delivery condition.
+
 ## Proportionality
 
 - Choose the smallest sufficient investigation, plan, implementation, and verification. Simple questions and mechanical edits do not require a formal workflow or a report. Use applicable tests and checks rather than adding ceremony or unrelated work.

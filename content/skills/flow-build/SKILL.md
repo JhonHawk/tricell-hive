@@ -1,21 +1,21 @@
 ---
 name: flow-build
-description: Implement or resume an authorized code or configuration change, reconcile a supplied plan with current state, verify behavior, and close with evidence. Use for execution rather than research-only or planning-only requests; a formal plan is not a prerequisite for a small understood change.
+description: Implement or resume authorized code, configuration, promotion, or deployment work; reconcile current state, verify results, and close with evidence. Use for execution rather than research-only or planning-only requests; a formal plan is not a prerequisite for a small understood change.
 ---
 
 # Implement and verify authorized work
 
 Use the requested outcome or supplied plan as the execution brief. This skill does not require a formal plan or a prior research skill invocation, and does not grant effects beyond the user's instructions.
 
-## Reconcile before editing
+## Reconcile before execution
 
 Read the relevant project guidance, current source and tests, and the supplied plan and references. Inspect existing changes and completed work. Treat the record as a claim to reconcile with current evidence, not a script to replay blindly.
 
-Identify the next unmet acceptance criterion and its dependencies. Preserve valid completed work. If the current state invalidates an important decision, investigate the mismatch and update the affected plan or ask for the missing decision before dependent edits. Resolve ordinary implementation details within scope; do not stop at every task boundary merely to ask again.
+Identify the candidate, affected applications/services and environments, and the checks needed to close each surface. A supplied plan is optional; keep a small task’s criteria in the conversation. Identify the next unmet acceptance criterion and its dependencies. Preserve valid completed work. If the current state invalidates an important decision, investigate the mismatch and update the affected plan or ask for the missing decision before dependent edits. Resolve ordinary implementation details within scope; do not stop at every task boundary merely to ask again.
 
-Identify the available test runner, actual project check/build commands, relevant baseline failures, and the evidence needed for acceptance. For changes involving integration, runtime, UI, performance, hardware, test replacement/removal, or costly verification, read [verification by risk and surface](references/verification.md) before editing to select checks, prerequisites, and their timing. Reconcile a supplied verification plan rather than silently weakening it.
+Identify the available test runner, actual project check/build commands, relevant baseline failures, and the evidence needed for acceptance. For integration, runtime, UI, performance, hardware, test replacement/removal, promotion, deployment, or costly verification, read [verification by risk and surface](references/verification.md) before execution to select checks, prerequisites, and their timing. Reconcile a supplied verification plan rather than silently weakening it.
 
-Before dependent edits, read the applicable situational reference: [security boundaries](references/security-boundaries.md) for untrusted inputs, permissions, process execution, public data exposure, or dependencies; [persistent data changes](references/data-changes.md) for stored schema, representation, migration, or backfill changes; and [diagnosis](../flow-research/references/diagnosis.md) when a failure’s cause remains uncertain. These apply even without a retained plan or specialist assignment.
+Before dependent changes, including deployment of existing code, read the applicable situational reference: [security boundaries](references/security-boundaries.md) for untrusted inputs, permissions, process execution, public data exposure, or dependencies; [persistent data changes](references/data-changes.md) for stored schema, representation, migration, or backfill changes; and [diagnosis](../flow-research/references/diagnosis.md) when a failure’s cause remains uncertain. These apply even without a retained plan or specialist assignment.
 
 For new or changed screens, shells, layouts, or reusable UI patterns, read [UI planning](../flow-plan/references/ui-planning.md) and any existing applicable project UI guide before dependent edits. Reconcile the supplied view decisions; if no plan exists, resolve the same decisions in a bounded implementation brief rather than inventing a new composition.
 
@@ -23,7 +23,7 @@ Before installing a missing tool, check the project-local and available system i
 
 ## Execute in verifiable increments
 
-Choose a coherent next result and implement it in the existing source layout. Look for an existing solution or pattern before adding a mechanism or abstraction, and justify a new one by the need it serves. Confirm that reused tools or patterns meet this project's requirements. Use the project's declared dependency manager and preserve its lockfile conventions. When delegation is useful and authorized, assign independently implementable units with settled interfaces under the shared delegation contract. Select technical references from the actual project stack and affected behavior. Keep dependent edits ordered. Assign independent verification or a specialist review when the acceptance criteria or risk warrant it; the implementer still verifies its own change.
+Choose a coherent next result and implement it in the existing source layout. Look for an existing solution or pattern before adding a mechanism or abstraction, and justify a new one by the need it serves. Confirm that reused tools or patterns meet this project's requirements. Use the project's declared dependency manager and preserve its lockfile conventions. When delegation is useful and authorized, assign independently implementable units with settled interfaces under the shared delegation contract. Select technical references from the actual project stack and affected behavior. Keep dependent edits ordered. Propose independent verification or specialist review when the acceptance criteria or risk warrant it, and dispatch within the agreed gate authority. Independent surface checks may run in parallel; keep one owner for shared mutations and wait for the required deployed version before dependent checks. The implementer still verifies its own change.
 
 Before adding a dependency, assess whether an existing project dependency, standard library, or native platform capability meets the requirement, including established design-system conventions. Choose based on compatibility, maintainability, and fit rather than a universal library preference. Explain a new dependency’s purpose and any overlap; consolidating existing usages remains separate unless authorized.
 
@@ -41,7 +41,7 @@ Keep task-started processes identifiable. Silence alone does not mean a command 
 
 ## Verify and close
 
-Compare the final changes and observed behavior against the acceptance criteria and authorized scope. Run affected tests and applicable build, typecheck, and lint commands that the project provides. Exercise changed runtime behavior through the real integration path; inspect changed user-facing surfaces rendered and interactive, including relevant states and viewports. Tests passing or a successful build do not replace those observations. Apply the shared verification reference for domain-specific depth and timing.
+Compare the final changes and observed behavior against the acceptance criteria and authorized scope. Local in-vivo verification and UI review are required when applicable, without a separate approval request; unavailable prerequisites leave the affected criterion unverified. Run affected tests and applicable build, typecheck, and lint commands that the project provides. Exercise changed runtime behavior through the real integration path; inspect changed user-facing surfaces rendered and interactive, including relevant states and viewports. In deployed environments, apply the shared gate authorization boundary before the functional walk. Tests passing or a successful build do not replace those observations. Apply the shared verification reference for domain-specific depth and timing.
 
 Use existing evidence only while its relevant code, configuration, and environment remain valid. Close regression coverage through the project's actual CI gate or run the existing full suite locally when no downstream coverage exists. After a fix, rerun the failing check and affected scope; broaden when the impact warrants it. Do not mark a required but unavailable check as passed or silently omit it. Distinguish failed, not verified/blocked, and not applicable with a reason; resolve authorized local prerequisites and report any remaining delivery constraint. Check that the handoff's paths and next step still match the final state.
 

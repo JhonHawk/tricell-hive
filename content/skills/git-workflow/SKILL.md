@@ -13,6 +13,8 @@ Inspect the repository's documented conventions before choosing branch, commit, 
 
 Use the repository's established conventions when they exist. If it has none, `type/short-slug` is a suitable branch-name default and Conventional Commits with an optional scope are suitable commit-message defaults. These defaults do not require creating a branch or committing.
 
+For review or a Git action that triggers CI, review, preview, or deployment, read [verification gates and timing](../flow-build/references/verification.md). Inspect the project's applicable automation before the triggering action. Resolve substantial effects not covered by the existing authorization; do not silently change automation settings to avoid them. A review mechanism may be local or remote: identify its candidate, scope, and effects rather than assuming all native reviews are equivalent or free. Review authorization does not itself authorize autofix writes, push, or merge.
+
 ## Prepare a coherent delivery
 
 Stage only the paths and portions that belong to the authorized result. Make commits cohesive enough to review and revert as one concern; separate independent changes when that clarifies their purpose or delivery. Do not rewrite, amend, force-push, clean, or otherwise alter existing history or unrelated work unless that effect is explicitly authorized.
