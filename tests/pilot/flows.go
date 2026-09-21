@@ -153,6 +153,7 @@ func importHandoff(producer, destination string) (*handoffReport, error) {
 type skillObservation struct {
 	Name            string
 	Discovery, Read criterionAssessment
+	PartialRead     *criterionAssessment `json:",omitempty"`
 }
 
 type referenceObservation struct {
@@ -161,29 +162,38 @@ type referenceObservation struct {
 	BeforeFirstPlanWrite criterionAssessment
 }
 
-// Recognize only literal cat/sed arguments in simple semicolon/newline-separated
-// shell segments. Quoted echo text, variables, wrappers and compound expressions
-// remain opaque. This is deliberately not a shell interpreter.
+// Recognize bounded literal reads; never execute a command to interpret evidence.
+// Loops, substitutions, pipelines and redirects stay opaque for manual review.
 func literalReferencePaths(command, suffix string) []string {
+	return literalReadPaths(command, suffix, 0)
+}
+
+func literalReadPaths(command, suffix string, depth int) []string {
+	if depth > 2 {
+		return nil
+	}
 	segments := [][]string{}
 	tokens := []string{}
 	var token strings.Builder
 	var quote rune
-	escaped := false
+	escaped, invalid := false, false
 	flushToken := func() {
 		if token.Len() > 0 {
 			tokens = append(tokens, token.String())
 			token.Reset()
 		}
 	}
-	flushSegment := func() {
+	flush := func() {
 		flushToken()
-		if len(tokens) > 0 {
+		if !invalid && len(tokens) > 0 {
 			segments = append(segments, tokens)
-			tokens = nil
 		}
+		tokens = nil
+		invalid = false
 	}
-	for _, ch := range command {
+	chars := []rune(command)
+	for i := 0; i < len(chars); i++ {
+		ch := chars[i]
 		if escaped {
 			token.WriteRune(ch)
 			escaped = false
@@ -206,8 +216,16 @@ func literalReferencePaths(command, suffix string) []string {
 			continue
 		}
 		if ch == ';' || ch == '\n' {
-			flushSegment()
+			flush()
 			continue
+		}
+		if ch == '&' && i+1 < len(chars) && chars[i+1] == '&' {
+			flush()
+			i++
+			continue
+		}
+		if strings.ContainsRune("|&<>()", ch) {
+			invalid = true
 		}
 		if ch == ' ' || ch == '\t' {
 			flushToken()
@@ -218,16 +236,24 @@ func literalReferencePaths(command, suffix string) []string {
 	if quote != 0 || escaped {
 		return nil
 	}
-	flushSegment()
+	flush()
 	paths := []string{}
 	for _, args := range segments {
 		if len(args) < 2 {
+			continue
+		}
+		if len(segments) == 1 && len(args) == 3 && oneOfShell(filepath.Base(args[0])) && (args[1] == "-lc" || args[1] == "-c") {
+			paths = append(paths, literalReadPaths(args[2], suffix, depth+1)...)
 			continue
 		}
 		start := 1
 		switch args[0] {
 		case "cat":
 			if args[start] == "-n" {
+				start++
+			}
+		case "nl":
+			if args[start] == "-ba" {
 				start++
 			}
 		case "sed":
@@ -238,16 +264,35 @@ func literalReferencePaths(command, suffix string) []string {
 		default:
 			continue
 		}
+		valid := true
 		for _, p := range args[start:] {
 			if strings.ContainsAny(p, "$`|&<>()") || strings.HasPrefix(p, "-") {
-				break
+				valid = false
 			}
+		}
+		if !valid {
+			continue
+		}
+		for _, p := range args[start:] {
 			if strings.HasSuffix(filepath.ToSlash(p), suffix) {
 				paths = append(paths, p)
 			}
 		}
 	}
 	return paths
+}
+func oneOfShell(name string) bool { return name == "sh" || name == "bash" || name == "zsh" }
+
+func successfulShellOutput(r result, e traceEvent) string {
+	if e.Kind != "shell" || e.ID == "" || e.Success == nil || !*e.Success {
+		return ""
+	}
+	for _, out := range r.Trace.Events {
+		if out.Kind == "tool_result" && out.ID == e.ID && out.Success != nil && *out.Success {
+			return out.Text
+		}
+	}
+	return ""
 }
 
 func observeReference(r result, name, sourceMarkers string) referenceObservation {
@@ -334,6 +379,33 @@ func observeSkill(r result, name string) skillObservation {
 		}
 	}
 	for _, e := range r.Trace.Events {
+		// A failed batch is not a successful command. Retain a separate observation
+		// only for a literal first cat whose source appears before a later cat error.
+		if e.Kind == "shell" && e.ID != "" && e.Success != nil && !*e.Success {
+			command := e.Command
+			if strings.HasPrefix(command, "/bin/zsh -lc '") && strings.HasSuffix(command, "'") {
+				command = strings.TrimSuffix(strings.TrimPrefix(command, "/bin/zsh -lc '"), "'")
+			}
+			parts := regexp.MustCompile(`^cat ([/A-Za-z0-9_.-]+) && cat ([/A-Za-z0-9_.-]+)$`).FindStringSubmatch(command)
+			if len(parts) == 3 && strings.HasSuffix(parts[1], "/"+name+"/SKILL.md") {
+				for _, out := range r.Trace.Events {
+					if out.Kind != "tool_result" || out.ID != e.ID || out.Success == nil || *out.Success {
+						continue
+					}
+					body, _, found := strings.Cut(out.Text, "cat: "+parts[2]+":")
+					if found && strings.Contains(body, "\nname: "+name+"\n") && strings.Contains(body, "\ndescription:") && strings.Contains(body, "\n# ") {
+						o.PartialRead = &criterionAssessment{Criterion: "Source observed before later batch failure", Status: "pass", Evidence: []string{evidenceLine(e) + " first literal cat source observed; subsequent cat failed; command remains failed"}}
+					}
+				}
+			}
+		}
+		output := successfulShellOutput(r, e)
+		if len(literalReferencePaths(e.Command, "/"+name+"/SKILL.md")) > 0 &&
+			regexp.MustCompile(`(?m)^name: *["']?`+regexp.QuoteMeta(name)+`["']?\s*$`).MatchString(output) &&
+			strings.Contains(output, "description:") && strings.Contains(output, "\n# ") {
+			o.Read.Status = "pass"
+			o.Read.Evidence = append(o.Read.Evidence, evidenceLine(e)+" literal shell read with corresponding skill source output")
+		}
 		if e.Kind == "tool_result" && e.Success != nil && *e.Success && nativeCalls[e.ID] {
 			prefix := "<skill_content name=\"" + name + "\">\n# Skill: " + name + "\n"
 			if strings.HasPrefix(e.Text, prefix) && strings.Contains(e.Text, "</skill_content>") && len(e.Text) > len(prefix)+100 {
@@ -403,11 +475,52 @@ func verifyResourceNameContract(dir string) criterionAssessment {
 	}
 	return c
 }
+func flowLoadingSkills(id string) []string {
+	switch id {
+	case "smoke", "conventions-smoke":
+		return []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
+	case "deployed-smoke":
+		return []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-archive"}
+	default:
+		return nil
+	}
+}
+
+// The project-state fixture asks for one new findings record. Score its
+// destination independently from its suffix; neither check grades its content.
+func projectStateRecordCriteria(r result, f fixture) []criterionAssessment {
+	paths := []string{}
+	for p := range r.After {
+		if _, exists := f.Files[p]; exists {
+			continue
+		}
+		if _, exists := r.Before[p]; exists {
+			continue
+		}
+		if strings.HasSuffix(p, ".md") || strings.HasSuffix(p, ".html") {
+			paths = append(paths, p)
+		}
+	}
+	sort.Strings(paths)
+	placement := criterionAssessment{Criterion: "Retained findings location", Status: "fail", Evidence: paths}
+	naming := criterionAssessment{Criterion: "Retained findings naming (.research.md)", Status: "fail", Evidence: paths}
+	if len(paths) == 1 {
+		p := paths[0]
+		if filepath.ToSlash(filepath.Clean(p)) == p && strings.HasPrefix(p, "_support/sessions/") && len(strings.Split(p, "/")) >= 4 {
+			placement.Status = "pass"
+		}
+		if strings.HasSuffix(filepath.Base(p), ".research.md") && filepath.Base(p) != ".research.md" {
+			naming.Status = "pass"
+		}
+	}
+	return []criterionAssessment{placement, naming}
+}
+
 func assessFlows(r result, f fixture, files string) assessment {
-	a := assessment{Host: r.Host, Case: r.Case, Delivery: r.Delivery, Terminal: r.Terminal, Status: "not_verified", Limitations: []string{"Structural checks are not semantic or language approval. Human review must assess grounding, plan completeness and Spanish deliverables.", "Native read evidence is separate from advertisement and task success. Missing events do not prove a skill was not read.", "Final inventory and trace are not an OS-wide audit. Node executes erasable TypeScript without static type checking."}}
+	a := assessment{Host: r.Host, Case: r.Case, Delivery: r.Delivery, Terminal: r.Terminal, Status: "not_verified", Limitations: []string{"Structural checks are not semantic or language approval. Human review must assess grounding, plan completeness and Spanish deliverables.", "Source-read evidence includes matched native reads and bounded literal shell reads with source output; advertisement and task success are separate. Opaque loops require manual trace review.", "Final inventory and trace are not an OS-wide audit. Node executes erasable TypeScript without static type checking.", "Requested model and effort describe the parent invocation, not delegated agents. Verify child models separately before claiming a homogeneous model comparison; an unobserved model remains unverified."}}
 	names := []string{f.Expected.SkillRead}
-	if f.ID == "smoke" || f.ID == "conventions-smoke" {
-		names = []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
+	if loading := flowLoadingSkills(f.ID); len(loading) > 0 {
+		names = loading
 	}
 	for _, name := range names {
 		a.Skills = append(a.Skills, observeSkill(r, name))
@@ -439,7 +552,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 			continue
 		}
 		allowed := strings.HasPrefix(p, "_support/")
-		if f.ID == "smoke" || f.ID == "conventions-smoke" {
+		if len(flowLoadingSkills(f.ID)) > 0 {
 			allowed = false
 		}
 		if f.ID == "build" {
@@ -516,7 +629,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 		reads := criterionAssessment{Criterion: "Observed repository source/test reads", Status: "not_verified"}
 		sourceRead, testsRead := false, false
 		for _, event := range r.Trace.Events {
-			if event.Kind != "read" || event.Success == nil || !*event.Success {
+			if event.Success == nil || !*event.Success {
 				continue
 			}
 			path := eventPath(event.Path, r.Cwd)
@@ -527,11 +640,23 @@ func assessFlows(r result, f fixture, files string) assessment {
 			if f.ID == "direct-build" {
 				sourcePath, testPath = "src/resource-names.ts", "tests/resource-names.test.ts"
 			}
-			if sameAbsolutePath(path, filepath.Join(r.Cwd, sourcePath)) {
+			shellReads := func(relative string) bool {
+				body := strings.TrimSpace(f.Files[relative])
+				if body == "" || !strings.Contains(successfulShellOutput(r, event), body) {
+					return false
+				}
+				for _, p := range literalReferencePaths(event.Command, relative) {
+					if sameAbsolutePath(eventPath(p, r.Cwd), filepath.Join(r.Cwd, relative)) {
+						return true
+					}
+				}
+				return false
+			}
+			if (event.Kind == "read" && sameAbsolutePath(path, filepath.Join(r.Cwd, sourcePath))) || shellReads(sourcePath) {
 				sourceRead = true
 				reads.Evidence = append(reads.Evidence, evidenceLine(event))
 			}
-			if sameAbsolutePath(path, filepath.Join(r.Cwd, testPath)) {
+			if (event.Kind == "read" && sameAbsolutePath(path, filepath.Join(r.Cwd, testPath))) || shellReads(testPath) {
 				testsRead = true
 				reads.Evidence = append(reads.Evidence, evidenceLine(event))
 			}
@@ -556,7 +681,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 		if len(paths) == 1 {
 			artifact.Status = "pass"
 		}
-		if f.ID != "direct-build" {
+		if f.ID == "project-state" {
+			a.Criteria = append(a.Criteria, projectStateRecordCriteria(r, f)...)
+		} else if f.ID != "direct-build" {
 			a.Criteria = append(a.Criteria, artifact)
 		}
 		a.Criteria = append(a.Criteria, criterionAssessment{Criterion: "Human review: Spanish, source grounding, contracts, decisions and verification coverage", Status: "not_verified", Evidence: paths})
@@ -581,7 +708,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 		fail = fail || c.Status == "fail"
 		unknown = unknown || c.Status == "not_verified"
 	}
-	if f.ID == "smoke" || f.ID == "conventions-smoke" {
+	if len(flowLoadingSkills(f.ID)) > 0 {
 		for _, o := range a.Skills {
 			unknown = unknown || o.Read.Status != "pass"
 		}

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Keep this viewport tag: it drives the <720px responsive collapse below. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flow-report skeleton — review archetype</title>
+<!--
+  ============================================================================
+  flow-report SKELETON — REVIEW archetype
+  ============================================================================
+  A VERDICT over a code diff: per-file annotated hunks, severity-coded
+  findings, and a requested-changes checklist. Code diffs and PR writeups
+  only. Spec reviews, mock reviews, and findings inventories use the
+  document archetype (baseline.html) — their section contract is owned by
+  the calling flow skill, not by this file.
+
+  HOW TO USE
+  - Copy this file, then ADAPT: one section per changed file; real hunks in
+    the diff tables; one annotation row per finding, interleaved right
+    after the lines it concerns. Collapse long unchanged runs in a
+    <details class="fold"> between hunk tables.
+  - Severity vocabulary is fixed: blocking (red) / nit (amber) / nice
+    (blue). The masthead counters, the annotation chips, and the checklist
+    all use the same three families — never invent a fourth.
+  - Keep the DESIGN SYSTEM (:root tokens + type scale) intact unless you
+    have a reason. That is what makes outputs consistent.
+  - Self-contained always: all CSS in <style>; no JS here — anchors and
+    native <details> carry the interactivity.
+
+  LEGIBILITY BASELINE (non-negotiable — see flow-report SKILL.md rule)
+  - Page prose 18px/1.6 (16px <720px). The DIFF is a data grid and sits at
+    14.5px mono — the one sanctioned exception; annotation prose NEVER
+    inherits the code size: it stays ≥17px sans.
+  - The diff scrolls horizontally inside its own container (.diffwrap);
+    the page body never scrolls horizontally.
+  ============================================================================
+-->
+<script>
+/* Anti-FOUC: resolve the effective theme BEFORE first paint. Always writes an
+   explicit data-theme so the CSS needs one dark block, not three. */
+(function(){
+  try{
+    var saved = localStorage.getItem("fr-theme");
+    var sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", saved || (sysDark ? "dark" : "light"));
+  }catch(e){ document.documentElement.setAttribute("data-theme","dark"); }
+})();
+</script>
+<style>
+  /* ============================================================
+     DESIGN SYSTEM — engineering terminal, dual palette.
+     Mono is the grid; chrome is dashed hairlines and corner brackets; no
+     elevation anywhere. ONE accent (blue), so red/amber/green keep meaning
+     status. Light and dark come from the same tokens — only ~12 semantic
+     values differ, everything else derives with color-mix(). Print always
+     forces light: these become PDFs.
+     ============================================================ */
+  /* ---- LIGHT: the base, and what PRINT always falls back to ---- */
+  :root, :root[data-theme="light"]{
+    --bg:#f4f3f0; --paper:#fbfaf8;
+    --ink:#16171a; --ink-soft:#3d3f44; --muted:#6b6d73; --faint:#9a9ca1;
+    --accent:#1b62c4;            /* focal + informational state (see note) */
+    --red:#b3261e; --amber:#8a5a00; --green:#2e6b34;
+    --shadow-color:transparent;  /* no elevation in this system, either theme */
+  }
+  /* ---- DARK ---- */
+  :root[data-theme="dark"]{
+    --bg:#0b0b0c; --paper:#131316;
+    --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+    --accent:#4a9eff;
+    --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+    --shadow-color:transparent;
+  }
+  /* No-JS fallback: the inline script above normally wins, but if JS is off
+     the OS preference still applies. */
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme]){
+      --bg:#0b0b0c; --paper:#131316;
+      --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+      --accent:#4a9eff;
+      --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+    }
+  }
+
+  /* ---- LAYER 2: derived. Theme-agnostic by construction. ---- */
+  :root{
+    /* rules & hairlines — always the ink, thinned */
+    --line:color-mix(in srgb, var(--ink) 16%, transparent);
+    --line-soft:color-mix(in srgb, var(--ink) 9%, transparent);
+    --rule:color-mix(in srgb, var(--ink) 22%, transparent);   /* dashed chrome */
+    --hover:color-mix(in srgb, var(--ink) 5%, transparent);
+    /* accent derivations */
+    --accent-soft:color-mix(in srgb, var(--accent) 12%, var(--bg));
+    --accent-line:color-mix(in srgb, var(--accent) 38%, transparent);
+    /* status tints: mixed against the page, so they are correct in both themes */
+    --red-bg:color-mix(in srgb, var(--red) 12%, var(--bg));
+    --red-line:color-mix(in srgb, var(--red) 40%, transparent);
+    --amber-bg:color-mix(in srgb, var(--amber) 12%, var(--bg));
+    --amber-line:color-mix(in srgb, var(--amber) 40%, transparent);
+    --green-bg:color-mix(in srgb, var(--green) 12%, var(--bg));
+    --green-line:color-mix(in srgb, var(--green) 40%, transparent);
+    /* the accent doubles as the informational/in-progress state — that is why
+       it is blue and the three semantic states are not */
+    --blue:var(--accent); --blue-bg:var(--accent-soft); --blue-line:var(--accent-line);
+    --gray:var(--muted);
+    --gray-bg:color-mix(in srgb, var(--ink) 7%, var(--bg));
+    --gray-line:var(--line);
+    /* shape: nested-radii rule — inner = outer - inset (inset = 4px) */
+    --r-sm:4px; --r:8px; --r-lg:12px;
+    /* dashed chrome geometry — one place to retune every frame on the page */
+    --dash:7px; --gap:7px; --br:13px;
+    /* type */
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospaceui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+
+  /* ============================================================
+     CHROME LAYER — the part that makes this system look like itself.
+     MIXED by design: data gets a dashed FRAME, prose gets a RAIL.
+     Framing prose too turns a 3,000-word audit into noise where
+     everything weighs the same. Never draw either with text characters
+     (`+ - - -`): it breaks reflow and pollutes the a11y tree. CSS only.
+     ============================================================ */
+
+  /* .framed — dashed box for DATA: tables, stat strips, diagrams, code.
+     Four background gradients = four dashed edges, fully tunable via
+     --dash/--gap. Corner brackets come from two pseudo-elements. */
+  nav.files{position:relative}
+  .framed{
+    position:relative; padding:22px 24px; border-radius:0;
+    background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0;
+    background-repeat:no-repeat;
+  }
+  /* corner brackets — four L marks, never a continuous rule. Each pseudo spans
+     the box width but paints only at its two corners (2 gradients each side:
+     one vertical tick, one horizontal tick). --br tunes the arm length. */
+  nav.files::before,nav.files::after,
+  .framed::before,.framed::after{
+    content:""; position:absolute; left:-1px; right:-1px; height:var(--br); pointer-events:none;
+    background-image:
+      linear-gradient(var(--accent),var(--accent)), linear-gradient(var(--accent),var(--accent)),
+      linear-gradient(var(--accent),var(--accent)), linear-gradient(var(--accent),var(--accent));
+    background-size:1px 100%, 1px 100%, var(--br) 1px, var(--br) 1px;
+    background-repeat:no-repeat;
+  }
+  nav.files::before,
+  .framed::before{top:-1px; background-position:0 0, 100% 0, 0 0, 100% 0}
+  nav.files::after,
+  .framed::after{bottom:-1px; background-position:0 100%, 100% 100%, 0 100%, 100% 100%}
+  /* framed title, sitting on the top edge: [ LIKE THIS ] */
+  .framed > .frame-t{
+    position:absolute; top:-.72em; left:22px; padding:0 10px; background:var(--bg);
+    font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); white-space:nowrap;
+  }
+  .framed > .frame-t::before{content:"[ "} .framed > .frame-t::after{content:" ]"}
+  .framed{margin-top:26px}
+  .framed + .framed{margin-top:26px}
+  h2 + .framed,h3 + .framed{margin-top:22px}
+
+  /* .rail — vertical dashed margin rail for PROSE. No box, no title. */
+  .rail{
+    padding-left:22px;
+    background-image:repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:1px 100%; background-position:0 0; background-repeat:no-repeat;
+  }
+
+  .masthead-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px}
+
+  /* ---- theme toggle ---- */
+  .theme-t{font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); background:transparent; border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:7px 12px; cursor:pointer; white-space:nowrap; flex:none;
+    transition:color .12s ease, border-color .12s ease}
+  .theme-t:hover{color:var(--accent); border-color:var(--accent-line)}
+  .theme-t:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+  body{counter-reset:sec;
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.6; font-size:18px;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  /* SHELL = MEASURE: one container, all content fills it. */
+  .wrap{max-width:1280px; margin:0 auto; padding:56px 36px 88px}
+
+  /* ---- masthead ---- */
+  header.masthead{padding-bottom:28px; margin-bottom:36px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 100%}
+  .kicker{font-family:var(--mono); font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 12px; font-weight:600}
+  h1{font-size:clamp(30px,3.4vw,40px); line-height:1.14; letter-spacing:-.012em; margin:0 0 16px; font-weight:600}
+  .tldr{font-size:19px; line-height:1.5; color:var(--ink-soft); padding:16px 0 16px 22px; margin:22px 0 0;
+    background-image:repeating-linear-gradient(to bottom, var(--accent) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:2px 100%; background-position:0 0; background-repeat:no-repeat}
+  .tldr strong{color:var(--ink)}
+  .meta{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:20px;
+    display:flex; flex-wrap:wrap; gap:8px 26px}
+  /* overall verdict badge: exactly one of .ap (approve) / .rc (request-changes) */
+  .verdict{display:inline-block; font-family:var(--mono); font-size:13px; font-weight:700;
+    letter-spacing:.06em; padding:5px 13px; border-radius:var(--r-sm); border:1px solid transparent; vertical-align:middle}
+  .verdict.ap{background:var(--green-bg); color:var(--green); border-color:var(--green-line)}
+  .verdict.rc{background:var(--red-bg); color:var(--red); border-color:var(--red-line)}
+
+  /* ---- prose & headings ---- */
+  h2{font-size:25px; line-height:1.2; letter-spacing:-.008em; margin:54px 0 16px; padding-top:22px;
+    font-weight:650; counter-increment:sec;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 0}
+  h2 code{font-size:.8em}
+  p{margin:12px 0}
+  a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-line)}
+  a:hover{border-bottom-color:var(--accent)}
+  code,.mono{font-family:var(--mono); font-size:.84em;
+    background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:var(--r-sm)}
+
+  /* ---- severity counters (stat strip recolored as blocking/nit/nice) ---- */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:0; margin:26px 0; border-left:1px solid var(--line)}
+  .stat{padding:18px 22px; border-right:1px solid var(--line)}
+  .stat:last-child{border-right:none}
+  .stat .n{font-size:38px; font-weight:700; line-height:1; font-family:var(--mono);
+    letter-spacing:-.02em}
+  .stat .l{font-size:13px; line-height:1.4; color:var(--muted); margin-top:9px}
+.stat.red .n{color:var(--red)}
+.stat.amber .n{color:var(--amber)}
+.stat.blue .n{color:var(--blue)}
+
+  /* ---- changed-files nav: mono rows, +n −m, anchor links ---- */
+  nav.files{margin:24px 0; padding:14px 0;
+    background-image:
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
+      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
+    background-position:0 0, 0 100%, 0 0, 100% 0; background-repeat:no-repeat;}
+  nav.files a{display:flex; justify-content:space-between; gap:16px; padding:9px 20px; border-bottom:none;
+    font-family:var(--mono); font-size:14px}
+  nav.files a:hover{background:var(--hover)}
+  nav.files .counts{white-space:nowrap; color:var(--muted)}
+  .plus{color:var(--green); font-weight:600} .minus{color:var(--red); font-weight:600}
+
+  /* ---- diff: two line-number gutters + code, inside a scroll container ----
+     14.5px mono is the sanctioned data-grid size for diffs; the page body
+     never scrolls horizontally — .diffwrap does. */
+  .diffwrap{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); overflow-x:auto; margin:16px 0}
+  table.diff{width:100%; border-collapse:collapse; font-family:var(--mono);
+    font-size:14.5px; line-height:1.55}
+  table.diff td{padding:1.5px 12px; vertical-align:top}
+  td.ln{width:44px; min-width:44px; text-align:right; color:var(--faint); font-size:12.5px;
+    white-space:nowrap; user-select:none; border-right:1px solid var(--line-soft)}
+  td.ln + td.ln{border-right-color:var(--line)}
+  td.src{white-space:pre; width:100%}
+  tr.del{background:var(--red-bg)}
+  tr.add{background:var(--green-bg)}
+  tr.hunk td{background:var(--paper-2); color:var(--accent); font-size:12.5px; padding:6px 12px;
+    border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft)}
+  details.fold summary{cursor:pointer; list-style:none; font-family:var(--mono);
+    font-size:12.5px; color:var(--muted); background:var(--paper-2); padding:7px 20px;
+    border-top:1px dashed var(--line); border-bottom:1px dashed var(--line)}
+  details.fold summary:hover{color:var(--ink)}
+  details.fold[open] summary{border-bottom-style:solid}
+
+  /* ---- margin annotations: full-width rows interleaved in the diff.
+     Serif prose at 17px — a finding never inherits the 14.5px code size. */
+  tr.ann td{padding:8px 12px; background:var(--paper)}
+  .ann-inner{border-left:4px solid var(--gray); border-radius:0 var(--r-sm) var(--r-sm) 0;
+    padding:12px 16px; background:var(--paper-2)}
+  .ann-inner .sev{display:inline-block; font-family:var(--mono); font-size:11.5px;
+    font-weight:700; letter-spacing:.05em; padding:2px 8px; border-radius:5px; border:1px solid transparent;
+    margin-bottom:7px}
+  .ann-inner .note{font-family:var(--sans); font-size:17px; line-height:1.55;
+    white-space:normal; color:var(--ink-soft); margin:0}
+  .ann-inner .note code{white-space:nowrap}
+  tr.ann.blocking .ann-inner{border-left-color:var(--red); background:var(--red-bg)}
+  tr.ann.blocking .sev{background:var(--paper); color:var(--red); border-color:var(--red-line)}
+  tr.ann.nit .ann-inner{border-left-color:var(--amber); background:var(--amber-bg)}
+  tr.ann.nit .sev{background:var(--paper); color:var(--amber); border-color:var(--amber-line)}
+  tr.ann.nice .ann-inner{border-left-color:var(--blue); background:var(--blue-bg)}
+  tr.ann.nice .sev{background:var(--paper); color:var(--blue); border-color:var(--blue-line)}
+
+  /* ---- requested-changes checklist (CSS boxes, not form controls) ---- */
+  ul.checklist{list-style:none; margin:16px 0; padding:0}
+  ul.checklist li{position:relative; padding-left:32px; margin:12px 0; line-height:1.5}
+  ul.checklist li::before{content:""; position:absolute; left:0; top:4px; width:15px; height:15px;
+    border:1.5px solid var(--muted); border-radius:4px; background:var(--paper)}
+  ul.checklist .sev{font-family:var(--mono); font-size:11.5px; font-weight:700;
+    padding:1px 7px; border-radius:5px; border:1px solid; margin-right:6px}
+  .sev-blocking{background:var(--red-bg); color:var(--red); border-color:var(--red-line)}
+  .sev-nit{background:var(--amber-bg); color:var(--amber); border-color:var(--amber-line)}
+
+  /* ---- provenance footer ---- */
+  details.prov{margin-top:60px; padding-top:20px;
+    background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
+    background-size:100% 1px; background-repeat:no-repeat;background-position:0 0; font-size:14px; color:var(--muted)}
+  details.prov summary{cursor:pointer; font-family:var(--mono); font-size:13px; color:var(--accent)}
+  details.prov p{margin-top:12px; line-height:1.6}
+  details.prov code{background:var(--paper)}
+
+  /* ---- responsive collapse (diff tables keep their grid + h-scroll) ---- */
+  @media(max-width:720px){
+    body{font-size:16px}
+    .wrap{padding:36px 18px 64px}
+    h1{font-size:27px}
+    h2{font-size:22px}
+    .stats{gap:10px} .stat{padding:14px 16px} .stat .n{font-size:32px}
+    nav.files a{flex-direction:column; gap:2px}
+  }
+  /* ---- diagrams: framed, and colored by TOKEN (never hard-coded hex) ----
+     SVG presentation attributes cannot read var(), so diagram color lives in
+     these CSS classes instead. That is what makes a diagram follow the theme
+     toggle AND invert correctly for print. See references/diagram-grammar.md. */
+  figure.diagram{margin:26px 0}
+  .diagram svg{display:block; width:100%; height:auto; min-width:640px}
+  .diagram figcaption{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:12px}
+  .d-bg{fill:var(--bg)}
+  .d-node{fill:none; stroke:var(--ink); stroke-width:1}
+  .d-focal{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.5}
+  .d-store{fill:none; stroke:var(--muted); stroke-width:1}
+  .d-ext{fill:none; stroke:var(--faint); stroke-width:1; stroke-dasharray:4 3}
+  .d-arrow{fill:none; stroke:var(--muted); stroke-width:1.25}
+  .d-arrow-accent{fill:none; stroke:var(--accent); stroke-width:1.5}
+  .d-label{fill:var(--ink); font-family:var(--sans); font-size:12px; font-weight:600}
+  .d-sub{fill:var(--muted); font-family:var(--mono); font-size:9px}
+  .d-alabel{fill:var(--faint); font-family:var(--mono); font-size:8px; letter-spacing:.08em}
+  .d-mask{fill:var(--bg)}
+  .d-rule{stroke:var(--rule); stroke-width:1; stroke-dasharray:7 7}
+  .d-legend-rule{stroke:var(--line); stroke-width:.8}
+  .d-tag{fill:none; stroke:var(--accent); stroke-opacity:.45; stroke-width:.8}
+  .d-tag.ink{stroke:var(--ink); stroke-opacity:.4}
+  .d-tagtext{fill:var(--accent); fill-opacity:.85; font-family:var(--mono); font-size:7px; letter-spacing:.08em}
+  .d-tagtext.ink{fill:var(--ink); fill-opacity:.8}
+
+  /* ---- draw-in animation: SVG strokes trace themselves on scroll-in ----
+     Presentation only — it reveals content already in the file, it holds no
+     state. Disabled wholesale under prefers-reduced-motion below. */
+  .draw .d-node,.draw .d-arrow,.draw .d-arrow-accent,.draw .d-focal,.draw .d-store,.draw .d-ext{
+    stroke-dasharray:1200; stroke-dashoffset:1200}
+  .draw.in .d-node,.draw.in .d-arrow,.draw.in .d-arrow-accent,.draw.in .d-focal,
+  .draw.in .d-store,.draw.in .d-ext{
+    animation:trace 1.1s cubic-bezier(.4,0,.2,1) forwards}
+  .draw .d-ext{stroke-dasharray:4 3; stroke-dashoffset:0}  /* keep dashed nodes dashed */
+  @keyframes trace{to{stroke-dashoffset:0}}
+
+  /* ---- PRINT: always light, whatever the toggle says. These reports become
+     PDFs, and nobody wants 20 pages of black. Print from the browser
+     (Cmd+P -> Save as PDF): a headless exporter that does not emulate print
+     media will NOT pick this up. ---- */
+  @media print{
+    /* A collapsed <details> prints as its summary alone — the content is gone.
+       Provenance ships open; the JS below opens the rest before printing. */
+    details{break-inside:auto}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    details.prov > summary::before,details.sec > summary::before,details.faq > summary::before{content:none}
+    :root, :root[data-theme="dark"], :root[data-theme="light"]{
+      --bg:#ffffff; --paper:#ffffff;
+      --ink:#111214; --ink-soft:#33353a; --muted:#5c5e64; --faint:#8b8d93;
+      --accent:#14509f; --red:#a11f18; --amber:#7a4f00; --green:#265c2c;
+    }
+    body{font-size:11.5pt; background:#fff}
+    .wrap{max-width:none; padding:0}
+    .theme-t,.row-hint,.modal-ov{display:none !important}
+    details.prov[open],details.prov{display:block}
+    details.prov > summary{list-style:none}
+    a{color:var(--ink); border-bottom:none}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-family:var(--mono); font-size:.75em; color:var(--muted)}
+    h2{break-after:avoid-page} h3{break-after:avoid-page}
+    .card,.framed,figure.diagram,tr{break-inside:avoid}
+    thead{display:table-header-group}
+    /* status color is semantic here, so force it through the print engine */
+    .b,.prio,.stat .n{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+    .draw .d-node,.draw .d-arrow,.draw .d-arrow-accent,.draw .d-focal,.draw .d-store,.draw .d-ext{
+      stroke-dashoffset:0 !important; animation:none !important}
+  }
+
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== MASTHEAD: verdict-first. The TL;DR states the verdict and the
+       single most important reason; the badge is .ap or .rc — exactly one. -->
+  <header class="masthead">
+    <div class="masthead-top">
+      <div>
+      <p class="kicker">Group · Project · Code review</p>
+      <h1>PR #123 — one-line description of the change <span class="verdict rc">REQUEST CHANGES</span></h1>
+      </div>
+      <button class="theme-t" id="theme-t" type="button" aria-live="polite">Theme</button>
+    </div>
+    <div class="tldr">
+      <strong>Verdict:</strong> request changes — one sentence naming the single
+      most important reason (the blocking finding), before any detail.
+    </div>
+    <div class="meta">
+      <span>Date 2026-01-01</span>
+      <span>Branch: feat/example → development</span>
+      <span>2 files · +15 −5</span>
+    </div>
+  </header>
+
+  <!-- ===== SEVERITY COUNTERS: same three families as the annotations ===== -->
+  <div class="stats">
+    <div class="stat red"><div class="n">1</div><div class="l">Blocking — must fix before merge</div></div>
+    <div class="stat amber"><div class="n">1</div><div class="l">Nit — fix or explicitly decline</div></div>
+    <div class="stat blue"><div class="n">1</div><div class="l">Nice to have — follow-up material</div></div>
+  </div>
+
+  <!-- ===== CHANGED FILES: anchors into the per-file sections below ===== -->
+  <nav class="files">
+    <a href="#f-session"><span>src/auth/session.ts</span>
+      <span class="counts"><span class="plus">+12</span> <span class="minus">−4</span></span></a>
+    <a href="#f-middleware"><span>src/auth/middleware.ts</span>
+      <span class="counts"><span class="plus">+3</span> <span class="minus">−1</span></span></a>
+  </nav>
+
+  <!-- ===== PER-FILE SECTION: hunk tables + interleaved annotation rows.
+       An annotation row sits immediately AFTER the lines it concerns.
+       Long unchanged runs go in a <details class="fold"> BETWEEN tables. -->
+  <h2 id="f-session"><code>src/auth/session.ts</code></h2>
+  <div class="diffwrap">
+    <table class="diff">
+      <tr class="hunk"><td colspan="3">@@ -40,7 +40,9 @@ function createSession(user: User)</td></tr>
+      <tr><td class="ln">40</td><td class="ln">40</td><td class="src">  const token = signToken(user.id);</td></tr>
+      <tr class="del"><td class="ln">41</td><td class="ln"></td><td class="src">- const ttl = 60 * 60 * 24 * 30;</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">41</td><td class="src">+ const ttl = config.session.ttlSeconds;</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">42</td><td class="src">+ assertPositive(ttl);</td></tr>
+      <tr class="ann blocking"><td colspan="3"><div class="ann-inner">
+        <span class="sev">BLOCKING</span>
+        <p class="note">The finding, stated as a concrete failure scenario: what input
+          or state produces what wrong outcome. Reference code as
+          <code>src/auth/session.ts:41</code> and name the fix you expect.</p>
+      </div></td></tr>
+      <tr><td class="ln">43</td><td class="ln">44</td><td class="src">  return store.persist(token, ttl);</td></tr>
+    </table>
+    <details class="fold">
+      <summary>… 18 unchanged lines</summary>
+      <table class="diff">
+        <tr><td class="ln">44</td><td class="ln">45</td><td class="src">  // collapsed context lines, shown on demand</td></tr>
+        <tr><td class="ln">45</td><td class="ln">46</td><td class="src">  // …</td></tr>
+      </table>
+    </details>
+    <table class="diff">
+      <tr class="hunk"><td colspan="3">@@ -62,4 +64,6 @@ function refreshSession(token: string)</td></tr>
+      <tr><td class="ln">62</td><td class="ln">64</td><td class="src">  const session = store.find(token);</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">65</td><td class="src">+ if (!session) throw new SessionError("not found");</td></tr>
+      <tr class="ann nit"><td colspan="3"><div class="ann-inner">
+        <span class="sev">NIT</span>
+        <p class="note">A small, non-blocking improvement — style, naming, a simpler
+          construct. The author may fix it or decline it explicitly.</p>
+      </div></td></tr>
+      <tr><td class="ln">63</td><td class="ln">66</td><td class="src">  return session.extend();</td></tr>
+    </table>
+  </div>
+
+  <h2 id="f-middleware"><code>src/auth/middleware.ts</code></h2>
+  <div class="diffwrap">
+    <table class="diff">
+      <tr class="hunk"><td colspan="3">@@ -12,3 +12,5 @@ export function requireAuth()</td></tr>
+      <tr class="del"><td class="ln">12</td><td class="ln"></td><td class="src">- return (req, res, next) =&gt; next();</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">12</td><td class="src">+ return (req, res, next) =&gt; {</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">13</td><td class="src">+   verify(req.headers.authorization);</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">14</td><td class="src">+   next();</td></tr>
+      <tr class="ann nice"><td colspan="3"><div class="ann-inner">
+        <span class="sev">NICE TO HAVE</span>
+        <p class="note">A follow-up-grade observation: worth recording, not worth
+          holding the merge for. These land in the close report, never in the
+          requested-changes list.</p>
+      </div></td></tr>
+    </table>
+  </div>
+
+  <!-- ===== REQUESTED CHANGES: only blocking + accepted nits — never the
+       nice-to-haves. One checkbox per concrete action. -->
+  <h2 id="requested">Requested changes</h2>
+  <ul class="checklist">
+    <li><span class="sev sev-blocking">BLOCKING</span> The one concrete action that
+      clears the blocking finding, phrased as a change, not a complaint.</li>
+    <li><span class="sev sev-nit">NIT</span> The nit, phrased the same way — or delete
+      this row if the author declines it.</li>
+  </ul>
+
+  <p><strong>Verdict recap:</strong> one line restating the verdict and what flips it —
+    "approve once the blocking item above is fixed; nits at the author's discretion."</p>
+
+  <!-- ===== PROVENANCE FOOTER (always last) ===== -->
+  <details class="prov" open>
+    <summary>Provenance</summary>
+    <p>
+      <strong>Generated:</strong> 2026-01-01 ·
+      <strong>Prompt:</strong> "truncated source prompt" ·
+      <strong>Diff reviewed:</strong> <code>git diff development...feat/example</code>
+    </p>
+  </details>
+
+</div>
+<script>
+/* ============================================================================
+   THEME TOGGLE — light <-> dark, persisted. Print always forces light in CSS,
+   so this never affects the PDF. Presentation only: it holds no content state.
+   ============================================================================ */
+(function(){
+  var btn=document.getElementById("theme-t"), root=document.documentElement;
+  function label(){
+    var dark=root.getAttribute("data-theme")==="dark";
+    btn.textContent = dark ? "light" : "dark";
+    btn.setAttribute("aria-label","Switch to "+(dark?"light":"dark")+" theme");
+  }
+  label();
+  btn.addEventListener("click", function(){
+    var next = root.getAttribute("data-theme")==="dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try{ localStorage.setItem("fr-theme", next); }catch(e){}
+    label();
+  });
+})();
+
+/* ============================================================================
+   DRAW-IN — SVG strokes trace themselves when the figure scrolls into view.
+   Reveals content already in the file; no state. prefers-reduced-motion and
+   print both short-circuit it in CSS, and a browser without IntersectionObserver
+   simply gets the finished diagram.
+   ============================================================================ */
+(function(){
+  var figs=document.querySelectorAll(".draw");
+  if(!figs.length) return;
+  if(!("IntersectionObserver" in window) ||
+     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)){
+    figs.forEach(function(f){ f.classList.remove("draw"); });
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  },{threshold:.15, rootMargin:"0px 0px -8% 0px"});
+  figs.forEach(function(f){ io.observe(f); });
+  /* Safety net: an un-traced diagram is an INVISIBLE diagram (the strokes start
+     fully offset). If anything keeps a figure from ever intersecting — a
+     screenshot tool, a print-to-image path, a container that never scrolls —
+     reveal everything rather than ship a blank figure. */
+  setTimeout(function(){ figs.forEach(function(f){ f.classList.add("in"); }); }, 4000);
+  window.addEventListener("beforeprint", function(){
+    figs.forEach(function(f){ f.classList.remove("draw"); f.classList.add("in"); });
+  });
+})();
+
+
+/* Print integrity: a collapsed <details> loses its content in the PDF. Open
+   every one before printing and restore the reader's state afterwards. The
+   provenance block additionally ships with `open` in the markup, so it
+   survives even a headless print that never fires beforeprint. */
+(function(){
+  var was=[];
+  window.addEventListener("beforeprint", function(){
+    was = [].map.call(document.querySelectorAll("details"), function(d){
+      var prev=d.open; d.open=true; return prev;
+    });
+  });
+  window.addEventListener("afterprint", function(){
+    [].forEach.call(document.querySelectorAll("details"), function(d,i){ d.open = was[i]; });
+  });
+})();
+</script>
+</body>
+</html>

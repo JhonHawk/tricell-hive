@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"tricell-hive/integrations/agents"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/grok"
@@ -112,41 +113,66 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 				return r, err
 			}
 			sources = append(sources, filepath.ToSlash(relative))
-			referenceRoot := filepath.Join(filepath.Dir(path), "references")
-			if err := target.Safe(referenceRoot); err != nil {
-				return r, err
+			for _, leaf := range []string{"references", "scripts", "assets"} {
+				root := filepath.Join(filepath.Dir(path), leaf)
+				if err := collectResources(o.Source, root, &sources); err != nil {
+					return r, err
+				}
 			}
-			err = filepath.WalkDir(referenceRoot, func(path string, d fs.DirEntry, walkErr error) error {
-				if os.IsNotExist(walkErr) && path == referenceRoot {
-					return nil
-				}
-				if walkErr != nil {
-					return walkErr
-				}
-				if d.Type()&os.ModeSymlink != 0 {
-					return fmt.Errorf("symlink source: %s", path)
-				}
-				if d.IsDir() {
-					return nil
-				}
-				if !d.Type().IsRegular() {
-					return fmt.Errorf("non-regular source: %s", path)
-				}
-				if filepath.Ext(path) != ".md" {
-					return nil
-				}
-				relative, err := filepath.Rel(o.Source, path)
-				if err != nil {
-					return err
-				}
-				sources = append(sources, filepath.ToSlash(relative))
+		}
+		agentRoot := filepath.Join(o.Source, "content", "agents")
+		if err := filepath.WalkDir(agentRoot, func(path string, d fs.DirEntry, walkErr error) error {
+			if os.IsNotExist(walkErr) && path == agentRoot {
 				return nil
-			})
+			}
+			if walkErr != nil {
+				return walkErr
+			}
+			if d.Type()&os.ModeSymlink != 0 {
+				return fmt.Errorf("symlink source: %s", path)
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if !d.Type().IsRegular() || filepath.Ext(path) != ".md" {
+				return fmt.Errorf("invalid agent source: %s", path)
+			}
+			relative, err := filepath.Rel(o.Source, path)
+			if err != nil {
+				return err
+			}
+			sources = append(sources, filepath.ToSlash(relative))
+			return nil
+		}); err != nil {
+			return r, err
+		}
+		hasAgents := false
+		for _, source := range sources {
+			if agents.IsSource(source) {
+				hasAgents = true
+				break
+			}
+		}
+		if hasAgents {
+			profiles, err := read(filepath.Join(o.Source, agents.ProfilesSource))
 			if err != nil {
 				return r, err
 			}
+			if !profiles.Exists || !utf8.Valid(profiles.Data) || len(bytes.TrimSpace(profiles.Data)) == 0 {
+				return r, fmt.Errorf("missing agent profiles")
+			}
+			r.Profiles, r.Renderer = profiles.Data, agents.Version
 		}
 		sort.Strings(sources)
+		// The global instruction has a stable first position in every release;
+		// agents sort before guidance lexically, so do not rely on path order.
+		for i, source := range sources {
+			if source == GlobalSource {
+				copy(sources[1:i+1], sources[:i])
+				sources[0] = source
+				break
+			}
+		}
 		for _, p := range sources {
 			s, err := read(filepath.Join(o.Source, p))
 			if err != nil {
@@ -155,17 +181,59 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 			if !s.Exists {
 				return r, fmt.Errorf("missing source %s", p)
 			}
-			r.Files = append(r.Files, Payload{p, s.Data})
+			r.Files = append(r.Files, Payload{Path: p, Data: s.Data, Mode: uint32(s.Mode)})
 		}
 		r.ID = releaseID(r)
 	}
 	return r, validateRelease(r)
 }
+
+var resourceExtensions = map[string]bool{".md": true, ".html": true, ".py": true, ".sh": true, ".json": true, ".ts": true, ".mjs": true, ".astro": true, ".mdx": true, ".css": true, ".yaml": true, ".yml": true}
+
+func collectResources(source, root string, out *[]string) error {
+	if err := target.Safe(root); err != nil {
+		return err
+	}
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+		if os.IsNotExist(walkErr) && path == root {
+			return nil
+		}
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("symlink source: %s", path)
+		}
+		if d.IsDir() {
+			switch d.Name() {
+			case "__pycache__", "node_modules", "dist", ".astro":
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !d.Type().IsRegular() {
+			return fmt.Errorf("non-regular source: %s", path)
+		}
+		name := d.Name()
+		if !resourceExtensions[filepath.Ext(name)] && name != ".gitignore" {
+			return fmt.Errorf("unsupported resource source: %s", path)
+		}
+		rel, err := filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
+		*out = append(*out, filepath.ToSlash(rel))
+		return nil
+	})
+}
 func validSource(source string) bool {
 	if source == GlobalSource {
 		return true
 	}
-	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|references/([A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\.md)$`).MatchString(source)
+	if regexp.MustCompile(`^content/agents/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\.md$`).MatchString(source) {
+		return true
+	}
+	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml)))$`).MatchString(source)
 }
 func releaseSources(r *Release) []string {
 	sources := []string{}
@@ -186,30 +254,57 @@ func payload(r *Release, source string) []byte {
 	}
 	return nil
 }
+func payloadMode(r *Release, source string) uint32 {
+	for _, f := range r.Files {
+		if f.Path == source {
+			return f.Mode
+		}
+	}
+	return 0
+}
 func validateRelease(r Release) error {
 	if r.ID != releaseID(r) || len(r.Files) < 1 || r.Files[0].Path != GlobalSource {
 		return fmt.Errorf("invalid release fingerprint or file list")
 	}
 	previous := ""
 	entries := map[string]bool{}
+	agentNames := map[string]bool{}
 	for _, f := range r.Files {
 		entries[f.Path] = true
 	}
 	for _, f := range r.Files {
-		if !validSource(f.Path) || f.Path <= previous || !utf8.Valid(f.Data) || len(bytes.TrimSpace(f.Data)) == 0 {
+		if !validSource(f.Path) || (f.Path != GlobalSource && f.Path <= previous) || !utf8.Valid(f.Data) || len(bytes.TrimSpace(f.Data)) == 0 {
 			return fmt.Errorf("invalid source %s", f.Path)
 		}
-		if f.Path != GlobalSource {
+		if strings.HasPrefix(f.Path, "content/skills/") {
 			parts := strings.Split(f.Path, "/")
 			entry := strings.Join(parts[:3], "/") + "/SKILL.md"
 			if !entries[entry] {
 				return fmt.Errorf("missing skill entrypoint: %s", entry)
 			}
 		}
-		previous = f.Path
+		if agents.IsSource(f.Path) {
+			name := strings.TrimSuffix(filepath.Base(f.Path), ".md")
+			if agentNames[name] {
+				return fmt.Errorf("duplicate agent name: %s", name)
+			}
+			agentNames[name] = true
+			if r.Renderer == "" {
+				return fmt.Errorf("agent release missing renderer")
+			}
+			if err := agents.Validate(f.Path, f.Data, r.Profiles); err != nil {
+				return err
+			}
+		}
+		if f.Path != GlobalSource {
+			previous = f.Path
+		}
 		if bytes.Contains(f.Data, []byte(Begin)) || bytes.Contains(f.Data, []byte(End)) {
 			return fmt.Errorf("reserved source delimiter")
 		}
+	}
+	if r.Renderer != "" && (r.Renderer != agents.Version || len(r.Profiles) == 0) {
+		return fmt.Errorf("unsupported agent renderer")
 	}
 	return nil
 }
@@ -235,7 +330,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	p = Plan{Version: 3, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
+	p = Plan{Version: 4, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
 	if action == "install" {
 		r, err := loadRelease(o, dir)
 		if err != nil {
@@ -267,7 +362,13 @@ func BuildPlan(action string, o Options) (Plan, error) {
 				return p, fmt.Errorf("unowned resource preserved: %s", t.Path)
 			}
 		}
-		if action == "install" && ch.Before == nil && t.Kind == "skill" {
+		if action == "install" && ch.Before == nil && (t.Kind == "skill" || t.Kind == "agent") {
+			if t.Kind == "agent" && s.Exists {
+				return p, fmt.Errorf("unowned agent file: %s", t.Path)
+			}
+			if t.Kind == "agent" {
+				goto nextRecord
+			}
 			parts := strings.Split(t.Source, "/")
 			bundle := t.Path
 			for range parts[3:] {
@@ -296,6 +397,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 				return p, fmt.Errorf("unowned skill file: %s", t.Path)
 			}
 		}
+	nextRecord:
 		ch.After, err = nextRecord(p, g, ch.Before, s)
 		if err != nil {
 			return p, err
@@ -322,6 +424,9 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
 		return &next, nil
 	}
 	r := Record{Target: g.Target, Release: p.Release.ID, CreatedFile: !s.Exists, Consumers: g.Consumers}
+	if g.Target.Kind == "skill" || g.Target.Kind == "agent" {
+		r.Mode = payloadMode(p.Release, g.Target.Source)
+	}
 	if old != nil {
 		r.CreatedFile = old.CreatedFile
 		r.Leading = old.Leading
@@ -335,6 +440,25 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
 		}
 	case "skill":
 		r.Managed = payload(p.Release, g.Target.Source)
+	case "agent":
+		if p.Release.Renderer != agents.Version {
+			return nil, fmt.Errorf("agent renderer version changed; regenerate plan")
+		}
+		var rendered []byte
+		for _, c := range g.Consumers {
+			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host)
+			if err != nil {
+				return nil, err
+			}
+			if rendered != nil && !bytes.Equal(rendered, body) {
+				return nil, fmt.Errorf("shared agent rendering differs by host: %s", g.Target.Path)
+			}
+			rendered = body
+		}
+		if err := agents.Validate(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles); err != nil {
+			return nil, err
+		}
+		r.Managed = rendered
 	case "symlink":
 		r.CreatedFile = true
 	default:
@@ -374,13 +498,13 @@ func LoadPlan(path string) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	if p.Version != 3 || p.ID != planID(p) {
+	if p.Version != 4 || p.ID != planID(p) {
 		return p, fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	return p, nil
 }
 func validatePlan(p Plan, state State) error {
-	if p.Version != 3 || p.ID != planID(p) {
+	if p.Version != 4 || p.ID != planID(p) {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	h, err := validateHosts(p.Hosts)

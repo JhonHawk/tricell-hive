@@ -39,5 +39,10 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	if err != nil {
 		return nil, err
 	}
-	return target.ExpandSkills(base, sources), nil
+	dir := filepath.Join(c.ClaudeHome, "agents")
+	if c.Scope == "project" {
+		dir = filepath.Join(c.Root, ".claude", "agents")
+	}
+	out := target.ExpandSkills(base, sources)
+	return target.ExpandAgents(out, sources, dir, ".md", base[0]), nil
 }

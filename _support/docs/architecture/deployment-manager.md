@@ -35,9 +35,9 @@ Verified against installed `ctx7` 0.5.11 and [official CLI documentation](https:
 
 ## Content and native destinations
 
-The catalogue contains `content/guidance/global.md`, each `content/skills/<skill>/SKILL.md`, and Markdown files recursively below that skill's `references/` directory. References keep their relative paths and require the corresponding `SKILL.md` entrypoint. Source paths must have safe components; links, duplicate paths, escaping paths, empty payloads, and reserved block delimiters are rejected. Files outside this allowlist, including reports, caches, `.gitkeep` markers and non-Markdown reference files, are not payload.
+The catalogue contains `content/guidance/global.md`, each `content/skills/<skill>/SKILL.md`, resources recursively below each skill's `references/`, `scripts/`, and `assets/` directories, and canonical roles at `content/agents/<category>/<name>.md`. Skill resources may be `.md`, `.html`, `.py`, `.sh`, `.json`, `.ts`, `.mjs`, `.astro`, `.mdx`, `.css`, `.yaml`, `.yml`, or `.gitignore`; their source modes are frozen and restored, including executable scripts. Agent sources and `integrations/agent-profiles.json` are validated as one catalogue: role names must be unique across categories. Links, duplicate paths, escaping paths, empty payloads, and reserved block delimiters are rejected. Disposable `__pycache__`, `node_modules`, `dist`, and `.astro` directories beneath skill resources are excluded.
 
-Each release ID is a SHA-256 over its ordered payload manifest. Resource identity is its source path (`Target.Source`), so a reference cannot be substituted for another skill's payload. No generated distribution directory is required for local use. In the paths below, `<relative-file>` is `SKILL.md` or `references/<path>.md`.
+Each release ID is a SHA-256 over its ordered payload manifest, source modes, frozen agent-profile input, and renderer version. Resource identity is its source path (`Target.Source`), so a resource cannot be substituted for another payload. Agent files are rendered in memory for each native host and their exact rendered bytes are frozen into the saved plan and snapshot; the profile file itself is never deployed. No generated distribution directory is required for local use. In the paths below, `<relative-file>` is a skill entrypoint or resource.
 
 | Host | User scope | Project scope |
 |---|---|---|
@@ -58,7 +58,7 @@ The manager does not follow arbitrary import graphs, adopt unrelated deployments
 
 ## Preservation and state
 
-Only the managed global block is replaced. Existing bytes outside it and the file's permissions survive. The first insertion records any added separator and whether Hive created the file. Removal deletes only that managed span; a newly created file is removed only if no user content remains. Every skill entrypoint and reference must still match its installed bytes before update or removal. A new bundle cannot adopt existing files. An already-owned bundle can gain absent reference files; an unowned file at a planned destination is a conflict. Additional user files outside managed destinations remain untouched.
+Only the managed global block is replaced. Existing bytes outside it and the file's permissions survive. The first insertion records any added separator and whether Hive created the file. Removal deletes only that managed span; a newly created file is removed only if no user content remains. Every skill resource and agent file must still match its installed bytes and recorded mode before update or removal. New skills and agents cannot adopt existing files. An already-owned skill can gain absent resources; an unowned file at a planned destination is a conflict. Additional user files outside managed destinations remain untouched.
 
 Installing a release reconciles resources absent from its catalogue, including references removed by a downgrade. It removes only the selected consumers; shared files remain until their last registered consumer is removed. `status` and `plan remove` derive their catalogue from installed state rather than requiring the original source checkout.
 
@@ -72,7 +72,7 @@ The default state home is `~/Library/Application Support/tricell-hive`:
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.
 
-New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans and new transaction journals use schema v3, adding explicit source identity to shared consumer and alias ownership. Existing v1/v2 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1/v2 transactions remain recoverable with their original checksum semantics. Saved v1/v2 operation plans must be regenerated before applying new operations.
+New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans, and new transaction journals use schema v4. It adds source payload modes plus the renderer/profile identity used for agent output, while retaining explicit source identity and shared consumer/alias ownership. Existing v1-v3 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v3 transactions remain recoverable with their original checksum semantics. Saved plans before v4 must be regenerated before applying new operations.
 
 ## Failure handling
 

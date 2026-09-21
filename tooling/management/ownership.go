@@ -45,7 +45,7 @@ func normalizeState(s *State) error {
 		if path != r.Target.Path || !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("invalid recorded path")
 		}
-		if r.Target.Kind != "block" && r.Target.Kind != "skill" && r.Target.Kind != "symlink" {
+		if r.Target.Kind != "block" && r.Target.Kind != "skill" && r.Target.Kind != "agent" && r.Target.Kind != "symlink" {
 			return fmt.Errorf("invalid recorded kind")
 		}
 		if s.Version < 3 && r.Target.Source == "" {
@@ -216,6 +216,9 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 			return 1
 		}
 		if g.Target.Kind == "skill" {
+			return 2
+		}
+		if g.Target.Kind == "agent" {
 			return 2
 		}
 		return 3

@@ -20,14 +20,18 @@ const SkillSource = "content/skills/workspace-conventions/SKILL.md"
 type Payload struct {
 	Path string `json:"path"`
 	Data []byte `json:"data"`
+	Mode uint32 `json:"mode,omitempty"`
 }
 type Release struct {
-	ID    string    `json:"id"`
-	Files []Payload `json:"files"`
+	ID       string    `json:"id"`
+	Files    []Payload `json:"files"`
+	Profiles []byte    `json:"profiles,omitempty"`
+	Renderer string    `json:"renderer,omitempty"`
 }
 type Record struct {
 	Target      target.Target `json:"target"`
 	Managed     []byte        `json:"managed"`
+	Mode        uint32        `json:"mode,omitempty"`
 	Leading     string        `json:"leading,omitempty"`
 	CreatedFile bool          `json:"created_file"`
 	Release     string        `json:"release"`
@@ -86,9 +90,21 @@ func encode(v any) []byte {
 	}
 	return append(b, '\n')
 }
-func releaseID(r Release) string { return hash(encode(r.Files)) }
-func planID(p Plan) string       { p.ID = ""; return hash(encode(p)) }
-func emptyState() State          { return State{Version: 3, Records: map[string]Record{}} }
+
+// V3 releases were addressed by their file list alone. Keep that identifier
+// stable so existing release snapshots remain selectable after the upgrade.
+func releaseID(r Release) string {
+	if r.Renderer == "" && len(r.Profiles) == 0 {
+		return hash(encode(r.Files))
+	}
+	return hash(encode(struct {
+		Files    []Payload `json:"files"`
+		Profiles []byte    `json:"profiles"`
+		Renderer string    `json:"renderer"`
+	}{r.Files, r.Profiles, r.Renderer}))
+}
+func planID(p Plan) string { p.ID = ""; return hash(encode(p)) }
+func emptyState() State    { return State{Version: 4, Records: map[string]Record{}} }
 func normalize(o Options) (target.Config, string, error) {
 	if o.Scope != "user" && o.Scope != "project" {
 		return target.Config{}, "", fmt.Errorf("explicit scope must be user or project")

@@ -4,10 +4,79 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"tricell-hive/integrations/agents"
 )
 
 const researchSource = "content/skills/flow-research/SKILL.md"
+
+func TestAgentCatalogueFreezesRendererProfilesAndModes(t *testing.T) {
+	o := setup(t)
+	profiles, err := os.ReadFile(filepath.Join("..", "..", agents.ProfilesSource))
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(t, filepath.Join(o.Source, agents.ProfilesSource), string(profiles))
+	source := "content/agents/design/test-agent.md"
+	put(t, filepath.Join(o.Source, source), "---\nname: test-agent\ndescription: Test role\nmodel_profile: execution\naccess_profile: observe\n---\nUse evidence.\n")
+	p := plan(t, "install", o)
+	if p.Release.Renderer != agents.Version || len(p.Release.Profiles) == 0 {
+		t.Fatal("agent inputs not frozen")
+	}
+	var found *Record
+	for _, ch := range p.Changes {
+		if ch.Target.Source == source {
+			found = ch.After
+			break
+		}
+	}
+	if found == nil || found.Target.Kind != "agent" || len(found.Managed) == 0 || found.Mode == 0 {
+		t.Fatal("agent was not rendered")
+	}
+	p.Release.Profiles[0] ^= 1
+	p.ID = planID(p)
+	if _, err := (Engine{}).Apply(p); err == nil {
+		t.Fatal("forged profiles accepted")
+	}
+}
+
+func TestCatalogueSkipsDisposableSkillCaches(t *testing.T) {
+	o := setup(t)
+	for _, dir := range []string{"__pycache__", "node_modules", "dist", ".astro"} {
+		put(t, filepath.Join(o.Source, "content/skills/workspace-conventions/scripts", dir, "ignored.pyc"), "cache")
+	}
+	p := plan(t, "install", o)
+	for _, f := range p.Release.Files {
+		if strings.Contains(f.Path, "__pycache__") || strings.Contains(f.Path, "node_modules") || strings.Contains(f.Path, "/dist/") || strings.Contains(f.Path, "/.astro/") {
+			t.Fatalf("cached source included: %s", f.Path)
+		}
+	}
+}
+
+func TestSkillResourceModesAreFrozenAndUpdated(t *testing.T) {
+	o := setup(t)
+	source := "content/skills/workspace-conventions/scripts/run.sh"
+	path := filepath.Join(o.Source, source)
+	put(t, path, "#!/bin/sh\nexit 0\n")
+	if err := os.Chmod(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+	apply(t, plan(t, "install", o))
+	target := filepath.Join(o.Home, ".agents", "skills", "workspace-conventions", "scripts", "run.sh")
+	info, err := os.Stat(target)
+	if err != nil || info.Mode().Perm() != 0755 {
+		t.Fatalf("executable mode: %v %v", info, err)
+	}
+	if err := os.Chmod(path, 0644); err != nil {
+		t.Fatal(err)
+	}
+	apply(t, plan(t, "install", o))
+	info, err = os.Stat(target)
+	if err != nil || info.Mode().Perm() != 0644 {
+		t.Fatalf("updated mode: %v %v", info, err)
+	}
+}
 
 func TestCatalogueInstallRollbackAndSharedRetirement(t *testing.T) {
 	o := setup(t)
@@ -126,7 +195,7 @@ func TestV2StateMigrationAndLegacyJournalRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	apply(t, plan(t, "install", o))
-	if stateFor(t, o).Version != 3 {
+	if stateFor(t, o).Version != 4 {
 		t.Fatal("state not migrated")
 	}
 	// Create an interrupted transaction and encode it using the v2 shape: the
@@ -264,7 +333,7 @@ func TestReferenceCatalogueRejectsUnsafeSources(t *testing.T) {
 			t.Fatalf("unsafe source accepted: %s", source)
 		}
 	}
-	r := Release{Files: []Payload{{GlobalSource, []byte("global")}, {"content/skills/x/references/x.md", []byte("reference")}}}
+	r := Release{Files: []Payload{{Path: GlobalSource, Data: []byte("global")}, {Path: "content/skills/x/references/x.md", Data: []byte("reference")}}}
 	r.ID = releaseID(r)
 	if validateRelease(r) == nil {
 		t.Fatal("orphan reference accepted")

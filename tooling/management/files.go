@@ -126,7 +126,7 @@ func readState(dir string) (State, string, error) {
 		if err = json.Unmarshal(s.Data, &state); err != nil {
 			return state, "", err
 		}
-		if (state.Version != 1 && state.Version != 2 && state.Version != 3) || state.Records == nil {
+		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4) || state.Records == nil {
 			return state, "", fmt.Errorf("unsupported state")
 		}
 		if err = normalizeState(&state); err != nil {
@@ -210,8 +210,8 @@ func owned(s snapshot, r Record) error {
 	if s.Kind != "" {
 		return fmt.Errorf("managed resource type changed: %s", r.Target.Path)
 	}
-	if r.Target.Kind == "skill" {
-		if !bytes.Equal(s.Data, r.Managed) {
+	if r.Target.Kind == "skill" || r.Target.Kind == "agent" {
+		if !bytes.Equal(s.Data, r.Managed) || (r.Mode != 0 && s.Mode != r.Mode) {
 			return fmt.Errorf("modified managed skill: %s", r.Target.Path)
 		}
 		return nil
@@ -238,13 +238,16 @@ func transform(s snapshot, before, after *Record) (snapshot, error) {
 	if !s.Exists {
 		mode = 0600
 	}
-	if after != nil && after.Target.Kind == "skill" {
+	if after != nil && after.Mode != 0 {
+		mode = after.Mode
+	}
+	if after != nil && (after.Target.Kind == "skill" || after.Target.Kind == "agent") {
 		if before == nil && s.Exists {
 			return snapshot{}, fmt.Errorf("unowned skill collision")
 		}
 		return snapshot{Exists: true, Data: after.Managed, Mode: mode}, nil
 	}
-	if before != nil && before.Target.Kind == "skill" {
+	if before != nil && (before.Target.Kind == "skill" || before.Target.Kind == "agent") {
 		return snapshot{}, nil
 	}
 	if after != nil && after.Target.Kind == "symlink" {

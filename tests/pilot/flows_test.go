@@ -159,7 +159,7 @@ func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
 	for _, f := range corpus.Cases {
 		byID[f.ID] = f
 	}
-	for _, id := range []string{"conventions-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery"} {
+	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery"} {
 		if _, ok := byID[id]; !ok {
 			t.Fatalf("missing flow case %q", id)
 		}
@@ -472,5 +472,31 @@ func TestFlowAssessmentDetectsParentWriteOutsideInventory(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("missing external write criterion")
+	}
+}
+
+func TestDeployedSmokeForbidsFixtureWritesAndNamesNewSkills(t *testing.T) {
+	want := []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-archive"}
+	if !slices.Equal(flowLoadingSkills("deployed-smoke"), want) {
+		t.Fatalf("skills %v", flowLoadingSkills("deployed-smoke"))
+	}
+	a := assessFlows(result{Case: "deployed-smoke", Terminal: "completed", Changed: []string{"README.md"}}, fixture{ID: "deployed-smoke"}, t.TempDir())
+	if a.Status == "pass" {
+		t.Fatal("unread skills or fixture write passed")
+	}
+	if len(a.Skills) != len(want) {
+		t.Fatalf("observed %d skills", len(a.Skills))
+	}
+	found := false
+	for _, c := range a.Criteria {
+		if c.Criterion == "Final writes within authorized fixture scope" {
+			found = true
+			if c.Status != "fail" {
+				t.Fatalf("write allowed: %+v", c)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("missing write criterion")
 	}
 }

@@ -53,10 +53,11 @@ After tests finish, remove fictitious test records from Engram. Identify the exa
 ## Repository map
 
 - `README.md` — purpose and working boundaries.
-- `content/` — distributable Hive guidance and activity skills; root `AGENTS.md` governs this repository only.
+- `content/` — distributable Hive guidance, activity skills, and canonical agents; root `AGENTS.md` governs this repository only.
 - `integrations/` — host-specific differences; `tooling/` — management interfaces and shared operations; `tests/` — verification.
 - `_support/docs/architecture/repository-and-distribution.md` — structure and managed global-instruction block design.
 - `_support/docs/architecture/deployment-manager.md` — Go manager commands, ownership, recovery, and verification boundaries.
+- `_support/docs/architecture/agent-delivery.md` — canonical roles, native profiles, and inline delivery limits.
 - `_support/docs/architecture/workspace-and-artifacts.md` — workspace scope, artifact organization, retention, and hygiene.
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.

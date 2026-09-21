@@ -130,9 +130,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 		next.Records[k] = r
 	}
 	next.CreatedDirs = append([]string(nil), state.CreatedDirs...)
-	j := journal{Version: 3, Phase: "prepared", Plan: p, BeforeState: beforeState}
+	j := journal{Version: 4, Phase: "prepared", Plan: p, BeforeState: beforeState}
 	var paths []string
-	changed := state.Version != 3
+	changed := state.Version != 4
 	for _, ch := range p.Changes {
 		s, err := readResource(ch.Target, ch.Replaces != nil)
 		if err != nil {
@@ -312,7 +312,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err = decodeFile(jp, &j); err != nil {
 		return "", err
 	}
-	if (j.Version != 1 && j.Version != 2 && j.Version != 3) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
+	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
 		return "", fmt.Errorf("invalid transaction")
 	}
 	if j.Phase == "committed" || j.Phase == "recovered" {

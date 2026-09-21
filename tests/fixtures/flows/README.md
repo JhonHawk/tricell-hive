@@ -3,7 +3,10 @@
 The conventions screen runs the same six additive cases per CLI:
 `conventions-smoke`, `project-state`, `adaptive-plan`, `infra-plan`,
 `direct-build`, and `git-delivery`. This defines a 30-run matrix across Codex,
-Claude, Grok, Pi, and OpenCode. The older `smoke`, `research`, `plan`, and
+Claude, Grok, Pi, and OpenCode. `deployed-smoke` is a separate explicit loading
+check for `flow-report`, `engram-init-workspace`, `starlight-docs-site`,
+`unattended-delegation`, and `workspace-archive`; it is not part of that matrix.
+The older `smoke`, `research`, `plan`, and
 `build` fixtures remain available as historical cases. Only the explicit loading
 check names skills; behavioral prompts do not. Fixtures use dependency-free
 TypeScript ESM and Node 24's native erasable type support when they need
@@ -88,9 +91,12 @@ explicitly authorized round.
 Native source observations also recognize successfully delivered skill bodies:
 OpenCode's matched `skill_content` result and Claude's synthetic source message
 after a successful matching Skill invocation. A launch acknowledgment alone does
-not count. The plan reference observer recognizes literal successful `cat`/`sed`
-reads with corresponding reference source output; variable loops and wrappers
-remain opaque and require trace review. Versioned offline assessments preserve
+not count. Skill, source, and reference observers recognize successful literal `cat`/`sed`
+reads with corresponding source output, including bounded `sh`/`bash`/`zsh`
+`-c` or `-lc` wrappers and `&&` batches. Variable loops, substitutions, pipes,
+and redirects remain opaque and require trace review. Source checks require the
+fixture body in the matching tool output; a path mention or model claim is not
+sufficient. Versioned offline assessments preserve
 all original run evidence and do not make additional model calls.
 
 ## Grok completion budget
@@ -110,3 +116,22 @@ in 182.0 seconds and passed its independent behavioral contract. These two
 observations establish completion for those runs, not general reliability.
 For matched latency comparisons, set the same explicit budget and disclose any
 censored runs. Never relabel the original 180-second timeouts as successful.
+
+## Model and execution comparability
+
+A requested parent model is not evidence of the served model or its children.
+Before an authorized model-comparison round, declare whether delegation is part
+of the experiment. For parent-only measurements, include a no-subagent boundary
+in that round's prompt; this is an experimental constraint, not a Hive default.
+For orchestration measurements, record requested and observed child models and
+effort independently. Unexpected delegation or unobserved child identity makes
+homogeneous-model comparability unverified, even if task criteria pass. Do not
+rewrite historical prompts or substitute a model variant after a preflight block.
+
+Record the actual invocation mode, including `CodexBypassSandbox`. Use the
+user-authorized everyday invocation for an everyday-session measurement; keep
+sandboxed experiments labeled separately. Do not silently enable bypass or change
+permissions to make rounds comparable. Deployment, reruns, and changing everyday
+settings each retain their normal authorization boundary.
+
+A failed shell batch can expose a skill source before a later literal `cat` fails. The evaluator records this bounded case separately as `PartialRead`; it does not pass the successful-command read criterion or infer that the skill was followed. Other failed or opaque commands still require manual trace review.

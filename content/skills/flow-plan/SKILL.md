@@ -37,6 +37,6 @@ For consequential or delegated work, use an available authorized fresh-context r
 
 Keep a bounded, understood plan in the conversation unless retention helps. Retain a plan when requested, when work must resume across sessions or agents, when deliveries need coordination, or when consequential decisions or expensive investigation need a durable record. Before writing a retained artifact, resolve its destination through the applicable global artifact-placement instructions and existing work identifier.
 
-When creating or reviewing a retained plan, read [the plan format and adaptable template](references/plan-format.md). It defines the handoff document, not a mandatory document set. Keep the readiness procedure above here; use the reference to make its results resumable.
+When creating or reviewing a retained plan, read [the plan format and adaptable template](references/plan-format.md). It defines the handoff document, not a mandatory document set. Keep the readiness procedure above here; use the reference to make its results resumable. Preserve an established `<topic>-plan.md` or `<topic>.plan.md` path without renaming it merely to normalize the convention.
 
 If the active CLI mode prohibits writing the artifact, present its contents and intended destination; do not bypass the mode. For a planning-only request, stop with the plan or unresolved decisions. When implementation is already authorized and the active mode permits it, follow that authorization without introducing another approval requirement.
