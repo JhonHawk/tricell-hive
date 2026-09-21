@@ -24,11 +24,15 @@ func output(v any) error {
 }
 func run(args []string) error {
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 		fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode --scope user\nhive recover [--state-dir DIR]")
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: hive plan install|remove | apply --plan FILE | status | recover --state-dir DIR")
+		return fmt.Errorf("usage: hive setup | plan install|remove | apply --plan FILE | status | recover --state-dir DIR")
+	}
+	if args[0] == "setup" {
+		return setup(args[1:], os.Stdout)
 	}
 	cmd := args[0]
 	args = args[1:]
@@ -78,6 +82,11 @@ func run(args []string) error {
 		p, err := management.BuildPlan(action, o)
 		if err != nil {
 			return err
+		}
+		if action == "install" && o.Scope == "user" {
+			if _, err := os.Stat(filepath.Join(p.StateDir, "state.json")); os.IsNotExist(err) {
+				fmt.Println("First setup: Context7 is recommended but optional. Run hive setup for local discovery and official install/update guidance; this plan can proceed without it.")
+			}
 		}
 		if out != "" {
 			if err = management.SavePlan(out, p); err != nil {

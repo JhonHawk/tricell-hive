@@ -13,7 +13,8 @@ func validHost(host string) bool {
 	return false
 }
 
-// Only invocation-local options; no tool removal, MCP filtering, or permission bypass.
+// Only invocation-local options; no tool removal or MCP filtering.
+// Codex permission bypass is opt-in and requires explicit user authorization.
 func launchArgs(r result, output, prompt string) ([]string, error) {
 	if r.ModelRequested == "" {
 		return nil, fmt.Errorf("explicit model required")
@@ -21,9 +22,15 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 	if r.Provider != "" && r.Host != "pi" {
 		return nil, fmt.Errorf("--provider is only supported for Pi; use the host's model ID otherwise")
 	}
+	if r.CodexBypassSandbox && r.Host != "codex" {
+		return nil, fmt.Errorf("Codex sandbox bypass requires codex")
+	}
 	switch r.Host {
 	case "codex":
 		a := []string{"-a", "never", "exec", "--json", "--ephemeral", "-m", r.ModelRequested, "-s", "workspace-write", "-C", r.Cwd}
+		if r.CodexBypassSandbox {
+			a = []string{"exec", "--json", "--ephemeral", "-m", r.ModelRequested, "--dangerously-bypass-approvals-and-sandbox", "-C", r.Cwd}
+		}
 		if r.Effort != "" {
 			a = append(a, "-c", "model_reasoning_effort="+fmt.Sprintf("%q", r.Effort))
 		}

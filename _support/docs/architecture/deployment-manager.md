@@ -8,6 +8,7 @@ Run from the checkout root. Both hosts and scope must be explicit for planning a
 
 ```sh
 go run ./tooling/cli --help
+go run ./tooling/cli setup
 go run ./tooling/cli plan install --hosts codex,claude,grok,pi,opencode --scope user
 go run ./tooling/cli plan install --hosts codex --scope project --root /absolute/project --out /absolute/new-plan.json
 go run ./tooling/cli apply --plan /absolute/new-plan.json
@@ -21,6 +22,16 @@ These are interface examples, not authorization to deploy into the user's real c
 `--home` explicitly selects a synthetic home and ignores host path and compatibility environment overrides. Use it together with `--state-dir` for temporary-home tests. Without `--home`, host configuration environment variables are respected. `--root` is required for project scope. Existing root prefixes are canonicalized; linked target files or ancestors inside those roots are rejected rather than overwritten.
 
 The default source is the current directory; `--source` selects another checkout with the same content layout. `plan install --release <hash>` selects a retained installed snapshot instead, allowing an explicitly planned downgrade. A plan freezes its source bytes; later source edits do not silently alter it.
+
+## Optional Context7 setup recommendation
+
+`hive setup` is a read-only onboarding step. It checks known skill locations for nonempty `find-docs/SKILL.md` and `context7-mcp/SKILL.md` files, including the shared `.agents` location and configured host homes. `--home DIR` selects a synthetic home and ignores environment overrides. A user-scope install plan without an existing Hive state file prints a first-setup recommendation; it never blocks installation on Context7 availability.
+
+Context7 is strongly recommended for development workflows that need current library documentation, but is optional. For these terminal-based harnesses, CLI + Skills is the recommended default because it reuses shell execution and native skill discovery without per-host MCP registration. MCP remains valid when native structured tools or an environment without shell access are preferable; existing setups are preserved. A discovered file does not prove host loading, authentication, service availability, or freshness. MCP-only and custom installations may not be detected. Hive never reads credentials, launches authentication, or installs/updates Context7 from this check. Official documentation distinguishes unauthenticated `ctx7 library`/`docs` queries (lower limits) from the hosted setup wizard, which requires authentication. Users without service access should consult current official documentation directly and disclose verification limits.
+
+The suggested voluntary install/refresh command is `npx ctx7@latest setup --cli`. Node.js/npm and network access are needed only if the user chooses that vendor command. The official setup owns agent selection, authentication, its `find-docs` skill, and its instruction rules. Existing MCP users can keep their mode. Do not vendor its content, silently migrate modes, or treat third-party files as Hive-owned removal targets. Selecting `@latest` resolves the current CLI when invoked; rerunning setup downloads the vendor skill and updates its rules. This is not a background-update guarantee or a read-only version check.
+
+Verified against installed `ctx7` 0.5.11 and [official CLI documentation](https://context7.com/docs/clients/cli). Its setup supports Claude, Codex, and OpenCode flags but has no Pi/Grok flags; shared skill-file discovery does not establish runtime support for those hosts. The vendor setup may request authentication and rewrites selected vendor skill/rule files even when they already exist. Hive's setup check does neither.
 
 ## Content and native destinations
 

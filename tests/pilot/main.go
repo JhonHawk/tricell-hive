@@ -35,6 +35,7 @@ type item struct {
 	Size int64  `json:"size"`
 }
 type result struct {
+	CodexBypassSandbox                                                                                bool
 	Host, Case, Arm, Root, Cwd, ModelRequested, ModelObserved, ModelAtInit, Effort, Version, Terminal string
 	Command                                                                                           []string
 	Started                                                                                           string
@@ -145,7 +146,11 @@ func main() {
 	assess := flag.String("assess", "", "assess an existing run; create criterion-assessment.json once")
 	timeout := flag.Duration("timeout", 180*time.Second, "per-run time limit")
 	allowTrust := flag.Bool("allow-native-trust", false, "allow only a native Codex trust-table insertion; requires explicit user authorization")
+	codexBypass := flag.Bool("codex-bypass-sandbox", false, "use the user-authorized native Codex approval/sandbox bypass for this invocation")
 	flag.Parse()
+	if *codexBypass && *host != "codex" {
+		must(fmt.Errorf("--codex-bypass-sandbox requires --host codex"))
+	}
 	if *assess != "" {
 		must(assessRun(*assess, *source))
 		return
@@ -230,7 +235,7 @@ func main() {
 		}
 		must(os.WriteFile(filepath.Join(cwd, filename), []byte(management.Begin+"\n"+strings.TrimRight(string(body), "\n")+"\n"+management.End+"\n"), 0600))
 	}
-	r := result{Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b)}
+	r := result{CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b)}
 	if *delivery == "project" {
 		if r.ModelRequested == "" {
 			if *host == "codex" {
