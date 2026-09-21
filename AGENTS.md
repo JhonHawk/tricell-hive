@@ -40,6 +40,8 @@ See `_support/docs/architecture/workspace-and-artifacts.md` for explanations and
 
 ## Measurement
 
+CLI behavior pilots are paused by user instruction. Do not resume them without explicit authorization. Recommend a pilot only when it is necessary to resolve a consequential behavior uncertainty that inspection or ordinary tests cannot answer; explain the expected evidence and keep the proposed scope minimal. This pause does not prohibit ordinary non-model tests.
+
 For behavior claims, record the host and installed version, resolved model, task, relevant instructions and references read, writes, human intervention, and terminal state. Separate guidance discovery, source reading, and task outcome. Use observable criteria and the least costly useful check. Use blinded human review when asserting subjective quality improvement; label model grading as exploratory. A single run, prompt-size estimate, or cached request does not establish reliability or improvement.
 
 Pilots may use the deployed global Hive installation; use this delivery for new flow pilots and record the installed release and content hashes. Do not inject duplicate Hive instructions into their fixture projects. Keep test inputs and writes in disposable fixtures, record process-local overrides, and preserve unrelated global configuration. An isolated project-delivery experiment remains possible when its purpose and different conditions are explicit. Pilot authorization does not imply unrelated global deployment.

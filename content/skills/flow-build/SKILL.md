@@ -15,11 +15,13 @@ Identify the next unmet acceptance criterion and its dependencies. Preserve vali
 
 ## Execute in verifiable increments
 
-Choose a coherent next result and implement it in the existing source layout. Use native tools and established project capabilities. Delegate independent bounded work when available and authorized, with clear ownership, relevant context, and expected evidence; dependent edits remain ordered.
+Choose a coherent next result and implement it in the existing source layout. Look for an existing solution or pattern before adding a mechanism or abstraction, and justify a new one by the need it serves. Confirm that reused tools or patterns meet this project's requirements. Use the project's declared dependency manager and preserve its lockfile conventions. Delegate independent bounded work when available and authorized, with clear ownership, relevant context, and expected evidence; dependent edits remain ordered.
 
-Use the project's applicable testing approach. For a defect, establish the failing behavior when feasible; after changing it, run the relevant checks and observe the result. Do not add a new testing framework or impose TDD merely because a plan exists. Preserve meaningful failing checks rather than weakening them to make the task appear complete.
+When choosing an infrastructure resource name, read [the infrastructure naming reference](../flow-plan/references/infra-naming.md), even if no retained plan exists. Preserve an existing name unless its authorized change includes the necessary impact and migration work.
 
-When a retained plan exists, keep its task list and current status consistent with the work. Mark a task complete only when its expected result is evidenced. Record changed decisions, failed or omitted checks, and why a completed task was reopened. Keep raw output separate and link the useful evidence. Native task tools may reflect this progress without replacing the canonical record.
+Use the project's applicable testing approach. For a defect, establish the failing behavior when feasible; after changing it, run the relevant checks and observe the result. Correct the cause without weakening a valid check to make the task appear complete. When the cause remains uncertain, compare hypotheses against evidence before accumulating fixes. Do not add a new testing framework or impose TDD merely because a plan exists. Remove obsolete code, configuration, or temporary residue created by the change when that cleanup is within scope.
+
+Before writing a retained supporting artifact, resolve its destination through the applicable global artifact-placement instructions and existing work identifier. When a retained plan exists, keep its task list and current status consistent with the work. Mark a task complete only when its expected result is evidenced. Record changed decisions, failed or omitted checks, and why a completed task was reopened. Keep raw output separate and link the useful evidence. Native task tools may reflect this progress without replacing the canonical record.
 
 ## Verify and close
 

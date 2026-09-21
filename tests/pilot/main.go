@@ -52,6 +52,16 @@ type result struct {
 	Delivery, ModelConfigured, Provider, PromptHash, FixtureHash                                      string
 	MemoryIsolation                                                                                   memoryIsolationReport
 	Trace                                                                                             traceReport
+	GitDelivery                                                                                       *gitDeliveryReport `json:",omitempty"`
+}
+
+// gitDeliveryReport records only the disposable fixture's local Git state. The
+// bare remote lives below .git, so snapshots cannot copy it into evidence.
+type gitDeliveryReport struct {
+	InitialHead, InitialRemoteRef, BeforeStatus                                string
+	Head, RemoteRef, AfterStatus                                               string
+	CommitPaths                                                                []string
+	InitialHeadAncestor, RemoteMatchesHead, StagedPreserved, UnstagedPreserved bool
 }
 
 // Only an explicitly authorized, exact trust-table insertion is acceptable.
@@ -111,6 +121,91 @@ func inventory(root string) (map[string]item, error) {
 func initGit(path string) error {
 	cmd := exec.Command("git", "-c", "core.hooksPath=/dev/null", "init", "-q", path)
 	return cmd.Run()
+}
+
+func gitOutput(dir string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(b)))
+	}
+	return strings.TrimSpace(string(b)), nil
+}
+
+func setupGitDelivery(root string) (*gitDeliveryReport, error) {
+	for _, args := range [][]string{{"config", "user.name", "Hive pilot"}, {"config", "user.email", "hive-pilot@example.test"}, {"add", "."}, {"commit", "-qm", "chore: initialize delivery fixture"}, {"branch", "-M", "main"}} {
+		if _, err := gitOutput(root, args...); err != nil {
+			return nil, err
+		}
+	}
+	remote := filepath.Join(root, ".git", "pilot-remote.git")
+	if _, err := gitOutput(root, "init", "--bare", "-q", remote); err != nil {
+		return nil, err
+	}
+	for _, args := range [][]string{{"remote", "add", "fixture", remote}, {"push", "-qu", "fixture", "main"}} {
+		if _, err := gitOutput(root, args...); err != nil {
+			return nil, err
+		}
+	}
+	// These edits model someone else's staged and unstaged work. They happen
+	// after the initial publication and must remain exactly as prepared.
+	if err := os.WriteFile(filepath.Join(root, "notes/unrelated-staged.md"), []byte("Keep this staged work unchanged.\nPrepared by another worker.\n"), 0600); err != nil {
+		return nil, err
+	}
+	if _, err := gitOutput(root, "add", "notes/unrelated-staged.md"); err != nil {
+		return nil, err
+	}
+	if err := os.WriteFile(filepath.Join(root, "notes/unrelated-unstaged.md"), []byte("Keep this unstaged work unchanged.\nLocal investigation continues.\n"), 0600); err != nil {
+		return nil, err
+	}
+	head, err := gitOutput(root, "rev-parse", "HEAD")
+	if err != nil {
+		return nil, err
+	}
+	remoteRef, err := gitOutput(root, "--git-dir", remote, "rev-parse", "refs/heads/main")
+	if err != nil {
+		return nil, err
+	}
+	status, err := gitOutput(root, "status", "--porcelain=v1")
+	if err != nil {
+		return nil, err
+	}
+	return &gitDeliveryReport{InitialHead: head, InitialRemoteRef: remoteRef, BeforeStatus: status}, nil
+}
+
+func inspectGitDelivery(root string, before *gitDeliveryReport) *gitDeliveryReport {
+	if before == nil {
+		return nil
+	}
+	report := *before
+	remote := filepath.Join(root, ".git", "pilot-remote.git")
+	report.Head, _ = gitOutput(root, "rev-parse", "HEAD")
+	report.RemoteRef, _ = gitOutput(root, "--git-dir", remote, "rev-parse", "refs/heads/main")
+	report.AfterStatus, _ = gitOutput(root, "status", "--porcelain=v1")
+	paths, _ := gitOutput(root, "log", "--format=", "--name-only", report.InitialHead+".."+report.Head)
+	pathSet := map[string]bool{}
+	for _, path := range strings.Split(paths, "\n") {
+		if path != "" {
+			pathSet[path] = true
+		}
+	}
+	for path := range pathSet {
+		report.CommitPaths = append(report.CommitPaths, path)
+	}
+	sort.Strings(report.CommitPaths)
+	ancestor := exec.Command("git", "merge-base", "--is-ancestor", report.InitialHead, report.Head)
+	ancestor.Dir = root
+	report.InitialHeadAncestor = ancestor.Run() == nil
+	report.RemoteMatchesHead = report.Head != "" && report.Head == report.RemoteRef && report.Head != report.InitialHead
+	staged, stagedErr := gitOutput(root, "show", ":notes/unrelated-staged.md")
+	stagedWorktree, stagedWorktreeErr := os.ReadFile(filepath.Join(root, "notes/unrelated-staged.md"))
+	unstaged, unstagedErr := os.ReadFile(filepath.Join(root, "notes/unrelated-unstaged.md"))
+	stagedPath, stagedPathErr := gitOutput(root, "diff", "--cached", "--name-only", "--", "notes/unrelated-staged.md")
+	unstagedPath, unstagedPathErr := gitOutput(root, "diff", "--name-only", "--", "notes/unrelated-unstaged.md")
+	report.StagedPreserved = stagedErr == nil && stagedWorktreeErr == nil && stagedPathErr == nil && staged == "Keep this staged work unchanged.\nPrepared by another worker." && string(stagedWorktree) == "Keep this staged work unchanged.\nPrepared by another worker.\n" && stagedPath == "notes/unrelated-staged.md"
+	report.UnstagedPreserved = unstagedErr == nil && unstagedPathErr == nil && string(unstaged) == "Keep this unstaged work unchanged.\nLocal investigation continues.\n" && unstagedPath == "notes/unrelated-unstaged.md"
+	return &report
 }
 func pilotTimeLimit(limit time.Duration, explicit bool, suite, host, caseID string) time.Duration {
 	if !explicit && suite == "flows" && host == "grok" && (caseID == "plan" || caseID == "build") {
@@ -270,6 +365,11 @@ func main() {
 	} else {
 		must(initGit(root))
 	}
+	var gitDelivery *gitDeliveryReport
+	if *suite == "flows" && f.ID == "git-delivery" {
+		gitDelivery, e = setupGitDelivery(root)
+		must(e)
+	}
 	if *delivery == "project" && *arm == "B" {
 		opts := management.Options{Scope: "project", Root: cwd, StateDir: filepath.Join(output, "installation"), Source: src, Hosts: []string{*host}}
 		p, e := management.BuildPlan("install", opts)
@@ -286,7 +386,7 @@ func main() {
 		}
 		must(os.WriteFile(filepath.Join(cwd, filename), []byte(management.Begin+"\n"+strings.TrimRight(string(body), "\n")+"\n"+management.End+"\n"), 0600))
 	}
-	r := result{Suite: *suite, Handoff: imported, CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b), TimeLimitSeconds: timeout.Seconds()}
+	r := result{Suite: *suite, Handoff: imported, CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b), TimeLimitSeconds: timeout.Seconds(), GitDelivery: gitDelivery}
 	if *delivery == "project" {
 		if r.ModelRequested == "" {
 			if *host == "codex" {
@@ -374,6 +474,9 @@ func main() {
 	save(filepath.Join(output, "events.json"), r.Trace)
 	r.After, e = inventory(root)
 	must(e)
+	if r.Case == "git-delivery" {
+		r.GitDelivery = inspectGitDelivery(root, gitDelivery)
+	}
 	for p, a := range r.After {
 		if b, ok := r.Before[p]; !ok || b != a {
 			r.Changed = append(r.Changed, p)

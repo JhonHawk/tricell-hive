@@ -1,9 +1,13 @@
 # Portable flow pilot
 
-Four cases per CLI: explicit loading of three skills, research, persisted planning,
-and implementation of another CLI's plan. Behavioral prompts never name a skill.
-Fixtures use dependency-free TypeScript ESM and Node 24's native erasable type
-support. `npm test` runs `node:test`; it is not static type checking.
+The conventions screen runs the same six additive cases per CLI:
+`conventions-smoke`, `project-state`, `adaptive-plan`, `infra-plan`,
+`direct-build`, and `git-delivery`. This defines a 30-run matrix across Codex,
+Claude, Grok, Pi, and OpenCode. The older `smoke`, `research`, `plan`, and
+`build` fixtures remain available as historical cases. Only the explicit loading
+check names skills; behavioral prompts do not. Fixtures use dependency-free
+TypeScript ESM and Node 24's native erasable type support when they need
+executable source. `npm test` runs `node:test`; it is not static type checking.
 
 Run from the checkout root after deploying and verifying the global release:
 
@@ -14,8 +18,12 @@ go run ./tests/pilot --suite flows --host codex --case plan \
   --out _support/workspace/2026-09-21-flow-skills/codex-plan
 ```
 
-Use cases `smoke`, `research`, `plan`, and `build`. The initial screening round
-explicitly used `90s` for smoke and `180s` for behavior. The runner now defaults
+For the conventions screen, pass `--timeout 90s` for `conventions-smoke`; pass
+`--timeout 180s` for every other case except Grok, which uses `--timeout 600s`
+for each behavior case. Do not compare elapsed times across those unequal budgets.
+There are no automatic retries or extra model calls for a failed position.
+The initial historical screening round explicitly used `90s` for smoke and `180s`
+for behavior. The runner now defaults
 to `600s` for Grok flow plan/build and `180s` otherwise; an explicit `--timeout`
 always wins, so historical screening budgets remain reproducible. New run records
 include `TimeLimitSeconds`; older records do not establish a budget from elapsed
@@ -23,7 +31,7 @@ time alone. `--delivery deployed-global` is the default. Existing
 workspace-conventions cases remain the default suite; historical project replay
 still accepts explicit `--delivery project --arm A|B`.
 
-Build requires `--handoff-from <producer-plan-run-directory>`. The producer must
+The historical `build` case requires `--handoff-from <producer-plan-run-directory>`. The producer must
 have completed and retained exactly one `.plan.md` below `_support/sessions/`.
 The importer verifies snapshot hashes, copies that plan and recursively linked
 Markdown records from `_support/sessions/` or `_support/docs/`, and records
@@ -46,7 +54,11 @@ observations separately from task criteria. Plan assessment also records success
 whether the read preceded the first observed plan write. Missing reference reads
 remain `not_observed`; unobservable ordering remains `not_verified`. These fields
 do not substitute for plan quality or task outcome. Build additionally executes a bounded,
-independent Node behavioral contract against the final snapshot. Semantic quality,
+independent Node behavioral contract against the final snapshot. Infrastructure
+cases separately observe successful reads of `flow-plan/references/infra-naming.md`.
+`git-delivery` records fixture-local commit-range paths, the local bare-remote ref,
+and preservation of prepared unrelated index/worktree changes. These checks are
+structural, not semantic grading. Semantic quality,
 Spanish language, grounding, complete decisions and evidence reconciliation
 require human review and remain `not_verified` automatically. These cases do not
 establish reliability or comparative improvement. Assessment executes fixture
@@ -54,7 +66,7 @@ code; run only the authorized disposable pilot snapshots.
 
 Each run creates its fixture under its new output directory in repository
 `_support/workspace/`, uses the existing isolated Engram lifecycle, and monitors
-all four managed skills. Raw output remains ignored. The batch coordinator must
+all five managed skills. Raw output remains ignored. The batch coordinator must
 wait for all writers and audit exact fixture leakage in everyday Engram after
 the round; local per-run cleanup does not replace that audit.
 

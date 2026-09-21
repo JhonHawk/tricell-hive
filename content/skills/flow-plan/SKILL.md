@@ -11,9 +11,11 @@ Produce enough shared understanding for an implementer to act without inventing 
 
 Establish the intended outcome, scope, constraints, authorized effects, and observable acceptance criteria from the conversation. Inspect the relevant implementation, callers, tests, configuration, and project guidance. Reuse sound research but recheck facts that may have changed.
 
-Resolve missing consequential choices with the user, offering meaningful alternatives and their tradeoffs. Investigate discoverable facts directly. If a technical uncertainty can invalidate the approach, resolve it with authorized investigation or mark the affected work blocked; do not hide it in an implementation task. Routine local coding choices need not be frozen in advance.
+Resolve missing consequential choices with the user, offering meaningful alternatives and their tradeoffs. Investigate discoverable facts directly. Treat information that clarifies the requested outcome as an update to the plan; when it proposes a material expansion beyond that outcome, resolve the scope before planning dependent work. If a technical uncertainty can invalidate the approach, resolve it with authorized investigation or mark the affected work blocked; do not hide it in an implementation task. Routine local coding choices need not be frozen in advance.
 
-Define only the contracts affected by the change: inputs, outputs, error behavior, data or compatibility rules, and migration or recovery requirements where applicable. Record why the selected approach fits the evidence and constraints. Mention meaningful rejected alternatives only when they explain a decision.
+Before proposing a new mechanism or abstraction, inspect relevant existing solutions and patterns, including those in other projects only when their destination requirements are compatible. Define only the contracts affected by the change: inputs, outputs, error behavior, data or compatibility rules, and migration or recovery requirements where applicable. Record why the selected approach fits the evidence and constraints. Mention meaningful rejected alternatives only when they explain a decision.
+
+When the plan chooses infrastructure resource names, read [the infrastructure naming reference](references/infra-naming.md). Apply project and provider constraints before its defaults, and record any migration impact for an existing name.
 
 ## Make the work verifiable
 
@@ -33,7 +35,7 @@ For consequential or delegated work, use an available authorized fresh-context r
 
 ## Preserve a useful handoff
 
-Keep a bounded, understood plan in the conversation unless retention helps. Retain a plan when requested, when work must resume across sessions or agents, when deliveries need coordination, or when consequential decisions or expensive investigation need a durable record.
+Keep a bounded, understood plan in the conversation unless retention helps. Retain a plan when requested, when work must resume across sessions or agents, when deliveries need coordination, or when consequential decisions or expensive investigation need a durable record. Before writing a retained artifact, resolve its destination through the applicable global artifact-placement instructions and existing work identifier.
 
 When creating or reviewing a retained plan, read [the plan format and adaptable template](references/plan-format.md). It defines the handoff document, not a mandatory document set. Keep the readiness procedure above here; use the reference to make its results resumable.
 

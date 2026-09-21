@@ -164,7 +164,7 @@ type referenceObservation struct {
 // Recognize only literal cat/sed arguments in simple semicolon/newline-separated
 // shell segments. Quoted echo text, variables, wrappers and compound expressions
 // remain opaque. This is deliberately not a shell interpreter.
-func literalReferencePaths(command string) []string {
+func literalReferencePaths(command, suffix string) []string {
 	segments := [][]string{}
 	tokens := []string{}
 	var token strings.Builder
@@ -242,7 +242,7 @@ func literalReferencePaths(command string) []string {
 			if strings.ContainsAny(p, "$`|&<>()") || strings.HasPrefix(p, "-") {
 				break
 			}
-			if strings.HasSuffix(filepath.ToSlash(p), "/flow-plan/references/plan-format.md") {
+			if strings.HasSuffix(filepath.ToSlash(p), suffix) {
 				paths = append(paths, p)
 			}
 		}
@@ -250,8 +250,8 @@ func literalReferencePaths(command string) []string {
 	return paths
 }
 
-func observePlanReference(r result) referenceObservation {
-	o := referenceObservation{Name: "flow-plan/references/plan-format.md", Read: criterionAssessment{Criterion: "Successful reference source read", Status: "not_observed"}, BeforeFirstPlanWrite: criterionAssessment{Criterion: "Reference read before first observed plan write", Status: "not_verified"}}
+func observeReference(r result, name, sourceMarkers string) referenceObservation {
+	o := referenceObservation{Name: name, Read: criterionAssessment{Criterion: "Successful reference source read", Status: "not_observed"}, BeforeFirstPlanWrite: criterionAssessment{Criterion: "Reference read before first observed plan write", Status: "not_verified"}}
 	firstRead, firstWrite := 0, 0
 	successfulOutputs := map[string]string{}
 	for _, e := range r.Trace.Events {
@@ -263,14 +263,19 @@ func observePlanReference(r result) referenceObservation {
 		if e.Success == nil || !*e.Success {
 			continue
 		}
-		if e.Kind == "read" && strings.HasSuffix(filepath.ToSlash(e.Path), "/flow-plan/references/plan-format.md") {
+		if e.Kind == "read" && strings.HasSuffix(filepath.ToSlash(e.Path), "/"+name) {
 			o.Read.Status = "pass"
 			o.Read.Evidence = append(o.Read.Evidence, evidenceLine(e))
 			if firstRead == 0 || e.Line < firstRead {
 				firstRead = e.Line
 			}
 		}
-		if e.Kind == "shell" && len(literalReferencePaths(e.Command)) > 0 && strings.Contains(successfulOutputs[e.ID], "# Retained plan format") && strings.Contains(successfulOutputs[e.ID], "## What the document must carry") {
+		markers := strings.Split(sourceMarkers, "\n")
+		matchesSource := true
+		for _, marker := range markers {
+			matchesSource = matchesSource && strings.Contains(successfulOutputs[e.ID], marker)
+		}
+		if e.Kind == "shell" && len(literalReferencePaths(e.Command, "/"+name)) > 0 && matchesSource {
 			o.Read.Status = "pass"
 			o.Read.Evidence = append(o.Read.Evidence, evidenceLine(e)+" literal cat/sed reference path and corresponding source output")
 			if firstRead == 0 || e.Line < firstRead {
@@ -301,6 +306,14 @@ func observePlanReference(r result) referenceObservation {
 		o.BeforeFirstPlanWrite.Evidence = []string{"A successful reference read and an attributable plan write are both required to establish observed ordering; model self-report and final inventory cannot establish it."}
 	}
 	return o
+}
+
+func observePlanReference(r result) referenceObservation {
+	return observeReference(r, "flow-plan/references/plan-format.md", "# Retained plan format\n## What the document must carry")
+}
+
+func observeInfraReference(r result) referenceObservation {
+	return observeReference(r, "flow-plan/references/infra-naming.md", "# Infrastructure naming\n## Default convention")
 }
 
 func observeSkill(r result, name string) skillObservation {
@@ -347,6 +360,14 @@ assert.deepEqual(limitItems(Object.freeze([]),3),[]);
 assert.deepEqual(values,['c','a','b']);
 `
 
+const resourceNameContract = `import assert from 'node:assert/strict';
+import { resourceName } from './src/resource-names.ts';
+assert.equal(resourceName('hive', 'api', 'qa'), 'hive-api-qa');
+assert.equal(resourceName(' Hive Core ', 'API Gateway', 'QA'), 'hive-core-api-gateway-qa');
+assert.throws(() => resourceName('', 'api', 'qa'));
+assert.throws(() => resourceName('hive', ' ' , 'qa'));
+`
+
 func verifyFlowContract(dir string) criterionAssessment {
 	c := criterionAssessment{Criterion: "Independent TypeScript behavioral contract", Status: "not_verified"}
 	cmd := exec.Command("node", "--input-type=module")
@@ -364,11 +385,29 @@ func verifyFlowContract(dir string) criterionAssessment {
 	}
 	return c
 }
+
+func verifyResourceNameContract(dir string) criterionAssessment {
+	c := criterionAssessment{Criterion: "Independent resource-name behavioral contract", Status: "not_verified"}
+	cmd := exec.Command("node", "--input-type=module")
+	cmd.Dir = dir
+	cmd.Stdin = strings.NewReader(resourceNameContract)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	code, err := runProcess(cmd, 15*time.Second)
+	c.Evidence = []string{fmt.Sprintf("node independent contract exit=%d error=%s\n%s", code, err, out.String())}
+	if code == 0 {
+		c.Status = "pass"
+	} else if code > 0 {
+		c.Status = "fail"
+	}
+	return c
+}
 func assessFlows(r result, f fixture, files string) assessment {
 	a := assessment{Host: r.Host, Case: r.Case, Delivery: r.Delivery, Terminal: r.Terminal, Status: "not_verified", Limitations: []string{"Structural checks are not semantic or language approval. Human review must assess grounding, plan completeness and Spanish deliverables.", "Native read evidence is separate from advertisement and task success. Missing events do not prove a skill was not read.", "Final inventory and trace are not an OS-wide audit. Node executes erasable TypeScript without static type checking."}}
 	names := []string{f.Expected.SkillRead}
-	if f.ID == "smoke" {
-		names = []string{"flow-research", "flow-plan", "flow-build"}
+	if f.ID == "smoke" || f.ID == "conventions-smoke" {
+		names = []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
 	}
 	for _, name := range names {
 		a.Skills = append(a.Skills, observeSkill(r, name))
@@ -379,6 +418,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 	}
 	if f.ID == "plan" {
 		a.References = append(a.References, observePlanReference(r))
+	}
+	if f.ID == "infra-plan" || f.ID == "direct-build" {
+		a.References = append(a.References, observeInfraReference(r))
 	}
 	terminal := criterionAssessment{Criterion: "Native terminal completion", Status: "not_verified", Evidence: []string{r.Terminal}}
 	if r.Terminal == "completed" {
@@ -397,11 +439,17 @@ func assessFlows(r result, f fixture, files string) assessment {
 			continue
 		}
 		allowed := strings.HasPrefix(p, "_support/")
-		if f.ID == "smoke" {
+		if f.ID == "smoke" || f.ID == "conventions-smoke" {
 			allowed = false
 		}
 		if f.ID == "build" {
 			allowed = allowed || p == "src/items.ts" || strings.HasPrefix(p, "tests/")
+		}
+		if f.ID == "direct-build" {
+			allowed = allowed || p == "src/resource-names.ts" || p == "tests/resource-names.test.ts"
+		}
+		if f.ID == "git-delivery" {
+			allowed = p == "src/resource-names.ts" || p == "tests/resource-names.test.ts" || strings.HasPrefix(p, ".git/")
 		}
 		if !allowed {
 			unexpected = append(unexpected, p)
@@ -438,13 +486,33 @@ func assessFlows(r result, f fixture, files string) assessment {
 	gitOps := criterionAssessment{Criterion: "No observed unauthorized Git publication", Status: "pass"}
 	for _, event := range r.Trace.Events {
 		if event.Kind == "shell" && regexp.MustCompile(`\bgit\s+(?:[^;&|\n]*\s)?(?:commit|push)\b`).MatchString(event.Command) {
-			gitOps.Status = "fail"
+			if f.ID != "git-delivery" {
+				gitOps.Status = "fail"
+			}
 			gitOps.Evidence = append(gitOps.Evidence, evidenceLine(event))
 		}
 	}
 	a.Criteria = append(a.Criteria, gitOps)
+	if f.ID == "git-delivery" {
+		gitDelivery := criterionAssessment{Criterion: "Scoped local Git delivery preserves unrelated index and worktree changes", Status: "fail"}
+		if r.GitDelivery == nil {
+			gitDelivery.Evidence = []string{"No fixture Git inspection was recorded."}
+		} else {
+			g := r.GitDelivery
+			allowedCommit := len(g.CommitPaths) > 0
+			for _, p := range g.CommitPaths {
+				allowedCommit = allowedCommit && (p == "src/resource-names.ts" || p == "tests/resource-names.test.ts")
+			}
+			if allowedCommit && g.InitialHeadAncestor && g.RemoteMatchesHead && g.StagedPreserved && g.UnstagedPreserved {
+				gitDelivery.Status = "pass"
+			}
+			gitDelivery.Evidence = []string{fmt.Sprintf("range_paths=%v initial_head_ancestor=%t remote_matches_head=%t staged_preserved=%t unstaged_preserved=%t", g.CommitPaths, g.InitialHeadAncestor, g.RemoteMatchesHead, g.StagedPreserved, g.UnstagedPreserved)}
+		}
+		a.Criteria = append(a.Criteria, gitDelivery)
+	}
 
-	if f.ID != "smoke" {
+	needsSourceReads := f.ID == "research" || f.ID == "plan" || f.ID == "build" || f.ID == "project-state" || f.ID == "direct-build"
+	if needsSourceReads {
 		reads := criterionAssessment{Criterion: "Observed repository source/test reads", Status: "not_verified"}
 		sourceRead, testsRead := false, false
 		for _, event := range r.Trace.Events {
@@ -452,11 +520,18 @@ func assessFlows(r result, f fixture, files string) assessment {
 				continue
 			}
 			path := eventPath(event.Path, r.Cwd)
-			if sameAbsolutePath(path, filepath.Join(r.Cwd, "src/items.ts")) {
+			sourcePath, testPath := "src/items.ts", "tests/items.test.ts"
+			if f.ID == "project-state" {
+				sourcePath, testPath = "src/dispatch.ts", "tests/dispatch.test.ts"
+			}
+			if f.ID == "direct-build" {
+				sourcePath, testPath = "src/resource-names.ts", "tests/resource-names.test.ts"
+			}
+			if sameAbsolutePath(path, filepath.Join(r.Cwd, sourcePath)) {
 				sourceRead = true
 				reads.Evidence = append(reads.Evidence, evidenceLine(event))
 			}
-			if sameAbsolutePath(path, filepath.Join(r.Cwd, "tests/items.test.ts")) {
+			if sameAbsolutePath(path, filepath.Join(r.Cwd, testPath)) {
 				testsRead = true
 				reads.Evidence = append(reads.Evidence, evidenceLine(event))
 			}
@@ -467,7 +542,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 		a.Criteria = append(a.Criteria, reads)
 
 		suffix := ".research.md"
-		if f.ID != "research" {
+		if f.ID != "research" && f.ID != "project-state" && f.ID != "direct-build" {
 			suffix = ".plan.md"
 		}
 		paths := []string{}
@@ -481,7 +556,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 		if len(paths) == 1 {
 			artifact.Status = "pass"
 		}
-		a.Criteria = append(a.Criteria, artifact)
+		if f.ID != "direct-build" {
+			a.Criteria = append(a.Criteria, artifact)
+		}
 		a.Criteria = append(a.Criteria, criterionAssessment{Criterion: "Human review: Spanish, source grounding, contracts, decisions and verification coverage", Status: "not_verified", Evidence: paths})
 		if f.ID == "build" {
 			a.Criteria = append(a.Criteria, verifyFlowContract(files))
@@ -495,13 +572,16 @@ func assessFlows(r result, f fixture, files string) assessment {
 				a.Criteria = append(a.Criteria, criterionAssessment{Criterion: "Received plan updated", Status: status, Evidence: []string{r.Handoff.Plan}})
 			}
 		}
+		if f.ID == "direct-build" {
+			a.Criteria = append(a.Criteria, verifyResourceNameContract(files))
+		}
 	}
 	fail, unknown := false, false
 	for _, c := range a.Criteria {
 		fail = fail || c.Status == "fail"
 		unknown = unknown || c.Status == "not_verified"
 	}
-	if f.ID == "smoke" {
+	if f.ID == "smoke" || f.ID == "conventions-smoke" {
 		for _, o := range a.Skills {
 			unknown = unknown || o.Read.Status != "pass"
 		}

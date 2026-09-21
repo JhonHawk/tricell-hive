@@ -66,6 +66,30 @@ func TestCatalogueInstallRollbackAndSharedRetirement(t *testing.T) {
 	absent(t, alias)
 }
 
+func TestCrossSkillReferenceResolvesThroughSharedAndClaudePaths(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"claude", "codex", "grok", "pi", "opencode"}
+	put(t, filepath.Join(o.Source, "content/skills/flow-build/SKILL.md"), "---\nname: flow-build\ndescription: Build.\n---\nRead [naming](../flow-plan/references/infra-naming.md).\n")
+	put(t, filepath.Join(o.Source, "content/skills/flow-plan/SKILL.md"), "---\nname: flow-plan\ndescription: Plan.\n---\nPlan.\n")
+	put(t, filepath.Join(o.Source, "content/skills/flow-plan/references/infra-naming.md"), "# Infrastructure naming\n")
+	apply(t, plan(t, "install", o))
+
+	sharedBuild := filepath.Join(o.Home, ".agents/skills/flow-build/SKILL.md")
+	sharedReference := filepath.Join(o.Home, ".agents/skills/flow-plan/references/infra-naming.md")
+	if got := filepath.Clean(filepath.Join(filepath.Dir(sharedBuild), "../flow-plan/references/infra-naming.md")); got != sharedReference {
+		t.Fatalf("shared reference path: %s", got)
+	}
+	if _, err := os.Stat(sharedReference); err != nil {
+		t.Fatal(err)
+	}
+
+	claudeReference := filepath.Join(o.Home, ".claude/skills/flow-plan/references/infra-naming.md")
+	resolved, err := filepath.EvalSymlinks(claudeReference)
+	if err != nil || resolved != sharedReference {
+		t.Fatalf("Claude reference path: %q %v", resolved, err)
+	}
+}
+
 func TestCatalogueSourceIdentityAndConflict(t *testing.T) {
 	o := setup(t)
 	put(t, filepath.Join(o.Source, researchSource), "research payload\n")

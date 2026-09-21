@@ -30,7 +30,7 @@ func protectedFor(host, home string) map[string]string {
 		filepath.Join(oc, "AGENTS.md"),
 	}
 	for _, base := range []string{filepath.Join(home, ".agents"), codex, claude, grok, pi, oc} {
-		for _, skill := range []string{"workspace-conventions", "flow-research", "flow-plan", "flow-build"} {
+		for _, skill := range []string{"workspace-conventions", "flow-research", "flow-plan", "flow-build", "git-workflow"} {
 			paths = append(paths, filepath.Join(base, "skills", skill))
 		}
 	}

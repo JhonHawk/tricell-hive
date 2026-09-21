@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -117,7 +118,7 @@ func TestTypeScriptFixturesAndIndependentContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, f := range corpus.Cases {
-		if f.ID == "smoke" {
+		if f.ID != "research" {
 			continue
 		}
 		t.Run(f.ID, func(t *testing.T) {
@@ -131,19 +132,57 @@ func TestTypeScriptFixturesAndIndependentContract(t *testing.T) {
 				t.Fatalf("fixture fails before model: %s %v", b, err)
 			}
 			got := verifyFlowContract(dir)
-			want := "fail"
-			if f.ID == "research" {
-				want = "pass"
+			if got.Status != "pass" {
+				t.Fatalf("independent contract = %+v, want pass", got)
 			}
-			if got.Status != want {
-				t.Fatalf("independent contract = %+v, want %s", got, want)
+			p := filepath.Join(dir, "src/items.ts")
+			fixtureFile(t, p, strings.Replace(f.Files["src/items.ts"], "items.slice(0, limit)", "items.slice(0, limit).reverse()", 1))
+			if verifyFlowContract(dir).Status != "fail" {
+				t.Fatal("order regression escaped contract")
 			}
-			if f.ID == "research" {
-				p := filepath.Join(dir, "src/items.ts")
-				fixtureFile(t, p, strings.Replace(f.Files["src/items.ts"], "items.slice(0, limit)", "items.slice(0, limit).reverse()", 1))
-				if verifyFlowContract(dir).Status != "fail" {
-					t.Fatal("order regression escaped contract")
-				}
+		})
+	}
+}
+
+func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
+	raw, err := os.ReadFile("../fixtures/flows/cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var corpus struct {
+		Cases []fixture `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &corpus); err != nil {
+		t.Fatal(err)
+	}
+	byID := map[string]fixture{}
+	for _, f := range corpus.Cases {
+		byID[f.ID] = f
+	}
+	for _, id := range []string{"conventions-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery"} {
+		if _, ok := byID[id]; !ok {
+			t.Fatalf("missing flow case %q", id)
+		}
+	}
+	dir := t.TempDir()
+	for p, b := range byID["direct-build"].Files {
+		fixtureFile(t, filepath.Join(dir, p), b)
+	}
+	if got := verifyResourceNameContract(dir); got.Status != "fail" {
+		t.Fatalf("unfixed resource-name fixture passed: %+v", got)
+	}
+	for _, tc := range []struct {
+		name, source string
+		want         string
+	}{
+		{"generic error accepted", "export function resourceName(project: string, component: string, environment: string): string {\n const parts = [project, component, environment].map((part) => part.trim().toLowerCase().replace(/\\s+/g, '-'));\n if (parts.some((part) => part === '')) throw new Error('empty segment');\n return parts.join('-');\n}\n", "pass"},
+		{"type error accepted", "export function resourceName(project: string, component: string, environment: string): string {\n const parts = [project, component, environment].map((part) => part.trim().toLowerCase().replace(/\\s+/g, '-'));\n if (parts.some((part) => part === '')) throw new TypeError('empty segment');\n return parts.join('-');\n}\n", "pass"},
+		{"missing rejection fails", "export function resourceName(project: string, component: string, environment: string): string {\n return [project, component, environment].map((part) => part.trim().toLowerCase().replace(/\\s+/g, '-')).join('-');\n}\n", "fail"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fixtureFile(t, filepath.Join(dir, "src/resource-names.ts"), tc.source)
+			if got := verifyResourceNameContract(dir); got.Status != tc.want {
+				t.Fatalf("contract = %+v, want %s", got, tc.want)
 			}
 		})
 	}
@@ -175,10 +214,10 @@ func TestAllManagedSkillsProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
 	before := protectedFor("grok", home)
-	for _, name := range []string{"flow-research", "flow-plan", "flow-build"} {
+	for _, name := range []string{"flow-research", "flow-plan", "flow-build", "git-workflow"} {
 		fixtureFile(t, filepath.Join(home, ".agents/skills", name, "SKILL.md"), name)
 	}
-	if got := changedProtected(before, protectedFor("grok", home)); len(got) != 3 {
+	if got := changedProtected(before, protectedFor("grok", home)); len(got) != 4 {
 		t.Fatalf("missing shared skills: %v", got)
 	}
 }
@@ -207,13 +246,26 @@ func TestPlanReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
 		})
 	}
 }
+
+func TestInfraReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
+	yes := true
+	ref := traceEvent{Kind: "read", Path: "/home/.agents/skills/flow-plan/references/infra-naming.md", Success: &yes, Line: 2}
+	write := traceEvent{Kind: "write", Path: "_support/sessions/2026-09-21-infra/media.plan.md", Success: &yes, Line: 4}
+	r := result{Root: "/fixture", Cwd: "/fixture", Trace: traceReport{Events: []traceEvent{ref, write}}}
+	got := observeInfraReference(r)
+	if got.Read.Status != "pass" || got.BeforeFirstPlanWrite.Status != "pass" {
+		t.Fatalf("unexpected observation: %+v", got)
+	}
+}
 func TestPlanReferenceAndClaudeAliasProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
 	canonical := filepath.Join(home, ".agents/skills/flow-plan")
 	ref := filepath.Join(canonical, "references/plan-format.md")
+	infraRef := filepath.Join(canonical, "references/infra-naming.md")
 	fixtureFile(t, filepath.Join(canonical, "SKILL.md"), "skill")
 	fixtureFile(t, ref, "format one")
+	fixtureFile(t, infraRef, "infra one")
 	alias := filepath.Join(home, ".claude/skills/flow-plan")
 	if err := os.MkdirAll(filepath.Dir(alias), 0700); err != nil {
 		t.Fatal(err)
@@ -223,6 +275,7 @@ func TestPlanReferenceAndClaudeAliasProtected(t *testing.T) {
 	}
 	before := protectedFor("codex", home)
 	fixtureFile(t, ref, "format two")
+	fixtureFile(t, infraRef, "infra two")
 	after := protectedFor("codex", home)
 	changed := changedProtected(before, after)
 	seen := map[string]bool{}
@@ -231,6 +284,70 @@ func TestPlanReferenceAndClaudeAliasProtected(t *testing.T) {
 	}
 	if !seen[canonical] || !seen[alias] {
 		t.Fatalf("reference not protected through both paths: %v", changed)
+	}
+}
+
+func TestGitDeliverySetupAndInspectionAreScoped(t *testing.T) {
+	root := t.TempDir()
+	for p, body := range map[string]string{
+		"src/resource-names.ts":        "export const resourceName = () => 'old';\n",
+		"tests/resource-names.test.ts": "export {};\n",
+		"notes/unrelated-staged.md":    "Keep this staged work unchanged.\n",
+		"notes/unrelated-unstaged.md":  "Keep this unstaged work unchanged.\n",
+	} {
+		fixtureFile(t, filepath.Join(root, p), body)
+	}
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	before, err := setupGitDelivery(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixtureFile(t, filepath.Join(root, "src/resource-names.ts"), "export const resourceName = () => 'hive-api-qa';\n")
+	for _, args := range [][]string{{"add", "src/resource-names.ts"}, {"commit", "-qm", "fix: format resource name", "--", "src/resource-names.ts"}, {"push", "fixture", "main"}} {
+		if _, err := gitOutput(root, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	after := inspectGitDelivery(root, before)
+	if !after.InitialHeadAncestor || !after.RemoteMatchesHead || !after.StagedPreserved || !after.UnstagedPreserved {
+		t.Fatalf("invalid delivery inspection: %+v", after)
+	}
+	if len(after.CommitPaths) != 1 || after.CommitPaths[0] != "src/resource-names.ts" {
+		t.Fatalf("unexpected commit paths: %v", after.CommitPaths)
+	}
+}
+
+func TestGitDeliveryInspectionRetainsRevertedRangePaths(t *testing.T) {
+	root := t.TempDir()
+	for p, body := range map[string]string{
+		"src/resource-names.ts":        "export const resourceName = () => 'old';\n",
+		"tests/resource-names.test.ts": "export {};\n",
+		"notes/unrelated-staged.md":    "Keep this staged work unchanged.\n",
+		"notes/unrelated-unstaged.md":  "Keep this unstaged work unchanged.\n",
+		"README.md":                    "original\n",
+	} {
+		fixtureFile(t, filepath.Join(root, p), body)
+	}
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	before, err := setupGitDelivery(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, body := range []string{"unauthorized but later reverted\n", "original\n"} {
+		fixtureFile(t, filepath.Join(root, "README.md"), body)
+		for _, args := range [][]string{{"add", "README.md"}, {"commit", "-qm", "test: temporary README change", "--", "README.md"}} {
+			if _, err := gitOutput(root, args...); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	after := inspectGitDelivery(root, before)
+	if !slices.Contains(after.CommitPaths, "README.md") {
+		t.Fatalf("reverted path escaped range audit: %+v", after)
 	}
 }
 
