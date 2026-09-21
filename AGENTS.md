@@ -19,12 +19,16 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 Apply these locations for every task, even when no skill is active:
 
 - Keep application or configuration changes in an existing source directory; do not invent a source hierarchy for instruction-only work.
-- Durable, repo-wide documentation belongs in `_support/docs/`.
-- Work plans and findings worth resuming belong in `_support/sessions/YYYY-MM-DD-<slug>/`.
-- Reproducible scratch, temporary logs, and intermediate output belong in git-ignored `_support/workspace/`.
-- Curated, non-reproducible evidence belongs in `_support/evidence/YYYY-MM-DD-<slug>/`; keep interpretation in Markdown and link raw evidence.
+- Use this repository's `_support/` for repo-scoped work; shared work belongs in the declared workspace's `_support/` or its established documentation home. Do not infer a workspace from an arbitrary parent, create a specs repository, or initialize Git automatically. A monorepo uses one support home at its root.
+- Durable, repo-wide documentation belongs in `_support/docs/<topic>/`. Keep living documents current; dated records describe historical decisions or findings.
+- Work plans and findings worth resuming belong in `_support/sessions/YYYY-MM-DD-<slug>/`, with optional `<slug>-plan.md`, `<slug>-tasks.md`, `<slug>-findings.md`, and `reports/`. Keep the initial date and location across conversations; create only the records and subfolders the work needs.
+- Temporary utilities, logs, and intermediate output belong in git-ignored `_support/workspace/YYYY-MM-DD-<slug>/`. At close, remove only reproducible temporaries created by this task that are no longer needed; preserve prior material, unique evidence, and uncertain cases.
+- Selected evidence belongs in `_support/evidence/YYYY-MM-DD-<slug>/`, using the same work identifier and report links. Curated, shareable evidence may be versioned, including justified binaries; exclude secrets, raw dumps, and unnecessary reproducible output. Retention is not publication authorization.
+- For requested organization of existing material, evidence curation, promotion, or archiving, read `content/skills/workspace-conventions/SKILL.md`. Routine placement, resuming work, and cleanup of this task's disposable temporaries do not require that skill.
 
 Keep an established folder convention when the same work continues. Do not leave scratch artifacts beside source or in a durable-doc folder.
+
+See `_support/docs/architecture/workspace-and-artifacts.md` for explanations and examples. Do not automatically migrate existing material. These placement essentials apply independently of skill selection.
 
 ## Scope and preservation
 
@@ -38,12 +42,16 @@ Keep an established folder convention when the same work continues. Do not leave
 
 For behavior claims, record the host and installed version, resolved model, task, relevant instructions and references read, writes, human intervention, and terminal state. Separate guidance discovery, source reading, and task outcome. Use observable criteria and the least costly useful check. Use blinded human review when asserting subjective quality improvement; label model grading as exploratory. A single run, prompt-size estimate, or cached request does not establish reliability or improvement.
 
+After tests finish, remove fictitious test records from Engram. Identify the exact fixture projects, sessions, and observation IDs from the run evidence before deletion; do not delete by a broad topic match or ambiguous project name. Preserve real Hive decisions, findings, and evaluation summaries. Wait for all test writers to finish, use Engram's supported deletion mechanism, verify the scoped records are gone, and record the cleanup outcome in the session report. If provenance is uncertain or scoped deletion is unavailable, report the unresolved records instead of deleting unrelated memory.
+
 ## Repository map
 
 - `README.md` — purpose and working boundaries.
 - `content/` — distributable Hive guidance and activity skills; root `AGENTS.md` governs this repository only.
 - `integrations/` — host-specific differences; `tooling/` — management interfaces and shared operations; `tests/` — verification.
 - `_support/docs/architecture/repository-and-distribution.md` — structure and managed global-instruction block design.
+- `_support/docs/architecture/deployment-manager.md` — Go manager commands, ownership, recovery, and verification boundaries.
+- `_support/docs/architecture/workspace-and-artifacts.md` — workspace scope, artifact organization, retention, and hygiene.
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.
 - `_support/sessions/` — dated work records; `_support/workspace/` — disposable scratch.

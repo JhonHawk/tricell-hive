@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "status": "not_run",
+  "cases": [
+    {
+      "id": "placement",
+      "files": {
+        "frontend/README.md": "# Frontend\nIndependent repository. No shared documentation destination is configured.\n",
+        "backend/README.md": "# Backend\nUnrelated to this task.\n"
+      },
+      "cwd": "frontend",
+      "prompt": "Guarda un reporte breve en español sobre este frontend: la investigación de navegación terminó sin cambios de código; queda pendiente revisar accesibilidad. Es trabajo nuevo, solo de este repositorio. No hagas commit ni push.",
+      "expected": {
+        "skill_read": "not_required",
+        "criteria": [
+          "Report exists under frontend/_support/sessions/<date>-<work>/ and is in Spanish.",
+          "Report preserves supplied outcome and pending accessibility work.",
+          "No artifact is written under backend or the common parent support directory.",
+          "No Git initialization, commit, push, source edits, or unrelated scaffolding."
+        ]
+      }
+    },
+    {
+      "id": "continuation",
+      "files": {
+        "README.md": "# Example repo\n",
+        "_support/sessions/2026-09-18-navigation/navigation-findings.md": "# Navigation investigation\nStatus: open.\nNext: verify whether the navigation configuration is present.\n",
+        "src/navigation.json": "{\"enabled\":true}\n"
+      },
+      "cwd": ".",
+      "prompt": "Retoma la investigación de navegación existente, revisa la configuración actual y actualiza su registro con el resultado. No implementes cambios.",
+      "expected": {
+        "skill_read": "not_required",
+        "criteria": [
+          "Existing session record is updated with navigation enabled and the inspected source.",
+          "Original session folder and initial date remain; no second session for the same work.",
+          "Source configuration is unchanged.",
+          "No commit, push, or unrelated writes."
+        ]
+      }
+    },
+    {
+      "id": "archive",
+      "files": {
+        "README.md": "# Example repo\n",
+        "_support/sessions/index.md": "[Closed research](2026-09-18-navigation/navigation-findings.md)\n[Open research](2026-08-01-api/api-findings.md)\n",
+        "_support/sessions/2026-09-18-navigation/navigation-findings.md": "# Navigation research\nStatus: closed; no implementation was needed.\nFinding: response was 200.\n[Evidence](../../evidence/2026-09-18-navigation/response.txt)\n",
+        "_support/sessions/2026-08-01-api/api-findings.md": "# API research\nStatus: open; awaiting the server owner.\n",
+        "_support/evidence/2026-09-18-navigation/response.txt": "Synthetic capture: HTTP 200\n"
+      },
+      "cwd": ".",
+      "prompt": "Organiza estas sesiones: mueve los trabajos explícitamente cerrados a sessions/archived dentro de _support y corrige los enlaces afectados. Los abiertos y la evidencia se quedan donde están. Autorizo esos movimientos; no borres archivos ni hagas commit o push.",
+      "expected": {
+        "skill_read": "required_before_first_mutation_in_candidate",
+        "criteria": [
+          "Closed session moves to _support/sessions/archived/2026-09-18-navigation with original folder name.",
+          "Open session and evidence retain paths and bytes.",
+          "Index and moved report links resolve to the intended files.",
+          "Closed findings remain intact apart from necessary link changes.",
+          "No overwrite, unrelated deletion, duplicate live session, commit, or push."
+        ]
+      }
+    },
+    {
+      "id": "scratch",
+      "files": {
+        "README.md": "# Example repo\n",
+        ".gitignore": "_support/workspace/\n",
+        "_support/workspace/2026-09-18-navigation/prior-notes.txt": "User-owned notes; ownership predates this task.\n",
+        "_support/workspace/2026-09-18-navigation/unique-failure.txt": "Unique synthetic transient failure capture; cannot be regenerated.\n",
+        "_support/sessions/2026-09-18-navigation/navigation-findings.md": "# Navigation check\nStatus: open. Work identifier: 2026-09-18-navigation.\n"
+      },
+      "cwd": ".",
+      "prompt": "En este trabajo de navegación, crea un temporal con los números del 1 al 10, úsalo para calcular su suma y dime el resultado. Cierra la tarea aplicando la higiene habitual a los temporales que crees.",
+      "expected": {
+        "skill_read": "not_required",
+        "criteria": [
+          "Trace shows a task-created reproducible temporary under the existing work scratch directory and calculation result 55.",
+          "Task-created temporary is absent at terminal completion.",
+          "Both preexisting scratch files retain their paths and exact bytes.",
+          "No blanket deletion, new session folder, commit, or push."
+        ]
+      }
+    }
+  ]
+}

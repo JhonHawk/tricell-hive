@@ -1,18 +1,18 @@
 # Hive repository structure and distribution
 
-Reviewed: 2026-09-20. Structure agreed and directories created. Management tooling, integrations, and global rules are not implemented yet.
+Reviewed: 2026-09-20. Structure agreed and directories created. The global rules, workspace skill, and first Go deployment manager are implemented. The adapters have synthetic-home lifecycle tests; the five-host user-global deployment is installed for an experimental observational rollout. See the [manager contract](deployment-manager.md) for commands and current limits.
 
 ## Responsibilities
 
 | Path | Responsibility | Initial state |
 |---|---|---|
-| `content/guidance/global.md` | Single source for distributed global rules | Empty; rules not yet drafted |
-| `content/skills/` | Activity procedures and their supporting resources | Reserved |
-| `integrations/{claude,codex,grok,pi,opencode}/` | Necessary differences in paths, manifests, and native mechanisms | Reserved; no placeholder hooks or manifests |
-| `tooling/cli/` | Command interface | Reserved |
-| `tooling/management/` | Shared installation, configuration, diagnosis, and removal logic | Reserved |
+| `content/guidance/global.md` | Single source for distributed global rules | Authored; not installed or behaviorally validated |
+| `content/skills/` | Activity procedures and their supporting resources | `workspace-conventions` authored; not installed or behaviorally validated |
+| `integrations/{claude,codex,grok,pi,opencode}/` | Native destination differences | Five user-scope adapters; project scope for Codex and Claude |
+| `tooling/cli/` | Command interface | Go CLI, invoked from the checkout |
+| `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
 | `tooling/tui/` | Future interface over the same operations | Outside initial scope |
-| `tests/{content,integrations,management,fixtures}/` | Content, integration, and installation lifecycle verification | Reserved |
+| `tests/{content,integrations,management,fixtures}/` | Content, integration, and installation lifecycle verification | Lifecycle tests, four workspace fixtures, frozen baseline, and native CLI pilot runner |
 | `_support/docs/` | Durable research and decisions | Existing |
 | `_support/sessions/` | Resumable work records | Available |
 | `_support/evidence/` | Curated evidence suitable for version control | Available |
@@ -37,7 +37,7 @@ Markers occupy complete lines and have distinct, stable start and end identifier
 
 Each integration must resolve the effective global file from documentation and observed host versions. Do not assume all CLIs read the same file, that `CLAUDE.md` always imports `AGENTS.md`, or write to both when doing so duplicates loading. Host compatibility may give a file multiple consumers. Installation records those consumers, and partial removal preserves the consumers that still use the block.
 
-## Installation and update contract, not yet implemented
+## Installation and update contract
 
 1. Resolve explicit destination and scope; detect existing files, symbolic links, and shared resources before writing. Do not inadvertently replace a symbolic link.
 2. Read and show the proposed change. Preserve bytes outside the managed block, including line endings. If appending the block requires a separator, record the added bytes as part of the managed resource.
@@ -47,7 +47,7 @@ Each integration must resolve the effective global file from documentation and o
 6. Check that the destination has not changed between reading and writing; use safe replacement, preserve permissions, retain a backup, and record the result. Repeating an operation with the same input must produce no changes.
 7. Verify the resulting file and distinguish installation on disk from loading in a session. Report any host-required reload or restart.
 
-This scaffold does not write global files. An empty source is not distributed; instruction removal is a separate, explicit operation.
+The manager can target user or project scope, but implementation verification uses temporary destinations. Real global deployment is a separate explicit action. An empty source is not distributed; instruction removal is a separate operation.
 
 ## Deactivation and removal
 
@@ -55,7 +55,7 @@ Remove only the identified block and separators added by the tool, preserving ev
 
 Record creation of a previously absent global file: remove that entire file only if it remains exclusively the resource Hive created. If the user added content, preserve the file. Uninstalling Hive does not delete authentication, preferences, history, Engram, or backups; purging these is separate.
 
-Installation state, backups, and caches live outside the checkout in the local data directory selected during implementation. Do not create those global directories now.
+Installation state and backups live outside the checkout in the local directory described by the [manager contract](deployment-manager.md). Tests use an explicit temporary state directory. Global state is not created merely by reading or planning a deployment.
 
 ## Agreed future capability
 
@@ -67,4 +67,5 @@ This capability is outside the first version. The database, schema, and commands
 
 - [Workflow map](../harness-engineering/2026-09-20-workflow-map.md).
 - [Harness engineering research](../harness-engineering/2026-09-20-portable-harness-research.md).
+- [Workspace and artifact organization](workspace-and-artifacts.md).
 - Session agreements: shared content, minimal per-CLI integration, reversible distribution, CLI before TUI, and future decision storage.
