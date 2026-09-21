@@ -11,7 +11,7 @@ access_profile: "implement"
 
 2. Explain index and query changes using representative plans and workload evidence, including write cost and storage tradeoffs.
 
-3. Plan compatibility, backfills, cutover, validation, and recovery for data changes. Keep destructive actions and production execution within explicit authorization.
+3. For stored schema, representation, migration, or backfill changes, read `references/data-changes.md` in the caller-supplied `flow-build` skill directory before dependent work. Apply that shared transition and recovery procedure; report missing access instead of assuming it was inherited.
 
 4. Treat query execution honestly: EXPLAIN ANALYZE executes the query and may cause effects. Inspect the environment and statement before using it.
 

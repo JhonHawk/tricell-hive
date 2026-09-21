@@ -1,6 +1,6 @@
 # Verification by risk and surface
 
-Read when planning or implementing changes involving integration, runtime, UI, performance, hardware, or costly checks. The build skill owns the essential test-first and completion procedure; this reference selects depth and timing. Follow the project's established commands, environments, and delivery policy. Verification does not grant deployment, publication, destructive effects, or external access.
+Read when planning or implementing changes involving integration, runtime, UI, performance, hardware, test replacement/removal, or costly checks. The build skill owns the essential test-first and completion procedure; this reference selects depth and timing. Follow the project's established commands, environments, and delivery policy. Verification does not grant deployment, publication, destructive effects, or external access.
 
 ## Select evidence for the change
 
@@ -17,6 +17,8 @@ Choose the lowest-cost layer that can detect the relevant failure. The following
 | Transactional or high-throughput path | Invariants, real persistence, targeted concurrency, duplicate/retry/partial-failure checks | Query, transaction, cache, pool, queue or retry changes can require representative load and recovery tests |
 | Configuration or agent guidance | Schema, diff, consistency and readback checks available in the project | Runtime effects need corresponding runtime evidence; model pilots require explicit authorization when paused |
 
+When replacing or removing tests, compare the old and new scenarios, fixtures, preconditions, and assertions; justify any retired coverage against the current contract rather than preserving obsolete tests or assuming similar assertions cover the same behavior.
+
 ## Runtime and UI gates
 
 Exercise the actual changed path and relevant failure or permission states. A mocked integration or source inspection does not establish behavior in the running system. Resolve authorized local setup, accounts, roles and seed data; access only the user can supply remains a reported prerequisite.
@@ -32,7 +34,7 @@ Use an independent reviewer when consequence or scope warrants it, with concrete
 - During implementation, run the small checks that give feedback on the current behavior. Inspect transitive impact and use existing test-selection tooling where reliable; file proximity alone may miss affected callers.
 - At a coherent increment's close, verify the final affected scope and applicable build/integration/runtime/UI gates. Avoid duplicating every edge case at every layer.
 - At integration or promotion, satisfy the project's broader regression and release gates. Confirm what CI actually executes; do not assume it covers a missing check. Local checkpoints, branch publication, merge and release are distinct boundaries, governed by the project's policy and existing authorization.
-- After authorized deployment, verify the target environment and recovery criteria; local success does not prove deployment success.
+- After authorized deployment, identify the artifact or revision actually served in the target environment and verify the affected behavior and recovery criteria. Use appropriate readbacks, logs, metrics, traces, or journeys; a successful pipeline or an available shell alone does not establish service health. Check recovery against the data/configuration changes made, not only the previous code version.
 - Reuse evidence only for unchanged relevant inputs. Code, configuration, dependency, environment or external-state changes can invalidate it. Performance trends, changing data/traffic and experimental noise can justify scheduled or repeated checks even without a code change.
 
 Parallelize independent checks; isolate or serialize shared state. After a correction, rerun its failing check and affected scope. Broaden for cross-cutting changes or new failure evidence. Bound review/repair loops by material findings and explicit stopping conditions rather than arbitrary repetition for confidence.

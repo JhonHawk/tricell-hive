@@ -15,6 +15,10 @@ Resolve missing consequential choices with the user, offering meaningful alterna
 
 Before proposing a new mechanism or abstraction, inspect relevant existing solutions and patterns, including those in other projects only when their destination requirements are compatible. Define only the contracts affected by the change: inputs, outputs, error behavior, data or compatibility rules, and migration or recovery requirements where applicable. Record why the selected approach fits the evidence and constraints. Mention meaningful rejected alternatives only when they explain a decision.
 
+When an interface changes, identify its actual producers and consumers, the versions that may coexist, and the compatible delivery order. Use the project’s existing contract and distribution mechanism; a separate specs repository, published package, or prerelease channel is not required by this workflow. Define evidence for the affected integration and any partial rollout.
+
+For changes to untrusted inputs, permissions, process execution, public data exposure, or dependencies, read [security boundaries](../flow-build/references/security-boundaries.md). For stored schema, representation, migration, or backfill changes, read [persistent data changes](../flow-build/references/data-changes.md). Apply only the relevant criteria and pass the reference paths to delegated implementers or reviewers.
+
 When replacing or migrating an existing system, state which legacy paths are removed, retained temporarily for recovery, or remain operational alongside the replacement. Name the retirement condition for temporary retention and the maintenance and verification cost of coexistence. Reuse decisions already settled by the request; resolve only consequential ambiguity before dependent implementation. Do not introduce parallel implementations or fallback layers merely as an assumed precaution.
 
 When the plan chooses infrastructure resource names, read [the infrastructure naming reference](references/infra-naming.md). Apply project and provider constraints before its defaults, and record any migration impact for an existing name.
@@ -23,7 +27,7 @@ When the plan chooses infrastructure resource names, read [the infrastructure na
 
 Group tasks into coherent results that can be checked independently. Prefer usable end-to-end increments when the change crosses layers. Include dependencies, concrete source locations, the expected behavior, and the verification command or observation with its expected result. Look up actual project commands rather than inventing them.
 
-Select the verification approach and timing for each coherent result, including prerequisites and observable pass criteria. For integration, runtime, UI, performance, hardware, or costly checks, read [verification by risk and surface](../flow-build/references/verification.md). Use the project's commands, environments, and delivery gates; name unavailable checks and where regression coverage will run. Keep this in the existing task or conversation rather than creating a separate verification document.
+Select the verification approach and timing for each coherent result, including prerequisites and observable pass criteria. For integration, runtime, UI, performance, hardware, test replacement/removal, or costly checks, read [verification by risk and surface](../flow-build/references/verification.md). Use the project's commands, environments, and delivery gates; name unavailable checks and where regression coverage will run. Keep this in the existing task or conversation rather than creating a separate verification document.
 
 Use checkbox tasks. Keep setup and documentation with the result they support; split tasks when dependencies, review, or delivery boundaries justify it. Do not require full implementation code in the plan or replace a behavioral check with a heading such as "add appropriate tests".
 

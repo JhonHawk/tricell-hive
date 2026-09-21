@@ -13,6 +13,8 @@ Identify the question, the decision it informs, relevant constraints, and what e
 
 Inspect the relevant entry points, callers, tests, configuration, and project guidance before extending the search. When the question concerns project state or delivery, also reconcile the relevant backlog, documentation, code, pull requests, CI, and deployment evidence. Follow references that bear on the question rather than inventorying the entire repository. Let uncertainty and consequences determine depth, not a fixed file or source count.
 
+Treat search hits as entry points to inspect, and state the searched scope and vocabulary before claiming absence; no matches alone do not establish that a capability or behavior is missing. When investigating a failure, regression, or incident with an uncertain cause, read [diagnosis](references/diagnosis.md).
+
 When useful and authorized, delegate independent questions or source families under the shared delegation contract. Ask for source-backed findings, counterevidence, and access limits. The main thread checks consequential claims against their sources and resolves conflicting conclusions; do not treat agreement among subagents as proof.
 
 ## Establish evidence
