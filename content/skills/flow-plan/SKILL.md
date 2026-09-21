@@ -15,6 +15,8 @@ Resolve missing consequential choices with the user, offering meaningful alterna
 
 Before proposing a new mechanism or abstraction, inspect relevant existing solutions and patterns, including those in other projects only when their destination requirements are compatible. Define only the contracts affected by the change: inputs, outputs, error behavior, data or compatibility rules, and migration or recovery requirements where applicable. Record why the selected approach fits the evidence and constraints. Mention meaningful rejected alternatives only when they explain a decision.
 
+When replacing or migrating an existing system, state which legacy paths are removed, retained temporarily for recovery, or remain operational alongside the replacement. Name the retirement condition for temporary retention and the maintenance and verification cost of coexistence. Reuse decisions already settled by the request; resolve only consequential ambiguity before dependent implementation. Do not introduce parallel implementations or fallback layers merely as an assumed precaution.
+
 When the plan chooses infrastructure resource names, read [the infrastructure naming reference](references/infra-naming.md). Apply project and provider constraints before its defaults, and record any migration impact for an existing name.
 
 ## Make the work verifiable
