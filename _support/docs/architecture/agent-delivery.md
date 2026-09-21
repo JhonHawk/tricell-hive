@@ -6,7 +6,7 @@ Agent instructions have one source at `content/agents/<category>/<name>.md`. Cat
 
 ## Roles and profiles
 
-Twenty roles cover design, implementation, documentation, operations, verification, and review. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
+Eighteen roles cover design, implementation, documentation, operations, verification, and review. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
 
 | Profile | Claude | Codex | Pi | Grok | OpenCode V2 |
 | --- | --- | --- | --- | --- | --- |
@@ -17,6 +17,18 @@ Twenty roles cover design, implementation, documentation, operations, verificati
 Profiles are delivery defaults, not a replacement for the host's authentication, model loop, or permissions. The canonical JSON contains the exact model identifiers. A configured model is not proof of account availability or a successful run.
 
 `observe` selects native read-oriented defaults where available. `implement` retains host permissions; `verify` also retains them because builds and tests may write artifacts. Role instructions constrain verification to evidence rather than source fixes. These categories are not universal security sandboxes: shell tools, external services, parent overrides, and native policy resolution still matter. Codex reapplies live parent permission overrides to children; a parent started with bypass flags can supersede an agent's sandbox default. Grok's documented permission field does not demonstrate enforcement of every mode in the installed build.
+
+## Delegation and instruction delivery
+
+`content/guidance/global.md` owns the shared delegation contract. Activity skills own their specific decomposition and review procedure; role descriptions identify stable responsibilities. Project guidance and situational references supply technical conventions. Keep these sources canonical rather than maintaining a second role-by-stack routing table.
+
+A role's native configuration does not establish that it received or read an activity skill. The caller supplies accessible source paths in the assignment; the child reads the applicable sources before dependent work and reports missing required context. The current renderer does not implement a portable skill-preload mechanism. Native inheritance settings are host-specific, not a substitute for this handoff.
+
+For example, a backend implementation assignment identifies the authorized API change, root, owned files, compatibility contract and acceptance checks, then points to the available `flow-build/SKILL.md` and existing project conventions for the detected stack. A read-only reviewer receives the review question and relevant evidence instead of implementation authority. Neither assignment requires creating a new agent for its framework.
+
+This contract is authored guidance, not deterministic loading enforcement or a demonstrated quality improvement. The backend role covers the repository’s actual language and framework, including TypeScript. The former `ts-backend-developer` source is consolidated into `backend-developer`, retaining runtime validation, package/workspace inspection and shared-contract guidance. The former `react-developer` and `angular-developer` sources are consolidated into `frontend-developer`, with concise framework-conditional guidance for server/client boundaries, change detection, subscriptions, lifecycle and forms.
+
+Retain separate implementation and review contracts: `test-engineer` authors tests while `sdd-verify` reports independent verification without fixing source; design and operational implementation remain different assignments. Database, performance and Kotlin Multiplatform roles retain their distinct evidence requirements. Security, UX and refutation reviews are selected for the relevant risk or question, not an obligatory review chain; state collection is a bounded assignment, not a mandatory workflow stage. No per-language backend roles or additional stack routing registry are needed for this catalog.
 
 ## Native destinations
 

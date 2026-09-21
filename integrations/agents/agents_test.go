@@ -18,14 +18,14 @@ func repositoryProfiles(t *testing.T) []byte {
 	return data
 }
 
-func TestCatalogueRendersAllTwentyRolesForEveryHost(t *testing.T) {
+func TestCatalogueRendersAllRolesForEveryHost(t *testing.T) {
 	profiles := repositoryProfiles(t)
 	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sources) != 20 {
-		t.Fatalf("catalogue has %d roles, want 20", len(sources))
+	if len(sources) != 18 {
+		t.Fatalf("catalogue has %d roles, want 18", len(sources))
 	}
 	for _, source := range sources {
 		data, err := os.ReadFile(source)

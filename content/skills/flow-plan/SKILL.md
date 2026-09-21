@@ -21,6 +21,8 @@ When the plan chooses infrastructure resource names, read [the infrastructure na
 
 Group tasks into coherent results that can be checked independently. Prefer usable end-to-end increments when the change crosses layers. Include dependencies, concrete source locations, the expected behavior, and the verification command or observation with its expected result. Look up actual project commands rather than inventing them.
 
+Select the verification approach and timing for each coherent result, including prerequisites and observable pass criteria. For integration, runtime, UI, performance, hardware, or costly checks, read [verification by risk and surface](../flow-build/references/verification.md). Use the project's commands, environments, and delivery gates; name unavailable checks and where regression coverage will run. Keep this in the existing task or conversation rather than creating a separate verification document.
+
 Use checkbox tasks. Keep setup and documentation with the result they support; split tasks when dependencies, review, or delivery boundaries justify it. Do not require full implementation code in the plan or replace a behavioral check with a heading such as "add appropriate tests".
 
 Before calling the plan ready, check:
@@ -30,6 +32,8 @@ Before calling the plan ready, check:
 - Every acceptance criterion has an implementing task and a concrete verification.
 - Task interfaces and dependencies agree; no task relies on an undefined contract.
 - An implementer with this plan and its linked sources can identify what to change, what to preserve, and how to verify it.
+
+For delegated work, identify separable results and their interfaces, dependencies, and ownership; choose roles by the required deliverable rather than assigning a permanent specialist for every framework. Link the project conventions and technical references each unit needs, without freezing runtime-specific agent names or repeating the shared delegation contract.
 
 For consequential or delegated work, use an available authorized fresh-context review when it can expose missing decisions. Reviewers should identify gaps, not simply certify that sections exist. Fix material gaps or report why the plan remains incomplete. Readiness does not grant execution permission.
 
