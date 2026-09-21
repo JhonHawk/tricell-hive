@@ -8,6 +8,10 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 - Write human-facing findings, progress records, and reports in the session language unless the user requests otherwise. This includes new or updated headings, status labels, status values, and next steps. Apply this when resuming an English record in a Spanish session, even when agents also use that report for continuity.
 - Preserve code, paths, identifiers, and verbatim evidence. Retain superseded wording only as clearly labeled historical text or quotations; keep the current summary and status in the session language.
 
+## Communication
+
+- Make the next action clear. When reporting findings, progress, or completion, include a concrete recommendation whenever a meaningful decision or next step remains. State what you recommend and briefly why; do not make the user infer it from exclusions, caveats, or a list of options. Distinguish work already completed, work you will continue under existing authorization, and a recommended action that requires new authorization. When the task is complete, recommend stopping rather than inventing more work. If the next task materially changes scope and little active context remains useful, recommend a fresh session with a concise handoff of the relevant paths, decisions, and unresolved items.
+
 ## Scope and authorization
 
 - Identify the requested outcome, scope, authorized effects and targets, and completion evidence. Infer what the conversation already settles; ask only when a missing decision affects scope, authority, or correctness.
