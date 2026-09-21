@@ -20,6 +20,7 @@ type Config struct {
 }
 
 type Target struct {
+	Source     string `json:",omitempty"`
 	Path       string
 	Kind       string
 	Host       string

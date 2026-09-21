@@ -397,6 +397,32 @@ func parseTrace(host string, input io.Reader) traceReport {
 			if typ == "assistant" || typ == "user" {
 				message(line, object(ev["message"]))
 			}
+			// Claude delivers Skill bodies as native synthetic user messages after a
+			// successful Skill invocation. A launch acknowledgment alone is not a read.
+			if host == "claude" && typ == "user" && truth(ev["isSynthetic"]) {
+				for _, raw := range list(object(ev["message"])["content"]) {
+					c := object(raw)
+					body := str(c["text"])
+					const prefix = "Base directory for this skill: "
+					if str(c["type"]) != "text" || !strings.HasPrefix(body, prefix) {
+						continue
+					}
+					parts := strings.SplitN(strings.TrimPrefix(body, prefix), "\n", 2)
+					if len(parts) != 2 || !strings.HasPrefix(strings.TrimSpace(parts[1]), "# ") || len(strings.TrimSpace(parts[1])) < 100 {
+						continue
+					}
+					directory := strings.TrimSpace(parts[0])
+					name := filepath.Base(directory)
+					for i := len(r.Events) - 1; i >= 0; i-- {
+						call := r.Events[i]
+						if call.Kind == "skill_invocation" && call.Text == name && call.Success != nil && *call.Success {
+							okay := true
+							r.Events = append(r.Events, traceEvent{Line: line, Kind: "read", Tool: "native_skill_source", ID: call.ID, Path: filepath.Join(directory, "SKILL.md"), Success: &okay})
+							break
+						}
+					}
+				}
+			}
 			if typ == "result" {
 				r.TerminalSeen = true
 				if truth(ev["is_error"]) || strings.HasPrefix(str(ev["subtype"]), "error") {

@@ -21,10 +21,19 @@ type assessment struct {
 	Criteria                       []criterionAssessment
 	SkillRead                      criterionAssessment
 	Discovery                      criterionAssessment
+	Skills                         []skillObservation     `json:",omitempty"`
+	References                     []referenceObservation `json:",omitempty"`
 	Limitations                    []string
 }
 
 func assessRun(dir, source string) error {
+	return assessRunNamed(dir, source, "criterion-assessment.json")
+}
+
+func assessRunNamed(dir, source, filename string) error {
+	if filepath.Base(filename) != filename || !strings.HasSuffix(filename, ".json") {
+		return fmt.Errorf("assessment file must be a JSON basename")
+	}
 	b, err := os.ReadFile(filepath.Join(dir, "run.json"))
 	if err != nil {
 		return err
@@ -80,7 +89,7 @@ func assessRun(dir, source string) error {
 	if err != nil {
 		return err
 	}
-	p := filepath.Join(dir, "criterion-assessment.json")
+	p := filepath.Join(dir, filename)
 	file, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
@@ -132,6 +141,9 @@ func shellWritePaths(command string) []string {
 }
 
 func assessResult(r result, f fixture, files string) assessment {
+	if r.Suite == "flows" {
+		return assessFlows(r, f, files)
+	}
 	a := assessment{Host: r.Host, Case: r.Case, Delivery: r.Delivery, Terminal: r.Terminal, Status: "manual_review", SkillRead: criterionAssessment{Criterion: f.Expected.SkillRead, Status: "not_required"}, Limitations: []string{"Tool traces and bounded file inventories are not an OS-wide write audit.", "Opaque shell operations and semantic/language judgments require human review; model self-report is not source-read evidence.", "Daily plugins and native histories remain available; process-local memory controls, when used, are recorded separately in run.json. This is an observational screen."}}
 	a.Discovery = criterionAssessment{Criterion: "Native workspace-conventions advertisement", Status: "not_observed"}
 	if r.Trace.DiscoveryPresent {

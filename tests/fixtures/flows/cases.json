@@ -1,0 +1,65 @@
+{
+  "cases": [
+    {
+      "id": "smoke",
+      "cwd": ".",
+      "files": {
+        "README.md": "# Disposable flow loading check\n"
+      },
+      "prompt": "Sin modificar archivos, consulta explícitamente las skills flow-research, flow-plan y flow-build mediante las herramientas nativas. Para cada una indica su propósito y una condición de uso. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
+      "expected": {
+        "skill_read": "explicit_loading_check",
+        "criteria": []
+      }
+    },
+    {
+      "id": "research",
+      "cwd": ".",
+      "files": {
+        "package.json": "{\"name\":\"hive-flow-fixture\",\"private\":true,\"type\":\"module\",\"scripts\":{\"test\":\"node --test tests/*.test.ts\"}}\n",
+        ".gitignore": "node_modules/\n_support/workspace/\n",
+        "README.md": "# Ordered items\nDependency-free TypeScript ESM; Node 24 runs erasable types. Run `npm test`. No type checker is configured.\n",
+        "src/items.ts": "export function copyItems<T>(items: readonly T[]): T[] {\n  return [...items];\n}\n\nexport function limitItems<T>(items: readonly T[], limit: number): T[] {\n if (limit < 0) throw new RangeError(\"negative limit\");\n return limit === 0 ? [...items] : items.slice(0, limit);\n}\n",
+        "tests/items.test.ts": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { copyItems } from '../src/items.ts';\ntest('copy preserves input and order', () => {\n const input = Object.freeze(['b', 'a']);\n assert.deepEqual(copyItems(input), ['b', 'a']);\n assert.notEqual(copyItems(input), input);\n});\n\nimport { limitItems } from '../src/items.ts';\ntest('limits retain order; zero is unlimited; negatives throw', () => {\n const values = Object.freeze(['c', 'a', 'b']);\n assert.deepEqual(limitItems(values, 0), ['c', 'a', 'b']);\n assert.deepEqual(limitItems(values, 2), ['c', 'a']);\n assert.throws(() => limitItems(values, -1), RangeError);\n});\n",
+        "docs/limits.md": "# Limits (legacy documentation)\n`limitItems` sorts items alphabetically, returns an empty list for zero, and treats negative limits as unlimited.\n"
+      },
+      "prompt": "Esta es una sesión en español. No hagas commit, push ni cambies configuraciones globales. Investiga qué comportamiento tiene realmente limitItems y si docs/limits.md es confiable. Contrasta el código con las pruebas disponibles y conserva los hallazgos sustentados para retomarlos en otra sesión. No implementes ni corrijas código o documentación existente.",
+      "expected": {
+        "skill_read": "flow-research",
+        "criteria": []
+      }
+    },
+    {
+      "id": "plan",
+      "cwd": ".",
+      "files": {
+        "package.json": "{\"name\":\"hive-flow-fixture\",\"private\":true,\"type\":\"module\",\"scripts\":{\"test\":\"node --test tests/*.test.ts\"}}\n",
+        ".gitignore": "node_modules/\n_support/workspace/\n",
+        "README.md": "# Ordered items\nDependency-free TypeScript ESM; Node 24 runs erasable types. Run `npm test`. No type checker is configured.\n",
+        "src/items.ts": "export function copyItems<T>(items: readonly T[]): T[] {\n  return [...items];\n}\n",
+        "tests/items.test.ts": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { copyItems } from '../src/items.ts';\ntest('copy preserves input and order', () => {\n const input = Object.freeze(['b', 'a']);\n assert.deepEqual(copyItems(input), ['b', 'a']);\n assert.notEqual(copyItems(input), input);\n});\n"
+      },
+      "prompt": "Esta es una sesión en español. No hagas commit, push ni cambies configuraciones globales. Necesitamos agregar y exportar limitItems<T>(items: readonly T[], limit: number): T[] en src/items.ts, preservando copyItems. Para límites enteros: cero devuelve todos, positivo devuelve hasta los primeros N en el orden original, negativo lanza RangeError y la entrada no se modifica. Los límites no enteros están fuera de alcance. Investiga este repositorio y deja un plan persistente y listo para que otro agente implemente en otra sesión, con tareas, contratos, dependencias y verificaciones. Todavía no implementes ni cambies código, tests o package.json.",
+      "expected": {
+        "skill_read": "flow-plan",
+        "criteria": []
+      }
+    },
+    {
+      "id": "build",
+      "cwd": ".",
+      "files": {
+        "package.json": "{\"name\":\"hive-flow-fixture\",\"private\":true,\"type\":\"module\",\"scripts\":{\"test\":\"node --test tests/*.test.ts\"}}\n",
+        ".gitignore": "node_modules/\n_support/workspace/\n",
+        "README.md": "# Ordered items\nDependency-free TypeScript ESM; Node 24 runs erasable types. Run `npm test`. No type checker is configured.\n",
+        "src/items.ts": "export function copyItems<T>(items: readonly T[]): T[] {\n  return [...items];\n}\n",
+        "tests/items.test.ts": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { copyItems } from '../src/items.ts';\ntest('copy preserves input and order', () => {\n const input = Object.freeze(['b', 'a']);\n assert.deepEqual(copyItems(input), ['b', 'a']);\n assert.notEqual(copyItems(input), input);\n});\n"
+      },
+      "prompt": "Esta es una sesión en español. No hagas commit, push ni cambies configuraciones globales. Continúa el trabajo a partir del plan recibido de otra sesión. Autorizo implementar el cambio descrito en ese plan, preservando copyItems y el trabajo existente, ejecutar las pruebas y actualizar el progreso con evidencia. Reconcílialo primero con el repositorio; si falta una decisión importante, señálala en vez de inventarla. No agregues dependencias.",
+      "expected": {
+        "skill_read": "flow-build",
+        "criteria": []
+      }
+    }
+  ]
+}

@@ -3,6 +3,7 @@ package management
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -18,22 +19,22 @@ import (
 	"unicode/utf8"
 )
 
-func resolve(c target.Config, hosts []string) ([]target.Target, error) {
+func resolve(c target.Config, hosts []string, sources ...string) ([]target.Target, error) {
 	var out []target.Target
 	for _, h := range hosts {
 		var ts []target.Target
 		var err error
 		switch h {
 		case "codex":
-			ts, err = codex.Resolve(c)
+			ts, err = codex.Resolve(c, sources...)
 		case "claude":
-			ts, err = claude.Resolve(c)
+			ts, err = claude.Resolve(c, sources...)
 		case "grok":
-			ts, err = grok.Resolve(c)
+			ts, err = grok.Resolve(c, sources...)
 		case "pi":
-			ts, err = pi.Resolve(c)
+			ts, err = pi.Resolve(c, sources...)
 		case "opencode":
-			ts, err = opencode.Resolve(c)
+			ts, err = opencode.Resolve(c, sources...)
 		default:
 			return nil, fmt.Errorf("unsupported host %q", h)
 		}
@@ -100,7 +101,53 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 			return r, err
 		}
 	} else {
-		for _, p := range []string{GlobalSource, SkillSource} {
+		paths, err := filepath.Glob(filepath.Join(o.Source, "content/skills/*/SKILL.md"))
+		if err != nil {
+			return r, err
+		}
+		sources := []string{GlobalSource}
+		for _, path := range paths {
+			relative, err := filepath.Rel(o.Source, path)
+			if err != nil {
+				return r, err
+			}
+			sources = append(sources, filepath.ToSlash(relative))
+			referenceRoot := filepath.Join(filepath.Dir(path), "references")
+			if err := target.Safe(referenceRoot); err != nil {
+				return r, err
+			}
+			err = filepath.WalkDir(referenceRoot, func(path string, d fs.DirEntry, walkErr error) error {
+				if os.IsNotExist(walkErr) && path == referenceRoot {
+					return nil
+				}
+				if walkErr != nil {
+					return walkErr
+				}
+				if d.Type()&os.ModeSymlink != 0 {
+					return fmt.Errorf("symlink source: %s", path)
+				}
+				if d.IsDir() {
+					return nil
+				}
+				if !d.Type().IsRegular() {
+					return fmt.Errorf("non-regular source: %s", path)
+				}
+				if filepath.Ext(path) != ".md" {
+					return nil
+				}
+				relative, err := filepath.Rel(o.Source, path)
+				if err != nil {
+					return err
+				}
+				sources = append(sources, filepath.ToSlash(relative))
+				return nil
+			})
+			if err != nil {
+				return r, err
+			}
+		}
+		sort.Strings(sources)
+		for _, p := range sources {
 			s, err := read(filepath.Join(o.Source, p))
 			if err != nil {
 				return r, err
@@ -114,15 +161,52 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 	}
 	return r, validateRelease(r)
 }
+func validSource(source string) bool {
+	if source == GlobalSource {
+		return true
+	}
+	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|references/([A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\.md)$`).MatchString(source)
+}
+func releaseSources(r *Release) []string {
+	sources := []string{}
+	if r != nil {
+		for _, f := range r.Files {
+			if f.Path != GlobalSource {
+				sources = append(sources, f.Path)
+			}
+		}
+	}
+	return sources
+}
+func payload(r *Release, source string) []byte {
+	for _, f := range r.Files {
+		if f.Path == source {
+			return f.Data
+		}
+	}
+	return nil
+}
 func validateRelease(r Release) error {
-	if r.ID != releaseID(r) || len(r.Files) != 2 {
+	if r.ID != releaseID(r) || len(r.Files) < 1 || r.Files[0].Path != GlobalSource {
 		return fmt.Errorf("invalid release fingerprint or file list")
 	}
-	for i, p := range []string{GlobalSource, SkillSource} {
-		f := r.Files[i]
-		if f.Path != p || !utf8.Valid(f.Data) || len(bytes.TrimSpace(f.Data)) == 0 {
-			return fmt.Errorf("invalid source %s", p)
+	previous := ""
+	entries := map[string]bool{}
+	for _, f := range r.Files {
+		entries[f.Path] = true
+	}
+	for _, f := range r.Files {
+		if !validSource(f.Path) || f.Path <= previous || !utf8.Valid(f.Data) || len(bytes.TrimSpace(f.Data)) == 0 {
+			return fmt.Errorf("invalid source %s", f.Path)
 		}
+		if f.Path != GlobalSource {
+			parts := strings.Split(f.Path, "/")
+			entry := strings.Join(parts[:3], "/") + "/SKILL.md"
+			if !entries[entry] {
+				return fmt.Errorf("missing skill entrypoint: %s", entry)
+			}
+		}
+		previous = f.Path
 		if bytes.Contains(f.Data, []byte(Begin)) || bytes.Contains(f.Data, []byte(End)) {
 			return fmt.Errorf("reserved source delimiter")
 		}
@@ -151,11 +235,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	gs, err := desiredResources(c, hosts, state, action)
-	if err != nil {
-		return p, err
-	}
-	p = Plan{Version: 2, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
+	p = Plan{Version: 3, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
 	if action == "install" {
 		r, err := loadRelease(o, dir)
 		if err != nil {
@@ -163,6 +243,11 @@ func BuildPlan(action string, o Options) (Plan, error) {
 		}
 		p.Release = &r
 	}
+	gs, err := desiredResources(c, hosts, state, action, p.Release)
+	if err != nil {
+		return p, err
+	}
+	checkedBundles := map[string]bool{}
 	for _, g := range gs {
 		t := g.Target
 		s, err := readResource(t, g.Replaces != nil)
@@ -183,12 +268,32 @@ func BuildPlan(action string, o Options) (Plan, error) {
 			}
 		}
 		if action == "install" && ch.Before == nil && t.Kind == "skill" {
-			entries, err := os.ReadDir(filepath.Dir(t.Path))
-			if err == nil && len(entries) > 0 {
-				return p, fmt.Errorf("unowned skill directory: %s", filepath.Dir(t.Path))
+			parts := strings.Split(t.Source, "/")
+			bundle := t.Path
+			for range parts[3:] {
+				bundle = filepath.Dir(bundle)
 			}
-			if err != nil && !os.IsNotExist(err) {
-				return p, err
+			entry := filepath.Join(bundle, "SKILL.md")
+			if _, owned := state.Records[entry]; !owned && !checkedBundles[bundle] {
+				err := filepath.WalkDir(bundle, func(path string, d fs.DirEntry, walkErr error) error {
+					if os.IsNotExist(walkErr) && path == bundle {
+						return nil
+					}
+					if walkErr != nil {
+						return walkErr
+					}
+					if d.IsDir() {
+						return nil
+					}
+					return fmt.Errorf("unowned skill directory: %s", bundle)
+				})
+				if err != nil {
+					return p, err
+				}
+			}
+			checkedBundles[bundle] = true
+			if s.Exists {
+				return p, fmt.Errorf("unowned skill file: %s", t.Path)
 			}
 		}
 		ch.After, err = nextRecord(p, g, ch.Before, s)
@@ -205,7 +310,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 }
 
 func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
-	if p.Action == "remove" {
+	if p.Action == "remove" || g.Retire {
 		if old == nil {
 			return nil, nil
 		}
@@ -224,12 +329,12 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
 	}
 	switch g.Target.Kind {
 	case "block":
-		r.Managed = managedBlock(p.Release.Files[0].Data, s.Data)
+		r.Managed = managedBlock(payload(p.Release, g.Target.Source), s.Data)
 		if old == nil && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
 			r.Leading = "\n"
 		}
 	case "skill":
-		r.Managed = p.Release.Files[1].Data
+		r.Managed = payload(p.Release, g.Target.Source)
 	case "symlink":
 		r.CreatedFile = true
 	default:
@@ -269,13 +374,13 @@ func LoadPlan(path string) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	if p.Version != 2 || p.ID != planID(p) {
+	if p.Version != 3 || p.ID != planID(p) {
 		return p, fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	return p, nil
 }
 func validatePlan(p Plan, state State) error {
-	if p.Version != 2 || p.ID != planID(p) {
+	if p.Version != 3 || p.ID != planID(p) {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	h, err := validateHosts(p.Hosts)
@@ -306,7 +411,7 @@ func validatePlan(p Plan, state State) error {
 	} else if p.Action != "remove" || p.Release != nil {
 		return fmt.Errorf("invalid plan action")
 	}
-	gs, err := desiredResources(p.Config, p.Hosts, state, p.Action)
+	gs, err := desiredResources(p.Config, p.Hosts, state, p.Action, p.Release)
 	if err != nil {
 		return err
 	}
@@ -377,7 +482,7 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	ts, err := resolve(c, h)
+	ts, err := resolve(c, h, stateSources(state)...)
 	if err != nil {
 		return nil, err
 	}

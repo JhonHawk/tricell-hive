@@ -35,14 +35,16 @@ Verified against installed `ctx7` 0.5.11 and [official CLI documentation](https:
 
 ## Content and native destinations
 
-The allowlist contains exactly the global guidance body and the workspace-conventions `SKILL.md`. Research, fixture inputs, reports, caches, README files, and `.gitkeep` markers are not payload. Each release ID is a SHA-256 over its ordered payload manifest. No generated distribution directory is required for local use.
+The catalogue contains `content/guidance/global.md`, each `content/skills/<skill>/SKILL.md`, and Markdown files recursively below that skill's `references/` directory. References keep their relative paths and require the corresponding `SKILL.md` entrypoint. Source paths must have safe components; links, duplicate paths, escaping paths, empty payloads, and reserved block delimiters are rejected. Files outside this allowlist, including reports, caches, `.gitkeep` markers and non-Markdown reference files, are not payload.
+
+Each release ID is a SHA-256 over its ordered payload manifest. Resource identity is its source path (`Target.Source`), so a reference cannot be substituted for another skill's payload. No generated distribution directory is required for local use. In the paths below, `<relative-file>` is `SKILL.md` or `references/<path>.md`.
 
 | Host | User scope | Project scope |
 |---|---|---|
 | Codex instructions | Effective `AGENTS.override.md` or `AGENTS.md` under its configured home; an empty override does not win | The same precedence at the selected project root |
-| Codex skill | `<user-home>/.agents/skills/workspace-conventions/SKILL.md` | `<root>/.agents/skills/workspace-conventions/SKILL.md` |
+| Codex skill | `<user-home>/.agents/skills/<skill>/<relative-file>` | `<root>/.agents/skills/<skill>/<relative-file>` |
 | Claude instructions | `<claude-config-dir>/CLAUDE.md` | `<root>/CLAUDE.md` |
-| Claude skill | Directory alias `<claude-config-dir>/skills/workspace-conventions` to the shared `.agents` skill | `<root>/.claude/skills/workspace-conventions/SKILL.md` |
+| Claude skill | Directory alias `<claude-config-dir>/skills/<skill>` to the shared `.agents` skill | `<root>/.claude/skills/<skill>/<relative-file>` |
 
 The user defaults are documented by [Codex instructions](https://learn.chatgpt.com/docs/agent-configuration/agents-md), [Codex skills](https://learn.chatgpt.com/docs/build-skills), [Claude memory](https://code.claude.com/docs/en/memory), and [Claude skills](https://code.claude.com/docs/en/skills). Observed host versions for this implementation are Codex 0.155.1, Claude Code 2.1.278, Grok Build 1.0.34, Pi 0.86.0, and OpenCode 2.0.9. Documentation does not establish successful loading in every environment. The five-host rollout report (historical evidence omitted from public history) separates installed state, observed loading, and task outcomes.
 
@@ -50,13 +52,15 @@ A physical resource records its registered consumers (`host`, `scope`, `context`
 
 User scope also supports Grok, Pi, and OpenCode. Grok uses the native `~/.claude/CLAUDE.md` compatibility path and the shared `.agents` skill; disabled or ambiguous Claude instruction compatibility is a conflict. Pi uses `PI_CODING_AGENT_DIR` or `~/.pi/agent/AGENTS.md`. OpenCode uses `XDG_CONFIG_HOME/opencode/AGENTS.md` or `~/.config/opencode/AGENTS.md`. All three use the shared `.agents` skill and reject project scope. Grok's `GROK_HOME` controls its configuration lookup, not the fixed Claude compatibility path.
 
-Only the managed Claude skill-directory alias is supported. Its exact relative link text is journaled and checked; unknown links, retargeted links, unsafe ancestors, changed override resolution, unowned skill directories, or malformed/unknown Hive blocks conflict. Payload creation precedes alias creation; alias removal precedes final payload removal. Whole skills roots and instruction files are never linked. The installed payload is a versioned copy, not a link to this checkout.
+Each user-scoped Claude skill has one managed directory alias, shared by its entrypoint and references. Only these managed Claude skill-directory aliases are supported. Each alias's exact relative link text is journaled and checked; unknown links, retargeted links, unsafe ancestors, changed override resolution, unowned skill directories, or malformed/unknown Hive blocks conflict. Payload creation precedes alias creation; alias removal precedes final payload removal. Whole skills roots and instruction files are never linked. The installed payload is a versioned copy, not a link to this checkout.
 
 The manager does not follow arbitrary import graphs, adopt unrelated deployments, or detect every unregistered CLI consuming a conventional shared path. A successful `status` reports filesystem state, not runtime discovery or loading.
 
 ## Preservation and state
 
-Only the managed global block is replaced. Existing bytes outside it and the file's permissions survive. The first insertion records any added separator and whether Hive created the file. Removal deletes only that managed span; a newly created file is removed only if no user content remains. Skill content must still match the installed bytes before update or removal. Additional user files in a skill directory remain untouched.
+Only the managed global block is replaced. Existing bytes outside it and the file's permissions survive. The first insertion records any added separator and whether Hive created the file. Removal deletes only that managed span; a newly created file is removed only if no user content remains. Every skill entrypoint and reference must still match its installed bytes before update or removal. A new bundle cannot adopt existing files. An already-owned bundle can gain absent reference files; an unowned file at a planned destination is a conflict. Additional user files outside managed destinations remain untouched.
+
+Installing a release reconciles resources absent from its catalogue, including references removed by a downgrade. It removes only the selected consumers; shared files remain until their last registered consumer is removed. `status` and `plan remove` derive their catalogue from installed state rather than requiring the original source checkout.
 
 Plans contain managed content, fingerprints, and ownership metadata, not the surrounding private instruction text. Preview output shows the old and new managed content rather than a whole-file diff. Backups necessarily contain original target bytes and must stay private.
 
@@ -68,7 +72,7 @@ The default state home is `~/Library/Application Support/tricell-hive`:
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.
 
-New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State schema v2 supports shared consumers and managed aliases. Existing v1 state migrates transactionally; pending v1 recovery keeps its original checksum semantics. Regenerate saved v1 plans before applying new operations.
+New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans and new transaction journals use schema v3, adding explicit source identity to shared consumer and alias ownership. Existing v1/v2 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1/v2 transactions remain recoverable with their original checksum semantics. Saved v1/v2 operation plans must be regenerated before applying new operations.
 
 ## Failure handling
 
@@ -86,4 +90,4 @@ go test -race ./...
 go vet ./...
 ```
 
-Tests exercise the five user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).
+Tests exercise the five user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. Catalogue tests additionally cover multiple skills and nested Markdown references, source identity and forged payload rejection, new references in owned bundles, unowned reference conflicts, partial consumer retirement, old-release rollback, missing-checkout status/removal, v2 migration and legacy journal recovery. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).

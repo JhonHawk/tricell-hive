@@ -14,7 +14,7 @@ import (
 
 // Resolve returns Grok's Claude-compatible home instruction target and the
 // shared skill target. Grok has no native skill copy in this integration.
-func Resolve(c target.Config) ([]target.Target, error) {
+func resolveBase(c target.Config) ([]target.Target, error) {
 	if c.Scope != "user" {
 		return nil, fmt.Errorf("Grok project scope is unsupported")
 	}
@@ -173,4 +173,13 @@ func stripTOMLComment(line string) string {
 		}
 	}
 	return line
+}
+
+// Resolve expands native locations for the supplied source catalogue.
+func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
+	base, err := resolveBase(c)
+	if err != nil {
+		return nil, err
+	}
+	return target.ExpandSkills(base, sources), nil
 }

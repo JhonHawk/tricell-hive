@@ -8,7 +8,7 @@ import (
 	"tricell-hive/integrations/target"
 )
 
-func Resolve(c target.Config) ([]target.Target, error) {
+func resolveBase(c target.Config) ([]target.Target, error) {
 	if c.Scope != "user" {
 		return nil, fmt.Errorf("OpenCode project scope is unsupported")
 	}
@@ -20,4 +20,13 @@ func Resolve(c target.Config) ([]target.Target, error) {
 		{Path: filepath.Join(c.OpenCodeHome, "AGENTS.md"), Kind: "block", Host: "opencode", Scope: c.Scope, Context: c.Home},
 		{Path: skill, Kind: "skill", Host: "opencode", Scope: c.Scope, Context: c.Home},
 	}, nil
+}
+
+// Resolve expands native locations for the supplied source catalogue.
+func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
+	base, err := resolveBase(c)
+	if err != nil {
+		return nil, err
+	}
+	return target.ExpandSkills(base, sources), nil
 }

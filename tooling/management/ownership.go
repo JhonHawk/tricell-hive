@@ -48,6 +48,16 @@ func normalizeState(s *State) error {
 		if r.Target.Kind != "block" && r.Target.Kind != "skill" && r.Target.Kind != "symlink" {
 			return fmt.Errorf("invalid recorded kind")
 		}
+		if s.Version < 3 && r.Target.Source == "" {
+			if r.Target.Kind == "block" {
+				r.Target.Source = GlobalSource
+			} else {
+				r.Target.Source = SkillSource
+			}
+		}
+		if !validSource(r.Target.Source) {
+			return fmt.Errorf("invalid recorded source")
+		}
 		if s.Version == 1 {
 			if r.Target.Host == "" || len(r.Consumers) != 0 || r.Target.Kind == "symlink" {
 				return fmt.Errorf("invalid legacy ownership")
@@ -76,6 +86,7 @@ type resource struct {
 	Consumers     []Consumer
 	Replaces      *Record
 	LegacyRemoval bool
+	Retire        bool
 }
 
 func groups(bindings []target.Target) ([]resource, error) {
@@ -97,8 +108,12 @@ func groups(bindings []target.Target) ([]resource, error) {
 
 // Only the old user-scoped Claude skill directory has a migration route.
 // No other relocated resource or preexisting directory is adopted.
-func desiredResources(c target.Config, hosts []string, state State, action string) ([]resource, error) {
-	bindings, err := resolve(c, hosts)
+func desiredResources(c target.Config, hosts []string, state State, action string, releases ...*Release) ([]resource, error) {
+	sources := stateSources(state)
+	if action == "install" && len(releases) > 0 {
+		sources = releaseSources(releases[0])
+	}
+	bindings, err := resolve(c, hosts, sources...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +154,7 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 	for _, r := range state.Records {
 		for _, oldConsumer := range r.Consumers {
 			for _, g := range gs {
-				if !hasConsumer(g.Consumers, oldConsumer) || r.Target.Kind != g.Target.Kind || r.Target.Path == g.Target.Path {
+				if !hasConsumer(g.Consumers, oldConsumer) || r.Target.Kind != g.Target.Kind || r.Target.Source != g.Target.Source || r.Target.Path == g.Target.Path {
 					continue
 				}
 				migrating := false
@@ -161,16 +176,74 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 			}
 		}
 	}
-	// Dependencies precede aliases on install, and follow aliases on removal.
-	sort.SliceStable(gs, func(i, j int) bool {
-		a, b := gs[i].Target.Kind == "symlink", gs[j].Target.Kind == "symlink"
-		if a != b {
-			if action == "remove" {
-				return a
+	// Retire catalogue entries absent from this release for selected consumers.
+	if action == "install" {
+		paths := map[string]bool{}
+		for _, g := range gs {
+			paths[g.Target.Path] = true
+			if g.Replaces != nil {
+				paths[g.Replaces.Target.Path] = true
 			}
-			return !a
 		}
-		return false
+		for _, r := range state.Records {
+			if paths[r.Target.Path] {
+				continue
+			}
+			var selected []Consumer
+			for _, binding := range r.Consumers {
+				context := c.Home
+				if c.Scope == "project" {
+					context = c.Root
+				}
+				for _, host := range hosts {
+					if binding == (Consumer{host, c.Scope, context}) {
+						selected = append(selected, binding)
+					}
+				}
+			}
+			if len(selected) > 0 {
+				gs = append(gs, resource{Target: r.Target, Consumers: sortedConsumers(selected), Retire: true})
+			}
+		}
+	}
+	// Removed aliases precede removed files; installed aliases follow their files.
+	rank := func(g resource) int {
+		removing := action == "remove" || g.Retire
+		if removing && g.Target.Kind == "symlink" {
+			return 0
+		}
+		if g.Target.Kind == "block" {
+			return 1
+		}
+		if g.Target.Kind == "skill" {
+			return 2
+		}
+		return 3
+	}
+	sort.SliceStable(gs, func(i, j int) bool {
+		if rank(gs[i]) != rank(gs[j]) {
+			return rank(gs[i]) < rank(gs[j])
+		}
+		return gs[i].Target.Path < gs[j].Target.Path
 	})
 	return gs, nil
+}
+
+func stateSources(state State) []string {
+	set := map[string]bool{}
+	for _, r := range state.Records {
+		if r.Target.Source != GlobalSource {
+			set[r.Target.Source] = true
+		}
+	}
+	// A fresh status still reports the historical starter skill.
+	if len(set) == 0 {
+		set[SkillSource] = true
+	}
+	out := make([]string, 0, len(set))
+	for source := range set {
+		out = append(out, source)
+	}
+	sort.Strings(out)
+	return out
 }

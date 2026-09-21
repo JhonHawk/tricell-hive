@@ -1,18 +1,18 @@
 # Hive repository structure and distribution
 
-Reviewed: 2026-09-20. Structure agreed and directories created. The global rules, workspace skill, and first Go deployment manager are implemented. The adapters have synthetic-home lifecycle tests; the five-host user-global deployment is installed for an experimental observational rollout. See the [manager contract](deployment-manager.md) for commands and current limits.
+Reviewed: 2026-09-21. Structure agreed and directories created. The global rules, workspace skill, and first Go deployment manager are implemented. The adapters have synthetic-home lifecycle tests; the five-host user-global deployment is installed for an experimental observational rollout. See the [manager contract](deployment-manager.md) for commands and current limits.
 
 ## Responsibilities
 
-| Path | Responsibility | Initial state |
+| Path | Responsibility | Current state |
 |---|---|---|
-| `content/guidance/global.md` | Single source for distributed global rules | Authored; not installed or behaviorally validated |
-| `content/skills/` | Activity procedures and their supporting resources | `workspace-conventions` authored; not installed or behaviorally validated |
+| `content/guidance/global.md` | Single source for distributed global rules | Installed globally; behavioral evidence is reported separately |
+| `content/skills/` | Activity procedures and their supporting resources | `workspace-conventions` and three `flow-*` skills installed; flow planning includes a Markdown reference |
 | `integrations/{claude,codex,grok,pi,opencode}/` | Native destination differences | Five user-scope adapters; project scope for Codex and Claude |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
 | `tooling/tui/` | Future interface over the same operations | Outside initial scope |
-| `tests/{content,integrations,management,fixtures}/` | Content, integration, and installation lifecycle verification | Lifecycle tests, four workspace fixtures, frozen baseline, and native CLI pilot runner |
+| `tests/{content,integrations,management,fixtures}/` | Content, integration, and installation lifecycle verification | Lifecycle tests, workspace fixtures, TypeScript flow fixtures, frozen baseline, and native CLI pilot runner |
 | `_support/docs/` | Durable research and decisions | Existing |
 | `_support/sessions/` | Resumable work records | Available |
 | `_support/evidence/` | Curated evidence suitable for version control | Available |
@@ -25,7 +25,7 @@ Empty source directories use `.gitkeep`; generated output such as `dist/` is not
 
 Maintain one source file in this repository and manage a block within the user's existing global instruction file. This preserves user instructions and other integrations.
 
-Proposed distribution markers:
+Managed distribution markers:
 
 ```markdown
 <!-- === TRICELL HIVE RULES:BEGIN === -->

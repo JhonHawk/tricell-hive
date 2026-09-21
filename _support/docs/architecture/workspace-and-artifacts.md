@@ -26,9 +26,9 @@ An existing documentation repository may provide equivalent homes such as `sessi
 │   └── <topic>/
 ├── sessions/
 │   ├── YYYY-MM-DD-<work>/
-│   │   ├── <work>-plan.md       # Optional execution plan
-│   │   ├── <work>-tasks.md      # Optional progress record
-│   │   ├── <work>-findings.md   # Optional retained conclusions
+│   │   ├── <work>.plan.md       # Optional plan, task list, and progress
+│   │   ├── <work>.research.md   # Optional retained investigation
+│   │   ├── <work>.report.md     # Optional separate human deliverable
 │   │   └── reports/            # Optional human deliverables
 │   └── archived/
 ├── workspace/
@@ -48,7 +48,9 @@ Source code, permanent maintenance scripts, application configuration, and infra
 
 ## Naming and continuity
 
-Use descriptive `kebab-case` names. Dated directories start with the work's initial date, `YYYY-MM-DD`, followed by its stable slug. Top-level session files include that slug so they are recognizable outside their parent folder. Avoid generic standalone names such as `output.md` or `temp.json`.
+The shared guidance defines the naming convention. New records use `<topic>.<type>.<extension>` with descriptive English `kebab-case` topics and English types. For example, `context-update.plan.md`, `context-update.research.md`, and `context-update.report.md` remain identifiable outside their parent folder. Dated directories start with the work's initial date, `YYYY-MM-DD`, followed by its stable slug; internal records do not repeat the date. Avoid generic standalone names such as `output.md` or `temp.json`. Keep tool entrypoints (`AGENTS.md`, `SKILL.md`, `README.md`) and existing source conventions. Historical records retain their names unless a separate organization task covers their migration.
+
+A retained plan includes its task list and progress. A separate research or report file is useful when it has its own audience or substantial evidence; the vocabulary does not require three files. Retain plans when requested or needed for resumption, delegation, coordinated deliveries, consequential decisions, or investigation that would be costly to reconstruct. Small understood changes can use a conversational plan. Preparation is separate from persistence: the `flow-plan` skill owns the procedure for grounding decisions and connecting requirements, tasks, and verification; file presence does not prove readiness.
 
 One work item keeps one session folder across conversations. Supporting scratch and evidence use the same initial date and slug. A new conversation or calendar day does not create a new work item. When meaningful phases need separation, add descriptive subfolders inside the existing work folder rather than scattering it across sibling sessions. An independent new objective gets a new folder.
 

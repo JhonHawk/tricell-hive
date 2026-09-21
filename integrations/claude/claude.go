@@ -7,7 +7,7 @@ import (
 	"tricell-hive/integrations/target"
 )
 
-func Resolve(c target.Config) ([]target.Target, error) {
+func resolveBase(c target.Config) ([]target.Target, error) {
 	base, context := c.ClaudeHome, c.Home
 	instruction := filepath.Join(base, "CLAUDE.md")
 	skills := filepath.Join(base, "skills")
@@ -31,4 +31,13 @@ func Resolve(c target.Config) ([]target.Target, error) {
 		{Path: filepath.Join(sharedSkillDir, "SKILL.md"), Kind: "skill", Host: "claude", Scope: c.Scope, Context: context},
 		{Path: skillLink, Kind: "symlink", Host: "claude", Scope: c.Scope, Context: context, LinkTarget: linkTarget},
 	}, nil
+}
+
+// Resolve expands native locations for the supplied source catalogue.
+func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
+	base, err := resolveBase(c)
+	if err != nil {
+		return nil, err
+	}
+	return target.ExpandSkills(base, sources), nil
 }

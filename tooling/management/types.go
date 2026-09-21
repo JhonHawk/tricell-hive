@@ -88,7 +88,7 @@ func encode(v any) []byte {
 }
 func releaseID(r Release) string { return hash(encode(r.Files)) }
 func planID(p Plan) string       { p.ID = ""; return hash(encode(p)) }
-func emptyState() State          { return State{Version: 2, Records: map[string]Record{}} }
+func emptyState() State          { return State{Version: 3, Records: map[string]Record{}} }
 func normalize(o Options) (target.Config, string, error) {
 	if o.Scope != "user" && o.Scope != "project" {
 		return target.Config{}, "", fmt.Errorf("explicit scope must be user or project")

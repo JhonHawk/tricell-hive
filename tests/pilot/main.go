@@ -35,11 +35,14 @@ type item struct {
 	Size int64  `json:"size"`
 }
 type result struct {
+	Suite                                                                                             string         `json:",omitempty"`
+	Handoff                                                                                           *handoffReport `json:",omitempty"`
 	CodexBypassSandbox                                                                                bool
 	Host, Case, Arm, Root, Cwd, ModelRequested, ModelObserved, ModelAtInit, Effort, Version, Terminal string
 	Command                                                                                           []string
 	Started                                                                                           string
 	Seconds                                                                                           float64
+	TimeLimitSeconds                                                                                  float64 `json:",omitempty"`
 	ExitCode                                                                                          int
 	Error                                                                                             string `json:",omitempty"`
 	Before, After                                                                                     map[string]item
@@ -109,6 +112,13 @@ func initGit(path string) error {
 	cmd := exec.Command("git", "-c", "core.hooksPath=/dev/null", "init", "-q", path)
 	return cmd.Run()
 }
+func pilotTimeLimit(limit time.Duration, explicit bool, suite, host, caseID string) time.Duration {
+	if !explicit && suite == "flows" && host == "grok" && (caseID == "plan" || caseID == "build") {
+		return 10 * time.Minute
+	}
+	return limit
+}
+
 func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
@@ -134,6 +144,8 @@ func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 	}
 }
 func main() {
+	suite := flag.String("suite", "workspace-conventions", "workspace-conventions or flows")
+	handoff := flag.String("handoff-from", "", "producer plan run directory; required for flows build")
 	host := flag.String("host", "", "codex, claude, grok, pi, or opencode")
 	caseID := flag.String("case", "", "fixture ID or smoke")
 	arm := flag.String("arm", "", "A or B")
@@ -143,17 +155,25 @@ func main() {
 	configuredModel := flag.String("configured-model", "", "configuration value observed before launch; separate from requested override")
 	provider := flag.String("provider", "", "native provider (Pi only)")
 	effort := flag.String("effort", "", "native reasoning effort; OpenCode uses its model #variant syntax")
-	delivery := flag.String("delivery", "project", "project or deployed-global")
+	delivery := flag.String("delivery", "deployed-global", "project or deployed-global")
+	assessmentName := flag.String("assessment-file", "criterion-assessment.json", "new assessment basename; must not already exist")
 	assess := flag.String("assess", "", "assess an existing run; create criterion-assessment.json once")
-	timeout := flag.Duration("timeout", 180*time.Second, "per-run time limit")
+	timeout := flag.Duration("timeout", 180*time.Second, "per-run time limit (default 10m for Grok flow plan/build; 3m otherwise)")
 	allowTrust := flag.Bool("allow-native-trust", false, "allow only a native Codex trust-table insertion; requires explicit user authorization")
 	codexBypass := flag.Bool("codex-bypass-sandbox", false, "use the user-authorized native Codex approval/sandbox bypass for this invocation")
 	flag.Parse()
+	explicitTimeout := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "timeout" {
+			explicitTimeout = true
+		}
+	})
+	*timeout = pilotTimeLimit(*timeout, explicitTimeout, *suite, *host, *caseID)
 	if *codexBypass && *host != "codex" {
 		must(fmt.Errorf("--codex-bypass-sandbox requires --host codex"))
 	}
 	if *assess != "" {
-		must(assessRun(*assess, *source))
+		must(assessRunNamed(*assess, *source, *assessmentName))
 		return
 	}
 	if !validHost(*host) || *out == "" || (*delivery != "project" && *delivery != "deployed-global") {
@@ -168,6 +188,15 @@ func main() {
 	if *delivery == "deployed-global" && *arm != "" {
 		must(fmt.Errorf("deployed-global does not select or inject an A/B arm"))
 	}
+	if *suite != "workspace-conventions" && *suite != "flows" {
+		must(fmt.Errorf("unknown suite"))
+	}
+	if *suite == "flows" && *delivery != "deployed-global" {
+		must(fmt.Errorf("flows requires deployed-global"))
+	}
+	if (*handoff != "") != (*suite == "flows" && *caseID == "build") {
+		must(fmt.Errorf("--handoff-from is required only for flows build"))
+	}
 	if *timeout <= 0 {
 		must(fmt.Errorf("timeout must be positive"))
 	}
@@ -175,6 +204,13 @@ func main() {
 	must(e)
 	output, e := target.Canonical(*out)
 	must(e)
+	if *suite == "flows" {
+		workspace, err := target.Canonical(filepath.Join(src, "_support/workspace"))
+		must(err)
+		if !under(output, workspace) || output == workspace {
+			must(fmt.Errorf("flows output must be below repository _support/workspace"))
+		}
+	}
 	if _, e = os.Stat(output); !os.IsNotExist(e) {
 		must(fmt.Errorf("output must not exist"))
 	}
@@ -182,7 +218,7 @@ func main() {
 	var corpus struct {
 		Cases []fixture `json:"cases"`
 	}
-	b, e := os.ReadFile(filepath.Join(src, "tests/fixtures/workspace-conventions/cases.json"))
+	b, e := os.ReadFile(filepath.Join(src, "tests/fixtures", *suite, "cases.json"))
 	must(e)
 	must(json.Unmarshal(b, &corpus))
 	var f fixture
@@ -191,7 +227,7 @@ func main() {
 			f = c
 		}
 	}
-	if *caseID == "smoke" {
+	if *caseID == "smoke" && *suite != "flows" {
 		f = fixture{ID: "smoke", Cwd: ".", Files: map[string]string{"README.md": "# Disposable loading check\n"}, Prompt: "Sin modificar archivos, indica qué instrucciones de este proyecto recibiste y si workspace-conventions aparece entre las skills disponibles. No ejecutes la skill ni leas archivos externos para responder."}
 		if *delivery == "deployed-global" {
 			f.Prompt = "Sin modificar archivos, indica si workspace-conventions aparece entre las skills disponibles. Consulta el cuerpo de esa skill mediante las herramientas nativas y reporta la regla sobre dónde colocar los temporales de un trabajo existente. Indica las rutas consultadas y distingue disponibilidad, lectura efectiva y cualquier dato que no puedas observar. Esta es una comprobación explícita de carga, no una tarea de organización."
@@ -201,7 +237,11 @@ func main() {
 	if f.ID == "" {
 		must(fmt.Errorf("unknown fixture"))
 	}
-	root, e := os.MkdirTemp("", "hive-pilot-"+*host+"-"+f.ID+"-"+*arm+"-")
+	fixtureParent := ""
+	if *suite == "flows" {
+		fixtureParent = output
+	}
+	root, e := os.MkdirTemp(fixtureParent, "hive-pilot-"+*host+"-"+f.ID+"-"+*arm+"-")
 	must(e)
 	root, e = target.Canonical(root)
 	must(e)
@@ -212,6 +252,16 @@ func main() {
 		p = filepath.Join(root, p)
 		must(os.MkdirAll(filepath.Dir(p), 0700))
 		must(os.WriteFile(p, []byte(s), 0600))
+	}
+	var imported *handoffReport
+	if *handoff != "" {
+		imported, e = importHandoff(*handoff, root)
+		must(e)
+		f.Prompt += "\nEl plan recibido está en `" + imported.Plan + "`. Sus referencias locales conservadas mantienen las rutas relativas."
+		save(filepath.Join(output, "handoff.json"), imported)
+	}
+	if *suite == "flows" {
+		f.Prompt = flowTaskPrompt(f.Prompt, root)
 	}
 	cwd := filepath.Join(root, f.Cwd)
 	if f.ID == "placement" {
@@ -236,7 +286,7 @@ func main() {
 		}
 		must(os.WriteFile(filepath.Join(cwd, filename), []byte(management.Begin+"\n"+strings.TrimRight(string(body), "\n")+"\n"+management.End+"\n"), 0600))
 	}
-	r := result{CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b)}
+	r := result{Suite: *suite, Handoff: imported, CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b), TimeLimitSeconds: timeout.Seconds()}
 	if *delivery == "project" {
 		if r.ModelRequested == "" {
 			if *host == "codex" {
