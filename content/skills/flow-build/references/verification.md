@@ -27,6 +27,8 @@ Use dev/HMR for iteration. At the candidate boundary, validate the built artifac
 
 For UI changes, inspect rendered appearance and interaction separately: layout, content, feedback, error recovery, responsive behavior, keyboard/focus and accessibility relevant to the change. Capture the prior state when comparing an existing interface and practical before editing; missing baseline limits claims of visual improvement, not unrelated functional checks. Automated accessibility or screenshot checks support, but do not replace, inspection of the affected experience.
 
+Compare changed UI with the selected application/area’s accepted shell and screen pattern, including justified differences. Distinguish pattern conformity, functional behavior, and user suitability. A screenshot diff against a prior baseline does not establish that a new screen follows a different reference screen’s pattern. When shared UI code changes, inspect affected consumers across applications according to impact.
+
 Use an independent reviewer when consequence or scope warrants it, with concrete criteria and evidence. Reuse existing review roles where available; do not summon every specialist by default. Parallel functional and UI reviews need isolated data/accounts/sessions; otherwise serialize state-changing work.
 
 ## Frequency and coverage

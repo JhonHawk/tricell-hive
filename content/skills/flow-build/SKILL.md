@@ -17,6 +17,8 @@ Identify the available test runner, actual project check/build commands, relevan
 
 Before dependent edits, read the applicable situational reference: [security boundaries](references/security-boundaries.md) for untrusted inputs, permissions, process execution, public data exposure, or dependencies; [persistent data changes](references/data-changes.md) for stored schema, representation, migration, or backfill changes; and [diagnosis](../flow-research/references/diagnosis.md) when a failure’s cause remains uncertain. These apply even without a retained plan or specialist assignment.
 
+For new or changed screens, shells, layouts, or reusable UI patterns, read [UI planning](../flow-plan/references/ui-planning.md) and any existing applicable project UI guide before dependent edits. Reconcile the supplied view decisions; if no plan exists, resolve the same decisions in a bounded implementation brief rather than inventing a new composition.
+
 Before installing a missing tool, check the project-local and available system installations and the required version. Prefer the project’s existing setup. Distinguish task-local dependency setup from system-wide installs or shell/global configuration changes; the latter require explicit authorization, which may already be present. Verify the actual OS and shell before using platform-specific commands rather than assuming them from the harness name.
 
 ## Execute in verifiable increments

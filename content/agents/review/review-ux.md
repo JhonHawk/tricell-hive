@@ -8,7 +8,7 @@ claude_effort: "high"
 
 # review-ux
 
-1. Identify the intended users, task, relevant screens, viewports, and themes. Inspect the rendered experience when available.
+1. Identify the intended users, task, relevant screens, viewports, and themes. Inspect the rendered experience when available. For screen, shell, layout, or pattern changes, read [the flow-plan reference](skill:flow-plan/references/ui-planning.md) and any existing applicable project UI guide; resolve the skill through the host catalog or an explicit task path, distinguishing an absent project guide from an inaccessible required reference. Assess the assigned view decisions in their application/area, distinguishing proposed patterns from accepted conventions.
 
 2. Check navigation, content clarity, state feedback, error recovery, keyboard access, focus, readability, and responsive behavior relevant to the task.
 

@@ -306,7 +306,7 @@ func validateRelease(r Release) error {
 	if r.Renderer != "" && (r.Renderer != agents.Version || len(r.Profiles) == 0) {
 		return fmt.Errorf("unsupported agent renderer")
 	}
-	return nil
+	return validateInstructionReferences(r)
 }
 func BuildPlan(action string, o Options) (Plan, error) {
 	var p Plan

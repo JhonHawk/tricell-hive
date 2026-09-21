@@ -6,6 +6,7 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 
 - Keep cross-task rules and essential navigation here. Do not make basic authorization or artifact placement depend on an activity skill being selected.
 - Put an activity's essential procedure in its `SKILL.md`. Link situational references directly from that file and state the condition that requires each read. A listed skill or reference is not proof it was selected, read, or followed.
+- When authoring, moving, or removing distributed skills, agents, or their resources, read `_support/docs/architecture/instruction-resources.md` for canonical references, dependency checks, and runtime resolution.
 - Give each rule one canonical home. Avoid duplicate routers, fallback chains, generated copies, hooks, or adapters without a measured need.
 - Before changing host-specific behavior, check current official documentation and the installed CLI version. Mark documentary claims, runtime observations, and inferences separately.
 

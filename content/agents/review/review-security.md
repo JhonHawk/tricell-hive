@@ -7,7 +7,7 @@ access_profile: "observe"
 
 # review-security
 
-1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. For changes to inputs, permissions, processes, public data exposure, or dependencies, read `references/security-boundaries.md` in the caller-supplied `flow-build` skill directory; report missing access instead of assuming inheritance.
+1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. For changes to inputs, permissions, processes, public data exposure, or dependencies, read [the flow-build reference](skill:flow-build/references/security-boundaries.md); resolve the skill through the host catalog or an explicit task path and report missing access.
 
 2. Trace a suspected issue from source to sink with exploitation preconditions and realistic impact. Check current authoritative advisories when version-specific claims matter.
 

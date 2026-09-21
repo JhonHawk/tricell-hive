@@ -11,15 +11,15 @@ Choose the asset that matches what the reader receives:
 
 | Need | Asset |
 | --- | --- |
-| Operational report or findings | `assets/baseline.html` |
-| Formal printable document | `assets/skeleton-paper.html` |
-| Concept or research explanation | `assets/skeleton-explainer.html` |
-| Code-review verdict | `assets/skeleton-review.html` |
-| Unresolved option comparison | `assets/skeleton-comparison.html` |
-| Guided presentation | `assets/skeleton-deck.html` |
+| Operational report or findings | [template](assets/baseline.html) |
+| Formal printable document | [template](assets/skeleton-paper.html) |
+| Concept or research explanation | [template](assets/skeleton-explainer.html) |
+| Code-review verdict | [template](assets/skeleton-review.html) |
+| Unresolved option comparison | [template](assets/skeleton-comparison.html) |
+| Guided presentation | [template](assets/skeleton-deck.html) |
 
 Copy an asset and replace its placeholders with accurate, audience-appropriate content. Keep its responsive and print behavior unless the report needs a deliberate alternative. Write human-facing content in the session language. Put the report in the destination resolved by the workspace guidance; do not invent a destination or overwrite a retained record without authorization.
 
 Reports are offline by default: keep styles, scripts, images, and diagrams in the file. If an external asset is necessary, add `<meta name="flow-report-assets" content="external">`, name the dependency in the report, and make the readable content work without it. Include a short provenance footer with the date, inputs, and relevant paths.
 
-Run `python3 scripts/self_check.py <report.html>` after writing and fix failures. For reports containing inline SVG diagrams, also run `python3 scripts/verify_geometry.py <report.html>`. Read [the diagram grammar](references/diagram-grammar.md) before drawing or modifying an SVG diagram.
+Run [the self-check](scripts/self_check.py) with `python3 scripts/self_check.py <report.html>` after writing and fix failures. For reports containing inline SVG diagrams, also run [the geometry check](scripts/verify_geometry.py) with `python3 scripts/verify_geometry.py <report.html>`. Read [the diagram grammar](references/diagram-grammar.md) before drawing or modifying an SVG diagram.
