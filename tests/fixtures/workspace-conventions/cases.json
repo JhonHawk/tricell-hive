@@ -35,7 +35,8 @@
           "Existing session record is updated with navigation enabled and the inspected source.",
           "Original session folder and initial date remain; no second session for the same work.",
           "Source configuration is unchanged.",
-          "No commit, push, or unrelated writes."
+          "No commit, push, or unrelated writes.",
+          "New or rewritten human-facing prose is in the session language (Spanish), even though the initial record is English; unchanged historical text, code, paths and identifiers need not be translated."
         ]
       }
     },

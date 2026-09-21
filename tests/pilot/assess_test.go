@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,6 +84,41 @@ func TestAssessmentWriteOnce(t *testing.T) {
 	}
 	if err := assessRun(dir, "."); err == nil {
 		t.Fatal("assessment overwritten")
+	}
+}
+
+func TestAssessmentKeepsOnlyCorrelatedNativeCompletion(t *testing.T) {
+	for _, valid := range []bool{true, false} {
+		t.Run(fmt.Sprint(valid), func(t *testing.T) {
+			r, f := scratchResult(t)
+			r.Host = "opencode"
+			r.Trace.TerminalSource = "native_export"
+			r.Trace.NativeCompletion = &openCodeCompletionEvidence{SessionID: "ses-current", Directory: r.Cwd, FinalAssistantID: "msg-final", AssistantFinish: "stop", SessionOutcome: "succeeded", FinalEvent: "idle"}
+			if !valid {
+				r.Trace.NativeCompletion.SessionID = "ses-other"
+			}
+			dir := t.TempDir()
+			for name, v := range map[string]any{"run.json": r, "fixture.json": f} {
+				b, _ := json.Marshal(v)
+				fixtureFile(t, filepath.Join(dir, name), string(b))
+			}
+			fixtureFile(t, filepath.Join(dir, "stdout.jsonl"), `{"type":"text","sessionID":"ses-current","part":{"messageID":"msg-final","text":"done"}}`)
+			if err := assessRun(dir, "."); err != nil {
+				t.Fatal(err)
+			}
+			b, _ := os.ReadFile(filepath.Join(dir, "criterion-assessment.json"))
+			var a assessment
+			if err := json.Unmarshal(b, &a); err != nil {
+				t.Fatal(err)
+			}
+			want := "not_verified"
+			if valid {
+				want = "completed"
+			}
+			if a.Terminal != want {
+				t.Fatalf("terminal %s, want %s", a.Terminal, want)
+			}
+		})
 	}
 }
 func TestLaunchArgumentsRetainDailyTools(t *testing.T) {

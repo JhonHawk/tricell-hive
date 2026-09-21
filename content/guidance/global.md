@@ -1,6 +1,12 @@
 # Tricell Hive guidance
 
-Use the host's native tools, permissions, and history. Follow the project's established conventions within the user's authorized scope. Write agent instructions and operational documentation in English; write human-facing reports in the session language unless the user requests otherwise. Classify documents by purpose, not by who might later read them.
+Use the host's native tools, permissions, and history. Follow the project's established conventions within the user's authorized scope.
+
+## Language
+
+- Write reusable agent rules, skills, and procedural reference documentation in English.
+- Write human-facing findings, progress records, and reports in the session language unless the user requests otherwise. This includes new or updated headings, status labels, status values, and next steps. Apply this when resuming an English record in a Spanish session, even when agents also use that report for continuity.
+- Preserve code, paths, identifiers, and verbatim evidence. Retain superseded wording only as clearly labeled historical text or quotations; keep the current summary and status in the session language.
 
 ## Scope and authorization
 
@@ -26,7 +32,7 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 ## Continuity
 
 - Keep a concise durable record when it materially helps resume work, preserves a reusable decision, or retains verified results needed later. Ordinary conversational answers need no file. Record only the useful objective, decisions, progress, evidence, and next step; no fixed document set is required.
-- On resume, reconcile the record with current sources and state. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
+- On resume, reconcile the record with current sources and state. Keep current status and next steps consistent; retain superseded statements only as clearly labeled history. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
 
 ## Artifact placement and hygiene
 

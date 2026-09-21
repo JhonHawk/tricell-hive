@@ -79,6 +79,61 @@ func TestEmptyAndIntermediateStreamsAreNotVerified(t *testing.T) {
 		}
 	}
 }
+
+func TestOpenCodeTextAndZeroExitDoNotProveCompletion(t *testing.T) {
+	r := parseTrace("opencode", strings.NewReader(`{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-final","text":"done"}}`))
+	if r.SessionID != "ses-1" || r.FinalAssistantID != "msg-final" {
+		t.Fatalf("native correlation IDs lost: %+v", r)
+	}
+	if got := terminalState(r, 0, ""); got != "not_verified" {
+		t.Fatalf("text plus successful process exit was treated as completion: %s", got)
+	}
+}
+
+func TestOpenCodeNativeExportRequiresExactSuccessfulFinalTurn(t *testing.T) {
+	r := parseTrace("opencode", strings.NewReader(`{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-final","text":"done"}}`))
+	good := `{"info":{"id":"ses-1","outcome":"succeeded","location":{"directory":"/workspace"}},"messages":[{"id":"msg-prior","type":"assistant","finish":"tool-calls"},{"id":"msg-final","type":"assistant","finish":"stop"},{"id":"msg-idle","type":"idle","outcome":"succeeded"}]}`
+	evidence, err := parseOpenCodeCompletionExport(r.SessionID, r.FinalAssistantID, "/workspace", strings.NewReader(good))
+	if err != nil {
+		t.Fatalf("valid native terminal evidence rejected: %v", err)
+	}
+	r.NativeCompletion = evidence
+	if got := terminalState(r, 0, ""); got != "completed" {
+		t.Fatalf("native terminal evidence did not complete: %s", got)
+	}
+
+	cases := map[string]string{
+		"wrong session":           strings.Replace(good, `"id":"ses-1"`, `"id":"ses-other"`, 1),
+		"wrong directory":         strings.Replace(good, `"directory":"/workspace"`, `"directory":"/other"`, 1),
+		"not final assistant":     strings.Replace(good, `"id":"msg-final"`, `"id":"msg-another"`, 1),
+		"unfinished assistant":    strings.Replace(good, `"finish":"stop"`, `"finish":"tool-calls"`, 1),
+		"missing successful idle": strings.Replace(good, `,{"id":"msg-idle","type":"idle","outcome":"succeeded"}`, "", 1),
+		"failed session":          strings.Replace(good, `"outcome":"succeeded"`, `"outcome":"failed"`, 1),
+		"later user message":      strings.Replace(good, `,{"id":"msg-idle","type":"idle","outcome":"succeeded"}`, `,{"id":"msg-later-user","type":"user"},{"id":"msg-idle","type":"idle","outcome":"succeeded"}`, 1),
+		"invalid export":          `{invalid`,
+	}
+	for name, raw := range cases {
+		t.Run(name, func(t *testing.T) {
+			if _, err := parseOpenCodeCompletionExport(r.SessionID, r.FinalAssistantID, "/workspace", strings.NewReader(raw)); err == nil {
+				t.Fatal("invalid native history was accepted as terminal proof")
+			}
+		})
+	}
+}
+
+func TestOpenCodeNativeExportFailureStaysUnverified(t *testing.T) {
+	r := parseTrace("opencode", strings.NewReader(`{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-final","text":"done"}}`))
+	if err := verifyOpenCodeCompletion(&r, "/path/that/does/not/exist", "/workspace", nil); err == nil {
+		t.Fatal("missing OpenCode binary unexpectedly verified completion")
+	}
+	if got := terminalState(r, 0, ""); got != "not_verified" {
+		t.Fatalf("unavailable native history changed terminal state: %s", got)
+	}
+	if r.NativeExportError == "" {
+		t.Fatal("native export failure was not retained as a sanitized reason")
+	}
+}
+
 func TestPermissionDenialAndHostError(t *testing.T) {
 	trace := `{"type":"tool_execution_start","toolName":"write","toolCallId":"c1","args":{"path":"report.md"}}
 {"type":"tool_execution_end","toolCallId":"c1","result":{"content":[{"type":"text","text":"Permission denied by policy"}]},"isError":true}
@@ -110,5 +165,37 @@ func TestGrokNativeShellAndMemoryWrapper(t *testing.T) {
 	r := parseTrace("grok", strings.NewReader(`{"type":"assistant","message":{"content":[{"type":"tool_use","name":"run_terminal_command","id":"s1","input":{"command":"printf 55"}},{"type":"tool_use","name":"use_tool","id":"m1","input":{"server_name":"engram","tool_name":"mem_save"}}]}}`))
 	if len(r.Events) != 2 || r.Events[0].Kind != "shell" || r.Events[0].Command != "printf 55" || !r.Events[1].Memory {
 		t.Fatalf("native aliases lost: %+v", r.Events)
+	}
+}
+
+func TestGrokWrappedMemoryToolResultKeepsSemanticPayloadAndCallID(t *testing.T) {
+	trace := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"use_tool","id":"call-memory-1","input":{"tool_name":"engram__mem_search","tool_input":{"query":"navigation"}}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"call-memory-1","content":"{\"type\":\"MCP\",\"tool_name\":\"mem_search\",\"server_name\":\"engram\",\"output\":{\"OkayOutput\":\"{\\\"results\\\":[{\\\"id\\\":7,\\\"title\\\":\\\"Navigation config\\\"}]}\"}}","is_error":false}]}}`
+	r := parseTrace("grok", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected a correlated call and result, got %+v", r.Events)
+	}
+	call, result := r.Events[0], r.Events[1]
+	if call.ID != "call-memory-1" || call.Tool != "engram__mem_search" || !call.Memory {
+		t.Fatalf("wrapped call details were lost: %+v", call)
+	}
+	if result.ID != "call-memory-1" || result.Success == nil || !*result.Success || !strings.Contains(result.Text, `"title":"Navigation config"`) {
+		t.Fatalf("semantic success result was not unwrapped/correlated: %+v", result)
+	}
+}
+
+func TestGrokWrappedMemoryToolResultRecognizesSemanticErrorCode(t *testing.T) {
+	trace := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"use_tool","id":"call-memory-error","input":{"tool_name":"engram__mem_save","tool_input":{"content":"fixture"}}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"call-memory-error","content":"{\"type\":\"MCP\",\"tool_name\":\"mem_save\",\"server_name\":\"engram\",\"output\":{\"OkayOutput\":\"{\\\"error_code\\\":\\\"unknown_project\\\",\\\"message\\\":\\\"not found\\\"}\"}}","is_error":false}]}}`
+	r := parseTrace("grok", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected a correlated call and result, got %+v", r.Events)
+	}
+	call, result := r.Events[0], r.Events[1]
+	if call.ID != "call-memory-error" || call.Tool != "engram__mem_save" || !call.Memory {
+		t.Fatalf("wrapped error call details were lost: %+v", call)
+	}
+	if result.ID != "call-memory-error" || result.Success == nil || *result.Success || !strings.Contains(result.Text, `"error_code":"unknown_project"`) {
+		t.Fatalf("semantic error_code was not retained as a failed result: %+v", result)
 	}
 }

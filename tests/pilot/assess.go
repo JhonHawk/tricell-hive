@@ -63,8 +63,17 @@ func assessRun(dir, source string) error {
 	if err != nil {
 		return err
 	}
+	recordedTrace := r.Trace
 	r.Trace = parseTrace(r.Host, trace)
 	trace.Close()
+	// Reuse bounded proof only when it still correlates with this exact raw run.
+	if r.Host == "opencode" && recordedTrace.TerminalSource == "native_export" && !r.Trace.SessionIDConflict {
+		p := recordedTrace.NativeCompletion
+		if p != nil && p.SessionID != "" && p.SessionID == r.Trace.SessionID && p.FinalAssistantID != "" && p.FinalAssistantID == r.Trace.FinalAssistantID && sameAbsolutePath(p.Directory, r.Cwd) && p.AssistantFinish == "stop" && p.SessionOutcome == "succeeded" && p.FinalEvent == "idle" {
+			r.Trace.NativeCompletion = p
+			r.Trace.TerminalSource = "native_export"
+		}
+	}
 	r.Terminal = terminalState(r.Trace, r.ExitCode, r.Error)
 	a := assessResult(r, f, filepath.Join(dir, "final-files"))
 	b, err = json.MarshalIndent(a, "", "  ")
@@ -123,7 +132,7 @@ func shellWritePaths(command string) []string {
 }
 
 func assessResult(r result, f fixture, files string) assessment {
-	a := assessment{Host: r.Host, Case: r.Case, Delivery: r.Delivery, Terminal: r.Terminal, Status: "manual_review", SkillRead: criterionAssessment{Criterion: f.Expected.SkillRead, Status: "not_required"}, Limitations: []string{"Tool traces and bounded file inventories are not an OS-wide write audit.", "Opaque shell operations and semantic/language judgments require human review; model self-report is not source-read evidence.", "Daily plugins, MCP, and external memory remain active; this is an observational screen."}}
+	a := assessment{Host: r.Host, Case: r.Case, Delivery: r.Delivery, Terminal: r.Terminal, Status: "manual_review", SkillRead: criterionAssessment{Criterion: f.Expected.SkillRead, Status: "not_required"}, Limitations: []string{"Tool traces and bounded file inventories are not an OS-wide write audit.", "Opaque shell operations and semantic/language judgments require human review; model self-report is not source-read evidence.", "Daily plugins and native histories remain available; process-local memory controls, when used, are recorded separately in run.json. This is an observational screen."}}
 	a.Discovery = criterionAssessment{Criterion: "Native workspace-conventions advertisement", Status: "not_observed"}
 	if r.Trace.DiscoveryPresent {
 		a.Discovery.Status = "fail"

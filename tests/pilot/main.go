@@ -47,6 +47,7 @@ type result struct {
 	OutsideChanges                                                                                    []string
 	NativeTrustRegistration                                                                           bool
 	Delivery, ModelConfigured, Provider, PromptHash, FixtureHash                                      string
+	MemoryIsolation                                                                                   memoryIsolationReport
 	Trace                                                                                             traceReport
 }
 
@@ -269,6 +270,22 @@ func main() {
 	save(filepath.Join(output, "protected-before.json"), beforeProtected)
 	args, e := launchArgs(r, output, f.Prompt)
 	must(e)
+	memory, childEnv, e := prepareMemoryIsolation(output, os.Environ())
+	must(e)
+	childEnv = environmentInDirectory(childEnv, cwd)
+	childEnv, e = memory.startHTTP(childEnv, cwd)
+	if e != nil {
+		memory.cleanup()
+		must(e)
+	}
+	r.MemoryIsolation = memory.report
+	if *host == "codex" {
+		args, e = codexMemoryArgs(args, childEnv, cwd)
+		if e != nil {
+			memory.cleanup()
+			must(e)
+		}
+	}
 	r.Command = append([]string{*host}, args...)
 	stdout, e := os.OpenFile(filepath.Join(output, "stdout.jsonl"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	must(e)
@@ -276,6 +293,7 @@ func main() {
 	must(e)
 	cmd := exec.Command(*host, args...)
 	cmd.Dir = cwd
+	cmd.Env = childEnv
 	cmd.Stdin = strings.NewReader(f.Prompt)
 	if *host == "grok" || *host == "opencode" {
 		cmd.Stdin = nil
@@ -293,8 +311,16 @@ func main() {
 	must(e)
 	r.Trace = parseTrace(*host, trace)
 	r.ModelObserved, r.ModelAtInit = r.Trace.Model, r.Trace.ModelAtInit
+	if *host == "opencode" && r.ExitCode == 0 && r.Error == "" && !r.Trace.TerminalSeen {
+		_ = verifyOpenCodeCompletion(&r.Trace, *host, cwd, cmd.Env)
+	}
+	memory.stopHTTP()
+	memory.captureStats()
+	r.MemoryIsolation = memory.report
+	r.MemoryIsolation.RuntimeMemoryToolReadSeen = observedMemoryRead(r.Trace.Events)
 	r.Terminal = terminalState(r.Trace, r.ExitCode, r.Error)
 	trace.Close()
+	r.MemoryIsolation.Cleanup = memory.cleanup()
 	save(filepath.Join(output, "events.json"), r.Trace)
 	r.After, e = inventory(root)
 	must(e)

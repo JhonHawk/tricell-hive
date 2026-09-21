@@ -3,7 +3,20 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 )
+
+// Setting Cmd.Env explicitly prevents os/exec from updating PWD for Cmd.Dir.
+// Native clients must see the same directory through both channels.
+func environmentInDirectory(env []string, cwd string) []string {
+	out := make([]string, 0, len(env)+1)
+	for _, item := range env {
+		if !strings.HasPrefix(item, "PWD=") && !strings.HasPrefix(item, "OLDPWD=") {
+			out = append(out, item)
+		}
+	}
+	return append(out, "PWD="+cwd)
+}
 
 func validHost(host string) bool {
 	switch host {
@@ -42,7 +55,7 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 		}
 		return a, nil
 	case "grok":
-		a := []string{"--cwd", r.Cwd, "-p", prompt, "--model", r.ModelRequested, "--output-format", "streaming-messages-json", "--permission-mode", "dontAsk", "--allow", "Edit(./**)", "--allow", "Write(./**)"}
+		a := []string{"--cwd", r.Cwd, "-p", prompt, "--model", r.ModelRequested, "--output-format", "streaming-messages-json"}
 		if r.Effort != "" {
 			a = append(a, "--reasoning-effort", r.Effort)
 		}
