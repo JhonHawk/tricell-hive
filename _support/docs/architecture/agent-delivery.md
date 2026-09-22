@@ -61,3 +61,17 @@ Documentation establishes intended formats. Parser tests establish serialization
 ## Saved-plan review
 
 `review-plan` uses the existing observe profile and returns feedback without edits or gate execution. `flow-plan` owns its domain selection and reconciliation procedure; one canonical role can serve multiple bounded backend, frontend/UI, infrastructure or other domain assignments. Native observe controls vary by host and do not establish universal read-only isolation. The orchestrator remains the sole plan writer.
+
+## Native selection and evidence
+
+The shared delegation contract and five-host selection hints live in `content/guidance/global.md`. They are delivered together because Claude and Grok share the managed CLAUDE.md destination; separate host-specific block bytes would conflict there. These hints describe tool dialects, not a second responsibility router or executable adapter. Follow the session's actual tool schema before using a documented selector.
+
+| Host inspected | Evidence on 2026-09-21 | Remaining limit |
+| --- | --- | --- |
+| Claude Code 2.1.278 | Custom roles documented; installed review-plan uses Opus/high and plan-mode editor restrictions | No new role-selection pilot |
+| Codex 0.155.1 | Custom TOML roles documented; installed review-plan uses Astra/medium and read-only sandbox default | Hosted APIs may lack role selection; live parent overrides can supersede sandbox defaults |
+| Grok Build 1.0.40 | inspect discovers review-plan; observed ARK children read its canonical contract | Observed spawn schema lacks subagent_type despite public documentation; native selection not established |
+| Pi 0.86.1 / pi-subagents 0.67.0 | Installed extension schema selects agent by ID; deployed role enables context/skill-catalog inheritance | Discovery and overrides are scope-dependent; no new child-selection pilot |
+| OpenCode V2 2.0.9 | debug agents resolves visible review-plan with DeepSeek/max and edit deny | No new role-selection pilot; edit deny is not universal write isolation |
+
+Distinguish installed bytes, catalog discovery, actual native selection, resource reading and effective controls. Preserve these observations in the existing task/review record when relevant; no additional ledger is required. Ordinary packaging tests do not establish model compliance. See the cross-host investigation (historical evidence omitted from public history) for source support, legacy comparisons and the bounded Grok uncertainty.

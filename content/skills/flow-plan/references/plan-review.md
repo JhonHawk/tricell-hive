@@ -6,7 +6,7 @@ After the orchestrator saves an implementation plan, review it before declaring 
 
 Select reviewers by affected surfaces, risk and unresolved contracts, not a fixed file-count threshold. Use one reviewer for a small cohesive plan. Split independent domains for broader work and run them in parallel when supported. Skip absent domains: a backend-only plan needs no UI reviewer.
 
-Resolve and read the canonical `review-plan` contract through the native role catalog or an explicit installed/source path before dispatch. Select that role natively when the actual tool supports it. Merely naming it in the description does not select it. Use the `review-plan` role for each bounded assignment. Domain labels describe the brief, not separate agent implementations:
+Resolve and read the canonical `review-plan` contract through the native role catalog or an explicit installed/source path before dispatch. Use the `review-plan` role for each bounded assignment under the shared native-selection and fallback contract. Domain labels describe the brief, not separate agent implementations:
 
 | Assigned domain | Questions to examine |
 | --- | --- |
@@ -21,7 +21,7 @@ Include cross-domain interfaces in the briefs where needed. The orchestrator rec
 
 Supply the saved plan path and revision identifier (commit, content hash, or timestamped snapshot), objective, assigned surface, relevant source/project guidance, accessible skill/resource paths and expected feedback. Keep the candidate stable while that round runs. A reviewer must inspect relevant references, not inherit the parent's interpretation as fact. Frame uncertain technical claims as questions to verify against sources, not facts to confirm. Separate explicit user decisions from technical assumptions; provide the source and uncertainty rather than an expected verdict. For example, ask whether the installed migration runner wraps the file in a transaction and what partial failure leaves behind, instead of asserting that it does.
 
-Require read-only analysis and feedback to the parent. Do not delegate edits, test execution, hosted reviews, tracker writes or additional agents. Use native read-only controls where available; a prompt contract alone is not proof of technical isolation. If native role selection is unavailable but subagents exist, supply the canonical contract just read, along with the domain brief, to a bounded child and disclose generic dispatch. Require the child to read assigned resources. If the contract cannot be resolved, report that missing dependency rather than inventing its contents. Record the role path, dispatch mode and observed model/access controls when available; do not claim configured profiles took effect without evidence. If delegation is unavailable, disclose the missing independent review and offer manual review or a later supported session; a labeled self-check is not an equivalent pass.
+Require read-only analysis and feedback to the parent. Do not delegate edits, test execution, hosted reviews, tracker writes or additional agents. Use native read-only controls where available; a prompt contract alone is not proof of technical isolation. Apply the shared dispatch evidence requirements in the existing plan review record, alongside the candidate revision and domain. Require the child to read assigned resources. If delegation is unavailable, disclose the missing independent review and offer manual review or a later supported session; a labeled self-check is not an equivalent pass.
 
 ## Reconcile and close
 

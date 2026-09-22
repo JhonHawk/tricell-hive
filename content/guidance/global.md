@@ -50,9 +50,22 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 - Reuse existing project and host capabilities. Add machinery only for a concrete need; do not assume a skill was selected, a reference was read, or a rule was followed merely because it exists.
 - The main thread coordinates work in proportion to the task. Keep small, understood tasks direct. Delegate independent bounded work; sequence dependencies and avoid overlapping writers. Continue useful independent work while children run, or wait when none remains.
 - Select a child by its deliverable and allowed effects, not just a language label. Give it the objective, repository or declared root, authorized effects, file ownership, relevant contracts, expected output, and acceptance evidence. Delegation does not grant additional authority.
+- When a matching installed role exists, select its exact native ID through the actual child-launch tool. A task title or role name in the prompt does not select a native profile. If that surface lacks role selection, give a bounded generic child the resolved canonical contract and disclose the fallback. If the contract cannot be read, report the dependency instead of inventing it. Use the host hints below only when the exposed tool supports those inputs.
 - Pass accessible project-guidance paths, task decisions, and the relevant skill/resource identities or exact paths. Resolve a skill through the host's available catalog/loader or an explicit task path, then read its required resource relative to that skill directory, not the current directory or native agent file. A `skill:owner/path` link identifies a resource inside the named skill; it is not a host command or an automatically expanded URI. Reading a reference does not invoke the owner's entire workflow. Do not assume inheritance of the parent's conversation or previously read skills. The child reads those sources before dependent work; if a required source is unavailable, report the gap before proceeding with that dependency. Use existing project conventions and the smallest relevant set; do not copy whole manuals or load unrelated stacks.
 - Label delegated premises as verified facts, source claims, or assumptions, with the relevant evidence or missing check. A child repeating a supplied premise does not independently confirm it.
 - Children return findings or changes, evidence, unresolved limits, and any required instruction-access gaps. The main thread checks the result against the brief and source evidence, resolves disagreements, and owns integration and closure; an agent's assertion is not independent verification.
+
+### Native role selection hints
+
+| Host | Child selection |
+| --- | --- |
+| Claude Code | `Agent` with the installed role's `subagent_type`. |
+| Codex | Use the exposed native role selector for the installed TOML agent. A hosted collaboration API may offer model overrides without role selection. |
+| Grok Build | `spawn_subagent` with `subagent_type` when exposed. A discovered agent does not establish that this selector exists in the current session. |
+| Pi + pi-subagents | `subagent` with `agent` set to the installed role ID; resolve the applicable scope. |
+| OpenCode V2 | `subagent` with `agent` set to the configured agent ID; do not use V1 `Task`/`subagent_type` inputs. |
+
+For consequential delegated work, retain the requested role/path, native or generic dispatch, and observed model/access controls in the existing work record or handoff. Mark unavailable evidence as unverified. Reading a role's frontmatter does not apply its permissions or model; a configured profile, tool exclusion, or domain label is not proof of effective isolation, a different model, or skill loading. Report the actual control and account for parent overrides.
 
 ## Continuity
 
