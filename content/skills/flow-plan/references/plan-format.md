@@ -10,6 +10,8 @@ Write the actual human-facing plan in the session language, including headings a
 - The inspected context and evidence behind consequential decisions, with relevant versions or dates. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
 - The selected approach, affected contracts, meaningful assumptions, and unresolved blockers. Include migration or recovery behavior only when the work needs it. Record material scope clarifications and proposed expansions with their disposition. The essential decisions must be understandable without recovering the original conversation.
 - For UI work, the relevant view decisions from [UI planning](ui-planning.md): application/area, guide status, shell/pattern and inspected reference, reuse, justified differences, states, and acceptance. Group equivalent views; omit this for work without a UI change.
+- Delivery decisions from [the planning decision reference](delivery-decisions.md): Git mode or narrower instruction, repositories/base, authorized effects and stop conditions, implementation-review mechanism and pending consent.
+- Local in-vivo applicability and rationale; if deemed unnecessary, the offered walk and user response or pending choice. For UI, include proportional coverage, built local environment, accounts/data prerequisites and the human walkthrough; record remote exceptions explicitly.
 - Checkbox tasks grouped by a coherent result, with dependencies, source locations, and an actual verification command or observation and its expected outcome.
 - For a saved implementation plan, the reviewed revision, relevant domain coverage, reconciled findings and unresolved review limits from [plan review](plan-review.md).
 - Current progress, evidence, and the next actionable step. Distinguish work that is ready, work that is authorized, and work that has been verified; one does not imply the others.
@@ -32,6 +34,7 @@ Authorized scope: <effects and targets already authorized; pending actions if re
 
 <What relevant source inspection established, with links and freshness limits.>
 <Selected approach, affected contracts, rationale, assumptions, scope clarifications or proposed expansions, and open decisions.>
+<Git mode or explicit delivery boundary, repositories/base, review mechanism, and pending authorizations.>
 
 ## Tasks and verification
 
