@@ -25,19 +25,11 @@ Delegate the three fronts to independent subagents in parallel when capacity per
 
 ## Workspace locations
 
-Apply these locations for every task, even when no skill is active:
+Sessions in this repository require the deployed Hive global guidance, whose support-folder rules govern artifact placement here for every task, even when no skill is active. When a session does not show that guidance (for example, a host where Hive is not installed), read `content/guidance/global.md` before writing any artifact.
 
-- Keep application or configuration changes in an existing source directory; do not invent a source hierarchy for instruction-only work.
-- Use this repository's `_support/` for repo-scoped work; shared work belongs in the declared workspace's `_support/` or its established documentation home. Do not infer a workspace from an arbitrary parent, create a specs repository, or initialize Git automatically. A monorepo uses one support home at its root.
-- Durable, repo-wide documentation belongs in `_support/docs/<topic>/`. Keep living documents current; dated records describe historical decisions or findings.
-- Work plans and findings worth resuming belong in `_support/sessions/YYYY-MM-DD-<slug>/`, with optional `<slug>.plan.md`, `<slug>.research.md`, and `<slug>.report.md`. Keep the task list inside the plan and the initial date and location across conversations; create only the records and subfolders the work needs. The shared guidance owns the naming convention; preserve historical filenames.
-- Temporary utilities, logs, and intermediate output belong in git-ignored `_support/workspace/YYYY-MM-DD-<slug>/`. It holds only reproducible, disposable material; a checkout with unintegrated work or unique evidence does not belong there. At close, remove only reproducible temporaries created by this task that are no longer needed; preserve prior material, unique evidence, and uncertain cases.
-- Selected evidence belongs in `_support/evidence/YYYY-MM-DD-<slug>/`, using the same work identifier and report links. Curated, shareable evidence may be versioned, including justified binaries; exclude secrets, raw dumps, and unnecessary reproducible output. Retention is not publication authorization.
-- For requested organization of existing material, evidence curation, promotion, or archiving, read `content/skills/workspace-conventions/SKILL.md`. Routine placement, resuming work, and cleanup of this task's disposable temporaries do not require that skill.
-
-Keep an established folder convention when the same work continues. Do not leave scratch artifacts beside source or in a durable-doc folder.
-
-See `_support/docs/architecture/workspace-and-artifacts.md` for explanations and examples. Do not automatically migrate existing material. These placement essentials apply independently of skill selection.
+- Repo-scoped work uses this repository's `_support/`; `_support/workspace/` is git-ignored.
+- For requested organization of existing material, evidence curation, promotion, or archiving, read `content/skills/workspace-conventions/SKILL.md`.
+- See `_support/docs/architecture/workspace-and-artifacts.md` for explanations and examples.
 
 ## Scope and preservation
 
