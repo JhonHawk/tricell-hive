@@ -43,7 +43,7 @@ Before calling the plan ready, check:
 
 For delegated work, identify separable results and their interfaces, dependencies, and ownership; choose roles by the required deliverable rather than assigning a permanent specialist for every framework. Link the project conventions and technical references each unit needs, without freezing runtime-specific agent names or repeating the shared delegation contract.
 
-For consequential or delegated work, use an available authorized fresh-context review when it can expose missing decisions. Reviewers should identify gaps, not simply certify that sections exist. Fix material gaps or report why the plan remains incomplete. Readiness does not grant execution permission.
+After saving an implementation plan, read [plan review](references/plan-review.md) and dispatch bounded read-only subagents before declaring it ready. Use one reviewer for a small cohesive plan or independent domain assignments for broader work; omit unaffected areas, including UI when absent. Reviewers return feedback to the orchestrator, who validates findings and alone revises the plan. This planning step needs no separate approval; it does not authorize code review of implementation or execution. Disclose unavailable delegation and unresolved coverage.
 
 ## Preserve a useful handoff
 

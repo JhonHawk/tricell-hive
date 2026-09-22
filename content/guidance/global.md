@@ -38,6 +38,7 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 ## Verification gates
 
 - Routine checks and applicable local in-vivo and UI verification belong to authorized implementation; do not ask separately to perform them. Before a substantial gate, including dedicated code review, deployed-environment in-vivo/UI verification, or costly load/hardware exercises, confirm scope and execution method unless explicitly authorized already. Offer mechanisms available to the project and current host; a saved preference, listed tool, or planned gate alone is not authorization. Local execution does not authorize external side effects.
+- Bounded read-only subagent feedback on a saved implementation plan is part of planning and needs no separate gate approval. The orchestrator selects relevant domains and alone edits the plan; this exception does not authorize implementation code review, hosted review services or execution of plan steps.
 - Preserve outstanding acceptance criteria and promised checks across intermediate questions. Reuse authorization while its scope, target, and conditions remain valid. An explicit stop ends execution with unmet gates recorded; an unexecuted or declined gate is not a pass and does not waive a required delivery condition.
 
 ## Proportionality

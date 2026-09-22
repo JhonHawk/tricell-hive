@@ -26,7 +26,7 @@ Apply the shared authorization rule before substantial gates. Use existing proje
 | Boundary | Required decision or evidence |
 | --- | --- |
 | Research / task entry | Inspect state, risks, project commands and automatic triggers; propose experiments exceeding ordinary authorized investigation before running them. |
-| Plan / implementation brief | Select applicable checks, prerequisites and pass criteria; place substantial gates and resolve or record execution authorization. A dedicated substantial plan/design review follows the same boundary. |
+| Plan / implementation brief | Select applicable checks, prerequisites and pass criteria; place substantial gates and resolve or record execution authorization. Bounded read-only feedback on a saved implementation plan follows the [plan-review procedure](../../flow-plan/references/plan-review.md) as part of planning; broader review services remain subject to gate authorization. |
 | Build iteration | Run targeted tests and routine checks; inspect the implementation's own diff. This is not a dedicated independent code-review gate. |
 | Local candidate | Complete applicable local in-vivo and UI verification, using a representative built artifact when delivery differs from dev. Propose dedicated code review separately unless already authorized. |
 | Publication / integration | Review the identified candidate with the selected mechanism and inspect actual CI coverage. Account for automatic review/deployment effects before the push or PR event that triggers them. |

@@ -6,7 +6,7 @@ Agent instructions have one source at `content/agents/<category>/<name>.md`. Cat
 
 ## Roles and profiles
 
-Eighteen roles cover design, implementation, documentation, operations, verification, and review. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
+Nineteen roles cover design, implementation, documentation, operations, verification, and review. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
 
 | Profile | Claude | Codex | Pi | Grok | OpenCode V2 |
 | --- | --- | --- | --- | --- | --- |
@@ -57,3 +57,7 @@ Inspected on 2026-09-21: Codex 0.155.1, Claude Code 2.1.278, Grok Build 1.0.40, 
 - Installed pi-subagents `docs/agents.md`, `docs/models.md`, and parser source.
 
 Documentation establishes intended formats. Parser tests establish serialization and selected native loading properties. Filesystem status establishes installation only. CLI behavior pilots remain paused; none of those checks establish role selection, instruction adherence, or model quality.
+
+## Saved-plan review
+
+`review-plan` uses the existing observe profile and returns feedback without edits or gate execution. `flow-plan` owns its domain selection and reconciliation procedure; one canonical role can serve multiple bounded backend, frontend/UI, infrastructure or other domain assignments. Native observe controls vary by host and do not establish universal read-only isolation. The orchestrator remains the sole plan writer.
