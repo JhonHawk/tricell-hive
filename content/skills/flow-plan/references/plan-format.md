@@ -20,7 +20,11 @@ Keep the task list in this document. Link substantial research rather than dupli
 
 ## Opening control sheet
 
-Start the plan with the six-row control sheet below, translated into the session language. Keep each cell concise: combine repository, branch, Git mode and delivery path; combine current phase and execution authorization. The Git path must distinguish human validation from CI/review gates and show the final agreed endpoint. An uncreated branch is proposed, not existing. Keep revision hashes, historical dates and extended reasoning in the body. Reconcile the sheet when resuming or changing state; it summarizes the detailed decision record rather than creating a competing authority.
+Start with the five-row control sheet below, translated into the session language. Use short labels or phrases rather than paragraphs. Status combines phase and execution authorization; Git names the mode, agreed destination and next human stop; verification lists applicable gates only. Keep the objective outside the table as a meaningful prose explanation of the problem, intended change and expected result.
+
+Infer the project tracker from project guidance, existing issue links or configured project context; do not ask again when it is clear. Include its name and a list of the issues covered by this plan inside the Tracker cell, one real linked issue per line (use `•` and `<br>` in Markdown tables). Preserve verified existing URLs; never invent an issue or URL. Ask only when tracker identity or issue scope is consequentially ambiguous. If there is no tracker or linked issue, state that briefly instead of creating one. Reading or linking issues does not authorize tracker writes.
+
+Keep branch details, the full agreed delivery sequence, review mechanism, stack, accounts, walkthrough, revision hashes and history in the body. The concise Git row does not replace those decisions. An uncreated branch is proposed, not existing. Record relevant exclusions with their rationale in the scope; do not add a mandatory Boundaries row or infer an environment exclusion merely from a Git mode. Reconcile the sheet on resume so it summarizes the detailed decision record without becoming a competing authority.
 
 Use these phases, translated for the reader: Draft (decisions or review still pending), Ready to implement (plan readiness satisfied, execution may still await consent), In progress (implementation underway), In validation (acceptance or delivery gates underway/pending), Completed (agreed endpoint achieved with required gates satisfied), Blocked (a named missing prerequisite prevents progress), or Paused (explicitly paused by the user). Completed follows the selected delivery boundary: merge for the usual interactive route, verified working-tree work for hold. A phase never grants authorization. Identify the concrete reason and next action for Blocked or Paused.
 
@@ -31,16 +35,19 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 | Field | Current value |
 | --- | --- |
-| Status | <phase; implementation authorized or pending; blocker if any> |
-| Objective | <one-sentence result> |
-| Git and delivery | <repo; mode; work branch from base → local checks → human-validation stop if applicable → push/PR → CI + chosen review → agreed merge or handoff endpoint> |
-| Local validation | <applicable build/stack, in-vivo and proportional UI coverage, or omission decision> |
-| Boundaries | <excluded targets/effects and relevant exceptions> |
-| Next step | <concrete action; skill and canonical plan path when useful> |
+| Status | <phase · implementation authorized/pending; brief blocker if any> |
+| Tracker · <detected name> | • [<issue ID — title>](<verified issue URL>)<br>• [<another included issue>](<verified issue URL>) |
+| Git | <mode · agreed destination · next human stop, if any> |
+| Verification | <applicable gates, e.g. tests · local in-vivo · UI> |
+| Next step | <one concrete action; skill when useful> |
 
-## Outcome and acceptance
+## Objective
 
-<Expected user-visible or operational result, scope, constraints, and concrete criteria.>
+<Explain the problem, intended change and expected user-visible or operational result in prose, with enough detail to understand why this work matters.>
+
+## Scope and acceptance
+
+<Included work, relevant exclusions with their rationale, constraints and concrete acceptance criteria.>
 
 ## Context and decisions
 
