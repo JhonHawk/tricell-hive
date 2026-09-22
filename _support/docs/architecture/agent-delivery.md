@@ -16,7 +16,7 @@ Nineteen roles cover design, implementation, documentation, operations, verifica
 
 Profiles are delivery defaults, not a replacement for the host's authentication, model loop, or permissions. The canonical JSON contains the exact model identifiers. A configured model is not proof of account availability or a successful run.
 
-`observe` selects native read-oriented defaults where available. `implement` retains host permissions; `verify` also retains them because builds and tests may write artifacts. Role instructions constrain verification to evidence rather than source fixes. These categories are not universal security sandboxes: shell tools, external services, parent overrides, and native policy resolution still matter. Codex reapplies live parent permission overrides to children; a parent started with bypass flags can supersede an agent's sandbox default. Grok's documented permission field does not demonstrate enforcement of every mode in the installed build.
+`observe` selects native read-oriented defaults where available. `implement` retains host permissions; `verify` also retains them because builds and tests may write artifacts. Role instructions constrain verification to evidence rather than source fixes. These categories are not universal security sandboxes: shell tools, external services, parent overrides, and native policy resolution still matter. Claude parent auto, acceptEdits or bypassPermissions modes can override a child's plan mode. Codex reapplies live parent permission overrides to children; a parent started with bypass flags can supersede an agent's sandbox default. Grok's documented permission field does not demonstrate enforcement of every mode in the installed build.
 
 ## Delegation and instruction delivery
 
@@ -66,12 +66,14 @@ Documentation establishes intended formats. Parser tests establish serialization
 
 The shared delegation contract and five-host selection hints live in `content/guidance/global.md`. They are delivered together because Claude and Grok share the managed CLAUDE.md destination; separate host-specific block bytes would conflict there. These hints describe tool dialects, not a second responsibility router or executable adapter. Follow the session's actual tool schema before using a documented selector.
 
-| Host inspected | Evidence on 2026-09-21 | Remaining limit |
+| Host inspected | Evidence through 2026-09-22 | Remaining limit |
 | --- | --- | --- |
-| Claude Code 2.1.278 | Custom roles documented; installed review-plan uses Opus/high and plan-mode editor restrictions | No new role-selection pilot |
-| Codex 0.155.1 | Custom TOML roles documented; installed review-plan uses Astra/medium and read-only sandbox default | Hosted APIs may lack role selection; live parent overrides can supersede sandbox defaults |
-| Grok Build 1.0.40 | inspect discovers review-plan; observed ARK children read its canonical contract | Observed spawn schema lacks subagent_type despite public documentation; native selection not established |
-| Pi 0.86.1 / pi-subagents 0.67.0 | Installed extension schema selects agent by ID; deployed role enables context/skill-catalog inheritance | Discovery and overrides are scope-dependent; no new child-selection pilot |
-| OpenCode V2 2.0.9 | debug agents resolves visible review-plan with DeepSeek/max and edit deny | No new role-selection pilot; edit deny is not universal write isolation |
+| Claude Code 2.1.278 | Agent(subagent_type: review-plan) observed; child Opus, role and references read | Child effort/mode not independently observed; parent mode can override plan |
+| Codex 0.155.1 | spawn_agent(agent_type: review-plan) observed; child Astra/medium despite Terra parent | Ephemeral pilot parent failed; persisted parent worked. Parent bypass overrode read-only sandbox |
+| Grok Build 1.0.40 | inspect discovers review-plan; observed generic children read its contract | 1.0.40 lacks subagent_type with default and explicit grok-build presets; model-inheritance override does not restore it |
+| Pi 0.86.1 / pi-subagents 0.67.0 | subagent(agent: review-plan) observed; child Astra/medium read role and reference | write/edit exclusions do not exclude shell or memory tools; a memory write occurred in the isolated store |
+| OpenCode V2 2.0.9 | Native call and child session record confirm review-plan with DeepSeek/max | edit deny is configured, not mutation-tested; no universal write isolation |
 
 Distinguish installed bytes, catalog discovery, actual native selection, resource reading and effective controls. Preserve these observations in the existing task/review record when relevant; no additional ledger is required. Ordinary packaging tests do not establish model compliance. See the cross-host investigation (historical evidence omitted from public history) for source support, legacy comparisons and the bounded Grok uncertainty.
+
+The bounded dispatch verification (historical evidence omitted from public history) records actual calls, effective models, pilot-runner corrections and memory hygiene. These observations do not establish reliability or model quality.

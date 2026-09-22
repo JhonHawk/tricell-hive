@@ -37,6 +37,31 @@
       }
     },
     {
+      "id": "native-agent-schema",
+      "cwd": ".",
+      "files": {
+        "README.md": "# Disposable native tool schema probe\n"
+      },
+      "prompt": "Reply SCHEMA_PROBE_DONE without calling tools or subagents. This probe only captures the native tool schema. Do not modify files or save memory.",
+      "expected": {
+        "skill_read": "explicit_unscored_schema_check",
+        "criteria": []
+      }
+    },
+    {
+      "id": "native-agent-dispatch",
+      "cwd": ".",
+      "files": {
+        "README.md": "# Disposable native agent dispatch probe\nThis is a synthetic read-only review task. Do not publish or modify files.\n",
+        "probe.plan.md": "# Status response change\n## Objective\nAdd a status field to the response.\n## Task\nUpdate the response.\n"
+      },
+      "prompt": "Prueba acotada de delegación, en español. Usa exactamente un subagente con el rol instalado review-plan para revisar probe.plan.md, solo lectura. Selecciona el ID nativo si tu herramienta lo admite. No escribas archivos, no ejecutes pasos del plan, tests, comandos de entrega ni otros revisores. Entrega al hijo la ruta del plan, el contrato canónico y los recursos necesarios; debe leerlos antes de revisar. Si no existe selector nativo, indica esa limitación y utiliza un único hijo genérico con el contrato leído, sin afirmar que aplicó el perfil nativo. Espera su resultado. Reporta el mecanismo usado, rol/ID y hallazgos; distingue configuración de modelo/permisos de controles observados. No ejecutes flow-plan como autor ni edites el plan.",
+      "expected": {
+        "skill_read": "explicit_unscored_dispatch_check",
+        "criteria": []
+      }
+    },
+    {
       "id": "project-state",
       "cwd": ".",
       "files": {

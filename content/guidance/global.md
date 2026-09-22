@@ -59,8 +59,8 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 
 | Host | Child selection |
 | --- | --- |
-| Claude Code | `Agent` with the installed role's `subagent_type`. |
-| Codex | Use the exposed native role selector for the installed TOML agent. A hosted collaboration API may offer model overrides without role selection. |
+| Claude Code | The exposed delegation tool (`Agent` or `Task`) with the installed role's `subagent_type`. |
+| Codex | `spawn_agent` with `agent_type` set to the installed TOML role when exposed. Some hosted APIs offer model overrides without this role selector. |
 | Grok Build | `spawn_subagent` with `subagent_type` when exposed. A discovered agent does not establish that this selector exists in the current session. |
 | Pi + pi-subagents | `subagent` with `agent` set to the installed role ID; resolve the applicable scope. |
 | OpenCode V2 | `subagent` with `agent` set to the configured agent ID; do not use V1 `Task`/`subagent_type` inputs. |

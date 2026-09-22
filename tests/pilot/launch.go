@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -43,6 +44,11 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 		a := []string{"-a", "never", "exec", "--json", "--ephemeral", "-m", r.ModelRequested, "-s", "workspace-write", "-C", r.Cwd}
 		if r.CodexBypassSandbox {
 			a = []string{"exec", "--json", "--ephemeral", "-m", r.ModelRequested, "--dangerously-bypass-approvals-and-sandbox", "-C", r.Cwd}
+		}
+		// Codex 0.155.1 native collaboration cannot resolve an ephemeral parent
+		// thread. Keep persistence only for this explicit delegation probe.
+		if r.Case == "native-agent-dispatch" {
+			a = slices.DeleteFunc(a, func(arg string) bool { return arg == "--ephemeral" })
 		}
 		if r.Effort != "" {
 			a = append(a, "-c", "model_reasoning_effort="+fmt.Sprintf("%q", r.Effort))

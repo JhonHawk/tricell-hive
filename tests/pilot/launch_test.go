@@ -52,3 +52,18 @@ func TestGrokPreservesNativePermissionSelection(t *testing.T) {
 		t.Fatal("lost measurement transport")
 	}
 }
+
+func TestCodexNativeDispatchKeepsParentThread(t *testing.T) {
+	for _, bypass := range []bool{false, true} {
+		r := result{Host: "codex", Case: "native-agent-dispatch", ModelRequested: "gpt-5.6-terra", Cwd: "/fixture", CodexBypassSandbox: bypass}
+		args, err := launchArgs(r, "/output", "prompt")
+		if err != nil || slices.Contains(args, "--ephemeral") {
+			t.Fatalf("native dispatch needs a persisted parent thread: %v, %v", args, err)
+		}
+		r.Case = "smoke"
+		args, err = launchArgs(r, "/output", "prompt")
+		if err != nil || !slices.Contains(args, "--ephemeral") {
+			t.Fatalf("single-agent smoke lost ephemeral mode: %v, %v", args, err)
+		}
+	}
+}
