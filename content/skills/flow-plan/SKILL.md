@@ -42,6 +42,7 @@ Before calling the plan ready, check:
 - Every acceptance criterion has an implementing task and a concrete verification.
 - Task interfaces and dependencies agree; no task relies on an undefined contract.
 - Each task states its execution, consistent with its dependencies and write ownership.
+- A change with a rendered UI effect plans the required independent `review-ux` and `sdd-verify` children from the verification reference: the base revision for comparison, viewports and themes, isolated data and browser sessions, and the browser tool selected by its [browser automation](../flow-build/references/browser-automation.md) rules. The implementer's walk does not replace them.
 - An implementer with this plan and its linked sources can identify what to change, what to preserve, and how to verify it.
 
 Assign each task's execution: the main thread or a delegated child, with the reason. Prefer delegation for units with settled interfaces and no overlapping writes; keep coupled or trivially small units in the main thread. For delegated work, identify separable results and their interfaces, dependencies, and ownership; choose roles by the required deliverable rather than assigning a permanent specialist for every framework. Link the project conventions and technical references each unit needs, without freezing runtime-specific agent names or repeating the shared delegation contract.

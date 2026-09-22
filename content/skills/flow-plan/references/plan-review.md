@@ -11,7 +11,7 @@ Resolve and read the canonical `review-plan` contract through the native role ca
 | Assigned domain | Questions to examine |
 | --- | --- |
 | Backend / data / integration | API and event contracts, producers/consumers, data ownership, authorization, migrations, compatibility and failure behavior; concrete tests and rollout dependencies. |
-| Frontend / UI | Application/area, accepted shell and patterns, reuse and justified differences, states, accessibility, local interaction/visual verification and matching backend contracts. Read the applicable project UI guide and [UI planning](ui-planning.md). |
+| Frontend / UI | Application/area, accepted shell and patterns, reuse and justified differences, states, accessibility, local interaction/visual verification including the required independent UI review and in-vivo children, and matching backend contracts. Read the applicable project UI guide and [UI planning](ui-planning.md). |
 | Infrastructure / delivery | Environments, provider constraints, identities, secrets handling, deployment order, migrations, observability, recovery and the authorization boundaries of operational gates. |
 | Other affected surface | Assign the actual responsibility, such as mobile lifecycle, firmware/hardware or concurrency/performance; supply its relevant source and project guidance rather than forcing it into a web/backend checklist. |
 
