@@ -1,11 +1,17 @@
+import importlib.util
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
 HELPER = ROOT / "content/skills/workspace-archive/scripts/archive_sessions.py"
+sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
+_spec = importlib.util.spec_from_file_location("archive_sessions", HELPER)
+HELPER_MODULE = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(HELPER_MODULE)
 
 
 class WorkspaceArchiveHelperTest(unittest.TestCase):
@@ -119,6 +125,48 @@ class WorkspaceArchiveHelperTest(unittest.TestCase):
             blocked = self.run_helper("--support-root", str(support), "--session", open_session.name, "--apply")
             self.assertEqual(blocked.returncode, 2)
             self.assertTrue(open_session.exists())
+
+    def test_first_status_field_decides_closure(self):
+        closed = [
+            "Status: completed\n",
+            "**Estado:** cerrado. Motivo: entregado\n",
+            "| Status | Completed · merge verified |\n",
+            "| **Estado** | **Cancelado** |\n",
+        ]
+        still_open = [
+            "| Status | In progress · authorized |\n\n**Status:** completed T1–T3; T4 pending\n",
+            "**Estado:** completado parcialmente; falta T4\n",
+            "Status: Closed-loop test running\n",
+            "Status: closed?\n",
+            "| Status | Completed → reopened · regression found |\n",
+            "| Status | Completed on | Task |\n",
+            "**Status:**\n\nCompleted: T1, T2. Pending: T3.\n",
+        ]
+        for text in closed:
+            self.assertTrue(HELPER_MODULE.closed_status(text), text)
+        for text in still_open:
+            self.assertIsNone(HELPER_MODULE.closed_status(text), text)
+
+    def test_open_sheet_with_closed_looking_body_line_stays_in_place(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            support = Path(tmp) / "_support"; session = support / "sessions/2026-09-20-sheet-open"
+            session.mkdir(parents=True)
+            session.joinpath("sheet.plan.md").write_text(
+                "| Field | Value |\n| --- | --- |\n| Status | In progress · authorized |\n\n**Status:** completed T1–T3; T4 pending\n"
+            )
+            result = self.run_helper("--support-root", str(support), "--session", session.name, "--apply")
+            self.assertEqual(result.returncode, 2)
+            self.assertTrue(session.exists())
+
+    def test_links_with_other_schemes_are_not_rewritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            support = Path(tmp) / "_support"; source = support / "sessions/2026-09-20-closed"
+            source.mkdir(parents=True)
+            body = "Status: completed\n[editor](vscode://file/Users/x.md) [web](HTTPS://example.com/a)\n"
+            source.joinpath("closed.plan.md").write_text(body)
+            applied = self.run_helper("--support-root", str(support), "--session", source.name, "--apply")
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            self.assertEqual((support / "sessions/archived/2026-09-20-closed/closed.plan.md").read_text(), body)
 
 
 if __name__ == "__main__":

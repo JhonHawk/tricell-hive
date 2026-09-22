@@ -10,13 +10,22 @@ import shutil
 import sys
 
 
-# Matches `Status: closed`, `**Estado:** cerrado. ...`, and flow-plan control-sheet rows such as `| Estado | Completado · ... |`.
-CLOSED = re.compile(
-    r"^\s*(?:\|\s*)?(?:\*\*)?(?:Status|Estado)(?:\*\*)?\s*(?::(?:\*\*)?|\|)\s*(?:\*\*)?"
-    r"(?:closed|completed|cancelled|cerrado|completado|cancelado)\b",
+# The first status field decides: `Status: closed`, `**Estado:** cerrado. ...`, or a flow-plan control-sheet row such as `| Estado | Completado · ... |`.
+STATUS = re.compile(
+    r"^[ \t]*(?:\|[ \t]*)?(?:\*\*)?(?:Status|Estado)(?:\*\*)?[ \t]*(?::(?:\*\*)?|\|)[ \t]*(?:\*\*)?(?P<value>[^\n]*)$",
     re.I | re.M,
 )
+# The closed word must end the value or be followed by a separator; `closed?`, `Closed-loop`, or `completado parcialmente` stay open.
+CLOSED_VALUE = re.compile(r"(?:closed|completed|cancelled|cerrado|completado|cancelado)(?=[ \t]*(?:$|[·.;|]|\*\*))", re.I)
 LINK = re.compile(r"(\]\()([^\s)#]+)(#[^)]*)?(\))")
+SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+
+
+def closed_status(text: str) -> str | None:
+    match = STATUS.search(text)
+    if match and CLOSED_VALUE.match(match.group("value")):
+        return match.group(0).strip()
+    return None
 
 
 def closure(session: Path) -> str | None:
@@ -25,19 +34,21 @@ def closure(session: Path) -> str | None:
         closed = []
         for record in plans:
             try:
-                if not CLOSED.search(record.read_text()):
-                    return None
-                closed.append(record)
+                status = closed_status(record.read_text())
             except UnicodeDecodeError:
                 return None
-        return str(closed[0].relative_to(session))
+            if not status:
+                return None
+            closed.append(f"{record.relative_to(session)}: {status}")
+        return closed[0]
     records = list(dict.fromkeys(list(session.glob("*.research.md")) + list(session.glob("*-research.md"))))
     for record in records:
         try:
-            if CLOSED.search(record.read_text()):
-                return str(record.relative_to(session))
+            status = closed_status(record.read_text())
         except UnicodeDecodeError:
             continue
+        if status:
+            return f"{record.relative_to(session)}: {status}"
     return None
 
 
@@ -102,7 +113,7 @@ def main(argv: list[str]) -> int:
 
         def replace(match: re.Match[str]) -> str:
             href = match.group(2)
-            if href.startswith(("/", "http:", "https:", "mailto:")):
+            if href.startswith("/") or SCHEME.match(href):
                 return match.group(0)
             original_target = (markdown.parent / href).resolve()
             future_target = original_target

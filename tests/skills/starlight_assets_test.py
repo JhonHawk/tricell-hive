@@ -31,3 +31,7 @@ class StarlightAssetsTest(unittest.TestCase):
             self.assertNotIn("middleware", text)
             self.assertNotIn("locale", text)
             self.assertNotIn("lefthook", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

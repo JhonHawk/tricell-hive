@@ -42,3 +42,7 @@ class ReportChecksTest(unittest.TestCase):
         result = self.check("<svg><script>alert(1)</script></svg>")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("inside an <svg>", result.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()
