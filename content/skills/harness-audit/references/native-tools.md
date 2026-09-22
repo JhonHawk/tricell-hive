@@ -14,7 +14,7 @@ Read before running a host tool, using its output, or asserting version-sensitiv
 | Tool | Host | Checks | Notes |
 | --- | --- | --- | --- |
 | `(cd <entry> && codex debug prompt-input)` | Codex | The exact instruction chain Codex sends from that entry directory | No model call; writes only a model-list cache. Works outside git repositories. |
-| `claude plugin validate <path> --strict --json` | Claude Code | Plugin or marketplace manifests and the skills, agents, and commands in a directory | `--strict` fails on warnings. |
+| `claude plugin validate <path> --strict --json` | Claude Code | Plugin or marketplace manifests and the skills, agents, and commands they declare | Needs a plugin or marketplace layout; elsewhere it succeeds with empty `contents`, which is no evidence. `--strict` fails on warnings. |
 | `claude plugin details <name>` | Claude Code | Component inventory and projected token cost of an installed plugin | — |
 | `quick_validate.py <skill-directory>` from the `skill-creator` skill's `scripts/` | Claude Code and Codex copies | Frontmatter shape, name, and description limits; the Codex copy also flags `[TODO:` placeholders | Needs PyYAML: `uv run --no-project --with pyyaml python <script> <skill-directory>`. The Codex copy lives under `<Codex home>/skills/.system/skill-creator/`. |
 | `claude doctor`, `codex doctor --json` | Both | Installation, configuration, and authentication health | Not a content audit. |

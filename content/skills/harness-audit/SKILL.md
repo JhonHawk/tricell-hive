@@ -21,7 +21,7 @@ Establish before reading deeply:
 1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md).
-4. Before proposing `delete`, `demote`, or `soften`, recover the rule's rationale (HA-IF-10).
+4. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
 5. Report in the format below. Prefer fewer, consequential findings over exhaustive restatement.
 
 ## Outcomes

@@ -1,6 +1,6 @@
 # Review a saved plan
 
-After the orchestrator saves an implementation plan, review it before declaring it ready. This bounded, read-only feedback step is part of planning; it is not an implementation code review, deployment gate or grant to execute the plan.
+After the orchestrator saves an implementation plan, review it before declaring it ready, under the shared plan-review gate rule.
 
 ## Choose the useful coverage
 

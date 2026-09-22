@@ -1,11 +1,11 @@
 ---
 name: engram-init-workspace
-description: Establish one explicit Engram identity for a declared workspace or selected repositories. Use only when the user asks to initialize or repair that identity; do not use for ordinary memory access.
+description: Establish one explicit Engram identity for a declared workspace or selected repositories. Use only when the user asks to initialize that identity or to diagnose why it is blocked; do not use for ordinary memory access.
 ---
 
 # Initialize an explicit Engram workspace identity
 
-Engram identity is local state. Do not infer a workspace from a parent directory, a set of siblings, or an ambiguous detection result. This skill neither migrates existing memories nor changes global Git ignores.
+Engram identity is local state under the shared Engram identity rule; an ambiguous detection result does not declare a root. This skill does not rewrite an existing identity: report a blocked configuration for the user to resolve.
 
 Use [the helper](scripts/init_workspace.py) only after the user has declared the workspace root, identity, and target repositories. It is dry-run by default. Run `--apply` only for targets already covered by that authorization.
 

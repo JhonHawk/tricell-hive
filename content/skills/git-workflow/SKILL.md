@@ -1,11 +1,11 @@
 ---
 name: git-workflow
-description: Prepare an authorized Git delivery while preserving unrelated work, following repository conventions, and verifying the resulting local or remote state.
+description: Prepare an authorized Git delivery while preserving unrelated work, following repository conventions, and verifying the resulting local or remote state. Use when the work includes creating a Git branch, commit, push, or pull request, or verifying one of those effects.
 ---
 
 # Deliver an authorized Git change
 
-Use this skill when the requested work includes a Git branch, commit, push, pull request, or verification of one of those effects. It does not grant any Git action or change the delivery boundary already set by the user or project guidance.
+This skill does not grant any Git action or change the delivery boundary already set by the user or project guidance.
 
 ## Establish the repository context
 

@@ -11,4 +11,4 @@ Use [the helper](scripts/archive_sessions.py) with a declared support root and s
 
 Before apply, the helper checks every selected destination for collisions. It moves directories under `sessions/archived/`, preserves file bytes, and updates Markdown links that use the old support-relative session path. It never moves evidence or scratch with a session.
 
-Report selected sessions, closure evidence, mappings, preserved or blocked sessions, and link updates. The execution procedure for broad artifact organization remains [workspace-conventions](../workspace-conventions/SKILL.md).
+Report selected sessions, closure evidence, mappings, preserved or blocked sessions, and link updates. Broader artifact organization follows [workspace-conventions](../workspace-conventions/SKILL.md).

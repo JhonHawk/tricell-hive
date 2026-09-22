@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""WCAG contrast checker for the starlight-docs-site `audit` Layer C (C6).
+"""WCAG contrast checker for starlight-docs-site audits.
 
 Computes the WCAG 2.1 contrast ratio between two CSS colors (any syntax
 coloraide parses: oklch(), hex, rgb(), named). Converts through sRGB, so OKLCH

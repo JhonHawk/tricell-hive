@@ -343,13 +343,12 @@
   /* ---- draw-in animation: SVG strokes trace themselves on scroll-in ----
      Presentation only — it reveals content already in the file, it holds no
      state. Disabled wholesale under prefers-reduced-motion below. */
-  .draw .d-node,.draw .d-arrow,.draw .d-arrow-accent,.draw .d-focal,.draw .d-store,.draw .d-ext{
-    stroke-dasharray:1200; stroke-dashoffset:1200}
-  .draw.in .d-node,.draw.in .d-arrow,.draw.in .d-arrow-accent,.draw.in .d-focal,
-  .draw.in .d-store,.draw.in .d-ext{
-    animation:trace 1.1s cubic-bezier(.4,0,.2,1) forwards}
-  .draw .d-ext{stroke-dasharray:4 3; stroke-dashoffset:0}  /* keep dashed nodes dashed */
-  @keyframes trace{to{stroke-dashoffset:0}}
+  /* NOTE — no scroll-in reveal animation ships in this system. A stroke trace
+     needs a dash length per shape (one value cannot fit a 16px swatch and a
+     600px connector); a clip-path wipe does not interpolate reliably between
+     percentage and unitless insets. Both failure modes render a BLANK diagram,
+     which is strictly worse than no animation. If one is added later, it must
+     be opt-in from JS over a figure that is already visible. */
 
   /* ---- PRINT: always light, whatever the toggle says. These reports become
      PDFs, and nobody wants 20 pages of black. Print from the browser
@@ -379,8 +378,6 @@
     thead{display:table-header-group}
     /* status color is semantic here, so force it through the print engine */
     .b,.prio,.stat .n{-webkit-print-color-adjust:exact; print-color-adjust:exact}
-    .draw .d-node,.draw .d-arrow,.draw .d-arrow-accent,.draw .d-focal,.draw .d-store,.draw .d-ext{
-      stroke-dashoffset:0 !important; animation:none !important}
   }
 
 
@@ -527,36 +524,6 @@
     root.setAttribute("data-theme", next);
     try{ localStorage.setItem("fr-theme", next); }catch(e){}
     label();
-  });
-})();
-
-/* ============================================================================
-   DRAW-IN — SVG strokes trace themselves when the figure scrolls into view.
-   Reveals content already in the file; no state. prefers-reduced-motion and
-   print both short-circuit it in CSS, and a browser without IntersectionObserver
-   simply gets the finished diagram.
-   ============================================================================ */
-(function(){
-  var figs=document.querySelectorAll(".draw");
-  if(!figs.length) return;
-  if(!("IntersectionObserver" in window) ||
-     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)){
-    figs.forEach(function(f){ f.classList.remove("draw"); });
-    return;
-  }
-  var io=new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
-    });
-  },{threshold:.15, rootMargin:"0px 0px -8% 0px"});
-  figs.forEach(function(f){ io.observe(f); });
-  /* Safety net: an un-traced diagram is an INVISIBLE diagram (the strokes start
-     fully offset). If anything keeps a figure from ever intersecting — a
-     screenshot tool, a print-to-image path, a container that never scrolls —
-     reveal everything rather than ship a blank figure. */
-  setTimeout(function(){ figs.forEach(function(f){ f.classList.add("in"); }); }, 4000);
-  window.addEventListener("beforeprint", function(){
-    figs.forEach(function(f){ f.classList.remove("draw"); f.classList.add("in"); });
   });
 })();
 
