@@ -69,7 +69,7 @@ For consequential delegated work, retain the requested role/path, native or gene
 
 ## Continuity
 
-- Keep a concise durable record when it materially helps resume work, preserves a reusable decision, or retains verified results needed later. Ordinary conversational answers need no file. Record only the useful objective, decisions, progress, evidence, and next step; no fixed document set is required.
+- Keep research findings and evolving discussion in the conversation by default, including multi-round or complete research. Create or update a retained research document only when the user explicitly requests saving it or accepts a concrete retention proposal. If saving would materially help continuity, reuse, or costly reconstruction, briefly explain why and ask; usefulness alone is not authorization. A research request, skill invocation, or extended debate does not imply a file. Once authorized, keep one concise canonical record within that scope. Other work records follow their task-specific authorization; no fixed document set is required.
 - On resume, reconcile the record with current sources and state. Keep current status and next steps consistent; retain superseded statements only as clearly labeled history. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
 
 ## Artifact placement and hygiene

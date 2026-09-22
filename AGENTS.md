@@ -19,6 +19,8 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 
 When the user requests a "research completo", cover three fronts: the current Hive `master` implementation (verify reference freshness), external evidence from official documentation, research, developer blogs and firsthand community discussions, and optional reference sources when available.
 
+Research findings stay in the conversation unless the user explicitly requests saving them or accepts a concrete retention proposal. The shared research-retention rule in `content/guidance/global.md` also applies here; requesting complete research does not request a document.
+
 Delegate the three fronts to independent subagents in parallel when capacity permits. The main thread acts as an adversarial reviewer: check source support, challenge assumptions, resolve contradictions, distinguish observations from recommendations, and synthesize the result. Do not accept a subagent's conclusion solely on its assertion; disclose unavailable sources or incomplete coverage. Keep the investigation proportional to the question and preserve the normal authorization boundary: research does not authorize implementation, deployment, or model pilots.
 
 ## Workspace locations

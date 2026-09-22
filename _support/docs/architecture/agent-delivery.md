@@ -70,10 +70,10 @@ The shared delegation contract and five-host selection hints live in `content/gu
 | --- | --- | --- |
 | Claude Code 2.1.278 | Agent(subagent_type: review-plan) observed; child Opus, role and references read | Child effort/mode not independently observed; parent mode can override plan |
 | Codex 0.155.1 | spawn_agent(agent_type: review-plan) observed; child Astra/medium despite Terra parent | Ephemeral pilot parent failed; persisted parent worked. Parent bypass overrode read-only sandbox |
-| Grok Build 1.0.40 | inspect discovers review-plan; observed generic children read its contract | 1.0.40 lacks subagent_type with default and explicit grok-build presets; model-inheritance override does not restore it |
+| Grok Build 1.0.38 / 1.0.40 | 1.0.38 interactive session selected frontend-developer natively with grok-4.6; 1.0.40 pilots exposed no subagent_type | review-plan has not been directly tested on 1.0.38; version and launch surface differ between observations |
 | Pi 0.86.1 / pi-subagents 0.67.0 | subagent(agent: review-plan) observed; child Astra/medium read role and reference | write/edit exclusions do not exclude shell or memory tools; a memory write occurred in the isolated store |
 | OpenCode V2 2.0.9 | Native call and child session record confirm review-plan with DeepSeek/max | edit deny is configured, not mutation-tested; no universal write isolation |
 
-Distinguish installed bytes, catalog discovery, actual native selection, resource reading and effective controls. Preserve these observations in the existing task/review record when relevant; no additional ledger is required. Ordinary packaging tests do not establish model compliance. See the cross-host investigation (historical evidence omitted from public history) for source support, legacy comparisons and the bounded Grok uncertainty.
+Distinguish installed bytes, catalog discovery, actual native selection, resource reading and effective controls. Preserve these observations in the existing task/review record when relevant; no additional ledger is required. Ordinary packaging tests do not establish model compliance.
 
 The bounded dispatch verification (historical evidence omitted from public history) records actual calls, effective models, pilot-runner corrections and memory hygiene. These observations do not establish reliability or model quality.
