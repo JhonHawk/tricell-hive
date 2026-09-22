@@ -18,13 +18,25 @@ Write the actual human-facing plan in the session language, including headings a
 
 Keep the task list in this document. Link substantial research rather than duplicating it, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks.
 
+## Opening control sheet
+
+Start the plan with the six-row control sheet below, translated into the session language. Keep each cell concise: combine repository, branch, Git mode and delivery path; combine current phase and execution authorization. The Git path must distinguish human validation from CI/review gates and show the final agreed endpoint. An uncreated branch is proposed, not existing. Keep revision hashes, historical dates and extended reasoning in the body. Reconcile the sheet when resuming or changing state; it summarizes the detailed decision record rather than creating a competing authority.
+
+Use these phases, translated for the reader: Draft (decisions or review still pending), Ready to implement (plan readiness satisfied, execution may still await consent), In progress (implementation underway), In validation (acceptance or delivery gates underway/pending), Completed (agreed endpoint achieved with required gates satisfied), Blocked (a named missing prerequisite prevents progress), or Paused (explicitly paused by the user). Completed follows the selected delivery boundary: merge for the usual interactive route, verified working-tree work for hold. A phase never grants authorization. Identify the concrete reason and next action for Blocked or Paused.
+
 ## Adaptable template
 
 ```markdown
 # <Work title>
 
-Status: <current state and blocking condition, if any>
-Authorized scope: <effects and targets already authorized; pending actions if relevant>
+| Field | Current value |
+| --- | --- |
+| Status | <phase; implementation authorized or pending; blocker if any> |
+| Objective | <one-sentence result> |
+| Git and delivery | <repo; mode; work branch from base → local checks → human-validation stop if applicable → push/PR → CI + chosen review → agreed merge or handoff endpoint> |
+| Local validation | <applicable build/stack, in-vivo and proportional UI coverage, or omission decision> |
+| Boundaries | <excluded targets/effects and relevant exceptions> |
+| Next step | <concrete action; skill and canonical plan path when useful> |
 
 ## Outcome and acceptance
 
@@ -34,7 +46,12 @@ Authorized scope: <effects and targets already authorized; pending actions if re
 
 <What relevant source inspection established, with links and freshness limits.>
 <Selected approach, affected contracts, rationale, assumptions, scope clarifications or proposed expansions, and open decisions.>
-<Git mode or explicit delivery boundary, repositories/base, review mechanism, and pending authorizations.>
+
+| Decision | Rationale / evidence / pending condition |
+| --- | --- |
+| <consequential choice> | <reason, user answer or source and date; unresolved condition if any> |
+
+<Keep detailed authorization evidence and conditions here when needed; do not repeat the control sheet verbatim.>
 
 ## Tasks and verification
 
@@ -48,3 +65,5 @@ Authorized scope: <effects and targets already authorized; pending actions if re
 ```
 
 For larger work, use short task subsections instead of dense checkbox paragraphs. Include only the detail needed to execute and verify safely; do not embed a full implementation by default. If a material decision is still unresolved, identify its impact and the affected tasks instead of labeling the plan ready. The skill's readiness check applies to the contents, not the presence of these headings.
+
+Before closing, read back the canonical saved plan and confirm that the latest user answers, delivery endpoint and conditions are present and consistent with its status and closing recommendation. If native planning restrictions require an internal draft, state which copy is current; do not claim the canonical path was updated until its write and readback succeed within the permitted scope. On resume, use the canonical decision record and current evidence; a native approval message alone does not replace the user's instructions.
