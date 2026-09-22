@@ -29,6 +29,8 @@ When useful and authorized, delegate independent questions or source families un
 
 State the answer, supporting source locations or URLs, material alternatives and tradeoffs, remaining uncertainty, and the decision or next step it enables. Do not present a recommendation as an implemented result.
 
+When the research topic has no associated ticket, ask the user whether to open one, together with the findings or earlier when other questions are pending; do not block the investigation on the answer. Infer the tracker from project guidance, existing issue links, or configured project context, and ask where to record it only when none is established. Open the ticket only after the user agrees, check for duplicates first, and report its link.
+
 Keep findings and iterative debate in the conversation. Apply the shared research-retention authorization rule before creating or updating a research file; delegate findings back to the conversation without requesting separate written reports unless retention is authorized. When proposing retention, name the benefit and intended document, then wait for the user’s answer while continuing the discussion. After authorization, resolve the destination through the global artifact-placement instructions and existing work identifier. Keep the saved record concise: question, evidence, findings, decisions and unresolved items; link selected evidence rather than copying raw output.
 
 For an investigation-only request, stop at the findings. Within a broader authorized task, carry the findings into that task without treating this skill as another approval gate. Preserve established records named either `<topic>.research.md` or legacy `<topic>-research.md`; do not rename records merely to normalize the convention.
