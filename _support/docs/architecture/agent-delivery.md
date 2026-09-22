@@ -6,7 +6,7 @@ Agent instructions have one source at `content/agents/<category>/<name>.md`. Cat
 
 ## Roles and profiles
 
-Nineteen roles cover design, implementation, documentation, operations, verification, and review. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
+Twenty roles cover design, implementation, documentation, operations, verification, and review, including harness-engineering audits by `review-harness`. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
 
 | Profile | Claude | Codex | Pi | Grok | OpenCode V2 |
 | --- | --- | --- | --- | --- | --- |

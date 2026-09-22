@@ -24,8 +24,8 @@ func TestCatalogueRendersAllRolesForEveryHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sources) != 19 {
-		t.Fatalf("catalogue has %d roles, want 19", len(sources))
+	if len(sources) != 20 {
+		t.Fatalf("catalogue has %d roles, want 20", len(sources))
 	}
 	for _, source := range sources {
 		data, err := os.ReadFile(source)
