@@ -314,9 +314,6 @@
   .d-tagtext{fill:var(--accent); fill-opacity:.85; font-family:var(--mono); font-size:7px; letter-spacing:.08em}
   .d-tagtext.ink{fill:var(--ink); fill-opacity:.8}
 
-  /* ---- draw-in animation: SVG strokes trace themselves on scroll-in ----
-     Presentation only — it reveals content already in the file, it holds no
-     state. Disabled wholesale under prefers-reduced-motion below. */
   /* NOTE — no scroll-in reveal animation ships in this system. A stroke trace
      needs a dash length per shape (one value cannot fit a 16px swatch and a
      600px connector); a clip-path wipe does not interpolate reliably between

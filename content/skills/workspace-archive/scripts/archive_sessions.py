@@ -10,7 +10,12 @@ import shutil
 import sys
 
 
-CLOSED = re.compile(r"^(?:Status:\s*(?:closed|completed|cancelled)|Estado:\s*(?:cerrado|completado|cancelado))\s*$", re.I | re.M)
+# Matches `Status: closed`, `**Estado:** cerrado. ...`, and flow-plan control-sheet rows such as `| Estado | Completado · ... |`.
+CLOSED = re.compile(
+    r"^\s*(?:\|\s*)?(?:\*\*)?(?:Status|Estado)(?:\*\*)?\s*(?::(?:\*\*)?|\|)\s*(?:\*\*)?"
+    r"(?:closed|completed|cancelled|cerrado|completado|cancelado)\b",
+    re.I | re.M,
+)
 LINK = re.compile(r"(\]\()([^\s)#]+)(#[^)]*)?(\))")
 
 

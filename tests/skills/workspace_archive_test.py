@@ -107,6 +107,19 @@ class WorkspaceArchiveHelperTest(unittest.TestCase):
             self.assertEqual(blocked.returncode, 2)
             self.assertTrue(open_session.exists())
 
+    def test_flow_plan_control_sheet_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            support = Path(tmp) / "_support"
+            closed = support / "sessions/2026-09-20-sheet"; open_session = support / "sessions/2026-09-20-sheet-open"
+            closed.mkdir(parents=True); open_session.mkdir()
+            closed.joinpath("sheet.plan.md").write_text("| Campo | Valor |\n| --- | --- |\n| Estado | Completado · merge verificado |\n")
+            open_session.joinpath("sheet.plan.md").write_text("| Field | Value |\n| --- | --- |\n| Status | In progress · implementation authorized |\n")
+            applied = self.run_helper("--support-root", str(support), "--session", closed.name, "--apply")
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            blocked = self.run_helper("--support-root", str(support), "--session", open_session.name, "--apply")
+            self.assertEqual(blocked.returncode, 2)
+            self.assertTrue(open_session.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
