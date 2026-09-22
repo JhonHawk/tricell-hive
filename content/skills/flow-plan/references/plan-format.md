@@ -73,6 +73,8 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 **Locations:** <relevant files and symbols>.
 
+**Execution:** <main thread or delegated to a role chosen by deliverable, with the reason>.
+
 **Changes:** <necessary steps; refer to design decisions instead of restating them>.
 
 **Verification:** <actual command or observation and expected result; refer to a shared gate below when appropriate>.

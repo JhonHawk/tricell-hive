@@ -41,9 +41,10 @@ Before calling the plan ready, check:
 - Decisions that could change the outcome, contracts, or compatibility are resolved; remaining uncertainties are bounded.
 - Every acceptance criterion has an implementing task and a concrete verification.
 - Task interfaces and dependencies agree; no task relies on an undefined contract.
+- Each task states its execution, consistent with its dependencies and write ownership.
 - An implementer with this plan and its linked sources can identify what to change, what to preserve, and how to verify it.
 
-For delegated work, identify separable results and their interfaces, dependencies, and ownership; choose roles by the required deliverable rather than assigning a permanent specialist for every framework. Link the project conventions and technical references each unit needs, without freezing runtime-specific agent names or repeating the shared delegation contract.
+Assign each task's execution: the main thread or a delegated child, with the reason. Prefer delegation for units with settled interfaces and no overlapping writes; keep coupled or trivially small units in the main thread. For delegated work, identify separable results and their interfaces, dependencies, and ownership; choose roles by the required deliverable rather than assigning a permanent specialist for every framework. Link the project conventions and technical references each unit needs, without freezing runtime-specific agent names or repeating the shared delegation contract.
 
 After saving an implementation plan, read [plan review](references/plan-review.md) and dispatch bounded read-only subagents before declaring it ready. Use one reviewer for a small cohesive plan or independent domain assignments for broader work; omit unaffected areas, including UI when absent. Reviewers return feedback to the orchestrator, who validates findings and alone revises the plan. This planning step needs no separate approval; it does not authorize code review of implementation or execution. Disclose unavailable delegation and unresolved coverage.
 
