@@ -4,7 +4,7 @@ This catalog records why each rule in the `harness-audit` skill exists. The depl
 
 ## Conventions
 
-- IDs use `HA-<area>-<nn>`: `IF` instruction-file content, `HI` instruction hierarchy, `SK` skills, `AG` agents, `ME` measurement and tooling.
+- IDs use `HA-<area>-<nn>`: `IF` instruction-file content, `HI` instruction hierarchy, `SK` skills, `AG` agents, `ME` measurement and tooling, `PL` project layout.
 - IDs are stable. A retired rule keeps its row with status `retired`; its ID is never reused.
 - The first column is the ID and the last column is the status, written without backticks, so the parity test `tests/skills/harness_audit_rules_test.py` can compare active IDs with the IDs used by the skill and the `review-harness` role.
 - Evidence types: `DOC` official documentation; `OBS` observed locally on the named version; `MEAS` measured study; `CASE` production account without controlled data; `OPIN` practitioner opinion; `DEC` user decision; `LEGACY` carried over from the previous Hive implementation (`agents-md-primary`, master `16e7d33`).
@@ -26,7 +26,7 @@ This catalog records why each rule in the `harness-audit` skill exists. The depl
 | HA-IF-10 | Recover a rule's rationale from history before proposing `delete`, `demote`, or `soften`; without history, mark it unrecoverable and lower confidence. | Legacy "recover why" | LEGACY | Legacy growth figure (+226%) not re-verified | 2026-09-22 | active |
 | HA-IF-11 | A surviving gotcha keeps one short line of reason; other surviving rules keep a ticket or commit pointer. | Legacy "surviving rules earn their reason" | LEGACY | — | 2026-09-22 | active |
 | HA-IF-12 | HTML comments in `AGENTS.md` reach the model and cost tokens; Claude Code strips them only from `CLAUDE.md`. | Claude Code memory docs; legacy Codex `prompt-input` measurement | DOC, LEGACY | Not re-measured on Codex 0.155.1 | 2026-09-22 | active |
-| HA-IF-13 | Coverage for `delete` counts only the project's own instruction layers and deterministic mechanisms; overlap with a personal global layer is reported as cost unless the project declares that layer a requirement, even when the repository authors that layer. | User decision 2026-09-22; Claude Code memory docs (project files are shared through version control) | DEC, DOC | Single-user projects could prune more | 2026-09-22 | active |
+| HA-IF-13 | Coverage for `delete` counts only the project's own instruction layers and deterministic mechanisms; overlap with a personal global layer is reported as cost unless the project declares that layer a requirement (for Hive, `Hive guidance: required` in the `## Hive` section), even when the repository authors that layer. | User decisions 2026-09-22 and 2026-09-23 (declaration field after the ark and sample-project cleanups); Claude Code memory docs (project files are shared through version control) | DEC, DOC | Single-user projects could prune more | 2026-09-23 | active |
 | HA-IF-14 | A file already at its floor is reported `already lean`; do not cut project purpose, non-default commands, or needed upward pointers. | Legacy floor | LEGACY | — | 2026-09-22 | active |
 | HA-IF-15 | `CLAUDE.local.md` is read and verified, never written; its findings are `info`. | Legacy ground-truth checks; Claude Code memory docs (local file precedence) | LEGACY, DOC | — | 2026-09-22 | active |
 | HA-IF-16 | `@path` imports load at launch and stop after four hops; they organize content but do not reduce context. | Claude Code memory docs | DOC | — | 2026-09-22 | active |
@@ -51,6 +51,12 @@ This catalog records why each rule in the `harness-audit` skill exists. The depl
 | HA-AG-05 | An agent that depends on skill resources names them in a form resolvable from where the host installs the agent, not by a path relative to its source file. | Hive instruction-resources (`skill:owner/path`) | OBS | Portable locators are an authoring convention, not a host feature | 2026-09-22 | active |
 | HA-ME-01 | Run static validators first; model-invoking evaluations need explicit authorization and a cost cap; hosts other than Claude Code and Codex only on explicit request. | User decisions 2026-09-22; `claude plugin eval --help` (2.1.280) | DEC, OBS | — | 2026-09-22 | active |
 | HA-ME-02 | Confirm version-sensitive loading with the host's own view before asserting it; otherwise report a hypothesis with the exact human check. | Import-resolution change between Claude Code 2.1.233 and 2.1.280 | OBS | — | 2026-09-22 | active |
+| HA-IF-17 | Each repository entry point has a `## Hive` section with its required fields; values live only there, and a repository never relies on the workspace section for a required value. | User decision 2026-09-23 (Hive project settings) | DEC | Workspace-only sessions may use the workspace section | 2026-09-23 | active |
+| HA-PL-01 | `Specs` resolves to an existing, versioned, non-ignored directory. | User decision 2026-09-23 (openspec change records) | DEC | — | 2026-09-23 | active |
+| HA-PL-02 | Repositories of one project point `Specs` at the same directory; sharing without a specs repository needs the caller's decision. | User decision 2026-09-23 | DEC | — | 2026-09-23 | active |
+| HA-PL-03 | Records outside the layout are found and classified by content, not name. | ark and sample-project layout audits 2026-09-23 | OBS | — | 2026-09-23 | active |
+| HA-PL-04 | A product map stays the current-requirements home; mixed current and history documents stay authoritative until a change moves their rules. | User decisions 2026-09-23 (product map; legacy transition) | DEC | — | 2026-09-23 | active |
+| HA-PL-05 | Content whose home is another repository or level is reported as misplaced. | ark and sample-project layout audits 2026-09-23 | OBS | — | 2026-09-23 | active |
 
 ## Notes not adopted as rules
 
