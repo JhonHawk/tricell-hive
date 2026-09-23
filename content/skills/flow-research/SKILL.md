@@ -21,7 +21,7 @@ When useful and authorized, delegate independent questions or source families un
 
 - Distinguish current observed behavior, documented intent, inference, and recommendation. A test's presence is not evidence that it passed; a documented capability is not evidence that this installation exposes it.
 - For project status, distinguish declared state from observed evidence and unresolved discrepancies. Report discrepancies without changing tickets, documentation, code, or delivery state unless those effects are separately authorized.
-- For version-dependent external behavior, consult current primary documentation and the installed version. Use an available documentation skill or tool when applicable; record meaningful access or freshness limits rather than inventing verification.
+- For version-dependent external behavior, and before recommending how to configure or use an external library, tool, or service, consult its current primary documentation for the installed version. Use an available documentation skill or tool when applicable; record meaningful access or freshness limits rather than inventing verification.
 - Resolve conflicting sources against their dates, versions, scope, and direct observations. Neither backlog nor documentation takes automatic precedence. Missing delivery evidence means delivery is not verified, not that it did not happen. Preserve an unresolved contradiction with the evidence needed to settle it.
 - Use a bounded check when reading alone cannot answer a consequential question and the check is within the task's authorized effects. Do not turn a read-only investigation into an implementation or deployment.
 

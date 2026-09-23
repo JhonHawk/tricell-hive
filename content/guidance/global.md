@@ -40,7 +40,7 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 
 ## Evidence
 
-- Prefer Context7 as the first lookup for version-sensitive external technical documentation, using the installed documentation skill or available integration. Match sources to the relevant version; when access or coverage is insufficient, use current official documentation and state material verification limits. Inspect repository-local facts directly; Context7 is recommended, not a prerequisite.
+- Prefer Context7 as the first lookup for version-sensitive external technical documentation, using the installed documentation skill or available integration. Match sources to the relevant version; when access or coverage is insufficient, use current official documentation and state material verification limits. Inspect repository-local facts directly; Context7 is recommended, not a prerequisite. A recommendation about configuring or using an external library, tool, or service names the documentation and version it rests on, or says that none was consulted.
 - Treat recalled memory and prior-session summaries as claims about past state. Before presenting the current state of a PR, ticket, branch, deployment, or similar, verify it, or say explicitly that it is recalled and unverified.
 - Verify the result using evidence appropriate to the work. Distinguish inspected facts, source claims, inference, and recommendations; include relevant versions or dates when they affect the conclusion.
 - Report what was checked, what remains uncertain, and what did not run. A successful command, a written plan, or an installed file does not by itself prove the intended behavior, completed delivery, or a general improvement.
