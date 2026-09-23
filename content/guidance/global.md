@@ -35,8 +35,20 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 ## Preservation
 
 - Inspect relevant state before changing it. Preserve user edits, authentication, preferences, native histories, third-party tools, backups, and memory data. Do not overwrite unrelated work or restore an entire configuration over later user changes.
-- Keep secrets out of tracked files, reports, and tool output. A file's presence, age, or ignored status is not permission to delete it. Apply the narrow temporary-file cleanup rule below; other destructive cleanup needs explicit authorization.
+- A file's presence, age, or ignored status is not permission to delete it. Apply the narrow temporary-file cleanup rule below; other destructive cleanup needs explicit authorization.
 - An Engram workspace identity is created only for a declared root, explicit identity, and explicit repository targets. Preserve matching existing identity files; a conflicting identity blocks all writes. Do not infer sibling scope, modify global Git ignores, or migrate memory.
+
+## Secrets
+
+These rules hold in every mode, including unattended delegation.
+
+- Never write a real secret value into a durable or shareable place: source, documentation, scripts, notes, plans, evidence, tracker or pull-request text. The only stores are the project's declared untracked secret location, such as `<workspace>/_support/secrets/` outside any Git repository, and a disposable session copy, both mode `0600`.
+- Use a secret without displaying it. Pass it through stdin, a file, or a variable scoped to the one command that needs it. Never print a value or any fragment of one, including through your own redaction code. Keep it out of command arguments, URLs, subagent prompts, and messages to external services, where process lists, shell history, logs, or other parties retain it. To learn a secret file's structure, report counts and field names only.
+- When reading output that may contain secrets, such as logs, transcripts, or environment dumps, select only the fields you need rather than masking what you recognize; a pattern that misses one format leaks it.
+- Prefer the established access path: existing local keys, the project's secret store, or an already-authenticated provider tool. Retrieve each authorized secret once per session into the session copy. Use 1Password only when the user explicitly asks; its installation or an unlocked vault grants nothing, and no other manager substitutes for that request. Never export a private key to work around missing access.
+- Document secrets by reference: templates use placeholders such as `$DB_PASSWORD`; reference documents mask all but what identifies the resource, such as `AKIA****TBQX`, and name where the full value lives. Before writing a full value at the user's request, state the risk and offer these forms.
+- Before committing files that could hold secrets, run the project's secret scanner when it has one.
+- When a secret is exposed in output, a transcript, a commit, or an external service, stop repeating it and tell the user at once which secret and where it reached. Recommend revoking and rotating it; deleting the local copy does not contain it. Rotating real credentials needs the user's authorization.
 
 ## Evidence
 
