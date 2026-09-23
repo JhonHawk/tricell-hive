@@ -34,7 +34,7 @@ Checked on Claude Code 2.1.280 and Codex 0.155.1. Reconfirm when the installed v
 | Order | Root to entry directory; closer files read last | Root to entry directory; closer files read last |
 | Size | Target under 200 lines per file; files over 4 MiB are skipped | Project chain stops silently at `project_doc_max_bytes` (32 KiB default); the global file does not count |
 
-Grok Build 1.0.41, observed in two sessions on 2026-09-22 and not documented: the startup set held `<Claude home>/CLAUDE.md` plus the entry directory's `AGENTS.md` and `CLAUDE.md`; a workspace `AGENTS.md` one level above a repository entry point was not loaded. Confirm against the session's recorded `<rules>` before relying on it.
+Grok Build 1.0.38, observed in two sessions on 2026-09-22 and not documented: the startup set held `<Claude home>/CLAUDE.md` plus the entry directory's `AGENTS.md` and `CLAUDE.md`; a workspace `AGENTS.md` one level above a repository entry point was not loaded. Confirm against the session's recorded `<rules>` before relying on it.
 
 Configuration inputs to read when present:
 
