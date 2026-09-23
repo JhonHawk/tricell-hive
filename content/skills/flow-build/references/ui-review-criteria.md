@@ -14,7 +14,7 @@ Read when reviewing a rendered UI change, or when briefing the reviewer. [Verifi
 1. Inventory each affected screen as a whole: regions, columns, rows, and components, including those the change only displaces.
 2. For a change to an existing screen, capture and measure the base revision in the same environment, data, viewport, and theme. Without that baseline, the comparison is not verified, and a defect cannot be classified as pre-existing.
 3. Use realistic and extreme content: the longest real values, text 30–50% longer, empty and missing values, one row, and many rows.
-4. Set viewports explicitly: 1440 and 1280 desktop widths, a mobile width such as 390 when the application supports mobile, and further widths where the layout changes. For pages other than data tables, also check 320 CSS px for reflow. Check each supported theme.
+4. Set viewports explicitly: 1440 and 1280 desktop widths, a mobile width such as 390 when the application supports mobile, and further widths where the layout changes. For pages other than data tables, also check 320 CSS px for reflow. When the change contains dialogs or fixed or sticky regions, also check a short desktop height such as 1280×720. Check each supported theme.
 
 ## Checks
 
@@ -27,6 +27,7 @@ Apply the checks relevant to the change at every assigned viewport and theme. Ea
 - No silent clipping: when `scrollWidth > clientWidth` under hidden overflow, an ellipsis is shown and the full value is available, such as in a tooltip or accessible name. Names and primary identifiers are not truncated.
 - No page-level horizontal scroll (`documentElement.scrollWidth <= innerWidth`) unless a contained, reachable scroll region is the intended pattern.
 - No overlap between elements: bounding boxes of distinct content do not intersect.
+- Fixed and sticky regions, such as dialog headers and footers or pinned bars, do not cover content: scrolled to each end, the last and first content boxes stay clear of them, and content taller than the space scrolls inside its container.
 - No regression in neighbors: compared with the baseline, existing columns do not narrow into wrapping, rows do not grow from new line breaks, and regions do not empty without a replacement.
 
 **Hierarchy and consistency**
@@ -34,6 +35,7 @@ Apply the checks relevant to the change at every assigned viewport and theme. Ea
 - Text is left-aligned, and quantities are right-aligned with tabular figures; each header aligns with its column.
 - Type sizes, spacing, radii, and colors come from the project's scale or tokens; space around a group exceeds space within it.
 - Each view has one primary action; secondary and destructive actions follow the project's hierarchy.
+- Components in scope follow their library's documented anatomy, checked against its current documentation when available; for example, a checkbox or radio control sits on its label's row with the description beneath.
 - The screen conforms to its accepted pattern. A sibling screen is a valid reference only for checks it passes itself; a shared defect is a systemic finding, not a defense.
 
 **States**
