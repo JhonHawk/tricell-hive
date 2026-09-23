@@ -1,11 +1,11 @@
 ---
 name: harness-audit
-description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, and run native static validators. Use when asked to audit, review, prune, or check agent instructions, skills, or agents, or to explain what a host loads from an entry directory.
+description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, and run native static validators. Use when asked to audit, review, prune, or check agent instructions, skills, or agents, to explain what a host loads from an entry directory, or to prepare a project's migration to the `openspec` change-record layout.
 ---
 
 # Harness audit
 
-Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence; do not edit. The caller decides and applies changes.
+Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence; do not edit. The caller decides and applies changes, except an approved layout migration that the caller explicitly instructs the audit to apply.
 
 ## Scope
 
@@ -21,8 +21,9 @@ Establish before reading deeply:
 1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md).
-4. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
-5. Report in the format below. Prefer fewer, consequential findings over exhaustive restatement.
+4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
+5. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
+6. Report in the format below. Prefer fewer, consequential findings over exhaustive restatement.
 
 ## Outcomes
 
@@ -56,4 +57,4 @@ Close with coverage: targets, entry points, hosts, native outputs used, what was
 
 ## Boundaries
 
-Stay read-only: do not edit files, configuration, trackers, or memory, and do not commit. Never propose writing `CLAUDE.local.md`. Run only static tools your boundary allows, and request the rest from the caller; run a model-invoking evaluation only when the caller authorizes it with a cost cap (HA-ME-01).
+Stay read-only: do not edit files, configuration, trackers, or memory, and do not commit. The one exception is an explicit instruction to apply an approved migration manifest: then run its mechanical entries through the `workspace-conventions` procedure for applying a layout migration, stop at `manual` and `ask` entries, and commit only under the repository's Git rules and an explicit commit instruction. A read-only role returns the manifest for its parent to apply. Never propose writing `CLAUDE.local.md`. Run only static tools your boundary allows, and request the rest from the caller; run a model-invoking evaluation only when the caller authorizes it with a cost cap (HA-ME-01).
