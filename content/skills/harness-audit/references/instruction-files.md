@@ -34,6 +34,7 @@ Everything else needs a stated reason to be resident. Classify the rest:
 - **HA-IF-14 — Floor.** A file holding only what the admission test keeps is `already lean`. Do not propose cutting its project description, non-default commands, or needed pointers. In [skills and agents](skills-and-agents.md), a skill that satisfies HA-SK-02 and HA-SK-03 is `already lean`, and so is an agent holding only its purpose, boundary, and return contract (HA-AG-01, HA-AG-02, HA-AG-04).
 - **HA-IF-15 — Local files.** Read and verify `CLAUDE.local.md` like any other file; its stale claims outrank correct ones because it loads last. Report its findings as `info` for its owner and never propose writing it.
 - **HA-IF-16 — Imports.** `@path` imports load at launch and stop after four hops; splitting a file into imports organizes it but does not reduce context. A backticked `` `@path` `` is literal text, not an import.
+- **HA-IF-17 — Hive settings.** For each repository entry point, check the `## Hive` section defined in the global layer: missing section or required field is `medium`; a value repeated elsewhere in the file is `relocate` into the section; a repository that relies on the workspace section for a required value is `medium` under HA-HI-05 for hosts that do not load it; conflicting values across loaded levels are `stale` at the level that is wrong. Propose the missing values only from evidence in the repository, such as its default branch or existing declarations, and mark the rest as questions for the caller.
 
 ## Evidence for each finding
 

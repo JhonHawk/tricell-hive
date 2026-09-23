@@ -8,6 +8,7 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 - Write human-facing findings, progress records, and reports in the session language unless the user requests otherwise. This includes new or updated headings, status labels, status values, and next steps. Apply this when resuming an English record in a Spanish session, even when agents also use that report for continuity.
 - Preserve code, paths, identifiers, and verbatim evidence. Retain superseded wording only as clearly labeled historical text or quotations; keep the current summary and status in the session language.
 - Use English for new code identifiers and source file/directory names, including variables, functions, types, API paths and properties, database objects, event keys, and identifiers introduced in specifications. Preserve the project's casing and layout conventions and tool-required names. Choose established domain terminology rather than literal translations. The session language governs explanatory prose, not code naming.
+- Write placeholders in example paths, commands, and templates in English even within session-language prose, such as `<project>-specs/openspec/specs/<capability>/spec.md`.
 - Separate identifiers from localized content and existing contracts. Use English semantic i18n keys; user-facing text follows the product language. Preserve established domain values and externally defined or persisted identifiers when compatibility requires them. Keep each domain vocabulary consistent; do not rename existing contracts or migrate values without an authorized compatibility plan.
 
 ## Communication
@@ -74,14 +75,53 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 
 For consequential delegated work, retain the requested role/path, native or generic dispatch, and observed model/access controls in the existing work record or handoff. Mark unavailable evidence as unverified. Reading a role's frontmatter does not apply its permissions or model; a configured profile, tool exclusion, or domain label is not proof of effective isolation, a different model, or skill loading. Report the actual control and account for parent overrides.
 
+## Project settings
+
+- Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory. Optional: `Environments`, `TDD`, and `Review`. A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above. Example for a code repository:
+
+  ```markdown
+  ## Hive
+  - Project: ark (workspace `..`)
+  - Base branch: development
+  - Environments: development → qa → production
+  - Tracker: Linear · team sample · project ark · key ARK
+  - Specs: ../ark-specs/openspec
+  - Review: /code-review
+  ```
+- The section of the Git repository containing the changed file governs; a package inside a repository uses the repository's section. The workspace section governs only cross-repository work and sessions started there without a repository target. When loaded sections conflict, follow the repository's and report the conflict.
+- Ask for a missing required value when the task first needs it, not at session start and not for repositories only read, then record it in that repository's section. Keep each value there rather than repeating it elsewhere in the file. A declared `Review` is the recommended option when asking about review, not a substitute for the question.
+
 ## Continuity
 
 - Keep research findings and evolving discussion in the conversation by default, including multi-round or complete research. Create or update a retained research document only when the user explicitly requests saving it or accepts a concrete retention proposal. If saving would materially help continuity, reuse, or costly reconstruction, briefly explain why and ask; usefulness alone is not authorization. A research request, skill invocation, or extended debate does not imply a file. Once authorized, keep one concise canonical record within that scope. Other work records follow their task-specific authorization; no fixed document set is required.
 - On resume, reconcile the record with current sources and state. Keep current status and next steps consistent; retain superseded statements only as clearly labeled history. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
 
+## Specs and change records
+
+Planned work and requirements live in the `openspec` directory that the `Specs` setting names. Without a specs repository it is `_support/openspec` in the repository; with one, `<specs-repo>/openspec`. It is always versioned: never place it in a workspace outside Git or in an ignored path. When several repositories share a project without a specs repository, ask before the first change whether to create one (recommended when they share capabilities) or designate one repository, and point every `Specs` at that directory.
+
+```text
+openspec/
+├── project.md                          # Project ledger: phase, open or cross-cutting decisions, blockers, pointers
+├── specs/<capability>/spec.md          # Current requirements per capability
+└── changes/
+    ├── <change-id>/                    # One active planned change
+    │   ├── proposal.md                 #   Why, scope, acceptance, issues, delivery decisions, status
+    │   ├── design.md                   #   Verified context and design decisions, when needed
+    │   ├── tasks.md                    #   Tasks, verification, progress, next step
+    │   ├── research.md                 #   Retained investigation for this change, when authorized
+    │   └── specs/<capability>/spec.md  #   Requirement deltas
+    └── archive/YYYY-MM-DD-<change-id>/ # Closed changes
+```
+
+- Every retained plan is a change folder, with or without requirement deltas; small understood edits need none. Name `<change-id>` in English kebab-case, starting with the tracker key when one exists, such as `ark-642-portal-status-contrast`. The `flow-plan` skill carries the file formats and the closing procedure.
+- When a change is integrated into its base branch, merge its deltas into `specs/`, then move its folder to `changes/archive/` with `git mv`. Requirements in `specs/` describe current behavior; never leave a change's deltas unmerged after it closes.
+- Keep in `project.md` only what no other source states. Ticket state comes from the tracker, delivery state from Git, and the handoff from the active change. Local or sensitive pointers stay in `_support/`. Updating `project.md` or `openspec/` is a versioned change delivered under that repository's Git rules.
+- Existing `sessions/`, epics, and ledgers stay as history; continuing work keeps its established home, and migration needs explicit authorization.
+
 ## Support folder (`_support`)
 
-Application code, permanent scripts, and configuration stay in their established source locations; they do not become support material because an agent wrote them. Supporting artifacts go in one support home:
+Application code, permanent scripts, and configuration stay in their established source locations; they do not become support material because an agent wrote them. Supporting artifacts that are not change records go in one support home:
 
 - Resolve scope first. One repository uses `<repo>/_support/`; work spanning repositories uses the declared `<workspace>/_support/`; a monorepo uses one at its root, with application grouping inside it. Do not infer a workspace from an arbitrary parent folder; resolve ambiguity before writing shared artifacts.
 - Respect an existing documented destination, including a documentation repository. Do not create a specs repository or initialize Git automatically.
@@ -89,29 +129,28 @@ Application code, permanent scripts, and configuration stay in their established
 ```text
 _support/
 ├── docs/<topic>/                  # Living knowledge, conventions, durable decisions
-├── sessions/YYYY-MM-DD-<work>/    # Resumable work records and human reports
-│   ├── <work>.plan.md             #   Plan with its task list and progress
+├── sessions/YYYY-MM-DD-<work>/    # Records not tied to a change
 │   ├── <work>.research.md         #   Retained investigation
-│   ├── <work>.report.md           #   Separate execution or presentation deliverable
-│   └── images/                    #   UI review images pending human review
+│   └── <work>.report.md           #   Separate execution or presentation deliverable
 ├── workspace/YYYY-MM-DD-<work>/   # Disposable scratch, ignored by Git
-└── evidence/YYYY-MM-DD-<work>/    # Selected evidence linked from reports
+│   └── images/                    #   UI review images pending human review
+└── evidence/YYYY-MM-DD-<work>/    # Selected evidence linked from records
 ```
 
-The tree is vocabulary, not a scaffold: create only the folders and records the work needs. One work item shares its `YYYY-MM-DD-<work>` identifier across sessions, scratch, and evidence.
+The tree is vocabulary, not a scaffold: create only the folders and records the work needs. One work item shares its identifier: `<work>` is the `<change-id>` when a change exists.
 
 ### Folder contents
 
 - `docs/`: current knowledge updated in place; living documents need no date.
-- `sessions/`: before writing retained task findings, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root. Keep a plan's task list in that plan; create separate records only when they serve a distinct need.
+- `sessions/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root; create separate records only when they serve a distinct need.
 - `workspace/`: only reproducible, disposable material whose loss destroys nothing that exists elsewhere: temporary files, shell helpers (including ones deleted within the same command), intermediate output, and throwaway checkouts. Give `mktemp` and similar commands an explicit path there; the repository root and the operating system's default temporary directory are not this task's scratch home. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
 - `evidence/`: the selected subset that substantiates results, linked from the report.
-- UI review images go in the work session folder, optionally in `images/`, and are linked from the handoff. Keep them during pending human review; at close delete the task-created images unless the user explicitly selected them for retention, and remove or update their report links. Keep them out of commits; retaining an image does not authorize publication.
+- UI review images go in `workspace/YYYY-MM-DD-<work>/images/` and are linked from the handoff. Keep them during pending human review; at close delete the task-created images unless the user explicitly selected them for retention, and remove or update their report links. Keep them out of commits; retaining an image does not authorize publication.
 
 ### Naming and dates
 
-- Name new work records `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic and an English type: `research` for retained investigations (including findings called a report), `plan` for implementation plans, and `report` for distinct execution, closure, or presentation deliverables. Use Markdown for ordinary research; honor an explicitly requested format. Keep related records identifiable by the same topic, including in editor tabs or search results. Preserve tool-defined filenames and established source-code conventions.
-- Dated folders use the work's initial ISO date; internal filenames do not repeat it. Keep the initial date, scope, and location when continuing the same work; add internal stages only when useful. Do not automatically rename or migrate existing material to this layout.
+- Name new records under `sessions/` `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic and an English type: `research` for retained investigations (including findings called a report) and `report` for distinct execution, closure, or presentation deliverables. Change records use the fixed names of the change folder. Use Markdown for ordinary research; honor an explicitly requested format. Keep related records identifiable by the same topic, including in editor tabs or search results. Preserve tool-defined filenames and established source-code conventions.
+- Dated folders use the work's initial ISO date, except archived changes, which use the closing date; internal filenames do not repeat it. Keep the initial date, scope, and location when continuing the same work; add internal stages only when useful. Do not automatically rename or migrate existing material to this layout.
 - Use the user’s local calendar date for human-authored records and dated folders; check the clock and timezone when uncertain. Preserve original evidence timestamps and use explicit timezone offsets when time affects interpretation. Follow protocol or system requirements where UTC is required.
 
 ### Retention and cleanup

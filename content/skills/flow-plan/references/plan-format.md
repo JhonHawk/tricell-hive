@@ -1,6 +1,6 @@
 # Retained plan format
 
-Use this reference when creating or reviewing a retained plan. Keep one canonical `<topic>.plan.md` in the established work folder. Adapt the sections to the task; omit irrelevant sections and resolve or remove template placeholders before delivery. Do not create a companion research or report file just because the template mentions one.
+Use this reference when creating or reviewing a retained plan. A new retained plan is a change folder: its sections are distributed across `proposal.md`, `design.md`, and `tasks.md` as described in [change records](change-records.md). Continuing work keeps an established `<topic>.plan.md` as its single canonical record. Adapt the sections to the task; omit irrelevant sections and resolve or remove template placeholders before delivery. Do not create a companion research or report file just because the template mentions one.
 
 Write the actual human-facing plan in the session language, including headings and current status. The English template below is reusable guidance, not a requirement that the delivered document be English. Preserve code, identifiers, and source names.
 

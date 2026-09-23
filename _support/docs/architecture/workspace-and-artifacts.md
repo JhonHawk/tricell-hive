@@ -18,6 +18,12 @@ Apply this routing to new work. Continuing work retains its established scope an
 
 An existing documentation repository may provide equivalent homes such as `sessions/` or `decisions/`; do not nest another `_support` merely to match a template. Without a documented versioned home, keep shared durable material locally in the workspace's `_support` and report that it is local. Selecting a versioned destination is a separate decision; creating a specs repository, initializing Git, or publishing is not implied.
 
+## Project settings and change records
+
+The [global guidance](../../../content/guidance/global.md) defines the `## Hive` section, with its example, and the `openspec/` change records. Each repository declares its settings in full because Codex never loads files above the Git root and Grok Build was observed not to load a workspace `AGENTS.md` from a child repository; only Claude Code loads ancestor files. A specs or mocks repository declares a shorter section, such as `Specs: openspec` in the specs repository; a repository outside the project never inherits another project's values.
+
+Planned work lives in `<specs>/changes/<change-id>/` and current requirements in `<specs>/specs/`, where `<specs>` is the `openspec` directory that `Specs` names: `_support/openspec` inside a repository without a specs repository, or `<specs-repo>/openspec`. `_support/openspec` must stay versioned; repositories here ignore only `_support/workspace/` and, in some, parts of `_support/evidence/`. The layout follows OpenSpec file conventions without its CLI. It replaces `_support/sessions/` for plans and the unversioned workspace ledger for project state: `openspec/project.md` keeps only what no other source states. Existing sessions, epics, and ledgers stay as history. See the [change records reference](../../../content/skills/flow-plan/references/change-records.md) for file roles, the delta format, and closure.
+
 ## Four destinations, created when needed
 
 ```text
@@ -26,7 +32,6 @@ An existing documentation repository may provide equivalent homes such as `sessi
 │   └── <topic>/
 ├── sessions/
 │   ├── YYYY-MM-DD-<work>/
-│   │   ├── <work>.plan.md       # Optional plan, task list, and progress
 │   │   ├── <work>.research.md   # Optional retained investigation
 │   │   ├── <work>.report.md     # Optional separate human deliverable
 │   │   └── reports/            # Optional human deliverables
@@ -40,7 +45,7 @@ An existing documentation repository may provide equivalent homes such as `sessi
 This is a vocabulary, not a scaffold to create for every request. A single useful record is sufficient when it carries the work. Do not create empty files, folders, or indexes solely to match the diagram.
 
 - **Knowledge:** `docs/` describes current conventions, decisions, or architecture. A living guide is updated in place; a dated historical decision can be superseded with an explicit reference to its successor. Keep an existing ADR or contract convention when present.
-- **Execution:** `sessions/` records work that benefits from continuity. Keep objective, decisions, progress, observed evidence, and next step only as needed. A task plan belongs with its work; an enduring design conclusion belongs in its documentation home.
+- **Execution:** planned work lives in its `<specs>/changes/<change-id>/` folder. `sessions/` keeps only records tied to no change, such as research or a report requested on its own. An enduring design conclusion belongs in its documentation home.
 - **Scratch:** `workspace/` contains temporary utilities, intermediate transformations, and raw outputs. The test is disposability, not temporariness: everything there must be reproducible, so cleanup can never destroy the only copy of work. A Git worktree holding unintegrated edits fails that test even though it is temporary; keep it in the host's native worktree location or one the user approves. Resolve the existing work directory before creating a task-owned helper, including one deleted in the same command. For example, give `mktemp` a template inside that directory rather than relying on its system temporary default. Ignore its contents in Git. The current Hive scaffold retains only selected `.gitkeep` markers; this does not make scratch files versionable or require markers in other projects.
 - **Evidence:** `evidence/` contains a selected subset needed to substantiate results. A report interprets that evidence and links to it. Curating evidence is distinct from deciding whether it is suitable for Git.
 
@@ -48,13 +53,13 @@ Source code, permanent maintenance scripts, application configuration, and infra
 
 ## Naming and continuity
 
-The shared guidance defines the naming convention. New records use `<topic>.<type>.<extension>` with descriptive English `kebab-case` topics and English types. For example, `context-update.plan.md`, `context-update.research.md`, and `context-update.report.md` remain identifiable outside their parent folder. Dated directories start with the work's initial date, `YYYY-MM-DD`, followed by its stable slug; internal records do not repeat the date. Avoid generic standalone names such as `output.md` or `temp.json`. Keep tool entrypoints (`AGENTS.md`, `SKILL.md`, `README.md`) and existing source conventions. Historical records retain their names unless a separate organization task covers their migration.
+The shared guidance defines the naming convention. New records use `<topic>.<type>.<extension>` with descriptive English `kebab-case` topics and English types. For example, `context-update.research.md` and `context-update.report.md` remain identifiable outside their parent folder; change folders use fixed file names. Dated directories start with the work's initial date, `YYYY-MM-DD`, followed by its stable slug; internal records do not repeat the date. Avoid generic standalone names such as `output.md` or `temp.json`. Keep tool entrypoints (`AGENTS.md`, `SKILL.md`, `README.md`) and existing source conventions. Historical records retain their names unless a separate organization task covers their migration.
 
 New records use the dotted form, but both `<topic>.plan.md` and the established legacy `<topic>-plan.md` form are valid handoffs. The same compatibility applies to research and reports. Resume the existing record and do not rename files merely to normalize their form.
 
-A retained plan includes its task list and progress. A separate research or report file is useful when it has its own audience or substantial evidence; the vocabulary does not require three files. Retain plans when requested or needed for resumption, delegation, coordinated deliveries, consequential decisions, or investigation that would be costly to reconstruct. Small understood changes can use a conversational plan. Preparation is separate from persistence: the `flow-plan` skill owns the procedure for grounding decisions and connecting requirements, tasks, and verification; file presence does not prove readiness.
+A new retained plan is a change folder whose `tasks.md` carries its task list and progress. A separate research or report file is useful when it has its own audience or substantial evidence; the vocabulary does not require three files. Retain plans when requested or needed for resumption, delegation, coordinated deliveries, consequential decisions, or investigation that would be costly to reconstruct. Small understood changes can use a conversational plan. Preparation is separate from persistence: the `flow-plan` skill owns the procedure for grounding decisions and connecting requirements, tasks, and verification; file presence does not prove readiness.
 
-One work item keeps one session folder across conversations. Supporting scratch and evidence use the same initial date and slug. A new conversation or calendar day does not create a new work item. When meaningful phases need separation, add descriptive subfolders inside the existing work folder rather than scattering it across sibling sessions. An independent new objective gets a new folder.
+One work item keeps one change or session folder across conversations. Supporting scratch and evidence use the same initial date and slug. A new conversation or calendar day does not create a new work item. When meaningful phases need separation, add descriptive subfolders inside the existing work folder rather than scattering it across sibling sessions. An independent new objective gets a new folder.
 
 For example, work started under `sessions/2026-09-20-api-contract/` still resumes there on the next day. Temporary traces can use `workspace/2026-09-20-api-contract/`, and selected evidence can use `evidence/2026-09-20-api-contract/`. A resulting ongoing convention belongs in `docs/api/contracts.md`, linked back to the session. Keep the session's historical findings as history, not a second live convention.
 
