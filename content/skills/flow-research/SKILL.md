@@ -15,7 +15,7 @@ Inspect the relevant entry points, callers, tests, configuration, and project gu
 
 Treat search hits as entry points to inspect, and state the searched scope and vocabulary before claiming absence; no matches alone do not establish that a capability or behavior is missing. When investigating a failure, regression, or incident with an uncertain cause, read [diagnosis](references/diagnosis.md).
 
-When useful and authorized, delegate independent questions or source families under the shared delegation contract. Ask for source-backed findings, counterevidence, and access limits. The main thread checks consequential claims against their sources and resolves conflicting conclusions; do not treat agreement among subagents as proof.
+When useful and authorized, delegate independent questions or source families under the shared delegation contract. Ask for source-backed findings, counterevidence, and access limits. Probing likely to produce long output, such as installed dependencies, build artifacts, long library documentation, or broad searches, goes to a child that returns only the relevant findings; early context is re-read for the rest of the session. The main thread checks consequential claims against their sources and resolves conflicting conclusions; do not treat agreement among subagents as proof.
 
 ## Establish evidence
 
