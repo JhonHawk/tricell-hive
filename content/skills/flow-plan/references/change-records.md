@@ -37,11 +37,19 @@ The system SHALL <observable behavior>.
 
 Name a capability after a product or system ability in English kebab-case, such as `template-submission` or `portal-status-contrast`, not after a ticket or epic. A MODIFIED or REMOVED requirement must match an existing requirement name in `<specs>/specs/`.
 
+## Product map projects
+
+When the project keeps a product map (`product/<module>/<view>.md` pages of business rules in force), it replaces `<specs>/specs/` as the current-requirements home. Keep the pages in their business voice and location; documentation sites and manuals reuse them.
+
+- `proposal.md` lists the affected views with a one-line delta each.
+- Write one delta file per affected view at `changes/<change-id>/product/<module>/<view>.md`, mirroring the page's section headings. Mark each rule `ADDED`, `MODIFIED` (quoting the current rule), or `REMOVED`, and add a new view page whole when the view does not exist yet.
+- At closure, apply those rules to the page, add the change to the page's traceability line (for example `Influenciada por`), and leave the other sections untouched.
+
 ## Close a change
 
 After the change is integrated into its base branch:
 
-1. For each delta file, apply ADDED requirements to `<specs>/specs/<capability>/spec.md`, creating it when absent; replace each MODIFIED requirement block by name; delete each REMOVED block. Edit only those blocks, leave the rest of the file untouched, and review the resulting diff.
+1. For each delta file, apply it to the current-requirements home. In `<specs>/specs/`: apply ADDED requirements to `<specs>/specs/<capability>/spec.md`, creating it when absent; replace each MODIFIED requirement block by name; delete each REMOVED block. In a product map, follow the section above. Edit only those blocks, leave the rest of the file untouched, and review the resulting diff.
 2. Set the change's status to closed in `proposal.md` with the integrating commit or pull request.
 3. Move the folder with `git mv <specs>/changes/<change-id> <specs>/changes/archive/YYYY-MM-DD-<change-id>`, using the closing date. Never recreate the files by rewriting them.
 4. Update `<specs>/project.md` only if the phase, an open decision, or a blocker changed.

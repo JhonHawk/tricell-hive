@@ -103,7 +103,7 @@ Planned work and requirements live in the `openspec` directory that the `Specs` 
 ```text
 openspec/
 ├── project.md                          # Project ledger: phase, open or cross-cutting decisions, blockers, pointers
-├── specs/<capability>/spec.md          # Current requirements per capability
+├── specs/<capability>/spec.md          # Current requirements per capability, unless a product map holds them
 └── changes/
     ├── <change-id>/                    # One active planned change
     │   ├── proposal.md                 #   Why, scope, acceptance, issues, delivery decisions, status
@@ -115,7 +115,8 @@ openspec/
 ```
 
 - Every retained plan is a change folder, with or without requirement deltas; small understood edits need none. Name `<change-id>` in English kebab-case, starting with the tracker key when one exists, such as `ark-642-portal-status-contrast`. The `flow-plan` skill carries the file formats and the closing procedure.
-- When a change is integrated into its base branch, merge its deltas into `specs/`, then move its folder to `changes/archive/` with `git mv`. Requirements in `specs/` describe current behavior; never leave a change's deltas unmerged after it closes.
+- A project that keeps a product map (`product/README.md` with `product/<module>/<view>.md` pages of business rules in force, beside the `openspec` directory) uses it as its current-requirements home instead of `specs/`. Keep its location and business voice, because documentation sites and manuals reuse it; changes carry deltas for the affected views, and closure merges them into those pages.
+- When a change is integrated into its base branch, merge its deltas into `specs/` or the product map, then move its folder to `changes/archive/` with `git mv`. Requirements in `specs/` describe current behavior; never leave a change's deltas unmerged after it closes.
 - Keep in `project.md` only what no other source states. Ticket state comes from the tracker, delivery state from Git, and the handoff from the active change. Local or sensitive pointers stay in `_support/`. Updating `project.md` or `openspec/` is a versioned change delivered under that repository's Git rules.
 - Existing `sessions/`, epics, and ledgers stay as history; continuing work keeps its established home, and migration needs explicit authorization.
 
