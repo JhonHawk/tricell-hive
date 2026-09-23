@@ -5,8 +5,7 @@ Read before driving a browser for UI review, in-vivo verification, or diagnosis.
 ## Select the tool
 
 - Default to the `agent-browser` CLI through the shell when it is installed. Its `snapshot` and `read` output is smaller than MCP browser snapshots, a stable flow can be chained in one command, and large output can be redirected to a file and read selectively. It covers navigation, forms, `console`, `errors`, filtered `network requests`, `eval`, screenshots, and viewport and color-scheme emulation.
-- Use Chrome DevTools MCP for what the CLI lacks: Lighthouse audits, performance traces and insights, and heap snapshots. It is also the independent control when `agent-browser` itself is suspect.
-- Use Playwright MCP only when neither is available.
+- Use another browser tool only when the user explicitly asks for it, and a delegated agent uses only the tool its brief assigns; even listing an MCP server's pages launches its browser. When a check needs what the CLI lacks, ask: Chrome DevTools MCP provides Lighthouse audits, performance traces and insights, heap snapshots, and an independent control when `agent-browser` itself is suspect; Playwright MCP is the fallback when neither is installed.
 - An installed MCP server is not a reason to prefer it. Report which tool drove each check.
 
 ## Delegate the flow
@@ -16,9 +15,9 @@ Captures and accessibility trees entering the main thread stay in its context fo
 ## Session floor
 
 - Give each agent its own named `--session`, and isolated data or accounts when flows run in parallel.
-- Launch without a profile by default: `agent-browser` then uses a clean temporary profile at default zoom, discarded on close. Use a named or persistent profile only when the task needs the user's own logins to external services and the user asks for it. With a profile set, `connect` launches a new browser rather than attaching; attach with `--cdp <port>` on every command of that run.
+- Launch without a profile by default: `agent-browser` then uses a clean temporary profile at default zoom, discarded on close. When the environment sets `AGENT_BROWSER_PROFILE` and the user did not ask for that profile, unset it for the run; it also blocks loading saved state. Use a named or persistent profile only when the task needs the user's own logins to external services and the user asks for it. With a profile set, `connect` launches a new browser rather than attaching; attach with `--cdp <port>` on every command of that run.
 - Set the viewport explicitly before the first capture or measurement: `agent-browser set viewport 1440 900 2`, where the third argument is the device scale factor. Use the widths required by [UI review criteria](ui-review-criteria.md) when a review applies. An inherited viewport depends on the machine and any profile zoom: confirm `window.innerWidth` matches the target CSS width before measuring. Add the widths the change is sensitive to, such as a narrower desktop and a mobile width, and set the color scheme with `set media dark|light` when themes matter. Report the viewports and themes each judgment covers.
-- Authenticate once per account: sign in through a local helper, save the state with `agent-browser state save <file>` in the task's scratch area, and load it with `--state <file>` in later sessions and agents instead of repeating logins, which can exhaust login rate limits. Keep credentials and state files out of command arguments, captures, logs, reports, and Git.
+- Authenticate once per account: sign in through a local helper, save the state with `agent-browser state save <file>` in the task's scratch area, and load it with `--state <file>` in later sessions and agents instead of repeating logins, which can exhaust login rate limits. For serial work, the coordinator may instead sign in once into a named session and hand that session to one agent at a time, closing it at the end; prefer this when loading state fails or when a state file should not stay on disk, since the agent then handles neither credentials nor state. Keep credentials and state files out of command arguments, captures, logs, reports, and Git.
 - Pass `--content-boundaries` when browsing untrusted or external pages.
 
 ## Read the page correctly
@@ -29,7 +28,7 @@ Captures and accessibility trees entering the main thread stay in its context fo
 
 ## Escalate before declaring a check unverifiable
 
-When `agent-browser` state is suspect (stale renders, sessions invalidating each other, cookie residue), close the sessions you own and rerun under a fresh `--namespace`. If the problem persists, reproduce with Chrome DevTools MCP as an independent browser. Report a check as not verified only after these attempts or when the stack itself is unavailable.
+When `agent-browser` state is suspect (stale renders, sessions invalidating each other, cookie residue), close the sessions you own and rerun under a fresh `--namespace`. If the problem persists, ask the user whether to reproduce with Chrome DevTools MCP as an independent browser. Report a check as not verified only after these attempts, when the user declines that reproduction, or when the stack itself is unavailable.
 
 A user profile can distort input as well as layout; its zoom can misplace pointer events for every tool that shares it. Before reporting a pointer interaction as broken under a profile, reproduce it without one; a failure that appears only under the profile is a tooling limitation, not a product defect.
 
