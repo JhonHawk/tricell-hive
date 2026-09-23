@@ -4,13 +4,23 @@ Read this before judging any instruction file. A file's value depends on which h
 
 ## Compute the effective set (HA-HI-01)
 
-For each host in use and each declared entry point, list:
+For each host in use and each declared or observed entry point, list:
 
 1. **Startup set**: files loaded when the session starts, in order, with sizes.
 2. **On-demand set**: files a host adds later when the agent opens files in a subdirectory.
 3. **Configuration inputs** that change either set.
 
 Judge a level only against these sets. When a conclusion depends on version-sensitive behavior, confirm it with the host's own view or report it as a hypothesis (HA-ME-02; see [native tools](native-tools.md)).
+
+## Observe entry points
+
+Count sessions per start directory for the targets and their ancestors, recording the period covered:
+
+- Claude Code: one `*.jsonl` per session under `<Claude home>/projects/<start path with separators replaced by ->/`.
+- Codex: the `cwd` of the first `session_meta` record in each file under `~/.codex/sessions/`.
+- Grok Build: one directory per session under `~/.grok/sessions/<URL-encoded start path>/`. The first user record of its `chat_history.jsonl` holds the `<rules>` actually loaded, which is direct evidence of the startup set.
+
+Histories show where sessions started, not what the user intends. Report both when they differ, and read only metadata, never conversation content beyond the loaded rules.
 
 ## Loading behavior
 
@@ -23,6 +33,8 @@ Checked on Claude Code 2.1.280 and Codex 0.155.1. Reconfirm when the installed v
 | `AGENTS.md` | Read natively only when no `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md` exists at or above the entry point (default setting) | Native file |
 | Order | Root to entry directory; closer files read last | Root to entry directory; closer files read last |
 | Size | Target under 200 lines per file; files over 4 MiB are skipped | Project chain stops silently at `project_doc_max_bytes` (32 KiB default); the global file does not count |
+
+Grok Build 1.0.41, observed in two sessions on 2026-09-22 and not documented: the startup set held `<Claude home>/CLAUDE.md` plus the entry directory's `AGENTS.md` and `CLAUDE.md`; a workspace `AGENTS.md` one level above a repository entry point was not loaded. Confirm against the session's recorded `<rules>` before relying on it.
 
 Configuration inputs to read when present:
 
