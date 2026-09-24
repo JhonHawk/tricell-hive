@@ -1,11 +1,11 @@
 ---
 name: git-workflow
-description: Prepare an authorized Git delivery while preserving unrelated work, following repository conventions, and verifying the resulting local or remote state. Use when the work includes creating a Git branch, commit, push, or pull request, or verifying one of those effects.
+description: Prepare an authorized Git delivery while preserving unrelated work, following repository conventions, and verifying the resulting local or remote state. Use when the work includes creating a Git branch, commit, push, pull request, or merge, or verifying one of those effects.
 ---
 
 # Deliver an authorized Git change
 
-This skill does not grant any Git action or change the delivery boundary already set by the user or project guidance.
+Apart from the post-merge cleanup below, this skill does not grant any Git action or change the delivery boundary already set by the user or project guidance.
 
 ## Establish the repository context
 
@@ -30,3 +30,7 @@ When a pull request is authorized, describe the problem, the resulting behavior,
 After an authorized local or remote Git action, inspect the relevant state rather than inferring success from command intent: the commit and its diff locally; the selected remote branch after a push; and the pull request, checks, or merge state when those effects were authorized. After local checks pass, complete any remaining Git effects already explicitly authorized, such as the selected push, then verify them. Report the observed result, omitted checks, and remaining delivery steps.
 
 Stop at the authorization boundary. Do not infer permission to commit from permission to edit, to push from permission to commit, or to open, merge, publish, or rewrite from any earlier Git action. Authorization to merge does not authorize bypassing branch protection, required reviews, or required checks. Use a bypass only when an explicit grant for that repository covers it, and name the grant when reporting the result.
+
+## Clean up after a merge
+
+After verifying a merge you performed, clean up its branches; this rule authorizes these deletions. First confirm that no open pull request uses the work branch as its base; if one does, keep the branch and report it. `gh pr merge --delete-branch` skips that check, so delete separately. Delete the merged remote branch unless the host already removed it, then the local branch with `git branch -d`, which refuses unmerged work. Return the checkout to the base branch, run `git fetch --prune`, and fast-forward the base. Apply the same checks to other branches already merged into the base whose pull requests are merged. A branch with unmerged commits is a decision, not noise: report its work (`git log <base>..<branch>`) and recommend integrating it or ask; never delete it. Report the deletions, the fast-forward, and the unmerged branches left.
