@@ -4,8 +4,8 @@ Before declaring an implementation plan ready, or before the first edit of work 
 
 | Mode | Delivery contract to present |
 | --- | --- |
-| `interactive` | Work branch from the named base, local commits and verification, then stop before push with the built result available for human validation. After the user validates that result, the agent continues with push, PR, the agreed review and merge into the named base once the required gates pass. Present this entire chain in the option; interactive includes merge, not merely opening a PR. Recommend for user-judged screens and flows. |
-| `automatic` | Work branch, commits, push, PR to the named base, agreed checks/review and merge when its conditions pass. Name any deployment triggered by the destination before asking. Recommend only when this full delivery is appropriate; required human acceptance still stands. |
+| `interactive` | Work branch from the named base, local commits and verification, then stop before push with the built result available for human validation. After the user validates that result, the agent continues with push, PR, the agreed review and merge into the named base once the required gates pass. Present this entire chain in the option; interactive includes merge, not merely opening a PR. Recommend it when the result has a surface only the user can judge, such as a screen, copy, or flow. |
+| `automatic` | Work branch, commits, push, PR to the named base, agreed checks/review and merge when its conditions pass. Name any deployment triggered by the destination before asking. Recommend it for work whose acceptance checks, review, and verification establish, such as infrastructure, CI/CD, migrations, refactors, tooling, or a promotion the user requested: a stop before push there adds a gate with nothing for the user to validate. Required human acceptance and production promotion still stand. |
 | `direct-base` | Verified commits and push directly to the named base, without a PR, only where project policy permits. Disclose triggered deployment. |
 | `hold` | Implement and verify in the working tree; no commit or publication. Present the diff and leave delivery pending. |
 
