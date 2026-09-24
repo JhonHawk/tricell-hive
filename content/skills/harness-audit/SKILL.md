@@ -53,7 +53,7 @@ Report a file already at its floor as `already lean` (HA-IF-14).
 
 For each finding give severity, `file:line`, rule ID, outcome, evidence (quoted line, command output, or source), and whether it is confirmed or a hypothesis; for a hypothesis, name the exact check that would confirm it.
 
-Close with coverage: targets, entry points, hosts, native outputs used, what was not verified, and decisions needed from the caller. Report `no material findings` when that is the result; it does not certify uninspected areas.
+Close with coverage: targets, entry points, hosts, native outputs used, what was not verified, and decisions needed from the caller. Ask those decisions, including each conflict with a global layer under HA-IF-08, through the host's native question tool when it has one, otherwise in text, and wait for the answers; a delegated auditor returns them to its parent, which asks. Report `no material findings` when that is the result; it does not certify uninspected areas.
 
 ## Boundaries
 
