@@ -37,6 +37,24 @@ Markers occupy complete lines and have distinct, stable start and end identifier
 
 Each integration must resolve the effective global file from documentation and observed host versions. Do not assume all CLIs read the same file, that `CLAUDE.md` always imports `AGENTS.md`, or write to both when doing so duplicates loading. Host compatibility may give a file multiple consumers. Installation records those consumers, and partial removal preserves the consumers that still use the block.
 
+### Why an instruction-file block and not a session-start hook
+
+Researched on 2026-09-24 against the installed hosts: Claude Code 2.1.281, Codex 0.156.1, Grok Build 1.0.38, Pi 0.86.1 and OpenCode 2.0.15. A hook injects the same text, so it does not reduce density. It also cannot deliver the block with the same effect:
+
+| Host | Session-start injection | Limitation |
+|---|---|---|
+| Claude Code | `SessionStart` `additionalContext` | Silently truncated at 10,000 characters ([anthropics/claude-code#94358](https://github.com/anthropics/claude-code/issues/94358), open). Does not fire for subagents, which do inherit `CLAUDE.md`. `disableAllHooks` in any settings level silences it. Observed: the host frames `CLAUDE.md` as overriding default behavior; hook output gets no such framing. |
+| Codex | `SessionStart` `additionalContext` | About 2,500 tokens by default. Skipped in `codex exec` without a bypass flag ([openai/codex#46210](https://github.com/openai/codex/issues/46210), open). A project `.codex/config.toml` can set `features.hooks = false`, while `AGENTS.md` has no such switch. Its output fills the TUI; Engram moved off this hook for that reason. |
+| Grok Build | None | Bundled hook documentation: `SessionStart` stdout is ignored. |
+| OpenCode | None | Requested and closed three times ([anomalyco/opencode#5409](https://github.com/anomalyco/opencode/issues/5409), not planned). |
+| Pi | Extension `before_agent_start` | Can inject; no documented size limit. |
+
+The reference projects agree. `optional reference project` injects only a ~3 KB bootstrap by hook, removed its Codex hook as worse UX, and never edits the user's global file. `optional reference project` uses a marker block and thinned it (`75c6b2c7`). `optional reference project` injects full rules only because they are 2.6–6.6 KB. The legacy Hive never injected rule text by hook: forcing a reference into the user turn, a stronger channel than any hook, did not improve compliance (legacy `_support/docs/methodology-bibliography.md:1323`).
+
+A hook fits a small payload, conditional injection by session source or project, or re-injection after compaction. The lever for density is a thinner always-on block that keeps gates in place and moves procedure to skills. Rules that must always hold stay in the block, because router and reference delivery reached the model in only about 45–70% of measured sessions.
+
+Coexistence with user rules: the block is appended after the user's content, and the markers do not set priority. Precedence between the block and user-authored text in the same file is undeclared. Grok Build gives later text precedence, so there the block effectively wins over the user's earlier rules. Hook delivery would leave the user's file untouched, but each host would order the text differently and could silently disable it.
+
 ## Installation and update contract
 
 1. Resolve explicit destination and scope; detect existing files, symbolic links, and shared resources before writing. Do not inadvertently replace a symbolic link.
