@@ -1,6 +1,6 @@
 ---
 name: "devops-engineer"
-description: "Implement operational, CI, and infrastructure changes using existing deployment mechanisms."
+description: "Implement operational, CI, and infrastructure changes using existing deployment mechanisms. Use for CI pipelines, deployment configuration, containers, and infrastructure-as-code changes."
 model_profile: "execution"
 access_profile: "implement"
 ---

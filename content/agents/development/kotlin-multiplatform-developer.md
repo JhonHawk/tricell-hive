@@ -1,6 +1,6 @@
 ---
 name: "kotlin-multiplatform-developer"
-description: "Implement Kotlin Multiplatform changes across the project’s supported targets."
+description: "Implement Kotlin Multiplatform changes across the project’s supported targets. Use for shared or platform-specific Kotlin Multiplatform code."
 model_profile: "execution"
 access_profile: "implement"
 ---

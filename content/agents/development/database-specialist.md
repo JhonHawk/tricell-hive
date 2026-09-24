@@ -1,6 +1,6 @@
 ---
 name: "database-specialist"
-description: "Design and implement database changes based on data integrity and observed access patterns."
+description: "Design and implement database changes based on data integrity and observed access patterns. Use for schema, query, index, migration, or backfill work where stored data must stay correct."
 model_profile: "reasoning"
 access_profile: "implement"
 ---

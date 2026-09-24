@@ -1,6 +1,6 @@
 ---
 name: "cloud-architect"
-description: "Design cloud infrastructure against workload, reliability, security, cost, and operational constraints."
+description: "Design cloud infrastructure against workload, reliability, security, cost, and operational constraints. Use to choose or review cloud infrastructure, such as compute, networking, storage, and managed services, with their cost and failure tradeoffs."
 model_profile: "inherit"
 access_profile: "implement"
 ---

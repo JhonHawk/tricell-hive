@@ -1,6 +1,6 @@
 ---
 name: "review-ux"
-description: "Review user experience against real tasks, rendered behavior, and accessibility."
+description: "Review user experience against real tasks, rendered behavior, and accessibility. Use for the independent review of any change with a rendered UI effect before reporting it complete."
 model_profile: "execution"
 access_profile: "observe"
 claude_effort: "high"

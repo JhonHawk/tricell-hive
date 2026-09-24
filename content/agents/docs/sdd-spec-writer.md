@@ -1,6 +1,6 @@
 ---
 name: "sdd-spec-writer"
-description: "Write source-backed specifications and documentation for an agreed scope."
+description: "Write source-backed specifications and documentation for an agreed scope. Use to draft or update requirement specs, change records, or technical documentation from verified sources."
 model_profile: "execution"
 access_profile: "implement"
 ---

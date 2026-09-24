@@ -1,6 +1,6 @@
 ---
 name: "review-code"
-description: "Review code changes for concrete correctness, compatibility, and maintainability defects."
+description: "Review code changes for concrete correctness, compatibility, and maintainability defects. Use for an independent read-only review of a diff or pull request before merge."
 model_profile: "reasoning"
 access_profile: "observe"
 ---

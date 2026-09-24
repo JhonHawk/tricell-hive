@@ -1,6 +1,6 @@
 ---
 name: "sdd-explore"
-description: "Investigate a bounded technical question or current project and delivery state."
+description: "Investigate a bounded technical question or current project and delivery state. Use for delegated read-only research into code, conflicting sources, or project and delivery state, instead of a host's built-in explorer."
 model_profile: "execution"
 access_profile: "observe"
 claude_effort: "high"

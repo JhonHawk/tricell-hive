@@ -1,6 +1,6 @@
 ---
 name: "sdd-verify"
-description: "Independently verify implemented behavior and report evidence without fixing source."
+description: "Independently verify implemented behavior and report evidence without fixing source. Use after implementation for an independent check of acceptance criteria, including in-vivo runs, separate from the implementer."
 model_profile: "execution"
 access_profile: "verify"
 claude_effort: "high"

@@ -1,6 +1,6 @@
 ---
 name: "performance-engineer"
-description: "Investigate and improve performance using reproducible measurements."
+description: "Investigate and improve performance using reproducible measurements. Use when something is slow or resource-heavy and the fix needs profiling and before-and-after measurements."
 model_profile: "reasoning"
 access_profile: "implement"
 ---

@@ -1,6 +1,6 @@
 ---
 name: "review-refuter"
-description: "Challenge a specific claim or proposed finding with counterevidence."
+description: "Challenge a specific claim or proposed finding with counterevidence. Use to test whether a reported finding or conclusion holds before acting on it."
 model_profile: "inherit"
 access_profile: "observe"
 ---
