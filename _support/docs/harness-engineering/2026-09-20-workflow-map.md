@@ -110,6 +110,8 @@ Ubicación actual: `/path/to/reference-volume/dev-resources/reference/`. El usua
 | optional reference project | `5bf4e78011075bcfc0dc295f0724994cd123ee71` | 8.5 MB |
 | optional reference project | `cac56e1ebd3c279aa9153616cfeac7b174ab90f9` | 284 KB |
 | optional reference project | `e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156` | 3.5 MB |
+| optional reference project | `c55ee46073ed923f86ce59a5eb3b6d895095d1b7` (clonado 2026-09-24 desde `optional reference project`; aún no inspeccionado) | 3.2 MB |
+| optional reference project | `e0881d2de397d5e9761d7b35ff5017d8f5ebf69b` (`github.com/pbakaus/optional reference project`; aún no inspeccionado). Solo se consulta para temas de UI/UX | — |
 
 **Decisión aplicada:** referencias externas juntas en el volumen de recursos; Hive en desarrollo permanece en su workspace habitual y el clon de `master` sigue en `dev-resources/tricell-hive-master`. Se retiró el directorio original después de verificar 3,505 entradas de archivos/enlaces por contenido, permisos de archivo y destino de enlaces; los archivos se compararon con SHA-256. No se dejó una segunda copia ni un enlace de compatibilidad.
 
