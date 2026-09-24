@@ -151,6 +151,6 @@ Create only the folders and records the work needs. One work item shares its ide
 
 ### Retention and cleanup
 
-- At task close, remove only reproducible temporary files created by this task that are no longer needed. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
+- At task close, before the completion report and without waiting to be asked, remove only reproducible temporary files created by this task that are no longer needed, stop the processes it started, and apply the post-merge branch cleanup when it merged. The report states under a cleanup label what was removed and what was kept, and why. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
 - Retain necessary evidence, including justified binaries; only curated, shareable material is eligible for Git. Keep secrets, raw dumps, and unnecessary reproducible output out of Git. State availability limits for private evidence. Local retention is not versioning, and eligibility for Git is not authorization to commit or push.
 - For requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving, use the `workspace-conventions` skill. Routine placement, resuming work, and cleanup of this task's own disposable temporaries do not require it.
