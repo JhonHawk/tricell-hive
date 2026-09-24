@@ -36,6 +36,8 @@ Apply the shared authorization rule before substantial gates. Use existing proje
 
 Large integration suites, load/soak, hardware exercises and external-service scenarios need scope and effect assessment, regardless of whether their command starts locally. Their phase follows the required environment and artifact, not a universal final-stage checklist. For authorized re-review, focus on affected changes and invalidate previous evidence when relevant inputs change; do not assume unlimited rounds or a broader mechanism are covered.
 
+When the selected mechanism is `review-code`, or any review that does not verify its own findings, send each P0 or P1 finding, and any finding that would block the merge, to a `review-refuter` child before acting on it. Fix confirmed and plausible findings under the normal rules, drop refuted ones with the refuter's evidence, and report both. Native reviews that already verify each finding, such as Claude Code's `/code-review` at medium effort or above, need no second pass.
+
 A technical verdict does not authorize delivery. A required gate declined or unavailable remains an unmet transition condition; an optional gate may be deferred explicitly. Interpret actual findings and terminal status rather than treating absent comments, a queued run, or a non-failing check as approval.
 
 ## Runtime and UI gates

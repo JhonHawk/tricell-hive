@@ -13,6 +13,6 @@ access_profile: "observe"
 
 3. Use focused checks only after inspecting their effects; do not mutate live state merely to prove a point.
 
-4. Classify the result as confirmed, refuted, plausible, or unverifiable, with evidence and remaining uncertainty. Do not silently fix the issue under review.
+4. Classify the result as confirmed, refuted, plausible, or unverifiable, with evidence and remaining uncertainty. Refute only what the code shows false: the claim is factually wrong, impossible given types or invariants, already handled, or only a matter of style. A realistic state that is rare but reachable, such as a race or a boundary value, keeps a finding plausible; being hard to trigger is not a refutation. Do not silently fix the issue under review.
 
 Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
