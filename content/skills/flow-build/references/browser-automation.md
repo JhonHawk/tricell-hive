@@ -5,12 +5,12 @@ Read before driving a browser for UI review, in-vivo verification, or diagnosis.
 ## Select the tool
 
 - Default to the `agent-browser` CLI through the shell when it is installed. Its `snapshot` and `read` output is smaller than MCP browser snapshots, a stable flow can be chained in one command, and large output can be redirected to a file and read selectively. It covers navigation, forms, `console`, `errors`, filtered `network requests`, `eval`, screenshots, and viewport and color-scheme emulation.
-- Use another browser tool only when the user explicitly asks for it, and a delegated agent uses only the tool its brief assigns; even listing an MCP server's pages launches its browser. When a check needs what the CLI lacks, ask: Chrome DevTools MCP provides Lighthouse audits, performance traces and insights, heap snapshots, and an independent control when `agent-browser` itself is suspect; Playwright MCP is the fallback when neither is installed.
+- Use another browser tool only when the user explicitly asks for it or the plan assigns it for a capability the CLI lacks, and then inside the child that owns that check; a delegated agent uses only the tool its brief assigns; even listing an MCP server's pages launches its browser. When a check needs what the CLI lacks, ask: Chrome DevTools MCP provides Lighthouse audits, performance traces and insights, heap snapshots, and an independent control when `agent-browser` itself is suspect; Playwright MCP is the fallback when neither is installed.
 - An installed MCP server is not a reason to prefer it. Report which tool drove each check.
 
 ## Delegate the flow
 
-Captures and accessibility trees entering the main thread stay in its context for the rest of the session. Delegate a flow that takes screenshots for visual judgment, takes snapshots, or chains several interactions to the child that owns the judgment, normally `review-ux` or `sdd-verify`. Keep bounded text checks inline: `read`, `console`, a filtered network request, or a one-off `eval`. When the main thread must see a render, read one image from a file rather than accumulating a flow's captures. Inside a child, capture as needed.
+Captures and accessibility trees entering the main thread stay in its context for the rest of the session. Delegate a flow that takes screenshots for visual judgment, takes snapshots, or chains three or more interactions to the child that owns the judgment, normally `review-ux` or `sdd-verify`. Keep bounded text checks inline: `read`, `console`, a filtered network request, or a one-off `eval`. When the main thread must see a render, read one image from a file rather than accumulating a flow's captures. Inside a child, capture as needed.
 
 ## Session floor
 
