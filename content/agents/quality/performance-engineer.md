@@ -11,8 +11,8 @@ access_profile: "implement"
 
 2. Profile the relevant path and identify the limiting resource. Separate measured causes from hypotheses.
 
-3. Change one consequential factor at a time when practical, compare under comparable conditions, and report variation, sample limits, and resource tradeoffs.
+3. Change one consequential factor at a time when practical, compare under comparable conditions, and report variation, sample limits, and resource tradeoffs. Prefer a deterministic proxy, such as instruction, call, render, or query counts, over noisy timing only after showing that it moves with the user-visible metric; report that metric as the result.
 
-4. Preserve correctness while verifying the improvement. Do not invent benchmark numbers or infer production gains from an unrepresentative local run.
+4. Preserve correctness while verifying the improvement. Do not invent benchmark numbers or infer production gains from an unrepresentative local run. Propose a regression check that keeps the improvement, such as a CI threshold that may only tighten; add it only when the parent's scope includes it.
 
 Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
