@@ -117,25 +117,13 @@ For consequential delegated work, retain the requested role/path, native or gene
 
 Planned work and requirements live in the `openspec` directory that the `Specs` setting names. Without a specs repository it is `_support/openspec` in the repository; with one, `<specs-repo>/openspec`. It is always versioned: never place it in a workspace outside Git or in an ignored path. When several repositories share a project without a specs repository, ask before the first change whether to create one (recommended when they share capabilities) or designate one repository, and point every `Specs` at that directory.
 
-```text
-openspec/
-├── project.md                          # Project ledger: phase, open or cross-cutting decisions, blockers, pointers
-├── specs/<capability>/spec.md          # Current requirements per capability, unless a product map holds them
-└── changes/
-    ├── <change-id>/                    # One active planned change
-    │   ├── proposal.md                 #   Why, scope, acceptance, issues, delivery decisions, status
-    │   ├── design.md                   #   Verified context and design decisions, when needed
-    │   ├── tasks.md                    #   Tasks, verification, progress, next step
-    │   ├── research.md                 #   Retained investigation for this change, when authorized
-    │   └── specs/<capability>/spec.md  #   Requirement deltas
-    └── archive/YYYY-MM-DD-<change-id>/ # Closed changes
-```
+It holds `project.md` (the project ledger), `specs/<capability>/spec.md` (current requirements per capability), `changes/<change-id>/` (one active planned change with its requirement deltas), and `changes/archive/YYYY-MM-DD-<change-id>/` (closed changes).
 
 - Every retained plan is a change folder, with or without requirement deltas; small understood edits need none. Name `<change-id>` in English kebab-case, starting with the tracker key when one exists, such as `ark-642-portal-status-contrast`. The `flow-plan` skill carries the file formats and the closing procedure.
-- A project that keeps a product map (`product/README.md` with `product/<module>/<view>.md` pages of business rules in force, beside the `openspec` directory) uses it as its current-requirements home instead of `specs/`. Keep its location and business voice, because documentation sites and manuals reuse it; changes carry deltas for the affected views, and closure merges them into those pages.
-- When a change is integrated into its base branch, merge its deltas into `specs/` or the product map, then move its folder to `changes/archive/` with `git mv`. Requirements in `specs/` describe current behavior; never leave a change's deltas unmerged after it closes.
+- A project that keeps a product map (`product/README.md` with `product/<module>/<view>.md` pages of business rules in force, beside the `openspec` directory) uses it as its current-requirements home instead of `specs/`.
+- When a change is integrated into its base branch, merge its deltas into the current-requirements home and archive its folder by that closing procedure. Requirements there describe current behavior; never leave a change's deltas unmerged after it closes.
 - Keep in `project.md` only what no other source states. Ticket state comes from the tracker, delivery state from Git, and the handoff from the active change. Local or sensitive pointers stay in `_support/README.md`. Updating `project.md` or `openspec/` is a versioned change delivered under that repository's Git rules.
-- Existing `sessions/` and ledgers stay as history; continuing work keeps its established home, and migration needs explicit authorization. Existing documents that still describe current behavior, such as epics that mix current rules with delivery history, remain authoritative for areas no capability spec or product map covers yet. The first change that touches such an area moves its current rules into the current-requirements home as part of its deltas, and from then on the old document is history for that area.
+- Existing `sessions/` and ledgers stay as history; continuing work keeps its established home, and migration needs explicit authorization. Existing documents that still describe current behavior, such as epics that mix current rules with delivery history, remain authoritative for areas no capability spec or product map covers yet, until a change moves those rules into the current-requirements home.
 
 ## Support folder (`_support`)
 
@@ -144,25 +132,14 @@ Application code, permanent scripts, and configuration stay in their established
 - Resolve scope first. One repository uses `<repo>/_support/`; work spanning repositories uses the declared `<workspace>/_support/`; a monorepo uses one at its root, with application grouping inside it. Do not infer a workspace from an arbitrary parent folder; resolve ambiguity before writing shared artifacts.
 - Respect an existing documented destination, including a documentation repository. Do not create a specs repository or initialize Git automatically.
 
-```text
-_support/
-├── docs/<topic>/                  # Living knowledge, conventions, durable decisions
-├── sessions/YYYY-MM-DD-<work>/    # Records not tied to a change
-│   ├── <work>.research.md         #   Retained investigation
-│   └── <work>.report.md           #   Separate execution or presentation deliverable
-├── workspace/YYYY-MM-DD-<work>/   # Disposable scratch, ignored by Git
-│   └── images/                    #   UI review images pending human review
-└── evidence/YYYY-MM-DD-<work>/    # Selected evidence linked from records
-```
-
-The tree is vocabulary, not a scaffold: create only the folders and records the work needs. One work item shares its identifier: `<work>` is the `<change-id>` when a change exists.
-
 ### Folder contents
 
-- `docs/`: current knowledge updated in place; living documents need no date.
-- `sessions/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root; create separate records only when they serve a distinct need.
-- `workspace/`: only reproducible, disposable material whose loss destroys nothing that exists elsewhere: temporary files, shell helpers (including ones deleted within the same command), intermediate output, and throwaway checkouts. Give `mktemp` and similar commands an explicit path there; the repository root and the operating system's default temporary directory are not this task's scratch home. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
-- `evidence/`: the selected subset that substantiates results, linked from the report.
+Create only the folders and records the work needs. One work item shares its identifier: `<work>` is the `<change-id>` when a change exists.
+
+- `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date.
+- `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root; create separate records only when they serve a distinct need.
+- `workspace/YYYY-MM-DD-<work>/`: scratch ignored by Git, holding only reproducible, disposable material whose loss destroys nothing that exists elsewhere: temporary files, shell helpers (including ones deleted within the same command), intermediate output, and throwaway checkouts. Give `mktemp` and similar commands an explicit path there; the repository root and the operating system's default temporary directory are not this task's scratch home. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
+- `evidence/YYYY-MM-DD-<work>/`: the selected subset that substantiates results, linked from the report.
 - UI review images go in `workspace/YYYY-MM-DD-<work>/images/` and are linked from the handoff. Keep them during pending human review; at close delete the task-created images unless the user explicitly selected them for retention, and remove or update their report links. Keep them out of commits; retaining an image does not authorize publication.
 
 ### Naming and dates
