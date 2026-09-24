@@ -8,6 +8,7 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 - Put an activity's essential procedure in its `SKILL.md`. Link situational references directly from that file and state the condition that requires each read. A listed skill or reference is not proof it was selected, read, or followed.
 - When authoring, moving, or removing distributed skills, agents, or their resources, read `_support/docs/architecture/instruction-resources.md` for canonical references, dependency checks, and runtime resolution.
 - In distributed content, name the capability rather than a host's tool, such as "the host's native question tool", and give the fallback when it may be absent: tool names change across releases and modes. Keep a proper name only where the behavior itself differs by host, such as the native role selection hints.
+- State a rule's criterion with its scope explicit, since current models apply instructions literally. Add the reason when it marks where the rule applies, and use examples only to disambiguate a boundary: a lone example reads as the rule's whole scope.
 - Give each rule one canonical home. Avoid duplicate routers, fallback chains, generated copies, hooks, or adapters without a measured need.
 - Before changing host-specific behavior, check current official documentation and the installed CLI version. Mark documentary claims, runtime observations, and inferences separately.
 
