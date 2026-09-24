@@ -10,7 +10,7 @@ Apply these rules together with the project's own authoring conventions (its gui
 - **HA-SK-04 — Portable frontmatter.** A skill meant for several hosts uses only portable fields (`name`, `description`, and, where the project allows, `license`, `compatibility`, `metadata`, `allowed-tools`). Host-only fields break packaging or are ignored elsewhere.
 - **HA-SK-05 — Placement.** Knowledge needed in most sessions belongs in the always-loaded index, because skills are pulled on demand and may not trigger. Skills carry situational procedure.
 - **HA-SK-06 — Resources resolve.** Every linked resource resolves relative to the skill directory. No personal installation paths or machine-specific absolute paths.
-- **HA-SK-07 — Consequential effects.** A skill whose procedure publishes, deploys, pushes, merges, or deletes states the authorization it requires before those steps.
+- **HA-SK-07 — Consequential effects.** A skill whose procedure takes an effect that needs explicit authorization (any commit, push, merge, publication, deployment, deletion, or global-configuration change) states that authorization before those steps.
 
 ## Agents
 

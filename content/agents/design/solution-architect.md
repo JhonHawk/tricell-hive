@@ -1,6 +1,6 @@
 ---
 name: "solution-architect"
-description: "Design system boundaries and contracts, including specifications for proposed changes. Use when a change crosses services or applications and needs boundaries, interfaces, or a design decision before implementation."
+description: "Design system boundaries and contracts, including specifications for proposed changes. Use when a change needs boundaries, interfaces, or a design decision before implementation, such as one crossing services or changing a public or persisted contract."
 model_profile: "inherit"
 access_profile: "implement"
 ---

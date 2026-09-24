@@ -13,7 +13,7 @@ Offer these modes with their concrete effects, marking an unavailable route with
 
 For interactive and automatic delivery, the agent owns merge into the agreed integration base once CI is green, conflicts are resolved and required review findings are addressed or refuted with evidence under project policy. Pending or failed gates do not permit merge. A human PR-review route hands the open PR to that reviewer and leaves merge to them; state this exception in the chosen delivery contract. An explicit PR-without-merge restriction also overrides the mode. Production or other environment promotion remains separately scoped. Do not retroactively add merge to a past answer whose presented option did not clearly include it.
 
-When dedicated implementation code review is relevant, resolve its mechanism and boundary in the same exchange. Build the question in the session language:
+Resolve the implementation code-review mechanism and boundary in the same exchange as the delivery mode, for every mode including hold, so delivery does not ask again. Build the question in the session language:
 
 - Name the actual current harness in the native option: for example, “Run Codex's native code review” in Codex or “Run Grok's native code review” in Grok. Verify the capability without launching it; if unavailable or unverified, state that limitation rather than inventing a command or offering it as executable.
 - Offer other named mechanisms only when mentioned for code review in an applicable project/workspace `AGENTS.md`; cite that source. Installed tools, memory and examples in Hive do not add options. Check availability separately from the declaration. Do not invent combinations unless that guidance names them.

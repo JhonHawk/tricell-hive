@@ -29,9 +29,9 @@ Establish before reading deeply:
 
 | Outcome | Use when |
 | --- | --- |
-| `delete` | Covered by the project's own layers or a deterministic mechanism (HA-IF-13), or a functionless note such as editing advice addressed to maintainers inside a loaded file. |
+| `delete` | Covered by the project's own layers or a deterministic mechanism (HA-IF-13), or a note that changes nothing the agent does, such as maintainer editing advice or change history. |
 | `discoverable` | The repository already states it; removing the line changes nothing the agent would do. |
-| `stale` | A factual claim that does not match reality: a path, a command, or a statement about what a host loads (HA-HI-02). Rewrite per host when hosts differ. |
+| `stale` | A factual claim that does not match reality, such as a path, command, version, or statement about what a host loads (HA-HI-02). Rewrite per host when hosts differ. |
 | `demote` | True and useful but situational: move it to a document or skill, leaving a one-line pointer with its read condition. |
 | `soften` | Only for a prohibition without a nameable failure mode: rewrite as the criterion it proxied. |
 | `keep` | Project-specific and a gotcha, or a required import or pointer. |

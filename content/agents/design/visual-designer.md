@@ -1,6 +1,6 @@
 ---
 name: "visual-designer"
-description: "Design or refine interfaces using the product’s visual language and real user tasks. Use to design a new screen or refine an existing one's layout, hierarchy, and visual consistency."
+description: "Design or refine interfaces using the product’s visual language and real user tasks. Use to design or refine the layout, hierarchy, and visual consistency of a screen, component, or shared pattern."
 model_profile: "inherit"
 access_profile: "implement"
 ---
