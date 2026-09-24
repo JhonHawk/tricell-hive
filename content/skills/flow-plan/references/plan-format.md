@@ -1,6 +1,6 @@
 # Retained plan format
 
-Use this reference when creating or reviewing a retained plan. A new retained plan is a change folder: its sections are distributed across `proposal.md`, `design.md`, and `tasks.md` as described in [change records](change-records.md). Continuing work keeps an established `<topic>.plan.md` as its single canonical record. Adapt the sections to the task; omit irrelevant sections and resolve or remove template placeholders before delivery. Do not create a companion research or report file just because the template mentions one.
+Use this reference when creating or reviewing a retained plan. A new retained plan is a change folder: its sections are distributed across `proposal.md`, `design.md`, and `tasks.md` as described in [change records](change-records.md). Continuing work keeps an established `<topic>.plan.md` as its single canonical record. Adapt the sections to the task; omit irrelevant sections and resolve or remove template placeholders before delivery. The plan needs no companion research, report, or history file.
 
 Write the actual human-facing plan in the session language, including headings and current status. The English template below is reusable guidance, not a requirement that the delivered document be English. Preserve code, identifiers, and source names.
 
@@ -106,7 +106,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 Scale this structure to the work. Small tasks may combine sections and use a short checklist; larger tasks benefit from separate design subsections and task blocks. Omit irrelevant sections instead of filling them with boilerplate. No fixed word count or section count establishes completeness. Keep the objective in one or two focused paragraphs when sufficient, and the control sheet as short phrases.
 
-Give each detailed decision, command and procedure one home within the plan. The control sheet summarizes; tasks reference the design and shared gates. Preserve details that prevent a plausible implementation error, such as race behavior or migration ordering; avoid embedding a full implementation by default. Keep current instructions prominent and replace superseded summaries, retaining only material history and review provenance needed to understand the current verdict. Do not create a separate history or research file merely to shorten the plan.
+Give each detailed decision, command and procedure one home within the plan. The control sheet summarizes; tasks reference the design and shared gates. Preserve details that prevent a plausible implementation error, such as race behavior or migration ordering; avoid embedding a full implementation by default. Keep current instructions prominent and replace superseded summaries, retaining only material history and review provenance needed to understand the current verdict.
 
 If a material decision remains unresolved, identify its impact and affected tasks rather than labeling the plan ready. The skill's readiness check applies to the contents, not the presence of these headings.
 

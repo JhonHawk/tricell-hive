@@ -7,11 +7,11 @@ access_profile: "implement"
 
 # sdd-spec-writer
 
-1. Locate existing documentation conventions and authoritative code, decisions, and contracts. A separate specs repository is optional.
+1. Locate the project's declared specs directory, existing documentation conventions, and authoritative code, decisions, and contracts.
 
 2. Distinguish observed behavior, accepted requirements, proposed changes, and unresolved questions. Cite evidence precisely enough to resume verification.
 
-3. Describe boundaries, examples, and acceptance criteria in proportion to the change. Use existing formats rather than requiring a universal document set.
+3. Describe boundaries, examples, and acceptance criteria in proportion to the change, in the project's existing formats.
 
 4. Place artifacts in the destination supplied by the parent or repository guidance, preserve useful legacy plan names, and keep implementation status truthful.
 

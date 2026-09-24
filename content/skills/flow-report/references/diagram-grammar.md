@@ -1,11 +1,8 @@
 # Diagram Grammar — inline SVG diagrams inside reports
 
-> **Upstream source:** adapted from [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)
-> (v2.3.2, MIT). Re-skinned onto the flow-report baseline tokens (`baseline.html`) and trimmed
-> to report-relevant types. **Re-sync point:** to pull upstream updates, re-read that repo's
-> `skills/diagram-design/SKILL.md` §4–§9 and its `references/type-*.md`, then re-map onto this
-> file. Deliberately NOT adopted: Mermaid/draw.io import pipelines, animation, PNG/SVG export,
-> brand onboarding, and long-tail types (medallion, radar, venn, DP matrices, loop, org chart).
+> Adapted from [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)
+> (v2.3.2, MIT) and re-skinned onto the flow-report baseline tokens (`baseline.html`). It covers
+> static inline SVG only: no Mermaid/draw.io import, animation, or PNG/SVG export.
 
 Diagrams follow the report's own design system — never the upstream default skin, never
 webfonts. Everything is self-contained: inline SVG, system font stacks, no external requests.
@@ -91,8 +88,8 @@ focal node alone. A grid of filled boxes flattens the hierarchy the stroke was c
 | **External / Cloud** | `d-ext` | no fill, faint dashed stroke |
 | **Optional / Async** | `d-ext` | same, on the connector as well |
 
-A node that must sit on top of a connector gets a `d-mask` rect underneath it — that is what
-the mask is for, now that nodes are unfilled.
+A node that sits on top of a connector gets a `d-mask` rect underneath it, because an unfilled
+node would otherwise show the connector through its interior.
 
 ### Typography (system stacks only — no webfonts)
 

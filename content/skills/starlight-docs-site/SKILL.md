@@ -1,6 +1,6 @@
 ---
 name: starlight-docs-site
-description: Scaffold, extend, or audit a Starlight documentation site when documentation is meant to live as a navigable site.
+description: Scaffold, extend, or audit a Starlight documentation site. Use when documentation should live as a maintained, navigable, searchable site, such as a user manual or a spec site; not for a single report or explainer, which belongs to flow-report.
 ---
 
 # Starlight documentation sites
