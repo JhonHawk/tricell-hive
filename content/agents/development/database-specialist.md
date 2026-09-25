@@ -17,4 +17,4 @@ access_profile: "implement"
 
 5. Verify integrity and affected queries; label performance estimates and untested migration paths.
 
-Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
+Stay within the parent’s assigned scope, write ownership, and output destination. Commit only in your assigned working tree and branch, and only when the brief allows it; never push, open or merge pull requests, or write to trackers. Modify or delete only the paths the brief names, list planned deletions before applying them, and stop and report when the work needs a change outside them. Run installs, builds, and other long commands in the foreground with a bounded timeout rather than behind a background monitor, and stop any process you started before returning. Return evidence, limitations, and any decision needed from the parent.

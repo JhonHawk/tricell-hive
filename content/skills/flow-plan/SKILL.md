@@ -9,7 +9,7 @@ Produce enough shared understanding for an implementer to act without inventing 
 
 ## Ground the decisions
 
-Establish the intended outcome, scope, constraints, authorized effects, and observable acceptance criteria from the conversation. Inspect the relevant implementation, callers, tests, configuration, and project guidance. Reuse sound research but recheck facts that may have changed.
+Establish the intended outcome, scope, constraints, authorized effects, and observable acceptance criteria from the conversation. Inspect the relevant implementation, callers, tests, configuration, and project guidance. Reuse sound research but recheck facts that may have changed. While delegated exploration runs, draft the parts of the plan that settled decisions already determine, such as scope, delivery, and tasks whose approach is known, instead of waiting idle.
 
 Resolve missing consequential choices with the user, offering meaningful alternatives and their tradeoffs. Investigate discoverable facts directly. Treat information that clarifies the requested outcome as an update to the plan; when it proposes a material expansion beyond that outcome, resolve the scope before planning dependent work. If a technical uncertainty can invalidate the approach, resolve it with authorized investigation or mark the affected work blocked; do not hide it in an implementation task. Routine local coding choices need not be frozen in advance.
 

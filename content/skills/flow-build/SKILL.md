@@ -45,7 +45,7 @@ Before writing a retained supporting artifact, resolve its destination through t
 
 For any multi-step work, with or without a retained plan, when the host exposes a native task list, list the tasks or tickets in it at the start and mark each one in progress when it starts and completed when it completes, including tickets added during the session, so the user sees progress. A retained plan's record, when it exists, still governs.
 
-Keep task-started processes identifiable. Silence alone does not mean a command is hung: inspect available liveness and progress signals before terminating it. Use the host’s supported long-running execution controls when needed and continue independent work. Do not stop unrelated processes.
+Keep task-started processes identifiable. Before telling the user that a child is still in progress after a silence longer than its expected duration, check its liveness through its tool activity or processes; when a child returns, confirm it left no running processes. Silence alone does not mean a command is hung: inspect available liveness and progress signals before terminating it. Use the host’s supported long-running execution controls when needed and continue independent work. Do not stop unrelated processes.
 
 ## Verify and close
 
