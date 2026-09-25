@@ -16,9 +16,9 @@ Group entries by repository, in the order they can be applied. Each entry has:
 
 | Field | Content |
 | --- | --- |
-| Operation | `rename`, `move`, `archive`, `create`, `keep`, `manual`, or `ask` |
+| Operation | `rename`, `move`, `archive`, `create`, `insert`, `keep`, `manual`, or `ask` |
 | Source → destination | Repository-relative paths |
-| Command | The exact `git mv` or `mkdir` for mechanical operations; none for `manual` or `ask` |
+| Command | The exact `git mv` or `mkdir` for mechanical operations; for `insert`, the exact line and the line it follows; none for `manual` or `ask` |
 | Reason | The evidence that places it there |
 | Links affected | Files that reference the source path |
 | Risk | Collisions, links to rewrite, open work using the path |
@@ -26,6 +26,7 @@ Group entries by repository, in the order they can be applied. Each entry has:
 Rules for proposing entries:
 
 - Propose only mechanical moves with `git mv`; content that must be rewritten or split is `manual`.
+- A repository used with Cursor CLI that lacks the HA-IF-18 pointer gets an `insert` entry: the canonical line into its root `AGENTS.md`, after the file's first paragraph and outside `## Hive`. `insert` is the only content edit a manifest carries; any other added or changed text is `manual`.
 - Leave history in place by default: closed sessions and epics become `keep` or `archive` under the project's legacy archive, never merged into current specs.
 - Never propose moving active work mid-change; mark it `ask`.
 - Mark anything sensitive, such as secrets or credentials, `keep` with the reason, and never include its contents.
