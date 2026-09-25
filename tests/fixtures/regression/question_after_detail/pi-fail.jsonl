@@ -1,0 +1,3 @@
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"q1","name":"ask_user_question","arguments":{}}]}}
+{"type":"tool_execution_start","toolName":"ask_user_question","toolCallId":"q1","args":{"question":"¿Continuo con el siguiente lote?"}}
+{"type":"tool_execution_end","toolCallId":"q1","result":{"content":[{"type":"text","text":"esperando respuesta"}]},"isError":false}

@@ -1,0 +1,2 @@
+{"type":"user","message":{"content":[{"type":"text","text":"Texto sintético de usuario con más de cuarenta caracteres que no debe contar como detalle del asistente."}]}}
+{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","name":"AskUserQuestion","id":"q1","input":{"question":"¿Continuo?"}}]}}

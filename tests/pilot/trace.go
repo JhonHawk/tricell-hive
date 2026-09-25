@@ -21,8 +21,24 @@ type traceEvent struct {
 	Path    string `json:"path,omitempty"`
 	Command string `json:"command,omitempty"`
 	Text    string `json:"text,omitempty"`
+	// Role distinguishes assistant-authored text from other roles (Claude/Grok
+	// synthetic "user" messages, Pi's toolResult-role message_end) so a
+	// criterion can require assistant-authored detail specifically.
+	Role string `json:"role,omitempty"`
+	// Message is the key of the source message that produced this event: for
+	// Claude/Grok it is message.id (or a per-assistant-event sequence number
+	// when the id is absent), for Pi it is the index of the last observed
+	// assistant message_end. finishTool copies it from the originating call
+	// onto its tool_result so a criterion can group a message's calls and
+	// results without depending on line adjacency.
+	Message string `json:",omitempty"`
 	Success *bool  `json:"success,omitempty"`
 	Memory  bool   `json:"memory,omitempty"`
+	// Input is the tool call's full, already-unwrapped (for Grok) argument
+	// object. It is deliberately excluded from JSON: run.json/events.json
+	// never carry it, and --assess always reparses stdout.jsonl, so nothing
+	// depends on this surviving a round trip.
+	Input json.RawMessage `json:"-"`
 }
 type traceReport struct {
 	Model, ModelAtInit                        string
@@ -241,6 +257,10 @@ func toolKind(name string) string {
 		return "shell"
 	case "skill":
 		return "skill_invocation"
+	case "askuserquestion", "ask_user_question":
+		return "question"
+	case "grep":
+		return "search"
 	}
 	return "tool"
 }
@@ -294,8 +314,22 @@ func grokToolResult(v any) (string, bool) {
 func parseTrace(host string, input io.Reader) traceReport {
 	r := traceReport{Model: "not_observed", ModelAtInit: "not_observed"}
 	calls := map[string]int{}
-	addTool := func(line int, name, id string, args map[string]any) {
-		e := traceEvent{Line: line, Kind: toolKind(name), Tool: name, ID: id, Path: first(args, "file_path", "filePath", "path", "target_file", "target_directory"), Command: first(args, "command", "cmd")}
+	// assistantSeq is the per-assistant-event fallback for Claude/Grok's
+	// Message key when message.id is absent (Grok's id field is unverified).
+	assistantSeq := 0
+	// Pi has no message.id. currentPiMessage is the key of the last observed
+	// assistant message_end; piMessageIndex counts those to produce it.
+	// pendingPiToolMessage maps a not-yet-started tool call's ID (read from
+	// the message_end's own toolCall list) to that message's key, since the
+	// message_end reporting a turn's tool calls precedes their execution.
+	piMessageIndex := 0
+	currentPiMessage := ""
+	pendingPiToolMessage := map[string]string{}
+	addTool := func(line int, name, id string, args map[string]any, messageKey string) {
+		e := traceEvent{Line: line, Kind: toolKind(name), Tool: name, ID: id, Path: first(args, "file_path", "filePath", "path", "target_file", "target_directory"), Command: first(args, "command", "cmd"), Message: messageKey}
+		if encoded, err := json.Marshal(args); err == nil {
+			e.Input = json.RawMessage(encoded)
+		}
 		e.Memory = strings.Contains(strings.ToLower(name), "engram") || strings.Contains(strings.ToLower(name), "memory") || strings.HasPrefix(strings.ToLower(name), "mem_")
 		if name == "use_tool" {
 			toolName := strings.ToLower(str(args["tool_name"]))
@@ -314,16 +348,18 @@ func parseTrace(host string, input io.Reader) traceReport {
 	}
 	finishTool := func(line int, id, output string, failed bool) {
 		ok := !failed
+		msgKey := ""
 		if i, found := calls[id]; found {
 			r.Events[i].Success = &ok
+			msgKey = r.Events[i].Message
 		}
-		r.Events = append(r.Events, traceEvent{Line: line, Kind: "tool_result", ID: id, Text: output, Success: &ok})
+		r.Events = append(r.Events, traceEvent{Line: line, Kind: "tool_result", ID: id, Text: output, Success: &ok, Message: msgKey})
 		if failed && permissionDenied(output) {
 			r.PermissionDenied = true
 			r.Events = append(r.Events, traceEvent{Line: line, Kind: "permission_denied", ID: id})
 		}
 	}
-	message := func(line int, m map[string]any) {
+	message := func(line int, role, messageKey string, m map[string]any) {
 		if model := str(m["model"]); model != "" {
 			r.Model = model
 		}
@@ -341,7 +377,7 @@ func parseTrace(host string, input io.Reader) traceReport {
 				if host == "grok" {
 					name, args = grokToolCall(name, args)
 				}
-				addTool(line, name, str(c["id"]), args)
+				addTool(line, name, str(c["id"]), args, messageKey)
 			case "tool_result":
 				output, failed := textContent(c["content"]), truth(c["is_error"])
 				if host == "grok" {
@@ -351,7 +387,7 @@ func parseTrace(host string, input io.Reader) traceReport {
 				}
 				finishTool(line, str(c["tool_use_id"]), output, failed)
 			case "text":
-				r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(c["text"])})
+				r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(c["text"]), Role: role, Message: messageKey})
 			}
 		}
 	}
@@ -395,7 +431,15 @@ func parseTrace(host string, input io.Reader) traceReport {
 		switch host {
 		case "claude", "grok":
 			if typ == "assistant" || typ == "user" {
-				message(line, object(ev["message"]))
+				m := object(ev["message"])
+				key := str(m["id"])
+				if typ == "assistant" {
+					assistantSeq++
+					if key == "" {
+						key = fmt.Sprintf("assistant-%d", assistantSeq)
+					}
+				}
+				message(line, typ, key, m)
 			}
 			// Claude delivers Skill bodies as native synthetic user messages after a
 			// successful Skill invocation. A launch acknowledgment alone is not a read.
@@ -454,7 +498,7 @@ func parseTrace(host string, input io.Reader) traceReport {
 				id := str(i["id"])
 				switch str(i["type"]) {
 				case "command_execution":
-					addTool(line, "command_execution", id, i)
+					addTool(line, "command_execution", id, i, "")
 					failed := str(i["status"]) == "failed"
 					if n, ok := i["exit_code"].(float64); ok && n != 0 {
 						failed = true
@@ -471,7 +515,7 @@ func parseTrace(host string, input io.Reader) traceReport {
 						r.Events = append(r.Events, traceEvent{Line: line, Kind: kind, Tool: "file_change", ID: id, Path: str(c["path"]), Success: &ok})
 					}
 				case "mcp_tool_call":
-					addTool(line, first(i, "tool", "name"), id, object(i["arguments"]))
+					addTool(line, first(i, "tool", "name"), id, object(i["arguments"]), "")
 					finishTool(line, id, textContent(i["result"]), str(i["status"]) == "failed")
 				case "agent_message":
 					r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(i["text"])})
@@ -480,11 +524,31 @@ func parseTrace(host string, input io.Reader) traceReport {
 		case "pi":
 			switch typ {
 			case "tool_execution_start":
-				addTool(line, str(ev["toolName"]), str(ev["toolCallId"]), object(ev["args"]))
+				id := str(ev["toolCallId"])
+				addTool(line, str(ev["toolName"]), id, object(ev["args"]), pendingPiToolMessage[id])
 			case "tool_execution_end":
 				finishTool(line, str(ev["toolCallId"]), textContent(ev["result"]), truth(ev["isError"]))
 			case "message_end":
-				message(line, object(ev["message"]))
+				m := object(ev["message"])
+				role := str(m["role"])
+				// The assistant's message_end carries the tool calls it is about
+				// to make as `toolCall` content blocks (pi-ai ToolCall) before
+				// their start/end pairs are observed, so the message key is
+				// registered forward for the upcoming addTool calls to pick up.
+				if role == "assistant" {
+					piMessageIndex++
+					currentPiMessage = fmt.Sprintf("pi-%d", piMessageIndex)
+					for _, raw := range list(m["content"]) {
+						tc := object(raw)
+						if str(tc["type"]) != "toolCall" {
+							continue
+						}
+						if tid := str(tc["id"]); tid != "" {
+							pendingPiToolMessage[tid] = currentPiMessage
+						}
+					}
+				}
+				message(line, role, currentPiMessage, m)
 			case "agent_end":
 				r.TerminalSeen = true
 				for _, m := range list(ev["messages"]) {
@@ -507,7 +571,7 @@ func parseTrace(host string, input io.Reader) traceReport {
 			case "tool_use":
 				s := object(p["state"])
 				id := first(p, "callID", "id")
-				addTool(line, str(p["tool"]), id, object(s["input"]))
+				addTool(line, str(p["tool"]), id, object(s["input"]), "")
 				if status := str(s["status"]); status == "completed" || status == "error" {
 					finishTool(line, id, first(s, "output", "error"), status == "error")
 				}

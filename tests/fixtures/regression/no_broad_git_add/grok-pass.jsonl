@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"run_terminal_command","id":"c1","input":{"command":"git add apps/backoffice/example/reset-password/page.tsx apps/backoffice/example/reset-password/page.test.tsx && git status -sb"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"c1","content":"","is_error":false}]}}

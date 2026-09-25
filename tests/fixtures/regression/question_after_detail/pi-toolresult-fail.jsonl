@@ -1,0 +1,3 @@
+{"type":"message_end","message":{"role":"toolResult","content":[{"type":"text","text":"Resultado interno reenviado como texto con más de cuarenta caracteres en total."}]}}
+{"type":"tool_execution_start","toolName":"ask_user_question","toolCallId":"q1","args":{"question":"¿Continuo?"}}
+{"type":"tool_execution_end","toolCallId":"q1","result":{"content":[{"type":"text","text":"esperando respuesta"}]},"isError":false}

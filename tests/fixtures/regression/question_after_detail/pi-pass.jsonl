@@ -1,0 +1,5 @@
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"Guardo el avance en memoria y antes de continuar reviso contigo el siguiente paso pendiente del plan."},{"type":"toolCall","id":"s1","name":"mem_save","arguments":{}},{"type":"toolCall","id":"q1","name":"ask_user_question","arguments":{}}]}}
+{"type":"tool_execution_start","toolName":"mem_save","toolCallId":"s1","args":{}}
+{"type":"tool_execution_end","toolCallId":"s1","result":{"content":[{"type":"text","text":"guardado"}]},"isError":false}
+{"type":"tool_execution_start","toolName":"ask_user_question","toolCallId":"q1","args":{"question":"¿Continuo con el siguiente paso?"}}
+{"type":"tool_execution_end","toolCallId":"q1","result":{"content":[{"type":"text","text":"esperando respuesta"}]},"isError":false}

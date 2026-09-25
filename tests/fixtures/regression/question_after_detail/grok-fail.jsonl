@@ -1,0 +1,3 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"use_tool","id":"t1","input":{"tool_name":"engram__mem_session_summary","tool_input":{}}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"{\"type\":\"MCP\",\"tool_name\":\"mem_session_summary\",\"server_name\":\"engram\",\"output\":{\"OkayOutput\":\"{}\"}}","is_error":false}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"ask_user_question","id":"q1","input":{"question":"¿Sigo con el siguiente lote?"}}]}}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"strings"
@@ -197,5 +198,138 @@ func TestGrokWrappedMemoryToolResultRecognizesSemanticErrorCode(t *testing.T) {
 	}
 	if result.ID != "call-memory-error" || result.Success == nil || *result.Success || !strings.Contains(result.Text, `"error_code":"unknown_project"`) {
 		t.Fatalf("semantic error_code was not retained as a failed result: %+v", result)
+	}
+}
+
+// --- gh-31: question/search kinds, full Input, Role and Message correlation ---
+
+func TestQuestionAndSearchToolKinds(t *testing.T) {
+	trace := `{"type":"assistant","message":{"id":"msg_1","content":[{"type":"tool_use","name":"AskUserQuestion","id":"q1","input":{"question":"¿Continuar?"}},{"type":"tool_use","name":"Grep","id":"g1","input":{"path":".env","output_mode":"content"}}]}}`
+	r := parseTrace("claude", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected two tool events, got %+v", r.Events)
+	}
+	if r.Events[0].Kind != "question" {
+		t.Fatalf("AskUserQuestion was not classified as question: %+v", r.Events[0])
+	}
+	if r.Events[1].Kind != "search" {
+		t.Fatalf("Grep was not classified as search: %+v", r.Events[1])
+	}
+	if len(r.Events[0].Input) == 0 || !strings.Contains(string(r.Events[0].Input), "Continuar") {
+		t.Fatalf("full tool input was not retained: %+v", r.Events[0])
+	}
+	if len(r.Events[1].Input) == 0 || !strings.Contains(string(r.Events[1].Input), "output_mode") {
+		t.Fatalf("full tool input was not retained: %+v", r.Events[1])
+	}
+}
+
+func TestGrokQuestionAndSearchToolKinds(t *testing.T) {
+	trace := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"use_tool","id":"q1","input":{"tool_name":"ask_user_question","tool_input":{"question":"¿Seguro?"}}},{"type":"tool_use","name":"use_tool","id":"g1","input":{"tool_name":"grep","tool_input":{"path":"src"}}}]}}`
+	r := parseTrace("grok", strings.NewReader(trace))
+	if len(r.Events) != 2 || r.Events[0].Kind != "question" || r.Events[1].Kind != "search" {
+		t.Fatalf("Grok native question/search aliases lost: %+v", r.Events)
+	}
+}
+
+func TestPiQuestionKind(t *testing.T) {
+	trace := `{"type":"tool_execution_start","toolName":"ask_user_question","toolCallId":"q1","args":{"question":"¿Confirmas?"}}`
+	r := parseTrace("pi", strings.NewReader(trace))
+	if len(r.Events) != 1 || r.Events[0].Kind != "question" {
+		t.Fatalf("Pi ask_user_question was not classified as question: %+v", r.Events)
+	}
+}
+
+func TestTraceEventInputIsNeverSerialized(t *testing.T) {
+	e := traceEvent{Line: 1, Kind: "question", Input: json.RawMessage(`{"secret":"nope"}`)}
+	b, err := json.Marshal(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.ToLower(string(b)), "input") || strings.Contains(string(b), "secret") {
+		t.Fatalf("Input leaked into serialized traceEvent: %s", b)
+	}
+}
+
+func TestClaudeAssistantRoleOnTextAndSharedMessageKey(t *testing.T) {
+	trace := `{"type":"assistant","message":{"id":"msg_1","content":[{"type":"text","text":"Antes de preguntar reviso el detalle suficiente en español, con más de cuarenta caracteres."},{"type":"tool_use","name":"AskUserQuestion","id":"q1","input":{"question":"¿Continuar?"}}]}}`
+	r := parseTrace("claude", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected text and question events, got %+v", r.Events)
+	}
+	text, question := r.Events[0], r.Events[1]
+	if text.Kind != "text" || text.Role != "assistant" {
+		t.Fatalf("assistant text role not set: %+v", text)
+	}
+	if text.Message == "" || text.Message != question.Message {
+		t.Fatalf("text and question from the same line did not share a Message key: %+v %+v", text, question)
+	}
+}
+
+func TestClaudeSyntheticUserTextIsNotAssistantRole(t *testing.T) {
+	trace := `{"type":"user","message":{"content":[{"type":"text","text":"Base directory for this skill: /skills/example\n# Skill: example\nBody"}]}}`
+	r := parseTrace("claude", strings.NewReader(trace))
+	if len(r.Events) != 1 || r.Events[0].Kind != "text" {
+		t.Fatalf("expected a single text event, got %+v", r.Events)
+	}
+	if r.Events[0].Role == "assistant" {
+		t.Fatal("synthetic Claude user text was tagged as assistant role")
+	}
+}
+
+func TestGrokMessageIDFallsBackToPerAssistantSequence(t *testing.T) {
+	trace := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"read_file","id":"c1","input":{"target_file":"a.md"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"read_file","id":"c2","input":{"target_file":"b.md"}}]}}`
+	r := parseTrace("grok", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected two events, got %+v", r.Events)
+	}
+	if r.Events[0].Message == "" || r.Events[1].Message == "" || r.Events[0].Message == r.Events[1].Message {
+		t.Fatalf("Grok fallback sequence did not distinguish assistant messages: %+v", r.Events)
+	}
+}
+
+func TestToolResultInheritsCallMessage(t *testing.T) {
+	trace := `{"type":"assistant","message":{"id":"msg_1","content":[{"type":"tool_use","name":"Read","id":"c1","input":{"file_path":"a.md"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"c1","content":"hello"}]}}`
+	r := parseTrace("claude", strings.NewReader(trace))
+	call, result := r.Events[0], r.Events[1]
+	if call.Message != "msg_1" || result.Message != "msg_1" {
+		t.Fatalf("tool_result did not inherit the call's Message: call=%+v result=%+v", call, result)
+	}
+}
+
+func TestPiMessageEndAssignsMessageKeyToItsToolCallsAndDistinguishesRole(t *testing.T) {
+	// The assistant's message_end reports which tool calls it is about to
+	// make before they execute, so it precedes their start/end pair.
+	trace := `{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"Reviso el archivo antes de continuar con el resto de la tarea pendiente."},{"type":"toolCall","id":"c1","name":"read","arguments":{}}]}}
+{"type":"tool_execution_start","toolName":"read","toolCallId":"c1","args":{"path":"a.md"}}
+{"type":"tool_execution_end","toolCallId":"c1","result":{"content":[{"type":"text","text":"hello"}]},"isError":false}
+{"type":"message_end","message":{"role":"toolResult","content":[{"type":"text","text":"Resultado interno de cuarenta caracteres o más de longitud total."}]}}`
+	r := parseTrace("pi", strings.NewReader(trace))
+	var call, result, assistantText, toolResultRoleText *traceEvent
+	for i := range r.Events {
+		e := &r.Events[i]
+		switch {
+		case e.Kind == "read" && e.ID == "c1":
+			call = e
+		case e.Kind == "tool_result" && e.ID == "c1":
+			result = e
+		case e.Kind == "text" && e.Role == "assistant":
+			assistantText = e
+		case e.Kind == "text" && e.Role == "toolResult":
+			toolResultRoleText = e
+		}
+	}
+	if call == nil || result == nil || assistantText == nil || toolResultRoleText == nil {
+		t.Fatalf("expected all four events, got %+v", r.Events)
+	}
+	if call.Message == "" || call.Message != assistantText.Message {
+		t.Fatalf("Pi toolCall backfill did not assign the message_end's key to the call: call=%+v text=%+v", call, assistantText)
+	}
+	if result.Message != call.Message {
+		t.Fatalf("Pi tool_result did not inherit the backfilled call Message: call=%+v result=%+v", call, result)
+	}
+	if toolResultRoleText.Role == "assistant" {
+		t.Fatal("Pi's toolResult-role message_end text was tagged as assistant role")
 	}
 }

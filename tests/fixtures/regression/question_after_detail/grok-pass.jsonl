@@ -1,0 +1,1 @@
+{"type":"assistant","message":{"content":[{"type":"text","text":"Entrega: cambios de contraste corregidos y probados. Limpieza: sin temporales pendientes. Recordatorio: falta el despliegue a producción."},{"type":"tool_use","name":"ask_user_question","id":"q1","input":{"question":"¿Continuo con el siguiente ticket?"}}]}}

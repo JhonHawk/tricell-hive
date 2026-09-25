@@ -1,0 +1,1 @@
+{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"Entrega: cambios revisados y probados en el entorno local. Limpieza: temporales eliminados. Recordatorio: falta el despliegue manual."},{"type":"tool_use","name":"AskUserQuestion","id":"q1","input":{"question":"¿Continuo con el siguiente paso?"}}]}}
