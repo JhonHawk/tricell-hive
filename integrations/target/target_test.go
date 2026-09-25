@@ -20,8 +20,9 @@ func TestExpandHostHomesDefaultsAndSyntheticEnvironmentIsolation(t *testing.T) {
 		"pi":       filepath.Join(home, ".pi", "agent"),
 		"grok":     filepath.Join(home, ".grok"),
 		"opencode": filepath.Join(home, ".config", "opencode"),
+		"cursor":   filepath.Join(home, ".cursor"),
 	}
-	got := map[string]string{"pi": c.PiHome, "grok": c.GrokHome, "opencode": c.OpenCodeHome}
+	got := map[string]string{"pi": c.PiHome, "grok": c.GrokHome, "opencode": c.OpenCodeHome, "cursor": c.CursorHome}
 	for host, path := range want {
 		path, err = Canonical(path)
 		if err != nil {
@@ -30,6 +31,25 @@ func TestExpandHostHomesDefaultsAndSyntheticEnvironmentIsolation(t *testing.T) {
 		if got[host] != path {
 			t.Errorf("%s home = %q, want %q", host, got[host], path)
 		}
+	}
+}
+
+// Cursor documents CURSOR_CONFIG_DIR only for cli-config.json's location, not
+// for the AGENTS.md/agents/ home this adapter manages, so it must not move it.
+func TestExpandHostHomesCursorIgnoresConfigDirEnvVar(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("CURSOR_CONFIG_DIR", filepath.Join(t.TempDir(), "cursor-custom"))
+
+	c, err := ExpandHostHomes(Config{Home: home}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := Canonical(filepath.Join(home, ".cursor"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.CursorHome != want {
+		t.Fatalf("Cursor home = %q, want %q (CURSOR_CONFIG_DIR must not relocate it)", c.CursorHome, want)
 	}
 }
 
@@ -50,8 +70,9 @@ func TestExpandHostHomesUsesNativeOverrides(t *testing.T) {
 		"pi":       pi,
 		"grok":     grok,
 		"opencode": filepath.Join(xdg, "opencode"),
+		"cursor":   filepath.Join(home, ".cursor"),
 	}
-	got := map[string]string{"pi": c.PiHome, "grok": c.GrokHome, "opencode": c.OpenCodeHome}
+	got := map[string]string{"pi": c.PiHome, "grok": c.GrokHome, "opencode": c.OpenCodeHome, "cursor": c.CursorHome}
 	for host, path := range want {
 		path, err = Canonical(path)
 		if err != nil {
@@ -73,7 +94,8 @@ func TestExpandHostHomesRejectsRelativeXDGOverride(t *testing.T) {
 func TestExpandHostHomesCanonicalizesExplicitValues(t *testing.T) {
 	home := t.TempDir()
 	pi := filepath.Join(home, "..", filepath.Base(home), "pi")
-	c, err := ExpandHostHomes(Config{Home: home, PiHome: pi, GrokHome: filepath.Join(home, "grok"), OpenCodeHome: filepath.Join(home, "opencode")}, true)
+	cursor := filepath.Join(home, "..", filepath.Base(home), "cursor")
+	c, err := ExpandHostHomes(Config{Home: home, PiHome: pi, GrokHome: filepath.Join(home, "grok"), OpenCodeHome: filepath.Join(home, "opencode"), CursorHome: cursor}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,6 +105,13 @@ func TestExpandHostHomesCanonicalizesExplicitValues(t *testing.T) {
 	}
 	if c.PiHome != want {
 		t.Fatalf("Pi home = %q, want canonical %q", c.PiHome, want)
+	}
+	wantCursor, err := Canonical(filepath.Join(home, "cursor"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.CursorHome != wantCursor {
+		t.Fatalf("Cursor home = %q, want canonical %q", c.CursorHome, wantCursor)
 	}
 }
 
@@ -95,7 +124,7 @@ func TestNewHomesOmitFromLegacyConfigJSON(t *testing.T) {
 	if err := json.Unmarshal(b, &fields); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"pi_home", "grok_home", "opencode_home"} {
+	for _, key := range []string{"pi_home", "grok_home", "opencode_home", "cursor_home"} {
 		if _, ok := fields[key]; ok {
 			t.Errorf("legacy config unexpectedly contains %q", key)
 		}

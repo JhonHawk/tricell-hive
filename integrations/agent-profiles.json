@@ -20,6 +20,10 @@
     "opencode": {
       "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "reasoning": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
+    },
+    "cursor": {
+      "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}},
+      "access": {"observe": {"readonly": true}, "implement": {}, "verify": {}}
     }
   }
 }

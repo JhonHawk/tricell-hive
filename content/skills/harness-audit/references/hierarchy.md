@@ -36,6 +36,8 @@ Checked on Claude Code 2.1.280 and Codex 0.155.1. Reconfirm when the installed v
 
 Grok Build 1.0.38, observed in two sessions on 2026-09-22 and not documented: the startup set held `<Claude home>/CLAUDE.md` plus the entry directory's `AGENTS.md` and `CLAUDE.md`; a workspace `AGENTS.md` one level above a repository entry point was not loaded. Confirm against the session's recorded `<rules>` before relying on it.
 
+Cursor CLI: documented (cursor.com/docs/cli/using and /docs/rules, 2026-09-25) to load the entry directory's `AGENTS.md` and `CLAUDE.md` and `.cursor/rules/`; its only documented global channel is User Rules in the app settings, not a file. Observed on 2026.09.18 in one run per case: those three project sources loaded; `<Claude home>/CLAUDE.md` and `~/.cursor/rules/*.mdc` did not. Whether it loads ancestor or nested `AGENTS.md` files was not observed. The Hive layer reaches it only through the pointer in HA-IF-18. It has no known view of the loaded instructions, so treat its loading claims as observations or hypotheses (HA-ME-02).
+
 Configuration inputs to read when present:
 
 - Claude Code: the *Project instructions* setting (`claude-md-or-agents-md` default, `claude-md-and-agents-md`, `claude-md`, `managed-only`), `claudeMdExcludes`, `.claude/CLAUDE.md`, `.claude/rules/` (rules with `paths` load when matching files are opened), user rules under the Claude home, and sessions where `AGENTS.md` support is unavailable.

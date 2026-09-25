@@ -167,7 +167,7 @@ func validateHosts(hosts []string) ([]string, error) {
 		return nil, fmt.Errorf("explicit hosts required")
 	}
 	for i, s := range h {
-		if s != "codex" && s != "claude" && s != "grok" && s != "pi" && s != "opencode" {
+		if s != "codex" && s != "claude" && s != "grok" && s != "pi" && s != "opencode" && s != "cursor" {
 			return nil, fmt.Errorf("unsupported host %q", s)
 		}
 		if i > 0 && s == h[i-1] {

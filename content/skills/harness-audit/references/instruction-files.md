@@ -35,6 +35,13 @@ Everything else needs a stated reason to be resident. Classify the rest:
 - **HA-IF-15 — Local files.** Read and verify `CLAUDE.local.md` like any other file; its stale claims outrank correct ones because it loads last. Report its findings as `info` for its owner and never propose writing it.
 - **HA-IF-16 — Imports.** `@path` imports load at launch and stop after four hops; splitting a file into imports organizes it but does not reduce context. A backticked `` `@path` `` is literal text, not an import.
 - **HA-IF-17 — Hive settings.** For each repository entry point, check the `## Hive` section defined in the global layer: missing section or required field is `medium`; a value repeated elsewhere in the file is `relocate` into the section; a repository that relies on the workspace section for a required value is `medium` under HA-HI-05 for hosts that do not load it; conflicting values across loaded levels are `stale` at the level that is wrong. Propose the missing values only from evidence in the repository, such as its default branch or existing declarations, and mark the rest as questions for the caller.
+- **HA-IF-18 — Cursor pointer.** Cursor CLI loads no global instruction file, so the Hive layer reaches its sessions only through this line in the repository `AGENTS.md`, placed near the top and outside `## Hive` so it is not read as a settings value:
+
+  ```markdown
+  Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/AGENTS.md` before any other action and follow it. If that file is missing, say so and continue.
+  ```
+
+  Check it for each repository used with Cursor CLI: the caller says so, or you confirm Cursor sessions there; a `.cursor/` directory alone is a reason to ask, not evidence. A missing line is `medium`, and `high` when the repository declares `Hive guidance: required`, because that declaration is then false for Cursor sessions; propose the exact line. An existing line is `keep`, not a redundant pointer under HA-HI-07: the condition keeps hosts that already load the layer from reading it again.
 
 ## Evidence for each finding
 

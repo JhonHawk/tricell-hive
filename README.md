@@ -1,6 +1,6 @@
 # Hive
 
-Hive is in a rebuild phase for a small, portable guidance layer targeting Claude Code, Codex, Grok Build, Pi, and OpenCode V2. Each CLI keeps its native model loop, authentication, tools, permissions, and history. The five-host target is a design scope, not proof that a shared skill set or runtime is installed or working.
+Hive is in a rebuild phase for a small, portable guidance layer targeting Claude Code, Codex, Grok Build, Pi, OpenCode V2, and Cursor CLI. Each CLI keeps its native model loop, authentication, tools, permissions, and history. The six-host target is a design scope, not proof that a shared skill set or runtime is installed or working.
 
 Start with [AGENTS.md](AGENTS.md), the common project guidance. Claude Code imports it through [CLAUDE.md](CLAUDE.md). The guidance is designed to work without first selecting an activity skill, especially for authorization, evidence, preservation, and artifact placement.
 
@@ -18,7 +18,7 @@ The [harness engineering research index](_support/docs/harness-engineering/READM
 
 The [workspace and artifact policy](_support/docs/architecture/workspace-and-artifacts.md) explains repo versus shared workspace scope, established documentation homes, task-local cleanup, and requested archiving.
 
-The [Go deployment manager](_support/docs/architecture/deployment-manager.md) provides explicit plan/apply/status/recovery operations for Codex, Claude, Grok, Pi, and OpenCode. Run `go test -race ./...` and `go vet ./...` to verify it. No model runtime or hook framework is provided. Preserve user-owned configuration, credentials, histories, third-party tools, backups, and the Engram workspace identity.
+The [Go deployment manager](_support/docs/architecture/deployment-manager.md) provides explicit plan/apply/status/recovery operations for Codex, Claude, Grok, Pi, OpenCode, and Cursor. Run `go test -race ./...` and `go vet ./...` to verify it. No model runtime or hook framework is provided. Preserve user-owned configuration, credentials, histories, third-party tools, backups, and the Engram workspace identity.
 
 ## Repository structure
 

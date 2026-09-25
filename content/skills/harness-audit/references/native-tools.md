@@ -38,6 +38,6 @@ These need explicit authorization (HA-ME-01):
 
 Loading behavior changes between releases. For example, whether an ancestor `CLAUDE.md` resolves its imports differed between Claude Code releases. Before asserting such behavior:
 
-1. Record the installed version (`claude --version`, `codex --version`).
-2. Confirm with the host's own view (`/context` or `codex debug prompt-input`).
+1. Record the installed version (`claude --version`, `codex --version`, `cursor-agent --version`).
+2. Confirm with the host's own view (`/context` or `codex debug prompt-input`). Cursor CLI has no known equivalent view.
 3. Without that view, report the conclusion as a hypothesis with the exact check.

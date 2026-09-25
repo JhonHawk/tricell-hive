@@ -13,6 +13,7 @@ import (
 	"tricell-hive/integrations/agents"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
+	"tricell-hive/integrations/cursor"
 	"tricell-hive/integrations/grok"
 	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/pi"
@@ -36,6 +37,8 @@ func resolve(c target.Config, hosts []string, sources ...string) ([]target.Targe
 			ts, err = pi.Resolve(c, sources...)
 		case "opencode":
 			ts, err = opencode.Resolve(c, sources...)
+		case "cursor":
+			ts, err = cursor.Resolve(c, sources...)
 		default:
 			return nil, fmt.Errorf("unsupported host %q", h)
 		}
@@ -504,7 +507,8 @@ func LoadPlan(path string) (Plan, error) {
 	return p, nil
 }
 func validatePlan(p Plan, state State) error {
-	if p.Version != 4 || p.ID != planID(p) {
+	// Plans saved before Cursor support omit cursor_home and still hash correctly.
+	if p.Version != 4 || p.ID != planID(p) || p.Config.CursorHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	h, err := validateHosts(p.Hosts)
@@ -514,7 +518,7 @@ func validatePlan(p Plan, state State) error {
 	if p.Config.Scope != "user" && p.Config.Scope != "project" {
 		return fmt.Errorf("invalid plan scope")
 	}
-	for _, path := range []string{p.Config.Home, p.Config.CodexHome, p.Config.ClaudeHome, p.Config.GrokHome, p.Config.PiHome, p.Config.OpenCodeHome, p.StateDir} {
+	for _, path := range []string{p.Config.Home, p.Config.CodexHome, p.Config.ClaudeHome, p.Config.GrokHome, p.Config.PiHome, p.Config.OpenCodeHome, p.Config.CursorHome, p.StateDir} {
 		if path == "" || !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("invalid root")
 		}

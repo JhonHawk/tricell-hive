@@ -1,6 +1,13 @@
 # Hive repository guidance
 
-This repository is in a rebuild phase for a small, portable guidance layer targeting Claude Code, Codex, Grok Build, Pi, and OpenCode V2. Target inclusion is not proof of an installed or working integration. Let each CLI own its model loop, authentication, tools, permissions, and native history. Keep shared policy small; add a host-specific mechanism only when current documentation and an observed failure justify it.
+This repository is in a rebuild phase for a small, portable guidance layer targeting Claude Code, Codex, Grok Build, Pi, OpenCode V2, and Cursor CLI. Target inclusion is not proof of an installed or working integration. Let each CLI own its model loop, authentication, tools, permissions, and native history. Keep shared policy small; add a host-specific mechanism only when current documentation and an observed failure justify it.
+
+## Hive
+
+- Project: tricell-hive
+- Base branch: rebuild/harness-engineering (until the rebuild is integrated into `master`)
+- Tracker: GitHub Issues · JhonHawk/tricell-hive
+- Specs: _support/openspec
 
 ## Guidance structure
 

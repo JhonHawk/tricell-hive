@@ -123,10 +123,25 @@ func ReadProfiles(data []byte) (Profiles, error) {
 	if err := d.Decode(&extra); err != io.EOF {
 		return p, fmt.Errorf("trailing agent profile data")
 	}
-	if p.Version != 1 || len(p.Hosts) != 5 {
-		return p, fmt.Errorf("agent profiles require version 1 and all five hosts")
+	if p.Version != 1 {
+		return p, fmt.Errorf("agent profiles require version 1 and the five base hosts")
 	}
-	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode"} {
+	for host := range p.Hosts {
+		switch host {
+		case "claude", "codex", "grok", "pi", "opencode", "cursor":
+		default:
+			return p, fmt.Errorf("unsupported agent profile host %q", host)
+		}
+	}
+	required := []string{"claude", "codex", "grok", "pi", "opencode"}
+	hosts := append([]string(nil), required...)
+	if _, ok := p.Hosts["cursor"]; ok {
+		hosts = append(hosts, "cursor")
+	}
+	if len(p.Hosts) != len(hosts) {
+		return p, fmt.Errorf("agent profiles require version 1 and the five base hosts")
+	}
+	for _, host := range hosts {
 		h, ok := p.Hosts[host]
 		if !ok || len(h.Models) != 3 || len(h.Access) != 3 {
 			return p, fmt.Errorf("incomplete profiles for %s", host)
@@ -139,7 +154,7 @@ func ReadProfiles(data []byte) (Profiles, error) {
 			if m.Effort != "" && !oneOf(m.Effort, "low", "medium", "high", "xhigh", "max", "ultra") {
 				return p, fmt.Errorf("invalid effort for %s", host)
 			}
-			if (host == "grok" || host == "opencode") && m.Effort != "" {
+			if (host == "grok" || host == "opencode" || host == "cursor") && m.Effort != "" {
 				return p, fmt.Errorf("%s uses inherited effort or a model variant", host)
 			}
 		}
@@ -163,6 +178,11 @@ func validateAccess(host string, values map[string]json.RawMessage) error {
 			var s string
 			if json.Unmarshal(raw, &s) != nil || !oneOf(s, "read-only", "workspace-write") {
 				return fmt.Errorf("invalid Codex agent sandbox")
+			}
+		case host == "cursor" && key == "readonly":
+			var b bool
+			if json.Unmarshal(raw, &b) != nil || !b {
+				return fmt.Errorf("invalid Cursor readonly value")
 			}
 		case (host == "claude" || host == "grok") && key == "permissionMode":
 			var s string

@@ -25,7 +25,7 @@ func output(v any) error {
 func run(args []string) error {
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
 		fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
-		fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode --scope user\nhive recover [--state-dir DIR]")
+		fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
 		return nil
 	}
 	if len(args) == 0 {
@@ -52,7 +52,7 @@ func run(args []string) error {
 		fs.StringVar(&o.Home, "home", "", "explicit synthetic home; ignores host environment paths")
 		fs.StringVar(&o.Root, "root", "", "project root")
 		fs.StringVar(&o.StateDir, "state-dir", "", "state directory (default: user Application Support/tricell-hive)")
-		fs.StringVar(&hosts, "hosts", "", "comma-separated codex,claude,grok,pi,opencode (project scope: codex,claude)")
+		fs.StringVar(&hosts, "hosts", "", "comma-separated codex,claude,grok,pi,opencode,cursor (project scope: codex,claude)")
 	}
 	if cmd == "plan" {
 		fs.StringVar(&o.Source, "source", ".", "source checkout")

@@ -8,7 +8,7 @@ Reviewed: 2026-09-21. Structure agreed and directories created. The global rules
 |---|---|---|
 | `content/guidance/global.md` | Single source for distributed global rules | Installed globally; behavioral evidence is reported separately |
 | `content/skills/` | Activity procedures and their supporting resources | `workspace-conventions` and three `flow-*` skills installed; flow planning includes a Markdown reference |
-| `integrations/{claude,codex,grok,pi,opencode}/` | Native destination differences | Five user-scope adapters; project scope for Codex and Claude |
+| `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; project scope for Codex and Claude |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
 | `tooling/tui/` | Future interface over the same operations | Outside initial scope |

@@ -13,7 +13,7 @@ Establish before reading deeply:
 
 - **Targets and artifact types**: instruction files, skills, agents, or a subset.
 - **Entry points**: the directories where sessions start. A file's effect depends on the entry point, not on the file alone. Derive them from native session histories (see [hierarchy](references/hierarchy.md)) and report the distribution per host. When the caller declares none, audit the directories that histories show in use, not only the one the audit runs from. Report as a finding a declared entry point that differs from the observed ones, or an audit directory that is not the most used entry point.
-- **Hosts in use**: Claude Code and Codex, plus any host whose history shows sessions for the targets, or that the caller names. Do not assert a host's loading behavior without its own evidence.
+- **Hosts in use**: Claude Code and Codex, plus any host whose history shows sessions for the targets, or that the caller names. A repository `.cursor/` directory suggests Cursor CLI; ask rather than assume it. Do not assert a host's loading behavior without its own evidence.
 - **Authority**: reading another project is allowed; proposing changes for it requires the caller's assignment of that audit.
 
 ## Procedure

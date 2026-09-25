@@ -16,6 +16,7 @@ type Config struct {
 	PiHome       string `json:"pi_home,omitempty"`
 	GrokHome     string `json:"grok_home,omitempty"`
 	OpenCodeHome string `json:"opencode_home,omitempty"`
+	CursorHome   string `json:"cursor_home,omitempty"`
 	Synthetic    bool   `json:"synthetic,omitempty"`
 }
 
@@ -73,6 +74,12 @@ func ExpandHostHomes(c Config, synthetic bool) (Config, error) {
 	c.OpenCodeHome, err = resolve(c.OpenCodeHome, "", opencodeDefault)
 	if err != nil {
 		return c, fmt.Errorf("resolve OpenCode home: %w", err)
+	}
+	// Cursor documents CURSOR_CONFIG_DIR only for cli-config.json's location, not
+	// for the AGENTS.md/agents/ home this adapter manages, so no env override applies.
+	c.CursorHome, err = resolve(c.CursorHome, "", filepath.Join(home, ".cursor"))
+	if err != nil {
+		return c, fmt.Errorf("resolve Cursor home: %w", err)
 	}
 	return c, nil
 }
