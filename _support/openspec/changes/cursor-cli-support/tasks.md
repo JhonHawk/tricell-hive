@@ -126,4 +126,5 @@ Registrar además si Cursor lista cada skill dos veces, porque descubre tanto `~
   - `/code-review` (D6-A, nivel medium): un hallazgo `low` aceptado y corregido. Un plan guardado antes del cambio fallaba con `invalid root`; ahora pide regenerarlo (`plan.go:510`, prueba `TestPlanSavedBeforeCursorSupportAsksToRegenerate`, RED observado). También se corrigió el texto "all five hosts" de `ReadProfiles`.
 - Diff presentado el 2026-09-25; el usuario eligió seguir en `hold` (D8-C). Nada versionado.
 - D10-A (2026-09-25), después del piloto del #30: R2 aplicado dentro de este cambio. `global.md` queda idéntico a la variante B probada (sin tabla, con la frase nueva); presupuesto de 35183 a 34271 bytes; la tabla con la fila de Cursor pasa a `agent-delivery.md`; `AGENTS.md` ya no usa la tabla como ejemplo de nombre por host. T2 queda así reemplazado en lo que toca a la fila de Cursor.
-- Siguiente paso: cuando termines de revisar, decidir la entrega y, si se autoriza, T4.
+- Entrega (D11-A, 2026-09-25): `e678cd9` (Cursor) y `2fd052c` (R2), con push a `rebuild/harness-engineering` junto con el `756bbf1` pendiente, por decisión del usuario. El árbol de `e678cd9` pasó `go vet`, `go test ./...` y la prueba Python en un worktree aislado. #30 cerrado.
+- Siguiente paso: autorizar T4. La condición 1 (diff entregado) ya se cumple.

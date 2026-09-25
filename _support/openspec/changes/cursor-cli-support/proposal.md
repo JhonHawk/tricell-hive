@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T3 verificados en el working tree; diff pendiente de tu revisión; T4 pendiente de autorización |
-| Tracker · GitHub Issues | Sin issue vinculado |
-| Git | `hold` · working tree de `rebuild/harness-engineering` · sin commits; el diff queda para tu revisión |
+| Estado | En validación · T1–T3 y R2 integrados en `rebuild/harness-engineering`; T4 pendiente de autorización |
+| Tracker · GitHub Issues | • [#30 — tabla de selección por host frente a regla por capacidad (R2)](https://github.com/JhonHawk/tricell-hive/issues/30), cerrado |
+| Git | `direct-base` (D11-A) · `e678cd9` (Cursor) y `2fd052c` (R2) con push a `rebuild/harness-engineering` |
 | Verificación | `go test ./...` · `-race` · `go vet` · prueba Python de `harness-audit` · `/code-review` · in vivo (T4, autorización aparte) |
-| Siguiente paso | Revisar el diff; luego decidir entrega y T4 |
+| Siguiente paso | Autorizar T4 (despliegue en tu configuración y pruebas in vivo) |
 
 ## Objetivo
 
