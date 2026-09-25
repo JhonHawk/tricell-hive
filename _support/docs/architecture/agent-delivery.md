@@ -70,7 +70,18 @@ Documentation establishes intended formats. Parser tests establish serialization
 
 ## Native selection and evidence
 
-The shared delegation contract and per-host selection hints live in `content/guidance/global.md`. They are delivered together because Claude and Grok share the managed CLAUDE.md destination; separate host-specific block bytes would conflict there. These hints describe tool dialects, not a second responsibility router or executable adapter. Follow the session's actual tool schema before using a documented selector.
+The shared delegation contract lives in `content/guidance/global.md` as a capability-first rule: select the installed role through the child-launch tool's own selector, and when the tool does not list the role, give a bounded generic child the contract read from the installed role file and disclose the fallback. The per-host table that used to follow it was removed from the always-loaded block after [issue #30](https://github.com/JhonHawk/tricell-hive/issues/30): on 2026-09-25, all six hosts delegated the same way with and without it, one run per cell. The dialects below are maintainer reference, not distributed guidance; follow the session's actual tool schema.
+
+| Host | Child selection observed |
+| --- | --- |
+| Claude Code | The exposed delegation tool (`Agent` or `Task`) with the installed role's `subagent_type`; 2.1.278 announced `Task` and executed `Agent`. |
+| Codex | `spawn_agent` with `agent_type` set to the installed TOML role. Some hosted APIs offer model overrides without this role selector. |
+| Grok Build | `spawn_subagent` with `subagent_type` when exposed; 1.0.39–1.0.41 dropped the parameter, so a discovered agent did not establish that the selector exists. |
+| Pi + pi-subagents | `subagent` with `agent` set to the installed role ID. |
+| OpenCode V2 | `subagent` with `agent` set to the configured agent ID; V1 used `Task`/`subagent_type`. |
+| Cursor CLI | `Task` with `subagent_type`; 2026.09.18 and 2026.09.23 list only project-level and built-in types, so sessions fall back to a generic child with the role contract. |
+
+Isolating a guidance variant per process for such pilots: Claude Code `--settings` with `claudeMdExcludes` plus `--append-system-prompt`; Codex and Pi a shadow `CODEX_HOME` or `PI_CODING_AGENT_DIR` with symlinks; Grok a shadow `HOME` with the real `GROK_HOME`; OpenCode 2 needs `opencode run --standalone`, because its background service ignores process environment overrides; Cursor a project `.cursor/rules` file.
 
 | Host inspected | Evidence through 2026-09-22 | Remaining limit |
 | --- | --- | --- |
