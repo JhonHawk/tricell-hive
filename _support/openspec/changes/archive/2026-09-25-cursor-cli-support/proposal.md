@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T3 y R2 integrados en `rebuild/harness-engineering`; T4 pendiente de autorización |
+| Estado | Cerrado · T1–T4 completos; integrado en `rebuild/harness-engineering` (`e678cd9`, `2fd052c`) y desplegado (release `1d2bcbecb084`) |
 | Tracker · GitHub Issues | • [#30 — tabla de selección por host frente a regla por capacidad (R2)](https://github.com/JhonHawk/tricell-hive/issues/30), cerrado |
 | Git | `direct-base` (D11-A) · `e678cd9` (Cursor) y `2fd052c` (R2) con push a `rebuild/harness-engineering` |
 | Verificación | `go test ./...` · `-race` · `go vet` · prueba Python de `harness-audit` · `/code-review` · in vivo (T4, autorización aparte) |
-| Siguiente paso | Autorizar T4 (despliegue en tu configuración y pruebas in vivo) |
+| Siguiente paso | Ninguno; agregar el puntero HA-IF-18 en los proyectos que usen Cursor, en su propia sesión |
 
 ## Objetivo
 

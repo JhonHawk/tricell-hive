@@ -67,7 +67,7 @@
 
 ## T4 — Verificación in vivo (requiere autorización aparte)
 
-- [ ] Con la guía desplegada, el puntero funciona en Cursor con dos modelos y no duplica la guía en Claude Code ni Codex.
+- [x] Con la guía desplegada, el puntero funciona en Cursor con dos modelos y no duplica la guía en Claude Code ni Codex.
 
 **Depende de:** T1–T3 y tres condiciones:
 
@@ -127,4 +127,9 @@ Registrar además si Cursor lista cada skill dos veces, porque descubre tanto `~
 - Diff presentado el 2026-09-25; el usuario eligió seguir en `hold` (D8-C). Nada versionado.
 - D10-A (2026-09-25), después del piloto del #30: R2 aplicado dentro de este cambio. `global.md` queda idéntico a la variante B probada (sin tabla, con la frase nueva); presupuesto de 35183 a 34271 bytes; la tabla con la fila de Cursor pasa a `agent-delivery.md`; `AGENTS.md` ya no usa la tabla como ejemplo de nombre por host. T2 queda así reemplazado en lo que toca a la fila de Cursor.
 - Entrega (D11-A, 2026-09-25): `e678cd9` (Cursor) y `2fd052c` (R2), con push a `rebuild/harness-engineering` junto con el `756bbf1` pendiente, por decisión del usuario. El árbol de `e678cd9` pasó `go vet`, `go test ./...` y la prueba Python en un worktree aislado. #30 cerrado.
-- Siguiente paso: autorizar T4. La condición 1 (diff entregado) ya se cumple.
+- T4 (2026-09-25), despliegue D12-A: `plan install` de seis hosts desde un worktree limpio en `e3fe5e4`, para excluir el commit local `22dee2a` de otra sesión. Release `1d2bcbecb084`, 431 recursos `installed`, 20 roles en `~/.cursor/agents/`. Una corrida por caso, evidencia en `_support/workspace/2026-09-25-cursor-t4/evidence/` (fuera de Git):
+  - A6: Cursor 2026.09.23 con Grok 4.6 High Fast y con GPT-5.6 Luna High. Con puntero, ambos leyeron `~/.cursor/AGENTS.md` y propusieron `_support/workspace/2026-09-25-js-line-count/`; sin puntero, `/tmp/…` y la carpeta padre del repo. Cumple.
+  - A7: Claude Code 2.1.282 (sonnet) y Codex 0.156.1 (gpt-5.6-luna/high) con el puntero cargado (canarios `A7-CL-5T2` y `A7-CX-8R4` presentes) no leyeron `~/.cursor/AGENTS.md` y siguieron la guía global. Cumple.
+  - A8: Cursor lista solo sus tipos nativos (ningún rol de Hive, así que no hay duplicados) y aplicó la alternativa con el contrato leído de `~/.cursor/agents/review-refuter.md`. Cumple.
+  - Higiene: proyectos de Engram `a7-claude` y `a7-codex` (solo prompts y sesiones) borrados con `--hard`; worktree y plan de instalación eliminados.
+- Cambio cerrado el 2026-09-25: sin deltas de requisitos que fusionar; la documentación vigente está en `_support/docs/architecture/`.
