@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T4 hechos y revisados; esperando que el usuario lea la redacción en el diff |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`86473b8`) |
 | Tracker · GitHub Issues | Sin issue; sale de la investigación del 2026-09-26 sobre sobreuso de tests |
-| Git | `direct-base` · push a `rebuild/harness-engineering` · parada para que el usuario lea la redacción en el diff |
+| Git | Commit `86473b8` con push a `rebuild/harness-engineering` (el usuario aprobó la redacción el 2026-09-26) |
 | Verificación | `go test ./tests/content/...` · tests de skills en Python · `go vet` y `go test -race` una vez · lecturas con `rg` · `/code-review` |
-| Siguiente paso | Usuario: leer el diff; después commit de estas rutas y push a `rebuild/harness-engineering` |
+| Siguiente paso | Ninguno en este cambio; el despliegue a los hosts se ofrece aparte |
 
 ## Objetivo
 

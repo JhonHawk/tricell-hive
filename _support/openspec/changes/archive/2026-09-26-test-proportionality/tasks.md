@@ -45,7 +45,7 @@
 
 ### T5 — Verificación conjunta, revisión y parada humana
 
-- [ ] El diff pasa las verificaciones, la revisión está resuelta y el usuario leyó la redacción.
+- [x] El diff pasa las verificaciones, la revisión está resuelta y el usuario leyó la redacción.
 
 **Depende de:** T1–T4.
 **Ejecución:** hilo principal; `/code-review` corre en su propio subagente.
@@ -85,10 +85,11 @@ No aplica verificación in vivo ni de UI: es guía distribuida y el efecto en se
 - **T2:** hecho. `Test approach` aparece en `flow-plan/SKILL.md:34` y `plan-format.md:78`, con la misma definición de `check`.
 - **T3:** hecho. `git diff --stat` muestra una sola línea cambiada en `test-engineer.md`; `go test -count=1 ./integrations/agents/...` pasa.
 - **T4:** hecho. `global.md` pasa de 39056 a 39049 bytes y `globalGuidanceBudget` queda en 39049; `go test -count=1 ./tests/content/...` pasa.
-- **T5:** en curso.
+- **T5:** hecho.
   - Pasan los tests de skills en Python (23 OK) y `go vet ./...`.
   - `go test -race -count=1 ./...`, corrido una vez: 15 paquetes OK y `tooling/cli` falla en `TestNativeAdapterWithoutFixtureOffersManualCapabilityAndRunsNoProcess` y `TestInstallPartialOnboardingListsPerStepDetail`.
   - Las dos fallas están en `provider_adapter_test.go`, un archivo sin versionar del trabajo `versioned-installer-onboarding` que otra sesión está editando. Revisan la redacción de la vista previa del instalador, que no sale de las rutas de este cambio.
   - `/code-review` (medium, sobre las 6 rutas): sin defectos altos ni medios. Hallazgos bajos, ambos corregidos:
     - H1: el enfoque de test declarado en el plan ya no anula el criterio de TDD si la tarea resulta tocar comportamiento de la lista; se registra la reclasificación.
     - H2: un test de aceptación dado por el usuario o el plan tampoco se elimina; se reporta y se propone la corrección.
+- **Entrega:** redacción aprobada por el usuario; commit `86473b8` con push a `rebuild/harness-engineering`. Los cambios ajenos del árbol quedaron intactos y fuera del commit.
