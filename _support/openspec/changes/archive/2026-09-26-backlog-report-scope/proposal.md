@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En curso · implementado y verificado localmente; entrega en curso |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`556c52b`) y desplegado como release `0db2adc637b6` |
 | Tracker · GitHub Issues | Hueco del modelo de trazas: [#39 (juzgar el corte pedido)](https://github.com/JhonHawk/tricell-hive/issues/39) |
-| Git | Pendiente: commit y push directo a `rebuild/harness-engineering` |
-| Verificación | `go vet ./...` · `go test -race ./...` · caso de regresión nuevo en `tests/pilot` · escaneo de fixtures |
-| Siguiente paso | Integrar el criterio del `test-engineer`, verificar y entregar |
+| Git | Commit `556c52b` con push a `rebuild/harness-engineering` |
+| Verificación | `go vet ./...`, `go test -race ./...` y tests de skills en verde en un worktree limpio de `556c52b` · caso de regresión con reversión por rama · escaneo de fixtures vacío · prueba con Haiku |
+| Siguiente paso | Ninguno en este cambio; la eficacia en Grok se observa en el monitoreo de sesiones |
 
 ## Objetivo
 

@@ -21,6 +21,6 @@
 
 ### T3 — Verificación conjunta y entrega
 
-- [ ] `go vet ./...` y `go test -race ./...` en un worktree limpio del commit; push a `rebuild/harness-engineering`; archivo del cambio; release desplegada con hashes verificados.
+- [x] `go vet ./...` y `go test -race ./...` en verde en un worktree limpio de `556c52b`; push a `rebuild/harness-engineering`; release `0db2adc637b6` desplegada en los seis hosts. El texto nuevo se verificó en `~/.claude/CLAUDE.md` (Claude y Grok), `~/.codex/AGENTS.md`, `~/.cursor/AGENTS.md`, `~/.config/opencode/AGENTS.md` y `~/.pi/agent/AGENTS.md`.
 
 **Ejecución:** hilo principal. El árbol de trabajo no compila `tooling/cli` por trabajo ajeno sin commitear (`provider_adapter_test.go:257`), así que la verificación completa corre en el worktree del commit.
