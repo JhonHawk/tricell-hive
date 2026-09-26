@@ -97,6 +97,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 	if err = validatePlan(p, state); err != nil {
 		return "", err
 	}
+	if err = validateMigration(p, state); err != nil {
+		return "", err
+	}
 	if sh != p.StateHash {
 		return "", fmt.Errorf("stale plan: state changed")
 	}
@@ -115,6 +118,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if err = validateMigration(p, state); err != nil {
+		return "", err
+	}
 	if sh != p.StateHash {
 		return "", fmt.Errorf("stale plan: state changed")
 	}
@@ -130,28 +136,32 @@ func (e Engine) Apply(p Plan) (string, error) {
 		next.Records[k] = r
 	}
 	next.CreatedDirs = append([]string(nil), state.CreatedDirs...)
-	j := journal{Version: 4, Phase: "prepared", Plan: p, BeforeState: beforeState}
+	next.Migrations = append([]MigrationReceipt(nil), state.Migrations...)
+	j := journal{Version: 5, Phase: "prepared", Plan: p, BeforeState: beforeState}
 	var paths []string
-	changed := state.Version != 4
+	changed := state.Version != 5 || p.Migration != nil || len(p.Legacy) > 0
+	j.Entries, err = prepareEntries(p)
+	if err != nil {
+		return "", err
+	}
+	for _, en := range j.Entries {
+		if en.After.Exists {
+			paths = append(paths, en.Change.Target.Path)
+		}
+	}
 	for _, ch := range p.Changes {
-		s, err := readResource(ch.Target, ch.Replaces != nil)
+		cur, err := overlayRead(p, ch.Target, ch.Replaces != nil)
 		if err != nil {
 			return "", err
 		}
-		if finger(s) != ch.Expected {
-			return "", fmt.Errorf("stale plan: target changed: %s", ch.Target.Path)
-		}
-		after, err := transformResource(s, ch)
+		after, err := transformResource(cur, ch)
 		if err != nil {
 			return "", err
 		}
-		j.Entries = append(j.Entries, entry{ch, s, after})
-		if after.Exists {
-			paths = append(paths, ch.Target.Path)
-		}
-		if !same(s, after) || !reflect.DeepEqual(ch.Before, ch.After) {
+		if !same(cur, after) || !reflect.DeepEqual(ch.Before, ch.After) {
 			changed = true
 		}
+
 		if ch.After == nil {
 			delete(next.Records, ch.Target.Path)
 		} else {
@@ -176,12 +186,23 @@ func (e Engine) Apply(p Plan) (string, error) {
 		return "", err
 	}
 	next.CreatedDirs = append(next.CreatedDirs, dirsToCreate...)
-	j.AfterState = snapshot{Exists: true, Data: encode(next), Mode: 0600}
 	id := make([]byte, 16)
 	if _, err = rand.Read(id); err != nil {
 		return "", err
 	}
 	j.ID = hex.EncodeToString(id)
+	if p.Migration != nil {
+		receipt := *p.Migration
+		receipt.Transaction = j.ID
+		var retained []MigrationReceipt
+		for _, r := range next.Migrations {
+			if r.Config != receipt.Config || !reflect.DeepEqual(r.Hosts, receipt.Hosts) {
+				retained = append(retained, r)
+			}
+		}
+		next.Migrations = append(retained, receipt)
+	}
+	j.AfterState = snapshot{Exists: true, Data: encode(next), Mode: 0600}
 	for _, d := range []string{"transactions", "releases"} {
 		path := filepath.Join(p.StateDir, d)
 		if err = target.Safe(path); err != nil {
@@ -218,7 +239,7 @@ func (e Engine) Apply(p Plan) (string, error) {
 			if same(en.Before, en.After) {
 				continue
 			}
-			cur, err := readResource(en.Change.Target, en.Change.Replaces != nil)
+			cur, err := readEntry(en)
 			if err != nil {
 				return err
 			}
@@ -229,7 +250,7 @@ func (e Engine) Apply(p Plan) (string, error) {
 			if err = validatePlan(p, state); err != nil {
 				return err
 			}
-			if err = writeResource(en.Change.Target, cur, en.After, en.Change.Replaces != nil, e.fail); err != nil {
+			if err = writeEntry(en, cur, en.After, e.fail); err != nil {
 				return err
 			}
 			if err = e.fail(fmt.Sprintf("write:%d", i)); err != nil {
@@ -237,12 +258,21 @@ func (e Engine) Apply(p Plan) (string, error) {
 			}
 		}
 		for _, en := range j.Entries {
-			cur, err := readResource(en.Change.Target, en.Change.Replaces != nil)
+			cur, err := readEntry(en)
 			if err != nil {
 				return err
 			}
 			if !same(cur, en.After) {
 				return fmt.Errorf("post-write verification failed")
+			}
+		}
+		if p.Migration != nil || len(p.Legacy) > 0 {
+			remaining, err := scanLegacy(p.Config, p.Hosts, next)
+			if err != nil {
+				return err
+			}
+			if remaining.Detected || len(remaining.Edits) > 0 {
+				return fmt.Errorf("legacy retirement verification failed")
 			}
 		}
 		if p.Release != nil {
@@ -312,7 +342,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err = decodeFile(jp, &j); err != nil {
 		return "", err
 	}
-	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
+	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
 		return "", fmt.Errorf("invalid transaction")
 	}
 	if j.Phase == "committed" || j.Phase == "recovered" {
@@ -329,7 +359,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	inverses := make([]snapshot, len(j.Entries))
 	currents := make([]snapshot, len(j.Entries))
 	for i, en := range j.Entries {
-		cur, err := readResource(en.Change.Target, en.Change.Replaces != nil)
+		cur, err := readEntry(en)
 		if err != nil {
 			return "", err
 		}
@@ -350,16 +380,23 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			inverses[i] = cur
 			continue
 		}
-		if en.Change.Target.Kind == "block" && en.Change.Before == nil {
+		if en.Change.Target.Kind == "block" && en.Change.Before == nil && len(j.Plan.Legacy) == 0 {
 			a, _, parseErr := blockRange(cur.Data)
 			if parseErr == nil && a < 0 && cur.Exists {
 				inverses[i] = cur
 				continue
 			}
 		}
+		if partialLegacyTree(cur, en.Before) {
+			inverses[i] = en.Before
+			continue
+		}
 		if same(cur, en.After) {
 			inverses[i] = en.Before
 			continue
+		}
+		if legacyTouches(j.Plan, en.Change.Target.Path) {
+			return "", fmt.Errorf("recovery conflict: migrated target changed: %s; preserved", en.Change.Target.Path)
 		}
 		if en.Change.Target.Kind != "block" || en.Change.After == nil || cur.Mode != en.After.Mode {
 			return "", fmt.Errorf("recovery conflict: %s; preserved", en.Change.Target.Path)
@@ -372,7 +409,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	}
 	for i := len(j.Entries) - 1; i >= 0; i-- {
 		en := j.Entries[i]
-		cur, err := readResource(en.Change.Target, en.Change.Replaces != nil)
+		cur, err := readEntry(en)
 		if err != nil {
 			return "", err
 		}
@@ -380,7 +417,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			return "", fmt.Errorf("concurrent recovery change")
 		}
 		if !same(cur, inverses[i]) {
-			if err = writeResource(en.Change.Target, cur, inverses[i], en.Change.Replaces != nil, nil); err != nil {
+			if err = writeEntry(en, cur, inverses[i], nil); err != nil {
 				return "", err
 			}
 			if err = e.fail(fmt.Sprintf("recover:%d", i)); err != nil {

@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/legacy"
 )
 
 const Begin = "<!-- === TRICELL HIVE RULES:BEGIN === -->"
@@ -43,11 +45,13 @@ type Consumer struct {
 	Context string `json:"context"`
 }
 type State struct {
-	Version     int               `json:"version"`
-	Records     map[string]Record `json:"records"`
-	CreatedDirs []string          `json:"created_dirs,omitempty"`
+	Version     int                `json:"version"`
+	Records     map[string]Record  `json:"records"`
+	CreatedDirs []string           `json:"created_dirs,omitempty"`
+	Migrations  []MigrationReceipt `json:"migrations,omitempty"`
 }
 type Fingerprint struct {
+	TreeHash   string `json:"tree_hash,omitempty"`
 	Exists     bool   `json:"exists"`
 	Hash       string `json:"hash"`
 	Mode       uint32 `json:"mode"`
@@ -63,15 +67,17 @@ type Change struct {
 	Replaces *Record       `json:"replaces,omitempty"`
 }
 type Plan struct {
-	Version   int           `json:"version"`
-	Action    string        `json:"action"`
-	Config    target.Config `json:"config"`
-	Hosts     []string      `json:"hosts"`
-	StateDir  string        `json:"state_dir"`
-	StateHash string        `json:"state_hash"`
-	Release   *Release      `json:"release,omitempty"`
-	Changes   []Change      `json:"changes"`
-	ID        string        `json:"id"`
+	Version   int               `json:"version"`
+	Action    string            `json:"action"`
+	Config    target.Config     `json:"config"`
+	Hosts     []string          `json:"hosts"`
+	StateDir  string            `json:"state_dir"`
+	StateHash string            `json:"state_hash"`
+	Release   *Release          `json:"release,omitempty"`
+	Changes   []Change          `json:"changes"`
+	ID        string            `json:"id"`
+	Legacy    []legacy.Edit     `json:"legacy,omitempty"`
+	Migration *MigrationReceipt `json:"migration,omitempty"`
 }
 type Options struct {
 	Scope, Home, Root, StateDir, Source, ReleaseID string
@@ -104,7 +110,7 @@ func releaseID(r Release) string {
 	}{r.Files, r.Profiles, r.Renderer}))
 }
 func planID(p Plan) string { p.ID = ""; return hash(encode(p)) }
-func emptyState() State    { return State{Version: 4, Records: map[string]Record{}} }
+func emptyState() State    { return State{Version: 5, Records: map[string]Record{}} }
 func normalize(o Options) (target.Config, string, error) {
 	if o.Scope != "user" && o.Scope != "project" {
 		return target.Config{}, "", fmt.Errorf("explicit scope must be user or project")
@@ -152,7 +158,10 @@ func normalize(o Options) (target.Config, string, error) {
 		}
 	}
 	if o.StateDir == "" {
-		o.StateDir = filepath.Join(home, "Library", "Application Support", "tricell-hive")
+		o.StateDir, err = DefaultStateDir(home, synthetic)
+		if err != nil {
+			return c, "", err
+		}
 	}
 	state, err := target.Canonical(o.StateDir)
 	if err != nil {
@@ -175,4 +184,70 @@ func validateHosts(hosts []string) ([]string, error) {
 		}
 	}
 	return h, nil
+}
+
+// NormalizeOptions resolves roots without writing or using real-user overrides for explicit homes.
+func NormalizeOptions(o Options) (target.Config, string, error) { return normalize(o) }
+func DefaultStateDir(home string, synthetic bool) (string, error) {
+	return defaultStateDir(home, synthetic, runtime.GOOS)
+}
+func defaultStateDir(home string, synthetic bool, platform string) (string, error) {
+	old := filepath.Join(home, "Library", "Application Support", "tricell-hive")
+	if platform != "linux" {
+		return old, nil
+	}
+	base := filepath.Join(home, ".local", "state")
+	if !synthetic && os.Getenv("XDG_STATE_HOME") != "" {
+		base = os.Getenv("XDG_STATE_HOME")
+		if !filepath.IsAbs(base) {
+			return "", fmt.Errorf("XDG_STATE_HOME must be absolute")
+		}
+	}
+	next := filepath.Join(base, "tricell-hive")
+	exists := func(p string) (bool, error) {
+		_, err := os.Lstat(p)
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return err == nil, err
+	}
+	a, err := exists(old)
+	if err != nil {
+		return "", err
+	}
+	b, err := exists(next)
+	if err != nil {
+		return "", err
+	}
+	if a && b && old != next {
+		return "", fmt.Errorf("multiple Hive state directories; select --state-dir explicitly")
+	}
+	if a {
+		return old, nil
+	}
+	return next, nil
+}
+func RegisteredHosts(o Options) ([]string, error) {
+	c, dir, err := normalize(o)
+	if err != nil {
+		return nil, err
+	}
+	s, _, err := readState(dir)
+	if err != nil {
+		return nil, err
+	}
+	set := map[string]bool{}
+	for _, r := range s.Records {
+		for _, v := range r.Consumers {
+			if v.Scope == c.Scope && (v.Context == c.Home || (c.Scope == "project" && v.Context == c.Root)) {
+				set[v.Host] = true
+			}
+		}
+	}
+	var out []string
+	for h := range set {
+		out = append(out, h)
+	}
+	sort.Strings(out)
+	return out, nil
 }

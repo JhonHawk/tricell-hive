@@ -24,6 +24,7 @@ func output(v any) error {
 }
 func run(args []string) error {
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
 		fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 		fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
 		return nil
@@ -33,6 +34,9 @@ func run(args []string) error {
 	}
 	if args[0] == "setup" {
 		return setup(args[1:], os.Stdout)
+	}
+	if args[0] == "install" {
+		return install(args[1:], os.Stdin, os.Stdout, terminalInput(os.Stdin))
 	}
 	cmd := args[0]
 	args = args[1:]
@@ -133,7 +137,10 @@ func run(args []string) error {
 			if err != nil {
 				return err
 			}
-			o.StateDir = filepath.Join(home, "Library", "Application Support", "tricell-hive")
+			o.StateDir, err = management.DefaultStateDir(home, false)
+			if err != nil {
+				return err
+			}
 		}
 		s, err := (management.Engine{}).Recover(o.StateDir)
 		if err != nil {

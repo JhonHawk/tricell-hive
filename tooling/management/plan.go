@@ -333,13 +333,16 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	p = Plan{Version: 4, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
+	p = Plan{Version: 5, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
 	if action == "install" {
 		r, err := loadRelease(o, dir)
 		if err != nil {
 			return p, err
 		}
 		p.Release = &r
+	}
+	if err = scanMigration(&p, state); err != nil {
+		return p, err
 	}
 	gs, err := desiredResources(c, hosts, state, action, p.Release)
 	if err != nil {
@@ -348,7 +351,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	checkedBundles := map[string]bool{}
 	for _, g := range gs {
 		t := g.Target
-		s, err := readResource(t, g.Replaces != nil)
+		s, err := overlayRead(p, t, g.Replaces != nil)
 		if err != nil {
 			return p, err
 		}
@@ -385,6 +388,9 @@ func BuildPlan(action string, o Options) (Plan, error) {
 					}
 					if walkErr != nil {
 						return walkErr
+					}
+					if deletedByLegacy(p, path) {
+						return nil
 					}
 					if d.IsDir() {
 						return nil
@@ -476,6 +482,9 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
 	return &r, nil
 }
 func SavePlan(path string, p Plan) error {
+	if len(p.Legacy) > 0 {
+		return fmt.Errorf("legacy migration plans contain private configuration; use hive install to preview and apply in one session")
+	}
 	if err := target.Safe(path); err != nil {
 		return err
 	}
@@ -501,14 +510,14 @@ func LoadPlan(path string) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	if p.Version != 4 || p.ID != planID(p) {
+	if p.Version != 5 || p.ID != planID(p) {
 		return p, fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	return p, nil
 }
 func validatePlan(p Plan, state State) error {
 	// Plans saved before Cursor support omit cursor_home and still hash correctly.
-	if p.Version != 4 || p.ID != planID(p) || p.Config.CursorHome == "" {
+	if p.Version != 5 || p.ID != planID(p) || p.Config.CursorHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	h, err := validateHosts(p.Hosts)
@@ -581,7 +590,7 @@ func validatePlan(p Plan, state State) error {
 		}
 		// Fresh reads are for metadata checking only. During Apply some resources
 		// already contain their after-image, so never infer new ownership here.
-		current, err := readResource(g.Target, g.Replaces != nil)
+		current, err := overlayRead(p, g.Target, g.Replaces != nil)
 		if err != nil {
 			return err
 		}

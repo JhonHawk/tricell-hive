@@ -14,6 +14,7 @@ import (
 
 type snapshot struct {
 	Exists     bool
+	Tree       []treeItem `json:",omitempty"`
 	Data       []byte
 	Mode       uint32
 	Kind       string `json:",omitempty"`
@@ -47,7 +48,11 @@ func read(path string) (snapshot, error) {
 	return snapshot{Exists: true, Data: b, Mode: uint32(info.Mode().Perm())}, err
 }
 func finger(s snapshot) Fingerprint {
-	return Fingerprint{Exists: s.Exists, Hash: hash(s.Data), Mode: s.Mode, Kind: s.Kind, LinkTarget: s.LinkTarget, FileMode: s.FileMode}
+	treeHash := ""
+	if len(s.Tree) > 0 {
+		treeHash = hash(encode(s.Tree))
+	}
+	return Fingerprint{TreeHash: treeHash, Exists: s.Exists, Hash: hash(s.Data), Mode: s.Mode, Kind: s.Kind, LinkTarget: s.LinkTarget, FileMode: s.FileMode}
 }
 func same(a, b snapshot) bool { return finger(a) == finger(b) }
 func write(path string, s snapshot) error {
@@ -123,10 +128,11 @@ func readState(dir string) (State, string, error) {
 	}
 	state := emptyState()
 	if s.Exists {
+		state = State{}
 		if err = json.Unmarshal(s.Data, &state); err != nil {
 			return state, "", err
 		}
-		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4) || state.Records == nil {
+		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5) || state.Records == nil {
 			return state, "", fmt.Errorf("unsupported state")
 		}
 		if err = normalizeState(&state); err != nil {

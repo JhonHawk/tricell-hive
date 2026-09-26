@@ -1,5 +1,16 @@
 # Hive
 
+## Install from a complete package
+
+Download the complete package for macOS or Linux, extract it, and run `./install.sh`
+in a terminal. The installer detects supported CLIs and recognized legacy Hive
+resources, previews affected destinations, and asks for confirmation.
+No Go installation or terminal authentication is required. Use `--dry-run` for a
+read-only preview. Packages are built locally until a release is explicitly published;
+GitHub's automatic source archives do not include the executable.
+See the [installer contract](_support/docs/architecture/installer.md) for migration,
+recovery, supported legacy revision, and maintainer packaging instructions.
+
 Hive is in a rebuild phase for a small, portable guidance layer targeting Claude Code, Codex, Grok Build, Pi, OpenCode V2, and Cursor CLI. Each CLI keeps its native model loop, authentication, tools, permissions, and history. The six-host target is a design scope, not proof that a shared skill set or runtime is installed or working.
 
 Start with [AGENTS.md](AGENTS.md), the common project guidance. Claude Code imports it through [CLAUDE.md](CLAUDE.md). The guidance is designed to work without first selecting an activity skill, especially for authorization, evidence, preservation, and artifact placement.

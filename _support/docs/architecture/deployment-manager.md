@@ -4,6 +4,10 @@ The first manager is implemented in Go 1.27 using only the standard library. It 
 
 ## Commands
 
+For the one-command user experience, use the offline package's `./install.sh`.
+It invokes `hive install` and reuses this manager's planning, transactions and recovery.
+See the [installer contract](installer.md) for legacy detection and package verification.
+
 Run from the checkout root. Both hosts and scope must be explicit for planning and status:
 
 ```sh
@@ -21,7 +25,7 @@ These are interface examples, not authorization to deploy into the user's real c
 
 `--home` explicitly selects a synthetic home and ignores host path and compatibility environment overrides. Use it together with `--state-dir` for temporary-home tests. Without `--home`, host configuration environment variables are respected. `--root` is required for project scope. Existing root prefixes are canonicalized; linked target files or ancestors inside those roots are rejected rather than overwritten.
 
-The default source is the current directory; `--source` selects another checkout with the same content layout. `plan install --release <hash>` selects a retained installed snapshot instead, allowing an explicitly planned downgrade. A plan freezes its source bytes; later source edits do not silently alter it.
+The default source is the current directory; `--source` selects another checkout with the same content layout. `plan install --release <hash>` selects a retained installed snapshot instead, allowing an explicitly planned downgrade. The current binary validates that snapshot's agent sources, so a release whose roles use a retired frontmatter field, such as `claude_effort` before it became `effort`, fails with `unsupported agent field`; plan that downgrade with the manager from the commit that produced the release. Installed releases still update, report status, uninstall, and recover, because those operations do not re-render the old sources. A plan freezes its source bytes; later source edits do not silently alter it.
 
 ## Optional Context7 setup recommendation
 
@@ -66,15 +70,18 @@ Installing a release reconciles resources absent from its catalogue, including r
 
 Plans contain managed content, fingerprints, and ownership metadata, not the surrounding private instruction text. Preview output shows the old and new managed content rather than a whole-file diff. Backups necessarily contain original target bytes and must stay private.
 
-The default state home is `~/Library/Application Support/tricell-hive`:
+The macOS default state home is `~/Library/Application Support/tricell-hive`.
+Linux uses `$XDG_STATE_HOME/tricell-hive` or `~/.local/state/tricell-hive`, preserving
+the historical location when it is the only existing state home. Conflicting locations
+require explicit selection. The state home contains:
 
-- `state.json`: schema version, installed resource records, release IDs, and owned directories.
+- `state.json`: schema version, installed resource records, release IDs, owned directories, and scoped legacy-migration receipts.
 - `releases/<hash>.json`: immutable installed payload snapshots.
 - `transactions/<id>.json`: private before/after images and transaction phase.
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.
 
-New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans, and new transaction journals use schema v4. It adds source payload modes plus the renderer/profile identity used for agent output, while retaining explicit source identity and shared consumer/alias ownership. Existing v1-v3 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v3 transactions remain recoverable with their original checksum semantics. Saved plans before v4 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
+New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans, and new transaction journals use schema v5. It adds verified legacy retirement and scoped migration receipts to v4's source payload modes, renderer/profile identity, and shared consumer ownership. Existing v1-v4 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v4 transactions remain recoverable with their original checksum semantics. Saved plans before v5 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
 
 ## Failure handling
 

@@ -35,7 +35,7 @@ func TestFiveHostSharedConsumersAndPartialRemoval(t *testing.T) {
 	}
 	apply(t, p)
 	s := stateFor(t, o)
-	if s.Version != 4 || len(s.Records[sharedPath(o)].Consumers) != 5 {
+	if s.Version != 5 || len(s.Records[sharedPath(o)].Consumers) != 5 {
 		t.Fatal("missing shared consumers")
 	}
 	link, err := os.Readlink(aliasPath(o))
@@ -201,7 +201,7 @@ func TestLegacyClaudeMigrationAndRemoval(t *testing.T) {
 			t.Fatal(err)
 		}
 		s := stateFor(t, o)
-		if s.Version != 4 || len(s.Records[sharedPath(o)].Consumers) != 2 {
+		if s.Version != 5 || len(s.Records[sharedPath(o)].Consumers) != 2 {
 			t.Fatal("migration ownership")
 		}
 		if _, exists := s.Records[filepath.Join(aliasPath(o), "SKILL.md")]; exists {
@@ -390,90 +390,94 @@ func TestSharedBlockDoesNotHideRelocatedConsumer(t *testing.T) {
 }
 
 func TestLegacyPendingJournalUsesOriginalHashes(t *testing.T) {
-	o := setup(t)
-	o.Hosts = []string{"codex"}
-	// Golden V1 types intentionally lack every newly added field.
-	type oldConfig struct {
-		Scope      string `json:"scope"`
-		Home       string `json:"home"`
-		Root       string `json:"root,omitempty"`
-		CodexHome  string `json:"codex_home"`
-		ClaudeHome string `json:"claude_home"`
-	}
-	type oldTarget struct{ Path, Kind, Host, Scope, Context string }
-	type oldRecord struct {
-		Target      oldTarget `json:"target"`
-		Managed     []byte    `json:"managed"`
-		Leading     string    `json:"leading,omitempty"`
-		CreatedFile bool      `json:"created_file"`
-		Release     string    `json:"release"`
-	}
-	type oldFingerprint struct {
-		Exists bool   `json:"exists"`
-		Hash   string `json:"hash"`
-		Mode   uint32 `json:"mode"`
-	}
-	type oldChange struct {
-		Target   oldTarget      `json:"target"`
-		Expected oldFingerprint `json:"expected"`
-		Before   *oldRecord     `json:"before,omitempty"`
-		After    *oldRecord     `json:"after,omitempty"`
-	}
-	type oldPlan struct {
-		Version   int         `json:"version"`
-		Action    string      `json:"action"`
-		Config    oldConfig   `json:"config"`
-		Hosts     []string    `json:"hosts"`
-		StateDir  string      `json:"state_dir"`
-		StateHash string      `json:"state_hash"`
-		Release   *Release    `json:"release,omitempty"`
-		Changes   []oldChange `json:"changes"`
-		ID        string      `json:"id"`
-	}
-	type oldSnapshot struct {
-		Exists bool
-		Data   []byte
-		Mode   uint32
-	}
-	type oldEntry struct {
-		Change        oldChange
-		Before, After oldSnapshot
-	}
-	type oldJournal struct {
-		Version                 int
-		ID, Phase               string
-		Plan                    oldPlan
-		Entries                 []oldEntry
-		BeforeState, AfterState oldSnapshot
-		CreatedDirs             []string
-		Integrity               string
-	}
-	path := filepath.Join(o.Home, ".codex", "AGENTS.md")
-	targetV1 := oldTarget{path, "block", "codex", "user", o.Home}
-	r, err := loadRelease(o, o.StateDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	managed := managedBlock(r.Files[0].Data, nil)
-	ch := oldChange{Target: targetV1, Expected: oldFingerprint{false, hash(nil), 0}, After: &oldRecord{Target: targetV1, Managed: managed, CreatedFile: true, Release: r.ID}}
-	op := oldPlan{Version: 1, Action: "install", Config: oldConfig{Scope: "user", Home: o.Home, CodexHome: filepath.Join(o.Home, ".codex"), ClaudeHome: filepath.Join(o.Home, ".claude")}, Hosts: []string{"codex"}, StateDir: o.StateDir, StateHash: hash(nil), Release: &r, Changes: []oldChange{ch}}
-	op.ID = hash(encode(op))
-	j := oldJournal{Version: 1, ID: strings.Repeat("a", 32), Phase: "prepared", Plan: op, Entries: []oldEntry{{Change: ch, After: oldSnapshot{true, managed, 0600}}}}
-	j.Integrity = hash(encode(j))
-	put(t, path, string(managed))
-	os.Chmod(path, 0600)
-	put(t, filepath.Join(o.StateDir, "transactions", j.ID+".json"), string(encode(j)))
-	put(t, filepath.Join(o.StateDir, "pending.json"), string(encode(pending{j.ID})))
-	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
-		t.Fatal(err)
-	}
-	absent(t, path)
-	absent(t, filepath.Join(o.StateDir, "pending.json"))
-	var recovered journal
-	if err := decodeFile(filepath.Join(o.StateDir, "transactions", j.ID+".json"), &recovered); err != nil {
-		t.Fatal(err)
-	}
-	if recovered.Version != 1 || recovered.Integrity != journalHash(recovered) || !bytes.Equal(recovered.Entries[0].After.Data, managed) {
-		t.Fatal("legacy recovery changed serialization contract")
+	for _, version := range []int{1, 2, 3, 4} {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			o := setup(t)
+			o.Hosts = []string{"codex"}
+			// Golden V1 types intentionally lack every newly added field.
+			type oldConfig struct {
+				Scope      string `json:"scope"`
+				Home       string `json:"home"`
+				Root       string `json:"root,omitempty"`
+				CodexHome  string `json:"codex_home"`
+				ClaudeHome string `json:"claude_home"`
+			}
+			type oldTarget struct{ Path, Kind, Host, Scope, Context string }
+			type oldRecord struct {
+				Target      oldTarget `json:"target"`
+				Managed     []byte    `json:"managed"`
+				Leading     string    `json:"leading,omitempty"`
+				CreatedFile bool      `json:"created_file"`
+				Release     string    `json:"release"`
+			}
+			type oldFingerprint struct {
+				Exists bool   `json:"exists"`
+				Hash   string `json:"hash"`
+				Mode   uint32 `json:"mode"`
+			}
+			type oldChange struct {
+				Target   oldTarget      `json:"target"`
+				Expected oldFingerprint `json:"expected"`
+				Before   *oldRecord     `json:"before,omitempty"`
+				After    *oldRecord     `json:"after,omitempty"`
+			}
+			type oldPlan struct {
+				Version   int         `json:"version"`
+				Action    string      `json:"action"`
+				Config    oldConfig   `json:"config"`
+				Hosts     []string    `json:"hosts"`
+				StateDir  string      `json:"state_dir"`
+				StateHash string      `json:"state_hash"`
+				Release   *Release    `json:"release,omitempty"`
+				Changes   []oldChange `json:"changes"`
+				ID        string      `json:"id"`
+			}
+			type oldSnapshot struct {
+				Exists bool
+				Data   []byte
+				Mode   uint32
+			}
+			type oldEntry struct {
+				Change        oldChange
+				Before, After oldSnapshot
+			}
+			type oldJournal struct {
+				Version                 int
+				ID, Phase               string
+				Plan                    oldPlan
+				Entries                 []oldEntry
+				BeforeState, AfterState oldSnapshot
+				CreatedDirs             []string
+				Integrity               string
+			}
+			path := filepath.Join(o.Home, ".codex", "AGENTS.md")
+			targetV1 := oldTarget{path, "block", "codex", "user", o.Home}
+			r, err := loadRelease(o, o.StateDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			managed := managedBlock(r.Files[0].Data, nil)
+			ch := oldChange{Target: targetV1, Expected: oldFingerprint{false, hash(nil), 0}, After: &oldRecord{Target: targetV1, Managed: managed, CreatedFile: true, Release: r.ID}}
+			op := oldPlan{Version: version, Action: "install", Config: oldConfig{Scope: "user", Home: o.Home, CodexHome: filepath.Join(o.Home, ".codex"), ClaudeHome: filepath.Join(o.Home, ".claude")}, Hosts: []string{"codex"}, StateDir: o.StateDir, StateHash: hash(nil), Release: &r, Changes: []oldChange{ch}}
+			op.ID = hash(encode(op))
+			j := oldJournal{Version: version, ID: strings.Repeat("a", 32), Phase: "prepared", Plan: op, Entries: []oldEntry{{Change: ch, After: oldSnapshot{true, managed, 0600}}}}
+			j.Integrity = hash(encode(j))
+			put(t, path, string(managed))
+			os.Chmod(path, 0600)
+			put(t, filepath.Join(o.StateDir, "transactions", j.ID+".json"), string(encode(j)))
+			put(t, filepath.Join(o.StateDir, "pending.json"), string(encode(pending{j.ID})))
+			if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+				t.Fatal(err)
+			}
+			absent(t, path)
+			absent(t, filepath.Join(o.StateDir, "pending.json"))
+			var recovered journal
+			if err := decodeFile(filepath.Join(o.StateDir, "transactions", j.ID+".json"), &recovered); err != nil {
+				t.Fatal(err)
+			}
+			if recovered.Version != version || recovered.Integrity != journalHash(recovered) || !bytes.Equal(recovered.Entries[0].After.Data, managed) {
+				t.Fatal("legacy recovery changed serialization contract")
+			}
+		})
 	}
 }
