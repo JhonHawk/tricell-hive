@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · implementado y verificado; commit, push, despliegue y archivo en curso |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`66ab311`) y desplegado como release `b301a4d80d51` |
 | Tracker · GitHub Issues | Sin issue; sale de la investigación del 2026-09-26 sobre quejas del usuario |
-| Git | `direct-base` · push a `rebuild/harness-engineering` · parada: lectura de la redacción |
+| Git | Commit `66ab311` con push a `rebuild/harness-engineering` (usuario aprobó la redacción el 2026-09-26) |
 | Verificación | `go vet ./...` · `go test -race ./...` · casos de regresión en `tests/pilot` · escaneo de fixtures · revisión de código |
-| Siguiente paso | `flow-build`: T1–T3 en el hilo principal, T4 delegada |
+| Siguiente paso | Ninguno en este cambio; la eficacia se observa en el monitoreo de sesiones |
 
 ## Objetivo
 
