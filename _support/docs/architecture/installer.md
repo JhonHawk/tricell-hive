@@ -78,9 +78,10 @@ go run ./tooling/package --out ./dist
 ```
 
 The builder freezes the source inputs, computes a source identity, and produces
-darwin/linux ARM64/AMD64 archives with preserved executable modes and deterministic
+macOS ARM64 and Linux ARM64/AMD64 archives with preserved executable modes and deterministic
 archive metadata. Existing archives are not overwritten. `--platforms linux/arm64`
 can select a subset. The output includes archive checksums; nothing is published.
+macOS Intel is unsupported and is rejected even when requested explicitly.
 
 Run `go test ./...`, `go test -race ./...` and `go vet ./...`, followed by the actual
 packaged installer in synthetic homes. Native execution coverage must be reported

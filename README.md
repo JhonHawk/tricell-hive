@@ -2,7 +2,8 @@
 
 ## Install from a complete package
 
-Download the complete package for macOS or Linux, extract it, and run `./install.sh`
+Download the complete package for macOS Apple Silicon or Linux ARM64/AMD64,
+extract it, and run `./install.sh`
 in a terminal. The installer detects supported CLIs and recognized legacy Hive
 resources, previews affected destinations, and asks for confirmation.
 No Go installation or terminal authentication is required. Use `--dry-run` for a

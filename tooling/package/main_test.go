@@ -60,3 +60,9 @@ func TestCopyRejectsLinks(t *testing.T) {
 		t.Fatal("accepted linked source")
 	}
 }
+
+func TestUnsupportedMacOSIntelPlatformRejected(t *testing.T) {
+	if err := run([]string{"--out", t.TempDir(), "--platforms", "darwin/amd64"}); err == nil {
+		t.Fatal("accepted unsupported macOS Intel platform")
+	}
+}

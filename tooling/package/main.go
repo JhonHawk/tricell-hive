@@ -18,7 +18,7 @@ import (
 	"tricell-hive/tooling/distribution"
 )
 
-var platforms = []string{"darwin/arm64", "darwin/amd64", "linux/arm64", "linux/amd64"}
+var platforms = []string{"darwin/arm64", "linux/arm64", "linux/amd64"}
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
