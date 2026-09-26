@@ -49,7 +49,7 @@ Dependencias: T2 y T3; interfaz estable antes de delegar. Ejecución: hijo de em
 - [x] Construir candidato aislado y validar instalación, actualización y recuperación mediante paquete real en HOME sintético. Comparar archivos ajenos antes/después.
 - [x] Auditar inventario final de distribución, exclusiones y avisos legales; conservar como gate de publicación cualquier licencia no resuelta.
 - [x] Actualizar `README.md`, contrato del instalador/manager/agentes y el inventario; incorporar requisitos de esta capacidad en deltas OpenSpec antes de cerrar e integrar. Revisar referencias si cambia contenido distribuido, siguiendo `instruction-resources.md`.
-- [ ] Revisar implementación con mecanismo acordado y presentar recorrido humano. Solo después, entregar por el modo Git elegido; publicación y HOME real siguen fuera.
+- [x] (Revisión con `review-code`, `review-refuter`, `review-ux` y dos rondas de `sdd-verify`; recorrido nativo en Linux x86_64; entrega por E1-A en f1272fc.) Revisar implementación con mecanismo acordado y presentar recorrido humano. Solo después, entregar por el modo Git elegido; publicación y HOME real siguen fuera.
 
 Dependencias: T1–T5. Ejecución: principal integra; verificación y revisión UX de terminal por hijos independientes con candidato fijo y fixtures diferentes. No navegador, sitio web, screenshots ni framework UI: la superficie es una terminal. Pruebas de modelo excluidas.
 

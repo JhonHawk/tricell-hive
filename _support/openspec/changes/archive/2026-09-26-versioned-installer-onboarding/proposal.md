@@ -54,7 +54,9 @@ El checkout tiene cambios ajenos en agentes, perfiles, guía y pruebas. Solo est
 
 ## Entrega
 
-Plan local autorizado. D4-A fija `hold`: cuando se autorice implementar, verificar en aislamiento y entregar diff y recorrido humano, sin commits. D5-A autoriza entonces revisión con `review-code` y `review-refuter` para hallazgos bloqueantes tras las pruebas. Implementación aún pendiente. Publicación y HOME real quedan separados. El plan permanece sin versionar conforme al modo elegido.
+Entregado. E1-A (2026-09-26) reemplazó el modo `hold` de D4-A: commit, cierre y push directo a `rebuild/harness-engineering` en f1272fc y 8214e72. Antes de entregar, la implementación pasó la revisión de D5-A (`review-code` y `review-refuter`), además de `review-ux` y dos rondas de `sdd-verify`, y se recorrió en nativo en Linux x86_64. Los hallazgos diferidos de esa revisión que siguen abiertos están en [#40](https://github.com/JhonHawk/tricell-hive/issues/40). Publicación y HOME real quedan separados.
+
+Historial: en la planificación, D4-A fijaba `hold` (verificar en aislamiento y entregar diff y recorrido humano, sin commits) y D5-A autorizaba la revisión con `review-code` y `review-refuter` tras las pruebas.
 
 Destino público definitivo y versión de primera publicación se deciden al publicar. Durante implementación, un servidor de fixtures local valida el protocolo; no inventar una URL pública ni mostrarla como operativa. La configuración del origen público forma parte del artefacto de distribución, no de la detección del remoto Git del usuario.
 
