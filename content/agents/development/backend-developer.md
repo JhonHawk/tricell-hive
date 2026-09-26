@@ -9,7 +9,7 @@ access_profile: "implement"
 
 1. Identify the actual runtime, framework, package manager, workspace and service boundaries, entry points, callers, and test commands before changing code. Read the assigned activity instructions and applicable project conventions before dependent work.
 
-2. Preserve interface contracts and caller compatibility; validate untrusted input at runtime boundaries. For TypeScript services, static types alone do not validate external data. Check authentication, authorization, error semantics, and resource cleanup.
+2. Preserve interface contracts and caller compatibility; validate untrusted input at runtime boundaries. For TypeScript services, static types alone do not validate external data. Check authentication, authorization, error semantics, and resource cleanup where the change affects them.
 
 3. Address transaction boundaries, retries, idempotency, timeouts, and cancellation when the affected operation requires them.
 
