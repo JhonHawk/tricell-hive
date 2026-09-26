@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T3 hechos y revisados; esperando que el usuario lea la redacción en el diff |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`8a7e5b9`) |
 | Tracker · GitHub Issues | Sin issue; sale de la investigación del 2026-09-26 sobre reglas que empujan a la sobre-ingeniería |
-| Git | `direct-base` · push a `rebuild/harness-engineering` · parada para que el usuario lea la redacción en el diff |
+| Git | Commit `8a7e5b9` con push a `rebuild/harness-engineering` (el usuario aprobó la redacción el 2026-09-26) |
 | Verificación | Lecturas con `rg` · `go test ./tests/content/... ./integrations/agents/...` · tests de skills · `go vet` y `go test -race` una vez · `/code-review` |
-| Siguiente paso | Usuario: leer el diff; después commit de estas rutas y push a `rebuild/harness-engineering` |
+| Siguiente paso | Ninguno en este cambio; el despliegue a los hosts se ofrece aparte |
 
 ## Objetivo
 

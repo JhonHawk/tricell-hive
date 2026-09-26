@@ -41,7 +41,7 @@
 
 ### T4 — Verificación conjunta, revisión y parada humana
 
-- [ ] El diff pasa las verificaciones, la revisión está resuelta y el usuario leyó la redacción.
+- [x] El diff pasa las verificaciones, la revisión está resuelta y el usuario leyó la redacción.
 
 **Depende de:** T1–T3.
 **Ejecución:** hilo principal; `/code-review` corre en su propio subagente.
@@ -87,10 +87,11 @@ No aplica verificación in vivo ni de UI: es guía distribuida y medir el efecto
   - La lista de cambios mecánicos queda solo en `global.md`.
   - La exención de UI vive solo en `verification.md:59`; las otras cinco apariciones de "rendered UI effect" remiten a ella.
 - **T3:** hecho. Una frase en cada agente; `go test ./integrations/agents/...` pasa.
-- **T4:** en curso.
+- **T4:** hecho.
   - Pasan los tests de skills (OK) y `go vet ./...`.
   - `go test -race ./...`: 15 paquetes OK. Falló `TestBootstrapRealManagerReachesInteractiveInstallerThenLeavesNoChange`, en `tooling/distribution/bootstrap_shell_test.go`, un archivo sin versionar que la sesión del instalador editó a las 04:27. Se guardó la salida y, al volver a correr solo ese test, pasó. Es trabajo en curso ajeno y no toca las rutas de este cambio.
   - `/code-review` (medium, sobre las 9 rutas): tres hallazgos, traducidos a P0–P3 como P2 (H2) y P3 (H1, H3). Se corrigieron por ser locales, sin re-revisión porque ninguno es P0 ni P1:
     - H1: frase duplicada en `flow-plan/SKILL.md:45`.
     - H2: "a presentation edit" hacía mecánico un cambio de layout y lo sacaba de la regla de UI. Ahora la definición global dice "a text or style change that alters no layout, state, or flow", igual que `verification.md:59`.
     - H3: los problemas sospechados sin escenario de falla se mencionan en el reporte como no confirmados, en vez de perderse.
+- **Entrega:** redacción aprobada por el usuario; commit `8a7e5b9` con push a `rebuild/harness-engineering`. Los cambios ajenos del árbol quedaron fuera del commit.
