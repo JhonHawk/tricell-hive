@@ -74,7 +74,7 @@ After tests finish, remove fictitious test records from Engram. Identify the exa
 - `_support/docs/architecture/workspace-and-artifacts.md` — workspace scope, artifact organization, retention, and hygiene.
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.
-- `_support/sessions/` — dated work records; `_support/workspace/` — disposable scratch.
+- `_support/sessions/` — dated work records; `_support/workspace/` — ignored working material whose versioning is undecided.
 
 
 ## Optional local research sources
