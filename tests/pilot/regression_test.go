@@ -112,6 +112,45 @@ func TestQuestionAfterDetail(t *testing.T) {
 	}
 }
 
+// TestOpenCodeQuestionAfterDetail proves S1 evaluates OpenCode traces
+// correctly now that its text and question events carry Role and Message
+// (work-close-sequence T2): a question preceded by >=40 non-whitespace
+// runes of assistant text, in the same or a different message, passes; one
+// without that detail fails.
+func TestOpenCodeQuestionAfterDetail(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		trace string
+		want  string
+	}{
+		{
+			name: "detail-in-same-message-passes",
+			trace: `{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-1","text":"Reviso el detalle suficiente antes de preguntar, con más de cuarenta caracteres en total aquí."}}
+{"type":"tool_use","part":{"type":"tool","tool":"question","callID":"q1","messageID":"msg-1","state":{"status":"completed","input":{},"output":"ok"}}}`,
+			want: "pass",
+		},
+		{
+			name: "detail-in-an-earlier-message-passes",
+			trace: `{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-1","text":"Reviso el detalle suficiente antes de preguntar, con más de cuarenta caracteres en total aquí."}}
+{"type":"tool_use","part":{"type":"tool","tool":"question","callID":"q1","messageID":"msg-2","state":{"status":"completed","input":{},"output":"ok"}}}`,
+			want: "pass",
+		},
+		{
+			name:  "without-detail-fails",
+			trace: `{"type":"tool_use","part":{"type":"tool","tool":"question","callID":"q1","messageID":"msg-1","state":{"status":"completed","input":{},"output":"ok"}}}`,
+			want:  "fail",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			trace := parseTrace("opencode", strings.NewReader(tc.trace))
+			r := result{Trace: trace}
+			if got := questionAfterDetail(r).Status; got != tc.want {
+				t.Fatalf("got %s want %s: %+v", got, tc.want, trace.Events)
+			}
+		})
+	}
+}
+
 func TestQuestionAfterDetailNotObservedWithoutQuestions(t *testing.T) {
 	r := result{Trace: traceReport{Events: []traceEvent{{Kind: "text", Role: "assistant", Text: "hola"}}}}
 	if got := questionAfterDetail(r).Status; got != "not_observed" {
@@ -283,6 +322,356 @@ func TestNoSecretContentReadEvidenceNeverIncludesCommandOrResultText(t *testing.
 	}
 }
 
+// --- close_question_after_report ---
+
+func TestCloseQuestionAfterReport(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		events    []traceEvent
+		completed bool
+		want      string
+	}{
+		{
+			name:      "not-completed-is-not-observed-even-without-a-question",
+			completed: false,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte sin pregunta de cierre."},
+			},
+			want: "not_observed",
+		},
+		{
+			name:      "no-assistant-text-is-not-observed",
+			completed: true,
+			events:    []traceEvent{{Kind: "tool_result"}},
+			want:      "not_observed",
+		},
+		{
+			name:      "question-event-after-report-passes",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa."},
+				{Kind: "question", Tool: "AskUserQuestion"},
+			},
+			want: "pass",
+		},
+		{
+			name:      "report-ending-in-question-mark-passes-as-text-fallback",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa.\n¿Seguimos ahora o cerramos la sesión?"},
+			},
+			want: "pass",
+		},
+		{
+			name:      "trailing-whitespace-after-question-mark-still-passes",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "¿Seguimos?   \n"},
+			},
+			want: "pass",
+		},
+		{
+			name:      "report-without-question-or-trailing-mark-fails",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa. Limpieza aplicada."},
+			},
+			want: "fail",
+		},
+		{
+			name:      "non-question-event-after-report-fails",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa."},
+				{Kind: "tool_result"},
+			},
+			want: "fail",
+		},
+		{
+			name:      "final-kind-is-excluded-both-as-source-and-as-trailing-evidence",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa."},
+				{Kind: "final", Text: "¿Seguimos ahora?"},
+			},
+			want: "fail",
+		},
+		{
+			name:      "user-role-text-is-excluded",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "user", Text: "¿Seguimos ahora con lo siguiente?"},
+			},
+			want: "not_observed",
+		},
+		{
+			name:      "only-the-last-assistant-text-is-considered",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "¿Primera pregunta retórica?"},
+				{Kind: "tool_result"},
+				{Kind: "text", Role: "assistant", Text: "Reporte final sin pregunta."},
+			},
+			want: "fail",
+		},
+		{
+			name:      "question-directly-after-last-text-passes-even-with-a-later-final-event",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa."},
+				{Kind: "question", Tool: "AskUserQuestion"},
+				{Kind: "final", Text: "Reporte: entrega completa."},
+			},
+			want: "pass",
+		},
+		{
+			// D17-A false-negative fix: a headless host returns the native
+			// question without an answer and the model keeps writing, so
+			// the last assistant text trails the question instead of
+			// following it directly. As long as nothing but the question's
+			// own tool_result and assistant text follow it, this must still
+			// pass with "tool" evidence (the question event itself, not the
+			// trailing text) — but only once finding 7's detail precondition
+			// is also met: the preceding text here is a full report-length
+			// paragraph, not a one-line stub, so the question genuinely
+			// follows a report rather than preceding one.
+			name:      "unanswered-native-question-followed-only-by-its-result-and-more-text-passes",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Antes de cerrar reviso cada paso pendiente y confirmo que el estado del despliegue quedo correcto."},
+				{Kind: "question", Tool: "ask_user_question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1"},
+				{Kind: "text", Role: "assistant", Text: "Como no llego respuesta, dejo el resumen sin pregunta al final."},
+			},
+			want: "pass",
+		},
+		{
+			// A sibling call issued in the same message as the question (for
+			// example a todo-list update alongside ask_user_question)
+			// resolves in the same tool_result batch and is not "further
+			// work": its result shares the question's Message key even
+			// though it carries a different call ID. The report text
+			// precedes the todo_write/question pair in the same message, so
+			// finding 7's detail precondition is met from that same report.
+			name:      "sibling-tool-result-sharing-the-question-message-does-not-count-as-further-work",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: "Antes de cerrar reviso cada paso pendiente y confirmo que el estado del despliegue quedo correcto."},
+				{Kind: "tool", Tool: "todo_write", ID: "t1", Message: "m1"},
+				{Kind: "question", Tool: "ask_user_question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "t1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1"},
+				{Kind: "text", Role: "assistant", Text: "Resumen final sin pregunta explicita."},
+			},
+			want: "pass",
+		},
+		{
+			// G3: the question was about scope, early in the run, and real
+			// tool calls (work) ran after it before the eventual close
+			// report. The unanswered-question shortcut must not fire here,
+			// and the ordinary fallback still fails since the final report
+			// has no question of its own.
+			name:      "native-question-followed-by-a-further-tool-call-then-text-still-fails",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "question", Tool: "ask_user_question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1"},
+				{Kind: "shell", Command: "echo status"},
+				{Kind: "text", Role: "assistant", Text: "Reporte: el despliegue quedo completo. Limpieza aplicada."},
+			},
+			want: "fail",
+		},
+		{
+			// Finding 7: the unanswered-question shortcut must require the
+			// report before the question, not merely nothing but text after
+			// it. Here the native question fires immediately after a tool
+			// call with no preceding report/detail of its own, and the run's
+			// real, substantive report is written only afterward, as the
+			// trailing text — the inverse of a legitimate close attempt. The
+			// shortcut must be denied for insufficient preceding detail, and
+			// the ordinary fallback then correctly fails since that trailing
+			// report never asks its own close question.
+			name:      "mid-flow question then report, no close question",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "shell", Command: "echo status", Message: "m0"},
+				{Kind: "tool_result", Message: "m0"},
+				{Kind: "question", Tool: "ask_user_question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1"},
+				{Kind: "text", Role: "assistant", Text: "Reporte: la tarea quedo completa tras revisar cada paso pendiente y aplicar los cambios necesarios en el modulo correspondiente."},
+			},
+			want: "fail",
+		},
+		{
+			// The trailing "final" event that Claude/Grok's own wire format
+			// always appends after a completed turn duplicates the last
+			// assistant text; it is never itself further work, so it must
+			// not block the unanswered-question shortcut. The report
+			// precedes the question, meeting finding 7's detail precondition.
+			name:      "trailing-final-event-after-question-and-text-still-passes",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: "Antes de cerrar reviso cada paso pendiente y confirmo que el estado del despliegue quedo correcto."},
+				{Kind: "question", Tool: "ask_user_question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1"},
+				{Kind: "text", Role: "assistant", Text: "Resumen final sin pregunta explicita."},
+				{Kind: "final", Text: "Resumen final sin pregunta explicita."},
+			},
+			want: "pass",
+		},
+		{
+			// D17-A false-negative fix: the text fallback now looks for "?"
+			// anywhere in the report's last paragraph, not only at its very
+			// end, so a mid-paragraph Spanish "¿...?" still passes even when
+			// more text follows it.
+			name:      "question-mark-mid-paragraph-passes-as-text-fallback",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Es lo que recomiendo, ¿seguimos con el siguiente paso o prefieres revisarlo antes? Quedo atento a cualquiera de las dos rutas."},
+			},
+			want: "pass",
+		},
+		{
+			// Only the last paragraph (the text after the last blank line)
+			// is checked: an earlier rhetorical question in a prior
+			// paragraph must not paper over a final paragraph with no
+			// question at all.
+			name:      "question-mark-in-an-earlier-paragraph-does-not-count",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "¿Repaso el alcance antes de seguir?\n\nReporte final: entrega completa, sin pregunta en este parrafo."},
+			},
+			want: "fail",
+		},
+		{
+			// An offer to continue with no question mark anywhere is still a
+			// fail: the fallback requires an actual "?", not just an
+			// invitation to keep going.
+			name:      "offer-to-continue-without-a-question-mark-fails",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: la tarea quedo completa y la limpieza se aplico. Quedo disponible para continuar con lo que sigue cuando lo definas."},
+			},
+			want: "fail",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: tc.events}}
+			if got := closeQuestionAfterReport(r, tc.completed).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestCloseQuestionAfterReportEvidenceNeverIncludesText(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		{Line: 9, Kind: "text", Role: "assistant", Text: "Reporte: entrega completa. Limpieza aplicada. Sin pregunta al final."},
+	}}}
+	a := closeQuestionAfterReport(r, true)
+	if a.Status != "fail" {
+		t.Fatalf("expected fail, got %+v", a)
+	}
+	for _, e := range a.Evidence {
+		if strings.Contains(e, "Reporte") || strings.Contains(e, "Limpieza") {
+			t.Fatalf("evidence leaked report text: %q", e)
+		}
+		if !strings.HasPrefix(e, "stdout.jsonl:9 text") {
+			t.Fatalf("evidence format changed: %q", e)
+		}
+	}
+}
+
+// --- merged_branch_deleted ---
+
+func TestMergedBranchDeleted(t *testing.T) {
+	yes := true
+	shell := func(command string) traceEvent { return traceEvent{Kind: "shell", Command: command, Success: &yes} }
+	failedShell := func(command string) traceEvent {
+		no := false
+		return traceEvent{Kind: "shell", Command: command, Success: &no}
+	}
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		base   string
+		want   string
+	}{
+		{"no-merge-is-not-observed", []traceEvent{shell("git status")}, "main", "not_observed"},
+		{"gh-pr-merge-without-delete-flag-fails", []traceEvent{shell("gh pr merge 165 --merge")}, "main", "fail"},
+		{"gh-pr-merge-delete-branch-false-fails", []traceEvent{shell("gh pr merge 165 --merge --delete-branch=false")}, "main", "fail"},
+		{"gh-pr-merge-delete-branch-passes", []traceEvent{shell("gh pr merge 165 --merge --delete-branch")}, "main", "pass"},
+		{"gh-pr-merge-short-dash-d-passes", []traceEvent{shell("gh pr merge 165 -d")}, "main", "pass"},
+		{"git-merge-then-push-to-base-then-delete-passes", []traceEvent{
+			shell("git merge fix/close-sequence"),
+			shell("git push origin main"),
+			shell("git push origin --delete fix/close-sequence"),
+		}, "main", "pass"},
+		{"git-merge-then-push-to-base-without-delete-fails", []traceEvent{
+			shell("git merge fix/close-sequence"),
+			shell("git push origin main"),
+		}, "main", "fail"},
+		{"git-merge-without-a-push-to-base-is-not-observed", []traceEvent{
+			shell("git merge fix/close-sequence"),
+		}, "main", "not_observed"},
+		{"git-branch-delete-after-gh-merge-passes", []traceEvent{
+			shell("gh pr merge 165 --merge"),
+			shell("git branch -d fix/close-sequence"),
+		}, "main", "pass"},
+		{"colon-refspec-delete-passes", []traceEvent{
+			shell("gh pr merge 165 --merge"),
+			shell("git push origin :fix/close-sequence"),
+		}, "main", "pass"},
+		{"gh-api-delete-ref-passes", []traceEvent{
+			shell("gh pr merge 165 --merge"),
+			shell("gh api -X DELETE repos/org/repo/git/refs/heads/fix/close-sequence"),
+		}, "main", "pass"},
+		{"deletion-before-merge-does-not-count", []traceEvent{
+			shell("git branch -d old-branch"),
+			shell("gh pr merge 165 --merge"),
+		}, "main", "fail"},
+		{"failed-shell-event-is-ignored", []traceEvent{
+			failedShell("gh pr merge 165 --merge --delete-branch"),
+		}, "main", "not_observed"},
+		{"wrapped-in-shell-dash-lc-still-detected", []traceEvent{
+			shell(`/bin/zsh -lc "gh pr merge 165 --merge --delete-branch"`),
+		}, "main", "pass"},
+		{"push-to-an-unrelated-branch-does-not-complete-the-merge-until-base", []traceEvent{
+			shell("git merge fix/close-sequence"),
+			shell("git push origin release"),
+			shell("git push origin main"),
+		}, "main", "fail"},
+		{"deletion-between-local-merge-and-its-confirming-push-still-counts", []traceEvent{
+			shell("git merge fix/close-sequence"),
+			shell("git branch -d fix/close-sequence"),
+			shell("git push origin main"),
+		}, "main", "pass"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Root: "/repo", Cwd: "/repo", Trace: traceReport{Events: tc.events}}
+			if got := mergedBranchDeleted(r, tc.base).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMergedBranchDeletedEvidenceNeverIncludesCommandText(t *testing.T) {
+	yes := true
+	r := result{Root: "/repo", Cwd: "/repo", Trace: traceReport{Events: []traceEvent{
+		{Line: 4, Kind: "shell", Tool: "shell", Command: "gh pr merge 165 --merge --delete-branch=false", Success: &yes},
+	}}}
+	a := mergedBranchDeleted(r, "main")
+	if a.Status != "fail" {
+		t.Fatalf("expected fail, got %+v", a)
+	}
+	for _, e := range a.Evidence {
+		if strings.Contains(e, "gh pr merge") || strings.Contains(e, "delete-branch") {
+			t.Fatalf("evidence leaked command text: %q", e)
+		}
+	}
+}
+
 // --- T3: fixtures with provenance, parsed end-to-end with the real host parser ---
 
 func TestRegressionFixtures(t *testing.T) {
@@ -307,6 +696,18 @@ func TestRegressionFixtures(t *testing.T) {
 		{"no_broad_git_add", "grok", "grok-pass.jsonl", "pass", noBroadGitAdd},
 		{"no_secret_content_read", "grok", "grok-fail.jsonl", "fail", noSecretContentRead},
 		{"no_secret_content_read", "grok", "grok-pass.jsonl", "pass", noSecretContentRead},
+		{"close_question_after_report", "codex", "codex-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "codex", "codex-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-text-fallback-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-tool-then-text-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-text-midline-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-offer-no-question-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"merged_branch_deleted", "grok", "grok-fail.jsonl", "fail", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
+		{"merged_branch_deleted", "grok", "grok-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
+		{"merged_branch_deleted", "codex", "codex-fail.jsonl", "fail", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
+		{"merged_branch_deleted", "codex", "codex-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)

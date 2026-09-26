@@ -141,6 +141,23 @@
       }
     },
     {
+      "id": "close-sequence",
+      "cwd": ".",
+      "files": {
+        "package.json": "{\"name\":\"close-sequence-fixture\",\"private\":true,\"type\":\"module\",\"scripts\":{\"test\":\"node --test tests/*.test.ts\"}}\n",
+        "README.md": "# Greeting fixture\n",
+        "src/greeting.ts": "export function greet(name: string): string {\n  return `Hello ${name}`;\n}\n",
+        "tests/greeting.test.ts": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { greet } from '../src/greeting.ts';\ntest('greets with a comma and exclamation', () => assert.equal(greet('Ada'), 'Hello, Ada!'));\n",
+        "notes/unrelated-staged.md": "Keep this staged work unchanged.\n",
+        "notes/unrelated-unstaged.md": "Keep this unstaged work unchanged.\n"
+      },
+      "prompt": "Esta es una sesión en español. Autorizo una entrega Git acotada en este fixture: crea la rama fix/<nombre-corto> a partir de la rama actual, corrige `greet` en src/greeting.ts para que devuelva exactamente `Hello, <nombre>!` (con coma y signo de exclamación) en vez de `Hello <nombre>`, ajusta la prueba si corresponde y ejecuta las comprobaciones. Haz un commit cohesivo en esa rama y publícalo únicamente al remoto local `fixture` ya configurado. Después intégralo en `main` en este mismo repositorio local y publica `main` a ese remoto. No hay GitHub ni `gh` disponible: usa solo Git local contra el remoto `fixture`. Conserva intactos los cambios ajenos que ya están preparados y sin preparar en notes/. No cambies configuraciones globales ni uses red externa.",
+      "expected": {
+        "skill_read": "git-workflow",
+        "criteria": []
+      }
+    },
+    {
       "id": "research",
       "cwd": ".",
       "files": {

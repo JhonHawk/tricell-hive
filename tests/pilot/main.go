@@ -52,7 +52,23 @@ type result struct {
 	Delivery, ModelConfigured, Provider, PromptHash, FixtureHash                                      string
 	MemoryIsolation                                                                                   memoryIsolationReport
 	Trace                                                                                             traceReport
-	GitDelivery                                                                                       *gitDeliveryReport `json:",omitempty"`
+	GitDelivery                                                                                       *gitDeliveryReport     `json:",omitempty"`
+	GuidanceVariant                                                                                   *guidanceVariantReport `json:",omitempty"`
+}
+
+// mergeProtected combines two protected-path snapshots (the real home's and,
+// when a guidance variant is active, the shadow home's) into one map so
+// changedProtected can audit both without protected.go needing to know about
+// shadow homes at all.
+func mergeProtected(a, b map[string]string) map[string]string {
+	out := make(map[string]string, len(a)+len(b))
+	for k, v := range a {
+		out[k] = v
+	}
+	for k, v := range b {
+		out[k] = v
+	}
+	return out
 }
 
 // gitDeliveryReport records only the disposable fixture's local Git state. The
@@ -78,8 +94,41 @@ func onlyTrustAdded(before, after []byte, cwd string) bool {
 	return strings.TrimSpace(string(before)) == strings.TrimSpace(string(re.ReplaceAll(after, nil)))
 }
 
+// projectTrustEntryPattern matches one of Codex's own workspace-trust
+// registrations, "[projects.\"<path>\"]\ntrust_level = \"trusted\"", for any
+// project path. onlyTrustEntriesAdded uses it to recognize the shadow
+// CODEX_HOME/config.toml's own version of the exact insertion onlyTrustAdded
+// already recognizes for one named path in the real home.
+var projectTrustEntryPattern = regexp.MustCompile(`(?m)^\[projects\."[^"\n]*"\]\r?\ntrust_level = "trusted"\r?\n(?:\r?\n)?`)
+
+// onlyTrustEntriesAdded is the shadow-home mirror of onlyTrustAdded: it
+// reports whether after differs from before only by the addition of one or
+// more of Codex's own project-trust blocks (for any project path), and
+// nothing else. The runner's own generated shadow config.toml (see
+// writeShadowCodexConfig) legitimately grows one such block per fixture path
+// Codex visits during a --codex-bypass-sandbox run, and D17-A found that
+// alone was being reported as an unexpected protected-resource change. This
+// is deliberately not a general TOML editor, exactly like onlyTrustAdded:
+// removing an existing block, changing an unrelated setting, or a
+// non-"trusted" trust_level value all fail this check, so any other shadow
+// change is still flagged.
+func onlyTrustEntriesAdded(before, after []byte) bool {
+	matches := projectTrustEntryPattern.FindAll(after, -1)
+	if len(matches) == 0 {
+		return false
+	}
+	stripped := projectTrustEntryPattern.ReplaceAll(after, nil)
+	return strings.TrimSpace(string(before)) == strings.TrimSpace(string(stripped))
+}
+
+// must runs every registered cleanup (see exit.go) before reporting err and
+// exiting, so a resource set up mid-run — such as the guidance variant's
+// shadow-home Codex auth.json symlink registered right after
+// setupGuidanceVariant succeeds — is torn down on this abnormal exit path
+// too, not only when main() reaches its own happy-path cleanup call.
 func must(err error) {
 	if err != nil {
+		runCleanups()
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -239,11 +288,13 @@ func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 	}
 }
 func main() {
+	startSignalCleanup()
 	suite := flag.String("suite", "workspace-conventions", "workspace-conventions or flows")
 	handoff := flag.String("handoff-from", "", "producer plan run directory; required for flows build")
 	host := flag.String("host", "", "codex, claude, grok, pi, or opencode")
 	caseID := flag.String("case", "", "fixture ID or smoke")
 	arm := flag.String("arm", "", "A or B")
+	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok only, requires --arm)")
 	out := flag.String("out", "", "new raw evidence directory")
 	source := flag.String("source", ".", "checkout root")
 	model := flag.String("model", "", "explicit override")
@@ -280,8 +331,11 @@ func main() {
 	if *delivery == "deployed-global" && (*model == "" || *configuredModel == "") {
 		must(fmt.Errorf("deployed-global requires explicit --model and --configured-model from the recorded preflight"))
 	}
-	if *delivery == "deployed-global" && *arm != "" {
-		must(fmt.Errorf("deployed-global does not select or inject an A/B arm"))
+	if *guidanceSource != "" && *delivery != "deployed-global" {
+		must(fmt.Errorf("--guidance-source requires --delivery deployed-global"))
+	}
+	if *delivery == "deployed-global" {
+		must(validateGuidanceVariantFlags(*host, *guidanceSource, *arm))
 	}
 	if *suite != "workspace-conventions" && *suite != "flows" {
 		must(fmt.Errorf("unknown suite"))
@@ -366,7 +420,7 @@ func main() {
 		must(initGit(root))
 	}
 	var gitDelivery *gitDeliveryReport
-	if *suite == "flows" && f.ID == "git-delivery" {
+	if *suite == "flows" && (f.ID == "git-delivery" || f.ID == "close-sequence") {
 		gitDelivery, e = setupGitDelivery(root)
 		must(e)
 	}
@@ -414,15 +468,48 @@ func main() {
 	save(filepath.Join(output, "before.json"), r.Before)
 	userHome, e := os.UserHomeDir()
 	must(e)
+	var guidance *guidanceVariant
+	if *guidanceSource != "" {
+		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome)
+		must(e)
+		r.GuidanceVariant = &guidance.report
+		// Registered immediately so any must() failure or SIGINT/SIGTERM
+		// between here and the happy-path guidance.cleanup() call below still
+		// removes the shadow auth.json symlink (or a renewed plain-file
+		// credential). guidance.cleanup is idempotent, so the happy path's own
+		// direct call afterward, and a possible second run from a later
+		// must() failure, are both harmless.
+		registerCleanup(guidance.cleanup)
+	}
 	beforeProtected := protectedFor(*host, userHome)
+	if guidance != nil {
+		beforeProtected = mergeProtected(beforeProtected, protectedForHome(*host, guidance.shadowHome))
+	}
 	configPath := filepath.Join(envRoot("CODEX_HOME", filepath.Join(userHome, ".codex")), "config.toml")
 	configBefore, _ := os.ReadFile(configPath)
+	// D17-A: the shadow home's own config.toml (real path only when a
+	// guidance variant is active and host is codex) gets the same narrow,
+	// flag-gated trust exemption as the real home's, via
+	// onlyTrustEntriesAdded — never a bare, unconditional pass for shadow
+	// writes.
+	var shadowConfigPath string
+	var shadowConfigBefore []byte
+	if guidance != nil && *host == "codex" {
+		shadowConfigPath = filepath.Join(guidance.shadowHome, ".codex", "config.toml")
+		shadowConfigBefore, _ = os.ReadFile(shadowConfigPath)
+	}
 	save(filepath.Join(output, "protected-before.json"), beforeProtected)
 	args, e := launchArgs(r, output, f.Prompt)
 	must(e)
 	memory, childEnv, e := prepareMemoryIsolation(output, os.Environ())
 	must(e)
 	childEnv = environmentInDirectory(childEnv, cwd)
+	// The shadow home is applied before startHTTP so ENGRAM_DATA_DIR (already
+	// set above) keeps precedence over any default the isolated Engram server
+	// or Codex/Grok themselves would derive from a shadowed HOME.
+	if guidance != nil {
+		childEnv = guidance.applyEnvironment(childEnv)
+	}
 	childEnv, e = memory.startHTTP(childEnv, cwd)
 	if e != nil {
 		memory.cleanup()
@@ -471,10 +558,17 @@ func main() {
 	r.Terminal = terminalState(r.Trace, r.ExitCode, r.Error)
 	trace.Close()
 	r.MemoryIsolation.Cleanup = memory.cleanup()
+	if guidance != nil {
+		guidance.cleanup()
+		r.GuidanceVariant = &guidance.report
+		if guidance.report.CodexAuthWarning != "" {
+			fmt.Fprintln(os.Stderr, "WARNING:", guidance.report.CodexAuthWarning)
+		}
+	}
 	save(filepath.Join(output, "events.json"), r.Trace)
 	r.After, e = inventory(root)
 	must(e)
-	if r.Case == "git-delivery" {
+	if r.Case == "git-delivery" || r.Case == "close-sequence" {
 		r.GitDelivery = inspectGitDelivery(root, gitDelivery)
 	}
 	for p, a := range r.After {
@@ -488,6 +582,9 @@ func main() {
 		}
 	}
 	afterProtected := protectedFor(*host, userHome)
+	if guidance != nil {
+		afterProtected = mergeProtected(afterProtected, protectedForHome(*host, guidance.shadowHome))
+	}
 	save(filepath.Join(output, "protected-after.json"), afterProtected)
 	for _, p := range changedProtected(beforeProtected, afterProtected) {
 		now := afterProtected[p]
@@ -495,6 +592,13 @@ func main() {
 			if *host == "codex" && *allowTrust && p == configPath {
 				after, err := os.ReadFile(p)
 				if err == nil && onlyTrustAdded(configBefore, after, cwd) {
+					r.NativeTrustRegistration = true
+					continue
+				}
+			}
+			if *host == "codex" && *allowTrust && shadowConfigPath != "" && p == shadowConfigPath {
+				after, err := os.ReadFile(p)
+				if err == nil && onlyTrustEntriesAdded(shadowConfigBefore, after) {
 					r.NativeTrustRegistration = true
 					continue
 				}

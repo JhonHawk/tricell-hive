@@ -60,8 +60,14 @@ do not substitute for plan quality or task outcome. Build additionally executes 
 independent Node behavioral contract against the final snapshot. Infrastructure
 cases separately observe successful reads of `flow-plan/references/infra-naming.md`.
 `git-delivery` records fixture-local commit-range paths, the local bare-remote ref,
-and preservation of prepared unrelated index/worktree changes. These checks are
-structural, not semantic grading. Semantic quality,
+and preservation of prepared unrelated index/worktree changes. `close-sequence`
+reuses that same fixture setup (base `main`, a local bare `fixture` remote,
+repo-level `user.name`/`user.email`) and additionally records
+`close_question_after_report` and `merged_branch_deleted` (base `main`), a
+`close_sequence_branch_absent` check that no `fix/*` branch remains locally or
+in the bare remote, and a `close_sequence_cleanup_label` check for a
+case-insensitive "limpieza" or "cleanup" line in the last assistant text. These
+checks are structural, not semantic grading. Semantic quality,
 Spanish language, grounding, complete decisions and evidence reconciliation
 require human review and remain `not_verified` automatically. These cases do not
 establish reliability or comparative improvement. Assessment executes fixture
@@ -98,6 +104,78 @@ and redirects remain opaque and require trace review. Source checks require the
 fixture body in the matching tool output; a path mention or model claim is not
 sufficient. Versioned offline assessments preserve
 all original run evidence and do not make additional model calls.
+
+## Guidance variant pilot (`close-sequence`, `--guidance-source`/`--arm`)
+
+`--guidance-source <checkout dir>` installs that checkout's Hive guidance into
+a per-run shadow home for `--host codex` or `--host grok` only, together with
+a required `--arm A|B` label (a plain label here, not a selector — the
+checkout passed as `--guidance-source` is what actually varies). `--arm`
+without `--guidance-source` in `deployed-global` still fails clearly, and
+either flag with any other host fails clearly. Neither flag changes
+`deployed-global`'s existing everyday-installation behavior when omitted.
+
+Per run, the shadow home lives at `<out>/shadow-home` and never touches the
+real user home beyond a read of its Codex `auth.json`/`config.toml`
+([mcp_servers.engram] launch definition only) when `--host codex`. `run.json`
+records the guidance source, arm, the shadow home, and the sha256 hashes of
+the two files that host's own resolver reads from it (Codex's `AGENTS.md`,
+Grok's Claude-compatible `CLAUDE.md`, and `flow-build/SKILL.md` in both
+cases). Both hosts launch with `HOME` set to the shadow home; Codex also gets
+`CODEX_HOME` there, since its skills live under `$HOME/.agents/skills`. Grok
+keeps its real `GROK_HOME` for authentication — a declared limitation: Grok
+then loads its deployed subagent definitions from the real `GROK_HOME/agents`
+rather than this arm's, which does not affect the close-question guidance
+itself (Grok's `CLAUDE.md`/skills resolve through the shadowed `HOME`, not
+`GROK_HOME`). Codex's shadow `auth.json` is a symlink to the real one, never a
+copy; at the end of the run it is removed, and if Codex had replaced it with a
+renewed regular file, that file is deleted unread and a warning is printed to
+stderr and recorded in `run.json`. The isolated Engram store from the existing
+per-run lifecycle is unaffected: the shadow home is applied before its HTTP
+server starts, so `ENGRAM_DATA_DIR` keeps precedence inside it.
+
+The `close-sequence` case authorizes creating a `fix/<short>` branch, a
+minimal fix with its test, a commit, a push to the local `fixture` remote,
+integrating into `main` with a push, and closing the task — with no `gh`
+available, so the exact `gh pr merge --delete-branch=false` path from finding
+G4 is not reproduced, only its local-git branch-cleanup shape. A run where the
+model declines the merge and asks instead does not count as a matrix
+position.
+
+Example runner command lines for one Codex and one Grok run per arm (T4 runs
+two per cell; `<arm-a-checkout>`/`<arm-b-checkout>` are the plan's `arm-a`
+clean-`HEAD` copy and `arm-b` working tree):
+
+```sh
+go run ./tests/pilot --suite flows --host codex --case close-sequence \
+  --guidance-source <arm-a-checkout> --arm A \
+  --model gpt-6-sol --configured-model '<observed-preflight-model>' \
+  --effort medium --codex-bypass-sandbox --timeout 600s \
+  --out _support/workspace/2026-09-26-work-close-sequence/runs/codex-a-1
+
+go run ./tests/pilot --suite flows --host codex --case close-sequence \
+  --guidance-source <arm-b-checkout> --arm B \
+  --model gpt-6-sol --configured-model '<observed-preflight-model>' \
+  --effort medium --codex-bypass-sandbox --timeout 600s \
+  --out _support/workspace/2026-09-26-work-close-sequence/runs/codex-b-1
+
+go run ./tests/pilot --suite flows --host grok --case close-sequence \
+  --guidance-source <arm-a-checkout> --arm A \
+  --model grok-4.7-build-fast --configured-model '<observed-preflight-model>' \
+  --effort high --timeout 600s \
+  --out _support/workspace/2026-09-26-work-close-sequence/runs/grok-a-1
+
+go run ./tests/pilot --suite flows --host grok --case close-sequence \
+  --guidance-source <arm-b-checkout> --arm B \
+  --model grok-4.7-build-fast --configured-model '<observed-preflight-model>' \
+  --effort high --timeout 600s \
+  --out _support/workspace/2026-09-26-work-close-sequence/runs/grok-b-1
+```
+
+Codex decides and records `-a never -s workspace-write` (the default, omit
+`--codex-bypass-sandbox`) or `--codex-bypass-sandbox` per the sandbox
+discussion above; the lines here use the bypass as the pilot's own recorded
+choice, not a default recommendation.
 
 ## Grok completion budget
 

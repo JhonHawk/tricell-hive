@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"id":"msg_a","content":[{"type":"text","text":"Reporte: el despliegue a producción quedó completo. Limpieza: recursos temporales eliminados. ¿Seguimos ahora o cerramos la sesión?"}]}}
+{"type":"result","is_error":false}

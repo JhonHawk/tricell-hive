@@ -22,6 +22,29 @@ func protectedFor(host, home string) map[string]string {
 	grok := envRoot("GROK_HOME", filepath.Join(home, ".grok"))
 	pi := envRoot("PI_CODING_AGENT_DIR", filepath.Join(home, ".pi", "agent"))
 	oc := filepath.Join(envRoot("XDG_CONFIG_HOME", filepath.Join(home, ".config")), "opencode")
+	return protectedPaths(host, home, codex, claude, grok, pi, oc)
+}
+
+// protectedForHome is protectedFor's env-independent counterpart, for a
+// guidance variant's shadow home. protectedFor(host, userHome) is correct
+// for the REAL home: an actual invocation honors the runner process's own
+// CODEX_HOME/CLAUDE_CONFIG_DIR/GROK_HOME/PI_CODING_AGENT_DIR/XDG_CONFIG_HOME,
+// so watching wherever those point is right. But main.go also calls
+// protectedFor a second time for the shadow home guidanceVariant creates,
+// and reusing the same env-aware lookup there silently collapses the shadow
+// snapshot onto whatever those variables happen to be set to in the runner's
+// own environment (for example a real CODEX_HOME exported in the operator's
+// shell) instead of the shadow home's own layout — exactly what
+// applyEnvironment sets for the child (CODEX_HOME=<shadow>/.codex, and for
+// Grok the real, unshadowed GROK_HOME, per its own declared limitation).
+// protectedForHome always resolves every sub-path directly under home,
+// ignoring the process environment entirely, so the shadow-home audit stays
+// scoped to the shadow home regardless of what the operator has exported.
+func protectedForHome(host, home string) map[string]string {
+	return protectedPaths(host, home, filepath.Join(home, ".codex"), filepath.Join(home, ".claude"), filepath.Join(home, ".grok"), filepath.Join(home, ".pi", "agent"), filepath.Join(home, ".config", "opencode"))
+}
+
+func protectedPaths(host, home, codex, claude, grok, pi, oc string) map[string]string {
 	paths := []string{
 		filepath.Join(codex, "AGENTS.md"), filepath.Join(codex, "AGENTS.override.md"),
 		filepath.Join(claude, "CLAUDE.md"), filepath.Join(claude, "rules"),

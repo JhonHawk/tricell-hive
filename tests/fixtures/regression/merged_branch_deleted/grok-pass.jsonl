@@ -1,0 +1,4 @@
+{"type":"assistant","message":{"id":"msg_a","content":[{"type":"tool_use","name":"run_terminal_command","id":"s1","input":{"command":"gh pr merge 165 --merge"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"s1","content":"Merged pull request #165","is_error":false}]}}
+{"type":"assistant","message":{"id":"msg_b","content":[{"type":"tool_use","name":"run_terminal_command","id":"s2","input":{"command":"git push origin --delete fix/close-sequence"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"s2","content":"- [deleted] fix/close-sequence","is_error":false}]}}

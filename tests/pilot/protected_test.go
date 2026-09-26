@@ -39,6 +39,46 @@ func TestOtherWorkerTrustDoesNotAlertClaude(t *testing.T) {
 		t.Fatal("shared guidance mutation was ignored")
 	}
 }
+
+// TestProtectedForHomeIgnoresRunnerEnvironment is finding 5: protectedFor
+// resolves CODEX_HOME/CLAUDE_CONFIG_DIR/GROK_HOME from this process's own
+// environment, which is correct for the real home but wrong for a guidance
+// variant's shadow home — a runner invoked with a real CODEX_HOME exported
+// must not have the shadow-home audit collapse onto that real path.
+// protectedForHome must resolve every path directly under the shadow home
+// regardless of what the runner's own environment declares, while
+// protectedFor keeps honoring the environment for a real home, unchanged.
+func TestProtectedForHomeIgnoresRunnerEnvironment(t *testing.T) {
+	realCodexHome := t.TempDir()
+	realGrokHome := t.TempDir()
+	realClaudeHome := t.TempDir()
+	t.Setenv("CODEX_HOME", realCodexHome)
+	t.Setenv("GROK_HOME", realGrokHome)
+	t.Setenv("CLAUDE_CONFIG_DIR", realClaudeHome)
+	shadowHome := t.TempDir()
+	for _, host := range []string{"codex", "grok", "claude"} {
+		for p := range protectedForHome(host, shadowHome) {
+			if under(p, realCodexHome) || under(p, realGrokHome) || under(p, realClaudeHome) {
+				t.Fatalf("%s: shadow protected path collapsed onto the runner's real environment: %s", host, p)
+			}
+			if !under(p, shadowHome) {
+				t.Fatalf("%s: shadow protected path escaped the shadow home: %s", host, p)
+			}
+		}
+	}
+	// The real-home variant must still honor the runner's own environment;
+	// the fix must not touch this existing, correct behavior.
+	found := false
+	for p := range protectedFor("codex", t.TempDir()) {
+		if under(p, realCodexHome) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("protectedFor must still honor CODEX_HOME for a real home")
+	}
+}
+
 func TestLinkIdentityAndFollowedPayloadAreProtected(t *testing.T) {
 	home := t.TempDir()
 	target := filepath.Join(home, "canonical")

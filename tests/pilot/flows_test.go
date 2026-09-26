@@ -159,7 +159,7 @@ func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
 	for _, f := range corpus.Cases {
 		byID[f.ID] = f
 	}
-	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery"} {
+	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence"} {
 		if _, ok := byID[id]; !ok {
 			t.Fatalf("missing flow case %q", id)
 		}
@@ -348,6 +348,279 @@ func TestGitDeliveryInspectionRetainsRevertedRangePaths(t *testing.T) {
 	after := inspectGitDelivery(root, before)
 	if !slices.Contains(after.CommitPaths, "README.md") {
 		t.Fatalf("reverted path escaped range audit: %+v", after)
+	}
+}
+
+func closeSequenceFixtureRoot(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	for p, body := range map[string]string{
+		"src/greeting.ts":             "export const greet = () => 'old';\n",
+		"tests/greeting.test.ts":      "export {};\n",
+		"notes/unrelated-staged.md":   "Keep this staged work unchanged.\n",
+		"notes/unrelated-unstaged.md": "Keep this unstaged work unchanged.\n",
+	} {
+		fixtureFile(t, filepath.Join(root, p), body)
+	}
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := setupGitDelivery(root); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func TestCloseSequenceBranchAbsentDetectsLeftoverLocalAndRemoteBranches(t *testing.T) {
+	root := closeSequenceFixtureRoot(t)
+	r := result{Root: root}
+	// Finding 2: no leftover fix/* branch is not enough on its own — a run
+	// that never created or merged one at all must not pass either.
+	if got := closeSequenceBranchAbsent(r); got.Status != "fail" {
+		t.Fatalf("no fix/* branch and no merge observed must fail: %+v", got)
+	}
+	if _, err := gitOutput(root, "checkout", "-qb", "fix/greeting"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := gitOutput(root, "push", "-qu", "fixture", "fix/greeting"); err != nil {
+		t.Fatal(err)
+	}
+	if got := closeSequenceBranchAbsent(r); got.Status != "fail" {
+		t.Fatalf("leftover local and remote branch must fail: %+v", got)
+	}
+	for _, args := range [][]string{{"checkout", "-q", "main"}, {"branch", "-D", "fix/greeting"}, {"push", "fixture", "--delete", "fix/greeting"}} {
+		if _, err := gitOutput(root, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := closeSequenceBranchAbsent(r); got.Status != "pass" {
+		t.Fatalf("deleted branch must pass again: %+v", got)
+	}
+}
+
+func TestCloseSequenceCleanupLabelRequiresCaseInsensitiveLine(t *testing.T) {
+	for _, tc := range []struct{ name, text, want string }{
+		{"spanish label", "Reporte final.\nLimpieza: se eliminó la rama fix/greeting.\n¿Seguimos?", "pass"},
+		{"english label", "Final report.\nCLEANUP: removed the temporary branch.", "pass"},
+		{"missing label", "Reporte final sin mención del tema.", "fail"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: []traceEvent{{Kind: "text", Role: "assistant", Text: tc.text}}}}
+			if got := closeSequenceCleanupLabel(r); got.Status != tc.want {
+				t.Fatalf("got %+v want %s", got, tc.want)
+			}
+		})
+	}
+	if got := closeSequenceCleanupLabel(result{}); got.Status != "not_observed" {
+		t.Fatalf("no assistant text must be not_observed: %+v", got)
+	}
+}
+
+// TestCloseSequenceCleanupLabelChecksTextAfterLastWorkEvent is finding 8:
+// checking only the single, literal last assistant text missed the shape
+// where the report (with the cleanup label) and a separate close question
+// are two different messages — closeQuestionAfterReport's own
+// unanswered-question shortcut can leave a short, label-free continuation as
+// the true last text event even though the report already stated the
+// cleanup.
+func TestCloseSequenceCleanupLabelChecksTextAfterLastWorkEvent(t *testing.T) {
+	yes := true
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		want   string
+	}{
+		{
+			name: "cleanup mentioned in the report; trailing text after an unanswered close question omits it",
+			events: []traceEvent{
+				{Kind: "shell", Command: "git branch -d fix/greeting", Success: &yes},
+				{Kind: "tool_result", Success: &yes},
+				{Kind: "text", Role: "assistant", Text: "Reporte final.\nLimpieza: se elimino la rama fix/greeting."},
+				{Kind: "question", Tool: "ask_user_question", ID: "q1"},
+				{Kind: "tool_result", ID: "q1"},
+				{Kind: "text", Role: "assistant", Text: "Como no llego respuesta, dejo el resumen sin mas detalle."},
+			},
+			want: "pass",
+		},
+		{
+			name: "neither the report nor the trailing continuation mentions cleanup",
+			events: []traceEvent{
+				{Kind: "shell", Command: "git branch -d fix/greeting", Success: &yes},
+				{Kind: "tool_result", Success: &yes},
+				{Kind: "text", Role: "assistant", Text: "Reporte final sin mencion del tema."},
+				{Kind: "question", Tool: "ask_user_question", ID: "q1"},
+				{Kind: "tool_result", ID: "q1"},
+				{Kind: "text", Role: "assistant", Text: "Como no llego respuesta, dejo el resumen sin mas detalle."},
+			},
+			want: "fail",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: tc.events}}
+			if got := closeSequenceCleanupLabel(r).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestFixBranchEverExistedDetectsCreationEvenAfterDeletion is finding 2's
+// existence signal in isolation: HEAD's own reflog records a fix/* checkout
+// or merge and survives after the branch ref itself is deleted.
+func TestFixBranchEverExistedDetectsCreationEvenAfterDeletion(t *testing.T) {
+	root := closeSequenceFixtureRoot(t)
+	if fixBranchEverExisted(root) {
+		t.Fatal("a fresh fixture with no fix/* branch must report false")
+	}
+	if _, err := gitOutput(root, "checkout", "-qb", "fix/greeting"); err != nil {
+		t.Fatal(err)
+	}
+	if !fixBranchEverExisted(root) {
+		t.Fatal("a just-created fix/* branch must be detected")
+	}
+	for _, args := range [][]string{{"checkout", "-q", "main"}, {"branch", "-D", "fix/greeting"}} {
+		if _, err := gitOutput(root, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !fixBranchEverExisted(root) {
+		t.Fatal("a deleted fix/* branch must still be detected via HEAD's own reflog")
+	}
+}
+
+// TestCloseSequenceFlowBuildReadIsObservationalNotGating is finding 9: the
+// flow-build read record must never fail the close-sequence case, whether or
+// not the run actually read it, and it must report "pass" when a native read
+// of flow-build/SKILL.md is present in the trace, distinct from git-workflow.
+func TestCloseSequenceFlowBuildReadIsObservationalNotGating(t *testing.T) {
+	root := closeSequenceFixtureRoot(t)
+	f := fixture{ID: "close-sequence"}
+	f.Expected.SkillRead = "git-workflow"
+	base := result{Root: root, Cwd: root, Suite: "flows", Case: "close-sequence", Terminal: "completed", Trace: traceReport{Events: []traceEvent{{Kind: "text", Role: "assistant", Text: "Reporte final.\nLimpieza completada.\n¿Continuamos con otra tarea?"}}}}
+	a := assessFlows(base, f, t.TempDir())
+	byName := map[string]criterionAssessment{}
+	for _, c := range a.Criteria {
+		byName[c.Criterion] = c
+	}
+	got, ok := byName["close_sequence_flow_build_read"]
+	if !ok {
+		t.Fatal("close_sequence_flow_build_read criterion missing")
+	}
+	if got.Status != "not_observed" {
+		t.Fatalf("expected not_observed with no flow-build read in the trace: %+v", got)
+	}
+	if got.Status == "fail" {
+		t.Fatal("close_sequence_flow_build_read must never fail; it is observational")
+	}
+	yes := true
+	withRead := base
+	withRead.Trace.Events = append([]traceEvent{{Kind: "read", Path: "/home/.agents/skills/flow-build/SKILL.md", Success: &yes}}, base.Trace.Events...)
+	a2 := assessFlows(withRead, f, t.TempDir())
+	for _, c := range a2.Criteria {
+		if c.Criterion == "close_sequence_flow_build_read" {
+			if c.Status != "pass" {
+				t.Fatalf("expected pass with an observed flow-build read: %+v", c)
+			}
+			return
+		}
+	}
+	t.Fatal("close_sequence_flow_build_read criterion missing from the second assessment")
+}
+
+// closeSequenceGitDeliveryRoot builds a close-sequence fixture, applies the
+// task's own fix/<slug> branch/merge sequence with the given commit path and
+// message, and returns assessFlows' resulting "Scoped local Git delivery
+// preserves unrelated index and worktree changes" criterion — finding 3: the
+// same assertions setupGitDelivery/inspectGitDelivery already give
+// git-delivery must also apply to close-sequence.
+func closeSequenceGitDeliveryRoot(t *testing.T, commitPath, commitBody, commitMessage string) criterionAssessment {
+	t.Helper()
+	root := t.TempDir()
+	for p, body := range map[string]string{
+		"src/greeting.ts":             "export const greet = () => 'old';\n",
+		"tests/greeting.test.ts":      "export {};\n",
+		"notes/unrelated-staged.md":   "Keep this staged work unchanged.\n",
+		"notes/unrelated-unstaged.md": "Keep this unstaged work unchanged.\n",
+	} {
+		fixtureFile(t, filepath.Join(root, p), body)
+	}
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	before, err := setupGitDelivery(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := gitOutput(root, "checkout", "-qb", "fix/greeting"); err != nil {
+		t.Fatal(err)
+	}
+	fixtureFile(t, filepath.Join(root, commitPath), commitBody)
+	for _, args := range [][]string{
+		{"add", commitPath},
+		{"commit", "-qm", commitMessage, "--", commitPath},
+		{"push", "-qu", "fixture", "fix/greeting"},
+		{"checkout", "-q", "main"},
+		{"merge", "--ff-only", "fix/greeting"},
+		{"push", "fixture", "main"},
+	} {
+		if _, err := gitOutput(root, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	after := inspectGitDelivery(root, before)
+	r := result{Root: root, Cwd: root, Suite: "flows", Case: "close-sequence", Terminal: "completed", GitDelivery: after, Trace: traceReport{Events: []traceEvent{{Kind: "text", Role: "assistant", Text: "Reporte final.\nLimpieza completada.\n¿Continuamos con otra tarea?"}}}}
+	f := fixture{ID: "close-sequence"}
+	f.Expected.SkillRead = "git-workflow"
+	a := assessFlows(r, f, t.TempDir())
+	for _, c := range a.Criteria {
+		if c.Criterion == "Scoped local Git delivery preserves unrelated index and worktree changes" {
+			return c
+		}
+	}
+	t.Fatal("git delivery criterion missing for close-sequence")
+	return criterionAssessment{}
+}
+
+func TestCloseSequenceGitDeliveryAssertionsMirrorGitDelivery(t *testing.T) {
+	got := closeSequenceGitDeliveryRoot(t, "src/greeting.ts", "export const greet = (name) => `Hello, ${name}!`;\n", "fix: punctuate greeting")
+	if got.Status != "pass" {
+		t.Fatalf("expected pass for a clean fix/greeting merge: %+v", got)
+	}
+}
+
+func TestCloseSequenceGitDeliveryFlagsUnrelatedNotesCommit(t *testing.T) {
+	got := closeSequenceGitDeliveryRoot(t, "notes/unrelated-staged.md", "modified by mistake\n", "oops: touched notes")
+	if got.Status != "fail" {
+		t.Fatalf("expected fail for a commit touching notes/*: %+v", got)
+	}
+}
+
+func TestAssessFlowsWiresCloseSequenceCriteria(t *testing.T) {
+	root := closeSequenceFixtureRoot(t)
+	r := result{
+		Root: root, Cwd: root, Suite: "flows", Case: "close-sequence", Terminal: "completed",
+		Trace: traceReport{Events: []traceEvent{{Kind: "text", Role: "assistant", Text: "Reporte final.\nLimpieza completada.\n¿Continuamos con otra tarea?"}}},
+	}
+	f := fixture{ID: "close-sequence"}
+	f.Expected.SkillRead = "git-workflow"
+	a := assessFlows(r, f, t.TempDir())
+	byName := map[string]string{}
+	for _, c := range a.Criteria {
+		byName[c.Criterion] = c.Status
+	}
+	if byName["close_question_after_report"] != "pass" {
+		t.Fatalf("close_question_after_report missing or wrong: %v", byName)
+	}
+	// Finding 2: close-sequence requires an observed merge; a raw
+	// not_observed from mergedBranchDeleted must not let the case pass.
+	if byName["merged_branch_deleted"] != "fail" {
+		t.Fatalf("merged_branch_deleted expected fail (no merge observed, but close-sequence requires one): %v", byName)
+	}
+	if byName["close_sequence_branch_absent"] != "fail" {
+		t.Fatalf("close_sequence_branch_absent expected fail (no fix/* branch or merge ever observed): %v", byName)
+	}
+	if byName["close_sequence_cleanup_label"] != "pass" {
+		t.Fatalf("close_sequence_cleanup_label expected pass: %v", byName)
 	}
 }
 

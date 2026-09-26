@@ -298,6 +298,54 @@ func TestToolResultInheritsCallMessage(t *testing.T) {
 	}
 }
 
+// --- work-close-sequence T2: OpenCode question kind, Codex/OpenCode text
+// Role, and OpenCode Message correlation ---
+
+func TestOpenCodeQuestionToolKind(t *testing.T) {
+	trace := `{"type":"tool_use","part":{"type":"tool","tool":"question","callID":"q1","messageID":"msg_1","state":{"status":"completed","input":{"question":"¿Continuar?"},"output":"si"}}}`
+	r := parseTrace("opencode", strings.NewReader(trace))
+	if len(r.Events) == 0 || r.Events[0].Kind != "question" {
+		t.Fatalf("OpenCode question tool was not classified as question: %+v", r.Events)
+	}
+}
+
+func TestCodexAgentMessageHasAssistantRole(t *testing.T) {
+	trace := `{"type":"item.completed","item":{"id":"m1","type":"agent_message","text":"Reporte listo."}}`
+	r := parseTrace("codex", strings.NewReader(trace))
+	if len(r.Events) != 1 || r.Events[0].Kind != "text" || r.Events[0].Role != "assistant" {
+		t.Fatalf("Codex agent_message did not carry assistant role: %+v", r.Events)
+	}
+}
+
+func TestOpenCodeTextHasAssistantRoleAndMessage(t *testing.T) {
+	trace := `{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-1","text":"Reporte listo."}}`
+	r := parseTrace("opencode", strings.NewReader(trace))
+	if len(r.Events) != 1 {
+		t.Fatalf("expected one text event, got %+v", r.Events)
+	}
+	if r.Events[0].Role != "assistant" {
+		t.Fatalf("OpenCode text event did not carry assistant role: %+v", r.Events[0])
+	}
+	if r.Events[0].Message != "msg-1" {
+		t.Fatalf("OpenCode text event did not carry the part's messageID as Message: %+v", r.Events[0])
+	}
+}
+
+func TestOpenCodeToolCallAndResultCarryMessageID(t *testing.T) {
+	trace := `{"type":"tool_use","part":{"type":"tool","tool":"read","callID":"c1","messageID":"msg-1","state":{"status":"completed","input":{"filePath":"README.md"},"output":"hello"}}}`
+	r := parseTrace("opencode", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected a tool call and its result, got %+v", r.Events)
+	}
+	call, result := r.Events[0], r.Events[1]
+	if call.Message != "msg-1" {
+		t.Fatalf("OpenCode tool call did not carry the part's messageID as Message: %+v", call)
+	}
+	if result.Message != "msg-1" {
+		t.Fatalf("OpenCode tool result did not inherit the call's Message: %+v", result)
+	}
+}
+
 func TestPiMessageEndAssignsMessageKeyToItsToolCallsAndDistinguishesRole(t *testing.T) {
 	// The assistant's message_end reports which tool calls it is about to
 	// make before they execute, so it precedes their start/end pair.

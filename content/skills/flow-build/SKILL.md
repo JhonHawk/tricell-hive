@@ -57,4 +57,10 @@ For UI work awaiting human validation, leave the verified built local stack avai
 
 Report what changed, what was verified, unresolved failures or uncertainty, and the next step. Use a separate report only when a retained deliverable needs it; a concise update to the plan can be enough. A successful tool exit, a checked box, or an agent's assertion alone does not establish completion.
 
-Complete delivery actions already explicitly authorized, subject to their conditions; for a branch, commit, push, pull request, or merge, read [git-workflow](../git-workflow/SKILL.md) first. Otherwise stop at the authorized result with remaining delivery steps identified. Once a change folder's work is integrated into its base branch, or the change is abandoned, close it as [change records](../flow-plan/references/change-records.md) describes; its versioned delivery follows the same authorization. Before the completion report, run the global task-close cleanup and report it, and end the report with the global close question; do not delete prior or uncertain material.
+Complete delivery actions already explicitly authorized, subject to their conditions; for a branch, commit, push, pull request, or merge, read [git-workflow](../git-workflow/SKILL.md) first. Otherwise stop at the authorized result with remaining delivery steps identified. Once a change folder's work is integrated into its base branch, or the change is abandoned, close it as [change records](../flow-plan/references/change-records.md) describes; its versioned delivery follows the same authorization.
+
+When the work item completes, close it in this order; the last step ends the turn:
+
+1. Run the global task-close cleanup and, when you merged, the post-merge cleanup in [git-workflow](../git-workflow/SKILL.md). Do not delete prior or uncertain material.
+2. Write the completion report with its cleanup line.
+3. Ask the global close question.

@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"id":"msg_a","content":[{"type":"text","text":"Reporte: el despliegue a producción quedó completo. Limpieza: recursos temporales eliminados."},{"type":"tool_use","name":"use_tool","id":"q1","input":{"tool_name":"ask_user_question","tool_input":{"question":"¿Seguimos con el siguiente ticket o cerramos?"}}}]}}
+{"type":"result","is_error":false}

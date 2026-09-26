@@ -257,7 +257,7 @@ func toolKind(name string) string {
 		return "shell"
 	case "skill":
 		return "skill_invocation"
-	case "askuserquestion", "ask_user_question":
+	case "askuserquestion", "ask_user_question", "question":
 		return "question"
 	case "grep":
 		return "search"
@@ -518,7 +518,9 @@ func parseTrace(host string, input io.Reader) traceReport {
 					addTool(line, first(i, "tool", "name"), id, object(i["arguments"]), "")
 					finishTool(line, id, textContent(i["result"]), str(i["status"]) == "failed")
 				case "agent_message":
-					r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(i["text"])})
+					// codex exec 0.157.0 has no request_user_input in exec mode, so a
+					// Codex close question is only ever observed as assistant text.
+					r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(i["text"]), Role: "assistant"})
 				}
 			}
 		case "pi":
@@ -571,15 +573,20 @@ func parseTrace(host string, input io.Reader) traceReport {
 			case "tool_use":
 				s := object(p["state"])
 				id := first(p, "callID", "id")
-				addTool(line, str(p["tool"]), id, object(s["input"]), "")
+				// The part's own messageID is carried as Message so S1
+				// (question_after_detail) and close_question_after_report can
+				// group a message's calls/results without line adjacency,
+				// matching Claude/Grok/Pi's Message correlation.
+				addTool(line, str(p["tool"]), id, object(s["input"]), str(p["messageID"]))
 				if status := str(s["status"]); status == "completed" || status == "error" {
 					finishTool(line, id, first(s, "output", "error"), status == "error")
 				}
 			case "text":
-				if messageID := str(p["messageID"]); messageID != "" {
+				messageID := str(p["messageID"])
+				if messageID != "" {
 					r.FinalAssistantID = messageID
 				}
-				r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(p["text"])})
+				r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(p["text"]), Role: "assistant", Message: messageID})
 			case "step_finish":
 				if reason := str(p["reason"]); reason == "stop" {
 					r.TerminalSeen = true

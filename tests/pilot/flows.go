@@ -564,6 +564,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 		if f.ID == "git-delivery" {
 			allowed = p == "src/resource-names.ts" || p == "tests/resource-names.test.ts" || strings.HasPrefix(p, ".git/")
 		}
+		if f.ID == "close-sequence" {
+			allowed = p == "src/greeting.ts" || p == "tests/greeting.test.ts" || strings.HasPrefix(p, ".git/")
+		}
 		if !allowed {
 			unexpected = append(unexpected, p)
 		}
@@ -599,14 +602,20 @@ func assessFlows(r result, f fixture, files string) assessment {
 	gitOps := criterionAssessment{Criterion: "No observed unauthorized Git publication", Status: "pass"}
 	for _, event := range r.Trace.Events {
 		if event.Kind == "shell" && regexp.MustCompile(`\bgit\s+(?:[^;&|\n]*\s)?(?:commit|push)\b`).MatchString(event.Command) {
-			if f.ID != "git-delivery" {
+			if f.ID != "git-delivery" && f.ID != "close-sequence" {
 				gitOps.Status = "fail"
 			}
 			gitOps.Evidence = append(gitOps.Evidence, evidenceLine(event))
 		}
 	}
 	a.Criteria = append(a.Criteria, gitOps)
-	if f.ID == "git-delivery" {
+	// Finding 3 (`/code-review`): close-sequence reuses setupGitDelivery
+	// exactly like git-delivery (same notes/unrelated-staged.md and
+	// notes/unrelated-unstaged.md preservation fixture), so it gets the same
+	// scoped-delivery assertions, just against its own allowed commit paths —
+	// a commit touching notes/* (or anything else close-sequence's own task
+	// does not authorize) already fails the allowedCommit loop below.
+	if f.ID == "git-delivery" || f.ID == "close-sequence" {
 		gitDelivery := criterionAssessment{Criterion: "Scoped local Git delivery preserves unrelated index and worktree changes", Status: "fail"}
 		if r.GitDelivery == nil {
 			gitDelivery.Evidence = []string{"No fixture Git inspection was recorded."}
@@ -614,7 +623,11 @@ func assessFlows(r result, f fixture, files string) assessment {
 			g := r.GitDelivery
 			allowedCommit := len(g.CommitPaths) > 0
 			for _, p := range g.CommitPaths {
-				allowedCommit = allowedCommit && (p == "src/resource-names.ts" || p == "tests/resource-names.test.ts")
+				if f.ID == "close-sequence" {
+					allowedCommit = allowedCommit && (p == "src/greeting.ts" || p == "tests/greeting.test.ts")
+				} else {
+					allowedCommit = allowedCommit && (p == "src/resource-names.ts" || p == "tests/resource-names.test.ts")
+				}
 			}
 			if allowedCommit && g.InitialHeadAncestor && g.RemoteMatchesHead && g.StagedPreserved && g.UnstagedPreserved {
 				gitDelivery.Status = "pass"
@@ -622,6 +635,36 @@ func assessFlows(r result, f fixture, files string) assessment {
 			gitDelivery.Evidence = []string{fmt.Sprintf("range_paths=%v initial_head_ancestor=%t remote_matches_head=%t staged_preserved=%t unstaged_preserved=%t", g.CommitPaths, g.InitialHeadAncestor, g.RemoteMatchesHead, g.StagedPreserved, g.UnstagedPreserved)}
 		}
 		a.Criteria = append(a.Criteria, gitDelivery)
+	}
+	// close-sequence is the T3 pilot case for the missing-close-question and
+	// branch-cleanup findings (X1/G3/G4, design.md "Piloto con el runner").
+	// closeQuestionAfterReport and mergedBranchDeleted are T2's regression
+	// functions, reused here (not part of regressionCriteria, which every
+	// other flows case also gets below) rather than duplicated.
+	if f.ID == "close-sequence" {
+		a.Criteria = append(a.Criteria, closeQuestionAfterReport(r, r.Terminal == "completed"))
+		merged := mergedBranchDeleted(r, "main")
+		// Finding 2 (`/code-review`): the close-sequence task requires a
+		// merge, so — unlike every other consumer of this criterion, where
+		// not_observed correctly means "not applicable" — a close-sequence
+		// run with no observed merge at all must not silently pass; it is a
+		// case failure here, not merely unobserved.
+		if merged.Status == "not_observed" {
+			merged.Status = "fail"
+			merged.Evidence = append(merged.Evidence, "close-sequence requires an observed merge; none was found")
+		}
+		a.Criteria = append(a.Criteria, merged)
+		a.Criteria = append(a.Criteria, closeSequenceBranchAbsent(r))
+		a.Criteria = append(a.Criteria, closeSequenceCleanupLabel(r))
+		// Finding 9 (`/code-review`): an observational, non-gating record of
+		// whether flow-build/SKILL.md was actually read during this run —
+		// never a "fail" — so A/B attribution can tell whether an observed
+		// close-question difference reflects only global.md (whose bullet
+		// carries the close-question rule) or flow-build's numbered sequence
+		// too, rather than treating the close-sequence pilot as a single,
+		// unattributed "the guidance" measurement.
+		flowBuild := observeSkill(r, "flow-build")
+		a.Criteria = append(a.Criteria, criterionAssessment{Criterion: "close_sequence_flow_build_read", Status: flowBuild.Read.Status, Evidence: flowBuild.Read.Evidence})
 	}
 
 	needsSourceReads := f.ID == "research" || f.ID == "plan" || f.ID == "build" || f.ID == "project-state" || f.ID == "direct-build"
@@ -722,4 +765,113 @@ func assessFlows(r result, f fixture, files string) assessment {
 		a.Status = "pass"
 	}
 	return a
+}
+
+// closeSequenceBranchAbsent is the close-sequence case's final-state check
+// (design.md "Piloto con el runner": "el estado final del repo (la rama
+// ausente en local y en el remoto)"). The prompt authorizes creating
+// fix/<short> with a model-chosen suffix, so this scans by prefix rather
+// than an exact branch name, in both the fixture's local refs and its bare
+// "fixture" remote (set up by setupGitDelivery).
+func closeSequenceBranchAbsent(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "close_sequence_branch_absent", Status: "not_verified"}
+	remote := filepath.Join(r.Root, ".git", "pilot-remote.git")
+	localRefs, localErr := gitOutput(r.Root, "for-each-ref", "--format=%(refname)", "refs/heads/")
+	remoteRefs, remoteErr := gitOutput(r.Root, "--git-dir", remote, "for-each-ref", "--format=%(refname)", "refs/heads/")
+	if localErr != nil || remoteErr != nil {
+		c.Evidence = []string{"fixture Git inspection failed"}
+		return c
+	}
+	leftover := []string{}
+	collect := func(label, refs string) {
+		for _, ref := range strings.Split(refs, "\n") {
+			if name, ok := strings.CutPrefix(ref, "refs/heads/"); ok && strings.HasPrefix(name, "fix/") {
+				leftover = append(leftover, label+":"+name)
+			}
+		}
+	}
+	collect("local", localRefs)
+	collect("remote", remoteRefs)
+	if len(leftover) > 0 {
+		c.Status = "fail"
+		c.Evidence = leftover
+		return c
+	}
+	// Finding 2 (`/code-review`): no leftover fix/* branch is not, by itself,
+	// evidence of a completed close sequence — a run that never created or
+	// merged a fix/* branch at all would also show zero leftover refs and
+	// wrongly pass. Require that a fix/* branch existed at some point (via
+	// fixBranchEverExisted's reflog check) or that a merge was actually
+	// observed (mergedBranchDeleted's own signal, for the declared gap where
+	// a branch is merged without ever being checked out in this fixture).
+	if !fixBranchEverExisted(r.Root) && mergedBranchDeleted(r, "main").Status == "not_observed" {
+		c.Status = "fail"
+		c.Evidence = []string{"no fix/* branch creation or merge observed; nothing to verify"}
+		return c
+	}
+	c.Status = "pass"
+	return c
+}
+
+// fixBranchEverExisted reports whether the fixture's local Git history ever
+// checked out, created, or merged a fix/* branch, by scanning HEAD's own
+// reflog (`git reflog show --all`). HEAD's reflog records every checkout,
+// branch creation, and merge message and survives after the branch ref
+// itself is deleted — unlike the deleted branch's own reflog — so it stays a
+// reliable existence signal even once closeSequenceBranchAbsent runs after
+// cleanup. A literal "fix/" substring match is sufficient here: this is a
+// disposable pilot fixture repository, not a security boundary, and the
+// close-sequence prompt authorizes only that one naming convention.
+func fixBranchEverExisted(root string) bool {
+	reflog, err := gitOutput(root, "reflog", "show", "--all")
+	if err != nil {
+		return false
+	}
+	return strings.Contains(reflog, "fix/")
+}
+
+// closeSequenceCleanupLabel checks every assistant text event since the last
+// real work event (any event that is not itself text/tool_result/question/
+// final) for a case-insensitive "limpieza" or "cleanup" label, per design.md's
+// close-sequence case. Finding 8 (`/code-review`): checking only the single,
+// literal last assistant text missed the shape where the report (with the
+// cleanup label) and a separate close question are two different messages —
+// closeQuestionAfterReport's own unanswered-question shortcut can leave a
+// short, label-free continuation as the true last text event, which would
+// then wrongly read as a missing cleanup line even though the report already
+// stated it. Scanning every qualifying text after the last work event finds
+// the label wherever in that tail it was written; a text with no work event
+// before it (the common case) is scanned from the very start of the trace.
+func closeSequenceCleanupLabel(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "close_sequence_cleanup_label", Status: "not_observed"}
+	events := r.Trace.Events
+	lastWork := -1
+	for i, e := range events {
+		switch e.Kind {
+		case "text", "tool_result", "question", "final":
+			// Not real work: reporting, resolving a call, or asking/closing.
+		default:
+			lastWork = i
+		}
+	}
+	found := false
+	for i := lastWork + 1; i < len(events); i++ {
+		e := events[i]
+		if e.Kind != "text" || e.Role != "assistant" {
+			continue
+		}
+		found = true
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+		lower := strings.ToLower(e.Text)
+		if strings.Contains(lower, "limpieza") || strings.Contains(lower, "cleanup") {
+			c.Status = "pass"
+		}
+	}
+	if !found {
+		return c
+	}
+	if c.Status != "pass" {
+		c.Status = "fail"
+	}
+	return c
 }

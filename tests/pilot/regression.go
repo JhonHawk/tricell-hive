@@ -55,6 +55,33 @@ func nonWhitespaceRuneCount(s string) int {
 // after the last tool_result from a different message.
 const minQuestionDetail = 40
 
+// detailRunesBeforeQuestion counts non-whitespace runes of Role=="assistant"
+// text strictly between the last tool_result event before qi whose Message
+// differs from the question's own (a sibling result in the same message does
+// not reset the window, including when it arrives before the question in a
+// parallel tool-call turn) and qi itself. Shared by questionAfterDetail (S1,
+// every native question) and closeQuestionAfterReport's unanswered-question
+// shortcut (work-close-sequence finding 7), so both apply minQuestionDetail
+// to the same window the same way.
+func detailRunesBeforeQuestion(events []traceEvent, qi int) int {
+	q := events[qi]
+	boundary := -1
+	for j := 0; j < qi; j++ {
+		e := events[j]
+		if e.Kind == "tool_result" && e.Message != q.Message {
+			boundary = j
+		}
+	}
+	detail := 0
+	for j := boundary + 1; j < qi; j++ {
+		e := events[j]
+		if e.Kind == "text" && e.Role == "assistant" {
+			detail += nonWhitespaceRuneCount(e.Text)
+		}
+	}
+	return detail
+}
+
 // questionAfterDetail is S1 (question_after_detail): every native question
 // call must be preceded, after the last tool_result whose Message differs
 // from the question's own, by at least minQuestionDetail non-whitespace
@@ -70,21 +97,7 @@ func questionAfterDetail(r result) criterionAssessment {
 			continue
 		}
 		observed = true
-		boundary := -1
-		for j := 0; j < qi; j++ {
-			e := events[j]
-			if e.Kind == "tool_result" && e.Message != q.Message {
-				boundary = j
-			}
-		}
-		detail := 0
-		for j := boundary + 1; j < qi; j++ {
-			e := events[j]
-			if e.Kind == "text" && e.Role == "assistant" {
-				detail += nonWhitespaceRuneCount(e.Text)
-			}
-		}
-		if detail < minQuestionDetail {
+		if detailRunesBeforeQuestion(events, qi) < minQuestionDetail {
 			c.Status = "fail"
 			c.Evidence = append(c.Evidence, regressionEvidence(q))
 		}
@@ -314,6 +327,392 @@ func noBroadGitAdd(r result) criterionAssessment {
 		c.Status = "pass"
 	}
 	return c
+}
+
+// closeQuestionAfterReport is the close-sequence criterion for the reported
+// missing-close-question finding (X1, G3): once a run's report is done, its
+// last act must be the close question. It only looks at events with
+// Kind=="text" and Role=="assistant" — a synthetic user-role text or
+// Claude's own Kind=="final" result text is excluded — and only when the
+// caller reports the run as completed (terminalCompleted): a timeout or
+// another unterminated run leaves it not_observed, since a missing question
+// there is not evidence a run skipped one.
+//
+// It passes (evidence kind "tool") when the LAST "question" event in the
+// whole trace (OpenCode's native tool, or Claude/Grok/Pi's
+// askuserquestion/ask_user_question) is followed only by its own tool_result
+// and by more Role=="assistant" text — see onlyOwnResultAndTextAfter — AND
+// that question is itself preceded by at least minQuestionDetail
+// non-whitespace runes of assistant text, per detailRunesBeforeQuestion (the
+// same S1 window questionAfterDetail uses). This covers both the direct case
+// (the question comes right after a properly detailed report) and D17-A's
+// headless-host false negative: a host with no UI returns the question call
+// with no answer and the model keeps writing, so the final assistant text
+// trails the question instead of preceding it — trailing text after the
+// question is never restricted. The detail precondition (finding 7) is what
+// keeps this shortcut from accepting the inverse, buggy shape: a low-detail
+// question fired mid-flow, with the run's real substantive report written
+// only afterward as that trailing text, never itself asking a close
+// question — "requiring the report before the question", not merely
+// something after it. It also passes (evidence kind "text", the fallback
+// path) when that last text's own last paragraph — the text after its last
+// blank line — contains "?" anywhere, per D17-A: a Spanish "¿…?" often lands
+// mid-paragraph, not at the very end, and Codex exec 0.157.0 has no question
+// tool at all, so its close question can only ever be observed as text.
+// Evidence is always the proving event's line/kind/tool, never its text, so
+// a rhetorical "?" read as a pass can still be checked by hand against the
+// trace.
+//
+// It fails when a question occurred earlier but real work — a further tool
+// call, shell command, or write — is observed after it (G3): the
+// unanswered-question shortcut does not apply then, and the ordinary
+// direct-question/text-fallback checks run against the actual last text. It
+// also fails, via that same fallback, when the question had insufficient
+// detail before it: the shortcut is denied, so the actual last assistant
+// text (whatever trails the question) is checked on its own merits and, with
+// no question or trailing "?" of its own, fails.
+func closeQuestionAfterReport(r result, terminalCompleted bool) criterionAssessment {
+	c := criterionAssessment{Criterion: "close_question_after_report", Status: "not_observed"}
+	if !terminalCompleted {
+		return c
+	}
+	events := r.Trace.Events
+	lastText := -1
+	for i, e := range events {
+		if e.Kind == "text" && e.Role == "assistant" {
+			lastText = i
+		}
+	}
+	if lastText == -1 {
+		return c
+	}
+	if qi := lastQuestionIndex(events); qi != -1 && onlyOwnResultAndTextAfter(events, qi) && detailRunesBeforeQuestion(events, qi) >= minQuestionDetail {
+		c.Status = "pass"
+		c.Evidence = append(c.Evidence, regressionEvidence(events[qi]))
+		return c
+	}
+	for i := lastText + 1; i < len(events); i++ {
+		if events[i].Kind == "question" {
+			c.Status = "pass"
+			c.Evidence = append(c.Evidence, regressionEvidence(events[i]))
+			return c
+		}
+	}
+	if hasQuestionMark(lastParagraph(events[lastText].Text)) {
+		c.Status = "pass"
+		c.Evidence = append(c.Evidence, regressionEvidence(events[lastText]))
+		return c
+	}
+	c.Status = "fail"
+	c.Evidence = append(c.Evidence, regressionEvidence(events[lastText]))
+	return c
+}
+
+// lastQuestionIndex returns the index of the last "question" kind event in
+// events, or -1 if none is present.
+func lastQuestionIndex(events []traceEvent) int {
+	idx := -1
+	for i, e := range events {
+		if e.Kind == "question" {
+			idx = i
+		}
+	}
+	return idx
+}
+
+// onlyOwnResultAndTextAfter is closeQuestionAfterReport's D17-A
+// unanswered-question shortcut: it reports whether every event after index
+// qi (the trace's last "question" event) is either that call's own
+// tool_result — matched by ID, or by sharing the question's Message key,
+// since a sibling call issued in the same message (for example a todo-list
+// update alongside ask_user_question) resolves in the same tool_result
+// batch and is not "further work" — Role=="assistant" text, or the
+// structural "final" event Claude/Grok's own wire format always appends
+// after a completed turn (it only ever duplicates the last assistant text;
+// it can never itself be a tool call, shell command, or write, so it is
+// always ignorable here). Any other kind — a new tool call, shell command,
+// write, or a second question — means real work continued after the
+// question, so this shortcut does not apply and the caller falls back to
+// its ordinary direct-question/text-fallback checks.
+func onlyOwnResultAndTextAfter(events []traceEvent, qi int) bool {
+	q := events[qi]
+	for i := qi + 1; i < len(events); i++ {
+		e := events[i]
+		switch {
+		case e.Kind == "tool_result" && (e.ID == q.ID || (q.Message != "" && e.Message == q.Message)):
+			continue
+		case e.Kind == "text" && e.Role == "assistant":
+			continue
+		case e.Kind == "final":
+			continue
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// lastParagraph returns the final paragraph of text: everything after the
+// last interior blank line (a line that is empty after trimming). Trailing
+// blank lines — a final newline, or trailing spaces before one — are
+// dropped first and never count as a paragraph break on their own, so a
+// report ending in "¿Seguimos?   \n" still yields "¿Seguimos?   ", not "".
+// When text has no interior blank line, the whole (trailing-trimmed) text is
+// the paragraph.
+func lastParagraph(text string) string {
+	lines := strings.Split(text, "\n")
+	end := len(lines)
+	for end > 0 && strings.TrimSpace(lines[end-1]) == "" {
+		end--
+	}
+	lines = lines[:end]
+	start := 0
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			start = i + 1
+		}
+	}
+	return strings.Join(lines[start:], "\n")
+}
+
+// hasQuestionMark reports whether s contains "?" anywhere. It is
+// closeQuestionAfterReport's text-only fallback check, per D17-A: a Spanish
+// "¿…?" wraps a question and its "?" can land mid-paragraph, not only at the
+// paragraph's end, so a host without a question tool can still close with
+// an interrogative that trails further text.
+func hasQuestionMark(s string) bool {
+	return strings.Contains(s, "?")
+}
+
+// mergedBranchDeleted is the close-sequence criterion for the reported
+// branch-cleanup finding (G4): once a run merges a branch, some later (or
+// concurrent, for a single command that does both) command must delete a
+// branch. It only inspects shell events with Success==true, reusing
+// shellSegments/gitInvocation to see past "zsh -lc" wrappers and git's
+// global options.
+//
+// Merge is `gh pr merge …`, or `git merge …` followed later (in the same or
+// a later shell event) by a `git push` naming base among its positional
+// arguments; for a local `git merge`, the deletion scan below starts at the
+// `git merge` command itself, not at the confirming push, so a deletion
+// issued between the two (before the merge has even reached the base) still
+// counts. Deletion is any of: `git push … --delete|-d <branch>` or
+// `git push <remote> :<branch>`/`:refs/heads/<branch>`; `git branch
+// -d|-D|--delete <branch>`; `gh pr merge … --delete-branch|-d` without
+// `=false`; or `gh api -X DELETE …/git/refs/heads/…`. Because `gh pr merge
+// <number>` never names the branch it merged, this function does not try to
+// match a deletion's branch name against the merged one: any recognized
+// deletion at or after the position of the last recognized merge counts,
+// including one performed by the very same `gh pr merge --delete-branch`
+// command.
+//
+// Fails when a merge is observed with no qualifying deletion after it;
+// not_observed when no merge is recognized at all.
+//
+// Declared limits: a branch GitHub auto-deletes after merge (the
+// repository's or a PR's own "Automatically delete head branches" setting)
+// performs no command in the trace, so it is not observed and such a run
+// reads as fail. A bare `git push` with no positional branch argument is
+// never treated as a push to base, so a merge landed that way is not
+// observed as a merge either — a declared gap, not a pass. Only the
+// deletion syntaxes listed above are recognized; a script-driven or GUI
+// deletion is unjudged.
+func mergedBranchDeleted(r result, base string) criterionAssessment {
+	c := criterionAssessment{Criterion: "merged_branch_deleted", Status: "not_observed"}
+	type step struct {
+		event traceEvent
+		args  []string
+	}
+	var steps []step
+	for _, e := range r.Trace.Events {
+		if e.Kind != "shell" || e.Success == nil || !*e.Success {
+			continue
+		}
+		for _, args := range shellSegments(e.Command, 0) {
+			if len(args) == 0 {
+				continue
+			}
+			steps = append(steps, step{event: e, args: args})
+		}
+	}
+	lastMerge := -1
+	pendingGitMerge := false
+	pendingMergeIndex := -1
+	for i, s := range steps {
+		args := s.args
+		if isGhPrMergeCommand(args) {
+			lastMerge = i
+			continue
+		}
+		isGit, sub, _ := gitInvocation(args, "")
+		if !isGit || sub >= len(args) {
+			continue
+		}
+		switch args[sub] {
+		case "merge":
+			pendingGitMerge = true
+			pendingMergeIndex = i
+		case "push":
+			if pendingGitMerge && pushTargetsBase(args[sub+1:], base) {
+				// lastMerge is set to the git merge command's own index, not
+				// this confirming push's index, so a deletion issued between
+				// the merge and the later push to base (still counts as
+				// after the merge) is not missed by the deletion scan below.
+				// lastMerge is set to the git merge command's own index, not
+				// this confirming push's index, so a deletion issued between
+				// the merge and the later push to base (still counts as
+				// after the merge) is not missed by the deletion scan below.
+				lastMerge = pendingMergeIndex
+				pendingGitMerge = false
+			}
+		}
+	}
+	if lastMerge == -1 {
+		return c
+	}
+	for i := lastMerge; i < len(steps); i++ {
+		if branchDeletionCommand(steps[i].args) {
+			c.Status = "pass"
+			c.Evidence = append(c.Evidence, regressionEvidence(steps[i].event))
+			return c
+		}
+	}
+	c.Status = "fail"
+	c.Evidence = append(c.Evidence, regressionEvidence(steps[lastMerge].event))
+	return c
+}
+
+// isGhPrMergeCommand reports whether args invokes `gh pr merge`.
+func isGhPrMergeCommand(args []string) bool {
+	return len(args) >= 3 && filepath.Base(args[0]) == "gh" && args[1] == "pr" && args[2] == "merge"
+}
+
+// pushTargetsBase reports whether rest (a `git push`'s arguments after
+// "push") names base directly, as a "<local>:<base>" or
+// ".../refs/heads/<base>" refspec side, among its non-flag, non-refspec-
+// delete tokens. A bare `git push` with no positional argument is a
+// declared gap (see mergedBranchDeleted's doc comment): it never matches.
+func pushTargetsBase(rest []string, base string) bool {
+	if base == "" {
+		return false
+	}
+	for _, tok := range rest {
+		switch {
+		case strings.HasPrefix(tok, "-"):
+			continue
+		case strings.HasPrefix(tok, ":"):
+			continue // a ":<branch>" delete refspec names nothing to push to.
+		case tok == base:
+			return true
+		}
+		for _, part := range strings.SplitN(tok, ":", 2) {
+			if part == base || strings.HasSuffix(part, "refs/heads/"+base) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// branchDeletionCommand reports whether args is one of the recognized
+// branch-deletion syntaxes documented on mergedBranchDeleted. It never
+// checks which branch is named, since gh pr merge's own deletion never
+// names one.
+func branchDeletionCommand(args []string) bool {
+	if isGhPrMergeCommand(args) {
+		return ghPrMergeDeletesBranch(args)
+	}
+	if isGhAPIDeleteRef(args) {
+		return true
+	}
+	isGit, sub, _ := gitInvocation(args, "")
+	if !isGit || sub >= len(args) {
+		return false
+	}
+	switch args[sub] {
+	case "push":
+		return gitPushDeletesBranch(args[sub+1:])
+	case "branch":
+		return gitBranchDeleteCommand(args[sub+1:])
+	}
+	return false
+}
+
+// ghPrMergeDeletesBranch reports whether a `gh pr merge` invocation carries
+// --delete-branch or -d without an explicit "=false".
+func ghPrMergeDeletesBranch(args []string) bool {
+	for _, a := range args {
+		if a == "--delete-branch" || a == "-d" {
+			return true
+		}
+		if strings.HasPrefix(a, "--delete-branch=") {
+			return a != "--delete-branch=false"
+		}
+	}
+	return false
+}
+
+// hasPositionalArg reports whether args has any token that is neither an
+// option flag (leading "-") nor a bare delete refspec (leading ":").
+func hasPositionalArg(args []string) bool {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") && !strings.HasPrefix(a, ":") {
+			return true
+		}
+	}
+	return false
+}
+
+// gitPushDeletesBranch reports whether rest (a `git push`'s arguments after
+// "push") deletes a branch: a "--delete"/"-d" flag with a named branch, or
+// a bare ":<branch>"/":refs/heads/<branch>" refspec token.
+func gitPushDeletesBranch(rest []string) bool {
+	hasDeleteFlag := false
+	for _, a := range rest {
+		if a == "--delete" || a == "-d" {
+			hasDeleteFlag = true
+			continue
+		}
+		if strings.HasPrefix(a, ":") && len(a) > 1 {
+			return true
+		}
+	}
+	return hasDeleteFlag && hasPositionalArg(rest)
+}
+
+// gitBranchDeleteCommand reports whether rest (a `git branch`'s arguments
+// after "branch") deletes a named branch via -d, -D or --delete.
+func gitBranchDeleteCommand(rest []string) bool {
+	hasDeleteFlag := false
+	for _, a := range rest {
+		if a == "-d" || a == "-D" || a == "--delete" {
+			hasDeleteFlag = true
+		}
+	}
+	return hasDeleteFlag && hasPositionalArg(rest)
+}
+
+// isGhAPIDeleteRef reports whether args is a `gh api` call using the
+// DELETE method against a "git/refs/heads/…" path.
+func isGhAPIDeleteRef(args []string) bool {
+	if len(args) < 2 || filepath.Base(args[0]) != "gh" || args[1] != "api" {
+		return false
+	}
+	deleteMethod := false
+	for i, a := range args {
+		if (a == "-X" || a == "--method") && i+1 < len(args) && strings.EqualFold(args[i+1], "DELETE") {
+			deleteMethod = true
+		}
+	}
+	if !deleteMethod {
+		return false
+	}
+	for _, a := range args {
+		if strings.Contains(a, "git/refs/heads/") {
+			return true
+		}
+	}
+	return false
 }
 
 // isSecretPath reports whether p names a .env-family file (excluding the
