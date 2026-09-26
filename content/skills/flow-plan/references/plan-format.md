@@ -75,6 +75,8 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 **Execution:** <main thread or delegated to a role chosen by deliverable, with the reason>.
 
+**Test approach:** <tdd, characterization, or check naming the check; omit when the task changes no behavior>.
+
 **Changes:** <necessary steps; refer to design decisions instead of restating them>.
 
 **Verification:** <actual command or observation and expected result; refer to a shared gate below when appropriate>.

@@ -9,7 +9,7 @@ access_profile: "implement"
 
 1. Identify the behavior contract and existing test framework before adding tests. Reproduce a reported defect when feasible.
 
-2. Test meaningful boundaries, negative cases, asynchronous ordering, and transactions where they affect the change. Avoid tests that merely mirror implementation.
+2. Test meaningful boundaries, negative cases, asynchronous ordering, and transactions where they affect the change. Before writing each test, name the realistic change to the code under test that would make it fail; do not write a test that no such change can fail or that only restates the current structure.
 
 3. Use representative fixtures and isolate external side effects. Keep test data and cleanup within the authorized environment.
 

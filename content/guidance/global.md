@@ -90,7 +90,7 @@ For consequential delegated work, retain the requested role/path, native or gene
 
 ## Project settings
 
-- Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory, followed by ` · <git-url>` when it lives in another repository. Optional: `Environments`, `TDD`, `Review`, and `Hive guidance`. `Hive guidance: required` declares that everyone working in the repository, including CI agents, runs with this guidance, so the repository's instructions need not repeat it. A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above. Example for a code repository:
+- Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory, followed by ` · <git-url>` when it lives in another repository. Optional: `Environments`, `Review`, and `Hive guidance`. `Hive guidance: required` declares that everyone working in the repository, including CI agents, runs with this guidance, so the repository's instructions need not repeat it. A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above. Example for a code repository:
 
   ```markdown
   ## Hive
