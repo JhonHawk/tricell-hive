@@ -102,7 +102,7 @@ For consequential delegated work, retain the requested role/path, native or gene
   - Review: /code-review
   ```
 - The section of the Git repository containing the changed file governs; a package inside a repository uses the repository's section. The workspace section governs only cross-repository work and sessions started there without a repository target. When loaded sections conflict, follow the repository's and report the conflict.
-- Ask for a missing required value when the task first needs it, not at session start and not for repositories only read, then record it in that repository's section. Keep each value there rather than repeating it elsewhere in the file. A declared `Review` is the recommended option when asking about review, not a substitute for the question.
+- Ask for a missing required value when the task first needs it, not at session start and not for repositories only read, then record it in that repository's section. Keep each value there rather than repeating it elsewhere in the file. A declared `Review` is the recommended mechanism when a dedicated review applies, not a substitute for the question.
 
 ## Continuity
 
