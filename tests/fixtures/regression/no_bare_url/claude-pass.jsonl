@@ -1,0 +1,1 @@
+{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"Revisa la [documentación](https://example.com/docs) para más detalle. También puedes abrir <https://example.com/ref> directamente. El comando `curl https://example.com/api` prueba el endpoint.\n```\ncurl https://example.com/raw\n```\nY también funciona con:\n~~~\ncurl https://example.com/raw2\n~~~"}]}}

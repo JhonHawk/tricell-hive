@@ -2,18 +2,25 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
-// regressionCriteria adds the three deterministic session-finding regression
-// criteria (S1, S3, S5) to every flows case, ahead of the case-status
-// computation in assessFlows. It never touches assessResult or the
-// workspace-conventions suite. Each criterion returns not_observed when no
-// applicable event exists, pass when applicable events satisfy it, and fail
-// with line/kind/tool/path evidence otherwise — never the command or result
-// text, since a grep pattern or a shell command can itself be a secret value.
+// regressionCriteria adds the five deterministic session-finding regression
+// criteria (S1, S3, S5, and report-readability's cited_id_glossed and
+// no_bare_url) to every flows case, ahead of the case-status computation in
+// assessFlows. It never touches assessResult or the workspace-conventions
+// suite. Each criterion returns not_observed when no applicable event
+// exists, pass when applicable events satisfy it, and fail with evidence
+// otherwise — never the command, result text, or (for cited_id_glossed and
+// no_bare_url) the surrounding sentence or URL, since any of those can
+// themselves carry a secret value or a signed token.
 //
 // flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing) is a separate,
 // standalone criterion declared in this file but intentionally not returned
@@ -29,6 +36,8 @@ func regressionCriteria(r result) []criterionAssessment {
 		questionAfterDetail(r),
 		noBroadGitAdd(r),
 		noSecretContentRead(r),
+		citedIDGlossed(r),
+		noBareURL(r),
 	}
 }
 
@@ -1061,6 +1070,555 @@ func noSecretContentRead(r result) criterionAssessment {
 		}
 	}
 	if observed && c.Status != "fail" {
+		c.Status = "pass"
+	}
+	return c
+}
+
+// --- cited_id_glossed and no_bare_url (report-readability D1-A/D2-A/D3-A) ---
+
+// boldStripper removes Markdown emphasis markers before an ID scan, per
+// design.md's normalization step ("**D1**" and "__D1__" both read as "D1").
+var boldStripper = strings.NewReplacer("**", "", "__", "")
+
+// rangeIDToken matches a same-shape ID range such as "S1–S6" or "S1-S6"; the
+// two letters are captured separately and compared in Go (findIDOccurrences),
+// not in the pattern itself, because Go's regexp package has no
+// backreferences. The separator is an en dash or a plain hyphen, per
+// design.md's "[–-]"; an em dash never appears inside a range token.
+var rangeIDToken = regexp.MustCompile(`([A-Z])(\d{1,2})[\x{2013}-]([A-Z])(\d{1,2})\b`)
+
+// singleIDToken matches one finding/decision ID such as "S1", "D9", or
+// "D1-A". It is only applied to spans a valid rangeIDToken match has not
+// already consumed (findIDOccurrences), so a range's own endpoints are never
+// also reported as two separate single citations.
+var singleIDToken = regexp.MustCompile(`\b[A-Z]\d{1,2}(?:-[A-Z])?\b`)
+
+// glossMarks are the punctuation characters design.md accepts right after a
+// citation (optional space, then one of these). A plain ASCII hyphen is
+// deliberately excluded: it is a valid *range separator* (rangeIDToken) but
+// never itself a gloss, so a range's own connecting dash is never mistaken
+// for having glossed its first endpoint.
+var glossMarks = map[rune]bool{'(': true, '—': true, '–': true, ':': true}
+
+// idOccurrence is one ID or ID-range match inside a single field string
+// (an assistant text block, or one question/label/description field of a
+// native question). Start/End are byte offsets into that field, used only to
+// look up what immediately follows for the gloss check — never surfaced as
+// evidence.
+type idOccurrence struct {
+	Token    string
+	Start    int
+	End      int
+	IsRange  bool
+	Endpoint [2]string // the two individual IDs a range spans; unset otherwise.
+}
+
+// findIDOccurrences scans one field for range and single ID tokens, ranges
+// first per design.md, so a valid range's own endpoints are excluded from
+// the subsequent single-token scan (consumed) rather than double-reported.
+// A rangeIDToken match whose two letters differ is not a valid range — Go's
+// regexp cannot express that as a backreference — so it is left for the
+// single-token pass, which reports its pieces (if any) as independent IDs.
+func findIDOccurrences(s string) []idOccurrence {
+	consumed := make([]bool, len(s)+1)
+	var occ []idOccurrence
+	for _, m := range rangeIDToken.FindAllStringSubmatchIndex(s, -1) {
+		letterA, letterB := s[m[2]:m[3]], s[m[6]:m[7]]
+		if letterA != letterB {
+			continue
+		}
+		endpointA := s[m[2]:m[3]] + s[m[4]:m[5]]
+		endpointB := s[m[6]:m[7]] + s[m[8]:m[9]]
+		occ = append(occ, idOccurrence{Token: s[m[0]:m[1]], Start: m[0], End: m[1], IsRange: true, Endpoint: [2]string{endpointA, endpointB}})
+		for i := m[0]; i < m[1]; i++ {
+			consumed[i] = true
+		}
+	}
+	for _, m := range singleIDToken.FindAllStringIndex(s, -1) {
+		if consumed[m[0]] {
+			continue
+		}
+		occ = append(occ, idOccurrence{Token: s[m[0]:m[1]], Start: m[0], End: m[1]})
+	}
+	sort.Slice(occ, func(i, j int) bool { return occ[i].Start < occ[j].Start })
+	return occ
+}
+
+// rangeExpansionCap bounds rangeMembers: design.md's own convention names a
+// whole range like "S1–S6" to introduce every finding it spans, not only
+// its first and last, but a same-letter range's digits can differ by up to
+// 98 (two digits each), so expansion is capped to avoid registering a
+// pathological span (such as "A1–A99") as 99 individual definitions —
+// /code-review H4.
+const rangeExpansionCap = 30
+
+// rangeMembers expands a valid range occurrence into every ID it spans,
+// inclusive of both endpoints (e.g. "S1–S3" → "S1","S2","S3"), so a
+// definition-position range registers every member it introduces, not only
+// its two endpoints. It returns just the two endpoints, unexpanded, when
+// the span exceeds rangeExpansionCap — a declared limit, not an error. It
+// returns nil for a non-range occurrence.
+func rangeMembers(o idOccurrence) []string {
+	if !o.IsRange {
+		return nil
+	}
+	letter, numA := o.Endpoint[0][:1], o.Endpoint[0][1:]
+	numB := o.Endpoint[1][1:]
+	lo, errA := strconv.Atoi(numA)
+	hi, errB := strconv.Atoi(numB)
+	if errA != nil || errB != nil || lo > hi || hi-lo+1 > rangeExpansionCap {
+		return []string{o.Endpoint[0], o.Endpoint[1]}
+	}
+	members := make([]string, 0, hi-lo+1)
+	for n := lo; n <= hi; n++ {
+		members = append(members, fmt.Sprintf("%s%d", letter, n))
+	}
+	return members
+}
+
+// glossedAt reports whether field, right after byte offset end (optional
+// spaces, then one of glossMarks), glosses whatever ends at end. It is the
+// only rule-1 check (design.md's "espacio opcional y (, —, – o :"); rule 2
+// (an option label with a non-empty description) and rule 3 (the occurrence
+// is itself, or shares a definition with, the line/field that defines it)
+// are applied by the caller, which already knows the field's role.
+func glossedAt(field string, end int) bool {
+	rest := strings.TrimLeft(field[end:], " ")
+	if rest == "" {
+		return false
+	}
+	r, _ := utf8.DecodeRuneInString(rest)
+	return glossMarks[r]
+}
+
+// maskFencedBlocks blanks (space-fills, preserving line count and length)
+// every line from an opening ``` or ~~~ fence to its matching close, so an ID
+// or URL inside a fenced code block is invisible to both criteria below.
+func maskFencedBlocks(s string) string {
+	lines := strings.Split(s, "\n")
+	fenced := false
+	marker := ""
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case !fenced && (strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~")):
+			fenced = true
+			marker = trimmed[:3]
+			lines[i] = strings.Repeat(" ", len(line))
+		case fenced:
+			lines[i] = strings.Repeat(" ", len(line))
+			if strings.HasPrefix(trimmed, marker) {
+				fenced = false
+			}
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// inlineCodeSpan matches a single-backtick inline code span on one line
+// (Markdown inline code never spans a newline). A multi-backtick span
+// (`` `` ``) is a declared, unhandled limit: no fixture or test in this
+// change needs it.
+var inlineCodeSpan = regexp.MustCompile("`[^`\n]+`")
+
+func blankOfSameLen(s string) string { return strings.Repeat(" ", len(s)) }
+
+func maskInlineCode(line string) string {
+	return inlineCodeSpan.ReplaceAllStringFunc(line, blankOfSameLen)
+}
+
+// maskCodeSpans applies boldStripper, then blanks fenced blocks and, line by
+// line, inline code, so an ID inside either is never scanned. It is only
+// used for cited_id_glossed's assistant-text surface: question/label/
+// description fields are single short strings the model wrote directly, with
+// no fences to mask, so they are scanned as-is (still through
+// findIDOccurrences/glossedAt) — see citedIDGlossed.
+func maskCodeSpans(s string) string {
+	s = boldStripper.Replace(s)
+	s = maskFencedBlocks(s)
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = maskInlineCode(line)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// lineDefinitionStart returns the byte offset, within line, where a
+// definition-position ID would need to start: after leading spaces/tabs and,
+// if present, one recognized marker (a "- "/"* " list bullet, an "N. "
+// ordered-list marker, or a leading "|" table-cell delimiter), per
+// design.md's "al inicio de una línea (tras espacios, un marcador de lista
+// -, *, N., o | de celda)". A plain line with no marker still counts, since
+// "tras espacios" alone is sufficient — a declared source of false positives
+// (design.md: a line-initial token that merely looks like an ID, such as a
+// "H2" heading fragment, is indistinguishable from a real finding ID here).
+func lineDefinitionStart(line string) int {
+	i := 0
+	for i < len(line) && (line[i] == ' ' || line[i] == '\t') {
+		i++
+	}
+	rest := line[i:]
+	switch {
+	case strings.HasPrefix(rest, "- "), strings.HasPrefix(rest, "* "):
+		i += 2
+	case strings.HasPrefix(rest, "|"):
+		i++
+	default:
+		j := 0
+		for j < len(rest) && rest[j] >= '0' && rest[j] <= '9' {
+			j++
+		}
+		if j > 0 && strings.HasPrefix(rest[j:], ". ") {
+			i += j + 2
+		}
+	}
+	for i < len(line) && line[i] == ' ' {
+		i++
+	}
+	return i
+}
+
+// askQuestionOption is one option of one sub-question in AskUserQuestion's
+// real nested input shape: {"questions":[{"header","question","options":
+// [{"label","description"}]}]}. header is decoded (askQuestionEntry) but
+// never scanned: design.md excludes it as a "label of at most 12
+// characters."
+type askQuestionOption struct {
+	Label       string `json:"label"`
+	Description string `json:"description"`
+}
+type askQuestionEntry struct {
+	Header   string              `json:"header"`
+	Question string              `json:"question"`
+	Options  []askQuestionOption `json:"options"`
+}
+type askQuestionInput struct {
+	Questions []askQuestionEntry `json:"questions"`
+}
+
+// decodeAskQuestion accepts both Claude's real nested shape
+// ({"questions":[{header,question,options:[...]}]}) and Pi/Grok's flat shape
+// (no "questions" wrapper: {"question":…,"options":[...]}, as seen in
+// question_after_detail/pi-*.jsonl, question_after_detail/grok-*.jsonl, and
+// close_question_after_report/grok-*.jsonl once grokToolCall has unwrapped
+// its use_tool envelope in trace.go). The flat shape uses the exact same
+// field names as one askQuestionEntry, so it is decoded directly into that
+// type and wrapped as a one-entry slice — /code-review H2.
+func decodeAskQuestion(input json.RawMessage) []askQuestionEntry {
+	if len(input) == 0 {
+		return nil
+	}
+	var nested askQuestionInput
+	if json.Unmarshal(input, &nested) == nil && len(nested.Questions) > 0 {
+		return nested.Questions
+	}
+	var flat askQuestionEntry
+	if json.Unmarshal(input, &flat) == nil && (flat.Question != "" || len(flat.Options) > 0) {
+		return []askQuestionEntry{flat}
+	}
+	return nil
+}
+
+// idScanUnit is one field cited_id_glossed scans as its own "campo" for
+// gloss purposes (design.md: glossing looks only within the same field).
+// message is the key events.go's Message would use, except every question
+// event is forced onto its own synthetic key (idQuestionMessageKey) even
+// when its wire-format message.id happens to match a preceding text block's
+// — design.md: "Un evento question es siempre su propio mensaje" — so a
+// citation in a question is never suppressed as "the same message already
+// defines it" merely because a host emitted the definition and the question
+// as one native turn.
+type idScanUnit struct {
+	event       traceEvent
+	message     string
+	text        string
+	isLabel     bool // an option's label: an ID at its start defines it (design.md).
+	isAssistant bool // assistant text: line-start position matters (lineDefinitionStart).
+	// isQuestionText marks a native question's own "question" field: an ID
+	// that opens it (design.md's real-session convention "D4: …"/"D4 — …")
+	// defines it, exactly as a text line or an option label would — /code-
+	// review H4. An option's description field is neither this nor
+	// isAssistant, so it never defines.
+	isQuestionText bool
+	// labelHasDescription is only meaningful when isLabel: design.md's rule 2
+	// ("o es una etiqueta de opción cuya descripción no está vacía") glosses
+	// any OTHER (non-start) ID cited within a label whose sibling option has
+	// a non-empty description — this is a citation-side leniency, not a
+	// definition, so it is kept separate from isLabel's start-of-label check.
+	labelHasDescription bool
+}
+
+func idQuestionMessageKey(eventIndex int) string { return fmt.Sprintf("question@%d", eventIndex) }
+
+// idEventMessageKey returns e's message key for cited_id_glossed: e.Message
+// when the host set one, or a per-event fallback keyed on its trace line
+// when it did not. Codex's own agent_message text (trace.go's codex branch)
+// carries no Message at all, so without this fallback every Codex text
+// event would share the empty key "" and be read as one giant message — a
+// citation in one Codex response could never be checked against a
+// definition in an earlier one (/code-review H1). Two agent_message events
+// never share one trace line, so this is unique per event.
+func idEventMessageKey(e traceEvent) string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return fmt.Sprintf("line@%d", e.Line)
+}
+
+// buildIDScanUnits walks the trace once and produces every field
+// cited_id_glossed considers, in trace order: assistant text
+// (Kind=="text", Role=="assistant", so Kind=="final" and non-assistant
+// roles — a synthetic user echo, Pi's toolResult-role text — are excluded
+// without a separate check), and, for every "question" event, each
+// sub-question's own question/label/description fields.
+func buildIDScanUnits(events []traceEvent) []idScanUnit {
+	var units []idScanUnit
+	for i, e := range events {
+		switch {
+		case e.Kind == "text" && e.Role == "assistant":
+			units = append(units, idScanUnit{event: e, message: idEventMessageKey(e), text: maskCodeSpans(e.Text), isAssistant: true})
+		case e.Kind == "question":
+			key := idQuestionMessageKey(i)
+			for _, q := range decodeAskQuestion(e.Input) {
+				units = append(units, idScanUnit{event: e, message: key, text: q.Question, isQuestionText: true})
+				for _, o := range q.Options {
+					units = append(units, idScanUnit{event: e, message: key, text: o.Label, isLabel: true, labelHasDescription: strings.TrimSpace(o.Description) != ""})
+					units = append(units, idScanUnit{event: e, message: key, text: o.Description})
+				}
+			}
+		}
+	}
+	return units
+}
+
+// idScanOccurrence pairs one idOccurrence with the unit it was found in, its
+// definition status, and its field-local gloss check (glossedAt) — needed
+// before the cross-message pass below can decide, per occurrence, whether it
+// is a citation at all.
+type idScanOccurrence struct {
+	unit    idScanUnit
+	occ     idOccurrence
+	isDef   bool
+	glossed bool
+}
+
+// scanIDOccurrences turns each unit's text into idScanOccurrences. An
+// option-label field's token is a definition only when it opens the label
+// (position 0), mirroring assistant text's line-start rule — an option
+// naming itself "D3-A: piloto…" defines D3-A, but a *different* option's
+// label mentioning that ID later, such as "D4-A: cerrar D3-A", is a
+// citation of it, not a second definition; that citation is glossed via
+// design.md's rule 2 whenever this option's own description is non-empty
+// (labelHasDescription). An assistant-text field's tokens are definitions
+// only at a line's definition-start position (lineDefinitionStart); a
+// question's own text field is treated the same way (isQuestionText),
+// since design.md's own real sessions open a question's text with its
+// topic ID ("D4: …"/"D4 — …") — /code-review H4. An option's description
+// field never defines, only cites. Rule 3 ("on a line that defines it"
+// needs no gloss) is approximated at the whole-unit level here, not
+// strictly the same source line: a token that is a definition anywhere in
+// this same unit also glosses every other occurrence of that same token
+// later in the same unit. No fixture or test in this change needs finer,
+// same-line precision than that.
+func scanIDOccurrences(u idScanUnit) []idScanOccurrence {
+	occs := findIDOccurrences(u.text)
+	if u.isLabel {
+		out := make([]idScanOccurrence, len(occs))
+		for i, o := range occs {
+			isDef := o.Start == 0
+			out[i] = idScanOccurrence{unit: u, occ: o, isDef: isDef, glossed: isDef || u.labelHasDescription}
+		}
+		return out
+	}
+	defPositions := map[int]bool{}
+	if u.isAssistant || u.isQuestionText {
+		offset := 0
+		for _, line := range strings.Split(u.text, "\n") {
+			defPositions[offset+lineDefinitionStart(line)] = true
+			offset += len(line) + 1
+		}
+	}
+	defTokens := map[string]bool{}
+	for _, o := range occs {
+		if defPositions[o.Start] {
+			defTokens[o.Token] = true
+		}
+	}
+	out := make([]idScanOccurrence, len(occs))
+	for i, o := range occs {
+		isDef := defPositions[o.Start]
+		out[i] = idScanOccurrence{unit: u, occ: o, isDef: isDef, glossed: glossedAt(u.text, o.End) || defTokens[o.Token]}
+	}
+	return out
+}
+
+// citedIDGlossed is cited_id_glossed (report-readability D1-A): every
+// citation — a defined ID or ID-range appearing in a message other than the
+// one that defined it, and not redefined by the citing message itself —
+// must be glossed there. It fails on the first unglossed citation found in
+// trace order, with evidence of that event's line/kind/tool plus the bare ID
+// token (never surrounding text); it passes once every citation found is
+// glossed, and it is not_observed when no citation exists at all — including
+// when an ID never has an assistant-authored definition (a user- or
+// file-defined ID, such as one that only ever appears named in an external
+// research document, is invisible to this criterion; design.md's own R2
+// finding is exactly this case).
+//
+// Declared limits (design.md): a "message" unit is one model call for
+// Claude, Grok, Pi, and OpenCode (message.id, or each host's own per-turn
+// fallback — see trace.go), so a list defined early in one such response and
+// cited later in that same response, after a tool result, still counts as
+// the same message — not a citation — even with a tool call in between.
+// Codex's own agent_message text (trace.go's codex branch) carries no
+// Message at all, so idEventMessageKey falls back to a per-event key keyed
+// on its trace line instead: two separate Codex text events are always
+// different messages here, even when they belong to one native turn a
+// host-level correlation would consider a single response (/code-review
+// H1). A line-initial token that merely looks like an ID (an "H2" heading
+// fragment, for instance) is read as a definition regardless of intent, and
+// so is one that opens a native question's own text (a plain "D4: ¿…?" that
+// is not really naming a decision). A "(" that is not really a gloss (an
+// unrelated aside) still satisfies the gloss check. Rule 3's
+// same-definition leniency is approximated per whole field/unit, not per
+// source line. A same-letter range at a definition position expands into
+// every member it spans (rangeMembers), capped at rangeExpansionCap members
+// to avoid registering a pathological span as individual definitions — a
+// range wider than that registers only its two endpoints.
+func citedIDGlossed(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "cited_id_glossed", Status: "not_observed"}
+	units := buildIDScanUnits(r.Trace.Events)
+	var flat []idScanOccurrence
+	sameMessageDefined := map[string]map[string]bool{}
+	markDefined := func(msg, token string) {
+		if sameMessageDefined[msg] == nil {
+			sameMessageDefined[msg] = map[string]bool{}
+		}
+		sameMessageDefined[msg][token] = true
+	}
+	for _, u := range units {
+		for _, o := range scanIDOccurrences(u) {
+			flat = append(flat, o)
+			if o.isDef {
+				markDefined(u.message, o.occ.Token)
+				for _, member := range rangeMembers(o.occ) {
+					markDefined(u.message, member)
+				}
+			}
+		}
+	}
+	// `defined` is built incrementally below, in the same forward
+	// (trace-order) pass that also checks citations — /code-review H3: a
+	// token mentioned before its own (only) definition must not be read as
+	// a citation of a definition that has not happened yet in the trace.
+	// `sameMessageDefined` above is deliberately the opposite: an
+	// order-independent pre-pass, since "does this message define it
+	// itself" depends only on message membership, not on which of a
+	// message's own occurrences comes first.
+	defined := map[string]string{}
+	recordDefinition := func(token, msg string) {
+		if _, ok := defined[token]; !ok {
+			defined[token] = msg
+		}
+	}
+	observed := false
+	for _, f := range flat {
+		if f.isDef {
+			recordDefinition(f.occ.Token, f.unit.message)
+			for _, member := range rangeMembers(f.occ) {
+				recordDefinition(member, f.unit.message)
+			}
+			continue
+		}
+		var definingMsg string
+		var known bool
+		selfDefined := false
+		if f.occ.IsRange {
+			for _, ep := range f.occ.Endpoint {
+				if m, ok := defined[ep]; ok && !known {
+					definingMsg, known = m, true
+				}
+				if sameMessageDefined[f.unit.message][ep] {
+					selfDefined = true
+				}
+			}
+		} else {
+			definingMsg, known = defined[f.occ.Token]
+			selfDefined = sameMessageDefined[f.unit.message][f.occ.Token]
+		}
+		if !known || selfDefined || definingMsg == f.unit.message {
+			continue
+		}
+		observed = true
+		if !f.glossed {
+			c.Status = "fail"
+			c.Evidence = append(c.Evidence, regressionEvidence(f.unit.event)+" "+f.occ.Token)
+			return c
+		}
+	}
+	if observed {
+		c.Status = "pass"
+	}
+	return c
+}
+
+// bareURLPattern matches an "http(s)://" URL run up to the next whitespace,
+// applied only after mdLinkSpan/angleURLSpan/maskInlineCode/maskFencedBlocks
+// have already blanked every excluded form, so any remaining match is bare.
+var bareURLPattern = regexp.MustCompile(`https?://\S+`)
+
+// mdLinkSpan matches a whole Markdown link "[label](url)" on one line, and
+// angleURLSpan a whole autolink "<https://…>", so both the URL and its
+// wrapper disappear together — findIDOccurrences/bareURLPattern never need
+// to special-case the wrapper punctuation itself.
+var mdLinkSpan = regexp.MustCompile(`\[[^\]\n]*\]\([^)\n]*\)`)
+var angleURLSpan = regexp.MustCompile(`<https?://[^>\s]+>`)
+
+// maskExcludedURLSpans blanks every span no_bare_url excludes: fenced code
+// (maskFencedBlocks, multi-line), then, line by line, inline code, Markdown
+// links, and angle-bracket autolinks. What remains is scanned by
+// bareURLPattern in noBareURL.
+func maskExcludedURLSpans(s string) string {
+	s = maskFencedBlocks(s)
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		line = maskInlineCode(line)
+		line = mdLinkSpan.ReplaceAllStringFunc(line, blankOfSameLen)
+		line = angleURLSpan.ReplaceAllStringFunc(line, blankOfSameLen)
+		lines[i] = line
+	}
+	return strings.Join(lines, "\n")
+}
+
+// noBareURL is no_bare_url (report-readability D2-A/D3-A): every URL in
+// assistant text must be written as a Markdown link, an angle-bracket
+// autolink, or appear only in inline code or a fenced code block. It fails
+// on the first bare URL (evidence is the event's line/kind/tool alone, never
+// the URL, since it may carry a signed token), passes once every URL found
+// in the trace is excluded some way, and is not_observed when assistant text
+// contains no URL at all.
+//
+// Declared limit (design.md): this criterion never judges whether a
+// Markdown link's label is descriptive, only whether the URL itself is
+// wrapped.
+func noBareURL(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "no_bare_url", Status: "not_observed"}
+	observed := false
+	for _, e := range r.Trace.Events {
+		if e.Kind != "text" || e.Role != "assistant" {
+			continue
+		}
+		if !bareURLPattern.MatchString(e.Text) {
+			continue
+		}
+		observed = true
+		if bareURLPattern.MatchString(maskExcludedURLSpans(e.Text)) {
+			c.Status = "fail"
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+			return c
+		}
+	}
+	if observed {
 		c.Status = "pass"
 	}
 	return c

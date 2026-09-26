@@ -836,8 +836,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 			a.Criteria = append(a.Criteria, verifyResourceNameContract(files))
 		}
 	}
-	// Deterministic session-finding regression criteria (S1, S3, S5) apply to
-	// every flows case, not only the ones needing source reads above.
+	// Deterministic session-finding regression criteria (S1, S3, S5, and
+	// report-readability's cited_id_glossed and no_bare_url) apply to every
+	// flows case, not only the ones needing source reads above.
 	a.Criteria = append(a.Criteria, regressionCriteria(r)...)
 	fail, unknown := false, false
 	for _, c := range a.Criteria {

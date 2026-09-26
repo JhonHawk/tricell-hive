@@ -5,7 +5,7 @@ description: Create a visual HTML report, printable paper, comparison, explainer
 
 # Durable reports
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record using the research procedure and established workspace location. Preserve an explicitly requested format. Keep ordinary answers, status updates, and handoffs in prose.
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record using the research procedure and established workspace location. Preserve an explicitly requested format. Keep ordinary answers, status updates, and handoffs out of HTML; the Communication rules of the global guidance shape chat replies.
 
 Choose the asset that matches what the reader receives:
 

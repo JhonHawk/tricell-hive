@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -711,6 +712,13 @@ func TestRegressionFixtures(t *testing.T) {
 		{"flow_skill_read_before_delivery", "grok", "grok-fail.jsonl", "fail", flowSkillReadBeforeDelivery},
 		{"flow_skill_read_before_delivery", "grok", "grok-pass.jsonl", "pass", flowSkillReadBeforeDelivery},
 		{"flow_skill_read_before_delivery", "codex", "codex-pass.jsonl", "pass", flowSkillReadBeforeDelivery},
+		{"cited_id_glossed", "claude", "claude-fail.jsonl", "fail", citedIDGlossed},
+		{"cited_id_glossed", "claude", "claude-pass.jsonl", "pass", citedIDGlossed},
+		{"cited_id_glossed", "claude", "claude-question-after-text-fail.jsonl", "fail", citedIDGlossed},
+		{"cited_id_glossed", "claude", "claude-range-fail.jsonl", "fail", citedIDGlossed},
+		{"cited_id_glossed", "claude", "claude-range-pass.jsonl", "pass", citedIDGlossed},
+		{"no_bare_url", "claude", "claude-fail.jsonl", "fail", noBareURL},
+		{"no_bare_url", "claude", "claude-pass.jsonl", "pass", noBareURL},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)
@@ -820,19 +828,365 @@ func TestFlowSkillReadBeforeDeliveryNotWiredIntoRegressionCriteria(t *testing.T)
 
 // --- regressionCriteria wiring ---
 
-func TestRegressionCriteriaReturnsAllThree(t *testing.T) {
+func TestRegressionCriteriaReturnsAllFive(t *testing.T) {
 	r := result{Trace: traceReport{}}
 	got := regressionCriteria(r)
-	if len(got) != 3 {
-		t.Fatalf("expected 3 criteria, got %d: %+v", len(got), got)
+	if len(got) != 5 {
+		t.Fatalf("expected 5 criteria, got %d: %+v", len(got), got)
 	}
 	names := map[string]bool{}
 	for _, c := range got {
 		names[c.Criterion] = true
 	}
-	for _, want := range []string{"question_after_detail", "no_broad_git_add", "no_secret_content_read"} {
+	for _, want := range []string{"question_after_detail", "no_broad_git_add", "no_secret_content_read", "cited_id_glossed", "no_bare_url"} {
 		if !names[want] {
 			t.Fatalf("missing criterion %s in %+v", want, got)
 		}
 	}
 }
+
+// --- cited_id_glossed (report-readability D1-A) ---
+
+func askQuestion(line int, entries ...askQuestionEntry) traceEvent {
+	input, _ := json.Marshal(askQuestionInput{Questions: entries})
+	return traceEvent{Line: line, Kind: "question", Tool: "AskUserQuestion", Input: input}
+}
+
+func assistantText(line int, message, text string) traceEvent {
+	return traceEvent{Line: line, Kind: "text", Role: "assistant", Message: message, Text: text}
+}
+
+// defineS1S5 is the pair of table-row definitions ("| S1 | ... |") the unit
+// tests below cite later from a different message, matching design.md's own
+// worked example.
+func defineS1S5(line int, message string) traceEvent {
+	return assistantText(line, message, "| ID | Hallazgo |\n|---|---|\n| **S1** | Cierre sin reporte |\n| **S5** | Secreto leído con una herramienta amplia |")
+}
+
+func TestCitedIDGlossed(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		want   string
+	}{
+		{
+			// design.md's own worked example: "S1–S5 está" (no gloss) fails.
+			name: "range-cited-bare-fails",
+			events: []traceEvent{
+				defineS1S5(1, "m1"),
+				assistantText(2, "m2", "El lote S1–S5 está completo y desplegado."),
+			},
+			want: "fail",
+		},
+		{
+			// "S1–S5 (x)" passes: an immediate "(" glosses the whole range.
+			name: "range-cited-glossed-passes",
+			events: []traceEvent{
+				defineS1S5(1, "m1"),
+				assistantText(2, "m2", "El lote S1–S5 (cierre y secretos) está completo."),
+			},
+			want: "pass",
+		},
+		{
+			// "**D1** (x)" passes: ** is stripped before the ID scan, so the
+			// citation reads as "D1 (x)", glossed by the immediate "(".
+			name: "bold-marker-stripped-then-glossed-passes",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D1**: mover la validación al pipeline de CI."),
+				assistantText(2, "m2", "Seguimos con **D1** (x)."),
+			},
+			want: "pass",
+		},
+		{
+			// "`D1`" is ignored: inline code is masked before the ID scan, so
+			// this citation is never found at all — not a fail, not_observed.
+			name: "inline-code-citation-ignored",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D1**: mover la validación al pipeline de CI."),
+				assistantText(2, "m2", "Menciono `D1` sin más contexto."),
+			},
+			want: "not_observed",
+		},
+		{
+			name: "single-id-defined-as-option-label-cited-bare-in-later-question-fails",
+			events: []traceEvent{
+				askQuestion(10, askQuestionEntry{Header: "D3 Stack", Question: "D3: ¿cómo seguimos?", Options: []askQuestionOption{
+					{Label: "D3-A: piloto en un proyecto (Recomendado)", Description: "El otro proyecto sigue igual."},
+					{Label: "D3-B: pausar el otro proyecto", Description: "Pedir que no adopte los cambios nuevos."},
+				}}),
+				askQuestion(20, askQuestionEntry{Header: "D4", Question: "D4: el piloto terminó. ¿Qué hacemos con D3-A?", Options: []askQuestionOption{
+					{Label: "D4-A: cerrar (Recomendado)", Description: "El piloto funcionó."},
+				}}),
+			},
+			want: "fail",
+		},
+		{
+			name: "single-ids-defined-as-option-labels-cited-glossed-in-later-question-passes",
+			events: []traceEvent{
+				askQuestion(10, askQuestionEntry{Header: "D2 Esfuerzo", Question: "D2: ¿cómo fijamos el esfuerzo?", Options: []askQuestionOption{
+					{Label: "D2-A Todos explícitos (Recomendado)", Description: "Ningún rol hereda el esfuerzo."},
+				}}, askQuestionEntry{Header: "D3 Portab.", Question: "D3: ¿es portable?", Options: []askQuestionOption{
+					{Label: "D3-A effort portable (Recomendado)", Description: "Un campo común."},
+				}}),
+				askQuestion(20, askQuestionEntry{Header: "Ruta", Question: "¿Cómo seguimos con D2-A (esfuerzo en todos los roles) y D3-A (campo portable)?", Options: []askQuestionOption{
+					{Label: "R1 flow-plan (Recomendado)", Description: "Plan versionado."},
+				}}),
+			},
+			want: "pass",
+		},
+		{
+			name: "same-message-does-not-count-as-citation",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D5**: mover la validación al pipeline.\nSeguimos con D5 más abajo, en el mismo mensaje."),
+			},
+			want: "not_observed",
+		},
+		{
+			name: "never-defined-id-is-not-a-citation",
+			events: []traceEvent{
+				assistantText(1, "m1", "Este mensaje solo menciona D9 una vez."),
+			},
+			want: "not_observed",
+		},
+		{
+			// The "text right before the question" case: the definition and
+			// the bare citation share one real message key ("m1", as they
+			// would if a host emitted the text and the AskUserQuestion call
+			// as two content blocks of one native turn), which the criterion
+			// must still treat as the question's own separate message
+			// (design.md's "a question event is always its own message"),
+			// not as a same-message non-citation. Reverting that override —
+			// using the question's own e.Message instead of a synthetic
+			// per-event key — would make this wrongly read "not_observed".
+			name: "definition-and-question-sharing-one-real-message-still-cites",
+			events: func() []traceEvent {
+				text := assistantText(1, "m1", "- **D5**: mover la validación al pipeline de CI antes del despliegue.")
+				q := askQuestion(1, askQuestionEntry{Header: "Cierre", Question: "¿Aplico D5 ahora?"})
+				q.Message = "m1"
+				return []traceEvent{text, q}
+			}(),
+			want: "fail",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// The text-then-question fixture reuses message "m1" for both
+			// events on purpose (see its comment); every other case uses a
+			// distinct message key per event already.
+			r := result{Trace: traceReport{Events: tc.events}}
+			if got := citedIDGlossed(r).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestCitedIDGlossedRangeRequiresMatchingLetters proves the letter-equality
+// check findIDOccurrences applies in Go (rangeIDToken cannot express it,
+// having no backreference): "D1–S6" does not form one range citation since
+// its letters differ. D1 (defined earlier) is read as its own single
+// citation, glossed by the immediate en dash that used to look like a range
+// separator; S6 was never defined anywhere, so it is not a citation at all.
+// Both facts must hold for the result to be "pass" — if the letter check
+// were removed, this would combine into a single "D1–S6" range citation
+// that is, per design.md, citation-eligible because D1 is a defined
+// endpoint, and unglossed (nothing follows "S6"), flipping this to "fail".
+func TestCitedIDGlossedRangeRequiresMatchingLetters(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		assistantText(1, "m1", "- **D1**: mover la validación al pipeline de CI."),
+		assistantText(2, "m2", "Reviso D1–S6 y sigo con lo demás."),
+	}}}
+	if got := citedIDGlossed(r).Status; got != "pass" {
+		t.Fatalf("got %s want pass", got)
+	}
+}
+
+func TestCitedIDGlossedEvidenceNeverIncludesFreeText(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		defineS1S5(1, "m1"),
+		assistantText(2, "m2", "El lote S1–S5 está completo y desplegado en los seis hosts."),
+	}}}
+	a := citedIDGlossed(r)
+	if a.Status != "fail" {
+		t.Fatalf("expected fail, got %+v", a)
+	}
+	for _, e := range a.Evidence {
+		if strings.Contains(e, "completo") || strings.Contains(e, "desplegado") || strings.Contains(e, "hosts") {
+			t.Fatalf("evidence leaked free text: %q", e)
+		}
+		if !strings.HasPrefix(e, "stdout.jsonl:2 text") {
+			t.Fatalf("evidence format changed: %q", e)
+		}
+		if !strings.HasSuffix(e, "S1–S5") {
+			t.Fatalf("evidence missing the bare ID token: %q", e)
+		}
+	}
+}
+
+// --- no_bare_url (report-readability D2-A/D3-A) ---
+
+func TestNoBareURL(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		text string
+		want string
+	}{
+		{"plain-bare-url-fails", "Valida en https://example.com/one y confirma.", "fail"},
+		{"markdown-link-passes", "Revisa la [documentación](https://example.com/docs) para más detalle.", "pass"},
+		{"angle-bracket-autolink-passes", "Abre <https://example.com/ref> directamente.", "pass"},
+		{"inline-code-passes", "El comando `curl https://example.com/api` prueba el endpoint.", "pass"},
+		{"triple-backtick-fence-passes", "Corre esto:\n```\ncurl https://example.com/raw\n```\n", "pass"},
+		{"tilde-fence-passes", "Corre esto:\n~~~\ncurl https://example.com/raw2\n~~~\n", "pass"},
+		{"no-url-is-not-observed", "No hay ningún enlace en este mensaje.", "not_observed"},
+		{"one-excluded-and-one-bare-still-fails", "Ver [doc](https://example.com/docs) y también https://example.com/bare.", "fail"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", tc.text)}}}
+			if got := noBareURL(r).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestNoBareURLEvidenceNeverIncludesURL(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		assistantText(7, "m1", "Valida en https://example.com/signed?token=abc123secret y confirma."),
+	}}}
+	a := noBareURL(r)
+	if a.Status != "fail" {
+		t.Fatalf("expected fail, got %+v", a)
+	}
+	for _, e := range a.Evidence {
+		if strings.Contains(e, "https://") || strings.Contains(e, "token") {
+			t.Fatalf("evidence leaked the URL: %q", e)
+		}
+		if !strings.HasPrefix(e, "stdout.jsonl:7 text") {
+			t.Fatalf("evidence format changed: %q", e)
+		}
+	}
+}
+
+// --- /code-review defects H1-H4 (cited_id_glossed) ---
+
+// TestCitedIDGlossedCodexTextWithNoMessageStillCitesAcrossEvents is H1:
+// trace.go's Codex branch (agent_message) sets no Message on its text
+// events, so they all carry the same empty key "". Two such events must
+// still be treated as separate messages (a per-event fallback key), or a
+// citation in the second can never be checked against a definition in the
+// first.
+func TestCitedIDGlossedCodexTextWithNoMessageStillCitesAcrossEvents(t *testing.T) {
+	events := []traceEvent{
+		assistantText(1, "", "- **D1**: mover la validación al pipeline de CI antes del despliegue."),
+		assistantText(2, "", "Aplico D1."),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "fail" {
+		t.Fatalf("got %s want fail (two Codex-style text events with no Message must still count as separate messages)", got)
+	}
+}
+
+// flatAskQuestion builds a "question" event using Pi/Grok's flat
+// AskUserQuestion input shape ({"question":…,"options":[…]}, no "questions"
+// wrapper array), as seen in question_after_detail/pi-*.jsonl,
+// question_after_detail/grok-*.jsonl, and close_question_after_report/
+// grok-*.jsonl (after grokToolCall unwraps its use_tool envelope).
+func flatAskQuestion(line int, entry askQuestionEntry) traceEvent {
+	input, _ := json.Marshal(entry)
+	return traceEvent{Line: line, Kind: "question", Tool: "ask_user_question", Input: input}
+}
+
+// TestCitedIDGlossedFlatQuestionShapeDefinedViaLabelCitedBareFails is H2's
+// "citing bare" case: Pi/Grok's flat shape (no "questions" wrapper) must
+// still let an option label define an ID, and a later flat question's own
+// text still cites it.
+func TestCitedIDGlossedFlatQuestionShapeDefinedViaLabelCitedBareFails(t *testing.T) {
+	events := []traceEvent{
+		flatAskQuestion(10, askQuestionEntry{Question: "¿Cómo seguimos con el piloto?", Options: []askQuestionOption{
+			{Label: "D6-A: piloto en un proyecto (Recomendado)", Description: "El otro proyecto sigue igual."},
+			{Label: "D6-B: pausar", Description: "Frenar el otro proyecto."},
+		}}),
+		flatAskQuestion(20, askQuestionEntry{Question: "¿Qué hacemos con D6-A?"}),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "fail" {
+		t.Fatalf("got %s want fail (flat-shape option label must still define, flat-shape question text must still cite)", got)
+	}
+}
+
+// TestCitedIDGlossedFlatQuestionShapeDefinedViaLabelCitedGlossedPasses is
+// H2's "defining via label" case checked on its pass path: the same flat
+// definition, cited later with an immediate gloss.
+func TestCitedIDGlossedFlatQuestionShapeDefinedViaLabelCitedGlossedPasses(t *testing.T) {
+	events := []traceEvent{
+		flatAskQuestion(10, askQuestionEntry{Question: "¿Cómo seguimos con el piloto?", Options: []askQuestionOption{
+			{Label: "D6-A: piloto en un proyecto (Recomendado)", Description: "El otro proyecto sigue igual."},
+		}}),
+		flatAskQuestion(20, askQuestionEntry{Question: "¿Qué hacemos con D6-A (el piloto en curso)?"}),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "pass" {
+		t.Fatalf("got %s want pass", got)
+	}
+}
+
+// TestCitedIDGlossedMentionBeforeItsOwnDefinitionIsNotACitation is H3: a
+// token mentioned in an earlier message, then defined only later, must not
+// be read as a citation of that later definition — definedness must respect
+// trace order.
+func TestCitedIDGlossedMentionBeforeItsOwnDefinitionIsNotACitation(t *testing.T) {
+	events := []traceEvent{
+		assistantText(1, "m1", "Menciono S3 en el texto, sin definirlo todavía."),
+		assistantText(2, "m2", "- S3: hallazgo definido recién ahora, más abajo en la sesión."),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "not_observed" {
+		t.Fatalf("got %s want not_observed (S3's mention precedes its only definition, so it is not yet a citation)", got)
+	}
+}
+
+// TestCitedIDGlossedRangeDefinitionExpandsAllMembers is H4's range-expansion
+// case: a range at a definition position must define every ID it spans, not
+// only its two endpoints, so a later bare citation of a middle member (S2,
+// neither endpoint of S1–S3) is still recognized as a citation and fails.
+func TestCitedIDGlossedRangeDefinitionExpandsAllMembers(t *testing.T) {
+	events := []traceEvent{
+		assistantText(1, "m1", "- S1–S3: tres hallazgos relacionados del mismo cierre."),
+		assistantText(2, "m2", "Reviso S2 antes de seguir."),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "fail" {
+		t.Fatalf("got %s want fail (S2 is a member of the S1–S3 range definition, not just an endpoint)", got)
+	}
+}
+
+// TestCitedIDGlossedRangeDefinitionCapsSpanExpansion proves the expansion
+// above is capped: a very wide same-letter range (A1–A99, a 99-member span)
+// must not expand every member, only register its two endpoints, so a later
+// bare mention of a middle member (A50) is still never treated as a
+// citation at all.
+func TestCitedIDGlossedRangeDefinitionCapsSpanExpansion(t *testing.T) {
+	events := []traceEvent{
+		assistantText(1, "m1", "- A1–A99: rango deliberadamente amplio para esta prueba."),
+		assistantText(2, "m2", "Reviso A50 antes de seguir."),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "not_observed" {
+		t.Fatalf("got %s want not_observed (A50 must not be registered as defined: the 99-member span exceeds the expansion cap)", got)
+	}
+}
+
+// TestCitedIDGlossedQuestionTextOpeningWithIDDefinesIt is H4's second case:
+// a native question's own question text that opens with an ID (design.md's
+// "D4: …" / "D4 — …" convention, observed in real sessions) must define that
+// ID, exactly as an assistant-text line or an option label would.
+func TestCitedIDGlossedQuestionTextOpeningWithIDDefinesIt(t *testing.T) {
+	events := []traceEvent{
+		askQuestion(10, askQuestionEntry{Header: "D8", Question: "D8: ¿Aplico el cambio en el pipeline ahora?"}),
+		askQuestion(20, askQuestionEntry{Header: "Cierre", Question: "¿Confirmamos D8?"}),
+	}
+	r := result{Trace: traceReport{Events: events}}
+	if got := citedIDGlossed(r).Status; got != "fail" {
+		t.Fatalf("got %s want fail (the first question's own text opens with D8, defining it; the second cites it bare)", got)
+	}
+}
+

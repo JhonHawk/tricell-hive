@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"| ID | Hallazgo |\n|---|---|\n| **S1** | Cierre sin reporte previo |\n| **S2** | Investigación sin anunciar el reparto |\n| **S3** | git add acotado a un directorio |"}]}}
+{"type":"assistant","message":{"id":"m2","content":[{"type":"text","text":"El lote S1–S3 (cierre, reparto y git add) queda desplegado. ¿Seguimos con el resto?"}]}}
