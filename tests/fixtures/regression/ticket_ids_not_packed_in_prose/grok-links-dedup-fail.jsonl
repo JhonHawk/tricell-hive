@@ -1,0 +1,1 @@
+{"type": "assistant", "message": {"id": "m1", "content": [{"type": "text", "text": "Nothing is in progress. The backlog has 9 tickets.\n\nEach of [ABC-401](https://tracker.example.com/issue/ABC-401), [ABC-402](https://tracker.example.com/issue/ABC-402) and [ABC-403](https://tracker.example.com/issue/ABC-403) closes alone; each link's target repeats its own ID."}]}}

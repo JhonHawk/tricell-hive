@@ -719,6 +719,14 @@ func TestRegressionFixtures(t *testing.T) {
 		{"cited_id_glossed", "claude", "claude-range-pass.jsonl", "pass", citedIDGlossed},
 		{"no_bare_url", "claude", "claude-fail.jsonl", "fail", noBareURL},
 		{"no_bare_url", "claude", "claude-pass.jsonl", "pass", noBareURL},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-fail.jsonl", "fail", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-pass.jsonl", "pass", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-list-continuation-pass.jsonl", "pass", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-links-dedup-fail.jsonl", "fail", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-heading-label-pass.jsonl", "pass", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-label-pass.jsonl", "pass", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-ids-only-pass.jsonl", "pass", ticketIDsNotPackedInProse},
+		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-label-then-bare-ids-fail.jsonl", "fail", ticketIDsNotPackedInProse},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)
@@ -828,17 +836,17 @@ func TestFlowSkillReadBeforeDeliveryNotWiredIntoRegressionCriteria(t *testing.T)
 
 // --- regressionCriteria wiring ---
 
-func TestRegressionCriteriaReturnsAllFive(t *testing.T) {
+func TestRegressionCriteriaReturnsAllSix(t *testing.T) {
 	r := result{Trace: traceReport{}}
 	got := regressionCriteria(r)
-	if len(got) != 5 {
-		t.Fatalf("expected 5 criteria, got %d: %+v", len(got), got)
+	if len(got) != 6 {
+		t.Fatalf("expected 6 criteria, got %d: %+v", len(got), got)
 	}
 	names := map[string]bool{}
 	for _, c := range got {
 		names[c.Criterion] = true
 	}
-	for _, want := range []string{"question_after_detail", "no_broad_git_add", "no_secret_content_read", "cited_id_glossed", "no_bare_url"} {
+	for _, want := range []string{"question_after_detail", "no_broad_git_add", "no_secret_content_read", "cited_id_glossed", "no_bare_url", "ticket_ids_not_packed_in_prose"} {
 		if !names[want] {
 			t.Fatalf("missing criterion %s in %+v", want, got)
 		}

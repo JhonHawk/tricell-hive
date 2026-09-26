@@ -12,15 +12,16 @@ import (
 	"unicode/utf8"
 )
 
-// regressionCriteria adds the five deterministic session-finding regression
-// criteria (S1, S3, S5, and report-readability's cited_id_glossed and
-// no_bare_url) to every flows case, ahead of the case-status computation in
-// assessFlows. It never touches assessResult or the workspace-conventions
-// suite. Each criterion returns not_observed when no applicable event
-// exists, pass when applicable events satisfy it, and fail with evidence
-// otherwise — never the command, result text, or (for cited_id_glossed and
-// no_bare_url) the surrounding sentence or URL, since any of those can
-// themselves carry a secret value or a signed token.
+// regressionCriteria adds the six deterministic session-finding regression
+// criteria (S1, S3, S5, report-readability's cited_id_glossed and
+// no_bare_url, and ticket_ids_not_packed_in_prose) to every flows case,
+// ahead of the case-status computation in assessFlows. It never touches
+// assessResult or the workspace-conventions suite. Each criterion returns
+// not_observed when no applicable event exists, pass when applicable events
+// satisfy it, and fail with evidence otherwise — never the command, result
+// text, or (for cited_id_glossed, no_bare_url and
+// ticket_ids_not_packed_in_prose) the surrounding sentence or URL, since any
+// of those can themselves carry a secret value or a signed token.
 //
 // flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing) is a separate,
 // standalone criterion declared in this file but intentionally not returned
@@ -38,6 +39,7 @@ func regressionCriteria(r result) []criterionAssessment {
 		noSecretContentRead(r),
 		citedIDGlossed(r),
 		noBareURL(r),
+		ticketIDsNotPackedInProse(r),
 	}
 }
 
@@ -1616,6 +1618,249 @@ func noBareURL(r result) criterionAssessment {
 			c.Status = "fail"
 			c.Evidence = append(c.Evidence, regressionEvidence(e))
 			return c
+		}
+	}
+	if observed {
+		c.Status = "pass"
+	}
+	return c
+}
+
+// --- ticket_ids_not_packed_in_prose (backlog-report-scope) ---
+
+// mdLinkURLCapture matches a whole Markdown link on one line, splitting it
+// into its bracketed label (group 1, kept as-is) and its parenthesized URL
+// (group 2, blanked by maskMarkdownLinkURLs) so a ticket ID written as
+// "[ABC-101](url)" is still visible to the scan even after the URL itself is
+// masked — unlike no_bare_url's mdLinkSpan, which blanks the whole link
+// because it never needs the label's text.
+var mdLinkURLCapture = regexp.MustCompile(`(\[[^\]\n]*\]\()([^)\n]*)(\))`)
+
+func maskMarkdownLinkURLs(line string) string {
+	return mdLinkURLCapture.ReplaceAllStringFunc(line, func(m string) string {
+		sub := mdLinkURLCapture.FindStringSubmatch(m)
+		return sub[1] + blankOfSameLen(sub[2]) + sub[3]
+	})
+}
+
+// boldSpanAsterisk and boldSpanUnderscore each match a single-line Markdown
+// bold span ("**label**" or "__label__"). ticket_ids_not_packed_in_prose
+// blanks a span's entire content, markers included, before scanning: a
+// group label such as "**S2: API Keys (ABC-220, ABC-221, ABC-222)** —
+// pequeña/mediana" or a bare "**ABC-220 · ABC-221 · ABC-222**" line names a
+// set of tickets meant to be worked together, not a prose citation, and the
+// guidance this criterion enforces explicitly allows that shape (backlog-
+// report-scope, real-session false positive). Each pattern's character class
+// excludes its own marker rune, so it stops at the first closing "**"/"__"
+// rather than spanning past a second bold run on the same line; neither
+// pattern crosses a newline, matching maskInlineCode's own single-line limit.
+var boldSpanAsterisk = regexp.MustCompile(`\*\*[^*\n]+\*\*`)
+var boldSpanUnderscore = regexp.MustCompile(`__[^_\n]+__`)
+
+func maskBoldSpans(line string) string {
+	line = boldSpanAsterisk.ReplaceAllStringFunc(line, blankOfSameLen)
+	line = boldSpanUnderscore.ReplaceAllStringFunc(line, blankOfSameLen)
+	return line
+}
+
+// maskForTicketProse blanks fenced code (maskFencedBlocks), then, line by
+// line, inline code, a Markdown link's URL (its label is left intact — see
+// mdLinkURLCapture), a whole angle-bracket autolink (which has no label to
+// preserve), and a bold span's entire content (maskBoldSpans — a label, not
+// a citation). What is left is exactly the reader-visible, non-label prose
+// text the ticket-ID scan below counts: an ID that appears only inside a
+// link target or a bold span is never counted, a declared limit recorded on
+// ticketIDsNotPackedInProse.
+func maskForTicketProse(s string) string {
+	s = maskFencedBlocks(s)
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		line = maskInlineCode(line)
+		line = maskMarkdownLinkURLs(line)
+		line = angleURLSpan.ReplaceAllStringFunc(line, blankOfSameLen)
+		line = maskBoldSpans(line)
+		lines[i] = line
+	}
+	return strings.Join(lines, "\n")
+}
+
+// listMarkerIndent reports whether line, after leading spaces/tabs, opens
+// with a Markdown list marker ("-", "*", "+", or an ordered "N." / "N)")
+// followed by a space, per design.md's ticket_ids_not_packed_in_prose
+// contract. It returns the marker's own leading-whitespace width, which
+// listContinuationLine uses to recognize a wrapped continuation line as more
+// indented than the item that opened it.
+func listMarkerIndent(line string) (isMarker bool, indent int) {
+	trimmed := strings.TrimLeft(line, " \t")
+	indent = len(line) - len(trimmed)
+	switch {
+	case strings.HasPrefix(trimmed, "- "), strings.HasPrefix(trimmed, "* "), strings.HasPrefix(trimmed, "+ "):
+		return true, indent
+	}
+	j := 0
+	for j < len(trimmed) && trimmed[j] >= '0' && trimmed[j] <= '9' {
+		j++
+	}
+	if j > 0 && j+1 < len(trimmed) && (trimmed[j] == '.' || trimmed[j] == ')') && trimmed[j+1] == ' ' {
+		return true, indent
+	}
+	return false, 0
+}
+
+// isTableLine reports whether line, trimmed of leading spaces/tabs, opens
+// with a table-cell "|" delimiter.
+func isTableLine(line string) bool {
+	return strings.HasPrefix(strings.TrimLeft(line, " \t"), "|")
+}
+
+// isHeadingLine reports whether line, trimmed of leading spaces/tabs, opens
+// with a Markdown ATX heading marker "#" (one or more, as in "##"). A group
+// label commonly opens a heading, such as "## G2: API Keys (ABC-220,
+// ABC-221, ABC-222)" (backlog-report-scope, real-session false positive), so
+// ticket_ids_not_packed_in_prose drops a heading line entirely rather than
+// scanning it as prose, the same way it drops a list-marker or table line.
+// Declared limit: a plain sentence that merely starts with "#" (a literal
+// hash mark, not a heading) is indistinguishable from a real heading here and
+// is dropped the same way.
+func isHeadingLine(line string) bool {
+	return strings.HasPrefix(strings.TrimLeft(line, " \t"), "#")
+}
+
+// listContinuationLine reports whether line is more indented than
+// markerIndent (a preceding list-item line's own leading-whitespace width)
+// and therefore reads as that item's wrapped continuation rather than a new,
+// separately judged line.
+func listContinuationLine(line string, markerIndent int) bool {
+	trimmed := strings.TrimLeft(line, " \t")
+	if trimmed == "" {
+		return false
+	}
+	return len(line)-len(trimmed) > markerIndent
+}
+
+// splitParagraphBlocks groups lines into blocks separated by one or more
+// blank lines, per design.md's "split text into paragraphs on blank lines".
+// Each returned block holds only non-blank lines, in order; a run of blank
+// lines never itself becomes a block.
+func splitParagraphBlocks(lines []string) [][]string {
+	var blocks [][]string
+	var current []string
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			if len(current) > 0 {
+				blocks = append(blocks, current)
+				current = nil
+			}
+			continue
+		}
+		current = append(current, line)
+	}
+	if len(current) > 0 {
+		blocks = append(blocks, current)
+	}
+	return blocks
+}
+
+// proseLinesOf returns the lines of block that are neither a label nor part
+// of a list or table: a heading line (isHeadingLine) and a table line
+// (isTableLine) are each dropped outright, and a list-marker line together
+// with the indented continuation lines that follow it (within this same
+// block) is dropped as a unit, per design.md's backlog-report-scope
+// amendment. A block-quote line has none of those prefixes and so is never
+// dropped — it still counts as prose, per the criterion's contract.
+func proseLinesOf(block []string) []string {
+	var kept []string
+	inList := false
+	markerIndent := 0
+	for _, line := range block {
+		if isHeadingLine(line) || isTableLine(line) {
+			inList = false
+			continue
+		}
+		if isMarker, indent := listMarkerIndent(line); isMarker {
+			inList = true
+			markerIndent = indent
+			continue
+		}
+		if inList && listContinuationLine(line, markerIndent) {
+			continue
+		}
+		inList = false
+		kept = append(kept, line)
+	}
+	return kept
+}
+
+// ticketIDPattern matches one tracker-style ticket ID such as "ABC-101":
+// design.md's `\b[A-Z][A-Z0-9]{1,9}-\d+\b`. It never matches a GitHub-style
+// "#123" issue number, a declared limit of this criterion (see
+// ticketIDsNotPackedInProse's doc comment).
+var ticketIDPattern = regexp.MustCompile(`\b[A-Z][A-Z0-9]{1,9}-\d+\b`)
+
+// ticketProsePackThreshold is the minimum count of distinct ticket IDs in one
+// prose paragraph that ticketIDsNotPackedInProse treats as "packed".
+const ticketProsePackThreshold = 3
+
+// ticketIDsNotPackedInProse is ticket_ids_not_packed_in_prose
+// (backlog-report-scope, ark Grok session 01a0dd4c-33d8-7920-85ef-9df30c78f78d
+// line 61): a backlog report must put each ticket, or each group of tickets
+// that belongs together, on its own list line rather than chaining several
+// into one prose paragraph. It scans every assistant text message
+// (Kind=="text", Role=="assistant" — a tool input or a native question's own
+// fields are out of scope), masked by maskForTicketProse (which, besides
+// fenced/inline code and link/autolink targets, blanks a heading line
+// entirely and a bold span's content — see isHeadingLine and
+// maskBoldSpans), split into paragraph blocks by blank lines
+// (splitParagraphBlocks), each reduced to its remaining non-list, non-table,
+// non-heading lines (proseLinesOf). It fails on the first remaining block
+// whose surviving text contains three or more distinct ticketIDPattern
+// matches, with evidence naming the event and the bare IDs found (sorted, no
+// surrounding text); it passes once every block with at least one ID stays
+// under that threshold, and is not_observed when no assistant text carries a
+// ticket ID outside a list, table, heading or bold span at all.
+//
+// Declared limits (design.md/backlog-report-scope): a "#123"-style GitHub
+// issue number is never matched, since ticketIDPattern requires a
+// letter-prefixed tracker key; a native question's own question/label/
+// description text is never scanned, only assistant text messages, matching
+// no_bare_url's scope; a prose paragraph that legitimately compares three
+// tickets (not merely dumping a backlog) still counts as a failure — a
+// declared false positive, consistent with the underlying rule; and an ID
+// bolded inline inside an otherwise ordinary prose sentence is never
+// counted, since maskBoldSpans cannot distinguish a genuine group label from
+// a packed citation someone wrapped in "**...**"/"__...__" to evade this
+// check — a declared false negative, traded for the real-session false
+// positive this amendment fixes (a group label naming its own members in a
+// heading or a bold line, immediately followed by that group's own list
+// lines).
+func ticketIDsNotPackedInProse(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_ids_not_packed_in_prose", Status: "not_observed"}
+	observed := false
+	for _, e := range r.Trace.Events {
+		if e.Kind != "text" || e.Role != "assistant" {
+			continue
+		}
+		masked := maskForTicketProse(e.Text)
+		for _, block := range splitParagraphBlocks(strings.Split(masked, "\n")) {
+			prose := strings.Join(proseLinesOf(block), "\n")
+			seen := map[string]bool{}
+			for _, m := range ticketIDPattern.FindAllString(prose, -1) {
+				seen[m] = true
+			}
+			if len(seen) == 0 {
+				continue
+			}
+			observed = true
+			if len(seen) >= ticketProsePackThreshold {
+				ids := make([]string, 0, len(seen))
+				for id := range seen {
+					ids = append(ids, id)
+				}
+				sort.Strings(ids)
+				c.Status = "fail"
+				c.Evidence = append(c.Evidence, regressionEvidence(e)+" "+strings.Join(ids, ","))
+				return c
+			}
 		}
 	}
 	if observed {

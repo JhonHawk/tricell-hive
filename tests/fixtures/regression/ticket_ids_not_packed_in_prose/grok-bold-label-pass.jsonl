@@ -1,0 +1,1 @@
+{"type": "assistant", "message": {"id": "m1", "content": [{"type": "text", "text": "Nothing is in progress. The backlog has 9 tickets.\n\n**S2: API Keys (ABC-220, ABC-221, ABC-222)** \u2014 peque\u00f1a/mediana\n- ABC-220: rotate signing key\n- ABC-221: add expiry check\n- ABC-222: log key usage\n\nRecommendation: start with ABC-220."}]}}
