@@ -48,7 +48,7 @@
 
 ### T5 — Verificación conjunta, revisión y parada humana
 
-- [ ] El diff pasa las verificaciones, la revisión está resuelta y el usuario leyó la redacción.
+- [x] El diff pasa las verificaciones, la revisión está resuelta y el usuario leyó la redacción.
 
 **Depende de:** T1–T4.
 **Ejecución:** hilo principal; `/code-review` corre en su propio subagente.
@@ -89,9 +89,10 @@ No aplica verificación in vivo ni de UI: es guía distribuida y medir el efecto
 - **T2:** hecho. Las ocho frases aparecen una vez cada una en `verification.md` y el enlace a `security-boundaries.md` resuelve.
 - **T3:** hecho. Las dos frases están en `review-code.md`; `go test -count=1 ./integrations/agents/...` pasa.
 - **T4:** hecho. `global.md` pasa de 39049 a 39059 bytes y `globalGuidanceBudget` queda en 39059; `go test -count=1 ./tests/content/...` pasa.
-- **T5:** en curso.
+- **T5:** hecho.
   - Pasan los tests de skills en Python y `go vet ./...`.
   - `go test -race -count=1 ./...` pasa completo (16 paquetes). Las dos fallas de `tooling/cli` que había en `86473b8` ya no aparecen.
   - `/code-review` (medium, sobre las 5 rutas): dos hallazgos en `verification.md:41`, tratados con las reglas nuevas como P2 (locales y dentro del alcance). Se corrigieron sin re-revisión porque ninguno es P0 ni P1:
     - El mecanismo nativo no etiqueta P0–P3; ahora sus severidades se mapean a P0–P3 por impacto observable.
     - P3 chocaba con la regla de hallazgos incidentales; ahora P3 no se corrige ni se registra en otro lado.
+- **Entrega:** redacción aprobada por el usuario; commit `282145f` con push a `rebuild/harness-engineering`. Los cambios ajenos del árbol quedaron fuera del commit.
