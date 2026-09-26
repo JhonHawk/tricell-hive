@@ -1,6 +1,6 @@
 # Provenance — no_poll_wait_chain
 
-Derived 2026-09-26 from `_support/openspec/changes/gh-36-wait-for-completion-signal/design.md`'s
+Derived 2026-09-26 from `_support/openspec/changes/archive/2026-09-26-gh-36-wait-for-completion-signal/design.md`'s
 "Contexto verificado" and "Fixtures" sections. No interactive rollout line was
 opened, pasted, or read verbatim: every fixture below is reconstructed from
 the counts and command shapes design.md already records (from `jq` field
