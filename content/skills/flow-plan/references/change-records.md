@@ -14,6 +14,8 @@ Read when creating, updating, or closing a change folder. `<specs>` below is the
 
 `proposal.md` and `tasks.md` are required; add `design.md` when the change has design decisions to record. A reader resuming the change starts at `proposal.md`, whose status row names the next step.
 
+Keep in `<specs>/project.md` only what no other source states: ticket state comes from the tracker, delivery state from Git, and the handoff from the active change.
+
 ## Requirement deltas
 
 Write each delta file for one capability, using these sections as needed:
