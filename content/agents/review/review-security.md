@@ -3,6 +3,7 @@ name: "review-security"
 description: "Review security boundaries and detect exposed secrets without leaking or rotating them. Use when a change touches a security boundary: authentication, authorization, untrusted input, command or process execution, secrets, cryptography, dependencies, or data exposure."
 model_profile: "inherit"
 access_profile: "observe"
+effort: "max"
 ---
 
 # review-security

@@ -3,7 +3,7 @@ name: "state-fetcher"
 description: "Collect current tracker, Git, CI, or deployment state for explicitly identified targets. Use to gather the current state of named tickets, branches, pull requests, CI runs, or deployments without changing them."
 model_profile: "execution"
 access_profile: "observe"
-claude_effort: "low"
+effort: "low"
 ---
 
 # state-fetcher

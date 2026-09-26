@@ -18,7 +18,7 @@ const Version = "1"
 const ProfilesSource = "integrations/agent-profiles.json"
 
 type Role struct {
-	Name, Description, ModelProfile, AccessProfile, Body, ClaudeEffort string
+	Name, Description, ModelProfile, AccessProfile, Body, Effort string
 }
 type Model struct {
 	Model  string `json:"model,omitempty"`
@@ -40,7 +40,7 @@ func IsSource(source string) bool {
 	return len(p) == 4 && p[0] == "content" && p[1] == "agents" && slug.MatchString(p[2]) && strings.HasSuffix(p[3], ".md") && slug.MatchString(strings.TrimSuffix(p[3], ".md"))
 }
 
-// Parse accepts a deliberately small YAML subset: required single-line scalar keys and an optional Claude effort.
+// Parse accepts a deliberately small YAML subset: required single-line scalar keys and an optional effort.
 // JSON-quoted scalars provide unambiguous Unicode/escaping without a YAML runtime.
 func Parse(source string, data []byte) (Role, error) {
 	var r Role
@@ -68,7 +68,7 @@ func Parse(source string, data []byte) (Role, error) {
 			return r, fmt.Errorf("invalid or duplicate agent field: %s", line)
 		}
 		switch key {
-		case "name", "description", "model_profile", "access_profile", "claude_effort":
+		case "name", "description", "model_profile", "access_profile", "effort":
 		default:
 			return r, fmt.Errorf("unsupported agent field %q", key)
 		}
@@ -90,9 +90,9 @@ func Parse(source string, data []byte) (Role, error) {
 			return r, fmt.Errorf("agent requires %s", key)
 		}
 	}
-	r = Role{fields["name"], fields["description"], fields["model_profile"], fields["access_profile"], body, fields["claude_effort"]}
-	if r.ClaudeEffort != "" && !oneOf(r.ClaudeEffort, "low", "medium", "high", "xhigh", "max") {
-		return r, fmt.Errorf("invalid Claude effort")
+	r = Role{fields["name"], fields["description"], fields["model_profile"], fields["access_profile"], body, fields["effort"]}
+	if r.Effort != "" && !oneOf(r.Effort, "low", "medium", "high", "xhigh", "max") {
+		return r, fmt.Errorf("invalid agent effort")
 	}
 	if r.Name != strings.TrimSuffix(path.Base(source), ".md") || strings.TrimSpace(r.Body) == "" {
 		return r, fmt.Errorf("agent name/body mismatch: %s", source)
@@ -154,7 +154,7 @@ func ReadProfiles(data []byte) (Profiles, error) {
 			if m.Effort != "" && !oneOf(m.Effort, "low", "medium", "high", "xhigh", "max", "ultra") {
 				return p, fmt.Errorf("invalid effort for %s", host)
 			}
-			if (host == "grok" || host == "opencode" || host == "cursor") && m.Effort != "" {
+			if !acceptsEffort(host) && m.Effort != "" {
 				return p, fmt.Errorf("%s uses inherited effort or a model variant", host)
 			}
 		}
@@ -222,6 +222,11 @@ func validateAccess(host string, values map[string]json.RawMessage) error {
 	return nil
 }
 
+// acceptsEffort reports whether a host renders a per-agent reasoning level.
+func acceptsEffort(host string) bool {
+	return host == "claude" || host == "codex" || host == "pi"
+}
+
 func Validate(source string, data, profiles []byte) error {
 	if _, err := Parse(source, data); err != nil {
 		return err
@@ -244,8 +249,9 @@ func Render(source string, data, profiles []byte, host string) ([]byte, error) {
 		return nil, fmt.Errorf("unsupported agent host %q", host)
 	}
 	m := h.Models[r.ModelProfile]
-	if host == "claude" && r.ClaudeEffort != "" {
-		m.Effort = r.ClaudeEffort
+	// A role's effort replaces the profile's where the host accepts a per-agent level.
+	if r.Effort != "" && acceptsEffort(host) {
+		m.Effort = r.Effort
 	}
 	fields := map[string]any{"name": r.Name, "description": r.Description}
 	for key, raw := range h.Access[r.AccessProfile] {

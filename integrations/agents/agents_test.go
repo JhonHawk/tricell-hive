@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -24,8 +25,8 @@ func TestCatalogueRendersAllRolesForEveryHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sources) != 20 {
-		t.Fatalf("catalogue has %d roles, want 20", len(sources))
+	if len(sources) != 19 {
+		t.Fatalf("catalogue has %d roles, want 19", len(sources))
 	}
 	for _, source := range sources {
 		data, err := os.ReadFile(source)
@@ -184,6 +185,161 @@ func TestProfilesRejectUnknownHost(t *testing.T) {
 	bad := strings.Replace(string(repositoryProfiles(t)), `"cursor": {`, `"cursorx": {`, 1)
 	if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "unsupported agent profile host") {
 		t.Fatalf("ReadProfiles accepted an unknown host key: %v", err)
+	}
+}
+
+// emittedEffort matches an effort key at the start of a rendered line.
+var emittedEffort = regexp.MustCompile(`(?m)^(effort|thinking|model_reasoning_effort)\b`)
+
+func TestParseRejectsInvalidEffortValue(t *testing.T) {
+	source := "content/agents/design/test-agent.md"
+	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"extreme\"\n---\nBody\n")
+	if _, err := Parse(source, data); err == nil {
+		t.Fatal("Parse accepted an invalid effort value")
+	}
+}
+
+func TestParseRejectsClaudeEffortAsUnknownField(t *testing.T) {
+	source := "content/agents/design/test-agent.md"
+	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\nclaude_effort: \"high\"\n---\nBody\n")
+	_, err := Parse(source, data)
+	if err == nil || !strings.Contains(err.Error(), `unsupported agent field "claude_effort"`) {
+		t.Fatalf("Parse(claude_effort) = %v, want unsupported agent field error", err)
+	}
+}
+
+func TestRoleEffortOverridesProfileEffortOnClaudeCodexAndPi(t *testing.T) {
+	profiles := repositoryProfiles(t)
+	source := "content/agents/design/test-agent.md"
+	// execution profile carries effort "high" by default; the role declares "low".
+	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"low\"\n---\nBody\n")
+	cases := []struct{ host, want string }{
+		{"claude", "effort: \"low\"\n"},
+		{"codex", "model_reasoning_effort = \"low\"\n"},
+		{"pi", "thinking: \"low\"\n"},
+	}
+	for _, c := range cases {
+		out, err := Render(source, data, profiles, c.host)
+		if err != nil {
+			t.Fatalf("Render(%s): %v", c.host, err)
+		}
+		if !strings.Contains(string(out), c.want) {
+			t.Fatalf("Render(%s) missing role effort override %q:\n%s", c.host, c.want, out)
+		}
+	}
+}
+
+func TestGrokOpenCodeAndCursorEmitNoEffortEvenWhenRoleDeclaresOne(t *testing.T) {
+	profiles := repositoryProfiles(t)
+	source := "content/agents/design/test-agent.md"
+	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"max\"\n---\nBody\n")
+	for _, host := range []string{"grok", "opencode", "cursor"} {
+		out, err := Render(source, data, profiles, host)
+		if err != nil {
+			t.Fatalf("Render(%s): %v", host, err)
+		}
+		if emittedEffort.Match(out) {
+			t.Fatalf("Render(%s) emitted effort despite the role declaring one:\n%s", host, out)
+		}
+	}
+}
+
+// TestRepositorySourcesMatchExpectedEffortLevels renders the canonical roles
+// for all six hosts and checks the exact Claude/Codex/Pi effort level: every
+// Claude-rendered role must declare an effort line, and Grok/OpenCode/Cursor
+// must never declare one.
+func TestRepositorySourcesMatchExpectedEffortLevels(t *testing.T) {
+	profiles := repositoryProfiles(t)
+	// {Claude, Codex, Pi} expected effort level per role.
+	expected := map[string][3]string{
+		"backend-developer":              {"high", "high", "high"},
+		"frontend-developer":             {"high", "high", "high"},
+		"kotlin-multiplatform-developer": {"high", "high", "high"},
+		"devops-engineer":                {"high", "high", "high"},
+		"test-engineer":                  {"high", "high", "high"},
+		"sdd-verify":                     {"high", "high", "high"},
+		"review-ux":                      {"high", "high", "high"},
+		"sdd-explore":                    {"high", "high", "high"},
+		"sdd-spec-writer":                {"medium", "medium", "medium"},
+		"state-fetcher":                  {"low", "low", "low"},
+		"database-specialist":            {"high", "medium", "medium"},
+		"performance-engineer":           {"high", "medium", "medium"},
+		"review-code":                    {"high", "medium", "medium"},
+		"review-harness":                 {"high", "medium", "medium"},
+		"review-plan":                    {"medium", "medium", "medium"},
+		"solution-architect":             {"high", "high", "high"},
+		"visual-designer":                {"high", "high", "high"},
+		"review-refuter":                 {"high", "high", "high"},
+		"review-security":                {"max", "max", "max"},
+	}
+	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sources) != len(expected) {
+		t.Fatalf("catalogue has %d roles, want %d", len(sources), len(expected))
+	}
+	claudeEffort := regexp.MustCompile(`(?m)^effort: "([a-z]+)"$`)
+	codexEffort := regexp.MustCompile(`(?m)^model_reasoning_effort = "([a-z]+)"$`)
+	piEffort := regexp.MustCompile(`(?m)^thinking: "([a-z]+)"$`)
+	for _, source := range sources {
+		data, err := os.ReadFile(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := strings.TrimSuffix(filepath.Base(source), ".md")
+		want, ok := expected[name]
+		if !ok {
+			t.Fatalf("no expected effort levels declared for role %s", name)
+		}
+		canonical := filepath.ToSlash(source)
+		canonical = strings.TrimPrefix(canonical, "../../")
+
+		claudeOut, err := Render(canonical, data, profiles, "claude")
+		if err != nil {
+			t.Fatalf("Render(claude, %s): %v", name, err)
+		}
+		m := claudeEffort.FindSubmatch(claudeOut)
+		if m == nil {
+			t.Fatalf("Render(claude, %s) has no effort line:\n%s", name, claudeOut)
+		}
+		if got := string(m[1]); got != want[0] {
+			t.Fatalf("Render(claude, %s) effort = %q, want %q", name, got, want[0])
+		}
+
+		codexOut, err := Render(canonical, data, profiles, "codex")
+		if err != nil {
+			t.Fatalf("Render(codex, %s): %v", name, err)
+		}
+		m = codexEffort.FindSubmatch(codexOut)
+		if m == nil {
+			t.Fatalf("Render(codex, %s) has no model_reasoning_effort line:\n%s", name, codexOut)
+		}
+		if got := string(m[1]); got != want[1] {
+			t.Fatalf("Render(codex, %s) effort = %q, want %q", name, got, want[1])
+		}
+
+		piOut, err := Render(canonical, data, profiles, "pi")
+		if err != nil {
+			t.Fatalf("Render(pi, %s): %v", name, err)
+		}
+		m = piEffort.FindSubmatch(piOut)
+		if m == nil {
+			t.Fatalf("Render(pi, %s) has no thinking line:\n%s", name, piOut)
+		}
+		if got := string(m[1]); got != want[2] {
+			t.Fatalf("Render(pi, %s) effort = %q, want %q", name, got, want[2])
+		}
+
+		for _, host := range []string{"grok", "opencode", "cursor"} {
+			out, err := Render(canonical, data, profiles, host)
+			if err != nil {
+				t.Fatalf("Render(%s, %s): %v", host, name, err)
+			}
+			if emittedEffort.Match(out) {
+				t.Fatalf("Render(%s, %s) emitted effort:\n%s", host, name, out)
+			}
+		}
 	}
 }
 

@@ -2,7 +2,7 @@
   "version": 1,
   "hosts": {
     "claude": {
-      "models": {"execution": {"model": "sonnet"}, "reasoning": {"model": "opus", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}},
+      "models": {"execution": {"model": "sonnet", "effort": "high"}, "reasoning": {"model": "opus", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}},
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit"]}, "implement": {}, "verify": {}}
     },
     "codex": {

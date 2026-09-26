@@ -2,19 +2,32 @@
 
 Agent instructions have one source at `content/agents/<category>/<name>.md`. Categories organize authorship; all native destinations use the unique filename stem. Do not keep converted host copies in the repository or a tracked distribution directory.
 
-`integrations/agents` parses a deliberately small frontmatter contract: `name`, `description`, `model_profile`, and `access_profile`; optional `claude_effort` preserves a role-specific Claude setting. Values are single-line strings, optionally JSON-quoted. The body is preserved. Unknown fields, malformed sources, and unknown profiles fail validation. `integrations/agent-profiles.json` is the single host mapping. The deployment manager converts in memory during planning and freezes the native bytes for apply and recovery.
+`integrations/agents` parses a deliberately small frontmatter contract: `name`, `description`, `model_profile`, and `access_profile`; optional `effort` (`low`, `medium`, `high`, `xhigh`, or `max`) overrides the profile's effort for that role on every host that renders one. Values are single-line strings, optionally JSON-quoted. The body is preserved. Unknown fields, malformed sources, and unknown profiles fail validation. `integrations/agent-profiles.json` is the single host mapping. The deployment manager converts in memory during planning and freezes the native bytes for apply and recovery.
 
 ## Roles and profiles
 
-Twenty roles cover design, implementation, documentation, operations, verification, and review, including harness-engineering audits by `review-harness`. `solution-architect` includes contract design formerly assigned to `sdd-design`; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
+Nineteen roles cover design, implementation, documentation, operations, verification, and review, including harness-engineering audits by `review-harness`. `solution-architect` includes contract design formerly assigned to `sdd-design` and cloud infrastructure design formerly assigned to `cloud-architect`, which had no recorded invocation on any of the six hosts through 2026-09-25; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
 
 | Profile | Claude | Codex | Pi | Grok | OpenCode V2 | Cursor CLI |
 | --- | --- | --- | --- | --- | --- | --- |
-| execution | Sonnet | Terra / high | Terra / high | Inherit | DeepSeek v4.1 Flash / max | Inherit |
+| execution | Sonnet / high | Terra / high | Terra / high | Inherit | DeepSeek v4.1 Flash / max | Inherit |
 | reasoning | Opus / high | Astra / medium | Astra / medium | Inherit | DeepSeek v4.1 Flash / max | Inherit |
 | inherit | Inherit / high | Inherit / high | Inherit / high | Inherit | DeepSeek v4.1 Flash / max | Inherit |
 
 Cursor inherits the parent model in every profile: its model IDs depend on the subscription plan, and its documentation states that Cursor replaces a configured model the plan does not include. Choosing per-profile models is deferred until role delivery is observed. Cursor is optional in `agent-profiles.json` so that releases frozen with the five original hosts remain installable for them; installing Cursor from such a release fails with `unsupported agent host "cursor"`.
+
+### Effort
+
+Every profile that can carry an effort declares one, so no role inherits the session effort on Claude, Codex, or Pi: a user lowering the session effort to stay in the loop would otherwise lower delegated children that nobody steers. A role declares `effort` only when its task needs a different level on every host; the value is absolute and replaces the profile's. Current exceptions: `review-security` `max`, where effort gains most for security work ([Spending your effort](https://claude.dev/blog/spending-your-effort/)); `state-fetcher` `low`; `review-plan` and `sdd-spec-writer` `medium`.
+
+| Host | Rendered key | Levels |
+| --- | --- | --- |
+| Claude Code | `effort` | `low`–`max`; the active model clamps an unsupported level to its highest supported one ([model configuration](https://code.claude.com/docs/en/model-config)) |
+| Codex | `model_reasoning_effort` | `low`–`max`; behavior for a level the model does not support is undocumented, and `max` is not documented for GPT-6 Astra ([subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)) |
+| Pi + pi-subagents | `thinking` | `off`–`max` (0.67.0 `src/shared/model-info.ts`); the level is appended to the resolved model without a capability check, so provider handling is unverified |
+| Grok, Cursor, OpenCode | none | Role exceptions have no effect. Grok has no effort field, so children inherit the session effort; Cursor binds effort to a concrete model, which Hive leaves as `inherit`, with the same result; OpenCode runs every role on its fixed `#max` variant |
+
+A level missing from a host's scale would render as that host's highest documented level; all three rendering hosts currently accept `low`–`max`. The mapping follows the host's scale, not the model's: a role on the `inherit` profile, such as `review-security`, runs on the session's model, whose support for `max` the renderer cannot know. Codex and Pi keep the reasoning profile at `medium` on GPT-6 Astra because OpenAI recommends starting Astra at `low`.
 
 Profiles are delivery defaults, not a replacement for the host's authentication, model loop, or permissions. The canonical JSON contains the exact model identifiers. A configured model is not proof of account availability or a successful run.
 
