@@ -28,7 +28,7 @@
 
 ### T3: Entrega (D21-A)
 
-- [ ] `/code-review` sin hallazgos abiertos, commit y push a `rebuild/harness-engineering`, despliegue a los seis hosts verificado, issue #33 cerrado con el commit, y la carpeta de cambio archivada.
+- [x] `/code-review` sin hallazgos abiertos, commit y push a `rebuild/harness-engineering`, despliegue a los seis hosts verificado, issue #33 cerrado con el commit, y la carpeta de cambio archivada.
 
 **Ejecución:** hilo principal.
 
@@ -57,3 +57,4 @@
   - 1, 2, 4, 6, 7, 8, 9 y 10 corregidos.
   - Desvío aceptado: la exigencia de contenido aplica solo al criterio (`skillReadIndex`, en modo estricto) y no a `observeSkill`. La lectura nativa sintética de Claude no tiene un resultado correlacionado con contenido, y una prueba lo documenta.
   - `go test ./...`, `-race`, `go vet`, `gofmt` y el escaneo pasan.
+- Cerrado (2026-09-26): integrado con `de3235e`, que cierra #33. Archivado en `changes/archive/2026-09-26-gh-33-flow-skill-routing/`. No hay deltas de requisitos.
