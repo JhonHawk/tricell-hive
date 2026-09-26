@@ -1,25 +1,25 @@
 # Hive repository structure and distribution
 
-Reviewed: 2026-09-21. Structure agreed and directories created. The global rules, workspace skill, and first Go deployment manager are implemented. The adapters have synthetic-home lifecycle tests; the five-host user-global deployment is installed for an experimental observational rollout. See the [manager contract](deployment-manager.md) for commands and current limits.
+Reviewed: 2026-09-25. The shared guidance, activity skills, six host adapters, Go deployment manager, and packaged installer are implemented in this repository. Synthetic-home lifecycle tests cover the adapters. Historical rollout records describe earlier global installations; verify current host state separately. See the [manager contract](deployment-manager.md) and [installer contract](installer.md) for commands and limits.
 
 ## Responsibilities
 
 | Path | Responsibility | Current state |
 |---|---|---|
-| `content/guidance/global.md` | Single source for distributed global rules | Installed globally; behavioral evidence is reported separately |
-| `content/skills/` | Activity procedures and their supporting resources | `workspace-conventions` and three `flow-*` skills installed; flow planning includes a Markdown reference |
+| `content/guidance/global.md` | Single source for distributed global rules | Packaged by the manager; historical installations are recorded separately |
+| `content/skills/` | Activity procedures and their supporting resources | Eleven authored skills; availability and loading depend on each host installation |
 | `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; project scope for Codex and Claude |
-| `tooling/cli/` | Command interface | Go CLI, invoked from the checkout |
+| `tooling/cli/` | Command interface | Go CLI, invoked from the checkout or a complete package |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
-| `tooling/tui/` | Future interface over the same operations | Outside initial scope |
-| `tests/{content,integrations,management,fixtures}/` | Content, integration, and installation lifecycle verification | Lifecycle tests, workspace fixtures, TypeScript flow fixtures, frozen baseline, and native CLI pilot runner |
+| `tooling/package/` | Offline package builder | Builds complete platform packages on demand |
+| `tests/{content,fixtures,pilot,skills}/` | Content, fixture, pilot, and skill verification | Integration and management tests live beside their Go packages |
 | `_support/docs/` | Durable research and decisions | Existing |
 | `_support/sessions/` | Resumable work records | Available |
 | `_support/evidence/` | Curated evidence suitable for version control | Available |
 | `_support/workspace/` | Local scratch; retains `hive-retirement/` | Only `.gitkeep` markers are versionable |
-| `dist/` | Generated distribution artifacts | Neither created nor versioned; generated when needed |
+| `dist/` | Generated distribution artifacts | Ignored by Git; generated when needed |
 
-Empty source directories use `.gitkeep`; generated output such as `dist/` is not retained. Do not create example skills, empty manifests, or executables to imply functionality. Packages may contain derived copies, but the editorial source remains unique. This structure does not select a programming language, dependencies, or per-host package formats.
+Only the retained local-workspace directories use `.gitkeep`; populated source directories need no marker. Generated output such as `dist/` is not versioned. Do not create example skills, empty manifests, or executables to imply functionality. Packages may contain derived copies, but the editorial source remains unique.
 
 ## First content: global rules
 
