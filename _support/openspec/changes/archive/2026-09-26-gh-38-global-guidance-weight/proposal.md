@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · implementado, verificado y revisado (−2825 B, −6,9%); entrega en curso |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`08abd00`) y desplegado como release `baf1ec3c938e` |
 | Tracker · GitHub Issues | • [#38 — Poda del peso de global.md](https://github.com/JhonHawk/tricell-hive/issues/38) |
-| Git | `direct-base` · push a `rebuild/harness-engineering` · sin parada humana |
+| Git | Commit `08abd00` con push a `rebuild/harness-engineering` |
 | Verificación | `go vet ./...` · `go test -race ./...` · validación de enlaces del release · revisión independiente de equivalencia (K4-A) |
-| Siguiente paso | `flow-build` con esta carpeta de cambio |
+| Siguiente paso | Ninguno en este cambio; el efecto en la atención no se midió (pilotos pausados) |
 
 ## Objetivo
 
