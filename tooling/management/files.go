@@ -55,6 +55,26 @@ func finger(s snapshot) Fingerprint {
 	return Fingerprint{TreeHash: treeHash, Exists: s.Exists, Hash: hash(s.Data), Mode: s.Mode, Kind: s.Kind, LinkTarget: s.LinkTarget, FileMode: s.FileMode}
 }
 func same(a, b snapshot) bool { return finger(a) == finger(b) }
+
+// removeOrphanWrites deletes ".hive-write-*" temporaries that a killed process
+// left in the state directory or next to a journaled destination. It runs under
+// the state lock, so no live writer owns them; failures are ignored because the
+// files are inert and recovery must not depend on them.
+func removeOrphanWrites(stateDir string, j journal) {
+	dirs := map[string]bool{stateDir: true, filepath.Join(stateDir, "transactions"): true, filepath.Join(stateDir, "onboarding"): true}
+	for _, en := range j.Entries {
+		dirs[filepath.Dir(en.Change.Target.Path)] = true
+	}
+	for dir := range dirs {
+		matches, _ := filepath.Glob(filepath.Join(dir, ".hive-write-*"))
+		for _, m := range matches {
+			if info, err := os.Lstat(m); err == nil && info.Mode().IsRegular() {
+				_ = os.Remove(m)
+			}
+		}
+	}
+}
+
 func write(path string, s snapshot) error {
 	if err := target.Safe(path); err != nil {
 		return err
@@ -132,8 +152,11 @@ func readState(dir string) (State, string, error) {
 		if err = json.Unmarshal(s.Data, &state); err != nil {
 			return state, "", err
 		}
-		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5) || state.Records == nil {
+		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5 && state.Version != stateVersion) || state.Records == nil {
 			return state, "", fmt.Errorf("unsupported state")
+		}
+		if err = validateProductState(state); err != nil {
+			return state, "", err
 		}
 		if err = normalizeState(&state); err != nil {
 			return state, "", err

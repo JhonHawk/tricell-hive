@@ -52,6 +52,24 @@ func TestSetupDetectsSkillsWithoutChangingThem(t *testing.T) {
 	}
 }
 
+// TestSetupMentionsInstallerAndStaysReadOnly covers U9: setup must point the
+// operator to the new interactive installer for optional capabilities, and
+// must still write nothing.
+func TestSetupMentionsInstallerAndStaysReadOnly(t *testing.T) {
+	home := t.TempDir()
+	var out bytes.Buffer
+	if err := setup([]string{"--home", home}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "./install.sh") || !strings.Contains(out.String(), "hive install") {
+		t.Fatalf("missing pointer to the interactive installer: %s", out.String())
+	}
+	entries, err := os.ReadDir(home)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("setup wrote to home: %v %v", entries, err)
+	}
+}
+
 func TestContext7CandidatesHonorHomesAndDeduplicate(t *testing.T) {
 	env := func(k string) string {
 		if k == "CLAUDE_CONFIG_DIR" {

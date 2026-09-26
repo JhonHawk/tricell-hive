@@ -324,6 +324,9 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
+	if err := checkOnboarding(dir); err != nil {
+		return p, err
+	}
 	if pending, err := read(filepath.Join(dir, "pending.json")); err != nil {
 		return p, err
 	} else if pending.Exists {
@@ -333,13 +336,17 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	p = Plan{Version: 5, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
+	p = Plan{Version: stateVersion, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
 	if action == "install" {
 		r, err := loadRelease(o, dir)
 		if err != nil {
 			return p, err
 		}
 		p.Release = &r
+		p.Product, err = productFromSource(o, r, state)
+		if err != nil {
+			return p, err
+		}
 	}
 	if err = scanMigration(&p, state); err != nil {
 		return p, err
@@ -510,14 +517,14 @@ func LoadPlan(path string) (Plan, error) {
 	if err != nil {
 		return p, err
 	}
-	if p.Version != 5 || p.ID != planID(p) {
+	if p.Version != stateVersion || p.ID != planID(p) {
 		return p, fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	return p, nil
 }
 func validatePlan(p Plan, state State) error {
 	// Plans saved before Cursor support omit cursor_home and still hash correctly.
-	if p.Version != 5 || p.ID != planID(p) || p.Config.CursorHome == "" {
+	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	h, err := validateHosts(p.Hosts)
@@ -547,6 +554,14 @@ func validatePlan(p Plan, state State) error {
 		}
 	} else if p.Action != "remove" || p.Release != nil {
 		return fmt.Errorf("invalid plan action")
+	}
+	if p.Product != nil {
+		if p.Release == nil {
+			return fmt.Errorf("product identity requires a release")
+		}
+		if err := validateProduct(p.Product, state, p.Release.ID); err != nil {
+			return err
+		}
 	}
 	gs, err := desiredResources(p.Config, p.Hosts, state, p.Action, p.Release)
 	if err != nil {
@@ -627,7 +642,13 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	optionalPending, err := OnboardingPending(dir)
+	if err != nil {
+		return nil, err
+	}
+	pending.Exists = pending.Exists || optionalPending
 	var out []StatusEntry
+	versionCache := map[string][2]string{}
 	seen := map[string]bool{}
 	for _, t := range ts {
 		seen[t.Path] = true
@@ -639,6 +660,12 @@ func Status(o Options) ([]StatusEntry, error) {
 		s, readErr := readResource(t, migration)
 		if r, ok := state.Records[t.Path]; ok {
 			en.Release = r.Release
+			key := consumerKey(consumer(t))
+			if _, ok := versionCache[key]; !ok {
+				v, st := installationVersion(state, consumer(t))
+				versionCache[key] = [2]string{v, st}
+			}
+			en.ProductVersion, en.VersionStatus = versionCache[key][0], versionCache[key][1]
 			en.Consumers = r.Consumers
 			if hasConsumer(r.Consumers, consumer(t)) {
 				en.Status = "installed"

@@ -34,13 +34,90 @@ func saveJournal(path string, j journal) error {
 type pending struct{ ID string }
 
 // Engine's failpoint is internal and used only by failure-injection tests.
-type Engine struct{ failpoint func(string) error }
+// nested marks a call made by Onboard (or RecoverOnboarding) on its own
+// core transaction: the lock is already held and preflight already ran
+// once under it, so Apply (or Recover) must not repeat either. presetState
+// carries the State that preflight already validated, so a nested Apply
+// never re-reads it.
+type Engine struct {
+	failpoint     func(string) error
+	nested        bool
+	presetState   State
+	transactionID string
+}
 
 func (e Engine) fail(stage string) error {
 	if e.failpoint != nil {
 		return e.failpoint(stage)
 	}
 	return nil
+}
+
+// preflight is Apply's and Onboard's single authoritative gate. It rejects
+// an obviously stale or invalid plan before creating a state directory,
+// then re-validates it under the lock together with any pending core
+// operation and the retained installer binding, returning the validated
+// state and the still-held lock's release function. Both entry points call
+// it exactly once; the nested core transaction Onboard starts trusts this
+// result instead of repeating the checks (see Engine.nested).
+func preflight(p Plan) (State, func(), error) {
+	if err := checkOnboarding(p.StateDir); err != nil {
+		return State{}, nil, err
+	}
+	state, sh, err := readState(p.StateDir)
+	if err != nil {
+		return State{}, nil, err
+	}
+	if err = validatePlan(p, state); err != nil {
+		return State{}, nil, err
+	}
+	if err = validateMigration(p, state); err != nil {
+		return State{}, nil, err
+	}
+	if sh != p.StateHash {
+		return State{}, nil, fmt.Errorf("stale plan: state changed")
+	}
+	unlock, err := lock(p.StateDir)
+	if err != nil {
+		return State{}, nil, err
+	}
+	state, err = authoritativePreflight(p)
+	if err != nil {
+		unlock()
+		return State{}, nil, err
+	}
+	return state, unlock, nil
+}
+
+// authoritativePreflight re-runs preflight's checks under the lock, where
+// they are the ones that matter: nothing observed before the lock was
+// acquired is trustworthy once another operation could have run.
+func authoritativePreflight(p Plan) (State, error) {
+	if err := checkOnboarding(p.StateDir); err != nil {
+		return State{}, err
+	}
+	if s, err := read(filepath.Join(p.StateDir, "pending.json")); err != nil {
+		return State{}, err
+	} else if s.Exists {
+		return State{}, fmt.Errorf("unfinished operation: recover first")
+	}
+	state, sh, err := readState(p.StateDir)
+	if err != nil {
+		return State{}, err
+	}
+	if err = validateMigration(p, state); err != nil {
+		return State{}, err
+	}
+	if sh != p.StateHash {
+		return State{}, fmt.Errorf("stale plan: state changed")
+	}
+	if err = validatePlan(p, state); err != nil {
+		return State{}, err
+	}
+	if err = ValidateInstallerBinding(p); err != nil {
+		return State{}, err
+	}
+	return state, nil
 }
 func missingDirs(paths []string) ([]string, error) {
 	set := map[string]bool{}
@@ -88,48 +165,17 @@ func cleanupDirs(dirs []string) []string {
 	sort.Strings(retained)
 	return retained
 }
-func (e Engine) Apply(p Plan) (string, error) {
-	// Validate before creating a state directory, then repeat under the lock.
-	state, sh, err := readState(p.StateDir)
-	if err != nil {
-		return "", err
-	}
-	if err = validatePlan(p, state); err != nil {
-		return "", err
-	}
-	if err = validateMigration(p, state); err != nil {
-		return "", err
-	}
-	if sh != p.StateHash {
-		return "", fmt.Errorf("stale plan: state changed")
-	}
-	unlock, err := lock(p.StateDir)
-	if err != nil {
-		return "", err
-	}
-	defer unlock()
-	pp := filepath.Join(p.StateDir, "pending.json")
-	if s, err := read(pp); err != nil {
-		return "", err
-	} else if s.Exists {
-		return "", fmt.Errorf("unfinished operation: recover first")
-	}
-	state, sh, err = readState(p.StateDir)
-	if err != nil {
-		return "", err
-	}
-	if err = validateMigration(p, state); err != nil {
-		return "", err
-	}
-	if sh != p.StateHash {
-		return "", fmt.Errorf("stale plan: state changed")
-	}
-	if err = validatePlan(p, state); err != nil {
-		return "", err
-	}
+
+// prepareTransaction computes the next state, the journal entries, and
+// whether anything would actually change for p against state. It touches
+// no persistent state beyond the advisory reads prepareEntries and
+// overlayRead already perform. transactionID, when set, overrides the
+// generated journal ID before any migration receipt is built from it,
+// matching the core transaction ID Onboard assigns to its child journal.
+func prepareTransaction(p Plan, state State, transactionID string) (journal, State, []string, bool, error) {
 	beforeState, err := read(filepath.Join(p.StateDir, "state.json"))
 	if err != nil {
-		return "", err
+		return journal{}, State{}, nil, false, err
 	}
 	next := emptyState()
 	for k, r := range state.Records {
@@ -137,13 +183,13 @@ func (e Engine) Apply(p Plan) (string, error) {
 	}
 	next.CreatedDirs = append([]string(nil), state.CreatedDirs...)
 	next.Migrations = append([]MigrationReceipt(nil), state.Migrations...)
-	j := journal{Version: 5, Phase: "prepared", Plan: p, BeforeState: beforeState}
-	var paths []string
-	changed := state.Version != 5 || p.Migration != nil || len(p.Legacy) > 0
+	j := journal{Version: stateVersion, Phase: "prepared", Plan: p, BeforeState: beforeState}
+	changed := state.Version != stateVersion || p.Migration != nil || len(p.Legacy) > 0
 	j.Entries, err = prepareEntries(p)
 	if err != nil {
-		return "", err
+		return journal{}, State{}, nil, false, err
 	}
+	var paths []string
 	for _, en := range j.Entries {
 		if en.After.Exists {
 			paths = append(paths, en.Change.Target.Path)
@@ -152,11 +198,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 	for _, ch := range p.Changes {
 		cur, err := overlayRead(p, ch.Target, ch.Replaces != nil)
 		if err != nil {
-			return "", err
+			return journal{}, State{}, nil, false, err
 		}
 		after, err := transformResource(cur, ch)
 		if err != nil {
-			return "", err
+			return journal{}, State{}, nil, false, err
 		}
 		if !same(cur, after) || !reflect.DeepEqual(ch.Before, ch.After) {
 			changed = true
@@ -178,19 +224,25 @@ func (e Engine) Apply(p Plan) (string, error) {
 			next.CreatedDirs = kept
 		}
 	}
+	if updateProductState(&next, state, p) {
+		changed = true
+	}
 	if !changed {
-		return "unchanged", nil
+		return j, next, nil, false, nil
 	}
 	dirsToCreate, err := missingDirs(paths)
 	if err != nil {
-		return "", err
+		return journal{}, State{}, nil, false, err
 	}
 	next.CreatedDirs = append(next.CreatedDirs, dirsToCreate...)
 	id := make([]byte, 16)
 	if _, err = rand.Read(id); err != nil {
-		return "", err
+		return journal{}, State{}, nil, false, err
 	}
 	j.ID = hex.EncodeToString(id)
+	if transactionID != "" {
+		j.ID = transactionID
+	}
 	if p.Migration != nil {
 		receipt := *p.Migration
 		receipt.Transaction = j.ID
@@ -203,113 +255,148 @@ func (e Engine) Apply(p Plan) (string, error) {
 		next.Migrations = append(retained, receipt)
 	}
 	j.AfterState = snapshot{Exists: true, Data: encode(next), Mode: 0600}
+	return j, next, dirsToCreate, true, nil
+}
+
+// startTransaction durably records intent to run j before any resource
+// write: the journal and pending marker Recover needs to reconcile a crash.
+func startTransaction(p Plan, j journal, jp, pp string) error {
 	for _, d := range []string{"transactions", "releases"} {
 		path := filepath.Join(p.StateDir, d)
-		if err = target.Safe(path); err != nil {
+		if err := target.Safe(path); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(path, 0700); err != nil {
+			return err
+		}
+	}
+	if err := saveJournal(jp, j); err != nil {
+		return err
+	}
+	return writeJSON(pp, pending{j.ID})
+}
+
+// commitTransaction performs j's actual writes and verification, updating
+// the journal as it goes so Recover can tell exactly how far it got.
+func (e Engine) commitTransaction(p Plan, j *journal, state, next State, dirsToCreate []string, jp, pp string) error {
+	if err := e.fail("prepared"); err != nil {
+		return err
+	}
+	for _, d := range dirsToCreate {
+		if err := target.Safe(d); err != nil {
+			return err
+		}
+		if err := os.Mkdir(d, 0700); err != nil {
+			return err
+		}
+		j.CreatedDirs = append(j.CreatedDirs, d)
+		if err := saveJournal(jp, *j); err != nil {
+			return err
+		}
+	}
+	for i, en := range j.Entries {
+		if same(en.Before, en.After) {
+			continue
+		}
+		cur, err := readEntry(en)
+		if err != nil {
+			return err
+		}
+		if !same(cur, en.Before) {
+			return fmt.Errorf("concurrent change: %s", en.Change.Target.Path)
+		}
+		// Resolve again to catch newly introduced overrides/imports before each write.
+		if err = validatePlan(p, state); err != nil {
+			return err
+		}
+		if err = writeEntry(en, cur, en.After, e.fail); err != nil {
+			return err
+		}
+		if err = e.fail(fmt.Sprintf("write:%d", i)); err != nil {
+			return err
+		}
+	}
+	for _, en := range j.Entries {
+		cur, err := readEntry(en)
+		if err != nil {
+			return err
+		}
+		if !same(cur, en.After) {
+			return fmt.Errorf("post-write verification failed")
+		}
+	}
+	if p.Migration != nil || len(p.Legacy) > 0 {
+		remaining, err := scanLegacy(p.Config, p.Hosts, next)
+		if err != nil {
+			return err
+		}
+		if remaining.Detected || len(remaining.Edits) > 0 {
+			return fmt.Errorf("legacy retirement verification failed")
+		}
+	}
+	if p.Release != nil {
+		path := filepath.Join(p.StateDir, "releases", p.Release.ID+".json")
+		if old, err := read(path); err != nil {
+			return err
+		} else if old.Exists && string(old.Data) != string(encode(p.Release)) {
+			return fmt.Errorf("release cache conflict")
+		}
+		if err := writeJSON(path, p.Release); err != nil {
+			return err
+		}
+	}
+	if err := write(filepath.Join(p.StateDir, "state.json"), j.AfterState); err != nil {
+		return err
+	}
+	if err := e.fail("state"); err != nil {
+		return err
+	}
+	j.Phase = "committed"
+	if err := saveJournal(jp, *j); err != nil {
+		return err
+	}
+	return os.Remove(pp)
+}
+
+// finishApply prunes directories left empty by the committed transaction.
+// This bookkeeping runs after commit succeeds, never inside it: it is not
+// part of what Recover must undo.
+func finishApply(p Plan, id string, next State) (string, error) {
+	next.CreatedDirs = cleanupDirs(next.CreatedDirs)
+	if err := writeJSON(filepath.Join(p.StateDir, "state.json"), next); err != nil {
+		return id, fmt.Errorf("installed; directory bookkeeping failed: %w", err)
+	}
+	return id, nil
+}
+func (e Engine) Apply(p Plan) (string, error) {
+	state := e.presetState
+	if !e.nested {
+		var (
+			unlock func()
+			err    error
+		)
+		state, unlock, err = preflight(p)
+		if err != nil {
 			return "", err
 		}
-		if err = os.MkdirAll(path, 0700); err != nil {
-			return "", err
-		}
+		defer unlock()
+	}
+	j, next, dirsToCreate, changed, err := prepareTransaction(p, state, e.transactionID)
+	if err != nil {
+		return "", err
+	}
+	if !changed {
+		return "unchanged", nil
 	}
 	jp := filepath.Join(p.StateDir, "transactions", j.ID+".json")
-	if err = saveJournal(jp, j); err != nil {
+	pp := filepath.Join(p.StateDir, "pending.json")
+	if err = startTransaction(p, j, jp, pp); err != nil {
 		return "", err
 	}
-	if err = writeJSON(pp, pending{j.ID}); err != nil {
-		return "", err
+	if err = e.commitTransaction(p, &j, state, next, dirsToCreate, jp, pp); err != nil {
+		return j.ID, fmt.Errorf("transaction %s requires recover: %w", j.ID, err)
 	}
-	runErr := func() error {
-		if err := e.fail("prepared"); err != nil {
-			return err
-		}
-		for _, d := range dirsToCreate {
-			if err := target.Safe(d); err != nil {
-				return err
-			}
-			if err := os.Mkdir(d, 0700); err != nil {
-				return err
-			}
-			j.CreatedDirs = append(j.CreatedDirs, d)
-			if err := saveJournal(jp, j); err != nil {
-				return err
-			}
-		}
-		for i, en := range j.Entries {
-			if same(en.Before, en.After) {
-				continue
-			}
-			cur, err := readEntry(en)
-			if err != nil {
-				return err
-			}
-			if !same(cur, en.Before) {
-				return fmt.Errorf("concurrent change: %s", en.Change.Target.Path)
-			}
-			// Resolve again to catch newly introduced overrides/imports before each write.
-			if err = validatePlan(p, state); err != nil {
-				return err
-			}
-			if err = writeEntry(en, cur, en.After, e.fail); err != nil {
-				return err
-			}
-			if err = e.fail(fmt.Sprintf("write:%d", i)); err != nil {
-				return err
-			}
-		}
-		for _, en := range j.Entries {
-			cur, err := readEntry(en)
-			if err != nil {
-				return err
-			}
-			if !same(cur, en.After) {
-				return fmt.Errorf("post-write verification failed")
-			}
-		}
-		if p.Migration != nil || len(p.Legacy) > 0 {
-			remaining, err := scanLegacy(p.Config, p.Hosts, next)
-			if err != nil {
-				return err
-			}
-			if remaining.Detected || len(remaining.Edits) > 0 {
-				return fmt.Errorf("legacy retirement verification failed")
-			}
-		}
-		if p.Release != nil {
-			path := filepath.Join(p.StateDir, "releases", p.Release.ID+".json")
-			if old, err := read(path); err != nil {
-				return err
-			} else if old.Exists && string(old.Data) != string(encode(p.Release)) {
-				return fmt.Errorf("release cache conflict")
-			}
-			if err := writeJSON(path, p.Release); err != nil {
-				return err
-			}
-		}
-		if err := write(filepath.Join(p.StateDir, "state.json"), j.AfterState); err != nil {
-			return err
-		}
-		if err := e.fail("state"); err != nil {
-			return err
-		}
-		j.Phase = "committed"
-		if err := saveJournal(jp, j); err != nil {
-			return err
-		}
-		if err := os.Remove(pp); err != nil {
-			return err
-		}
-		return nil
-	}()
-	if runErr != nil {
-		return j.ID, fmt.Errorf("transaction %s requires recover: %w", j.ID, runErr)
-	}
-	// Only remove recorded empty directories after the transaction has committed.
-	next.CreatedDirs = cleanupDirs(next.CreatedDirs)
-	if err = writeJSON(filepath.Join(p.StateDir, "state.json"), next); err != nil {
-		return j.ID, fmt.Errorf("installed; directory bookkeeping failed: %w", err)
-	}
-	return j.ID, nil
+	return finishApply(p, j.ID, next)
 }
 func (e Engine) Recover(stateDir string) (string, error) {
 	dir, err := target.Canonical(stateDir)
@@ -319,11 +406,18 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if _, err = os.Stat(dir); os.IsNotExist(err) {
 		return "no_pending_operation", nil
 	}
-	unlock, err := lock(dir)
-	if err != nil {
-		return "", err
+	if !e.nested {
+		unlock, err := lock(dir)
+		if err != nil {
+			return "", err
+		}
+		defer unlock()
 	}
-	defer unlock()
+	if !e.nested {
+		if err := checkOnboarding(dir); err != nil {
+			return "", err
+		}
+	}
 	pp := filepath.Join(dir, "pending.json")
 	var p pending
 	if err = decodeFile(pp, &p); os.IsNotExist(err) {
@@ -342,9 +436,12 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err = decodeFile(jp, &j); err != nil {
 		return "", err
 	}
-	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
+	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
 		return "", fmt.Errorf("invalid transaction")
 	}
+	removeOrphanWrites(dir, j)
+	// Rollback restores Hive's own bytes from the journal; it never needs the
+	// retained installer, so a removed or restored copy must not block it.
 	if j.Phase == "committed" || j.Phase == "recovered" {
 		return j.Phase, os.Remove(pp)
 	}

@@ -195,7 +195,7 @@ func TestV2StateMigrationAndLegacyJournalRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	apply(t, plan(t, "install", o))
-	if stateFor(t, o).Version != 5 {
+	if stateFor(t, o).Version != stateVersion {
 		t.Fatal("state not migrated")
 	}
 	// Create an interrupted transaction and encode it using the v2 shape: the

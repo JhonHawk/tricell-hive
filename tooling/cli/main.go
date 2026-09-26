@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"tricell-hive/tooling/management"
+	"tricell-hive/tooling/version"
 )
 
 func main() {
@@ -23,20 +24,28 @@ func output(v any) error {
 	return enc.Encode(v)
 }
 func run(args []string) error {
+	if len(args) == 1 && args[0] == "--version" {
+		fmt.Println(version.Current)
+		return nil
+	}
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Println("hive bootstrap --origin URL --version X.Y.Z --manager PATH --manager-sha256 HASH  (invoked by bootstrap.sh only)")
 		fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
 		fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 		fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: hive setup | plan install|remove | apply --plan FILE | status | recover --state-dir DIR")
+		return fmt.Errorf("usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR")
 	}
 	if args[0] == "setup" {
 		return setup(args[1:], os.Stdout)
 	}
 	if args[0] == "install" {
 		return install(args[1:], os.Stdin, os.Stdout, terminalInput(os.Stdin))
+	}
+	if args[0] == "bootstrap" {
+		return bootstrap(args[1:], os.Stdin, os.Stdout, terminalInput(os.Stdin))
 	}
 	cmd := args[0]
 	args = args[1:]
@@ -142,11 +151,23 @@ func run(args []string) error {
 				return err
 			}
 		}
-		s, err := (management.Engine{}).Recover(o.StateDir)
+		// recover has no --home/--scope flags of its own: it always targets
+		// the real user's own state, mirroring the user-scope resolution
+		// just used above to default o.StateDir. Without an explicit scope,
+		// NormalizeOptions (inside the adapter factory) refuses every
+		// recovery with "explicit scope must be user or project", so no
+		// pending onboarding could ever be reconciled from a second
+		// terminal.
+		o.Scope = "user"
+		// RecoverOnboarding (reached through recoverWithAdapterFactory) is
+		// the one recovery path (M5): when no onboarding journal is pending
+		// it falls back to the core Engine.Recover itself, so this command
+		// never branches on management.OnboardingPending on its own.
+		result, err := recoverWithAdapterFactory(o, nativeProviderAdapterFactory)
 		if err != nil {
 			return err
 		}
-		return output(map[string]string{"result": s})
+		return output(result)
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -13,11 +14,115 @@ import (
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
+	"tricell-hive/tooling/providers"
 )
 
 var installerHosts = []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
 
+type hostCandidate struct {
+	Name       string
+	Detected   bool
+	Registered bool
+	Legacy     bool
+}
+
+type installTerminal struct {
+	reader      *bufio.Reader
+	out         io.Writer
+	interactive bool
+}
+
+type installDecision int
+
+const (
+	installCancelled installDecision = iota
+	installApply
+	installBack
+)
+
+type onboardingAdapter interface {
+	Detect(management.Options) ([]providerOffer, error)
+	Plan(management.Plan, []providerRequest) (onboardingPreview, error)
+	Runner() management.ExternalRunner
+}
+
+type providerOffer struct {
+	ID     string
+	Name   string
+	Source string
+	// ManualOnly marks a capability whose outcome is unconditionally manual
+	// in this build (no native recipe validation available): the wizard
+	// skips the exact-version prompt for it and labels it accordingly.
+	ManualOnly bool
+	Effects    []string
+}
+
+type providerRequest struct {
+	ID      string
+	Version string
+}
+
+type onboardingPreview struct {
+	Steps   []management.ExternalStep
+	Details []providerDetail
+}
+
+type providerDetail struct {
+	ID, Version, Source string
+	Effects             []string
+}
+
+type onboardingInput struct {
+	Options management.Options
+	// DryRun mirrors the invocation's --dry-run flag as a plain bool: an
+	// adapter that needs to know must read this field, never re-scan raw CLI
+	// arguments for it.
+	DryRun bool
+}
+
+type onboardingAdapterFactory func(onboardingInput) (onboardingAdapter, error)
+
+type installDependencies struct {
+	DiscoverHosts func(management.Options) ([]hostCandidate, error)
+	RequiredHosts func(management.Options) ([]string, error)
+	// Pending reports which of the two independent journals (optional
+	// onboarding, or a core transaction) blocks a new operation, so the flow
+	// never reads pending.json by name to answer that question itself.
+	Pending           func(string) (management.PendingKind, error)
+	RecoverOnboarding func(string, onboardingAdapter) (management.OnboardingResult, error)
+	RecoverCore       func(string) (string, error)
+	AdapterFactory    onboardingAdapterFactory
+	// BindRetainedInstaller is set only by the online bootstrap entry point.
+	// It runs once, right after the operator confirms and before the plan
+	// mutates anything: it retains the already-verified manager and package
+	// privately, then binds that retained installer's identity into the
+	// plan so a later `hive recover` (from another terminal, offline) can
+	// find and reverify it. Ordinary local installs leave this nil.
+	BindRetainedInstaller func(management.Options, management.Plan) (management.Plan, error)
+}
+
 func install(args []string, in io.Reader, out io.Writer, interactive bool) error {
+	return installWithAdapterFactory(args, in, out, interactive, nativeProviderAdapterFactory)
+}
+
+// installWithAdapterFactory creates a fresh adapter for each invocation. The
+// CLI retains no cross-run adapter state.
+func installWithAdapterFactory(args []string, in io.Reader, out io.Writer, interactive bool, factory onboardingAdapterFactory) error {
+	return installWithDependencies(args, in, out, interactive, defaultInstallDependencies(factory))
+}
+
+func defaultInstallDependencies(factory onboardingAdapterFactory) installDependencies {
+	return installDependencies{
+		DiscoverHosts:     detectInstallerHosts,
+		RequiredHosts:     management.RequiredHosts,
+		Pending:           management.Pending,
+		RecoverOnboarding: recoverInstallOnboarding,
+		RecoverCore:       (management.Engine{}).Recover,
+		AdapterFactory:    factory,
+	}
+}
+
+func installWithDependencies(args []string, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
 	fs := flag.NewFlagSet("install", flag.ContinueOnError)
 	fs.SetOutput(out)
 	o := management.Options{Scope: "user"}
@@ -37,87 +142,554 @@ func install(args []string, in io.Reader, out io.Writer, interactive bool) error
 	if fs.NArg() != 0 {
 		return fmt.Errorf("install accepts no positional arguments")
 	}
+	if hosts != "" {
+		for _, h := range strings.Split(hosts, ",") {
+			o.Hosts = append(o.Hosts, strings.TrimSpace(h))
+		}
+	}
+	return runInstallFlow(o, dry, in, out, interactive, dependencies)
+}
+
+// runInstallFlow is the interactive core shared by a local offline install
+// and the online bootstrap hand-off: both resolve an Options value (hosts,
+// home, state directory, and a source distribution tree) before reaching
+// here, then walk the same detection/summary/consent/apply loop. Only
+// bootstrap sets dependencies.BindRetainedInstaller.
+func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
+	if err := validateInstallDependencies(dependencies); err != nil {
+		return err
+	}
 	if err := distribution.VerifyIfPackaged(o.Source); err != nil {
 		return err
 	}
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	_, stateDir, err := management.NormalizeOptions(o)
 	if err != nil {
 		return err
 	}
 	o.StateDir = stateDir
-	if _, err := os.Lstat(filepath.Join(stateDir, "pending.json")); err == nil {
-		fmt.Fprintf(out, "An operation is pending. Recovery directory: %s\n", stateDir)
-		if dry {
-			return nil
-		}
-		yes, err := confirmInstall(in, out, interactive, "Recover the pending operation?")
-		if err != nil || !yes {
-			return err
-		}
-		result, err := (management.Engine{}).Recover(stateDir)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "Recovery: %s. Run ./install.sh again to install.\n", result)
-		return nil
-	} else if !os.IsNotExist(err) {
+	// online is set only by the bootstrap entry point (see bootstrap.go):
+	// every recovery message below must name a concrete offline command
+	// instead of "./install.sh", a file that bootstrap.sh's temporary
+	// checkout never contains.
+	online := dependencies.BindRetainedInstaller != nil
+	if handled, err := handlePendingInstallOperation(o, dry, terminal, out, online, dependencies); handled {
 		return err
 	}
-	if hosts != "" {
-		for _, h := range strings.Split(hosts, ",") {
-			o.Hosts = append(o.Hosts, strings.TrimSpace(h))
+	return runOnboardingWizard(o, dry, terminal, out, online, dependencies)
+}
+
+func validateInstallDependencies(dependencies installDependencies) error {
+	if dependencies.DiscoverHosts == nil || dependencies.RequiredHosts == nil || dependencies.Pending == nil || dependencies.RecoverOnboarding == nil || dependencies.RecoverCore == nil || dependencies.AdapterFactory == nil {
+		return fmt.Errorf("incomplete install dependencies")
+	}
+	return nil
+}
+
+// handlePendingInstallOperation covers M5: a single Pending call (never a
+// direct pending.json read by name) answers whether an optional-onboarding
+// journal or a core transaction journal blocks a new operation; onboarding
+// takes priority, matching management.Pending's own precedence. handled is
+// true whenever the caller must return err as-is (including nil) instead of
+// continuing into the host-selection wizard: either a pending recovery was
+// resolved (or declined, or deferred by --dry-run) here, or resolving it
+// itself failed.
+func handlePendingInstallOperation(o management.Options, dry bool, terminal installTerminal, out io.Writer, online bool, dependencies installDependencies) (handled bool, err error) {
+	stateDir := o.StateDir
+	kind, err := dependencies.Pending(stateDir)
+	if err != nil {
+		return true, err
+	}
+	switch kind {
+	case management.PendingOnboarding:
+		fmt.Fprintf(out, "Optional onboarding is pending. Recovery directory: %s\n", stateDir)
+		if dry {
+			return true, nil
 		}
-	} else {
-		seen := map[string]bool{}
-		registered, err := management.RegisteredHosts(o)
+		decision, err := confirmInstall(terminal, "Reconcile the pending optional steps?", false)
+		if err != nil || decision != installApply {
+			return true, err
+		}
+		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, dry))
+		if err != nil {
+			return true, err
+		}
+		result, err := dependencies.RecoverOnboarding(stateDir, adapter)
+		if err != nil {
+			return true, err
+		}
+		fmt.Fprintf(out, "Onboarding recovery: %s (%s). %s.\n", result.ID, result.Phase, recoveryPhrase(online, stateDir))
+		return true, nil
+	case management.PendingCore:
+		fmt.Fprintf(out, "An operation is pending. Recovery directory: %s\n", stateDir)
+		if dry {
+			return true, nil
+		}
+		decision, err := confirmInstall(terminal, "Recover the pending operation?", false)
+		if err != nil || decision != installApply {
+			return true, err
+		}
+		result, err := dependencies.RecoverCore(stateDir)
+		if err != nil {
+			return true, err
+		}
+		fmt.Fprintf(out, "Recovery: %s. %s.\n", result, recoveryPhrase(online, stateDir))
+		return true, nil
+	}
+	return false, nil
+}
+
+// runOnboardingWizard walks the host-selection/summary/consent/apply loop
+// once no pending operation blocks it.
+func runOnboardingWizard(o management.Options, dry bool, terminal installTerminal, out io.Writer, online bool, dependencies installDependencies) error {
+	stateDir := o.StateDir
+	explicitHosts := len(o.Hosts) > 0
+
+	for {
+		if !explicitHosts {
+			candidates, err := dependencies.DiscoverHosts(o)
+			if err != nil {
+				return err
+			}
+			selected, ok, err := selectInstallerHosts(terminal, candidates)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Fprintln(out, "Cancelled. No changes applied.")
+				return nil
+			}
+			o.Hosts = selected
+		}
+
+		expanded, ok, err := expandToRequiredHosts(terminal, out, o, dependencies)
 		if err != nil {
 			return err
 		}
-		for _, h := range registered {
-			seen[h] = true
+		if !ok {
+			fmt.Fprintln(out, "Cancelled. No changes applied.")
+			return nil
 		}
-		oldHosts, err := management.DetectLegacyHosts(o)
+		o.Hosts = expanded
+
+		p, err := management.BuildPlan("install", o)
 		if err != nil {
 			return err
 		}
-		for _, h := range oldHosts {
-			seen[h] = true
+		unchanged, err := management.PlanUnchanged(p)
+		if err != nil {
+			return err
 		}
+		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, dry))
+		if err != nil {
+			return err
+		}
+		preview, ok, err := previewInstallOnboarding(terminal, o, p, adapter)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			fmt.Fprintln(out, "Cancelled. No changes applied.")
+			return nil
+		}
+		showInstallSummary(out, p, preview, dry, unchanged)
+		if dry {
+			fmt.Fprintln(out, "Preview: installation was not changed.")
+			return nil
+		}
+		decision, err := confirmInstall(terminal, "Apply these changes?", !explicitHosts)
+		if err != nil {
+			return err
+		}
+		switch decision {
+		case installBack:
+			o.Hosts = nil
+			continue
+		case installCancelled:
+			fmt.Fprintln(out, "Cancelled. No changes applied.")
+			return nil
+		}
+		// Consent is now in hand. Bootstrap's hook retains the already
+		// verified manager and package and binds their identity into the
+		// plan here, after consent and strictly before applyInstallOnboarding
+		// mutates anything, so recovery from another terminal can find them.
+		if dependencies.BindRetainedInstaller != nil {
+			p, err = dependencies.BindRetainedInstaller(o, p)
+			if err != nil {
+				return err
+			}
+		}
+		result, err := applyInstallOnboarding(p, preview, adapter)
+		return finalizeInstallResult(out, result, err, online, stateDir)
+	}
+}
+
+// expandToRequiredHosts covers U8: when shared resources force additional
+// hosts into the selection, name them, the affected resources, and the
+// consequence of accepting, then ask for explicit consent. ok=false means
+// the operator declined the expansion (already reported by the caller);
+// hosts is o.Hosts unchanged when nothing needs expanding.
+func expandToRequiredHosts(terminal installTerminal, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
+	required, err := dependencies.RequiredHosts(o)
+	if err != nil {
+		return nil, false, err
+	}
+	additional := additionalHosts(o.Hosts, required)
+	if len(additional) == 0 {
+		return o.Hosts, true, nil
+	}
+	fmt.Fprintf(out, "Shared resources require selecting: %s\n", strings.Join(additional, ", "))
+	sharedHostsOptions := o
+	sharedHostsOptions.Hosts = required
+	if sharedPlan, err := management.BuildPlan("install", sharedHostsOptions); err == nil {
+		if resources := sharedResourceRoots(sharedPlan, additional); len(resources) > 0 {
+			fmt.Fprintf(out, "Affected shared resources: %s\n", strings.Join(resources, ", "))
+		}
+	}
+	fmt.Fprintln(out, "Accepting will rewrite those resources too, on already-installed hosts that share them.")
+	decision, err := confirmInstall(terminal, "Select all required hosts?", false)
+	if err != nil {
+		return nil, false, err
+	}
+	if decision != installApply {
+		return nil, false, nil
+	}
+	return required, true, nil
+}
+
+// finalizeInstallResult renders applyInstallOnboarding's outcome (success,
+// no-op, or partial) and turns a partial or failed apply into the CLI's own
+// error; the core mutation, if any, has already happened by the time this
+// runs, so it never decides whether to retry.
+func finalizeInstallResult(out io.Writer, result management.OnboardingResult, err error, online bool, stateDir string) error {
+	if err != nil {
+		if result.Phase == "partial" {
+			showPartialOnboardingDetail(out, result, online, stateDir)
+			return fmt.Errorf("optional capabilities incomplete (%s)", result.ID)
+		}
+		return fmt.Errorf("installation did not complete: %w; %s to check recovery", err, recoveryPhrase(online, stateDir))
+	}
+	if result.ID == "unchanged" {
+		// management.Engine.Apply's own literal sentinel ID (no exported
+		// constant) for a no-op core with no provider steps: render a
+		// distinct user-facing phrase instead of leaking the bare
+		// English literal (U10).
+		fmt.Fprintln(out, "Hive was already installed and verified (no changes). Open new CLI sessions.")
+		return nil
+	}
+	fmt.Fprintf(out, "Hive installed and verified (%s).\nOpen new CLI sessions.\n", result.ID)
+	return nil
+}
+
+// retainedManagerPath returns the absolute path to a manager binary retained
+// under stateDir by a prior consented bootstrap, so an online-flow recovery
+// message can name a concrete offline command instead of pointing at a
+// script bootstrap.sh has already deleted. It reports ok=false when nothing
+// is retained yet.
+func retainedManagerPath(stateDir string) (path string, ok bool) {
+	entries, err := os.ReadDir(filepath.Join(stateDir, "installers"))
+	if err != nil {
+		return "", false
+	}
+	var names []string
+	for _, e := range entries {
+		if e.IsDir() {
+			names = append(names, e.Name())
+		}
+	}
+	sort.Strings(names)
+	for i := len(names) - 1; i >= 0; i-- {
+		candidate := filepath.Join(stateDir, "installers", names[i], "manager")
+		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+// recoveryPhrase names the concrete next command for a pending or
+// interrupted operation, as a lower-case clause fit for embedding mid
+// sentence. Online (bootstrap) invocations must never point to
+// ./install.sh: bootstrap.sh deletes its own temporary manager on exit, so
+// the only thing left to run offline, from another terminal, is the
+// manager already retained under the state directory.
+func recoveryPhrase(online bool, stateDir string) string {
+	if online {
+		if path, ok := retainedManagerPath(stateDir); ok {
+			return fmt.Sprintf("run the retained manager's recover (%s recover --state-dir %s)", path, stateDir)
+		}
+		return "run bootstrap.sh again once you have network access"
+	}
+	return "run ./install.sh again"
+}
+
+// capitalize upper-cases a phrase's first byte for sentence-initial use,
+// without otherwise altering it (every phrase here is plain ASCII).
+func capitalize(phrase string) string {
+	if phrase == "" {
+		return phrase
+	}
+	return strings.ToUpper(phrase[:1]) + phrase[1:]
+}
+
+func newOnboardingInput(o management.Options, dryRun bool) onboardingInput {
+	return onboardingInput{Options: o, DryRun: dryRun}
+}
+
+// previewInstallOnboarding's bool result mirrors selectInstallerHosts's own
+// ok/cancel signal: false means the operator cancelled (including a genuine
+// EOF while entering a capability version), which the caller must report the
+// same way as any other cancellation — quietly, with no error and no writes.
+func previewInstallOnboarding(terminal installTerminal, o management.Options, p management.Plan, adapter onboardingAdapter) (onboardingPreview, bool, error) {
+	offers, err := adapter.Detect(o)
+	if err != nil {
+		return onboardingPreview{}, false, err
+	}
+	requests, ok, err := selectProviderRequests(terminal, offers)
+	if err != nil || !ok {
+		return onboardingPreview{}, ok, err
+	}
+	preview, err := adapter.Plan(p, requests)
+	return preview, true, err
+}
+
+func applyInstallOnboarding(p management.Plan, preview onboardingPreview, adapter onboardingAdapter) (management.OnboardingResult, error) {
+	return (management.Engine{}).Onboard(p, preview.Steps, adapter.Runner())
+}
+
+func recoverInstallOnboarding(stateDir string, adapter onboardingAdapter) (management.OnboardingResult, error) {
+	return (management.Engine{}).RecoverOnboarding(stateDir, adapter.Runner())
+}
+
+// recoverWithAdapterFactory keeps command recovery on the same per-invocation
+// adapter path as install.
+func recoverWithAdapterFactory(o management.Options, factory onboardingAdapterFactory) (management.OnboardingResult, error) {
+	adapter, err := factory(newOnboardingInput(o, false))
+	if err != nil {
+		return management.OnboardingResult{}, err
+	}
+	return recoverInstallOnboarding(o.StateDir, adapter)
+}
+
+func detectInstallerHosts(o management.Options) ([]hostCandidate, error) {
+	registered, err := management.RegisteredHosts(o)
+	if err != nil {
+		return nil, err
+	}
+	legacy, err := management.DetectLegacyHosts(o)
+	if err != nil {
+		return nil, err
+	}
+	seenRegistered := hostSet(registered)
+	seenLegacy := hostSet(legacy)
+	candidates := make([]hostCandidate, 0, len(installerHosts))
+	for _, host := range installerHosts {
+		candidate := hostCandidate{Name: host, Registered: seenRegistered[host], Legacy: seenLegacy[host]}
 		if o.Home == "" {
-			for _, h := range installerHosts {
-				if _, err := exec.LookPath(h); err == nil {
-					seen[h] = true
+			if _, err := exec.LookPath(host); err == nil {
+				candidate.Detected = true
+			}
+		}
+		candidates = append(candidates, candidate)
+	}
+	return candidates, nil
+}
+
+func selectInstallerHosts(terminal installTerminal, candidates []hostCandidate) ([]string, bool, error) {
+	if !terminal.interactive {
+		return nil, false, fmt.Errorf("an interactive terminal is required to select hosts; use --hosts to select them explicitly")
+	}
+	fmt.Fprintln(terminal.out, "Select CLI hosts")
+	for i, candidate := range candidates {
+		status := "not detected"
+		if candidate.Detected {
+			status = "executable detected"
+		} else if candidate.Registered {
+			status = "registered by Hive"
+		} else if candidate.Legacy {
+			status = "legacy installation detected"
+		}
+		fmt.Fprintf(terminal.out, "%d. %s (%s)\n", i+1, candidate.Name, status)
+	}
+	for {
+		fmt.Fprint(terminal.out, "Enter host numbers separated by commas, or press Enter to cancel: ")
+		line, complete, err := terminal.readLine()
+		if err != nil {
+			return nil, false, err
+		}
+		if !complete || strings.TrimSpace(line) == "" {
+			return nil, false, nil
+		}
+		indices := strings.Split(line, ",")
+		selected := map[string]bool{}
+		var invalid error
+		for _, value := range indices {
+			var index int
+			if _, err := fmt.Sscanf(strings.TrimSpace(value), "%d", &index); err != nil || index < 1 || index > len(candidates) {
+				invalid = fmt.Errorf("select host numbers from 1 to %d", len(candidates))
+				break
+			}
+			if selected[candidates[index-1].Name] {
+				invalid = fmt.Errorf("duplicate host selection %q", candidates[index-1].Name)
+				break
+			}
+			selected[candidates[index-1].Name] = true
+		}
+		if invalid != nil {
+			// Re-prompt in place instead of ending the whole install: prior
+			// answers (there are none yet at this step) are never lost.
+			fmt.Fprintln(terminal.out, invalid.Error())
+			continue
+		}
+		result := make([]string, 0, len(selected))
+		for host := range selected {
+			result = append(result, host)
+		}
+		sort.Strings(result)
+		return result, true, nil
+	}
+}
+
+// selectProviderRequests returns ok=false only when the operator cancels the
+// whole install: a genuine EOF (input ends outright, not merely an empty
+// line) while selecting capabilities or entering one's version. Any other
+// invalid entry re-prompts in place, showing the same error text the CLI
+// always used for it, keeping every earlier capability's already-recorded
+// version.
+func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([]providerRequest, bool, error) {
+	if len(offers) == 0 {
+		return nil, true, nil
+	}
+	if !terminal.interactive {
+		return nil, true, nil
+	}
+	fmt.Fprintln(terminal.out, "Select optional capabilities")
+	for i, offer := range offers {
+		version := "exact version required"
+		if offer.ManualOnly {
+			version = "manual instructions only"
+		}
+		fmt.Fprintf(terminal.out, "%d. %s (%s; %s)\n", i+1, offer.Name, offer.Source, version)
+	}
+	for {
+		fmt.Fprint(terminal.out, "Enter capability numbers separated by commas, or press Enter to skip: ")
+		line, complete, err := terminal.readLine()
+		if err != nil {
+			return nil, false, err
+		}
+		if !complete {
+			return nil, false, nil
+		}
+		if line == "" {
+			return nil, true, nil
+		}
+		indices := strings.Split(line, ",")
+		chosen := make([]int, 0, len(indices))
+		seen := map[int]bool{}
+		var invalid error
+		for _, value := range indices {
+			var index int
+			if _, err := fmt.Sscanf(strings.TrimSpace(value), "%d", &index); err != nil || index < 1 || index > len(offers) || seen[index] {
+				invalid = fmt.Errorf("select capability numbers from 1 to %d without duplicates", len(offers))
+				break
+			}
+			seen[index] = true
+			chosen = append(chosen, index)
+		}
+		if invalid != nil {
+			fmt.Fprintln(terminal.out, invalid.Error())
+			continue
+		}
+		requests := make([]providerRequest, 0, len(chosen))
+		cancelled := false
+		for _, index := range chosen {
+			offer := offers[index-1]
+			if offer.ManualOnly {
+				// An unconditionally manual outcome needs no version: it
+				// never reaches the automatic recipe that would validate one.
+				requests = append(requests, providerRequest{ID: offer.ID})
+				continue
+			}
+			version, ok, err := readProviderVersion(terminal, offer)
+			if err != nil {
+				return nil, false, err
+			}
+			if !ok {
+				cancelled = true
+				break
+			}
+			requests = append(requests, providerRequest{ID: offer.ID, Version: version})
+		}
+		if cancelled {
+			return nil, false, nil
+		}
+		return requests, true, nil
+	}
+}
+
+func readProviderVersion(terminal installTerminal, offer providerOffer) (string, bool, error) {
+	prompt := fmt.Sprintf("Exact version for %s", offer.Name)
+	for {
+		fmt.Fprint(terminal.out, prompt+": ")
+		version, complete, err := terminal.readLine()
+		if err != nil {
+			return "", false, err
+		}
+		if !complete {
+			return "", false, nil
+		}
+		if version == "" {
+			fmt.Fprintf(terminal.out, "exact version required for %s\n", offer.Name)
+			continue
+		}
+		return version, true, nil
+	}
+}
+
+func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPreview, dry, unchanged bool) {
+	// A --source checkout without VERSION or release.json (for example, a
+	// partial development tree) leaves p.Product nil; that identifies a
+	// development build rather than a defect, and must never be dereferenced.
+	productVersion := "development build"
+	if p.Product != nil {
+		productVersion = p.Product.Version
+	}
+	fmt.Fprintf(out, "Hive %s · %s\n", productVersion, strings.Join(p.Hosts, ", "))
+	if unchanged {
+		msg := "Hive's core is already up to date."
+		if len(preview.Details) > 0 {
+			msg += "\nThe selected optional capabilities still require confirmation."
+		}
+		fmt.Fprintln(out, msg)
+	} else if len(p.Legacy) > 0 {
+		fmt.Fprintln(out, "Migrate legacy Hive and install the rebuild")
+	} else {
+		fmt.Fprintln(out, "Install / update")
+	}
+	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))
+	if unchanged {
+		fmt.Fprintf(out, "Hive files checked: %d; none change.\n", len(p.Changes))
+	} else {
+		fmt.Fprintf(out, "Hive files to install or update: %d; legacy changes: %d\n", len(p.Changes), len(p.Legacy))
+	}
+	if len(preview.Details) == 0 {
+		fmt.Fprintln(out, "Optional capabilities: none selected.")
+	}
+	for _, detail := range preview.Details {
+		if detail.Version != "" {
+			fmt.Fprintf(out, "Optional capability: %s %s from %s\n", detail.ID, detail.Version, detail.Source)
+		} else {
+			fmt.Fprintf(out, "Optional capability: %s from %s\n", detail.ID, detail.Source)
+		}
+		if len(detail.Effects) > 0 {
+			fmt.Fprintln(out, "  Effects:")
+			for _, effect := range detail.Effects {
+				for _, line := range wrapText(effect, terminalWrapWidth) {
+					fmt.Fprintf(out, "    %s\n", line)
 				}
 			}
 		}
-		for h := range seen {
-			o.Hosts = append(o.Hosts, h)
-		}
-		sort.Strings(o.Hosts)
 	}
-	if len(o.Hosts) == 0 {
-		return fmt.Errorf("no CLIs detected; use --hosts codex,claude,grok,pi,opencode,cursor to select them")
-	}
-	p, err := management.BuildPlan("install", o)
-	if err != nil {
-		return err
-	}
-	unchanged, err := management.PlanUnchanged(p)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(out, "Hive · %s\n", strings.Join(p.Hosts, ", "))
-	if unchanged {
-		fmt.Fprintln(out, "Hive is already up to date. No changes.")
-		return nil
-	}
-	action := "Install / update"
-	if len(p.Legacy) > 0 {
-		action = "Migrate legacy Hive and install the rebuild"
-	}
-	fmt.Fprintln(out, action)
-	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))
-	fmt.Fprintf(out, "Rebuild resources: %d; legacy changes: %d\n", len(p.Changes), len(p.Legacy))
 	destinations := map[string]bool{}
 	for _, ch := range p.Changes {
 		destinations[ch.Target.Path] = true
@@ -141,20 +713,109 @@ func install(args []string, in io.Reader, out io.Writer, interactive bool) error
 		fmt.Fprintln(out, "Use --dry-run to see the full file list before applying.")
 	}
 	fmt.Fprintln(out, "Close these CLI sessions before continuing.")
-	if dry {
-		fmt.Fprintln(out, "Preview: installation was not changed.")
-		return nil
+}
+
+// showPartialOnboardingDetail lists every provider step's terminal status so a
+// partial outcome is never reported as a single opaque message: the core is
+// installed, but the operator must see exactly which optional capability
+// needs manual follow-up. online/stateDir let nextOnboardingStepAction name a
+// concrete recovery command instead of a hard-coded ./install.sh (see
+// recoveryPhrase).
+func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResult, online bool, stateDir string) {
+	fmt.Fprintf(out, "Partial installation (%s).\n", result.ID)
+	fmt.Fprintln(out, "The core was installed; optional capabilities pending:")
+	for _, step := range result.Steps {
+		fmt.Fprintf(out, "  %s: %s\n", step.Step.ID, step.Status)
+		// Repeat the human reason and next action here too, not only in the
+		// pre-confirmation summary: this is the last thing the operator sees.
+		var decoded providers.Step
+		if json.Unmarshal(step.Step.Payload, &decoded) == nil && decoded.ManualReason != "" {
+			printLabeled(out, "    Reason: ", decoded.ManualReason)
+		}
+		if action := nextOnboardingStepAction(step.Status, online, stateDir); action != "" {
+			printLabeled(out, "    Next action: ", action)
+		}
 	}
-	yes, err := confirmInstall(in, out, interactive, "Apply these changes?")
-	if err != nil || !yes {
-		return err
+}
+
+// printLabeled writes label+text wrapped to 80 columns, indenting continuation
+// lines under the text so the label is printed once.
+func printLabeled(out io.Writer, label, text string) {
+	indent := strings.Repeat(" ", len(label))
+	for i, line := range wrapText(text, 80-len(label)) {
+		if i == 0 {
+			fmt.Fprintf(out, "%s%s\n", label, line)
+		} else {
+			fmt.Fprintf(out, "%s%s\n", indent, line)
+		}
 	}
-	result, err := (management.Engine{}).Apply(p)
-	if err != nil {
-		return fmt.Errorf("installation did not complete: %w; run ./install.sh again to check recovery", err)
+}
+
+// nextOnboardingStepAction turns a provider step's terminal status into the
+// concrete next action for the operator, matching design.md's per-provider
+// states (pending -> running -> verified|failed|unknown|skipped|auth_pending).
+func nextOnboardingStepAction(status string, online bool, stateDir string) string {
+	recovery := recoveryPhrase(online, stateDir)
+	switch status {
+	case management.StepManual:
+		return "Complete the installation following the official instructions, then " + recovery + " to confirm it."
+	case management.StepAuthPending:
+		return "Complete the pending sign-in, then " + recovery + " to confirm it."
+	case management.StepFailed:
+		return "Review the error reported by the provider, then " + recovery + " to retry."
+	case management.StepUnknown:
+		return capitalize(recovery) + " to start recovery; it will not repeat without reconciling the outcome."
+	case management.StepSkipped:
+		return "This capability was not installed; you may select it again on a future run."
+	default:
+		return ""
 	}
-	fmt.Fprintf(out, "Hive installed and verified (%s). Open new CLI sessions.\n", result)
-	return nil
+}
+
+func hostSet(hosts []string) map[string]bool {
+	set := make(map[string]bool, len(hosts))
+	for _, host := range hosts {
+		set[host] = true
+	}
+	return set
+}
+
+func additionalHosts(selected, required []string) []string {
+	selectedSet := hostSet(selected)
+	additional := make([]string, 0, len(required))
+	for _, host := range required {
+		if !selectedSet[host] {
+			additional = append(additional, host)
+		}
+	}
+	sort.Strings(additional)
+	return additional
+}
+
+// sharedResourceRoots names the shared destinations that pull in a required
+// host: every change whose consumers include one of the additional hosts,
+// collapsed to the same root directories showInstallSummary already uses so
+// the operator sees ".agents" once instead of dozens of individual files.
+func sharedResourceRoots(p management.Plan, additional []string) []string {
+	additionalSet := hostSet(additional)
+	seen := map[string]bool{}
+	for _, ch := range p.Changes {
+		if ch.After == nil {
+			continue
+		}
+		for _, c := range ch.After.Consumers {
+			if additionalSet[c.Host] {
+				seen[ch.Target.Path] = true
+				break
+			}
+		}
+	}
+	paths := make([]string, 0, len(seen))
+	for path := range seen {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return installRoots(paths, p.Config)
 }
 
 func installRoots(paths []string, c target.Config) []string {
@@ -179,20 +840,65 @@ func installRoots(paths []string, c target.Config) []string {
 	return result
 }
 
-func confirmInstall(in io.Reader, out io.Writer, interactive bool, prompt string) (bool, error) {
-	if !interactive {
-		return false, fmt.Errorf("an interactive terminal is required to confirm; use --dry-run to inspect")
+// terminalWrapWidth keeps every wrapped detail line at or under 80 columns
+// once combined with its indent, for a plain terminal without line wrapping.
+const terminalWrapWidth = 74
+
+// wrapText breaks text into lines of at most width columns, splitting only at
+// spaces so a source label or sentence is never cut mid-word.
+func wrapText(text string, width int) []string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return nil
 	}
-	fmt.Fprintf(out, "%s [y/N] ", prompt)
-	line, err := bufio.NewReader(in).ReadString('\n')
+	lines := make([]string, 0, 1)
+	line := words[0]
+	for _, word := range words[1:] {
+		if len(line)+1+len(word) > width {
+			lines = append(lines, line)
+			line = word
+			continue
+		}
+		line += " " + word
+	}
+	lines = append(lines, line)
+	return lines
+}
+
+func (terminal installTerminal) readLine() (string, bool, error) {
+	line, err := terminal.reader.ReadString('\n')
 	if err != nil && err != io.EOF {
-		return false, err
+		return "", false, err
 	}
-	answer := strings.ToLower(strings.TrimSpace(line))
-	// A truncated answer (EOF) is cancellation, never implicit consent.
-	if err == io.EOF || (answer != "y" && answer != "yes") {
-		fmt.Fprintln(out, "Cancelled. No changes applied.")
-		return false, nil
+	if err == io.EOF {
+		return "", false, nil
 	}
-	return true, nil
+	return strings.TrimSpace(line), true, nil
+}
+
+func confirmInstall(terminal installTerminal, prompt string, allowBack bool) (installDecision, error) {
+	if !terminal.interactive {
+		return installCancelled, fmt.Errorf("an interactive terminal is required to confirm; use --dry-run to inspect")
+	}
+	if allowBack {
+		fmt.Fprintf(terminal.out, "%s [y] apply, [b] back, [N] cancel ", prompt)
+	} else {
+		fmt.Fprintf(terminal.out, "%s [y/N] ", prompt)
+	}
+	answer, complete, err := terminal.readLine()
+	if err != nil {
+		return installCancelled, err
+	}
+	if !complete {
+		return installCancelled, nil
+	}
+	switch strings.ToLower(answer) {
+	case "y", "yes":
+		return installApply, nil
+	case "b", "back":
+		if allowBack {
+			return installBack, nil
+		}
+	}
+	return installCancelled, nil
 }

@@ -13,7 +13,7 @@ import (
 func TestMigrationReceiptAndNoop(t *testing.T) {
 	o := setup(t)
 	p := plan(t, "install", o)
-	if p.Version != 5 {
+	if p.Version != stateVersion {
 		t.Fatalf("version = %d, want 5", p.Version)
 	}
 	apply(t, p)

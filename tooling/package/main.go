@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 	"tricell-hive/tooling/distribution"
+	"tricell-hive/tooling/version"
 )
 
 var platforms = []string{"darwin/arm64", "linux/arm64", "linux/amd64"}
@@ -63,13 +64,24 @@ func run(args []string) error {
 	if err := os.MkdirAll(out, 0700); err != nil {
 		return err
 	}
+	productVersion, err := version.ReadSource(src)
+	if err != nil {
+		return err
+	}
+	versionDir, err := reserveVersion(out, productVersion)
+	if err != nil {
+		return err
+	}
 	scratch, err := os.MkdirTemp(out, ".build-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(scratch) // This invocation owns this entire temporary tree.
 	frozen := filepath.Join(scratch, "source")
-	inputs := []string{"go.mod", "install.sh", "content", "integrations", "tooling/cli", "tooling/management", "tooling/legacy", "tooling/distribution"}
+	inputs, err := frozenInputs(src, targets)
+	if err != nil {
+		return err
+	}
 	for _, name := range inputs {
 		if err := copyTree(filepath.Join(src, name), filepath.Join(frozen, name)); err != nil {
 			return err
@@ -93,9 +105,10 @@ func run(args []string) error {
 		fmt.Fprintf(&identity, "%s\x00%o\x00%s\n", name, info.Mode().Perm(), inventory[name])
 	}
 	sourceID := distribution.Digest([]byte(identity.String()))
+	index := distribution.DownloadIndex{Version: 1, ProductVersion: productVersion}
 	for _, p := range targets {
 		pair := strings.Split(p, "/")
-		label := "hive-" + sourceID[:12] + "-" + pair[0] + "-" + pair[1]
+		label := archiveLabel(productVersion, pair[0], pair[1])
 		dir := filepath.Join(scratch, label)
 		for _, name := range []string{"content", "integrations/agent-profiles.json", "install.sh"} {
 			if err := copyTree(filepath.Join(frozen, name), filepath.Join(dir, name)); err != nil {
@@ -106,7 +119,7 @@ func run(args []string) error {
 			return err
 		}
 		binary := filepath.Join(dir, "bin", "hive")
-		command := exec.Command("go", "build", "-trimpath", "-buildvcs=false", "-o", binary, "./tooling/cli")
+		command := exec.Command("go", "build", "-trimpath", "-buildvcs=false", "-ldflags", "-X tricell-hive/tooling/version.Current="+productVersion, "-o", binary, "./tooling/cli")
 		command.Dir = frozen
 		command.Env = buildEnv(os.Environ(), pair[0], pair[1])
 		command.Stdout = os.Stdout
@@ -131,7 +144,7 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		manifest := distribution.Manifest{Version: 1, Platform: p, SourceID: sourceID, Files: files}
+		manifest := distribution.Manifest{Version: 1, Platform: p, SourceID: sourceID, ProductVersion: productVersion, Files: files}
 		metadata, err := json.MarshalIndent(manifest, "", "  ")
 		if err != nil {
 			return err
@@ -139,7 +152,23 @@ func run(args []string) error {
 		if err := os.WriteFile(filepath.Join(dir, distribution.ManifestName), append(metadata, '\n'), 0644); err != nil {
 			return err
 		}
-		archive := filepath.Join(out, label+".tar.gz")
+		releaseDir := filepath.Join(versionDir, pair[0]+"-"+pair[1])
+		if err := os.Mkdir(releaseDir, 0700); err != nil {
+			return err
+		}
+		rawBytes, err := os.ReadFile(binary)
+		if err != nil {
+			return err
+		}
+		rawBinary := filepath.Join(releaseDir, "hive")
+		if err := writeNew(rawBinary, rawBytes, 0755); err != nil {
+			return err
+		}
+		rawChecksum := distribution.Digest(rawBytes)
+		if err := writeNew(filepath.Join(releaseDir, "hive.sha256"), []byte(rawChecksum+"\n"), 0644); err != nil {
+			return err
+		}
+		archive := filepath.Join(releaseDir, label+".tar.gz")
 		if err := writeArchive(dir, archive); err != nil {
 			return err
 		}
@@ -159,9 +188,86 @@ func run(args []string) error {
 		if closeErr != nil {
 			return closeErr
 		}
+		index.Releases = append(index.Releases, distribution.DownloadRelease{
+			Platform: p, SourceID: sourceID, Package: filepath.ToSlash(filepath.Join("versions", productVersion, pair[0]+"-"+pair[1], filepath.Base(archive))), PackageSHA256: distribution.Digest(compressed), RawBinary: filepath.ToSlash(filepath.Join("versions", productVersion, pair[0]+"-"+pair[1], "hive")), RawBinarySHA256: rawChecksum,
+		})
 		fmt.Println(archive)
 	}
-	return nil
+	return distribution.WriteDownloadIndex(filepath.Join(versionDir, "index.json"), index)
+}
+
+// reserveVersion claims versions/<label> exclusively before anything is built,
+// so rebuilding a label (or splitting its platforms across runs) fails instead
+// of mixing new binaries with an earlier package, checksum and index.
+func reserveVersion(out, productVersion string) (string, error) {
+	versions := filepath.Join(out, "versions")
+	if err := os.MkdirAll(versions, 0700); err != nil {
+		return "", err
+	}
+	dir := filepath.Join(versions, productVersion)
+	if err := os.Mkdir(dir, 0700); err != nil {
+		if os.IsExist(err) {
+			return "", fmt.Errorf("version %s already exists in %s; published labels are never rebuilt", productVersion, out)
+		}
+		return "", err
+	}
+	return dir, nil
+}
+
+func writeNew(path string, data []byte, mode os.FileMode) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, mode)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
+
+// frozenInputs discovers all local Go dependencies for every requested target,
+// so a concurrent CLI or provider addition cannot leave the frozen checkout
+// unbuildable. Runtime content remains an explicit package input.
+func frozenInputs(src string, targets []string) ([]string, error) {
+	inputs := map[string]bool{"go.mod": true, "go.sum": true, "install.sh": true, "content": true, "integrations": true}
+	for _, target := range targets {
+		pair := strings.Split(target, "/")
+		command := exec.Command("go", "list", "-deps", "-f", "{{if and .Module (eq .Module.Path \"tricell-hive\")}}{{.ImportPath}}{{end}}", "./tooling/cli")
+		command.Dir = src
+		command.Env = buildEnv(os.Environ(), pair[0], pair[1])
+		output, err := command.Output()
+		if err != nil {
+			return nil, fmt.Errorf("discover package inputs for %s: %w", target, err)
+		}
+		for _, line := range strings.Fields(string(output)) {
+			if !strings.HasPrefix(line, "tricell-hive/") {
+				continue
+			}
+			rel := filepath.FromSlash(strings.TrimPrefix(line, "tricell-hive/"))
+			if rel == "." || filepath.IsAbs(rel) || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return nil, fmt.Errorf("invalid local package input: %s", line)
+			}
+			inputs[rel] = true
+		}
+	}
+	result := make([]string, 0, len(inputs))
+	for name := range inputs {
+		if name == "go.sum" {
+			if _, err := os.Lstat(filepath.Join(src, name)); os.IsNotExist(err) {
+				continue
+			} else if err != nil {
+				return nil, err
+			}
+		}
+		result = append(result, name)
+	}
+	sort.Strings(result)
+	return result, nil
+}
+
+func archiveLabel(productVersion, osName, arch string) string {
+	return "hive-" + productVersion + "-" + osName + "-" + arch
 }
 
 func buildEnv(env []string, osName, arch string) []string {

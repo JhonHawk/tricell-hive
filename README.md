@@ -9,8 +9,13 @@ resources, previews affected destinations, and asks for confirmation.
 No Go installation or terminal authentication is required. Use `--dry-run` for a
 read-only preview. Packages are built locally until a release is explicitly published;
 GitHub's automatic source archives do not include the executable.
-See the [installer contract](_support/docs/architecture/installer.md) for migration,
-recovery, supported legacy revision, and maintainer packaging instructions.
+Once an origin is published, `bootstrap.sh` downloads and verifies the same
+package online and hands off to the same installer. After the hosts, the installer
+offers optional capabilities (Engram, Context7, pi-subagents) as official manual
+instructions; Hive installs no provider until its recipe passes a native gate.
+See the [installer contract](_support/docs/architecture/installer.md) for the online
+bootstrap, optional capabilities, migration, recovery, supported legacy revision,
+and maintainer packaging instructions.
 
 Hive is in a rebuild phase for a small, portable guidance layer targeting Claude Code, Codex, Grok Build, Pi, OpenCode V2, and Cursor CLI. Each CLI keeps its native model loop, authentication, tools, permissions, and history. The six-host target is a design scope, not proof that a shared skill set or runtime is installed or working.
 

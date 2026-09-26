@@ -114,7 +114,11 @@ func PlanUnchanged(p Plan) (bool, error) {
 	if err = validateMigration(p, s); err != nil {
 		return false, err
 	}
-	if p.Migration != nil || len(p.Legacy) > 0 || s.Version != 5 {
+	if p.Migration != nil || len(p.Legacy) > 0 || s.Version != stateVersion {
+		return false, nil
+	}
+	next := s
+	if updateProductState(&next, s, p) {
 		return false, nil
 	}
 	for _, ch := range p.Changes {

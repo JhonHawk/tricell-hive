@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"sort"
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/legacy"
 )
 
@@ -45,10 +46,12 @@ type Consumer struct {
 	Context string `json:"context"`
 }
 type State struct {
-	Version     int                `json:"version"`
-	Records     map[string]Record  `json:"records"`
-	CreatedDirs []string           `json:"created_dirs,omitempty"`
-	Migrations  []MigrationReceipt `json:"migrations,omitempty"`
+	Versions      map[string]ProductIdentity     `json:"versions,omitempty"`
+	Installations map[string]InstallationReceipt `json:"installations,omitempty"`
+	Version       int                            `json:"version"`
+	Records       map[string]Record              `json:"records"`
+	CreatedDirs   []string                       `json:"created_dirs,omitempty"`
+	Migrations    []MigrationReceipt             `json:"migrations,omitempty"`
 }
 type Fingerprint struct {
 	TreeHash   string `json:"tree_hash,omitempty"`
@@ -67,17 +70,19 @@ type Change struct {
 	Replaces *Record       `json:"replaces,omitempty"`
 }
 type Plan struct {
-	Version   int               `json:"version"`
-	Action    string            `json:"action"`
-	Config    target.Config     `json:"config"`
-	Hosts     []string          `json:"hosts"`
-	StateDir  string            `json:"state_dir"`
-	StateHash string            `json:"state_hash"`
-	Release   *Release          `json:"release,omitempty"`
-	Changes   []Change          `json:"changes"`
-	ID        string            `json:"id"`
-	Legacy    []legacy.Edit     `json:"legacy,omitempty"`
-	Migration *MigrationReceipt `json:"migration,omitempty"`
+	Product   *ProductIdentity                `json:"product,omitempty"`
+	Installer *distribution.RetainedInstaller `json:"installer,omitempty"`
+	Version   int                             `json:"version"`
+	Action    string                          `json:"action"`
+	Config    target.Config                   `json:"config"`
+	Hosts     []string                        `json:"hosts"`
+	StateDir  string                          `json:"state_dir"`
+	StateHash string                          `json:"state_hash"`
+	Release   *Release                        `json:"release,omitempty"`
+	Changes   []Change                        `json:"changes"`
+	ID        string                          `json:"id"`
+	Legacy    []legacy.Edit                   `json:"legacy,omitempty"`
+	Migration *MigrationReceipt               `json:"migration,omitempty"`
 }
 type Options struct {
 	Scope, Home, Root, StateDir, Source, ReleaseID string
@@ -85,6 +90,7 @@ type Options struct {
 }
 type StatusEntry struct {
 	Path, Host, Kind, Status, Release string
+	ProductVersion, VersionStatus     string
 	Consumers                         []Consumer
 }
 
@@ -110,7 +116,7 @@ func releaseID(r Release) string {
 	}{r.Files, r.Profiles, r.Renderer}))
 }
 func planID(p Plan) string { p.ID = ""; return hash(encode(p)) }
-func emptyState() State    { return State{Version: 5, Records: map[string]Record{}} }
+func emptyState() State    { return State{Version: stateVersion, Records: map[string]Record{}} }
 func normalize(o Options) (target.Config, string, error) {
 	if o.Scope != "user" && o.Scope != "project" {
 		return target.Config{}, "", fmt.Errorf("explicit scope must be user or project")

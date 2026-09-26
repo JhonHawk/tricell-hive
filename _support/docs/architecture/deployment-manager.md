@@ -81,7 +81,7 @@ require explicit selection. The state home contains:
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.
 
-New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans, and new transaction journals use schema v5. It adds verified legacy retirement and scoped migration receipts to v4's source payload modes, renderer/profile identity, and shared consumer ownership. Existing v1-v4 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v4 transactions remain recoverable with their original checksum semantics. Saved plans before v5 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
+New state directories use mode 0700; state files, plans, and backups use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Backups and release history are retained; the manager does not prune them or store credentials. State, operation plans, and new core transaction journals use schema v6. The product-version receipts and version index are separate from historical content release IDs; v6 preserves their hashing. Optional onboarding uses a separate versioned parent journal and does not roll back a committed core on provider failure. It adds verified legacy retirement and scoped migration receipts to v4's source payload modes, renderer/profile identity, and shared consumer ownership. Existing v1-v5 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v5 transactions remain recoverable with their original checksum semantics. Saved plans before v6 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
 
 ## Failure handling
 
@@ -100,3 +100,24 @@ go vet ./...
 ```
 
 Tests exercise the six user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. Catalogue tests additionally cover multiple skills and nested Markdown references, source identity and forged payload rejection, new references in owned bundles, unowned reference conflicts, partial consumer retirement, old-release rollback, missing-checkout status/removal, v2 migration and legacy journal recovery. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).
+
+## Product versions and optional operations
+
+The product version is independent of the state/manifest schemas and Git revision.
+`VERSION` is the source-tree label; `hive --version` describes the running manager.
+Per-consumer receipts describe the requested artifact and its expected resource
+bytes/modes/aliases. Status distinguishes that request from current conformity.
+Shared resources may retain their original provenance without implying drift.
+A legacy snapshot with no product receipt retains its hash and is not relabeled.
+
+Published version labels cannot be rebound to a different artifact in the local
+version index. Development builds use `dev`. This local check does not certify a
+remote release channel or authorize public distribution. Source-code visibility
+and package publication remain independent decisions.
+
+Optional steps are explicit and journaled before execution. A provider execution
+with an unknown outcome blocks further mutation until reconciliation. Recovery
+inspects that outcome without rerunning an installer or authentication. A committed
+core remains installed if an optional provider fails. Status is still readable
+while reconciliation is pending. Existing tools, credentials and memory are not
+owned merely because the onboarding catalog detected them.

@@ -35,7 +35,7 @@ func TestFiveHostSharedConsumersAndPartialRemoval(t *testing.T) {
 	}
 	apply(t, p)
 	s := stateFor(t, o)
-	if s.Version != 5 || len(s.Records[sharedPath(o)].Consumers) != 5 {
+	if s.Version != stateVersion || len(s.Records[sharedPath(o)].Consumers) != 5 {
 		t.Fatal("missing shared consumers")
 	}
 	link, err := os.Readlink(aliasPath(o))
@@ -201,7 +201,7 @@ func TestLegacyClaudeMigrationAndRemoval(t *testing.T) {
 			t.Fatal(err)
 		}
 		s := stateFor(t, o)
-		if s.Version != 5 || len(s.Records[sharedPath(o)].Consumers) != 2 {
+		if s.Version != stateVersion || len(s.Records[sharedPath(o)].Consumers) != 2 {
 			t.Fatal("migration ownership")
 		}
 		if _, exists := s.Records[filepath.Join(aliasPath(o), "SKILL.md")]; exists {

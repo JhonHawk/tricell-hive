@@ -16,10 +16,11 @@ import (
 const ManifestName = "release.json"
 
 type Manifest struct {
-	Version  int               `json:"version"`
-	Platform string            `json:"platform"`
-	SourceID string            `json:"source_id"`
-	Files    map[string]string `json:"files"`
+	Version        int               `json:"version"`
+	Platform       string            `json:"platform"`
+	SourceID       string            `json:"source_id"`
+	ProductVersion string            `json:"product_version,omitempty"`
+	Files          map[string]string `json:"files"`
 }
 
 func Digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
@@ -33,13 +34,13 @@ func Files(root string) (map[string]string, error) {
 			return walkErr
 		}
 		if d.Type()&os.ModeSymlink != 0 {
-			return fmt.Errorf("enlace no permitido en el paquete: %s", path)
+			return fmt.Errorf("link not allowed in the package: %s", path)
 		}
 		if d.IsDir() {
 			return nil
 		}
 		if !d.Type().IsRegular() {
-			return fmt.Errorf("archivo especial en el paquete: %s", path)
+			return fmt.Errorf("special file in the package: %s", path)
 		}
 		rel, err := filepath.Rel(root, path)
 		if err != nil {
@@ -62,11 +63,11 @@ func Files(root string) (map[string]string, error) {
 // A source checkout remains usable for development. A directory with package
 // sentinels must have its manifest; losing it must not disable verification.
 func VerifyIfPackaged(root string) error {
-	info, err := os.Lstat(filepath.Join(root, ManifestName))
+	_, err := ReadManifest(root)
 	if os.IsNotExist(err) {
 		for _, p := range []string{"bin/hive", "platform"} {
 			if _, e := os.Lstat(filepath.Join(root, p)); e == nil {
-				return fmt.Errorf("paquete incompleto: falta %s", ManifestName)
+				return fmt.Errorf("incomplete package: missing %s", ManifestName)
 			} else if !os.IsNotExist(e) {
 				return e
 			}
@@ -76,16 +77,37 @@ func VerifyIfPackaged(root string) error {
 	if err != nil {
 		return err
 	}
+	return verifyManifest(root)
+}
+
+// ReadManifest reads a package manifest without treating an absent manifest as an error.
+// Callers that need package integrity should use VerifyIfPackaged.
+func ReadManifest(root string) (Manifest, error) {
+	info, err := os.Lstat(filepath.Join(root, ManifestName))
+	if os.IsNotExist(err) {
+		return Manifest{}, err
+	}
+	if err != nil {
+		return Manifest{}, err
+	}
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("manifiesto del paquete no es archivo regular")
+		return Manifest{}, fmt.Errorf("package manifest is not a regular file")
 	}
 	data, err := os.ReadFile(filepath.Join(root, ManifestName))
 	if err != nil {
-		return err
+		return Manifest{}, err
 	}
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
-		return fmt.Errorf("invalid package manifest: %w", err)
+		return Manifest{}, fmt.Errorf("invalid package manifest: %w", err)
+	}
+	return m, nil
+}
+
+func verifyManifest(root string) error {
+	m, err := ReadManifest(root)
+	if err != nil {
+		return err
 	}
 	if m.Version != 1 || m.Platform != runtime.GOOS+"/"+runtime.GOARCH || len(m.SourceID) != 64 || len(m.Files) == 0 {
 		return fmt.Errorf("incompatible package or invalid manifest")
@@ -95,7 +117,7 @@ func VerifyIfPackaged(root string) error {
 	}
 	for _, required := range []string{"bin/hive", "bin/hive.sha256", "install.sh", "platform", "content/guidance/global.md", "integrations/agent-profiles.json"} {
 		if _, ok := m.Files[required]; !ok {
-			return fmt.Errorf("paquete incompleto: %s", required)
+			return fmt.Errorf("incomplete package: %s", required)
 		}
 	}
 	actual, err := Files(root)

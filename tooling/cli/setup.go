@@ -41,6 +41,7 @@ func setup(args []string, out io.Writer) error {
 	}
 	paths := context7Candidates(resolved, env)
 	fmt.Fprintln(out, "Context7 — recommended, optional")
+	fmt.Fprintln(out, "To install optional capabilities interactively (including Context7), use ./install.sh or `hive install`.")
 	found := 0
 	for _, p := range paths {
 		info, err := os.Stat(p) // Follow native skill aliases without modifying them.
