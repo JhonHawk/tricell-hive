@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Implementación local completa (`hold`) · pendiente recorrido humano y autorización de entrega |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` con f1272fc; requisitos en `specs/versioned-installation/spec.md` |
 | Tracker · GitHub Issues | [#29 — instalación de pi-subagents](https://github.com/JhonHawk/tricell-hive/issues/29), para esa parte; sin issue general |
-| Git | `hold` (D4-A) · base `rebuild/harness-engineering` · plan y código locales, sin commit ni publicación |
+| Git | Entrega autorizada el 2026-09-26 (E1-A: commit, cierre y push) sobre la base `rebuild/harness-engineering`, en lugar de `hold` (D4-A) · sin publicación |
 | Verificación | Tests Go · terminal y paquetes en hogares sintéticos · integración de proveedores por plataforma · revisión del plan completada |
-| Siguiente paso | Recorrido humano del candidato local; después, entrega según D4-A si se autoriza |
+| Siguiente paso | Ninguno en este cambio; pendientes fuera de él: gates de publicación, validación nativa de proveedores e issues #29, #36 y #37 |
 
 ## Objetivo
 
