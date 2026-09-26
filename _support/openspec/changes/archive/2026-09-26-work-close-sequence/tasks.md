@@ -181,3 +181,4 @@ No hay interfaz visual, así que no aplica revisión de UI.
     - En las corridas de Codex, el control de recursos protegidos sigue en fallo por el límite de `--assess` ya documentado.
   - `go test ./...`, `go test -race` en `tests` e `integrations`, `go vet`, el escaneo de casos y `gofmt` pasan.
 - T5: verificación completa hecha. Siguen el commit, el push y el despliegue autorizados.
+- Cerrado (2026-09-26): integrado en `rebuild/harness-engineering` con `5f7ad9c`. La carpeta se archiva en `changes/archive/2026-09-26-work-close-sequence/`. No hay deltas de requisitos: el repositorio no tiene `specs/`.

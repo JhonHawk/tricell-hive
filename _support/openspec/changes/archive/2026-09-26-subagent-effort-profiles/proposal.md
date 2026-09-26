@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T5 verificadas en el working tree (`hold`); falta tu revisión del diff y decidir commit y despliegue |
+| Estado | Cerrado · T1–T5 completos; integrado en `rebuild/harness-engineering` (`16a7263`) y desplegado |
 | Tracker · GitHub Issues | Sin issue propio; hallazgo incidental en • [#32 — dialecto de delegación de OpenCode V2](https://github.com/JhonHawk/tricell-hive/issues/32) |
-| Git | `hold` (D6-C) · cambios verificados en el working tree, sin commits · alto para tu revisión del diff |
+| Git | Commit `16a7263` con push a `rebuild/harness-engineering` (autorizado por el usuario el 2026-09-26) |
 | Verificación | `go test ./...` · `-race` · `go vet` · home sintético (T4) · `/code-review` (D7-A) |
-| Siguiente paso | Tú: revisar el diff y decidir la entrega |
+| Siguiente paso | Ninguno en este cambio |
 
 ## Objetivo
 

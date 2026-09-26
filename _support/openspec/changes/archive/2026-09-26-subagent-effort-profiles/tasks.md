@@ -154,3 +154,4 @@ No hay pantallas, así que no aplica verificación de interfaz.
   - Después de las correcciones, en el candidato pasan `go test ./...`, `-race` y `go vet`.
 - Cerrado en `hold` (2026-09-25): implementación verificada en el working tree, sin commits. La carpeta de cambio queda sin versionar.
 - Entrega autorizada por el usuario (2026-09-26): "commit + push y deploy cuando acabe". Commit selectivo por rutas, push a `rebuild/harness-engineering` y despliegue a los seis hosts cuando termine `work-close-sequence`. Al integrar, la carpeta de cambio se cierra y se archiva.
+- Cerrado (2026-09-26): integrado en `rebuild/harness-engineering` con `16a7263`. La carpeta se archiva en `changes/archive/2026-09-26-subagent-effort-profiles/`. No hay deltas de requisitos: el repositorio no tiene `specs/`.

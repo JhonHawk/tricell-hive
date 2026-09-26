@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En progreso · plan revisado en 2 rondas; implementación autorizada (flow-build, 2026-09-26) |
+| Estado | Cerrado · T1–T5 completos; integrado en `rebuild/harness-engineering` (`5f7ad9c`) y desplegado |
 | Tracker · GitHub Issues | Sin issue; sale del monitoreo de sesiones del 2026-09-25 (O6, G3, G4) |
-| Git | `hold` (D14-A) · verificado en el working tree, sin commits · se publica junto con `subagent-effort-profiles` tras tu revisión |
+| Git | Commit `5f7ad9c` con push a `rebuild/harness-engineering` (autorizado por el usuario el 2026-09-26) |
 | Verificación | `go test ./...` · `-race` · `go vet` · casos de regresión en `tests/pilot` · piloto acotado Codex y Grok (D13-B) · `/code-review` |
-| Siguiente paso | T1 (hilo principal) y T2 (`test-engineer`) en paralelo |
+| Siguiente paso | Ninguno en este cambio |
 
 ## Objetivo
 
