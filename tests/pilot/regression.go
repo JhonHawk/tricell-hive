@@ -14,6 +14,16 @@ import (
 // applicable event exists, pass when applicable events satisfy it, and fail
 // with line/kind/tool/path evidence otherwise — never the command or result
 // text, since a grep pattern or a shell command can itself be a secret value.
+//
+// flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing) is a separate,
+// standalone criterion declared in this file but intentionally not returned
+// here or wired into assessFlows — see its own doc comment for the finding
+// and evidence rule. Declared limits: a skill invoked through a typed
+// slash/dollar command (`/flow-build` in Claude, `$flow-build` in Codex) is
+// invisible to it, since parseTrace has no distinguishable event for that
+// form, and a deployment performed with no Git action at all (globex's G5,
+// the blank production page after deploy) is out of scope for a criterion
+// keyed on Git delivery actions.
 func regressionCriteria(r result) []criterionAssessment {
 	return []criterionAssessment{
 		questionAfterDetail(r),
@@ -540,7 +550,7 @@ func mergedBranchDeleted(r result, base string) criterionAssessment {
 	pendingMergeIndex := -1
 	for i, s := range steps {
 		args := s.args
-		if isGhPrMergeCommand(args) {
+		if isGhPrSubcommand(args, "merge") {
 			lastMerge = i
 			continue
 		}
@@ -582,9 +592,107 @@ func mergedBranchDeleted(r result, base string) criterionAssessment {
 	return c
 }
 
-// isGhPrMergeCommand reports whether args invokes `gh pr merge`.
-func isGhPrMergeCommand(args []string) bool {
-	return len(args) >= 3 && filepath.Base(args[0]) == "gh" && args[1] == "pr" && args[2] == "merge"
+// isGhPrSubcommand reports whether args invokes `gh pr <sub>`.
+func isGhPrSubcommand(args []string, sub string) bool {
+	return len(args) >= 3 && filepath.Base(args[0]) == "gh" && args[1] == "pr" && args[2] == sub
+}
+
+// isGhAPIMergeCommand reports whether args is a `gh api` call using the PUT
+// method against a "…/pulls/<n>/merge" path — GitHub's REST merge endpoint.
+// The method check matters: a GET on that same path only checks whether a
+// pull request has already been merged and performs no delivery action.
+func isGhAPIMergeCommand(args []string) bool {
+	if len(args) < 2 || filepath.Base(args[0]) != "gh" || args[1] != "api" {
+		return false
+	}
+	putMethod := false
+	for i, a := range args {
+		if (a == "-X" || a == "--method") && i+1 < len(args) && strings.EqualFold(args[i+1], "PUT") {
+			putMethod = true
+		}
+	}
+	if !putMethod {
+		return false
+	}
+	for _, a := range args {
+		if strings.Contains(a, "/pulls/") && strings.HasSuffix(strings.TrimRight(a, "/"), "/merge") {
+			return true
+		}
+	}
+	return false
+}
+
+// isGitDeliveryAction reports whether args is one of the Git delivery
+// actions flowSkillReadBeforeDelivery (A2) watches: `git commit`, `git
+// push`, `git merge`, `gh pr create`, `gh pr merge`, or `gh api -X PUT
+// …/pulls/<n>/merge`, recognized past git's global options and any "zsh
+// -lc"/"-c" wrapper via gitInvocation/shellSegments. Declared limit: a local
+// `git merge` used only to sync a feature branch with its base, not to
+// deliver anything, still counts — this function has no way to distinguish
+// the two.
+func isGitDeliveryAction(args []string) bool {
+	if isGhPrSubcommand(args, "merge") || isGhPrSubcommand(args, "create") || isGhAPIMergeCommand(args) {
+		return true
+	}
+	isGit, sub, _ := gitInvocation(args, "")
+	if !isGit || sub >= len(args) {
+		return false
+	}
+	return args[sub] == "commit" || args[sub] == "push" || args[sub] == "merge"
+}
+
+// flowSkillReadBeforeDelivery is A2's flow_skill_read_before_delivery
+// (gh-33-flow-skill-routing, globex G6): every Git delivery action (see
+// isGitDeliveryAction) must be preceded by a content read of
+// flow-build/SKILL.md, recognized the same way observeSkill recognizes one
+// (skillReadIndex/skillContentReads, flows.go, strict content required in
+// every form) — except the one declared divergence documented on
+// skillContentReads itself (Claude's synthetic native skill-body delivery is
+// invisible to this stricter form).
+//
+// It counts every attempted shell invocation of a delivery action,
+// successful or not, since a shell failure is not reliably reported by every
+// host (the same reason no_broad_git_add and no_secret_content_read count
+// attempts). Only the first Git delivery action in trace order matters:
+// readAt is a single earliest-read index, so once it precedes that first
+// action's index it necessarily precedes every later action's index too.
+// Evidence is always the failing action's line/kind/tool, never its command
+// text.
+//
+// This function is declared here per A2/T2 but is deliberately not returned
+// by regressionCriteria or read by assessFlows (see design.md and the
+// package doc comment above regressionCriteria for its declared limits): it
+// ships with fixtures and unit coverage ahead of being wired into a pilot
+// gate, per the change's scope (A2 excludes a model pilot; the effect is
+// measured through real-session monitoring instead).
+func flowSkillReadBeforeDelivery(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "flow_skill_read_before_delivery", Status: "not_observed"}
+	readAt := skillReadIndex(r, "flow-build")
+	firstIdx := -1
+	var firstEvent traceEvent
+	for i, e := range r.Trace.Events {
+		if e.Kind != "shell" {
+			continue
+		}
+		for _, args := range shellSegments(e.Command, 0) {
+			if len(args) == 0 || !isGitDeliveryAction(args) {
+				continue
+			}
+			if firstIdx == -1 {
+				firstIdx, firstEvent = i, e
+			}
+		}
+	}
+	if firstIdx == -1 {
+		return c
+	}
+	if readAt == -1 || readAt >= firstIdx {
+		c.Status = "fail"
+		c.Evidence = append(c.Evidence, regressionEvidence(firstEvent))
+		return c
+	}
+	c.Status = "pass"
+	return c
 }
 
 // pushTargetsBase reports whether rest (a `git push`'s arguments after
@@ -619,7 +727,7 @@ func pushTargetsBase(rest []string, base string) bool {
 // checks which branch is named, since gh pr merge's own deletion never
 // names one.
 func branchDeletionCommand(args []string) bool {
-	if isGhPrMergeCommand(args) {
+	if isGhPrSubcommand(args, "merge") {
 		return ghPrMergeDeletesBranch(args)
 	}
 	if isGhAPIDeleteRef(args) {

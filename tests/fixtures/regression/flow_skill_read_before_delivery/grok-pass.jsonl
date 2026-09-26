@@ -1,0 +1,4 @@
+{"type":"assistant","message":{"id":"msg_a","content":[{"type":"tool_use","name":"read_file","id":"call-r1","input":{"target_file":".agents/skills/flow-build/SKILL.md"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"call-r1","content":"---\nname: flow-build\ndescription: Implement or resume authorized work.\n---\n# Flow build\nShort stand-in body for the regression fixture.\n","is_error":false}]}}
+{"type":"assistant","message":{"id":"msg_b","content":[{"type":"tool_use","name":"run_terminal_command","id":"call-c1","input":{"command":"git commit -m \"fix: example change\""}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"call-c1","content":"[main abc1234] fix: example change","is_error":false}]}}

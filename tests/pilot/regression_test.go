@@ -708,6 +708,9 @@ func TestRegressionFixtures(t *testing.T) {
 		{"merged_branch_deleted", "grok", "grok-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
 		{"merged_branch_deleted", "codex", "codex-fail.jsonl", "fail", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
 		{"merged_branch_deleted", "codex", "codex-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
+		{"flow_skill_read_before_delivery", "grok", "grok-fail.jsonl", "fail", flowSkillReadBeforeDelivery},
+		{"flow_skill_read_before_delivery", "grok", "grok-pass.jsonl", "pass", flowSkillReadBeforeDelivery},
+		{"flow_skill_read_before_delivery", "codex", "codex-pass.jsonl", "pass", flowSkillReadBeforeDelivery},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)
@@ -722,6 +725,96 @@ func TestRegressionFixtures(t *testing.T) {
 				t.Fatalf("%s: got %s want %s", path, got, c.want)
 			}
 		})
+	}
+}
+
+// --- flow_skill_read_before_delivery (gh-33 A2/T2, declared, not wired) ---
+
+// TestFlowSkillReadBeforeDelivery uses a two-event readCall/readContent pair
+// (rather than a single bare "read" event) because A2 requires content
+// (gh-33 /code-review finding 1): skillReadIndex is strict, so a "read" kind
+// event only counts once its own tool_result carries the skill's front
+// matter. readContent's trace index — not readCall's — is what the ordering
+// checks below compare against a delivery action's index, since that is the
+// index skillReadIndex itself now returns (gh-33 /code-review finding 2).
+func TestFlowSkillReadBeforeDelivery(t *testing.T) {
+	yes, no := true, false
+	skillBody := "---\nname: flow-build\ndescription: Implement or resume authorized work.\n---\n# Flow build\nShort stand-in body.\n"
+	readCall := func(id string) traceEvent {
+		return traceEvent{Kind: "read", ID: id, Path: "/home/.agents/skills/flow-build/SKILL.md", Success: &yes}
+	}
+	readContent := func(id string) traceEvent {
+		return traceEvent{Kind: "tool_result", ID: id, Success: &yes, Text: skillBody}
+	}
+	shell := func(command string) traceEvent { return traceEvent{Kind: "shell", Command: command, Success: &yes} }
+	failedShell := func(command string) traceEvent { return traceEvent{Kind: "shell", Command: command, Success: &no} }
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		want   string
+	}{
+		{"no-git-action-is-not-observed", []traceEvent{shell("git status")}, "not_observed"},
+		{"commit-without-any-read-fails", []traceEvent{shell(`git commit -m "x"`)}, "fail"},
+		{"read-before-commit-passes", []traceEvent{readCall("r1"), readContent("r1"), shell(`git commit -m "x"`)}, "pass"},
+		{"read-before-push-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("git push origin main")}, "pass"},
+		{"read-before-gh-pr-create-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("gh pr create --title x --body y")}, "pass"},
+		{"read-before-gh-pr-merge-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("gh pr merge 42 --merge")}, "pass"},
+		{"read-before-local-git-merge-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("git merge origin/main")}, "pass"},
+		{"read-before-gh-api-pr-merge-put-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("gh api -X PUT repos/o/r/pulls/42/merge")}, "pass"},
+		{"gh-pr-create-without-read-fails", []traceEvent{shell("gh pr create --title x --body y")}, "fail"},
+		{"local-git-merge-without-read-fails", []traceEvent{shell("git merge origin/main")}, "fail"},
+		{"gh-api-pr-merge-put-without-read-fails", []traceEvent{shell("gh api -X PUT repos/o/r/pulls/42/merge")}, "fail"},
+		{"gh-api-pr-merge-get-is-not-a-delivery-action", []traceEvent{shell("gh api repos/o/r/pulls/42/merge")}, "not_observed"},
+		{"failed-shell-attempt-still-counts", []traceEvent{failedShell(`git commit -m "x"`)}, "fail"},
+		{
+			"read-arrives-after-the-first-git-action-still-fails-that-action",
+			[]traceEvent{shell(`git commit -m "x"`), readCall("r1"), readContent("r1"), shell("git push origin main")},
+			"fail",
+		},
+		{
+			// gh-33 /code-review finding 2: the read call is issued in the same
+			// batch as (before) the commit call, but its content only arrives
+			// after the commit was already dispatched — the model could not
+			// have seen it yet, so this must fail, not pass.
+			"read-content-arrives-after-a-parallel-batched-delivery-call-fails",
+			[]traceEvent{readCall("r1"), shell(`git commit -m "x"`), readContent("r1")},
+			"fail",
+		},
+		{"wrapped-in-shell-dash-lc-still-detected", []traceEvent{shell(`/bin/zsh -lc "git commit -m 'x'"`)}, "fail"},
+		{"non-git-shell-command-is-not-a-delivery-action", []traceEvent{shell("npm test")}, "not_observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: tc.events}}
+			if got := flowSkillReadBeforeDelivery(r).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFlowSkillReadBeforeDeliveryEvidenceNeverIncludesCommandText(t *testing.T) {
+	yes := true
+	r := result{Trace: traceReport{Events: []traceEvent{
+		{Line: 5, Kind: "shell", Tool: "run_terminal_command", Command: `git commit -m "secret project name"`, Success: &yes},
+	}}}
+	a := flowSkillReadBeforeDelivery(r)
+	if a.Status != "fail" {
+		t.Fatalf("expected fail, got %+v", a)
+	}
+	for _, e := range a.Evidence {
+		if strings.Contains(e, "git commit") || strings.Contains(e, "secret project name") {
+			t.Fatalf("evidence leaked command text: %q", e)
+		}
+	}
+}
+
+func TestFlowSkillReadBeforeDeliveryNotWiredIntoRegressionCriteria(t *testing.T) {
+	yes := true
+	r := result{Trace: traceReport{Events: []traceEvent{{Kind: "shell", Command: "git commit -m \"x\"", Success: &yes}}}}
+	for _, c := range regressionCriteria(r) {
+		if c.Criterion == "flow_skill_read_before_delivery" {
+			t.Fatal("flow_skill_read_before_delivery must not be wired into regressionCriteria")
+		}
 	}
 }
 

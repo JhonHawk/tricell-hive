@@ -372,12 +372,6 @@ func observeSkill(r result, name string) skillObservation {
 			}
 		}
 	}
-	nativeCalls := map[string]bool{}
-	for _, e := range r.Trace.Events {
-		if e.Kind == "skill_invocation" && e.Success != nil && *e.Success && e.ID != "" && (e.Text == "" || e.Text == name) {
-			nativeCalls[e.ID] = true
-		}
-	}
 	for _, e := range r.Trace.Events {
 		// A failed batch is not a successful command. Retain a separate observation
 		// only for a literal first cat whose source appears before a later cat error.
@@ -399,26 +393,122 @@ func observeSkill(r result, name string) skillObservation {
 				}
 			}
 		}
-		output := successfulShellOutput(r, e)
-		if len(literalReferencePaths(e.Command, "/"+name+"/SKILL.md")) > 0 &&
-			regexp.MustCompile(`(?m)^name: *["']?`+regexp.QuoteMeta(name)+`["']?\s*$`).MatchString(output) &&
-			strings.Contains(output, "description:") && strings.Contains(output, "\n# ") {
-			o.Read.Status = "pass"
-			o.Read.Evidence = append(o.Read.Evidence, evidenceLine(e)+" literal shell read with corresponding skill source output")
+	}
+	for _, m := range skillContentReads(r, name, false) {
+		o.Read.Status = "pass"
+		o.Read.Evidence = append(o.Read.Evidence, m.Evidence)
+	}
+	return o
+}
+
+// skillReadEvidence pairs one content-read match's trace index with the
+// evidence line observeSkill records for it. Index is always the index of
+// the event that actually carries the content — a correlated tool_result,
+// or the native skill_content payload's own tool_result event — never the
+// index of the call that initiated it (gh-33 /code-review finding 2): a
+// read issued in the same parallel tool-call batch as a later action has
+// its call recorded before that action but its content only after, and
+// callers that compare ordering (flowSkillReadBeforeDelivery) need the
+// moment the model could actually have seen it.
+type skillReadEvidence struct {
+	Index    int
+	Evidence string
+}
+
+// looksLikeSkillSource reports whether output is a plausible source read of
+// name's SKILL.md: a line matching name's YAML front matter key, a
+// "description:" key, and a Markdown heading. Shared by skillContentReads'
+// literal-shell and strict "read" forms.
+func looksLikeSkillSource(output, name string) bool {
+	return regexp.MustCompile(`(?m)^name: *["']?`+regexp.QuoteMeta(name)+`["']?\s*$`).MatchString(output) &&
+		strings.Contains(output, "description:") && strings.Contains(output, "\n# ")
+}
+
+// skillContentReads is the read-detection shared between observeSkill and
+// flowSkillReadBeforeDelivery (gh-33 A2/T2). It recognizes three forms of
+// "name's SKILL.md read": a literal shell read (cat/sed/nl, including
+// Codex's command_execution, resolved through literalReferencePaths) whose
+// correlated successful tool_result carries the skill's front matter and a
+// heading; a native skill_invocation's own successful tool_result, wrapped
+// in `<skill_content name="…">`, once it exceeds a short acknowledgment; or
+// a "read" kind event whose path ends in "/name/SKILL.md". A
+// skill_invocation with no captured payload (a bare "Launching skill: …"
+// acknowledgment, with no wrapped `<skill_content>` body) is not counted on
+// its own in any form.
+//
+// strict controls the "read" kind form only, since the other two forms
+// always require content on their own terms already. observeSkill calls
+// this with strict=false and keeps its pre-A2 permissive semantics there: a
+// successful "read" event with a matching path counts on its own, content
+// unchecked. This is a deliberate, declared divergence (gh-33 /code-review
+// finding 1), not an oversight: Claude delivers a Skill's body as a
+// synthetic follow-up user message, which the parser turns into a "read"
+// event that reuses the invoking skill_invocation call's own ID — so that
+// event's correlated tool_result is the call's short launch
+// acknowledgment, never the body itself. Requiring content there would make
+// observeSkill stop recognizing that real native form, which no fixture
+// currently exercises but the running pilot depends on.
+// flowSkillReadBeforeDelivery (via skillReadIndex, strict=true) requires
+// content on this form instead, per A2; the trade-off, declared alongside
+// flowSkillReadBeforeDelivery's own other limits, is that this one
+// synthetic Claude form is invisible to the criterion.
+func skillContentReads(r result, name string, strict bool) []skillReadEvidence {
+	var reads []skillReadEvidence
+	nativeCalls := map[string]bool{}
+	successfulOutputs := map[string]string{}
+	resultIndex := map[string]int{}
+	for i, e := range r.Trace.Events {
+		if e.Kind == "tool_result" && e.Success != nil && *e.Success && e.ID != "" {
+			if _, exists := successfulOutputs[e.ID]; !exists {
+				successfulOutputs[e.ID] = e.Text
+				resultIndex[e.ID] = i
+			}
+		}
+		if e.Kind == "skill_invocation" && e.Success != nil && *e.Success && e.ID != "" && (e.Text == "" || e.Text == name) {
+			nativeCalls[e.ID] = true
+		}
+	}
+	for i, e := range r.Trace.Events {
+		if e.Kind == "shell" && e.ID != "" && e.Success != nil && *e.Success && len(literalReferencePaths(e.Command, "/"+name+"/SKILL.md")) > 0 {
+			if output, ok := successfulOutputs[e.ID]; ok && looksLikeSkillSource(output, name) {
+				reads = append(reads, skillReadEvidence{Index: resultIndex[e.ID], Evidence: evidenceLine(e) + " literal shell read with corresponding skill source output"})
+			}
 		}
 		if e.Kind == "tool_result" && e.Success != nil && *e.Success && nativeCalls[e.ID] {
 			prefix := "<skill_content name=\"" + name + "\">\n# Skill: " + name + "\n"
 			if strings.HasPrefix(e.Text, prefix) && strings.Contains(e.Text, "</skill_content>") && len(e.Text) > len(prefix)+100 {
-				o.Read.Status = "pass"
-				o.Read.Evidence = append(o.Read.Evidence, evidenceLine(e)+" native skill source payload")
+				reads = append(reads, skillReadEvidence{Index: i, Evidence: evidenceLine(e) + " native skill source payload"})
 			}
 		}
 		if e.Kind == "read" && e.Success != nil && *e.Success && strings.HasSuffix(filepath.ToSlash(e.Path), "/"+name+"/SKILL.md") {
-			o.Read.Status = "pass"
-			o.Read.Evidence = append(o.Read.Evidence, evidenceLine(e))
+			if !strict {
+				reads = append(reads, skillReadEvidence{Index: i, Evidence: evidenceLine(e)})
+				continue
+			}
+			if output, ok := successfulOutputs[e.ID]; ok && looksLikeSkillSource(output, name) {
+				reads = append(reads, skillReadEvidence{Index: resultIndex[e.ID], Evidence: evidenceLine(e) + " read event with corresponding skill source output"})
+			}
 		}
 	}
-	return o
+	return reads
+}
+
+// skillReadIndex returns the earliest trace index skillContentReads(r, name,
+// true) recognizes for name — always the content-bearing event's own index,
+// per skillReadEvidence's doc comment — or -1 when name's SKILL.md was
+// never read with content under that strict form set.
+// flowSkillReadBeforeDelivery (gh-33 T2) compares every observed Git
+// delivery action's index against this single earliest index rather than
+// re-deriving read detection.
+func skillReadIndex(r result, name string) int {
+	reads := skillContentReads(r, name, true)
+	best := -1
+	for _, m := range reads {
+		if best == -1 || m.Index < best {
+			best = m.Index
+		}
+	}
+	return best
 }
 
 const flowContract = `import assert from 'node:assert/strict';

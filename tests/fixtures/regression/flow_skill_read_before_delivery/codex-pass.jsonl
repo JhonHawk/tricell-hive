@@ -1,0 +1,4 @@
+{"type":"item.completed","item":{"id":"item_1","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'cat .agents/skills/flow-build/SKILL.md'","aggregated_output":"---\nname: flow-build\ndescription: Implement or resume authorized work.\n---\n# Flow build\nShort stand-in body for the regression fixture.\n"}}
+{"type":"item.completed","item":{"id":"item_17","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'git commit -m \"fix: example change\"'","aggregated_output":""}}
+{"type":"item.completed","item":{"id":"item_18","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'git push fixture fix/example-branch'","aggregated_output":""}}
+{"type":"turn.completed","usage":{"input_tokens":5}}
