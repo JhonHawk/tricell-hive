@@ -88,7 +88,7 @@ For consequential delegated work, retain the requested role/path, native or gene
 
 ## Project settings
 
-- Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory. Optional: `Environments`, `TDD`, `Review`, and `Hive guidance`. `Hive guidance: required` declares that everyone working in the repository, including CI agents, runs with this guidance, so the repository's instructions need not repeat it. A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above. Example for a code repository:
+- Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory, followed by ` · <git-url>` when it lives in another repository. Optional: `Environments`, `TDD`, `Review`, and `Hive guidance`. `Hive guidance: required` declares that everyone working in the repository, including CI agents, runs with this guidance, so the repository's instructions need not repeat it. A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above. Example for a code repository:
 
   ```markdown
   ## Hive
@@ -96,7 +96,7 @@ For consequential delegated work, retain the requested role/path, native or gene
   - Base branch: development
   - Environments: development → qa → production
   - Tracker: Linear · team sample · project ark · key ARK
-  - Specs: ../ark-specs/openspec
+  - Specs: ../ark-specs/openspec · https://github.com/<org>/ark-specs.git
   - Review: /code-review
   ```
 - The section of the Git repository containing the changed file governs; a package inside a repository uses the repository's section. The workspace section governs only cross-repository work and sessions started there without a repository target. When loaded sections conflict, follow the repository's and report the conflict.
@@ -110,6 +110,8 @@ For consequential delegated work, retain the requested role/path, native or gene
 ## Specs and change records
 
 Planned work and requirements live in the `openspec` directory that the `Specs` setting names. Without a specs repository it is `_support/openspec` in the repository; with one, `<specs-repo>/openspec`. It is always versioned: never place it in a workspace outside Git or in an ignored path. When several repositories share a project without a specs repository, ask before the first change whether to create one (recommended when they share capabilities) or designate one repository, and point every `Specs` at that directory.
+
+Resolve a relative `Specs` path from the root of the repository that declares it, not from the session's directory. When a task needs specs that are not at that path, use a sibling checkout whose `origin` matches the declared URL and report its path; otherwise ask before cloning the URL there. If the path holds another repository or the clone fails, pause only the work that needs specs and ask: grant access or correct the URL, move to `_support/openspec` (a contract change), or continue without specs. Never create a specs repository to fill the gap. An unresolvable path without a URL is a missing value.
 
 It holds `project.md` (the project ledger), `specs/<capability>/spec.md` (current requirements per capability), `changes/<change-id>/` (one active planned change with its requirement deltas), and `changes/archive/YYYY-MM-DD-<change-id>/` (closed changes).
 
