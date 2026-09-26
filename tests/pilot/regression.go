@@ -23,15 +23,16 @@ import (
 // ticket_ids_not_packed_in_prose) the surrounding sentence or URL, since any
 // of those can themselves carry a secret value or a signed token.
 //
-// flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing) is a separate,
-// standalone criterion declared in this file but intentionally not returned
-// here or wired into assessFlows — see its own doc comment for the finding
-// and evidence rule. Declared limits: a skill invoked through a typed
-// slash/dollar command (`/flow-build` in Claude, `$flow-build` in Codex) is
-// invisible to it, since parseTrace has no distinguishable event for that
-// form, and a deployment performed with no Git action at all (globex's G5,
-// the blank production page after deploy) is out of scope for a criterion
-// keyed on Git delivery actions.
+// flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing) and
+// noPollWaitChain (gh-36-wait-for-completion-signal) are separate,
+// standalone criteria declared in this file but intentionally not returned
+// here or wired into assessFlows — see each one's own doc comment for its
+// finding and evidence rule. flowSkillReadBeforeDelivery's declared limits: a
+// skill invoked through a typed slash/dollar command (`/flow-build` in
+// Claude, `$flow-build` in Codex) is invisible to it, since parseTrace has no
+// distinguishable event for that form, and a deployment performed with no
+// Git action at all (globex's G5, the blank production page after deploy) is
+// out of scope for a criterion keyed on Git delivery actions.
 func regressionCriteria(r result) []criterionAssessment {
 	return []criterionAssessment{
 		questionAfterDetail(r),
@@ -703,6 +704,331 @@ func flowSkillReadBeforeDelivery(r result) criterionAssessment {
 		return c
 	}
 	c.Status = "pass"
+	return c
+}
+
+// --- no_poll_wait_chain (gh-36-wait-for-completion-signal, declared, not wired) ---
+
+// ghStatusQueryMarker is the argument substring design.md requires among a
+// `gh pr view` invocation's arguments for it to count as a CI status query,
+// since `gh pr view` otherwise reads the pull request itself. The run and
+// checks subcommands are status queries without it.
+const ghStatusQueryMarker = "statusCheckRollup"
+
+var envAssignmentToken = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+
+// skipGhPrefix skips leading "VAR=value" environment assignments and, right
+// after the "gh" token, a "-R <repo>"/"--repo <repo>" flag, returning the
+// remaining tokens starting at gh's subcommand. It returns nil when args is
+// not a gh invocation once that prefix is skipped.
+func skipGhPrefix(args []string) []string {
+	i := 0
+	for i < len(args) && envAssignmentToken.MatchString(args[i]) {
+		i++
+	}
+	if i >= len(args) || filepath.Base(args[i]) != "gh" {
+		return nil
+	}
+	i++
+	for i+1 < len(args) && (args[i] == "-R" || args[i] == "--repo") {
+		i += 2
+	}
+	return args[i:]
+}
+
+// ghStatusQuery is design.md's "consulta de estado": `gh run view`, `gh run
+// list`, `gh pr checks`, or `gh pr view` with ghStatusQueryMarker among its
+// arguments, recognized past skipGhPrefix. It is never a query when it also
+// carries --log or --log-failed (diagnostic, not a status poll) or --watch
+// (a blocking wait, see ghWaitCommand).
+func ghStatusQuery(args []string) bool {
+	rest := skipGhPrefix(args)
+	if len(rest) < 2 {
+		return false
+	}
+	needsMarker := false
+	switch {
+	case rest[0] == "run" && (rest[1] == "view" || rest[1] == "list"):
+	case rest[0] == "pr" && rest[1] == "checks":
+	case rest[0] == "pr" && rest[1] == "view":
+		needsMarker = true
+	default:
+		return false
+	}
+	hasMarker := false
+	for _, a := range rest[2:] {
+		if a == "--log" || a == "--log-failed" || a == "--watch" {
+			return false
+		}
+		if strings.Contains(a, ghStatusQueryMarker) {
+			hasMarker = true
+		}
+	}
+	return hasMarker || !needsMarker
+}
+
+// ghWaitCommand is design.md's blocking-wait shell form: `gh run watch` or
+// `gh pr checks --watch`, recognized past the same skipGhPrefix.
+func ghWaitCommand(args []string) bool {
+	rest := skipGhPrefix(args)
+	if len(rest) < 2 {
+		return false
+	}
+	if rest[0] == "run" && rest[1] == "watch" {
+		return true
+	}
+	if rest[0] == "pr" && rest[1] == "checks" {
+		for _, a := range rest[2:] {
+			if a == "--watch" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// shellCommandShape classifies one shell event's whole command line for
+// noPollWaitChain's pattern 1.
+type shellCommandShape int
+
+const (
+	shellOther     shellCommandShape = iota
+	shellWaitCmd                     // gh run watch / gh pr checks --watch: a correct blocking wait.
+	shellCycleCmd                    // a sleep segment and a query segment in the same command.
+	shellSleepOnly                   // every segment is a `sleep` invocation, no query.
+	shellQueryOnly                   // a query segment, no sleep segment, in this same command.
+)
+
+// classifyShellCommand tokenizes command with shellSegments and reports its
+// shape for noPollWaitChain. A command carrying a ghWaitCommand segment is
+// always shellWaitCmd, even alongside an unrelated sleep segment.
+func classifyShellCommand(command string) shellCommandShape {
+	segments := shellSegments(command, 0)
+	if len(segments) == 0 {
+		return shellOther
+	}
+	hasSleep, hasQuery, hasWait, allSleep := false, false, false, true
+	for _, args := range segments {
+		if len(args) == 0 {
+			allSleep = false
+			continue
+		}
+		switch {
+		case ghWaitCommand(args):
+			hasWait = true
+			allSleep = false
+		case filepath.Base(args[0]) == "sleep":
+			hasSleep = true
+		case ghStatusQuery(args):
+			hasQuery = true
+			allSleep = false
+		default:
+			allSleep = false
+		}
+	}
+	switch {
+	case hasWait:
+		return shellWaitCmd
+	case hasSleep && hasQuery:
+		return shellCycleCmd
+	case allSleep && hasSleep:
+		return shellSleepOnly
+	case hasQuery:
+		return shellQueryOnly
+	default:
+		return shellOther
+	}
+}
+
+// terminalAgentStatuses are the collab-agent statuses design.md treats as a
+// finished result: a wait that surfaces one of these for a thread that was
+// not already in one of them is a real result, not a busy poll.
+var terminalAgentStatuses = map[string]bool{
+	"completed":   true,
+	"errored":     true,
+	"shutdown":    true,
+	"interrupted": true,
+	"not_found":   true,
+}
+
+// decodeAgentsStates reads a collab_* tool event's agents_states map (thread
+// id -> status), ignoring the message field noPollWaitChain never needs.
+func decodeAgentsStates(e traceEvent) map[string]string {
+	states := map[string]string{}
+	raw, _ := decodeInput(e)["agents_states"].(map[string]any)
+	for id, v := range raw {
+		if m, ok := v.(map[string]any); ok {
+			states[id] = str(m["status"])
+		}
+	}
+	return states
+}
+
+// hasNewTerminalAgent reports whether cur shows some thread id newly in a
+// terminal collab status (terminalAgentStatuses) that prev did not already
+// show terminal for — an absent id in prev counts as not-terminal, per
+// design.md's exception clause.
+func hasNewTerminalAgent(prev, cur map[string]string) bool {
+	for id, status := range cur {
+		if !terminalAgentStatuses[status] {
+			continue
+		}
+		if !terminalAgentStatuses[prev[id]] {
+			return true
+		}
+	}
+	return false
+}
+
+// noPollWaitChain is gh-36's no_poll_wait_chain: declared here per T2 but
+// deliberately not returned by regressionCriteria or wired into assessFlows
+// (see the package doc comment above regressionCriteria), for the three
+// reasons design.md gives — the flows fixture repos have no GitHub CI, a
+// fail here would flip an existing case's status with false positives
+// unmeasured, and close_question_after_report/merged_branch_deleted already
+// set the precedent for a criterion shipped this way.
+//
+// Events are walked in trace order, ignoring Kind=="tool_result", against
+// two independent patterns:
+//
+//  1. Shell status polling (any host). A "status query" is a shellSegments
+//     segment that, past skipGhPrefix, is `gh run view`/`gh run
+//     list`/`gh pr checks`, or `gh pr view` with ghStatusQueryMarker among
+//     its arguments, and carries none of --log/--log-failed/--watch. A "cycle"
+//     is one shell command holding both a `sleep` segment and a query
+//     segment (classifyShellCommand's shellCycleCmd), or a command made only
+//     of `sleep` segments (shellSleepOnly) whose very next shell event is a
+//     query on its own (that query completes the cycle). A "chain" is two
+//     cycles with no other tool event between them; assistant text never
+//     breaks it (still polling while narrating is still polling), but any
+//     other tool event does, including a failed one. It fails at the second
+//     cycle of a chain (and every further one, while the chain stays
+//     unbroken).
+//  2. Codex collab_wait chains. Two collab_wait events with Success true and
+//     nothing else — no assistant text, no other tool event, including
+//     another collab_* call — between them fail at the second, UNLESS the
+//     first of the pair itself brought a result: hasNewTerminalAgent finds
+//     some thread newly terminal in it compared to whichever collab_* event
+//     (of any tool: spawn_agent, send_input, wait, close_agent) preceded it.
+//     That rolling, event-to-its-immediate-predecessor comparison — not a
+//     fixed baseline — is what keeps an agent Codex keeps listing as already
+//     terminal from re-arming the exception on every later wait. A wait with
+//     Success false neither counts as a wait nor breaks the chain.
+//
+// It passes when some wait event was observed (a `gh run watch`/`gh pr
+// checks --watch`, an isolated cycle, or a collab_wait) and no chain failed;
+// not_observed when none of those occurred at all. Evidence is always
+// regressionEvidence (line and tool), never the command or agent text.
+//
+// Declared limits (design.md, "Límites declarados"): with no timestamps,
+// this cannot tell a short stretch from a long one. A loop inside one
+// command, such as `until … do sleep 30; done`, is not judged — it is a
+// single blocking wait with no model turn in between, so the rule does not
+// forbid it. `write_stdin` waits on a UnifiedExec session are not observed
+// as a command at all; repeated polling of the same session is the correct
+// pattern and never counts as a cycle. That Codex emits `agent_message`
+// items between `collab_*` calls of one turn is taken from the exec schema,
+// not observed in a real run. Claude, Grok, Pi, OpenCode and Cursor emit no
+// subagent-wait event in this trace model, so only the shell pattern ever
+// applies to them. The status-query list covers GitHub Actions only:
+// `kubectl rollout status` or a `curl` to a status endpoint is not judged.
+// parseTrace does not read interactive `~/.codex/sessions` rollouts, so this
+// criterion can only ever run over `codex exec --json` and other hosts'
+// streamed traces, never the original sessions the fixtures are derived
+// from.
+func noPollWaitChain(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "no_poll_wait_chain", Status: "not_observed"}
+	observed := false
+	fail := func(e traceEvent) {
+		c.Status = "fail"
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+	}
+
+	// Pattern 1: shell status polling.
+	shellChainArmed := false
+	shellPendingSleep := false
+
+	// Pattern 2: Codex collab_wait chains.
+	waitChainOpen := false
+	firstWaitBroughtResult := false
+	lastCollabStates := map[string]string{}
+
+	for _, e := range r.Trace.Events {
+		switch {
+		case e.Kind == "tool_result":
+			continue
+		case e.Kind == "text":
+			if e.Role == "assistant" {
+				waitChainOpen = false
+			}
+		case e.Kind == "shell":
+			waitChainOpen = false
+			switch classifyShellCommand(e.Command) {
+			case shellWaitCmd:
+				observed = true
+				shellChainArmed = false
+				shellPendingSleep = false
+			case shellCycleCmd:
+				if shellChainArmed {
+					fail(e)
+				} else {
+					observed = true
+				}
+				shellChainArmed = true
+				shellPendingSleep = false
+			case shellSleepOnly:
+				shellPendingSleep = true
+			case shellQueryOnly:
+				if shellPendingSleep {
+					if shellChainArmed {
+						fail(e)
+					} else {
+						observed = true
+					}
+					shellChainArmed = true
+				} else {
+					shellChainArmed = false
+				}
+				shellPendingSleep = false
+			default:
+				shellChainArmed = false
+				shellPendingSleep = false
+			}
+		case e.Tool == "collab_wait":
+			shellChainArmed = false
+			shellPendingSleep = false
+			if e.Success == nil || !*e.Success {
+				continue // a failed wait neither counts as a wait nor breaks the chain.
+			}
+			cur := decodeAgentsStates(e)
+			if waitChainOpen {
+				if !firstWaitBroughtResult {
+					fail(e)
+				}
+			} else {
+				observed = true
+			}
+			waitChainOpen = true
+			firstWaitBroughtResult = hasNewTerminalAgent(lastCollabStates, cur)
+			lastCollabStates = cur
+		case strings.HasPrefix(e.Tool, "collab_"):
+			// spawn_agent/send_input/close_agent: not a wait itself, but
+			// still a collab_* event, so it becomes the new rolling
+			// baseline for the next wait's hasNewTerminalAgent comparison,
+			// and — like any other tool event — breaks an open wait pair.
+			shellChainArmed = false
+			shellPendingSleep = false
+			waitChainOpen = false
+			lastCollabStates = decodeAgentsStates(e)
+		default:
+			shellChainArmed = false
+			shellPendingSleep = false
+			waitChainOpen = false
+		}
+	}
+	if observed && c.Status != "fail" {
+		c.Status = "pass"
+	}
 	return c
 }
 

@@ -521,6 +521,14 @@ func parseTrace(host string, input io.Reader) traceReport {
 					// codex exec 0.157.0 has no request_user_input in exec mode, so a
 					// Codex close question is only ever observed as assistant text.
 					r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(i["text"]), Role: "assistant"})
+				case "collab_tool_call":
+					// The whole item (not just a nested "arguments" object, which this
+					// item never has) is kept as Input, since agents_states —
+					// noPollWaitChain's only interest — lives beside
+					// tool/sender_thread_id/receiver_thread_ids/prompt at the item's
+					// top level.
+					addTool(line, "collab_"+str(i["tool"]), id, i, "")
+					finishTool(line, id, "", str(i["status"]) == "failed")
 				}
 			}
 		case "pi":

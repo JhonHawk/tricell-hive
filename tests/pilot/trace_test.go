@@ -346,6 +346,64 @@ func TestOpenCodeToolCallAndResultCarryMessageID(t *testing.T) {
 	}
 }
 
+// --- gh-36: Codex collab_tool_call ---
+
+// TestCodexCollabToolCallProducesCollabWaitEvent proves the codex branch of
+// parseTrace maps a completed collab_tool_call `wait` item to a
+// "collab_wait" tool event whose Input keeps agents_states, per design.md's
+// "Parser de trazas de Codex", so no_poll_wait_chain can read it.
+func TestCodexCollabToolCallProducesCollabWaitEvent(t *testing.T) {
+	trace := `{"type":"item.completed","item":{"id":"item_5","type":"collab_tool_call","tool":"wait","status":"completed","sender_thread_id":"main","receiver_thread_ids":["a1"],"agents_states":{"a1":{"status":"running","message":"working"}}}}`
+	r := parseTrace("codex", strings.NewReader(trace))
+	if len(r.Events) != 2 {
+		t.Fatalf("expected a collab_wait call and its result, got %+v", r.Events)
+	}
+	call, result := r.Events[0], r.Events[1]
+	if call.Tool != "collab_wait" || call.ID != "item_5" {
+		t.Fatalf("collab_tool_call was not mapped to collab_wait: %+v", call)
+	}
+	if call.Success == nil || !*call.Success {
+		t.Fatalf("status=completed must be a success: %+v", call)
+	}
+	if result.Kind != "tool_result" || result.ID != "item_5" {
+		t.Fatalf("collab_tool_call did not finish with a tool_result: %+v", result)
+	}
+	var input map[string]any
+	if err := json.Unmarshal(call.Input, &input); err != nil {
+		t.Fatalf("collab_wait Input was not valid JSON: %s", call.Input)
+	}
+	states, ok := input["agents_states"].(map[string]any)
+	if !ok {
+		t.Fatalf("collab_wait Input lost agents_states: %+v", input)
+	}
+	a1, ok := states["a1"].(map[string]any)
+	if !ok || a1["status"] != "running" {
+		t.Fatalf("collab_wait Input did not preserve agents_states: %+v", states)
+	}
+}
+
+// TestCodexCollabToolCallFailedStatusIsAFailedResult proves a
+// collab_tool_call item with status "failed" finishes its tool event as
+// failed, matching every other codex item kind's status handling.
+func TestCodexCollabToolCallFailedStatusIsAFailedResult(t *testing.T) {
+	trace := `{"type":"item.completed","item":{"id":"item_6","type":"collab_tool_call","tool":"wait","status":"failed"}}`
+	r := parseTrace("codex", strings.NewReader(trace))
+	if len(r.Events) != 2 || r.Events[0].Success == nil || *r.Events[0].Success {
+		t.Fatalf("failed collab_tool_call must produce a failed result: %+v", r.Events)
+	}
+}
+
+// TestCodexCollabToolCallStartedIsIgnored proves item.started stays ignored
+// for collab_tool_call, matching every other codex item kind (design.md:
+// "item.started se ignora a propósito, igual que en las demás ramas").
+func TestCodexCollabToolCallStartedIsIgnored(t *testing.T) {
+	trace := `{"type":"item.started","item":{"id":"item_7","type":"collab_tool_call","tool":"wait","status":"in_progress"}}`
+	r := parseTrace("codex", strings.NewReader(trace))
+	if len(r.Events) != 0 {
+		t.Fatalf("item.started must not produce an event: %+v", r.Events)
+	}
+}
+
 func TestPiMessageEndAssignsMessageKeyToItsToolCallsAndDistinguishesRole(t *testing.T) {
 	// The assistant's message_end reports which tool calls it is about to
 	// make before they execute, so it precedes their start/end pair.

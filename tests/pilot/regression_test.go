@@ -727,6 +727,15 @@ func TestRegressionFixtures(t *testing.T) {
 		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-label-pass.jsonl", "pass", ticketIDsNotPackedInProse},
 		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-ids-only-pass.jsonl", "pass", ticketIDsNotPackedInProse},
 		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-label-then-bare-ids-fail.jsonl", "fail", ticketIDsNotPackedInProse},
+		{"no_poll_wait_chain", "codex", "codex-ci-fail.jsonl", "fail", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-ci-bare-sleep-fail.jsonl", "fail", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-ci-pass.jsonl", "pass", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-ci-single-pass.jsonl", "pass", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-ci-log-failed-pass.jsonl", "pass", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-wait-fail.jsonl", "fail", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-wait-pass.jsonl", "pass", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-wait-failed-pass.jsonl", "pass", noPollWaitChain},
+		{"no_poll_wait_chain", "codex", "codex-wait-result-pass.jsonl", "pass", noPollWaitChain},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)
@@ -741,6 +750,50 @@ func TestRegressionFixtures(t *testing.T) {
 				t.Fatalf("%s: got %s want %s", path, got, c.want)
 			}
 		})
+	}
+}
+
+// --- no_poll_wait_chain (gh-36, declared, not wired) ---
+
+// TestNoPollWaitChainNotObservedWithoutAnyWait proves a trace with no
+// status-query cycle, `gh run watch`, or collab_wait yields not_observed,
+// per design.md's "Resultado" ("no observado cuando no hay ninguno").
+func TestNoPollWaitChainNotObservedWithoutAnyWait(t *testing.T) {
+	yes := true
+	r := result{Trace: traceReport{Events: []traceEvent{
+		{Kind: "shell", Command: "git status", Success: &yes},
+		{Kind: "text", Role: "assistant", Text: "No polling or waiting in this trace."},
+	}}}
+	if got := noPollWaitChain(r).Status; got != "not_observed" {
+		t.Fatalf("got %s want not_observed", got)
+	}
+}
+
+func TestGhStatusQueryRequiresMarkerOnlyForPrView(t *testing.T) {
+	for _, c := range []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"gh", "run", "view", "4200", "--json", "status"}, true},
+		{[]string{"GH_PAGER=", "gh", "-R", "o/r", "run", "list"}, true},
+		{[]string{"gh", "pr", "checks", "12"}, true},
+		{[]string{"gh", "pr", "view", "12", "--json", "statusCheckRollup"}, true},
+		{[]string{"gh", "pr", "view", "12", "--json", "title"}, false},
+		{[]string{"gh", "run", "view", "4200", "--log-failed"}, false},
+		{[]string{"gh", "pr", "checks", "12", "--watch"}, false},
+	} {
+		if got := ghStatusQuery(c.args); got != c.want {
+			t.Errorf("ghStatusQuery(%q) = %v, want %v", c.args, got, c.want)
+		}
+	}
+}
+
+func TestNoPollWaitChainNotWiredIntoRegressionCriteria(t *testing.T) {
+	r := result{Trace: traceReport{}}
+	for _, c := range regressionCriteria(r) {
+		if c.Criterion == "no_poll_wait_chain" {
+			t.Fatal("no_poll_wait_chain must not be wired into regressionCriteria")
+		}
 	}
 }
 
