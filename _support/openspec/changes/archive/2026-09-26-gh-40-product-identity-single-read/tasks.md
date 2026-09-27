@@ -59,10 +59,10 @@
     - Se quitó la rama redundante de `IsNotExist`.
     - Los conteos de casos del registro quedan en siete.
   - **Verificación tras las correcciones:** `go vet` y `go test -race` pasan en `management`, `version`, `distribution` y `package`. `go test -race -count=1 ./tooling/...` completo también pasa sobre el candidato final (`cli` tardó 511.7 s).
-- [ ] Commit solo de las rutas del cambio y de esta carpeta (gitleaks sobre lo preparado), `git pull --ff-only` y push a `rebuild/harness-engineering`.
+- [x] Commit `c2986f9`, solo con las 10 rutas del cambio (gitleaks sin hallazgos), y push a `rebuild/harness-engineering`; la cabeza remota es `c2986f9`.
 - [x] Issue nuevo para M10: [#42](https://github.com/JhonHawk/tricell-hive/issues/42), marcado como diferido en el título, con la tabla de funciones y la condición para extraer el despacho.
-- [ ] #40 cerrado con los commits.
-- [ ] Cierre y archivo del cambio, con push.
+- [x] #40 cerrado con un comentario que cita `c2986f9` y #42.
+- [x] Cierre y archivo del cambio, con push (commit de archivo).
 
 **Depende de:** T1.
 **Ejecución:** hilo principal (integración, revisión, tracker y Git).

@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1 verificado y `/code-review` conciliado; commit y push en curso |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`c2986f9`); #40 cerrado y M10 movido a #42 |
 | Tracker · GitHub Issues | • [#40 — Instalador: deuda pendiente del audit (identidad de versión y funciones largas)](https://github.com/JhonHawk/tricell-hive/issues/40) |
 | Git | `direct-base` a `rebuild/harness-engineering` · sin PR · sin release |
 | Verificación | test de caracterización del `artifact_id` · `go vet ./...` · `go test -race ./...` · `/code-review` |
-| Siguiente paso | `flow-build` sobre esta carpeta: T1 delegado, después T2 |
+| Siguiente paso | Ninguno en este cambio; M10 queda en [#42](https://github.com/JhonHawk/tricell-hive/issues/42), diferido |
 
 ## Objetivo
 
