@@ -21,16 +21,30 @@ func Valid(value string) bool {
 
 // ReadSource reads the canonical product version selected for a source tree.
 func ReadSource(root string) (string, error) {
-	data, err := os.ReadFile(filepath.Join(root, "VERSION"))
-	if os.IsNotExist(err) {
-		return "dev", nil
-	}
+	value, present, err := ReadSourceFile(root)
 	if err != nil {
 		return "", err
 	}
-	value := strings.TrimSpace(string(data))
+	if !present {
+		return "dev", nil
+	}
 	if !Valid(value) {
 		return "", fmt.Errorf("invalid product version %q", value)
 	}
 	return value, nil
+}
+
+// ReadSourceFile reads a source tree's VERSION file without validating its
+// content, so callers with different rules for an absent or empty value
+// (ReadSource, productFromSource) can each apply their own. present is false
+// only when the file does not exist; any other read error propagates unwrapped.
+func ReadSourceFile(root string) (value string, present bool, err error) {
+	data, err := os.ReadFile(filepath.Join(root, "VERSION"))
+	if os.IsNotExist(err) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return strings.TrimSpace(string(data)), true, nil
 }

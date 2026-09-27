@@ -83,25 +83,30 @@ func VerifyIfPackaged(root string) error {
 // ReadManifest reads a package manifest without treating an absent manifest as an error.
 // Callers that need package integrity should use VerifyIfPackaged.
 func ReadManifest(root string) (Manifest, error) {
+	m, _, err := ReadManifestData(root)
+	return m, err
+}
+
+// ReadManifestData reads a package manifest like ReadManifest and also
+// returns the exact bytes it decoded. An absent manifest returns the Lstat
+// error unwrapped, so os.IsNotExist still recognizes it.
+func ReadManifestData(root string) (Manifest, []byte, error) {
 	info, err := os.Lstat(filepath.Join(root, ManifestName))
-	if os.IsNotExist(err) {
-		return Manifest{}, err
-	}
 	if err != nil {
-		return Manifest{}, err
+		return Manifest{}, nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return Manifest{}, fmt.Errorf("package manifest is not a regular file")
+		return Manifest{}, nil, fmt.Errorf("package manifest is not a regular file")
 	}
 	data, err := os.ReadFile(filepath.Join(root, ManifestName))
 	if err != nil {
-		return Manifest{}, err
+		return Manifest{}, nil, err
 	}
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
-		return Manifest{}, fmt.Errorf("invalid package manifest: %w", err)
+		return Manifest{}, nil, fmt.Errorf("invalid package manifest: %w", err)
 	}
-	return m, nil
+	return m, data, nil
 }
 
 func verifyManifest(root string) error {

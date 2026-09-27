@@ -105,16 +105,12 @@ func ValidateBootstrapPackage(root, requestedVersion, runningVersion string) (Ma
 	if err := VerifyIfPackaged(root); err != nil {
 		return Manifest{}, "", err
 	}
-	manifest, err := ReadManifest(root)
+	manifest, data, err := ReadManifestData(root)
 	if err != nil {
 		return Manifest{}, "", err
 	}
 	if manifest.ProductVersion != requestedVersion {
 		return Manifest{}, "", fmt.Errorf("package product version does not match requested release")
-	}
-	data, err := os.ReadFile(filepath.Join(root, ManifestName))
-	if err != nil {
-		return Manifest{}, "", err
 	}
 	return manifest, Digest(data), nil
 }

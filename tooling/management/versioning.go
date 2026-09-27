@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
-	"strings"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/version"
 )
@@ -38,40 +37,37 @@ type InstallationReceipt struct {
 func validProductVersion(v string) bool { return version.Valid(v) }
 
 // productFromSource identifies o.Source's product version, preferring a
-// packaged release.json (via distribution.ReadManifest, the same manifest
-// packaging and installation verify) over a bare VERSION file. A source
-// tree with neither is historical/unversioned: identity stays nil, not
-// "dev", so it is never mistaken for a resolved version.
+// packaged release.json (via distribution.ReadManifestData, the same manifest
+// packaging and installation verify) over a bare VERSION file (via
+// version.ReadSourceFile). A source tree with neither is historical/
+// unversioned: identity stays nil, not "dev", so it is never mistaken for a
+// resolved version.
 func productFromSource(o Options, r Release, s State) (*ProductIdentity, error) {
 	if o.ReleaseID != "" {
 		return nil, nil
 	} // Historical snapshots retain content identity only.
-	version, artifact := "", ""
-	m, err := distribution.ReadManifest(o.Source)
+	productVersion, artifact := "", ""
+	m, b, err := distribution.ReadManifestData(o.Source)
 	if err == nil {
-		b, rerr := os.ReadFile(filepath.Join(o.Source, distribution.ManifestName))
-		if rerr != nil {
-			return nil, rerr
-		}
-		version = m.ProductVersion
+		productVersion = m.ProductVersion
 		artifact = hash(b)
 	} else if os.IsNotExist(err) {
-		b, rerr := os.ReadFile(filepath.Join(o.Source, "VERSION"))
-		if os.IsNotExist(rerr) {
-			return nil, nil
-		}
+		value, present, rerr := version.ReadSourceFile(o.Source)
 		if rerr != nil {
 			return nil, rerr
 		}
-		version = strings.TrimSpace(string(b))
-		artifact = hash(append([]byte(version+"\n"), encode(r)...))
+		if !present {
+			return nil, nil
+		}
+		productVersion = value
+		artifact = hash(append([]byte(productVersion+"\n"), encode(r)...))
 	} else {
 		return nil, err
 	}
-	if version == "" {
+	if productVersion == "" {
 		return nil, nil
 	}
-	p := &ProductIdentity{version, artifact, r.ID}
+	p := &ProductIdentity{productVersion, artifact, r.ID}
 	if err = validateProduct(p, s, r.ID); err != nil {
 		return nil, err
 	}

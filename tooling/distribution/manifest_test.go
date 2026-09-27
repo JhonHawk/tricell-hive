@@ -35,6 +35,29 @@ func packageFixture(t *testing.T) string {
 	return root
 }
 
+func TestReadManifestDataReturnsExactBytesAndUnwrappedNotExist(t *testing.T) {
+	root := packageFixture(t)
+	want, err := os.ReadFile(filepath.Join(root, ManifestName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, got, err := ReadManifestData(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Fatalf("ReadManifestData() bytes = %q, want %q", got, want)
+	}
+	if m.Version != 1 {
+		t.Fatalf("ReadManifestData() manifest = %+v", m)
+	}
+
+	absent := t.TempDir()
+	if _, _, err := ReadManifestData(absent); !os.IsNotExist(err) {
+		t.Fatalf("ReadManifestData() on absent manifest = %v, want os.IsNotExist", err)
+	}
+}
+
 func TestReadManifestAllowsLegacyProductVersion(t *testing.T) {
 	root := packageFixture(t)
 	m, err := ReadManifest(root)

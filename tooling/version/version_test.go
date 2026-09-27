@@ -19,6 +19,35 @@ func TestValid(t *testing.T) {
 	}
 }
 
+func TestReadSourceFile(t *testing.T) {
+	root := t.TempDir()
+	value, present, err := ReadSourceFile(root)
+	if err != nil || present || value != "" {
+		t.Fatalf("absent: ReadSourceFile() = %q, %v, %v", value, present, err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "VERSION"), []byte("  1.2.3  \n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	value, present, err = ReadSourceFile(root)
+	if err != nil || !present || value != "1.2.3" {
+		t.Fatalf("present with whitespace: ReadSourceFile() = %q, %v, %v", value, present, err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "VERSION"), []byte("   \n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	value, present, err = ReadSourceFile(root)
+	if err != nil || !present || value != "" {
+		t.Fatalf("empty: ReadSourceFile() = %q, %v, %v", value, present, err)
+	}
+	unreadable := t.TempDir()
+	if err := os.Mkdir(filepath.Join(unreadable, "VERSION"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if value, present, err = ReadSourceFile(unreadable); err == nil || present {
+		t.Fatalf("unreadable: ReadSourceFile() = %q, %v, %v, want a read error", value, present, err)
+	}
+}
+
 func TestReadSource(t *testing.T) {
 	root := t.TempDir()
 	got, err := ReadSource(root)

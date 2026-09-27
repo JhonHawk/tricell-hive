@@ -1,11 +1,141 @@
 package management
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"tricell-hive/tooling/distribution"
 )
+
+// sha256Hex and encodeRelease reimplement production's hash/encode
+// independently, so a change to those functions cannot silently change the
+// identities the characterization test below expects.
+func sha256Hex(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
+func encodeRelease(v any) []byte {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return append(b, '\n')
+}
+func writeManifestBytes(t *testing.T, dir string, data []byte) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, distribution.ManifestName), data, 0640); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// makeUnreadableVersion makes VERSION a directory, so any attempt to read it
+// fails and a branch that must not read VERSION is caught doing so.
+func makeUnreadableVersion(t *testing.T, dir string) {
+	t.Helper()
+	if err := os.Mkdir(filepath.Join(dir, "VERSION"), 0750); err != nil {
+		t.Fatal(err)
+	}
+}
+func writeVersionFile(t *testing.T, dir, value string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, "VERSION"), []byte(value), 0640); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestProductFromSourceCharacterizesIdentityAcrossManifestAndVersionSources
+// fixes productFromSource's persisted identity for every source shape: the
+// artifact ID is stored in installer state, so a changed value would stop an
+// already published version from being recognized. Expected identities are
+// computed with crypto/sha256 and a local reimplementation of encode, never
+// with production's hash/encode.
+func TestProductFromSourceCharacterizesIdentityAcrossManifestAndVersionSources(t *testing.T) {
+	releaseID := strings.Repeat("a", 64)
+	r := Release{ID: releaseID}
+
+	t.Run("manifest present", func(t *testing.T) {
+		dir := t.TempDir()
+		manifest := []byte(`{"product_version":"1.2.3"}`)
+		writeManifestBytes(t, dir, manifest)
+		got, err := productFromSource(Options{Source: dir}, r, State{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := ProductIdentity{Version: "1.2.3", ArtifactID: sha256Hex(manifest), ReleaseID: releaseID}
+		if got == nil || *got != want {
+			t.Fatalf("got %+v, want %+v", got, want)
+		}
+	})
+
+	t.Run("manifest present with unreadable VERSION never read", func(t *testing.T) {
+		dir := t.TempDir()
+		manifest := []byte(`{"product_version":"4.5.6"}`)
+		writeManifestBytes(t, dir, manifest)
+		makeUnreadableVersion(t, dir)
+		got, err := productFromSource(Options{Source: dir}, r, State{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := ProductIdentity{Version: "4.5.6", ArtifactID: sha256Hex(manifest), ReleaseID: releaseID}
+		if got == nil || *got != want {
+			t.Fatalf("got %+v, want %+v", got, want)
+		}
+	})
+
+	t.Run("legacy manifest without product_version yields nil without reading VERSION", func(t *testing.T) {
+		dir := t.TempDir()
+		writeManifestBytes(t, dir, []byte(`{"version":1,"platform":"linux/amd64"}`))
+		makeUnreadableVersion(t, dir)
+		got, err := productFromSource(Options{Source: dir}, r, State{})
+		if err != nil || got != nil {
+			t.Fatalf("got %+v, %v", got, err)
+		}
+	})
+
+	t.Run("VERSION present without manifest", func(t *testing.T) {
+		dir := t.TempDir()
+		writeVersionFile(t, dir, "9.9.9\n")
+		got, err := productFromSource(Options{Source: dir}, r, State{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		artifact := sha256Hex(append([]byte("9.9.9\n"), encodeRelease(r)...))
+		want := ProductIdentity{Version: "9.9.9", ArtifactID: artifact, ReleaseID: releaseID}
+		if got == nil || *got != want {
+			t.Fatalf("got %+v, want %+v", got, want)
+		}
+	})
+
+	t.Run("neither manifest nor VERSION", func(t *testing.T) {
+		dir := t.TempDir()
+		got, err := productFromSource(Options{Source: dir}, r, State{})
+		if err != nil || got != nil {
+			t.Fatalf("got %+v, %v", got, err)
+		}
+	})
+
+	t.Run("empty VERSION", func(t *testing.T) {
+		dir := t.TempDir()
+		writeVersionFile(t, dir, "   \n")
+		got, err := productFromSource(Options{Source: dir}, r, State{})
+		if err != nil || got != nil {
+			t.Fatalf("got %+v, %v", got, err)
+		}
+	})
+
+	t.Run("invalid VERSION without manifest errors", func(t *testing.T) {
+		dir := t.TempDir()
+		writeVersionFile(t, dir, "not-a-version\n")
+		_, err := productFromSource(Options{Source: dir}, r, State{})
+		if err == nil || err.Error() != "invalid product identity" {
+			t.Fatalf("got %v, want invalid product identity", err)
+		}
+	})
+}
 
 func TestProductVersionCreatesConsumerReceiptWithoutChangingPayloadIdentity(t *testing.T) {
 	o := setup(t)
