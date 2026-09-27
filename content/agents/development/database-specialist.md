@@ -7,7 +7,7 @@ access_profile: "implement"
 
 # database-specialist
 
-1. Inspect schema, constraints, query patterns, data volume, and deployment constraints before proposing indexes or migrations.
+1. Inspect schema, constraints, query patterns, data volume, and deployment constraints before proposing indexes or migrations. For a migration or backfill, start with a read-only count of the affected records in each environment and size the technique to it, as step 3's reference describes.
 
 2. Explain index and query changes using representative plans and workload evidence, including write cost and storage tradeoffs.
 

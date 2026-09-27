@@ -40,6 +40,7 @@ Before calling the plan ready, check:
 - Important claims are grounded in inspected sources; facts and assumptions are distinguishable.
 - Decisions that could change the outcome, contracts, or compatibility are resolved; remaining uncertainties are bounded.
 - Every acceptance criterion is numbered and falsifiable at the base commit, appears in the `Closes:` line of at least one task, and that task's verification covers it; every `tdd` or `check` task has a `Closes:` line. An orphan criterion, a task whose verification misses a criterion it closes, or a criterion already true at the base blocks readiness. Read the criteria and markers section of [the plan format](references/plan-format.md#acceptance-criteria-and-task-markers).
+- A change to stored data records the affected-record count per environment, or why one could not be taken, and its technique and recovery match that count, as [persistent data changes](../flow-build/references/data-changes.md) describes.
 - Task interfaces and dependencies agree; no task relies on an undefined contract.
 - Each task states its execution, consistent with its dependencies and write ownership.
 - A change with a rendered UI effect plans the independent `review-ux` and `sdd-verify` children when the verification reference requires them: the base revision for comparison, viewports and themes, isolated data and browser sessions, and the browser tool selected by its [browser automation](../flow-build/references/browser-automation.md) rules. The implementer's walk does not replace them.
