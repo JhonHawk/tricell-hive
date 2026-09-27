@@ -10,7 +10,7 @@ Read before driving a browser for UI review, in-vivo verification, or diagnosis.
 
 ## Delegate the flow
 
-Captures and accessibility trees entering the main thread stay in its context for the rest of the session. Delegate a flow that takes screenshots for visual judgment, takes snapshots, or chains three or more interactions to the child that owns the judgment, normally `review-ux` or `sdd-verify`. Keep bounded text checks inline: `read`, `console`, a filtered network request, or a one-off `eval`. When the main thread must see a render, read one image from a file rather than accumulating a flow's captures. Inside a child, capture as needed.
+Captures and accessibility trees entering the main thread stay in its context for the rest of the session. Delegate a flow that takes screenshots for visual judgment, takes snapshots, or chains three or more interactions to the child that owns the judgment, normally `review-ux` or `sdd-verify`. Keep bounded text checks inline: `read`, `console`, a filtered network request, or a one-off `eval`. The child that drives a flow loads the CLI's guide with `agent-browser skills get core` once, before its first command, and adds `--full` only when a command it needs is missing; the main thread's bounded checks do not load it. When the main thread must see a render, read one image from a file rather than accumulating a flow's captures. Inside a child, capture as needed.
 
 ## Session floor
 
