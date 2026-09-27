@@ -57,7 +57,10 @@ These rules hold in every mode, including unattended delegation.
 - Prefer the established access path: existing local keys, the project's secret store, or an already-authenticated provider tool. Retrieve each authorized secret once per session into the session copy. Use 1Password only when the user explicitly asks; its installation or an unlocked vault grants nothing, and no other manager substitutes for that request. Never export a private key to work around missing access.
 - Document secrets by reference: templates use placeholders such as `$DB_PASSWORD`; reference documents mask all but what identifies the resource, such as `AKIA****TBQX`, and name where the full value lives. Before writing a full value at the user's request, state the risk and offer these forms.
 - Before committing files that could hold secrets, run the project's secret scanner when it has one.
-- When a secret is exposed in output, a transcript, a commit, or an external service, stop repeating it and tell the user at once which secret and where it reached. Recommend revoking and rotating it; deleting the local copy does not contain it. Rotating real credentials needs the user's authorization.
+- When a secret value is exposed, never repeat it, and verify where it reached before judging the exposure; treat an unconfirmed scanner match as unconfirmed, not as a leak.
+  - Only this session's or a child's output or transcript, with no file, commit, or external service: stop using the route that exposed it, name the secret and where in your next report, and continue the work. Rotation is the user's option; do not pause or ask about it separately.
+  - A durable or shared place, such as a tracked file, commit, pushed branch, pull request, tracker, or third-party log or service: tell the user at once which secret and where, stop only the action that would spread it further, and recommend revoking and rotating it; deleting the local copy does not contain it.
+  - Rotating real credentials needs the user's authorization.
 
 ## Evidence
 
