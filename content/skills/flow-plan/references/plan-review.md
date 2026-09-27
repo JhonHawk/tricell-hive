@@ -15,6 +15,8 @@ Resolve and read the canonical `review-plan` contract through the native role ca
 | Infrastructure / delivery | Environments, provider constraints, identities, secrets handling, deployment order, migrations, observability, recovery and the authorization boundaries of operational gates. |
 | Other affected surface | Assign the actual responsibility, such as mobile lifecycle, firmware/hardware or concurrency/performance; supply its relevant source and project guidance rather than forcing it into a web/backend checklist. |
 
+Every assignment, whatever its domain, also reports these as blocking findings for the tasks and criteria it covers: an orphan acceptance criterion that no task's `Closes:` line names; a task whose verification does not cover a criterion it closes; and a criterion already true at the change's base commit, which grades nothing. [The plan format](plan-format.md#acceptance-criteria-and-task-markers) defines these rules.
+
 Include cross-domain interfaces in the briefs where needed. The orchestrator reconciles those findings; a separate generic reviewer is not mandatory on top of domain reviewers. More reviewers or repeated agreement do not establish stronger evidence by themselves.
 
 ## Give a bounded assignment

@@ -23,13 +23,14 @@ import (
 // ticket_ids_not_packed_in_prose) the surrounding sentence or URL, since any
 // of those can themselves carry a secret value or a signed token.
 //
-// flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing) and
-// noPollWaitChain (gh-36-wait-for-completion-signal) are separate,
-// standalone criteria declared in this file but intentionally not returned
-// here or wired into assessFlows — see each one's own doc comment for its
-// finding and evidence rule. flowSkillReadBeforeDelivery's declared limits: a
-// skill invoked through a typed slash/dollar command (`/flow-build` in
-// Claude, `$flow-build` in Codex) is invisible to it, since parseTrace has no
+// flowSkillReadBeforeDelivery (A2, gh-33-flow-skill-routing),
+// noPollWaitChain (gh-36-wait-for-completion-signal) and
+// taskMarkedAfterVerdict (per-task-verification) are separate, standalone
+// criteria declared in this file but intentionally not returned here or
+// wired into assessFlows — see each one's own doc comment for its finding
+// and evidence rule. flowSkillReadBeforeDelivery's declared limits: a skill
+// invoked through a typed slash/dollar command (`/flow-build` in Claude,
+// `$flow-build` in Codex) is invisible to it, since parseTrace has no
 // distinguishable event for that form, and a deployment performed with no
 // Git action at all (globex's G5, the blank production page after deploy) is
 // out of scope for a criterion keyed on Git delivery actions.
@@ -2190,6 +2191,225 @@ func ticketIDsNotPackedInProse(r result) criterionAssessment {
 		}
 	}
 	if observed {
+		c.Status = "pass"
+	}
+	return c
+}
+
+// --- task_marked_after_verdict (per-task-verification T5, declared, not wired) ---
+
+// taskVerifierRole is the fixed role name design.md's task_marked_after_verdict
+// criterion watches for: per-task-verification's review-task.
+const taskVerifierRole = "review-task"
+
+// acceptedUnverifiedPrefix is design.md's D9-A acceptance line: a mark whose
+// new "- [x]" line is immediately followed by a line starting with this
+// text is exempted from requiring or consuming a review-task end.
+const acceptedUnverifiedPrefix = "accepted unverified by the user"
+
+// taskMarkLine and taskRejectLine recognize design.md's rule literally: a
+// line that starts, after leading whitespace, with the lowercase literal
+// "- [x]" or "- [!]" — never "[X]" (uppercase) or a "* [x]" bullet, which the
+// rule explicitly excludes.
+var taskMarkLine = regexp.MustCompile(`^- \[x\]`)
+var taskRejectLine = regexp.MustCompile(`^- \[!\]`)
+
+// countCheckboxLines counts, in text, the lines matched by pattern (after
+// TrimLeft-ing leading spaces/tabs), and, among those, how many are
+// immediately followed (the very next line, per design.md) by a line whose
+// trimmed text starts with acceptedUnverifiedPrefix. The second count is
+// only ever meaningful for taskMarkLine; taskMarkedAfterVerdict's reject scan
+// ignores it.
+func countCheckboxLines(text string, pattern *regexp.Regexp) (total, accepted int) {
+	if text == "" {
+		return 0, 0
+	}
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		if !pattern.MatchString(strings.TrimLeft(line, " \t")) {
+			continue
+		}
+		total++
+		if i+1 < len(lines) && strings.HasPrefix(strings.TrimSpace(lines[i+1]), acceptedUnverifiedPrefix) {
+			accepted++
+		}
+	}
+	return total, accepted
+}
+
+// taskMarkDelta reads one tasks.md edit's old/new text — OpenCode's
+// oldString/newString or Claude Edit's old_string/new_string, via
+// decodeInput — and returns the rise in "- [x]" lines (marks), how many of
+// those new marks are exempt per D9-A, and the rise in "- [!]" lines
+// (rejects). Per design.md, this cannot attribute either rise to a specific
+// task: it is purely a line-count delta between old and new, floored at
+// zero (a net decrease, which no fixture here exercises, is never negative).
+func taskMarkDelta(e traceEvent) (marks, exempt, rejects int) {
+	args := decodeInput(e)
+	oldStr, newStr := first(args, "oldString", "old_string"), first(args, "newString", "new_string")
+	oldX, oldAccepted := countCheckboxLines(oldStr, taskMarkLine)
+	newX, newAccepted := countCheckboxLines(newStr, taskMarkLine)
+	oldBang, _ := countCheckboxLines(oldStr, taskRejectLine)
+	newBang, _ := countCheckboxLines(newStr, taskRejectLine)
+	marks = newX - oldX
+	if marks < 0 {
+		marks = 0
+	}
+	exempt = newAccepted - oldAccepted
+	if exempt < 0 {
+		exempt = 0
+	}
+	if exempt > marks {
+		exempt = marks
+	}
+	rejects = newBang - oldBang
+	if rejects < 0 {
+		rejects = 0
+	}
+	return marks, exempt, rejects
+}
+
+// subagentLaunchRole reads the role a review-task-capable launch names in
+// its own input: OpenCode's subagent tool's "agent", or Claude's Agent/Task
+// tool's "subagent_type". It returns "" for any other tool.
+func subagentLaunchRole(e traceEvent) string {
+	args := decodeInput(e)
+	switch e.Tool {
+	case "subagent":
+		return str(args["agent"])
+	case "Agent", "Task":
+		return str(args["subagent_type"])
+	}
+	return ""
+}
+
+// subagentLaunchBackground reads whether a launch (see subagentLaunchRole)
+// asked to run in the background: OpenCode's "background", or Claude's
+// "run_in_background".
+func subagentLaunchBackground(e traceEvent) bool {
+	args := decodeInput(e)
+	switch e.Tool {
+	case "subagent":
+		return truth(args["background"])
+	case "Agent", "Task":
+		return truth(args["run_in_background"])
+	}
+	return false
+}
+
+// isTasksMarkdownEdit reports whether e is an edit-shaped tool call —
+// OpenCode's "edit" or Claude's "Edit", the only two spellings either host
+// produces, matched case-insensitively — on a path ending "tasks.md". An edit
+// whose result reported failure changed nothing, so it is not a mark and must
+// not consume a verdict; an edit without a recorded result still counts.
+func isTasksMarkdownEdit(e traceEvent) bool {
+	if e.Success != nil && !*e.Success {
+		return false
+	}
+	return strings.EqualFold(e.Tool, "edit") && strings.HasSuffix(filepath.ToSlash(e.Path), "tasks.md")
+}
+
+// taskMarkedAfterVerdict is design.md's task_marked_after_verdict criterion
+// (per-task-verification T5): declared here, like flowSkillReadBeforeDelivery
+// and noPollWaitChain, but deliberately not returned by regressionCriteria or
+// wired into assessFlows, because it only applies to a build whose plan
+// declares AC<n> criteria — a plan shape none of this repository's flows
+// fixtures uses.
+//
+// It watches, in trace order, for the fixed role name taskVerifierRole
+// ("review-task"):
+//
+//   - A review-task END: either (a) a successful tool_result correlated by
+//     ID to an earlier launch (OpenCode's "subagent" tool, or Claude's
+//     "Agent"/"Task" tool) that named review-task as its role and did NOT
+//     ask to run in the background — a foreground child's own tool_result
+//     IS its end, since the launch call itself blocks until the child
+//     finishes; or (b) a "subagent_end" event trace.go's parser adds for a
+//     background child's separate completion signal (OpenCode's
+//     metadata.source=subagent synthetic message, Claude's
+//     origin.kind=task-notification user message), whose Text names the
+//     role. A background launch's own tool_result — its ack that the
+//     launch itself succeeded, not that the child finished — is never
+//     treated as an end. A foreground launch's tool_result with
+//     Success==false or unset (the child errored, or its own status is
+//     unresolved) is likewise never a verdict end.
+//   - A MARK or REJECT: an edit on a path ending "tasks.md" (isTasksMarkdownEdit),
+//     read via taskMarkDelta. Per design.md, a mark cannot be attributed to
+//     its task (the edit carries no T<n>), so this only counts *lines*: the
+//     risen count of "- [x]" lines (a MARK) or "- [!]" lines (a REJECT)
+//     between the edit's old and new text. A mark whose one new "- [x]"
+//     line is immediately followed by a line starting "accepted unverified
+//     by the user" (D9-A) is exempted: it still counts as a mark for
+//     observed-vs-not_observed, but neither requires nor consumes an end.
+//
+// Each MARK (minus any exempt ones) and REJECT consumes the single oldest
+// unconsumed END. One with none pending is a fail; every one satisfied, with
+// at least one mark or reject observed, is a pass; no mark or reject at all
+// is not_observed. Evidence is always the failing edit's line/kind/tool,
+// never the old/new text, which can carry a client's real task wording.
+//
+// Declared limits (design.md):
+//   - Never attributes a mark to a specific task; read together with the
+//     plan, this produces declared false positives, not bugs: a task that
+//     never triggers review-task (a mechanical or delivery task marked
+//     `[x]` directly by the orchestrator); adding a task that starts already
+//     `[x]`; rewriting the whole plan file.
+//   - A `cannot verify` verdict leaves the task `[?]`, so it produces no mark
+//     and never consumes an end; that end remains available for a later
+//     mark.
+//   - `[X]` (uppercase) and `* [x]` (a different bullet marker) never count,
+//     per taskMarkLine/taskRejectLine.
+//   - Codex's file_change and Claude's Write/MultiEdit carry no
+//     oldString/newString (or old_string/new_string) pair, so an edit
+//     through either is invisible to taskMarkDelta — not_observed by this
+//     function specifically, even if it is a real mark no fixture here
+//     exercises.
+func taskMarkedAfterVerdict(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "task_marked_after_verdict", Status: "not_observed"}
+	type launchInfo struct {
+		role       string
+		background bool
+	}
+	launches := map[string]launchInfo{}
+	pendingEnds := 0
+	observed := false
+	fail := func(e traceEvent) {
+		c.Status = "fail"
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+	}
+	for _, e := range r.Trace.Events {
+		switch {
+		case e.Tool == "subagent" || e.Tool == "Agent" || e.Tool == "Task":
+			if role := subagentLaunchRole(e); role != "" && e.ID != "" {
+				launches[e.ID] = launchInfo{role: role, background: subagentLaunchBackground(e)}
+			}
+		case e.Kind == "tool_result":
+			if info, ok := launches[e.ID]; ok {
+				delete(launches, e.ID)
+				if info.role == taskVerifierRole && !info.background && e.Success != nil && *e.Success {
+					pendingEnds++
+				}
+			}
+		case e.Kind == "subagent_end":
+			if e.Text == taskVerifierRole {
+				pendingEnds++
+			}
+		case isTasksMarkdownEdit(e):
+			marks, exempt, rejects := taskMarkDelta(e)
+			if marks+rejects > 0 {
+				observed = true
+			}
+			need := (marks - exempt) + rejects
+			for i := 0; i < need; i++ {
+				if pendingEnds > 0 {
+					pendingEnds--
+				} else {
+					fail(e)
+				}
+			}
+		}
+	}
+	if observed && c.Status != "fail" {
 		c.Status = "pass"
 	}
 	return c

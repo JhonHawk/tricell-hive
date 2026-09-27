@@ -439,3 +439,75 @@ func TestPiMessageEndAssignsMessageKeyToItsToolCallsAndDistinguishesRole(t *test
 		t.Fatal("Pi's toolResult-role message_end text was tagged as assistant role")
 	}
 }
+
+// --- per-task-verification T5: background-child end events for
+// task_marked_after_verdict ---
+
+// TestOpenCodeSubagentBackgroundEndProducesSubagentEndEvent proves the
+// OpenCode branch of parseTrace turns a background child's real completion
+// signal — a "synthetic" message with metadata.source="subagent", an agent
+// name and state="completed", per design.md's declared wire-format
+// assumption — into a "subagent_end" event carrying the role in Text. The
+// launch's own ack (background=true, whose state.status is "completed" the
+// moment the launch itself returns) must not itself be mistaken for this
+// event.
+func TestOpenCodeSubagentBackgroundEndProducesSubagentEndEvent(t *testing.T) {
+	trace := `{"type":"tool_use","sessionID":"ses-1","part":{"type":"tool","tool":"subagent","callID":"call-1","messageID":"msg-1","state":{"status":"completed","input":{"agent":"review-task","background":true}}}}
+{"type":"synthetic","sessionID":"ses-1","metadata":{"source":"subagent","agent":"review-task","state":"completed","childID":"child-1"}}`
+	r := parseTrace("opencode", strings.NewReader(trace))
+	var ends []traceEvent
+	for _, e := range r.Events {
+		if e.Kind == "subagent_end" {
+			ends = append(ends, e)
+		}
+	}
+	if len(ends) != 1 || ends[0].Text != "review-task" {
+		t.Fatalf("expected exactly one subagent_end event carrying the role, got %+v", r.Events)
+	}
+}
+
+// TestOpenCodeSyntheticMessageWithoutSubagentCompletionProducesNoEndEvent
+// proves a "synthetic" message that is not a completed subagent signal — a
+// different metadata.source, or state != "completed" — never produces a
+// subagent_end event; only that exact shape does.
+func TestOpenCodeSyntheticMessageWithoutSubagentCompletionProducesNoEndEvent(t *testing.T) {
+	for _, trace := range []string{
+		`{"type":"synthetic","metadata":{"source":"other","agent":"review-task","state":"completed"}}`,
+		`{"type":"synthetic","metadata":{"source":"subagent","agent":"review-task","state":"running"}}`,
+	} {
+		r := parseTrace("opencode", strings.NewReader(trace))
+		for _, e := range r.Events {
+			if e.Kind == "subagent_end" {
+				t.Fatalf("unexpected subagent_end from %q: %+v", trace, r.Events)
+			}
+		}
+	}
+}
+
+// TestClaudeSubagentBackgroundEndProducesSubagentEndEvent proves the Claude
+// branch turns a background child's completion notification — a user
+// message carrying origin.kind="task-notification" and a subagent_type, per
+// design.md's declared wire-format assumption (observed only in interactive
+// Claude Code transcripts, not `claude -p --output-format stream-json`) —
+// into a "subagent_end" event carrying the role in Text.
+func TestClaudeSubagentBackgroundEndProducesSubagentEndEvent(t *testing.T) {
+	trace := `{"type":"user","origin":{"kind":"task-notification","subagent_type":"review-task"},"message":{"content":[]}}`
+	r := parseTrace("claude", strings.NewReader(trace))
+	if len(r.Events) != 1 || r.Events[0].Kind != "subagent_end" || r.Events[0].Text != "review-task" {
+		t.Fatalf("expected a single subagent_end event carrying the role, got %+v", r.Events)
+	}
+}
+
+// TestClaudeOrdinaryUserMessageProducesNoSubagentEndEvent proves an ordinary
+// user message — a real tool_result, with no origin.kind="task-notification"
+// — never produces a subagent_end event, so a launch's own foreground
+// tool_result is never double-counted through this new path.
+func TestClaudeOrdinaryUserMessageProducesNoSubagentEndEvent(t *testing.T) {
+	trace := `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"c1","content":"hello"}]}}`
+	r := parseTrace("claude", strings.NewReader(trace))
+	for _, e := range r.Events {
+		if e.Kind == "subagent_end" {
+			t.Fatalf("ordinary user message produced a subagent_end: %+v", r.Events)
+		}
+	}
+}

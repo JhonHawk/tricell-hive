@@ -25,8 +25,8 @@ func TestCatalogueRendersAllRolesForEveryHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sources) != 19 {
-		t.Fatalf("catalogue has %d roles, want 19", len(sources))
+	if len(sources) != 20 {
+		t.Fatalf("catalogue has %d roles, want 20", len(sources))
 	}
 	for _, source := range sources {
 		data, err := os.ReadFile(source)
@@ -265,6 +265,7 @@ func TestRepositorySourcesMatchExpectedEffortLevels(t *testing.T) {
 		"database-specialist":            {"high", "medium", "medium"},
 		"performance-engineer":           {"high", "medium", "medium"},
 		"review-code":                    {"high", "medium", "medium"},
+		"review-task":                    {"high", "medium", "medium"},
 		"review-harness":                 {"high", "medium", "medium"},
 		"review-plan":                    {"medium", "medium", "medium"},
 		"solution-architect":             {"high", "high", "high"},

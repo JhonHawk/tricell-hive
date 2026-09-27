@@ -6,9 +6,9 @@ Read when creating, updating, or closing a change folder. `<specs>` below is the
 
 | File | Carries | From the [plan template](plan-format.md) |
 | --- | --- | --- |
-| `proposal.md` | Why the change exists, scope and exclusions, acceptance criteria, tracker issues, delivery decisions, current status | Control sheet, Objective, Scope and acceptance, Delivery |
+| `proposal.md` | Why the change exists, scope and exclusions, constraints, numbered acceptance criteria (`AC<n>`), tracker issues, delivery decisions, current status | Control sheet, Objective, Scope and acceptance, Delivery |
 | `design.md` | Verified context, selected approach, contracts, UI view decisions, migration constraints | Verified context, Proposed design |
-| `tasks.md` | Checkbox tasks with execution, locations, and verification; shared gates; review status, progress, and next step | Tasks, Verification and human review, Review status and progress |
+| `tasks.md` | The change's base commit once the build starts; tasks with their markers, `Closes:` lines, execution, locations, and verification; shared gates; review status, progress, and next step | Tasks, Verification and human review, Review status and progress |
 | `research.md` | Retained investigation for this change, only when retention is authorized | — |
 | `specs/<capability>/spec.md` | Requirement deltas against the current specs | — |
 

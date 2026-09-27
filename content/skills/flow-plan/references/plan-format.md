@@ -6,17 +6,35 @@ Write the actual human-facing plan in the session language, including headings a
 
 ## What the document must carry
 
-- The outcome, boundaries, constraints, and observable acceptance criteria.
+- The outcome, boundaries, constraints, and acceptance criteria written as described in [Acceptance criteria and task markers](#acceptance-criteria-and-task-markers).
 - The inspected context and evidence behind consequential decisions, with relevant versions or dates. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
 - The selected approach, affected contracts, meaningful assumptions, and unresolved blockers. Include migration or recovery behavior only when the work needs it. Record material scope clarifications and proposed expansions with their disposition. The essential decisions must be understandable without recovering the original conversation.
 - For UI work, the relevant view decisions from [UI planning](ui-planning.md): application/area, guide status, shell/pattern and inspected reference, reuse, justified differences, states, and acceptance. Group equivalent views; omit this for work without a UI change.
 - Delivery decisions from [the planning decision reference](delivery-decisions.md): Git mode or narrower instruction, repositories/base, authorized effects and stop conditions, implementation-review mechanism and pending consent.
 - Local in-vivo applicability and rationale; if deemed unnecessary, the offered walk and user response or pending choice. For UI, include proportional coverage, built local environment, accounts/data prerequisites and the human walkthrough; record remote exceptions explicitly.
-- Checkbox tasks grouped by a coherent result, with dependencies, source locations, and an actual verification command or observation and its expected outcome.
+- Checkbox tasks grouped by a coherent result, with the criteria each one closes, dependencies, source locations, and an actual verification command or observation and its expected outcome.
 - For a saved implementation plan, the reviewed revision, relevant domain coverage, reconciled findings and unresolved review limits from [plan review](plan-review.md).
 - Current progress, evidence, and the next actionable step. Distinguish work that is ready, work that is authorized, and work that has been verified; one does not imply the others.
 
 Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks.
+
+## Acceptance criteria and task markers
+
+Number acceptance criteria `AC1`, `AC2`, and so on, one observable behavior each. For each criterion, name the observation that would show it false, and make sure that observation is false at the change's base commit, the commit the build starts from. A criterion that is already true there, that only another change can satisfy, or that restates the request grades nothing: rewrite it or drop it. Conditions that must stay true, such as "the existing suite still passes", are constraints: list them apart from the criteria.
+
+Every task that satisfies a criterion carries a `**Closes:** AC<n>, …` line, and its **Verification** covers each criterion it closes. Every task whose test approach is `tdd` or `check` carries `Closes:`; if such a task closes nothing, a criterion is missing or the task is unnecessary. Keep `AC<n>`, `T<n>` and the `Closes:` label untranslated in any session language, because the build and the task verifier search for them.
+
+Mark each task with one of these markers:
+
+| Marker | Meaning |
+| --- | --- |
+| `[ ]` | Pending. |
+| `[/]` | In progress. |
+| `[?]` | Done by the implementer, waiting for verification. When verification is blocked, a line `blocked: <prerequisite>` follows it. |
+| `[x]` | Verified. When the user accepted the task without verification, a line `accepted unverified by the user: <reason>` follows it. |
+| `[!]` | Rejected by verification. A line with the round, the `AC<n>`, and the reason follows it. |
+
+`flow-build` owns the transitions. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
 
 ## Opening control sheet
 
@@ -47,7 +65,9 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 ## Scope and acceptance
 
-<Included work, relevant exclusions with their rationale, constraints and concrete acceptance criteria.>
+<Included work, relevant exclusions with their rationale, and constraints that must stay true.>
+
+- AC1. <Observable behavior>. *False at the base when* <observation>.
 
 ## Verified context
 
@@ -68,6 +88,8 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 ### T1 — <Coherent result>
 
 - [ ] <Observable result>.
+
+**Closes:** <AC IDs; omit when the task satisfies no criterion and has no `tdd` or `check` approach>.
 
 **Depends on:** <task IDs or none>.
 

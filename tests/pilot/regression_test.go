@@ -736,6 +736,18 @@ func TestRegressionFixtures(t *testing.T) {
 		{"no_poll_wait_chain", "codex", "codex-wait-pass.jsonl", "pass", noPollWaitChain},
 		{"no_poll_wait_chain", "codex", "codex-wait-failed-pass.jsonl", "pass", noPollWaitChain},
 		{"no_poll_wait_chain", "codex", "codex-wait-result-pass.jsonl", "pass", noPollWaitChain},
+		{"task_marked_after_verdict", "opencode", "opencode-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "opencode", "opencode-no-launch-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "opencode", "opencode-double-mark-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "opencode", "opencode-batch-mark-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "opencode", "opencode-reject-then-mark-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "opencode", "opencode-pass.jsonl", "pass", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "opencode", "opencode-accepted-pass.jsonl", "pass", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "claude", "claude-background-ack-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "claude", "claude-background-pass.jsonl", "pass", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "claude", "claude-foreground-failed-fail.jsonl", "fail", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "claude", "claude-foreground-pass.jsonl", "pass", taskMarkedAfterVerdict},
+		{"task_marked_after_verdict", "claude", "claude-failed-mark-retry-pass.jsonl", "pass", taskMarkedAfterVerdict},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)
@@ -883,6 +895,36 @@ func TestFlowSkillReadBeforeDeliveryNotWiredIntoRegressionCriteria(t *testing.T)
 	for _, c := range regressionCriteria(r) {
 		if c.Criterion == "flow_skill_read_before_delivery" {
 			t.Fatal("flow_skill_read_before_delivery must not be wired into regressionCriteria")
+		}
+	}
+}
+
+// TestTaskMarkedAfterVerdictEndWithoutMarksIsNotObserved proves a trace that
+// has a review-task end (here, a background child's subagent_end signal) but
+// never edits tasks.md stays not_observed: an end alone, with no mark or
+// reject to require or consume it, is not itself something the criterion
+// judges.
+func TestTaskMarkedAfterVerdictEndWithoutMarksIsNotObserved(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		{Kind: "subagent_end", Text: "review-task"},
+	}}}
+	if got := taskMarkedAfterVerdict(r).Status; got != "not_observed" {
+		t.Fatalf("got %s want not_observed", got)
+	}
+}
+
+// TestTaskMarkedAfterVerdictNotWiredIntoRegressionCriteria proves
+// task_marked_after_verdict (per-task-verification T5), like
+// flow_skill_read_before_delivery and no_poll_wait_chain above, is declared
+// but never returned by regressionCriteria: it only applies to a plan with
+// AC<n> criteria, a shape none of this repository's flows fixtures uses.
+func TestTaskMarkedAfterVerdictNotWiredIntoRegressionCriteria(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		{Kind: "write", Tool: "edit", Path: "openspec/changes/example-change/tasks.md", Input: json.RawMessage(`{"oldString":"- [ ] T1","newString":"- [x] T1"}`)},
+	}}}
+	for _, c := range regressionCriteria(r) {
+		if c.Criterion == "task_marked_after_verdict" {
+			t.Fatal("task_marked_after_verdict must not be wired into regressionCriteria")
 		}
 	}
 }

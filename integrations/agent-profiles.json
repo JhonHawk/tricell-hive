@@ -18,7 +18,7 @@
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
-      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "reasoning": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}},
+      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "reasoning": {"model": "github-copilot/claude-opus-5.5"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
     },
     "cursor": {
