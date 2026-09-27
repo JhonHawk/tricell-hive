@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En progreso · T1 verificado; entrega (T3) en curso |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`71fcebe`) y desplegado como release `112fed74f1db` |
 | Tracker · GitHub Issues | • [#43 — Cierre con el CI de la rama base en rojo: flow-build no espera el CI posterior al merge](https://github.com/JhonHawk/tricell-hive/issues/43) |
 | Git | `direct-base` a `rebuild/harness-engineering` · sin PR · release a los seis hosts tras el push |
 | Verificación | `go vet ./...` · `go test -race ./...` · comprobación de la regla con ARK-730 y ARK-734 · texto en los archivos de cada host |
-| Siguiente paso | Commit, push y release (T3); después, comentario en #43 (T2) y cierre |
+| Siguiente paso | Ninguno en este cambio. El efecto en sesiones reales no se midió, porque los pilotos están pausados |
 
 ## Objetivo
 

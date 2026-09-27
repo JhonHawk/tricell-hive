@@ -23,7 +23,9 @@
 
 ### T2 — Comentario en #43
 
-- [ ] Comentario en #43 con D1-A, D2-A, D5-A y D6-A, el caso de ark ARK-734 como segunda evidencia ([design.md](design.md#contexto-verificado)) y el commit de T3.
+- [x] Comentario en #43 con D1-A, D2-A, D5-A y D6-A, el caso de ark ARK-734 como segunda evidencia ([design.md](design.md#contexto-verificado)) y el commit de T3.
+
+**Evidencia (T2):** [comentario en #43](https://github.com/JhonHawk/tricell-hive/issues/43#issuecomment-5854590714). `review-task` nativo dio AC4 como `met`: el comentario contiene `71fcebe`, ARK-734, D1-A, D2-A, D5-A y D6-A.
 
 **Closes:** AC4.
 **Depende de:** T3 (el comentario cita el commit integrado).
@@ -35,16 +37,20 @@
 ### T3 — Verificación conjunta y entrega
 
 - [x] `go vet ./...` y `go test -race -count=1 ./...` en verde, en un worktree limpio de `ec20d91` con solo los dos archivos de T1. En el árbol principal, `go vet` fallaba en `tests/pilot/flows_test.go:163` (`undefined: skillReadIndex`) por ediciones sin commit de la otra sesión. Esa sesión las integró en `6c3a78d`, y sobre esa cabeza `go vet ./...` y `go test -race ./tests/...` pasan con este cambio.
-- [ ] Revisar `git status` y `git diff`: si hay hunks ajenos sin commit en los dos archivos de T1, se hace stage solo de los propios con un parche aplicado por `git apply --cached`.
-- [ ] Stage por ruta explícita, nunca por directorio (`git-workflow/SKILL.md:20`): `content/skills/flow-build/references/verification.md`, `content/skills/git-workflow/SKILL.md` y `_support/openspec/changes/gh-43-post-merge-ci-coverage/{proposal,design,tasks}.md`. `git diff --cached --stat` debe listar solo esas cinco rutas. Después, gitleaks sobre lo que está en stage.
-- [ ] Commit cuyo mensaje nombra las dos sesiones de [design.md](design.md#procedencia-en-el-commit) con su falla. `git pull --ff-only`, push a `rebuild/harness-engineering`, y confirmar que la cabeza remota es el commit.
-- [ ] Release desde un worktree limpio del commit, con el plan en el directorio temporal de la sesión:
+- [x] Revisar `git status` y `git diff`: no había hunks ajenos en esos archivos (la otra sesión integró lo suyo en `6c3a78d`); no hizo falta el stage parcial. Si hay hunks ajenos sin commit en los dos archivos de T1, se hace stage solo de los propios con un parche aplicado por `git apply --cached`.
+- [x] Stage por ruta explícita, nunca por directorio (`git-workflow/SKILL.md:20`): `content/skills/flow-build/references/verification.md`, `content/skills/git-workflow/SKILL.md` y `_support/openspec/changes/gh-43-post-merge-ci-coverage/{proposal,design,tasks}.md`. `git diff --cached --stat` debe listar solo esas cinco rutas. Después, gitleaks sobre lo que está en stage. **Evidencia:** cinco rutas en stage, gitleaks sin hallazgos.
+- [x] Commit cuyo mensaje nombra las dos sesiones de [design.md](design.md#procedencia-en-el-commit) con su falla. `git pull --ff-only`, push a `rebuild/harness-engineering`, y confirmar que la cabeza remota es el commit. **Evidencia:** `71fcebe` sobre `6c3a78d`; la cabeza remota es `71fcebe`.
+- [x] Release desde un worktree limpio del commit, con el plan en el directorio temporal de la sesión:
   - `go run ./tooling/cli plan install --hosts codex,claude,grok,pi,opencode,cursor --scope user --out <plan absoluto>`
   - `go run ./tooling/cli apply --plan <plan absoluto>`
   - `go run ./tooling/cli status --hosts codex,claude,grok,pi,opencode,cursor --scope user` reporta los recursos `installed`.
   - `rg -l "also check the CI it triggered"` encuentra el `git-workflow/SKILL.md` desplegado de cada host.
   - Después, `git worktree remove` del worktree y borrado del plan.
-- [ ] T2. Después, el cierre:
+  - **Evidencia:**
+    - Release `112fed74f1db` desplegada con el plan `a1671811edca`: 437 recursos `installed` y 0 en otro estado.
+    - Los hosts leen `git-workflow/SKILL.md` y `verification.md` de una sola copia en `~/.agents/skills/`, cuyos consumidores son claude, codex, cursor, grok, opencode y pi. Las dos frases están en esa copia.
+    - Worktree y plan borrados.
+- [x] T2. Después, el cierre:
   - estado cerrado en `proposal.md` con el commit;
   - `git mv` a `changes/archive/2026-09-27-gh-43-post-merge-ci-coverage`;
   - commit de cierre por rutas explícitas y push;
@@ -88,4 +94,4 @@ No hay superficie de UI ni runtime. La comprobación de comportamiento es la lec
 
 **Límites:** los revisores no reverificaron los datos de sample-project ni de ark; los de ark los observé yo con `gh`.
 
-**Implementación:** T1 verificado; T3 en curso.
+**Implementación:** completa. T1 y T2 verificados por `review-task`; T3 entregado en `71fcebe`, con la release `112fed74f1db`. El efecto en sesiones reales no se midió porque los pilotos están pausados.
