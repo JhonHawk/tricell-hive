@@ -467,22 +467,6 @@ func parseTrace(host string, input io.Reader) traceReport {
 					}
 				}
 			}
-			// A background child's real completion — OpenCode's synthetic
-			// message analogue — arrives here as a plain top-level user
-			// message carrying origin.kind "task-notification", per
-			// design.md's declared wire-format assumption (observed only
-			// in interactive Claude Code transcripts, not `claude -p
-			// --output-format stream-json`). A foreground child's own
-			// launch tool_result is its end already, via the ordinary
-			// tool_use/tool_result pairing above; this only adds the
-			// background case's separate signal.
-			if host == "claude" && typ == "user" {
-				if origin := object(ev["origin"]); str(origin["kind"]) == "task-notification" {
-					if role := str(origin["subagent_type"]); role != "" {
-						r.Events = append(r.Events, traceEvent{Line: line, Kind: "subagent_end", Text: role})
-					}
-				}
-			}
 			if typ == "result" {
 				r.TerminalSeen = true
 				if truth(ev["is_error"]) || strings.HasPrefix(str(ev["subtype"]), "error") {
@@ -537,14 +521,6 @@ func parseTrace(host string, input io.Reader) traceReport {
 					// codex exec 0.157.0 has no request_user_input in exec mode, so a
 					// Codex close question is only ever observed as assistant text.
 					r.Events = append(r.Events, traceEvent{Line: line, Kind: "text", Text: str(i["text"]), Role: "assistant"})
-				case "collab_tool_call":
-					// The whole item (not just a nested "arguments" object, which this
-					// item never has) is kept as Input, since agents_states —
-					// noPollWaitChain's only interest — lives beside
-					// tool/sender_thread_id/receiver_thread_ids/prompt at the item's
-					// top level.
-					addTool(line, "collab_"+str(i["tool"]), id, i, "")
-					finishTool(line, id, "", str(i["status"]) == "failed")
 				}
 			}
 		case "pi":
@@ -629,21 +605,6 @@ func parseTrace(host string, input io.Reader) traceReport {
 				}
 				if len(u) > 0 {
 					r.Usage = append(r.Usage, map[string]any{"line": line, "source": typ, "usage": u})
-				}
-			case "synthetic":
-				// A background child's real completion signal: the DB-observed
-				// shape is metadata.source="subagent", .agent and
-				// .state="completed" on a plain top-level message with no "part"
-				// (design.md's declared wire-format assumption: this exact
-				// "synthetic" stream event type is invented from that DB shape,
-				// not observed from `opencode run --format json` itself). A
-				// foreground child's completion is its own launch tool_use's
-				// state.status="completed" above; this only adds the background
-				// case's separate signal.
-				if meta := object(ev["metadata"]); str(meta["source"]) == "subagent" && str(meta["state"]) == "completed" {
-					if role := str(meta["agent"]); role != "" {
-						r.Events = append(r.Events, traceEvent{Line: line, Kind: "subagent_end", Text: role})
-					}
 				}
 			}
 		}

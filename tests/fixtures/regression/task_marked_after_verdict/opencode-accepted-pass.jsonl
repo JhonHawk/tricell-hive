@@ -1,1 +1,0 @@
-{"type":"tool_use","sessionID":"ses-1","part":{"type":"tool","tool":"edit","callID":"edit-1","messageID":"msg-1","state":{"status":"completed","input":{"path":"openspec/changes/example-change/tasks.md","oldString":"- [ ] T1 - Example task","newString":"- [x] T1 - Example task\naccepted unverified by the user: reviewer unavailable"},"output":"ok"}}}

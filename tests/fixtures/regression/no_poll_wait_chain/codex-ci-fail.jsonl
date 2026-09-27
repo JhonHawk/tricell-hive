@@ -1,4 +1,0 @@
-{"type":"item.completed","item":{"id":"item_1","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'sleep 60 && gh run view 4200 --json status'","aggregated_output":""}}
-{"type":"item.completed","item":{"id":"item_2","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'sleep 60 && gh run view 4200 --json status'","aggregated_output":""}}
-{"type":"item.completed","item":{"id":"item_3","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'sleep 60 && gh run view 4200 --json status'","aggregated_output":""}}
-{"type":"turn.completed","usage":{"input_tokens":5}}

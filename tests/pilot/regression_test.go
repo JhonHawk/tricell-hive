@@ -709,9 +709,6 @@ func TestRegressionFixtures(t *testing.T) {
 		{"merged_branch_deleted", "grok", "grok-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
 		{"merged_branch_deleted", "codex", "codex-fail.jsonl", "fail", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
 		{"merged_branch_deleted", "codex", "codex-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
-		{"flow_skill_read_before_delivery", "grok", "grok-fail.jsonl", "fail", flowSkillReadBeforeDelivery},
-		{"flow_skill_read_before_delivery", "grok", "grok-pass.jsonl", "pass", flowSkillReadBeforeDelivery},
-		{"flow_skill_read_before_delivery", "codex", "codex-pass.jsonl", "pass", flowSkillReadBeforeDelivery},
 		{"cited_id_glossed", "claude", "claude-fail.jsonl", "fail", citedIDGlossed},
 		{"cited_id_glossed", "claude", "claude-pass.jsonl", "pass", citedIDGlossed},
 		{"cited_id_glossed", "claude", "claude-question-after-text-fail.jsonl", "fail", citedIDGlossed},
@@ -727,27 +724,6 @@ func TestRegressionFixtures(t *testing.T) {
 		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-label-pass.jsonl", "pass", ticketIDsNotPackedInProse},
 		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-ids-only-pass.jsonl", "pass", ticketIDsNotPackedInProse},
 		{"ticket_ids_not_packed_in_prose", "grok", "grok-bold-label-then-bare-ids-fail.jsonl", "fail", ticketIDsNotPackedInProse},
-		{"no_poll_wait_chain", "codex", "codex-ci-fail.jsonl", "fail", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-ci-bare-sleep-fail.jsonl", "fail", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-ci-pass.jsonl", "pass", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-ci-single-pass.jsonl", "pass", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-ci-log-failed-pass.jsonl", "pass", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-wait-fail.jsonl", "fail", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-wait-pass.jsonl", "pass", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-wait-failed-pass.jsonl", "pass", noPollWaitChain},
-		{"no_poll_wait_chain", "codex", "codex-wait-result-pass.jsonl", "pass", noPollWaitChain},
-		{"task_marked_after_verdict", "opencode", "opencode-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "opencode", "opencode-no-launch-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "opencode", "opencode-double-mark-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "opencode", "opencode-batch-mark-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "opencode", "opencode-reject-then-mark-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "opencode", "opencode-pass.jsonl", "pass", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "opencode", "opencode-accepted-pass.jsonl", "pass", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "claude", "claude-background-ack-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "claude", "claude-background-pass.jsonl", "pass", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "claude", "claude-foreground-failed-fail.jsonl", "fail", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "claude", "claude-foreground-pass.jsonl", "pass", taskMarkedAfterVerdict},
-		{"task_marked_after_verdict", "claude", "claude-failed-mark-retry-pass.jsonl", "pass", taskMarkedAfterVerdict},
 	} {
 		t.Run(c.criterion+"/"+c.file, func(t *testing.T) {
 			path := filepath.Join(root, c.criterion, c.file)
@@ -762,170 +738,6 @@ func TestRegressionFixtures(t *testing.T) {
 				t.Fatalf("%s: got %s want %s", path, got, c.want)
 			}
 		})
-	}
-}
-
-// --- no_poll_wait_chain (gh-36, declared, not wired) ---
-
-// TestNoPollWaitChainNotObservedWithoutAnyWait proves a trace with no
-// status-query cycle, `gh run watch`, or collab_wait yields not_observed,
-// per design.md's "Resultado" ("no observado cuando no hay ninguno").
-func TestNoPollWaitChainNotObservedWithoutAnyWait(t *testing.T) {
-	yes := true
-	r := result{Trace: traceReport{Events: []traceEvent{
-		{Kind: "shell", Command: "git status", Success: &yes},
-		{Kind: "text", Role: "assistant", Text: "No polling or waiting in this trace."},
-	}}}
-	if got := noPollWaitChain(r).Status; got != "not_observed" {
-		t.Fatalf("got %s want not_observed", got)
-	}
-}
-
-func TestGhStatusQueryRequiresMarkerOnlyForPrView(t *testing.T) {
-	for _, c := range []struct {
-		args []string
-		want bool
-	}{
-		{[]string{"gh", "run", "view", "4200", "--json", "status"}, true},
-		{[]string{"GH_PAGER=", "gh", "-R", "o/r", "run", "list"}, true},
-		{[]string{"gh", "pr", "checks", "12"}, true},
-		{[]string{"gh", "pr", "view", "12", "--json", "statusCheckRollup"}, true},
-		{[]string{"gh", "pr", "view", "12", "--json", "title"}, false},
-		{[]string{"gh", "run", "view", "4200", "--log-failed"}, false},
-		{[]string{"gh", "pr", "checks", "12", "--watch"}, false},
-	} {
-		if got := ghStatusQuery(c.args); got != c.want {
-			t.Errorf("ghStatusQuery(%q) = %v, want %v", c.args, got, c.want)
-		}
-	}
-}
-
-func TestNoPollWaitChainNotWiredIntoRegressionCriteria(t *testing.T) {
-	r := result{Trace: traceReport{}}
-	for _, c := range regressionCriteria(r) {
-		if c.Criterion == "no_poll_wait_chain" {
-			t.Fatal("no_poll_wait_chain must not be wired into regressionCriteria")
-		}
-	}
-}
-
-// --- flow_skill_read_before_delivery (gh-33 A2/T2, declared, not wired) ---
-
-// TestFlowSkillReadBeforeDelivery uses a two-event readCall/readContent pair
-// (rather than a single bare "read" event) because A2 requires content
-// (gh-33 /code-review finding 1): skillReadIndex is strict, so a "read" kind
-// event only counts once its own tool_result carries the skill's front
-// matter. readContent's trace index — not readCall's — is what the ordering
-// checks below compare against a delivery action's index, since that is the
-// index skillReadIndex itself now returns (gh-33 /code-review finding 2).
-func TestFlowSkillReadBeforeDelivery(t *testing.T) {
-	yes, no := true, false
-	skillBody := "---\nname: flow-build\ndescription: Implement or resume authorized work.\n---\n# Flow build\nShort stand-in body.\n"
-	readCall := func(id string) traceEvent {
-		return traceEvent{Kind: "read", ID: id, Path: "/home/.agents/skills/flow-build/SKILL.md", Success: &yes}
-	}
-	readContent := func(id string) traceEvent {
-		return traceEvent{Kind: "tool_result", ID: id, Success: &yes, Text: skillBody}
-	}
-	shell := func(command string) traceEvent { return traceEvent{Kind: "shell", Command: command, Success: &yes} }
-	failedShell := func(command string) traceEvent { return traceEvent{Kind: "shell", Command: command, Success: &no} }
-	for _, tc := range []struct {
-		name   string
-		events []traceEvent
-		want   string
-	}{
-		{"no-git-action-is-not-observed", []traceEvent{shell("git status")}, "not_observed"},
-		{"commit-without-any-read-fails", []traceEvent{shell(`git commit -m "x"`)}, "fail"},
-		{"read-before-commit-passes", []traceEvent{readCall("r1"), readContent("r1"), shell(`git commit -m "x"`)}, "pass"},
-		{"read-before-push-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("git push origin main")}, "pass"},
-		{"read-before-gh-pr-create-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("gh pr create --title x --body y")}, "pass"},
-		{"read-before-gh-pr-merge-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("gh pr merge 42 --merge")}, "pass"},
-		{"read-before-local-git-merge-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("git merge origin/main")}, "pass"},
-		{"read-before-gh-api-pr-merge-put-passes", []traceEvent{readCall("r1"), readContent("r1"), shell("gh api -X PUT repos/o/r/pulls/42/merge")}, "pass"},
-		{"gh-pr-create-without-read-fails", []traceEvent{shell("gh pr create --title x --body y")}, "fail"},
-		{"local-git-merge-without-read-fails", []traceEvent{shell("git merge origin/main")}, "fail"},
-		{"gh-api-pr-merge-put-without-read-fails", []traceEvent{shell("gh api -X PUT repos/o/r/pulls/42/merge")}, "fail"},
-		{"gh-api-pr-merge-get-is-not-a-delivery-action", []traceEvent{shell("gh api repos/o/r/pulls/42/merge")}, "not_observed"},
-		{"failed-shell-attempt-still-counts", []traceEvent{failedShell(`git commit -m "x"`)}, "fail"},
-		{
-			"read-arrives-after-the-first-git-action-still-fails-that-action",
-			[]traceEvent{shell(`git commit -m "x"`), readCall("r1"), readContent("r1"), shell("git push origin main")},
-			"fail",
-		},
-		{
-			// gh-33 /code-review finding 2: the read call is issued in the same
-			// batch as (before) the commit call, but its content only arrives
-			// after the commit was already dispatched — the model could not
-			// have seen it yet, so this must fail, not pass.
-			"read-content-arrives-after-a-parallel-batched-delivery-call-fails",
-			[]traceEvent{readCall("r1"), shell(`git commit -m "x"`), readContent("r1")},
-			"fail",
-		},
-		{"wrapped-in-shell-dash-lc-still-detected", []traceEvent{shell(`/bin/zsh -lc "git commit -m 'x'"`)}, "fail"},
-		{"non-git-shell-command-is-not-a-delivery-action", []traceEvent{shell("npm test")}, "not_observed"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			r := result{Trace: traceReport{Events: tc.events}}
-			if got := flowSkillReadBeforeDelivery(r).Status; got != tc.want {
-				t.Fatalf("got %s want %s", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestFlowSkillReadBeforeDeliveryEvidenceNeverIncludesCommandText(t *testing.T) {
-	yes := true
-	r := result{Trace: traceReport{Events: []traceEvent{
-		{Line: 5, Kind: "shell", Tool: "run_terminal_command", Command: `git commit -m "secret project name"`, Success: &yes},
-	}}}
-	a := flowSkillReadBeforeDelivery(r)
-	if a.Status != "fail" {
-		t.Fatalf("expected fail, got %+v", a)
-	}
-	for _, e := range a.Evidence {
-		if strings.Contains(e, "git commit") || strings.Contains(e, "secret project name") {
-			t.Fatalf("evidence leaked command text: %q", e)
-		}
-	}
-}
-
-func TestFlowSkillReadBeforeDeliveryNotWiredIntoRegressionCriteria(t *testing.T) {
-	yes := true
-	r := result{Trace: traceReport{Events: []traceEvent{{Kind: "shell", Command: "git commit -m \"x\"", Success: &yes}}}}
-	for _, c := range regressionCriteria(r) {
-		if c.Criterion == "flow_skill_read_before_delivery" {
-			t.Fatal("flow_skill_read_before_delivery must not be wired into regressionCriteria")
-		}
-	}
-}
-
-// TestTaskMarkedAfterVerdictEndWithoutMarksIsNotObserved proves a trace that
-// has a review-task end (here, a background child's subagent_end signal) but
-// never edits tasks.md stays not_observed: an end alone, with no mark or
-// reject to require or consume it, is not itself something the criterion
-// judges.
-func TestTaskMarkedAfterVerdictEndWithoutMarksIsNotObserved(t *testing.T) {
-	r := result{Trace: traceReport{Events: []traceEvent{
-		{Kind: "subagent_end", Text: "review-task"},
-	}}}
-	if got := taskMarkedAfterVerdict(r).Status; got != "not_observed" {
-		t.Fatalf("got %s want not_observed", got)
-	}
-}
-
-// TestTaskMarkedAfterVerdictNotWiredIntoRegressionCriteria proves
-// task_marked_after_verdict (per-task-verification T5), like
-// flow_skill_read_before_delivery and no_poll_wait_chain above, is declared
-// but never returned by regressionCriteria: it only applies to a plan with
-// AC<n> criteria, a shape none of this repository's flows fixtures uses.
-func TestTaskMarkedAfterVerdictNotWiredIntoRegressionCriteria(t *testing.T) {
-	r := result{Trace: traceReport{Events: []traceEvent{
-		{Kind: "write", Tool: "edit", Path: "openspec/changes/example-change/tasks.md", Input: json.RawMessage(`{"oldString":"- [ ] T1","newString":"- [x] T1"}`)},
-	}}}
-	for _, c := range regressionCriteria(r) {
-		if c.Criterion == "task_marked_after_verdict" {
-			t.Fatal("task_marked_after_verdict must not be wired into regressionCriteria")
-		}
 	}
 }
 
@@ -1292,4 +1104,3 @@ func TestCitedIDGlossedQuestionTextOpeningWithIDDefinesIt(t *testing.T) {
 		t.Fatalf("got %s want fail (the first question's own text opens with D8, defining it; the second cites it bare)", got)
 	}
 }
-

@@ -1,4 +1,0 @@
-{"type":"item.completed","item":{"id":"item_1","type":"collab_tool_call","tool":"wait","status":"completed","sender_thread_id":"main","receiver_thread_ids":["a1"],"agents_states":{"a1":{"status":"running","message":"working"}}}}
-{"type":"item.completed","item":{"id":"msg_1","type":"agent_message","text":"Sigo esperando a que termine el subagente."}}
-{"type":"item.completed","item":{"id":"item_2","type":"collab_tool_call","tool":"wait","status":"completed","sender_thread_id":"main","receiver_thread_ids":["a1"],"agents_states":{"a1":{"status":"running","message":"still working"}}}}
-{"type":"turn.completed","usage":{"input_tokens":5}}

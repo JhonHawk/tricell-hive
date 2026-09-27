@@ -1,2 +1,0 @@
-{"type":"item.completed","item":{"id":"item_1","type":"command_execution","status":"completed","exit_code":0,"command":"/bin/zsh -lc 'gh run watch 4200 --exit-status'","aggregated_output":""}}
-{"type":"turn.completed","usage":{"input_tokens":5}}

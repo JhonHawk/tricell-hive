@@ -1,5 +1,0 @@
-{"type":"assistant","message":{"id":"msg_1","content":[{"type":"tool_use","name":"Task","id":"launch-1","input":{"subagent_type":"review-task","run_in_background":true,"description":"Verify T1"}}]}}
-{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"launch-1","content":"Launched review-task in the background."}]}}
-{"type":"assistant","message":{"id":"msg_2","content":[{"type":"tool_use","name":"Edit","id":"edit-1","input":{"file_path":"openspec/changes/example-change/tasks.md","old_string":"- [ ] T1 - Example task","new_string":"- [x] T1 - Example task"}}]}}
-{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"edit-1","content":"Applied edit."}]}}
-{"type":"user","origin":{"kind":"task-notification","subagent_type":"review-task"},"message":{"content":[]}}
