@@ -1,6 +1,6 @@
 # Delivery decisions
 
-Before declaring an implementation plan ready, or before the first edit of work implemented without a plan, resolve the Git delivery mode for its named repositories and target branches. Reuse an explicit choice still applicable to this work; a repository default or remembered preference only informs the recommendation. Ask once, in the session language, mark one option Recommended and explain the actual effects. It is not a prerequisite for research or for edits that will not end in a Git delivery.
+Before declaring an implementation plan ready, or before the first edit of work implemented without a plan, resolve the Git delivery mode for its named repositories and target branches. Reuse an explicit choice made earlier in the session for the same repository and target branch, including for a later ticket, under the shared workflow-choice rule; a repository default or remembered preference only informs the recommendation. Ask once, in the session language, mark one option Recommended and explain the actual effects. It is not a prerequisite for research or for edits that will not end in a Git delivery.
 
 | Mode | Delivery contract to present |
 | --- | --- |
