@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T3 y T5 verificadas; T4 bloqueada hasta el despliegue · commit, push y release en curso (T6) |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` (`88d24ac`) y desplegado como release `ea03e56602d3` |
 | Tracker · GitHub Issues | Sin issue: el usuario prefirió no abrirlo (2026-09-26) |
 | Git | `direct-base` a `rebuild/harness-engineering` · sin PR · despliegue a los seis hosts tras el push |
 | Verificación | `go test ./integrations/...` · `go test -race ./tests/pilot/...` · `go vet ./...` · `/code-review` antes del push · render instalado en los seis hosts |
-| Siguiente paso | Release a los seis hosts y comprobación de AC5 y AC7 instalados; luego el archivo del cambio |
+| Siguiente paso | Ninguno en este cambio. El efecto en sesiones reales se observará en la próxima corrida R1 |
 
 ## Objetivo
 

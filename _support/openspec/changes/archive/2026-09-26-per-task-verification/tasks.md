@@ -53,8 +53,7 @@ Estados: `[ ]` pendiente · `[/]` en construcción · `[?]` hecha sin verificar 
 
 ### T4 — Perfil `reasoning` de OpenCode y documentación de perfiles
 
-- [?] OpenCode `reasoning` usa `github-copilot/claude-opus-5.5`, y la documentación sigue [design.md](design.md#perfil-reasoning-de-opencode).
-  blocked: AC5 instalado se comprueba después del despliegue de T6; la parte del repositorio es `met` (Codex, 2026-09-26).
+- [x] OpenCode `reasoning` usa `github-copilot/claude-opus-5.5`, y la documentación sigue [design.md](design.md#perfil-reasoning-de-opencode).
 
 **Closes:** AC5.
 **Depende de:** T2 (recuento de roles).
@@ -101,7 +100,7 @@ Estados: `[ ]` pendiente · `[/]` en construcción · `[?]` hecha sin verificar 
 
 ### T6 — Verificación conjunta, revisión y entrega
 
-- [ ] Gates en verde, `/code-review` atendido, entrega y despliegue según [proposal.md](proposal.md#entrega).
+- [x] Gates en verde, `/code-review` atendido, entrega y despliegue según [proposal.md](proposal.md#entrega).
 
 **Closes:** AC7.
 **Depende de:** T1–T5.
@@ -221,4 +220,17 @@ Estados: `[ ]` pendiente · `[/]` en construcción · `[?]` hecha sin verificar 
 - **H2, P3, `flow-build/SKILL.md`, paso 3:** decía «leave `[!]`» cuando la tarea ya estaba en `[?]`. Ahora dice «set `[!]` again with the round-2 line».
 - **Sin re-revisión:** son arreglos P2/P3 que no cambian un contrato, según `verification.md`.
 
-**Estado:** en progreso. T1–T3 y T5 están verificadas; T4 queda bloqueada hasta el despliegue. Sigue la entrega (T6).
+**Entrega (T6):**
+- **Checks:** `go vet ./...` y `go test -race -count=1 ./...` en verde; `gitleaks` sin hallazgos en las 32 rutas.
+- **Commit y push:** `88d24ac`, con `git commit --only` de las 32 rutas del cambio, y push a `rebuild/harness-engineering` (cabeza remota `88d24ac`). La carpeta `_support/sessions/2026-09-26-hive-agent-names/` de la otra sesión quedó fuera.
+- **Release** `ea03e56602d3`:
+  - Plan `300ca78fbc83`, desplegado desde un worktree limpio de `88d24ac`: 437 recursos `installed`.
+  - Dos `apply` repetidos por error con el mismo plan fueron rechazados por el manager («stale ownership»), sin efecto.
+- **AC7 `met`:** `review-task` instalado en `~/.claude/agents/`, `~/.codex/agents/` (`.toml`), `~/.grok/agents/`, `~/.pi/agent/agents/`, `~/.config/opencode/agents/` y `~/.cursor/agents/`.
+- **AC5 `met`:**
+  - `grep -l 'github-copilot/claude-opus-5.5' ~/.config/opencode/agents/*.md` lista `database-specialist`, `performance-engineer`, `review-code`, `review-harness`, `review-plan` y `review-task`.
+  - `sdd-verify` sigue en `opencode-go/deepseek-v4.1-flash#max`.
+  - T4 sale del bloqueo y pasa a `[x]`.
+- **Limpieza:** se borraron el worktree y el archivo de plan del manager.
+
+**Estado:** cerrado. Integrado en `rebuild/harness-engineering` (`88d24ac`) y desplegado como release `ea03e56602d3`.
