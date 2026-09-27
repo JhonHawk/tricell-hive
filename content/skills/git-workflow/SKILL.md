@@ -27,7 +27,7 @@ When a pull request is authorized, describe the problem, the resulting behavior,
 
 ## Verify the authorized effect
 
-After an authorized local or remote Git action, inspect the relevant state rather than inferring success from command intent: the commit and its diff locally; the selected remote branch after a push; and the pull request, checks, or merge state when those effects were authorized. After local checks pass, complete any remaining Git effects already explicitly authorized, such as a selected push, pull request, or merge, then verify them. Report the observed result, omitted checks, and remaining delivery steps.
+After an authorized local or remote Git action, inspect the relevant state rather than inferring success from command intent: the commit and its diff locally; the selected remote branch after a push; and the pull request, checks, or merge state when those effects were authorized. After a merge or push to the base branch, also check the CI it triggered there, as [verification](../flow-build/references/verification.md) describes under frequency and coverage. After local checks pass, complete any remaining Git effects already explicitly authorized, such as a selected push, pull request, or merge, then verify them. Report the observed result, omitted checks, and remaining delivery steps.
 
 Stop at the authorization boundary. Do not infer permission to commit from permission to edit, to push from permission to commit, or to open, merge, publish, or rewrite from any earlier Git action. Authorization to merge does not authorize bypassing branch protection, required reviews, or required checks. Use a bypass only when an explicit grant for that repository covers it, and name the grant when reporting the result.
 
