@@ -21,7 +21,7 @@ Use a different shape only when the resource's role, the platform, or an establi
 | Shared resource | It may intentionally have no environment segment. |
 | Secret store | The platform may use a hierarchical path or a service-specific identifier. |
 | Database | The engine or existing schema may require or favor a different separator or identifier form. |
-| Repository or image | The repository can be environment-neutral while tags, registries, or deployment configuration carry the environment. |
+| Repository or image | `<project>-<component>` with no environment segment, such as `acme-marketplace-backend`; tags, registries, or deployment configuration carry the environment. Before proposing a repository name, list the project's sibling repositories and follow the pattern most of them share, including suffixes such as `-monorepo`; an outlier is not the convention. |
 | DNS | Public hostnames commonly put an environment label in a provider- or user-facing position, while the production hostname can omit it. |
 
 Do not force the default token order onto an exception. Do not invent abbreviated environments, limits, or naming constraints without checking the applicable current documentation.
