@@ -27,6 +27,21 @@ These are interface examples, not authorization to deploy into the user's real c
 
 The default source is the current directory; `--source` selects another checkout with the same content layout. `plan install --release <hash>` selects a retained installed snapshot instead, allowing an explicitly planned downgrade. The current binary validates that snapshot's agent sources, so a release whose roles use a retired frontmatter field, such as `claude_effort` before it became `effort`, fails with `unsupported agent field`; plan that downgrade with the manager from the commit that produced the release. Installed releases still update, report status, uninstall, and recover, because those operations do not re-render the old sources. A plan freezes its source bytes; later source edits do not silently alter it.
 
+### Update from a commit and list releases
+
+```sh
+go run ./tooling/cli update [--rev HEAD] [--source .] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]
+go run ./tooling/cli releases [--home DIR] [--state-dir DIR]
+```
+
+`hive update` deploys the content of one commit, never uncommitted edits in the checkout. It resolves `--rev` (default `HEAD`) with `git rev-parse` in `--source` (default `.`), archives that commit by its full hash, extracts it into a private temporary directory, and plans an install for every host already registered in user scope. The plan freezes the extracted bytes, so the temporary directory is removed on every return path as soon as the plan is built, before the summary and the confirmation prompt; only a process killed by a signal during extraction or planning may leave a `.hive-extract-*` directory in the system temporary directory. A revision starting with `-` is rejected before Git runs. The command needs Git and a Git checkout of Hive; the offline package does not, and installs through `install.sh`. `export-ignore` or `export-subst` attributes in the selected commit would change the archived content, as with any `git archive`.
+
+In a terminal, `update` shows the summary with the commit and asks for confirmation. When nothing changes, it applies without asking, which only records the commit; this also holds without a terminal and with `--out`, which then saves no plan. When the plan changes files and there is no terminal, it fails unless `--dry-run` previews the change or `--out FILE` saves a plan for `hive apply --plan FILE`. To return to an older commit, run `update --rev <commit>`; the current binary must still validate that commit's sources.
+
+Applying a plan built by `update` records its source commit in `releases/<id>.commits.json`, also when the plan changes no file, because different commits often produce the same release. The release snapshot and its ID do not change. If writing the record fails after the core committed, the result carries a warning and the installation stands. Recovering an already committed journal leaves that release without the commit. Releases installed before this record existed list no commits.
+
+`hive releases` prints, as a JSON array, every retained snapshot from the most recently written to the oldest: `id`, `last_written_at` (the time its snapshot was last written), `commits` (recorded source commits, possibly empty), and `consumers` (the hosts that currently have it installed, possibly empty). It reads state only.
+
 ## Optional Context7 setup recommendation
 
 `hive setup` is a read-only onboarding step. It checks known skill locations for nonempty `find-docs/SKILL.md` and `context7-mcp/SKILL.md` files, including the shared `.agents` location and configured host homes. `--home DIR` selects a synthetic home and ignores environment overrides. A user-scope install plan without an existing Hive state file prints a first-setup recommendation; it never blocks installation on Context7 availability.
@@ -77,6 +92,7 @@ require explicit selection. The state home contains:
 
 - `state.json`: schema version, installed resource records, release IDs, owned directories, and scoped legacy-migration receipts.
 - `releases/<hash>.json`: immutable installed payload snapshots.
+- `releases/<hash>.commits.json`: the source commits recorded by `hive update` for that release, with the time each was applied.
 - `transactions/<id>.json`: private before/after images and transaction phase.
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.

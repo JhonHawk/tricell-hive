@@ -12,7 +12,7 @@ Cada hijo recibe `AGENTS.md`, este cambio (`proposal.md`, `design.md` y `tasks.m
 
 ### T1 — Despacho de subcomandos por función (#42)
 
-- [ ] `run` delega cada subcomando en su propia función, con el comportamiento visible sin cambios.
+- [x] `run` delega cada subcomando en su propia función, con el comportamiento visible sin cambios. Evidencia: `d6b1c41`. Las pruebas de caracterización pasan antes y después sin cambios (`main_test.go` con el mismo sha256), `run` mide 32 líneas, y `go vet` y `go test ./tooling/cli` pasan. Cambio de conducta aceptado: `hive foo bar` responde ahora `unknown command "foo"` en lugar de `unexpected positional arguments`.
 
 **Closes:** AC8.
 
@@ -39,7 +39,7 @@ Cada hijo recibe `AGENTS.md`, este cambio (`proposal.md`, `design.md` y `tasks.m
 
 ### T2 — Commit de origen y listado de releases en el gestor
 
-- [ ] `Plan` lleva el commit de origen, `Apply` lo registra junto a la release y `Releases` lista los snapshots.
+- [x] `Plan` lleva el commit de origen, `Apply` lo registra junto a la release y `Releases` lista los snapshots. Evidencia: `review-task`, AC6 cumplido y AC7 cumplido en la parte del gestor. Rompió el código a propósito de 14 maneras y cada prueba falló cuando faltaba lo que cubre. `go test -race ./tooling/management` pasa. Commit local con la versión de T2. Límites menores: el orden de los commits dentro de una release no se prueba, y la lista vacía en JSON (`[]` y no `null`) pasa a la prueba de T4.
 
 **Closes:** AC6, AC7.
 
@@ -71,7 +71,14 @@ Cada hijo recibe `AGENTS.md`, este cambio (`proposal.md`, `design.md` y `tasks.m
 
 ### T3 — Comando `hive update`
 
-- [ ] `hive update` actualiza desde un commit, según [el diseño](design.md#hive-update).
+- [x] `hive update` actualiza desde un commit, según [el diseño](design.md#hive-update).
+  - **Evidencia:** `review-task` da AC1 a AC5 cumplidos. Rompió el código a propósito de 15 maneras para comprobar que las pruebas fallan cuando falta lo que cubren, y ejecutó el CLI sobre un home de prueba.
+  - **Desviaciones aceptadas:**
+    - La extracción usa `target.Canonical(os.TempDir())`, porque en macOS `/var` y `/tmp` son enlaces simbólicos que el gestor rechaza.
+    - El commit se adjunta al plan con `management.BindSourceCommit`, que sigue el mismo patrón que `BindInstaller`. Reemplaza a una copia del cálculo del ID del plan que el implementador había puesto en `tooling/cli`.
+  - **Arreglado después de la verificación:** con un archivo por encima del límite de tamaño, el comando se colgaba en vez de fallar. Ahora detiene a Git antes de esperarlo. La prueba `TestArchiveGitCommitFailsPastSizeLimit` falló antes del arreglo, por tiempo agotado a los 10 s, y pasa después.
+  - **Prueba añadida:** `TestFilteredGitEnvDropsRepositoryOverrides`, que comprueba el comportamiento existente; no se escribió antes de un cambio de código.
+  - **AC3:** se aclaró para que coincida con el diseño en el caso sin cambios (decisión P1-A).
 
 **Closes:** AC1, AC2, AC3, AC4, AC5.
 
@@ -108,7 +115,7 @@ Casos:
 
 ### T4 — Comando `hive releases`
 
-- [ ] `hive releases` imprime en JSON el resultado de `management.Releases`.
+- [x] `hive releases` imprime en JSON el resultado de `management.Releases`. Evidencia: `review-task` confirma la parte de la CLI de AC7. Las pruebas de `tooling/cli/releases_test.go` comprueban el orden, los commits, los consumidores y que las listas vacías salgan como `[]`; siete roturas deliberadas del código las hicieron fallar. `run` mide 36 líneas. El comando no modificó nada al ejecutarse sobre un estado de prueba.
 
 **Closes:** AC7.
 
@@ -126,7 +133,11 @@ Casos:
 
 ### T5 — Documentación y comprobación local sobre el estado real
 
-- [ ] `deployment-manager.md` documenta los dos comandos, y las comprobaciones de solo lectura sobre el estado real pasan.
+- [x] `deployment-manager.md` documenta los dos comandos, y las comprobaciones de solo lectura sobre el estado real pasan. Evidencia del implementador, del 2026-09-27 sobre el commit `25d124e`: `state.json` tiene el mismo hash antes y después (`cf0d0b5a839d11e4`), y hay 117 snapshots. `releases` lista 117, y la más reciente, `622087a518ff`, figura en los seis CLIs. `update --dry-run` nombra los seis CLIs y el commit `25d124eb73bb`, e informa «already up to date». No se creó ningún `*.commits.json`.
+  - **Verificación:** `review-task` da AC9 y las partes sobre el estado real de AC7 y AC2 como cumplidos, repetidos sobre `24759bb` con el mismo hash de `state.json`.
+  - **Documentación corregida tras la verificación:** los ejemplos de uso no mostraban `--home` y `--state-dir`, y faltaba decir qué pasa con `--out` cuando no hay cambios.
+  - **Código corregido tras la verificación:** la carpeta temporal se borraba al final del comando y no antes de la confirmación, como pide el diseño. Ahora `planFromCommit` la borra en cuanto existe el plan (`f6da52d`). La prueba `TestUpdateRemovesExtractionBeforeConfirmation` falló antes del arreglo y pasa después.
+  - **Mensaje de uso:** el que sale al ejecutar el CLI sin argumentos ahora incluye `update` y `releases`.
 
 **Closes:** AC9, AC7 (la parte del estado real), AC2 (la parte del estado real).
 
@@ -182,6 +193,6 @@ No hay superficie de interfaz gráfica, así que no aplican `review-ux` ni un re
 - **Descartado:** `--end-of-options` en `rev-parse`. El revisor confirmó que el rechazo del `-` inicial basta con el sufijo `^{commit}`.
 - **Sin nueva ronda:** todas las correcciones aplican propuestas de los propios revisores. Límite pendiente: no se comprobó el comportamiento con Git anterior a 2.38.
 
-**Avance:** plan listo para implementar; ninguna tarea empezada.
+**Avance:** T1 a T5 verificadas. `go vet ./...` y `go test -race ./...` pasan sobre `24759bb`, y `go test -race` de las pruebas afectadas pasa sobre `f6da52d`. Falta la revisión de código con `/code-review`.
 
-**Siguiente paso:** la pregunta de entrega y, después, `flow-build`.
+**Siguiente paso:** `/code-review` sobre el diff contra `18847d6`, rebase sobre `origin/rebuild/harness-engineering` y push directo (D7-A).
