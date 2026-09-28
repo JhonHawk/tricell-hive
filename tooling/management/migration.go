@@ -137,6 +137,21 @@ func PlanUnchanged(p Plan) (bool, error) {
 			return false, nil
 		}
 	}
+	if p.Action == "voice" && !reflect.DeepEqual(s.Voice, p.VoiceSetting) {
+		return false, nil
+	}
+	for _, vc := range p.Voice {
+		cur, err := read(vc.Path)
+		if err != nil {
+			return false, err
+		}
+		if finger(cur) != vc.Expected {
+			return false, fmt.Errorf("stale target: %s", vc.Path)
+		}
+		if !reflect.DeepEqual(vc.Before, vc.After) {
+			return false, nil
+		}
+	}
 	return true, nil
 }
 
@@ -315,11 +330,21 @@ func writeEntry(en entry, cur, after snapshot, fail func(string) error) error {
 	}
 	return writeResource(en.Change.Target, snapshot{}, after, false, fail)
 }
-func prepareEntries(p Plan) ([]entry, error) {
+func prepareEntries(p Plan, state State) ([]entry, error) {
 	var entries []entry
 	consumed := map[string]bool{}
 	// Core resources can replace a legacy file or whole skill directory. Store one
 	// inverse per physical path, never separate overlapping before-images.
+	voiceByPath := map[string]VoiceChange{}
+	for _, vc := range p.Voice {
+		voiceByPath[vc.Path] = vc
+	}
+	voiceConsumed := map[string]bool{}
+	// install/update composes Hive then voice; remove and "voice set|off"
+	// compose voice then Hive, so a Hive removal that empties the file (a
+	// Hive-created file's CreatedFile check) sees the already-voice-stripped
+	// buffer. See design.md "Orden de los dos cambios".
+	voiceFirst := p.Action != "install"
 	for _, ch := range p.Changes {
 		cur, err := overlayRead(p, ch.Target, ch.Replaces != nil)
 		if err != nil {
@@ -328,7 +353,31 @@ func prepareEntries(p Plan) ([]entry, error) {
 		if finger(cur) != ch.Expected {
 			return nil, fmt.Errorf("stale target: %s", ch.Target.Path)
 		}
-		after, err := transformResource(cur, ch)
+		var vcPtr *VoiceChange
+		if ch.Target.Kind == "block" {
+			if vc, ok := voiceByPath[ch.Target.Path]; ok {
+				if finger(cur) != vc.Expected {
+					return nil, fmt.Errorf("stale target: %s", vc.Path)
+				}
+				voiceConsumed[ch.Target.Path] = true
+				vcCopy := vc
+				vcPtr = &vcCopy
+			}
+		}
+		var after snapshot
+		if vcPtr == nil {
+			after, err = transformResource(cur, ch)
+		} else if voiceFirst {
+			var s snapshot
+			if s, err = composeVoiceStep(cur, vcPtr.Before, vcPtr.After); err == nil {
+				after, err = transform(s, ch.Before, ch.After, hiveMarkers)
+			}
+		} else {
+			var s snapshot
+			if s, err = transform(cur, ch.Before, ch.After, hiveMarkers); err == nil {
+				after, err = composeVoiceStep(s, vcPtr.Before, vcPtr.After)
+			}
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -358,7 +407,38 @@ func prepareEntries(p Plan) ([]entry, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, entry{ch, before, after})
+		entries = append(entries, entry{Change: ch, Voice: vcPtr, Before: before, After: after})
+	}
+	// Voice changes with no matching Change this cycle (e.g. "voice set"/"voice
+	// off" on their own, or install regenerating a span whose Hive block text
+	// did not itself change): one entry per path, addressed by the existing
+	// Hive record's target so the same file mechanics apply.
+	var voicePaths []string
+	for path := range voiceByPath {
+		if !voiceConsumed[path] {
+			voicePaths = append(voicePaths, path)
+		}
+	}
+	sort.Strings(voicePaths)
+	for _, path := range voicePaths {
+		vc := voiceByPath[path]
+		rec, ok := state.Records[path]
+		if !ok {
+			return nil, fmt.Errorf("voice target has no Hive block: %s", path)
+		}
+		cur, err := overlayRead(p, rec.Target, false)
+		if err != nil {
+			return nil, err
+		}
+		if finger(cur) != vc.Expected {
+			return nil, fmt.Errorf("stale target: %s", path)
+		}
+		after, err := composeVoiceStep(cur, vc.Before, vc.After)
+		if err != nil {
+			return nil, err
+		}
+		vcCopy := vc
+		entries = append(entries, entry{Change: Change{Target: rec.Target, Expected: vc.Expected}, Voice: &vcCopy, Before: cur, After: after})
 	}
 	// Keep ancestor directories used by the new release; their recognized leaves
 	// still retire individually and unrelated siblings were already rejected.

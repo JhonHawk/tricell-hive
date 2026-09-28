@@ -426,6 +426,9 @@ func BuildPlan(action string, o Options) (Plan, error) {
 		}
 		p.Changes = append(p.Changes, ch)
 	}
+	if err := addVoiceChanges(&p, o, state); err != nil {
+		return p, err
+	}
 	p.ID = planID(p)
 	return p, nil
 }
@@ -548,9 +551,16 @@ func validatePlan(p Plan, state State) error {
 	if p.SourceCommit != "" && !sourceCommitPattern.MatchString(p.SourceCommit) {
 		return fmt.Errorf("invalid plan source commit")
 	}
-	h, err := validateHosts(p.Hosts)
-	if err != nil || !reflect.DeepEqual(h, p.Hosts) {
-		return fmt.Errorf("invalid plan hosts")
+	var err error
+	if p.Action == "voice" {
+		if len(p.Hosts) != 0 {
+			return fmt.Errorf("invalid plan hosts")
+		}
+	} else {
+		h, herr := validateHosts(p.Hosts)
+		if herr != nil || !reflect.DeepEqual(h, p.Hosts) {
+			return fmt.Errorf("invalid plan hosts")
+		}
 	}
 	if p.Config.Scope != "user" && p.Config.Scope != "project" {
 		return fmt.Errorf("invalid plan scope")
@@ -573,6 +583,10 @@ func validatePlan(p Plan, state State) error {
 		if err = validateRelease(*p.Release); err != nil {
 			return err
 		}
+	} else if p.Action == "voice" {
+		if p.Release != nil || len(p.Changes) != 0 {
+			return fmt.Errorf("invalid plan action")
+		}
 	} else if p.Action != "remove" || p.Release != nil {
 		return fmt.Errorf("invalid plan action")
 	}
@@ -584,61 +598,107 @@ func validatePlan(p Plan, state State) error {
 			return err
 		}
 	}
-	gs, err := desiredResources(p.Config, p.Hosts, state, p.Action, p.Release)
+	if p.Action != "voice" {
+		gs, err := desiredResources(p.Config, p.Hosts, state, p.Action, p.Release)
+		if err != nil {
+			return err
+		}
+		if len(gs) != len(p.Changes) {
+			return fmt.Errorf("changed target resolution")
+		}
+		for i, g := range gs {
+			ch := p.Changes[i]
+			if ch.Target != g.Target || !reflect.DeepEqual(ch.Replaces, g.Replaces) {
+				return fmt.Errorf("changed target resolution")
+			}
+			var old *Record
+			if r, ok := state.Records[g.Target.Path]; ok {
+				old = &r
+			}
+			if !reflect.DeepEqual(old, ch.Before) {
+				return fmt.Errorf("stale ownership")
+			}
+			// Reconstruct consumer and release decisions independently of the proposed
+			// records. Preserve the frozen newline choice and verify it against payload.
+			s := snapshot{Exists: ch.Expected.Exists}
+			if ch.After != nil && bytes.Contains(ch.After.Managed, []byte("\r\n")) {
+				s.Data = []byte("\r\n")
+			}
+			expected, err := nextRecord(p, g, old, s)
+			if err != nil {
+				return err
+			}
+			if expected != nil && ch.After != nil {
+				if old == nil {
+					expected.Leading = ch.After.Leading
+				}
+				if expected.Leading != "" && expected.Leading != "\n" {
+					return fmt.Errorf("invalid separator")
+				}
+			}
+			if !reflect.DeepEqual(expected, ch.After) {
+				return fmt.Errorf("invalid ownership or release payload")
+			}
+			// Fresh reads are for metadata checking only. During Apply some resources
+			// already contain their after-image, so never infer new ownership here.
+			current, err := overlayRead(p, g.Target, g.Replaces != nil)
+			if err != nil {
+				return err
+			}
+			if finger(current) == ch.Expected && ch.After != nil && old == nil && g.Target.Kind == "block" {
+				leading := ""
+				if len(current.Data) > 0 && !bytes.HasSuffix(current.Data, []byte("\n")) {
+					leading = "\n"
+				}
+				if ch.After.Leading != leading {
+					return fmt.Errorf("invalid initial ownership")
+				}
+			}
+		}
+	}
+	return validateVoiceChanges(p, state)
+}
+
+// validateVoiceChanges checks every VoiceChange in p, for install, remove
+// and voice plans alike: each new span is exactly one well-formed voice
+// block with no stray marker, and each Before matches the currently
+// registered span (or its absence), rejecting a stale or tampered plan
+// before any write (see design.md "Validación del plan").
+func validateVoiceChanges(p Plan, state State) error {
+	seen := map[string]bool{}
+	for _, vc := range p.Voice {
+		if seen[vc.Path] {
+			return fmt.Errorf("duplicate voice change: %s", vc.Path)
+		}
+		seen[vc.Path] = true
+		if vc.After != nil {
+			if err := validateVoicePayload(vc.After.Managed); err != nil {
+				return fmt.Errorf("%s: %w", vc.Path, err)
+			}
+		}
+		var old *VoiceSpan
+		if s, ok := state.VoiceSpans[vc.Path]; ok {
+			old = &s
+		}
+		if !reflect.DeepEqual(old, vc.Before) {
+			return fmt.Errorf("stale voice ownership: %s", vc.Path)
+		}
+	}
+	return nil
+}
+
+// validateVoicePayload requires managed to be exactly one well-formed voice
+// block (blockRange spanning the whole slice) with no Hive marker inside.
+func validateVoicePayload(managed []byte) error {
+	a, b, err := blockRange(managed, voiceMarkers)
 	if err != nil {
 		return err
 	}
-	if len(gs) != len(p.Changes) {
-		return fmt.Errorf("changed target resolution")
+	if a != 0 || b != len(managed) {
+		return fmt.Errorf("malformed voice payload")
 	}
-	for i, g := range gs {
-		ch := p.Changes[i]
-		if ch.Target != g.Target || !reflect.DeepEqual(ch.Replaces, g.Replaces) {
-			return fmt.Errorf("changed target resolution")
-		}
-		var old *Record
-		if r, ok := state.Records[g.Target.Path]; ok {
-			old = &r
-		}
-		if !reflect.DeepEqual(old, ch.Before) {
-			return fmt.Errorf("stale ownership")
-		}
-		// Reconstruct consumer and release decisions independently of the proposed
-		// records. Preserve the frozen newline choice and verify it against payload.
-		s := snapshot{Exists: ch.Expected.Exists}
-		if ch.After != nil && bytes.Contains(ch.After.Managed, []byte("\r\n")) {
-			s.Data = []byte("\r\n")
-		}
-		expected, err := nextRecord(p, g, old, s)
-		if err != nil {
-			return err
-		}
-		if expected != nil && ch.After != nil {
-			if old == nil {
-				expected.Leading = ch.After.Leading
-			}
-			if expected.Leading != "" && expected.Leading != "\n" {
-				return fmt.Errorf("invalid separator")
-			}
-		}
-		if !reflect.DeepEqual(expected, ch.After) {
-			return fmt.Errorf("invalid ownership or release payload")
-		}
-		// Fresh reads are for metadata checking only. During Apply some resources
-		// already contain their after-image, so never infer new ownership here.
-		current, err := overlayRead(p, g.Target, g.Replaces != nil)
-		if err != nil {
-			return err
-		}
-		if finger(current) == ch.Expected && ch.After != nil && old == nil && g.Target.Kind == "block" {
-			leading := ""
-			if len(current.Data) > 0 && !bytes.HasSuffix(current.Data, []byte("\n")) {
-				leading = "\n"
-			}
-			if ch.After.Leading != leading {
-				return fmt.Errorf("invalid initial ownership")
-			}
-		}
+	if bytes.Contains(managed, []byte(Begin)) || bytes.Contains(managed, []byte(End)) {
+		return fmt.Errorf("voice payload contains a Hive marker")
 	}
 	return nil
 }
@@ -732,11 +792,49 @@ func Status(o Options) ([]StatusEntry, error) {
 			}
 		}
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Path == out[j].Path {
-			return out[i].Host < out[j].Host
+	for path, span := range state.VoiceSpans {
+		selected := false
+		for _, cons := range span.Consumers {
+			if cons.Scope != c.Scope || (cons.Scope == "user" && cons.Context != c.Home) || (cons.Scope == "project" && cons.Context != c.Root) {
+				continue
+			}
+			for _, host := range h {
+				if host == cons.Host {
+					selected = true
+				}
+			}
 		}
-		return out[i].Path < out[j].Path
+		if !selected {
+			continue
+		}
+		en := StatusEntry{Path: path, Kind: "voice", Status: "installed", Consumers: span.Consumers}
+		if state.Voice != nil {
+			en.Voice = formatVoiceStatus(*state.Voice)
+		}
+		cur, err := read(path)
+		if err != nil {
+			return nil, err
+		}
+		if err := owned(cur, *voiceRecordFromSpan(&span), voiceMarkers); err != nil {
+			en.Status = "drift"
+		}
+		if pending.Exists {
+			en.Status = "recovery_required"
+		}
+		out = append(out, en)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Path != out[j].Path {
+			return out[i].Path < out[j].Path
+		}
+		// Kind first, so a path's voice row (Kind "voice") always sorts right
+		// after its block row (Kind "block"), regardless of Host — a voice
+		// row's Host is always "" and would otherwise sort before any real
+		// host name, defeating this tie-break (see H5, T2 fix round).
+		if out[i].Kind != out[j].Kind {
+			return out[i].Kind < out[j].Kind
+		}
+		return out[i].Host < out[j].Host
 	})
 	return out, nil
 }

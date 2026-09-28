@@ -55,12 +55,28 @@ type VoiceSetting struct {
 
 // VoiceSpan is one rendered voice block as installed in a file: its managed
 // text, the hash of the sources RenderVoice rendered it from, and its
-// registered consumers. Not yet wired into Plan or State; a later change
-// adds Plan.Voice and State.VoiceSpans.
+// registered consumers.
 type VoiceSpan struct {
 	Managed    []byte     `json:"managed"`
 	SourceHash string     `json:"source_hash"`
 	Consumers  []Consumer `json:"consumers,omitempty"`
+}
+
+// VoiceChange is one file's voice-block change within a Plan, parallel to
+// Change for the Hive block but addressed by Path rather than by a resolved
+// target.Target: voice paths come from the block Records of already
+// registered hosts (see design.md "Rutas de la voz"), not from resolve().
+// It carries only the managed span, never the whole file, so a plan with
+// voice changes can still be saved with --out (see SavePlan). Expected is
+// the whole file's fingerprint before this plan's changes, exactly like
+// Change.Expected, checked at apply time even when no Change touches the
+// same path in the same plan.
+type VoiceChange struct {
+	Path      string      `json:"path"`
+	Consumers []Consumer  `json:"consumers,omitempty"`
+	Expected  Fingerprint `json:"expected"`
+	Before    *VoiceSpan  `json:"before,omitempty"`
+	After     *VoiceSpan  `json:"after,omitempty"`
 }
 
 type Payload struct {
@@ -95,6 +111,13 @@ type State struct {
 	Records       map[string]Record              `json:"records"`
 	CreatedDirs   []string                       `json:"created_dirs,omitempty"`
 	Migrations    []MigrationReceipt             `json:"migrations,omitempty"`
+	// Voice and VoiceSpans hold the optional voice layer (D13-A: schema stays
+	// 6; a state with no voice set encodes identically to before these
+	// fields existed). Voice is the user's current choice, or nil when no
+	// voice is active. VoiceSpans holds, per installed instruction file path,
+	// the rendered span currently written there.
+	Voice      *VoiceSetting        `json:"voice,omitempty"`
+	VoiceSpans map[string]VoiceSpan `json:"voice_spans,omitempty"`
 }
 type Fingerprint struct {
 	TreeHash   string `json:"tree_hash,omitempty"`
@@ -127,6 +150,14 @@ type Plan struct {
 	Legacy       []legacy.Edit                   `json:"legacy,omitempty"`
 	Migration    *MigrationReceipt               `json:"migration,omitempty"`
 	SourceCommit string                          `json:"source_commit,omitempty"`
+	// Voice carries this plan's voice-block changes, addressed by Path (see
+	// VoiceChange). VoiceSetting is the choice apply will write to
+	// State.Voice, consulted only when Action is "voice": non-nil for
+	// "voice set", nil for "voice off". install/remove plans always leave
+	// VoiceSetting nil; State.Voice then only changes automatically, when a
+	// remove plan empties State.VoiceSpans (see prepareTransaction).
+	Voice        []VoiceChange `json:"voice,omitempty"`
+	VoiceSetting *VoiceSetting `json:"voice_setting,omitempty"`
 }
 
 // ReleaseEntry describes one retained release snapshot for hive releases: its
@@ -158,6 +189,9 @@ type StatusEntry struct {
 	Path, Host, Kind, Status, Release string
 	ProductVersion, VersionStatus     string
 	Consumers                         []Consumer
+	// Voice is set only on a Kind "voice" row: the voice ID, address and
+	// intensity, e.g. "jarvis (sir, subtle)" (see design.md "status").
+	Voice string `json:"Voice,omitempty"`
 }
 
 func hash(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }

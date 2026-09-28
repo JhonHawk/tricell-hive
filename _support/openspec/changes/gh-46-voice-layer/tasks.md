@@ -42,7 +42,19 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T2 — Plan, aplicación, recuperación y estado de la voz
 
-- [/] El gestor arma, aplica y recupera cambios de voz, los conserva y regenera en `plan install`, los quita en `plan remove` y los informa en `status`.
+- [x] El gestor arma, aplica y recupera cambios de voz, los conserva y regenera en `plan install`, los quita en `plan remove` y los informa en `status`.
+  - Ronda 1, AC2 y AC3 no cumplidos: la voz se agrega al final del archivo y no justo tras el bloque de Hive; sin salto de línea final el archivo queda mal formado y `voice off` falla. También: `install` regenera la voz fuera de los CLIs y del alcance elegidos, un CLI nuevo no recibe la voz en el mismo plan, y un bloque de voz sin registrar no provoca conflicto.
+  - **Ronda 2:** AC2 a AC8 cumplidos en la capa del gestor. `review-task` repitió 14 roturas deliberadas del código; 13 las detectaban las pruebas, y la que sobrevivía (reconstruir la voz al final del archivo al recuperar) la cubre ahora `TestVoiceOffRecoveryKeepsVoiceAfterHiveBlock`, tomada de su prueba P16.
+  - **Correcciones de la ronda:**
+    - la voz se inserta tras el bloque de Hive;
+    - solo toca los CLIs y el alcance elegidos;
+    - un CLI nuevo la recibe en el mismo plan;
+    - un bloque sin registrar provoca conflicto;
+    - los consumidores se reducen al quitar un CLI;
+    - `status` ordena por ruta, tipo y CLI;
+    - se rechazan rutas duplicadas;
+    - la recuperación ya no da un conflicto falso con archivos nuevos.
+  - **Límite menor pendiente (H7):** si Grok se suma a un archivo compartido que ya tiene voz, `status --hosts grok` no muestra la fila de voz hasta el siguiente cambio. Se corrige en T4.
 
 **Closes:** AC2, AC3, AC4, AC5, AC6, AC7 y AC8, en la capa del gestor.
 
@@ -103,7 +115,7 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T4 — Comando `hive voice` y la voz en `hive update`
 
-- [ ] `hive voice list|set|off` funciona de punta a punta, y el resumen de `update` muestra los cambios de voz.
+- [/] `hive voice list|set|off` funciona de punta a punta, y el resumen de `update` muestra los cambios de voz.
 
 **Closes:** AC1, AC2, AC3, AC4 (la línea de voz en el resumen de `update`) y AC9 (los errores del comando).
 

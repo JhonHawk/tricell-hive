@@ -111,13 +111,16 @@ Inspeccionado el 2026-09-27 sobre `6fd741c` (`rebuild/harness-engineering`). La 
   - El archivo se escribe una sola vez.
 - **Orden de los dos cambios:**
   - al instalar o actualizar: primero el bloque de Hive y después la voz;
-  - al quitar, apagar la voz y en el inverso de la recuperación: primero la voz y después Hive.
+  - al quitar y al apagar la voz: primero la voz y después Hive. La recuperación invierte exactamente ese orden; ver «Recuperación».
 
   Así un archivo creado por Hive queda vacío y se borra al quitar los dos bloques.
-- **Recuperación:** para una entrada con cambio de voz, el inverso deshace primero el tramo de voz (de `After` a `Before`) y después el bloque de Hive.
+- **Recuperación:** el inverso deshace exactamente la composición hacia adelante, así que su orden depende de la operación. Corregido tras la verificación de T2, que demostró con una prueba que un orden fijo de «voz primero» reconstruye con los bloques invertidos un archivo creado por Hive que se había borrado.
+  - `install`: deshace primero la voz y después el bloque de Hive.
+  - `remove` y `voice`: deshace primero Hive y después la voz.
   - El atajo de «el bloque ya coincide con su estado anterior» solo vale si el tramo de voz también coincide con su `Before`.
-  - Una entrada que solo cambia la voz usa únicamente el inverso de la voz.
   - Se conserva el texto que el usuario escribió fuera de los bloques después de la interrupción.
+- **Ubicación al insertar:** el tramo se inserta justo después de la línea de cierre del bloque de Hive, nunca al final del archivo. Así queda bien formado aunque el usuario tenga texto después del bloque de Hive o la última línea no termine en salto de línea.
+- **Alcance de `install` y `remove`:** los cambios de voz se limitan al alcance de usuario y a los archivos cuyos consumidores incluyen un CLI elegido. Un CLI que recibe su bloque de Hive por primera vez en el mismo plan recibe también la voz, en la misma escritura.
 - **Huella esperada:** se comprueba antes de escribir, como en los cambios actuales. Un plan viejo se rechaza.
 
 ## Límites de seguridad

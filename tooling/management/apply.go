@@ -14,7 +14,12 @@ import (
 )
 
 type entry struct {
-	Change        Change
+	Change Change
+	// Voice is this path's voice-block change in the same plan, or nil when
+	// only the Hive block (or only legacy retirement) touches this path.
+	// One entry always means one write, so a path with both a Change and a
+	// voice change shares this single entry (see prepareEntries).
+	Voice         *VoiceChange `json:",omitempty"`
 	Before, After snapshot
 }
 type journal struct {
@@ -185,9 +190,16 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	}
 	next.CreatedDirs = append([]string(nil), state.CreatedDirs...)
 	next.Migrations = append([]MigrationReceipt(nil), state.Migrations...)
+	next.Voice = state.Voice
+	if state.VoiceSpans != nil {
+		next.VoiceSpans = map[string]VoiceSpan{}
+		for k, v := range state.VoiceSpans {
+			next.VoiceSpans[k] = v
+		}
+	}
 	j := journal{Version: stateVersion, Phase: "prepared", Plan: p, BeforeState: beforeState}
 	changed := state.Version != stateVersion || p.Migration != nil || len(p.Legacy) > 0
-	j.Entries, err = prepareEntries(p)
+	j.Entries, err = prepareEntries(p, state)
 	if err != nil {
 		return journal{}, State{}, nil, false, err
 	}
@@ -225,6 +237,34 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 			}
 			next.CreatedDirs = kept
 		}
+	}
+	for _, vc := range p.Voice {
+		if !reflect.DeepEqual(vc.Before, vc.After) {
+			changed = true
+		}
+		if vc.After == nil {
+			delete(next.VoiceSpans, vc.Path)
+		} else {
+			if next.VoiceSpans == nil {
+				next.VoiceSpans = map[string]VoiceSpan{}
+			}
+			next.VoiceSpans[vc.Path] = *vc.After
+		}
+	}
+	if len(next.VoiceSpans) == 0 {
+		next.VoiceSpans = nil
+	}
+	if p.Action == "voice" {
+		if !reflect.DeepEqual(state.Voice, p.VoiceSetting) {
+			changed = true
+		}
+		next.Voice = p.VoiceSetting
+	} else if p.Action == "remove" && state.Voice != nil && next.VoiceSpans == nil {
+		// The last voice span was just removed alongside its last Hive-block
+		// consumer: no file carries the choice's text any more, so drop it too
+		// (see design.md "plan remove (D11-A)").
+		next.Voice = nil
+		changed = true
 	}
 	if updateProductState(&next, state, p) {
 		changed = true
@@ -358,6 +398,84 @@ func (e Engine) commitTransaction(p Plan, j *journal, state, next State, dirsToC
 		return err
 	}
 	return os.Remove(pp)
+}
+
+// invertSubBlock reverts one marker-delimited sub-block within s from its
+// forward "after" state back to its forward "before" state (forwardBefore,
+// forwardAfter name the ORIGINAL forward change, not what to produce).
+// forwardBefore == forwardAfter == nil means this sub-block was not part of
+// the forward change at all: a no-op, s is returned unchanged. If s's
+// sub-block already matches forwardBefore, it is returned unchanged too, so
+// a prior interrupted recovery attempt that already reverted just this
+// sub-block is resumed rather than rejected; recomputing outward from
+// whatever s currently is (rather than requiring it to exactly equal the
+// forward-after state) is what lets text a user wrote outside every managed
+// block, at any point, survive untouched.
+// insert, when non-nil, replaces transform's generic EOF-append for the one
+// case that needs a specific position instead: reconstructing a block that
+// the forward change removed (forwardBefore != nil, forwardAfter == nil).
+// Hive's own reconstruction is a correct EOF-append (that mirrors how it
+// was first installed), so only the voice call passes insertVoiceSpan; see
+// H1 in the T2 fix round.
+func invertSubBlock(s snapshot, forwardBefore, forwardAfter *Record, m markers, insert func(snapshot, []byte) (snapshot, error)) (snapshot, error) {
+	if forwardBefore == nil && forwardAfter == nil {
+		return s, nil
+	}
+	if atBlockState(s, forwardBefore, m) {
+		return s, nil
+	}
+	if !atBlockState(s, forwardAfter, m) {
+		return snapshot{}, fmt.Errorf("unexpected %s block state", m.name)
+	}
+	if forwardAfter == nil && insert != nil {
+		return insert(s, forwardBefore.Managed)
+	}
+	return transform(s, forwardAfter, forwardBefore, m)
+}
+
+// atBlockState reports whether s's marker-m block currently matches rec
+// (rec == nil meaning "absent").
+func atBlockState(s snapshot, rec *Record, m markers) bool {
+	if rec == nil {
+		a, _, err := blockRange(s.Data, m)
+		return err == nil && a < 0
+	}
+	return owned(s, *rec, m) == nil
+}
+
+// recoverBlockAndVoice computes the inverse of one entry that carries a
+// voice change (merged with a Hive Change, or standing alone with
+// en.Change.Before == en.Change.After == nil). action is the plan's
+// original Action, which fixes the mathematically correct inverse order:
+// install composed Hive then voice forward, so its inverse undoes voice
+// first, then Hive; remove and "voice" (set/off) composed voice then Hive
+// forward, so their inverse undoes Hive first, then voice (see design.md
+// "Recuperación" and its correction in the T2 handoff report — the design
+// text states voice-first unconditionally, which is only the install case;
+// remove's own multi-block deletion requires the reverse, matching the
+// forward composition each direction actually used in prepareEntries).
+func recoverBlockAndVoice(action string, cur snapshot, en entry) (snapshot, error) {
+	hive := func(s snapshot) (snapshot, error) {
+		return invertSubBlock(s, en.Change.Before, en.Change.After, hiveMarkers, nil)
+	}
+	voice := func(s snapshot) (snapshot, error) {
+		if en.Voice == nil {
+			return s, nil
+		}
+		return invertSubBlock(s, voiceRecordFromSpan(en.Voice.Before), voiceRecordFromSpan(en.Voice.After), voiceMarkers, insertVoiceSpan)
+	}
+	if action == "install" {
+		s, err := voice(cur)
+		if err != nil {
+			return snapshot{}, err
+		}
+		return hive(s)
+	}
+	s, err := hive(cur)
+	if err != nil {
+		return snapshot{}, err
+	}
+	return voice(s)
 }
 
 // finishApply prunes directories left empty by the committed transaction.
@@ -527,6 +645,17 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			// These are the two journaled intermediate states of the one
 			// allowed directory-to-link migration.
 			inverses[i] = en.Before
+			continue
+		}
+		if en.Voice != nil {
+			if cur.Exists && en.Before.Exists && cur.Mode != en.Before.Mode {
+				return "", fmt.Errorf("recovery conflict: %s; preserved", en.Change.Target.Path)
+			}
+			inv, err := recoverBlockAndVoice(j.Plan.Action, cur, en)
+			if err != nil {
+				return "", fmt.Errorf("recovery conflict: %s: %w", en.Change.Target.Path, err)
+			}
+			inverses[i] = inv
 			continue
 		}
 		// A previous recovery attempt may already have restored the managed span
