@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En curso · plan aprobado el 2026-09-28 · T1 en marcha |
+| Estado | Pausado · T1–T5 verificadas · el recorrido del usuario pidió cambios de diseño · sin publicar |
 | Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive/issues/46) (pantallas 1, 2 y 3) |
 | Git | `direct-base` a `rebuild/harness-engineering` · `/code-review` antes del push · recorrido del usuario antes de publicar (D7-A, D8-A) |
 | Verificación | `go vet ./...` · `go test -race ./...` · `review-ux` y `sdd-verify` sobre el binario en una terminal real · recorrido del usuario |
-| Siguiente paso | `flow-build`, empezando por T1 |
+| Siguiente paso | Sesión nueva: replanear con `flow-plan` la aplicación de pantalla completa (ver `tasks.md`, «Siguiente paso») |
 
 ## Objetivo
 

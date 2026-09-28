@@ -200,7 +200,13 @@ Pruebas, todas en modo accesible con entrada guionada:
     - N2: texto claro sobre fucsia en el botón enfocado.
   - **Prueba de contraste:** `TestThemeContrastMeetsWCAGAA` calcula el contraste WCAG de diez estilos en los dos temas. Excepción documentada: el título conserva el índigo de `huh` y da 4,36 a 1 frente a `#1e1e1e`.
   - **Suite:** `go test -race -timeout 20m ./...` pasa en los 16 paquetes; `tooling/cli` tarda 585 s.
-  - **Pendiente:** el recorrido del usuario.
+  - **Recorrido del usuario (2026-09-28): pidió cambios.** Los atiende una sesión nueva:
+    1. **Install y Remove en una sola vista:** casillas que muestran qué CLI queda activo, con una opción aparte para desinstalar todo.
+    2. **Volver atrás:** Backspace (o una tecla equivalente) debe regresar al menú desde Releases y desde las demás vistas.
+    3. **Ajustes en el lugar:** la configuración, como el tratamiento y la intensidad de una voz, debe cambiarse con las flechas en la misma vista, no con un asistente paso a paso.
+    4. **Rastro en pantalla:** cada vista deja impresas las anteriores (encabezados, formularios, «Cancelled…»). Hay que redibujar la pantalla completa.
+
+    Captura del usuario: `~/Library/Application Support/CleanShot/media/media_xuQsSn6wME/CleanShot 2026-09-28 at 13.19.09@2x.png`.
 
 **Depends on:** T5.
 
@@ -253,6 +259,14 @@ Pruebas, todas en modo accesible con entrada guionada:
 - **Cambio del usuario durante la revisión:** el subcomando explícito se llama `hive tui` en vez de `hive ui`.
 - **Sin nueva ronda:** todas las correcciones aplican propuestas de los revisores. Queda sin verificar cómo se comporta `huh` con un lector de pantalla real.
 
-**Avance:** plan listo para implementar; ninguna tarea empezada.
+**Avance:** T1 a T5 verificadas y T6 con sus revisiones independientes aprobadas; el recorrido del usuario pidió cambios de diseño. Todo está en commits locales de `feat/gh-46-tui`, en el worktree `.claude/worktrees/gh-46-tui`, sin publicar.
 
-**Siguiente paso:** `flow-build`, empezando por T1.
+**Siguiente paso:** en una sesión nueva, replanear con `flow-plan` sobre esta carpeta. Los cambios pedidos contradicen dos decisiones del diseño: «formularios de `huh` uno tras otro, no una aplicación a pantalla completa» y «Remove CLIs como flujo aparte». Apuntan a una aplicación de pantalla completa (Bubble Tea con `huh` o `bubbles` dentro), con una pila de vistas que permita volver atrás.
+
+Se conserva lo que vale:
+- el `prompter` y los flujos compartidos con los comandos;
+- `runInstallFlowWith`, `removeFlow` y `rollbackFlow`;
+- `CurrentVoice`;
+- el tema corregido y su prueba de contraste;
+- la prueba de dependencias;
+- las pruebas que comparan la interfaz con los comandos.
