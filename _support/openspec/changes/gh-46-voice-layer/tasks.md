@@ -115,7 +115,16 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T4 — Comando `hive voice` y la voz en `hive update`
 
-- [/] `hive voice list|set|off` funciona de punta a punta, y el resumen de `update` muestra los cambios de voz.
+- [x] `hive voice list|set|off` funciona de punta a punta, y el resumen de `update` muestra los cambios de voz.
+  - Ronda 1, AC4 no cumplido: la prueba de la línea de voz del resumen buscaba «Voice» y lo encontraba en la ruta temporal, así que pasaba aunque se quitara la línea. Además, `voice set` guarda el tratamiento y la intensidad vacíos en lugar de `none` y `subtle`, y un plan de voz sin cambios de voz se aceptaba.
+  - **Ronda 2:** AC1 a AC4 y AC9 cumplidos. `review-task` repitió las roturas deliberadas del código y cada una hace fallar una prueba; también confirmó que los cambios de voz que no cambian nada no escriben archivos ni dan cambios falsos, y que la recuperación funciona.
+  - **Correcciones de la ronda:**
+    - la prueba exige la línea exacta del resumen y su ausencia cuando no corresponde;
+    - `BuildVoicePlan` guarda `none` y `subtle` por defecto;
+    - un plan de voz sin cambios de voz se rechaza;
+    - hay pruebas de rechazo en la confirmación, del caso sin cambios y de que no se escriba nada sin Hive.
+  - **Después de la verificación:** el resumen de `voice set` contaba y listaba también los archivos que no cambian (N1). Lo corregí en el hilo principal; la prueba `TestVoiceSummaryCountsOnlyFilesThatChange` falló antes del arreglo y pasa después.
+  - **Incluido:** la corrección H7 del gestor (los consumidores del tramo se amplían cuando un CLI se suma a un archivo compartido).
 
 **Closes:** AC1, AC2, AC3, AC4 (la línea de voz en el resumen de `update`) y AC9 (los errores del comando).
 
@@ -159,7 +168,7 @@ Aplicar los cambios que pida.
 
 ### T6 — Documentación y prueba local
 
-- [ ] `deployment-manager.md` documenta `hive voice`, y una prueba local sobre un home de prueba confirma el ciclo completo.
+- [/] `deployment-manager.md` documenta `hive voice`, y una prueba local sobre un home de prueba confirma el ciclo completo.
 
 **Closes:** AC11.
 

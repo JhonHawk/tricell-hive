@@ -284,7 +284,7 @@ func TestRunUsageErrors(t *testing.T) {
 		{
 			name: "no subcommand",
 			args: []string{},
-			want: "usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases",
+			want: "usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases | voice list|set|off",
 		},
 		{
 			name: "plan without action",

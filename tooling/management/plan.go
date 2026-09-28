@@ -584,7 +584,7 @@ func validatePlan(p Plan, state State) error {
 			return err
 		}
 	} else if p.Action == "voice" {
-		if p.Release != nil || len(p.Changes) != 0 {
+		if p.Release != nil || len(p.Changes) != 0 || len(p.Voice) == 0 {
 			return fmt.Errorf("invalid plan action")
 		}
 	} else if p.Action != "remove" || p.Release != nil {

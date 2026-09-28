@@ -340,6 +340,105 @@ func TestVoiceInterruptedRecoveryResumes(t *testing.T) {
 	}
 }
 
+// H7 / P13: Grok joins Claude's shared file, already voiced. The install
+// plan must widen the span's Consumers even though the rendered bytes don't
+// change, so status --hosts grok shows the voice row right away.
+func TestVoiceSpanConsumersWidenWhenHostJoinsSharedFile(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"claude"}
+	voiceSource(t, o)
+	apply(t, plan(t, "install", o))
+	apply(t, voicePlan(t, "set", o, jarvisSirSubtle))
+	if len(stateFor(t, o).VoiceSpans[claudePath(o)].Consumers) != 1 {
+		t.Fatalf("test setup: expected one consumer before Grok joins")
+	}
+
+	g := o
+	g.Hosts = []string{"grok"}
+	p := plan(t, "install", g)
+	found := false
+	for _, vc := range p.Voice {
+		if vc.Path == claudePath(o) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected a voice change widening the shared span's consumers when Grok joins")
+	}
+	apply(t, p)
+	consumers := stateFor(t, o).VoiceSpans[claudePath(o)].Consumers
+	if len(consumers) != 2 {
+		t.Fatalf("expected 2 consumers after Grok joins, got %+v", consumers)
+	}
+	entries, err := Status(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if voiceStatusFor(entries, claudePath(o)) == nil {
+		t.Fatal("status --hosts grok does not show the voice row right after Grok joins")
+	}
+}
+
+// F1: BuildVoicePlan must normalize an empty Address/Intensity to their
+// defaults before storing the choice, so State.Voice, the status Voice
+// field and repeat-detection all see "none"/"subtle" rather than "".
+func TestVoiceSetNormalizesDefaultsAndRecognizesUnchanged(t *testing.T) {
+	o := setup(t)
+	voiceSource(t, o)
+	apply(t, plan(t, "install", o))
+	apply(t, voicePlan(t, "set", o, VoiceSetting{ID: "jarvis"}))
+
+	got := stateFor(t, o).Voice
+	if got == nil || got.Address != "none" || got.Intensity != "subtle" {
+		t.Fatalf("expected normalized defaults stored, got %+v", got)
+	}
+	entries, err := Status(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	row := voiceStatusFor(entries, codexPath(o))
+	if row == nil || row.Voice != "jarvis (none, subtle)" {
+		t.Fatalf("expected status Voice \"jarvis (none, subtle)\", got %+v", row)
+	}
+
+	p2, err := BuildVoicePlan("set", o, VoiceSetting{ID: "jarvis", Address: "none", Intensity: "subtle"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchanged, err := PlanUnchanged(p2); err != nil || !unchanged {
+		t.Fatalf("expected the explicit default choice to be recognized as unchanged, got unchanged=%v err=%v", unchanged, err)
+	}
+}
+
+// validatePlan must reject a "voice" plan with zero voice changes (design.md:
+// "at least one voice change"). BuildVoicePlan must never itself produce
+// such a plan for a real "set"/"off" invocation, even when every path is
+// already exactly at the requested state: PlanUnchanged, not an empty
+// p.Voice, is how a caller learns there is nothing to apply.
+func TestValidatePlanRejectsVoiceActionWithZeroVoiceChanges(t *testing.T) {
+	o := setup(t)
+	voiceSource(t, o)
+	apply(t, plan(t, "install", o))
+	apply(t, voicePlan(t, "set", o, jarvisSirSubtle))
+
+	repeat, err := BuildVoicePlan("set", o, jarvisSirSubtle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repeat.Voice) == 0 {
+		t.Fatal("expected BuildVoicePlan to include at least one voice change even when nothing would change")
+	}
+	if unchanged, err := PlanUnchanged(repeat); err != nil || !unchanged {
+		t.Fatalf("expected the repeat plan to be reported unchanged, got unchanged=%v err=%v", unchanged, err)
+	}
+
+	repeat.Voice = nil
+	repeat.ID = planID(repeat)
+	if err := validatePlan(repeat, stateFor(t, o)); err == nil {
+		t.Fatal("expected validatePlan to reject a voice-action plan with zero voice changes")
+	}
+}
+
 // --- test gaps: mutants that survived ------------------------------------------
 
 // P10: a voice plan built before an outside edit must be rejected as stale.

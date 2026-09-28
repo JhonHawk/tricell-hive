@@ -672,6 +672,9 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	} else {
 		fmt.Fprintf(out, "Hive files to install or update: %d; legacy changes: %d\n", len(p.Changes), len(p.Legacy))
 	}
+	if len(p.Voice) > 0 {
+		fmt.Fprintf(out, "Voice files to regenerate: %d\n", len(p.Voice))
+	}
 	if len(preview.Details) == 0 {
 		fmt.Fprintln(out, "Optional capabilities: none selected.")
 	}

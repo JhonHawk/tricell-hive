@@ -359,6 +359,20 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 		return p, fmt.Errorf("action must be set or off")
 	}
 	o.Scope = "user"
+	if action == "set" {
+		// Normalize before storing or rendering, so State.Voice (and every
+		// display derived from it, e.g. status's Voice field) never carries
+		// an empty Address/Intensity, and repeating the same choice — spelled
+		// out or left to default — is recognized as identical (F1, T4 fix
+		// round). RenderVoice defaults these too, but only for its own
+		// rendering; the choice stored here must match what was rendered.
+		if v.Address == "" {
+			v.Address = "none"
+		}
+		if v.Intensity == "" {
+			v.Intensity = "subtle"
+		}
+	}
 	c, dir, err := normalize(o)
 	if err != nil {
 		return p, err
@@ -409,15 +423,16 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 			span := existing
 			before = &span
 		}
+		// Every path always gets a VoiceChange, even a no-op one (Before
+		// equal to After, byte for byte) when nothing would change there:
+		// BuildPlan's own Change list works the same way, and it is what
+		// lets validatePlan require at least one voice change for a "voice"
+		// action plan while PlanUnchanged, not an empty p.Voice, is what
+		// tells a caller there is nothing to apply (T4 fix round, item 3).
 		var after *VoiceSpan
 		if action == "set" {
 			managed := managedBlock(body, s.Data, voiceMarkers)
-			if hasSpan && bytes.Equal(existing.Managed, managed) {
-				continue
-			}
 			after = &VoiceSpan{Managed: managed, SourceHash: srcHash, Consumers: voiceConsumersForPath(c, state, path)}
-		} else if !hasSpan {
-			continue
 		}
 		p.Voice = append(p.Voice, VoiceChange{Path: path, Consumers: voiceConsumersForPath(c, state, path), Expected: finger(s), Before: before, After: after})
 	}
@@ -493,7 +508,11 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 		}
 		existing, hasSpan := state.VoiceSpans[ch.Target.Path]
 		managed := managedBlock(body, s.Data, voiceMarkers)
-		if hasSpan && bytes.Equal(existing.Managed, managed) {
+		newConsumers := filterUserConsumers(ch.After.Consumers, p.Config)
+		// A shared file's consumer set can widen (a host joins) even when the
+		// rendered bytes don't change; still record that, so status for the
+		// newly joined host lists the voice row right away (H7).
+		if hasSpan && bytes.Equal(existing.Managed, managed) && reflect.DeepEqual(existing.Consumers, newConsumers) {
 			continue
 		}
 		var before *VoiceSpan
@@ -501,7 +520,7 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 			span := existing
 			before = &span
 		}
-		after := &VoiceSpan{Managed: managed, SourceHash: srcHash, Consumers: filterUserConsumers(ch.After.Consumers, p.Config)}
+		after := &VoiceSpan{Managed: managed, SourceHash: srcHash, Consumers: newConsumers}
 		p.Voice = append(p.Voice, VoiceChange{Path: ch.Target.Path, Consumers: after.Consumers, Expected: ch.Expected, Before: before, After: after})
 	}
 	return nil

@@ -37,7 +37,7 @@ func run(args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases")
+		return fmt.Errorf("usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases | voice list|set|off")
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {
@@ -59,6 +59,8 @@ func run(args []string) error {
 		return runUpdate(rest)
 	case "releases":
 		return runReleases(rest)
+	case "voice":
+		return runVoice(rest)
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}
@@ -70,6 +72,7 @@ func printHelp() {
 	fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
 	fmt.Println("hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update from a Git commit; needs Git and a checkout, unlike install.sh)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
+	fmt.Println("hive voice list [--source DIR]  (print each voice's ID and description)\nhive voice set ID [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]\nhive voice off [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]")
 }
 
 func runUpdate(args []string) error {
