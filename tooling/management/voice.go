@@ -281,19 +281,19 @@ func insertVoiceSpan(s snapshot, managed []byte) (snapshot, error) {
 // (a registered span whose current bytes no longer match) or an
 // unregistered voice block (markers present with no registered span),
 // naming the voice block explicitly (see design.md "Conflicto").
-func checkVoiceConflict(s snapshot, hasSpan bool, existing VoiceSpan) error {
+func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpan) error {
 	if hasSpan {
 		if err := owned(s, *voiceRecordFromSpan(&existing), voiceMarkers); err != nil {
-			return fmt.Errorf("voice block conflict: %w", err)
+			return fmt.Errorf("voice block conflict in %s: %w", path, err)
 		}
 		return nil
 	}
 	a, _, err := blockRange(s.Data, voiceMarkers)
 	if err != nil {
-		return fmt.Errorf("voice block conflict: %w", err)
+		return fmt.Errorf("voice block conflict in %s: %w", path, err)
 	}
 	if a >= 0 {
-		return fmt.Errorf("voice block conflict: unregistered voice block present")
+		return fmt.Errorf("voice block conflict in %s: unregistered voice block present", path)
 	}
 	return nil
 }
@@ -415,7 +415,7 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 			return Plan{}, err
 		}
 		existing, hasSpan := state.VoiceSpans[path]
-		if err := checkVoiceConflict(s, hasSpan, existing); err != nil {
+		if err := checkVoiceConflict(path, s, hasSpan, existing); err != nil {
 			return Plan{}, err
 		}
 		var before *VoiceSpan
@@ -484,7 +484,7 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 			return err
 		}
 		existing, hasSpan := state.VoiceSpans[ch.Target.Path]
-		if err := checkVoiceConflict(s, hasSpan, existing); err != nil {
+		if err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing); err != nil {
 			return err
 		}
 	}
@@ -542,7 +542,7 @@ func addVoiceChangesForRemove(p *Plan, state State) error {
 			return err
 		}
 		existing, hasSpan := state.VoiceSpans[ch.Target.Path]
-		if err := checkVoiceConflict(s, hasSpan, existing); err != nil {
+		if err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing); err != nil {
 			return err
 		}
 		if !hasSpan {

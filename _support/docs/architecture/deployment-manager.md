@@ -42,6 +42,22 @@ Applying a plan built by `update` records its source commit in `releases/<id>.co
 
 `hive releases` prints, as a JSON array, every retained snapshot from the most recently written to the oldest: `id`, `last_written_at` (the time its snapshot was last written), `commits` (recorded source commits in the order they were applied, possibly empty), and `consumers` (the hosts that currently have it installed, possibly empty). It reads state only.
 
+### Optional voice layer
+
+```sh
+go run ./tooling/cli voice list [--source .]
+go run ./tooling/cli voice set <id> [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source .] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]
+go run ./tooling/cli voice off [--source .] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]
+```
+
+A voice is an optional tone for the messages the user reads in the main conversation. It is off by default and never changes the Hive rules. Its text comes from `content/voices/`: `preamble.md`, shared by every voice, followed by `<id>.md`, one line for the form of address (default `none`), and one for the intensity (default `subtle`). The preamble states that the voice never overrides the Hive rules, lists what it never changes, limits tone to transitions, closings, and the form of address, and tells any agent launched by another agent, or writing files, commits, pull requests, tickets, or specifications, to ignore it. That last condition is text, not enforcement: a subagent that reads the global file can still adopt the voice. Voices are not part of the release catalogue, so they never change a release ID.
+
+`voice set` writes one voice span per user-scope instruction file that already holds a Hive block this manager owns, with its own markers, `<!-- === TRICELL HIVE VOICE:BEGIN === -->` and `<!-- === TRICELL HIVE VOICE:END === -->`, placed right after the Hive block's end line. There is one voice per home, applied to every registered user-scope host. `voice off` removes every span and returns each file to its bytes before `voice set`. Both follow the `update` confirmation pattern: a summary, confirmation in a terminal, `--dry-run` to preview, and `--out FILE` to save a plan for `hive apply --plan FILE`.
+
+With a voice active, `plan install`, and therefore `hive update`, keeps the span and regenerates it with the same choice when the voice source text or its rendered form changed; the summary then reports the voice files to regenerate. A host that gains its Hive block in the same plan gets the voice too. `plan install --release <hash>` carries no voice text and leaves spans untouched. `plan remove` removes a file's voice span with its last consumer, and forgets the voice once no span remains. `status` adds a `voice` row per span with the voice, address, and intensity, and reports `drift` when the span was edited by hand. A hand-edited span, or voice markers in a file with no recorded span, is a conflict that every operation on that file preserves.
+
+The voice is stored in `state.json` as `voice` and `voice_spans` without a schema change. A manager from before this feature reads that state but drops those fields, leaving the spans in the files; the current manager then reports them as unregistered conflicts. Run `hive voice off` before returning to an older manager.
+
 ## Optional Context7 setup recommendation
 
 `hive setup` is a read-only onboarding step. It checks known skill locations for nonempty `find-docs/SKILL.md` and `context7-mcp/SKILL.md` files, including the shared `.agents` location and configured host homes. `--home DIR` selects a synthetic home and ignores environment overrides. A user-scope install plan without an existing Hive state file prints a first-setup recommendation; it never blocks installation on Context7 availability.
@@ -93,6 +109,7 @@ require explicit selection. The state home contains:
 - `state.json`: schema version, installed resource records, release IDs, owned directories, and scoped legacy-migration receipts.
 - `releases/<hash>.json`: immutable installed payload snapshots.
 - `releases/<hash>.commits.json`: the source commits recorded by `hive update` for that release, with the time each was applied.
+- `voice` and `voice_spans` inside `state.json`: the chosen voice and, per instruction file, the written voice span, its source hash, and its consumers.
 - `transactions/<id>.json`: private before/after images and transaction phase.
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.

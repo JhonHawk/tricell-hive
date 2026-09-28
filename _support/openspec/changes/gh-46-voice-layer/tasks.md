@@ -168,7 +168,18 @@ Aplicar los cambios que pida.
 
 ### T6 — Documentación y prueba local
 
-- [/] `deployment-manager.md` documenta `hive voice`, y una prueba local sobre un home de prueba confirma el ciclo completo.
+- [?] `deployment-manager.md` documenta `hive voice`, y una prueba local sobre un home de prueba confirma el ciclo completo.
+  - **Evidencia del hilo principal (2026-09-28):** el ciclo completo se ejecutó con un binario compilado del worktree, sobre `--home` y `--state-dir` temporales:
+    - `install` de Codex y Claude;
+    - `voice list` mostró las tres voces;
+    - `voice set jarvis --address sir`, primero con `--dry-run` y luego con `--out` y `apply`, puso un solo bloque justo después del de Hive, con sus líneas de tratamiento e intensidad;
+    - `status` mostró filas `voice installed jarvis (sir, subtle)`;
+    - `update --dry-run` sobre un clon con `jarvis.md` cambiado mostró «Voice files to regenerate: 2»;
+    - una edición a mano apareció como `drift` y bloqueó `voice off`;
+    - al restaurarla, `voice off` dejó los dos archivos idénticos byte a byte a su estado tras `install` (`cmp`) y sin `voice` ni `voice_spans` en el estado.
+
+    El estado real del usuario no se tocó.
+  - **Arreglo encontrado en la prueba:** el mensaje de conflicto de voz no nombraba el archivo. Ahora dice `voice block conflict in <ruta>`, con la prueba `TestVoiceConflictNamesTheFile`; su rojo fue de compilación, por el cambio de firma.
 
 **Closes:** AC11.
 

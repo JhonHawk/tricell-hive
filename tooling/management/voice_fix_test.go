@@ -528,3 +528,17 @@ func TestVoiceOffRecoveryKeepsVoiceAfterHiveBlock(t *testing.T) {
 		})
 	}
 }
+
+// TestVoiceConflictNamesTheFile: a conflict on a hand-edited voice span must
+// say which instruction file holds it.
+func TestVoiceConflictNamesTheFile(t *testing.T) {
+	s := snapshot{Exists: true, Data: []byte(VoiceBegin + "\nedited\n" + VoiceEnd + "\n")}
+	err := checkVoiceConflict("/home/.codex/AGENTS.md", s, true, VoiceSpan{Managed: []byte(VoiceBegin + "\noriginal\n" + VoiceEnd + "\n")})
+	if err == nil || !strings.Contains(err.Error(), "/home/.codex/AGENTS.md") {
+		t.Fatalf("expected the conflict to name the file, got %v", err)
+	}
+	err = checkVoiceConflict("/home/.claude/CLAUDE.md", s, false, VoiceSpan{})
+	if err == nil || !strings.Contains(err.Error(), "/home/.claude/CLAUDE.md") {
+		t.Fatalf("expected the unregistered-block conflict to name the file, got %v", err)
+	}
+}
