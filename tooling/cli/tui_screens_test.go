@@ -33,7 +33,8 @@ import (
 // (confirmed stable across repeated runs); the drift count is deliberately
 // forced to a non-zero, checkable value by corrupting the installed block's
 // own managed content in place (a literal "0" would also match an
-// implementation that never increments it at all).
+// implementation that never increments it at all). T6 fix round F2 moved
+// the voice out of each row into its own "Voice: ..." line above them.
 func TestStatusScreenShowsValuesAndDoesNotWrite(t *testing.T) {
 	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
@@ -64,7 +65,8 @@ func TestStatusScreenShowsValuesAndDoesNotWrite(t *testing.T) {
 	}
 
 	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
-	wantLine := "claude · release 310505196a48 · version - · drift 1 · voice testvoice (sir, subtle)"
+	wantVoiceLine := "Voice: testvoice (sir, subtle)"
+	wantRow := "claude · release 310505196a48 · version - · drift 1"
 
 	beforeFiles := collectFiles(t, home)
 	beforeState := stateBytes(t, stateDir)
@@ -73,8 +75,14 @@ func TestStatusScreenShowsValuesAndDoesNotWrite(t *testing.T) {
 	if err := statusScreen(o, &out, nil); err != nil {
 		t.Fatalf("statusScreen: %v", err)
 	}
-	if !strings.Contains(out.String(), wantLine) {
-		t.Fatalf("missing expected status line %q in:\n%s", wantLine, out.String())
+	if !strings.Contains(out.String(), wantVoiceLine) {
+		t.Fatalf("missing the expected voice line %q in:\n%s", wantVoiceLine, out.String())
+	}
+	if !strings.Contains(out.String(), wantRow) {
+		t.Fatalf("missing the expected host row %q in:\n%s", wantRow, out.String())
+	}
+	if strings.Contains(out.String(), "· voice") {
+		t.Fatalf("the voice must not repeat inside a host row any more: %s", out.String())
 	}
 
 	afterFiles := collectFiles(t, home)
@@ -103,6 +111,61 @@ func TestStatusScreenNoHostsRegistered(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "No CLI hosts are registered. Choose Install CLIs.") {
 		t.Fatalf("missing empty-state message: %s", out.String())
+	}
+}
+
+// TestStatusScreenRowsFitWidthWithLongestHostName is T6 fix round F2: the
+// voice moved to its own "Voice: ..." line above the rows (a Status row
+// used to wrap mid-word at 80 columns, e.g. "...voice jarvis (name,
+// mark|ed)"), and every row — including installerHosts' own longest name,
+// "opencode" — fits statusRowWidth (78) columns. The literal row uses the
+// same deterministic release short ID TestStatusScreenShowsValuesAndDoesNot-
+// Write already pins (minimalCatalogSource's own fixed content, confirmed
+// stable across repeated runs and independent of which single host installs
+// it).
+func TestStatusScreenRowsFitWidthWithLongestHostName(t *testing.T) {
+	source := minimalTestSource(t)
+	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, source, "opencode", "y\n", dependencies)
+
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	var out bytes.Buffer
+	if err := statusScreen(o, &out, nil); err != nil {
+		t.Fatalf("statusScreen: %v", err)
+	}
+	got := out.String()
+	wantRow := "opencode · release 310505196a48 · version - · drift 0"
+	if !strings.Contains(got, wantRow) {
+		t.Fatalf("missing the expected host row %q in:\n%s", wantRow, got)
+	}
+	if !strings.Contains(got, "Voice: off") {
+		t.Fatalf("missing the expected voice line: %s", got)
+	}
+	for _, line := range strings.Split(strings.TrimRight(got, "\n"), "\n") {
+		if n := utf8.RuneCountInString(line); n > statusRowWidth+2 {
+			// +2: "== Status ==" and "Voice: ..." are not row-width-bound by
+			// design (they carry no per-host content to truncate), but must
+			// still comfortably fit an 80-column terminal.
+			t.Fatalf("line exceeds a reasonable width (%d): %q", n, line)
+		}
+	}
+}
+
+// TestStatusLineTruncatesLongHostName is statusLine's own unit test for the
+// defensive truncation T6 fix round F2 asks for: no name in installerHosts
+// ever needs it (the longest, "opencode", fits comfortably — see
+// TestStatusScreenRowsFitWidthWithLongestHostName), but the row must never
+// exceed statusRowWidth regardless of how long a host name or product
+// version happens to be.
+func TestStatusLineTruncatesLongHostName(t *testing.T) {
+	longHost := strings.Repeat("an-absurdly-long-host-name-", 4)
+	entries := []management.StatusEntry{
+		{Host: longHost, Release: strings.Repeat("a", 64), ProductVersion: "1.0.0", Status: "installed"},
+	}
+	line := statusLine(longHost, entries)
+	if n := utf8.RuneCountInString(line); n > statusRowWidth {
+		t.Fatalf("row exceeds %d columns (%d): %q", statusRowWidth, n, line)
 	}
 }
 
@@ -526,6 +589,31 @@ func TestFormatReleaseLabelTruncatesLongHostList(t *testing.T) {
 	}
 }
 
+// TestFormatReleaseLabelInstalledFitsEightyColumnsWithHuhPrefix is T6 fix
+// round F3: a Select option's own rendered line is huh's own 4-column
+// cursor/indent prefix (field_select.go's renderOption) plus this label's
+// own text — releaseLabelWidth (76) leaves exactly that room, so the
+// installed row's own worst case (truncated host list, at the full budget)
+// totals 76+4=80, fitting an 80-column terminal instead of overflowing it.
+// Before this fix, releaseLabelWidth was 78: the installed marker was
+// already included within that 78, but 78+4 still overflowed by 4 columns.
+func TestFormatReleaseLabelInstalledFitsEightyColumnsWithHuhPrefix(t *testing.T) {
+	var consumers []management.Consumer
+	for i := 0; i < 20; i++ {
+		consumers = append(consumers, management.Consumer{Host: fmt.Sprintf("host-with-a-long-name-%02d", i)})
+	}
+	entry := management.ReleaseEntry{ID: strings.Repeat("a", 64), LastWrittenAt: "2026-09-20T10:00:00Z", Consumers: consumers}
+	label := formatReleaseLabel(entry, true)
+	n := utf8.RuneCountInString(label)
+	if n > releaseLabelWidth {
+		t.Fatalf("installed label exceeds %d columns (%d): %q", releaseLabelWidth, n, label)
+	}
+	const huhListPrefixWidth = 4
+	if n+huhListPrefixWidth > 80 {
+		t.Fatalf("installed label (%d cols) plus huh's own %d-column list prefix exceeds 80 columns: %q", n, huhListPrefixWidth, label)
+	}
+}
+
 // TestReleaseSelectFieldShowsEveryOptionWhenFewerThanHeight is the
 // established T3 visibility pattern (TestHostsMultiSelectFieldShowsEveryOption)
 // applied to Releases' own Select.
@@ -635,10 +723,13 @@ func TestVoiceScreenNoHostsRegistered(t *testing.T) {
 	}
 }
 
-// TestVoiceScreenSourceWithoutVoicesReturnsItsError covers AC11's other
-// Voice limit state: a source with no content/voices/ directory fails with
-// ListVoices' own read error, not a generic or swallowed one.
-func TestVoiceScreenSourceWithoutVoicesReturnsItsError(t *testing.T) {
+// TestVoiceScreenSourceWithoutVoicesReturnsGuidance covers AC11's other
+// Voice limit state (T6 fix round F4): a source with no content/voices/
+// directory fails with the same actionable guidance Install CLIs uses for a
+// source without a catalog at all, not ListVoices' own raw os.ReadDir error
+// ("open /tmp/content/voices: no such file or directory" — a filesystem
+// path an operator cannot act on).
+func TestVoiceScreenSourceWithoutVoicesReturnsGuidance(t *testing.T) {
 	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	home, stateDir := newHostsTestHome(t)
@@ -650,7 +741,14 @@ func TestVoiceScreenSourceWithoutVoicesReturnsItsError(t *testing.T) {
 	p := newHuhPrompter(true, strings.NewReader(""), &out)
 	err := voiceScreen(o, &out, p)
 	if err == nil {
-		t.Fatal("expected ListVoices' own error for a source without content/voices")
+		t.Fatal("expected an error for a source without content/voices")
+	}
+	want := "Run hive from a Hive checkout or package, or pass --source"
+	if err.Error() != want {
+		t.Fatalf("got %q, want %q", err.Error(), want)
+	}
+	if strings.Contains(err.Error(), "content/voices") || strings.Contains(err.Error(), "no such file") {
+		t.Fatalf("must not leak the raw filesystem error: %v", err)
 	}
 }
 
@@ -691,6 +789,78 @@ func TestVoiceScreenSetAppliesLikeCommand(t *testing.T) {
 
 	assertHomesMatch(t, home, twinHome)
 	assertStateJSONMatches(t, stateDir, home, twinState, twinHome)
+}
+
+// TestVoiceScreenReselectingActiveVoiceKeepsSettingsOnEnterThrough covers T6
+// fix round F5: re-choosing the already-active voice seeds Address/Name/
+// Intensity from its own current setting (management.CurrentVoice — the F5
+// follow-up replacing activeVoiceSetting's own string parsing), so pressing
+// Enter through every field (accepting each seeded default) resubmits the
+// identical setting — voicePlanWith's own "Nothing to change" short-circuit,
+// reached only when the rebuilt plan is unchanged from what is already
+// installed — rather than silently resetting every field to its bare
+// default and building a plan that actually changes something. The "name"
+// subtest is the case activeVoiceSetting's own string parsing could never
+// seed correctly (Status's formatted voice string never carries Name at
+// all): pressing Enter through the Name input too must keep "Robin".
+func TestVoiceScreenReselectingActiveVoiceKeepsSettingsOnEnterThrough(t *testing.T) {
+	setup := func(t *testing.T, v management.VoiceSetting) (o management.Options, before map[string][]byte) {
+		t.Helper()
+		source := minimalTestSource(t)
+		dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+		home, stateDir := newHostsTestHome(t)
+		installViaText(t, home, stateDir, source, "claude", "y\n", dependencies)
+
+		vo := management.Options{Source: source, Home: home, StateDir: stateDir}
+		vp, err := management.BuildVoicePlan("set", vo, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := (management.Engine{}).Apply(vp); err != nil {
+			t.Fatal(err)
+		}
+		return management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: source}, collectFiles(t, home)
+	}
+
+	assertUnchanged := func(t *testing.T, o management.Options, before map[string][]byte, input string) {
+		t.Helper()
+		var out bytes.Buffer
+		p := newHuhPrompter(true, strings.NewReader(input), &out)
+		if err := voiceScreen(o, &out, p); err != nil {
+			t.Fatalf("voiceScreen: %v\noutput:\n%s", err, out.String())
+		}
+		if !strings.Contains(out.String(), "Nothing to change: the voice already matches.") {
+			t.Fatalf("expected \"Nothing to change\", got:\n%s", out.String())
+		}
+		after := collectFiles(t, o.Home)
+		if len(before) != len(after) {
+			t.Fatalf("re-selecting the active voice changed the home: before=%d files, after=%d files", len(before), len(after))
+		}
+		for rel, data := range before {
+			if !bytes.Equal(after[rel], data) {
+				t.Fatalf("re-selecting the active voice changed %s", rel)
+			}
+		}
+	}
+
+	t.Run("sir", func(t *testing.T) {
+		o, before := setup(t, management.VoiceSetting{ID: testVoiceID, Address: "sir", Intensity: "subtle"})
+		// SelectVoiceOrOff: "1" (testvoice, already active); address Select:
+		// blank (accept the seeded "sir"); intensity Select: blank (accept
+		// the seeded "subtle"). No confirm line: voicePlanWith's own
+		// "unchanged" short-circuit returns before ever asking to confirm.
+		assertUnchanged(t, o, before, "1\n\n\n")
+	})
+
+	t.Run("name", func(t *testing.T) {
+		o, before := setup(t, management.VoiceSetting{ID: testVoiceID, Address: "name", Name: "Robin", Intensity: "marked"})
+		// SelectVoiceOrOff: "1"; address Select: blank (accept the seeded
+		// "name"); Name Input: blank (accept the seeded "Robin" —
+		// internal/accessibility.PromptString falls back to the field's own
+		// current value); intensity Select: blank (accept the seeded
+		// "marked").
+		assertUnchanged(t, o, before, "1\n\n\n\n")
+	})
 }
 
 // TestVoiceScreenSetThenOffLeavesFilesIdentical covers AC6: setting

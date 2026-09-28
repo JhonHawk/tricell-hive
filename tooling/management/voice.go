@@ -29,6 +29,27 @@ type VoiceInfo struct {
 	Description string
 }
 
+// CurrentVoice returns the home's own active voice setting, or nil when no
+// voice is set. It reads state the same read-only way Status does
+// (normalize + readState) but needs no host list: a voice is one per home,
+// not one per host (design.md "La interfaz"). It never writes and adds no
+// on-disk schema of its own — state.Voice is already recorded by
+// BuildVoicePlan/Apply. The caller in tooling/cli (voiceScreen) uses this
+// instead of parsing Status's own formatted "id (address, intensity)"
+// string, which cannot recover Name at all (formatVoiceStatus never
+// includes it).
+func CurrentVoice(o Options) (*VoiceSetting, error) {
+	_, dir, err := normalize(o)
+	if err != nil {
+		return nil, err
+	}
+	state, _, err := readState(dir)
+	if err != nil {
+		return nil, err
+	}
+	return state.Voice, nil
+}
+
 const preambleFile = "preamble.md"
 
 // voiceRenderVersion is part of RenderVoice's sourceHash. Bump it whenever

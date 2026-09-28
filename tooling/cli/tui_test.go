@@ -12,6 +12,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 	"tricell-hive/tooling/management"
 )
 
@@ -334,6 +335,31 @@ func TestRunFormRecoversInvalidAnswerThenEOF(t *testing.T) {
 			})
 		}
 	})
+}
+
+// TestCharmThemeCompensatesForInvertedContrast is T6 fix round F1 (a
+// blocker), updated for the N1 follow-up: charmThemeForDetectedBackground no
+// longer compensates by flipping the whole theme (huh.ThemeCharm(!isDark)) —
+// that also flipped indigo (Title/Description/Directory), which huh already
+// orients correctly, dropping its own contrast (N1) — it takes
+// huh.ThemeCharm(isDark) as-is and overrides only Option/UnselectedOption's
+// own foreground directly. For isDark=true (a real dark terminal), that
+// foreground must still be the light gray (252), matching the pinned huh
+// v2.0.3/lipgloss v2.0.1 versions' own observed (wrong) unmodified value of
+// 235 (~1.1:1 against a dark background) that justifies overriding it at
+// all; TestHuhThemeCharmStillInvertsOptionColor (tui_contrast_test.go) pins
+// that raw, unmodified value directly, so it — not this test, which passes
+// either way once the override exists — fails first the day huh fixes its
+// own reversed pair, prompting this override's removal.
+func TestCharmThemeCompensatesForInvertedContrast(t *testing.T) {
+	styles := charmThemeForDetectedBackground(true)
+	want := lipgloss.Color("252")
+	if got := styles.Focused.UnselectedOption.GetForeground(); got != want {
+		t.Fatalf("Focused.UnselectedOption foreground = %v, want %v (light gray, for contrast on a dark background)", got, want)
+	}
+	if got := styles.Focused.Option.GetForeground(); got != want {
+		t.Fatalf("Focused.Option foreground = %v, want %v", got, want)
+	}
 }
 
 // TestFormKeyMapBindsEscToQuit is the unit test on the keymap binding T2 fix

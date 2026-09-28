@@ -9,6 +9,8 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -36,33 +38,41 @@ func statusScreen(o management.Options, out io.Writer, p *huhPrompter) error {
 	if err != nil {
 		return err
 	}
+	// The voice is one per home, not one per host (T6 fix round F2): printed
+	// once above the rows instead of repeated, word-wrapped, at the end of
+	// each one — at 80 columns a host row plus "· voice jarvis (name,
+	// marked)" wrapped mid-word.
+	fmt.Fprintf(out, "Voice: %s\n", activeVoiceLine(entries))
 	for _, host := range hosts {
 		fmt.Fprintln(out, statusLine(host, entries))
 	}
 	return nil
 }
 
+// statusRowWidth bounds statusLine to fit an 80-column terminal with margin
+// (T6 fix round F2): a Status row is plain fmt.Fprintln output, with no
+// cursor/indent prefix the way a huh Select option has (see
+// releaseLabelWidth's own comment), so it keeps the full 2-column margin
+// (78 = 80 - 2) instead of releaseLabelWidth's smaller budget.
+const statusRowWidth = 78
+
 // statusLine renders one host's own row: its release (short ID), product
-// version, how many of its resources are in drift, and the voice active for
-// it, each "-" or "off" when unknown, so the row's shape never depends on
-// which fields happen to be populated (design.md "La interfaz": "la release
-// (ID corto), la versión del producto, cuántos recursos están en drift y la
-// voz activa"). A voice row's own Host is always empty (management.Status);
-// its Consumers list which hosts render it, so membership there is what
-// attributes it to this host, not StatusEntry.Host.
+// version, and how many of its resources are in drift, each "-" when
+// unknown, so the row's shape never depends on which fields happen to be
+// populated (design.md "La interfaz": "la release (ID corto), la versión
+// del producto, cuántos recursos están en drift"; the voice moved to
+// statusScreen's own single "Voice: ..." line above every row, T6 fix round
+// F2, since it is one value per home, not per host). If the fixed suffix
+// (release/version/drift) alone would already push the row past
+// statusRowWidth — an unbounded product version string could, though no
+// host name in installerHosts ever needs it — the host name is truncated to
+// make room, rather than the release or version losing identifying
+// information.
 func statusLine(host string, entries []management.StatusEntry) string {
-	release, version, voice := "", "", ""
+	release, version := "", ""
 	drift := 0
 	for _, e := range entries {
-		if e.Kind == "voice" {
-			for _, c := range e.Consumers {
-				if c.Host == host && e.Voice != "" {
-					voice = e.Voice
-				}
-			}
-			continue
-		}
-		if e.Host != host {
+		if e.Kind == "voice" || e.Host != host {
 			continue
 		}
 		if e.Release != "" {
@@ -83,10 +93,12 @@ func statusLine(host string, entries []management.StatusEntry) string {
 	if version == "" {
 		version = "-"
 	}
-	if voice == "" {
-		voice = "off"
+	suffix := fmt.Sprintf(" · release %s · version %s · drift %d", release, version, drift)
+	budget := statusRowWidth - utf8.RuneCountInString(suffix)
+	if budget < 1 {
+		budget = 1
 	}
-	return fmt.Sprintf("%s · release %s · version %s · drift %d · voice %s", host, release, version, drift, voice)
+	return truncateRunes(host, budget) + suffix
 }
 
 // updateScreen implements Update (design.md "La interfaz"): the source and
@@ -258,12 +270,19 @@ func isReleaseValidationError(err error) bool {
 }
 
 // formatReleaseLabel renders one release's own Select option label at or
-// under releaseLabelWidth columns (design.md "La interfaz": "etiquetas de 78
-// columnas o menos"): its short ID, date, first commit (or "-" when the
-// release predates commit tracking) and its consuming hosts, truncated to
-// whatever room is left, with an "(installed)" marker for the one currently
-// applied.
-const releaseLabelWidth = 78
+// under releaseLabelWidth display columns, INCLUDING the " (installed)"
+// marker: its short ID, date, first commit (or "-" when the release
+// predates commit tracking) and its consuming hosts, truncated to whatever
+// room is left, with the marker for the one currently applied.
+//
+// releaseLabelWidth is 76, not design.md "La interfaz"'s own "etiquetas de
+// 78 columnas o menos": a Select option is rendered through
+// field_select.go's renderOption, which prepends its own cursor/indent
+// (cursor.String(), padded to a fixed width) before this label's own text —
+// observed at 4 columns for huh v2.0.3's default theme — so an installed
+// row at the full 78 (marker included) overflowed an 80-column terminal by
+// those same 4 columns (T6 fix round F3). Budget = 80 - 4 = 76.
+const releaseLabelWidth = 76
 
 func formatReleaseLabel(e management.ReleaseEntry, installed bool) string {
 	shortID := shortHash(e.ID)
@@ -338,14 +357,27 @@ func voiceScreen(o management.Options, out io.Writer, p *huhPrompter) error {
 		fmt.Fprintln(out, "No CLI hosts are registered. Choose Install CLIs.")
 		return nil
 	}
-	so := o
-	so.Hosts = hosts
-	entries, err := management.Status(so)
+	// CurrentVoice (tooling/management/voice.go), not Status: it returns the
+	// active VoiceSetting itself, including Name, which Status's own
+	// formatted "id (address, intensity)" string never carries (T6 fix
+	// round F5 follow-up — activeVoiceSetting's own string parsing is gone).
+	active, err := management.CurrentVoice(o)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Active voice: %s\n", activeVoiceLine(entries))
+	fmt.Fprintf(out, "Active voice: %s\n", formatVoiceSetting(active))
 
+	// A source without content/voices/ made ListVoices return its own raw
+	// os.ReadDir error ("open /tmp/content/voices: no such file or
+	// directory") — a filesystem-shaped message meaningless to an operator,
+	// unlike Install CLIs' own guidance for a source without a catalog at
+	// all (T6 fix round F4, design.md "La interfaz": "fuente sin voces: el
+	// error de la fuente" means an actionable one, not sourceHasCatalog's
+	// exact check — Voice fails on voices specifically, even when the
+	// source's core catalog is otherwise fine).
+	if !sourceHasVoices(o.Source) {
+		return fmt.Errorf("Run hive from a Hive checkout or package, or pass --source")
+	}
 	voices, err := management.ListVoices(o.Source)
 	if err != nil {
 		return err
@@ -365,7 +397,17 @@ func voiceScreen(o management.Options, out io.Writer, p *huhPrompter) error {
 		}
 		return voicePlanWith(plan, "Voice turned off", out, true, false, "", p)
 	}
-	address, name, intensity, ok, err := p.VoiceDetails()
+	// Seed VoiceDetails from the active voice's own current settings when
+	// re-selecting it (T6 fix round F5), so pressing Enter through every
+	// field — including Name now that it comes from CurrentVoice, not a
+	// parsed Status string — resubmits the same setting instead of
+	// resetting every field to its bare default the moment any one of them
+	// is revisited.
+	seed := management.VoiceSetting{ID: choice}
+	if active != nil && active.ID == choice {
+		seed.Address, seed.Name, seed.Intensity = active.Address, active.Name, active.Intensity
+	}
+	address, name, intensity, ok, err := p.VoiceDetails(seed)
 	if err != nil {
 		return err
 	}
@@ -416,4 +458,31 @@ func activeVoiceLine(entries []management.StatusEntry) string {
 		}
 	}
 	return "off"
+}
+
+// formatVoiceSetting renders active's own "id (address, intensity)" line —
+// the same shape management.formatVoiceStatus already uses for Status's own
+// voice row — or "off" when none is active. voiceScreen's own "Active
+// voice" line (T6 fix round F5 follow-up) is sourced from
+// management.CurrentVoice directly, not Status: Status's formatted string
+// never carries Name at all, so it could not seed VoiceDetails' own Name
+// field for a re-selected "by name" voice; CurrentVoice returns the real
+// VoiceSetting instead.
+func formatVoiceSetting(active *management.VoiceSetting) string {
+	if active == nil {
+		return "off"
+	}
+	return fmt.Sprintf("%s (%s, %s)", active.ID, active.Address, active.Intensity)
+}
+
+// sourceHasVoices reports whether source has a content/voices/ directory
+// (T6 fix round F4), the same presence check sourceHasCatalog (tui_hosts.go)
+// applies to management.GlobalSource. management.ListVoices' own
+// os.ReadDir(dir) requires a directory, not merely an existing path, so a
+// stray content/voices file (not a directory) is treated the same as a
+// missing one here rather than surfacing ListVoices' own raw error either
+// way.
+func sourceHasVoices(source string) bool {
+	info, err := os.Stat(filepath.Join(source, management.VoicesSource))
+	return err == nil && info.IsDir()
 }

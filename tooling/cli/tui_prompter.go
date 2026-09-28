@@ -59,9 +59,12 @@ type huhPrompter struct {
 // newHuhPrompter builds the interface's own prompter. In accessible mode it
 // wraps in in a oneByteReader and never resolves a theme, since huh's
 // accessible runner is plain text; otherwise it resolves the theme once,
-// preferring ThemeBase when NO_COLOR is set and otherwise ThemeCharm with
-// the background lipgloss.HasDarkBackground (charm.land/lipgloss/v2 v2.0.1,
-// the version this module's go.sum pins) detects.
+// preferring ThemeBase when NO_COLOR is set and otherwise
+// charmThemeForDetectedBackground with the background
+// lipgloss.HasDarkBackground (charm.land/lipgloss/v2 v2.0.1, the version
+// this module's go.sum pins) detects — not ThemeCharm directly, which would
+// render unselected options unreadable on a real dark background (T6 fix
+// round F1; see charmThemeForDetectedBackground's own doc comment).
 func newHuhPrompter(accessible bool, in io.Reader, out io.Writer) *huhPrompter {
 	p := &huhPrompter{out: out, accessible: accessible}
 	if accessible {
@@ -84,9 +87,92 @@ func newHuhPrompter(accessible bool, in io.Reader, out io.Writer) *huhPrompter {
 		return p
 	}
 	isDark := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
-	styles := huh.ThemeCharm(isDark)
+	styles := charmThemeForDetectedBackground(isDark)
 	p.theme = huh.ThemeFunc(func(bool) *huh.Styles { return styles })
 	return p
+}
+
+// charmThemeForDetectedBackground is newHuhPrompter's own real-terminal
+// theme choice (T6 fix round F1, a blocker; N1 follow-up). huh v2.0.3's
+// ThemeCharm has a handful of its lightDark(...) branches backwards
+// relative to what lipgloss v2.0.1's LightDark(isDark)(light, dark)
+// (color.go:205, returns dark when isDark is true) actually resolves them
+// to: theme.go:144's normalFg = lightDark(Color("252"), Color("235")) gives
+// Focused.Option/UnselectedOption color 235 (~1.1:1) on an actually dark
+// background instead of 252, and TextInput.Placeholder (238/248, same
+// shape) is backwards the same way — both verified directly against the
+// pinned versions. indigo (Title/Description/Directory), green
+// (SelectedOption's own dark-branch value) and every other named color in
+// ThemeCharm are already oriented correctly, so the fix here is NOT
+// ThemeCharm(!isDark): an earlier round tried exactly that blanket flip and
+// it broke indigo along with everything else already correct (N1) — Title
+// on a real dark background dropped from ANSI 99 (5.1:1 against black) to
+// 62 (4.1:1). Instead, take huh's own ThemeCharm(isDark) — correct for
+// everything except the specific fields above — and override only those,
+// with the branch each color was actually meant for (confirmed by direct
+// WCAG contrast computation, TestThemeContrastMeetsWCAGAA): the lighter of
+// the pair for a dark background, the darker for a light one. It also
+// covers two fields ThemeCharm always under-contrasts regardless of isDark:
+// SelectedOption/TextInput.Cursor's own light-branch green (#02BA84, only
+// 2.51:1 against white) needs a darker green on light backgrounds; and
+// FocusedButton's cream-on-fuchsia (N2, huh's own pre-existing defect,
+// 2.26:1) needs a near-black foreground on the same fuchsia background
+// (9.14:1), independent of isDark since the fuchsia itself is not
+// lightDark-branched. TextInput.Text carries no explicit color in
+// ThemeCharm at all (it inherits the terminal's own default, which this
+// package cannot verify), so it is given the same explicit per-branch color
+// as Option here, both for consistency and so it has a real, checkable
+// value. Blurred and Group copy Focused's own fields by value inside
+// ThemeCharm, before this function ever sees the result, so every override
+// below is applied to Focused, Blurred and (for Description) Group
+// separately — mutating styles.Focused afterward would not reach them.
+func charmThemeForDetectedBackground(isDark bool) *huh.Styles {
+	styles := huh.ThemeCharm(isDark)
+
+	text := lipgloss.Color("235")
+	placeholder := lipgloss.Color("238")
+	description := lipgloss.Color("237")
+	blurredButtonBG := lipgloss.Color("252")
+	if isDark {
+		text = lipgloss.Color("252")
+		placeholder = lipgloss.Color("248")
+		description = lipgloss.Color("250")
+		blurredButtonBG = lipgloss.Color("237")
+	}
+	// N2: a near-black foreground on ThemeCharm's own fuchsia background,
+	// replacing cream (#FFFDF5) — 9.14:1 against #F780E2, vs. cream's own
+	// 2.26:1. The fuchsia itself is a plain lipgloss.Color, not
+	// lightDark-branched, so one override serves both isDark branches.
+	focusedButtonFG := lipgloss.Color("#1a1a1a")
+
+	for _, fs := range []*huh.FieldStyles{&styles.Focused, &styles.Blurred} {
+		fs.Option = fs.Option.Foreground(text)
+		fs.UnselectedOption = fs.UnselectedOption.Foreground(text)
+		fs.Description = fs.Description.Foreground(description)
+		fs.TextInput.Text = fs.TextInput.Text.Foreground(text)
+		fs.TextInput.Placeholder = fs.TextInput.Placeholder.Foreground(placeholder)
+		fs.BlurredButton = fs.BlurredButton.Foreground(text).Background(blurredButtonBG)
+		fs.FocusedButton = fs.FocusedButton.Foreground(focusedButtonFG)
+		fs.Next = fs.Next.Foreground(focusedButtonFG)
+	}
+	styles.Group.Description = styles.Focused.Description
+
+	if !isDark {
+		// ThemeCharm's own green (#02BA84) is correctly the same value on
+		// both branches (not lightDark-branched at all for SelectedOption),
+		// but that one value only has enough contrast against a DARK
+		// background (8.36:1); against a light one it is 2.51:1. Darkening
+		// it only for the light branch (isDark's own dark-branch green
+		// already passes unchanged) fixes both without touching the dark
+		// branch's own already-compliant value.
+		lightGreen := lipgloss.Color("#017A57")
+		styles.Focused.SelectedOption = styles.Focused.SelectedOption.Foreground(lightGreen)
+		styles.Focused.TextInput.Cursor = styles.Focused.TextInput.Cursor.Foreground(lightGreen)
+		styles.Blurred.SelectedOption = styles.Blurred.SelectedOption.Foreground(lightGreen)
+		styles.Blurred.TextInput.Cursor = styles.Blurred.TextInput.Cursor.Foreground(lightGreen)
+	}
+
+	return styles
 }
 
 // formKeyMap extends huh's own default keymap so Esc, not only Ctrl-C,
@@ -565,8 +651,20 @@ func (p *huhPrompter) SelectVoiceOrOff(voices []management.VoiceInfo) (string, b
 // group with conditional visibility, since only the second question is ever
 // conditional and huh's own group-level field hiding needs no exercise here
 // proportional to that.
-func (p *huhPrompter) VoiceDetails() (address, name, intensity string, ok bool, err error) {
-	address = "none"
+//
+// seed pre-selects each field's own starting value (T6 fix round F5):
+// voiceScreen passes the active voice's own current Address/Name/Intensity
+// when the chosen voice is the one already active, so pressing Enter
+// through every field resubmits the same setting ("Nothing to change")
+// instead of silently resetting every field to its bare default the moment
+// any one of them is revisited. A zero-value seed (a newly chosen, not
+// currently active, voice) keeps today's defaults: "none" and "subtle".
+func (p *huhPrompter) VoiceDetails(seed management.VoiceSetting) (address, name, intensity string, ok bool, err error) {
+	address = seed.Address
+	if address == "" {
+		address = "none"
+	}
+	name = seed.Name
 	addressField := huh.NewSelect[string]().
 		Title("Address").
 		Options(
@@ -588,7 +686,14 @@ func (p *huhPrompter) VoiceDetails() (address, name, intensity string, ok bool, 
 		nameField := huh.NewInput().
 			Title("Name").
 			Validate(func(v string) error {
-				if strings.TrimSpace(v) == "" {
+				// Blank input is only invalid when there is no seeded
+				// default to fall back to (internal/accessibility.
+				// PromptString's own cmp.Or(input, defaultValue) resolves a
+				// blank raw entry to defaultValue only after this validator
+				// already accepts it — T6 fix round F5 follow-up: a
+				// re-selected voice already named seed.Name must accept a
+				// blank Enter, not be forced to retype the same name).
+				if strings.TrimSpace(v) == "" && seed.Name == "" {
 					return fmt.Errorf("a name is required for address \"name\"")
 				}
 				return nil
@@ -603,7 +708,10 @@ func (p *huhPrompter) VoiceDetails() (address, name, intensity string, ok bool, 
 		}
 	}
 
-	intensity = "subtle"
+	intensity = seed.Intensity
+	if intensity == "" {
+		intensity = "subtle"
+	}
 	intensityField := huh.NewSelect[string]().
 		Title("Intensity").
 		Options(

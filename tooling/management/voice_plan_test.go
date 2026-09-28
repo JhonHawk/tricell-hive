@@ -100,6 +100,32 @@ func TestVoiceSetUnknownVoiceFailsBeforeWriting(t *testing.T) {
 	}
 }
 
+// --- CurrentVoice (tooling/cli's own Voice screen seeding source) ---------------
+
+func TestCurrentVoiceReturnsActiveSettingAndNilWhenOff(t *testing.T) {
+	o := setup(t)
+	voiceSource(t, o)
+	apply(t, plan(t, "install", o))
+
+	if v, err := CurrentVoice(o); err != nil || v != nil {
+		t.Fatalf("CurrentVoice with no voice set = (%+v, %v), want (nil, nil)", v, err)
+	}
+
+	apply(t, voicePlan(t, "set", o, VoiceSetting{ID: "jarvis", Address: "name", Name: "Robin", Intensity: "marked"}))
+	v, err := CurrentVoice(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v == nil || v.ID != "jarvis" || v.Address != "name" || v.Name != "Robin" || v.Intensity != "marked" {
+		t.Fatalf("CurrentVoice = %+v, want {jarvis name Robin marked}", v)
+	}
+
+	apply(t, voicePlan(t, "off", o, VoiceSetting{}))
+	if v, err := CurrentVoice(o); err != nil || v != nil {
+		t.Fatalf("CurrentVoice after off = (%+v, %v), want (nil, nil)", v, err)
+	}
+}
+
 // --- install regenerates on changed text, keeps unchanged (AC4) ----------------
 
 func TestVoiceInstallRegeneratesOnlyWhenTextChanges(t *testing.T) {

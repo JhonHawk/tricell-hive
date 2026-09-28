@@ -187,7 +187,20 @@ Pruebas, todas en modo accesible con entrada guionada:
 
 ### T6 — Revisión de la interfaz, prueba en vivo y recorrido del usuario
 
-- [ ] `review-ux` y `sdd-verify` aprueban la interfaz sobre el binario compilado en una terminal real, y el usuario la recorre y la aprueba.
+- [/] `review-ux` y `sdd-verify` aprueban la interfaz sobre el binario compilado en una terminal real, y el usuario la recorre y la aprueba.
+  - **`sdd-verify` (2026-09-28):** AC1 a AC11 cumplidos, en `tmux` y en modo accesible, comparando cada pantalla con su comando sobre homes gemelos. Incluye una operación pendiente real, provocada matando `apply` con `kill -9`, que la interfaz ofreció recuperar y recuperó. Sin verificar en vivo: la recuperación de un paso opcional interrumpido, que cubre una prueba unitaria.
+  - **`review-ux`, primera ronda:** cinco hallazgos, uno de ellos bloqueante.
+    - F1: contraste casi nulo de las opciones sobre fondo oscuro, porque `huh` v2.0.3 invierte sus pares de colores claro/oscuro.
+    - F2: filas de Status partidas a 80 columnas.
+    - F3: la fila de la release instalada no cabía.
+    - F4: un error crudo en Voice sin voces.
+    - F5: la voz activa perdía su configuración al volver a elegirla.
+  - **`review-ux`, segunda ronda:** F1 a F5 resueltos. Aparecieron dos puntos medios nuevos, corregidos después:
+    - N1: la inversión completa del tema bajó el contraste de los títulos; se sustituyó por ajustes solo en los colores invertidos.
+    - N2: texto claro sobre fucsia en el botón enfocado.
+  - **Prueba de contraste:** `TestThemeContrastMeetsWCAGAA` calcula el contraste WCAG de diez estilos en los dos temas. Excepción documentada: el título conserva el índigo de `huh` y da 4,36 a 1 frente a `#1e1e1e`.
+  - **Suite:** `go test -race -timeout 20m ./...` pasa en los 16 paquetes; `tooling/cli` tarda 585 s.
+  - **Pendiente:** el recorrido del usuario.
 
 **Depends on:** T5.
 
