@@ -78,9 +78,7 @@ func removeScreen(o management.Options, out io.Writer, p *huhPrompter) error {
 // plan's own Before/After meaning differs (After == nil means the resource
 // is deleted, not merely unchanged).
 func removeFlow(o management.Options, hosts []string, out io.Writer, p prompter) error {
-	ro := o
-	ro.Hosts = hosts
-	plan, err := management.BuildPlan("remove", ro)
+	plan, err := buildRemovePlan(o, hosts)
 	if err != nil {
 		return err
 	}
@@ -93,12 +91,25 @@ func removeFlow(o management.Options, hosts []string, out io.Writer, p prompter)
 		fmt.Fprintln(out, "Cancelled. No changes applied.")
 		return nil
 	}
-	result, err := (management.Engine{}).Apply(plan)
+	result, err := removeApply(plan)
 	if err != nil {
 		return err
 	}
 	reportApplyResult(out, "Hive removed", result)
 	return nil
+}
+
+// removeApply applies a remove plan. It is a variable only so tests can
+// interpose on the write (hold it, or make it fail); production never changes
+// it.
+var removeApply = func(p management.Plan) (string, error) { return (management.Engine{}).Apply(p) }
+
+// buildRemovePlan is removeFlow's planning half, shared with the CLIs view:
+// the same BuildPlan("remove") `hive plan remove` runs for these hosts.
+func buildRemovePlan(o management.Options, hosts []string) (management.Plan, error) {
+	ro := o
+	ro.Hosts = hosts
+	return management.BuildPlan("remove", ro)
 }
 
 // showRemoveSummary is removeFlow's own summary (design.md "La interfaz",

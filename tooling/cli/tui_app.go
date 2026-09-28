@@ -46,13 +46,40 @@ const (
 	navQuit
 )
 
-// action is a view's reply to a message. write marks the accompanying Cmd as a
-// write: the root then ignores every key, and drops interrupts, until the
-// Cmd's result arrives.
+// action is a view's reply to a message.
+//
+// pops removes that many views from the top before push is added: with
+// navPop it defaults to one, with navPush to none, so a view can replace
+// itself (navPush with pops 1) or unwind several views at once.
+//
+// write marks the accompanying Cmd as a write: the root then ignores every
+// key, and drops interrupts, until the Cmd's result arrives. The result goes
+// to result when set (a view lower in the stack that owns the flow), and to
+// the top view otherwise.
 type action struct {
-	nav   navKind
-	push  view
-	write bool
+	nav    navKind
+	push   view
+	pops   int
+	write  bool
+	result view
+}
+
+// targetedMsg is implemented by a message that must reach the view that issued
+// it, even when another view was pushed on top of that view in the meantime.
+type targetedMsg interface {
+	target() view
+}
+
+// revealer is implemented by a view that reacts to becoming the top again
+// after the views above it were popped (the CLIs view reloads its rows).
+type revealer interface {
+	Reveal() tea.Cmd
+}
+
+// spinnerNeeder is implemented by a view that is loading or planning and
+// wants the spinner frames to keep ticking.
+type spinnerNeeder interface {
+	NeedsSpinner() bool
 }
 
 // viewCtx is what a view needs to draw: its area, the theme, and whether a
@@ -131,6 +158,8 @@ type appModel struct {
 	statusLoading bool
 	statusSeq     int
 	writing       bool
+	// writeTarget receives the running write's result; nil means the top view.
+	writeTarget view
 }
 
 var quitBinding = key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit"))
@@ -146,7 +175,7 @@ func newAppModel(cfg appConfig) *appModel {
 		help:          h,
 		statusLoading: true,
 	}
-	m.stack = []view{newMenuView()}
+	m.stack = []view{newMenuView(cfg)}
 	return m
 }
 
@@ -162,7 +191,13 @@ func (m *appModel) tooSmall() bool {
 	return m.width < minWidth || m.height < minHeight
 }
 
-func (m *appModel) needsSpinner() bool { return m.statusLoading || m.writing }
+func (m *appModel) needsSpinner() bool {
+	if m.statusLoading || m.writing {
+		return true
+	}
+	n, ok := m.top().(spinnerNeeder)
+	return ok && n.NeedsSpinner()
+}
 
 // startSpinner starts the frame ticks unless they already run; the chain stops
 // itself once nothing needs the spinner.
@@ -216,26 +251,36 @@ func (m *appModel) push(v view) tea.Cmd {
 // apply carries out a view's reply and returns the Cmds it produces.
 func (m *appModel) apply(cmd tea.Cmd, act action) tea.Cmd {
 	var cmds []tea.Cmd
-	switch act.nav {
-	case navQuit:
+	if act.nav == navQuit {
 		return tea.Quit
-	case navPush:
-		if act.push != nil {
-			cmds = append(cmds, m.push(act.push))
-		}
-	case navPop:
-		if len(m.stack) > 1 {
-			m.stack = m.stack[:len(m.stack)-1]
+	}
+	pops := act.pops
+	if act.nav == navPop {
+		pops = max(pops, 1)
+	}
+	popped := 0
+	for ; popped < pops && len(m.stack) > 1; popped++ {
+		m.stack = m.stack[:len(m.stack)-1]
+	}
+	pushed := false
+	if act.nav == navPush && act.push != nil {
+		cmds = append(cmds, m.push(act.push))
+		pushed = true
+	}
+	if popped > 0 && !pushed {
+		if r, ok := m.top().(revealer); ok {
+			cmds = append(cmds, r.Reveal())
 		}
 	}
 	if cmd != nil {
 		if act.write {
 			m.writing = true
-			cmds = append(cmds, m.startSpinner())
+			m.writeTarget = act.result
 			cmd = wrapWrite(cmd)
 		}
 		cmds = append(cmds, cmd)
 	}
+	cmds = append(cmds, m.startSpinner())
 	return tea.Batch(cmds...)
 }
 
@@ -243,6 +288,15 @@ func (m *appModel) apply(cmd tea.Cmd, act action) tea.Cmd {
 // finished.
 func wrapWrite(cmd tea.Cmd) tea.Cmd {
 	return func() tea.Msg { return writeDoneMsg{msg: cmd()} }
+}
+
+func (m *appModel) inStack(v view) bool {
+	for _, s := range m.stack {
+		if s == v {
+			return true
+		}
+	}
+	return false
 }
 
 // forward hands a message to the top view.
@@ -281,9 +335,27 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.apply(nil, action{nav: navPush, push: msg.v})
 	case writeDoneMsg:
 		m.writing = false
-		return m, tea.Batch(m.forward(msg.msg), m.loadStatus())
+		target := m.writeTarget
+		m.writeTarget = nil
+		var cmd tea.Cmd
+		if target != nil && m.inStack(target) {
+			c, act := target.Update(msg.msg)
+			cmd = m.apply(c, act)
+		} else {
+			cmd = m.forward(msg.msg)
+		}
+		return m, tea.Batch(cmd, m.loadStatus())
 	case tea.KeyPressMsg:
 		return m, m.handleKey(msg)
+	}
+	if t, ok := msg.(targetedMsg); ok {
+		if tv := t.target(); tv != nil {
+			if !m.inStack(tv) {
+				return m, nil // the view was popped: its late result is dropped
+			}
+			cmd, act := tv.Update(msg)
+			return m, m.apply(cmd, act)
+		}
 	}
 	return m, m.forward(msg)
 }

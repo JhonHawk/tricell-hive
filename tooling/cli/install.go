@@ -430,19 +430,19 @@ func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out 
 	}
 }
 
-// expandToRequiredHosts covers U8: when shared resources force additional
-// hosts into the selection, name them, the affected resources, and the
-// consequence of accepting, then ask for explicit consent. ok=false means
-// the operator declined the expansion (already reported by the caller);
-// hosts is o.Hosts unchanged when nothing needs expanding.
-func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
+// describeRequiredHosts covers U8's notice: when shared resources force
+// additional hosts into the selection, it names them and the affected
+// resources, and the consequence of accepting, on out. needsConsent is false,
+// with hosts o.Hosts unchanged and nothing printed, when nothing needs
+// expanding; otherwise hosts is the full required set the operator must accept.
+func describeRequiredHosts(out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, needsConsent bool, err error) {
 	required, err := dependencies.RequiredHosts(o)
 	if err != nil {
 		return nil, false, err
 	}
 	additional := additionalHosts(o.Hosts, required)
 	if len(additional) == 0 {
-		return o.Hosts, true, nil
+		return o.Hosts, false, nil
 	}
 	fmt.Fprintf(out, "Shared resources require selecting: %s\n", strings.Join(additional, ", "))
 	sharedHostsOptions := o
@@ -453,6 +453,22 @@ func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Option
 		}
 	}
 	fmt.Fprintln(out, "Accepting will rewrite those resources too, on already-installed hosts that share them.")
+	return required, true, nil
+}
+
+// expandToRequiredHosts covers U8: when shared resources force additional
+// hosts into the selection, name them, the affected resources, and the
+// consequence of accepting, then ask for explicit consent. ok=false means
+// the operator declined the expansion (already reported by the caller);
+// hosts is o.Hosts unchanged when nothing needs expanding.
+func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
+	required, needsConsent, err := describeRequiredHosts(out, o, dependencies)
+	if err != nil {
+		return nil, false, err
+	}
+	if !needsConsent {
+		return o.Hosts, true, nil
+	}
 	decision, err := terminal.Confirm("Select all required hosts?", false)
 	if err != nil {
 		return nil, false, err

@@ -32,28 +32,31 @@ func (baseView) TextFocused() bool { return false }
 // Menu.
 // ---------------------------------------------------------------------------
 
-// menuItem is one row of the main menu. A nil open means Quit.
+// menuItem is one row of the main menu. A nil open means Quit; otherwise it
+// builds the view the entry opens from the application's configuration.
 type menuItem struct {
 	label, desc string
-	open        func() view
+	open        func(cfg appConfig) view
 }
 
 // mainMenuItems is the menu's fixed set, in order (design.md "Menú (D2-A)").
-// Every entry but Quit opens a provisional view until T8 and T9 replace it.
+// CLIs opens the CLIs view (T8); the others open a provisional view until T9
+// replaces them.
 var mainMenuItems = []menuItem{
-	{"CLIs", "Install, remove and check CLI hosts", func() view { return newPlaceholderView("CLIs") }},
-	{"Update", "Update Hive from a Git commit", func() view { return newPlaceholderView("Update") }},
-	{"Releases", "Go back to a retained release", func() view { return newPlaceholderView("Releases") }},
-	{"Voice", "Choose the assistant voice", func() view { return newPlaceholderView("Voice") }},
+	{"CLIs", "Install, remove and check CLI hosts", func(cfg appConfig) view { return newHostsView(cfg) }},
+	{"Update", "Update Hive from a Git commit", func(appConfig) view { return newPlaceholderView("Update") }},
+	{"Releases", "Go back to a retained release", func(appConfig) view { return newPlaceholderView("Releases") }},
+	{"Voice", "Choose the assistant voice", func(appConfig) view { return newPlaceholderView("Voice") }},
 	{"Quit", "Leave Hive", nil},
 }
 
 type menuView struct {
 	baseView
+	cfg    appConfig
 	cursor int
 }
 
-func newMenuView() *menuView { return &menuView{} }
+func newMenuView(cfg appConfig) *menuView { return &menuView{cfg: cfg} }
 
 func (v *menuView) Update(msg tea.Msg) (tea.Cmd, action) {
 	k, ok := msg.(tea.KeyPressMsg)
@@ -72,7 +75,7 @@ func (v *menuView) Update(msg tea.Msg) (tea.Cmd, action) {
 		if item.open == nil {
 			return nil, action{nav: navQuit}
 		}
-		return nil, action{nav: navPush, push: item.open()}
+		return nil, action{nav: navPush, push: item.open(v.cfg)}
 	}
 	return nil, action{nav: navNone}
 }
@@ -232,9 +235,11 @@ var scrollBinding = binding("up,down,pgup,pgdown", "↑/↓", "scroll")
 // confirmOptions configures a summary with Apply and Cancel. OnApply and
 // OnCancel return what the view does next; a nil callback pops the view.
 // StartOnCancel makes Cancel the initial choice, and DisableYes removes the
-// one-key shortcut for applying (both for destructive summaries).
+// one-key shortcut for applying (both for destructive summaries). ApplyLabel
+// replaces the "Apply" button's text (for example "Accept").
 type confirmOptions struct {
 	Title, Summary string
+	ApplyLabel     string
 	StartOnCancel  bool
 	DisableYes     bool
 	OnApply        func() (tea.Cmd, action)
@@ -294,7 +299,11 @@ func (v *confirmView) Update(msg tea.Msg) (tea.Cmd, action) {
 }
 
 func (v *confirmView) View(c viewCtx) string {
-	return dialogLayout(c, v.o.Title, &v.box, renderButtons(c, v.choice, "Apply", "Cancel"), "Applying…")
+	apply := v.o.ApplyLabel
+	if apply == "" {
+		apply = "Apply"
+	}
+	return dialogLayout(c, v.o.Title, &v.box, renderButtons(c, v.choice, apply, "Cancel"), "Applying…")
 }
 
 func (v *confirmView) Keys() []key.Binding {
@@ -316,12 +325,20 @@ func (v *confirmView) Keys() []key.Binding {
 // ---------------------------------------------------------------------------
 
 // noticeView shows a text and a Continue button. A nil onContinue pops the
-// view.
+// view. By default Esc and Backspace also continue; withBack makes them a
+// separate "back" answer instead, for a notice that sits between two steps.
 type noticeView struct {
 	baseView
 	title      string
 	box        scrollBox
 	onContinue func() (tea.Cmd, action)
+	onBack     func() (tea.Cmd, action)
+}
+
+// withBack sets what Esc and Backspace do, apart from Continue.
+func (v *noticeView) withBack(onBack func() (tea.Cmd, action)) *noticeView {
+	v.onBack = onBack
+	return v
 }
 
 func newNoticeView(title, text string, onContinue func() (tea.Cmd, action)) *noticeView {
@@ -338,7 +355,12 @@ func (v *noticeView) Update(msg tea.Msg) (tea.Cmd, action) {
 		return nil, action{nav: navNone}
 	}
 	switch name := k.String(); name {
-	case "enter", "esc", "backspace":
+	case "esc", "backspace":
+		if v.onBack != nil {
+			return v.onBack()
+		}
+		fallthrough
+	case "enter":
 		if v.onContinue == nil {
 			return nil, action{nav: navPop}
 		}
@@ -354,6 +376,9 @@ func (v *noticeView) View(c viewCtx) string {
 }
 
 func (v *noticeView) Keys() []key.Binding {
+	if v.onBack != nil {
+		return []key.Binding{scrollBinding, binding("enter", "enter", "continue"), binding("esc,backspace", "esc", "stop here")}
+	}
 	return []key.Binding{scrollBinding, binding("enter,esc,backspace", "enter", "continue")}
 }
 

@@ -942,11 +942,18 @@ func TestAppStatusLineShowsRegisteredState(t *testing.T) {
 	d.mustNotShow("Loading status")
 }
 
-// TestAppKeysEscAndBackspaceReturnFromPlaceholder covers AC2: from any of the
-// four provisional views, Esc and Backspace both return to the menu, and the
-// cursor stays on the entry that was opened.
+// TestAppKeysEscAndBackspaceReturnFromPlaceholder covers AC2: from each view
+// the menu opens (the CLIs view, and the provisional ones T9 replaces), Esc
+// and Backspace both return to the menu, and the cursor stays on the entry
+// that was opened.
 func TestAppKeysEscAndBackspaceReturnFromPlaceholder(t *testing.T) {
 	entries := []string{"CLIs", "Update", "Releases", "Voice"}
+	marker := func(name string) string {
+		if name == "CLIs" {
+			return "No CLI hosts were detected or registered"
+		}
+		return "Not implemented yet"
+	}
 	for i, name := range entries {
 		for _, back := range []string{"esc", "backspace"} {
 			t.Run(name+"/"+back, func(t *testing.T) {
@@ -955,12 +962,12 @@ func TestAppKeysEscAndBackspaceReturnFromPlaceholder(t *testing.T) {
 					d.key("down")
 				}
 				d.key("enter")
-				d.mustShow("Not implemented yet")
+				d.mustShow(marker(name))
 				if len(menuRows(d)) != 0 {
 					t.Fatalf("the menu is still drawn under the view:\n%s", d.screen())
 				}
 				d.key(back)
-				d.mustNotShow("Not implemented yet")
+				d.mustNotShow(marker(name))
 				if got := len(menuRows(d)); got != 5 {
 					t.Fatalf("menu not shown after %s, rows=%d\n%s", back, got, d.screen())
 				}
@@ -1003,7 +1010,7 @@ func TestAppKeysCtrlCExitsFromMenuAndView(t *testing.T) {
 	})
 	t.Run("view", func(t *testing.T) {
 		_, d := newTestApp(t, testAppConfig(t), 80, 24)
-		d.key("enter")
+		d.key("down", "enter") // Update
 		d.mustShow("Not implemented yet")
 		d.key("ctrl+c")
 		if !d.quit {
@@ -1094,7 +1101,7 @@ func TestAppMenuAndGenericViewsFit(t *testing.T) {
 			})
 			t.Run("placeholder", func(t *testing.T) {
 				_, d := newTestApp(t, testAppConfig(t), width, height)
-				d.key("enter")
+				d.key("down", "enter") // Update
 				d.mustShow("Not implemented yet")
 				assertFits(t, d, width, height)
 			})

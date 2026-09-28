@@ -88,7 +88,17 @@ Pruebas nuevas:
 
 ### T8 — Vista CLIs: estado, casillas, diff y «Uninstall all»
 
-- [/] La vista CLIs muestra el estado por CLI y aplica altas, bajas o ambas en dos pasos, y «Uninstall all». Los resultados son idénticos a los de los comandos.
+- [x] La vista CLIs muestra el estado por CLI y aplica altas, bajas o ambas en dos pasos, y «Uninstall all». Los resultados son idénticos a los de los comandos.
+  - **`review-task` (2026-09-28):** AC2 (durante una escritura), AC3, AC4, AC5, AC8 y AC9 en esta vista, cumplidos.
+    - **Pruebas:** 26 pruebas `HostsView` con `-race`; la suite completa con `-race` pasa (`tooling/cli` 702 s); `sha256` de las pruebas de texto iguales.
+    - **En `tmux`:** altas y bajas en dos pasos, Esc en el aviso intermedio, «Uninstall all», un rechazo, `kill -INT` y cambios de tamaño durante la aplicación. Cada resultado es igual en archivos y `state.json` al de su comando.
+  - **Añadido por el hilo principal antes de la revisión:** Esc y Backspace en el aviso «Step 1 of 2 done» se detienen tras quitar, en lugar de seguir con la instalación.
+  - **Aclaraciones:**
+    - `hive install` también recorta los espacios de la versión, así que no hay diferencia con el comando.
+    - Con `--home` no se detecta ningún CLI por `PATH`, así que un CLI quitado desaparece de la vista (la regla de filas del diseño).
+  - **Pendientes que pasan a T9:**
+    - N1: el aviso de tamaño dice «press ctrl+c to quit» durante una escritura, cuando Ctrl-C se ignora;
+    - N2: la nota de operación pendiente se agrega después de calcular el alto del mensaje (`tui_hosts_view.go:779`), y podría cortar líneas sin «…».
 
 **Closes:** AC2 (durante una escritura), AC3, AC4, AC5, AC8 (en esta vista), AC9 (en esta vista).
 
@@ -128,7 +138,7 @@ Pruebas nuevas:
 
 ### T9 — Vistas Update, Releases y Voice
 
-- [ ] Update, Releases y Voice funcionan en su vista, con ajustes en el lugar, resumen y confirmación. Sus resultados son idénticos a los comandos.
+- [/] Update, Releases y Voice funcionan en su vista, con ajustes en el lugar, resumen y confirmación. Sus resultados son idénticos a los comandos.
 
 **Closes:** AC6, AC7, AC8 (en estas vistas), AC9 (en estas vistas).
 
