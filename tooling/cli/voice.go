@@ -126,7 +126,7 @@ func voiceSet(args []string, in io.Reader, out io.Writer, interactive bool) erro
 	if err != nil {
 		return err
 	}
-	return runVoicePlan(p, &v, "Voice set", in, out, interactive, f.DryRun, f.Out)
+	return runVoicePlan(p, "Voice set", in, out, interactive, f.DryRun, f.Out)
 }
 
 func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) error {
@@ -142,7 +142,7 @@ func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) erro
 	if err != nil {
 		return err
 	}
-	return runVoicePlan(p, nil, "Voice turned off", in, out, interactive, f.DryRun, f.Out)
+	return runVoicePlan(p, "Voice turned off", in, out, interactive, f.DryRun, f.Out)
 }
 
 // runVoicePlan shows the summary, then applies the same
@@ -150,12 +150,12 @@ func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) erro
 // (update.go's update function): unchanged is reported and the command
 // exits 0 without writing anything, since a voice plan carries no source
 // commit to record the way an install/update plan does.
-func runVoicePlan(p management.Plan, chosen *management.VoiceSetting, doneVerb string, in io.Reader, out io.Writer, interactive, dry bool, outFile string) error {
+func runVoicePlan(p management.Plan, doneVerb string, in io.Reader, out io.Writer, interactive, dry bool, outFile string) error {
 	unchanged, err := management.PlanUnchanged(p)
 	if err != nil {
 		return err
 	}
-	showVoiceSummary(out, p, chosen, unchanged)
+	showVoiceSummary(out, p, unchanged)
 	if dry {
 		fmt.Fprintln(out, "Preview: nothing was changed.")
 		return nil
@@ -191,16 +191,12 @@ func runVoicePlan(p management.Plan, chosen *management.VoiceSetting, doneVerb s
 	return nil
 }
 
-func showVoiceSummary(out io.Writer, p management.Plan, chosen *management.VoiceSetting, unchanged bool) {
-	if chosen != nil {
-		address, intensity := chosen.Address, chosen.Intensity
-		if address == "" {
-			address = "none"
-		}
-		if intensity == "" {
-			intensity = "subtle"
-		}
-		fmt.Fprintf(out, "Voice: %s (address %s, intensity %s)\n", chosen.ID, address, intensity)
+// showVoiceSummary reads the choice from p.VoiceSetting, already normalized
+// by management.BuildVoicePlan (nil for "voice off"), rather than
+// re-deriving or re-defaulting it here.
+func showVoiceSummary(out io.Writer, p management.Plan, unchanged bool) {
+	if p.VoiceSetting != nil {
+		fmt.Fprintf(out, "Voice: %s (address %s, intensity %s)\n", p.VoiceSetting.ID, p.VoiceSetting.Address, p.VoiceSetting.Intensity)
 	} else {
 		fmt.Fprintln(out, "Voice: off")
 	}

@@ -219,6 +219,20 @@ Aplicar los cambios que pida.
 
 ## Estado de la revisión y avance
 
+- **Revisión de código** (2026-09-28): `/code-review` de Claude Code con esfuerzo alto sobre `6fd741c..8147b04`. Diez hallazgos; los corrigió el implementador, cada uno con una prueba en rojo antes del arreglo (`voice_review_test.go` y `voice_test.go`).
+  - **Arreglados:**
+    - La recuperación restaura la imagen exacta anterior cuando el archivo quedó tal como se escribió, antes de reconstruir bloque por bloque; así se conservan el orden y los permisos originales.
+    - Una voz que la fuente no puede generar ya no bloquea `install` ni `update`: se deja intacta y el resumen avisa.
+    - `voice set` comprueba el bloque de Hive al planear, y los errores de voz nombran el archivo.
+    - La vista previa de `hive plan` muestra los cambios de voz.
+    - La elección de voz solo se olvida cuando no queda ningún bloque de Hive de usuario.
+    - Un archivo ilegible da `drift` en `status`.
+    - `validatePlan` valida la elección y limita las rutas a bloques de Hive registrados.
+    - Se quitaron la duplicación de valores por defecto y los comentarios que citaban rondas de revisión.
+    - Además, el resumen de `update` ya no cuenta como «a instalar» los archivos de Hive que no cambian; lo encontró la verificación de T6.
+  - **No aplicado:** fusionar las dos lecturas de cada archivo en `install`. Solo ahorraría una lectura por archivo de instrucciones.
+  - **Sin segunda revisión dedicada:** el hilo principal revisó el diff de la recuperación y la suite completa pasa.
+
 - **Revisión del plan** (2026-09-27): versión revisada `1408cbf268b1`. Dos revisores `review-plan` en paralelo, como rol nativo de Claude Code y de solo lectura.
   - **Modelo del gestor:** seis hallazgos que bloqueaban, todos corregidos con la propuesta del revisor.
     - La transacción perdía la voz, borraba recibos de versión y no tenía entradas del journal para la voz.

@@ -665,12 +665,20 @@ func validatePlan(p Plan, state State) error {
 // registered span (or its absence), rejecting a stale or tampered plan
 // before any write (see design.md "Validación del plan").
 func validateVoiceChanges(p Plan, state State) error {
+	if p.VoiceSetting != nil {
+		if err := validateVoiceSettingShape(*p.VoiceSetting); err != nil {
+			return fmt.Errorf("invalid voice setting: %w", err)
+		}
+	}
 	seen := map[string]bool{}
 	for _, vc := range p.Voice {
 		if seen[vc.Path] {
 			return fmt.Errorf("duplicate voice change: %s", vc.Path)
 		}
 		seen[vc.Path] = true
+		if !voicePathIsRegisteredHiveBlock(p, state, vc.Path) {
+			return fmt.Errorf("voice change on an unregistered path: %s", vc.Path)
+		}
 		if vc.After != nil {
 			if err := validateVoicePayload(vc.After.Managed); err != nil {
 				return fmt.Errorf("%s: %w", vc.Path, err)
@@ -685,6 +693,34 @@ func validateVoiceChanges(p Plan, state State) error {
 		}
 	}
 	return nil
+}
+
+// voicePathIsRegisteredHiveBlock reports whether path is either already a
+// registered "block"-kind record with a user-scope consumer at
+// p.Config.Home, or is about to become one via this same plan's own
+// Changes (a host gaining its Hive block for the first time while a voice
+// is already active gets a voice span in that same install). These are the
+// only paths a voice change may ever target, so a hand-crafted plan cannot
+// direct a voice span at an arbitrary file.
+func voicePathIsRegisteredHiveBlock(p Plan, state State, path string) bool {
+	if r, ok := state.Records[path]; ok && r.Target.Kind == "block" {
+		for _, c := range r.Consumers {
+			if c.Scope == "user" && c.Context == p.Config.Home {
+				return true
+			}
+		}
+	}
+	for _, ch := range p.Changes {
+		if ch.Target.Path != path || ch.Target.Kind != "block" || ch.After == nil {
+			continue
+		}
+		for _, c := range ch.After.Consumers {
+			if c.Scope == "user" && c.Context == p.Config.Home {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // validateVoicePayload requires managed to be exactly one well-formed voice
@@ -812,10 +848,10 @@ func Status(o Options) ([]StatusEntry, error) {
 			en.Voice = formatVoiceStatus(*state.Voice)
 		}
 		cur, err := read(path)
-		if err != nil {
-			return nil, err
-		}
-		if err := owned(cur, *voiceRecordFromSpan(&span), voiceMarkers); err != nil {
+		if err != nil || owned(cur, *voiceRecordFromSpan(path, &span), voiceMarkers) != nil {
+			// An unreadable file (permissions, a directory where a file is
+			// expected, ...) is reported as drift for this one row, the same
+			// as a mismatched block; it must never abort the rest of status.
 			en.Status = "drift"
 		}
 		if pending.Exists {
@@ -830,7 +866,7 @@ func Status(o Options) ([]StatusEntry, error) {
 		// Kind first, so a path's voice row (Kind "voice") always sorts right
 		// after its block row (Kind "block"), regardless of Host — a voice
 		// row's Host is always "" and would otherwise sort before any real
-		// host name, defeating this tie-break (see H5, T2 fix round).
+		// host name, defeating this tie-break.
 		if out[i].Kind != out[j].Kind {
 			return out[i].Kind < out[j].Kind
 		}

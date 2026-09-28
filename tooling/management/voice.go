@@ -97,6 +97,33 @@ func firstNonEmptyLine(data []byte) string {
 // intensity and name choice: a later change compares that choice
 // separately, against State.VoiceSetting, since a choice change alone
 // never needs the preamble or voice file re-read.
+// validateVoiceSettingShape checks a VoiceSetting's own fields (not whether
+// its ID actually exists in a given source): the ID pattern, an address in
+// {sir, name, none}, an intensity in {subtle, marked}, and a Name required
+// and valid exactly when Address is "name". RenderVoice uses it before
+// rendering; validatePlan uses it to reject a hand-crafted or tampered
+// plan's VoiceSetting the same way, since a saved plan may never have gone
+// through RenderVoice at all.
+func validateVoiceSettingShape(v VoiceSetting) error {
+	if v.Address != "sir" && v.Address != "name" && v.Address != "none" {
+		return fmt.Errorf("address must be sir, name or none")
+	}
+	if v.Intensity != "subtle" && v.Intensity != "marked" {
+		return fmt.Errorf("intensity must be subtle or marked")
+	}
+	if v.Address == "name" {
+		if err := validateVoiceName(v.Name); err != nil {
+			return err
+		}
+	} else if v.Name != "" {
+		return fmt.Errorf("name must be empty unless address is name")
+	}
+	if v.ID == "preamble" || !voiceIDPattern.MatchString(v.ID) {
+		return fmt.Errorf("unknown voice %q", v.ID)
+	}
+	return nil
+}
+
 func RenderVoice(source string, v VoiceSetting) (body []byte, sourceHash string, err error) {
 	if v.Address == "" {
 		v.Address = "none"
@@ -104,21 +131,8 @@ func RenderVoice(source string, v VoiceSetting) (body []byte, sourceHash string,
 	if v.Intensity == "" {
 		v.Intensity = "subtle"
 	}
-	if v.Address != "sir" && v.Address != "name" && v.Address != "none" {
-		return nil, "", fmt.Errorf("address must be sir, name or none")
-	}
-	if v.Intensity != "subtle" && v.Intensity != "marked" {
-		return nil, "", fmt.Errorf("intensity must be subtle or marked")
-	}
-	if v.Address == "name" {
-		if err := validateVoiceName(v.Name); err != nil {
-			return nil, "", err
-		}
-	} else if v.Name != "" {
-		return nil, "", fmt.Errorf("name must be empty unless address is name")
-	}
-	if v.ID == "preamble" || !voiceIDPattern.MatchString(v.ID) {
-		return nil, "", fmt.Errorf("unknown voice %q", v.ID)
+	if err := validateVoiceSettingShape(v); err != nil {
+		return nil, "", err
 	}
 	dir := filepath.Join(source, VoicesSource)
 	preamble, err := os.ReadFile(filepath.Join(dir, preambleFile))
@@ -229,11 +243,11 @@ func rejectVoiceMarkers(b []byte) error {
 // Hive block, given hiveMarkers, also splice the voice block, given
 // voiceMarkers. Only Managed is used: a voice span has no mode, leading
 // separator or CreatedFile bookkeeping of its own.
-func voiceRecordFromSpan(span *VoiceSpan) *Record {
+func voiceRecordFromSpan(path string, span *VoiceSpan) *Record {
 	if span == nil {
 		return nil
 	}
-	return &Record{Target: target.Target{Kind: "block"}, Managed: span.Managed}
+	return &Record{Target: target.Target{Path: path, Kind: "block"}, Managed: span.Managed}
 }
 
 // composeVoiceStep applies one voice-block transform (insert, replace or
@@ -244,11 +258,11 @@ func voiceRecordFromSpan(span *VoiceSpan) *Record {
 // user wrote after it, so it uses insertVoiceSpan instead. Replace and
 // remove find the existing voice block by its own markers wherever it is,
 // so transform already handles them position-independently.
-func composeVoiceStep(base snapshot, before, after *VoiceSpan) (snapshot, error) {
+func composeVoiceStep(path string, base snapshot, before, after *VoiceSpan) (snapshot, error) {
 	if before == nil && after != nil {
 		return insertVoiceSpan(base, after.Managed)
 	}
-	return transform(base, voiceRecordFromSpan(before), voiceRecordFromSpan(after), voiceMarkers)
+	return transform(base, voiceRecordFromSpan(path, before), voiceRecordFromSpan(path, after), voiceMarkers)
 }
 
 // insertVoiceSpan splices managed (a complete VoiceBegin..VoiceEnd block,
@@ -283,7 +297,7 @@ func insertVoiceSpan(s snapshot, managed []byte) (snapshot, error) {
 // naming the voice block explicitly (see design.md "Conflicto").
 func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpan) error {
 	if hasSpan {
-		if err := owned(s, *voiceRecordFromSpan(&existing), voiceMarkers); err != nil {
+		if err := owned(s, *voiceRecordFromSpan(path, &existing), voiceMarkers); err != nil {
 			return fmt.Errorf("voice block conflict in %s: %w", path, err)
 		}
 		return nil
@@ -363,9 +377,9 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 		// Normalize before storing or rendering, so State.Voice (and every
 		// display derived from it, e.g. status's Voice field) never carries
 		// an empty Address/Intensity, and repeating the same choice — spelled
-		// out or left to default — is recognized as identical (F1, T4 fix
-		// round). RenderVoice defaults these too, but only for its own
-		// rendering; the choice stored here must match what was rendered.
+		// out or left to default — is recognized as identical. RenderVoice
+		// defaults these too, but only for its own rendering; the choice
+		// stored here must match what was rendered.
 		if v.Address == "" {
 			v.Address = "none"
 		}
@@ -414,6 +428,9 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 		if err != nil {
 			return Plan{}, err
 		}
+		if a, _, blockErr := blockRange(s.Data, hiveMarkers); blockErr != nil || a < 0 {
+			return Plan{}, fmt.Errorf("%s no longer has a managed Hive block; run hive install first", path)
+		}
 		existing, hasSpan := state.VoiceSpans[path]
 		if err := checkVoiceConflict(path, s, hasSpan, existing); err != nil {
 			return Plan{}, err
@@ -428,7 +445,7 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 		// BuildPlan's own Change list works the same way, and it is what
 		// lets validatePlan require at least one voice change for a "voice"
 		// action plan while PlanUnchanged, not an empty p.Voice, is what
-		// tells a caller there is nothing to apply (T4 fix round, item 3).
+		// tells a caller there is nothing to apply.
 		var after *VoiceSpan
 		if action == "set" {
 			managed := managedBlock(body, s.Data, voiceMarkers)
@@ -443,12 +460,12 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 // addVoiceChanges extends an install or remove Plan (already built by
 // BuildPlan) with voice changes, per design.md "Operaciones", restricted to
 // p.Config.Scope == "user" (voice never applies to project scope — see
-// proposal.md, and the T2 fix round's H2). It walks p.Changes rather than
-// every registered voice path, so it only ever touches files this specific
-// plan's p.Hosts already resolved (H2), and it checks every touched block
-// path for an unregistered voice block regardless of whether a voice is
-// even active (H3), before generating anything. It only reads; BuildPlan
-// calls it before p.ID is computed.
+// proposal.md). It walks p.Changes rather than every registered voice path,
+// so it only ever touches files this specific plan's p.Hosts already
+// resolved, and it checks every touched block path for an unregistered
+// voice block regardless of whether a voice is even active, before
+// generating anything. It only reads; BuildPlan calls it before p.ID is
+// computed.
 func addVoiceChanges(p *Plan, o Options, state State) error {
 	if p.Config.Scope != "user" {
 		return nil
@@ -464,16 +481,18 @@ func addVoiceChanges(p *Plan, o Options, state State) error {
 }
 
 // addVoiceChangesForInstall first rejects an unregistered voice block on any
-// path this install touches (H3), then, if a voice is active and the
-// source carries content/voices/ (not a --release install, which carries no
-// voice source on disk), regenerates a voice span whose freshly rendered
-// text no longer matches the stored one for every path in p.Changes,
-// including a path gaining its Hive block for the very first time in this
-// same plan (Before nil, After rendered, Expected equal to that Change's
-// Expected — D2 in the T2 fix round, e.g. a host newly added while a voice
-// is already active). A missing span counts as differing; the user's
-// choice is not part of RenderVoice's source hash, so the full rendered
-// bytes are compared, not just the hash.
+// path this install touches, then, if a voice is active and the source
+// carries content/voices/ (not a --release install, which carries no voice
+// source on disk), regenerates a voice span whose freshly rendered text no
+// longer matches the stored one for every path in p.Changes, including a
+// path gaining its Hive block for the very first time in this same plan
+// (Before nil, After rendered, Expected equal to that Change's Expected —
+// e.g. a host newly added while a voice is already active). A missing span
+// counts as differing; the user's choice is not part of RenderVoice's
+// source hash, so the full rendered bytes are compared, not just the hash.
+// A voice that cannot be rendered at all (its source file renamed or
+// removed, or a reserved marker in its text) does not fail the plan: it
+// leaves every stored span untouched and records p.VoiceWarning instead.
 func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 	for _, ch := range p.Changes {
 		if ch.Target.Kind != "block" || ch.After == nil {
@@ -496,7 +515,12 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 	}
 	body, srcHash, err := RenderVoice(o.Source, *state.Voice)
 	if err != nil {
-		return err
+		// The active voice can no longer be rendered (its file renamed or
+		// removed, or a reserved marker introduced into its text): this must
+		// not block install/update. Leave every stored span untouched and
+		// surface a warning instead of failing.
+		p.VoiceWarning = fmt.Sprintf("Voice %q not found or invalid in this source; voice files left unchanged (%v).", state.Voice.ID, err)
+		return nil
 	}
 	for _, ch := range p.Changes {
 		if ch.Target.Kind != "block" || ch.After == nil {
@@ -511,7 +535,7 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 		newConsumers := filterUserConsumers(ch.After.Consumers, p.Config)
 		// A shared file's consumer set can widen (a host joins) even when the
 		// rendered bytes don't change; still record that, so status for the
-		// newly joined host lists the voice row right away (H7).
+		// newly joined host lists the voice row right away.
 		if hasSpan && bytes.Equal(existing.Managed, managed) && reflect.DeepEqual(existing.Consumers, newConsumers) {
 			continue
 		}
@@ -527,11 +551,11 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 }
 
 // addVoiceChangesForRemove first rejects an unregistered voice block on any
-// path this remove touches (H3), then drops the voice span of a path whose
-// last Hive-block consumer this plan retires, and narrows (rather than
-// drops) the span's registered Consumers on a partial retirement of a
-// shared file, so status for the retired host stops listing that voice row
-// (H4) even though the file and its voice text are otherwise untouched.
+// path this remove touches, then drops the voice span of a path whose last
+// Hive-block consumer this plan retires, and narrows (rather than drops)
+// the span's registered Consumers on a partial retirement of a shared
+// file, so status for the retired host stops listing that voice row even
+// though the file and its voice text are otherwise untouched.
 func addVoiceChangesForRemove(p *Plan, state State) error {
 	for _, ch := range p.Changes {
 		if ch.Target.Kind != "block" {

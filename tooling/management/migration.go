@@ -369,13 +369,13 @@ func prepareEntries(p Plan, state State) ([]entry, error) {
 			after, err = transformResource(cur, ch)
 		} else if voiceFirst {
 			var s snapshot
-			if s, err = composeVoiceStep(cur, vcPtr.Before, vcPtr.After); err == nil {
+			if s, err = composeVoiceStep(ch.Target.Path, cur, vcPtr.Before, vcPtr.After); err == nil {
 				after, err = transform(s, ch.Before, ch.After, hiveMarkers)
 			}
 		} else {
 			var s snapshot
 			if s, err = transform(cur, ch.Before, ch.After, hiveMarkers); err == nil {
-				after, err = composeVoiceStep(s, vcPtr.Before, vcPtr.After)
+				after, err = composeVoiceStep(ch.Target.Path, s, vcPtr.Before, vcPtr.After)
 			}
 		}
 		if err != nil {
@@ -433,7 +433,7 @@ func prepareEntries(p Plan, state State) ([]entry, error) {
 		if finger(cur) != vc.Expected {
 			return nil, fmt.Errorf("stale target: %s", path)
 		}
-		after, err := composeVoiceStep(cur, vc.Before, vc.After)
+		after, err := composeVoiceStep(path, cur, vc.Before, vc.After)
 		if err != nil {
 			return nil, err
 		}

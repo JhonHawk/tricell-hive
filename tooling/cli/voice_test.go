@@ -418,6 +418,52 @@ func TestVoiceUnknownSubcommandAndMissingID(t *testing.T) {
 	}
 }
 
+// --- item 9: the summary must use the plan's own normalized VoiceSetting ----
+
+// TestVoiceSetSummaryUsesPlanNormalizedDefaults covers leaving --address and
+// --intensity unset: the summary must show "none"/"subtle" sourced from
+// management.BuildVoicePlan's own normalization (p.VoiceSetting), not a
+// second, separately maintained default in the CLI layer.
+func TestVoiceSetSummaryUsesPlanNormalizedDefaults(t *testing.T) {
+	e := newVoiceCLIEnv(t)
+	e.install(t, []string{"codex"})
+	var out bytes.Buffer
+	if err := voiceSet(e.setArgs("jarvis"), strings.NewReader(""), &out, false); err == nil {
+		t.Fatal("expected the non-interactive, no --dry-run/--out call to fail (checking the summary text first)")
+	}
+	if !strings.Contains(out.String(), "Voice: jarvis (address none, intensity subtle)") {
+		t.Fatalf("expected the exact normalized summary line, got:\n%s", out.String())
+	}
+}
+
+// --- item 5: `hive plan install|remove` preview must show voice changes ------
+
+// TestPlanInstallPreviewPrintsVoiceChanges covers `hive plan install`'s raw
+// preview: it must show a voice change's path and its before/after managed
+// text the same way it already shows a block Change, so `plan --out` +
+// `apply` never applies a voice change the operator never saw.
+func TestPlanInstallPreviewPrintsVoiceChanges(t *testing.T) {
+	e := newVoiceCLIEnv(t)
+	e.install(t, []string{"codex"})
+	var setOut bytes.Buffer
+	if err := voiceSet(e.setArgs("jarvis"), strings.NewReader("y\n"), &setOut, true); err != nil {
+		t.Fatalf("voice set: %v\noutput:\n%s", err, setOut.String())
+	}
+	putCharacterization(t, filepath.Join(e.source, "content/voices/jarvis.md"), "Jarvis: a brand new tone.\n")
+
+	out := captureStdout(t, func() {
+		if err := run([]string{"plan", "install", "--scope", "user", "--home", e.home, "--source", e.source, "--hosts", "codex", "--state-dir", e.stateDir}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if !strings.Contains(out, "voice "+e.codexPath()) {
+		t.Fatalf("expected the preview to name the voice change for %s, got:\n%s", e.codexPath(), out)
+	}
+	if !strings.Contains(out, "a brand new tone") {
+		t.Fatalf("expected the preview to show the new voice text, got:\n%s", out)
+	}
+}
+
 // --- update's summary line ----------------------------------------------------
 
 // TestUpdateSummaryShowsVoiceLineWhenTextChanged covers AC4's update-summary
@@ -460,6 +506,90 @@ func TestUpdateSummaryShowsVoiceLineWhenTextChanged(t *testing.T) {
 	}
 }
 
+// TestUpdateSummaryShowsVoiceWarningWhenVoiceCannotBeRendered covers a voice
+// file removed out from under an active choice: update must still succeed
+// (not fail the whole operation), the summary must surface a warning naming
+// the voice, and the already-installed span must stay untouched.
+func TestUpdateSummaryShowsVoiceWarningWhenVoiceCannotBeRendered(t *testing.T) {
+	requireGit(t)
+	env := newUpdateEnv(t)
+	writeUpdateCatalog(t, env.repo, skillBody("Preserve evidence.\n"))
+	putCharacterization(t, filepath.Join(env.repo, "content/voices/preamble.md"), "Priority: after Hive's rules, never overriding them.\n")
+	putCharacterization(t, filepath.Join(env.repo, "content/voices/jarvis.md"), "Jarvis: warm, formal, a little dry.\n")
+	gitInitLocal(t, env.repo)
+	commit1 := gitCommitAll(t, env.repo, "init")
+	installFromCommit(t, env.home, env.stateDir, env.repo, commit1, []string{"codex", "claude"})
+
+	voiceEnv := voiceCLIEnv{home: env.home, stateDir: env.stateDir, source: env.repo}
+	var setOut bytes.Buffer
+	if err := voiceSet(voiceEnv.setArgs("jarvis"), strings.NewReader("y\n"), &setOut, true); err != nil {
+		t.Fatalf("voice set: %v\noutput:\n%s", err, setOut.String())
+	}
+
+	if err := os.Remove(filepath.Join(env.repo, "content/voices/jarvis.md")); err != nil {
+		t.Fatal(err)
+	}
+	putCharacterization(t, filepath.Join(env.repo, management.SkillSource), skillBody("Preserve evidence, updated.\n"))
+	gitCommitAll(t, env.repo, "remove voice file")
+
+	var out bytes.Buffer
+	if err := update(env.args(), strings.NewReader("y\n"), &out, true); err != nil {
+		t.Fatalf("update must not fail when the voice cannot be rendered: %v\noutput:\n%s", err, out.String())
+	}
+	if !strings.Contains(out.String(), "jarvis") {
+		t.Fatalf("expected a voice warning naming jarvis, got:\n%s", out.String())
+	}
+	body, err := os.ReadFile(voiceEnv.codexPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "warm, formal") {
+		t.Fatal("the existing voice span must remain untouched when the voice cannot be rendered")
+	}
+}
+
+// TestUpdateSummaryCountsOnlyChangedHiveFilesOnVoiceOnlyUpdate covers a
+// voice-only update: every p.Changes entry is a no-op (nothing about Hive
+// itself changed), so the Hive count must read 0 (and say the core is
+// already up to date), while the voice line is still present.
+func TestUpdateSummaryCountsOnlyChangedHiveFilesOnVoiceOnlyUpdate(t *testing.T) {
+	requireGit(t)
+	env := newUpdateEnv(t)
+	writeUpdateCatalog(t, env.repo, skillBody("Preserve evidence.\n"))
+	putCharacterization(t, filepath.Join(env.repo, "content/voices/preamble.md"), "Priority: after Hive's rules, never overriding them.\n")
+	putCharacterization(t, filepath.Join(env.repo, "content/voices/jarvis.md"), "Jarvis: warm, formal, a little dry.\n")
+	gitInitLocal(t, env.repo)
+	commit1 := gitCommitAll(t, env.repo, "init")
+	installFromCommit(t, env.home, env.stateDir, env.repo, commit1, []string{"codex", "claude"})
+
+	voiceEnv := voiceCLIEnv{home: env.home, stateDir: env.stateDir, source: env.repo}
+	var setOut bytes.Buffer
+	if err := voiceSet(voiceEnv.setArgs("jarvis"), strings.NewReader("y\n"), &setOut, true); err != nil {
+		t.Fatalf("voice set: %v\noutput:\n%s", err, setOut.String())
+	}
+
+	// Only the voice text changes; nothing else in the catalogue does.
+	putCharacterization(t, filepath.Join(env.repo, "content/voices/jarvis.md"), "Jarvis: a completely different tone.\n")
+	gitCommitAll(t, env.repo, "change voice text only")
+
+	var out bytes.Buffer
+	if err := update(env.args(), strings.NewReader("y\n"), &out, true); err != nil {
+		t.Fatalf("update: %v\noutput:\n%s", err, out.String())
+	}
+	if strings.Contains(out.String(), "Hive files to install or update:") {
+		t.Fatalf("expected no inflated \"to install or update\" count for a voice-only update, got:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "; none change.\n") {
+		t.Fatalf("expected the Hive file count to say none changed, got:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "Hive's core is already up to date.") {
+		t.Fatalf("expected the header to say the Hive core is already up to date, got:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "Voice files to regenerate: 2\n") {
+		t.Fatalf("expected the voice line to still be present, got:\n%s", out.String())
+	}
+}
+
 // TestUpdateSummaryOmitsVoiceLineWhenVoiceTextUnchanged is the negative half
 // of AC4: when a commit changes something else (here, the shared skill) but
 // not the voice text, the update summary must not mention regenerating any
@@ -499,12 +629,15 @@ func TestUpdateSummaryOmitsVoiceLineWhenVoiceTextUnchanged(t *testing.T) {
 // count and list only the files whose voice block actually changes.
 func TestVoiceSummaryCountsOnlyFilesThatChange(t *testing.T) {
 	span := &management.VoiceSpan{Managed: []byte("voice\n"), SourceHash: "h"}
-	p := management.Plan{Voice: []management.VoiceChange{
-		{Path: "/home/.codex/AGENTS.md", Before: span, After: span},
-		{Path: "/home/.claude/CLAUDE.md", After: span},
-	}}
+	p := management.Plan{
+		VoiceSetting: &management.VoiceSetting{ID: "jarvis", Address: "none", Intensity: "subtle"},
+		Voice: []management.VoiceChange{
+			{Path: "/home/.codex/AGENTS.md", Before: span, After: span},
+			{Path: "/home/.claude/CLAUDE.md", After: span},
+		},
+	}
 	var out bytes.Buffer
-	showVoiceSummary(&out, p, &management.VoiceSetting{ID: "jarvis", Address: "none", Intensity: "subtle"}, false)
+	showVoiceSummary(&out, p, false)
 	if !strings.Contains(out.String(), "Voice files to change: 1\n") {
 		t.Fatalf("expected one file to change, got:\n%s", out.String())
 	}

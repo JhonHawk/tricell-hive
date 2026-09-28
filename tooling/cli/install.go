@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"tricell-hive/integrations/target"
@@ -646,6 +647,19 @@ func readProviderVersion(terminal installTerminal, offer providerOffer) (string,
 	}
 }
 
+// changedChangeCount counts only the Changes whose Before and After differ,
+// excluding the no-op entries BuildPlan always includes for an already
+// up-to-date resource.
+func changedChangeCount(changes []management.Change) int {
+	n := 0
+	for _, ch := range changes {
+		if !reflect.DeepEqual(ch.Before, ch.After) {
+			n++
+		}
+	}
+	return n
+}
+
 func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPreview, dry, unchanged bool) {
 	// A --source checkout without VERSION or release.json (for example, a
 	// partial development tree) leaves p.Product nil; that identifies a
@@ -655,25 +669,36 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 		productVersion = p.Product.Version
 	}
 	fmt.Fprintf(out, "Hive %s · %s\n", productVersion, strings.Join(p.Hosts, ", "))
+	// hiveChanged is about the Hive files themselves, not the plan as a
+	// whole: a voice-only update leaves every p.Changes entry a no-op
+	// (Before == After) while the plan overall is not unchanged (its voice
+	// changes are real), and the header and the file count below must both
+	// reflect that distinction rather than count every no-op entry.
+	hiveChanged := changedChangeCount(p.Changes) > 0 || len(p.Legacy) > 0
 	if unchanged {
 		msg := "Hive's core is already up to date."
 		if len(preview.Details) > 0 {
 			msg += "\nThe selected optional capabilities still require confirmation."
 		}
 		fmt.Fprintln(out, msg)
+	} else if !hiveChanged {
+		fmt.Fprintln(out, "Hive's core is already up to date.")
 	} else if len(p.Legacy) > 0 {
 		fmt.Fprintln(out, "Migrate legacy Hive and install the rebuild")
 	} else {
 		fmt.Fprintln(out, "Install / update")
 	}
 	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))
-	if unchanged {
+	if !hiveChanged {
 		fmt.Fprintf(out, "Hive files checked: %d; none change.\n", len(p.Changes))
 	} else {
-		fmt.Fprintf(out, "Hive files to install or update: %d; legacy changes: %d\n", len(p.Changes), len(p.Legacy))
+		fmt.Fprintf(out, "Hive files to install or update: %d; legacy changes: %d\n", changedChangeCount(p.Changes), len(p.Legacy))
 	}
 	if len(p.Voice) > 0 {
 		fmt.Fprintf(out, "Voice files to regenerate: %d\n", len(p.Voice))
+	}
+	if p.VoiceWarning != "" {
+		fmt.Fprintln(out, p.VoiceWarning)
 	}
 	if len(preview.Details) == 0 {
 		fmt.Fprintln(out, "Optional capabilities: none selected.")

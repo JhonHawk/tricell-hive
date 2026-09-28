@@ -173,6 +173,23 @@ func cleanupDirs(dirs []string) []string {
 	return retained
 }
 
+// anyUserScopeHiveBlockRemains reports whether s.Records still has any
+// "block"-kind record with at least one user-scope consumer: whether there
+// is still somewhere a voice choice could apply.
+func anyUserScopeHiveBlockRemains(s State) bool {
+	for _, r := range s.Records {
+		if r.Target.Kind != "block" {
+			continue
+		}
+		for _, c := range r.Consumers {
+			if c.Scope == "user" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // prepareTransaction computes the next state, the journal entries, and
 // whether anything would actually change for p against state. It touches
 // no persistent state beyond the advisory reads prepareEntries and
@@ -259,10 +276,13 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 			changed = true
 		}
 		next.Voice = p.VoiceSetting
-	} else if p.Action == "remove" && state.Voice != nil && next.VoiceSpans == nil {
-		// The last voice span was just removed alongside its last Hive-block
-		// consumer: no file carries the choice's text any more, so drop it too
-		// (see design.md "plan remove (D11-A)").
+	} else if p.Action == "remove" && state.Voice != nil && next.VoiceSpans == nil && !anyUserScopeHiveBlockRemains(next) {
+		// No voice span is left, and no user-scope Hive block is registered
+		// at all any more: the choice has nothing left to apply to, so drop
+		// it (design.md "plan remove"). A Hive block that simply has no span
+		// yet (e.g. installed while the voice text could not be rendered,
+		// see addVoiceChangesForInstall) must not lose the choice: it should
+		// still regain a span once rendering works again.
 		next.Voice = nil
 		changed = true
 	}
@@ -415,8 +435,7 @@ func (e Engine) commitTransaction(p Plan, j *journal, state, next State, dirsToC
 // case that needs a specific position instead: reconstructing a block that
 // the forward change removed (forwardBefore != nil, forwardAfter == nil).
 // Hive's own reconstruction is a correct EOF-append (that mirrors how it
-// was first installed), so only the voice call passes insertVoiceSpan; see
-// H1 in the T2 fix round.
+// was first installed), so only the voice call passes insertVoiceSpan.
 func invertSubBlock(s snapshot, forwardBefore, forwardAfter *Record, m markers, insert func(snapshot, []byte) (snapshot, error)) (snapshot, error) {
 	if forwardBefore == nil && forwardAfter == nil {
 		return s, nil
@@ -449,12 +468,11 @@ func atBlockState(s snapshot, rec *Record, m markers) bool {
 // original Action, which fixes the mathematically correct inverse order:
 // install composed Hive then voice forward, so its inverse undoes voice
 // first, then Hive; remove and "voice" (set/off) composed voice then Hive
-// forward, so their inverse undoes Hive first, then voice (see design.md
-// "Recuperación" and its correction in the T2 handoff report — the design
-// text states voice-first unconditionally, which is only the install case;
-// remove's own multi-block deletion requires the reverse, matching the
-// forward composition each direction actually used in prepareEntries).
+// forward, so their inverse undoes Hive first, then voice — the inverse of
+// a composition always undoes its outermost (last-applied) step first,
+// matching whichever order prepareEntries actually used for that action.
 func recoverBlockAndVoice(action string, cur snapshot, en entry) (snapshot, error) {
+	path := en.Change.Target.Path
 	hive := func(s snapshot) (snapshot, error) {
 		return invertSubBlock(s, en.Change.Before, en.Change.After, hiveMarkers, nil)
 	}
@@ -462,7 +480,7 @@ func recoverBlockAndVoice(action string, cur snapshot, en entry) (snapshot, erro
 		if en.Voice == nil {
 			return s, nil
 		}
-		return invertSubBlock(s, voiceRecordFromSpan(en.Voice.Before), voiceRecordFromSpan(en.Voice.After), voiceMarkers, insertVoiceSpan)
+		return invertSubBlock(s, voiceRecordFromSpan(path, en.Voice.Before), voiceRecordFromSpan(path, en.Voice.After), voiceMarkers, insertVoiceSpan)
 	}
 	if action == "install" {
 		s, err := voice(cur)
@@ -647,6 +665,22 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			inverses[i] = en.Before
 			continue
 		}
+		// The write completed exactly, with nothing further having touched
+		// the file since: restore en.Before exactly, for a voice-carrying
+		// entry just as for any other. This must run before the voice
+		// block-by-block reconstruction below: that reconstruction composes
+		// its result by finding and replacing each managed span in whatever
+		// cur currently is, and an insert (a first-time managed span) always
+		// appends at the position transform's generic insert branch uses,
+		// which does not necessarily reproduce en.Before's original layout
+		// (e.g. a removal that leaves trailing user text after the managed
+		// spans would otherwise come back with that text first and the
+		// spans re-appended after it), and does not preserve en.Before's
+		// exact file mode when reconstructing from a fully deleted file.
+		if same(cur, en.After) {
+			inverses[i] = en.Before
+			continue
+		}
 		if en.Voice != nil {
 			if cur.Exists && en.Before.Exists && cur.Mode != en.Before.Mode {
 				return "", fmt.Errorf("recovery conflict: %s; preserved", en.Change.Target.Path)
@@ -672,10 +706,6 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			}
 		}
 		if partialLegacyTree(cur, en.Before) {
-			inverses[i] = en.Before
-			continue
-		}
-		if same(cur, en.After) {
 			inverses[i] = en.Before
 			continue
 		}

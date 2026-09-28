@@ -158,6 +158,12 @@ type Plan struct {
 	// remove plan empties State.VoiceSpans (see prepareTransaction).
 	Voice        []VoiceChange `json:"voice,omitempty"`
 	VoiceSetting *VoiceSetting `json:"voice_setting,omitempty"`
+	// VoiceWarning is set on an install plan when an active voice could not
+	// be rendered from this source (its file renamed or removed, or a
+	// reserved marker in its text) — install still proceeds, keeping the
+	// stored spans untouched, and a caller displays this line rather than
+	// failing the whole operation.
+	VoiceWarning string `json:"voice_warning,omitempty"`
 }
 
 // ReleaseEntry describes one retained release snapshot for hive releases: its

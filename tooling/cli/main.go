@@ -176,6 +176,18 @@ func runPlan(args []string) error {
 			printRecord("+++ managed after", ch.After)
 		}
 	}
+	for _, vc := range p.Voice {
+		fmt.Printf("%s voice %s\n", action, vc.Path)
+		if vc.Before != nil {
+			printVoiceSpan("--- managed before", vc.Before)
+		}
+		if vc.After != nil {
+			printVoiceSpan("+++ managed after", vc.After)
+		}
+	}
+	if p.VoiceWarning != "" {
+		fmt.Println(p.VoiceWarning)
+	}
 	fmt.Printf("Plan %s\n", p.ID)
 	if out == "" {
 		fmt.Println("Preview only; use --out FILE to save an applicable plan.")
@@ -283,6 +295,14 @@ func printRecord(label string, r *management.Record) {
 		fmt.Printf("%s\n", r.Managed)
 	}
 	for _, c := range r.Consumers {
+		fmt.Printf("consumer: %s (%s, %s)\n", c.Host, c.Scope, c.Context)
+	}
+}
+
+func printVoiceSpan(label string, s *management.VoiceSpan) {
+	fmt.Println(label)
+	fmt.Printf("%s\n", s.Managed)
+	for _, c := range s.Consumers {
 		fmt.Printf("consumer: %s (%s, %s)\n", c.Host, c.Scope, c.Context)
 	}
 }
