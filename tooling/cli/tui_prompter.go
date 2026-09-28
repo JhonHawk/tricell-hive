@@ -13,6 +13,8 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
+
+	"tricell-hive/tooling/management"
 )
 
 // oneByteReader reads at most one byte per Read call from its underlying
@@ -109,13 +111,22 @@ func cancelledResult(err error, eof bool) bool {
 }
 
 // configureForm applies this prompter's own accessible/IO/theme/keymap
-// settings to form — the exact configuration runForm's own form.Run() then
-// executes. Extracted into its own method so a test can verify the esc-
-// quits-the-form wiring (T2 fix round item 2; T3 fix-round leftover (a):
-// drive a real key.Msg through the configured form's Update) without
-// driving a full interactive Bubble Tea program.
+// settings to form, using the session's shared formKeyMap — the exact
+// configuration runForm's own form.Run() then executes. Extracted into its
+// own method so a test can verify the esc-quits-the-form wiring (T2 fix
+// round item 2; T3 fix-round leftover (a): drive a real key.Msg through the
+// configured form's Update) without driving a full interactive Bubble Tea
+// program.
 func (p *huhPrompter) configureForm(form *huh.Form) *huh.Form {
-	form = form.WithAccessible(p.accessible).WithInput(p.in).WithOutput(p.out).WithKeyMap(formKeyMap)
+	return p.configureFormWithKeyMap(form, formKeyMap)
+}
+
+// configureFormWithKeyMap is configureForm's own core, taking an explicit
+// keymap instead of the session's shared formKeyMap: releasesSelectKeyMap
+// (T4's Esc-filter decision, tui_prompter.go) is the one caller that needs a
+// different one.
+func (p *huhPrompter) configureFormWithKeyMap(form *huh.Form, keymap *huh.KeyMap) *huh.Form {
+	form = form.WithAccessible(p.accessible).WithInput(p.in).WithOutput(p.out).WithKeyMap(keymap)
 	if p.theme != nil {
 		form = form.WithTheme(p.theme)
 	}
@@ -123,8 +134,23 @@ func (p *huhPrompter) configureForm(form *huh.Form) *huh.Form {
 }
 
 // runForm runs one single-group form through this prompter's own
-// accessible/theme/IO settings, translating cancellation the same way for
-// every field type (design.md "Cancelar").
+// accessible/theme/IO settings and the session's shared formKeyMap,
+// translating cancellation the same way for every field type (design.md
+// "Cancelar"). runFormWithKeyMap is its own explicit-keymap counterpart.
+func (p *huhPrompter) runForm(form *huh.Form) (cancelled bool, err error) {
+	return p.runConfiguredForm(p.configureForm(form))
+}
+
+// runFormWithKeyMap is runForm's own counterpart for a field that needs a
+// keymap other than the session's shared formKeyMap (releasesSelectKeyMap:
+// T4's Esc-filter decision).
+func (p *huhPrompter) runFormWithKeyMap(form *huh.Form, keymap *huh.KeyMap) (cancelled bool, err error) {
+	return p.runConfiguredForm(p.configureFormWithKeyMap(form, keymap))
+}
+
+// runConfiguredForm is runForm's and runFormWithKeyMap's shared core, run
+// once configureForm/configureFormWithKeyMap has already applied this
+// prompter's own accessible/IO/theme/keymap settings to form.
 //
 // T2 fix round item 1: huh v2.0.3's accessible PromptString returns the
 // last *invalid* answer, unfiltered, once real end-of-input follows it
@@ -142,8 +168,7 @@ func (p *huhPrompter) configureForm(form *huh.Form) *huh.Form {
 // already produces. Any other panic is left to propagate — recovering
 // unconditionally would silently hide a real programming error as
 // "Cancelled".
-func (p *huhPrompter) runForm(form *huh.Form) (cancelled bool, err error) {
-	form = p.configureForm(form)
+func (p *huhPrompter) runConfiguredForm(form *huh.Form) (cancelled bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if p.eofReader != nil && p.eofReader.eof {
@@ -414,4 +439,185 @@ func (p *huhPrompter) selectMenuEntry(status string) (menuEntry, bool, error) {
 		return menuQuit, true, nil
 	}
 	return choice, false, nil
+}
+
+// SourceAndRevision implements Update's own two Inputs (design.md "La
+// interfaz"): source defaults to "." and revision to "HEAD", exactly
+// updateFlags' own defaults (update.go's parseUpdateFlags), so an empty
+// Enter in accessible mode (internal/accessibility.PromptString falls back
+// to the field's current value, i.e. these defaults) or the field's
+// placeholder in a real terminal both keep the same behavior `hive update`
+// has with no flags at all.
+func (p *huhPrompter) SourceAndRevision() (source, rev string, ok bool, err error) {
+	source, rev = ".", "HEAD"
+	group := huh.NewGroup(
+		huh.NewInput().Title("Source").Description("Git checkout to update from").Value(&source),
+		huh.NewInput().Title("Revision").Description("commit-ish to update from").Value(&rev),
+	)
+	cancelled, err := p.runForm(huh.NewForm(group))
+	if err != nil {
+		return "", "", false, err
+	}
+	if cancelled {
+		return "", "", false, nil
+	}
+	return source, rev, true, nil
+}
+
+// releasesSelectKeyMap is the Releases screen's own form keymap (T4's
+// Esc-filter decision, design.md "La interfaz"): Quit bound only to ctrl+c,
+// never esc. huh v2.0.3's Form.Update checks key.Matches(msg, f.keymap.Quit)
+// before the active field's own Update ever runs (form.go), so with the
+// session's shared formKeyMap (Quit: ctrl+c, esc) an open filter's own esc
+// handling (field_select.go's SetFilter/ClearFilter, both bound to esc by
+// huh.NewDefaultKeyMap and enabled only while filtering) would never be
+// reached: esc would always abort the whole screen first, closing the list
+// instead of just closing its filter. Verified directly against the pinned
+// version: with this keymap, esc while the release Select is filtering
+// clears filtering (Select.GetFiltering() turns false) and the form stays
+// StateNormal; esc with no filter open is inert (huh's own Select keymap
+// leaves esc unbound to anything else, so nothing happens); ctrl+c still
+// aborts the form from either state. Every other field in this package
+// keeps the shared formKeyMap (Ctrl-C and Esc both cancel), so this is a
+// narrow, deliberate exception to AC10's "Ctrl-C o Esc" for this one field:
+// only Ctrl-C cancels Releases' own Select.
+var releasesSelectKeyMap = func() *huh.KeyMap {
+	k := huh.NewDefaultKeyMap()
+	k.Quit = key.NewBinding(key.WithKeys("ctrl+c"))
+	return k
+}()
+
+// releaseSelectField builds Releases' own Select: filterable (huh's default
+// Select keymap already binds "/" to open a filter — no .Filtering(true)
+// call, which would instead start the field already inside filter-editing
+// mode), a fixed height regardless of how many releases exist (design.md:
+// "altura fija", as opposed to hostsMultiSelectField's own per-list
+// fieldHeight — a long releases list scrolls or filters instead of growing
+// the field), and one option per release via formatReleaseLabel
+// (tui_screens.go). Extracted so a test can render or drive it directly.
+func releaseSelectField(entries []management.ReleaseEntry, installedID string, value *string) *huh.Select[string] {
+	options := make([]huh.Option[string], len(entries))
+	for i, e := range entries {
+		options[i] = huh.NewOption(formatReleaseLabel(e, e.ID == installedID), e.ID)
+	}
+	return huh.NewSelect[string]().
+		Title("Select a release").
+		Options(options...).
+		Value(value).
+		Height(maxFieldHeight)
+}
+
+// SelectRelease presents releaseSelectField through releasesSelectKeyMap
+// (T4's Esc-filter decision) instead of the session's shared formKeyMap.
+func (p *huhPrompter) SelectRelease(entries []management.ReleaseEntry, installedID string) (string, bool, error) {
+	var chosen string
+	field := releaseSelectField(entries, installedID, &chosen)
+	cancelled, err := p.runFormWithKeyMap(huh.NewForm(huh.NewGroup(field)), releasesSelectKeyMap)
+	if err != nil {
+		return "", false, err
+	}
+	if cancelled {
+		return "", false, nil
+	}
+	return chosen, true, nil
+}
+
+// voiceSelectField builds Voice's own first Select: every ListVoices entry
+// as voiceOptionLabel's own one-line "id — description" (tui_screens.go; a
+// full description can run to two sentences and would otherwise wrap across
+// several rendered lines, defeating fieldHeight's one-line-per-option model
+// — T4 fix round item 1), plus a trailing "Off" option mapped to the empty
+// string, a sentinel voiceScreen checks for since a real voice ID is never
+// empty.
+func voiceSelectField(voices []management.VoiceInfo, value *string) *huh.Select[string] {
+	options := make([]huh.Option[string], 0, len(voices)+1)
+	for _, v := range voices {
+		options = append(options, huh.NewOption(voiceOptionLabel(v), v.ID))
+	}
+	options = append(options, huh.NewOption("Off", ""))
+	return huh.NewSelect[string]().
+		Title("Select a voice").
+		Options(options...).
+		Value(value).
+		Height(fieldHeight(len(options)))
+}
+
+// SelectVoiceOrOff implements Voice's own first choice (design.md "La
+// interfaz"): a voice from ListVoices, or Off.
+func (p *huhPrompter) SelectVoiceOrOff(voices []management.VoiceInfo) (string, bool, error) {
+	var choice string
+	field := voiceSelectField(voices, &choice)
+	cancelled, err := p.runForm(huh.NewForm(huh.NewGroup(field)))
+	if err != nil {
+		return "", false, err
+	}
+	if cancelled {
+		return "", false, nil
+	}
+	return choice, true, nil
+}
+
+// VoiceDetails implements Voice's own per-voice questions (design.md "La
+// interfaz"): address (sir/name/none), a name only when address is "name",
+// and intensity (subtle/marked) — management.VoiceSetting's own valid
+// values and defaults (voice.go's BuildVoicePlan/RenderVoice). Each question
+// is its own single-field form, run in sequence, rather than one multi-field
+// group with conditional visibility, since only the second question is ever
+// conditional and huh's own group-level field hiding needs no exercise here
+// proportional to that.
+func (p *huhPrompter) VoiceDetails() (address, name, intensity string, ok bool, err error) {
+	address = "none"
+	addressField := huh.NewSelect[string]().
+		Title("Address").
+		Options(
+			huh.NewOption("None", "none"),
+			huh.NewOption("Sir", "sir"),
+			huh.NewOption("By name", "name"),
+		).
+		Value(&address).
+		Height(fieldHeight(3))
+	cancelled, err := p.runForm(huh.NewForm(huh.NewGroup(addressField)))
+	if err != nil {
+		return "", "", "", false, err
+	}
+	if cancelled {
+		return "", "", "", false, nil
+	}
+
+	if address == "name" {
+		nameField := huh.NewInput().
+			Title("Name").
+			Validate(func(v string) error {
+				if strings.TrimSpace(v) == "" {
+					return fmt.Errorf("a name is required for address \"name\"")
+				}
+				return nil
+			}).
+			Value(&name)
+		cancelled, err = p.runForm(huh.NewForm(huh.NewGroup(nameField)))
+		if err != nil {
+			return "", "", "", false, err
+		}
+		if cancelled {
+			return "", "", "", false, nil
+		}
+	}
+
+	intensity = "subtle"
+	intensityField := huh.NewSelect[string]().
+		Title("Intensity").
+		Options(
+			huh.NewOption("Subtle", "subtle"),
+			huh.NewOption("Marked", "marked"),
+		).
+		Value(&intensity).
+		Height(fieldHeight(2))
+	cancelled, err = p.runForm(huh.NewForm(huh.NewGroup(intensityField)))
+	if err != nil {
+		return "", "", "", false, err
+	}
+	if cancelled {
+		return "", "", "", false, nil
+	}
+	return address, name, intensity, true, nil
 }

@@ -64,6 +64,7 @@ Inspeccionado el 2026-09-28 sobre `32eb03f`. Dos subagentes `sdd-explore` invest
   - Ctrl-C, Esc, rechazar la confirmación o el fin de la entrada imprimen «Cancelled. No changes applied.» y vuelven al menú.
   - Un error del flujo (por ejemplo, Git ausente, una revisión inválida, un conflicto o una release que el gestor actual no puede validar) imprime el mensaje del comando y vuelve al menú.
   - Ctrl-C en el menú sale con 0.
+  - **Excepción en Releases, decidida al construir T4:** `huh` v2.0.3 comprueba la tecla de salir antes de que el campo vea la pulsación. Por eso, en la lista de releases, Esc cierra o limpia el filtro, y solo Ctrl-C cancela la pantalla. Esa lista tiene su propio mapa de teclas.
 - **Al abrir:** si hay una operación o un onboarding pendiente, se usa `handlePendingInstallOperation` con el `prompter` de `huh`. Sus mensajes nombran `hive recover` en lugar de «run ./install.sh again».
 - **Pantallas y sus estados:**
 

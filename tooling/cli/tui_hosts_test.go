@@ -593,10 +593,23 @@ func TestInstallCommandKeepsDryRunHint(t *testing.T) {
 // pending-operation check (handlePendingInstallOperation, reached before the
 // wizard even starts) must also name hive recover when fromInterface is
 // true, not only tui.go's separate checkPendingOnOpen (used only at
-// menu-open time).
+// menu-open time). Every synthetic-home fixture in this file sets an
+// explicit --state-dir (newHostsTestHome never uses the real default), so
+// this end-to-end path always exercises the --state-dir-naming branch too
+// (T4 leftover from T3 verification); recoveryPhraseFor's own unit test
+// (TestRecoveryPhraseForInterfaceAlwaysNamesHiveRecover) covers the
+// non-explicit branch directly, since nothing here may touch real user
+// state to exercise it end to end.
 func TestRunInstallFlowWithPendingOnboardingRecoveryNamesHiveRecoverForInterface(t *testing.T) {
 	source := minimalTestSource(t)
 	home, stateDir := newHostsTestHome(t)
+	// NormalizeOptions resolves symlinks in an explicit --state-dir (e.g.
+	// macOS's /var -> /private/var); resolve it here too so the expected
+	// recovery text compares against the same, fully resolved path.
+	resolvedStateDir, err := filepath.EvalSymlinks(stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	dependencies.Pending = func(string) (management.PendingKind, error) { return management.PendingOnboarding, nil }
 	dependencies.RecoverOnboarding = func(string, onboardingAdapter) (management.OnboardingResult, error) {
@@ -608,8 +621,9 @@ func TestRunInstallFlowWithPendingOnboardingRecoveryNamesHiveRecoverForInterface
 	if err := runInstallFlowWith(o, false, &out, p, dependencies, true); err != nil {
 		t.Fatalf("runInstallFlowWith: %v\noutput:\n%s", err, out.String())
 	}
-	if !strings.Contains(out.String(), "Run hive recover.") {
-		t.Fatalf("interface-originated pending-onboarding recovery must name Run hive recover: %s", out.String())
+	want := fmt.Sprintf("Run hive recover --state-dir %s.", resolvedStateDir)
+	if !strings.Contains(out.String(), want) {
+		t.Fatalf("interface-originated pending-onboarding recovery must name %q, got: %s", want, out.String())
 	}
 	if strings.Contains(out.String(), "install.sh") {
 		t.Fatalf("interface-originated recovery must not name install.sh: %s", out.String())
@@ -618,26 +632,34 @@ func TestRunInstallFlowWithPendingOnboardingRecoveryNamesHiveRecoverForInterface
 
 // TestRecoveryPhraseForInterfaceAlwaysNamesHiveRecover pins
 // recoveryPhraseFor's own contract directly: fromInterface always wins,
-// regardless of online.
+// regardless of online, and names --state-dir too when explicitStateDir is
+// true (T4 leftover from T3 verification).
 func TestRecoveryPhraseForInterfaceAlwaysNamesHiveRecover(t *testing.T) {
 	for _, online := range []bool{false, true} {
-		got := recoveryPhraseFor(true, online, "/synthetic-state")
+		got := recoveryPhraseFor(true, false, online, "/synthetic-state")
 		if got != "run hive recover" {
-			t.Fatalf("recoveryPhraseFor(fromInterface=true, online=%v, ...) = %q, want %q", online, got, "run hive recover")
+			t.Fatalf("recoveryPhraseFor(fromInterface=true, explicitStateDir=false, online=%v, ...) = %q, want %q", online, got, "run hive recover")
+		}
+		got = recoveryPhraseFor(true, true, online, "/synthetic-state")
+		want := "run hive recover --state-dir /synthetic-state"
+		if got != want {
+			t.Fatalf("recoveryPhraseFor(fromInterface=true, explicitStateDir=true, online=%v, ...) = %q, want %q", online, got, want)
 		}
 	}
 }
 
 // TestRecoveryPhraseForNonInterfaceUnchanged pins that fromInterface=false
 // defers to recoveryPhrase exactly, for install's and bootstrap's own
-// callers.
+// callers, regardless of explicitStateDir.
 func TestRecoveryPhraseForNonInterfaceUnchanged(t *testing.T) {
 	stateDir := t.TempDir()
 	for _, online := range []bool{false, true} {
-		got := recoveryPhraseFor(false, online, stateDir)
-		want := recoveryPhrase(online, stateDir)
-		if got != want {
-			t.Fatalf("recoveryPhraseFor(fromInterface=false, online=%v, ...) = %q, want %q (recoveryPhrase's own result)", online, got, want)
+		for _, explicitStateDir := range []bool{false, true} {
+			got := recoveryPhraseFor(false, explicitStateDir, online, stateDir)
+			want := recoveryPhrase(online, stateDir)
+			if got != want {
+				t.Fatalf("recoveryPhraseFor(fromInterface=false, explicitStateDir=%v, online=%v, ...) = %q, want %q (recoveryPhrase's own result)", explicitStateDir, online, got, want)
+			}
 		}
 	}
 }

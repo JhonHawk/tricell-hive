@@ -1,6 +1,6 @@
 # Deployment manager
 
-The first manager is implemented in Go 1.27 using only the standard library. It runs from this checkout with `go run ./tooling/cli`; macOS is the tested platform. The manager never launches models. The separate pilot runner is evaluation tooling.
+The first manager is implemented in Go 1.27. Its core packages (`tooling/management` and `tooling/distribution`) use only the standard library, and a test walks their imports to keep it so. The command-line package depends on `charm.land/huh/v2` v2.0.3, with `charm.land/lipgloss/v2` and `charm.land/bubbles/v2` as direct requirements for the theme and key bindings, for the terminal interface only, a deliberate exception to the no-dependency rule because the interface is a user-requested product feature, not configuration; building a release therefore downloads those modules, while installing the offline package does not change. It runs from this checkout with `go run ./tooling/cli`; macOS is the tested platform. The manager never launches models. The separate pilot runner is evaluation tooling.
 
 ## Commands
 
@@ -57,6 +57,27 @@ A voice is an optional tone for the messages the user reads in the main conversa
 With a voice active, `plan install`, and therefore `hive install` and `hive update`, keeps the span and regenerates it with the same choice when the voice source text or its rendered form changed; the summary then reports the voice files to regenerate. A host that gains its Hive block in the same plan gets the voice too. A source that cannot render the chosen voice, such as `plan install --release <hash>`, a commit from before `content/voices/` existed, or one where that voice was removed, leaves the spans untouched and the summary says so. `plan remove` removes a file's voice span with its last consumer, and forgets the voice once no span remains. `status` adds a `voice` row per span with the voice, address, and intensity, and reports `drift` when the span was edited by hand. A hand-edited span, or voice markers in a file with no recorded span, is a conflict that every operation on that file preserves.
 
 The voice is stored in `state.json` as `voice` and `voice_spans` without a schema change. A manager from before this feature keeps those fields while it only reads the state, but drops them the next time it writes it, leaving the spans in the files; its `plan remove` also leaves a file's voice span behind. The current manager then reports those spans as unregistered conflicts, and every operation on such a file, `hive voice off` included, stops until the user deletes the voice span by hand, from its begin marker through its end marker. Run `hive voice off` before returning to an older manager.
+
+### Terminal interface
+
+```sh
+go run ./tooling/cli
+go run ./tooling/cli tui [--home DIR] [--state-dir DIR] [--source DIR]
+HIVE_ACCESSIBLE=1 go run ./tooling/cli tui
+```
+
+`hive` without arguments in a terminal, or `hive tui`, opens a menu with seven fixed entries: Status, Install CLIs, Remove CLIs, Update, Releases, Voice, and Quit, under a status line with the registered hosts, the installed release, and the voice. Without a terminal, `hive` without arguments keeps its usage error, and `hive tui` fails naming `HIVE_ACCESSIBLE`. `HIVE_ACCESSIBLE=1` runs the same menu as plain numbered prompts that read standard input, without colors, for screen readers and scripted use; the end of input exits. In the full interface, the theme follows the terminal's light or dark background, and `NO_COLOR` removes colors. Ctrl-C or Esc at the menu closes the interface with exit status 0. Install CLIs and Voice read the catalog from `--source`, which defaults to the current directory: outside a Hive checkout or package they report `Run hive from a Hive checkout or package, or pass --source` and return to the menu. `hive install` remains the plain-text installer that `install.sh` and the online bootstrap use.
+
+Each entry reuses the flow of its command, so it writes the same files and state:
+
+- **Status** reads only.
+- **Install CLIs** runs the `hive install` wizard, with package verification, pending-operation recovery, optional capabilities, and confirmation.
+- **Remove CLIs** plans a removal and shows the files removed, the shared resources kept for other hosts, and the voice blocks removed.
+- **Update** asks for the source and revision and runs `hive update`.
+- **Releases** lists retained releases, marks the installed one, and can return to an older one through `plan install --release`.
+- **Voice** sets or turns off the voice.
+
+Every writing action prints its summary, then asks for confirmation. Declining, Ctrl-C or Esc, or the end of input prints `Cancelled. No changes applied.` and returns to the menu; an error prints the command's message and returns to the menu. In the Releases list, Esc only closes an open filter and otherwise does nothing; Ctrl-C cancels that screen. The Install CLIs confirmation also offers Back, which returns to host selection. When the interface opens with a pending operation, it offers to recover it. Recovery messages name `hive recover`, adding `--state-dir DIR` when the interface was opened with an explicit state directory.
 
 ## Optional Context7 setup recommendation
 
@@ -128,9 +149,11 @@ Only directories confirmed created by Hive are cleanup candidates, and only empt
 
 ```sh
 go test ./...
-go test -race ./...
+go test -race -timeout 20m ./...
 go vet ./...
 ```
+
+The race run of `tooling/cli` takes about nine minutes, close to `go test`'s default ten-minute limit, so pass `-timeout` explicitly.
 
 Tests exercise the six user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. Catalogue tests additionally cover multiple skills and nested Markdown references, source identity and forged payload rejection, new references in owned bundles, unowned reference conflicts, partial consumer retirement, old-release rollback, missing-checkout status/removal, v2 migration and legacy journal recovery. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).
 

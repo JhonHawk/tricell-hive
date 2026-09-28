@@ -118,7 +118,18 @@ Pruebas, todas en modo accesible con entrada guionada:
 
 ### T4 — Pantallas Status, Update, Releases y Voice
 
-- [/] Status, Update, Releases (con la vuelta a una release) y Voice funcionan con vista previa y confirmación, dan los mismos resultados que sus comandos, y tienen sus estados vacíos y su cancelación.
+- [x] Status, Update, Releases (con la vuelta a una release) y Voice funcionan con vista previa y confirmación, dan los mismos resultados que sus comandos, y tienen sus estados vacíos y su cancelación.
+  - Ronda 1, AC6 no cumplido: la lista de voces calcula su altura por número de opciones y no por líneas; con las descripciones largas esconde a Jarvis y a Mentor en una terminal normal. Además:
+    - las pruebas de Status y Voice no fallan si los valores están mal;
+    - la pista sobre bajar de versión se añade a cualquier error de la vuelta a una release;
+    - Update dentro de la interfaz muestra el texto de `--dry-run`;
+    - faltan los encabezados de pantalla del diseño.
+  - **Ronda 2:** AC4, AC5, AC6, AC10 y AC11 cumplidos.
+    - En `tmux`, a 80×24 y 100×45, la lista de voces muestra sus cuatro opciones en una sola línea.
+    - Update, la vuelta a una release y Voice dan homes y estado idénticos a sus comandos con el árbol real.
+    - La salida de `hive update` fuera de la interfaz es idéntica a la de la base.
+  - **Añadido por el hilo principal:** «nonportable personal path in» como error de validación de una release, con su prueba (falló antes y pasa después).
+  - **Suite con `-race`:** `go test -race -timeout 20m ./...` pasa en los 16 paquetes; `tooling/cli` tardó 608 s en paralelo con otras cargas, lo que confirma que hace falta el `-timeout` explícito documentado.
 
 **Closes:** AC4, AC5, AC6, AC10 (en estas pantallas), AC11 (en estas pantallas).
 
@@ -137,11 +148,20 @@ Pruebas, todas en modo accesible con entrada guionada:
 - **Voice:** activa Jarvis con `sir` y después la apaga, dejando los archivos idénticos.
 - **Todas:** rechazar la confirmación no cambia nada y vuelve al menú.
 
-**Verification:** `go test -race ./tooling/cli -run 'TUI'` y `go test ./tooling/cli`. Las pruebas nuevas fallan en la base.
+**Verification:** `go test -race -timeout 20m ./tooling/cli -run 'StatusScreen|UpdateScreen|ReleasesScreen|VoiceScreen|Rollback|ScreenDecline|ReleaseLabel|ReleaseSelect|ReleasesSelectKeyMap'` y `go test ./tooling/cli`. Las pruebas nuevas fallan en la base.
 
 ### T5 — Documentación
 
-- [ ] `deployment-manager.md` documenta la interfaz, `hive tui`, el modo accesible y la dependencia.
+- [x] `deployment-manager.md` documenta la interfaz, `hive tui`, el modo accesible y la dependencia.
+  - **Evidencia:** `review-task` da AC9 cumplido, con cada afirmación contrastada con el código y con el binario en modo accesible. Con sus observaciones se añadieron:
+    - las dependencias directas `lipgloss` y `bubbles`;
+    - cuándo hace falta `--source`;
+    - Esc y Ctrl-C en el menú;
+    - `NO_COLOR` y el tema según el fondo;
+    - Esc en Releases sin filtro;
+    - Back en la confirmación de Install;
+    - que `--state-dir` solo aparece si se pasó uno.
+  - **Verificación con `-race`:** 568 s con `-timeout 20m`, así que el `-timeout` explícito documentado está justificado.
 
 **Closes:** AC9.
 

@@ -218,6 +218,14 @@ func runInstallFlowWith(o management.Options, dry bool, out io.Writer, p prompte
 	if err := distribution.VerifyIfPackaged(o.Source); err != nil {
 		return err
 	}
+	// explicitStateDir is o's own, pre-normalization StateDir, exactly like
+	// tui.go's openInterface computes it for checkPendingOnOpen: once
+	// NormalizeOptions resolves o.StateDir to some concrete path below, this
+	// is the only point that can still tell whether the interface itself was
+	// opened against a specific one (T4 leftover from T3 verification), which
+	// every hive-recover phrase reached from here must then name explicitly,
+	// the same way checkPendingOnOpen's own recovery phrase already does.
+	explicitStateDir := o.StateDir != ""
 	_, stateDir, err := management.NormalizeOptions(o)
 	if err != nil {
 		return err
@@ -246,7 +254,7 @@ func runInstallFlowWith(o management.Options, dry bool, out io.Writer, p prompte
 	// recoveryPhraseFor's other, mid-sentence callers (finalizeInstallResult,
 	// nextOnboardingStepAction) use its own lowercase return directly.
 	recoveryText := func(stateDir string, stillNeeded bool) string {
-		phrase := recoveryPhraseFor(fromInterface, online, stateDir)
+		phrase := recoveryPhraseFor(fromInterface, explicitStateDir, online, stateDir)
 		if fromInterface {
 			return capitalize(phrase)
 		}
@@ -255,7 +263,7 @@ func runInstallFlowWith(o management.Options, dry bool, out io.Writer, p prompte
 	if handled, err := handlePendingInstallOperation(o, dry, p, out, recoveryText, dependencies); handled {
 		return err
 	}
-	return runOnboardingWizard(o, dry, p, out, online, dependencies, fromInterface)
+	return runOnboardingWizard(o, dry, p, out, online, explicitStateDir, dependencies, fromInterface)
 }
 
 func validateInstallDependencies(dependencies installDependencies) error {
@@ -337,7 +345,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal prom
 
 // runOnboardingWizard walks the host-selection/summary/consent/apply loop
 // once no pending operation blocks it.
-func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out io.Writer, online bool, dependencies installDependencies, fromInterface bool) error {
+func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out io.Writer, online, explicitStateDir bool, dependencies installDependencies, fromInterface bool) error {
 	stateDir := o.StateDir
 	explicitHosts := len(o.Hosts) > 0
 
@@ -418,7 +426,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out 
 			}
 		}
 		result, err := applyInstallOnboarding(p, preview, adapter)
-		return finalizeInstallResult(out, result, err, online, stateDir, fromInterface)
+		return finalizeInstallResult(out, result, err, online, explicitStateDir, stateDir, fromInterface)
 	}
 }
 
@@ -458,15 +466,16 @@ func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Option
 // finalizeInstallResult renders applyInstallOnboarding's outcome (success,
 // no-op, or partial) and turns a partial or failed apply into the CLI's own
 // error; the core mutation, if any, has already happened by the time this
-// runs, so it never decides whether to retry. fromInterface routes every
-// recovery phrase here through recoveryPhraseFor (T3 fix round item 4).
-func finalizeInstallResult(out io.Writer, result management.OnboardingResult, err error, online bool, stateDir string, fromInterface bool) error {
+// runs, so it never decides whether to retry. fromInterface/explicitStateDir
+// route every recovery phrase here through recoveryPhraseFor (T3 fix round
+// item 4; T4 leftover from T3 verification: name --state-dir too).
+func finalizeInstallResult(out io.Writer, result management.OnboardingResult, err error, online, explicitStateDir bool, stateDir string, fromInterface bool) error {
 	if err != nil {
 		if result.Phase == "partial" {
-			showPartialOnboardingDetail(out, result, online, stateDir, fromInterface)
+			showPartialOnboardingDetail(out, result, online, explicitStateDir, stateDir, fromInterface)
 			return fmt.Errorf("optional capabilities incomplete (%s)", result.ID)
 		}
-		return fmt.Errorf("installation did not complete: %w; %s to check recovery", err, recoveryPhraseFor(fromInterface, online, stateDir))
+		return fmt.Errorf("installation did not complete: %w; %s to check recovery", err, recoveryPhraseFor(fromInterface, explicitStateDir, online, stateDir))
 	}
 	if result.ID == "unchanged" {
 		// management.Engine.Apply's own literal sentinel ID (no exported
@@ -528,10 +537,19 @@ func recoveryPhrase(online bool, stateDir string) string {
 // interface's own operator can always run directly, instead of
 // ./install.sh (a script this process may not have been launched from at
 // all) or a bootstrap-only retained-manager phrase, neither of which apply
-// inside the interactive interface. fromInterface false defers to
-// recoveryPhrase unchanged, for install's and bootstrap's own callers.
-func recoveryPhraseFor(fromInterface, online bool, stateDir string) string {
+// inside the interactive interface. When the interface itself was opened
+// against an explicit --state-dir, that phrase names it too (T4 leftover
+// from T3 verification), the same way tui.go's checkPendingOnOpen already
+// does for the menu's own on-open recovery offer, so the operator recovers
+// the same, possibly synthetic, state they are looking at rather than the
+// real user's default. fromInterface false defers to recoveryPhrase
+// unchanged, for install's and bootstrap's own callers, ignoring
+// explicitStateDir.
+func recoveryPhraseFor(fromInterface, explicitStateDir, online bool, stateDir string) string {
 	if fromInterface {
+		if explicitStateDir {
+			return fmt.Sprintf("run hive recover --state-dir %s", stateDir)
+		}
 		return "run hive recover"
 	}
 	return recoveryPhrase(online, stateDir)
@@ -866,7 +884,7 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 // needs manual follow-up. online/stateDir let nextOnboardingStepAction name a
 // concrete recovery command instead of a hard-coded ./install.sh (see
 // recoveryPhrase).
-func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResult, online bool, stateDir string, fromInterface bool) {
+func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResult, online, explicitStateDir bool, stateDir string, fromInterface bool) {
 	fmt.Fprintf(out, "Partial installation (%s).\n", result.ID)
 	fmt.Fprintln(out, "The core was installed; optional capabilities pending:")
 	for _, step := range result.Steps {
@@ -877,7 +895,7 @@ func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResu
 		if json.Unmarshal(step.Step.Payload, &decoded) == nil && decoded.ManualReason != "" {
 			printLabeled(out, "    Reason: ", decoded.ManualReason)
 		}
-		if action := nextOnboardingStepAction(step.Status, online, stateDir, fromInterface); action != "" {
+		if action := nextOnboardingStepAction(step.Status, online, explicitStateDir, stateDir, fromInterface); action != "" {
 			printLabeled(out, "    Next action: ", action)
 		}
 	}
@@ -899,8 +917,8 @@ func printLabeled(out io.Writer, label, text string) {
 // nextOnboardingStepAction turns a provider step's terminal status into the
 // concrete next action for the operator, matching design.md's per-provider
 // states (pending -> running -> verified|failed|unknown|skipped|auth_pending).
-func nextOnboardingStepAction(status string, online bool, stateDir string, fromInterface bool) string {
-	recovery := recoveryPhraseFor(fromInterface, online, stateDir)
+func nextOnboardingStepAction(status string, online, explicitStateDir bool, stateDir string, fromInterface bool) string {
+	recovery := recoveryPhraseFor(fromInterface, explicitStateDir, online, stateDir)
 	switch status {
 	case management.StepManual:
 		return "Complete the installation following the official instructions, then " + recovery + " to confirm it."

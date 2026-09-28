@@ -141,9 +141,11 @@ var menuLabels = [...]string{
 
 // runMenu is the interface's own loop (design.md "La interfaz"): compute the
 // status line, present the menu, and either open the chosen screen or stop.
-// Quit, Ctrl-C and the end of input all exit cleanly (0). Every screen other
-// than Quit, Install CLIs and Remove CLIs is still a stub; T4 wires the
-// rest to their real flows.
+// Quit, Ctrl-C and the end of input all exit cleanly (0). Every one of the
+// six non-Quit entries (Status, Install CLIs, Remove CLIs, Update, Releases,
+// Voice) is wired to its own real flow (T3 for Install/Remove, T4 for the
+// rest); runMenuEntry's own default case stays only as a defensive
+// fallback, never reached by selectMenuEntry's fixed set of choices.
 func runMenu(o management.Options, out io.Writer, p *huhPrompter) error {
 	for {
 		line, err := interfaceStatusLine(o)
@@ -167,13 +169,24 @@ func runMenu(o management.Options, out io.Writer, p *huhPrompter) error {
 // Every screen already handles its own cancellation and empty/limit states
 // internally, printing them and returning nil (design.md "Cancelar y
 // errores"); a non-nil error here is a genuine flow error, printed the same
-// way for every screen instead of duplicating that print at each call site.
+// way for every screen instead of duplicating that print at each call site
+// — including a Releases rollback the current manager cannot validate
+// (tui_screens.go's rollbackFlow already wraps that one with its own
+// documentation hint before returning it here).
 func runMenuEntry(choice menuEntry, o management.Options, out io.Writer, p *huhPrompter) error {
 	switch choice {
+	case menuStatus:
+		return statusScreen(o, out, p)
 	case menuInstall:
 		return installScreen(o, out, p)
 	case menuRemove:
 		return removeScreen(o, out, p)
+	case menuUpdate:
+		return updateScreen(o, out, p)
+	case menuReleases:
+		return releasesScreen(o, out, p)
+	case menuVoice:
+		return voiceScreen(o, out, p)
 	default:
 		fmt.Fprintln(out, "Not available yet.")
 		return nil

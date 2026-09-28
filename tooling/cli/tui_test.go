@@ -62,28 +62,23 @@ func TestMenuEOFExitsZero(t *testing.T) {
 	}
 }
 
-// TestMenuStubReturnsToMenu covers AC10: choosing a screen that is still a
-// stub (T4 wires Update, Releases and Voice) prints "Not available yet." and
-// returns to the menu instead of exiting, so a later Quit still ends the
-// session cleanly. The status line, printed once per menu render, appearing
-// exactly twice pins that the menu actually rendered again after the stub
-// and that the later "7" (Quit) choice was consumed by that second render,
-// not some other exit path.
-func TestMenuStubReturnsToMenu(t *testing.T) {
-	o := interfaceTestOptions(t)
+// TestRunMenuEntryDefaultCoversUnknownChoice pins runMenuEntry's own
+// defensive default branch: an out-of-range menuEntry (never produced by
+// selectMenuEntry in practice, since every one of the six non-Quit entries
+// is now wired to its own real screen — T4 finished Status, Update,
+// Releases and Voice, after T3's Install/Remove CLIs) still prints "Not
+// available yet." and returns nil rather than propagating an error, the
+// same AC10 contract every real screen's own error path already has to
+// satisfy.
+func TestRunMenuEntryDefaultCoversUnknownChoice(t *testing.T) {
 	var out bytes.Buffer
-	// "4" is Update (menuLabels' own order: Status, Install CLIs, Remove
-	// CLIs, Update, Releases, Voice, Quit); T3 wires Install CLIs and Remove
-	// CLIs to their real flows, so this test now picks a screen T4 still
-	// owns.
-	if err := openInterface(false, true, strings.NewReader("4\n7\n"), &out, o); err != nil {
-		t.Fatalf("openInterface: %v\noutput:\n%s", err, out.String())
+	mo := management.Options{Scope: "user", Home: t.TempDir()}
+	p := newHuhPrompter(true, strings.NewReader(""), &out)
+	if err := runMenuEntry(menuEntry(99), mo, &out, p); err != nil {
+		t.Fatalf("runMenuEntry: %v", err)
 	}
 	if !strings.Contains(out.String(), "Not available yet.") {
-		t.Fatalf("stub did not print its placeholder: %s", out.String())
-	}
-	if renders := strings.Count(out.String(), "No CLI hosts are registered."); renders != 2 {
-		t.Fatalf("expected the menu to render twice (once before and once after the stub), got %d renders in: %s", renders, out.String())
+		t.Fatalf("expected the default placeholder, got: %s", out.String())
 	}
 }
 

@@ -13,14 +13,17 @@ import (
 	"tricell-hive/tooling/management"
 )
 
-// installScreen implements Install CLIs (design.md "La interfaz"): the same
-// runInstallFlowWith the plain `hive install` command uses, driven by this
-// session's own huh prompter instead of an installTerminal, so it inherits
-// package verification, options normalization, the pending-operation check,
-// the host/provider wizard, and BindRetainedInstaller's own nil default
-// (only the online bootstrap entry point ever sets it) for free — including
-// every cancel/decline/EOF and error message that flow already prints.
+// installScreen implements Install CLIs (design.md "La interfaz"): its own
+// one-line header ("Cada pantalla empieza con un encabezado de una línea"),
+// then the same runInstallFlowWith the plain `hive install` command uses,
+// driven by this session's own huh prompter instead of an installTerminal,
+// so it inherits package verification, options normalization, the
+// pending-operation check, the host/provider wizard, and
+// BindRetainedInstaller's own nil default (only the online bootstrap entry
+// point ever sets it) for free — including every cancel/decline/EOF and
+// error message that flow already prints.
 func installScreen(o management.Options, out io.Writer, p *huhPrompter) error {
+	fmt.Fprintln(out, "== Install CLIs ==")
 	if !sourceHasCatalog(o.Source) {
 		return fmt.Errorf("Run hive from a Hive checkout or package, or pass --source")
 	}
@@ -45,6 +48,7 @@ func sourceHasCatalog(source string) bool {
 // removeFlow's own summary/confirm/apply. The empty state matches Status's
 // own message, since there is nothing to remove without a registered host.
 func removeScreen(o management.Options, out io.Writer, p *huhPrompter) error {
+	fmt.Fprintln(out, "== Remove CLIs ==")
 	hosts, err := management.RegisteredHosts(o)
 	if err != nil {
 		return err

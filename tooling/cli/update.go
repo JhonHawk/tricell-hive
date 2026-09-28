@@ -59,13 +59,19 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		return err
 	}
 	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
-	return updateWith(f, out, interactive, terminal)
+	// mentionDryRunFlag is true: hive update has a real --dry-run flag of its
+	// own to suggest, unchanged from before this parameter existed.
+	return updateWith(f, out, interactive, terminal, true)
 }
 
 // updateWith is update's core, separated from parsing and from the terminal
 // implementation of prompter (design.md "Separar las preguntas de la
-// lógica").
-func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompter) error {
+// lógica"). mentionDryRunFlag is threaded through to showInstallSummary
+// (T4 fix round item 4): tui_screens.go's updateScreen is the only other
+// caller, and passes false, since the interface has no --dry-run flag of
+// its own to suggest — the same reasoning install.go's own
+// runInstallFlowWith already applies for Install CLIs.
+func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompter, mentionDryRunFlag bool) error {
 	// 1. Choose the CLIs before running Git, so a host-less home fails
 	// without extracting anything.
 	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir}
@@ -114,7 +120,7 @@ func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompte
 	}
 
 	// 6. Summarize, reusing the install summary with no optional capabilities.
-	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, true)
+	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, mentionDryRunFlag)
 	fmt.Fprintf(out, "Source commit %s (requested %s)\n", shortHash(commit), f.Rev)
 
 	// 7. Apply or save.
