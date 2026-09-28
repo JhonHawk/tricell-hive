@@ -250,5 +250,5 @@ Aplicar los cambios que pida.
 
     Se incorporaron el tratamiento sin marcar género y el límite de lo que mide T5. La opción de «señora» o de un tratamiento neutro queda como sugerencia para el usuario.
   - **Sin nueva ronda:** todas las correcciones aplican propuestas de los revisores, salvo D13, que decidió el usuario.
-- **Avance:** plan en borrador; ninguna tarea empezada.
-- **Siguiente paso:** `flow-build`, con T1 (gestor) y T3 (textos) en paralelo.
+- **Avance:** T1 a T6 verificadas y la revisión de código resuelta. `go vet ./...` y `go test -race ./...` pasan en 16 paquetes sobre `3b5a254`, publicado directo en `rebuild/harness-engineering` (`6fd741c..3b5a254`). No hay CI. La voz no se activó en los CLIs del usuario.
+- **Siguiente paso:** ninguno en este cambio; los requisitos pasaron a `specs/versioned-installation/spec.md`.
