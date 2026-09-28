@@ -12,7 +12,7 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T1 — Marcadores por parámetro y catálogo de voces en el gestor
 
-- [ ] Las funciones de bloque reciben el par de marcadores, y el gestor lee, valida y genera el texto de una voz.
+- [/] Las funciones de bloque reciben el par de marcadores, y el gestor lee, valida y genera el texto de una voz.
 
 **Closes:** AC9 (la validación del catálogo y de los parámetros) y AC10 (que el bloque generado empiece con el preámbulo).
 
@@ -74,7 +74,13 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T3 — Textos de las tres voces
 
-- [ ] `content/voices/` tiene `preamble.md`, `jarvis.md`, `senior-direct.md` y `mentor.md`, en inglés.
+- [x] `content/voices/` tiene `preamble.md`, `jarvis.md`, `senior-direct.md` y `mentor.md`, en inglés.
+  - **Evidencia:** `review-task` da cumplida la parte de contenido de AC10. Las pruebas fallaron antes de escribir los textos, con la carpeta ausente, y pasan después.
+  - **Corregido después de la verificación, con las propuestas del verificador:**
+    - La prueba ahora exige las frases que fijan cada regla (la lista de destinos, «only in transitions», «without metaphors», «without flattery or deference» y «keep plain wording»); antes seis eliminaciones del preámbulo pasaban sin fallar.
+    - Las tres voces ya no dan estilo al contenido del desacuerdo.
+    - Mentor ya no admite elogios.
+    - La cortesía de Jarvis nunca va antes del resultado.
 
 **Closes:** AC10.
 
@@ -121,7 +127,7 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T5 — Validación humana de las voces
 
-- [ ] El usuario aprueba el texto de las tres voces y un mensaje de ejemplo en cada una, o pide cambios.
+- [x] El usuario aprueba el texto de las tres voces y un mensaje de ejemplo en cada una, o pide cambios. Aprobado por el usuario el 2026-09-27: «Apruebo las tres». Vio el resumen de cada voz y el mismo reporte de avance en tono neutro, Jarvis con «señor», Senior directo y Mentor, todos con intensidad sutil.
 
 **Depends on:** T3.
 
