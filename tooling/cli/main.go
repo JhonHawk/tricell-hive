@@ -23,6 +23,7 @@ func output(v any) error {
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
 }
+
 // run resolves --version and --help, then delegates every subcommand to its
 // own function. Each subcommand function defines its own flag.FlagSet, so
 // its flags and usage text stay local to it.
@@ -54,6 +55,10 @@ func run(args []string) error {
 		return runStatus(rest)
 	case "recover":
 		return runRecover(rest)
+	case "update":
+		return runUpdate(rest)
+	case "releases":
+		return runReleases(rest)
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}
@@ -64,6 +69,36 @@ func printHelp() {
 	fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
 	fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
+	fmt.Println("hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update from a Git commit; needs Git and a checkout, unlike install.sh)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
+}
+
+func runUpdate(args []string) error {
+	return update(args, os.Stdin, os.Stdout, terminalInput(os.Stdin))
+}
+
+func runReleases(args []string) error {
+	var o management.Options
+	fs := flag.NewFlagSet("releases", flag.ContinueOnError)
+	fs.StringVar(&o.Home, "home", "", "explicit synthetic home; ignores host environment paths")
+	fs.StringVar(&o.StateDir, "state-dir", "", "state directory (default: user Application Support/tricell-hive)")
+	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return nil
+		}
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("unexpected positional arguments")
+	}
+	o.Scope = "user"
+	entries, err := management.Releases(o)
+	if err != nil {
+		return err
+	}
+	if entries == nil {
+		entries = []management.ReleaseEntry{}
+	}
+	return output(entries)
 }
 
 func runSetup(args []string) error {

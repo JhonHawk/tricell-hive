@@ -527,6 +527,18 @@ func LoadPlan(path string) (Plan, error) {
 
 var sourceCommitPattern = regexp.MustCompile(`^([0-9a-f]{40}|[0-9a-f]{64})$`)
 
+// BindSourceCommit attaches the Git commit a plan's source was extracted
+// from and recomputes the plan ID, as BindInstaller does for the retained
+// installer.
+func BindSourceCommit(plan Plan, commit string) (Plan, error) {
+	if !sourceCommitPattern.MatchString(commit) {
+		return Plan{}, fmt.Errorf("invalid source commit %q", commit)
+	}
+	plan.SourceCommit = commit
+	plan.ID = planID(plan)
+	return plan, nil
+}
+
 func validatePlan(p Plan, state State) error {
 	// Plans saved before Cursor support omit cursor_home and still hash correctly.
 	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" {

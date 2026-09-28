@@ -288,3 +288,19 @@ func TestReleasesFailsNamingUnreadableCommitsRecord(t *testing.T) {
 		t.Fatalf("expected an error naming %s, got %v", path, err)
 	}
 }
+
+func TestBindSourceCommitRecomputesAcceptedPlanID(t *testing.T) {
+	o := setup(t)
+	p := plan(t, "install", o)
+	commit := strings.Repeat("c", 40)
+	bound, err := BindSourceCommit(p, commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bound.SourceCommit != commit || bound.ID == p.ID || bound.ID != planID(bound) {
+		t.Fatalf("source commit not bound with a recomputed ID: %s", bound.ID)
+	}
+	if _, err := BindSourceCommit(p, "NOT-A-COMMIT"); err == nil {
+		t.Fatal("malformed source commit accepted")
+	}
+}
