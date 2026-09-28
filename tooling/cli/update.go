@@ -72,56 +72,14 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 // its own to suggest — the same reasoning install.go's own
 // runInstallFlowWith already applies for Install CLIs.
 func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompter, mentionDryRunFlag bool) error {
-	// 1. Choose the CLIs before running Git, so a host-less home fails
-	// without extracting anything.
-	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir}
-	hosts, err := management.RegisteredHosts(o)
-	if err != nil {
-		return err
-	}
-	if len(hosts) == 0 {
-		return fmt.Errorf("no CLI hosts are registered with Hive for this home; run hive install first")
-	}
-	o.Hosts = hosts
-
-	// 2. Validate the revision before touching Git: empty or dash-led values
-	// could otherwise be read as an option by a later Git invocation.
-	if f.Rev == "" || strings.HasPrefix(f.Rev, "-") {
-		return fmt.Errorf("invalid --rev %q", f.Rev)
-	}
-
-	// 3. Run Git in a controlled way: resolved from PATH, no shell, and with
-	// the ownership-affecting GIT_* variables stripped from its environment.
-	gitPath, err := exec.LookPath("git")
-	if err != nil {
-		return fmt.Errorf("git not found in PATH; hive update needs Git and a checkout; the offline package installs with install.sh")
-	}
-	env, err := filteredGitEnv(gitPath)
-	if err != nil {
-		return err
-	}
-
-	commit, err := resolveCommit(gitPath, env, f.Source, f.Rev)
-	if err != nil {
-		return err
-	}
-
-	// 4–5. Extract the commit and plan from it. The plan freezes the source
-	// bytes, so the extraction is already gone before the summary and the
-	// confirmation prompt.
-	p, err := planFromCommit(gitPath, env, f.Source, commit, o)
-	if err != nil {
-		return err
-	}
-
-	unchanged, err := management.PlanUnchanged(p)
+	p, sourceLine, unchanged, err := planUpdate(f)
 	if err != nil {
 		return err
 	}
 
 	// 6. Summarize, reusing the install summary with no optional capabilities.
 	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, mentionDryRunFlag)
-	fmt.Fprintf(out, "Source commit %s (requested %s)\n", shortHash(commit), f.Rev)
+	fmt.Fprintln(out, sourceLine)
 
 	// 7. Apply or save.
 	if f.DryRun {
@@ -160,6 +118,62 @@ func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompte
 	}
 	reportApplyResult(out, "Hive updated", result)
 	return nil
+}
+
+// planUpdate is updateWith's planning half, shared with the Update view: it
+// chooses the registered CLIs, validates the revision, runs Git, resolves the
+// commit, extracts it and builds the install plan. It returns the plan, the
+// "Source commit" line the summary ends with, and whether the plan changes
+// nothing. It writes nothing.
+func planUpdate(f updateFlags) (p management.Plan, sourceLine string, unchanged bool, err error) {
+	// 1. Choose the CLIs before running Git, so a host-less home fails
+	// without extracting anything.
+	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir}
+	hosts, err := management.RegisteredHosts(o)
+	if err != nil {
+		return management.Plan{}, "", false, err
+	}
+	if len(hosts) == 0 {
+		return management.Plan{}, "", false, fmt.Errorf("no CLI hosts are registered with Hive for this home; run hive install first")
+	}
+	o.Hosts = hosts
+
+	// 2. Validate the revision before touching Git: empty or dash-led values
+	// could otherwise be read as an option by a later Git invocation.
+	if f.Rev == "" || strings.HasPrefix(f.Rev, "-") {
+		return management.Plan{}, "", false, fmt.Errorf("invalid --rev %q", f.Rev)
+	}
+
+	// 3. Run Git in a controlled way: resolved from PATH, no shell, and with
+	// the ownership-affecting GIT_* variables stripped from its environment.
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return management.Plan{}, "", false, fmt.Errorf("git not found in PATH; hive update needs Git and a checkout; the offline package installs with install.sh")
+	}
+	env, err := filteredGitEnv(gitPath)
+	if err != nil {
+		return management.Plan{}, "", false, err
+	}
+
+	commit, err := resolveCommit(gitPath, env, f.Source, f.Rev)
+	if err != nil {
+		return management.Plan{}, "", false, err
+	}
+
+	// 4–5. Extract the commit and plan from it. The plan freezes the source
+	// bytes, so the extraction is already gone before the summary and the
+	// confirmation prompt.
+	p, err = planFromCommit(gitPath, env, f.Source, commit, o)
+	if err != nil {
+		return management.Plan{}, "", false, err
+	}
+
+	unchanged, err = management.PlanUnchanged(p)
+	if err != nil {
+		return management.Plan{}, "", false, err
+	}
+
+	return p, fmt.Sprintf("Source commit %s (requested %s)", shortHash(commit), f.Rev), unchanged, nil
 }
 
 // planFromCommit extracts commit by its full hash into a private temporary

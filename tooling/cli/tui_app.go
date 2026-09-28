@@ -446,12 +446,17 @@ func (m *appModel) helpLine() string {
 }
 
 func (m *appModel) sizeWarning() string {
-	lines := []string{
-		m.theme.Danger.Render(fmt.Sprintf("Terminal too small: needs %d×%d", minWidth, minHeight)),
-		m.theme.Muted.Render(fmt.Sprintf("Current size: %d×%d. Enlarge the window, or press ctrl+c to quit.", m.width, m.height)),
+	advice := "Enlarge the window, or press ctrl+c to quit."
+	if m.writing {
+		// Ctrl-C is ignored until the write finishes, so do not offer it.
+		advice = "Enlarge the window. Keys, ctrl+c included, are ignored until the operation finishes."
 	}
-	for i, l := range lines {
-		lines[i] = clipLine(l, m.width)
+	var lines []string
+	for _, l := range strings.Split(ansi.Wrap(fmt.Sprintf("Terminal too small: needs %d×%d", minWidth, minHeight), max(m.width, 1), ""), "\n") {
+		lines = append(lines, m.theme.Danger.Render(l))
+	}
+	for _, l := range strings.Split(ansi.Wrap(fmt.Sprintf("Current size: %d×%d. %s", m.width, m.height, advice), max(m.width, 1), ""), "\n") {
+		lines = append(lines, m.theme.Muted.Render(l))
 	}
 	return strings.Join(lines[:min(len(lines), max(m.height, 1))], "\n")
 }

@@ -199,21 +199,7 @@ func installedReleaseID(o management.Options) (string, error) {
 // or "unfinished operation: recover first") is returned unwrapped: the hint
 // only makes sense for a problem with releaseID's own retained snapshot.
 func rollbackFlow(o management.Options, releaseID string, out io.Writer, p prompter) error {
-	hosts, err := management.RegisteredHosts(o)
-	if err != nil {
-		return err
-	}
-	ro := o
-	ro.Hosts = hosts
-	ro.ReleaseID = releaseID
-	plan, err := management.BuildPlan("install", ro)
-	if err != nil {
-		if isReleaseValidationError(err) {
-			return fmt.Errorf("%w; plan that downgrade with the manager from the commit that produced it", err)
-		}
-		return err
-	}
-	unchanged, err := management.PlanUnchanged(plan)
+	plan, unchanged, err := buildRollbackPlan(o, releaseID)
 	if err != nil {
 		return err
 	}
@@ -234,6 +220,32 @@ func rollbackFlow(o management.Options, releaseID string, out io.Writer, p promp
 	}
 	reportApplyResult(out, "Hive rolled back", result)
 	return nil
+}
+
+// buildRollbackPlan is rollbackFlow's planning half, shared with the Releases
+// view: the install plan pinned to releaseID for the registered hosts, and
+// whether it changes nothing. A release the manager cannot validate comes back
+// with the downgrade hint appended (see rollbackFlow).
+func buildRollbackPlan(o management.Options, releaseID string) (plan management.Plan, unchanged bool, err error) {
+	hosts, err := management.RegisteredHosts(o)
+	if err != nil {
+		return management.Plan{}, false, err
+	}
+	ro := o
+	ro.Hosts = hosts
+	ro.ReleaseID = releaseID
+	plan, err = management.BuildPlan("install", ro)
+	if err != nil {
+		if isReleaseValidationError(err) {
+			return management.Plan{}, false, fmt.Errorf("%w; plan that downgrade with the manager from the commit that produced it", err)
+		}
+		return management.Plan{}, false, err
+	}
+	unchanged, err = management.PlanUnchanged(plan)
+	if err != nil {
+		return management.Plan{}, false, err
+	}
+	return plan, unchanged, nil
 }
 
 // releaseValidationErrorPrefixes are every error text tooling/management's

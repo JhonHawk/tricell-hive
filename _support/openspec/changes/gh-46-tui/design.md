@@ -69,6 +69,7 @@ Inspeccionado el 2026-09-28 sobre `dd146c0`. Dos subagentes `sdd-explore` leyero
   - Descubrir CLIs, calcular el estado y armar la línea de estado también corren como `tea.Cmd`, con un `spinner` mientras cargan.
   - Cada `tea.Cmd` recibe una copia de las `Options` (con `Hosts` copiado), nunca el valor que el modelo sigue modificando.
 - **Cambio de tamaño:** bajar de 80×24 muestra el aviso, y volver restaura la vista con su estado.
+- **Campos de texto largos:** un `textinput` (Source, Name, el filtro) desplaza su contenido alrededor del cursor, sin «…». El valor completo sigue accesible moviendo el cursor. Para AC9 no cuenta como una fila cortada (decidido al construir T9).
 - **Teclas globales:**
 
 | Tecla | Efecto |
@@ -103,7 +104,7 @@ Cada vista es un modelo con `Update` y `View`. Resúmenes, confirmaciones, aviso
 | Aplicar CLIs | Se describe en el [diff de CLIs](#diff-de-clis). | Un error del plan o de la aplicación vuelve a CLIs con el mensaje del comando. |
 | Update | Dos `textinput`, Source (`.`) y Revision (`HEAD`). ↑↓ o Tab cambian de campo y Enter resuelve el commit con un `spinner` antes del resumen. | Sin CLIs: el error de `update`. Revisión inválida o sin Git: el mensaje del comando en la vista. |
 | Releases | Lista propia: filas en un `viewport` que sigue al cursor y, encima, un `textinput` de filtro que se abre con `/` y filtra por subcadena sin distinguir mayúsculas. Filas de 78 columnas o menos: ID corto, fecha, commit y CLIs recortados con «…». Marca la instalada. Enter lleva al resumen de `rollbackFlow`. | Sin releases: «No releases are retained yet». La instalada: «Already installed». Un error de validación: su mensaje. |
-| Voice | Filas Voice (Off y `ListVoices`), Address (`none`, `sir`, `name`), Name (`textinput`, solo con `name`) e Intensity (`subtle`, `marked`), cargadas desde `CurrentVoice`. ↑↓ cambia de fila, ←→ cambia el valor y Enter lleva al resumen. | Sin CLIs: el mensaje de Status. Fuente sin voces: el error de la fuente. Sin cambios: «Voice is already set this way». |
+| Voice | Filas Voice (Off y `ListVoices`), Address (`none`, `sir`, `name`), Name (`textinput`, solo con `name`) e Intensity (`subtle`, `marked`), cargadas desde `CurrentVoice`. Con Off solo se muestra la fila Voice, porque los demás valores no significan nada (decidido al construir T9). ↑↓ cambia de fila, ←→ cambia el valor y Enter lleva al resumen. | Sin CLIs: el mensaje de Status. Fuente sin voces: el error de la fuente. Sin cambios: «Voice is already set this way». |
 | Recuperar | Al abrir, si hay una operación u onboarding pendiente: qué se interrumpió y las opciones «Recover» y «Leave it». Usa la lógica de `handlePendingInstallOperation`, sin su pregunta de texto. | Si la recuperación falla, el mensaje del comando, que nombra `hive recover`. |
 | Resumen y confirmación | Un `viewport` con el resumen del comando (↑↓, PgUp y PgDn desplazan), más Apply y Cancel. ←→ elige y Enter acepta; también `y` y `n`. Arranca en Apply, salvo en «Uninstall all», que arranca en Cancel y no acepta `y`. | Esc y Cancel vuelven sin cambios, con «Cancelled. No changes applied.» dentro de la vista de origen. Al terminar con éxito, la vista de origen se refresca y muestra el resultado del comando. |
 | Aviso | Un texto y Continue, para la expansión de CLIs requeridos y el paso intermedio del diff. | — |

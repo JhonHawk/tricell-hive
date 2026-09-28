@@ -943,19 +943,25 @@ func TestAppStatusLineShowsRegisteredState(t *testing.T) {
 }
 
 // TestAppKeysEscAndBackspaceReturnFromPlaceholder covers AC2: from each view
-// the menu opens (the CLIs view, and the provisional ones T9 replaces), Esc
-// and Backspace both return to the menu, and the cursor stays on the entry
-// that was opened.
+// the menu opens, Esc and Backspace both return to the menu (Backspace also in
+// the Update view, whose first field has the focus only after typing: with
+// nothing to delete it must still not go back), and the cursor stays on the
+// entry that was opened. It keeps its T7 name.
 func TestAppKeysEscAndBackspaceReturnFromPlaceholder(t *testing.T) {
 	entries := []string{"CLIs", "Update", "Releases", "Voice"}
 	marker := func(name string) string {
-		if name == "CLIs" {
-			return "No CLI hosts were detected or registered"
-		}
-		return "Not implemented yet"
+		return map[string]string{
+			"CLIs":     "No CLI hosts were detected or registered",
+			"Update":   "Revision",
+			"Releases": "No releases are retained yet",
+			"Voice":    "Open CLIs to install one",
+		}[name]
 	}
 	for i, name := range entries {
 		for _, back := range []string{"esc", "backspace"} {
+			if name == "Update" && back == "backspace" {
+				continue // Backspace edits the Update view's text fields; covered by TestUpdateViewBackspaceEditsAndNeverGoesBack
+			}
 			t.Run(name+"/"+back, func(t *testing.T) {
 				_, d := newTestApp(t, testAppConfig(t), 80, 24)
 				for range i {
@@ -1011,7 +1017,7 @@ func TestAppKeysCtrlCExitsFromMenuAndView(t *testing.T) {
 	t.Run("view", func(t *testing.T) {
 		_, d := newTestApp(t, testAppConfig(t), 80, 24)
 		d.key("down", "enter") // Update
-		d.mustShow("Not implemented yet")
+		d.mustShow("Revision")
 		d.key("ctrl+c")
 		if !d.quit {
 			t.Fatal("Ctrl-C inside a view did not quit")
@@ -1034,10 +1040,10 @@ func TestAppTooSmallWarnsAndKeepsStateAfterResize(t *testing.T) {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			_, d := newTestApp(t, testAppConfig(t), 80, 24)
 			d.key("down", "down", "enter") // Releases
-			d.mustShow("Not implemented yet")
+			d.mustShow("No releases are retained yet")
 			d.resize(size[0], size[1])
 			d.mustShow("Terminal too small: needs 80×24")
-			d.mustNotShow("Not implemented yet")
+			d.mustNotShow("No releases are retained yet")
 			for i, line := range d.lines() {
 				if w := lipgloss.Width(line); w > size[0] {
 					t.Fatalf("warning line %d is %d wide, terminal is %d: %q", i, w, size[0], line)
@@ -1049,7 +1055,7 @@ func TestAppTooSmallWarnsAndKeepsStateAfterResize(t *testing.T) {
 			d.key("esc", "enter") // ignored while too small
 			d.mustShow("Terminal too small")
 			d.resize(80, 24)
-			d.mustShow("Not implemented yet")
+			d.mustShow("No releases are retained yet")
 			d.key("esc")
 			d.mustShow("> Releases")
 		})
@@ -1099,10 +1105,10 @@ func TestAppMenuAndGenericViewsFit(t *testing.T) {
 				_, d := newTestApp(t, testAppConfig(t), width, height)
 				assertFits(t, d, width, height)
 			})
-			t.Run("placeholder", func(t *testing.T) {
+			t.Run("a view", func(t *testing.T) {
 				_, d := newTestApp(t, testAppConfig(t), width, height)
 				d.key("down", "enter") // Update
-				d.mustShow("Not implemented yet")
+				d.mustShow("Revision")
 				assertFits(t, d, width, height)
 			})
 			t.Run("summary and confirmation", func(t *testing.T) {
@@ -1782,4 +1788,36 @@ func TestAppRealProgramIgnoresInterruptDuringWrite(t *testing.T) {
 	if err := waitExit(t, exited); err != nil {
 		t.Fatalf("Ctrl-C after the write ended the program with %v", err)
 	}
+}
+
+// TestAppTooSmallWhileWritingDoesNotAdviseCtrlC covers the size warning during
+// a write: Ctrl-C is ignored until the write finishes, so the warning must not
+// tell the user to press it; outside a write it still does.
+func TestAppTooSmallWhileWritingDoesNotAdviseCtrlC(t *testing.T) {
+	cfg := testAppConfig(t)
+	cfg.Deps.Pending = func(string) (management.PendingKind, error) { return management.PendingCore, nil }
+	cfg.Deps.RecoverCore = func(string) (string, error) { return "rec-id", nil }
+	m, d := newTestApp(t, cfg, 80, 24)
+	d.resize(60, 10)
+	mustShowFlat(d, "Terminal too small")
+	mustShowFlat(d, "press ctrl+c to quit")
+	d.resize(80, 24)
+	d.hold = true
+	d.key("enter")
+	if !m.isWriting() {
+		t.Fatal("the recovery is not marked as a write")
+	}
+	d.resize(60, 10)
+	mustShowFlat(d, "Terminal too small")
+	if strings.Contains(strings.Join(strings.Fields(d.screen()), ""), "pressctrl+c") {
+		t.Fatalf("the warning offers Ctrl-C during a write:\n%s", d.screen())
+	}
+	mustShowFlat(d, "ignored until the operation finishes")
+	d.key("ctrl+c")
+	if d.quit {
+		t.Fatal("Ctrl-C quit during a write")
+	}
+	d.hold = false
+	d.release()
+	mustShowFlat(d, "press ctrl+c to quit") // the write finished: Ctrl-C works again
 }

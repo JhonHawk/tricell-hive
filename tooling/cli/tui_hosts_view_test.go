@@ -1050,3 +1050,33 @@ func TestHostsViewRequiredHostsNoticeBackCancelsWithoutChanges(t *testing.T) {
 		})
 	}
 }
+
+// TestHostsViewPendingNoteNeverCutsTheMessage covers the CLIs view's layout: a
+// long result message and the pending-operation note together fit the screen,
+// anything cut ends in an ellipsis, and the note stays visible.
+func TestHostsViewPendingNoteNeverCutsTheMessage(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	m, d := openHostsApp(t, home, stateDir, minimalTestSource(t), hostsTestDeps(coreOnlyAdapterFactory))
+	v, ok := m.top().(*hostsView)
+	if !ok {
+		t.Fatalf("top view is %T", m.top())
+	}
+	var long []string
+	for i := 1; i <= 30; i++ {
+		long = append(long, fmt.Sprintf("line %02d of a long result message", i))
+	}
+	// A long state directory makes the note wrap onto several lines.
+	v.cfg.Options.StateDir = "/state/" + strings.Repeat("deeply/nested/", 6) + "dir"
+	note := "An interrupted operation is still pending. Run hive recover --state-dir " + v.cfg.Options.StateDir + "."
+	v.message = strings.Join(long, "\n")
+	v.stillPending = true
+	assertFits(t, d, 80, 24)
+	mustShowFlat(d, note)
+	d.mustShow("…")
+	// A short message is shown whole, with the note below it.
+	v.message = "Cancelled. No changes applied."
+	d.mustShow("Cancelled. No changes applied.")
+	mustShowFlat(d, note)
+	d.mustNotShow("…")
+	assertFits(t, d, 80, 24)
+}

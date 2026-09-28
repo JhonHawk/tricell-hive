@@ -138,7 +138,15 @@ Pruebas nuevas:
 
 ### T9 — Vistas Update, Releases y Voice
 
-- [/] Update, Releases y Voice funcionan en su vista, con ajustes en el lugar, resumen y confirmación. Sus resultados son idénticos a los comandos.
+- [x] Update, Releases y Voice funcionan en su vista, con ajustes en el lugar, resumen y confirmación. Sus resultados son idénticos a los comandos.
+  - **`review-task` (2026-09-28):** AC6, AC7, AC8 y AC9 en estas vistas, cumplidos, y también los pendientes N1 y N2 de T8.
+    - **Pruebas:** 54 con `-race`; las pruebas de texto de `update` y `voice` pasan con el mismo `sha256`, así que `planUpdate` no cambió la salida de `hive update`.
+    - **En `tmux`:** Update, la vuelta a una release y la voz (set y Off) dan archivos y estado idénticos a los comandos literales. Las 101 releases se recorren hasta la última, y al salir no queda nada impreso.
+  - **Decisiones anotadas en el diseño:** con Off solo se ve la fila Voice, y los campos de texto largos se desplazan sin «…».
+  - **Pendientes que pasan a T10:**
+    - H1: `assertFits` mide la pantalla ya recortada por la raíz, así que no puede fallar por el cuerpo de una vista; hay que medir `View(viewCtx)` contra el alto disponible;
+    - H4: Backspace durante la planificación de Voice, con Name enfocado, abandona el plan sin aviso;
+    - H5: el mensaje anterior de Voice sigue visible mientras se editan los valores.
 
 **Closes:** AC6, AC7, AC8 (en estas vistas), AC9 (en estas vistas).
 
@@ -165,7 +173,7 @@ Pruebas nuevas:
 
 ### T10 — Retirar `huh` y la interfaz secuencial
 
-- [ ] No queda código, prueba ni dependencia de `huh` ni de `HIVE_ACCESSIBLE`. `bubbletea` es una dependencia directa.
+- [/] No queda código, prueba ni dependencia de `huh` ni de `HIVE_ACCESSIBLE`. `bubbletea` es una dependencia directa.
 
 **Closes:** AC10.
 

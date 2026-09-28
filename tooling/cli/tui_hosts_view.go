@@ -761,13 +761,21 @@ func (v *hostsView) View(c viewCtx) string {
 	} else if v.loading && len(v.rows) > 0 {
 		lines = append(lines, "", c.Spinner+" "+th.Muted.Render("Refreshing…"))
 	}
+	// The pending-operation note goes below the message, so its lines are
+	// reserved first: the message gives up its own lines, ending in an
+	// ellipsis, rather than the note being cut off.
+	var noteLines []string
+	if v.stillPending {
+		note := "An interrupted operation is still pending. " + recoveryTextOnOpen(v.cfg.ExplicitStateDir)(v.cfg.Options.StateDir, true) + "."
+		noteLines = wrapLines(note, c.Width)
+	}
 	if v.message != "" {
 		style := th.Text
 		if v.messageErr {
 			style = th.Danger
 		}
 		lines = append(lines, "")
-		room := max(c.Height-len(lines)-1, 1)
+		room := max(c.Height-len(lines)-len(noteLines), 1)
 		wrapped := wrapLines(v.message, c.Width)
 		if len(wrapped) > room {
 			wrapped = append(wrapped[:room-1], "…")
@@ -776,11 +784,8 @@ func (v *hostsView) View(c viewCtx) string {
 			lines = append(lines, style.Render(l))
 		}
 	}
-	if v.stillPending {
-		note := "An interrupted operation is still pending. " + recoveryTextOnOpen(v.cfg.ExplicitStateDir)(v.cfg.Options.StateDir, true) + "."
-		for _, l := range wrapLines(note, c.Width) {
-			lines = append(lines, th.Danger.Render(l))
-		}
+	for _, l := range noteLines {
+		lines = append(lines, th.Danger.Render(l))
 	}
 	return strings.Join(lines, "\n")
 }

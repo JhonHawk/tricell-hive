@@ -1,5 +1,4 @@
-// tui_views.go holds the application's views: the menu, the provisional
-// "Not implemented yet" view that T8 and T9 replace, and the generic views the
+// tui_views.go holds the application's views: the menu, and the generic views the
 // later screens stack on top of their source view: summary with confirmation,
 // notice, and recovery on open (design.md "Vistas").
 package main
@@ -40,13 +39,12 @@ type menuItem struct {
 }
 
 // mainMenuItems is the menu's fixed set, in order (design.md "Menú (D2-A)").
-// CLIs opens the CLIs view (T8); the others open a provisional view until T9
-// replaces them.
+// Each entry but Quit opens its own view (T8 and T9).
 var mainMenuItems = []menuItem{
 	{"CLIs", "Install, remove and check CLI hosts", func(cfg appConfig) view { return newHostsView(cfg) }},
-	{"Update", "Update Hive from a Git commit", func(appConfig) view { return newPlaceholderView("Update") }},
-	{"Releases", "Go back to a retained release", func(appConfig) view { return newPlaceholderView("Releases") }},
-	{"Voice", "Choose the assistant voice", func(appConfig) view { return newPlaceholderView("Voice") }},
+	{"Update", "Update Hive from a Git commit", func(cfg appConfig) view { return newUpdateView(cfg) }},
+	{"Releases", "Go back to a retained release", func(cfg appConfig) view { return newReleasesView(cfg) }},
+	{"Voice", "Choose the assistant voice", func(cfg appConfig) view { return newVoiceView(cfg) }},
 	{"Quit", "Leave Hive", nil},
 }
 
@@ -104,32 +102,6 @@ func (v *menuView) Keys() []key.Binding {
 		binding("enter", "enter", "open"),
 		binding("esc", "esc", "quit"),
 	}
-}
-
-// ---------------------------------------------------------------------------
-// Provisional view.
-// ---------------------------------------------------------------------------
-
-type placeholderView struct {
-	baseView
-	title string
-}
-
-func newPlaceholderView(title string) *placeholderView { return &placeholderView{title: title} }
-
-func (v *placeholderView) Update(msg tea.Msg) (tea.Cmd, action) {
-	if k, ok := msg.(tea.KeyPressMsg); ok && (k.String() == "esc" || k.String() == "backspace") {
-		return nil, action{}
-	}
-	return nil, action{nav: navNone}
-}
-
-func (v *placeholderView) View(c viewCtx) string {
-	return c.Theme.Title.Render(v.title) + "\n\n" + c.Theme.Text.Render("Not implemented yet.")
-}
-
-func (v *placeholderView) Keys() []key.Binding {
-	return []key.Binding{binding("esc,backspace", "esc", "back")}
 }
 
 // ---------------------------------------------------------------------------
