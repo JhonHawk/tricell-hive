@@ -23,15 +23,20 @@ type options struct {
 	Home, StateDir, Source string
 }
 
-// interfaceStdio is bare `hive`'s and `hive tui`'s own real-environment
-// dependency: the real terminal-detection check and the real stdin/stdout.
-// A test overwrites these fields (and restores them) so run(nil) and
-// run([]string{"tui", ...}) are testable end to end without depending on
-// the test process's own real stdin (T2 fix round item 4).
+// interfaceStdio is bare `hive`'s own real-environment dependency: the real
+// terminal-detection check, the real stdin/stdout, and (since bare `hive`
+// takes no --home/--state-dir of its own) the real, default home and state
+// directory. A test overwrites these fields (and restores them) so
+// run(nil) is testable end to end against a synthetic home instead of the
+// real user's own state (T2 fix round item 4; T3 fix-round leftover (b)).
+// hive tui's own --home/--state-dir flags make it testable without this
+// seam, so runInterfaceCommand only reuses isTTY/in/out from it.
 var interfaceStdio = struct {
-	isTTY func() bool
-	in    io.Reader
-	out   io.Writer
+	isTTY    func() bool
+	in       io.Reader
+	out      io.Writer
+	home     string
+	stateDir string
 }{
 	isTTY: func() bool { return terminalInput(os.Stdin) && terminalInput(os.Stdout) },
 	in:    os.Stdin,
@@ -45,7 +50,8 @@ var interfaceStdio = struct {
 // within its own line budget.
 func runBareInterface() error {
 	accessible := os.Getenv("HIVE_ACCESSIBLE") == "1"
-	return openInterface(interfaceStdio.isTTY(), accessible, interfaceStdio.in, interfaceStdio.out, options{Source: "."})
+	o := options{Home: interfaceStdio.home, StateDir: interfaceStdio.stateDir, Source: "."}
+	return openInterface(interfaceStdio.isTTY(), accessible, interfaceStdio.in, interfaceStdio.out, o)
 }
 
 // openInterface is D14-A's injectable entry point: bare `hive` and the
@@ -136,7 +142,8 @@ var menuLabels = [...]string{
 // runMenu is the interface's own loop (design.md "La interfaz"): compute the
 // status line, present the menu, and either open the chosen screen or stop.
 // Quit, Ctrl-C and the end of input all exit cleanly (0). Every screen other
-// than Quit is a stub in T2; T3 and T4 wire them to their real flows.
+// than Quit, Install CLIs and Remove CLIs is still a stub; T4 wires the
+// rest to their real flows.
 func runMenu(o management.Options, out io.Writer, p *huhPrompter) error {
 	for {
 		line, err := interfaceStatusLine(o)
@@ -150,7 +157,26 @@ func runMenu(o management.Options, out io.Writer, p *huhPrompter) error {
 		if cancelled || choice == menuQuit {
 			return nil
 		}
+		if err := runMenuEntry(choice, o, out, p); err != nil {
+			fmt.Fprintln(out, err.Error())
+		}
+	}
+}
+
+// runMenuEntry dispatches to the chosen screen (design.md "La interfaz").
+// Every screen already handles its own cancellation and empty/limit states
+// internally, printing them and returning nil (design.md "Cancelar y
+// errores"); a non-nil error here is a genuine flow error, printed the same
+// way for every screen instead of duplicating that print at each call site.
+func runMenuEntry(choice menuEntry, o management.Options, out io.Writer, p *huhPrompter) error {
+	switch choice {
+	case menuInstall:
+		return installScreen(o, out, p)
+	case menuRemove:
+		return removeScreen(o, out, p)
+	default:
 		fmt.Fprintln(out, "Not available yet.")
+		return nil
 	}
 }
 

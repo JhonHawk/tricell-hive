@@ -85,7 +85,16 @@ Pruebas, todas en modo accesible con entrada guionada:
 
 ### T3 — Pantallas Install CLIs y Remove CLIs
 
-- [/] Instalar y quitar CLIs desde la interfaz produce los mismos archivos y el mismo estado que los comandos equivalentes, con sus estados vacíos y su cancelación.
+- [x] Instalar y quitar CLIs desde la interfaz produce los mismos archivos y el mismo estado que los comandos equivalentes, con sus estados vacíos y su cancelación.
+  - Ronda 1, AC2 y AC3 no cumplidos: en la terminal normal los `MultiSelect` esconden siempre su última opción (`huh` v2.0.3 resta la línea del título sin una altura explícita). Además: sin pruebas para las etiquetas de estado ni para la lista de archivos de Remove, la normalización de `state.json` más amplia de lo necesario, el texto de `--dry-run` que la interfaz no tiene, y las pruebas nuevas suben la suite con `-race` a 857 s, por encima del límite de 10 minutos.
+  - **Ronda 2:** AC2, AC3, AC10 y AC11 cumplidos.
+    - En `tmux`, a 80×24 y 100×45, las listas muestran todas sus opciones.
+    - Con el árbol `content/` real, la interfaz y los comandos dejan homes y `state.json` idénticos: 140 entradas en instalar y 105 en quitar.
+    - Las roturas deliberadas del código hacen fallar las pruebas nuevas.
+    - `go test -race ./tooling/cli` pasa en 555 s con el límite por defecto.
+  - **Pendientes que pasan a T4 y T5:**
+    - la recuperación dentro de Install no nombra `--state-dir`;
+    - el margen de tiempo de la suite es de solo 45 s: T5 documenta `-timeout` explícito.
 
 **Closes:** AC2, AC3, AC10 (en estas pantallas), AC11 (en estas pantallas).
 
@@ -105,11 +114,11 @@ Pruebas, todas en modo accesible con entrada guionada:
 - Remove sin CLIs registrados (su mensaje);
 - una fuente sin catálogo (su error y vuelta al menú).
 
-**Verification:** `go test -race ./tooling/cli -run 'TUI'`. Las pruebas nuevas fallan en la base.
+**Verification:** `go test -race -timeout 20m ./tooling/cli -run 'InstallScreen|RemoveScreen|ConfigureForm|RunBareArgs|Menu'`. Las pruebas nuevas fallan en la base. `go test -race ./tooling/cli` debe seguir bajo el límite por defecto de 10 minutos.
 
 ### T4 — Pantallas Status, Update, Releases y Voice
 
-- [ ] Status, Update, Releases (con la vuelta a una release) y Voice funcionan con vista previa y confirmación, dan los mismos resultados que sus comandos, y tienen sus estados vacíos y su cancelación.
+- [/] Status, Update, Releases (con la vuelta a una release) y Voice funcionan con vista previa y confirmación, dan los mismos resultados que sus comandos, y tienen sus estados vacíos y su cancelación.
 
 **Closes:** AC4, AC5, AC6, AC10 (en estas pantallas), AC11 (en estas pantallas).
 

@@ -108,6 +108,20 @@ func cancelledResult(err error, eof bool) bool {
 	return eof || errors.Is(err, huh.ErrUserAborted)
 }
 
+// configureForm applies this prompter's own accessible/IO/theme/keymap
+// settings to form — the exact configuration runForm's own form.Run() then
+// executes. Extracted into its own method so a test can verify the esc-
+// quits-the-form wiring (T2 fix round item 2; T3 fix-round leftover (a):
+// drive a real key.Msg through the configured form's Update) without
+// driving a full interactive Bubble Tea program.
+func (p *huhPrompter) configureForm(form *huh.Form) *huh.Form {
+	form = form.WithAccessible(p.accessible).WithInput(p.in).WithOutput(p.out).WithKeyMap(formKeyMap)
+	if p.theme != nil {
+		form = form.WithTheme(p.theme)
+	}
+	return form
+}
+
 // runForm runs one single-group form through this prompter's own
 // accessible/theme/IO settings, translating cancellation the same way for
 // every field type (design.md "Cancelar").
@@ -129,10 +143,7 @@ func cancelledResult(err error, eof bool) bool {
 // unconditionally would silently hide a real programming error as
 // "Cancelled".
 func (p *huhPrompter) runForm(form *huh.Form) (cancelled bool, err error) {
-	form = form.WithAccessible(p.accessible).WithInput(p.in).WithOutput(p.out).WithKeyMap(formKeyMap)
-	if p.theme != nil {
-		form = form.WithTheme(p.theme)
-	}
+	form = p.configureForm(form)
 	defer func() {
 		if r := recover(); r != nil {
 			if p.eofReader != nil && p.eofReader.eof {
@@ -150,11 +161,53 @@ func (p *huhPrompter) runForm(form *huh.Form) (cancelled bool, err error) {
 	return false, runErr
 }
 
+// maxFieldHeight caps the height requested for a field listing many
+// options, so a long list never asks for more than fits comfortably in a
+// small terminal (T6's own review criteria use 80x24); nothing built in
+// this package currently reaches it.
+const maxFieldHeight = 15
+
+// fieldHeight returns the height to request via .Height(...) for a
+// single-line-title field listing n options, so its viewport shows every
+// option without truncation (T3 fix round item 1). huh v2.0.3's
+// MultiSelect.updateViewportSize subtracts the title's own rendered height
+// from the viewport height it auto-computes from the options content when
+// no explicit height is set (field_multiselect.go:495-514), silently
+// hiding the last option — verified directly against the pinned version:
+// with 6 hosts, "pi" never appears in .View()'s output. Select's own
+// auto-sizing does not have this bug, but every field here still requests
+// an explicit height for the same reason and the same n+1 shape, so a
+// future change to any of them (a description line, say) cannot
+// reintroduce it silently. n+1 compensates for exactly one title line.
+func fieldHeight(n int) int {
+	if n+1 > maxFieldHeight {
+		return maxFieldHeight
+	}
+	return n + 1
+}
+
+// confirmBackSelectField builds Confirm's own three-option Select (Apply,
+// Back, Cancel), defaulting to Cancel, with an explicit height so every
+// option renders (T3 fix round item 1). Extracted so a test can render it
+// directly with .View() without driving a full form.
+func confirmBackSelectField(prompt string, value *installDecision) *huh.Select[installDecision] {
+	options := []huh.Option[installDecision]{
+		huh.NewOption("Apply", installApply),
+		huh.NewOption("Back", installBack),
+		huh.NewOption("Cancel", installCancelled),
+	}
+	return huh.NewSelect[installDecision]().
+		Title(prompt).
+		Options(options...).
+		Value(value).
+		Height(fieldHeight(len(options)))
+}
+
 // Confirm implements prompter.Confirm. Without allowBack it is a plain
 // huh.Confirm defaulting to Cancel, exactly like confirmInstall's own
-// empty-Enter default; with allowBack it is a three-option Select (Apply,
-// Back, Cancel), also defaulting to Cancel (design.md "El `prompter` de
-// `huh`").
+// empty-Enter default; with allowBack it is confirmBackSelectField's own
+// three-option Select, also defaulting to Cancel (design.md "El `prompter`
+// de `huh`").
 func (p *huhPrompter) Confirm(prompt string, allowBack bool) (installDecision, error) {
 	if !allowBack {
 		apply := false
@@ -173,14 +226,7 @@ func (p *huhPrompter) Confirm(prompt string, allowBack bool) (installDecision, e
 		return installApply, nil
 	}
 	choice := installCancelled
-	field := huh.NewSelect[installDecision]().
-		Title(prompt).
-		Options(
-			huh.NewOption("Apply", installApply),
-			huh.NewOption("Back", installBack),
-			huh.NewOption("Cancel", installCancelled),
-		).
-		Value(&choice)
+	field := confirmBackSelectField(prompt, &choice)
 	cancelled, err := p.runForm(huh.NewForm(huh.NewGroup(field)))
 	if err != nil {
 		return installCancelled, err
@@ -191,25 +237,33 @@ func (p *huhPrompter) Confirm(prompt string, allowBack bool) (installDecision, e
 	return choice, nil
 }
 
-// SelectHosts implements prompter.SelectHosts with a MultiSelect: no
-// validator (a validator on MultiSelect re-prompts forever at the end of
-// input — design.md "Contexto verificado") and nothing preselected, exactly
-// like the text wizard's own selectInstallerHosts (install.go). Cancelling
-// or submitting with nothing selected both mean "no changes", matching the
-// text wizard's own empty-Enter cancellation.
-func (p *huhPrompter) SelectHosts(candidates []hostCandidate) ([]string, bool, error) {
-	if len(candidates) == 0 {
-		return nil, false, nil
-	}
+// hostsMultiSelectField builds SelectHosts' own MultiSelect: no validator (a
+// validator on MultiSelect re-prompts forever at the end of input —
+// design.md "Contexto verificado"), nothing preselected, and an explicit
+// height so every option renders (T3 fix round item 1: huh v2.0.3's
+// MultiSelect silently truncates its last option otherwise). Extracted so a
+// test can render it directly with .View() without driving a full form.
+func hostsMultiSelectField(candidates []hostCandidate, value *[]string) *huh.MultiSelect[string] {
 	options := make([]huh.Option[string], len(candidates))
 	for i, c := range candidates {
 		options[i] = huh.NewOption(hostCandidateLabel(c), c.Name)
 	}
-	var selected []string
-	field := huh.NewMultiSelect[string]().
+	return huh.NewMultiSelect[string]().
 		Title("Select CLI hosts").
 		Options(options...).
-		Value(&selected)
+		Value(value).
+		Height(fieldHeight(len(options)))
+}
+
+// SelectHosts implements prompter.SelectHosts. Cancelling or submitting with
+// nothing selected both mean "no changes", matching the text wizard's own
+// empty-Enter cancellation.
+func (p *huhPrompter) SelectHosts(candidates []hostCandidate) ([]string, bool, error) {
+	if len(candidates) == 0 {
+		return nil, false, nil
+	}
+	var selected []string
+	field := hostsMultiSelectField(candidates, &selected)
 	cancelled, err := p.runForm(huh.NewForm(huh.NewGroup(field)))
 	if err != nil {
 		return nil, false, err
@@ -237,24 +291,31 @@ func hostCandidateLabel(c hostCandidate) string {
 	return fmt.Sprintf("%s (%s)", c.Name, status)
 }
 
-// SelectProviders implements prompter.SelectProviders: a MultiSelect for the
-// optional capabilities (the same no-validator, nothing-preselected rule as
-// SelectHosts), then this prompter's own ProviderVersion for every selected
-// capability that is not ManualOnly, matching selectProviderRequests's own
-// shape (install.go).
-func (p *huhPrompter) SelectProviders(offers []providerOffer) ([]providerRequest, bool, error) {
-	if len(offers) == 0 {
-		return nil, true, nil
-	}
+// providersMultiSelectField builds SelectProviders' own MultiSelect: the
+// same no-validator, nothing-preselected rule as hostsMultiSelectField, with
+// the same explicit height (T3 fix round item 1). Extracted so a test can
+// render it directly with .View() without driving a full form.
+func providersMultiSelectField(offers []providerOffer, value *[]string) *huh.MultiSelect[string] {
 	options := make([]huh.Option[string], len(offers))
 	for i, o := range offers {
 		options[i] = huh.NewOption(providerOfferLabel(o), o.ID)
 	}
-	var chosen []string
-	field := huh.NewMultiSelect[string]().
+	return huh.NewMultiSelect[string]().
 		Title("Select optional capabilities").
 		Options(options...).
-		Value(&chosen)
+		Value(value).
+		Height(fieldHeight(len(options)))
+}
+
+// SelectProviders implements prompter.SelectProviders, then this prompter's
+// own ProviderVersion for every selected capability that is not ManualOnly,
+// matching selectProviderRequests's own shape (install.go).
+func (p *huhPrompter) SelectProviders(offers []providerOffer) ([]providerRequest, bool, error) {
+	if len(offers) == 0 {
+		return nil, true, nil
+	}
+	var chosen []string
+	field := providersMultiSelectField(offers, &chosen)
 	cancelled, err := p.runForm(huh.NewForm(huh.NewGroup(field)))
 	if err != nil {
 		return nil, false, err
@@ -322,20 +383,29 @@ func (p *huhPrompter) ProviderVersion(offer providerOffer) (string, bool, error)
 	return version, true, nil
 }
 
-// selectMenuEntry presents the interface's own fixed seven-entry menu
-// (design.md "La interfaz"). Quit is always its default, so an empty Enter
-// or the end of input in accessible mode selects Quit instead of huh
-// indexing option -1 and panicking (design.md "Contexto verificado").
-func (p *huhPrompter) selectMenuEntry(status string) (menuEntry, bool, error) {
-	choice := menuQuit
+// menuSelectField builds the menu's own Select, defaulting to Quit (an
+// empty Enter or the end of input in accessible mode selects Quit instead
+// of huh indexing option -1 and panicking — design.md "Contexto
+// verificado"), with an explicit height so every entry renders (T3 fix
+// round item 1). Extracted so a test can render it directly with .View()
+// without driving a full form.
+func menuSelectField(status string, value *menuEntry) *huh.Select[menuEntry] {
 	options := make([]huh.Option[menuEntry], len(menuLabels))
 	for i, label := range menuLabels {
 		options[i] = huh.NewOption(label, menuEntry(i))
 	}
-	field := huh.NewSelect[menuEntry]().
+	return huh.NewSelect[menuEntry]().
 		Title(status).
 		Options(options...).
-		Value(&choice)
+		Value(value).
+		Height(fieldHeight(len(options)))
+}
+
+// selectMenuEntry presents the interface's own fixed seven-entry menu
+// (design.md "La interfaz") via menuSelectField.
+func (p *huhPrompter) selectMenuEntry(status string) (menuEntry, bool, error) {
+	choice := menuQuit
+	field := menuSelectField(status, &choice)
 	cancelled, err := p.runForm(huh.NewForm(huh.NewGroup(field)))
 	if err != nil {
 		return menuQuit, false, err

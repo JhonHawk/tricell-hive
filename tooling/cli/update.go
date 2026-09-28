@@ -114,7 +114,7 @@ func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompte
 	}
 
 	// 6. Summarize, reusing the install summary with no optional capabilities.
-	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged)
+	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, true)
 	fmt.Fprintf(out, "Source commit %s (requested %s)\n", shortHash(commit), f.Rev)
 
 	// 7. Apply or save.

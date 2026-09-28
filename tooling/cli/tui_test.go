@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"tricell-hive/tooling/management"
 )
@@ -61,17 +63,20 @@ func TestMenuEOFExitsZero(t *testing.T) {
 }
 
 // TestMenuStubReturnsToMenu covers AC10: choosing a screen that is still a
-// stub in T2 prints "Not available yet." and returns to the menu instead of
-// exiting, so a later Quit still ends the session cleanly. The status line,
-// printed once per menu render, appearing exactly twice pins that the menu
-// actually rendered again after the stub and that the later "7" (Quit)
-// choice was consumed by that second render, not some other exit path.
+// stub (T4 wires Update, Releases and Voice) prints "Not available yet." and
+// returns to the menu instead of exiting, so a later Quit still ends the
+// session cleanly. The status line, printed once per menu render, appearing
+// exactly twice pins that the menu actually rendered again after the stub
+// and that the later "7" (Quit) choice was consumed by that second render,
+// not some other exit path.
 func TestMenuStubReturnsToMenu(t *testing.T) {
 	o := interfaceTestOptions(t)
 	var out bytes.Buffer
-	// "2" is Install CLIs (menuLabels' own order: Status, Install CLIs,
-	// Remove CLIs, Update, Releases, Voice, Quit).
-	if err := openInterface(false, true, strings.NewReader("2\n7\n"), &out, o); err != nil {
+	// "4" is Update (menuLabels' own order: Status, Install CLIs, Remove
+	// CLIs, Update, Releases, Voice, Quit); T3 wires Install CLIs and Remove
+	// CLIs to their real flows, so this test now picks a screen T4 still
+	// owns.
+	if err := openInterface(false, true, strings.NewReader("4\n7\n"), &out, o); err != nil {
 		t.Fatalf("openInterface: %v\noutput:\n%s", err, out.String())
 	}
 	if !strings.Contains(out.String(), "Not available yet.") {
@@ -137,10 +142,11 @@ func TestSelectMenuEntryDefaultsToQuit(t *testing.T) {
 
 // stubInterfaceStdio substitutes interfaceStdio for the duration of a test
 // (T2 fix round item 4: "inject the TTY check so the test doesn't depend on
-// the real stdin"), restoring it via t.Cleanup. The returned buffer
-// collects everything the interface would otherwise have printed to
-// os.Stdout.
-func stubInterfaceStdio(t *testing.T, isTTY bool, input string) *bytes.Buffer {
+// the real stdin"; T3 fix-round leftover (b): home/stateDir keep run(nil)
+// off the real user's own state too), restoring it via t.Cleanup. The
+// returned buffer collects everything the interface would otherwise have
+// printed to os.Stdout.
+func stubInterfaceStdio(t *testing.T, isTTY bool, input, home, stateDir string) *bytes.Buffer {
 	t.Helper()
 	old := interfaceStdio
 	t.Cleanup(func() { interfaceStdio = old })
@@ -148,16 +154,19 @@ func stubInterfaceStdio(t *testing.T, isTTY bool, input string) *bytes.Buffer {
 	interfaceStdio.isTTY = func() bool { return isTTY }
 	interfaceStdio.in = strings.NewReader(input)
 	interfaceStdio.out = &out
+	interfaceStdio.home = home
+	interfaceStdio.stateDir = stateDir
 	return &out
 }
 
 // TestRunBareArgsOpensMenuWithAccessible pins that the real top-level run
 // dispatcher, called exactly as bare `hive` would (run(nil)), opens the
 // menu when HIVE_ACCESSIBLE=1, without depending on the test process's own
-// real stdin (T2 fix round item 4).
+// real stdin or real state (T2 fix round item 4; T3 fix-round leftover (b)).
 func TestRunBareArgsOpensMenuWithAccessible(t *testing.T) {
 	t.Setenv("HIVE_ACCESSIBLE", "1")
-	out := stubInterfaceStdio(t, false, "7\n")
+	o := interfaceTestOptions(t)
+	out := stubInterfaceStdio(t, false, "7\n", o.Home, o.StateDir)
 	if err := run(nil); err != nil {
 		t.Fatalf("run(nil): %v\noutput:\n%s", err, out.String())
 	}
@@ -173,7 +182,7 @@ func TestRunBareArgsOpensMenuWithAccessible(t *testing.T) {
 func TestRunTuiSubcommandReachesInterface(t *testing.T) {
 	t.Setenv("HIVE_ACCESSIBLE", "1")
 	o := interfaceTestOptions(t)
-	out := stubInterfaceStdio(t, false, "7\n")
+	out := stubInterfaceStdio(t, false, "7\n", "", "")
 	args := []string{"tui", "--home", o.Home, "--state-dir", o.StateDir, "--source", o.Source}
 	if err := run(args); err != nil {
 		t.Fatalf("run(tui): %v\noutput:\n%s", err, out.String())
@@ -352,6 +361,104 @@ func TestFormKeyMapBindsEscToQuit(t *testing.T) {
 	}
 	if !formKeyMap.Quit.Enabled() {
 		t.Fatal("formKeyMap.Quit is disabled")
+	}
+}
+
+// TestConfigureFormAppliesEscQuitKeyMap is the T3 fix-round leftover (a):
+// TestFormKeyMapBindsEscToQuit only inspects formKeyMap in isolation, so it
+// would keep passing even if .WithKeyMap(formKeyMap) were dropped from
+// configureForm (and so from runForm, which calls it). This test instead
+// drives a real Esc key.Msg through a form configureForm actually built,
+// via huh.Form's own Update (its own Bubble Tea Model method — no
+// interactive terminal needed), and checks the form aborted.
+func TestConfigureFormAppliesEscQuitKeyMap(t *testing.T) {
+	p := newHuhPrompter(false, strings.NewReader(""), io.Discard)
+	apply := false
+	field := huh.NewConfirm().Value(&apply)
+	form := p.configureForm(huh.NewForm(huh.NewGroup(field)))
+	form.Init()
+	form.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+	if form.State != huh.StateAborted {
+		t.Fatalf("Esc did not abort the configured form (state=%v); is .WithKeyMap(formKeyMap) missing from configureForm/runForm?", form.State)
+	}
+}
+
+// TestHostsMultiSelectFieldShowsEveryOption is T3 fix round item 1: huh
+// v2.0.3's MultiSelect.updateViewportSize subtracts the title's own
+// rendered height from the auto-computed viewport height when no explicit
+// height is set (field_multiselect.go:495-514), silently truncating the
+// last option — with 6 installer hosts, "pi" never appeared in .View()'s
+// output before fieldHeight fixed it. This renders the real field
+// hostsMultiSelectField builds (the same one SelectHosts uses) directly,
+// with no form/terminal involved.
+func TestHostsMultiSelectFieldShowsEveryOption(t *testing.T) {
+	candidates := []hostCandidate{
+		{Name: "claude"}, {Name: "codex"}, {Name: "cursor"},
+		{Name: "grok"}, {Name: "opencode"}, {Name: "pi"},
+	}
+	var selected []string
+	view := hostsMultiSelectField(candidates, &selected).View()
+	for _, c := range candidates {
+		if !strings.Contains(view, c.Name) {
+			t.Fatalf("rendered view is missing %q (huh v2.0.3's MultiSelect height bug re-appeared?):\n%s", c.Name, view)
+		}
+	}
+}
+
+// TestProvidersMultiSelectFieldShowsEveryOption is TestHostsMultiSelectField
+// ShowsEveryOption's counterpart for SelectProviders' own field.
+func TestProvidersMultiSelectFieldShowsEveryOption(t *testing.T) {
+	offers := make([]providerOffer, 7)
+	for i := range offers {
+		offers[i] = providerOffer{ID: fmt.Sprintf("p%d", i), Name: fmt.Sprintf("provider-%d", i), Source: "context7"}
+	}
+	var chosen []string
+	view := providersMultiSelectField(offers, &chosen).View()
+	for _, o := range offers {
+		if !strings.Contains(view, o.Name) {
+			t.Fatalf("rendered view is missing %q:\n%s", o.Name, view)
+		}
+	}
+}
+
+// TestMenuSelectFieldShowsEveryEntry is TestHostsMultiSelectFieldShowsEvery
+// Option's counterpart for the menu's own Select field. Select's own default
+// sizing (no explicit height) is not actually buggy in huh v2.0.3 the way
+// MultiSelect's is (field_select.go's own updateViewportSize sizes to the
+// options content directly when height is 0), but menuSelectField still
+// requests an explicit height for consistency, so this pins that it never
+// regresses either way.
+func TestMenuSelectFieldShowsEveryEntry(t *testing.T) {
+	var choice menuEntry
+	view := menuSelectField("status", &choice).View()
+	for _, label := range menuLabels {
+		if !strings.Contains(view, label) {
+			t.Fatalf("rendered menu view is missing %q:\n%s", label, view)
+		}
+	}
+}
+
+// TestConfirmBackSelectFieldShowsEveryOption is the same pin for Confirm's
+// own three-option Select (Apply, Back, Cancel).
+func TestConfirmBackSelectFieldShowsEveryOption(t *testing.T) {
+	choice := installCancelled
+	view := confirmBackSelectField("Apply these changes?", &choice).View()
+	for _, label := range []string{"Apply", "Back", "Cancel"} {
+		if !strings.Contains(view, label) {
+			t.Fatalf("rendered view is missing %q:\n%s", label, view)
+		}
+	}
+}
+
+// TestFieldHeightCapsLongLists pins fieldHeight's own n+1 shape and its cap,
+// so a hypothetical future screen with many options (T4's Releases, say)
+// never requests more height than fits a small terminal.
+func TestFieldHeightCapsLongLists(t *testing.T) {
+	if got := fieldHeight(3); got != 4 {
+		t.Fatalf("fieldHeight(3) = %d, want 4", got)
+	}
+	if got := fieldHeight(100); got != maxFieldHeight {
+		t.Fatalf("fieldHeight(100) = %d, want capped at %d", got, maxFieldHeight)
 	}
 }
 
