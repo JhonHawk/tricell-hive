@@ -88,44 +88,11 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		return err
 	}
 
-	// 4. Extract the commit by its full hash into a private temporary
-	// directory, cleaned up on every return path from here on.
-	prefix := "hive-" + shortHash(commit)
-	tarBytes, err := archiveGitCommit(gitPath, env, f.Source, commit, prefix)
+	// 4–5. Extract the commit and plan from it. The plan freezes the source
+	// bytes, so the extraction is already gone before the summary and the
+	// confirmation prompt.
+	p, err := planFromCommit(gitPath, env, f.Source, commit, o)
 	if err != nil {
-		return err
-	}
-	gz, err := adaptGitArchive(tarBytes)
-	if err != nil {
-		return err
-	}
-	// os.TempDir() is resolved through target.Canonical before use: on
-	// macOS it names a path under /var or /tmp, both symlinks, and
-	// target.Safe (which BuildPlan applies while walking the extracted
-	// source) rejects any symlink ancestor. Extracting under the
-	// unresolved path would make every `hive update` fail on macOS, not
-	// only in tests; see this task's final report for this deviation from
-	// the design's literal "Extract(<gzip>, os.TempDir())".
-	extractDest, err := target.Canonical(os.TempDir())
-	if err != nil {
-		return err
-	}
-	root, err := distribution.Extract(gz, extractDest)
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(filepath.Dir(root))
-
-	// 5. Plan from the extracted root, for the CLIs chosen in step 1, with
-	// the source commit attached before the plan's ID is computed: the ID is
-	// a hash over the whole plan, so it must reflect SourceCommit or the
-	// plan will be rejected as tampered by validatePlan/PlanUnchanged/Apply.
-	o.Source = root
-	p, err := management.BuildPlan("install", o)
-	if err != nil {
-		return err
-	}
-	if p, err = management.BindSourceCommit(p, commit); err != nil {
 		return err
 	}
 
@@ -176,6 +143,46 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 	}
 	reportApplyResult(out, "Hive updated", result)
 	return nil
+}
+
+// planFromCommit extracts commit by its full hash into a private temporary
+// directory, builds the install plan from it, and removes the directory on
+// every return path before the caller shows or applies the plan.
+func planFromCommit(gitPath string, env []string, source, commit string, o management.Options) (management.Plan, error) {
+	prefix := "hive-" + shortHash(commit)
+	tarBytes, err := archiveGitCommit(gitPath, env, source, commit, prefix)
+	if err != nil {
+		return management.Plan{}, err
+	}
+	gz, err := adaptGitArchive(tarBytes)
+	if err != nil {
+		return management.Plan{}, err
+	}
+	// os.TempDir() is resolved through target.Canonical before use: on
+	// macOS it names a path under /var or /tmp, both symlinks, and
+	// target.Safe (which BuildPlan applies while walking the extracted
+	// source) rejects any symlink ancestor. Extracting under the
+	// unresolved path would make every `hive update` fail on macOS, not
+	// only in tests.
+	extractDest, err := target.Canonical(os.TempDir())
+	if err != nil {
+		return management.Plan{}, err
+	}
+	root, err := distribution.Extract(gz, extractDest)
+	if err != nil {
+		return management.Plan{}, err
+	}
+	defer os.RemoveAll(filepath.Dir(root))
+
+	// BindSourceCommit recomputes the plan ID: the ID is a hash over the
+	// whole plan, so it must reflect SourceCommit or validatePlan,
+	// PlanUnchanged and Apply reject the plan as tampered.
+	o.Source = root
+	p, err := management.BuildPlan("install", o)
+	if err != nil {
+		return management.Plan{}, err
+	}
+	return management.BindSourceCommit(p, commit)
 }
 
 // reportApplyResult renders Apply's result string. Engine.Apply may append

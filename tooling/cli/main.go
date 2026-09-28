@@ -37,7 +37,7 @@ func run(args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR")
+		return fmt.Errorf("usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases")
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {

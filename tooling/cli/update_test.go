@@ -497,3 +497,41 @@ func TestFilteredGitEnvDropsRepositoryOverrides(t *testing.T) {
 		t.Fatal("unrelated Git variables must be preserved")
 	}
 }
+
+// promptProbe answers the confirmation prompt and records whether any
+// extraction directory still existed when the prompt was read.
+type promptProbe struct {
+	t        *testing.T
+	tmp      string
+	leftover []string
+	answered bool
+}
+
+func (p *promptProbe) Read(b []byte) (int, error) {
+	if p.answered {
+		return 0, io.EOF
+	}
+	p.answered = true
+	p.leftover = extractDirs(p.t, p.tmp)
+	return copy(b, "n\n"), nil
+}
+
+// TestUpdateRemovesExtractionBeforeConfirmation covers the design's step 5:
+// the plan freezes the source bytes, so the extracted commit is removed
+// before the prompt, and an interrupt there leaves nothing behind.
+func TestUpdateRemovesExtractionBeforeConfirmation(t *testing.T) {
+	env, _ := newUpdateFixtureWithPendingCommit(t)
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+	probe := &promptProbe{t: t, tmp: tmp}
+	var out bytes.Buffer
+	if err := update(env.args(), probe, &out, true); err != nil {
+		t.Fatalf("update: %v\noutput:\n%s", err, out.String())
+	}
+	if !probe.answered {
+		t.Fatal("update never asked for confirmation")
+	}
+	if len(probe.leftover) != 0 {
+		t.Fatalf("extraction directories still present at the prompt: %v", probe.leftover)
+	}
+}
