@@ -11,6 +11,13 @@ The older `smoke`, `research`, `plan`, and
 check names skills; behavioral prompts do not. Fixtures use dependency-free
 TypeScript ESM and Node 24's native erasable type support when they need
 executable source. `npm test` runs `node:test`; it is not static type checking.
+`backlog-status` is a separate case for the `communication-recipe` blind A/B
+pilot (design.md "Comparación a ciegas"): a fixture `AGENTS.md` declares a
+local `Tracker` under `## Hive` so the guidance's backlog-report rule applies,
+`BACKLOG.md` holds open tickets across a few product modules, and the prompt
+only asks for project status and backlog contents — no implementation. It
+expects `flow-research` and is scored by the same `regressionCriteria` every
+flows case gets, including `ticket_ids_not_packed_in_prose`.
 
 Run from the checkout root after deploying and verifying the global release:
 

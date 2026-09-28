@@ -205,6 +205,22 @@
         "skill_read": "flow-build",
         "criteria": []
       }
+    },
+    {
+      "id": "backlog-status",
+      "cwd": ".",
+      "files": {
+        "AGENTS.md": "# Shop fixture guidance\n\nThis is a small commerce backend fixture.\n\n## Hive\n- Project: shop-fixture\n- Base branch: main\n- Tracker: local file BACKLOG.md (no network)\n- Specs: _support/openspec\n",
+        "package.json": "{\"name\":\"shop-fixture\",\"private\":true,\"type\":\"module\"}\n",
+        "README.md": "# Shop fixture\nA small commerce backend with checkout, catalog and notification modules.\n",
+        "src/checkout.ts": "export type Order = { id: string; total: number };\nexport function summarize(order: Order): string { return `${order.id}: ${order.total}`; }\n",
+        "BACKLOG.md": "# Backlog\n\n## Checkout\n- SHP-12 (In Progress): add saved payment methods to checkout.\n- SHP-18 (Todo): support partial refunds on canceled orders.\n- SHP-21 (In Review): validate discount codes before capture.\n\n## Catalog\n- SHP-30 (Todo): paginate the product search results.\n- SHP-33 (In Progress): backfill missing product images.\n\n## Notifications\n- SHP-40 (Todo): retry failed webhook deliveries.\n- SHP-44 (In Review): add SMS opt-out handling.\n"
+      },
+      "prompt": "Esta es una sesión en español. No cambies código, documentación, el backlog, configuraciones globales ni Git. No implementes nada ni propongas código. Puedes crear únicamente un nuevo reporte de hallazgos para retomar la consulta si hace falta. ¿Cuál es el estado del proyecto y qué hay en el backlog?",
+      "expected": {
+        "skill_read": "flow-research",
+        "criteria": []
+      }
     }
   ]
 }

@@ -160,7 +160,7 @@ func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
 	for _, f := range corpus.Cases {
 		byID[f.ID] = f
 	}
-	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence"} {
+	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence", "backlog-status"} {
 		if _, ok := byID[id]; !ok {
 			t.Fatalf("missing flow case %q", id)
 		}
@@ -772,5 +772,95 @@ func TestDeployedSmokeForbidsFixtureWritesAndNamesNewSkills(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("missing write criterion")
+	}
+}
+
+// TestBacklogStatusCaseObservesTicketPacking loads the backlog-status fixture
+// from cases.json (communication-recipe T2) and runs assessFlows over a
+// minimal synthetic trace: a well-formed backlog answer with each ticket on
+// its own bullet line, grouped by module, plus a closing recommendation that
+// names exactly one ticket in ordinary prose. Bullet lines are excluded from
+// ticket_ids_not_packed_in_prose's prose scan (design.md's
+// backlog-report-scope amendment), so without that closing sentence this
+// trace would wrongly read as not_observed even though the case is exactly
+// what the criterion exists to score. This fails if regressionCriteria stops
+// running for every flows case (or gains a case-ID allowlist that excludes
+// this new one), if the fixture's tracker IDs stop matching ticketIDPattern,
+// or if the fixture's AGENTS.md drops its declared Hive tracker.
+func TestBacklogStatusCaseObservesTicketPacking(t *testing.T) {
+	raw, err := os.ReadFile("../fixtures/flows/cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var corpus struct {
+		Cases []fixture `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &corpus); err != nil {
+		t.Fatalf("cases.json does not parse: %v", err)
+	}
+	var f fixture
+	found := false
+	for _, c := range corpus.Cases {
+		if c.ID == "backlog-status" {
+			f, found = c, true
+		}
+	}
+	if !found {
+		t.Fatal("backlog-status case missing from cases.json")
+	}
+	if f.Expected.SkillRead != "flow-research" {
+		t.Fatalf("backlog-status expects flow-research, got %q", f.Expected.SkillRead)
+	}
+	for _, want := range []string{"AGENTS.md", "BACKLOG.md"} {
+		if _, ok := f.Files[want]; !ok {
+			t.Fatalf("backlog-status fixture missing %s", want)
+		}
+	}
+	if !strings.Contains(f.Files["AGENTS.md"], "## Hive") || !strings.Contains(f.Files["AGENTS.md"], "Tracker:") {
+		t.Fatal("backlog-status fixture AGENTS.md does not declare a tracker under ## Hive")
+	}
+	if ids := ticketIDPattern.FindAllString(f.Files["BACKLOG.md"], -1); len(ids) < 6 {
+		t.Fatalf("backlog-status fixture has too few ticket IDs: %v", ids)
+	}
+
+	reportText := "No hay tareas en curso ahora mismo.\n\n" +
+		"## Checkout\n" +
+		"- SHP-12 (In Progress): agregar métodos de pago guardados.\n" +
+		"- SHP-18 (Todo): permitir reembolsos parciales.\n" +
+		"- SHP-21 (In Review): validar códigos de descuento.\n\n" +
+		"## Catalog\n" +
+		"- SHP-30 (Todo): paginar resultados de búsqueda.\n" +
+		"- SHP-33 (In Progress): completar imágenes faltantes.\n\n" +
+		"## Notifications\n" +
+		"- SHP-40 (Todo): reintentar webhooks fallidos.\n" +
+		"- SHP-44 (In Review): manejar baja de SMS.\n\n" +
+		"Recomiendo empezar por SHP-12."
+	r := result{
+		Suite:    "flows",
+		Case:     "backlog-status",
+		Terminal: "completed",
+		Trace: traceReport{
+			Events: []traceEvent{
+				{Line: 1, Kind: "text", Role: "assistant", Text: reportText},
+			},
+		},
+	}
+
+	a := assessFlows(r, f, t.TempDir())
+
+	var ticketCriterion *criterionAssessment
+	for i := range a.Criteria {
+		if a.Criteria[i].Criterion == "ticket_ids_not_packed_in_prose" {
+			ticketCriterion = &a.Criteria[i]
+		}
+	}
+	if ticketCriterion == nil {
+		t.Fatal("ticket_ids_not_packed_in_prose criterion missing from assessment")
+	}
+	if ticketCriterion.Status == "not_observed" {
+		t.Fatalf("ticket_ids_not_packed_in_prose wrongly not_observed: %+v", ticketCriterion)
+	}
+	if ticketCriterion.Status != "pass" {
+		t.Fatalf("well-formed one-ticket-per-line report should pass, got %+v", ticketCriterion)
 	}
 }
