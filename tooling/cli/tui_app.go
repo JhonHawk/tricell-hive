@@ -10,7 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -506,16 +509,45 @@ func appFilter(m tea.Model, msg tea.Msg) tea.Msg {
 }
 
 // newAppProgram builds the program without running it. Tests add options such
-// as tea.WithWindowSize.
+// as tea.WithWindowSize. Bubble Tea's own signal handler is off: it stops after
+// forwarding the first signal, and the process would then take the next one
+// with the default action, ending an apply half done with the terminal still
+// on the alternate screen. runAppWith forwards every signal instead.
 func newAppProgram(cfg appConfig, in io.Reader, out io.Writer, extra ...tea.ProgramOption) *tea.Program {
-	opts := append([]tea.ProgramOption{tea.WithInput(in), tea.WithOutput(out), tea.WithFilter(appFilter)}, extra...)
+	opts := append([]tea.ProgramOption{tea.WithInput(in), tea.WithOutput(out), tea.WithFilter(appFilter), tea.WithoutSignalHandler()}, extra...)
 	return tea.NewProgram(newAppModel(cfg), opts...)
 }
 
+// forwardSignals turns each SIGINT into an InterruptMsg and each other signal
+// into a QuitMsg for the whole life of the program, until stop closes. While a
+// write runs, appFilter drops both messages, however many arrive.
+func forwardSignals(p *tea.Program, sigs <-chan os.Signal, stop <-chan struct{}) {
+	for {
+		select {
+		case s := <-sigs:
+			if s == syscall.SIGINT {
+				p.Send(tea.InterruptMsg{})
+			} else {
+				p.Send(tea.QuitMsg{})
+			}
+		case <-stop:
+			return
+		}
+	}
+}
+
 // runAppWith runs the application until the user quits. Ctrl-C, and an
-// external interrupt outside a write, end it successfully.
+// external SIGINT or SIGTERM outside a write, end it successfully with the
+// terminal restored; during a write every signal is ignored.
 func runAppWith(cfg appConfig, in io.Reader, out io.Writer, extra ...tea.ProgramOption) error {
-	_, err := newAppProgram(cfg, in, out, extra...).Run()
+	p := newAppProgram(cfg, in, out, extra...)
+	sigs := make(chan os.Signal, 8)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	stop := make(chan struct{})
+	go forwardSignals(p, sigs, stop)
+	_, err := p.Run()
+	signal.Stop(sigs)
+	close(stop)
 	if errors.Is(err, tea.ErrInterrupted) {
 		return nil
 	}

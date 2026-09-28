@@ -162,6 +162,7 @@ type (
 		flow    int
 		text    string
 		err     error
+		partial bool // the core installed, but an optional capability is pending
 		pending management.PendingKind
 	}
 )
@@ -183,6 +184,7 @@ const (
 	hostsStateCol = 14 // "legacy install"
 	hostsReleaseW = 12
 	hostsDriftW   = 5
+	hostsChangeW  = 9 // "→ install"
 	hostsGap      = 2
 )
 
@@ -197,7 +199,9 @@ type hostsView struct {
 	planning     string
 	message      string
 	messageErr   bool
-	offered      bool // the recovery view was already offered for a pending operation
+	messageTitle string // the read-in-full view's title; "" means Result, or Error for a failure
+	messageCut   bool   // the last drawn message was cut, so `m` shows more
+	offered      bool   // the recovery view was already offered for a pending operation
 	stillPending bool
 	flow         *hostsFlow
 	flowSeq      int
@@ -241,7 +245,7 @@ func (v *hostsView) Reveal() tea.Cmd {
 // finish ends the flow with a message shown in the view, and reloads.
 func (v *hostsView) finish(text string, isErr bool) tea.Cmd {
 	v.flow, v.planning = nil, ""
-	v.message, v.messageErr = text, isErr
+	v.message, v.messageErr, v.messageTitle = text, isErr, ""
 	return v.reload()
 }
 
@@ -340,19 +344,30 @@ func (v *hostsView) onKey(name string) (tea.Cmd, action) {
 			r := v.rows[v.cursor]
 			v.checked[r.Name] = !v.checked[r.Name]
 		}
-	case "a":
+	case "a", "enter":
+		// Enter reviews the pending changes like `a`, the documented key, so
+		// it never does nothing silently.
 		return v.startApply()
+	case "m":
+		if v.message != "" {
+			title := v.messageTitle
+			if title == "" {
+				title = "Result"
+				if v.messageErr {
+					title = "Error"
+				}
+			}
+			return nil, action{nav: navPush, push: newNoticeView(title, v.message, nil)}
+		}
 	case "u":
 		return v.startUninstallAll()
 	}
 	return nil, action{nav: navNone}
 }
 
-// startApply turns the checkboxes into the diff of design.md "Diff de CLIs":
-// the unchecked registered CLIs are removed first, then the checked
-// unregistered ones are installed.
-func (v *hostsView) startApply() (tea.Cmd, action) {
-	var remove, add []string
+// pendingChanges is the diff the checkboxes stand for: the unchecked
+// registered CLIs to remove, and the checked unregistered ones to install.
+func (v *hostsView) pendingChanges() (remove, add []string) {
 	for _, r := range v.rows {
 		switch {
 		case r.Registered && !v.checked[r.Name]:
@@ -361,6 +376,14 @@ func (v *hostsView) startApply() (tea.Cmd, action) {
 			add = append(add, r.Name)
 		}
 	}
+	return remove, add
+}
+
+// startApply turns the checkboxes into the diff of design.md "Diff de CLIs":
+// the unchecked registered CLIs are removed first, then the checked
+// unregistered ones are installed.
+func (v *hostsView) startApply() (tea.Cmd, action) {
+	remove, add := v.pendingChanges()
 	v.message = ""
 	if len(remove) == 0 && len(add) == 0 {
 		v.message, v.messageErr = "Nothing to apply", false
@@ -533,7 +556,7 @@ func (v *hostsView) failInstall(err error) (tea.Cmd, action) {
 func (v *hostsView) declineInstall() tea.Cmd {
 	text := "Cancelled. No changes applied."
 	if prefix := v.removedPrefix(); prefix != "" {
-		text = prefix + " Install cancelled; no further changes"
+		text = prefix + " Install cancelled; no further changes."
 	}
 	return v.finish(text, false)
 }
@@ -655,7 +678,7 @@ func applyInstallCmd(owner view, planned installPlannedMsg, preview onboardingPr
 		result, err := applyInstallOnboarding(planned.plan, preview, planned.adapter)
 		var text bytes.Buffer
 		finalErr := finalizeInstallResult(&text, result, err, false, cfg.ExplicitStateDir, stateDir, true)
-		msg := installAppliedMsg{owned: owned{owner}, flow: planned.flow, text: text.String(), err: finalErr}
+		msg := installAppliedMsg{owned: owned{owner}, flow: planned.flow, text: text.String(), err: finalErr, partial: result.Phase == "partial"}
 		if finalErr != nil {
 			msg.pending = pendingAfterFailure(cfg.Deps, stateDir)
 		}
@@ -675,6 +698,9 @@ func (v *hostsView) onInstallApplied(msg installAppliedMsg) (tea.Cmd, action) {
 		text = prefix + "\n" + text
 	}
 	cmd := v.finish(text, msg.err != nil)
+	if msg.partial {
+		v.messageTitle = "Result" // the core installed: a partial installation is an outcome, not an error
+	}
 	if msg.err != nil && msg.pending != management.PendingNone && !v.offered {
 		return cmd, action{nav: navPush, pops: 1, push: v.recoveryView(msg.pending)}
 	}
@@ -696,7 +722,7 @@ func (v *hostsView) rowLines(c viewCtx) []string {
 		versionW = max(versionW, len([]rune(r.Version)))
 	}
 	prefix := len("> [x] ")
-	fixed := prefix + nameW + hostsGap + hostsStateCol + hostsGap + hostsReleaseW + hostsGap + hostsGap + hostsDriftW
+	fixed := prefix + nameW + hostsGap + hostsStateCol + hostsGap + hostsReleaseW + hostsGap + hostsGap + hostsDriftW + hostsGap + hostsChangeW
 	versionW = min(versionW, max(c.Width-fixed, len("Version")))
 	format := func(name, state, release, version, drift string) string {
 		gap := strings.Repeat(" ", hostsGap)
@@ -713,6 +739,12 @@ func (v *hostsView) rowLines(c viewCtx) []string {
 			box = "[x]"
 		}
 		text := format(r.Name, r.State, r.Release, r.Version, r.Drift)
+		switch {
+		case r.Registered && !v.checked[r.Name]:
+			text += strings.Repeat(" ", hostsGap) + "→ remove"
+		case !r.Registered && v.checked[r.Name]:
+			text += strings.Repeat(" ", hostsGap) + "→ install"
+		}
 		if i == v.cursor {
 			lines = append(lines, th.Accent.Render("> "+box+" "+text))
 			continue
@@ -724,6 +756,7 @@ func (v *hostsView) rowLines(c viewCtx) []string {
 
 func (v *hostsView) View(c viewCtx) string {
 	th := c.Theme
+	v.messageCut = false
 	lines := []string{th.Title.Render("CLIs"), ""}
 	switch {
 	case v.loading && len(v.rows) == 0:
@@ -739,6 +772,12 @@ func (v *hostsView) View(c viewCtx) string {
 		}
 	default:
 		lines = append(lines, v.rowLines(c)...)
+		remove, add := v.pendingChanges()
+		if n := len(remove) + len(add); n == 1 {
+			lines = append(lines, th.Muted.Render("1 pending change: press a to review it."))
+		} else if n > 1 {
+			lines = append(lines, th.Muted.Render(fmt.Sprintf("%d pending changes: press a to review them.", n)))
+		}
 	}
 	if v.planning != "" {
 		lines = append(lines, "", c.Spinner+" "+th.Muted.Render(v.planning))
@@ -761,8 +800,10 @@ func (v *hostsView) View(c viewCtx) string {
 		lines = append(lines, "")
 		room := max(c.Height-len(lines)-len(noteLines), 1)
 		wrapped := wrapLines(v.message, c.Width)
-		if len(wrapped) > room {
-			wrapped = append(wrapped[:room-1], "…")
+		v.messageCut = len(wrapped) > room
+		if v.messageCut {
+			// Cut, but never silently: the full text opens with `m`.
+			wrapped = append(wrapped[:room-1], "… press m to read all")
 		}
 		for _, l := range wrapped {
 			lines = append(lines, style.Render(l))
@@ -775,13 +816,26 @@ func (v *hostsView) View(c viewCtx) string {
 }
 
 func (v *hostsView) Keys() []key.Binding {
-	return []key.Binding{
-		binding("up,down", "↑/↓", "move"),
-		binding("space", "space", "toggle"),
-		binding("a", "a", "apply"),
-		binding("u", "u", "uninstall all"),
-		binding("esc,backspace", "esc", "back"),
+	back := binding("esc,backspace", "esc", "back")
+	more := binding("m", "m", "more") // only while the message is cut
+	if len(v.rows) == 0 {
+		if v.messageCut {
+			return []key.Binding{more, back}
+		}
+		return []key.Binding{back}
 	}
+	keys := []key.Binding{
+		binding("up,down", "↑/↓", "move"),
+		binding("space", "space", "mark"),
+		binding("a,enter", "a", "review"),
+		binding("u", "u", "uninstall all"),
+	}
+	if v.messageCut {
+		// Room for `m more` on an 80-column help bar: the arrows are obvious.
+		keys = keys[1:]
+		keys = append(keys, more)
+	}
+	return append(keys, back)
 }
 
 // ---------------------------------------------------------------------------
@@ -932,7 +986,7 @@ func (v *capsView) View(c viewCtx) string {
 			if i == v.cursor && v.editing {
 				label = "> Version: "
 			}
-			lines = append(lines, "    "+label+v.inputs[i].View())
+			lines = append(lines, "    "+label+inputView(v.inputs[i], th))
 		}
 	}
 	if v.errText != "" {

@@ -415,7 +415,7 @@ func (v *voiceView) View(c viewCtx) string {
 			}
 			text := prefix + padRight(labels[kind], voiceLabelCol)
 			if kind == "name" {
-				lines = append(lines, text+v.name.View())
+				lines = append(lines, text+inputView(v.name, th))
 				continue
 			}
 			value := "< " + truncateRunes(v.value(kind), max(c.Width-len(text)-4, 1)) + " >"
@@ -450,6 +450,9 @@ func (v *voiceView) View(c viewCtx) string {
 }
 
 func (v *voiceView) Keys() []key.Binding {
+	if !v.ready {
+		return []key.Binding{binding("esc", "esc", "back")}
+	}
 	return []key.Binding{
 		binding("up,down", "↑/↓", "row"),
 		binding("left,right", "←/→", "value"),

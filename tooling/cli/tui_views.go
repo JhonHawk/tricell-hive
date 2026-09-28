@@ -9,8 +9,10 @@ import (
 	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"tricell-hive/tooling/management"
@@ -45,6 +47,92 @@ func wrapLines(text string, width int) []string {
 		return nil
 	}
 	return strings.Split(ansi.Wrap(text, max(width, 1), ""), "\n")
+}
+
+// inputView draws a text input within its own width. A value that does not
+// fit scrolls around the cursor, and a "…" marks each cut: at the start only
+// when text is hidden to the left, at the end only when text is hidden to the
+// right. The cursor is a reversed cell (a space after the last character) that
+// always fits inside the width. A blurred field shows the head of its value,
+// and an empty one draws the input's own placeholder.
+//
+// The window is computed here from the value, the cursor position and the
+// width, not read back from the text input's rendering: the input keeps its
+// own scroll offset privately, and a rendering can be neither measured for the
+// cut nor searched for in the value reliably (repeated text, trailing spaces).
+func inputView(in textinput.Model, th *appTheme) string {
+	value := []rune(in.Value())
+	width := in.Width()
+	if len(value) == 0 || width <= 0 {
+		return in.View()
+	}
+	focused := in.Focused()
+	cursor := 0
+	if focused {
+		cursor = min(max(in.Position(), 0), len(value))
+	}
+	cellWidth := func(r rune) int { return max(lipgloss.Width(string(r)), 1) }
+	span := func(from, to int) int {
+		n := 0
+		for _, r := range value[from:to] {
+			n += cellWidth(r)
+		}
+		return n
+	}
+	// need is the columns the window [start, end) takes: its text, the cursor
+	// cell after the last character, and the markers for what is cut.
+	need := func(start, end int) int {
+		n := span(start, end)
+		if focused && cursor == len(value) && end == len(value) {
+			n++
+		}
+		if start > 0 {
+			n++
+		}
+		if end < len(value) {
+			n++
+		}
+		return n
+	}
+	start, end := 0, len(value)
+	if need(0, len(value)) > width {
+		// Anchor the window on the cursor with a little context to its right,
+		// fill the room to the left, then use what is left on the right.
+		end = min(len(value), cursor+1+width/4)
+		start = end
+		for start > 0 && need(start-1, end) <= width {
+			start--
+		}
+		for end < len(value) && need(start, end+1) <= width {
+			end++
+		}
+		for start > 0 && need(start-1, end) <= width {
+			start--
+		}
+		if start > cursor {
+			// So narrow that not even the cursor's character fit: keep it.
+			start, end = cursor, min(len(value), cursor+1)
+		}
+	}
+	var b strings.Builder
+	if start > 0 {
+		b.WriteString(th.Muted.Render("…"))
+	}
+	text := th.Text
+	for i := start; i < end; i++ {
+		if focused && i == cursor {
+			b.WriteString(text.Reverse(true).Render(string(value[i])))
+			continue
+		}
+		b.WriteString(text.Render(string(value[i])))
+	}
+	if focused && cursor == len(value) && end == len(value) {
+		b.WriteString(text.Reverse(true).Render(" "))
+	}
+	if end < len(value) {
+		b.WriteString(th.Muted.Render("…"))
+	}
+	return b.String()
 }
 
 // truncateRunes returns s unchanged if it fits within width runes,

@@ -15,6 +15,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"tricell-hive/tooling/management"
+	"tricell-hive/tooling/providers"
 )
 
 // Tests of the CLIs view (T8). Each one drives the full application through
@@ -682,7 +683,7 @@ func TestHostsViewDecliningSecondStepKeepsTheRemoval(t *testing.T) {
 	d.key("a", "enter", "enter") // step 1 applied, on to step 2
 	d.mustShow("Step 2 of 2: install")
 	d.key("n")
-	d.mustShow("Removed: codex. Install cancelled; no further changes")
+	d.mustShow("Removed: codex. Install cancelled; no further changes.")
 	assertTwin(t, home, stateDir, twinHome, twinState)
 }
 
@@ -1020,7 +1021,7 @@ func TestHostsViewBackOnIntermediateNoticeStopsAfterStepOne(t *testing.T) {
 			d.key("a", "enter")
 			d.mustShow("Step 1 of 2 done", "[Continue]")
 			d.key(back)
-			d.mustShow("Removed: codex. Install cancelled; no further changes")
+			d.mustShow("Removed: codex. Install cancelled; no further changes.")
 			d.mustNotShow("Step 2 of 2", "Step 1 of 2 done", "[Apply]", "Planning")
 			assertTwin(t, home, stateDir, twinHome, twinState)
 		})
@@ -1079,4 +1080,177 @@ func TestHostsViewPendingNoteNeverCutsTheMessage(t *testing.T) {
 	mustShowFlat(d, note)
 	d.mustNotShow("…")
 	assertFits(t, d, 80, 24)
+}
+
+// TestHostsViewLongResultIsReachable covers a result too long for the view: a
+// partial installation ends with the line naming `hive recover`, which must
+// not be lost to an ellipsis. The view says how to read it in full, and the
+// full text scrolls in its own view.
+func TestHostsViewLongResultIsReachable(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	m, d := openHostsApp(t, home, stateDir, minimalTestSource(t), hostsTestDeps(coreOnlyAdapterFactory))
+	v := m.top().(*hostsView)
+	recoverLine := "Run hive recover --state-dir /synthetic/state to check it."
+	lines := []string{"Partial installation (0123456789abcdef).", "The core was installed; optional capabilities pending:"}
+	for i := 1; i <= 8; i++ {
+		lines = append(lines,
+			fmt.Sprintf("  provider-%d: manual", i),
+			"    Reason: no native recipe is available in this build, so the installation is manual only.",
+			"    Next action: Complete the installation following the official instructions, then run hive recover to confirm it.")
+	}
+	lines = append(lines, "optional capabilities incomplete (0123456789abcdef)", recoverLine)
+	v.message, v.messageErr = strings.Join(lines, "\n"), true
+	assertFits(t, d, 80, 24)
+	d.mustShow("press m to read all")
+	help := d.lines()[len(d.lines())-1]
+	if !strings.Contains(help, "m more") || !strings.Contains(help, "u uninstall all") || strings.Contains(help, "…") {
+		t.Fatalf("the help bar of a cut message must fit 80 columns with m more and u uninstall all: %q", help)
+	}
+	d.key("m")
+	d.mustShow("Error", "Partial installation") // a failure outcome, until it says otherwise
+	for i := 0; i < 12 && !strings.Contains(strings.Join(strings.Fields(d.screen()), ""), strings.Join(strings.Fields(recoverLine), "")); i++ {
+		d.key("pgdown")
+	}
+	mustShowFlat(d, recoverLine)
+	assertFits(t, d, 80, 24)
+	d.key("esc")
+	d.mustShow("CLIs", "press m to read all")
+
+	// A message that fits shows in full, with no hint and no `m more`.
+	v.message = "Hive removed (x)."
+	d.mustNotShow("press m")
+	mustShowFlat(d, "Hive removed (x).")
+	help = d.lines()[len(d.lines())-1]
+	if strings.Contains(help, "m more") || !strings.Contains(help, "u uninstall all") || strings.Contains(help, "…") {
+		t.Fatalf("the help bar of a whole message: %q", help)
+	}
+}
+
+// TestHostsViewShowsPendingChangesAndEnterReviewsThem covers the pending
+// changes: each changed row says what will happen, the view counts them, and
+// Enter on the list reviews them like `a` does (`a` stays the documented key).
+func TestHostsViewShowsPendingChangesAndEnterReviewsThem(t *testing.T) {
+	source := minimalTestSource(t)
+	deps := hostsTestDeps(coreOnlyAdapterFactory)
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, source, "claude,codex", "y\n", deps)
+	_, d := openHostsApp(t, home, stateDir, source, deps)
+	d.mustNotShow("→", "pending change")
+
+	toggle(t, d, "claude", "pi")
+	rowLine := func(name string) string {
+		for _, l := range d.lines() {
+			if m := hostRowPattern.FindStringSubmatch(l); m != nil && strings.HasPrefix(m[3], name) {
+				return l
+			}
+		}
+		t.Fatalf("no row for %s:\n%s", name, d.screen())
+		return ""
+	}
+	if l := rowLine("claude"); !strings.Contains(l, "→ remove") {
+		t.Errorf("claude row does not say it will be removed: %q", l)
+	}
+	if l := rowLine("pi"); !strings.Contains(l, "→ install") {
+		t.Errorf("pi row does not say it will be installed: %q", l)
+	}
+	if l := rowLine("codex"); strings.Contains(l, "→") {
+		t.Errorf("an unchanged row shows a change: %q", l)
+	}
+	d.mustShow("2 pending changes")
+	assertFits(t, d, 80, 24)
+
+	toggle(t, d, "pi")
+	d.mustShow("1 pending change")
+	d.mustNotShow("2 pending changes", "→ install")
+
+	d.key("enter") // reviews the pending change like `a`
+	d.mustShow("Remove claude", "[Apply]")
+	d.key("esc")
+	d.mustShow("Cancelled. No changes applied.")
+	d.mustNotShow("pending change") // the boxes reloaded from the state
+
+	d.key("enter") // nothing pending: the same answer as `a`
+	d.mustShow("Nothing to apply")
+}
+
+// TestHostsViewEmptyStateListsOnlyUsefulKeys covers the help bar of the CLIs
+// view with nothing to act on.
+func TestHostsViewEmptyStateListsOnlyUsefulKeys(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory))
+	d.mustShow("No CLI hosts were detected or registered")
+	help := d.lines()[len(d.lines())-1]
+	for _, useless := range []string{"space", "apply", "uninstall", "move"} {
+		if strings.Contains(help, useless) {
+			t.Fatalf("the help bar lists %q with no rows: %q", useless, help)
+		}
+	}
+	if !strings.Contains(help, "esc") {
+		t.Fatalf("the help bar lost esc: %q", help)
+	}
+}
+
+// TestHostsViewPartialInstallResultIsTitledResult covers the read-in-full view
+// of a partial installation, where the core installed and an optional
+// capability is pending: it is a Result, not an Error.
+func TestHostsViewPartialInstallResultIsTitledResult(t *testing.T) {
+	source := minimalTestSource(t)
+	adapter := manualStepAdapter{}
+	deps := hostsTestDeps(coreOnlyAdapterFactory)
+	deps.AdapterFactory = func(onboardingInput) (onboardingAdapter, error) { return adapter, nil }
+	home, stateDir := newHostsTestHome(t)
+	_, d := openHostsApp(t, home, stateDir, source, deps)
+	toggle(t, d, "codex")
+	d.key("a", "space", "enter") // choose the manual capability, on to the summary
+	d.key("enter")
+	d.mustShow("Partial installation")
+	d.key("m")
+	d.mustShow("Result", "Partial installation")
+	d.mustNotShow("Error")
+	d.key("esc")
+
+	// A real failure keeps its Error title.
+	_, d = openHostsApp(t, home, stateDir, t.TempDir(), hostsTestDeps(coreOnlyAdapterFactory))
+	toggle(t, d, "claude")
+	d.key("a")
+	d.mustShow("Run hive from a Hive checkout")
+	d.key("m")
+	d.mustShow("Error")
+}
+
+// manualStepAdapter offers one manual-only capability whose step stays manual,
+// so an install with it ends partial: the core installs, the capability is
+// left for the operator.
+type manualStepAdapter struct{}
+
+func (manualStepAdapter) Detect(management.Options) ([]providerOffer, error) {
+	return []providerOffer{{ID: "context7", Name: "Context7", Source: "official fixture", ManualOnly: true}}, nil
+}
+
+func (manualStepAdapter) Plan(_ management.Plan, requests []providerRequest) (onboardingPreview, error) {
+	if len(requests) == 0 {
+		return onboardingPreview{}, nil
+	}
+	payload, err := json.Marshal(providers.Step{ID: "context7-manual", Provider: providers.Context7, Status: providers.Manual, ManualReason: "fixture"})
+	if err != nil {
+		return onboardingPreview{}, err
+	}
+	return onboardingPreview{
+		Steps:   []management.ExternalStep{{ID: "context7-manual", Payload: payload}},
+		Details: []providerDetail{{ID: requests[0].ID, Source: "official fixture"}},
+	}, nil
+}
+
+func (manualStepAdapter) Runner() management.ExternalRunner { return manualRunner{} }
+
+// manualRunner runs every step and reports it as needing a person, which makes
+// the onboarding end partial.
+type manualRunner struct{}
+
+func (manualRunner) Validate(management.ExternalStep) error { return nil }
+func (manualRunner) Execute(management.ExternalStep) (json.RawMessage, error) {
+	return json.RawMessage(`{}`), nil
+}
+func (manualRunner) Reconcile(management.ExternalStep, json.RawMessage) (string, error) {
+	return management.StepManual, nil
 }

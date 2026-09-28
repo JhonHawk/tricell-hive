@@ -330,9 +330,9 @@ func (v *releasesView) View(c viewCtx) string {
 	if v.filtering || v.filter.Value() != "" {
 		label := "  Filter: "
 		if v.filtering {
-			label = "> Filter: "
+			label = "/ Filter: " // the list cursor keeps the only ">"
 		}
-		lines = append(lines, label+v.filter.View())
+		lines = append(lines, label+inputView(v.filter, th))
 	} else {
 		lines = append(lines, th.Muted.Render("  Press / to filter."))
 	}
@@ -409,6 +409,9 @@ func (v *releasesView) View(c viewCtx) string {
 }
 
 func (v *releasesView) Keys() []key.Binding {
+	if len(v.entries) == 0 && !v.filtering {
+		return []key.Binding{binding("esc", "esc", "back")}
+	}
 	if v.filtering {
 		return []key.Binding{binding("enter", "enter", "keep filter"), binding("esc", "esc", "clear filter")}
 	}

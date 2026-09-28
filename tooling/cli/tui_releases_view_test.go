@@ -553,3 +553,54 @@ func TestIsReleaseValidationErrorCoversReferenceValidation(t *testing.T) {
 		t.Fatal("a missing host selection is not a release-validation error")
 	}
 }
+
+// TestReleasesViewHasOneFocusMarkerWhileFiltering covers the filter: with the
+// field open there is exactly one ">" marker, the list cursor's.
+func TestReleasesViewHasOneFocusMarkerWhileFiltering(t *testing.T) {
+	_, d, _ := openSyntheticReleases(t, syntheticReleases(10), "", 80, 24)
+	countMarkers := func() int {
+		n := 0
+		for _, l := range d.lines() {
+			if strings.HasPrefix(l, "> ") {
+				n++
+			}
+		}
+		return n
+	}
+	if got := countMarkers(); got != 1 {
+		t.Fatalf("%d markers before filtering:\n%s", got, d.screen())
+	}
+	d.key("/")
+	d.mustShow("Filter:")
+	if got := countMarkers(); got != 1 {
+		t.Fatalf("%d \">\" markers with the filter open, want 1:\n%s", got, d.screen())
+	}
+}
+
+// TestEmptyStatesListOnlyUsefulKeys covers the help bar of Releases and Voice
+// with nothing to act on: it lists no key that does nothing.
+func TestEmptyStatesListOnlyUsefulKeys(t *testing.T) {
+	last := func(d *appDriver) string { return d.lines()[len(d.lines())-1] }
+	t.Run("releases", func(t *testing.T) {
+		home, stateDir := newHostsTestHome(t)
+		_, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory)), 80, 24)
+		openMenuEntry(t, d, "Releases")
+		d.mustShow("No releases are retained yet")
+		for _, useless := range []string{"roll back", "filter", "move"} {
+			if strings.Contains(last(d), useless) {
+				t.Fatalf("the help bar lists %q with no releases: %q", useless, last(d))
+			}
+		}
+	})
+	t.Run("voice", func(t *testing.T) {
+		home, stateDir := newHostsTestHome(t)
+		_, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory)), 80, 24)
+		openMenuEntry(t, d, "Voice")
+		d.mustShow("No CLI hosts are registered.")
+		for _, useless := range []string{"row", "value", "review"} {
+			if strings.Contains(last(d), useless) {
+				t.Fatalf("the help bar lists %q with no CLIs: %q", useless, last(d))
+			}
+		}
+	})
+}

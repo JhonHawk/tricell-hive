@@ -152,6 +152,16 @@ func (v *updateView) onKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 
 // resolve runs planUpdate as a Cmd: Git and the extraction can take a while.
 func (v *updateView) resolve() tea.Cmd {
+	// The view's own checks, before any Git work: an empty field gets a clear
+	// message instead of the command's error with a gap where the value goes.
+	switch {
+	case strings.TrimSpace(v.source.Value()) == "":
+		v.message, v.messageErr = "Source is empty: enter the path of a Git checkout.", true
+		return nil
+	case strings.TrimSpace(v.rev.Value()) == "":
+		v.message, v.messageErr = "Revision is empty: enter a revision such as HEAD.", true
+		return nil
+	}
 	v.flow++
 	id := v.flow
 	f := updateFlags{Source: v.source.Value(), Rev: v.rev.Value(), Home: v.cfg.Options.Home, StateDir: v.cfg.Options.StateDir}
@@ -246,7 +256,7 @@ func (v *updateView) View(c viewCtx) string {
 		if i == v.focus {
 			prefix = "> "
 		}
-		return prefix + padRight(label, 10) + in.View()
+		return prefix + padRight(label, 10) + inputView(in, th)
 	}
 	lines := []string{
 		th.Title.Render("Update"),

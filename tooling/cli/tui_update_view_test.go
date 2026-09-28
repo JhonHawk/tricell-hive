@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/lipgloss/v2"
 
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
@@ -340,4 +344,163 @@ func TestUpdateViewFits(t *testing.T) {
 			assertFits(t, d, width, height)
 		})
 	}
+}
+
+// TestUpdateViewLongFieldShowsEllipsisAtTheCut covers a text field whose
+// content scrolls: the cut edge shows "…", at the start while the tail is
+// visible and at the end while the head is.
+func TestUpdateViewLongFieldShowsEllipsisAtTheCut(t *testing.T) {
+	env := newUpdateTwinEnv(t, false)
+	_, d := env.openApp(t, 80, 24)
+	sourceRow := func() string {
+		for _, l := range d.lines() {
+			if strings.Contains(l, "Source  ") {
+				return strings.TrimRight(l, " ")
+			}
+		}
+		t.Fatalf("no Source row:\n%s", d.screen())
+		return ""
+	}
+	setSource(d, "/start"+strings.Repeat("-middle", 25)+"/end")
+	row := sourceRow()
+	if !strings.Contains(row, "Source    …") || !strings.HasSuffix(row, "/end") {
+		t.Fatalf("the cut start is not marked with an ellipsis: %q", row)
+	}
+	d.key("home")
+	row = sourceRow()
+	if !strings.Contains(row, "Source    /start") || !strings.HasSuffix(row, "…") {
+		t.Fatalf("the cut end is not marked with an ellipsis: %q", row)
+	}
+	assertFits(t, d, 80, 24)
+	// A field that fits shows no ellipsis.
+	d.key("end")
+	for range 200 {
+		d.key("backspace")
+	}
+	typeText(d, "/short")
+	if row := sourceRow(); strings.Contains(row, "…") {
+		t.Fatalf("a short field shows an ellipsis: %q", row)
+	}
+}
+
+// TestUpdateViewEmptyFieldsSayWhichIsEmpty covers the view's own check: an
+// empty Source or Revision gets a clear message, not the command's error with a
+// leading gap.
+func TestUpdateViewEmptyFieldsSayWhichIsEmpty(t *testing.T) {
+	env := newUpdateTwinEnv(t, false)
+	_, d := env.openApp(t, 80, 24)
+	d.key("backspace") // Source: "." -> ""
+	d.key("enter")
+	d.mustShow("Source is empty")
+	d.mustNotShow("Resolving", "is not a Git")
+	setSource(d, env.repo)
+	d.key("tab")
+	for range len("HEAD") {
+		d.key("backspace")
+	}
+	d.key("enter")
+	d.mustShow("Revision is empty")
+	d.mustNotShow("Resolving", "invalid --rev")
+}
+
+// hasReverse reports whether s draws a reversed cell, the cursor.
+var reverseSGR = regexp.MustCompile("\x1b\\[(?:[0-9;]*;)?7(?:;[0-9;]*)?m")
+
+func hasReverse(s string) bool { return reverseSGR.MatchString(s) }
+
+// sourceField extracts the Source row's field text (plain) and its raw form from
+// the app's screen.
+func sourceField(t *testing.T, d *appDriver) (plain, raw string) {
+	t.Helper()
+	for i, l := range d.lines() {
+		if strings.Contains(l, "Source  ") {
+			raw = strings.Split(d.raw(), "\n")[i]
+			return strings.TrimPrefix(strings.TrimPrefix(l, "> "), "  ")[len("Source    "):], raw
+		}
+	}
+	t.Fatalf("no Source row:\n%s", d.screen())
+	return "", ""
+}
+
+// TestInputViewCursorAtTheEndOfALongValueKeepsTheCursorAndNoTrailingEllipsis
+// covers the field with the cursor at the end of content longer than the
+// field: the start is marked, nothing is claimed to the right, the cursor cell
+// is drawn, and the field stays within its width (80 columns leave 66).
+func TestInputViewCursorAtTheEndOfALongValueKeepsTheCursorAndNoTrailingEllipsis(t *testing.T) {
+	const fieldWidth = 66
+	values := map[string]string{
+		"distinct":            strings.Repeat("0123456789", 8),
+		"repetitive":          strings.Repeat("Zeta", 40),
+		"ends with spaces":    strings.Repeat("path-segment/", 8) + "  ",
+		"just past the width": strings.Repeat("a", fieldWidth+1),
+	}
+	for name, value := range values {
+		t.Run(name, func(t *testing.T) {
+			env := newUpdateTwinEnv(t, false)
+			_, d := env.openApp(t, 80, 24)
+			setSource(d, value)
+			d.key("end")
+			typeText(d, "xy")
+			plain, raw := sourceField(t, d)
+			if strings.HasSuffix(strings.TrimRight(plain, " "), "…") {
+				t.Fatalf("a false trailing ellipsis with the cursor at the end: %q", plain)
+			}
+			if !strings.HasPrefix(plain, "…") {
+				t.Fatalf("the cut start is not marked: %q", plain)
+			}
+			if !hasReverse(raw) {
+				t.Fatalf("the cursor cell is not drawn: %q", raw)
+			}
+			if w := lipgloss.Width(plain); w > fieldWidth {
+				t.Fatalf("the field is %d columns wide, its width is %d: %q", w, fieldWidth, plain)
+			}
+			assertFits(t, d, 80, 24)
+		})
+	}
+}
+
+// TestInputViewMarksEachCutOnlyWhereTextExists covers the cursor moving through
+// a long repetitive value: the trailing marker appears only with text to the
+// right, the leading one only with text to the left.
+func TestInputViewMarksEachCutOnlyWhereTextExists(t *testing.T) {
+	th := newAppTheme(true, false)
+	in := textinput.New()
+	in.Prompt = ""
+	in.SetWidth(20)
+	in.SetValue(strings.Repeat("Zeta", 20))
+	in.Focus()
+	for _, tc := range []struct {
+		name       string
+		pos        int
+		start, end bool
+	}{
+		{"at the start", 0, false, true},
+		{"in the middle", 40, true, true},
+		{"at the end", 80, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in.SetCursor(tc.pos)
+			view := inputView(in, &th)
+			plain := stripANSI(view)
+			if got := strings.HasPrefix(plain, "…"); got != tc.start {
+				t.Errorf("leading ellipsis = %v, want %v: %q", got, tc.start, plain)
+			}
+			if got := strings.HasSuffix(strings.TrimRight(plain, " "), "…"); got != tc.end {
+				t.Errorf("trailing ellipsis = %v, want %v: %q", got, tc.end, plain)
+			}
+			if w := lipgloss.Width(view); w > 20 {
+				t.Errorf("the field is %d columns wide, its width is 20: %q", w, plain)
+			}
+			if !hasReverse(view) {
+				t.Errorf("no cursor cell drawn: %q", view)
+			}
+		})
+	}
+	t.Run("a value that fits has no marker", func(t *testing.T) {
+		in.SetValue("short")
+		in.SetCursor(5)
+		if plain := stripANSI(inputView(in, &th)); strings.Contains(plain, "…") {
+			t.Fatalf("a short value shows an ellipsis: %q", plain)
+		}
+	})
 }

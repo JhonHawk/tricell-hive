@@ -248,6 +248,19 @@ Pruebas nuevas:
 ### T12 — Revisión de la interfaz, prueba en vivo, recorrido del usuario y revisión de código
 
 - [/] `review-ux` y `sdd-verify` aprueban la aplicación en una terminal real, el usuario la recorre y la aprueba, y `/code-review` no deja hallazgos altos abiertos.
+  - **Primera ronda (2026-09-28, candidato `076fd3d`):**
+    - **`sdd-verify`:** AC1 y AC3 a AC11 cumplidos, comparando cada flujo con el comando de texto en homes gemelos, incluida una operación pendiente real provocada con `kill -9`. AC2 no cumplido, por D1 (alto): una segunda SIGINT o SIGTERM durante un `apply` mata el proceso y deja la terminal en la pantalla alterna. La causa probable es que Bubble Tea v2.0.2 deja de escuchar señales después de la primera.
+    - **`review-ux`:** sin hallazgos bloqueantes ni altos. Tres medios introducidos:
+      - M1: el mensaje de una instalación parcial se corta y puede perder `hive recover`;
+      - M2: no se ven los cambios pendientes en CLIs;
+      - M3: los campos largos pierden el comienzo sin señal.
+    - **Límites de la revisión:** el tema claro, el campo de versión de capacidades y la fila de instalación antigua no se ejercitaron en vivo.
+    - **Ronda de corrección:** D1, M1 a M3, y los menores L3, L5, L6 y L7.
+  - **Re-verificación (única ronda):**
+    - **`sdd-verify`:** AC2 cumplido. Con 2, 3 y 30 señales mezcladas durante un «Uninstall all» de unos 4 s, la aplicación sobrevive, termina sin operación pendiente y sale con 0 y la terminal restaurada; el resultado es igual al gemelo. No hay regresiones en AC4, AC6, AC7 ni en la recuperación.
+    - **`review-ux`:** M1, M2 y M3 resueltos. La corrección de M3 introdujo N1 (medio): con el cursor al final de un valor largo aparece un «…» falso y el cursor no se ve. También dejó menores: N3, la ayuda dice «uninstall» en lugar de «uninstall all»; N4, el aviso de una instalación parcial se titula «Error».
+    - **Corrección local de N1, N3 y N4 en el hilo principal:** sin nueva ronda de revisión, lo verifican sus pruebas y el recorrido del usuario.
+    - **Para el recorrido del usuario (N2):** Enter en CLIs abre el resumen, y el resumen de una baja arranca en Apply, así que dos Enter aplican una baja.
 
 **Depends on:** T11.
 

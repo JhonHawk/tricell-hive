@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1431,5 +1432,101 @@ func TestRecoverPendingOnboardingCompletedOmitsRecoverPhrase(t *testing.T) {
 	}
 	if strings.Contains(text, "hive recover") {
 		t.Fatalf("a completed onboarding recovery must not also tell the operator to recover: %q", text)
+	}
+}
+
+// TestAppRealProgramSurvivesRepeatedSignalsDuringWrite covers AC2 with the
+// real signal path (runAppWith): every SIGINT and SIGTERM sent during a write
+// is ignored, however many arrive; after the write, a signal at idle quits
+// cleanly, with the alternate screen left and no error. The signals go to the
+// test process itself, which is safe while runAppWith has them registered.
+func TestAppRealProgramSurvivesRepeatedSignalsDuringWrite(t *testing.T) {
+	cfg := testAppConfig(t)
+	gate := make(chan struct{})
+	var once sync.Once
+	release := func() { once.Do(func() { close(gate) }) }
+	var mu sync.Mutex
+	recovered := false
+	cfg.Deps.Pending = func(string) (management.PendingKind, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if recovered {
+			return management.PendingNone, nil
+		}
+		return management.PendingCore, nil
+	}
+	cfg.Deps.RecoverCore = func(string) (string, error) {
+		<-gate
+		mu.Lock()
+		recovered = true
+		mu.Unlock()
+		return "rec-id", nil
+	}
+	pr, pw := io.Pipe()
+	out := &syncBuffer{}
+	done := make(chan error, 1)
+	go func() { done <- runAppWith(cfg, pr, out, tea.WithWindowSize(80, 24)) }()
+	t.Cleanup(func() {
+		release()
+		pw.Close()
+	})
+	seen := func(s string) func() bool {
+		return func() bool { return strings.Contains(stripANSI(out.String()), s) }
+	}
+	waitFor(t, "the recovery offer", seen("Leave it"))
+	if _, err := pw.Write([]byte("\r")); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "the recovery to start", seen("Recovering"))
+	for _, sig := range []syscall.Signal{syscall.SIGINT, syscall.SIGINT, syscall.SIGTERM, syscall.SIGINT} {
+		if err := syscall.Kill(os.Getpid(), sig); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("the app exited during a write: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	release()
+	waitFor(t, "the recovery result", seen("Recovery: rec-id."))
+	if err := syscall.Kill(os.Getpid(), syscall.SIGINT); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("a signal at idle ended the app with %v, want a clean exit", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the app did not exit on a signal at idle")
+	}
+	if s := out.String(); !strings.Contains(s, "\x1b[?1049l") {
+		t.Fatalf("the alternate screen was not left: %q", s)
+	}
+}
+
+// TestAppRealProgramSigtermAtIdleQuitsCleanly covers the idle SIGTERM.
+func TestAppRealProgramSigtermAtIdleQuitsCleanly(t *testing.T) {
+	pr, pw := io.Pipe()
+	out := &syncBuffer{}
+	done := make(chan error, 1)
+	go func() { done <- runAppWith(testAppConfig(t), pr, out, tea.WithWindowSize(80, 24)) }()
+	t.Cleanup(func() { pw.Close() })
+	waitFor(t, "the menu", func() bool { return strings.Contains(stripANSI(out.String()), "Quit") })
+	if err := syscall.Kill(os.Getpid(), syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("SIGTERM ended the app with %v, want a clean exit", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the app did not exit on SIGTERM")
+	}
+	if !strings.Contains(out.String(), "\x1b[?1049l") {
+		t.Fatal("the alternate screen was not left")
 	}
 }
