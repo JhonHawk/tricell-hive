@@ -191,15 +191,25 @@ func installWithDependencies(args []string, in io.Reader, out io.Writer, interac
 // and the online bootstrap hand-off: both resolve an Options value (hosts,
 // home, state directory, and a source distribution tree) before reaching
 // here, then walk the same detection/summary/consent/apply loop. Only
-// bootstrap sets dependencies.BindRetainedInstaller.
+// bootstrap sets dependencies.BindRetainedInstaller. It builds its own
+// installTerminal and delegates to runInstallFlowWith, which takes a
+// prompter directly so the huh-based interface (tui.go) can drive the same
+// flow (design.md "Separar las preguntas de la lógica").
 func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
+	return runInstallFlowWith(o, dry, out, terminal, dependencies)
+}
+
+// runInstallFlowWith is runInstallFlow's core: package verification,
+// options normalization, the pending-operation check and the onboarding
+// wizard, all taking p instead of building an installTerminal themselves.
+func runInstallFlowWith(o management.Options, dry bool, out io.Writer, p prompter, dependencies installDependencies) error {
 	if err := validateInstallDependencies(dependencies); err != nil {
 		return err
 	}
 	if err := distribution.VerifyIfPackaged(o.Source); err != nil {
 		return err
 	}
-	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	_, stateDir, err := management.NormalizeOptions(o)
 	if err != nil {
 		return err
@@ -210,10 +220,18 @@ func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer,
 	// instead of "./install.sh", a file that bootstrap.sh's temporary
 	// checkout never contains.
 	online := dependencies.BindRetainedInstaller != nil
-	if handled, err := handlePendingInstallOperation(o, dry, terminal, out, online, dependencies); handled {
+	// stillNeeded is ignored here: install's and bootstrap's own recovery
+	// phrase names the concrete next command unconditionally, exactly as
+	// before this parameter existed (bootstrap_test.go's
+	// TestInstallOfflinePendingRecoveryPointsToInstallScript pins this for
+	// a successful recovery too). Only the interface's own on-open check
+	// (tui.go's checkPendingOnOpen) uses stillNeeded to omit the phrase
+	// once nothing more needs recovering (T2 fix round item 5).
+	recoveryText := func(stateDir string, stillNeeded bool) string { return recoveryPhrase(online, stateDir) }
+	if handled, err := handlePendingInstallOperation(o, dry, p, out, recoveryText, dependencies); handled {
 		return err
 	}
-	return runOnboardingWizard(o, dry, terminal, out, online, dependencies)
+	return runOnboardingWizard(o, dry, p, out, online, dependencies)
 }
 
 func validateInstallDependencies(dependencies installDependencies) error {
@@ -223,6 +241,19 @@ func validateInstallDependencies(dependencies installDependencies) error {
 	return nil
 }
 
+// withRecoverySentence appends recovery as its own trailing sentence onto
+// base only when recovery is non-empty, so a caller (tui.go's
+// checkPendingOnOpen, T2 fix round item 5) can omit the whole sentence once
+// nothing more needs recovering, while install's and bootstrap's own
+// closures, which never return "", keep their exact existing wording
+// (matching format and trailing period) byte for byte.
+func withRecoverySentence(base, recovery string) string {
+	if recovery == "" {
+		return base
+	}
+	return base + " " + recovery + "."
+}
+
 // handlePendingInstallOperation covers M5: a single Pending call (never a
 // direct pending.json read by name) answers whether an optional-onboarding
 // journal or a core transaction journal blocks a new operation; onboarding
@@ -230,8 +261,12 @@ func validateInstallDependencies(dependencies installDependencies) error {
 // true whenever the caller must return err as-is (including nil) instead of
 // continuing into the host-selection wizard: either a pending recovery was
 // resolved (or declined, or deferred by --dry-run) here, or resolving it
-// itself failed.
-func handlePendingInstallOperation(o management.Options, dry bool, terminal prompter, out io.Writer, online bool, dependencies installDependencies) (handled bool, err error) {
+// itself failed. recoveryText's stillNeeded argument tells the caller
+// whether this particular recovery attempt leaves anything unresolved
+// (always false for PendingCore, which only reaches its own call site on
+// success; result.Phase != "completed" for PendingOnboarding, which can
+// finish "partial").
+func handlePendingInstallOperation(o management.Options, dry bool, terminal prompter, out io.Writer, recoveryText func(stateDir string, stillNeeded bool) string, dependencies installDependencies) (handled bool, err error) {
 	stateDir := o.StateDir
 	kind, err := dependencies.Pending(stateDir)
 	if err != nil {
@@ -255,7 +290,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal prom
 		if err != nil {
 			return true, err
 		}
-		fmt.Fprintf(out, "Onboarding recovery: %s (%s). %s.\n", result.ID, result.Phase, recoveryPhrase(online, stateDir))
+		fmt.Fprintln(out, withRecoverySentence(fmt.Sprintf("Onboarding recovery: %s (%s).", result.ID, result.Phase), recoveryText(stateDir, result.Phase != "completed")))
 		return true, nil
 	case management.PendingCore:
 		fmt.Fprintf(out, "An operation is pending. Recovery directory: %s\n", stateDir)
@@ -270,7 +305,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal prom
 		if err != nil {
 			return true, err
 		}
-		fmt.Fprintf(out, "Recovery: %s. %s.\n", result, recoveryPhrase(online, stateDir))
+		fmt.Fprintln(out, withRecoverySentence(fmt.Sprintf("Recovery: %s.", result), recoveryText(stateDir, false)))
 		return true, nil
 	}
 	return false, nil

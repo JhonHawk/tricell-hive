@@ -40,7 +40,17 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T2 — Dependencia, entrada, `prompter` de `huh` y menú
 
-- [/] `hive` sin argumentos y `hive tui` abren el menú en una terminal o en modo accesible; `hive` conserva el error de uso sin terminal; la interfaz ofrece recuperar una operación pendiente al abrir; y el núcleo sigue sin dependencias externas.
+- [x] `hive` sin argumentos y `hive tui` abren el menú en una terminal o en modo accesible; `hive` conserva el error de uso sin terminal; la interfaz ofrece recuperar una operación pendiente al abrir; y el núcleo sigue sin dependencias externas.
+  - Ronda 1, AC1, AC7 y AC10 no cumplidos:
+    - una respuesta inválida seguida del fin de la entrada hace caer el programa con un índice fuera de rango (salida 2);
+    - Esc no cancela;
+    - `deps_test` no sigue las importaciones de `tricell-hive/...`;
+    - faltan pruebas del orden del menú, de la línea de estado, del subcomando `tui` y de `hive` con `HIVE_ACCESSIBLE`.
+  - **Ronda 2:** AC1, AC7 y AC10 cumplidos. `review-task` repitió en `tmux` a 80×24 las entradas que hacían caer el programa y la tecla Esc. También rompió a propósito el código de las formas que antes nadie detectaba, y ahora cada una hace fallar una prueba. `go mod tidy` lo corrió el hilo principal al cerrar la tarea.
+  - **Pendientes que pasan a T4:**
+    - Esc dentro del filtro de una lista cierra toda la pantalla en vez de limpiar el filtro;
+    - ninguna prueba falla si se quita `.WithKeyMap(formKeyMap)` de `runForm`;
+    - la prueba de `hive` sin argumentos lee el estado real, solo para leer, y conviene darle un home de prueba.
 
 **Closes:** AC1, AC7, AC10 (el menú y el `prompter`).
 
@@ -60,6 +70,7 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 **Changes:** según [punto de entrada](design.md#punto-de-entrada-d14-a), [el `prompter` de `huh`](design.md#el-prompter-de-huh) y [la interfaz](design.md#la-interfaz).
 - `go get charm.land/huh/v2@v2.0.3`, y después `go mod tidy` y `go mod verify`.
 - Comprobar en la documentación de la versión fijada cómo se detecta el fondo para el tema, y anotarlo aquí.
+  - **Anotado el 2026-09-28:** en `huh` v2.0.3 el tema por defecto ya es `ThemeCharm(hasDarkBg)`, pero solo detecta el fondo dentro del bucle de Bubble Tea (`tea.BackgroundColorMsg`). La interfaz lo resuelve antes con `lipgloss.HasDarkBackground(in, out)` de `charm.land/lipgloss/v2` v2.0.1 (`query.go:83`), que por eso es una dependencia directa. Con `NO_COLOR` usa `ThemeBase`.
 
 Pruebas, todas en modo accesible con entrada guionada:
 - elegir Quit sale con 0;
@@ -74,7 +85,7 @@ Pruebas, todas en modo accesible con entrada guionada:
 
 ### T3 — Pantallas Install CLIs y Remove CLIs
 
-- [ ] Instalar y quitar CLIs desde la interfaz produce los mismos archivos y el mismo estado que los comandos equivalentes, con sus estados vacíos y su cancelación.
+- [/] Instalar y quitar CLIs desde la interfaz produce los mismos archivos y el mismo estado que los comandos equivalentes, con sus estados vacíos y su cancelación.
 
 **Closes:** AC2, AC3, AC10 (en estas pantallas), AC11 (en estas pantallas).
 

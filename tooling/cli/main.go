@@ -24,6 +24,11 @@ func output(v any) error {
 	return enc.Encode(v)
 }
 
+// usageMessage is hive's own top-level usage error. It is unchanged by the
+// interface (D14-A): bare `hive` outside a terminal and without
+// HIVE_ACCESSIBLE still prints exactly this, via openInterface (tui.go).
+const usageMessage = "usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases | voice list|set|off"
+
 // run resolves --version and --help, then delegates every subcommand to its
 // own function. Each subcommand function defines its own flag.FlagSet, so
 // its flags and usage text stay local to it.
@@ -37,7 +42,7 @@ func run(args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: hive --version | setup | install | plan install|remove | apply --plan FILE | status | recover --state-dir DIR | update | releases | voice list|set|off")
+		return runBareInterface()
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {
@@ -61,12 +66,15 @@ func run(args []string) error {
 		return runReleases(rest)
 	case "voice":
 		return runVoice(rest)
+	case "tui":
+		return runInterfaceCommand(rest)
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}
 }
 
 func printHelp() {
+	fmt.Println("hive tui [--home DIR] [--state-dir DIR] [--source DIR]  (interactive interface; bare `hive` in a terminal, or with HIVE_ACCESSIBLE=1, opens it too)")
 	fmt.Println("hive bootstrap --origin URL --version X.Y.Z --manager PATH --manager-sha256 HASH  (invoked by bootstrap.sh only)")
 	fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
 	fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
