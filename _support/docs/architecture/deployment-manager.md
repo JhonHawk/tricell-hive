@@ -1,6 +1,6 @@
 # Deployment manager
 
-The first manager is implemented in Go 1.27. Its core packages (`tooling/management` and `tooling/distribution`) use only the standard library, and a test walks their imports to keep it so. The command-line package depends on `charm.land/huh/v2` v2.0.3, with `charm.land/lipgloss/v2` and `charm.land/bubbles/v2` as direct requirements for the theme and key bindings, for the terminal interface only, a deliberate exception to the no-dependency rule because the interface is a user-requested product feature, not configuration; building a release therefore downloads those modules, while installing the offline package does not change. It runs from this checkout with `go run ./tooling/cli`; macOS is the tested platform. The manager never launches models. The separate pilot runner is evaluation tooling.
+The first manager is implemented in Go 1.27. Its core packages (`tooling/management` and `tooling/distribution`) use only the standard library, and a test walks their imports to keep it so. The command-line package depends on `charm.land/bubbletea/v2`, `charm.land/bubbles/v2`, `charm.land/lipgloss/v2`, and `github.com/charmbracelet/x/ansi` for the terminal interface only, a deliberate exception to the no-dependency rule because the interface is a user-requested product feature, not configuration; building a release therefore downloads those modules, while installing the offline package does not change. It runs from this checkout with `go run ./tooling/cli`; macOS is the tested platform. The manager never launches models. The separate pilot runner is evaluation tooling.
 
 ## Commands
 
@@ -63,21 +63,26 @@ The voice is stored in `state.json` as `voice` and `voice_spans` without a schem
 ```sh
 go run ./tooling/cli
 go run ./tooling/cli tui [--home DIR] [--state-dir DIR] [--source DIR]
-HIVE_ACCESSIBLE=1 go run ./tooling/cli tui
 ```
 
-`hive` without arguments in a terminal, or `hive tui`, opens a menu with seven fixed entries: Status, Install CLIs, Remove CLIs, Update, Releases, Voice, and Quit, under a status line with the registered hosts, the installed release, and the voice. Without a terminal, `hive` without arguments keeps its usage error, and `hive tui` fails naming `HIVE_ACCESSIBLE`. `HIVE_ACCESSIBLE=1` runs the same menu as plain numbered prompts that read standard input, without colors, for screen readers and scripted use; the end of input exits. In the full interface, the theme follows the terminal's light or dark background, and `NO_COLOR` removes colors. Ctrl-C or Esc at the menu closes the interface with exit status 0. Install CLIs and Voice read the catalog from `--source`, which defaults to the current directory: outside a Hive checkout or package they report `Run hive from a Hive checkout or package, or pass --source` and return to the menu. `hive install` remains the plain-text installer that `install.sh` and the online bootstrap use.
+`hive` without arguments in a terminal, or `hive tui`, opens a full-screen application on the terminal's alternate screen: a menu with CLIs, Update, Releases, Voice, and Quit, under a status line with the number of registered hosts, the installed release, and the voice, and above a help bar that lists the current view's keys. Changing views redraws the whole screen, and leaving the application restores the terminal's previous content. Below 80×24 it shows the minimum size instead of the view, and keeps the view's state until the terminal is large enough again. The theme follows the terminal's light or dark background; `NO_COLOR` removes colors, and checkboxes, the cursor, and the selected button always use symbols.
 
-Each entry reuses the flow of its command, so it writes the same files and state:
+The application needs a terminal on standard input and output. Without one, `hive` without arguments keeps its usage error, and `hive tui` fails naming the text commands. Those commands (`hive status`, `install`, `update`, `releases`, `voice`, `plan`/`apply` to remove hosts, and `recover`) are the path for scripts and screen readers; the application has no line-based mode. `hive install` remains the plain-text installer that `install.sh` and the online bootstrap use.
 
-- **Status** reads only.
-- **Install CLIs** runs the `hive install` wizard, with package verification, pending-operation recovery, optional capabilities, and confirmation.
-- **Remove CLIs** plans a removal and shows the files removed, the shared resources kept for other hosts, and the voice blocks removed.
-- **Update** asks for the source and revision and runs `hive update`.
-- **Releases** lists retained releases, marks the installed one, and can return to an older one through `plan install --release`.
-- **Voice** sets or turns off the voice.
+Keys:
 
-Every writing action prints its summary, then asks for confirmation. Declining, Ctrl-C or Esc, or the end of input prints `Cancelled. No changes applied.` and returns to the menu; an error prints the command's message and returns to the menu. In the Releases list, Esc only closes an open filter and otherwise does nothing; Ctrl-C cancels that screen. The Install CLIs confirmation also offers Back, which returns to host selection. When the interface opens with a pending operation, it offers to recover it. Recovery messages name `hive recover`, adding `--state-dir DIR` when the interface was opened with an explicit state directory.
+- **Esc** returns to the previous view, and closes the application at the menu. **Backspace** does the same when no text field has the focus; in a text field it deletes a character, and at the menu it does nothing.
+- **Ctrl-C** closes the application with exit status 0 from any view. While a change is being applied, every key, Ctrl-C included, and an external interrupt (SIGINT) are ignored until it finishes.
+- **↑↓** move, **←→** change a value or choose a button, **Enter** accepts, and **Space** toggles a checkbox.
+
+Each view reuses the plans and summaries of its command, so it writes the same files and state:
+
+- **CLIs** lists each detected, registered, or legacy host with a checkbox (checked means active), its release, version, and drift. Space changes the desired set and `a` applies it. Removals are previewed, confirmed, and applied first; additions are then planned on the resulting state, with the package verification, required-host notice, optional capabilities, summary, and confirmation of `hive install`. When both happen, the summaries are labeled step 1 and step 2, and stopping at step 2 keeps the removal. Checking a host with a legacy installation migrates it. `u` opens Uninstall all, which removes every registered host; its confirmation starts on Cancel and does not accept `y`.
+- **Update** edits the source (`.`) and revision (`HEAD`) in place and shows the `hive update` summary. When the revision changes nothing, it records the source commit without asking, as `hive update` does.
+- **Releases** lists retained releases, newest first, with the installed one marked. `/` filters by text and Esc clears the filter. Choosing a release returns to it through `plan install --release` for the registered hosts.
+- **Voice** shows the active voice as rows (voice, address, name when the address is `name`, and intensity) changed in place with the arrows, then previews `hive voice set` or `off`. With Off, only the voice row shows.
+
+Apart from that unchanged update, every writing action shows its summary, which scrolls, and asks for confirmation. Declining or going back shows `Cancelled. No changes applied.` inside the originating view; an error shows the command's message there; a successful action refreshes the view and shows its result. When the application opens with a pending operation, it offers to recover it. Recovery messages name `hive recover`, adding `--state-dir DIR` when the application was opened with an explicit state directory. Adding hosts in CLIs, and Voice, read the catalog from `--source`, which defaults to the current directory: outside a Hive checkout or package they report `Run hive from a Hive checkout or package, or pass --source`.
 
 ## Optional Context7 setup recommendation
 
@@ -153,7 +158,7 @@ go test -race -timeout 20m ./...
 go vet ./...
 ```
 
-The race run of `tooling/cli` takes about nine minutes, close to `go test`'s default ten-minute limit, so pass `-timeout` explicitly.
+The race run of `tooling/cli` takes about thirteen minutes, beyond `go test`'s default ten-minute limit, so pass `-timeout` explicitly.
 
 Tests exercise the six user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. Catalogue tests additionally cover multiple skills and nested Markdown references, source identity and forged payload rejection, new references in owned bundles, unowned reference conflicts, partial consumer retirement, old-release rollback, missing-checkout status/removal, v2 migration and legacy journal recovery. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).
 

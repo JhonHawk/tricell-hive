@@ -173,7 +173,17 @@ Pruebas nuevas:
 
 ### T10 — Retirar `huh` y la interfaz secuencial
 
-- [/] No queda código, prueba ni dependencia de `huh` ni de `HIVE_ACCESSIBLE`. `bubbletea` es una dependencia directa.
+- [x] No queda código, prueba ni dependencia de `huh` ni de `HIVE_ACCESSIBLE`. `bubbletea` es una dependencia directa.
+  - **`review-task` (2026-09-28):** AC10 cumplido.
+    - **Búsquedas y módulos:** el `rg` no devuelve nada; `go mod tidy -diff` no muestra diferencias; `go list -m all` solo pierde 9 módulos (`huh`, `catppuccin`, `x/conpty`, `x/errors`, `x/exp/*`, `x/xpty`, `creack/pty`, `hashstructure`) y no gana ninguno.
+    - **Pruebas:** la suite completa con `-race` pasa (`tooling/cli` 771 s), y el `sha256` de las cuatro pruebas de texto es igual.
+    - **Cambios de estructura:** `prompter` volvió a ser `installTerminal`, y `updateWith` quedó integrada en `update()`. `voicePlanWith` sigue porque la usan `voiceSet` y `voiceOff`.
+  - **Pendientes de T7 y T9 cerrados:**
+    - los `Setenv` de `HIVE_ACCESSIBLE` retirados, y borrada la prueba de contraste de `huh`;
+    - H1: `assertFits` mide `View(viewCtx)`;
+    - H4: Backspace durante la planificación de Voice;
+    - H5: Voice limpia el mensaje al editar.
+  - **Cobertura restituida (F1 del revisor, con su propuesta):** tres pruebas de `recoverPending` fijan cuándo el mensaje nombra `hive recover`. Cada una se comprobó rompiendo la regla que protege. También se corrigieron tres comentarios y se quitó `installTerminal.ProviderVersion`, que no tenía llamadas.
 
 **Closes:** AC10.
 
@@ -200,7 +210,15 @@ Pruebas nuevas:
 
 ### T11 — Documentación y especificación
 
-- [ ] `deployment-manager.md` y la especificación del cambio describen la aplicación de pantalla completa.
+- [x] `deployment-manager.md` y la especificación del cambio describen la aplicación de pantalla completa.
+  - **`review-task` (2026-09-28):** AC11 cumplido.
+    - **Contra el código y el binario en `tmux`:** cada afirmación contrastada; `--help` nombra `hive tui` y no `HIVE_ACCESSIBLE`; la suite con `-race` de `tooling/cli` tardó 771 s, lo que confirma «about thirteen minutes».
+    - **Correcciones aplicadas con la redacción del revisor:**
+      - C1: una actualización sin cambios se aplica sin preguntar, como `hive update`; la excepción se agregó también a la especificación;
+      - C2: «Uninstall all» nombrado, y que no acepta `y`;
+      - C3: la línea de estado muestra el número de CLIs;
+      - C4: con Off solo se ve la fila de la voz;
+      - C5: la fuente solo se exige al agregar CLIs.
 
 **Closes:** AC11.
 
@@ -229,7 +247,7 @@ Pruebas nuevas:
 
 ### T12 — Revisión de la interfaz, prueba en vivo, recorrido del usuario y revisión de código
 
-- [ ] `review-ux` y `sdd-verify` aprueban la aplicación en una terminal real, el usuario la recorre y la aprueba, y `/code-review` no deja hallazgos altos abiertos.
+- [/] `review-ux` y `sdd-verify` aprueban la aplicación en una terminal real, el usuario la recorre y la aprueba, y `/code-review` no deja hallazgos altos abiertos.
 
 **Depends on:** T11.
 
