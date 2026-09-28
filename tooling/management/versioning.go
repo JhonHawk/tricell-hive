@@ -145,7 +145,7 @@ func installationVersion(s State, c Consumer) (string, string) {
 				return receipt.Product.Version, "partial"
 			}
 			cur, err := readResource(r.Target, false)
-			if err != nil || owned(cur, r) != nil {
+			if err != nil || owned(cur, r, hiveMarkers) != nil {
 				return receipt.Product.Version, "drift"
 			}
 		}

@@ -445,7 +445,7 @@ func scanLegacy(c target.Config, hosts []string, s State) (legacy.Result, error)
 		if err != nil {
 			continue
 		}
-		if err = owned(current, r); err != nil {
+		if err = owned(current, r, hiveMarkers); err != nil {
 			continue
 		}
 		trusted = append(trusted, r.Target.Path)

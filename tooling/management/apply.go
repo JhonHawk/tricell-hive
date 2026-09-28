@@ -531,12 +531,12 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		}
 		// A previous recovery attempt may already have restored the managed span
 		// while retaining newer text outside it.
-		if en.Change.Target.Kind == "block" && cur.Mode == en.Before.Mode && en.Change.Before != nil && owned(cur, *en.Change.Before) == nil {
+		if en.Change.Target.Kind == "block" && cur.Mode == en.Before.Mode && en.Change.Before != nil && owned(cur, *en.Change.Before, hiveMarkers) == nil {
 			inverses[i] = cur
 			continue
 		}
 		if en.Change.Target.Kind == "block" && en.Change.Before == nil && len(j.Plan.Legacy) == 0 {
-			a, _, parseErr := blockRange(cur.Data)
+			a, _, parseErr := blockRange(cur.Data, hiveMarkers)
 			if parseErr == nil && a < 0 && cur.Exists {
 				inverses[i] = cur
 				continue
@@ -556,7 +556,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		if en.Change.Target.Kind != "block" || en.Change.After == nil || cur.Mode != en.After.Mode {
 			return "", fmt.Errorf("recovery conflict: %s; preserved", en.Change.Target.Path)
 		}
-		inv, err := transform(cur, en.Change.After, en.Change.Before)
+		inv, err := transform(cur, en.Change.After, en.Change.Before, hiveMarkers)
 		if err != nil {
 			return "", fmt.Errorf("recovery conflict: %w", err)
 		}

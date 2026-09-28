@@ -51,12 +51,12 @@ func transformResource(s snapshot, ch Change) (snapshot, error) {
 		if s.Kind != "skill-directory" || ch.After == nil || ch.Target.Kind != "symlink" {
 			return snapshot{}, fmt.Errorf("invalid legacy skill migration")
 		}
-		if err := owned(snapshot{Exists: true, Data: s.Data, Mode: s.FileMode}, *ch.Replaces); err != nil {
+		if err := owned(snapshot{Exists: true, Data: s.Data, Mode: s.FileMode}, *ch.Replaces, hiveMarkers); err != nil {
 			return snapshot{}, err
 		}
 		return snapshot{Exists: true, Kind: "symlink", LinkTarget: ch.Target.LinkTarget}, nil
 	}
-	return transform(s, ch.Before, ch.After)
+	return transform(s, ch.Before, ch.After, hiveMarkers)
 }
 
 // A directory snapshot is used only for the known V1 Claude directory -> alias

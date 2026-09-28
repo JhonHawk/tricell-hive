@@ -304,7 +304,8 @@ func validateRelease(r Release) error {
 		if f.Path != GlobalSource {
 			previous = f.Path
 		}
-		if bytes.Contains(f.Data, []byte(Begin)) || bytes.Contains(f.Data, []byte(End)) {
+		if bytes.Contains(f.Data, []byte(Begin)) || bytes.Contains(f.Data, []byte(End)) ||
+			bytes.Contains(f.Data, []byte(VoiceBegin)) || bytes.Contains(f.Data, []byte(VoiceEnd)) {
 			return fmt.Errorf("reserved source delimiter")
 		}
 	}
@@ -372,7 +373,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 			ch.Before = &old
 		}
 		if action == "remove" && ch.Before == nil && s.Exists {
-			a, _, parseErr := blockRange(s.Data)
+			a, _, parseErr := blockRange(s.Data, hiveMarkers)
 			if t.Kind != "block" || parseErr != nil || a >= 0 {
 				return p, fmt.Errorf("unowned resource preserved: %s", t.Path)
 			}
@@ -452,7 +453,7 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
 	}
 	switch g.Target.Kind {
 	case "block":
-		r.Managed = managedBlock(payload(p.Release, g.Target.Source), s.Data)
+		r.Managed = managedBlock(payload(p.Release, g.Target.Source), s.Data, hiveMarkers)
 		if old == nil && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
 			r.Leading = "\n"
 		}
@@ -692,7 +693,7 @@ func Status(o Options) ([]StatusEntry, error) {
 			} else {
 				en.Status = "retained_shared"
 			}
-			if readErr != nil || owned(s, r) != nil {
+			if readErr != nil || owned(s, r, hiveMarkers) != nil {
 				en.Status = "drift"
 			}
 		} else if readErr != nil {
@@ -702,7 +703,7 @@ func Status(o Options) ([]StatusEntry, error) {
 		} else if t.Kind != "block" && s.Exists {
 			en.Status = "unowned"
 		} else if t.Kind == "block" {
-			a, _, e := blockRange(s.Data)
+			a, _, e := blockRange(s.Data, hiveMarkers)
 			if e != nil || a >= 0 {
 				en.Status = "unowned_or_conflicting"
 			}

@@ -327,6 +327,16 @@ func TestReferenceBundleUpgradeRollbackAndOwnership(t *testing.T) {
 	}
 }
 
+func TestValidateReleaseRejectsVoiceMarkers(t *testing.T) {
+	for _, marker := range []string{VoiceBegin, VoiceEnd} {
+		r := Release{Files: []Payload{{Path: GlobalSource, Data: []byte("global content\n" + marker + "\n")}}}
+		r.ID = releaseID(r)
+		if err := validateRelease(r); err == nil {
+			t.Fatalf("expected a reserved-delimiter error for a payload containing %q", marker)
+		}
+	}
+}
+
 func TestReferenceCatalogueRejectsUnsafeSources(t *testing.T) {
 	for _, source := range []string{"content/skills/x/references/../x.md", "content/skills/x/references/.hidden.md", "content/skills/x/references/x.txt", "content/skills/x/references//x.md"} {
 		if validSource(source) {

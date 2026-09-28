@@ -187,20 +187,20 @@ func lock(dir string) (func(), error) {
 }
 
 // blockRange requires complete, unambiguous delimiter lines, including EOF.
-func blockRange(b []byte) (int, int, error) {
+func blockRange(b []byte, m markers) (int, int, error) {
 	text := string(b)
-	bc, ec := strings.Count(text, Begin), strings.Count(text, End)
+	bc, ec := strings.Count(text, m.begin), strings.Count(text, m.end)
 	if bc == 0 && ec == 0 {
 		return -1, -1, nil
 	}
 	if bc != 1 || ec != 1 {
-		return 0, 0, fmt.Errorf("malformed or duplicate Hive markers")
+		return 0, 0, fmt.Errorf("malformed or duplicate %s markers", m.name)
 	}
-	start, end := strings.Index(text, Begin), strings.Index(text, End)
+	start, end := strings.Index(text, m.begin), strings.Index(text, m.end)
 	if end < start {
-		return 0, 0, fmt.Errorf("reversed Hive markers")
+		return 0, 0, fmt.Errorf("reversed %s markers", m.name)
 	}
-	for _, r := range [][2]int{{start, start + len(Begin)}, {end, end + len(End)}} {
+	for _, r := range [][2]int{{start, start + len(m.begin)}, {end, end + len(m.end)}} {
 		if r[0] > 0 && text[r[0]-1] != '\n' {
 			return 0, 0, fmt.Errorf("marker is not a full line")
 		}
@@ -209,7 +209,7 @@ func blockRange(b []byte) (int, int, error) {
 			return 0, 0, fmt.Errorf("marker is not a full line")
 		}
 	}
-	end += len(End)
+	end += len(m.end)
 	if strings.HasPrefix(text[end:], "\r\n") {
 		end += 2
 	} else if strings.HasPrefix(text[end:], "\n") {
@@ -217,16 +217,16 @@ func blockRange(b []byte) (int, int, error) {
 	}
 	return start, end, nil
 }
-func managedBlock(body, current []byte) []byte {
+func managedBlock(body, current []byte, m markers) []byte {
 	nl := "\n"
 	if i := bytes.IndexByte(current, '\n'); i > 0 && current[i-1] == '\r' {
 		nl = "\r\n"
 	}
 	s := strings.ReplaceAll(string(body), "\r\n", "\n")
 	s = strings.TrimRight(s, "\n")
-	return []byte(Begin + nl + strings.ReplaceAll(s, "\n", nl) + nl + End + nl)
+	return []byte(m.begin + nl + strings.ReplaceAll(s, "\n", nl) + nl + m.end + nl)
 }
-func owned(s snapshot, r Record) error {
+func owned(s snapshot, r Record, m markers) error {
 	if !s.Exists {
 		return fmt.Errorf("managed file is missing: %s", r.Target.Path)
 	}
@@ -245,7 +245,7 @@ func owned(s snapshot, r Record) error {
 		}
 		return nil
 	}
-	a, b, err := blockRange(s.Data)
+	a, b, err := blockRange(s.Data, m)
 	if err != nil {
 		return err
 	}
@@ -254,9 +254,9 @@ func owned(s snapshot, r Record) error {
 	}
 	return nil
 }
-func transform(s snapshot, before, after *Record) (snapshot, error) {
+func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	if before != nil {
-		if err := owned(s, *before); err != nil {
+		if err := owned(s, *before, m); err != nil {
 			return snapshot{}, err
 		}
 	}
@@ -288,13 +288,13 @@ func transform(s snapshot, before, after *Record) (snapshot, error) {
 	if before != nil && before.Target.Kind == "symlink" {
 		return snapshot{}, nil
 	}
-	a, b, err := blockRange(s.Data)
+	a, b, err := blockRange(s.Data, m)
 	if err != nil {
 		return snapshot{}, err
 	}
 	if before == nil {
 		if a >= 0 {
-			return snapshot{}, fmt.Errorf("unowned Hive block")
+			return snapshot{}, fmt.Errorf("unowned %s block", m.name)
 		}
 		out := append(append(append([]byte{}, s.Data...), []byte(after.Leading)...), after.Managed...)
 		return snapshot{Exists: true, Data: out, Mode: mode}, nil

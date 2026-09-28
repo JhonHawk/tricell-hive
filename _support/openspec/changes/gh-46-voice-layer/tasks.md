@@ -12,7 +12,9 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T1 — Marcadores por parámetro y catálogo de voces en el gestor
 
-- [/] Las funciones de bloque reciben el par de marcadores, y el gestor lee, valida y genera el texto de una voz.
+- [x] Las funciones de bloque reciben el par de marcadores, y el gestor lee, valida y genera el texto de una voz.
+  - Ronda 1, AC9 y AC10 no cumplidos: `RenderVoice` acepta el ID `preamble`; las pruebas no dependen de la protección contra rutas con `../`, no fijan cada marcador por separado y no afirman que el bloque empieza con el preámbulo ni el orden y la cantidad de las líneas de tratamiento e intensidad.
+  - **Ronda 2:** AC9 y AC10 cumplidos. `review-task` repitió las roturas deliberadas del código que antes nadie detectaba, y ahora cada una hace fallar una prueba. `go test -race ./tooling/management` pasa. En la ronda también se agregaron: el nombre del bloque en los errores (con los textos de Hive idénticos a la base), la versión del formato dentro del hash y el rechazo de un nombre con un tratamiento que no es `name`.
 
 **Closes:** AC9 (la validación del catálogo y de los parámetros) y AC10 (que el bloque generado empiece con el preámbulo).
 
@@ -40,7 +42,7 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T2 — Plan, aplicación, recuperación y estado de la voz
 
-- [ ] El gestor arma, aplica y recupera cambios de voz, los conserva y regenera en `plan install`, los quita en `plan remove` y los informa en `status`.
+- [/] El gestor arma, aplica y recupera cambios de voz, los conserva y regenera en `plan install`, los quita en `plan remove` y los informa en `status`.
 
 **Closes:** AC2, AC3, AC4, AC5, AC6, AC7 y AC8, en la capa del gestor.
 

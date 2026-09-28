@@ -17,8 +17,51 @@ import (
 
 const Begin = "<!-- === TRICELL HIVE RULES:BEGIN === -->"
 const End = "<!-- === TRICELL HIVE RULES:END === -->"
+
+// VoiceBegin and VoiceEnd delimit the optional voice block, a second managed
+// span in the same instruction file, always placed after the Hive block. See
+// design.md "Bloque de voz".
+const VoiceBegin = "<!-- === TRICELL HIVE VOICE:BEGIN === -->"
+const VoiceEnd = "<!-- === TRICELL HIVE VOICE:END === -->"
 const GlobalSource = "content/guidance/global.md"
 const SkillSource = "content/skills/workspace-conventions/SKILL.md"
+
+// VoicesSource is the catalogue directory holding the shared preamble and
+// each voice's description, read directly from the source checkout by
+// ListVoices and RenderVoice rather than through a Release payload.
+const VoicesSource = "content/voices"
+
+// markers is a begin/end delimiter pair for one managed span, plus the short
+// name that error messages use to say which block failed ("Hive" or
+// "voice"). blockRange, managedBlock, owned and transform all take one
+// explicitly so the same block mechanics serve both the Hive block
+// (hiveMarkers) and the voice block (voiceMarkers), without behavior
+// differing between the two pairs; hiveMarkers keeps every message byte for
+// byte identical to the pre-parametrization text.
+type markers struct{ begin, end, name string }
+
+var hiveMarkers = markers{begin: Begin, end: End, name: "Hive"}
+var voiceMarkers = markers{begin: VoiceBegin, end: VoiceEnd, name: "voice"}
+
+// VoiceSetting is the user's chosen optional voice layer: which voice, how it
+// addresses the user, and how strongly it shows. Not yet wired into Plan or
+// State; a later change adds Plan.VoiceSetting and State.Voice.
+type VoiceSetting struct {
+	ID        string `json:"id"`
+	Address   string `json:"address"`
+	Name      string `json:"name,omitempty"`
+	Intensity string `json:"intensity"`
+}
+
+// VoiceSpan is one rendered voice block as installed in a file: its managed
+// text, the hash of the sources RenderVoice rendered it from, and its
+// registered consumers. Not yet wired into Plan or State; a later change
+// adds Plan.Voice and State.VoiceSpans.
+type VoiceSpan struct {
+	Managed    []byte     `json:"managed"`
+	SourceHash string     `json:"source_hash"`
+	Consumers  []Consumer `json:"consumers,omitempty"`
+}
 
 type Payload struct {
 	Path string `json:"path"`

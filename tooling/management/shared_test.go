@@ -174,7 +174,7 @@ func legacyInstall(t *testing.T, o Options) []byte {
 		}
 		for _, kind := range []string{"block", "skill"} {
 			path := filepath.Join(base, instruction)
-			managed := managedBlock(r.Files[0].Data, nil)
+			managed := managedBlock(r.Files[0].Data, nil, hiveMarkers)
 			if kind == "skill" {
 				path = skill
 				managed = r.Files[1].Data
@@ -456,7 +456,7 @@ func TestLegacyPendingJournalUsesOriginalHashes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			managed := managedBlock(r.Files[0].Data, nil)
+			managed := managedBlock(r.Files[0].Data, nil, hiveMarkers)
 			ch := oldChange{Target: targetV1, Expected: oldFingerprint{false, hash(nil), 0}, After: &oldRecord{Target: targetV1, Managed: managed, CreatedFile: true, Release: r.ID}}
 			op := oldPlan{Version: version, Action: "install", Config: oldConfig{Scope: "user", Home: o.Home, CodexHome: filepath.Join(o.Home, ".codex"), ClaudeHome: filepath.Join(o.Home, ".claude")}, Hosts: []string{"codex"}, StateDir: o.StateDir, StateHash: hash(nil), Release: &r, Changes: []oldChange{ch}}
 			op.ID = hash(encode(op))
