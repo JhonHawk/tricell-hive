@@ -3,11 +3,13 @@ package management
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"time"
 	"tricell-hive/integrations/target"
 )
 
@@ -368,6 +370,47 @@ func finishApply(p Plan, id string, next State) (string, error) {
 	}
 	return id, nil
 }
+
+// recordSourceCommit appends p.SourceCommit to releases/<id>.commits.json
+// when the plan carries both a source commit and a release and that commit
+// is not already listed. The caller must still hold the manager lock, since
+// this is otherwise an unguarded read-modify-write of a shared file. Apply's
+// core outcome (install/remove, "unchanged" or committed) never depends on
+// this: a write failure here is reported as a warning string, not an error,
+// because the installation it describes is already committed.
+func recordSourceCommit(p Plan) string {
+	if p.SourceCommit == "" || p.Release == nil {
+		return ""
+	}
+	dir := filepath.Join(p.StateDir, "releases")
+	if err := target.Safe(dir); err != nil {
+		return fmt.Sprintf("warning: recording source commit failed: %v", err)
+	}
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Sprintf("warning: recording source commit failed: %v", err)
+	}
+	path := filepath.Join(dir, p.Release.ID+".commits.json")
+	var rec commitRecord
+	s, err := read(path)
+	if err != nil {
+		return fmt.Sprintf("warning: recording source commit failed: %v", err)
+	}
+	if s.Exists {
+		if err := json.Unmarshal(s.Data, &rec); err != nil {
+			return fmt.Sprintf("warning: recording source commit failed: %v", err)
+		}
+	}
+	for _, c := range rec.Commits {
+		if c.Commit == p.SourceCommit {
+			return ""
+		}
+	}
+	rec.Commits = append(rec.Commits, commitLogEntry{Commit: p.SourceCommit, AppliedAt: time.Now().UTC().Format(time.RFC3339)})
+	if err := write(path, snapshot{Exists: true, Data: encode(rec), Mode: 0600}); err != nil {
+		return fmt.Sprintf("warning: recording source commit failed: %v", err)
+	}
+	return ""
+}
 func (e Engine) Apply(p Plan) (string, error) {
 	state := e.presetState
 	if !e.nested {
@@ -386,7 +429,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 		return "", err
 	}
 	if !changed {
-		return "unchanged", nil
+		result := "unchanged"
+		if warning := recordSourceCommit(p); warning != "" {
+			result += "; " + warning
+		}
+		return result, nil
 	}
 	jp := filepath.Join(p.StateDir, "transactions", j.ID+".json")
 	pp := filepath.Join(p.StateDir, "pending.json")
@@ -396,7 +443,15 @@ func (e Engine) Apply(p Plan) (string, error) {
 	if err = e.commitTransaction(p, &j, state, next, dirsToCreate, jp, pp); err != nil {
 		return j.ID, fmt.Errorf("transaction %s requires recover: %w", j.ID, err)
 	}
-	return finishApply(p, j.ID, next)
+	warning := recordSourceCommit(p)
+	id, err := finishApply(p, j.ID, next)
+	if err != nil {
+		return id, err
+	}
+	if warning != "" {
+		id += "; " + warning
+	}
+	return id, nil
 }
 func (e Engine) Recover(stateDir string) (string, error) {
 	dir, err := target.Canonical(stateDir)

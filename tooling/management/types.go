@@ -70,19 +70,42 @@ type Change struct {
 	Replaces *Record       `json:"replaces,omitempty"`
 }
 type Plan struct {
-	Product   *ProductIdentity                `json:"product,omitempty"`
-	Installer *distribution.RetainedInstaller `json:"installer,omitempty"`
-	Version   int                             `json:"version"`
-	Action    string                          `json:"action"`
-	Config    target.Config                   `json:"config"`
-	Hosts     []string                        `json:"hosts"`
-	StateDir  string                          `json:"state_dir"`
-	StateHash string                          `json:"state_hash"`
-	Release   *Release                        `json:"release,omitempty"`
-	Changes   []Change                        `json:"changes"`
-	ID        string                          `json:"id"`
-	Legacy    []legacy.Edit                   `json:"legacy,omitempty"`
-	Migration *MigrationReceipt               `json:"migration,omitempty"`
+	Product      *ProductIdentity                `json:"product,omitempty"`
+	Installer    *distribution.RetainedInstaller `json:"installer,omitempty"`
+	Version      int                             `json:"version"`
+	Action       string                          `json:"action"`
+	Config       target.Config                   `json:"config"`
+	Hosts        []string                        `json:"hosts"`
+	StateDir     string                          `json:"state_dir"`
+	StateHash    string                          `json:"state_hash"`
+	Release      *Release                        `json:"release,omitempty"`
+	Changes      []Change                        `json:"changes"`
+	ID           string                          `json:"id"`
+	Legacy       []legacy.Edit                   `json:"legacy,omitempty"`
+	Migration    *MigrationReceipt               `json:"migration,omitempty"`
+	SourceCommit string                          `json:"source_commit,omitempty"`
+}
+
+// ReleaseEntry describes one retained release snapshot for hive releases: its
+// identity, when its snapshot was last written, the source commits it is
+// known to have come from, and where it is currently installed.
+type ReleaseEntry struct {
+	ID            string     `json:"id"`
+	LastWrittenAt string     `json:"last_written_at"`
+	Commits       []string   `json:"commits"`
+	Consumers     []Consumer `json:"consumers"`
+}
+
+// commitRecord is the on-disk shape of releases/<id>.commits.json: the source
+// commits a release is known to have been produced from, each with when it
+// was applied. It is separate from the release snapshot itself so recording
+// a commit never touches the snapshot's compared-byte-for-byte content.
+type commitRecord struct {
+	Commits []commitLogEntry `json:"commits"`
+}
+type commitLogEntry struct {
+	Commit    string `json:"commit"`
+	AppliedAt string `json:"applied_at"`
 }
 type Options struct {
 	Scope, Home, Root, StateDir, Source, ReleaseID string

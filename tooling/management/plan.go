@@ -2,6 +2,7 @@ package management
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 	"tricell-hive/integrations/agents"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
@@ -522,10 +524,16 @@ func LoadPlan(path string) (Plan, error) {
 	}
 	return p, nil
 }
+
+var sourceCommitPattern = regexp.MustCompile(`^([0-9a-f]{40}|[0-9a-f]{64})$`)
+
 func validatePlan(p Plan, state State) error {
 	// Plans saved before Cursor support omit cursor_home and still hash correctly.
 	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
+	}
+	if p.SourceCommit != "" && !sourceCommitPattern.MatchString(p.SourceCommit) {
+		return fmt.Errorf("invalid plan source commit")
 	}
 	h, err := validateHosts(p.Hosts)
 	if err != nil || !reflect.DeepEqual(h, p.Hosts) {
@@ -716,6 +724,76 @@ func Status(o Options) ([]StatusEntry, error) {
 			return out[i].Host < out[j].Host
 		}
 		return out[i].Path < out[j].Path
+	})
+	return out, nil
+}
+
+// Releases lists every retained release snapshot in the state directory,
+// read-only. Consumers come from state.Records rather than
+// state.Installations, which drops a host's product receipt once it moves to
+// an older release through plan install --release; the snapshot itself still
+// records which resources point at that release ID.
+func Releases(o Options) ([]ReleaseEntry, error) {
+	_, dir, err := normalize(o)
+	if err != nil {
+		return nil, err
+	}
+	state, _, err := readState(dir)
+	if err != nil {
+		return nil, err
+	}
+	releasesDir := filepath.Join(dir, "releases")
+	entries, err := os.ReadDir(releasesDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	consumersByRelease := map[string][]Consumer{}
+	for _, r := range state.Records {
+		consumersByRelease[r.Release] = append(consumersByRelease[r.Release], r.Consumers...)
+	}
+	var out []ReleaseEntry
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		id := strings.TrimSuffix(e.Name(), ".json")
+		if !hexDigest64.MatchString(id) {
+			continue
+		}
+		path := filepath.Join(releasesDir, e.Name())
+		var rel Release
+		if err := decodeFile(path, &rel); err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		info, err := e.Info()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		entry := ReleaseEntry{ID: id, LastWrittenAt: info.ModTime().UTC().Format(time.RFC3339), Commits: []string{}}
+		commitsPath := filepath.Join(releasesDir, id+".commits.json")
+		if s, err := read(commitsPath); err != nil {
+			return nil, fmt.Errorf("%s: %w", commitsPath, err)
+		} else if s.Exists {
+			var rec commitRecord
+			if err := json.Unmarshal(s.Data, &rec); err != nil {
+				return nil, fmt.Errorf("%s: %w", commitsPath, err)
+			}
+			sort.SliceStable(rec.Commits, func(i, j int) bool { return rec.Commits[i].AppliedAt < rec.Commits[j].AppliedAt })
+			for _, c := range rec.Commits {
+				entry.Commits = append(entry.Commits, c.Commit)
+			}
+		}
+		entry.Consumers = sortedConsumers(consumersByRelease[id])
+		out = append(out, entry)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].LastWrittenAt != out[j].LastWrittenAt {
+			return out[i].LastWrittenAt > out[j].LastWrittenAt
+		}
+		return out[i].ID < out[j].ID
 	})
 	return out, nil
 }
