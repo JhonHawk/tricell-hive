@@ -274,11 +274,12 @@ func TestRunStatusReportsNotInstalledOnFreshHome(t *testing.T) {
 // TestRunUsageErrors characterizes the four documented usage-error messages:
 // no subcommand at all, `plan` without install/remove, unexpected
 // positional arguments after a subcommand's flags, and an unrecognized
-// subcommand. HIVE_ACCESSIBLE is cleared so "no subcommand" never depends on
-// the ambient environment: with it set, run([]) would open the accessible
-// interface instead of returning the usage error (D14-A, tui.go).
+// subcommand. The terminal check is stubbed to "no terminal" so "no
+// subcommand" never depends on the terminal the tests run in: in a terminal,
+// run([]) would open the interface instead of returning the usage error
+// (D14-A, tui.go).
 func TestRunUsageErrors(t *testing.T) {
-	t.Setenv("HIVE_ACCESSIBLE", "")
+	stubInterfaceEntry(t, false, "", "")
 	cases := []struct {
 		name string
 		args []string

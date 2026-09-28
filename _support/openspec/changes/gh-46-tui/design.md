@@ -155,6 +155,7 @@ La vista de recuperación llama a las funciones de detección y recuperación qu
 
 - **Salen:** `charm.land/huh/v2` y sus dependencias exclusivas, con `go mod tidy`.
 - **Quedan directas:** `charm.land/bubbletea/v2` v2.0.2 (hoy indirecta), `charm.land/bubbles/v2` v2.0.0 y `charm.land/lipgloss/v2` v2.0.1.
+- **También directa (decidido al construir T7):** `github.com/charmbracelet/x/ansi`, que ya estaba en `go.mod` como indirecta. Se usa por `ansi.Truncate` y `ansi.Wrap`, porque `lipgloss` v2 no recorta con «…» ni ajusta respetando las secuencias ANSI. No agrega ningún módulo.
 - **Sin módulos nuevos:** los tres ya están en `go.sum`. Solo se usan los paquetes de `bubbles` que no traen módulos nuevos (`textinput`, `viewport`, `spinner`, `key` y `help`), no `list`. T10 compara `go list -m all` con el de `dd146c0`.
 - **Excepción:** la excepción a la regla de dependencias de `AGENTS.md` se mantiene, con la lista actualizada, porque la interfaz es una función de producto pedida por el usuario.
 

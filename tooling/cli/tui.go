@@ -1,8 +1,11 @@
-// tui.go implements D14-A: bare `hive` and the explicit `hive tui`
-// subcommand both open the terminal interface. openInterface is the
-// injectable entry point every caller and every test goes through
-// (design.md "Punto de entrada"); runMenu is the interface's own loop once
-// it is open (design.md "La interfaz").
+// tui.go is the terminal interface's entry (D14-A): bare `hive` and the
+// explicit `hive tui` subcommand both open the full-screen application in
+// tui_app.go when stdin and stdout are terminals. Without a terminal, bare
+// `hive` keeps today's usage error and `hive tui` names the text commands.
+//
+// The sequential interface (openInterface, runMenu and the huh screens) is no
+// longer reachable from `hive` or `hive tui`; T10 deletes it, so it stays here
+// only until then.
 package main
 
 import (
@@ -12,6 +15,9 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"tricell-hive/tooling/management"
 )
@@ -23,45 +29,73 @@ type options struct {
 	Home, StateDir, Source string
 }
 
-// interfaceStdio is bare `hive`'s own real-environment dependency: the real
-// terminal-detection check, the real stdin/stdout, and (since bare `hive`
-// takes no --home/--state-dir of its own) the real, default home and state
-// directory. A test overwrites these fields (and restores them) so
-// run(nil) is testable end to end against a synthetic home instead of the
-// real user's own state (T2 fix round item 4; T3 fix-round leftover (b)).
-// hive tui's own --home/--state-dir flags make it testable without this
-// seam, so runInterfaceCommand only reuses isTTY/in/out from it.
+// interfaceStdio is the entry's own real-environment dependency: the real
+// terminal-detection check, the real stdin/stdout, (since bare `hive` takes no
+// --home/--state-dir of its own) the real, default home and state directory,
+// and start, which opens the application. A test overwrites these fields (and
+// restores them) so run(nil) and run(["tui"]) are testable without a terminal
+// and without a program (T2 fix round item 4; T3 fix-round leftover (b)).
 var interfaceStdio = struct {
 	isTTY    func() bool
 	in       io.Reader
 	out      io.Writer
 	home     string
 	stateDir string
+	start    func(o options, in io.Reader, out io.Writer) error
 }{
 	isTTY: func() bool { return terminalInput(os.Stdin) && terminalInput(os.Stdout) },
 	in:    os.Stdin,
 	out:   os.Stdout,
+	start: runApp,
+}
+
+// noTerminalMessage is what `hive tui` fails with when stdin or stdout is not
+// a terminal: it names the text commands that work without one, including
+// plan/apply for removing hosts and recover.
+const noTerminalMessage = "hive tui needs a terminal; use the text commands: hive status, install, update, releases, voice, plan/apply to remove hosts, recover"
+
+// runApp opens the full-screen application over a normalized copy of o. The
+// terminal background is detected before the program starts, as the earlier
+// interface did; NO_COLOR skips the detection and removes every color.
+func runApp(o options, in io.Reader, out io.Writer) error {
+	mo := management.Options{Scope: "user", Home: o.Home, StateDir: o.StateDir, Source: o.Source}
+	_, stateDir, err := management.NormalizeOptions(mo)
+	if err != nil {
+		return err
+	}
+	mo.StateDir = stateDir
+	noColor := os.Getenv("NO_COLOR") != ""
+	dark := true
+	if inFile, ok := in.(*os.File); ok && !noColor {
+		if outFile, ok := out.(*os.File); ok {
+			dark = lipgloss.HasDarkBackground(inFile, outFile)
+		}
+	}
+	return runAppWith(appConfig{
+		Options:          mo,
+		ExplicitStateDir: o.StateDir != "",
+		Deps:             defaultInstallDependencies(nativeProviderAdapterFactory),
+		Dark:             dark,
+		NoColor:          noColor,
+	}, in, out)
 }
 
 // runBareInterface implements bare `hive` with no arguments (D14-A): exactly
-// `hive tui` with no options, opened in a terminal or accessible mode when
-// either is available; with neither, openInterface returns usageMessage
-// unchanged. main.go's run keeps this as a single call so run itself stays
-// within its own line budget.
+// `hive tui` with no options when stdin and stdout are terminals; otherwise
+// today's usage error, unchanged. main.go's run keeps this as a single call so
+// run itself stays within its own line budget.
 func runBareInterface() error {
-	accessible := os.Getenv("HIVE_ACCESSIBLE") == "1"
+	if !interfaceStdio.isTTY() {
+		return errors.New(usageMessage)
+	}
 	o := options{Home: interfaceStdio.home, StateDir: interfaceStdio.stateDir, Source: "."}
-	return openInterface(interfaceStdio.isTTY(), accessible, interfaceStdio.in, interfaceStdio.out, o)
+	return interfaceStdio.start(o, interfaceStdio.in, interfaceStdio.out)
 }
 
-// openInterface is D14-A's injectable entry point: bare `hive` and the
-// explicit `hive tui` subcommand both reach it, with isTTY and accessible
-// resolved by their own caller so no test depends on the real terminal.
-// Neither present returns today's usage error, unchanged: this is exactly
-// what bare `hive` prints outside a terminal. The explicit `hive tui`
-// subcommand's own caller (runInterfaceCommand) never reaches this branch:
-// it checks the same condition first and fails with its own message naming
-// HIVE_ACCESSIBLE instead.
+// openInterface is the retired sequential interface's entry point. `hive` and
+// `hive tui` no longer reach it (they open the full-screen application);
+// only tests of the sequential screens still call it, until T10 deletes it
+// together with the huh prompter.
 func openInterface(isTTY, accessible bool, in io.Reader, out io.Writer, o options) error {
 	if !isTTY && !accessible {
 		return errors.New(usageMessage)
@@ -86,20 +120,23 @@ func openInterface(isTTY, accessible bool, in io.Reader, out io.Writer, o option
 	return runMenu(mo, out, p)
 }
 
-// checkPendingOnOpen offers to recover a pending optional-onboarding or core
-// operation when the interface opens (design.md "Al abrir"). It reuses
-// handlePendingInstallOperation so its precedence and prompts match hive
-// install's, with a recovery phrase of its own (T2 fix round item 5):
-// naming hive recover — with --state-dir when the interface itself was
-// opened against an explicit one, so the operator recovers the same,
-// possibly synthetic, state they are looking at, rather than the real
-// user's default — and only when the attempted recovery still leaves
-// something pending, never after one that already succeeded.
-// dependencies is injectable so a test can exercise the offer/decline/
-// recover paths without a real transaction journal, the same seam
-// installWithDependencies already uses (install.go).
+// checkPendingOnOpen is the retired sequential interface's on-open check: it
+// reuses handlePendingInstallOperation so its precedence and prompts match
+// hive install's. dependencies is injectable so a test can exercise the
+// offer/decline/recover paths without a real transaction journal, the same
+// seam installWithDependencies already uses (install.go). The application
+// (tui_app.go) does not call it; T10 deletes it.
 func checkPendingOnOpen(o management.Options, explicitStateDir bool, out io.Writer, p prompter, dependencies installDependencies) (handled bool, err error) {
-	recoveryText := func(stateDir string, stillNeeded bool) string {
+	return handlePendingInstallOperation(o, false, p, out, recoveryTextOnOpen(explicitStateDir), dependencies)
+}
+
+// recoveryTextOnOpen is the recovery phrase the interface uses (T2 fix round
+// item 5): it names hive recover — with --state-dir when the interface was
+// opened against an explicit one, so the operator recovers the same, possibly
+// synthetic, state they are looking at — and only when the attempted recovery
+// still leaves something pending, never after one that already succeeded.
+func recoveryTextOnOpen(explicitStateDir bool) func(stateDir string, stillNeeded bool) string {
+	return func(stateDir string, stillNeeded bool) string {
 		if !stillNeeded {
 			return ""
 		}
@@ -108,7 +145,44 @@ func checkPendingOnOpen(o management.Options, explicitStateDir bool, out io.Writ
 		}
 		return "Run hive recover"
 	}
-	return handlePendingInstallOperation(o, false, p, out, recoveryText, dependencies)
+}
+
+// recoverPendingCmd recovers the pending operation or onboarding as a Cmd, so
+// the application can run it as a write. It uses the same detection and
+// recovery functions as handlePendingInstallOperation and `hive recover`
+// (dependencies.AdapterFactory, RecoverOnboarding and RecoverCore), without
+// that function's text question. o is the Cmd's own copy.
+func recoverPendingCmd(kind management.PendingKind, o management.Options, explicitStateDir bool, dependencies installDependencies) tea.Cmd {
+	return func() tea.Msg {
+		text, err := recoverPending(kind, o, explicitStateDir, dependencies)
+		return recoverDoneMsg{text: text, err: err}
+	}
+}
+
+// recoverPending returns the same result line handlePendingInstallOperation
+// prints for the interface.
+func recoverPending(kind management.PendingKind, o management.Options, explicitStateDir bool, dependencies installDependencies) (string, error) {
+	stateDir := o.StateDir
+	recoveryText := recoveryTextOnOpen(explicitStateDir)
+	switch kind {
+	case management.PendingOnboarding:
+		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, false))
+		if err != nil {
+			return "", err
+		}
+		result, err := dependencies.RecoverOnboarding(stateDir, adapter)
+		if err != nil {
+			return "", err
+		}
+		return withRecoverySentence(fmt.Sprintf("Onboarding recovery: %s (%s).", result.ID, result.Phase), recoveryText(stateDir, result.Phase != "completed")), nil
+	case management.PendingCore:
+		result, err := dependencies.RecoverCore(stateDir)
+		if err != nil {
+			return "", err
+		}
+		return withRecoverySentence(fmt.Sprintf("Recovery: %s.", result), recoveryText(stateDir, false)), nil
+	}
+	return "", nil
 }
 
 // menuEntry is one of the interface's seven fixed entries, in the order
@@ -252,11 +326,11 @@ func activeVoiceID(entries []management.StatusEntry) (string, bool) {
 }
 
 // runInterfaceCommand implements the explicit `hive tui` subcommand
-// (design.md "Punto de entrada"): its own --home/--state-dir/--source
-// mirror install's. Failing to find a terminal or HIVE_ACCESSIBLE names the
-// environment variable directly, since running this subcommand at all
-// already expresses the intent to open the interface — unlike bare `hive`,
-// whose failure must stay today's plain usage error.
+// (design.md "Punto de entrada"): its own --home/--state-dir/--source mirror
+// install's. Without a terminal it fails with noTerminalMessage, which names
+// the text commands: running this subcommand already expresses the intent to
+// open the interface, unlike bare `hive`, whose failure stays today's plain
+// usage error.
 func runInterfaceCommand(args []string) error {
 	var o options
 	o.Source = "."
@@ -273,10 +347,8 @@ func runInterfaceCommand(args []string) error {
 	if fs.NArg() != 0 {
 		return fmt.Errorf("tui accepts no positional arguments")
 	}
-	isTTY := interfaceStdio.isTTY()
-	accessible := os.Getenv("HIVE_ACCESSIBLE") == "1"
-	if !isTTY && !accessible {
-		return fmt.Errorf("hive tui needs an interactive terminal; set HIVE_ACCESSIBLE=1 to answer as plain-text questions instead")
+	if !interfaceStdio.isTTY() {
+		return errors.New(noTerminalMessage)
 	}
-	return openInterface(isTTY, accessible, interfaceStdio.in, interfaceStdio.out, o)
+	return interfaceStdio.start(o, interfaceStdio.in, interfaceStdio.out)
 }

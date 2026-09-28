@@ -38,7 +38,17 @@ T1 a T5 quedaron verificadas y T6 pasó `review-ux` y `sdd-verify`. El recorrido
 
 ### T7 — Esqueleto de la aplicación, menú y recuperación al abrir
 
-- [ ] `hive` y `hive tui` abren la aplicación en la pantalla alterna, con menú, línea de estado, barra de ayuda, teclas globales, aviso de tamaño mínimo y vista de recuperación. El menú lleva a vistas provisionales («Not implemented yet»), que T8 y T9 reemplazan.
+- [x] `hive` y `hive tui` abren la aplicación en la pantalla alterna, con menú, línea de estado, barra de ayuda, teclas globales, aviso de tamaño mínimo y vista de recuperación. El menú lleva a vistas provisionales («Not implemented yet»), que T8 y T9 reemplazan.
+  - **`review-task` (2026-09-28):** AC1, AC2 (fuera de una escritura) y AC9 (menú, vistas genéricas y aviso) cumplidos.
+    - **Pruebas:** con `-race`, en 170 s; `go vet` limpio; `sha256` de las cuatro pruebas de texto iguales a `dd146c0`.
+    - **En `tmux`:** pantalla alterna activa y después apagada, cinco formas de salir sin rastro, código de salida 0, y aviso de tamaño con el estado conservado.
+  - **Desviaciones:**
+    - la ruta secuencial (`openInterface`, `runMenu`, `checkPendingOnOpen`) sigue en `tui.go` sin ser alcanzable, porque las pruebas protegidas la llaman; T10 la borra;
+    - `x/ansi` como dependencia directa ([dependencias](design.md#dependencias)).
+  - **Pendientes que pasan a T10:**
+    - `TestUsage…` fija `HIVE_ACCESSIBLE` con `t.Setenv`, y T10 quita esos `Setenv` para que la búsqueda de AC10 quede limpia;
+    - borrar `TestLegacyHuhThemeContrastMeetsWCAGAA`.
+  - **Menores:** ninguna prueba exige la «…» al recortar una fila (T8 y T9 la afirman en sus filas), y por debajo de unas 32 columnas el aviso se recorta.
 
 **Closes:** AC1, AC2 (fuera de una escritura), AC9 (menú, vistas genéricas y aviso de tamaño).
 
@@ -78,7 +88,7 @@ Pruebas nuevas:
 
 ### T8 — Vista CLIs: estado, casillas, diff y «Uninstall all»
 
-- [ ] La vista CLIs muestra el estado por CLI y aplica altas, bajas o ambas en dos pasos, y «Uninstall all». Los resultados son idénticos a los de los comandos.
+- [/] La vista CLIs muestra el estado por CLI y aplica altas, bajas o ambas en dos pasos, y «Uninstall all». Los resultados son idénticos a los de los comandos.
 
 **Closes:** AC2 (durante una escritura), AC3, AC4, AC5, AC8 (en esta vista), AC9 (en esta vista).
 

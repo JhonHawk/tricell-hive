@@ -1,8 +1,7 @@
-// tui_contrast_test.go implements T6's own review-ux re-review contrast
-// findings (N1, N2): a WCAG 2.1 AA contrast table over
-// charmThemeForDetectedBackground's own resolved styles (tui_prompter.go),
-// plus the raw-huh pinning test that keeps this package's manual overrides
-// honest against the pinned huh v2.0.3.
+// tui_contrast_test.go holds the WCAG 2.1 AA contrast tables: the full-screen
+// application's own theme (TestThemeContrastMeetsWCAGAA, tui_theme.go) and,
+// until T10 deletes the sequential interface, the legacy huh theme's own table
+// (TestLegacyHuhThemeContrastMeetsWCAGAA) with its raw-huh pinning test.
 package main
 
 import (
@@ -10,6 +9,7 @@ import (
 	"math"
 	"testing"
 
+	"charm.land/bubbles/v2/help"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 )
@@ -66,7 +66,7 @@ var (
 	bothLightRefs = []color.Color{refWhite, refLightGray}
 )
 
-// TestThemeContrastMeetsWCAGAA is T6's review-ux re-review contrast table
+// TestLegacyHuhThemeContrastMeetsWCAGAA is T6's review-ux re-review contrast table
 // (N1, N2): every style field an operator actually reads text in must meet
 // WCAG 2.1 AA against real terminal backgrounds, in both
 // charmThemeForDetectedBackground(true) (checked against refBlack and
@@ -94,7 +94,7 @@ var (
 // their own background — a button paints its own background rectangle, so
 // the surrounding terminal background never shows through — checked once
 // per branch instead of against either reference pair.
-func TestThemeContrastMeetsWCAGAA(t *testing.T) {
+func TestLegacyHuhThemeContrastMeetsWCAGAA(t *testing.T) {
 	type textCheck struct {
 		name                string
 		get                 func(s *huh.Styles) color.Color
@@ -163,5 +163,85 @@ func TestHuhThemeCharmStillInvertsOptionColor(t *testing.T) {
 	want := lipgloss.Color("235")
 	if got := styles.Focused.UnselectedOption.GetForeground(); got != want {
 		t.Fatalf("huh.ThemeCharm(true).Focused.UnselectedOption foreground = %v, want %v (the known-wrong value tui_prompter.go's charmThemeForDetectedBackground still overrides); if huh fixed this, reconsider that override and this test", got, want)
+	}
+}
+
+// TestThemeContrastMeetsWCAGAA measures the full-screen application's own
+// styles (tui_theme.go) with the same WCAG helpers: every style that renders
+// text must reach 4.5:1 against both reference backgrounds of its branch (pure
+// black and a common near-black for the dark theme; pure white and a common
+// near-white for the light one), and a button, which paints its own
+// background, must reach it against that background.
+func TestThemeContrastMeetsWCAGAA(t *testing.T) {
+	type textCheck struct {
+		name string
+		get  func(th appTheme) lipgloss.Style
+	}
+	textChecks := []textCheck{
+		{"Text", func(th appTheme) lipgloss.Style { return th.Text }},
+		{"Muted", func(th appTheme) lipgloss.Style { return th.Muted }},
+		{"Title", func(th appTheme) lipgloss.Style { return th.Title }},
+		{"Accent", func(th appTheme) lipgloss.Style { return th.Accent }},
+		{"Success", func(th appTheme) lipgloss.Style { return th.Success }},
+		{"Danger", func(th appTheme) lipgloss.Style { return th.Danger }},
+		{"ButtonOff", func(th appTheme) lipgloss.Style { return th.ButtonOff }},
+		{"Help.ShortKey", func(th appTheme) lipgloss.Style { return th.Help.ShortKey }},
+		{"Help.ShortDesc", func(th appTheme) lipgloss.Style { return th.Help.ShortDesc }},
+		{"Help.ShortSeparator", func(th appTheme) lipgloss.Style { return th.Help.ShortSeparator }},
+		{"Help.Ellipsis", func(th appTheme) lipgloss.Style { return th.Help.Ellipsis }},
+	}
+	for _, isDark := range []bool{true, false} {
+		th := newAppTheme(isDark, false)
+		refs := bothLightRefs
+		if isDark {
+			refs = bothDarkRefs
+		}
+		for _, tc := range textChecks {
+			t.Run(themeBranch(isDark)+"/"+tc.name, func(t *testing.T) {
+				fg := tc.get(th).GetForeground()
+				if _, unset := fg.(lipgloss.NoColor); unset {
+					t.Fatalf("%s carries no foreground color", tc.name)
+				}
+				for _, bg := range refs {
+					if r := wcagContrastRatio(fg, bg); r < wcagNormalTextMinimum {
+						t.Errorf("%s (%v) vs %v = %.2f, want >= %.1f", tc.name, fg, bg, r, wcagNormalTextMinimum)
+					}
+				}
+			})
+		}
+		t.Run(themeBranch(isDark)+"/ButtonOn", func(t *testing.T) {
+			fg, bg := th.ButtonOn.GetForeground(), th.ButtonOn.GetBackground()
+			if r := wcagContrastRatio(fg, bg); r < wcagNormalTextMinimum {
+				t.Errorf("ButtonOn foreground (%v) vs its own background (%v) = %.2f, want >= %.1f", fg, bg, r, wcagNormalTextMinimum)
+			}
+		})
+	}
+}
+
+func themeBranch(isDark bool) string {
+	if isDark {
+		return "dark"
+	}
+	return "light"
+}
+
+// TestThemeNoColorStylesCarryNoColor covers NO_COLOR: no style of the
+// no-color theme sets a foreground or background color.
+func TestThemeNoColorStylesCarryNoColor(t *testing.T) {
+	th := newAppTheme(true, true)
+	styles := map[string]lipgloss.Style{
+		"Text": th.Text, "Muted": th.Muted, "Title": th.Title, "Accent": th.Accent,
+		"Success": th.Success, "Danger": th.Danger, "ButtonOn": th.ButtonOn, "ButtonOff": th.ButtonOff,
+		"Help.ShortKey": th.Help.ShortKey, "Help.ShortDesc": th.Help.ShortDesc,
+		"Help.ShortSeparator": th.Help.ShortSeparator, "Help.Ellipsis": th.Help.Ellipsis,
+	}
+	var _ help.Styles = th.Help
+	for name, st := range styles {
+		if _, ok := st.GetForeground().(lipgloss.NoColor); !ok {
+			t.Errorf("%s has a foreground color under NO_COLOR: %v", name, st.GetForeground())
+		}
+		if _, ok := st.GetBackground().(lipgloss.NoColor); !ok {
+			t.Errorf("%s has a background color under NO_COLOR: %v", name, st.GetBackground())
+		}
 	}
 }
