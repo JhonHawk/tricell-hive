@@ -168,7 +168,8 @@ Aplicar los cambios que pida.
 
 ### T6 — Documentación y prueba local
 
-- [?] `deployment-manager.md` documenta `hive voice`, y una prueba local sobre un home de prueba confirma el ciclo completo.
+- [x] `deployment-manager.md` documenta `hive voice`, y una prueba local sobre un home de prueba confirma el ciclo completo.
+  - **Verificación:** `review-task` da AC11 cumplido y reprodujo el ciclo completo con su propio binario; los archivos y `state.json` quedaron idénticos byte a byte tras `voice off`. Con sus observaciones se precisó la documentación: cuándo pierde la voz un gestor anterior, cómo salir de un bloque huérfano y qué pasa con una fuente que no puede generar la voz.
   - **Evidencia del hilo principal (2026-09-28):** el ciclo completo se ejecutó con un binario compilado del worktree, sobre `--home` y `--state-dir` temporales:
     - `install` de Codex y Claude;
     - `voice list` mostró las tres voces;
