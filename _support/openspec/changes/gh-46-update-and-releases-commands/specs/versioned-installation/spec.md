@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Update from a committed revision
-From a Git checkout of Hive, the manager SHALL build an install plan from the content of one resolved commit, excluding uncommitted changes, for every consumer already installed in user scope. It SHALL apply that plan only after interactive confirmation, and without a terminal SHALL only preview or save the plan for a separate `apply`. It SHALL remove its temporary extraction on every return path. The offline package SHALL NOT require Git.
+From a Git checkout of Hive, the manager SHALL build an install plan from the content of one resolved commit, excluding uncommitted changes, for every consumer already installed in user scope. It SHALL apply a plan that changes files only after interactive confirmation, and without a terminal SHALL only preview or save that plan for a separate `apply`. A plan that changes no file MAY be applied without confirmation, since its only write is the source-commit record; when a plan file is requested, the plan SHALL still be saved. It SHALL remove its temporary extraction on every return path. The offline package SHALL NOT require Git.
 
 #### Scenario: Uncommitted changes in the checkout
 - **WHEN** the checkout has uncommitted changes under `content/` and the user runs `hive update`

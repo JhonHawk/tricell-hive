@@ -446,6 +446,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 	warning := recordSourceCommit(p)
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {
+		if warning != "" {
+			err = fmt.Errorf("%w; %s", err, warning)
+		}
 		return id, err
 	}
 	if warning != "" {

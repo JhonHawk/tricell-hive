@@ -793,7 +793,6 @@ func Releases(o Options) ([]ReleaseEntry, error) {
 			if err := json.Unmarshal(s.Data, &rec); err != nil {
 				return nil, fmt.Errorf("%s: %w", commitsPath, err)
 			}
-			sort.SliceStable(rec.Commits, func(i, j int) bool { return rec.Commits[i].AppliedAt < rec.Commits[j].AppliedAt })
 			for _, c := range rec.Commits {
 				entry.Commits = append(entry.Commits, c.Commit)
 			}

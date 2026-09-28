@@ -175,6 +175,22 @@ No hay superficie de interfaz gráfica, así que no aplican `review-ux` ni un re
 
 ## Estado de la revisión y avance
 
+**Revisión de código** (2026-09-27): `/code-review` de Claude Code con esfuerzo alto sobre `18847d6..1a2c850`. Diez hallazgos, ninguno de seguridad crítica.
+
+- **Arreglados:**
+  - **F1:** con `--out` y sin cambios, el plan no se guardaba. Ahora se guarda; la especificación, AC3 y el diseño se ajustaron.
+  - **F2:** un aviso se perdía si además fallaba `finishApply`.
+  - **F4:** el entorno de Git solo quitaba tres variables. Ahora quita todas las que lista `git rev-parse --local-env-vars`.
+  - **F5:** faltaba documentar que también cuentan los atributos locales de Git.
+  - **F6:** el error de `rev-parse` escondía la causa real, por ejemplo `safe.directory`.
+  - **F8:** gzip con `BestSpeed`.
+  - **F9:** se quitaron una validación redundante y un reordenamiento que no hacía falta.
+  - **F10:** el comentario del paquete apuntaba a una ruta que se archiva al cerrar el cambio.
+  - Pruebas nuevas, las dos en rojo antes de su arreglo: `TestUpdateOutSavesPlanWhenContentUnchanged` (falló de forma observable) y `TestFilteredGitEnvDropsRepositoryOverrides`, ampliada (su rojo fue de compilación por el cambio de firma).
+- **No aplicados, como sugerencias:**
+  - **F3:** que el aviso de `Apply` viaje como un valor aparte. Cambiaría la firma de `Apply` en todos sus llamadores, y el aviso solo aparece si falla la escritura del registro.
+  - **F7:** que `Releases` no decodifique cada snapshot completo. Hoy son 62 MB en 117 releases, y el comando respondió bien sobre el estado real.
+
 **Revisión del plan** (2026-09-27): versión revisada `184e0ee0ebf4`. Dos revisores `review-plan` en paralelo, despachados como rol nativo de Claude Code, de solo lectura.
 
 - **Contratos del gestor y pruebas.** Dos bloqueantes, los dos corregidos con la propuesta del revisor:

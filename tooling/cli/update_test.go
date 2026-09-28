@@ -127,7 +127,7 @@ func installDirect(t *testing.T, home, stateDir, source string, hosts []string) 
 func installFromCommit(t *testing.T, home, stateDir, repo, commit string, hosts []string) {
 	t.Helper()
 	gitPath := requireGit(t)
-	raw, err := archiveGitCommit(gitPath, filteredGitEnv(), repo, commit, "hive-baseline")
+	raw, err := archiveGitCommit(gitPath, os.Environ(), repo, commit, "hive-baseline")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +424,7 @@ func TestAdaptGitArchivePassesThroughDistributionExtract(t *testing.T) {
 	gitInitLocal(t, dir)
 	commit := gitCommitAll(t, dir, "init")
 
-	raw, err := archiveGitCommit(gitPath, filteredGitEnv(), dir, commit, "hive-test")
+	raw, err := archiveGitCommit(gitPath, os.Environ(), dir, commit, "hive-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,15 +479,20 @@ func TestArchiveGitCommitFailsPastSizeLimit(t *testing.T) {
 }
 
 func TestFilteredGitEnvDropsRepositoryOverrides(t *testing.T) {
-	t.Setenv("GIT_DIR", "/elsewhere/.git")
-	t.Setenv("GIT_WORK_TREE", "/elsewhere")
-	t.Setenv("GIT_COMMON_DIR", "/elsewhere/.git")
+	gitPath := requireGit(t)
+	for _, key := range []string{"GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_INDEX_FILE", "GIT_CONFIG_PARAMETERS"} {
+		t.Setenv(key, "/elsewhere")
+	}
 	t.Setenv("GIT_AUTHOR_NAME", "kept")
+	env, err := filteredGitEnv(gitPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var kept bool
-	for _, kv := range filteredGitEnv() {
+	for _, kv := range env {
 		key, _, _ := strings.Cut(kv, "=")
 		switch key {
-		case "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR":
+		case "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_INDEX_FILE", "GIT_CONFIG_PARAMETERS":
 			t.Fatalf("%s reached the Git environment", key)
 		case "GIT_AUTHOR_NAME":
 			kept = true
@@ -495,6 +500,41 @@ func TestFilteredGitEnvDropsRepositoryOverrides(t *testing.T) {
 	}
 	if !kept {
 		t.Fatal("unrelated Git variables must be preserved")
+	}
+}
+
+// TestUpdateOutSavesPlanWhenContentUnchanged: a script running
+// `hive update --out FILE && hive apply --plan FILE` must find the plan even
+// when the installation is already up to date; applying it records the commit.
+func TestUpdateOutSavesPlanWhenContentUnchanged(t *testing.T) {
+	requireGit(t)
+	env := newUpdateEnv(t)
+	writeUpdateCatalog(t, env.repo, skillBody("Preserve evidence.\n"))
+	gitInitLocal(t, env.repo)
+	commit := gitCommitAll(t, env.repo, "init")
+	installFromCommit(t, env.home, env.stateDir, env.repo, commit, []string{"codex"})
+	before := stateBytes(t, env.stateDir)
+
+	planFile := filepath.Join(filepath.Dir(env.home), "plan.json")
+	if err := update(env.args("--out", planFile), strings.NewReader(""), io.Discard, false); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, stateBytes(t, env.stateDir)) {
+		t.Fatal("update --out changed state")
+	}
+	p, err := management.LoadPlan(planFile)
+	if err != nil {
+		t.Fatalf("no applicable plan saved: %v", err)
+	}
+	if _, err := (management.Engine{}).Apply(p); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := management.Releases(management.Options{Scope: "user", Home: env.home, StateDir: env.stateDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || len(entries[0].Commits) != 1 || entries[0].Commits[0] != commit {
+		t.Fatalf("expected the commit recorded by apply, got %+v", entries)
 	}
 }
 

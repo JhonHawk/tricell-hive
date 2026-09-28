@@ -32,7 +32,7 @@ hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run
 2. **Validar la revisión.** Un `--rev` vacío o que empieza por `-` se rechaza antes de ejecutar Git. Con el sufijo `^{commit}` añadido, eso basta para que no se lea como una opción.
 3. **Ejecutar Git de forma controlada.**
    - `git` se busca en el `PATH`. Si falta, el error dice que `update` necesita Git y un checkout, y que el paquete offline se instala con `install.sh`.
-   - Los procesos hijos se ejecutan con argumentos separados, sin shell, y sin `GIT_DIR`, `GIT_WORK_TREE` ni `GIT_COMMON_DIR` en su entorno, porque esas variables tienen prioridad sobre `-C`.
+   - Los procesos hijos se ejecutan con argumentos separados, sin shell, y sin las variables que `git rev-parse --local-env-vars` lista (`GIT_DIR`, `GIT_OBJECT_DIRECTORY`, `GIT_CONFIG_PARAMETERS` y el resto), porque tienen prioridad sobre `-C`. Ampliado tras `/code-review`: la versión inicial solo quitaba tres.
    - **Resolución:** `git -C <source> rev-parse --verify --quiet <rev>^{commit}`. Si `source` no es un checkout de Git o el commit no existe, falla nombrando la causa. El resultado es el hash completo (40 o 64 caracteres hexadecimales).
 4. **Extraer el commit.**
    - `git -C <source> archive --format=tar --prefix=hive-<hash corto>/ <hash completo>`, leído con un límite de `distribution.MaxPackageBytes + 1` bytes.
@@ -51,8 +51,8 @@ hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run
 6. **Resumir.** Se reutiliza `showInstallSummary` sin capacidades opcionales y se añade una línea con el hash corto y la revisión pedida.
 7. **Aplicar o guardar.**
    - **Con `--dry-run`:** termina tras el resumen, con o sin terminal.
-   - **Sin cambios** (`PlanUnchanged`): informa que Hive ya está al día y llama a `management.Engine{}.Apply` sin preguntar. `Apply` no escribe ningún destino y registra el commit ([Commit de origen](#commit-de-origen)).
-   - **Con `--out FILE`:** `management.SavePlan` y un mensaje que indica `hive apply --plan FILE`. Si el plan trae ediciones de legado, `SavePlan` ya rechaza guardarlo con su propio mensaje.
+   - **Con `--out FILE`:** `management.SavePlan` y un mensaje que indica `hive apply --plan FILE`, también cuando el plan no cambia nada, para que un script que encadena `update --out` y `apply` encuentre el archivo. Si el plan trae ediciones de legado, `SavePlan` ya rechaza guardarlo con su propio mensaje.
+   - **Sin cambios** (`PlanUnchanged`), sin `--out`: informa que Hive ya está al día y llama a `management.Engine{}.Apply` sin preguntar. `Apply` no escribe ningún destino y registra el commit ([Commit de origen](#commit-de-origen)).
    - **Con terminal:** `confirmInstall(…, allowBack=false)` y `management.Engine{}.Apply`.
    - **Sin terminal y sin `--out`:** falla antes de pedir confirmación, con un mensaje que nombra `--dry-run` y `--out`.
 
@@ -84,7 +84,7 @@ hive releases [--home DIR] [--state-dir DIR]
 
 - **Función:** `management.Releases(o Options) ([]ReleaseEntry, error)` lee los `releases/<id>.json` con ID de 64 caracteres hexadecimales, lo que excluye los `*.commits.json`.
 - **Qué muestra de cada release:** la fecha de modificación del snapshot, que corresponde a la última aplicación que lo escribió; su registro de commits si existe; y los consumidores de `state.Records` cuyo campo `Release` coincide.
-- **`ReleaseEntry`:** `ID`, `LastWrittenAt` (RFC 3339), `Commits []string` (ordenados por `applied_at`) y `Consumers []Consumer` (sin duplicados).
+- **`ReleaseEntry`:** `ID`, `LastWrittenAt` (RFC 3339), `Commits []string` (en el orden en que se aplicaron) y `Consumers []Consumer` (sin duplicados).
 - **Orden:** del `LastWrittenAt` más reciente al más antiguo, y por ID cuando dos fechas coinciden.
 - **Salida:** JSON indentado, igual que `status`, para que la TUI futura lo consuma.
 - **Solo lectura.** Un snapshot con JSON inválido o un registro de commits ilegible hacen fallar el comando con la ruta del archivo; no se omiten en silencio.

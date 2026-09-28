@@ -1,8 +1,8 @@
 // hive update refreshes an installed Hive from a Git commit of this checkout
 // (default HEAD), without requiring an operator to run `git archive`, `plan
-// install` and `apply` by hand. See
-// _support/openspec/changes/gh-46-update-and-releases-commands/design.md
-// ("hive update") for the full design this file implements.
+// install` and `apply` by hand. Its contract is documented in
+// _support/docs/architecture/deployment-manager.md ("Update from a commit
+// and list releases").
 package main
 
 import (
@@ -81,7 +81,10 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 	if err != nil {
 		return fmt.Errorf("git not found in PATH; hive update needs Git and a checkout; the offline package installs with install.sh")
 	}
-	env := filteredGitEnv()
+	env, err := filteredGitEnv(gitPath)
+	if err != nil {
+		return err
+	}
 
 	commit, err := resolveCommit(gitPath, env, f.Source, f.Rev)
 	if err != nil {
@@ -110,19 +113,19 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		fmt.Fprintln(out, "Preview: installation was not changed.")
 		return nil
 	}
+	if f.Out != "" {
+		if err := management.SavePlan(f.Out, p); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Plan saved to %s; run hive apply --plan %s to apply it.\n", f.Out, f.Out)
+		return nil
+	}
 	if unchanged {
 		result, err := (management.Engine{}).Apply(p)
 		if err != nil {
 			return err
 		}
 		reportApplyResult(out, "Hive is already up to date", result)
-		return nil
-	}
-	if f.Out != "" {
-		if err := management.SavePlan(f.Out, p); err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "Plan saved to %s; run hive apply --plan %s to apply it.\n", f.Out, f.Out)
 		return nil
 	}
 	if !interactive {
@@ -200,19 +203,30 @@ func reportApplyResult(out io.Writer, verb, result string) {
 	fmt.Fprintln(out, "Open new CLI sessions.")
 }
 
-// filteredGitEnv copies the process environment and drops GIT_DIR,
-// GIT_WORK_TREE and GIT_COMMON_DIR, which would otherwise outrank the
-// explicit -C source directory passed to every Git invocation here.
-func filteredGitEnv() []string {
+// filteredGitEnv copies the process environment without the variables Git
+// itself clears when it switches repositories (`git rev-parse
+// --local-env-vars`: GIT_DIR, GIT_OBJECT_DIRECTORY, GIT_CONFIG_PARAMETERS
+// and the rest). Inherited from a hook or another repository's script, they
+// would outrank the explicit -C source directory of every Git call here.
+func filteredGitEnv(gitPath string) ([]string, error) {
+	cmd := exec.Command(gitPath, "rev-parse", "--local-env-vars")
+	cmd.Dir = os.TempDir()
+	listed, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git rev-parse --local-env-vars: %w", err)
+	}
+	drop := map[string]bool{}
+	for _, key := range strings.Fields(string(listed)) {
+		drop[key] = true
+	}
 	var out []string
 	for _, kv := range os.Environ() {
 		key, _, _ := strings.Cut(kv, "=")
-		if key == "GIT_DIR" || key == "GIT_WORK_TREE" || key == "GIT_COMMON_DIR" {
-			continue
+		if !drop[key] {
+			out = append(out, kv)
 		}
-		out = append(out, kv)
 	}
-	return out
+	return out, nil
 }
 
 // resolveCommit resolves rev to its full commit hash inside source, without
@@ -222,17 +236,18 @@ func filteredGitEnv() []string {
 func resolveCommit(gitPath string, env []string, source, rev string) (string, error) {
 	cmd := exec.Command(gitPath, "-C", source, "rev-parse", "--verify", "--quiet", rev+"^{commit}")
 	cmd.Env = env
-	var stdout bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
-	cmd.Stderr = io.Discard
+	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("%s is not a Git checkout, or %q is not a known commit", source, rev)
+		msg := fmt.Sprintf("%s is not a Git checkout, or %q is not a known commit", source, rev)
+		if detail := strings.TrimSpace(stderr.String()); detail != "" {
+			msg += ": " + detail
+		}
+		return "", fmt.Errorf("%s", msg)
 	}
-	commit := strings.TrimSpace(stdout.String())
-	if len(commit) != 40 && len(commit) != 64 {
-		return "", fmt.Errorf("unexpected commit hash from git rev-parse: %q", commit)
-	}
-	return commit, nil
+	// BindSourceCommit validates the hash format.
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 // shortHash is the short form used for the extraction prefix and the
@@ -297,7 +312,12 @@ func archiveGitCommit(gitPath string, env []string, source, commit, prefix strin
 func adaptGitArchive(raw []byte) ([]byte, error) {
 	reader := tar.NewReader(bytes.NewReader(raw))
 	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
+	// Extract decompresses this right away, so spend as little as possible
+	// on compression.
+	gz, err := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
+	if err != nil {
+		return nil, err
+	}
 	tw := tar.NewWriter(gz)
 	for {
 		header, err := reader.Next()
