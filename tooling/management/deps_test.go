@@ -1,8 +1,8 @@
 // deps_test.go verifies AC7's boundary: tooling/management and
 // tooling/distribution never import an external module, even transitively
 // through their own tricell-hive/... imports, even though tooling/cli now
-// depends on charm.land/huh/v2 for its interactive interface (design.md "La
-// interfaz"). It walks each package's own .go files with go/parser (imports
+// depends on Bubble Tea and bubbles for its interactive interface (design.md
+// "Dependencias"). It walks each package's own .go files with go/parser (imports
 // only, so a syntax error elsewhere in a file can never mask a real
 // import), recursing into every tricell-hive/... import's own directory
 // (resolved from the module root) instead of merely skipping it — a T2 fix

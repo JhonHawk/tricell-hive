@@ -2,10 +2,6 @@
 // explicit `hive tui` subcommand both open the full-screen application in
 // tui_app.go when stdin and stdout are terminals. Without a terminal, bare
 // `hive` keeps today's usage error and `hive tui` names the text commands.
-//
-// The sequential interface (openInterface, runMenu and the huh screens) is no
-// longer reachable from `hive` or `hive tui`; T10 deletes it, so it stays here
-// only until then.
 package main
 
 import (
@@ -92,44 +88,6 @@ func runBareInterface() error {
 	return interfaceStdio.start(o, interfaceStdio.in, interfaceStdio.out)
 }
 
-// openInterface is the retired sequential interface's entry point. `hive` and
-// `hive tui` no longer reach it (they open the full-screen application);
-// only tests of the sequential screens still call it, until T10 deletes it
-// together with the huh prompter.
-func openInterface(isTTY, accessible bool, in io.Reader, out io.Writer, o options) error {
-	if !isTTY && !accessible {
-		return errors.New(usageMessage)
-	}
-	// explicitStateDir is o's own, pre-normalization StateDir: once known,
-	// NormalizeOptions always resolves mo.StateDir to some concrete path,
-	// so this is the only point that can still tell whether the operator
-	// (or a test) asked for a specific one, which checkPendingOnOpen's own
-	// recovery phrase must then name explicitly (T2 fix round item 5).
-	explicitStateDir := o.StateDir != ""
-	mo := management.Options{Scope: "user", Home: o.Home, StateDir: o.StateDir, Source: o.Source}
-	_, stateDir, err := management.NormalizeOptions(mo)
-	if err != nil {
-		return err
-	}
-	mo.StateDir = stateDir
-	p := newHuhPrompter(accessible, in, out)
-	dependencies := defaultInstallDependencies(nativeProviderAdapterFactory)
-	if _, err := checkPendingOnOpen(mo, explicitStateDir, out, p, dependencies); err != nil {
-		return err
-	}
-	return runMenu(mo, out, p)
-}
-
-// checkPendingOnOpen is the retired sequential interface's on-open check: it
-// reuses handlePendingInstallOperation so its precedence and prompts match
-// hive install's. dependencies is injectable so a test can exercise the
-// offer/decline/recover paths without a real transaction journal, the same
-// seam installWithDependencies already uses (install.go). The application
-// (tui_app.go) does not call it; T10 deletes it.
-func checkPendingOnOpen(o management.Options, explicitStateDir bool, out io.Writer, p prompter, dependencies installDependencies) (handled bool, err error) {
-	return handlePendingInstallOperation(o, false, p, out, recoveryTextOnOpen(explicitStateDir), dependencies)
-}
-
 // recoveryTextOnOpen is the recovery phrase the interface uses (T2 fix round
 // item 5): it names hive recover — with --state-dir when the interface was
 // opened against an explicit one, so the operator recovers the same, possibly
@@ -183,88 +141,6 @@ func recoverPending(kind management.PendingKind, o management.Options, explicitS
 		return withRecoverySentence(fmt.Sprintf("Recovery: %s.", result), recoveryText(stateDir, false)), nil
 	}
 	return "", nil
-}
-
-// menuEntry is one of the interface's seven fixed entries, in the order
-// design.md "La interfaz" fixes them: the accessible mode's own numbering
-// must never change between runs.
-type menuEntry int
-
-const (
-	menuStatus menuEntry = iota
-	menuInstall
-	menuRemove
-	menuUpdate
-	menuReleases
-	menuVoice
-	menuQuit
-)
-
-// menuLabels names each entry in menuEntry's own order; selectMenuEntry
-// (tui_prompter.go) turns them into a huh.Select whose numbering matches
-// this order exactly.
-var menuLabels = [...]string{
-	menuStatus:   "Status",
-	menuInstall:  "Install CLIs",
-	menuRemove:   "Remove CLIs",
-	menuUpdate:   "Update",
-	menuReleases: "Releases",
-	menuVoice:    "Voice",
-	menuQuit:     "Quit",
-}
-
-// runMenu is the interface's own loop (design.md "La interfaz"): compute the
-// status line, present the menu, and either open the chosen screen or stop.
-// Quit, Ctrl-C and the end of input all exit cleanly (0). Every one of the
-// six non-Quit entries (Status, Install CLIs, Remove CLIs, Update, Releases,
-// Voice) is wired to its own real flow (T3 for Install/Remove, T4 for the
-// rest); runMenuEntry's own default case stays only as a defensive
-// fallback, never reached by selectMenuEntry's fixed set of choices.
-func runMenu(o management.Options, out io.Writer, p *huhPrompter) error {
-	for {
-		line, err := interfaceStatusLine(o)
-		if err != nil {
-			return err
-		}
-		choice, cancelled, err := p.selectMenuEntry(line)
-		if err != nil {
-			return err
-		}
-		if cancelled || choice == menuQuit {
-			return nil
-		}
-		if err := runMenuEntry(choice, o, out, p); err != nil {
-			fmt.Fprintln(out, err.Error())
-		}
-	}
-}
-
-// runMenuEntry dispatches to the chosen screen (design.md "La interfaz").
-// Every screen already handles its own cancellation and empty/limit states
-// internally, printing them and returning nil (design.md "Cancelar y
-// errores"); a non-nil error here is a genuine flow error, printed the same
-// way for every screen instead of duplicating that print at each call site
-// — including a Releases rollback the current manager cannot validate
-// (tui_screens.go's rollbackFlow already wraps that one with its own
-// documentation hint before returning it here).
-func runMenuEntry(choice menuEntry, o management.Options, out io.Writer, p *huhPrompter) error {
-	switch choice {
-	case menuStatus:
-		return statusScreen(o, out, p)
-	case menuInstall:
-		return installScreen(o, out, p)
-	case menuRemove:
-		return removeScreen(o, out, p)
-	case menuUpdate:
-		return updateScreen(o, out, p)
-	case menuReleases:
-		return releasesScreen(o, out, p)
-	case menuVoice:
-		return voiceScreen(o, out, p)
-	default:
-		fmt.Fprintln(out, "Not available yet.")
-		return nil
-	}
 }
 
 // interfaceStatusLine renders the menu's own one-line summary (design.md

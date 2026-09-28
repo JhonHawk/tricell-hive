@@ -1,6 +1,6 @@
 // tui_update_view.go is the Update view (T9; design.md "Vistas"): the source
 // and revision fields in one view, then the summary and confirmation of `hive
-// update`. The commit resolves in planUpdate, the function updateWith shares,
+// update`. The commit resolves in planUpdate, the function `hive update` shares,
 // so the summary and the result equal the command's.
 package main
 

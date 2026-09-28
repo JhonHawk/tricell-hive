@@ -33,36 +33,14 @@ type installTerminal struct {
 	interactive bool
 }
 
-// prompter separates the install/update/voice flows' questions from their
-// logic (design.md "Separar las preguntas de la lógica"): runOnboardingWizard,
-// expandToRequiredHosts, previewInstallOnboarding and
-// handlePendingInstallOperation, plus update's and voice's own internal
-// variants, ask through this interface instead of the concrete
-// installTerminal, so a future huh-based implementation can drive the same
-// flows. installTerminal implements it below with the existing plain-text
-// functions, preserving the "no terminal" behavior each of them already
-// encodes.
-type prompter interface {
-	SelectHosts(candidates []hostCandidate) (hosts []string, ok bool, err error)
-	SelectProviders(offers []providerOffer) ([]providerRequest, bool, error)
-	ProviderVersion(offer providerOffer) (string, bool, error)
-	Confirm(prompt string, allowBack bool) (installDecision, error)
-}
-
-// SelectHosts, SelectProviders, ProviderVersion and Confirm are thin
-// prompter adapters over installTerminal's existing plain-text functions:
-// the functions themselves are untouched, so their printed text stays
-// byte-identical.
+// SelectHosts, SelectProviders and Confirm are thin methods
+// over the plain-text functions below, which own the printed text.
 func (t installTerminal) SelectHosts(candidates []hostCandidate) ([]string, bool, error) {
 	return selectInstallerHosts(t, candidates)
 }
 
 func (t installTerminal) SelectProviders(offers []providerOffer) ([]providerRequest, bool, error) {
 	return selectProviderRequests(t, offers)
-}
-
-func (t installTerminal) ProviderVersion(offer providerOffer) (string, bool, error) {
-	return readProviderVersion(t, offer)
 }
 
 func (t installTerminal) Confirm(prompt string, allowBack bool) (installDecision, error) {
@@ -191,40 +169,21 @@ func installWithDependencies(args []string, in io.Reader, out io.Writer, interac
 // and the online bootstrap hand-off: both resolve an Options value (hosts,
 // home, state directory, and a source distribution tree) before reaching
 // here, then walk the same detection/summary/consent/apply loop. Only
-// bootstrap sets dependencies.BindRetainedInstaller. It builds its own
-// installTerminal and delegates to runInstallFlowWith, which takes a
-// prompter directly so the huh-based interface (tui.go) can drive the same
-// flow (design.md "Separar las preguntas de la lógica").
+// bootstrap sets dependencies.BindRetainedInstaller. It runs package
+// verification, options normalization, the pending-operation check and the
+// onboarding wizard.
 func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
-	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
-	return runInstallFlowWith(o, dry, out, terminal, dependencies, false)
-}
-
-// runInstallFlowWith is runInstallFlow's core: package verification,
-// options normalization, the pending-operation check and the onboarding
-// wizard, all taking p instead of building an installTerminal themselves.
-// fromInterface is true only when the huh-based interface calls this
-// directly (installScreen, tui_hosts.go), which has no --dry-run flag of
-// its own and can always run `hive recover` itself: it suppresses
-// showInstallSummary's own "Use --dry-run..." hint (T3 fix round item 4)
-// and routes every recovery phrase reached from here through
-// recoveryPhraseFor instead of recoveryPhrase directly, so it names hive
-// recover instead of ./install.sh or a bootstrap-only retained-manager
-// phrase, neither of which apply inside the interactive interface.
-func runInstallFlowWith(o management.Options, dry bool, out io.Writer, p prompter, dependencies installDependencies, fromInterface bool) error {
+	p := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	if err := validateInstallDependencies(dependencies); err != nil {
 		return err
 	}
 	if err := distribution.VerifyIfPackaged(o.Source); err != nil {
 		return err
 	}
-	// explicitStateDir is o's own, pre-normalization StateDir, exactly like
-	// tui.go's openInterface computes it for checkPendingOnOpen: once
+	// explicitStateDir is o's own, pre-normalization StateDir: once
 	// NormalizeOptions resolves o.StateDir to some concrete path below, this
-	// is the only point that can still tell whether the interface itself was
-	// opened against a specific one (T4 leftover from T3 verification), which
-	// every hive-recover phrase reached from here must then name explicitly,
-	// the same way checkPendingOnOpen's own recovery phrase already does.
+	// is the only point that can still tell whether the operator asked for a
+	// specific one.
 	explicitStateDir := o.StateDir != ""
 	_, stateDir, err := management.NormalizeOptions(o)
 	if err != nil {
@@ -237,33 +196,17 @@ func runInstallFlowWith(o management.Options, dry bool, out io.Writer, p prompte
 	// checkout never contains.
 	online := dependencies.BindRetainedInstaller != nil
 	// stillNeeded is ignored here: install's and bootstrap's own recovery
-	// phrase names the concrete next command unconditionally, exactly as
-	// before this parameter existed (bootstrap_test.go's
-	// TestInstallOfflinePendingRecoveryPointsToInstallScript pins this for
-	// a successful recovery too). Only the interface's own on-open check
-	// (tui.go's checkPendingOnOpen) uses stillNeeded to omit the phrase
-	// once nothing more needs recovering (T2 fix round item 5).
-	// withRecoverySentence embeds this as its own standalone sentence
-	// (handlePendingInstallOperation's "X (phase). <this>."). Only the
-	// interface's own phrase is capitalized for that ("Run hive recover",
-	// the same convention checkPendingOnOpen's own closure already follows
-	// in tui.go); install's and bootstrap's own recoveryPhrase text keeps
-	// its exact original lowercase-first wording here, characterized by
-	// bootstrap_test.go's own TestInstallOfflinePendingRecoveryPoints-
-	// ToInstallScript ("run ./install.sh again", lower case).
-	// recoveryPhraseFor's other, mid-sentence callers (finalizeInstallResult,
-	// nextOnboardingStepAction) use its own lowercase return directly.
+	// phrase names the concrete next command unconditionally
+	// (bootstrap_test.go's TestInstallOfflinePendingRecoveryPointsToInstallScript
+	// pins this for a successful recovery too). withRecoverySentence embeds
+	// the phrase as its own standalone sentence.
 	recoveryText := func(stateDir string, stillNeeded bool) string {
-		phrase := recoveryPhraseFor(fromInterface, explicitStateDir, online, stateDir)
-		if fromInterface {
-			return capitalize(phrase)
-		}
-		return phrase
+		return recoveryPhrase(online, stateDir)
 	}
 	if handled, err := handlePendingInstallOperation(o, dry, p, out, recoveryText, dependencies); handled {
 		return err
 	}
-	return runOnboardingWizard(o, dry, p, out, online, explicitStateDir, dependencies, fromInterface)
+	return runOnboardingWizard(o, dry, p, out, online, explicitStateDir, dependencies)
 }
 
 func validateInstallDependencies(dependencies installDependencies) error {
@@ -274,11 +217,11 @@ func validateInstallDependencies(dependencies installDependencies) error {
 }
 
 // withRecoverySentence appends recovery as its own trailing sentence onto
-// base only when recovery is non-empty, so a caller (tui.go's
-// checkPendingOnOpen, T2 fix round item 5) can omit the whole sentence once
-// nothing more needs recovering, while install's and bootstrap's own
-// closures, which never return "", keep their exact existing wording
-// (matching format and trailing period) byte for byte.
+// base only when recovery is non-empty, so a caller (the recovery view's
+// recoverPending) can omit the whole sentence once nothing more needs
+// recovering, while install's and bootstrap's own closures, which never
+// return "", keep their exact existing wording (matching format and trailing
+// period) byte for byte.
 func withRecoverySentence(base, recovery string) string {
 	if recovery == "" {
 		return base
@@ -298,7 +241,7 @@ func withRecoverySentence(base, recovery string) string {
 // (always false for PendingCore, which only reaches its own call site on
 // success; result.Phase != "completed" for PendingOnboarding, which can
 // finish "partial").
-func handlePendingInstallOperation(o management.Options, dry bool, terminal prompter, out io.Writer, recoveryText func(stateDir string, stillNeeded bool) string, dependencies installDependencies) (handled bool, err error) {
+func handlePendingInstallOperation(o management.Options, dry bool, terminal installTerminal, out io.Writer, recoveryText func(stateDir string, stillNeeded bool) string, dependencies installDependencies) (handled bool, err error) {
 	stateDir := o.StateDir
 	kind, err := dependencies.Pending(stateDir)
 	if err != nil {
@@ -345,7 +288,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal prom
 
 // runOnboardingWizard walks the host-selection/summary/consent/apply loop
 // once no pending operation blocks it.
-func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out io.Writer, online, explicitStateDir bool, dependencies installDependencies, fromInterface bool) error {
+func runOnboardingWizard(o management.Options, dry bool, terminal installTerminal, out io.Writer, online, explicitStateDir bool, dependencies installDependencies) error {
 	stateDir := o.StateDir
 	explicitHosts := len(o.Hosts) > 0
 
@@ -396,9 +339,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out 
 			fmt.Fprintln(out, "Cancelled. No changes applied.")
 			return nil
 		}
-		// mentionDryRun is the negation of fromInterface: the interface has
-		// no --dry-run flag of its own to suggest (T3 fix round item 4).
-		showInstallSummary(out, p, preview, dry, unchanged, !fromInterface)
+		showInstallSummary(out, p, preview, dry, unchanged, true)
 		if dry {
 			fmt.Fprintln(out, "Preview: installation was not changed.")
 			return nil
@@ -426,7 +367,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out 
 			}
 		}
 		result, err := applyInstallOnboarding(p, preview, adapter)
-		return finalizeInstallResult(out, result, err, online, explicitStateDir, stateDir, fromInterface)
+		return finalizeInstallResult(out, result, err, online, explicitStateDir, stateDir, false)
 	}
 }
 
@@ -461,7 +402,7 @@ func describeRequiredHosts(out io.Writer, o management.Options, dependencies ins
 // consequence of accepting, then ask for explicit consent. ok=false means
 // the operator declined the expansion (already reported by the caller);
 // hosts is o.Hosts unchanged when nothing needs expanding.
-func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
+func expandToRequiredHosts(terminal installTerminal, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
 	required, needsConsent, err := describeRequiredHosts(out, o, dependencies)
 	if err != nil {
 		return nil, false, err
@@ -483,8 +424,8 @@ func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Option
 // no-op, or partial) and turns a partial or failed apply into the CLI's own
 // error; the core mutation, if any, has already happened by the time this
 // runs, so it never decides whether to retry. fromInterface/explicitStateDir
-// route every recovery phrase here through recoveryPhraseFor (T3 fix round
-// item 4; T4 leftover from T3 verification: name --state-dir too).
+// route every recovery phrase here through recoveryPhraseFor: the CLIs view
+// passes true, the install command false.
 func finalizeInstallResult(out io.Writer, result management.OnboardingResult, err error, online, explicitStateDir bool, stateDir string, fromInterface bool) error {
 	if err != nil {
 		if result.Phase == "partial" {
@@ -547,20 +488,17 @@ func recoveryPhrase(online bool, stateDir string) string {
 	return "run ./install.sh again"
 }
 
-// recoveryPhraseFor is recoveryPhrase's own interface-aware wrapper (T3 fix
-// round item 4): every recovery text reached through runInstallFlowWith
-// while fromInterface is true must name hive recover, a subcommand the
-// interface's own operator can always run directly, instead of
-// ./install.sh (a script this process may not have been launched from at
-// all) or a bootstrap-only retained-manager phrase, neither of which apply
-// inside the interactive interface. When the interface itself was opened
-// against an explicit --state-dir, that phrase names it too (T4 leftover
-// from T3 verification), the same way tui.go's checkPendingOnOpen already
-// does for the menu's own on-open recovery offer, so the operator recovers
-// the same, possibly synthetic, state they are looking at rather than the
-// real user's default. fromInterface false defers to recoveryPhrase
-// unchanged, for install's and bootstrap's own callers, ignoring
-// explicitStateDir.
+// recoveryPhraseFor is recoveryPhrase's own interface-aware wrapper: every
+// recovery text reached while fromInterface is true (the CLIs view) must name
+// hive recover, a subcommand the interface's own operator can always run
+// directly, instead of ./install.sh (a script this process may not have been
+// launched from at all) or a bootstrap-only retained-manager phrase, neither
+// of which apply inside the full-screen interface. When the interface was
+// opened against an explicit --state-dir, that phrase names it too, so the
+// operator recovers the same, possibly synthetic, state they are looking at
+// rather than the real user's default. fromInterface false defers to
+// recoveryPhrase unchanged, for install's and bootstrap's own callers,
+// ignoring explicitStateDir.
 func recoveryPhraseFor(fromInterface, explicitStateDir, online bool, stateDir string) string {
 	if fromInterface {
 		if explicitStateDir {
@@ -588,7 +526,7 @@ func newOnboardingInput(o management.Options, dryRun bool) onboardingInput {
 // ok/cancel signal: false means the operator cancelled (including a genuine
 // EOF while entering a capability version), which the caller must report the
 // same way as any other cancellation — quietly, with no error and no writes.
-func previewInstallOnboarding(terminal prompter, o management.Options, p management.Plan, adapter onboardingAdapter) (onboardingPreview, bool, error) {
+func previewInstallOnboarding(terminal installTerminal, o management.Options, p management.Plan, adapter onboardingAdapter) (onboardingPreview, bool, error) {
 	offers, err := adapter.Detect(o)
 	if err != nil {
 		return onboardingPreview{}, false, err
@@ -808,9 +746,9 @@ func changedChangeCount(changes []management.Change) int {
 }
 
 // mentionDryRunFlag governs the closing "Use --dry-run..." hint: true for
-// every existing caller (install's and update's own --dry-run flag really
-// exists there), false only when the huh-based interface calls this (it has
-// no such flag to suggest — T3 fix round item 4).
+// the commands (install's and update's own --dry-run flag really exists
+// there), false when a full-screen view calls this (it has no such flag to
+// suggest).
 func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPreview, dry, unchanged, mentionDryRunFlag bool) {
 	// A --source checkout without VERSION or release.json (for example, a
 	// partial development tree) leaves p.Product nil; that identifies a

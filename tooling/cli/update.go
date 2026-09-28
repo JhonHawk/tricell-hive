@@ -47,9 +47,7 @@ func parseUpdateFlags(args []string) (updateFlags, error) {
 
 // update implements `hive update`. It is testable with injected stdin,
 // stdout and an interactive flag, following how install (install.go) is
-// structured. Its own core is updateWith, which takes a prompter instead of
-// building its own installTerminal, so a future TUI can drive the same flow
-// with its own huh-based prompter.
+// structured.
 func update(args []string, in io.Reader, out io.Writer, interactive bool) error {
 	f, err := parseUpdateFlags(args)
 	if err != nil {
@@ -59,26 +57,13 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		return err
 	}
 	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
-	// mentionDryRunFlag is true: hive update has a real --dry-run flag of its
-	// own to suggest, unchanged from before this parameter existed.
-	return updateWith(f, out, interactive, terminal, true)
-}
-
-// updateWith is update's core, separated from parsing and from the terminal
-// implementation of prompter (design.md "Separar las preguntas de la
-// lógica"). mentionDryRunFlag is threaded through to showInstallSummary
-// (T4 fix round item 4): tui_screens.go's updateScreen is the only other
-// caller, and passes false, since the interface has no --dry-run flag of
-// its own to suggest — the same reasoning install.go's own
-// runInstallFlowWith already applies for Install CLIs.
-func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompter, mentionDryRunFlag bool) error {
 	p, sourceLine, unchanged, err := planUpdate(f)
 	if err != nil {
 		return err
 	}
 
 	// 6. Summarize, reusing the install summary with no optional capabilities.
-	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, mentionDryRunFlag)
+	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, true)
 	fmt.Fprintln(out, sourceLine)
 
 	// 7. Apply or save.
@@ -120,7 +105,7 @@ func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompte
 	return nil
 }
 
-// planUpdate is updateWith's planning half, shared with the Update view: it
+// planUpdate is update's planning half, shared with the Update view: it
 // chooses the registered CLIs, validates the revision, runs Git, resolves the
 // commit, extracts it and builds the install plan. It returns the plan, the
 // "Source commit" line the summary ends with, and whether the plan changes

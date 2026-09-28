@@ -149,14 +149,11 @@ func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) erro
 
 // voicePlanWith shows the summary, then applies the same
 // unchanged/dry-run/out/interactive-confirm sequence hive update uses
-// (update.go's updateWith function): unchanged is reported and the command
+// (update.go's update function): unchanged is reported and the command
 // exits 0 without writing anything, since a voice plan carries no source
-// commit to record the way an install/update plan does. It takes a prompter
-// instead of building its own installTerminal (design.md "Separar las
-// preguntas de la lógica"), so a future TUI can drive the same flow with its
-// own huh-based prompter; voiceSet and voiceOff call it with their own
-// installTerminal.
-func voicePlanWith(plan management.Plan, doneVerb string, out io.Writer, interactive, dry bool, outFile string, terminal prompter) error {
+// commit to record the way an install/update plan does. voiceSet and
+// voiceOff call it with their own installTerminal.
+func voicePlanWith(plan management.Plan, doneVerb string, out io.Writer, interactive, dry bool, outFile string, terminal installTerminal) error {
 	unchanged, err := management.PlanUnchanged(plan)
 	if err != nil {
 		return err

@@ -34,7 +34,7 @@ type VoiceInfo struct {
 // (normalize + readState) but needs no host list: a voice is one per home,
 // not one per host (design.md "La interfaz"). It never writes and adds no
 // on-disk schema of its own — state.Voice is already recorded by
-// BuildVoicePlan/Apply. The caller in tooling/cli (voiceScreen) uses this
+// BuildVoicePlan/Apply. The caller in tooling/cli (the Voice view) uses this
 // instead of parsing Status's own formatted "id (address, intensity)"
 // string, which cannot recover Name at all (formatVoiceStatus never
 // includes it).

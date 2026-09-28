@@ -365,7 +365,7 @@ func TestHostsViewInstallsCodexAndClaude(t *testing.T) {
 	toggle(t, d, "claude", "codex")
 	d.key("a")
 	d.mustShow("Install claude, codex", "Hive files to install or update", "[Apply]")
-	d.mustNotShow("Step 1 of 2")
+	d.mustNotShow("Step 1 of 2", "Use --dry-run") // the view has no --dry-run flag to suggest
 	d.key("enter")
 	d.mustShow("Hive installed and verified", "Open new CLI sessions.")
 	if len(menuRows(d)) != 0 {

@@ -1,5 +1,5 @@
-// tui_hosts.go implements the Install CLIs and Remove CLIs screens
-// (design.md "La interfaz").
+// tui_hosts.go holds the pieces of the CLIs view that come from the removal and
+// install commands: the source-catalog check, the remove plan and its summary.
 package main
 
 import (
@@ -13,24 +13,6 @@ import (
 	"tricell-hive/tooling/management"
 )
 
-// installScreen implements Install CLIs (design.md "La interfaz"): its own
-// one-line header ("Cada pantalla empieza con un encabezado de una línea"),
-// then the same runInstallFlowWith the plain `hive install` command uses,
-// driven by this session's own huh prompter instead of an installTerminal,
-// so it inherits package verification, options normalization, the
-// pending-operation check, the host/provider wizard, and
-// BindRetainedInstaller's own nil default (only the online bootstrap entry
-// point ever sets it) for free — including every cancel/decline/EOF and
-// error message that flow already prints.
-func installScreen(o management.Options, out io.Writer, p *huhPrompter) error {
-	fmt.Fprintln(out, "== Install CLIs ==")
-	if !sourceHasCatalog(o.Source) {
-		return fmt.Errorf("Run hive from a Hive checkout or package, or pass --source")
-	}
-	dependencies := defaultInstallDependencies(nativeProviderAdapterFactory)
-	return runInstallFlowWith(o, false, out, p, dependencies, true)
-}
-
 // sourceHasCatalog reports whether source looks like a real Hive checkout
 // or package (design.md "Punto de entrada": "Las pantallas que necesitan
 // una fuente ... muestran un error ... si esa fuente no tiene catálogo").
@@ -43,77 +25,21 @@ func sourceHasCatalog(source string) bool {
 	return err == nil
 }
 
-// removeScreen implements Remove CLIs (design.md "La interfaz"): a
-// MultiSelect of the hosts currently registered in user scope, then
-// removeFlow's own summary/confirm/apply. The empty state matches Status's
-// own message, since there is nothing to remove without a registered host.
-func removeScreen(o management.Options, out io.Writer, p *huhPrompter) error {
-	fmt.Fprintln(out, "== Remove CLIs ==")
-	hosts, err := management.RegisteredHosts(o)
-	if err != nil {
-		return err
-	}
-	if len(hosts) == 0 {
-		fmt.Fprintln(out, "No CLI hosts are registered. Choose Install CLIs.")
-		return nil
-	}
-	candidates := make([]hostCandidate, len(hosts))
-	for i, h := range hosts {
-		candidates[i] = hostCandidate{Name: h, Registered: true}
-	}
-	selected, ok, err := p.SelectHosts(candidates)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		fmt.Fprintln(out, "Cancelled. No changes applied.")
-		return nil
-	}
-	return removeFlow(o, selected, out, p)
-}
-
-// removeFlow builds a "remove" plan for the selected hosts and applies it
-// once confirmed (design.md "La interfaz", Remove CLIs row): its own
-// summary (showRemoveSummary), never showInstallSummary's, since a remove
-// plan's own Before/After meaning differs (After == nil means the resource
-// is deleted, not merely unchanged).
-func removeFlow(o management.Options, hosts []string, out io.Writer, p prompter) error {
-	plan, err := buildRemovePlan(o, hosts)
-	if err != nil {
-		return err
-	}
-	showRemoveSummary(out, plan)
-	decision, err := p.Confirm("Apply these changes?", false)
-	if err != nil {
-		return err
-	}
-	if decision != installApply {
-		fmt.Fprintln(out, "Cancelled. No changes applied.")
-		return nil
-	}
-	result, err := removeApply(plan)
-	if err != nil {
-		return err
-	}
-	reportApplyResult(out, "Hive removed", result)
-	return nil
-}
-
 // removeApply applies a remove plan. It is a variable only so tests can
 // interpose on the write (hold it, or make it fail); production never changes
 // it.
 var removeApply = func(p management.Plan) (string, error) { return (management.Engine{}).Apply(p) }
 
-// buildRemovePlan is removeFlow's planning half, shared with the CLIs view:
-// the same BuildPlan("remove") `hive plan remove` runs for these hosts.
+// buildRemovePlan builds the removal plan for hosts: the same
+// BuildPlan("remove") `hive plan remove` runs for them.
 func buildRemovePlan(o management.Options, hosts []string) (management.Plan, error) {
 	ro := o
 	ro.Hosts = hosts
 	return management.BuildPlan("remove", ro)
 }
 
-// showRemoveSummary is removeFlow's own summary (design.md "La interfaz",
-// Remove CLIs row): which files are removed outright, which shared
+// showRemoveSummary is the removal summary (design.md "La interfaz", Remove
+// CLIs row), never showInstallSummary's: which files are removed outright, which shared
 // resources are kept because other, non-selected hosts still consume them,
 // and which voice blocks are removed. It never reuses showInstallSummary:
 // a remove plan's own Change.After == nil means the resource is deleted,

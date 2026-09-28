@@ -17,7 +17,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/ansi"
 
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
@@ -94,7 +93,7 @@ func loadHostRows(o management.Options, deps installDependencies) ([]hostRow, ma
 }
 
 // hostStatusFields reads one host's short release, product version and drift
-// count from a Status result, the way statusLine does.
+// count from a Status result, the way `hive status` reports them.
 func hostStatusFields(host string, entries []management.StatusEntry) (release, version, drift string) {
 	release, version = "-", "-"
 	count := 0
@@ -686,21 +685,6 @@ func (v *hostsView) onInstallApplied(msg installAppliedMsg) (tea.Cmd, action) {
 // Drawing.
 // ---------------------------------------------------------------------------
 
-func padRight(s string, width int) string {
-	if n := len([]rune(s)); n < width {
-		return s + strings.Repeat(" ", width-n)
-	}
-	return s
-}
-
-// wrapLines wraps text to width columns, one entry per line.
-func wrapLines(text string, width int) []string {
-	if text == "" {
-		return nil
-	}
-	return strings.Split(ansi.Wrap(text, max(width, 1), ""), "\n")
-}
-
 // rowLines draws the header and one line per row, sized to the width: the
 // version column takes what the fixed columns leave, ending with an ellipsis
 // when it is longer.
@@ -967,4 +951,15 @@ func (v *capsView) Keys() []key.Binding {
 		binding("enter", "enter", "continue"),
 		binding("esc", "esc", "cancel"),
 	}
+}
+
+// providerOfferLabel mirrors selectProviderRequests's own per-offer label
+// text (install.go): the capability's name, its source, and whether it needs a
+// version.
+func providerOfferLabel(o providerOffer) string {
+	version := "exact version required"
+	if o.ManualOnly {
+		version = "manual instructions only"
+	}
+	return fmt.Sprintf("%s (%s; %s)", o.Name, o.Source, version)
 }

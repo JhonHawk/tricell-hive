@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/viewport"
@@ -26,6 +27,41 @@ type baseView struct{}
 func (baseView) Init() tea.Cmd     { return nil }
 func (baseView) Resize(int, int)   {}
 func (baseView) TextFocused() bool { return false }
+
+// ---------------------------------------------------------------------------
+// Text helpers shared by the views.
+// ---------------------------------------------------------------------------
+
+func padRight(s string, width int) string {
+	if n := len([]rune(s)); n < width {
+		return s + strings.Repeat(" ", width-n)
+	}
+	return s
+}
+
+// wrapLines wraps text to width columns, one entry per line.
+func wrapLines(text string, width int) []string {
+	if text == "" {
+		return nil
+	}
+	return strings.Split(ansi.Wrap(text, max(width, 1), ""), "\n")
+}
+
+// truncateRunes returns s unchanged if it fits within width runes,
+// otherwise truncates it to width RUNES with a trailing "…". It counts and
+// slices by rune, not by byte: "…" (U+2026) is three UTF-8 bytes but one
+// terminal column, and every caller's own width here is a column budget —
+// slicing the underlying string by byte index would silently make a long
+// label two bytes (not columns) over budget.
+func truncateRunes(s string, width int) string {
+	if utf8.RuneCountInString(s) <= width {
+		return s
+	}
+	if width <= 1 {
+		return strings.Repeat(".", max(width, 0))
+	}
+	return string([]rune(s)[:width-1]) + "…"
+}
 
 // ---------------------------------------------------------------------------
 // Menu.

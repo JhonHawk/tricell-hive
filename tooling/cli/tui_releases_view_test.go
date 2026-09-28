@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 
@@ -367,5 +370,186 @@ func TestReleasesViewHundredReleasesScrollToTheLast(t *testing.T) {
 				t.Fatalf("long host lists were cut without an ellipsis:\n%s", d.screen())
 			}
 		})
+	}
+}
+
+// twoReleasesEnv builds a fixture with two distinct retained releases: the
+// first from newUpdateFixtureWithPendingCommit's own initial commit
+// (installed directly for codex and claude), the second by applying its
+// own commit2 through the plain `hive update` command. It returns the env,
+// the older (no longer installed) release's own ID, and that release's own
+// shared skill file content, for a rollback test to compare against.
+func twoReleasesEnv(t *testing.T) (env updateEnv, olderID string, olderBody []byte) {
+	t.Helper()
+	env, _ = newUpdateFixtureWithPendingCommit(t)
+	olderBody, err := os.ReadFile(env.sharedSkillPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: env.home, StateDir: env.stateDir}
+	entries, err := management.Releases(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected exactly one retained release before the update, got %d", len(entries))
+	}
+	olderID = entries[0].ID
+
+	var out bytes.Buffer
+	if err := update(env.args(), strings.NewReader("y\n"), &out, true); err != nil {
+		t.Fatalf("update: %v\noutput:\n%s", err, out.String())
+	}
+	return env, olderID, olderBody
+}
+
+// TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors covers Releases' own
+// "a release the current manager cannot validate" case (design.md "La
+// interfaz") precisely (T4 fix round item 3): the documented downgrade hint
+// is attached only to a real release-validation failure, reproduced here by
+// planting a syntactically-decodable but fingerprint-invalid release JSON
+// file directly under releases/ (lighter than building a full retired-
+// agent-field fixture; integrations/agents_test.go already covers that
+// specific parse error directly) — never to an unrelated BuildPlan failure
+// such as "explicit hosts required", which loadRelease's own validation is
+// never reached to produce.
+func TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors(t *testing.T) {
+	t.Run("release validation error gets the hint", func(t *testing.T) {
+		source := minimalTestSource(t)
+		dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+		home, stateDir := newHostsTestHome(t)
+		installViaText(t, home, stateDir, source, "claude", "y\n", dependencies)
+
+		bogusID := strings.Repeat("f", 64)
+		bogus := fmt.Sprintf(`{"id": %q, "files": []}`, bogusID)
+		if err := os.WriteFile(filepath.Join(stateDir, "releases", bogusID+".json"), []byte(bogus), 0600); err != nil {
+			t.Fatal(err)
+		}
+
+		o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+		_, _, err := buildRollbackPlan(o, bogusID)
+		if err == nil {
+			t.Fatal("expected a release-validation error")
+		}
+		if !strings.Contains(err.Error(), "invalid release fingerprint or file list") {
+			t.Fatalf("expected the underlying validation error, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "plan that downgrade with the manager from the commit that produced it") {
+			t.Fatalf("missing the documented downgrade hint: %v", err)
+		}
+	})
+
+	t.Run("non-validation error has no hint", func(t *testing.T) {
+		home, stateDir := newHostsTestHome(t)
+		// No host registered at all: BuildPlan fails at validateHosts,
+		// before ever reaching loadRelease/validateRelease.
+		o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+		_, _, err := buildRollbackPlan(o, strings.Repeat("a", 64))
+		if err == nil {
+			t.Fatal("expected an error: no host is registered to roll back for")
+		}
+		if !strings.Contains(err.Error(), "explicit hosts required") {
+			t.Fatalf("expected the underlying hosts error, got: %v", err)
+		}
+		if strings.Contains(err.Error(), "plan that downgrade") {
+			t.Fatalf("a non-validation error must not carry the downgrade hint: %v", err)
+		}
+	})
+}
+
+// TestFormatReleaseLabelMarksInstalledAndTruncates pins formatReleaseLabel's
+// own shape (design.md "La interfaz": "etiquetas de 78 columnas o menos"):
+// short ID, date, first commit, sorted host list, and an "(installed)"
+// marker exactly when asked for one.
+func TestFormatReleaseLabelMarksInstalledAndTruncates(t *testing.T) {
+	entry := management.ReleaseEntry{
+		ID:            strings.Repeat("a", 64),
+		LastWrittenAt: "2026-09-20T10:00:00Z",
+		Commits:       []string{strings.Repeat("1", 40)},
+		Consumers: []management.Consumer{
+			{Host: "codex"}, {Host: "claude"}, {Host: "grok"},
+		},
+	}
+	notInstalled := formatReleaseLabel(entry, false)
+	if strings.Contains(notInstalled, "(installed)") {
+		t.Fatalf("unmarked release should not say installed: %q", notInstalled)
+	}
+	installed := formatReleaseLabel(entry, true)
+	if !strings.HasSuffix(installed, "(installed)") {
+		t.Fatalf("installed release must be marked: %q", installed)
+	}
+	for _, label := range []string{notInstalled, installed} {
+		if n := utf8.RuneCountInString(label); n > releaseLabelWidth {
+			t.Fatalf("label exceeds %d columns (%d): %q", releaseLabelWidth, n, label)
+		}
+		if !strings.Contains(label, shortHash(entry.ID)) {
+			t.Fatalf("label missing the release's own short id: %q", label)
+		}
+		if !strings.Contains(label, "2026-09-20") {
+			t.Fatalf("label missing the release's own date: %q", label)
+		}
+		if !strings.Contains(label, shortHash(entry.Commits[0])) {
+			t.Fatalf("label missing the release's own first commit: %q", label)
+		}
+		if !strings.Contains(label, "claude, codex, grok") {
+			t.Fatalf("label missing its sorted host list: %q", label)
+		}
+	}
+}
+
+// TestFormatReleaseLabelNoCommitsShowsDash covers a release that predates
+// commit tracking: its own first-commit field is "-", not empty.
+func TestFormatReleaseLabelNoCommitsShowsDash(t *testing.T) {
+	entry := management.ReleaseEntry{ID: strings.Repeat("b", 64), LastWrittenAt: "2026-09-21T10:00:00Z"}
+	if label := formatReleaseLabel(entry, false); !strings.Contains(label, "  -  ") {
+		t.Fatalf("expected a dash placeholder for no commits: %q", label)
+	}
+}
+
+// TestFormatReleaseLabelTruncatesLongHostList pins the 78-column budget
+// under real pressure: many long host names truncate with a trailing
+// ellipsis rather than pushing the label past releaseLabelWidth.
+func TestFormatReleaseLabelTruncatesLongHostList(t *testing.T) {
+	var consumers []management.Consumer
+	for i := 0; i < 20; i++ {
+		consumers = append(consumers, management.Consumer{Host: fmt.Sprintf("host-with-a-long-name-%02d", i)})
+	}
+	entry := management.ReleaseEntry{ID: strings.Repeat("c", 64), LastWrittenAt: "2026-09-22T10:00:00Z", Consumers: consumers}
+	label := formatReleaseLabel(entry, true)
+	if n := utf8.RuneCountInString(label); n > releaseLabelWidth {
+		t.Fatalf("label exceeds %d columns (%d): %q", releaseLabelWidth, n, label)
+	}
+	if !strings.HasSuffix(label, "… (installed)") {
+		t.Fatalf("expected a truncation ellipsis right before the installed marker: %q", label)
+	}
+}
+
+// TestFormatReleaseLabelInstalledFitsTheRowWithItsCursorPrefix pins the row
+// budget of the Releases view: a row is the two-column cursor prefix ("> " or
+// two spaces) plus this label, so the installed row's worst case (a truncated
+// host list at the full budget) is 78 columns, inside an 80-column terminal.
+func TestFormatReleaseLabelInstalledFitsTheRowWithItsCursorPrefix(t *testing.T) {
+	var consumers []management.Consumer
+	for i := 0; i < 20; i++ {
+		consumers = append(consumers, management.Consumer{Host: fmt.Sprintf("host-with-a-long-name-%02d", i)})
+	}
+	entry := management.ReleaseEntry{ID: strings.Repeat("a", 64), LastWrittenAt: "2026-09-20T10:00:00Z", Consumers: consumers}
+	label := formatReleaseLabel(entry, true)
+	n := utf8.RuneCountInString(label)
+	if n > releaseLabelWidth {
+		t.Fatalf("installed label exceeds %d columns (%d): %q", releaseLabelWidth, n, label)
+	}
+	const cursorPrefixWidth = 2
+	if n+cursorPrefixWidth > 78 {
+		t.Fatalf("installed label (%d cols) plus the %d-column cursor prefix exceeds 78 columns: %q", n, cursorPrefixWidth, label)
+	}
+}
+
+func TestIsReleaseValidationErrorCoversReferenceValidation(t *testing.T) {
+	if !isReleaseValidationError(errors.New("nonportable personal path in content/skills/x/SKILL.md")) {
+		t.Fatal("a nonportable reference in a retained release is a release-validation error")
+	}
+	if isReleaseValidationError(errors.New("explicit hosts required")) {
+		t.Fatal("a missing host selection is not a release-validation error")
 	}
 }

@@ -1,14 +1,17 @@
 // tui_releases_view.go is the Releases view (T9; design.md "Vistas"): the
 // retained releases, newest first, in a scrolling list that follows the cursor,
 // with a substring filter opened by `/`. Enter on a release goes to the summary
-// of `plan install --release` for the registered CLIs (buildRollbackPlan, the
-// half rollbackFlow shares) and its confirmation. The list is our own, not
+// of `plan install --release` for the registered CLIs (buildRollbackPlan) and
+// its confirmation. The list is our own, not
 // bubbles/list, which would add a module.
 package main
 
 import (
 	"bytes"
+	"fmt"
+	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -415,4 +418,141 @@ func (v *releasesView) Keys() []key.Binding {
 		binding("/", "/", "filter"),
 		binding("esc", "esc", "back"),
 	}
+}
+
+// installedReleaseID names the release ID currently installed for the
+// registered user-scope hosts, reusing tui.go's own latestRelease the menu's
+// status line already relies on. It returns "" (not an error) when no host
+// is registered yet: Releases still lists retained snapshots in that case,
+// it just cannot mark one "installed".
+func installedReleaseID(o management.Options) (string, error) {
+	hosts, err := management.RegisteredHosts(o)
+	if err != nil {
+		return "", err
+	}
+	if len(hosts) == 0 {
+		return "", nil
+	}
+	so := o
+	so.Hosts = hosts
+	entries, err := management.Status(so)
+	if err != nil {
+		return "", err
+	}
+	id, _ := latestRelease(entries)
+	return id, nil
+}
+
+// buildRollbackPlan builds the plan the Releases view shows: the install plan pinned to releaseID for the registered hosts, and
+// whether it changes nothing. A release the manager cannot validate comes back
+// with the downgrade hint appended: only a problem with the release's own
+// retained snapshot gets it, never an unrelated failure such as "explicit
+// hosts required" or "unfinished operation: recover first".
+func buildRollbackPlan(o management.Options, releaseID string) (plan management.Plan, unchanged bool, err error) {
+	hosts, err := management.RegisteredHosts(o)
+	if err != nil {
+		return management.Plan{}, false, err
+	}
+	ro := o
+	ro.Hosts = hosts
+	ro.ReleaseID = releaseID
+	plan, err = management.BuildPlan("install", ro)
+	if err != nil {
+		if isReleaseValidationError(err) {
+			return management.Plan{}, false, fmt.Errorf("%w; plan that downgrade with the manager from the commit that produced it", err)
+		}
+		return management.Plan{}, false, err
+	}
+	unchanged, err = management.PlanUnchanged(plan)
+	if err != nil {
+		return management.Plan{}, false, err
+	}
+	return plan, unchanged, nil
+}
+
+// releaseValidationErrorPrefixes are every error text tooling/management's
+// own loadRelease/validateRelease (plan.go) can produce while checking a
+// pinned ReleaseID's own retained snapshot — the closed set read directly
+// from that function's source, current as of this change. The downgrade hint
+// buildRollbackPlan adds applies only when a BuildPlan
+// failure starts with one of these, never to an unrelated failure such as
+// "explicit hosts required" or "unfinished operation: recover first", which
+// loadRelease is never reached to produce.
+var releaseValidationErrorPrefixes = []string{
+	"invalid release ID",
+	"invalid release fingerprint or file list",
+	"invalid source ",
+	"missing skill entrypoint:",
+	"duplicate agent name:",
+	"agent release missing renderer",
+	"unsupported agent field ",
+	"unsupported agent renderer",
+	"reserved source delimiter",
+	"nonportable personal path in ",
+}
+
+// isReleaseValidationError reports whether err's own message starts with one
+// of releaseValidationErrorPrefixes.
+func isReleaseValidationError(err error) bool {
+	msg := err.Error()
+	for _, prefix := range releaseValidationErrorPrefixes {
+		if strings.HasPrefix(msg, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// formatReleaseLabel renders one release's own Select option label at or
+// under releaseLabelWidth display columns, INCLUDING the " (installed)"
+// marker: its short ID, date, first commit (or "-" when the release
+// predates commit tracking) and its consuming hosts, truncated to whatever
+// room is left, with the marker for the one currently applied.
+//
+// releaseLabelWidth is 76: the Releases view puts a two-column cursor prefix
+// ("> " or two spaces) before the label, so a row is at most 78 columns
+// (design.md "Vistas": rows of 78 columns or less), marker included.
+const releaseLabelWidth = 76
+
+func formatReleaseLabel(e management.ReleaseEntry, installed bool) string {
+	shortID := shortHash(e.ID)
+	date := e.LastWrittenAt
+	if len(date) > 10 {
+		date = date[:10]
+	}
+	commit := "-"
+	if len(e.Commits) > 0 {
+		commit = shortHash(e.Commits[0])
+	}
+	marker := ""
+	if installed {
+		marker = " (installed)"
+	}
+	prefix := fmt.Sprintf("%s  %s  %s  ", shortID, date, commit)
+	budget := releaseLabelWidth - utf8.RuneCountInString(prefix) - utf8.RuneCountInString(marker)
+	if budget < 0 {
+		budget = 0
+	}
+	return prefix + truncateJoined(releaseHostNames(e.Consumers), budget) + marker
+}
+
+// releaseHostNames is a release's own unique, sorted consumer host names.
+func releaseHostNames(consumers []management.Consumer) []string {
+	seen := map[string]bool{}
+	var names []string
+	for _, c := range consumers {
+		if !seen[c.Host] {
+			seen[c.Host] = true
+			names = append(names, c.Host)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// truncateJoined joins names with ", " and truncates the result to width
+// runes via truncateRunes (never splitting a name's own first character off
+// with nothing to show for it).
+func truncateJoined(names []string, width int) string {
+	return truncateRunes(strings.Join(names, ", "), width)
 }

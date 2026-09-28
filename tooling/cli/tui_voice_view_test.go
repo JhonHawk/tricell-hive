@@ -299,3 +299,65 @@ func TestVoiceViewFits(t *testing.T) {
 		})
 	}
 }
+
+// TestVoiceViewBackspaceWhilePlanningKeepsThePlanWhenNameHasTheFocus covers the
+// same rule as the Update view: while the plan builds, Backspace does not
+// silently abandon it when a text field has the focus; Esc leaves visibly.
+func TestVoiceViewBackspaceWhilePlanningKeepsThePlanWhenNameHasTheFocus(t *testing.T) {
+	f := newVoiceFixture(t)
+	m, d := f.open(t, 80, 24)
+	d.key("right", "down", "right", "right", "down") // Name row, focused
+	typeText(d, "Ana")
+	_, cmd := m.Update(keyMsg(t, "enter")) // the planning Cmd is not run yet
+	d.mustShow("Planning the voice change")
+	d.key("backspace")
+	d.mustShow("Planning the voice change", "Address")
+	d.mustNotShow("Main menu")
+	d.run(cmd)
+	d.mustShow("[Apply]")
+
+	// With no text field focused, Backspace leaves like Esc, and the late
+	// result is dropped.
+	_, d = f.open(t, 80, 24)
+	d.key("right")
+	_, cmd = d.model.Update(keyMsg(t, "enter"))
+	d.mustShow("Planning the voice change")
+	d.key("backspace")
+	d.mustShow("> Voice")
+	d.run(cmd)
+	d.mustNotShow("[Apply]")
+}
+
+// TestVoiceViewEditingClearsThePreviousResult covers the message under the
+// rows: once the user edits a value, the result of the last apply goes away.
+func TestVoiceViewEditingClearsThePreviousResult(t *testing.T) {
+	t.Run("values", func(t *testing.T) {
+		f := newVoiceFixture(t)
+		_, d := f.open(t, 80, 24)
+		d.key("right", "enter", "enter")
+		d.mustShow("Voice set")
+		d.key("down") // moving between rows is not an edit
+		d.mustShow("Voice set")
+		d.key("right") // Address: an edit
+		d.mustNotShow("Voice set")
+	})
+	t.Run("name", func(t *testing.T) {
+		f := newVoiceFixture(t)
+		_, d := f.open(t, 80, 24)
+		d.key("right", "down", "right", "right", "down")
+		typeText(d, "Ana")
+		d.key("enter", "enter")
+		d.mustShow("Voice set")
+		d.key("down", "up") // back on the Name row, its field focused
+		d.key("x")
+		d.mustNotShow("Voice set")
+	})
+	t.Run("the voice", func(t *testing.T) {
+		f := newVoiceFixture(t)
+		_, d := f.open(t, 80, 24)
+		d.key("right", "enter", "enter")
+		d.mustShow("Voice set")
+		d.key("up", "left")
+		d.mustNotShow("Voice set")
+	})
+}

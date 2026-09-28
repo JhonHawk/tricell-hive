@@ -6,7 +6,10 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -226,8 +229,11 @@ func cycle(i, delta, n int) int { return ((i+delta)%n + n) % n }
 func (v *voiceView) onKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 	name := msg.String()
 	if v.loading || v.planning != "" {
-		if name == "esc" || name == "backspace" {
-			v.flow++ // leaving abandons the plan; its late result is ignored
+		// Esc leaves, and so does Backspace unless a text field has the focus
+		// (there it must not silently abandon the plan). Leaving drops the
+		// plan's late result.
+		if name == "esc" || (name == "backspace" && !v.TextFocused()) {
+			v.flow++
 			v.planning = ""
 			return nil, action{}
 		}
@@ -256,6 +262,7 @@ func (v *voiceView) onKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 			if name == "left" {
 				delta = -1
 			}
+			v.message = "" // an edit: the previous result no longer describes the rows
 			switch v.current() {
 			case "voice":
 				v.voice = cycle(v.voice, delta, len(v.voices)+1)
@@ -268,6 +275,7 @@ func (v *voiceView) onKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 		}
 	}
 	if v.current() == "name" {
+		v.message = ""
 		var cmd tea.Cmd
 		v.name, cmd = v.name.Update(msg)
 		return cmd, action{nav: navNone}
@@ -448,4 +456,37 @@ func (v *voiceView) Keys() []key.Binding {
 		binding("enter", "enter", "review"),
 		binding("esc", "esc", "back"),
 	}
+}
+
+// voiceLabelWidth bounds voiceOptionLabel to one rendered line: the view
+// shortens it further to what its row leaves.
+const voiceLabelWidth = 76
+
+// voiceOptionLabel renders one ListVoices entry as "id — description",
+// truncating the description (never the ID) so the whole label fits within
+// voiceLabelWidth columns. Before this, a full-length description (real
+// voices like jarvis or mentor carry one- or two-sentence descriptions) could
+// wrap to two or more rendered lines and push later options out of a fixed
+// height list — confirmed directly: at width 80, jarvis and
+// mentor's own full descriptions wrapped, hiding both from a fresh 80x24
+// render along with everything after them.
+func voiceOptionLabel(v management.VoiceInfo) string {
+	prefix := v.ID + " — "
+	budget := voiceLabelWidth - utf8.RuneCountInString(prefix)
+	if budget < 0 {
+		budget = 0
+	}
+	return prefix + truncateRunes(voiceDisplayDescription(v.Description), budget)
+}
+
+// sourceHasVoices reports whether source has a content/voices/ directory
+// (T6 fix round F4), the same presence check sourceHasCatalog (tui_hosts.go)
+// applies to management.GlobalSource. management.ListVoices' own
+// os.ReadDir(dir) requires a directory, not merely an existing path, so a
+// stray content/voices file (not a directory) is treated the same as a
+// missing one here rather than surfacing ListVoices' own raw error either
+// way.
+func sourceHasVoices(source string) bool {
+	info, err := os.Stat(filepath.Join(source, management.VoicesSource))
+	return err == nil && info.IsDir()
 }
