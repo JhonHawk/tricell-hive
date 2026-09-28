@@ -47,7 +47,9 @@ func parseUpdateFlags(args []string) (updateFlags, error) {
 
 // update implements `hive update`. It is testable with injected stdin,
 // stdout and an interactive flag, following how install (install.go) is
-// structured.
+// structured. Its own core is updateWith, which takes a prompter instead of
+// building its own installTerminal, so a future TUI can drive the same flow
+// with its own huh-based prompter.
 func update(args []string, in io.Reader, out io.Writer, interactive bool) error {
 	f, err := parseUpdateFlags(args)
 	if err != nil {
@@ -56,7 +58,14 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		}
 		return err
 	}
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
+	return updateWith(f, out, interactive, terminal)
+}
 
+// updateWith is update's core, separated from parsing and from the terminal
+// implementation of prompter (design.md "Separar las preguntas de la
+// lógica").
+func updateWith(f updateFlags, out io.Writer, interactive bool, terminal prompter) error {
 	// 1. Choose the CLIs before running Git, so a host-less home fails
 	// without extracting anything.
 	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir}
@@ -131,8 +140,7 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 	if !interactive {
 		return fmt.Errorf("an interactive terminal is required to confirm; use --dry-run to preview or --out FILE to save a plan for hive apply")
 	}
-	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
-	decision, err := confirmInstall(terminal, "Apply these changes?", false)
+	decision, err := terminal.Confirm("Apply these changes?", false)
 	if err != nil {
 		return err
 	}

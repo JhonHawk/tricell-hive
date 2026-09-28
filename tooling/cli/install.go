@@ -33,6 +33,42 @@ type installTerminal struct {
 	interactive bool
 }
 
+// prompter separates the install/update/voice flows' questions from their
+// logic (design.md "Separar las preguntas de la lógica"): runOnboardingWizard,
+// expandToRequiredHosts, previewInstallOnboarding and
+// handlePendingInstallOperation, plus update's and voice's own internal
+// variants, ask through this interface instead of the concrete
+// installTerminal, so a future huh-based implementation can drive the same
+// flows. installTerminal implements it below with the existing plain-text
+// functions, preserving the "no terminal" behavior each of them already
+// encodes.
+type prompter interface {
+	SelectHosts(candidates []hostCandidate) (hosts []string, ok bool, err error)
+	SelectProviders(offers []providerOffer) ([]providerRequest, bool, error)
+	ProviderVersion(offer providerOffer) (string, bool, error)
+	Confirm(prompt string, allowBack bool) (installDecision, error)
+}
+
+// SelectHosts, SelectProviders, ProviderVersion and Confirm are thin
+// prompter adapters over installTerminal's existing plain-text functions:
+// the functions themselves are untouched, so their printed text stays
+// byte-identical.
+func (t installTerminal) SelectHosts(candidates []hostCandidate) ([]string, bool, error) {
+	return selectInstallerHosts(t, candidates)
+}
+
+func (t installTerminal) SelectProviders(offers []providerOffer) ([]providerRequest, bool, error) {
+	return selectProviderRequests(t, offers)
+}
+
+func (t installTerminal) ProviderVersion(offer providerOffer) (string, bool, error) {
+	return readProviderVersion(t, offer)
+}
+
+func (t installTerminal) Confirm(prompt string, allowBack bool) (installDecision, error) {
+	return confirmInstall(t, prompt, allowBack)
+}
+
 type installDecision int
 
 const (
@@ -195,7 +231,7 @@ func validateInstallDependencies(dependencies installDependencies) error {
 // continuing into the host-selection wizard: either a pending recovery was
 // resolved (or declined, or deferred by --dry-run) here, or resolving it
 // itself failed.
-func handlePendingInstallOperation(o management.Options, dry bool, terminal installTerminal, out io.Writer, online bool, dependencies installDependencies) (handled bool, err error) {
+func handlePendingInstallOperation(o management.Options, dry bool, terminal prompter, out io.Writer, online bool, dependencies installDependencies) (handled bool, err error) {
 	stateDir := o.StateDir
 	kind, err := dependencies.Pending(stateDir)
 	if err != nil {
@@ -207,7 +243,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal inst
 		if dry {
 			return true, nil
 		}
-		decision, err := confirmInstall(terminal, "Reconcile the pending optional steps?", false)
+		decision, err := terminal.Confirm("Reconcile the pending optional steps?", false)
 		if err != nil || decision != installApply {
 			return true, err
 		}
@@ -226,7 +262,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal inst
 		if dry {
 			return true, nil
 		}
-		decision, err := confirmInstall(terminal, "Recover the pending operation?", false)
+		decision, err := terminal.Confirm("Recover the pending operation?", false)
 		if err != nil || decision != installApply {
 			return true, err
 		}
@@ -242,7 +278,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal inst
 
 // runOnboardingWizard walks the host-selection/summary/consent/apply loop
 // once no pending operation blocks it.
-func runOnboardingWizard(o management.Options, dry bool, terminal installTerminal, out io.Writer, online bool, dependencies installDependencies) error {
+func runOnboardingWizard(o management.Options, dry bool, terminal prompter, out io.Writer, online bool, dependencies installDependencies) error {
 	stateDir := o.StateDir
 	explicitHosts := len(o.Hosts) > 0
 
@@ -252,7 +288,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			if err != nil {
 				return err
 			}
-			selected, ok, err := selectInstallerHosts(terminal, candidates)
+			selected, ok, err := terminal.SelectHosts(candidates)
 			if err != nil {
 				return err
 			}
@@ -298,7 +334,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			fmt.Fprintln(out, "Preview: installation was not changed.")
 			return nil
 		}
-		decision, err := confirmInstall(terminal, "Apply these changes?", !explicitHosts)
+		decision, err := terminal.Confirm("Apply these changes?", !explicitHosts)
 		if err != nil {
 			return err
 		}
@@ -330,7 +366,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 // consequence of accepting, then ask for explicit consent. ok=false means
 // the operator declined the expansion (already reported by the caller);
 // hosts is o.Hosts unchanged when nothing needs expanding.
-func expandToRequiredHosts(terminal installTerminal, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
+func expandToRequiredHosts(terminal prompter, out io.Writer, o management.Options, dependencies installDependencies) (hosts []string, ok bool, err error) {
 	required, err := dependencies.RequiredHosts(o)
 	if err != nil {
 		return nil, false, err
@@ -348,7 +384,7 @@ func expandToRequiredHosts(terminal installTerminal, out io.Writer, o management
 		}
 	}
 	fmt.Fprintln(out, "Accepting will rewrite those resources too, on already-installed hosts that share them.")
-	decision, err := confirmInstall(terminal, "Select all required hosts?", false)
+	decision, err := terminal.Confirm("Select all required hosts?", false)
 	if err != nil {
 		return nil, false, err
 	}
@@ -441,12 +477,12 @@ func newOnboardingInput(o management.Options, dryRun bool) onboardingInput {
 // ok/cancel signal: false means the operator cancelled (including a genuine
 // EOF while entering a capability version), which the caller must report the
 // same way as any other cancellation — quietly, with no error and no writes.
-func previewInstallOnboarding(terminal installTerminal, o management.Options, p management.Plan, adapter onboardingAdapter) (onboardingPreview, bool, error) {
+func previewInstallOnboarding(terminal prompter, o management.Options, p management.Plan, adapter onboardingAdapter) (onboardingPreview, bool, error) {
 	offers, err := adapter.Detect(o)
 	if err != nil {
 		return onboardingPreview{}, false, err
 	}
-	requests, ok, err := selectProviderRequests(terminal, offers)
+	requests, ok, err := terminal.SelectProviders(offers)
 	if err != nil || !ok {
 		return onboardingPreview{}, ok, err
 	}

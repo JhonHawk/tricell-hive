@@ -13,7 +13,10 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T1 — Interfaz `prompter` para las preguntas
 
-- [/] `install`, `update` y `voice` obtienen las elecciones a través de `prompter`, y `installTerminal` es su implementación de texto.
+- [x] `install`, `update` y `voice` obtienen las elecciones a través de `prompter`, y `installTerminal` es su implementación de texto.
+  - **Evidencia:** los hashes de `install_test.go`, `update_test.go`, `voice_test.go` y `bootstrap_test.go` son idénticos antes y después, y `go test -race ./tooling/cli` y `go vet ./...` pasan.
+  - **Resultado:** `prompter` está en `install.go:45`, y existen `updateWith` y `voicePlanWith`.
+  - **Desviación:** `runInstallFlow` conserva su firma, porque `bootstrap_test.go` la llama directamente. T2 agrega `runInstallFlowWith`, que recibe el `prompter`, para que la interfaz entre por la verificación del paquete y la comprobación de operaciones pendientes.
 
 **Closes:** AC8.
 
@@ -37,7 +40,7 @@ Cada hijo recibe `AGENTS.md`, este cambio y [security boundaries](../../../../co
 
 ### T2 — Dependencia, entrada, `prompter` de `huh` y menú
 
-- [ ] `hive` sin argumentos y `hive tui` abren el menú en una terminal o en modo accesible; `hive` conserva el error de uso sin terminal; la interfaz ofrece recuperar una operación pendiente al abrir; y el núcleo sigue sin dependencias externas.
+- [/] `hive` sin argumentos y `hive tui` abren el menú en una terminal o en modo accesible; `hive` conserva el error de uso sin terminal; la interfaz ofrece recuperar una operación pendiente al abrir; y el núcleo sigue sin dependencias externas.
 
 **Closes:** AC1, AC7, AC10 (el menú y el `prompter`).
 

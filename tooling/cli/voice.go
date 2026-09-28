@@ -126,7 +126,8 @@ func voiceSet(args []string, in io.Reader, out io.Writer, interactive bool) erro
 	if err != nil {
 		return err
 	}
-	return runVoicePlan(p, "Voice set", in, out, interactive, f.DryRun, f.Out)
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
+	return voicePlanWith(p, "Voice set", out, interactive, f.DryRun, f.Out, terminal)
 }
 
 func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) error {
@@ -142,26 +143,31 @@ func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) erro
 	if err != nil {
 		return err
 	}
-	return runVoicePlan(p, "Voice turned off", in, out, interactive, f.DryRun, f.Out)
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
+	return voicePlanWith(p, "Voice turned off", out, interactive, f.DryRun, f.Out, terminal)
 }
 
-// runVoicePlan shows the summary, then applies the same
+// voicePlanWith shows the summary, then applies the same
 // unchanged/dry-run/out/interactive-confirm sequence hive update uses
-// (update.go's update function): unchanged is reported and the command
+// (update.go's updateWith function): unchanged is reported and the command
 // exits 0 without writing anything, since a voice plan carries no source
-// commit to record the way an install/update plan does.
-func runVoicePlan(p management.Plan, doneVerb string, in io.Reader, out io.Writer, interactive, dry bool, outFile string) error {
-	unchanged, err := management.PlanUnchanged(p)
+// commit to record the way an install/update plan does. It takes a prompter
+// instead of building its own installTerminal (design.md "Separar las
+// preguntas de la lógica"), so a future TUI can drive the same flow with its
+// own huh-based prompter; voiceSet and voiceOff call it with their own
+// installTerminal.
+func voicePlanWith(plan management.Plan, doneVerb string, out io.Writer, interactive, dry bool, outFile string, terminal prompter) error {
+	unchanged, err := management.PlanUnchanged(plan)
 	if err != nil {
 		return err
 	}
-	showVoiceSummary(out, p, unchanged)
+	showVoiceSummary(out, plan, unchanged)
 	if dry {
 		fmt.Fprintln(out, "Preview: nothing was changed.")
 		return nil
 	}
 	if outFile != "" {
-		if err := management.SavePlan(outFile, p); err != nil {
+		if err := management.SavePlan(outFile, plan); err != nil {
 			return err
 		}
 		fmt.Fprintf(out, "Plan saved to %s; run hive apply --plan %s to apply it.\n", outFile, outFile)
@@ -174,8 +180,7 @@ func runVoicePlan(p management.Plan, doneVerb string, in io.Reader, out io.Write
 	if !interactive {
 		return fmt.Errorf("an interactive terminal is required to confirm; use --dry-run to preview or --out FILE to save a plan for hive apply")
 	}
-	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
-	decision, err := confirmInstall(terminal, "Apply these changes?", false)
+	decision, err := terminal.Confirm("Apply these changes?", false)
 	if err != nil {
 		return err
 	}
@@ -183,7 +188,7 @@ func runVoicePlan(p management.Plan, doneVerb string, in io.Reader, out io.Write
 		fmt.Fprintln(out, "Cancelled. No changes applied.")
 		return nil
 	}
-	result, err := (management.Engine{}).Apply(p)
+	result, err := (management.Engine{}).Apply(plan)
 	if err != nil {
 		return err
 	}
