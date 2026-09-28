@@ -209,6 +209,6 @@ No hay superficie de interfaz gráfica, así que no aplican `review-ux` ni un re
 - **Descartado:** `--end-of-options` en `rev-parse`. El revisor confirmó que el rechazo del `-` inicial basta con el sufijo `^{commit}`.
 - **Sin nueva ronda:** todas las correcciones aplican propuestas de los propios revisores. Límite pendiente: no se comprobó el comportamiento con Git anterior a 2.38.
 
-**Avance:** T1 a T5 verificadas. `go vet ./...` y `go test -race ./...` pasan sobre `24759bb`, y `go test -race` de las pruebas afectadas pasa sobre `f6da52d`. Falta la revisión de código con `/code-review`.
+**Avance:** T1 a T5 verificadas, y la revisión de código resuelta. `go vet ./...` y `go test -race ./...` pasan sobre `390a0cb`, con 16 paquetes en verde. Publicado directo en `rebuild/harness-engineering` (`18847d6..390a0cb`). No hay CI que esperar. Sin despliegue en los CLIs del usuario.
 
-**Siguiente paso:** `/code-review` sobre el diff contra `18847d6`, rebase sobre `origin/rebuild/harness-engineering` y push directo (D7-A).
+**Siguiente paso:** ninguno en este cambio. Los requisitos nuevos pasaron a `specs/versioned-installation/spec.md`.
