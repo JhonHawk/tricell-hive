@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Listo para implementar · implementación pendiente de tu visto bueno |
+| Estado | Abandonado el 2026-09-27 (D16-A): la versión nueva ganó 2 de 5 pares a ciegas |
 | Tracker · GitHub Issues | Sin issue enlazado |
 | Git | Directo a `rebuild/harness-engineering` (D2-A) · despliegue solo si gana la comparación a ciegas |
 | Verificación | `go test ./tests/...` · inventario de reglas aceptado · piloto A/B Grok+Codex · elección a ciegas |
-| Siguiente paso | `flow-build` desde T1, con tu visto bueno |
+| Siguiente paso | Ninguno; ver «Cierre» |
 
 ## Objetivo
 
@@ -30,8 +30,8 @@ Criterios:
 - AC1. La sección `## Communication` ocupa como máximo 8 400 bytes, un 30 % menos que hoy. *Falsa en la base cuando* se mide: 12 041 bytes.
 - AC2. La sección contiene un único ejemplo, un bloque cercado bajo la línea «Example completion report:», presentado como modelo solo para reportes de cierre. *Falsa en la base cuando* se busca esa línea: no existe.
 - AC3. Las etiquetas en negrita por área se piden solo para reportes con tres o más áreas. *Falsa en la base cuando* se lee la línea 17: las pide en todo reporte de progreso o cierre.
-- AC4. En la comparación a ciegas, el usuario prefiere la versión nueva en al menos 4 de 6 pares. «Sin preferencia» cuenta en contra de la versión nueva, y un par en el que alguna corrida no terminó se repite una vez. Es la preferencia del usuario, no una afirmación de fiabilidad (D14-A). *Falsa en la base cuando* no existe versión nueva ni pares.
-- AC5. Las 12 corridas terminan (`completed`) y, dentro de cada celda (caso × host), ninguno de estos criterios que pasa en el brazo A falla en el brazo B: `question_after_detail`, `cited_id_glossed`, `no_bare_url`, `ticket_ids_not_packed_in_prose` y `Final writes within authorized fixture scope`. *Falsa en la base cuando* no hay corridas del brazo B.
+- AC4 (ajustado por D15-A, 2026-09-27: la celda Grok × `adaptive-plan` no terminó en ninguno de los dos brazos, ni a 600 s ni a 900 s; se juzgan 5 pares y la versión nueva gana con 4 de 5). En la comparación a ciegas, el usuario prefiere la versión nueva en al menos 4 de 6 pares. «Sin preferencia» cuenta en contra de la versión nueva, y un par en el que alguna corrida no terminó se repite una vez. Es la preferencia del usuario, no una afirmación de fiabilidad (D14-A). *Falsa en la base cuando* no existe versión nueva ni pares.
+- AC5 (sobre las 5 celdas válidas, D15-A). Las corridas terminan (`completed`) y, dentro de cada celda (caso × host), ninguno de estos criterios que pasa en el brazo A falla en el brazo B: `question_after_detail`, `cited_id_glossed`, `no_bare_url`, `ticket_ids_not_packed_in_prose` y `Final writes within authorized fixture scope`. *Falsa en la base cuando* no hay corridas del brazo B.
 
 ## Entrega
 
@@ -39,3 +39,14 @@ Criterios:
 - Revisión de código: sin revisión dedicada (D3-A, vigente); la revisión del plan sí aplica.
 - Piloto autorizado por el usuario solo para esta comparación (D11-A, 2026-09-27): Grok y Codex, 3 casos, dos brazos, una corrida por celda (D14-A), proyectos de prueba desechables, memoria aislada. `--allow-native-trust` autorizado en las corridas de Codex (D13-A): la entrada de confianza vive solo en el home paralelo de cada corrida.
 - Despliegue a las 6 CLIs: solo si se cumplen AC4 y AC5. Si no, una ronda de ajuste y otra comparación; si vuelve a perder, se abandona el cambio y se archiva con el motivo.
+
+## Cierre
+
+Abandonado el 2026-09-27 por decisión del usuario (D16-A).
+
+- **Resultado a ciegas:** la versión nueva ganó 2 de 5 pares; AC4 pedía 4 de 5.
+- **AC5 sí se cumplió:** ningún criterio de regresión empeoró en las 5 celdas válidas.
+- **Qué eligió el usuario:** en los 5 pares, la respuesta con más etiquetas en negrita y secciones marcadas, fuera de la guía actual o de la nueva. La queja original apuntaba al vocabulario (jerga y calcos), no a la estructura. Las correcciones de vocabulario ya están desplegadas (releases `1123dc87e8ae` y `404bb78c6b5e`).
+- **Qué se descarta:** la reescritura de `## Communication`, que no se integra; `global.md` queda como en la base.
+- **Qué se conserva:** el caso `backlog-status` de `tests/fixtures/flows`, con su test, para medir la regla de backlog más adelante.
+- **Evidencia local** (ignorada por Git): `_support/workspace/2026-09-27-communication-recipe/` contiene el inventario, los pares, la clave y el recuento.

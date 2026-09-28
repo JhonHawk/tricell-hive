@@ -1,10 +1,11 @@
 # Tareas
 
-Commit base: se registra al empezar `flow-build`.
+Commit base: `661bf83` (2026-09-27).
 
 ## T1 — Reescribir la sección de comunicación
 
-- [ ] `## Communication` reescrita como receta positiva con un ejemplo, en el working tree y sin commit, con el inventario de reglas aceptado por el usuario.
+- [x] `## Communication` reescrita como receta positiva con un ejemplo, en el working tree y sin commit, con el inventario de reglas aceptado por el usuario.
+  Ronda 1, restricción del inventario: faltaban U1–U7 (comportamientos cambiados sin inventariar) y la pregunta de cierre del ejemplo; AC1–AC3 se cumplen. Corregido: U1–U6 restaurados, descartes D-m a D-q aceptados. Ronda 2: AC1 (8 381 bytes), AC2 y AC3 cumplidos; inventario completo por frase.
 
 **Closes:** AC1, AC2, AC3.
 
@@ -32,7 +33,7 @@ Commit base: se registra al empezar `flow-build`.
 
 ## T2 — Preparar la comparación
 
-- [ ] Existen los dos brazos verificados, el caso `backlog-status` y el extractor ciego.
+- [x] Existen los dos brazos verificados, el caso `backlog-status` y el extractor ciego.
 
 **Depends on:** T1.
 
@@ -54,7 +55,8 @@ Commit base: se registra al empezar `flow-build`.
 
 ## T3 — Correr el piloto
 
-- [ ] 12 corridas terminadas y evaluadas: `backlog-status`, `direct-build` y `adaptive-plan` × Grok y Codex × brazos A y B.
+- [x] 12 corridas terminadas y evaluadas: `backlog-status`, `direct-build` y `adaptive-plan` × Grok y Codex × brazos A y B.
+  Evidencia: 10 corridas `completed`. Grok × `adaptive-plan` excedió el límite en los dos brazos (r05, r08 a 600 s; repetidas r13, r14 a 900 s): Grok lanza un revisor y lo espera. Celda excluida (D15-A). AC5: en las 5 celdas válidas, ningún criterio que pasa en A falla en B. Los fallos de Grok en `ticket_ids_not_packed_in_prose` (backlog) y `question_after_detail` (direct-build) ocurren en los dos brazos. Limpieza del Engram aislado: `isolated_database_removed` en las 14 corridas.
 
 **Closes:** AC5.
 
@@ -76,7 +78,8 @@ Commit base: se registra al empezar `flow-build`.
 
 ## T4 — Comparación a ciegas
 
-- [ ] El usuario eligió en 6 pares y el resultado está registrado.
+- [!] El usuario eligió en 6 pares y el resultado está registrado.
+  Ronda 1, AC4: la versión nueva ganó 2 de 5 pares (P2 y P5); se exigían 4. El usuario decidió abandonar (D16-A) sin ronda de ajuste.
 
 **Closes:** AC4.
 
@@ -95,6 +98,7 @@ Commit base: se registra al empezar `flow-build`.
 ## T5 — Integrar y desplegar
 
 - [ ] Versión nueva en `rebuild/harness-engineering` y desplegada en las 6 CLIs.
+  Retirada: el cambio se abandonó (D16-A).
 
 **Depends on:** T4 con AC4 y AC5 cumplidos.
 
@@ -106,7 +110,8 @@ Commit base: se registra al empezar `flow-build`.
 
 ## T6 — Cerrar
 
-- [ ] Temporales borrados y cambio archivado.
+- [x] Temporales borrados y cambio archivado.
+  Se borraron los brazos, las corridas (incluidos sus homes paralelos, sin ningún `auth.json`), el script de corrida y el binario `pilot` de la raíz. El Engram aislado de las 14 corridas quedó `isolated_database_removed`, y el Engram de uso diario no tiene proyectos `hive-pilot` ni `shop-fixture`. El historial nativo de Grok queda en `GROK_HOME` como límite declarado.
 
 **Depends on:** T5, o el abandono del cambio.
 
@@ -160,4 +165,4 @@ Casi todas las correcciones aplican lo que propusieron los revisores. El cambio 
 
 **Cobertura:** contenido de la guía y medición. No hay interfaz de usuario ni backend afectados. Límite declarado: el piloto no ejercita todas las reglas; el inventario de T1 las protege.
 
-**Estado:** plan listo; la implementación espera tu visto bueno para arrancar `flow-build` en T1.
+**Estado:** abandonado tras la comparación a ciegas (ver `proposal.md`, «Cierre»).
