@@ -140,7 +140,7 @@ func TestDoctorViewLoadErrorLeadsWithWordsAndRetryAfterFixing(t *testing.T) {
 	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		_, d, _ := openDoctorView(t, o, newDoctorFake(home), size[0], size[1])
-		d.mustShow("Hive's state in", "could not be read", "hive status", "Detail: invalid character", "r to retry after fixing it")
+		d.mustShow("Hive's state in", "could not be read", "hive doctor shows the same problem", "Detail: invalid character", "r to retry after fixing it")
 		// Look only from the view's own heading down: the status line above
 		// it never carries the raw error, but the heading keeps the check exact.
 		lines := d.lines()

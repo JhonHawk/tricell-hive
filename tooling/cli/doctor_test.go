@@ -516,7 +516,7 @@ func TestDoctorUnreadableStateLeadsWithWordsThenDetail(t *testing.T) {
 		t.Fatalf("CLIs: too few lines: %q", lines)
 	}
 	first, detail := lines[1], lines[2]
-	mustContain(t, first, "Could not check everything: Hive's state in "+stateDir+" could not be read", "hive status")
+	mustContain(t, first, "Could not check everything: Hive's state in "+stateDir+" could not be read", "hive doctor shows the same problem")
 	mustNotContain(t, first, "invalid character")
 	mustContain(t, detail, "Detail: ", "invalid character")
 }

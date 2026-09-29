@@ -54,13 +54,19 @@ type hostsLoadedMsg struct {
 
 // legacyScanNote explains, in plain words followed by a "Detail:" line with the
 // raw error, why the legacy scan failed. The scan reads every file Hive could
-// have installed, and a file the user changed by hand fails it, so the usual
-// cause is a changed file, which Diagnostics explains how to restore.
-func legacyScanNote(err error) string {
+// have installed, and a file that differs from what Hive expects at a path it
+// once used fails it; the file may be one Hive wrote or the user's own, so the
+// note names the path and the ways out without saying which. Diagnostics lists
+// a changed file only for a registered host, so the pointer to it is made only
+// then.
+func legacyScanNote(err error, registered bool) string {
 	raw := sanitizeLine(err.Error())
-	words := "Hive could not check for a legacy installation, so installing or removing may be refused. Open Diagnostics for details."
+	words := "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why."
 	if path, ok := strings.CutPrefix(raw, "modified legacy file requires manual resolution: "); ok {
-		words = "A file Hive installed was changed (" + path + "). Open Diagnostics to see how to restore it before installing or removing."
+		words = path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
+		if registered {
+			words += " If Hive installed it, Diagnostics shows how to restore it."
+		}
 	}
 	return words + "\nDetail: " + raw
 }
@@ -72,8 +78,9 @@ func legacyScanNote(err error) string {
 func loadHostRows(o management.Options, deps installDependencies) (rows []hostRow, pending management.PendingKind, scanNote string, err error) {
 	candidates, err := deps.DiscoverHosts(o)
 	var scanErr *legacyScanError
-	if errors.As(err, &scanErr) {
-		scanNote, err = legacyScanNote(scanErr), nil
+	scanFailed := errors.As(err, &scanErr)
+	if scanFailed {
+		err = nil
 	}
 	if err != nil {
 		return nil, management.PendingNone, "", err
@@ -83,6 +90,9 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 		if c.Registered {
 			registered = append(registered, c.Name)
 		}
+	}
+	if scanFailed {
+		scanNote = legacyScanNote(scanErr, len(registered) > 0)
 	}
 	var entries []management.StatusEntry
 	if len(registered) > 0 {
@@ -103,6 +113,8 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 			row.Release, row.Version, row.Drift = hostStatusFields(c.Name, entries)
 		case c.Legacy:
 			row.State = "legacy install"
+		case c.EditorOnly:
+			row.State = "editor only"
 		default:
 			row.State = "detected"
 		}
@@ -390,6 +402,10 @@ func (v *hostsView) onKey(name string) (tea.Cmd, action) {
 		}
 	case "u":
 		return v.startUninstallAll()
+	case "r":
+		if v.loadErr != "" {
+			return v.reload(), action{nav: navNone} // the state may be fixed by now
+		}
 	}
 	return nil, action{nav: navNone}
 }
@@ -803,6 +819,7 @@ func (v *hostsView) View(c viewCtx) string {
 		for _, l := range wrapLines("The CLIs cannot be shown: "+words, c.Width) {
 			lines = append(lines, th.Danger.Render(l))
 		}
+		lines = append(lines, th.Muted.Render("Press r to retry after fixing it."))
 		for _, d := range detail {
 			for _, l := range wrapLines(d, c.Width) {
 				lines = append(lines, th.Muted.Render(l))
@@ -813,6 +830,7 @@ func (v *hostsView) View(c viewCtx) string {
 		for _, l := range wrapLines(text, c.Width) {
 			lines = append(lines, th.Text.Render(l))
 		}
+		lines = append(lines, v.scanNoteLines(c)...)
 	default:
 		lines = append(lines, v.rowLines(c)...)
 		remove, add := v.pendingChanges()
@@ -821,21 +839,7 @@ func (v *hostsView) View(c viewCtx) string {
 		} else if n > 1 {
 			lines = append(lines, th.Muted.Render(fmt.Sprintf("%d pending changes: press a to review them.", n)))
 		}
-		if v.scanNote != "" {
-			words, detail := errLines(v.scanNote)
-			lines = append(lines, "")
-			for _, l := range wrapLines(words, c.Width) {
-				lines = append(lines, th.Danger.Render(l))
-			}
-			if v.message != "" {
-				detail = nil // a result or error below needs the room more than the raw error
-			}
-			for _, d := range detail {
-				for _, l := range wrapLines(d, c.Width) {
-					lines = append(lines, th.Muted.Render(l))
-				}
-			}
-		}
+		lines = append(lines, v.scanNoteLines(c)...)
 	}
 	if v.planning != "" {
 		lines = append(lines, "", c.Spinner+" "+th.Muted.Render(v.planning))
@@ -873,14 +877,42 @@ func (v *hostsView) View(c viewCtx) string {
 	return strings.Join(lines, "\n")
 }
 
+// scanNoteLines draws the note about a failed legacy scan, blank line first,
+// or nothing when the scan did not fail. It belongs under the rows and under
+// the empty state alike, since the file it names is the problem in both.
+func (v *hostsView) scanNoteLines(c viewCtx) []string {
+	if v.scanNote == "" {
+		return nil
+	}
+	th := c.Theme
+	words, detail := errLines(v.scanNote)
+	lines := []string{""}
+	for _, l := range wrapLines(words, c.Width) {
+		lines = append(lines, th.Danger.Render(l))
+	}
+	if v.message != "" {
+		detail = nil // a result or error below needs the room more than the raw error
+	}
+	for _, d := range detail {
+		for _, l := range wrapLines(d, c.Width) {
+			lines = append(lines, th.Muted.Render(l))
+		}
+	}
+	return lines
+}
+
 func (v *hostsView) Keys() []key.Binding {
 	back := binding("esc,backspace", "esc", "back")
 	more := binding("m", "m", "more") // only while the message is cut
 	if len(v.rows) == 0 {
+		keys := []key.Binding{}
 		if v.messageCut {
-			return []key.Binding{more, back}
+			keys = append(keys, more)
 		}
-		return []key.Binding{back}
+		if v.loadErr != "" {
+			keys = append(keys, binding("r", "r", "reload"))
+		}
+		return append(keys, back)
 	}
 	keys := []key.Binding{
 		binding("up,down", "↑/↓", "move"),

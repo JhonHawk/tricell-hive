@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 )
 
@@ -57,7 +58,8 @@ func TestHostsViewListsHostsWhenAManagedFileWasChanged(t *testing.T) {
 		d := openDriftedCLIs(t, env, size[0], size[1])
 		d.mustNotShow("Cannot read the CLIs")
 		for _, want := range []string{
-			"A file Hive installed was changed (" + skill + "). Open Diagnostics to see how to restore it before installing or removing.",
+			skill + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.",
+			"If Hive installed it, Diagnostics shows how to restore it.",
 			"Detail: modified legacy file requires manual resolution: " + skill,
 		} {
 			mustShowFlat(d, want)
@@ -135,9 +137,9 @@ func TestHostsViewNamesAnUnknownLegacyScanFailureWithoutBlamingAFile(t *testing.
 		return candidates, &legacyScanError{err: errors.New("unsupported legacy manifest: /x/manifest.json")}
 	}
 	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), deps)
-	mustShowFlat(d, "Hive could not check for a legacy installation, so installing or removing may be refused. Open Diagnostics for details.")
+	mustShowFlat(d, "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why.")
 	mustShowFlat(d, "Detail: unsupported legacy manifest: /x/manifest.json")
-	d.mustNotShow("A file Hive installed was changed")
+	d.mustNotShow("differs from what Hive expects", "Open Diagnostics")
 	if n := len(hostRows(d)); n != len(installerHosts) {
 		t.Fatalf("%d rows, want %d:\n%s", n, len(installerHosts), d.screen())
 	}
@@ -162,7 +164,7 @@ func TestCLIsAndVoiceViewsExplainAnUnreadableStateInPlainWords(t *testing.T) {
 			_, d := newTestApp(t, cfg, 80, 24)
 			openMenuEntry(t, d, tc.entry)
 			mustShowFlat(d, tc.title)
-			mustShowFlat(d, "Hive's state in "+cfg.Options.StateDir+" could not be read. Repair or restore its files; hive status reports the same problem.")
+			mustShowFlat(d, "Hive's state in "+cfg.Options.StateDir+" could not be read. Repair or restore its files; hive doctor shows the same problem.")
 			d.mustNotShow("Cannot read the CLIs")
 			detail, plain := -1, -1
 			for i, l := range d.lines() {
@@ -189,4 +191,162 @@ func TestVoiceViewKeepsASourceProblemInItsOwnWords(t *testing.T) {
 	_, d := f.open(t, 80, 24)
 	mustShowFlat(d, "Run hive from a Hive checkout or package, or pass --source")
 	d.mustNotShow("could not be read")
+}
+
+// legacyPathEnv is a home with no state and no CLI, where the user's own file
+// sits at a path Hive once installed a skill to (M1, M2).
+func legacyPathEnv(t *testing.T) (home, stateDir, path string) {
+	t.Helper()
+	home, stateDir = newHostsTestHome(t)
+	home, err := target.Canonical(home) // the scan reports the resolved path
+	if err != nil {
+		t.Fatal(err)
+	}
+	path = filepath.Join(home, ".agents", "skills", "adversarial-research", "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("My own notes.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return home, stateDir, path
+}
+
+// TestHostsViewShowsTheScanNoteWithNoHosts (M1, M2): with no CLI detected or
+// registered and no state, a file at a legacy path still explains itself: the
+// note names the path and what to do, without an assumption about who wrote
+// the file and without sending the user to a Diagnostics that has nothing to
+// say about it.
+func TestHostsViewShowsTheScanNoteWithNoHosts(t *testing.T) {
+	home, stateDir, path := legacyPathEnv(t)
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		_, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory)), size[0], size[1])
+		d.key("enter")
+		d.mustShow("CLIs")
+		mustShowFlat(d, "No CLI hosts were detected or registered.")
+		mustShowFlat(d, path+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.")
+		mustShowFlat(d, "Detail: modified legacy file requires manual resolution: "+path)
+		d.mustNotShow("Open Diagnostics", "Hive installed was changed", "Diagnostics shows")
+		assertFits(t, d, size[0], size[1])
+	}
+}
+
+// TestDiagnosticsListsAChangedManagedFileThePointerPromises (M2): the pointer
+// to Diagnostics in the note is true for a registered host's changed file.
+func TestDiagnosticsListsAChangedManagedFileThePointerPromises(t *testing.T) {
+	env := driftedEnv(t, installerHosts)
+	o := management.Options{Scope: "user", Home: env.home, StateDir: env.stateDir}
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(env.home).deps())
+	text := sectionText(r.Installation)
+	if !strings.Contains(text, env.sharedSkillPath()) || !strings.Contains(text, "Hive cannot repair a changed file by itself") {
+		t.Errorf("Installation section does not name the file and how to restore it:\n%s", text)
+	}
+}
+
+// corruptState replaces state.json with text that is not JSON and returns a
+// function that puts the original back (or removes the file when there was
+// none), the way a user repairs it.
+func corruptState(t *testing.T, stateDir string) (repair func()) {
+	t.Helper()
+	path := filepath.Join(stateDir, "state.json")
+	original, readErr := os.ReadFile(path)
+	if err := os.WriteFile(path, []byte("{ this is not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return func() {
+		if readErr != nil {
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			return
+		}
+		if err := os.WriteFile(path, original, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// TestCLIsAndVoiceViewsRetryAfterTheStateIsFixed (M3): like Models, both views
+// tell the user how to try again, list the key in the help bar, and load once
+// the state is readable.
+func TestCLIsAndVoiceViewsRetryAfterTheStateIsFixed(t *testing.T) {
+	for _, tc := range []struct{ name, loaded string }{
+		{"CLIs", "claude"},
+		{"Voice", "Voice"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newVoiceFixture(t)
+			repair := corruptState(t, f.stateDir)
+			_, d := newTestApp(t, hostsAppConfig(t, f.home, f.stateDir, f.source, hostsTestDeps(coreOnlyAdapterFactory)), 80, 24)
+			openMenuEntry(t, d, tc.name)
+			mustShowFlat(d, "Press r to retry after fixing it.")
+			d.mustShow("r reload")
+			d.key("r") // still broken: the error stays, nothing else happens
+			mustShowFlat(d, "could not be read")
+			repair()
+			d.key("r")
+			d.mustNotShow("cannot be shown", "Press r to retry", "Detail:")
+			d.mustShow(tc.loaded)
+			assertFits(t, d, 80, 24)
+		})
+	}
+}
+
+// TestVoiceSourceProblemOffersNoRetryText (M3): only an unreadable state gets
+// the retry text; a source without voices keeps its own guidance.
+func TestVoiceSourceProblemOffersNoRetryText(t *testing.T) {
+	f := newVoiceFixture(t)
+	f.source = t.TempDir()
+	_, d := f.open(t, 80, 24)
+	d.mustNotShow("Press r to retry", "r reload")
+}
+
+// TestCLIsViewNamesCursorsEditorOnlyLikeDiagnostics (M4): a host detected only
+// through its editor launcher reads "editor only" in the CLIs view too, and
+// stays installable; the CLI's own executable reads "detected".
+func TestCLIsViewNamesCursorsEditorOnlyLikeDiagnostics(t *testing.T) {
+	for _, tc := range []struct{ on, state string }{
+		{"cursor", "editor only"},
+		{"cursor-agent", "detected"},
+	} {
+		t.Run(tc.on, func(t *testing.T) {
+			home, stateDir := newHostsTestHome(t)
+			deps := defaultInstallDependencies(coreOnlyAdapterFactory)
+			deps.DiscoverHosts = func(o management.Options) ([]hostCandidate, error) {
+				return discoverInstallerHosts(o, func(name string) (string, error) {
+					if name == tc.on {
+						return "/fake/bin/" + name, nil
+					}
+					return "", errors.New("not found")
+				})
+			}
+			_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), deps)
+			rows := hostRows(d)
+			if len(rows) != 1 || rows[0].name != "cursor" || rows[0].state != tc.state {
+				t.Fatalf("rows = %+v, want one cursor row with state %q:\n%s", rows, tc.state, d.screen())
+			}
+			d.key("space")
+			if rows = hostRows(d); !rows[0].checked {
+				t.Errorf("Cursor is not installable:\n%s", d.screen())
+			}
+			assertFits(t, d, 80, 24)
+		})
+	}
+}
+
+// TestDoctorCommandExplainsAnUnreadableState (L1): the words the views end on,
+// "hive doctor shows the same problem", are true of the command.
+func TestDoctorCommandExplainsAnUnreadableState(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	corruptState(t, stateDir)
+	var runErr error
+	out := captureStdout(t, func() {
+		runErr = run([]string{"doctor", "--home", home, "--state-dir", stateDir, "--project", t.TempDir()})
+	})
+	if runErr != nil {
+		t.Fatalf("doctor failed: %v\n%s", runErr, out)
+	}
+	if !strings.Contains(out, "could not be read") || !strings.Contains(out, "hive doctor shows the same problem") {
+		t.Errorf("doctor does not explain the state problem:\n%s", out)
+	}
 }

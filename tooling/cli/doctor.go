@@ -135,7 +135,7 @@ func unreadableStateText(stateDir string, err error) string {
 	if stateDir != "" {
 		where += " in " + sanitizeLine(stateDir)
 	}
-	return where + " could not be read. Repair or restore its files; hive status reports the same problem.\nDetail: " + sanitizeLine(err.Error())
+	return where + " could not be read. Repair or restore its files; hive doctor shows the same problem.\nDetail: " + sanitizeLine(err.Error())
 }
 
 // stateNotChecked is the Err of a section that needed Hive's state after an

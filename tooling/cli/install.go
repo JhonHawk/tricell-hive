@@ -46,8 +46,12 @@ func hostDetected(lookPath func(string) (string, error), host string) bool {
 }
 
 type hostCandidate struct {
-	Name       string
-	Detected   bool
+	Name     string
+	Detected bool
+	// EditorOnly marks a detected host whose CLI executable is missing while a
+	// secondary one, such as Cursor's editor launcher, was found. It stays
+	// installable.
+	EditorOnly bool
 	Registered bool
 	Legacy     bool
 }
@@ -595,6 +599,16 @@ func (e *legacyScanError) Unwrap() error { return e.err }
 // each. When only the legacy scan fails, it returns the candidates together
 // with a *legacyScanError.
 func detectInstallerHosts(o management.Options) ([]hostCandidate, error) {
+	lookPath := exec.LookPath
+	if o.Home != "" {
+		lookPath = nil // a synthetic home never detects the real machine's executables
+	}
+	return discoverInstallerHosts(o, lookPath)
+}
+
+// discoverInstallerHosts is detectInstallerHosts with the executable lookup
+// passed in; a nil lookPath detects no executable.
+func discoverInstallerHosts(o management.Options, lookPath func(string) (string, error)) ([]hostCandidate, error) {
 	registered, err := management.RegisteredHosts(o)
 	if err != nil {
 		return nil, err
@@ -605,8 +619,9 @@ func detectInstallerHosts(o management.Options) ([]hostCandidate, error) {
 	candidates := make([]hostCandidate, 0, len(installerHosts))
 	for _, host := range installerHosts {
 		candidate := hostCandidate{Name: host, Registered: seenRegistered[host], Legacy: seenLegacy[host]}
-		if o.Home == "" {
-			candidate.Detected = hostDetected(exec.LookPath, host)
+		if lookPath != nil {
+			candidate.Detected = hostDetected(lookPath, host)
+			candidate.EditorOnly = editorOnly(lookPath, host, candidate.Detected)
 		}
 		candidates = append(candidates, candidate)
 	}

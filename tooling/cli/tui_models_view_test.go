@@ -266,7 +266,7 @@ func TestModelsViewScrollsWhenRowsOutgrowTheScreen(t *testing.T) {
 func TestModelsViewLoadErrorOffersRetryAndRReloads(t *testing.T) {
 	_, d, v, _, _ := openModelsView(t, "claude", 80, 24)
 	d.send(modelsLoadedMsg{owned: owned{v}, seq: v.seq, err: errors.New("state is unreadable")})
-	d.mustShow("Hive's state in", "could not be read", "The models cannot be shown", "hive status", "r to retry after fixing it", "Detail: state is unreadable")
+	d.mustShow("Hive's state in", "could not be read", "The models cannot be shown", "hive doctor shows the same problem", "r to retry after fixing it", "Detail: state is unreadable")
 	d.mustNotShow("Cannot read the models")
 	lines := d.lines()
 	plain, detail := -1, -1

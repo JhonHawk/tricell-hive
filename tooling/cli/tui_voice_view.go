@@ -256,6 +256,9 @@ func (v *voiceView) onKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 		if name == "esc" || name == "backspace" {
 			return nil, action{}
 		}
+		if name == "r" && v.stateErr {
+			return v.reload(), action{nav: navNone} // no text field is open yet, and the state may be fixed
+		}
 		return nil, action{nav: navNone}
 	}
 	switch name {
@@ -424,6 +427,9 @@ func (v *voiceView) View(c viewCtx) string {
 		for _, l := range wrapLines(words, c.Width) {
 			lines = append(lines, th.Danger.Render(l))
 		}
+		if v.stateErr {
+			lines = append(lines, th.Muted.Render("Press r to retry after fixing it."))
+		}
 		for _, d := range detail {
 			for _, l := range wrapLines(d, c.Width) {
 				lines = append(lines, th.Muted.Render(l))
@@ -475,6 +481,9 @@ func (v *voiceView) View(c viewCtx) string {
 
 func (v *voiceView) Keys() []key.Binding {
 	if !v.ready {
+		if v.stateErr && v.loadErr != "" {
+			return []key.Binding{binding("r", "r", "reload"), binding("esc", "esc", "back")}
+		}
 		return []key.Binding{binding("esc", "esc", "back")}
 	}
 	return []key.Binding{
