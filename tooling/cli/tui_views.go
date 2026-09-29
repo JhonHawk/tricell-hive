@@ -163,12 +163,17 @@ type menuItem struct {
 }
 
 // mainMenuItems is the menu's fixed set, in order (design.md "Menú (D2-A)").
-// Each entry but Quit opens its own view (T8 and T9).
+// Each entry but Quit opens its own view (T8 and T9; the four read-only
+// views of #46).
 var mainMenuItems = []menuItem{
 	{"CLIs", "Install, remove and check CLI hosts", func(cfg appConfig) view { return newHostsView(cfg) }},
 	{"Update", "Update Hive from a Git commit", func(cfg appConfig) view { return newUpdateView(cfg) }},
 	{"Releases", "Go back to a retained release", func(cfg appConfig) view { return newReleasesView(cfg) }},
 	{"Voice", "Choose the assistant voice", func(cfg appConfig) view { return newVoiceView(cfg) }},
+	{"Diagnostics", "Check CLI versions, the installation and open sessions", func(cfg appConfig) view { return newDoctorView(cfg) }},
+	{"Models", "See the model and effort of each role", func(cfg appConfig) view { return newModelsView(cfg) }},
+	{"Integrations", "Check Engram, Context7, pi-subagents and agent-browser", func(cfg appConfig) view { return newIntegrationsView(cfg) }},
+	{"Project", "Check this repository's ## Hive section", func(cfg appConfig) view { return newProjectView(cfg) }},
 	{"Quit", "Leave Hive", nil},
 }
 

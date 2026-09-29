@@ -310,7 +310,7 @@ func newTestApp(t *testing.T, cfg appConfig, width, height int) (*appModel, *app
 	return m, d
 }
 
-var menuRowPattern = regexp.MustCompile(`^(> |  )(CLIs|Update|Releases|Voice|Quit)\b`)
+var menuRowPattern = regexp.MustCompile(`^(> |  )(CLIs|Update|Releases|Voice|Diagnostics|Models|Integrations|Project|Quit)(?:\s|$)`)
 
 // menuRows returns the menu entries visible on the screen, in order.
 func menuRows(d *appDriver) []string {
@@ -359,12 +359,13 @@ func (loopModel) Init() tea.Cmd                          { return loopCmd }
 func (m *loopModel) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, loopCmd }
 func (loopModel) View() tea.View                         { return tea.NewView("") }
 
-// TestAppMenuHasFiveEntriesInOrder covers AC1: the menu lists exactly CLIs,
-// Update, Releases, Voice and Quit, with the status line above it and the
-// help bar below.
-func TestAppMenuHasFiveEntriesInOrder(t *testing.T) {
+// TestAppMenuHasNineEntriesInOrder covers AC1: the menu lists exactly CLIs,
+// Update, Releases, Voice, Diagnostics, Models, Integrations, Project and
+// Quit (#46 read-only views), with the status line above it and the help bar
+// below.
+func TestAppMenuHasNineEntriesInOrder(t *testing.T) {
 	_, d := newTestApp(t, testAppConfig(t), 80, 24)
-	want := []string{"CLIs", "Update", "Releases", "Voice", "Quit"}
+	want := []string{"CLIs", "Update", "Releases", "Voice", "Diagnostics", "Models", "Integrations", "Project", "Quit"}
 	got := menuRows(d)
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("menu entries = %v, want %v\n%s", got, want, d.screen())
@@ -411,13 +412,17 @@ func TestAppStatusLineShowsRegisteredState(t *testing.T) {
 // nothing to delete it must still not go back), and the cursor stays on the
 // entry that was opened. It keeps its T7 name.
 func TestAppKeysEscAndBackspaceReturnFromPlaceholder(t *testing.T) {
-	entries := []string{"CLIs", "Update", "Releases", "Voice"}
+	entries := []string{"CLIs", "Update", "Releases", "Voice", "Diagnostics", "Models", "Integrations", "Project"}
 	marker := func(name string) string {
 		return map[string]string{
-			"CLIs":     "No CLI hosts were detected or registered",
-			"Update":   "Revision",
-			"Releases": "No releases are retained yet",
-			"Voice":    "Open CLIs to install one",
+			"CLIs":         "No CLI hosts were detected or registered",
+			"Update":       "Revision",
+			"Releases":     "No releases are retained yet",
+			"Voice":        "Open CLIs to install one",
+			"Diagnostics":  "Sessions",
+			"Models":       "agent-profiles.json",
+			"Integrations": "No onboarding record yet",
+			"Project":      "AGENTS.md",
 		}[name]
 	}
 	for i, name := range entries {
@@ -437,7 +442,7 @@ func TestAppKeysEscAndBackspaceReturnFromPlaceholder(t *testing.T) {
 				}
 				d.key(back)
 				d.mustNotShow(marker(name))
-				if got := len(menuRows(d)); got != 5 {
+				if got := len(menuRows(d)); got != len(mainMenuItems) {
 					t.Fatalf("menu not shown after %s, rows=%d\n%s", back, got, d.screen())
 				}
 				d.mustShow("> " + name)
