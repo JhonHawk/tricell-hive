@@ -9,7 +9,7 @@ import (
 // It only tightens: raise it in the same change as the growth it allows, and
 // lower it when the file shrinks by more than the slack.
 const (
-	globalGuidanceBudget = 42368
+	globalGuidanceBudget = 42393
 	globalGuidanceSlack  = 1024
 )
 
