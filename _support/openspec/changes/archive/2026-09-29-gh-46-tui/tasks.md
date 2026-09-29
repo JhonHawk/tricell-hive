@@ -343,7 +343,7 @@ Pruebas nuevas:
   - que Ctrl-C leído de un búfer llegue como tecla es una inferencia que confirma la prueba de T7.
 
 **Avance:** T7 a T12 verificadas.
-- **Suite final sobre `a22df95`:** `go vet`, `go mod verify` y `go test -race -timeout 25m ./...` pasan en los 17 paquetes (`tooling/cli` 781 s).
+- **Suite final sobre `2c6e6d3`:** `go vet`, `go mod verify` y `go test -race -timeout 25m ./...` pasan en los 17 paquetes (`tooling/cli` 781 s).
 - **Entrega:** push directo a `rebuild/harness-engineering` (D4-A) el 2026-09-29, y cambio cerrado y archivado.
 
 **Siguiente paso:** ninguno en este cambio.
