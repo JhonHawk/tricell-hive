@@ -243,7 +243,7 @@ func loadDoctorState(o management.Options) doctorState {
 	// An interrupted first install leaves an operation pending and no
 	// registered CLI, so the pending check does not wait for the CLIs.
 	if st.pending, err = management.Pending(dir); err != nil {
-		st.warn = append(st.warn, "Cannot check for an unfinished operation: "+err.Error())
+		st.warn = append(st.warn, "Cannot check for an unfinished operation: "+sanitizeLine(err.Error()))
 	}
 	if len(st.registered) == 0 {
 		return st
@@ -255,7 +255,7 @@ func loadDoctorState(o management.Options) doctorState {
 		return st
 	}
 	if releases, err := management.Releases(o); err != nil {
-		st.warn = append(st.warn, "Cannot read the retained releases: "+err.Error())
+		st.warn = append(st.warn, "Cannot read the retained releases: "+sanitizeLine(err.Error()))
 	} else {
 		for _, rel := range releases {
 			if t, err := time.Parse(time.RFC3339, rel.LastWrittenAt); err == nil {
