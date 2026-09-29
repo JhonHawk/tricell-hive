@@ -410,7 +410,7 @@ func TestDoctorCLIsCursorAgentAloneIsDetectedWithItsVersion(t *testing.T) {
 	}
 }
 
-func TestDoctorCLIsCursorAloneIsDetectedAndNothingRuns(t *testing.T) {
+func TestDoctorCLIsCursorAloneIsLabeledEditorOnlyAndNothingRuns(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude")
 	o = nonSyntheticOptions(t, o, home)
 	bin, marker := t.TempDir(), filepath.Join(t.TempDir(), "ran")
@@ -419,8 +419,10 @@ func TestDoctorCLIsCursorAloneIsDetectedAndNothingRuns(t *testing.T) {
 	deps := f.deps()
 	deps.runVersion = runVersionCommand
 	line := cursorLine(t, collectDoctor(o, t.TempDir(), deps).CLIs)
-	mustContain(t, line, "detected", "CLI unavailable: cursor-agent not found")
-	mustNotContain(t, line, "not detected")
+	// J3: the launcher alone is not Cursor's CLI, so the row does not say
+	// "detected" next to "CLI unavailable".
+	mustContain(t, line, "editor only", "CLI unavailable: cursor-agent not found")
+	mustNotContain(t, line, "detected")
 	if _, err := os.Stat(marker); err == nil {
 		t.Fatal("the cursor launcher was executed")
 	}

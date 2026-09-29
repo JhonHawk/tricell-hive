@@ -325,6 +325,17 @@ func versionBinary(host string) string {
 	return detectionBinaries(host)[0]
 }
 
+// editorOnly reports a host that was detected only through a secondary
+// executable, such as Cursor's editor launcher without cursor-agent: the host's
+// editor is there, but not the CLI whose version the row would report.
+func editorOnly(lookPath func(string) (string, error), host string, detected bool) bool {
+	if !detected {
+		return false
+	}
+	_, err := lookPath(versionBinary(host))
+	return err != nil
+}
+
 func cliSection(deps doctorDeps, st doctorState) doctorSection {
 	sec := doctorSection{Title: "CLIs"}
 	versions := make([]string, len(installerHosts))
@@ -344,9 +355,12 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 	wg.Wait()
 	for i, host := range installerHosts {
 		parts := []string{fmt.Sprintf("%-8s", host)}
-		if detected[i] {
+		switch {
+		case editorOnly(deps.lookPath, host, detected[i]):
+			parts = append(parts, "editor only")
+		case detected[i]:
 			parts = append(parts, "detected")
-		} else {
+		default:
 			parts = append(parts, "not detected")
 		}
 		switch {
