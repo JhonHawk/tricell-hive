@@ -49,23 +49,66 @@ func wrapLines(text string, width int) []string {
 	return strings.Split(wrapBreakingPaths(text, max(width, 1)), "\n")
 }
 
-// wrapBreakingPaths wraps text to width like ansi.Wrap, except that a token
-// wider than the line breaks after a "/" instead of in the middle of a name,
-// keeping each slash at the end of its line. A segment with no slash that is
-// still too wide, or a token with none, falls back to a hard break. A token
-// that fits is never split: it moves whole to the next line.
+// wrapBreakingPaths wraps text to width, filling each line with whole words.
+// A word that fits the width is never split, not even at a hyphen: it moves
+// whole to the next line. A word wider than the line breaks after a "/"
+// instead of in the middle of a name, keeping each slash at the end of its
+// line; a segment with no slash that is still too wide, or a word with none,
+// falls back to a hard break. Runs of spaces inside a line are kept.
 func wrapBreakingPaths(text string, width int) string {
-	lines := strings.Split(text, "\n")
-	for i, line := range lines {
-		tokens := strings.Split(line, " ")
-		for j, tok := range tokens {
-			if ansi.StringWidth(tok) > width {
-				tokens[j] = strings.Join(slashChunks(tok, width), "\n")
-			}
-		}
-		lines[i] = strings.Join(tokens, " ")
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		out = append(out, fillLine(line, width)...)
 	}
-	return ansi.Wrap(strings.Join(lines, "\n"), width, "")
+	return strings.Join(out, "\n")
+}
+
+// fillLine wraps one line without newlines for wrapBreakingPaths.
+func fillLine(line string, width int) []string {
+	if ansi.StringWidth(line) <= width {
+		return []string{line}
+	}
+	var lines []string
+	cur, started := "", false
+	flush := func() {
+		lines = append(lines, strings.TrimRight(cur, " "))
+		cur, started = "", false
+	}
+	for _, word := range strings.Split(line, " ") {
+		if ansi.StringWidth(word) > width {
+			if strings.TrimSpace(cur) != "" {
+				flush()
+			}
+			pieces := slashChunks(word, width)
+			for i, piece := range pieces {
+				for ansi.StringWidth(piece) > width {
+					head := ansi.Truncate(piece, width, "")
+					lines = append(lines, head)
+					piece = strings.TrimPrefix(piece, head)
+				}
+				if i < len(pieces)-1 {
+					lines = append(lines, piece)
+					continue
+				}
+				cur, started = piece, true
+			}
+			continue
+		}
+		candidate := word
+		if started {
+			candidate = cur + " " + word
+		}
+		if ansi.StringWidth(candidate) <= width {
+			cur, started = candidate, true
+			continue
+		}
+		flush()
+		cur, started = word, true
+	}
+	if started {
+		flush()
+	}
+	return lines
 }
 
 // slashChunks splits a token into pieces of at most width columns, cutting only
@@ -311,7 +354,7 @@ func (s *scrollBox) rewrap() {
 		return
 	}
 	if !s.hanging {
-		s.vp.SetContentLines(strings.Split(ansi.Wrap(s.raw, s.vp.Width(), ""), "\n"))
+		s.vp.SetContentLines(strings.Split(wrapBreakingPaths(s.raw, s.vp.Width()), "\n"))
 		return
 	}
 	var lines []string

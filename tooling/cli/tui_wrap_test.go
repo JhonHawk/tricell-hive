@@ -152,3 +152,40 @@ func TestWrapKeepsShortTokensWhole(t *testing.T) {
 		}
 	}
 }
+
+// TestWrapNeverBreaksAPathAtAHyphen (K2 follow-up): a path that fits the width
+// moves whole to the next line instead of breaking at one of its hyphens.
+func TestWrapNeverBreaksAPathAtAHyphen(t *testing.T) {
+	text := "Specs: ../../shared-specifications-directory-that-does-not-exist/openspec/specs-tree is not an existing directory"
+	for _, l := range wrapLines(text, 80) {
+		if strings.HasSuffix(l, "-") {
+			t.Errorf("line breaks at a hyphen: %q", l)
+		}
+	}
+}
+
+// TestPlainScrollBoxBreaksLongPathsAfterASlash (K2 follow-up): summaries and
+// error dialogs, which wrap without a hanging indent, break paths after "/" too.
+func TestPlainScrollBoxBreaksLongPathsAfterASlash(t *testing.T) {
+	box := newScrollBox()
+	box.vp.SetWidth(40)
+	box.vp.SetHeight(20)
+	path := "/Users/someone/Development/projects/client-workspace/nested-projects-area/home/state/transactions"
+	box.setText("Private backups: " + path)
+	var joined string
+	for _, l := range strings.Split(box.vp.View(), "\n") {
+		l = strings.TrimRight(l, " ")
+		if l == "" {
+			continue
+		}
+		if strings.HasPrefix(l, "/") || strings.Contains(l, "/") {
+			if !strings.HasSuffix(l, "/") && !strings.HasSuffix(path, l) {
+				t.Errorf("line breaks inside a name: %q", l)
+			}
+		}
+		joined += l
+	}
+	if !strings.Contains(strings.ReplaceAll(joined, " ", ""), strings.ReplaceAll(path, " ", "")) {
+		t.Errorf("the path was not kept whole: %q", joined)
+	}
+}

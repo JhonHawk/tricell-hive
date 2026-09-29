@@ -59,6 +59,10 @@ type hostsLoadedMsg struct {
 // once used fails it; the file may be one Hive wrote or the user's own, so the
 // note names the path and the ways out without saying which. It does not point
 // to Diagnostics, which lists only files Hive currently manages.
+// changedFilePhrase is how both the scan note and the refusal of a changed
+// file (legacy.ModifiedFileError) describe it, so the view shows it once.
+const changedFilePhrase = "differs from what Hive expects there"
+
 func legacyScanNote(err error) string {
 	raw := sanitizeLine(err.Error())
 	words := "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why."
@@ -66,7 +70,7 @@ func legacyScanNote(err error) string {
 	if errors.As(err, &modified) {
 		path := sanitizeLine(modified.Path)
 		// The raw error says the same thing, so no Detail line repeats it.
-		return path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
+		return path + " " + changedFilePhrase + ". Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
 	}
 	return words + "\nDetail: " + raw
 }
@@ -816,7 +820,7 @@ func (v *hostsView) editorOnlyNoteLines(c viewCtx) []string {
 		if r.State != "editor only" {
 			continue
 		}
-		var lines []string
+		lines := []string{""}
 		for _, l := range wrapLines(editorOnlyNote, c.Width) {
 			lines = append(lines, c.Theme.Muted.Render(l))
 		}
@@ -856,9 +860,9 @@ func (v *hostsView) View(c viewCtx) string {
 		lines = append(lines, v.editorOnlyNoteLines(c)...)
 		remove, add := v.pendingChanges()
 		if n := len(remove) + len(add); n == 1 {
-			lines = append(lines, th.Muted.Render("1 pending change: press a to review it."))
+			lines = append(lines, "", th.Muted.Render("1 pending change: press a to review it."))
 		} else if n > 1 {
-			lines = append(lines, th.Muted.Render(fmt.Sprintf("%d pending changes: press a to review them.", n)))
+			lines = append(lines, "", th.Muted.Render(fmt.Sprintf("%d pending changes: press a to review them.", n)))
 		}
 		lines = append(lines, v.scanNoteLines(c)...)
 	}
@@ -904,6 +908,9 @@ func (v *hostsView) View(c viewCtx) string {
 func (v *hostsView) scanNoteLines(c viewCtx) []string {
 	if v.scanNote == "" {
 		return nil
+	}
+	if v.messageErr && strings.Contains(v.message, changedFilePhrase) {
+		return nil // the refusal below says the same about the same file
 	}
 	th := c.Theme
 	words, detail := errLines(v.scanNote)

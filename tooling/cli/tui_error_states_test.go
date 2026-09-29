@@ -98,6 +98,10 @@ func TestHostsViewRefusesChangesWhenAManagedFileWasChanged(t *testing.T) {
 		toggle(t, d, "pi")
 		d.key("a")
 		mustShowFlat(d, "differs from what Hive expects there; undo the change")
+		// The refusal says what the note said: the note gives way to it.
+		if n := strings.Count(strings.Join(strings.Fields(d.screen()), " "), "differs from what Hive expects there"); n != 1 {
+			t.Errorf("the changed file is explained %d times, want once:\n%s", n, d.screen())
+		}
 		assertFits(t, d, 80, 24)
 		assertUntouched(t, env, homeBefore, stateBefore)
 	})
@@ -410,6 +414,16 @@ func TestCLIsViewEditorOnlyNoteFitsWithOtherNotes(t *testing.T) {
 		mustShowFlat(d, "editor only: the Cursor editor is installed, but not its CLI (cursor-agent). Hive can still install Cursor's files.")
 		d.key("space")
 		mustShowFlat(d, "1 pending change: press a to review it.")
+		// The note stands apart from the table and from the pending line.
+		lines := d.lines()
+		for i, l := range lines {
+			if strings.HasPrefix(strings.TrimSpace(l), "editor only:") && (i == 0 || strings.TrimSpace(lines[i-1]) != "") {
+				t.Errorf("no blank line before the editor only note:\n%s", d.screen())
+			}
+			if strings.HasPrefix(strings.TrimSpace(l), "1 pending change") && (i == 0 || strings.TrimSpace(lines[i-1]) != "") {
+				t.Errorf("no blank line before the pending line:\n%s", d.screen())
+			}
+		}
 		assertFits(t, d, size[0], size[1])
 	}
 }
