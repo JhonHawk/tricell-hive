@@ -36,6 +36,10 @@ const (
 	recordUnknown    = "unknown"
 )
 
+// recordDamagedText tells what failed and how to recover when the last
+// onboarding record cannot be read; the technical error follows on its own line.
+const recordDamagedText = "The last integrations record is damaged or unreadable; running hive install again writes a new one."
+
 // integrationRow is one capability. Every string is already sanitized.
 type integrationRow struct {
 	ID           string   // providers.ID, or "agent-browser"
@@ -55,8 +59,14 @@ func (r integrationRow) detailLines() []string {
 	for _, e := range r.Evidence {
 		lines = append(lines, "  "+e)
 	}
+	// RecordDetail may hold a technical detail after a line break; it goes on
+	// its own, indented line.
+	record, detail := errLines(r.RecordDetail)
+	lines = append(lines, "Last onboarding: "+record)
+	for _, l := range detail {
+		lines = append(lines, "  "+l)
+	}
 	return append(lines,
-		"Last onboarding: "+r.RecordDetail,
 		"Source: "+r.Source,
 		"Next step: "+r.Next,
 	)
@@ -103,7 +113,7 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 	synthetic := o.Home != ""
 	rec, recErr := readLastOnboarding(o)
 	if recErr != nil {
-		errText = "cannot read the last onboarding record: " + sanitizeLine(recErr.Error())
+		errText = recordDamagedText + "\nDetail: cannot read the last onboarding record: " + sanitizeLine(recErr.Error())
 	}
 
 	skillRoots, homeErr := integrationSkillRoots(deps)
@@ -165,7 +175,7 @@ func (rec onboardingRecord) apply(r *integrationRow, err error) {
 	switch {
 	case err != nil:
 		r.Record = recordUnreadable
-		r.RecordDetail = "Cannot read the last onboarding record: " + sanitizeLine(err.Error())
+		r.RecordDetail = "The record is damaged or unreadable; running hive install again writes a new one.\nDetail: cannot read the last onboarding record: " + sanitizeLine(err.Error())
 	case !rec.found:
 		r.Record, r.RecordDetail = recordNone, recordNone
 	default:

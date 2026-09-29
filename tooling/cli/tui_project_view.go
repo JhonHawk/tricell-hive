@@ -92,7 +92,11 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 func projectBoxText(s doctorSection) string {
 	text := ""
 	if s.Err != "" {
-		text = "Could not check everything: " + s.Err + "\n"
+		first, rest := errLines(s.Err)
+		text = "Could not check everything: " + first + "\n"
+		for _, l := range rest {
+			text += "  " + l + "\n"
+		}
 	}
 	for _, l := range s.Lines {
 		text += l + "\n"

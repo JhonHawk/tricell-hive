@@ -111,7 +111,7 @@ func (v *modelsView) Update(msg tea.Msg) (tea.Cmd, action) {
 		}
 		v.loading = false
 		if msg.err != nil {
-			v.loadErr, v.hosts, v.rows = msg.err.Error(), nil, nil
+			v.loadErr, v.hosts, v.rows = unreadableStateText(stateDirOf(v.cfg.Options), msg.err), nil, nil
 			v.layout()
 			break
 		}
@@ -168,18 +168,31 @@ func (v *modelsView) View(c viewCtx) string {
 		th.Muted.Render("To change a model or effort, edit integrations/agent-profiles.json"),
 		th.Muted.Render("in the Hive checkout, then run hive update."),
 	}
+	if !v.loading && v.loadErr == "" && len(v.hosts) == 0 {
+		footer = nil // with no registered CLI there is no model to change
+	}
 	var host, header, position string
 	body := []string{}
 	switch {
 	case v.loading && len(v.rows) == 0 && len(v.hosts) == 0:
 		body = append(body, c.Spinner+" "+th.Muted.Render("Loading models…"))
 	case v.loadErr != "":
-		for _, l := range wrapLines("Cannot read the models: "+v.loadErr, c.Width) {
+		// The plain words and the way out come first; the technical error
+		// follows on its own lines, so a short screen cuts it before them.
+		words, detail := errLines(v.loadErr)
+		for _, l := range wrapLines("The models cannot be shown: "+words, c.Width) {
 			body = append(body, th.Danger.Render(l))
 		}
-		body = append(body, th.Muted.Render("Press r to retry."))
+		body = append(body, th.Muted.Render("Press r to retry after fixing it."))
+		for _, d := range detail {
+			for _, l := range wrapLines(d, c.Width) {
+				body = append(body, th.Muted.Render(l))
+			}
+		}
 	case len(v.hosts) == 0:
-		body = append(body, th.Text.Render("No CLI hosts are registered"))
+		for _, l := range wrapLines(noHostsText, c.Width) {
+			body = append(body, th.Text.Render(l))
+		}
 	default:
 		host = v.hostRow(th)
 		if rows := v.hostRows(); len(rows) == 0 {

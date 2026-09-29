@@ -179,10 +179,12 @@ func TestModelsViewFooterSaysHowToChangeModels(t *testing.T) {
 }
 
 func TestModelsViewWithoutRegisteredCLIs(t *testing.T) {
-	_, d, _, _, _ := openModelsView(t, "", 80, 24)
-	d.mustShow("No CLI hosts are registered")
-	d.mustNotShow("Profile")
-	assertFits(t, d, 80, 24)
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		_, d, _, _, _ := openModelsView(t, "", size[0], size[1])
+		d.mustShow("No CLI hosts are registered.", "Open CLIs from the menu", "hive install")
+		d.mustNotShow("Profile", "To change a model or effort", "hive update")
+		assertFits(t, d, size[0], size[1])
+	}
 }
 
 func TestModelsViewCLIWithoutAgents(t *testing.T) {
@@ -264,7 +266,21 @@ func TestModelsViewScrollsWhenRowsOutgrowTheScreen(t *testing.T) {
 func TestModelsViewLoadErrorOffersRetryAndRReloads(t *testing.T) {
 	_, d, v, _, _ := openModelsView(t, "claude", 80, 24)
 	d.send(modelsLoadedMsg{owned: owned{v}, seq: v.seq, err: errors.New("state is unreadable")})
-	d.mustShow("Cannot read the models: state is unreadable", "r to retry")
+	d.mustShow("Hive's state in", "could not be read", "The models cannot be shown", "hive status", "r to retry after fixing it", "Detail: state is unreadable")
+	d.mustNotShow("Cannot read the models")
+	lines := d.lines()
+	plain, detail := -1, -1
+	for i, l := range lines {
+		if plain < 0 && strings.Contains(l, "could not be read") {
+			plain = i
+		}
+		if detail < 0 && strings.Contains(l, "state is unreadable") {
+			detail = i
+		}
+	}
+	if plain < 0 || detail <= plain {
+		t.Fatalf("the technical detail must come after the plain words (plain %d, detail %d):\n%s", plain, detail, d.screen())
+	}
 	assertFits(t, d, 80, 24)
 	seq := v.seq
 	d.key("r")
@@ -272,7 +288,7 @@ func TestModelsViewLoadErrorOffersRetryAndRReloads(t *testing.T) {
 		t.Fatalf("r did not start a reload (seq %d -> %d)", seq, v.seq)
 	}
 	d.mustShow("[claude]", "sonnet")
-	d.mustNotShow("Cannot read the models")
+	d.mustNotShow("could not be read")
 }
 
 func TestModelsViewIgnoresAStaleResultAndKeepsTheSelectedCLI(t *testing.T) {
@@ -355,7 +371,7 @@ func TestRenderModelsTextSharesTheViewWordsAndCutsNothing(t *testing.T) {
 	}
 	out.Reset()
 	renderModelsText(nil, nil, &out)
-	if out.String() != "No CLI hosts are registered\n" {
+	if out.String() != "No CLI hosts are registered. Open CLIs from the menu, or run hive install, to install Hive.\n" {
 		t.Errorf("empty output = %q", out.String())
 	}
 }

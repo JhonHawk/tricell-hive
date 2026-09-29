@@ -126,7 +126,7 @@ func TestModelsCommandPrintsTheRowsAndExitsZero(t *testing.T) {
 
 	empty := newCharacterizationFixture(t)
 	out = captureStdout(t, func() { runErr = run([]string{"models", "--home", empty.home, "--state-dir", empty.stateDir}) })
-	if runErr != nil || out != "No CLI hosts are registered\n" {
+	if runErr != nil || out != "No CLI hosts are registered. Open CLIs from the menu, or run hive install, to install Hive.\n" {
 		t.Errorf("models without hosts = %q, %v", out, runErr)
 	}
 }

@@ -118,6 +118,55 @@ func TestDoctorViewEscAndBackspaceReturnToMenu(t *testing.T) {
 	}
 }
 
+func TestDoctorViewShowsRecoverLineWhenNoHostIsRegistered(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	if err := os.WriteFile(filepath.Join(stateDir, "pending.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		_, d, _ := openDoctorView(t, o, newDoctorFake(home), size[0], size[1])
+		d.mustShow("No CLI hosts are registered.", "Open CLIs from the menu", "An unfinished Hive operation is pending", "run hive recover --state-dir")
+		d.mustNotShow("No problems found")
+		assertFits(t, d, size[0], size[1])
+	}
+}
+
+func TestDoctorViewLoadErrorLeadsWithWordsAndRetryAfterFixing(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("garbage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		_, d, _ := openDoctorView(t, o, newDoctorFake(home), size[0], size[1])
+		d.mustShow("Hive's state in", "could not be read", "hive status", "Detail: invalid character", "r to retry after fixing it")
+		// The app's status line above the view also carries the raw error, so
+		// look only from the view's own heading down.
+		lines := d.lines()
+		start := 0
+		for i, l := range lines {
+			if strings.HasPrefix(l, "Diagnostics") {
+				start = i
+				break
+			}
+		}
+		first, detail := -1, -1
+		for i, l := range lines[start:] {
+			if first < 0 && strings.Contains(l, "Could not check everything") {
+				first = i
+			}
+			if detail < 0 && strings.Contains(l, "invalid character") {
+				detail = i
+			}
+		}
+		if first < 0 || detail <= first {
+			t.Fatalf("the technical detail must come after the plain words (first %d, detail %d):\n%s", first, detail, d.screen())
+		}
+		assertFits(t, d, size[0], size[1])
+	}
+}
+
 func TestDoctorViewLoadErrorIsShownInsideWithRetry(t *testing.T) {
 	home, _ := newHostsTestHome(t)
 	blocker := filepath.Join(t.TempDir(), "file")

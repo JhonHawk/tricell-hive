@@ -125,7 +125,7 @@ func collectModels(o management.Options) (hosts []string, rows []management.Mode
 // text, and the same empty states as the Models view.
 func renderModelsText(hosts []string, rows []management.ModelRow, w io.Writer) {
 	if len(hosts) == 0 {
-		fmt.Fprintln(w, "No CLI hosts are registered")
+		fmt.Fprintln(w, noHostsText)
 		return
 	}
 	byHost := map[string][]management.ModelRow{}

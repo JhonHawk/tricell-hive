@@ -335,6 +335,12 @@ func TestIntegrationsTamperedRecordIsAnErrorNotAStatus(t *testing.T) {
 	text := sectionText(sec)
 	mustContain(t, text, "Could not check everything", "record unreadable", "invalid onboarding journal")
 	mustNotContain(t, text, "No onboarding record yet")
+	// M2: plain words and the way out first, the technical error on its own line.
+	if !strings.HasPrefix(sec.Err, "The last integrations record is damaged or unreadable; running hive install again writes a new one.\nDetail: ") {
+		t.Fatalf("err = %q", sec.Err)
+	}
+	mustContain(t, text, "Last onboarding: The record is damaged or unreadable; running hive install again writes a new one.\n", "    Detail: cannot read the last onboarding record: ", "invalid onboarding journal")
+	mustNotContain(t, text, "Last onboarding: Cannot read")
 	rows, _ := collectIntegrationRows(o, f.deps())
 	if r := rowByID(t, rows, "engram"); r.Record != "record unreadable" || r.Source == "" {
 		t.Fatalf("engram = %+v; the local checks still show", r)

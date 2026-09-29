@@ -213,11 +213,12 @@ func TestIntegrationsViewShowsATamperedRecordAsAnErrorInside(t *testing.T) {
 	writeOnboardingRecord(t, o, "manual", "engram")
 	tamperOnboardingRecord(t, stateDir)
 	_, d, _ := openIntegrationsView(t, o, f, 80, 24)
-	d.mustShow("Integrations", "r to retry", "record unreadable", "Cannot read the last onboarding record", "invalid onboarding journal")
+	d.mustShow("Integrations", "r to retry after fixing it", "record unreadable", "The record is damaged or unreadable", "hive install", "Detail: cannot read the last onboarding record", "invalid onboarding journal")
+	d.mustNotShow("Last onboarding: Cannot read")
 	d.mustNotShow("No onboarding record yet")
 	assertFits(t, d, 80, 24)
 	d.key("down", "down", "down") // agent-browser is not part of onboarding, and its local checks show
-	d.mustShow("Source: "+agentBrowserSource, "r to retry")
+	d.mustShow("Source: "+agentBrowserSource, "r to retry after fixing it")
 }
 
 func TestIntegrationsViewLeavesStateAndHomeUnchanged(t *testing.T) {

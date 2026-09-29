@@ -143,7 +143,7 @@ func (v *integrationsView) View(c viewCtx) string {
 	case v.loading:
 		title += "  " + c.Spinner + " " + th.Muted.Render("Refreshing…")
 	case v.loadErr != "":
-		title += "  " + th.Danger.Render("Onboarding record unreadable") + th.Muted.Render(" · r to retry")
+		title += "  " + th.Danger.Render("Onboarding record unreadable") + th.Muted.Render(" · r to retry after fixing it")
 	case v.box.scrollable():
 		title += "  " + th.Muted.Render(v.box.position())
 	}

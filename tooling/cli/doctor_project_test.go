@@ -117,6 +117,7 @@ func TestHiveSectionMissingAgentsFile(t *testing.T) {
 	root := newProjectRepo(t)
 	text := projectText(t, root)
 	mustContain(t, text, "AGENTS.md: not found")
+	mustContain(t, text, "Add a ## Hive section with: Project, Base branch, Tracker, Specs")
 	mustNotContain(t, text, "Valid")
 }
 
@@ -133,6 +134,7 @@ func TestHiveSectionMissingAndDuplicatedSection(t *testing.T) {
 	writeAgents(t, root, "# Guidance\n\n## Hive settings\n\n- Project: x\n")
 	text := projectText(t, root)
 	mustContain(t, text, "## Hive: section not found")
+	mustContain(t, text, "Add a ## Hive section with: Project, Base branch, Tracker, Specs")
 	mustNotContain(t, text, "Valid")
 
 	writeAgents(t, root, "## Hive\n\n- Project: a\n\n## Hive\n\n- Project: b\n")
@@ -254,6 +256,17 @@ func TestHiveSectionUnknownKeyAndOptionalValues(t *testing.T) {
 	text := projectText(t, root)
 	mustContain(t, text, "Colour: unknown key")
 	mustNotContain(t, text, "Valid")
+	// The known keys are named once, however many keys are unknown.
+	known := "Known keys: Project, Base branch, Tracker, Specs, Environments, Review, Delivery, Hive guidance"
+	mustContain(t, text, known)
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Colour: blue\n- Shape: round\n- Specs:", 1))
+	text = projectText(t, root)
+	mustContain(t, text, "Colour: unknown key", "Shape: unknown key")
+	if strings.Count(text, "Known keys:") != 1 {
+		t.Fatalf("the known keys must be named once:\n%s", text)
+	}
+	mustNotContain(t, projectText(t, projectRepoWithSpecs(t, validHiveSection)), "Known keys:")
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Colour: blue\n- Specs:", 1))
 
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Hive guidance: optional\n- Specs:", 1))
 	text = projectText(t, root)

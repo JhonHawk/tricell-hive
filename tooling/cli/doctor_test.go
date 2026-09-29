@@ -354,10 +354,56 @@ func TestDoctorNoRegisteredHosts(t *testing.T) {
 	home, stateDir := newHostsTestHome(t)
 	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
 	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
-	mustContain(t, sectionText(r.Installation), "No CLI hosts are registered")
-	mustContain(t, sectionText(r.Sessions), "No CLI hosts are registered")
+	// The empty state says what to do first, in the sections and in the text
+	// command that prints them.
+	mustContain(t, sectionText(r.Installation), "No CLI hosts are registered. Open CLIs from the menu, or run hive install, to install Hive.")
+	mustContain(t, sectionText(r.Sessions), "No CLI hosts are registered. Open CLIs from the menu, or run hive install, to install Hive.")
 	for _, l := range r.CLIs.Lines {
 		mustContain(t, l, "not detected", "not installed by Hive")
+	}
+}
+
+// TestDoctorPendingOperationShowsWhenNoHostIsRegistered covers D1 (AC3): an
+// interrupted first install leaves a pending operation and no registered CLI,
+// and Installation must still point to hive recover.
+func TestDoctorPendingOperationShowsWhenNoHostIsRegistered(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	if err := os.WriteFile(filepath.Join(stateDir, "pending.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
+	text := sectionText(r.Installation)
+	mustContain(t, text, "No CLI hosts are registered", "An unfinished Hive operation is pending; run hive recover --state-dir", "to finish it")
+	mustNotContain(t, text, "No problems found")
+	if len(r.Installation.Lines) != 2 {
+		t.Fatalf("lines = %q", r.Installation.Lines)
+	}
+}
+
+// TestDoctorUnreadableStateLeadsWithWordsThenDetail covers M2: a damaged state
+// file is explained in plain words with the way out, and the technical error
+// follows on its own line.
+func TestDoctorUnreadableStateLeadsWithWordsThenDetail(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("garbage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	_, stateDir, err := management.NormalizeOptions(o) // the resolved path is the one shown
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
+	for _, sec := range []doctorSection{r.CLIs, r.Installation, r.Sessions} {
+		lines := strings.Split(sectionText(sec), "\n")
+		if len(lines) < 4 {
+			t.Fatalf("%s: too few lines: %q", sec.Title, lines)
+		}
+		first, detail := lines[1], lines[2]
+		mustContain(t, first, "Could not check everything: Hive's state in "+stateDir+" could not be read", "hive status")
+		mustNotContain(t, first, "invalid character")
+		mustContain(t, detail, "Detail: ", "invalid character")
 	}
 }
 
@@ -521,6 +567,15 @@ func TestDoctorLeavesStateAndHomeUnchanged(t *testing.T) {
 	}
 	if fmt.Sprint(beforeState) != fmt.Sprint(afterState) {
 		t.Fatal("the state directory changed")
+	}
+}
+
+func TestDoctorRenderTextIndentsTheDetailLineOfAnError(t *testing.T) {
+	var b bytes.Buffer
+	renderDoctorText(doctorReport{Installation: doctorSection{Title: "Installation", Err: "words\nDetail: raw"}}, &b)
+	want := "Installation\n  Could not check everything: words\n    Detail: raw\n"
+	if b.String() != want {
+		t.Fatalf("got %q, want %q", b.String(), want)
 	}
 }
 

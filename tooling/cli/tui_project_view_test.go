@@ -54,6 +54,22 @@ func TestProjectViewShowsFindings(t *testing.T) {
 	}
 }
 
+func TestProjectViewWithoutHiveSectionListsTheRequiredKeys(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		for name, agents := range map[string]string{"no file": "", "no section": "# Guidance\n"} {
+			t.Run(fmt.Sprintf("%s %dx%d", name, size[0], size[1]), func(t *testing.T) {
+				root := newProjectRepo(t)
+				if agents != "" {
+					writeAgents(t, root, agents)
+				}
+				_, d, _ := openProjectView(t, root, nil, size[0], size[1])
+				d.mustShow("Add a ## Hive section with: Project, Base branch, Tracker, Specs")
+				assertFits(t, d, size[0], size[1])
+			})
+		}
+	}
+}
+
 func TestProjectViewOutsideGitShowsTwoLinesAndTheDirectory(t *testing.T) {
 	dir := t.TempDir()
 	_, d, _ := openProjectView(t, dir, nil, 80, 24)

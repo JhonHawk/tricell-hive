@@ -36,11 +36,11 @@ type openSession struct {
 func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Sessions"}
 	if st.err != nil {
-		sec.Err = "cannot read the installation state: " + sanitizeLine(st.err.Error())
+		sec.Err = unreadableStateText(st.stateDir, st.err)
 		return sec
 	}
 	if len(st.registered) == 0 {
-		sec.Lines = []string{"No CLI hosts are registered"}
+		sec.Lines = []string{noHostsText}
 		return sec
 	}
 	home, err := deps.userHome()

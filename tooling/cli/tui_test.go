@@ -420,7 +420,7 @@ func TestAppKeysEscAndBackspaceReturnFromPlaceholder(t *testing.T) {
 			"Releases":     "No releases are retained yet",
 			"Voice":        "Open CLIs to install one",
 			"Diagnostics":  "Sessions",
-			"Models":       "agent-profiles.json",
+			"Models":       "Open CLIs from the menu",
 			"Integrations": "No onboarding record yet",
 			"Project":      "AGENTS.md",
 		}[name]

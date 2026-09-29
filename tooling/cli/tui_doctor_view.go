@@ -110,7 +110,7 @@ func (v *doctorView) View(c viewCtx) string {
 	case v.loading:
 		position = c.Spinner + " " + th.Muted.Render("Refreshing…")
 	case v.failed:
-		position = th.Danger.Render("Some checks failed") + th.Muted.Render(" · r to retry")
+		position = th.Danger.Render("Some checks failed") + th.Muted.Render(" · r to retry after fixing it")
 	case v.box.scrollable():
 		position = th.Muted.Render(v.box.position())
 	}

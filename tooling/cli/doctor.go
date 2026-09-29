@@ -121,9 +121,44 @@ func processAlive(pid int) bool {
 	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
+// noHostsText is the empty state of every view and command that needs a
+// registered CLI: it says what happened and the first action.
+const noHostsText = "No CLI hosts are registered. Open CLIs from the menu, or run hive install, to install Hive."
+
+// unreadableStateText explains a state that could not be read: first in plain
+// words with the way out, then the technical error after a line break, so a
+// renderer can put it on its own line. stateDir is "" when it is not known.
+func unreadableStateText(stateDir string, err error) string {
+	where := "Hive's state"
+	if stateDir != "" {
+		where += " in " + sanitizeLine(stateDir)
+	}
+	return where + " could not be read. Repair or restore its files; hive status reports the same problem.\nDetail: " + sanitizeLine(err.Error())
+}
+
+// stateDirOf resolves the state directory of the options for a message, or ""
+// when it cannot be resolved.
+func stateDirOf(o management.Options) string {
+	if o.Scope == "" {
+		o.Scope = "user"
+	}
+	if _, dir, err := management.NormalizeOptions(o); err == nil {
+		return dir
+	}
+	return ""
+}
+
+// errLines splits a section's Err into its lines: the first says what failed,
+// the rest are detail.
+func errLines(err string) (first string, rest []string) {
+	lines := strings.Split(err, "\n")
+	return lines[0], lines[1:]
+}
+
 // doctorSection is one titled block of the report. Lines are already
 // sanitized. Err is set when the section could not be fully checked, and the
-// view then offers to retry.
+// view then offers to retry. Err may hold several lines: the first says what
+// failed in plain words, the others are technical detail.
 type doctorSection struct {
 	Title string
 	Lines []string
@@ -205,6 +240,11 @@ func loadDoctorState(o management.Options) doctorState {
 		st.err = err
 		return st
 	}
+	// An interrupted first install leaves an operation pending and no
+	// registered CLI, so the pending check does not wait for the CLIs.
+	if st.pending, err = management.Pending(dir); err != nil {
+		st.warn = append(st.warn, "Cannot check for an unfinished operation: "+err.Error())
+	}
 	if len(st.registered) == 0 {
 		return st
 	}
@@ -213,9 +253,6 @@ func loadDoctorState(o management.Options) doctorState {
 	if st.entries, err = management.Status(so); err != nil {
 		st.err = err
 		return st
-	}
-	if st.pending, err = management.Pending(dir); err != nil {
-		st.warn = append(st.warn, "Cannot check for an unfinished operation: "+err.Error())
 	}
 	if releases, err := management.Releases(o); err != nil {
 		st.warn = append(st.warn, "Cannot read the retained releases: "+err.Error())
@@ -329,7 +366,7 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 		sec.Lines = append(sec.Lines, strings.Join(parts, "  "))
 	}
 	if st.err != nil {
-		sec.Err = "cannot read the installation state: " + sanitizeLine(st.err.Error())
+		sec.Err = unreadableStateText(st.stateDir, st.err)
 	}
 	return sec
 }
@@ -373,12 +410,11 @@ var installationPhrases = map[string]string{
 func installationSection(o management.Options, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Installation"}
 	if st.err != nil {
-		sec.Err = "cannot read the installation state: " + sanitizeLine(st.err.Error())
+		sec.Err = unreadableStateText(st.stateDir, st.err)
 		return sec
 	}
 	if len(st.registered) == 0 {
-		sec.Lines = []string{"No CLI hosts are registered"}
-		return sec
+		sec.Lines = []string{noHostsText}
 	}
 	for _, e := range st.entries {
 		switch e.Status {
@@ -443,7 +479,11 @@ func doctorSectionsText(sections ...doctorSection) string {
 		}
 		b.WriteString(s.Title + "\n")
 		if s.Err != "" {
-			b.WriteString("  Could not check everything: " + s.Err + "\n")
+			first, rest := errLines(s.Err)
+			b.WriteString("  Could not check everything: " + first + "\n")
+			for _, l := range rest {
+				b.WriteString("    " + l + "\n")
+			}
 		}
 		for _, l := range s.Lines {
 			b.WriteString("  " + l + "\n")

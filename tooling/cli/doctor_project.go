@@ -168,7 +168,7 @@ func checkProject(project string, git gitRunner) projectCheck {
 	info, err := os.Stat(res.File)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		res.Section.Lines = []string{"AGENTS.md: not found at the repository root"}
+		res.Section.Lines = []string{"AGENTS.md: not found at the repository root", addHiveSectionLine()}
 		return res
 	case err != nil:
 		return fail("cannot read AGENTS.md: %v", err)
@@ -253,7 +253,7 @@ func validateHiveSection(root, content string, git gitRunner) []string {
 	items, headings := parseHiveSection(content)
 	switch {
 	case headings == 0:
-		return []string{hiveHeading + ": section not found in AGENTS.md"}
+		return []string{hiveHeading + ": section not found in AGENTS.md", addHiveSectionLine()}
 	case headings > 1:
 		return []string{fmt.Sprintf("%s: section appears %d times; keep one", hiveHeading, headings)}
 	}
@@ -310,6 +310,9 @@ func validateHiveSection(root, content string, git gitRunner) []string {
 			add(truncateRunes(sanitizeLine(it.Key), 60), "unknown key")
 		}
 	}
+	if len(reported) > 0 {
+		findings = append(findings, "Known keys: "+strings.Join(hiveKeyNames(false), ", "))
+	}
 	lines := findings
 	if len(lines) == 0 {
 		lines = []string{"Valid"}
@@ -321,6 +324,23 @@ func validateHiveSection(root, content string, git gitRunner) []string {
 		}
 	}
 	return lines
+}
+
+// hiveKeyNames lists the names of hiveSettingKeys in display order: only the
+// required ones when requiredOnly, every known key otherwise.
+func hiveKeyNames(requiredOnly bool) []string {
+	var names []string
+	for _, k := range hiveSettingKeys {
+		if k.Required || !requiredOnly {
+			names = append(names, k.Name)
+		}
+	}
+	return names
+}
+
+// addHiveSectionLine says what to add when AGENTS.md has no usable section.
+func addHiveSectionLine() string {
+	return "Add a " + hiveHeading + " section with: " + strings.Join(hiveKeyNames(true), ", ")
 }
 
 func knownHiveKey(name string) bool {
