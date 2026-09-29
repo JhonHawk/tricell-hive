@@ -73,13 +73,18 @@ func TestDoctorCommandProjectFlagChecksThatRepository(t *testing.T) {
 	out := captureStdout(t, func() {
 		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", repo})
 	})
-	if runErr != nil || !strings.Contains(out, "Project\n  AGENTS.md: not found at the repository root\n") {
+	canonical, err := filepath.EvalSymlinks(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runErr != nil || !strings.Contains(out, "Project\n  "+filepath.Join(canonical, "AGENTS.md")+"\n  AGENTS.md: not found at the repository root\n") {
 		t.Errorf("doctor --project did not check %s (err %v):\n%s", repo, runErr, out)
 	}
+	outside := t.TempDir()
 	out = captureStdout(t, func() {
-		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", t.TempDir()})
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", outside})
 	})
-	if runErr != nil || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
+	if runErr != nil || !strings.Contains(out, "Project\n  Directory: ") || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
 		t.Errorf("doctor outside a repository (err %v):\n%s", runErr, out)
 	}
 }

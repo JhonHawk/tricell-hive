@@ -96,7 +96,11 @@ func projectText(t *testing.T, dir string) string {
 	if sec.Err != "" {
 		t.Fatalf("unexpected error: %s", sec.Err)
 	}
-	return strings.Join(sec.Lines, "\n")
+	// The first line names what was checked, as the view's second row does.
+	if len(sec.Lines) == 0 || !(strings.HasSuffix(sec.Lines[0], "AGENTS.md") || strings.HasPrefix(sec.Lines[0], "Directory: ")) {
+		t.Fatalf("the first line does not name what was checked: %q", sec.Lines)
+	}
+	return strings.Join(sec.Lines[1:], "\n")
 }
 
 func TestHiveSectionOutsideGitLines(t *testing.T) {
@@ -104,7 +108,7 @@ func TestHiveSectionOutsideGitLines(t *testing.T) {
 	if sec.Title != "Project" || sec.Err != "" {
 		t.Fatalf("%+v", sec)
 	}
-	if len(sec.Lines) != 2 || sec.Lines[0] != outsideGitLine || sec.Lines[1] != outsideGitLineTwo {
+	if len(sec.Lines) != 3 || !strings.HasPrefix(sec.Lines[0], "Directory: ") || sec.Lines[1] != outsideGitLine || sec.Lines[2] != outsideGitLineTwo {
 		t.Fatalf("lines: %q", sec.Lines)
 	}
 }
@@ -275,7 +279,7 @@ func TestHiveSectionInheritedGitDirDoesNotChangeTheResult(t *testing.T) {
 	// Outside a repository the inherited variables do not make one appear.
 	t.Setenv("GIT_DIR", filepath.Join(other, ".git"))
 	sec := collectProject(t.TempDir(), doctorDeps{})
-	if len(sec.Lines) != 2 || sec.Lines[0] != outsideGitLine {
+	if len(sec.Lines) != 3 || sec.Lines[1] != outsideGitLine {
 		t.Fatalf("lines: %q", sec.Lines)
 	}
 }

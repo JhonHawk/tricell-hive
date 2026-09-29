@@ -114,13 +114,7 @@ func (v *projectView) layout() {
 // when it is not inside a repository. A path too long for the row loses its
 // beginning, because the end is what tells one repository from another.
 func (v *projectView) locationLine() string {
-	label, path := "", ""
-	switch {
-	case v.check.File != "":
-		path = sanitizeLine(v.check.File)
-	case v.check.Dir != "":
-		label, path = "Directory: ", sanitizeLine(v.check.Dir)
-	}
+	label, path := v.check.location()
 	if room := v.w - lipgloss.Width(label); v.w > 0 && lipgloss.Width(path) > room {
 		if room < 2 {
 			return ""

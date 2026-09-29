@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
@@ -83,8 +84,15 @@ func TestRejectIgnoredDestinationOptionsOnApply(t *testing.T) {
 	}
 }
 func TestHelpAndRequiredScope(t *testing.T) {
-	if err := run([]string{"--help"}); err != nil {
+	var err error
+	help := captureStdout(t, func() { err = run([]string{"--help"}) })
+	if err != nil {
 		t.Fatal(err)
+	}
+	for _, want := range []string{"hive doctor [--home DIR] [--state-dir DIR] [--project DIR]", "hive models [--home DIR] [--state-dir DIR]"} {
+		if !strings.Contains(help, want) {
+			t.Errorf("help does not list %q", want)
+		}
 	}
 	if err := run([]string{"plan", "install", "--hosts", "codex"}); err == nil {
 		t.Fatal("missing scope accepted")
