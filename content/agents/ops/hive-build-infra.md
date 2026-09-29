@@ -1,6 +1,6 @@
 ---
 name: "hive-build-infra"
-description: "Implement operational, CI, and infrastructure changes using existing deployment mechanisms, or verify read-only that a deployment serves the expected build. Use for CI pipelines, deployment configuration, containers, infrastructure-as-code, or post-deployment verification."
+description: "Implement operational, CI, and infrastructure changes using existing deployment mechanisms, or verify, without changing any deployment, that it serves the expected build. Use for CI pipelines, deployment configuration, containers, infrastructure-as-code, or read-only post-deployment verification."
 model_profile: "execution"
 access_profile: "implement"
 ---

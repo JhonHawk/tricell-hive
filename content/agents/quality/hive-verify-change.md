@@ -1,6 +1,6 @@
 ---
 name: "hive-verify-change"
-description: "Independently verify a completed change's behavior end to end, including in-vivo and browser runs, and report evidence without fixing source. Use after every task of a change is implemented, separate from the implementer; not for checking a single plan task."
+description: "Independently verify a completed change's behavior end to end, including in-vivo and browser runs, and report evidence without fixing source. Use after a change is implemented, whatever its number of tasks and with or without a plan, separate from the implementer; not for verifying one task of a retained plan during the build."
 model_profile: "execution"
 access_profile: "verify"
 ---

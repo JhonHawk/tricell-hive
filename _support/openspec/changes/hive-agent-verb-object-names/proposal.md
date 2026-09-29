@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · T1–T5 verificadas; PR y `/code-review` pendientes |
+| Estado | En validación · correcciones de `/code-review` aplicadas; suite completa y decisión de despliegue pendientes |
 | Tracker · GitHub Issues | Sin issue: el cambio nace de la conversación del 2026-09-29 |
 | Git | Automático · PR a `rebuild/harness-engineering` con merge tras `/code-review` · sin parada humana antes del push |
 | Verificación | `go test` y `go vet` · unittest de skills · búsqueda de nombres viejos · vista previa del plan de instalación |
-| Siguiente paso | Abrir el PR, `/code-review`, merge y refresco de la instalación local |
+| Siguiente paso | Suite completa; merge y refresco según la decisión sobre `gh-46-read-only-views` |
 
 ## Objetivo
 
@@ -37,7 +37,7 @@ Excluye, con su razón:
 Restricciones que deben seguir siendo ciertas:
 
 - `model_profile`, `access_profile`, `effort` y el cuerpo de cada rol no cambian, salvo el encabezado `# <name>`.
-- `go vet ./...`, las pruebas de los paquetes afectados (`./integrations/...`, `./tests/...`, `./tooling/management`) y `python3 -m unittest discover -s tests/skills -p '*_test.py'` pasan. La suite completa con `-race` se detuvo por decisión del usuario (D4-A): ningún otro paquete lee `content/agents` y el cambio no toca concurrencia.
+- `go vet ./...`, la suite completa `go test -count=1 -timeout 25m ./...` y `python3 -m unittest discover -s tests/skills -p '*_test.py'` pasan. La primera corrida con `-race` se detuvo (D4-A) con una premisa falsa: `tooling/distribution/bootstrap_shell_test.go:630` sí copia el `content/` real. Este cambio altera un contrato (los ids instalados), así que no es mecánico y su propia regla nueva exige la suite completa.
 
 Criterios:
 
@@ -45,7 +45,7 @@ Criterios:
 - AC2. Ninguna referencia activa cita un id viejo fuera de las exclusiones. *Falso en la base cuando* la búsqueda de T2 devuelve 99 líneas: 40 en los propios roles y 59 en 14 archivos de skills, documentación y pruebas; cinco de ellas son filas de evidencia histórica que se conservan.
 - AC3. Las descripciones de `hive-verify-change`, `hive-build-infra`, `hive-design-ui`, `hive-research`, `hive-design-architecture` y `hive-build-kmp` llevan los textos H1–H6. *Falso en la base cuando* ninguna de las seis frases distintivas de T1 aparece en `content/agents`.
 - AC4. La vista previa de instalación desde el commit del cambio retira, en cada host registrado, los 20 archivos de agente con id viejo e instala los 20 nuevos, sin conflictos. *Falso en la base cuando* la misma vista previa sobre `82f2dcc` no propone ningún cambio de agentes.
-- AC5. La regla de cierre de regresión de `content/skills/flow-build/SKILL.md` exige la suite completa sin CI para todo cambio que no sea mecánico según la guía global, y cierra un cambio mecánico con las comprobaciones que ya lo cubren. *Falso en la base cuando* `rg -c 'any change that is not mechanical' content/skills/flow-build/SKILL.md` no encuentra nada.
+- AC5. La regla de cierre de regresión de `content/skills/flow-build/SKILL.md` exige la suite completa sin CI para todo cambio que no sea mecánico según la guía global, y para un renombrado o traslado mecánico exige buscar cada referencia al nombre o ruta viejos, incluidas cadenas y rutas, y correr las pruebas de los paquetes que las contienen. *Falso en la base cuando* `rg -c 'any change that is not mechanical' content/skills/flow-build/SKILL.md` no encuentra nada.
 
 ## Entrega
 

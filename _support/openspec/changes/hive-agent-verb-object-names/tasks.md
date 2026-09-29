@@ -102,7 +102,7 @@ No devuelve ninguna línea (en la base devuelve 94: las 99 de la búsqueda menos
 
 **Changes:** sustituir "Close regression coverage through the project's actual CI gate; when none will run it, run the full suite once on the final candidate, and rerun it only when a later edit could affect what it covers." por "Close regression coverage through the project's actual CI gate. When none will run it, run the full suite once on the final candidate of any change that is not mechanical, as the global guidance defines it, and rerun it only when a later edit could affect what it covers; a mechanical change closes with the checks that already cover it, even without CI."
 
-**Verification:** `rg -c 'any change that is not mechanical, as the global guidance defines it' content/skills/flow-build/SKILL.md` devuelve `1`; `rg -c 'when none will run it, run the full suite once' content/skills/flow-build/SKILL.md` y `rg -c 'alters behavior, run the full suite' content/skills/flow-build/SKILL.md` no encuentran nada; `go test -count=1 ./tests/...` y el unittest de skills pasan.
+**Verification:** `rg -c 'any change that is not mechanical, as the global guidance defines it' content/skills/flow-build/SKILL.md` y `rg -c 'including strings and paths the compiler cannot see' content/skills/flow-build/SKILL.md` devuelven `1`; `rg -c 'when none will run it, run the full suite once' content/skills/flow-build/SKILL.md` y `rg -c 'alters behavior, run the full suite' content/skills/flow-build/SKILL.md` no encuentran nada; `go test -count=1 ./tests/...` y el unittest de skills pasan.
 
 ## Verificación compartida
 
@@ -131,5 +131,11 @@ Avance del 2026-09-29:
 - T3: la prueba `TestAgentRenameRetiresOldTarget` pasa en los seis hosts; falla si no se borra el origen viejo.
 - T4: plan guardado desde `500bd84`: 7 destinos, 306 archivos; en las seis carpetas de agentes (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.cursor`, `~/.grok`, `~/.pi/agent`) retira los 20 ids viejos e instala los 20 nuevos, sin error. El filtro original por `.target.Host` no servía (campo vacío); se corrigió para agrupar por carpeta. `review-task` dio AC4 por cumplido: `source_commit` es `500bd84`, cada carpeta corresponde a un solo host, los ids coinciden con la tabla y los 66 cambios que no son de agentes solo modifican (8 con contenido nuevo: las skills que tocan T2 y T5).
 - T5: añadida por D5-B después de la revisión del plan. `review-task` dio AC5 por cumplido y señaló que "alters behavior" y "mecánico" no eran complementarios (una actualización de dependencia quedaba sin suite); se aplicó su propuesta: la condición es "no mecánico según la guía global". Verificado con las búsquedas de T5; la cubre también `/code-review` antes del merge.
+- `/code-review` del PR #51 (siete hallazgos), conciliado por el orquestador:
+  - Aceptado: la suite completa sí aplica a este cambio (altera un contrato) y `tooling/distribution` lee el `content/` real; la afirmación contraria del PR era falsa. Se corre `go test -count=1 -timeout 25m ./...`.
+  - Aceptado: la regla de `flow-build` ya no repite la definición global y, para un renombrado o traslado mecánico, exige buscar referencias por cadena o ruta y correr las pruebas de esos paquetes.
+  - Aceptado: H1 (`hive-verify-change`) ya no excluye cambios de una tarea o sin plan; H2 (`hive-build-infra`) dice "without changing any deployment" y "read-only".
+  - Aceptado como nota: el commit `500bd84` cita un caso que no era mecánico; la regla es correcta, el ejemplo del mensaje no. No se reescribe historia publicada; se aclara en el PR.
+  - Para el usuario: el cambio activo `gh-46-read-only-views` cita ids viejos y el despliegue tras el merge los retira.
 - Aparte: `gofmt` también señala `tests/pilot/regression.go`, que ya estaba así en la base; no se toca.
 
