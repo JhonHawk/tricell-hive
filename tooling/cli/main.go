@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -66,6 +67,10 @@ func run(args []string) error {
 		return runReleases(rest)
 	case "voice":
 		return runVoice(rest)
+	case "doctor":
+		return runDoctor(rest, os.Stdout, realDoctorDeps())
+	case "models":
+		return runModels(rest, os.Stdout)
 	case "tui":
 		return runInterfaceCommand(rest)
 	default:
@@ -81,6 +86,66 @@ func printHelp() {
 	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
 	fmt.Println("hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update from a Git commit; needs Git and a checkout, unlike install.sh)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
 	fmt.Println("hive voice list [--source DIR]  (print each voice's ID and description)\nhive voice set ID [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]\nhive voice off [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]")
+	fmt.Println("hive doctor [--home DIR] [--state-dir DIR] [--project DIR]  (read-only diagnostics: CLIs, installation, sessions, integrations, project)\nhive models [--home DIR] [--state-dir DIR]  (read-only effective model and effort per role)")
+}
+
+// readOnlyOptions parses the --home and --state-dir flags that the read-only
+// commands share, and fails when the state directory cannot be one: findings
+// never fail these commands, only their own errors do.
+func readOnlyOptions(fs *flag.FlagSet, args []string) (management.Options, bool, error) {
+	var o management.Options
+	fs.StringVar(&o.Home, "home", "", "explicit synthetic home; ignores host environment paths")
+	fs.StringVar(&o.StateDir, "state-dir", "", "state directory (default: user Application Support/tricell-hive)")
+	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return o, false, nil
+		}
+		return o, false, err
+	}
+	if fs.NArg() != 0 {
+		return o, false, fmt.Errorf("unexpected positional arguments")
+	}
+	o.Scope = "user"
+	_, stateDir, err := management.NormalizeOptions(o)
+	if err != nil {
+		return o, false, err
+	}
+	if info, err := os.Stat(stateDir); err == nil && !info.IsDir() {
+		return o, false, fmt.Errorf("state directory %s is not a directory", stateDir)
+	}
+	return o, true, nil
+}
+
+// runDoctor prints the read-only diagnostics with the same text as the views.
+func runDoctor(args []string, w io.Writer, deps doctorDeps) error {
+	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
+	var project string
+	fs.StringVar(&project, "project", "", "project directory whose ## Hive section is checked (default: the current directory)")
+	o, ok, err := readOnlyOptions(fs, args)
+	if !ok {
+		return err
+	}
+	if project == "" {
+		if project, err = os.Getwd(); err != nil {
+			return err
+		}
+	}
+	renderDoctorText(collectDoctor(o, project, deps), w)
+	return nil
+}
+
+// runModels prints the effective model and effort of every installed role.
+func runModels(args []string, w io.Writer) error {
+	o, ok, err := readOnlyOptions(flag.NewFlagSet("models", flag.ContinueOnError), args)
+	if !ok {
+		return err
+	}
+	hosts, rows, err := collectModels(o)
+	if err != nil {
+		return err
+	}
+	renderModelsText(hosts, rows, w)
+	return nil
 }
 
 func runUpdate(args []string) error {

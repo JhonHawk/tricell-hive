@@ -48,7 +48,7 @@ var interfaceStdio = struct {
 // noTerminalMessage is what `hive tui` fails with when stdin or stdout is not
 // a terminal: it names the text commands that work without one, including
 // plan/apply for removing hosts and recover.
-const noTerminalMessage = "hive tui needs a terminal; use the text commands: hive status, install, update, releases, voice, plan/apply to remove hosts, recover"
+const noTerminalMessage = "hive tui needs a terminal; use the text commands: hive status, install, update, releases, voice, doctor, models, plan/apply to remove hosts, recover"
 
 // newAppConfig builds the application's configuration from the entry options:
 // the options normalized, and the default dependencies. Colors are left to the

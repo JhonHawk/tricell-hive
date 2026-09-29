@@ -110,28 +110,40 @@ func modelTable(rows []management.ModelRow, width int) (header string, lines []s
 	return columns.header(), lines
 }
 
-// renderModelsText writes the models of every CLI in rows, one table per CLI,
-// without cutting any text.
-func renderModelsText(rows []management.ModelRow, w io.Writer) {
-	if len(rows) == 0 {
-		fmt.Fprintln(w, "No agents are installed.")
+// collectModels reads the registered CLIs and the effective model of every
+// installed role, for the Models view and the `hive models` command alike.
+func collectModels(o management.Options) (hosts []string, rows []management.ModelRow, err error) {
+	o.Hosts = nil // every registered CLI, not the ones a command selected
+	if hosts, err = management.RegisteredHosts(o); err != nil {
+		return nil, nil, err
+	}
+	rows, err = management.EffectiveModels(o)
+	return hosts, rows, err
+}
+
+// renderModelsText writes one table per registered CLI, without cutting any
+// text, and the same empty states as the Models view.
+func renderModelsText(hosts []string, rows []management.ModelRow, w io.Writer) {
+	if len(hosts) == 0 {
+		fmt.Fprintln(w, "No CLI hosts are registered")
 		return
 	}
 	byHost := map[string][]management.ModelRow{}
-	var hosts []string
 	for _, r := range rows {
-		if _, ok := byHost[r.Host]; !ok {
-			hosts = append(hosts, r.Host)
-		}
 		byHost[r.Host] = append(byHost[r.Host], r)
 	}
+	hosts = append([]string(nil), hosts...)
 	sort.Strings(hosts)
 	for i, host := range hosts {
 		if i > 0 {
 			fmt.Fprintln(w)
 		}
-		header, lines := modelTable(byHost[host], 0)
 		fmt.Fprintln(w, host)
+		if len(byHost[host]) == 0 {
+			fmt.Fprintln(w, "  No agents installed for "+host)
+			continue
+		}
+		header, lines := modelTable(byHost[host], 0)
 		fmt.Fprintln(w, "  "+header)
 		for _, l := range lines {
 			fmt.Fprintln(w, "  "+l)

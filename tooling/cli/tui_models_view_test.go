@@ -333,9 +333,9 @@ func TestRenderModelsTextSharesTheViewWordsAndCutsNothing(t *testing.T) {
 		{Host: "pi", Role: "a-role", Profile: "reasoning", Model: long, Effort: "medium"},
 	}
 	var out bytes.Buffer
-	renderModelsText(rows, &out)
+	renderModelsText([]string{"claude", "grok", "opencode", "pi", "cursor"}, rows, &out)
 	text := out.String()
-	for _, want := range []string{"claude\n", "grok\n", "opencode\n", "pi\n", "inherit (parent session)", "host default", long} {
+	for _, want := range []string{"claude\n", "grok\n", "opencode\n", "pi\n", "inherit (parent session)", "host default", long, "cursor\n  No agents installed for cursor\n"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %q in:\n%s", want, text)
 		}
@@ -352,8 +352,8 @@ func TestRenderModelsTextSharesTheViewWordsAndCutsNothing(t *testing.T) {
 		}
 	}
 	out.Reset()
-	renderModelsText(nil, &out)
-	if out.String() != "No agents are installed.\n" {
+	renderModelsText(nil, nil, &out)
+	if out.String() != "No CLI hosts are registered\n" {
 		t.Errorf("empty output = %q", out.String())
 	}
 }

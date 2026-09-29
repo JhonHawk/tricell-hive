@@ -54,13 +54,9 @@ func (v *modelsView) reload() tea.Cmd {
 	v.seq++
 	v.loading = true
 	seq, o := v.seq, copyOptions(v.cfg.Options)
-	o.Hosts = nil // every registered CLI, not the ones a command selected
 	return func() tea.Msg {
 		msg := modelsLoadedMsg{owned: owned{v}, seq: seq}
-		if msg.hosts, msg.err = management.RegisteredHosts(o); msg.err != nil {
-			return msg
-		}
-		msg.rows, msg.err = management.EffectiveModels(o)
+		msg.hosts, msg.rows, msg.err = collectModels(o)
 		return msg
 	}
 }

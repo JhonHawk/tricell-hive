@@ -863,7 +863,7 @@ func stubInterfaceEntry(t *testing.T, isTTY bool, home, stateDir string) *captur
 	return got
 }
 
-const wantNoTerminalMessage = "hive tui needs a terminal; use the text commands: hive status, install, update, releases, voice, plan/apply to remove hosts, recover"
+const wantNoTerminalMessage = "hive tui needs a terminal; use the text commands: hive status, install, update, releases, voice, doctor, models, plan/apply to remove hosts, recover"
 
 // TestUsageBareHiveWithoutTerminalKeepsUsageError covers AC1: bare hive
 // without a terminal prints today's usage error and never starts the app.
