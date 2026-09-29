@@ -331,7 +331,7 @@ func (v *hostsView) onLoaded(msg hostsLoadedMsg) (tea.Cmd, action) {
 	}
 	v.loading = false
 	if msg.err != nil {
-		v.loadErr, v.scanNote, v.rows = msg.err.Error(), "", nil
+		v.loadErr, v.scanNote, v.rows = unreadableStateText(stateDirOf(v.cfg.Options), msg.err), "", nil
 		return nil, action{nav: navNone}
 	}
 	v.loadErr, v.scanNote = "", msg.scanNote
@@ -797,8 +797,16 @@ func (v *hostsView) View(c viewCtx) string {
 	case v.loading && len(v.rows) == 0:
 		lines = append(lines, c.Spinner+" "+th.Muted.Render("Loading CLIs…"))
 	case v.loadErr != "":
-		for _, l := range wrapLines("Cannot read the CLIs: "+v.loadErr, c.Width) {
+		// The plain words and the way out come first; the raw error follows
+		// on its own line, so a short screen cuts it before them.
+		words, detail := errLines(v.loadErr)
+		for _, l := range wrapLines("The CLIs cannot be shown: "+words, c.Width) {
 			lines = append(lines, th.Danger.Render(l))
+		}
+		for _, d := range detail {
+			for _, l := range wrapLines(d, c.Width) {
+				lines = append(lines, th.Muted.Render(l))
+			}
 		}
 	case len(v.rows) == 0:
 		text := "No CLI hosts were detected or registered. Install a supported CLI (claude, codex, cursor, grok, opencode, pi) and reopen this view."

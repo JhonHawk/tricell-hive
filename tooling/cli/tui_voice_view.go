@@ -31,6 +31,9 @@ type (
 		active  *management.VoiceSetting
 		noHosts bool
 		err     error
+		// stateErr marks an err that came from reading Hive's state, as opposed
+		// to the source's voices, which have their own guidance.
+		stateErr bool
 	}
 	voicePlannedMsg struct {
 		owned
@@ -55,7 +58,7 @@ type (
 func loadVoice(o management.Options) (msg voiceLoadedMsg) {
 	hosts, err := management.RegisteredHosts(o)
 	if err != nil {
-		msg.err = err
+		msg.err, msg.stateErr = err, true
 		return msg
 	}
 	if len(hosts) == 0 {
@@ -63,7 +66,7 @@ func loadVoice(o management.Options) (msg voiceLoadedMsg) {
 		return msg
 	}
 	if msg.active, err = management.CurrentVoice(o); err != nil {
-		msg.err = err
+		msg.err, msg.stateErr = err, true
 		return msg
 	}
 	// A source without content/voices/ would make ListVoices return a raw
@@ -91,6 +94,7 @@ type voiceView struct {
 	ready      bool
 	noHosts    bool
 	loadErr    string
+	stateErr   bool // loadErr is the unreadable-state text
 	voices     []management.VoiceInfo
 	voice      int // 0 is Off, i is voices[i-1]
 	address    int
@@ -196,9 +200,12 @@ func (v *voiceView) Update(msg tea.Msg) (tea.Cmd, action) {
 		if msg.seq != v.seq {
 			break
 		}
-		v.loading, v.noHosts, v.loadErr = false, msg.noHosts, ""
+		v.loading, v.noHosts, v.loadErr, v.stateErr = false, msg.noHosts, "", msg.stateErr
 		if msg.err != nil {
 			v.loadErr, v.ready = msg.err.Error(), false
+			if msg.stateErr {
+				v.loadErr = unreadableStateText(stateDirOf(v.cfg.Options), msg.err)
+			}
 			break
 		}
 		if msg.noHosts {
@@ -408,8 +415,19 @@ func (v *voiceView) View(c viewCtx) string {
 	case v.noHosts:
 		lines = append(lines, th.Text.Render("No CLI hosts are registered. Open CLIs to install one."))
 	case v.loadErr != "":
-		for _, l := range wrapLines(v.loadErr, c.Width) {
+		// A state that cannot be read leads with plain words and the way out,
+		// then the raw error on its own line; a source problem is one line.
+		words, detail := errLines(v.loadErr)
+		if v.stateErr {
+			words = "The voice cannot be shown: " + words
+		}
+		for _, l := range wrapLines(words, c.Width) {
 			lines = append(lines, th.Danger.Render(l))
+		}
+		for _, d := range detail {
+			for _, l := range wrapLines(d, c.Width) {
+				lines = append(lines, th.Muted.Render(l))
+			}
 		}
 	case v.ready:
 		labels := map[string]string{"voice": "Voice", "address": "Address", "name": "Name", "intensity": "Intensity"}

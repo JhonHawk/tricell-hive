@@ -110,6 +110,8 @@ The four read-only views show what `hive doctor` and `hive models` print (see [R
 - **Integrations** lists the four integrations with a `>` cursor moved by ↑↓, and the selected one's detail below.
 - **Project** shows the checked `AGENTS.md` path and `Valid` or the findings, with the values read.
 
+When Hive's state cannot be read, CLIs and Voice, like Models, lead with `Hive's state in <dir> could not be read. Repair or restore its files; hive status reports the same problem.` and put the raw error on its own `Detail:` line after it; Voice keeps the plain guidance for a source without voices, which is not a state problem.
+
 Apart from that unchanged update, every writing action shows its summary, which scrolls, and asks for confirmation. Declining or going back shows `Cancelled. No changes applied.` inside the originating view; an error shows the command's message there; a successful action refreshes the view and shows its result. When the application opens with a pending operation, it offers to recover it. Recovery messages name `hive recover`, adding `--state-dir DIR` when the application was opened with an explicit state directory. Adding hosts in CLIs, and Voice, read the catalog from `--source`, which defaults to the current directory: outside a Hive checkout or package they report `Run hive from a Hive checkout or package, or pass --source`.
 
 ## Optional Context7 setup recommendation

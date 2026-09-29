@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -141,4 +142,51 @@ func TestHostsViewNamesAnUnknownLegacyScanFailureWithoutBlamingAFile(t *testing.
 		t.Fatalf("%d rows, want %d:\n%s", n, len(installerHosts), d.screen())
 	}
 	assertFits(t, d, 80, 24)
+}
+
+// TestCLIsAndVoiceViewsExplainAnUnreadableStateInPlainWords (J2): with a
+// corrupted state.json, each view leads with what happened and the way out,
+// the same words as Diagnostics, and puts the raw error on its own Detail line
+// after them.
+func TestCLIsAndVoiceViewsExplainAnUnreadableStateInPlainWords(t *testing.T) {
+	for _, tc := range []struct{ name, title, entry string }{
+		{"CLIs", "The CLIs cannot be shown", "CLIs"},
+		{"Voice", "The voice cannot be shown", "Voice"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newVoiceFixture(t)
+			if err := os.WriteFile(filepath.Join(f.stateDir, "state.json"), []byte("{ this is not json"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			cfg := hostsAppConfig(t, f.home, f.stateDir, f.source, f.deps)
+			_, d := newTestApp(t, cfg, 80, 24)
+			openMenuEntry(t, d, tc.entry)
+			mustShowFlat(d, tc.title)
+			mustShowFlat(d, "Hive's state in "+cfg.Options.StateDir+" could not be read. Repair or restore its files; hive status reports the same problem.")
+			d.mustNotShow("Cannot read the CLIs")
+			detail, plain := -1, -1
+			for i, l := range d.lines() {
+				if plain < 0 && strings.Contains(l, "could not be read") {
+					plain = i
+				}
+				if detail < 0 && strings.HasPrefix(l, "Detail: ") {
+					detail = i
+				}
+			}
+			if plain < 0 || detail <= plain {
+				t.Fatalf("the raw error must follow the plain words on a Detail line (plain %d, detail %d):\n%s", plain, detail, d.screen())
+			}
+			assertFits(t, d, 80, 24)
+		})
+	}
+}
+
+// TestVoiceViewKeepsASourceProblemInItsOwnWords (J2): only a state that cannot
+// be read gets the state wording; a source without voices keeps its guidance.
+func TestVoiceViewKeepsASourceProblemInItsOwnWords(t *testing.T) {
+	f := newVoiceFixture(t)
+	f.source = t.TempDir()
+	_, d := f.open(t, 80, 24)
+	mustShowFlat(d, "Run hive from a Hive checkout or package, or pass --source")
+	d.mustNotShow("could not be read")
 }
