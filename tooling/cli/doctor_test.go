@@ -208,12 +208,48 @@ func TestDoctorCLIsDetectedHostShowsVersionReleaseAndState(t *testing.T) {
 			t.Fatalf("row %d = %q, want host %s", i, r.CLIs.Lines[i], host)
 		}
 	}
-	mustContain(t, lines["claude"], "detected", "version 2.1.284 (Claude Code)", "release "+short, "(legacy)")
+	mustContain(t, lines["claude"], "detected", "CLI version 2.1.284 (Claude Code)", "Hive release "+short, "(legacy)")
 	mustNotContain(t, lines["claude"], "second line")
-	mustContain(t, lines["codex"], "detected", "version codex-cli 0.158.0", "release "+short)
-	mustContain(t, lines["pi"], "detected", "version 0.87.1", "not installed by Hive")
+	mustContain(t, lines["codex"], "detected", "CLI version codex-cli 0.158.0", "Hive release "+short)
+	mustContain(t, lines["pi"], "detected", "CLI version 0.87.1", "not installed by Hive")
 	mustContain(t, lines["grok"], "not detected", "not installed by Hive")
 	mustNotContain(t, lines["grok"], "version")
+}
+
+// TestDoctorCLIsLabelsTheHostVersionAndHiveRelease covers M6: the host
+// binary's version and Hive's release are named apart in every row, so neither
+// is read as the CLIs view's Version column (Hive's own version).
+func TestDoctorCLIsLabelsTheHostVersionAndHiveRelease(t *testing.T) {
+	o, home, stateDir := doctorHome(t, "claude")
+	o = nonSyntheticOptions(t, o, home)
+	f := newDoctorFake(home)
+	f.install("claude", "2.1.284 (Claude Code)\n")
+	f.install("codex", "codex-cli 0.158.0\n")
+	f.verErr["/fake/bin/codex"] = errors.New("exit status 2")
+	short := shortHash(releaseIDOf(t, stateDir))
+	lines := collectDoctor(o, t.TempDir(), f.deps()).CLIs.Lines
+	byHost := map[string]string{}
+	for _, l := range lines {
+		byHost[strings.Fields(l)[0]] = l
+	}
+	mustContain(t, byHost["claude"], "Hive release "+short, "CLI version 2.1.284 (Claude Code)")
+	mustContain(t, byHost["codex"], "CLI version unavailable: exit status 2")
+	for host, l := range byHost {
+		// "version" always follows "CLI " and "release" always follows "Hive ".
+		if strings.Count(l, "version") != strings.Count(l, "CLI version") || strings.Count(l, "release") != strings.Count(l, "Hive release") {
+			t.Errorf("%s: an unlabeled version or release in %q", host, l)
+		}
+	}
+
+	// Without a readable state, the release is still named as Hive's.
+	bad := o
+	bad.StateDir = filepath.Join(t.TempDir(), "state-is-a-file")
+	if err := os.WriteFile(bad.StateDir, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range collectDoctor(bad, t.TempDir(), f.deps()).CLIs.Lines {
+		mustContain(t, l, "Hive release unknown")
+	}
 }
 
 func TestDoctorCLIsVersionIsTrimmedAndSanitized(t *testing.T) {
@@ -224,10 +260,10 @@ func TestDoctorCLIsVersionIsTrimmedAndSanitized(t *testing.T) {
 	r := collectDoctor(o, t.TempDir(), f.deps())
 	text := sectionText(r.CLIs)
 	mustNotContain(t, text, "\x1b", "[2J")
-	mustContain(t, text, "version v1.0 ")
+	mustContain(t, text, "CLI version v1.0 ")
 	for _, l := range r.CLIs.Lines {
 		if strings.HasPrefix(l, "claude") {
-			v := l[strings.Index(l, "version ")+len("version "):]
+			v := l[strings.Index(l, "CLI version ")+len("CLI version "):]
 			if n := len([]rune(v)); n != versionMaxRunes {
 				t.Fatalf("version has %d runes, want %d: %q", n, versionMaxRunes, v)
 			}
@@ -248,7 +284,7 @@ func TestDoctorCLIsCursorRunsCursorAgent(t *testing.T) {
 			cursor = l
 		}
 	}
-	mustContain(t, cursor, "detected", "version 2026.09.23")
+	mustContain(t, cursor, "detected", "CLI version 2026.09.23")
 	if len(f.ran) != 1 || f.ran[0] != "/fake/bin/cursor-agent" {
 		t.Fatalf("ran %v, want only cursor-agent", f.ran)
 	}
@@ -260,7 +296,7 @@ func TestDoctorCLIsCursorWithoutCursorAgent(t *testing.T) {
 	f := newDoctorFake(home)
 	f.install("cursor", "x\n")
 	r := collectDoctor(o, t.TempDir(), f.deps())
-	mustContain(t, sectionText(r.CLIs), "version unavailable: cursor-agent not found")
+	mustContain(t, sectionText(r.CLIs), "CLI version unavailable: cursor-agent not found")
 	if len(f.ran) != 0 {
 		t.Fatalf("ran %v", f.ran)
 	}
@@ -275,7 +311,7 @@ func TestDoctorCLIsVersionFailureShowsReason(t *testing.T) {
 	f.install("codex", "  \n")
 	r := collectDoctor(o, t.TempDir(), f.deps())
 	text := sectionText(r.CLIs)
-	mustContain(t, text, "version unavailable: exit status 2", "version unavailable: no output")
+	mustContain(t, text, "CLI version unavailable: exit status 2", "CLI version unavailable: no output")
 	mustNotContain(t, text, "\x1b")
 }
 
@@ -305,7 +341,7 @@ func TestDoctorCLIsRealVersionTimesOutWithoutWaiting(t *testing.T) {
 		t.Fatalf("the section took %s, want under 5s", elapsed)
 	}
 	text := sectionText(r.CLIs)
-	mustContain(t, text, "version unavailable: timed out after 3s", "version codex 1.0")
+	mustContain(t, text, "CLI version unavailable: timed out after 3s", "CLI version codex 1.0")
 }
 
 func TestDoctorUndetectedHostIsNotExecuted(t *testing.T) {
@@ -341,7 +377,7 @@ func TestDoctorSyntheticHomeRunsNothing(t *testing.T) {
 	if strings.Contains(text, "detected") && !strings.Contains(text, "not detected") {
 		t.Fatalf("a CLI was detected under a synthetic home:\n%s", text)
 	}
-	mustNotContain(t, text, "version ")
+	mustNotContain(t, text, "CLI version")
 	if _, err := os.Stat(marker); err == nil {
 		t.Fatal("a CLI was executed under a synthetic home")
 	}

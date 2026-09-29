@@ -15,7 +15,7 @@ func TestScrollBoxHangingIndentKeepsTheStructure(t *testing.T) {
 	box.hanging = true
 	box.vp.SetWidth(40)
 	box.vp.SetHeight(20)
-	text := "CLIs\n  claude  detected  release 4f8d96b9ce4f (verified)  version 2.1.284 (Claude Code)\n    /a/very/long/path/that/does/not/fit/in/forty/columns/at/all/AGENTS.md\nshort"
+	text := "CLIs\n  claude  detected  Hive release 4f8d96b9ce4f (verified)  CLI version 2.1.284 (Claude Code)\n    /a/very/long/path/that/does/not/fit/in/forty/columns/at/all/AGENTS.md\nshort"
 	box.setText(text)
 	lines := strings.Split(box.vp.View(), "\n")
 	var got []string
@@ -55,7 +55,7 @@ func TestScrollBoxHangingIndentKeepsTheStructure(t *testing.T) {
 		}
 	}
 	joined := strings.Join(strings.Fields(strings.Join(claude, " ")), " ")
-	if !strings.HasSuffix(strings.TrimSpace(got[1])+" "+joined, "version 2.1.284 (Claude Code)") {
+	if !strings.HasSuffix(strings.TrimSpace(got[1])+" "+joined, "CLI version 2.1.284 (Claude Code)") {
 		t.Errorf("the CLI row lost text: %q + %q", got[1], joined)
 	}
 }

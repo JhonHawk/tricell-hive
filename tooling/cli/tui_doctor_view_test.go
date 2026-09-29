@@ -35,7 +35,7 @@ func TestDoctorViewShowsThreeSectionsAndNotTheOthers(t *testing.T) {
 	f := newDoctorFake(home)
 	f.install("claude", "2.1.284\n")
 	_, d, _ := openDoctorView(t, o, f, 80, 40)
-	d.mustShow("Diagnostics", "CLIs", "Installation", "Sessions", "version 2.1.284", "release "+shortHash(releaseIDOf(t, stateDir)), "No problems found")
+	d.mustShow("Diagnostics", "CLIs", "Installation", "Sessions", "CLI version 2.1.284", "Hive release "+shortHash(releaseIDOf(t, stateDir)), "No problems found")
 	d.mustNotShow("Integrations", "Project", "Loading", "Checking")
 	assertFits(t, d, 80, 40)
 }
@@ -62,19 +62,19 @@ func TestDoctorViewReloadsWithRAndIgnoresStaleResults(t *testing.T) {
 	f := newDoctorFake(home)
 	f.install("claude", "1.0.0\n")
 	_, d, v := openDoctorView(t, o, f, 80, 40)
-	d.mustShow("version 1.0.0")
+	d.mustShow("CLI version 1.0.0")
 
 	f.versions["/fake/bin/claude"] = "2.0.0\n"
 	d.key("r")
-	d.mustShow("version 2.0.0")
-	d.mustNotShow("version 1.0.0")
+	d.mustShow("CLI version 2.0.0")
+	d.mustNotShow("CLI version 1.0.0")
 
 	// A result from an older load is dropped.
 	stale := doctorLoadedMsg{owned: owned{v}, seq: v.seq - 1}
 	stale.sections[0] = doctorSection{Title: "CLIs", Lines: []string{"STALE"}}
 	d.send(stale)
 	d.mustNotShow("STALE")
-	d.mustShow("version 2.0.0")
+	d.mustShow("CLI version 2.0.0")
 
 	// A double r while loading starts one load only.
 	cmd, _ := v.Update(keyMsg(t, "r"))

@@ -351,18 +351,18 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 		}
 		switch {
 		case st.err != nil:
-			parts = append(parts, "release unknown")
+			parts = append(parts, "Hive release unknown")
 		case !st.isRegistered(host):
 			parts = append(parts, "not installed by Hive")
 		default:
 			inst := st.hostInstallation(host)
 			switch {
 			case inst.Release == "":
-				parts = append(parts, "release -")
+				parts = append(parts, "Hive release -")
 			case inst.State == "":
-				parts = append(parts, "release "+shortHash(inst.Release))
+				parts = append(parts, "Hive release "+shortHash(inst.Release))
 			default:
-				parts = append(parts, fmt.Sprintf("release %s (%s)", shortHash(inst.Release), inst.State))
+				parts = append(parts, fmt.Sprintf("Hive release %s (%s)", shortHash(inst.Release), inst.State))
 			}
 		}
 		if detected[i] {
@@ -376,24 +376,25 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 	return sec
 }
 
-// cliVersion returns the text after the CLI's name in its row: its version, or
-// why that is unavailable.
+// cliVersion returns the text after the CLI's name in its row: the version the
+// host binary reports (labeled "CLI version", to tell it from Hive's release),
+// or why that is unavailable.
 func cliVersion(deps doctorDeps, host string) string {
 	bin := versionBinary(host)
 	path, err := deps.lookPath(bin)
 	if err != nil {
-		return "version unavailable: " + bin + " not found"
+		return "CLI version unavailable: " + bin + " not found"
 	}
 	out, err := deps.runVersion(path)
 	if err != nil {
-		return "version unavailable: " + truncateRunes(sanitizeLine(err.Error()), versionMaxRunes)
+		return "CLI version unavailable: " + truncateRunes(sanitizeLine(err.Error()), versionMaxRunes)
 	}
 	line, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
 	line = strings.TrimSpace(sanitizeLine(line))
 	if line == "" {
-		return "version unavailable: no output"
+		return "CLI version unavailable: no output"
 	}
-	return "version " + truncateRunes(line, versionMaxRunes)
+	return "CLI version " + truncateRunes(line, versionMaxRunes)
 }
 
 // ---------------------------------------------------------------------------
