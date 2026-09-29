@@ -462,3 +462,32 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckProjectReportsAMissingDirectoryWithoutCallingGit(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "no-such-dir")
+	rec := &recordingGit{}
+	sec := checkProject(missing, rec.run).sectionWithLocation()
+	if len(rec.calls) != 0 {
+		t.Fatalf("git was called for a missing directory: %q", rec.calls)
+	}
+	if sec.Err != "" || len(sec.Lines) != 1 || sec.Lines[0] != "Directory not found: "+missing {
+		t.Fatalf("section = %+v", sec)
+	}
+	mustNotContain(t, strings.Join(sec.Lines, "\n"), outsideGitLine)
+}
+
+func TestCheckProjectReportsAFileAsNotADirectoryWithoutCallingGit(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "AGENTS.md")
+	if err := os.WriteFile(file, []byte("## Hive\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rec := &recordingGit{}
+	sec := checkProject(file, rec.run).sectionWithLocation()
+	if len(rec.calls) != 0 {
+		t.Fatalf("git was called for a file: %q", rec.calls)
+	}
+	if sec.Err != "" || len(sec.Lines) != 1 || sec.Lines[0] != "Not a directory: "+file {
+		t.Fatalf("section = %+v", sec)
+	}
+	mustNotContain(t, strings.Join(sec.Lines, "\n"), outsideGitLine)
+}

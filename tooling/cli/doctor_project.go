@@ -156,6 +156,19 @@ func checkProject(project string, git gitRunner) projectCheck {
 	if err != nil {
 		return fail("cannot resolve %s: %v", dir, err)
 	}
+
+	// git -C on a missing directory exits like a directory outside a
+	// repository, so look at the directory first and say what is wrong.
+	switch info, err := os.Stat(dir); {
+	case errors.Is(err, os.ErrNotExist):
+		res.Section.Lines = []string{"Directory not found: " + sanitizeLine(dir)}
+		return res
+	case err != nil:
+		return fail("cannot read %s: %v", dir, err)
+	case !info.IsDir():
+		res.Section.Lines = []string{"Not a directory: " + sanitizeLine(dir)}
+		return res
+	}
 	res.Dir = dir
 
 	out, err := git(dir, "rev-parse", "--show-toplevel")
