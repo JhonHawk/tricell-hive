@@ -353,7 +353,7 @@ func TestIntegrationsLeavesStateAndHomeUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	collectIntegrations(o, deps)
-	collectDoctor(o, "", deps)
+	collectDoctor(o, t.TempDir(), deps)
 	afterState, _ := os.ReadFile(filepath.Join(stateDir, "state.json"))
 	if string(stateJSON) != string(afterState) {
 		t.Fatal("state.json changed")
@@ -402,7 +402,7 @@ func TestIntegrationsSectionLinesComeFromTheRows(t *testing.T) {
 
 func TestCollectDoctorFillsTheIntegrationsSection(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
-	report := collectDoctor(o, "", f.deps())
+	report := collectDoctor(o, t.TempDir(), f.deps())
 	if report.Integrations.Title != "Integrations" {
 		t.Fatalf("section = %+v", report.Integrations)
 	}

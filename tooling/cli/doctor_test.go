@@ -189,7 +189,7 @@ func TestDoctorCLIsDetectedHostShowsVersionReleaseAndState(t *testing.T) {
 	f.install("codex", "codex-cli 0.158.0\n")
 	f.install("pi", "0.87.1\n")
 
-	r := collectDoctor(o, "", f.deps())
+	r := collectDoctor(o, t.TempDir(), f.deps())
 	text := sectionText(r.CLIs)
 	short := shortHash(releaseIDOf(t, stateDir))
 	mustContain(t, text, "CLIs")
@@ -221,7 +221,7 @@ func TestDoctorCLIsVersionIsTrimmedAndSanitized(t *testing.T) {
 	o = nonSyntheticOptions(t, o, home)
 	f := newDoctorFake(home)
 	f.install("claude", "v1\x1b[2J.0 "+strings.Repeat("x", 200)+"\n")
-	r := collectDoctor(o, "", f.deps())
+	r := collectDoctor(o, t.TempDir(), f.deps())
 	text := sectionText(r.CLIs)
 	mustNotContain(t, text, "\x1b", "[2J")
 	mustContain(t, text, "version v1.0 ")
@@ -241,7 +241,7 @@ func TestDoctorCLIsCursorRunsCursorAgent(t *testing.T) {
 	f := newDoctorFake(home)
 	f.install("cursor", "should not run\n")
 	f.install("cursor-agent", "2026.09.23\n")
-	r := collectDoctor(o, "", f.deps())
+	r := collectDoctor(o, t.TempDir(), f.deps())
 	var cursor string
 	for _, l := range r.CLIs.Lines {
 		if strings.HasPrefix(l, "cursor") {
@@ -259,7 +259,7 @@ func TestDoctorCLIsCursorWithoutCursorAgent(t *testing.T) {
 	o = nonSyntheticOptions(t, o, home)
 	f := newDoctorFake(home)
 	f.install("cursor", "x\n")
-	r := collectDoctor(o, "", f.deps())
+	r := collectDoctor(o, t.TempDir(), f.deps())
 	mustContain(t, sectionText(r.CLIs), "version unavailable: cursor-agent not found")
 	if len(f.ran) != 0 {
 		t.Fatalf("ran %v", f.ran)
@@ -273,7 +273,7 @@ func TestDoctorCLIsVersionFailureShowsReason(t *testing.T) {
 	f.install("claude", "")
 	f.verErr["/fake/bin/claude"] = errors.New("exit status 2\x1b[2J")
 	f.install("codex", "  \n")
-	r := collectDoctor(o, "", f.deps())
+	r := collectDoctor(o, t.TempDir(), f.deps())
 	text := sectionText(r.CLIs)
 	mustContain(t, text, "version unavailable: exit status 2", "version unavailable: no output")
 	mustNotContain(t, text, "\x1b")
@@ -300,7 +300,7 @@ func TestDoctorCLIsRealVersionTimesOutWithoutWaiting(t *testing.T) {
 	deps.runVersion = runVersionCommand // the real function, over fake executables
 
 	start := time.Now()
-	r := collectDoctor(o, "", deps)
+	r := collectDoctor(o, t.TempDir(), deps)
 	if elapsed := time.Since(start); elapsed >= 5*time.Second {
 		t.Fatalf("the section took %s, want under 5s", elapsed)
 	}
@@ -318,7 +318,7 @@ func TestDoctorUndetectedHostIsNotExecuted(t *testing.T) {
 	f.paths["cursor-agent"] = fakeExecutable(t, bin, "cursor-agent", "touch "+marker)
 	deps := f.deps()
 	deps.runVersion = runVersionCommand
-	r := collectDoctor(o, "", deps)
+	r := collectDoctor(o, t.TempDir(), deps)
 	mustContain(t, sectionText(r.CLIs), "not detected")
 	if _, err := os.Stat(marker); err == nil {
 		t.Fatal("an undetected CLI was executed")
@@ -336,7 +336,7 @@ func TestDoctorSyntheticHomeRunsNothing(t *testing.T) {
 	f.env["CLAUDE_CONFIG_DIR"] = "/must/not/be/read"
 	deps := f.deps()
 	deps.runVersion = runVersionCommand
-	r := collectDoctor(o, "", deps) // o.Home is synthetic
+	r := collectDoctor(o, t.TempDir(), deps) // o.Home is synthetic
 	text := sectionText(r.CLIs)
 	if strings.Contains(text, "detected") && !strings.Contains(text, "not detected") {
 		t.Fatalf("a CLI was detected under a synthetic home:\n%s", text)
@@ -353,7 +353,7 @@ func TestDoctorSyntheticHomeRunsNothing(t *testing.T) {
 func TestDoctorNoRegisteredHosts(t *testing.T) {
 	home, stateDir := newHostsTestHome(t)
 	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
-	r := collectDoctor(o, "", newDoctorFake(home).deps())
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
 	mustContain(t, sectionText(r.Installation), "No CLI hosts are registered")
 	mustContain(t, sectionText(r.Sessions), "No CLI hosts are registered")
 	for _, l := range r.CLIs.Lines {
@@ -370,7 +370,7 @@ func TestDoctorSectionErrorStaysInsideItsSection(t *testing.T) {
 	// A state directory that is a file cannot be read; the report still has
 	// every section, and the state-dependent ones carry the error.
 	o := management.Options{Scope: "user", Home: home, StateDir: blocker}
-	r := collectDoctor(o, "", newDoctorFake(home).deps())
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
 	if r.CLIs.Title == "" || r.Installation.Title == "" || r.Sessions.Title == "" {
 		t.Fatalf("missing sections: %+v", r)
 	}
@@ -389,7 +389,7 @@ func TestDoctorSectionErrorStaysInsideItsSection(t *testing.T) {
 
 func TestDoctorInstallationCleanSaysNoProblems(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude,codex")
-	r := collectDoctor(o, "", newDoctorFake(home).deps())
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
 	if got := strings.Join(r.Installation.Lines, "|"); got != "No problems found" {
 		t.Fatalf("installation = %q", got)
 	}
@@ -413,7 +413,7 @@ func TestDoctorInstallationListsDriftAndDuplicatedMarkersWithPath(t *testing.T) 
 	if err := os.WriteFile(codexMD, append(append([]byte(nil), codexData...), codexData...), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	r := collectDoctor(o, "", newDoctorFake(home).deps())
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
 	text := sectionText(r.Installation)
 	canonHome, _ := filepath.EvalSymlinks(home)
 	mustContain(t, text,
@@ -437,7 +437,7 @@ func TestDoctorInstallationHidesNotInstalledRows(t *testing.T) {
 	if !seen {
 		t.Fatal("setup: Status has no not_installed row to hide")
 	}
-	r := collectDoctor(o, "", newDoctorFake(home).deps())
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
 	mustNotContain(t, sectionText(r.Installation), "not_installed", "not installed")
 }
 
@@ -471,7 +471,7 @@ func TestDoctorInstallationPendingOperationIsOneRecoverLine(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(stateDir, "pending.json"), []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	r := collectDoctor(o, "", newDoctorFake(home).deps())
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
 	if len(r.Installation.Lines) != 1 {
 		t.Fatalf("lines = %q", r.Installation.Lines)
 	}
@@ -514,7 +514,7 @@ func TestDoctorLeavesStateAndHomeUnchanged(t *testing.T) {
 	f := newDoctorFake(home)
 	f.alive[77] = true
 	beforeHome, beforeState := collectFiles(t, home), collectFiles(t, stateDir)
-	collectDoctor(o, "", f.deps())
+	collectDoctor(o, t.TempDir(), f.deps())
 	afterHome, afterState := collectFiles(t, home), collectFiles(t, stateDir)
 	if fmt.Sprint(beforeHome) != fmt.Sprint(afterHome) {
 		t.Fatal("the home changed")

@@ -98,7 +98,7 @@ func TestSessionsClaudeMarksOnlySessionsStartedBeforeTheRelease(t *testing.T) {
 	f.alive[0] = true // even a fake that says "alive" must not revive pid 0
 	f.alive[-1] = true
 
-	sec := collectDoctor(o, "", f.deps()).Sessions
+	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
 	text := sectionText(sec)
 	mustContain(t, text, "claude: 2 open sessions")
 	old := sessionLine(t, sec, "pid 101")
@@ -120,12 +120,12 @@ func TestSessionsClaudeDirectoryFromEnvironmentComesFromDeps(t *testing.T) {
 	f.env["CLAUDE_CONFIG_DIR"] = other
 	f.alive[201], f.alive[202] = true, true
 
-	text := sectionText(collectDoctor(o, "", f.deps()).Sessions)
+	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text, "/env/dir")
 	mustNotContain(t, text, "/default/dir")
 
 	delete(f.env, "CLAUDE_CONFIG_DIR")
-	text = sectionText(collectDoctor(o, "", f.deps()).Sessions)
+	text = sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text, "/default/dir")
 	mustNotContain(t, text, "/env/dir")
 }
@@ -137,7 +137,7 @@ func TestSessionsSyntheticHomeIgnoresEnvironment(t *testing.T) {
 	claudeSession(t, filepath.Join(home, ".claude"), "301.json", 301, "/synthetic/claude", sessionBefore)
 	grokSessions(t, filepath.Join(home, ".grok"), grokEntry(302, "/synthetic/grok", sessionBefore))
 	f.alive[301], f.alive[302] = true, true
-	text := sectionText(collectDoctor(o, "", f.deps()).Sessions)
+	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text, "/synthetic/claude", "/synthetic/grok")
 }
 
@@ -150,7 +150,7 @@ func TestSessionsGrokMarksOnlySessionsOpenedBeforeTheRelease(t *testing.T) {
 		grokEntry(0, "/g/zero", sessionBefore))
 	f.alive[401], f.alive[402], f.alive[0] = true, true, true
 
-	sec := collectDoctor(o, "", f.deps()).Sessions
+	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
 	text := sectionText(sec)
 	mustContain(t, text, "grok: 2 open sessions")
 	mustContain(t, sessionLine(t, sec, "pid 401"), "/g/old", "started before the installed release; restart it")
@@ -168,14 +168,14 @@ func TestSessionsGrokHomeFromEnvironmentComesFromDeps(t *testing.T) {
 	f := newDoctorFake(home)
 	f.env["GROK_HOME"] = other
 	f.alive[501] = true
-	mustContain(t, sectionText(collectDoctor(o, "", f.deps()).Sessions), "/grok/env")
+	mustContain(t, sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions), "/grok/env")
 }
 
 func TestSessionsNoOpenSessions(t *testing.T) {
 	o, home, f := sessionsFixture(t, "claude,grok")
 	grokSessions(t, filepath.Join(home, ".grok"))
 	f.alive = map[int]bool{}
-	text := sectionText(collectDoctor(o, "", f.deps()).Sessions)
+	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text, "claude: no open sessions", "grok: no open sessions")
 	mustNotContain(t, text, "estimates")
 }
@@ -213,7 +213,7 @@ func TestSessionsUnavailableWhenGrokFileIsOversizedUnknownOrUnreadable(t *testin
 			tc.write(t, filepath.Join(home, ".grok", "active_sessions.json"))
 			claudeSession(t, filepath.Join(home, ".claude"), "601.json", 601, "/still/shown", sessionBefore)
 			f.alive[601] = true
-			r := collectDoctor(o, "", f.deps())
+			r := collectDoctor(o, t.TempDir(), f.deps())
 			text := sectionText(r.Sessions)
 			mustContain(t, text, "Session check unavailable for grok: ", tc.reason)
 			mustContain(t, text, "/still/shown") // the other CLI is still checked
@@ -232,7 +232,7 @@ func TestSessionsUnavailableWhenClaudeFileIsOversizedOrUnknown(t *testing.T) {
 			o, home, f := sessionsFixture(t, "claude")
 			writeFile(t, filepath.Join(home, ".claude", "sessions", "701.json"), content)
 			f.alive[701] = true
-			text := sectionText(collectDoctor(o, "", f.deps()).Sessions)
+			text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 			mustContain(t, text, "Session check unavailable for claude: 701.json", name)
 		})
 	}
@@ -240,7 +240,7 @@ func TestSessionsUnavailableWhenClaudeFileIsOversizedOrUnknown(t *testing.T) {
 
 func TestSessionsNoticesForHostsHiveCannotSee(t *testing.T) {
 	o, _, f := sessionsFixture(t, "codex,pi,cursor,opencode")
-	text := sectionText(collectDoctor(o, "", f.deps()).Sessions)
+	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text,
 		"codex: Hive cannot see its open sessions; restart them after each update",
 		"pi: Hive cannot see its open sessions; restart them after each update",
@@ -253,7 +253,7 @@ func TestSessionsCwdIsSanitized(t *testing.T) {
 	o, home, f := sessionsFixture(t, "claude")
 	claudeSession(t, filepath.Join(home, ".claude"), "801.json", 801, "/work/\x1b[2Jevil\x07", sessionBefore)
 	f.alive[801] = true
-	text := sectionText(collectDoctor(o, "", f.deps()).Sessions)
+	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text, "/work/evil")
 	mustNotContain(t, text, "\x1b", "\x07", "[2J")
 }
