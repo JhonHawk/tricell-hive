@@ -136,6 +136,11 @@ func unreadableStateText(stateDir string, err error) string {
 	return where + " could not be read. Repair or restore its files; hive status reports the same problem.\nDetail: " + sanitizeLine(err.Error())
 }
 
+// stateNotChecked is the Err of a section that needed Hive's state after an
+// earlier section already explained why it could not be read (N1). It keeps
+// the section marked as not fully checked, and renders as one short line.
+const stateNotChecked = "Hive's state could not be read (see above)."
+
 // stateDirOf resolves the state directory of the options for a message, or ""
 // when it cannot be resolved.
 func stateDirOf(o management.Options) string {
@@ -410,7 +415,8 @@ var installationPhrases = map[string]string{
 func installationSection(o management.Options, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Installation"}
 	if st.err != nil {
-		sec.Err = unreadableStateText(st.stateDir, st.err)
+		// The CLIs section already explains the unreadable state.
+		sec.Err = stateNotChecked
 		return sec
 	}
 	if len(st.registered) == 0 {
@@ -478,7 +484,10 @@ func doctorSectionsText(sections ...doctorSection) string {
 			b.WriteString("\n")
 		}
 		b.WriteString(s.Title + "\n")
-		if s.Err != "" {
+		switch {
+		case s.Err == stateNotChecked:
+			b.WriteString("  Not checked: " + s.Err + "\n")
+		case s.Err != "":
 			first, rest := errLines(s.Err)
 			b.WriteString("  Could not check everything: " + first + "\n")
 			for _, l := range rest {

@@ -383,7 +383,8 @@ func TestDoctorPendingOperationShowsWhenNoHostIsRegistered(t *testing.T) {
 
 // TestDoctorUnreadableStateLeadsWithWordsThenDetail covers M2: a damaged state
 // file is explained in plain words with the way out, and the technical error
-// follows on its own line.
+// follows on its own line. The explanation is written once, in the first
+// section (N1); the other two say only that they were not checked.
 func TestDoctorUnreadableStateLeadsWithWordsThenDetail(t *testing.T) {
 	home, stateDir := newHostsTestHome(t)
 	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("garbage"), 0o600); err != nil {
@@ -395,15 +396,46 @@ func TestDoctorUnreadableStateLeadsWithWordsThenDetail(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
+	lines := strings.Split(sectionText(r.CLIs), "\n")
+	if len(lines) < 4 {
+		t.Fatalf("CLIs: too few lines: %q", lines)
+	}
+	first, detail := lines[1], lines[2]
+	mustContain(t, first, "Could not check everything: Hive's state in "+stateDir+" could not be read", "hive status")
+	mustNotContain(t, first, "invalid character")
+	mustContain(t, detail, "Detail: ", "invalid character")
+}
+
+// TestDoctorUnreadableStateIsExplainedOnce covers N1: the explanation and its
+// Detail line appear once across CLIs, Installation and Sessions; the other two
+// sections carry one short line and keep Err, so the view still offers a retry.
+func TestDoctorUnreadableStateIsExplainedOnce(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("garbage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	r := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps())
+	text := doctorSectionsText(r.CLIs, r.Installation, r.Sessions)
+	if n := strings.Count(text, "Detail: "); n != 1 {
+		t.Fatalf("Detail line appears %d times, want 1:\n%s", n, text)
+	}
+	if n := strings.Count(text, "could not be read"); n != 3 {
+		// once in the full explanation, once in each short line
+		t.Fatalf("\"could not be read\" appears %d times, want 3:\n%s", n, text)
+	}
+	const short = "Not checked: Hive's state could not be read (see above)."
+	if n := strings.Count(text, short); n != 2 {
+		t.Fatalf("short line appears %d times, want 2:\n%s", n, text)
+	}
 	for _, sec := range []doctorSection{r.CLIs, r.Installation, r.Sessions} {
-		lines := strings.Split(sectionText(sec), "\n")
-		if len(lines) < 4 {
-			t.Fatalf("%s: too few lines: %q", sec.Title, lines)
+		if sec.Err == "" {
+			t.Fatalf("%s lost its Err", sec.Title)
 		}
-		first, detail := lines[1], lines[2]
-		mustContain(t, first, "Could not check everything: Hive's state in "+stateDir+" could not be read", "hive status")
-		mustNotContain(t, first, "invalid character")
-		mustContain(t, detail, "Detail: ", "invalid character")
+	}
+	for _, sec := range []doctorSection{r.Installation, r.Sessions} {
+		mustContain(t, sectionText(sec), short)
+		mustNotContain(t, sectionText(sec), "Detail: ", "Could not check everything")
 	}
 }
 
@@ -426,7 +458,8 @@ func TestDoctorSectionErrorStaysInsideItsSection(t *testing.T) {
 	if len(r.CLIs.Lines) != len(installerHosts) {
 		t.Fatalf("CLIs rows = %d", len(r.CLIs.Lines))
 	}
-	mustContain(t, sectionText(r.Installation), "Could not check everything")
+	mustContain(t, sectionText(r.Installation), "Not checked")
+	mustContain(t, sectionText(r.CLIs), "Could not check everything")
 }
 
 // ---------------------------------------------------------------------------

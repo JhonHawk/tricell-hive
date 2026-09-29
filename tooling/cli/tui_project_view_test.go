@@ -37,7 +37,7 @@ func TestProjectViewShowsVerdictPathAndValues(t *testing.T) {
 			root := projectRepoWithSpecs(t, validHiveSection)
 			_, d, _ := openProjectView(t, root, nil, size[0], size[1])
 			d.mustShow("Project", "Valid", "Values read:", "Base branch: main", "Specs: _support/openspec")
-			d.mustShow(filepath.Join(root, "AGENTS.md")[max(0, len(filepath.Join(root, "AGENTS.md"))-size[0]+2):])
+			mustShowWhole(t, d, realPath(t, filepath.Join(root, "AGENTS.md")))
 			d.mustNotShow("Checking", "Loading")
 			assertFits(t, d, size[0], size[1])
 		})
@@ -188,7 +188,30 @@ func TestProjectViewScrollsToTheLastFindingAndBack(t *testing.T) {
 	}
 }
 
-func TestProjectViewClipsALongPathFromTheLeft(t *testing.T) {
+// realPath resolves symbolic links, as the view shows the resolved path.
+func realPath(t *testing.T, p string) string {
+	t.Helper()
+	r, err := filepath.EvalSymlinks(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+// mustShowWhole checks that text is on the screen in full, even when the view
+// wrapped it over several lines: it compares with all whitespace removed.
+func mustShowWhole(t *testing.T, d *appDriver, text string) {
+	t.Helper()
+	squash := func(s string) string { return strings.Join(strings.Fields(s), "") }
+	if !strings.Contains(squash(d.screen()), squash(text)) {
+		t.Fatalf("%q is not shown in full:\n%s", text, d.screen())
+	}
+}
+
+// TestProjectViewWrapsALongPathInsteadOfCuttingIt covers N3: the location is the
+// first line of the scrolling text, wrapped with a hanging indent, so a path
+// longer than the screen is fully readable.
+func TestProjectViewWrapsALongPathInsteadOfCuttingIt(t *testing.T) {
 	// A repository whose root path is longer than the screen.
 	longRoot := filepath.Join(t.TempDir(), strings.Repeat("a-long-directory-name", 6))
 	if err := os.MkdirAll(longRoot, 0o755); err != nil {
@@ -196,9 +219,43 @@ func TestProjectViewClipsALongPathFromTheLeft(t *testing.T) {
 	}
 	gitIn(t, longRoot, "init", "-q", "-b", "main")
 	writeAgents(t, longRoot, validHiveSection)
-	_, d, _ := openProjectView(t, longRoot, nil, 80, 24)
-	d.mustShow("…", "/AGENTS.md")
+	file := realPath(t, filepath.Join(longRoot, "AGENTS.md"))
+	if len(file) <= 80 {
+		t.Fatalf("the fixture path is only %d columns", len(file))
+	}
+	_, d, v := openProjectView(t, longRoot, nil, 80, 24)
+	mustShowWhole(t, d, file)
+	d.mustNotShow("…")
+	d.mustShow("Values read:")
 	assertFits(t, d, 80, 24)
+	if got := v.box.vp.Height(); got != 21-2 {
+		t.Fatalf("scrolling text has %d rows, want 19 (only the heading and the position are fixed)", got)
+	}
+	// The first line of the scrolling text starts the path, and the rest hangs.
+	lines := d.lines()
+	start := -1
+	for i, l := range lines {
+		if strings.HasPrefix(l, "Project") {
+			start = i
+			break
+		}
+	}
+	if start < 0 || !strings.HasPrefix(lines[start+1], "/") || !strings.HasPrefix(lines[start+2], "  ") {
+		t.Fatalf("the path must open the scrolling text and continue with an indent:\n%s", d.screen())
+	}
+}
+
+// TestProjectViewShowsTheSameLocationLineAsTheCommand covers N3's second half:
+// the view and hive doctor share the location line, for a repository and for a
+// directory outside one.
+func TestProjectViewShowsTheSameLocationLineAsTheCommand(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	for _, dir := range []string{root, t.TempDir()} {
+		sec := collectProject(dir, doctorDeps{})
+		_, d, _ := openProjectView(t, dir, nil, 120, 40)
+		mustShowWhole(t, d, sec.Lines[0])
+		mustContain(t, projectBoxText(checkProject(dir, newGitRunner())), sec.Lines[0]+"\n")
+	}
 }
 
 func TestProjectViewLeavesTheRepositoryUnchanged(t *testing.T) {

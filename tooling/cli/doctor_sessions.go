@@ -36,7 +36,8 @@ type openSession struct {
 func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Sessions"}
 	if st.err != nil {
-		sec.Err = unreadableStateText(st.stateDir, st.err)
+		// The CLIs section already explains the unreadable state.
+		sec.Err = stateNotChecked
 		return sec
 	}
 	if len(st.registered) == 0 {

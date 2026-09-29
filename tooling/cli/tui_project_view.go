@@ -1,7 +1,8 @@
 // tui_project_view.go is the Project view (design.md "Vistas"): the result of
-// validating the `## Hive` section of the current repository's AGENTS.md. Three
-// rows are fixed (heading, AGENTS.md path, position); the verdict or findings
-// and the values read scroll between them. It only reads. The load runs as a
+// validating the `## Hive` section of the current repository's AGENTS.md. Two
+// rows are fixed (heading, position); the AGENTS.md path, the verdict or
+// findings and the values read scroll between them, so a long path wraps
+// instead of being cut. It only reads. The load runs as a
 // Cmd whose result is addressed to the view (owned) and carries a sequence
 // number, so a double reload or a result that arrives after the view was left
 // is dropped.
@@ -10,12 +11,10 @@ package main
 import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
 )
 
-// projectFixedRows are the heading, the AGENTS.md path and the position row.
-const projectFixedRows = 3
+// projectFixedRows are the heading and the position row.
+const projectFixedRows = 2
 
 type projectLoadedMsg struct {
 	owned
@@ -71,7 +70,7 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 		v.loading, v.loaded = false, true
 		v.check = msg.check
 		v.failed = msg.check.Section.Err != ""
-		v.box.setText(projectBoxText(msg.check.Section))
+		v.box.setText(projectBoxText(msg.check))
 	case tea.KeyPressMsg:
 		switch name := msg.String(); name {
 		case "esc", "backspace":
@@ -87,18 +86,22 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 	return nil, action{nav: navNone}
 }
 
-// projectBoxText is the scrolling text: the section's lines, after the reason
-// the check could not finish when it could not.
-func projectBoxText(s doctorSection) string {
+// projectBoxText is the scrolling text: the location line first, as hive
+// doctor prints it, then the reason the check could not finish when it could
+// not, then the section's lines.
+func projectBoxText(c projectCheck) string {
 	text := ""
-	if s.Err != "" {
-		first, rest := errLines(s.Err)
-		text = "Could not check everything: " + first + "\n"
+	if label, path := c.location(); path != "" {
+		text = label + path + "\n"
+	}
+	if c.Section.Err != "" {
+		first, rest := errLines(c.Section.Err)
+		text += "Could not check everything: " + first + "\n"
 		for _, l := range rest {
 			text += "  " + l + "\n"
 		}
 	}
-	for _, l := range s.Lines {
+	for _, l := range c.Section.Lines {
 		text += l + "\n"
 	}
 	return text
@@ -106,26 +109,12 @@ func projectBoxText(s doctorSection) string {
 
 func (v *projectView) Resize(w, h int) { v.w, v.h = w, h; v.layout() }
 
-// layout gives the scrolling text the area between the AGENTS.md path and the
+// layout gives the scrolling text the area between the heading and the
 // position row.
 func (v *projectView) layout() {
 	v.box.vp.SetWidth(v.w)
 	v.box.vp.SetHeight(max(v.h-projectFixedRows, 1))
 	v.box.rewrap()
-}
-
-// locationLine names what was checked: the AGENTS.md path, or the directory
-// when it is not inside a repository. A path too long for the row loses its
-// beginning, because the end is what tells one repository from another.
-func (v *projectView) locationLine() string {
-	label, path := v.check.location()
-	if room := v.w - lipgloss.Width(label); v.w > 0 && lipgloss.Width(path) > room {
-		if room < 2 {
-			return ""
-		}
-		path = ansi.TruncateLeft(path, lipgloss.Width(path)-(room-1), "…")
-	}
-	return label + path
 }
 
 func (v *projectView) View(c viewCtx) string {
@@ -145,7 +134,7 @@ func (v *projectView) View(c viewCtx) string {
 	case v.box.scrollable():
 		position = th.Muted.Render(v.box.position())
 	}
-	return th.Title.Render("Project") + "\n" + th.Muted.Render(v.locationLine()) + "\n" + v.box.vp.View() + "\n" + position
+	return th.Title.Render("Project") + "\n" + v.box.vp.View() + "\n" + position
 }
 
 func (v *projectView) Keys() []key.Binding {

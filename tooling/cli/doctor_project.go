@@ -113,16 +113,21 @@ type projectCheck struct {
 // not one of its members because the validation runs `git` only against the
 // chosen repository, whatever a synthetic --home says about CLIs.
 func collectProject(project string, deps doctorDeps) doctorSection {
-	res := checkProject(project, newGitRunner())
-	sec := res.Section
-	if label, path := res.location(); path != "" {
+	return checkProject(project, newGitRunner()).sectionWithLocation()
+}
+
+// sectionWithLocation is the section with the location line first. The Project
+// view shows this same line at the top of its scrolling text.
+func (c projectCheck) sectionWithLocation() doctorSection {
+	sec := c.Section
+	if label, path := c.location(); path != "" {
 		sec.Lines = append([]string{label + path}, sec.Lines...)
 	}
 	return sec
 }
 
-// location names what was checked, as the Project view's second row does:
-// the AGENTS.md path, or the directory when it is not inside a repository.
+// location names what was checked: the AGENTS.md path, or the directory when
+// it is not inside a repository.
 func (c projectCheck) location() (label, path string) {
 	switch {
 	case c.File != "":

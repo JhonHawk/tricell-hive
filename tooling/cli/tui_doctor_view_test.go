@@ -167,6 +167,28 @@ func TestDoctorViewLoadErrorLeadsWithWordsAndRetryAfterFixing(t *testing.T) {
 	}
 }
 
+// TestDoctorViewUnreadableStateKeepsSessionsInSightAt80x24 covers N1: the
+// explanation is drawn once, so the Sessions heading fits without scrolling.
+func TestDoctorViewUnreadableStateKeepsSessionsInSightAt80x24(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("garbage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	o := management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	_, d, v := openDoctorView(t, o, newDoctorFake(home), 80, 24)
+	d.mustShow("CLIs", "Installation", "Sessions", "Not checked: Hive's state could not be read (see above).", "r to retry after fixing it")
+	if n := strings.Count(d.screen(), "Detail: "); n != 1 {
+		t.Fatalf("Detail line drawn %d times, want 1:\n%s", n, d.screen())
+	}
+	if v.box.scrollable() {
+		t.Fatalf("the unreadable-state text must fit without scrolling:\n%s", d.screen())
+	}
+	if !v.failed {
+		t.Fatal("the view must stay marked failed")
+	}
+	assertFits(t, d, 80, 24)
+}
+
 func TestDoctorViewLoadErrorIsShownInsideWithRetry(t *testing.T) {
 	home, _ := newHostsTestHome(t)
 	blocker := filepath.Join(t.TempDir(), "file")
