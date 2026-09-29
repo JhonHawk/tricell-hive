@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/legacy"
 	"tricell-hive/tooling/management"
 )
 
@@ -59,13 +61,13 @@ func TestHostsViewListsHostsWhenAManagedFileWasChanged(t *testing.T) {
 		d.mustNotShow("Cannot read the CLIs", "Diagnostics shows")
 		for _, want := range []string{
 			skill + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.",
-			"Detail: modified legacy file requires manual resolution: " + skill,
+			"Detail: " + skill + " differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere",
 		} {
 			mustShowFlat(d, want)
 		}
-		// The first mention of "legacy" is the raw detail: the plain words never call the file legacy.
-		plain, _, _ := strings.Cut(d.screen(), "Detail:")
-		if strings.Contains(plain, "legacy") {
+		// Neither the plain words nor the raw detail call the file legacy.
+		plain, detail, _ := strings.Cut(d.screen(), "Detail:")
+		if strings.Contains(plain, "legacy") || strings.Contains(detail, "legacy") {
 			t.Errorf("the plain words mention a legacy file:\n%s", d.screen())
 		}
 		rows := hostRows(d)
@@ -101,7 +103,7 @@ func TestHostsViewRefusesChangesWhenAManagedFileWasChanged(t *testing.T) {
 		homeBefore, stateBefore := collectFiles(t, env.home), stateBytes(t, env.stateDir)
 		toggle(t, d, "pi")
 		d.key("a")
-		mustShowFlat(d, "modified legacy file requires manual resolution")
+		mustShowFlat(d, "differs from what Hive expects there; undo the change")
 		assertFits(t, d, 80, 24)
 		assertUntouched(t, env, homeBefore, stateBefore)
 	})
@@ -224,7 +226,7 @@ func TestHostsViewShowsTheScanNoteWithNoHosts(t *testing.T) {
 		d.mustShow("CLIs")
 		mustShowFlat(d, "No CLI hosts were detected or registered.")
 		mustShowFlat(d, path+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.")
-		mustShowFlat(d, "Detail: modified legacy file requires manual resolution: "+path)
+		mustShowFlat(d, "Detail: "+path+" differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere")
 		d.mustNotShow("Open Diagnostics", "Hive installed was changed", "Diagnostics shows")
 		assertFits(t, d, size[0], size[1])
 	}
@@ -338,5 +340,50 @@ func TestDoctorCommandExplainsAnUnreadableState(t *testing.T) {
 	}
 	if !strings.Contains(out, "could not be read") || !strings.Contains(out, "hive doctor shows the same problem") {
 		t.Errorf("doctor does not explain the state problem:\n%s", out)
+	}
+}
+
+// TestScanNoteUsesTheErrorTypeNotTheMessage (K1): the note recognizes a
+// modified file by its error type, so it does not depend on the message text,
+// and any other scan failure keeps the generic words.
+func TestScanNoteUsesTheErrorTypeNotTheMessage(t *testing.T) {
+	path := "/home/u/.agents/skills/x/SKILL.md"
+	typed := &legacyScanError{err: fmt.Errorf("scanning: %w", &legacy.ModifiedFileError{Path: path})}
+	words, detail := errLines(legacyScanNote(typed))
+	if want := path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."; words != want {
+		t.Errorf("words = %q, want %q", words, want)
+	}
+	if len(detail) != 1 || !strings.HasPrefix(detail[0], "Detail: ") {
+		t.Errorf("detail = %q, want one Detail line", detail)
+	}
+	// The old message text alone no longer selects the specific words.
+	text := &legacyScanError{err: errors.New("modified legacy file requires manual resolution: " + path)}
+	if words, _ := errLines(legacyScanNote(text)); strings.Contains(words, path) {
+		t.Errorf("the message text alone selected the specific words: %q", words)
+	}
+}
+
+// TestInstallRefusalReadsInPlainWords (K1): planning an installation over a
+// file at a path Hive once used is refused with words that do not call the
+// file legacy, and writes nothing.
+func TestInstallRefusalReadsInPlainWords(t *testing.T) {
+	home, stateDir, path := legacyPathEnv(t)
+	before := collectFiles(t, home)
+	err := run([]string{"plan", "install", "--scope", "user", "--home", home, "--source", minimalTestSource(t), "--hosts", "codex", "--state-dir", stateDir})
+	if err == nil {
+		t.Fatal("plan install accepted a modified file")
+	}
+	want := path + " differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere"
+	if err.Error() != want {
+		t.Errorf("refusal = %q, want %q", err.Error(), want)
+	}
+	after := collectFiles(t, home)
+	if len(after) != len(before) {
+		t.Errorf("the home has %d files, had %d", len(after), len(before))
+	}
+	for rel, data := range before {
+		if !bytes.Equal(after[rel], data) {
+			t.Errorf("%s changed", rel)
+		}
 	}
 }

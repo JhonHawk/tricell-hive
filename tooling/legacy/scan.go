@@ -34,6 +34,17 @@ type Edit struct {
 	Hosts         []string
 	Kind          string
 }
+
+// ModifiedFileError reports a file at a path Hive once used that differs from
+// what Hive expects there. The file may be one Hive installed and the user
+// edited, or the user's own, so the message does not call it legacy. Callers
+// find the path with errors.As instead of reading the message.
+type ModifiedFileError struct{ Path string }
+
+func (e *ModifiedFileError) Error() string {
+	return e.Path + " differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere"
+}
+
 type Result struct {
 	Edits    []Edit
 	Detected bool
@@ -315,7 +326,7 @@ func ScanExcluding(c target.Config, hosts []string, trustedPaths []string) (Resu
 			want := render(f, root)
 			if !bytes.Equal(b, want) {
 				if claims[p] || (f.Path != "AGENTS.md" && f.Path != "CLAUDE.md") || legacyMarker(b, want) {
-					return result, fmt.Errorf("modified legacy file requires manual resolution: %s", p)
+					return result, &ModifiedFileError{Path: p}
 				}
 				continue
 			}

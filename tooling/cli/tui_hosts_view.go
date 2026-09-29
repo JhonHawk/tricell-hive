@@ -19,6 +19,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"tricell-hive/tooling/distribution"
+	"tricell-hive/tooling/legacy"
 	"tricell-hive/tooling/management"
 )
 
@@ -61,7 +62,9 @@ type hostsLoadedMsg struct {
 func legacyScanNote(err error) string {
 	raw := sanitizeLine(err.Error())
 	words := "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why."
-	if path, ok := strings.CutPrefix(raw, "modified legacy file requires manual resolution: "); ok {
+	var modified *legacy.ModifiedFileError
+	if errors.As(err, &modified) {
+		path := sanitizeLine(modified.Path)
 		words = path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
 	}
 	return words + "\nDetail: " + raw

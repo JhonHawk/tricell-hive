@@ -3,6 +3,7 @@ package legacy
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,6 +58,39 @@ func TestExactAndEditedLegacy(t *testing.T) {
 	put(t, p, append(b, []byte("\nuser edit")...))
 	if _, e = Scan(c, []string{"codex"}); e == nil {
 		t.Fatal("edited legacy accepted")
+	}
+}
+
+// TestModifiedFileErrorCarriesThePath: a file that differs from what Hive
+// expects at a path it once used fails the scan with a *ModifiedFileError, so
+// a caller finds the path with errors.As instead of parsing the message. The
+// message does not call the file legacy, since it may be the user's own.
+func TestModifiedFileErrorCarriesThePath(t *testing.T) {
+	c := fixture(t)
+	var b []byte
+	for _, f := range loadCatalog().Files {
+		if f.Root == "codex" && f.Path == "AGENTS.md" {
+			b = f.Data
+			break
+		}
+	}
+	p := filepath.Join(c.CodexHome, "AGENTS.md")
+	put(t, p, append(b, []byte("\nuser edit")...))
+	_, e := Scan(c, []string{"codex"})
+	var modified *ModifiedFileError
+	if !errors.As(e, &modified) || modified.Path != p {
+		t.Fatalf("errors.As found %+v in %v, want path %s", modified, e, p)
+	}
+	wrapped := fmt.Errorf("planning: %w", e)
+	if !errors.As(wrapped, &modified) || modified.Path != p {
+		t.Fatalf("errors.As does not see through a wrapped error: %v", wrapped)
+	}
+	want := p + " differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere"
+	if e.Error() != want {
+		t.Errorf("message = %q, want %q", e.Error(), want)
+	}
+	if strings.Contains(e.Error(), "legacy") {
+		t.Errorf("message calls the file legacy: %q", e.Error())
 	}
 }
 func TestManifestTraversalRejected(t *testing.T) {
