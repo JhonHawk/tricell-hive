@@ -137,6 +137,7 @@ Avance del 2026-09-29:
   - Aceptado: H1 (`hive-verify-change`) ya no excluye cambios de una tarea o sin plan; H2 (`hive-build-infra`) dice "without changing any deployment" y "read-only".
   - Aceptado como nota: el commit `500bd84` cita un caso que no era mecánico; la regla es correcta, el ejemplo del mensaje no. No se reescribe historia publicada; se aclara en el PR.
   - Para el usuario: el cambio activo `gh-46-read-only-views` cita ids viejos y el despliegue tras el merge los retira. Decidido D6-A: merge y despliegue; el usuario pasa a esa sesión los cuatro reemplazos.
+- Entrega: PR #51 integrado en `fbab417`; binario `hive` recompilado y plan de `hive update` aplicado desde `fbab417`: en `~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.cursor`, `~/.grok` y `~/.pi/agent` quedan los 20 ids `hive-*` y ninguno de los 20 viejos.
 - Suite completa: `go vet ./...` y `go test -count=1 -timeout 25m ./...` pasan en `737e050`; unittest de skills OK.
 - Aparte: `gofmt` también señala `tests/pilot/regression.go`, que ya estaba así en la base; no se toca.
 
