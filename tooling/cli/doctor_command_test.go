@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -59,6 +60,27 @@ func TestDoctorCommandPrintsFindingsAndExitsZero(t *testing.T) {
 	})
 	if runErr != nil || got != want.String() {
 		t.Errorf("doctor output differs from renderDoctorText (err %v):\n%s\n---\n%s", runErr, got, want.String())
+	}
+}
+
+func TestDoctorCommandProjectFlagChecksThatRepository(t *testing.T) {
+	f := newCharacterizationFixture(t)
+	repo := t.TempDir()
+	if out, err := exec.Command("git", "init", "-q", repo).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v %s", err, out)
+	}
+	var runErr error
+	out := captureStdout(t, func() {
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", repo})
+	})
+	if runErr != nil || !strings.Contains(out, "Project\n  AGENTS.md: not found at the repository root\n") {
+		t.Errorf("doctor --project did not check %s (err %v):\n%s", repo, runErr, out)
+	}
+	out = captureStdout(t, func() {
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", t.TempDir()})
+	})
+	if runErr != nil || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
+		t.Errorf("doctor outside a repository (err %v):\n%s", runErr, out)
 	}
 }
 
