@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En curso · T1 y T2 en verificación, T3 en implementación |
+| Estado | En validación · T1–T5 verificadas; PR y `/code-review` pendientes |
 | Tracker · GitHub Issues | Sin issue: el cambio nace de la conversación del 2026-09-29 |
 | Git | Automático · PR a `rebuild/harness-engineering` con merge tras `/code-review` · sin parada humana antes del push |
 | Verificación | `go test` y `go vet` · unittest de skills · búsqueda de nombres viejos · vista previa del plan de instalación |
-| Siguiente paso | Verificar T1–T3, luego T4 tras el commit local |
+| Siguiente paso | Abrir el PR, `/code-review`, merge y refresco de la instalación local |
 
 ## Objetivo
 
@@ -21,7 +21,7 @@ Incluye:
 - Renombrar los 20 archivos de `content/agents/`, su campo `name` y su encabezado, según la tabla de [design.md](design.md#tabla-de-nombres).
 - Aplicar los textos H1–H6 de [design.md](design.md#descripciones).
 - Actualizar cada referencia activa: skills distribuidas, la documentación viva de arquitectura, las pruebas Go y Python, y el caso de delegación de `tests/fixtures/flows/cases.json`.
-- Acotar la regla de `flow-build` que pide la suite completa cuando no hay CI: solo para cambios que alteran comportamiento; un cambio mecánico cierra con las comprobaciones que ya lo cubren (D5-B, añadido el 2026-09-29 a petición del usuario, que la vio disparar la suite completa en este mismo cambio).
+- Acotar la regla de `flow-build` que pide la suite completa cuando no hay CI: solo para cambios que no son mecánicos; un cambio mecánico cierra con las comprobaciones que ya lo cubren (D5-B, añadido el 2026-09-29 a petición del usuario, que la vio disparar la suite completa en este mismo cambio).
 - Marcar como sustituida la decisión del registro agent-names.research.md (historical evidence omitted from public history).
 
 Excluye, con su razón:
@@ -45,7 +45,7 @@ Criterios:
 - AC2. Ninguna referencia activa cita un id viejo fuera de las exclusiones. *Falso en la base cuando* la búsqueda de T2 devuelve 99 líneas: 40 en los propios roles y 59 en 14 archivos de skills, documentación y pruebas; cinco de ellas son filas de evidencia histórica que se conservan.
 - AC3. Las descripciones de `hive-verify-change`, `hive-build-infra`, `hive-design-ui`, `hive-research`, `hive-design-architecture` y `hive-build-kmp` llevan los textos H1–H6. *Falso en la base cuando* ninguna de las seis frases distintivas de T1 aparece en `content/agents`.
 - AC4. La vista previa de instalación desde el commit del cambio retira, en cada host registrado, los 20 archivos de agente con id viejo e instala los 20 nuevos, sin conflictos. *Falso en la base cuando* la misma vista previa sobre `82f2dcc` no propone ningún cambio de agentes.
-- AC5. La regla de cierre de regresión de `content/skills/flow-build/SKILL.md` exige la suite completa sin CI solo para cambios que alteran comportamiento, y cierra un cambio mecánico con las comprobaciones que ya lo cubren. *Falso en la base cuando* `rg -c 'When none will run it and the change alters behavior' content/skills/flow-build/SKILL.md` no encuentra nada.
+- AC5. La regla de cierre de regresión de `content/skills/flow-build/SKILL.md` exige la suite completa sin CI para todo cambio que no sea mecánico según la guía global, y cierra un cambio mecánico con las comprobaciones que ya lo cubren. *Falso en la base cuando* `rg -c 'any change that is not mechanical' content/skills/flow-build/SKILL.md` no encuentra nada.
 
 ## Entrega
 

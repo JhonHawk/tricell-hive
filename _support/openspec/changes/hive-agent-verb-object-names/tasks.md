@@ -70,7 +70,7 @@ No devuelve ninguna línea (en la base devuelve 94: las 99 de la búsqueda menos
 
 ### T4 — Vista previa del despliegue real
 
-- [ ] La vista previa desde el commit del cambio contiene, en cada host registrado, las 20 rutas de agente viejas como retiro y las 20 nuevas como instalación, sin error.
+- [x] La vista previa desde el commit del cambio contiene, en cada host registrado, las 20 rutas de agente viejas como retiro y las 20 nuevas como instalación, sin error.
 
 **Closes:** AC4.
 
@@ -84,11 +84,11 @@ No devuelve ninguna línea (en la base devuelve 94: las 99 de la búsqueda menos
 
 **Changes:** ninguno.
 
-**Verification:** `go run ./tooling/cli update --out "$SCRATCH/plan.json"`, con `SCRATCH` en el directorio temporal de la sesión, sin reemplazar el binario global. El comando termina sin error y el plan guardado cumple, por host: `jq '[.changes[] | select(.target.Kind=="agent" and .after==null)] | group_by(.target.Host) | map({host: .[0].target.Host, retired: [.[].target.Path | split("/")[-1] | split(".")[0]]})'` lista los 20 ids viejos y ninguno más, y el mismo filtro con `.after!=null` y `.before==null` lista los 20 nuevos. En `update`, `--out` guarda el plan en lugar de aplicarlo (`tooling/cli/update.go:38`). Una ruta vieja solo puede entrar al plan como retiro, porque su origen ya no existe.
+**Verification:** `go run ./tooling/cli update --out "$SCRATCH/plan.json"`, con `SCRATCH` en el directorio temporal de la sesión, sin reemplazar el binario global. El comando termina sin error. En el plan guardado, agrupando las rutas de agente por carpeta (el campo `Host` llega vacío en los registros del plan): `jq -r '[.changes[] | select(.target.Kind=="agent" and .after==null) | .target.Path] | group_by(split("/")[:-1]|join("/"))[] | "\(.[0] | split("/")[:-1] | join("/")) \(length)"'` da 20 por cada carpeta de agentes de los hosts registrados y sus nombres son los 20 ids viejos; el mismo filtro con `.after!=null and .before==null` da los 20 ids nuevos por carpeta. En `update`, `--out` guarda el plan en lugar de aplicarlo (`tooling/cli/update.go:38`). Una ruta vieja solo puede entrar al plan como retiro, porque su origen ya no existe.
 
-### T5 — Suite completa sin CI solo para cambios que alteran comportamiento
+### T5 — Suite completa sin CI solo para cambios no mecánicos
 
-- [?] La regla de cierre de regresión de `flow-build` limita la suite completa sin CI a cambios que alteran comportamiento y remite los mecánicos a las comprobaciones que ya los cubren.
+- [x] La regla de cierre de regresión de `flow-build` limita la suite completa sin CI a cambios no mecánicos y remite los mecánicos a las comprobaciones que ya los cubren.
 
 **Closes:** AC5.
 
@@ -100,9 +100,9 @@ No devuelve ninguna línea (en la base devuelve 94: las 99 de la búsqueda menos
 
 **Test approach:** check con la búsqueda y las pruebas de contenido.
 
-**Changes:** sustituir "Close regression coverage through the project's actual CI gate; when none will run it, run the full suite once on the final candidate, and rerun it only when a later edit could affect what it covers." por "Close regression coverage through the project's actual CI gate. When none will run it and the change alters behavior, run the full suite once on the final candidate, and rerun it only when a later edit could affect what it covers. A mechanical change, as the global guidance defines it, closes with the checks that already cover it, even without CI."
+**Changes:** sustituir "Close regression coverage through the project's actual CI gate; when none will run it, run the full suite once on the final candidate, and rerun it only when a later edit could affect what it covers." por "Close regression coverage through the project's actual CI gate. When none will run it, run the full suite once on the final candidate of any change that is not mechanical, as the global guidance defines it, and rerun it only when a later edit could affect what it covers; a mechanical change closes with the checks that already cover it, even without CI."
 
-**Verification:** `rg -c 'When none will run it and the change alters behavior' content/skills/flow-build/SKILL.md` devuelve `1`; `rg -c 'when none will run it, run the full suite once' content/skills/flow-build/SKILL.md` no encuentra nada; `go test -count=1 ./tests/...` y el unittest de skills pasan.
+**Verification:** `rg -c 'any change that is not mechanical, as the global guidance defines it' content/skills/flow-build/SKILL.md` devuelve `1`; `rg -c 'when none will run it, run the full suite once' content/skills/flow-build/SKILL.md` y `rg -c 'alters behavior, run the full suite' content/skills/flow-build/SKILL.md` no encuentran nada; `go test -count=1 ./tests/...` y el unittest de skills pasan.
 
 ## Verificación compartida
 
@@ -129,6 +129,7 @@ Avance del 2026-09-29:
 - T1: verificada por `review-task` (AC1 y AC3 cumplidos). Señaló que el índice solo tenía los renombrados; el commit nombra cada ruta. Formato de `agents_test.go` corregido con `gofmt`.
 - T2: verificada por `review-task` (AC2 cumplido; búsqueda en 0, en la base 94). Pasan `go vet ./...`, `./integrations/...`, `./tests/...`, `./tooling/management` y 23 pruebas de skills. La suite completa con `-race` se detuvo a los 6 minutos, cuando solo quedaba `tooling/cli` (D4-A).
 - T3: la prueba `TestAgentRenameRetiresOldTarget` pasa en los seis hosts; falla si no se borra el origen viejo.
-- T5: añadida por D5-B después de la revisión del plan; la cubre `/code-review` antes del merge.
+- T4: plan guardado desde `500bd84`: 7 destinos, 306 archivos; en las seis carpetas de agentes (`~/.claude`, `~/.codex`, `~/.config/opencode`, `~/.cursor`, `~/.grok`, `~/.pi/agent`) retira los 20 ids viejos e instala los 20 nuevos, sin error. El filtro original por `.target.Host` no servía (campo vacío); se corrigió para agrupar por carpeta. `review-task` dio AC4 por cumplido: `source_commit` es `500bd84`, cada carpeta corresponde a un solo host, los ids coinciden con la tabla y los 66 cambios que no son de agentes solo modifican (8 con contenido nuevo: las skills que tocan T2 y T5).
+- T5: añadida por D5-B después de la revisión del plan. `review-task` dio AC5 por cumplido y señaló que "alters behavior" y "mecánico" no eran complementarios (una actualización de dependencia quedaba sin suite); se aplicó su propuesta: la condición es "no mecánico según la guía global". Verificado con las búsquedas de T5; la cubre también `/code-review` antes del merge.
 - Aparte: `gofmt` también señala `tests/pilot/regression.go`, que ya estaba así en la base; no se toca.
 
