@@ -46,7 +46,45 @@ func wrapLines(text string, width int) []string {
 	if text == "" {
 		return nil
 	}
-	return strings.Split(ansi.Wrap(text, max(width, 1), ""), "\n")
+	return strings.Split(wrapBreakingPaths(text, max(width, 1)), "\n")
+}
+
+// wrapBreakingPaths wraps text to width like ansi.Wrap, except that a token
+// wider than the line breaks after a "/" instead of in the middle of a name,
+// keeping each slash at the end of its line. A segment with no slash that is
+// still too wide, or a token with none, falls back to a hard break. A token
+// that fits is never split: it moves whole to the next line.
+func wrapBreakingPaths(text string, width int) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		tokens := strings.Split(line, " ")
+		for j, tok := range tokens {
+			if ansi.StringWidth(tok) > width {
+				tokens[j] = strings.Join(slashChunks(tok, width), "\n")
+			}
+		}
+		lines[i] = strings.Join(tokens, " ")
+	}
+	return ansi.Wrap(strings.Join(lines, "\n"), width, "")
+}
+
+// slashChunks splits a token into pieces of at most width columns, cutting only
+// after a "/" where it can. A single segment wider than width stays whole for
+// the caller's hard break.
+func slashChunks(tok string, width int) []string {
+	var chunks []string
+	current := ""
+	for _, seg := range strings.SplitAfter(tok, "/") {
+		if seg == "" {
+			continue
+		}
+		if current != "" && ansi.StringWidth(current+seg) > width {
+			chunks = append(chunks, current)
+			current = ""
+		}
+		current += seg
+	}
+	return append(chunks, current)
 }
 
 // inputView draws a text input within its own width. A value that does not
@@ -293,9 +331,9 @@ func wrapHanging(line string, width int) []string {
 	lead := len(line) - len(strings.TrimLeft(line, " "))
 	room := width - lead - 2
 	if room < 10 {
-		return strings.Split(ansi.Wrap(line, width, ""), "\n")
+		return strings.Split(wrapBreakingPaths(line, width), "\n")
 	}
-	parts := strings.Split(ansi.Wrap(line[lead:], room, ""), "\n")
+	parts := strings.Split(wrapBreakingPaths(line[lead:], room), "\n")
 	out := make([]string, len(parts))
 	for i, part := range parts {
 		if i == 0 {

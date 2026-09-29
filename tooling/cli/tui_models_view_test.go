@@ -265,12 +265,14 @@ func TestModelsViewScrollsWhenRowsOutgrowTheScreen(t *testing.T) {
 func TestModelsViewLoadErrorOffersRetryAndRReloads(t *testing.T) {
 	_, d, v, _, _ := openModelsView(t, "claude", 80, 24)
 	d.send(modelsLoadedMsg{owned: owned{v}, seq: v.seq, err: errors.New("state is unreadable")})
-	d.mustShow("Hive's state in", "could not be read", "The models cannot be shown", "hive doctor shows the same problem", "r to retry after fixing it", "Detail: state is unreadable")
+	d.mustShow("Hive's state in", "The models cannot be shown", "r to retry after fixing it", "Detail: state is unreadable")
+	// The long state path breaks after a slash, so the words after it may wrap anywhere.
+	mustShowFlat(d, "could not be read. Repair or restore its files; hive doctor shows the same problem.")
 	d.mustNotShow("Cannot read the models")
 	lines := d.lines()
 	plain, detail := -1, -1
 	for i, l := range lines {
-		if plain < 0 && strings.Contains(l, "could not be read") {
+		if plain < 0 && strings.Contains(l, "Repair or restore its files") {
 			plain = i
 		}
 		if detail < 0 && strings.Contains(l, "state is unreadable") {
