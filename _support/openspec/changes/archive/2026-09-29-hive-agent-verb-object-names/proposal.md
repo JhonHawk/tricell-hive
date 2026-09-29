@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · revisión y suite completa superadas; merge en curso |
+| Estado | Cerrado · integrado en `rebuild/harness-engineering` con el PR #51 (`fbab417`) y desplegado en los seis hosts el 2026-09-29 |
 | Tracker · GitHub Issues | Sin issue: el cambio nace de la conversación del 2026-09-29 |
-| Git | Automático · PR a `rebuild/harness-engineering` con merge tras `/code-review` · sin parada humana antes del push |
+| Git | Automático · PR #51 integrado (`fbab417`) |
 | Verificación | `go test` y `go vet` · unittest de skills · búsqueda de nombres viejos · vista previa del plan de instalación |
-| Siguiente paso | Merge del PR #51, refresco de la instalación local y cierre del cambio |
+| Siguiente paso | Ninguno. Pendiente fuera de este cambio: la sesión de `gh-46-read-only-views` debe usar los ids nuevos |
 
 ## Objetivo
 
@@ -22,7 +22,7 @@ Incluye:
 - Aplicar los textos H1–H6 de [design.md](design.md#descripciones).
 - Actualizar cada referencia activa: skills distribuidas, la documentación viva de arquitectura, las pruebas Go y Python, y el caso de delegación de `tests/fixtures/flows/cases.json`.
 - Acotar la regla de `flow-build` que pide la suite completa cuando no hay CI: solo para cambios que no son mecánicos; un cambio mecánico cierra con las comprobaciones que ya lo cubren (D5-B, añadido el 2026-09-29 a petición del usuario, que la vio disparar la suite completa en este mismo cambio).
-- Marcar como sustituida la decisión del registro agent-names.research.md (historical evidence omitted from public history).
+- Marcar como sustituida la decisión del registro [agent-names.research.md](../../../sessions/2026-09-26-hive-agent-names/agent-names.research.md).
 
 Excluye, con su razón:
 
