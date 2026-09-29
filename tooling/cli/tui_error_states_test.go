@@ -56,10 +56,9 @@ func TestHostsViewListsHostsWhenAManagedFileWasChanged(t *testing.T) {
 	skill := env.sharedSkillPath()
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		d := openDriftedCLIs(t, env, size[0], size[1])
-		d.mustNotShow("Cannot read the CLIs")
+		d.mustNotShow("Cannot read the CLIs", "Diagnostics shows")
 		for _, want := range []string{
 			skill + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.",
-			"If Hive installed it, Diagnostics shows how to restore it.",
 			"Detail: modified legacy file requires manual resolution: " + skill,
 		} {
 			mustShowFlat(d, want)
@@ -231,18 +230,6 @@ func TestHostsViewShowsTheScanNoteWithNoHosts(t *testing.T) {
 	}
 }
 
-// TestDiagnosticsListsAChangedManagedFileThePointerPromises (M2): the pointer
-// to Diagnostics in the note is true for a registered host's changed file.
-func TestDiagnosticsListsAChangedManagedFileThePointerPromises(t *testing.T) {
-	env := driftedEnv(t, installerHosts)
-	o := management.Options{Scope: "user", Home: env.home, StateDir: env.stateDir}
-	r := collectDoctor(o, t.TempDir(), newDoctorFake(env.home).deps())
-	text := sectionText(r.Installation)
-	if !strings.Contains(text, env.sharedSkillPath()) || !strings.Contains(text, "Hive cannot repair a changed file by itself") {
-		t.Errorf("Installation section does not name the file and how to restore it:\n%s", text)
-	}
-}
-
 // corruptState replaces state.json with text that is not JSON and returns a
 // function that puts the original back (or removes the file when there was
 // none), the way a user repairs it.
@@ -288,6 +275,9 @@ func TestCLIsAndVoiceViewsRetryAfterTheStateIsFixed(t *testing.T) {
 			d.mustNotShow("cannot be shown", "Press r to retry", "Detail:")
 			d.mustShow(tc.loaded)
 			assertFits(t, d, 80, 24)
+			// Back at the menu, the header no longer says the state is unreadable.
+			d.key("esc")
+			d.mustNotShow("Status unavailable")
 		})
 	}
 }

@@ -56,17 +56,13 @@ type hostsLoadedMsg struct {
 // raw error, why the legacy scan failed. The scan reads every file Hive could
 // have installed, and a file that differs from what Hive expects at a path it
 // once used fails it; the file may be one Hive wrote or the user's own, so the
-// note names the path and the ways out without saying which. Diagnostics lists
-// a changed file only for a registered host, so the pointer to it is made only
-// then.
-func legacyScanNote(err error, registered bool) string {
+// note names the path and the ways out without saying which. It does not point
+// to Diagnostics, which lists only files Hive currently manages.
+func legacyScanNote(err error) string {
 	raw := sanitizeLine(err.Error())
 	words := "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why."
 	if path, ok := strings.CutPrefix(raw, "modified legacy file requires manual resolution: "); ok {
 		words = path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
-		if registered {
-			words += " If Hive installed it, Diagnostics shows how to restore it."
-		}
 	}
 	return words + "\nDetail: " + raw
 }
@@ -92,7 +88,7 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 		}
 	}
 	if scanFailed {
-		scanNote = legacyScanNote(scanErr, len(registered) > 0)
+		scanNote = legacyScanNote(scanErr)
 	}
 	var entries []management.StatusEntry
 	if len(registered) > 0 {

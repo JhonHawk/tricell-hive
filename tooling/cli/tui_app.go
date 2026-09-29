@@ -271,6 +271,11 @@ func (m *appModel) apply(cmd tea.Cmd, act action) tea.Cmd {
 		cmds = append(cmds, m.push(act.push))
 		pushed = true
 	}
+	// A view's retry can succeed after the state was repaired; going back
+	// rechecks the header's status so it does not keep saying it is unreadable.
+	if popped > 0 && !pushed && m.statusFailed {
+		cmds = append(cmds, m.loadStatus())
+	}
 	if popped > 0 && !pushed {
 		if r, ok := m.top().(revealer); ok {
 			cmds = append(cmds, r.Reveal())
