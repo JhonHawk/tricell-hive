@@ -8,7 +8,7 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 
 ## T1 — Modelos efectivos por rol y vista Models
 
-- [/] La vista Models muestra el modelo y el esfuerzo efectivos por rol y CLI, calculados con la misma regla que `agents.Render`.
+- [x] La vista Models muestra el modelo y el esfuerzo efectivos por rol y CLI, calculados con la misma regla que `agents.Render`.
 
 **Closes:** AC5.
 
@@ -47,7 +47,7 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 
 ## T4 — Diagnóstico: CLIs, instalación y sesiones
 
-- [/] La vista Diagnostics muestra las secciones CLIs, Installation y Sessions según las reglas de [design.md](design.md#reglas-por-sección).
+- [x] La vista Diagnostics muestra las secciones CLIs, Installation y Sessions según las reglas de [design.md](design.md#reglas-por-sección).
 
 **Closes:** AC2, AC3, AC4.
 
@@ -96,7 +96,7 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 
 ## T2 — Integraciones
 
-- [ ] La vista Integrations muestra Engram, Context7, pi-subagents y `agent-browser` con evidencia local, estado del último registro, fuente y siguiente paso.
+- [/] La vista Integrations muestra Engram, Context7, pi-subagents y `agent-browser` con evidencia local, estado del último registro, fuente y siguiente paso.
 
 **Closes:** AC6.
 
@@ -136,7 +136,7 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 
 ## T3 — Validación de `## Hive`
 
-- [ ] La vista Project valida la sección `## Hive` del repositorio actual y reporta cada hallazgo.
+- [/] La vista Project valida la sección `## Hive` del repositorio actual y reporta cada hallazgo.
 
 **Closes:** AC7, AC10.
 
@@ -287,5 +287,10 @@ La prueba de sincronía falla si se quita `Review` de `hiveSettingKeys`: se comp
   También se precisaron la regla de extracción de AC10 y el caso de un archivo de sesión ilegible. Por ser propuestas de los propios revisores aplicadas sin cambios, no hay otra ronda.
 - **Límites de la revisión:** no se ejecutó ninguna prueba ni se observó el comportamiento real. La revisión cubre el backend, la integración y la interfaz de terminal, las dos áreas afectadas.
 - **Ajustes antes del build (2026-09-29):** el análisis previo agregó al recorrido una sesión de Grok (H3) y excluyó la validación de secciones de workspace, con su mensaje (H4). El usuario los aceptó y autorizó el build.
-- **Avance:** T1 y T4 en curso.
+- **Avance:**
+  - T1 verificada por `hive-verify-task` (AC5 met) e integrada (`b6ed7ac`, `61a0e93`, `eb63879`). El CLI de cada fila sale de los consumidores en alcance `user`, porque los registros de agentes guardan `Target.Host` vacío, igual que `Status`.
+  - Para T5: con una lista vacía, `renderModelsText` dice «No agents are installed.» y omite los CLIs registrados sin agentes, mientras la vista dice «No CLI hosts are registered» o «No agents installed for <host>». AC8 pide el mismo contenido, así que `hive models` debe alinearse con la vista.
+  - T4 verificada por `hive-verify-task` (AC2, AC3 y AC4 met) e integrada (`3b04ae0`). Tras la verificación se quitó la cuenta de recursos de la línea de operación pendiente, porque `Status` marca todas las filas y la cuenta salía inflada. Un solo archivo de sesión de Claude ilegible deja todo Claude como «unavailable», como pide AC4.
+  - T5 empezada en el hilo principal: `hive doctor`, `hive models` y el mensaje sin terminal (`bbc7b56`).
+  - T2 y T3 en curso.
 - **Siguiente paso:** integrar T4 y lanzar T2 y T3.

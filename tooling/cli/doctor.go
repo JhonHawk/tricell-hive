@@ -380,14 +380,12 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 		sec.Lines = []string{"No CLI hosts are registered"}
 		return sec
 	}
-	recovering := 0
 	for _, e := range st.entries {
 		switch e.Status {
 		case "installed", "retained_shared", "not_installed":
 			continue
 		case "recovery_required":
 			if st.pending != management.PendingNone {
-				recovering++
 				continue
 			}
 		}
@@ -404,11 +402,7 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 			"  "+sanitizeLine(e.Path))
 	}
 	if st.pending != management.PendingNone {
-		line := "An unfinished Hive operation is pending; " + recoverCommand(o, st) + " to finish it"
-		if recovering > 0 {
-			line += fmt.Sprintf(" (%d resources wait for it)", recovering)
-		}
-		sec.Lines = append(sec.Lines, line)
+		sec.Lines = append(sec.Lines, "An unfinished Hive operation is pending; "+recoverCommand(o, st)+" to finish it")
 	}
 	sec.Lines = append(sec.Lines, st.warn...)
 	if len(sec.Lines) == 0 {
