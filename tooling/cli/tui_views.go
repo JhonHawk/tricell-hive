@@ -63,34 +63,49 @@ func wrapBreakingPaths(text string, width int) string {
 	return strings.Join(out, "\n")
 }
 
-// fillLine wraps one line without newlines for wrapBreakingPaths.
+// fillLine wraps one line without newlines for wrapBreakingPaths. The line's
+// leading spaces stay on a wide word's pieces, so an indented list entry keeps
+// its indent; spaces that fall at a break are dropped.
 func fillLine(line string, width int) []string {
 	if ansi.StringWidth(line) <= width {
 		return []string{line}
 	}
 	var lines []string
-	cur, started := "", false
+	cur, started, fresh := "", false, false
 	flush := func() {
 		lines = append(lines, strings.TrimRight(cur, " "))
-		cur, started = "", false
+		cur, started, fresh = "", false, true
 	}
 	for _, word := range strings.Split(line, " ") {
+		if word == "" && fresh {
+			continue // spaces at a break do not start the next line
+		}
 		if ansi.StringWidth(word) > width {
-			if strings.TrimSpace(cur) != "" {
+			indent := ""
+			if strings.TrimSpace(cur) == "" && !fresh && len(lines) == 0 {
+				indent = cur
+				if started {
+					indent += " "
+				}
+			} else if strings.TrimSpace(cur) != "" {
 				flush()
 			}
-			pieces := slashChunks(word, width)
+			room := width - ansi.StringWidth(indent)
+			if room < 10 {
+				indent, room = "", width
+			}
+			pieces := slashChunks(word, room)
 			for i, piece := range pieces {
-				for ansi.StringWidth(piece) > width {
-					head := ansi.Truncate(piece, width, "")
-					lines = append(lines, head)
+				for ansi.StringWidth(piece) > room {
+					head := ansi.Truncate(piece, room, "")
+					lines = append(lines, indent+head)
 					piece = strings.TrimPrefix(piece, head)
 				}
 				if i < len(pieces)-1 {
-					lines = append(lines, piece)
+					lines = append(lines, indent+piece)
 					continue
 				}
-				cur, started = piece, true
+				cur, started, fresh = indent+piece, true, false
 			}
 			continue
 		}
@@ -99,11 +114,13 @@ func fillLine(line string, width int) []string {
 			candidate = cur + " " + word
 		}
 		if ansi.StringWidth(candidate) <= width {
-			cur, started = candidate, true
+			cur, started, fresh = candidate, true, false
 			continue
 		}
 		flush()
-		cur, started = word, true
+		if word != "" {
+			cur, started, fresh = word, true, false
+		}
 	}
 	if started {
 		flush()

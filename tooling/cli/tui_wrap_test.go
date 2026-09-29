@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand/v2"
 	"strings"
 	"testing"
 
@@ -187,5 +188,60 @@ func TestPlainScrollBoxBreaksLongPathsAfterASlash(t *testing.T) {
 	}
 	if !strings.Contains(strings.ReplaceAll(joined, " ", ""), strings.ReplaceAll(path, " ", "")) {
 		t.Errorf("the path was not kept whole: %q", joined)
+	}
+}
+
+// TestFillKeepsTheIndentOfAWidePath (K2 follow-up): an indented list entry
+// whose path is wider than the line keeps its indent on every piece, as the
+// summaries' file lists need.
+func TestFillKeepsTheIndentOfAWidePath(t *testing.T) {
+	path := "/Users/someone/Development/projects/client-workspace/nested-projects-area/home/.claude/CLAUDE.md"
+	for _, l := range wrapLines("  "+path, 40) {
+		if !strings.HasPrefix(l, "  ") || strings.HasPrefix(l, "   ") {
+			t.Errorf("piece lost or changed the indent: %q", l)
+		}
+		if len([]rune(l)) > 40 {
+			t.Errorf("piece wider than 40: %q", l)
+		}
+	}
+}
+
+// TestFillDropsSpacesAtABreak (K2 follow-up): a run of spaces that falls at a
+// line break does not start the next line with stray spaces.
+func TestFillDropsSpacesAtABreak(t *testing.T) {
+	for _, l := range wrapLines("aaaaaaaaaa bbbbbbbbbb cccccccc     dddddddddd eeeeeeee", 30)[1:] {
+		if strings.HasPrefix(l, " ") {
+			t.Errorf("continuation starts with a space: %q", l)
+		}
+	}
+}
+
+// TestWrapKeepsEveryWordAndTheWidth checks the fill on many generated lines:
+// no word is lost or reordered, and no line is wider than the width.
+func TestWrapKeepsEveryWordAndTheWidth(t *testing.T) {
+	r := rand.New(rand.NewPCG(46, 7))
+	parts := []string{"a", "bb", "path/to/", "file-name", "  ", "x", "/Users/someone/Development/projects/", "long-segment-without-slash-long-segment-without-slash-long-segment"}
+	for i := 0; i < 5000; i++ {
+		var b strings.Builder
+		if r.IntN(3) == 0 {
+			b.WriteString("  ")
+		}
+		for n := r.IntN(12); n >= 0; n-- {
+			b.WriteString(parts[r.IntN(len(parts))])
+			if r.IntN(2) == 0 {
+				b.WriteString(" ")
+			}
+		}
+		text := b.String()
+		width := 12 + r.IntN(70)
+		lines := wrapLines(text, width)
+		for _, l := range lines {
+			if w := lipgloss.Width(l); w > width {
+				t.Fatalf("line %q is %d wide at %d, from %q", l, w, width, text)
+			}
+		}
+		if got, want := strings.Join(strings.Fields(strings.Join(lines, "")), ""), strings.Join(strings.Fields(text), ""); got != want {
+			t.Fatalf("words changed at width %d:\n got %q\nwant %q", width, got, want)
+		}
 	}
 }
