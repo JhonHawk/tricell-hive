@@ -111,6 +111,22 @@ func TestIntegrationsViewArrowsMoveTheCursorAndTheDetail(t *testing.T) {
 	assertFits(t, d, 80, 24)
 }
 
+// TestIntegrationsViewShowsTheConcreteNextStepOfTheSelectedRow covers M1 in the
+// view: the detail names the command, and the same text is what hive doctor prints.
+func TestIntegrationsViewShowsTheConcreteNextStepOfTheSelectedRow(t *testing.T) {
+	o, f, _, _ := integrationsFixture(t)
+	_, d, _ := openIntegrationsView(t, o, f, 80, 24)
+	mustShowUnwrapped(t, d, "Install it from github.com/Gentleman-Programming/engram")
+	d.mustNotShow("validation is pending")
+	d.key("down")
+	mustShowUnwrapped(t, d, "To install it, run npx ctx7@latest setup --cli")
+	mustShowUnwrapped(t, d, "sign in")
+	assertFits(t, d, 80, 24)
+	d.key("down")
+	mustShowUnwrapped(t, d, "If you use Pi, install it with Pi's own package manager")
+	assertFits(t, d, 80, 24)
+}
+
 func TestIntegrationsViewShowsLocalEvidenceAndRecordStatus(t *testing.T) {
 	o, f, home, _ := integrationsFixture(t)
 	writeOnboardingRecord(t, o, "manual", "engram")

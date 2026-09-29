@@ -65,7 +65,7 @@ func setup(args []string, out io.Writer) error {
 	fmt.Fprintln(out, "Local discovery does not verify host loading, credentials, service access, or freshness; MCP-only/custom installations may exist elsewhere.")
 	fmt.Fprintln(out, "Many Hive development workflows benefit from current library documentation. Context7 is optional; Hive works without a key or this integration.")
 	fmt.Fprintln(out, "To install or refresh CLI + Skills, run the official interactive setup when desired:")
-	fmt.Fprintln(out, "  npx ctx7@latest setup --cli")
+	fmt.Fprintln(out, "  "+context7Command)
 	fmt.Fprintln(out, "This requires Node.js/npm and network access. Choose the intended agents and complete any authentication yourself. Existing MCP users can keep that mode; avoid adding a second integration unintentionally.")
 	fmt.Fprintln(out, "@latest selects the current CLI when invoked; setup refreshes the vendor skill and rules. Nothing is updated in the background. Review vendor changes before refreshing.")
 	fmt.Fprintln(out, "Documentation queries (ctx7 library/docs) can run without login at lower limits; the hosted setup wizard requires authentication.")

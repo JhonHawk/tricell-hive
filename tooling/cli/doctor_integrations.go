@@ -22,10 +22,12 @@ import (
 // agentBrowserSource is where agent-browser's own instructions live. The tool
 // is not in providers.Catalog, because Hive never offers to install it, so its
 // source is fixed here (Context7 resolves the library to /vercel-labs/agent-browser).
-const (
-	agentBrowserSource = "github.com/vercel-labs/agent-browser"
-	agentBrowserNext   = "Optional and not installed by Hive; follow the official instructions to install the CLI and its skill."
-)
+const agentBrowserSource = "github.com/vercel-labs/agent-browser"
+
+// context7Command is the one vendor command Hive has verified (see "Optional
+// Context7 setup recommendation" in deployment-manager.md); hive setup prints
+// the same one. Hive names no other install command.
+const context7Command = "npx ctx7@latest setup --cli"
 
 // Texts of the Record column that name a state rather than a step status.
 const (
@@ -49,7 +51,7 @@ type integrationRow struct {
 	Record       string   // list column: the step status in the last onboarding record, or why there is none
 	RecordDetail string   // the same, with the record's phase and time when there is one
 	Source       string   // official documentation
-	Next         string   // reason or next step
+	Next         string   // what to do next, in plain words, for this row's local finding and record
 }
 
 // detailLines is the text the view shows under the list for the selected row
@@ -127,27 +129,102 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 	pi := integrationRow{ID: string(providers.PiSubagents), Name: "pi-subagents", Found: "not checked",
 		Evidence: []string{"Not checked: finding it would mean reading Pi's configuration, which Hive does not do."}}
 
-	browser := integrationRow{ID: "agent-browser", Name: "agent-browser", Source: agentBrowserSource, Next: agentBrowserNext}
+	browser := integrationRow{ID: "agent-browser", Name: "agent-browser", Source: agentBrowserSource}
 	browser.Found, browser.Evidence = agentBrowserEvidence(deps, synthetic, skillRoots, homeErr)
 
 	for _, r := range []*integrationRow{&engram, &ctx7, &pi} {
-		fillFromCatalog(r)
+		fillSourceFromCatalog(r)
 		rec.apply(r, recErr)
 	}
 	browser.Record, browser.RecordDetail = recordNotTracked, "Not part of onboarding: Hive does not offer this tool."
+	for _, r := range []*integrationRow{&engram, &ctx7, &pi, &browser} {
+		r.Next = nextStep(*r)
+	}
 	return []integrationRow{engram, ctx7, pi, browser}, errText
 }
 
-// fillFromCatalog copies the official source and the reason from
-// providers.Catalog.
-func fillFromCatalog(r *integrationRow) {
+// fillSourceFromCatalog copies the official source from providers.Catalog. The
+// catalog's own reason is not shown: it says every install is pending
+// validation, which tells a reader nothing about what to do.
+func fillSourceFromCatalog(r *integrationRow) {
 	for _, p := range providers.Catalog() {
 		if string(p.ID) == r.ID {
-			r.Source, r.Next = sanitizeLine(p.Source), sanitizeLine(p.Reason)
+			r.Source = sanitizeLine(p.Source)
 			return
 		}
 	}
-	r.Source, r.Next = "-", "-"
+	r.Source = "-"
+}
+
+// recordSentences paraphrase a step status of the last onboarding record in
+// plain words. Any other Record text (no record, unreadable, not offered) adds
+// nothing to the next step.
+var recordSentences = map[string]string{
+	management.StepManual:      "The last install left this for you to finish by hand.",
+	management.StepVerified:    "The last install recorded it as confirmed.",
+	management.StepFailed:      "The last install could not finish it.",
+	management.StepAuthPending: "The last install was waiting for you to sign in.",
+	management.StepSkipped:     "The last install did not run it.",
+	management.StepPending:     "The last install did not finish checking it.",
+}
+
+// nextStep says what to do about one row, from what Hive found locally and what
+// the last record says. The row's Source and Record are already set. Hive does
+// not install or configure any of these tools, so the steps point to the
+// official source; the only command is Context7's.
+func nextStep(r integrationRow) string {
+	var step string
+	switch r.ID {
+	case string(providers.Context7):
+		step = context7NextStep(r.Found)
+	case string(providers.Engram):
+		step = engramNextStep(r.Found, r.Source)
+	case string(providers.PiSubagents):
+		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see the official instructions at " + r.Source + "."
+	default:
+		step = agentBrowserNextStep(r.Found, r.Source)
+	}
+	if s, ok := recordSentences[r.Record]; ok {
+		step += " " + s
+	}
+	return step
+}
+
+func context7NextStep(found string) string {
+	const signIn = " (it may ask you to sign in)."
+	switch found {
+	case "detected":
+		return "To refresh it, run " + context7Command + signIn
+	case "not detected":
+		return "To install it, run " + context7Command + signIn + " Context7 is optional."
+	case "not verified":
+		return "A skill file exists but could not be verified. To reinstall it, run " + context7Command + signIn
+	}
+	return "Hive could not look for it here. To install or refresh it, run " + context7Command + signIn
+}
+
+func engramNextStep(found, source string) string {
+	switch found {
+	case "detected":
+		return "Hive does not configure Engram. For each CLI, follow Engram's official setup instructions at " + source + "."
+	case "not detected":
+		return "Install it from " + source + "; Hive does not install it."
+	}
+	return "Hive could not look for it here. Hive does not install or configure it; the official instructions are at " + source + "."
+}
+
+func agentBrowserNextStep(found, source string) string {
+	switch found {
+	case "cli + skill":
+		return "Found. Hive does not install or update it; to update it, follow the official instructions at " + source + "."
+	case "cli":
+		return "The program was found but no skill file. Optional; Hive does not install it. To add the skill, follow the official instructions at " + source + "."
+	case "skill":
+		return "The skill file was found but not the program. Optional; Hive does not install it. To install the program, follow the official instructions at " + source + "."
+	case "not detected":
+		return "Not found. Optional; Hive does not install it. To install the program and its skill, follow the official instructions at " + source + "."
+	}
+	return "Hive could not look for the program here. Optional; Hive does not install it. To install the program and its skill, follow the official instructions at " + source + "."
 }
 
 // onboardingRecord is the last finished record, or why there is none.

@@ -300,14 +300,144 @@ func TestIntegrationsEveryRowShowsItsSourceAndNextStep(t *testing.T) {
 			t.Fatalf("%s: source %q next %q", id, r.Source, r.Next)
 		}
 	}
-	if !strings.Contains(rowByID(t, rows, "engram").Next, "official") {
-		t.Fatalf("engram next step = %q; want the catalog reason", rowByID(t, rows, "engram").Next)
+	if next := rowByID(t, rows, "engram").Next; !strings.Contains(next, "Install it from github.com/Gentleman-Programming/engram") {
+		t.Fatalf("engram next step = %q; want a step for a program that was not found", next)
 	}
 	text := integrationsText(o, f.deps())
 	for _, source := range want {
 		mustContain(t, text, "Source: "+source)
 	}
 	mustContain(t, text, "Next step:")
+}
+
+// installSkill writes a nonempty skill file, the evidence Hive looks for.
+func installSkill(t *testing.T, home, root, name string) {
+	t.Helper()
+	path := filepath.Join(home, root, "skills", name, "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestIntegrationsNextStepIsConcretePerCase covers M1: each row says what to do
+// in its own case (found, not found, or not checkable), with the one command
+// Hive knows (Context7's) and the official source, and never the catalog's
+// "validation is pending" reason.
+func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
+	const ctx7 = "npx ctx7@latest setup --cli"
+	for _, tc := range []struct {
+		name  string
+		setup func(t *testing.T, f *doctorFake, home string)
+		want  map[string][]string // row ID -> substrings its Next must hold
+	}{
+		{"nothing found", func(t *testing.T, f *doctorFake, home string) {}, map[string][]string{
+			"context7":      {"To install it, run " + ctx7, "sign in"},
+			"engram":        {"Install it from github.com/Gentleman-Programming/engram", "Hive does not install it"},
+			"pi-subagents":  {"cannot check it without reading Pi's configuration", "If you use Pi, install it with Pi's own package manager", "github.com/nicobailon/pi-subagents"},
+			"agent-browser": {"Optional", "Hive does not install it", "follow the official instructions at " + agentBrowserSource},
+		}},
+		{"everything found", func(t *testing.T, f *doctorFake, home string) {
+			f.install("engram", "")
+			f.install("agent-browser", "")
+			installSkill(t, home, ".agents", "find-docs")
+			installSkill(t, home, ".agents", "agent-browser")
+		}, map[string][]string{
+			"context7":      {"To refresh it, run " + ctx7, "sign in"},
+			"engram":        {"Hive does not configure Engram", "each CLI", "github.com/Gentleman-Programming/engram"},
+			"pi-subagents":  {"cannot check it"},
+			"agent-browser": {"Hive does not install or update it", "follow the official instructions at " + agentBrowserSource},
+		}},
+		{"agent-browser only as a program", func(t *testing.T, f *doctorFake, home string) {
+			f.install("agent-browser", "")
+		}, map[string][]string{
+			"agent-browser": {"program was found but no skill file", "follow the official instructions at " + agentBrowserSource},
+		}},
+		{"agent-browser only as a skill", func(t *testing.T, f *doctorFake, home string) {
+			installSkill(t, home, ".codex", "agent-browser")
+		}, map[string][]string{
+			"agent-browser": {"skill file was found but not the program", "follow the official instructions at " + agentBrowserSource},
+		}},
+		{"context7 file that cannot be verified", func(t *testing.T, f *doctorFake, home string) {
+			if err := os.MkdirAll(filepath.Join(home, ".agents", "skills", "find-docs", "SKILL.md"), 0o700); err != nil {
+				t.Fatal(err)
+			}
+		}, map[string][]string{
+			"context7": {"could not be verified", "run " + ctx7, "sign in"},
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			o, f, home, _ := integrationsFixture(t)
+			tc.setup(t, f, home)
+			rows, _ := collectIntegrationRows(o, f.deps())
+			for id, wants := range tc.want {
+				next := rowByID(t, rows, id).Next
+				mustContain(t, next, wants...)
+			}
+			assertNoCatalogReasonOrInventedCommand(t, rows, ctx7)
+			mustNotContain(t, integrationsText(o, f.deps()), "validation is pending")
+		})
+	}
+}
+
+// assertNoCatalogReasonOrInventedCommand fails when a next step repeats the
+// catalog's pending-validation reason, or names an install command Hive has not
+// verified: only Context7's is known.
+func assertNoCatalogReasonOrInventedCommand(t *testing.T, rows []integrationRow, known string) {
+	t.Helper()
+	for _, r := range rows {
+		mustNotContain(t, r.Next, "validation is pending", "Native install")
+		rest := strings.ReplaceAll(r.Next, known, "")
+		mustNotContain(t, rest, "npx ", "npm ", "brew ", "go install", "pip ", "curl ", "cargo ")
+		if r.ID != "context7" && strings.Contains(r.Next, known) {
+			t.Errorf("%s names Context7's command: %q", r.ID, r.Next)
+		}
+	}
+}
+
+func TestIntegrationsNextStepWhenNothingCanBeChecked(t *testing.T) {
+	o, home, _ := doctorHome(t, "claude") // synthetic: no program is looked up
+	rows, _ := collectIntegrationRows(o, newDoctorFake(home).deps())
+	engram := rowByID(t, rows, "engram").Next
+	mustContain(t, engram, "could not look for it here", "github.com/Gentleman-Programming/engram", "Hive does not install")
+	mustNotContain(t, engram, "Install it from")
+	browser := rowByID(t, rows, "agent-browser").Next
+	mustContain(t, browser, "could not look for the program here", "follow the official instructions at "+agentBrowserSource)
+	assertNoCatalogReasonOrInventedCommand(t, rows, "npx ctx7@latest setup --cli")
+}
+
+// TestIntegrationsNextStepSaysWhatTheLastRecordLeftInPlainWords keeps the
+// record's status in its own column and only paraphrases it in the next step.
+func TestIntegrationsNextStepSaysWhatTheLastRecordLeftInPlainWords(t *testing.T) {
+	for status, words := range map[string]string{
+		"manual":       "left this for you to finish by hand",
+		"verified":     "recorded it as confirmed",
+		"failed":       "could not finish it",
+		"auth_pending": "was waiting for you to sign in",
+		"skipped":      "did not run it",
+	} {
+		t.Run(status, func(t *testing.T) {
+			o, f, _, _ := integrationsFixture(t)
+			writeOnboardingRecord(t, o, status, "engram", "context7")
+			rows, _ := collectIntegrationRows(o, f.deps())
+			for _, id := range []string{"engram", "context7"} {
+				r := rowByID(t, rows, id)
+				if r.Record != status {
+					t.Fatalf("%s record = %q, want %q", id, r.Record, status)
+				}
+				mustContain(t, r.Next, "The last install "+words)
+			}
+			assertNoCatalogReasonOrInventedCommand(t, rows, "npx ctx7@latest setup --cli")
+		})
+	}
+	o, f, _, _ := integrationsFixture(t)
+	writeOnboardingRecord(t, o, "manual", "engram")
+	rows, _ := collectIntegrationRows(o, f.deps())
+	for _, id := range []string{"context7", "pi-subagents", "agent-browser"} {
+		mustNotContain(t, rowByID(t, rows, id).Next, "The last install")
+	}
 }
 
 func TestIntegrationsWithoutARecordSaysSo(t *testing.T) {
