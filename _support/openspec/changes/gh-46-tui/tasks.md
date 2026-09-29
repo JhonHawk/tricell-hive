@@ -261,6 +261,7 @@ Pruebas nuevas:
     - **`review-ux`:** M1, M2 y M3 resueltos. La corrección de M3 introdujo N1 (medio): con el cursor al final de un valor largo aparece un «…» falso y el cursor no se ve. También dejó menores: N3, la ayuda dice «uninstall» en lugar de «uninstall all»; N4, el aviso de una instalación parcial se titula «Error».
     - **Corrección local de N1, N3 y N4 en el hilo principal:** sin nueva ronda de revisión, lo verifican sus pruebas y el recorrido del usuario.
     - **Para el recorrido del usuario (N2):** Enter en CLIs abre el resumen, y el resumen de una baja arranca en Apply, así que dos Enter aplican una baja.
+  - **Recorrido del usuario (2026-09-29):** aprobado («me encanta») sobre los homes `full` y `detected` con el binario de `5ffd00c`. N2 queda como está.
 
 **Depends on:** T11.
 
