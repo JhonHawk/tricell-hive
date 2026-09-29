@@ -65,7 +65,8 @@ func legacyScanNote(err error) string {
 	var modified *legacy.ModifiedFileError
 	if errors.As(err, &modified) {
 		path := sanitizeLine(modified.Path)
-		words = path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
+		// The raw error says the same thing, so no Detail line repeats it.
+		return path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
 	}
 	return words + "\nDetail: " + raw
 }

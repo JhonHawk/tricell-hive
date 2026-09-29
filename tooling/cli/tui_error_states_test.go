@@ -58,17 +58,11 @@ func TestHostsViewListsHostsWhenAManagedFileWasChanged(t *testing.T) {
 	skill := env.sharedSkillPath()
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		d := openDriftedCLIs(t, env, size[0], size[1])
-		d.mustNotShow("Cannot read the CLIs", "Diagnostics shows")
-		for _, want := range []string{
-			skill + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.",
-			"Detail: " + skill + " differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere",
-		} {
-			mustShowFlat(d, want)
-		}
-		// Neither the plain words nor the raw detail call the file legacy.
-		plain, detail, _ := strings.Cut(d.screen(), "Detail:")
-		if strings.Contains(plain, "legacy") || strings.Contains(detail, "legacy") {
-			t.Errorf("the plain words mention a legacy file:\n%s", d.screen())
+		// The raw error says the same as the note, so no Detail line repeats it.
+		d.mustNotShow("Cannot read the CLIs", "Diagnostics shows", "Detail:")
+		mustShowFlat(d, skill+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.")
+		if strings.Contains(d.screen(), "legacy") {
+			t.Errorf("the note mentions a legacy file:\n%s", d.screen())
 		}
 		rows := hostRows(d)
 		if len(rows) != len(installerHosts) {
@@ -226,7 +220,7 @@ func TestHostsViewShowsTheScanNoteWithNoHosts(t *testing.T) {
 		d.mustShow("CLIs")
 		mustShowFlat(d, "No CLI hosts were detected or registered.")
 		mustShowFlat(d, path+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.")
-		mustShowFlat(d, "Detail: "+path+" differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere")
+		d.mustNotShow("Detail:")
 		d.mustNotShow("Open Diagnostics", "Hive installed was changed", "Diagnostics shows")
 		assertFits(t, d, size[0], size[1])
 	}
@@ -360,8 +354,8 @@ func TestScanNoteUsesTheErrorTypeNotTheMessage(t *testing.T) {
 	if want := path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."; words != want {
 		t.Errorf("words = %q, want %q", words, want)
 	}
-	if len(detail) != 1 || !strings.HasPrefix(detail[0], "Detail: ") {
-		t.Errorf("detail = %q, want one Detail line", detail)
+	if len(detail) != 0 {
+		t.Errorf("detail = %q, want none: the raw error repeats the note", detail)
 	}
 	// The old message text alone no longer selects the specific words.
 	text := &legacyScanError{err: errors.New("modified legacy file requires manual resolution: " + path)}
