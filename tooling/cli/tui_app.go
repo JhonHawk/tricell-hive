@@ -158,7 +158,7 @@ type appModel struct {
 	spinning      bool
 	help          help.Model
 	status        string
-	statusErr     string
+	statusFailed  bool
 	statusLoading bool
 	statusSeq     int
 	writing       bool
@@ -328,9 +328,9 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.statusLoading = false
-		m.status, m.statusErr = msg.line, ""
+		m.status, m.statusFailed = msg.line, false
 		if msg.err != nil {
-			m.status, m.statusErr = "", msg.err.Error()
+			m.status, m.statusFailed = "", true
 		}
 		return m, nil
 	case pendingCheckedMsg:
@@ -427,13 +427,18 @@ func clipLine(s string, w int) string {
 	return ansi.Truncate(s, w, "…")
 }
 
+// statusUnavailableText is the status line when Hive's state cannot be read. It
+// stays short enough for 80 columns after "Hive · " and leaves the raw error to
+// Diagnostics, which shows it under unreadableStateText.
+const statusUnavailableText = "Status unavailable: state could not be read; see Diagnostics."
+
 func (m *appModel) headerLine() string {
 	var rest string
 	switch {
 	case m.statusLoading:
 		rest = m.spin.View() + " " + m.theme.Muted.Render("Loading status…")
-	case m.statusErr != "":
-		rest = m.theme.Danger.Render("Status unavailable: " + m.statusErr)
+	case m.statusFailed:
+		rest = m.theme.Danger.Render(statusUnavailableText)
 	default:
 		rest = m.theme.Muted.Render(m.status)
 	}

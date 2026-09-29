@@ -406,6 +406,27 @@ func TestAppStatusLineShowsRegisteredState(t *testing.T) {
 	d.mustNotShow("Loading status")
 }
 
+// TestAppStatusLineSaysInPlainWordsThatStateCannotBeRead covers I1: with an
+// unreadable state.json the status line names what happened and where to look,
+// on one line that fits 80 columns, and never prints the raw Go error (the
+// Diagnostics view carries it).
+func TestAppStatusLineSaysInPlainWordsThatStateCannotBeRead(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		cfg := testAppConfig(t)
+		if err := os.WriteFile(filepath.Join(cfg.Options.StateDir, "state.json"), []byte("null garbage"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, d := newTestApp(t, cfg, size[0], size[1])
+		d.mustShow("Status unavailable: state could not be read; see Diagnostics.")
+		d.mustNotShow("invalid character", "json", "unmarshal", "…")
+		header := d.lines()[0]
+		if w := lipgloss.Width(header); w > 80 {
+			t.Fatalf("status line is %d columns wide: %q", w, header)
+		}
+		assertFits(t, d, size[0], size[1])
+	}
+}
+
 // TestAppKeysEscAndBackspaceReturnFromPlaceholder covers AC2: from each view
 // the menu opens, Esc and Backspace both return to the menu (Backspace also in
 // the Update view, whose first field has the focus only after typing: with

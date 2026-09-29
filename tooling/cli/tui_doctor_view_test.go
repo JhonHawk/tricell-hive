@@ -141,8 +141,8 @@ func TestDoctorViewLoadErrorLeadsWithWordsAndRetryAfterFixing(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		_, d, _ := openDoctorView(t, o, newDoctorFake(home), size[0], size[1])
 		d.mustShow("Hive's state in", "could not be read", "hive status", "Detail: invalid character", "r to retry after fixing it")
-		// The app's status line above the view also carries the raw error, so
-		// look only from the view's own heading down.
+		// Look only from the view's own heading down: the status line above
+		// it never carries the raw error, but the heading keeps the check exact.
 		lines := d.lines()
 		start := 0
 		for i, l := range lines {
