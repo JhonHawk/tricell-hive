@@ -1,14 +1,14 @@
 ## ADDED Requirements
 
 ### Requirement: Read-only diagnostics
-The manager SHALL offer read-only diagnostics, both as the `hive doctor` and `hive models` text commands and as the Diagnostics, Models, Integrations, and Project views of the terminal interface, with the same content in both forms. They SHALL report each supported host's detection, version, release, and installation state; every resource whose status is not installed or retained-shared, and any pending operation; open sessions that probably predate the installed release; the effective model and effort per role and host; the local evidence and last onboarding status of Engram, Context7, pi-subagents, and `agent-browser`; and the validity of a repository's `## Hive` section. They SHALL NOT write files or state, SHALL execute no program other than `--version` of a detected host and read-only `git` queries, and SHALL NOT read host or provider configuration. Detecting `agent-browser` SHALL NOT add it to the optional capability catalog. A session marked as predating the installed release SHALL be presented as an estimate, and hosts whose sessions cannot be observed SHALL show a restart notice instead. Text read from outside the manager SHALL be stripped of control characters before it is shown.
+The manager SHALL offer read-only diagnostics, both as the `hive doctor` and `hive models` text commands and as the Diagnostics, Models, Integrations, and Project views of the terminal interface, with the same content in both forms. They SHALL report each supported host's detection, version, release, and installation state; every resource whose status is not installed, retained-shared, or not installed by Hive, and any pending operation; open sessions that probably predate the installed release; the effective model and effort per role and host; the local evidence and last onboarding status of Engram, Context7, pi-subagents, and `agent-browser`; and the validity of a repository's `## Hive` section. They SHALL NOT write files or state, SHALL execute no program other than `--version` of a detected host and read-only `git` queries, and SHALL NOT read host or provider configuration. Detecting `agent-browser` SHALL NOT add it to the optional capability catalog. A session marked as predating the installed release SHALL be presented as an estimate, registered hosts whose sessions cannot be observed SHALL show a restart notice instead, except a host whose documentation states that it reloads its instructions, which SHALL say so. Text read from outside the manager SHALL be stripped of control characters before it is shown.
 
 #### Scenario: Stale session
 - **WHEN** a Claude Code or Grok session whose process is alive started before the installed release was last written
 - **THEN** diagnostics marks it as started before the installed release and suggests restarting it.
 
 #### Scenario: Unreadable session record
-- **WHEN** a host's session record is missing, larger than 1 MiB, or in an unrecognized format
+- **WHEN** a host's session record is unreadable, larger than 1 MiB, or in an unrecognized format
 - **THEN** that host's session check is reported as unavailable with its reason, and the other sections still show.
 
 #### Scenario: Incomplete project section
