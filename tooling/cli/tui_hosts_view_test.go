@@ -898,6 +898,58 @@ func TestHostsViewLongSummaryScrolls(t *testing.T) {
 	assertFits(t, d, 80, 24)
 }
 
+// I4: the column that holds Hive's own product version says so, so it is not
+// mistaken for the CLI's version that Diagnostics shows. Six real host names
+// with a long version fit 80x24 and 120x40; when the name column is at its
+// widest the label falls back to "Hive", and the table still fits.
+func TestHostsViewVersionColumnIsLabeledHiveVersion(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		width, height := size[0], size[1]
+		t.Run(fmt.Sprintf("%dx%d", width, height), func(t *testing.T) {
+			home, stateDir := newHostsTestHome(t)
+			m, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), hostsTestDeps(coreOnlyAdapterFactory)), width, height)
+			d.key("enter")
+			v, ok := m.top().(*hostsView)
+			if !ok {
+				t.Fatalf("top view is %T", m.top())
+			}
+			var rows []hostRow
+			for _, name := range installerHosts {
+				rows = append(rows, hostRow{Name: name, State: "legacy install", Registered: true,
+					Release: "0123456789abcdef", Version: "1.2.3-rc.1+build.abcdefghijklmnopqrstuvwxyz", Drift: "12"})
+			}
+			d.send(hostsLoadedMsg{seq: v.seq, rows: rows})
+			d.mustShow("CLI", "State", "Release", "Hive version", "Drift")
+			if strings.Contains(d.screen(), "Version ") {
+				t.Fatalf("the old unlabeled header is still drawn:\n%s", d.screen())
+			}
+			assertFits(t, d, width, height)
+			if len(hostRows(d)) != 6 {
+				t.Fatalf("%d rows shown, want 6:\n%s", len(hostRows(d)), d.screen())
+			}
+		})
+	}
+}
+
+func TestHostsViewVersionHeaderShortensWhenNamesTakeTheWidth(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	m, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), hostsTestDeps(coreOnlyAdapterFactory)), 80, 24)
+	d.key("enter")
+	v := m.top().(*hostsView)
+	d.send(hostsLoadedMsg{seq: v.seq, rows: []hostRow{{Name: "a-cli-with-a-very-long-name", State: "legacy install", Release: "0123456789abcdef", Version: "1.2.3", Drift: "1"}}})
+	d.mustNotShow("Hive version", "Version")
+	var header string
+	for _, l := range d.lines() {
+		if strings.Contains(l, "Release") {
+			header = strings.Join(strings.Fields(l), " ")
+		}
+	}
+	if header != "CLI State Release Hive Drift" {
+		t.Fatalf("header = %q", header)
+	}
+	assertFits(t, d, 80, 24)
+}
+
 // TestHostsViewFitsLongRows covers AC9 for this view: six CLIs with long names,
 // releases and versions fit 80x24 and 120x40, long fields end with an
 // ellipsis, and the cursor reaches the last row.

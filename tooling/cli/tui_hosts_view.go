@@ -186,6 +186,9 @@ const (
 	hostsDriftW   = 5
 	hostsChangeW  = 9 // "→ install"
 	hostsGap      = 2
+
+	hostsVersionHeader      = "Hive version"
+	hostsVersionShortHeader = "Hive"
 )
 
 type hostsView struct {
@@ -718,17 +721,23 @@ func (v *hostsView) onInstallApplied(msg installAppliedMsg) (tea.Cmd, action) {
 
 // rowLines draws the header and one line per row, sized to the width: the
 // version column takes what the fixed columns leave, ending with an ellipsis
-// when it is longer.
+// when it is longer. That column holds Hive's own product version, so its header
+// says "Hive version" (the CLI's version is in Diagnostics), and shortens to
+// "Hive" only when long names leave no room for the full label.
 func (v *hostsView) rowLines(c viewCtx) []string {
 	th := c.Theme
-	nameW, versionW := len("CLI"), len("Version")
+	nameW, versionW := len("CLI"), 0
 	for _, r := range v.rows {
 		nameW = max(nameW, min(len([]rune(r.Name)), hostsNamePad))
 		versionW = max(versionW, len([]rune(r.Version)))
 	}
 	prefix := len("> [x] ")
 	fixed := prefix + nameW + hostsGap + hostsStateCol + hostsGap + hostsReleaseW + hostsGap + hostsGap + hostsDriftW + hostsGap + hostsChangeW
-	versionW = min(versionW, max(c.Width-fixed, len("Version")))
+	versionHeader := hostsVersionHeader
+	if c.Width-fixed < len(versionHeader) {
+		versionHeader = hostsVersionShortHeader
+	}
+	versionW = min(max(versionW, len(versionHeader)), max(c.Width-fixed, len(versionHeader)))
 	format := func(name, state, release, version, drift string) string {
 		gap := strings.Repeat(" ", hostsGap)
 		return padRight(truncateRunes(name, nameW), nameW) + gap +
@@ -737,7 +746,7 @@ func (v *hostsView) rowLines(c viewCtx) []string {
 			padRight(truncateRunes(version, versionW), versionW) + gap +
 			truncateRunes(drift, hostsDriftW)
 	}
-	lines := []string{th.Muted.Render(strings.Repeat(" ", prefix) + format("CLI", "State", "Release", "Version", "Drift"))}
+	lines := []string{th.Muted.Render(strings.Repeat(" ", prefix) + format("CLI", "State", "Release", versionHeader, "Drift"))}
 	for i, r := range v.rows {
 		box := "[ ]"
 		if v.checked[r.Name] {
