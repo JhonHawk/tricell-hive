@@ -247,7 +247,7 @@ Pruebas nuevas:
 
 ### T12 — Revisión de la interfaz, prueba en vivo, recorrido del usuario y revisión de código
 
-- [/] `review-ux` y `sdd-verify` aprueban la aplicación en una terminal real, el usuario la recorre y la aprueba, y `/code-review` no deja hallazgos altos abiertos.
+- [x] `review-ux` y `sdd-verify` aprueban la aplicación en una terminal real, el usuario la recorre y la aprueba, y `/code-review` no deja hallazgos altos abiertos.
   - **Primera ronda (2026-09-28, candidato `076fd3d`):**
     - **`sdd-verify`:** AC1 y AC3 a AC11 cumplidos, comparando cada flujo con el comando de texto en homes gemelos, incluida una operación pendiente real provocada con `kill -9`. AC2 no cumplido, por D1 (alto): una segunda SIGINT o SIGTERM durante un `apply` mata el proceso y deja la terminal en la pantalla alterna. La causa probable es que Bubble Tea v2.0.2 deja de escuchar señales después de la primera.
     - **`review-ux`:** sin hallazgos bloqueantes ni altos. Tres medios introducidos:
@@ -342,6 +342,8 @@ Pruebas nuevas:
   - nadie ejecutó código durante la revisión;
   - que Ctrl-C leído de un búfer llegue como tecla es una inferencia que confirma la prueba de T7.
 
-**Avance:** replanteo escrito y revisado el 2026-09-28. T7 a T12 están pendientes.
+**Avance:** T7 a T12 verificadas.
+- **Suite final sobre `a22df95`:** `go vet`, `go mod verify` y `go test -race -timeout 25m ./...` pasan en los 17 paquetes (`tooling/cli` 781 s).
+- **Entrega:** push directo a `rebuild/harness-engineering` (D4-A) el 2026-09-29, y cambio cerrado y archivado.
 
-**Siguiente paso:** `flow-build` desde T7, cuando el usuario lo autorice.
+**Siguiente paso:** ninguno en este cambio.
