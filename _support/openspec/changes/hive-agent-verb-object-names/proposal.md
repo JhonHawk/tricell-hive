@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · correcciones de `/code-review` aplicadas; suite completa y decisión de despliegue pendientes |
+| Estado | En validación · revisión y suite completa superadas; merge en curso |
 | Tracker · GitHub Issues | Sin issue: el cambio nace de la conversación del 2026-09-29 |
 | Git | Automático · PR a `rebuild/harness-engineering` con merge tras `/code-review` · sin parada humana antes del push |
 | Verificación | `go test` y `go vet` · unittest de skills · búsqueda de nombres viejos · vista previa del plan de instalación |
-| Siguiente paso | Suite completa; merge y refresco según la decisión sobre `gh-46-read-only-views` |
+| Siguiente paso | Merge del PR #51, refresco de la instalación local y cierre del cambio |
 
 ## Objetivo
 
