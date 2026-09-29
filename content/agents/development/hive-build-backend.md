@@ -3,6 +3,7 @@ name: "hive-build-backend"
 description: "Implement backend behavior in the repository’s existing language and framework. Use to implement server-side code, APIs, jobs, or integrations whose interface is settled."
 model_profile: "execution"
 access_profile: "implement"
+effort_claude: "medium"
 ---
 
 # hive-build-backend

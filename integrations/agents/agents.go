@@ -18,7 +18,7 @@ const Version = "1"
 const ProfilesSource = "integrations/agent-profiles.json"
 
 type Role struct {
-	Name, Description, ModelProfile, AccessProfile, Body, Effort string
+	Name, Description, ModelProfile, AccessProfile, Body, Effort, ClaudeEffort string
 }
 type Model struct {
 	Model  string `json:"model,omitempty"`
@@ -68,7 +68,7 @@ func Parse(source string, data []byte) (Role, error) {
 			return r, fmt.Errorf("invalid or duplicate agent field: %s", line)
 		}
 		switch key {
-		case "name", "description", "model_profile", "access_profile", "effort":
+		case "name", "description", "model_profile", "access_profile", "effort", "effort_claude":
 		default:
 			return r, fmt.Errorf("unsupported agent field %q", key)
 		}
@@ -90,8 +90,9 @@ func Parse(source string, data []byte) (Role, error) {
 			return r, fmt.Errorf("agent requires %s", key)
 		}
 	}
-	r = Role{fields["name"], fields["description"], fields["model_profile"], fields["access_profile"], body, fields["effort"]}
-	if r.Effort != "" && !oneOf(r.Effort, "low", "medium", "high", "xhigh", "max") {
+	r = Role{fields["name"], fields["description"], fields["model_profile"], fields["access_profile"], body, fields["effort"], fields["effort_claude"]}
+	if (r.Effort != "" && !oneOf(r.Effort, "low", "medium", "high", "xhigh", "max")) ||
+		(r.ClaudeEffort != "" && !oneOf(r.ClaudeEffort, "low", "medium", "high", "xhigh", "max")) {
 		return r, fmt.Errorf("invalid agent effort")
 	}
 	if r.Name != strings.TrimSuffix(path.Base(source), ".md") || strings.TrimSpace(r.Body) == "" {
@@ -154,8 +155,11 @@ func ReadProfiles(data []byte) (Profiles, error) {
 			if m.Effort != "" && !oneOf(m.Effort, "low", "medium", "high", "xhigh", "max", "ultra") {
 				return p, fmt.Errorf("invalid effort for %s", host)
 			}
-			if !acceptsEffort(host) && m.Effort != "" {
+			if !acceptsProfileEffort(host) && m.Effort != "" {
 				return p, fmt.Errorf("%s uses inherited effort or a model variant", host)
+			}
+			if host == "opencode" && m.Effort != "" && (m.Model == "" || strings.Contains(m.Model, "#")) {
+				return p, fmt.Errorf("OpenCode effort requires a base model without a variant")
 			}
 		}
 		for _, name := range []string{"observe", "implement", "verify"} {
@@ -222,9 +226,18 @@ func validateAccess(host string, values map[string]json.RawMessage) error {
 	return nil
 }
 
-// acceptsEffort reports whether a host renders a per-agent reasoning level.
-func acceptsEffort(host string) bool {
-	return host == "claude" || host == "codex" || host == "pi"
+// acceptsProfileEffort reports whether a host allows an effort in its profile.
+// OpenCode encodes it into the model variant rather than emitting a field.
+func acceptsProfileEffort(host string) bool {
+	return host == "claude" || host == "codex" || host == "pi" || host == "opencode"
+}
+
+// acceptsRoleEffort reports whether a role can replace the selected profile's
+// effort. OpenCode only supports this when the profile declares a base model
+// plus effort; legacy profiles with a fixed model variant remain unchanged.
+func acceptsRoleEffort(host string, m Model) bool {
+	return host == "claude" || host == "codex" || host == "pi" ||
+		(host == "opencode" && m.Model != "" && m.Effort != "")
 }
 
 func Validate(source string, data, profiles []byte) error {
@@ -237,8 +250,8 @@ func Validate(source string, data, profiles []byte) error {
 
 // Resolve returns a role's model profile and the model and effort a host
 // receives for it. It is the single place that decides the effective effort:
-// a role's own effort replaces the profile's where the host accepts a
-// per-agent level.
+// effort_claude replaces the profile's effort on Claude Code only, and a
+// role's effort replaces it on every host that can represent it.
 func Resolve(source string, data, profiles []byte, host string) (profile string, m Model, err error) {
 	r, err := Parse(source, data)
 	if err != nil {
@@ -253,8 +266,15 @@ func Resolve(source string, data, profiles []byte, host string) (profile string,
 		return "", m, fmt.Errorf("unsupported agent host %q", host)
 	}
 	m = h.Models[r.ModelProfile]
-	if r.Effort != "" && acceptsEffort(host) {
+	if host == "claude" && r.ClaudeEffort != "" {
+		m.Effort = r.ClaudeEffort
+	} else if r.Effort != "" && acceptsRoleEffort(host, m) {
 		m.Effort = r.Effort
+	}
+	// OpenCode receives the effort as a model variant, not a separate field.
+	if host == "opencode" && m.Effort != "" {
+		m.Model += "#" + m.Effort
+		m.Effort = ""
 	}
 	return r.ModelProfile, m, nil
 }

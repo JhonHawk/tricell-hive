@@ -3,6 +3,7 @@ name: "hive-build-kmp"
 description: "Implement Kotlin Multiplatform changes across the project's supported targets. Use for shared or platform-specific Kotlin Multiplatform code whose interface is settled."
 model_profile: "execution"
 access_profile: "implement"
+effort_claude: "medium"
 ---
 
 # hive-build-kmp

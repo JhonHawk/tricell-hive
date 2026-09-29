@@ -24,9 +24,9 @@ func TestResolveReturnsProfileModelAndProfileEffort(t *testing.T) {
 		{"claude", "execution", Model{"sonnet", "high"}},
 		{"claude", "reasoning", Model{"opus", "high"}},
 		{"claude", "inherit", Model{"inherit", "high"}},
-		{"codex", "reasoning", Model{"gpt-6-astra", "medium"}},
+		{"codex", "reasoning", Model{"gpt-6.1-sol", "high"}},
 		{"grok", "execution", Model{}},
-		{"opencode", "execution", Model{"opencode-go/deepseek-v4.1-flash#max", ""}},
+		{"opencode", "execution", Model{"github-copilot/gpt-6.1-sol#medium", ""}},
 		{"cursor", "reasoning", Model{"inherit", ""}},
 	}
 	for _, c := range cases {
@@ -49,11 +49,15 @@ func TestResolveRoleEffortWinsOnlyWhereHostAcceptsEffort(t *testing.T) {
 			t.Fatalf("Resolve(%s) effort = %q, %v; want the role's low", host, m.Effort, err)
 		}
 	}
-	for _, host := range []string{"grok", "opencode", "cursor"} {
+	for _, host := range []string{"grok", "cursor"} {
 		_, m, err := Resolve(resolveSource, data, profiles, host)
 		if err != nil || m.Effort != "" {
 			t.Fatalf("Resolve(%s) effort = %q, %v; want none", host, m.Effort, err)
 		}
+	}
+	// OpenCode carries the role's effort as the model variant.
+	if _, m, err := Resolve(resolveSource, data, profiles, "opencode"); err != nil || m != (Model{"github-copilot/gpt-6.1-sol#low", ""}) {
+		t.Fatalf("Resolve(opencode) = %+v, %v; want the role's low variant", m, err)
 	}
 }
 

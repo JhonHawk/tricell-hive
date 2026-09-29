@@ -147,8 +147,12 @@ func TestEffectiveModelsRoleEffortWinsOnClaudeCodexAndPi(t *testing.T) {
 	if r := byKey["grok/plain-role"]; r.Model != "" {
 		t.Errorf("grok model = %q, want the host default (empty)", r.Model)
 	}
-	if r := byKey["opencode/plain-role"]; r.Model != "opencode-go/deepseek-v4.1-flash#max" {
+	if r := byKey["opencode/plain-role"]; r.Model != "github-copilot/gpt-6.1-sol#medium" {
 		t.Errorf("opencode model = %q", r.Model)
+	}
+	// On OpenCode a role's effort replaces the profile's variant.
+	if r := byKey["opencode/deep-role"]; r.Model != "github-copilot/gpt-6.1-sol#max" {
+		t.Errorf("opencode/deep-role model = %q, want the role's max variant", r.Model)
 	}
 }
 
@@ -161,7 +165,7 @@ func TestEffectiveModelsUseTheRecordsOwnRelease(t *testing.T) {
 	// A second release changes both models, but only Codex moves to it.
 	profilesPath := filepath.Join(o.Source, agents.ProfilesSource)
 	profiles := strings.ReplaceAll(get(t, profilesPath), `"model": "sonnet"`, `"model": "haiku"`)
-	profiles = strings.ReplaceAll(profiles, `"gpt-5.6-terra"`, `"gpt-next"`)
+	profiles = strings.ReplaceAll(profiles, `"gpt-6.1-sol"`, `"gpt-next"`)
 	put(t, profilesPath, profiles)
 	o.Hosts = []string{"codex"}
 	apply(t, plan(t, "install", o))

@@ -113,7 +113,7 @@ func TestModelsViewSwitchesCLIWithArrowsAndBracketsTheSelectedOne(t *testing.T) 
 	if got := selectedModelsHost(t, d); got != "codex" {
 		t.Fatalf("after right: %s", got)
 	}
-	d.mustShow("gpt-5.6-terra")
+	d.mustShow("gpt-6.1-sol")
 	d.mustNotShow("sonnet")
 	d.key("left")
 	if got := selectedModelsHost(t, d); got != "claude" {
@@ -149,13 +149,12 @@ func TestModelsViewSplitsTheOpenCodeVariantIntoTheEffortColumn(t *testing.T) {
 	_, d, _, _, _ := openModelsView(t, "claude,opencode", 80, 24)
 	d.key("right")
 	row := modelsRowFor(t, d, "plain-role")
-	if len(row) != 4 || row[2] != "opencode-go/deepseek-v4.1-flash" || row[3] != "max" {
-		t.Fatalf("OpenCode execution row = %q, want model without #max and effort max\n%s", row, d.screen())
+	if len(row) != 4 || row[2] != "github-copilot/gpt-6.1-sol" || row[3] != "medium" {
+		t.Fatalf("OpenCode execution row = %q, want model without #medium and effort medium\n%s", row, d.screen())
 	}
-	d.mustNotShow("#max")
-	// A model with no variant has no effort to show.
+	d.mustNotShow("#medium")
 	row = modelsRowFor(t, d, longRoleName)
-	if len(row) != 4 || row[2] != "github-copilot/claude-opus-5.5" || row[3] != "-" {
+	if len(row) != 4 || row[2] != "github-copilot/gpt-6.1-sol" || row[3] != "high" {
 		t.Fatalf("OpenCode reasoning row = %q", row)
 	}
 }
