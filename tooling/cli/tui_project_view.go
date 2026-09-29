@@ -44,7 +44,7 @@ func newProjectView(cfg appConfig) *projectView {
 }
 
 func newProjectViewWith(cfg appConfig, dir string, deps doctorDeps) *projectView {
-	return &projectView{cfg: cfg, dir: dir, deps: deps, git: newGitRunner(), loading: true, box: newScrollBox()}
+	return &projectView{cfg: cfg, dir: dir, deps: deps, git: newGitRunner(), loading: true, box: newHangingScrollBox()}
 }
 
 func (v *projectView) Init() tea.Cmd { return v.reload() }

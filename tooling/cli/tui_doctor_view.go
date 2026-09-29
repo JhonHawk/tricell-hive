@@ -39,7 +39,7 @@ type doctorView struct {
 func newDoctorView(cfg appConfig) *doctorView { return newDoctorViewWith(cfg, realDoctorDeps()) }
 
 func newDoctorViewWith(cfg appConfig, deps doctorDeps) *doctorView {
-	return &doctorView{cfg: cfg, deps: deps, loading: true, box: newScrollBox()}
+	return &doctorView{cfg: cfg, deps: deps, loading: true, box: newHangingScrollBox()}
 }
 
 func (v *doctorView) options() management.Options { return copyOptions(v.cfg.Options) }

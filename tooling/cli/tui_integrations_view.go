@@ -46,7 +46,7 @@ func newIntegrationsView(cfg appConfig) *integrationsView {
 }
 
 func newIntegrationsViewWith(cfg appConfig, deps doctorDeps) *integrationsView {
-	return &integrationsView{cfg: cfg, deps: deps, loading: true, box: newScrollBox()}
+	return &integrationsView{cfg: cfg, deps: deps, loading: true, box: newHangingScrollBox()}
 }
 
 func (v *integrationsView) Init() tea.Cmd { return v.reload() }

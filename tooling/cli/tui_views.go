@@ -246,9 +246,15 @@ const dialogRows = 3
 type scrollBox struct {
 	raw string
 	vp  viewport.Model
+	// hanging continues a line that does not fit under its own indentation
+	// plus two spaces, for the read-only views' indented rows and paths.
+	hanging bool
 }
 
 func newScrollBox() scrollBox { return scrollBox{vp: viewport.New()} }
+
+// newHangingScrollBox is a scrollBox whose wrapped lines keep their indentation.
+func newHangingScrollBox() scrollBox { return scrollBox{vp: viewport.New(), hanging: true} }
 
 func (s *scrollBox) setText(text string) {
 	s.raw = strings.TrimRight(text, "\n")
@@ -266,7 +272,39 @@ func (s *scrollBox) rewrap() {
 		s.vp.SetContentLines(nil)
 		return
 	}
-	s.vp.SetContentLines(strings.Split(ansi.Wrap(s.raw, s.vp.Width(), ""), "\n"))
+	if !s.hanging {
+		s.vp.SetContentLines(strings.Split(ansi.Wrap(s.raw, s.vp.Width(), ""), "\n"))
+		return
+	}
+	var lines []string
+	for _, line := range strings.Split(s.raw, "\n") {
+		lines = append(lines, wrapHanging(line, s.vp.Width())...)
+	}
+	s.vp.SetContentLines(lines)
+}
+
+// wrapHanging wraps one line to width. A line that does not fit continues
+// under its own leading spaces plus two, so the row it belongs to stays
+// visible; when that leaves too little room it falls back to plain wrapping.
+func wrapHanging(line string, width int) []string {
+	if ansi.StringWidth(line) <= width {
+		return []string{line}
+	}
+	lead := len(line) - len(strings.TrimLeft(line, " "))
+	room := width - lead - 2
+	if room < 10 {
+		return strings.Split(ansi.Wrap(line, width, ""), "\n")
+	}
+	parts := strings.Split(ansi.Wrap(line[lead:], room, ""), "\n")
+	out := make([]string, len(parts))
+	for i, part := range parts {
+		if i == 0 {
+			out[i] = strings.Repeat(" ", lead) + part
+			continue
+		}
+		out[i] = strings.Repeat(" ", lead+2) + part
+	}
+	return out
 }
 
 // handleKey scrolls for a scrolling key and reports whether it was one.
