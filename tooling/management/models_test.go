@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 	"tricell-hive/integrations/agents"
 )
 
@@ -230,5 +231,98 @@ func TestEffectiveModelsReportsAMissingSnapshot(t *testing.T) {
 	}
 	if _, err := EffectiveModels(o); err == nil {
 		t.Fatal("a missing release snapshot was not reported")
+	}
+}
+
+// twoReleaseClaudeState installs Claude on one release, moves Codex to a
+// second release that changes the Claude model, and returns the options plus
+// the two release IDs (older, newer).
+func twoReleaseClaudeState(t *testing.T) (Options, string, string) {
+	t.Helper()
+	o := setup(t)
+	modelsSource(t, o)
+	o.Hosts = []string{"claude"}
+	first := plan(t, "install", o)
+	apply(t, first)
+	profilesPath := filepath.Join(o.Source, agents.ProfilesSource)
+	put(t, profilesPath, strings.ReplaceAll(get(t, profilesPath), `"model": "sonnet"`, `"model": "haiku"`))
+	o.Hosts = []string{"codex"}
+	second := plan(t, "install", o)
+	apply(t, second)
+	o.Hosts = nil
+	return o, first.Release.ID, second.Release.ID
+}
+
+// addShadowedCopies records, for every Claude agent, a second record at a path
+// the current layout does not use, on the given release.
+func addShadowedCopies(t *testing.T, o Options, release string) {
+	t.Helper()
+	s := stateFor(t, o)
+	for path, r := range s.Records {
+		if r.Target.Kind != "agent" || len(r.Consumers) != 1 || r.Consumers[0].Host != "claude" {
+			continue
+		}
+		old := r
+		old.Target.Path = filepath.Join(filepath.Dir(path), "retired-layout", filepath.Base(path))
+		old.Release = release
+		s.Records[old.Target.Path] = old
+	}
+	if err := writeJSON(filepath.Join(o.StateDir, "state.json"), s); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEffectiveModelsPreferTheCurrentDestinationOverAShadowedRecord(t *testing.T) {
+	o, _, newer := twoReleaseClaudeState(t)
+	// The shadowed copies sit on the newer release, so release age alone
+	// would pick them; the record at the current destination is on the older
+	// release and must still win.
+	addShadowedCopies(t, o, newer)
+	for i := 0; i < 50; i++ {
+		rows, err := EffectiveModels(o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := modelRowsByKey(rows)["claude/plain-role"].Model; got != "sonnet" {
+			t.Fatalf("iteration %d: claude/plain-role model = %q, want sonnet from the current destination", i, got)
+		}
+	}
+}
+
+func TestEffectiveModelsFallBackToTheNewestReleaseWhenNoRecordIsCurrent(t *testing.T) {
+	o, older, newer := twoReleaseClaudeState(t)
+	s := stateFor(t, o)
+	// Move every Claude agent record away from the current destination and
+	// add a copy on the other release, so both are shadowed.
+	for path, r := range s.Records {
+		if r.Target.Kind != "agent" || len(r.Consumers) != 1 || r.Consumers[0].Host != "claude" {
+			continue
+		}
+		delete(s.Records, path)
+		r.Target.Path = filepath.Join(filepath.Dir(path), "retired-a", filepath.Base(path))
+		r.Release = older
+		s.Records[r.Target.Path] = r
+		b := r
+		b.Target.Path = filepath.Join(filepath.Dir(path), "retired-b", filepath.Base(path))
+		b.Release = newer
+		s.Records[b.Target.Path] = b
+	}
+	if err := writeJSON(filepath.Join(o.StateDir, "state.json"), s); err != nil {
+		t.Fatal(err)
+	}
+	when := time.Now()
+	for id, at := range map[string]time.Time{older: when.Add(-time.Hour), newer: when} {
+		if err := os.Chtimes(filepath.Join(o.StateDir, "releases", id+".json"), at, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := 0; i < 50; i++ {
+		rows, err := EffectiveModels(o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := modelRowsByKey(rows)["claude/plain-role"].Model; got != "haiku" {
+			t.Fatalf("iteration %d: claude/plain-role model = %q, want haiku from the newest release", i, got)
+		}
 	}
 }
