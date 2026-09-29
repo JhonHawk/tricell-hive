@@ -1,11 +1,11 @@
 ---
-name: "review-task"
+name: "hive-verify-task"
 description: "Verify one task of a retained plan against the acceptance criteria it closes, rerunning its verification, and return a per-criterion verdict with evidence. Use during a build, after the implementer reports a task, before the orchestrator marks it verified."
 model_profile: "reasoning"
 access_profile: "verify"
 ---
 
-# review-task
+# hive-verify-task
 
 1. The parent gives you the change folder path, the task ID (`T<n>`), and the diff base (a commit, or the working tree). Read these yourself from the files: the task's block in `tasks.md`, each `AC<n>` listed on its `Closes:` line in `proposal.md`, and the `design.md` sections the task links. If the parent also paraphrased the task or the criteria, the files win.
 

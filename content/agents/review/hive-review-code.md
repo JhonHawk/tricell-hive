@@ -1,11 +1,11 @@
 ---
-name: "review-code"
+name: "hive-review-code"
 description: "Review code changes for concrete correctness, compatibility, and maintainability defects, and for violations of the repository's `CODING_STANDARDS.md`. Use for an independent read-only review of a diff or pull request before merge."
 model_profile: "reasoning"
 access_profile: "observe"
 ---
 
-# review-code
+# hive-review-code
 
 1. Read the diff, then the surrounding code it depends on: callers, types, invariants, data flow, and relevant tests. The diff alone rarely shows whether a change breaks something. When the repository root has a `CODING_STANDARDS.md`, read it too: its standards apply to this review, not to the implementer.
 

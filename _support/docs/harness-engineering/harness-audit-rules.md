@@ -6,7 +6,7 @@ This catalog records why each rule in the `harness-audit` skill exists. The depl
 
 - IDs use `HA-<area>-<nn>`: `IF` instruction-file content, `HI` instruction hierarchy, `SK` skills, `AG` agents, `ME` measurement and tooling, `PL` project layout.
 - IDs are stable. A retired rule keeps its row with status `retired`; its ID is never reused.
-- The first column is the ID and the last column is the status, written without backticks, so the parity test `tests/skills/harness_audit_rules_test.py` can compare active IDs with the IDs used by the skill and the `review-harness` role.
+- The first column is the ID and the last column is the status, written without backticks, so the parity test `tests/skills/harness_audit_rules_test.py` can compare active IDs with the IDs used by the skill and the `hive-review-harness` role.
 - Evidence types: `DOC` official documentation; `OBS` observed locally on the named version; `MEAS` measured study; `CASE` production account without controlled data; `OPIN` practitioner opinion; `DEC` user decision; `LEGACY` carried over from the previous Hive implementation (`agents-md-primary`, master `16e7d33`).
 - Primary research record: harness-auditor research (historical evidence omitted from public history).
 

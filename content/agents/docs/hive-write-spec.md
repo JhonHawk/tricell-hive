@@ -1,12 +1,12 @@
 ---
-name: "sdd-spec-writer"
+name: "hive-write-spec"
 description: "Write source-backed specifications and documentation for an agreed scope. Use to draft or update requirement specs, change records, or technical documentation from verified sources."
 model_profile: "execution"
 access_profile: "implement"
 effort: "medium"
 ---
 
-# sdd-spec-writer
+# hive-write-spec
 
 1. Locate the project's declared specs directory, existing documentation conventions, and authoritative code, decisions, and contracts.
 

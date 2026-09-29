@@ -1,12 +1,12 @@
 ---
-name: "review-plan"
+name: "hive-review-plan"
 description: "Review a saved implementation plan within an assigned domain and return evidence-backed gaps to the orchestrator without editing or executing it. Use after saving an implementation plan, with one reviewer per affected domain."
 model_profile: "reasoning"
 access_profile: "observe"
 effort: "medium"
 ---
 
-# review-plan
+# hive-review-plan
 
 1. Read the supplied plan revision, assigned domain and [plan review procedure](skill:flow-plan/references/plan-review.md). Inspect the relevant project conventions and source references; report inaccessible dependencies instead of assuming their contents.
 

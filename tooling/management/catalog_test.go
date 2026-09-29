@@ -41,6 +41,72 @@ func TestAgentCatalogueFreezesRendererProfilesAndModes(t *testing.T) {
 	}
 }
 
+// agentTargets returns the installed agent paths recorded in state for one
+// source, keyed by host, so assertions follow what the manager actually wrote.
+func agentTargets(t *testing.T, o Options, source string) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	for path, r := range stateFor(t, o).Records {
+		if r.Target.Kind != "agent" || r.Target.Source != source {
+			continue
+		}
+		for _, c := range r.Consumers {
+			out[c.Host] = path
+		}
+	}
+	return out
+}
+
+func TestAgentRenameRetiresOldTarget(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"claude", "codex", "grok", "pi", "opencode", "cursor"}
+	profiles, err := os.ReadFile(filepath.Join("..", "..", agents.ProfilesSource))
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(t, filepath.Join(o.Source, agents.ProfilesSource), string(profiles))
+	role := func(name string) string {
+		return "---\nname: " + name + "\ndescription: Test role\nmodel_profile: execution\naccess_profile: observe\n---\nUse evidence.\n"
+	}
+	oldSource := "content/agents/design/old-agent.md"
+	newSource := "content/agents/design/new-agent.md"
+	put(t, filepath.Join(o.Source, oldSource), role("old-agent"))
+	apply(t, plan(t, "install", o))
+	oldTargets := agentTargets(t, o, oldSource)
+	for _, host := range o.Hosts {
+		if oldTargets[host] == "" {
+			t.Fatalf("%s did not install the old agent: %v", host, oldTargets)
+		}
+		if _, err := os.Stat(oldTargets[host]); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A rename is a source deletion plus a new source file.
+	if err := os.Remove(filepath.Join(o.Source, oldSource)); err != nil {
+		t.Fatal(err)
+	}
+	put(t, filepath.Join(o.Source, newSource), role("new-agent"))
+	apply(t, plan(t, "install", o))
+
+	newTargets := agentTargets(t, o, newSource)
+	for _, host := range o.Hosts {
+		absent(t, oldTargets[host])
+		if newTargets[host] == "" {
+			t.Fatalf("%s did not install the renamed agent: %v", host, newTargets)
+		}
+		if _, err := os.Stat(newTargets[host]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if left := agentTargets(t, o, oldSource); len(left) != 0 {
+		t.Fatalf("state still records the old agent: %v", left)
+	}
+	if apply(t, plan(t, "install", o)) != "unchanged" {
+		t.Fatal("rename install not idempotent")
+	}
+}
+
 func TestCatalogueSkipsDisposableSkillCaches(t *testing.T) {
 	o := setup(t)
 	for _, dir := range []string{"__pycache__", "node_modules", "dist", ".astro"} {

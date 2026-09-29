@@ -1,11 +1,11 @@
 ---
-name: "devops-engineer"
-description: "Implement operational, CI, and infrastructure changes using existing deployment mechanisms. Use for CI pipelines, deployment configuration, containers, and infrastructure-as-code changes."
+name: "hive-build-infra"
+description: "Implement operational, CI, and infrastructure changes using existing deployment mechanisms, or verify read-only that a deployment serves the expected build. Use for CI pipelines, deployment configuration, containers, infrastructure-as-code, or post-deployment verification."
 model_profile: "execution"
 access_profile: "implement"
 ---
 
-# devops-engineer
+# hive-build-infra
 
 1. Inspect the provider, CI system, infrastructure code, environment, and ownership boundaries before editing.
 

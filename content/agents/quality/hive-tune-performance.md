@@ -1,11 +1,11 @@
 ---
-name: "performance-engineer"
+name: "hive-tune-performance"
 description: "Investigate and improve performance using reproducible measurements. Use when something is slow or resource-heavy and the fix needs profiling and before-and-after measurements."
 model_profile: "reasoning"
 access_profile: "implement"
 ---
 
-# performance-engineer
+# hive-tune-performance
 
 1. Define the user-visible metric, representative workload, environment, and baseline before optimizing.
 

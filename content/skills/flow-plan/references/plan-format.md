@@ -111,7 +111,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 | --- | --- | --- | --- |
 | <applicable gate> | <when, candidate and target> | <command or walkthrough and pass criteria> | <covered by implementation, explicit agreement, or pending choice> |
 
-<For a rendered UI effect that the verification reference does not exempt, include the independent `review-ux` and `sdd-verify` gates with their base revision, viewports and themes, data and browser tool; they are part of implementation, not a pending choice.>
+<For a rendered UI effect that the verification reference does not exempt, include the independent `hive-review-ux` and `hive-verify-change` gates with their base revision, viewports and themes, data and browser tool; they are part of implementation, not a pending choice.>
 
 <For human UI review, specify the built local stack, account/role and data prerequisites without secrets, relevant viewports/states, and short navigation/actions with expected results. State that the verified stack stays available and selected temporary session captures are linked at handoff. Fill actual clickable URLs when known. Record remote exceptions explicitly.>
 

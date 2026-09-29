@@ -30,7 +30,7 @@
       "files": {
         "README.md": "# Disposable deployed-surface loading check\n"
       },
-      "prompt": "Esta es una sesión en español. Sin modificar archivos y sin lanzar subagentes, consulta explícitamente mediante las herramientas nativas las skills flow-report, engram-init-workspace, starlight-docs-site, unattended-delegation y workspace-archive. Para cada una indica su propósito y una condición en la que no debe usarse. Después indica si este host anuncia los agentes state-fetcher y review-code y, si el anuncio muestra un modelo, cuál es. No los ejecutes. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
+      "prompt": "Esta es una sesión en español. Sin modificar archivos y sin lanzar subagentes, consulta explícitamente mediante las herramientas nativas las skills flow-report, engram-init-workspace, starlight-docs-site, unattended-delegation y workspace-archive. Para cada una indica su propósito y una condición en la que no debe usarse. Después indica si este host anuncia los agentes hive-read-state y hive-review-code y, si el anuncio muestra un modelo, cuál es. No los ejecutes. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
       "expected": {
         "skill_read": "explicit_loading_check",
         "criteria": []
@@ -55,7 +55,7 @@
         "README.md": "# Disposable native agent dispatch probe\nThis is a synthetic read-only review task. Do not publish or modify files.\n",
         "probe.plan.md": "# Status response change\n## Objective\nAdd a status field to the response.\n## Task\nUpdate the response.\n"
       },
-      "prompt": "Prueba acotada de delegación, en español. Usa exactamente un subagente con el rol instalado review-plan para revisar probe.plan.md, solo lectura. Selecciona el ID nativo si tu herramienta lo admite. No escribas archivos, no ejecutes pasos del plan, tests, comandos de entrega ni otros revisores. Entrega al hijo la ruta del plan, el contrato canónico y los recursos necesarios; debe leerlos antes de revisar. Si no existe selector nativo, indica esa limitación y utiliza un único hijo genérico con el contrato leído, sin afirmar que aplicó el perfil nativo. Espera su resultado. Reporta el mecanismo usado, rol/ID y hallazgos; distingue configuración de modelo/permisos de controles observados. No ejecutes flow-plan como autor ni edites el plan.",
+      "prompt": "Prueba acotada de delegación, en español. Usa exactamente un subagente con el rol instalado hive-review-plan para revisar probe.plan.md, solo lectura. Selecciona el ID nativo si tu herramienta lo admite. No escribas archivos, no ejecutes pasos del plan, tests, comandos de entrega ni otros revisores. Entrega al hijo la ruta del plan, el contrato canónico y los recursos necesarios; debe leerlos antes de revisar. Si no existe selector nativo, indica esa limitación y utiliza un único hijo genérico con el contrato leído, sin afirmar que aplicó el perfil nativo. Espera su resultado. Reporta el mecanismo usado, rol/ID y hallazgos; distingue configuración de modelo/permisos de controles observados. No ejecutes flow-plan como autor ni edites el plan.",
       "expected": {
         "skill_read": "explicit_unscored_dispatch_check",
         "criteria": []
