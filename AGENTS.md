@@ -49,6 +49,17 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 - Preserve user-owned authentication, preferences, native histories, third-party tools, backups, and Engram data. Keep `.engram/config.json` project identity unless the user explicitly asks to change it.
 - Do not add dependencies, a runtime, universal adapter, hook system, or build framework for configuration alone. Prefer the host's existing capability and document a verified limitation before introducing new machinery.
 
+## Refreshing a local installation
+
+Refresh a local installation only when the user asks, as the rule above requires. The binary and the deployed content update separately:
+
+- **Manager changes** (`tooling/`, `integrations/`): rebuild the binary from this checkout with `go build -o "$(command -v hive)" ./tooling/cli`. `hive update` does not replace the binary.
+- **Content changes** (`content/`): run `hive update` from this checkout, or add `--source <checkout>` elsewhere. It deploys the committed `HEAD`, never uncommitted edits, to every registered host, and asks for confirmation. Use `--dry-run` to preview. Open sessions load the new guidance only after a restart.
+- **Both:** rebuild first, since an older binary can reject newer content.
+- **Offline-package installations:** `hive update` needs a Git checkout, so those users update by running the new package's `./install.sh` or `bootstrap.sh`.
+
+`_support/docs/architecture/deployment-manager.md` holds the commands and their limits.
+
 ## Measurement
 
 CLI behavior pilots are paused by user instruction. Do not resume them without explicit authorization. Recommend a pilot only when it is necessary to resolve a consequential behavior uncertainty that inspection or ordinary tests cannot answer; explain the expected evidence and keep the proposed scope minimal. This pause does not prohibit ordinary non-model tests.
