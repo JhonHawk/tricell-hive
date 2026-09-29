@@ -235,7 +235,35 @@ func Validate(source string, data, profiles []byte) error {
 	return err
 }
 
+// Resolve returns a role's model profile and the model and effort a host
+// receives for it. It is the single place that decides the effective effort:
+// a role's own effort replaces the profile's where the host accepts a
+// per-agent level.
+func Resolve(source string, data, profiles []byte, host string) (profile string, m Model, err error) {
+	r, err := Parse(source, data)
+	if err != nil {
+		return "", m, err
+	}
+	p, err := ReadProfiles(profiles)
+	if err != nil {
+		return "", m, err
+	}
+	h, ok := p.Hosts[host]
+	if !ok {
+		return "", m, fmt.Errorf("unsupported agent host %q", host)
+	}
+	m = h.Models[r.ModelProfile]
+	if r.Effort != "" && acceptsEffort(host) {
+		m.Effort = r.Effort
+	}
+	return r.ModelProfile, m, nil
+}
+
 func Render(source string, data, profiles []byte, host string) ([]byte, error) {
+	_, m, err := Resolve(source, data, profiles, host)
+	if err != nil {
+		return nil, err
+	}
 	r, err := Parse(source, data)
 	if err != nil {
 		return nil, err
@@ -244,15 +272,7 @@ func Render(source string, data, profiles []byte, host string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	h, ok := p.Hosts[host]
-	if !ok {
-		return nil, fmt.Errorf("unsupported agent host %q", host)
-	}
-	m := h.Models[r.ModelProfile]
-	// A role's effort replaces the profile's where the host accepts a per-agent level.
-	if r.Effort != "" && acceptsEffort(host) {
-		m.Effort = r.Effort
-	}
+	h := p.Hosts[host]
 	fields := map[string]any{"name": r.Name, "description": r.Description}
 	for key, raw := range h.Access[r.AccessProfile] {
 		var value any
