@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -355,5 +357,98 @@ func TestRenderModelsTextSharesTheViewWordsAndCutsNothing(t *testing.T) {
 	renderModelsText(nil, nil, &out)
 	if out.String() != "No CLI hosts are registered\n" {
 		t.Errorf("empty output = %q", out.String())
+	}
+}
+
+// fullCatalogueSource builds a Hive source with the repository's real agent
+// profiles and all of its real roles (AC9: 20 roles on 6 CLIs).
+func fullCatalogueSource(t *testing.T) (string, []string) {
+	t.Helper()
+	dir := modelsTestSource(t)
+	if err := os.RemoveAll(filepath.Join(dir, "content", "agents")); err != nil {
+		t.Fatal(err)
+	}
+	var roles []string
+	root := filepath.Join("..", "..", "content", "agents")
+	err := filepath.WalkDir(root, func(path string, e os.DirEntry, err error) error {
+		if err != nil || e.IsDir() || filepath.Ext(path) != ".md" {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(root, path)
+		dst := filepath.Join(dir, "content", "agents", rel)
+		if err := os.MkdirAll(filepath.Dir(dst), 0700); err != nil {
+			return err
+		}
+		roles = append(roles, strings.TrimSuffix(filepath.Base(path), ".md"))
+		// Keep the front matter, which decides the model, and drop the body,
+		// whose skill references this minimal source cannot resolve.
+		parts := strings.SplitN(string(data), "---\n", 3)
+		if len(parts) != 3 {
+			return fmt.Errorf("%s has no front matter", path)
+		}
+		return os.WriteFile(dst, []byte("---\n"+parts[1]+"---\nUse evidence.\n"), 0600)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dir, roles
+}
+
+func TestModelsViewFitsAndScrollsWithTheFullCatalogueOnSixCLIs(t *testing.T) {
+	source, roles := fullCatalogueSource(t)
+	if len(roles) < 20 {
+		t.Fatalf("the catalogue has %d roles, want at least 20", len(roles))
+	}
+	sort.Strings(roles)
+	first, last := roles[0], roles[len(roles)-1]
+	deps := hostsTestDeps(coreOnlyAdapterFactory)
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, source, strings.Join(installerHosts, ","), "y\n", deps)
+	cfg := hostsAppConfig(t, home, stateDir, source, deps)
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			m, d := newTestApp(t, cfg, size[0], size[1])
+			d.send(pushViewMsg{v: newModelsView(cfg)})
+			v, ok := m.top().(*modelsView)
+			if !ok {
+				t.Fatalf("top view is %T", m.top())
+			}
+			for i := range installerHosts {
+				if i > 0 {
+					d.key("right")
+				}
+				host := selectedModelsHost(t, d)
+				assertFits(t, d, size[0], size[1])
+				modelsRowFor(t, d, first)
+				if v.box.scrollable() {
+					for range 40 {
+						d.key("down")
+					}
+					modelsRowFor(t, d, last)
+					assertFits(t, d, size[0], size[1])
+					for range 40 {
+						d.key("up")
+					}
+					modelsRowFor(t, d, first)
+					for range 5 {
+						d.key("pgdown")
+					}
+					modelsRowFor(t, d, last)
+					for range 5 {
+						d.key("pgup")
+					}
+					modelsRowFor(t, d, first)
+				} else {
+					modelsRowFor(t, d, last)
+				}
+				if size[0] == 80 && !strings.Contains(d.screen(), longRoleName+"  ") {
+					t.Errorf("%s: %s is cut at 80 columns:\n%s", host, longRoleName, d.screen())
+				}
+			}
+		})
 	}
 }
