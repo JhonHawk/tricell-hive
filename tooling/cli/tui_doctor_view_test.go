@@ -380,3 +380,53 @@ func TestDoctorViewIgnoresOtherMessages(t *testing.T) {
 		t.Fatalf("cmd=%v act=%+v", cmd, act)
 	}
 }
+
+// screenLineOf returns the 0-based screen line that starts with prefix, or -1.
+func screenLineOf(d *appDriver, prefix string) int {
+	for i, l := range d.lines() {
+		if strings.HasPrefix(strings.TrimSpace(l), prefix) {
+			return i
+		}
+	}
+	return -1
+}
+
+// I3 in the view: six hosts sharing one drifted file draw one row, so the view
+// fits both sizes and Sessions stays reachable. At 120x40 everything fits
+// without scrolling. At 80x24 the headline is on the first screen only when the
+// path is short (about 70 characters leave it on the last visible line); the
+// temporary path here is longer, so the test only requires that it can be reached.
+func TestDoctorViewGroupsSharedDriftedFileAndKeepsSessionsReachable(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			o, home, paths := sharedSkillHome(t, "alpha")
+			o = nonSyntheticOptions(t, o, home)
+			driftFile(t, paths[0])
+			f := newDoctorFake(home)
+			for host, v := range map[string]string{"claude": "2.1.284 (Claude Code)", "codex": "codex-cli 0.159.0", "grok": "grok 1.0.45 (c33bff361a6f) [alpha]", "opencode": "opencode v2.0.19", "pi": "0.87.1"} {
+				f.install(host, v+"\n")
+			}
+			f.install("cursor-agent", "2026.09.23-86fc751\n")
+			_, d, v := openDoctorView(t, o, f, size[0], size[1])
+			assertFits(t, d, size[0], size[1])
+			d.mustShow("drift  claude, codex, cursor, grok, opencode, pi")
+			if n := strings.Count(strings.Join(strings.Fields(d.screen()), ""), strings.Join(strings.Fields(paths[0]), "")); n > 1 {
+				t.Fatalf("the path is drawn %d times:\n%s", n, d.screen())
+			}
+			if size[0] == 120 {
+				if v.box.scrollable() || screenLineOf(d, "Sessions") < 0 {
+					t.Fatalf("at 120x40 the view must fit without scrolling:\n%s", d.screen())
+				}
+				return
+			}
+			seen := d.screen()
+			for range 12 {
+				d.key("pgdown")
+				seen += d.screen()
+			}
+			if !strings.Contains(seen, "Sessions") {
+				t.Fatalf("Sessions never shown:\n%s", seen)
+			}
+		})
+	}
+}

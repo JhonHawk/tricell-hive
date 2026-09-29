@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -431,6 +432,14 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 	if len(st.registered) == 0 {
 		sec.Lines = []string{noHostsText}
 	}
+	// One row per distinct status and path, in the order each first appears:
+	// hosts that share a managed file report the same problem on the same path.
+	type problem struct {
+		status, path string
+		hosts        []string
+	}
+	var problems []*problem
+	index := map[[2]string]*problem{}
 	drift := false
 	for _, e := range st.entries {
 		switch e.Status {
@@ -441,18 +450,34 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 				continue
 			}
 		}
-		phrase, ok := installationPhrases[e.Status]
-		if !ok {
-			phrase = "Unknown state " + sanitizeLine(e.Status)
-		}
 		host := e.Host
 		if host == "" {
 			host = "shared"
 		}
 		drift = drift || e.Status == "drift"
+		key := [2]string{e.Status, e.Path}
+		p := index[key]
+		if p == nil {
+			p = &problem{status: e.Status, path: e.Path}
+			index[key] = p
+			problems = append(problems, p)
+		}
+		if !slices.Contains(p.hosts, host) {
+			p.hosts = append(p.hosts, host)
+		}
+	}
+	for _, p := range problems {
+		phrase, ok := installationPhrases[p.status]
+		if !ok {
+			phrase = "Unknown state " + sanitizeLine(p.status)
+		}
+		hosts := make([]string, len(p.hosts))
+		for i, h := range p.hosts {
+			hosts[i] = sanitizeLine(h)
+		}
 		sec.Lines = append(sec.Lines,
-			fmt.Sprintf("%s  %s  %s", sanitizeLine(e.Status), sanitizeLine(host), phrase),
-			"  "+sanitizeLine(e.Path))
+			fmt.Sprintf("%s  %s  %s", sanitizeLine(p.status), strings.Join(hosts, ", "), phrase),
+			"  "+sanitizeLine(p.path))
 	}
 	if drift {
 		sec.Lines = append(sec.Lines, driftRepairText)

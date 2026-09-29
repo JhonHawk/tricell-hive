@@ -666,6 +666,113 @@ func TestDoctorInstallationRepairLineOnlyForDrift(t *testing.T) {
 	mustContain(t, text, "drift  shared", driftRepairLine)
 }
 
+// sharedSkillHome installs all six hosts from a source that carries the given
+// skills, which every host shares under ~/.agents/skills, and returns the
+// options with the paths of those skills' files.
+func sharedSkillHome(t *testing.T, skills ...string) (o management.Options, home string, paths []string) {
+	t.Helper()
+	src, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	guidance := filepath.Join(src, "content", "guidance")
+	if err := os.MkdirAll(guidance, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(guidance, "global.md"), []byte("# Global\n\nMinimal test guidance.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, skill := range skills {
+		dir := filepath.Join(src, "content", "skills", skill)
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		body := "---\nname: " + skill + "\ndescription: Test skill.\n---\nBody.\n"
+		if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, src, "claude,codex,cursor,grok,opencode,pi", "y\n", hostsTestDeps(coreOnlyAdapterFactory))
+	o = management.Options{Scope: "user", Home: home, StateDir: stateDir}
+	_, norm, err := management.NormalizeOptions(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o.StateDir = norm
+	canonHome, err := filepath.EvalSymlinks(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, skill := range skills {
+		paths = append(paths, filepath.Join(canonHome, ".agents", "skills", skill, "SKILL.md"))
+	}
+	return o, home, paths
+}
+
+func driftFile(t *testing.T, path string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("edited by hand"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+const allSixHosts = "claude, codex, cursor, grok, opencode, pi"
+
+// I3: hosts that share one drifted file get one row that names them all.
+func TestDoctorInstallationGroupsHostsSharingADriftedFile(t *testing.T) {
+	o, home, paths := sharedSkillHome(t, "alpha")
+	driftFile(t, paths[0])
+	sec := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps()).Installation
+	want := []string{
+		"drift  " + allSixHosts + "  The installed file was changed or cannot be read",
+		"  " + paths[0],
+		driftRepairLine,
+	}
+	if got := strings.Join(sec.Lines, "\n"); got != strings.Join(want, "\n") {
+		t.Fatalf("installation lines:\n%s\nwant:\n%s", got, strings.Join(want, "\n"))
+	}
+}
+
+func TestDoctorInstallationKeepsOneRowPerDistinctDriftedFile(t *testing.T) {
+	o, home, paths := sharedSkillHome(t, "alpha", "beta")
+	driftFile(t, paths[0])
+	driftFile(t, paths[1])
+	sec := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps()).Installation
+	want := []string{
+		"drift  " + allSixHosts + "  The installed file was changed or cannot be read",
+		"  " + paths[0],
+		"drift  " + allSixHosts + "  The installed file was changed or cannot be read",
+		"  " + paths[1],
+		driftRepairLine,
+	}
+	if got := strings.Join(sec.Lines, "\n"); got != strings.Join(want, "\n") {
+		t.Fatalf("installation lines:\n%s\nwant:\n%s", got, strings.Join(want, "\n"))
+	}
+}
+
+func TestDoctorInstallationGroupsOnlySameStatusAndPath(t *testing.T) {
+	st := doctorState{registered: []string{"claude", "codex", "grok"}, entries: []management.StatusEntry{
+		{Path: "/p/a", Host: "claude", Status: "drift"},
+		{Path: "/p/a", Host: "grok", Status: "unowned"},
+		{Path: "/p/b", Host: "claude", Status: "drift"},
+		{Path: "/p/a", Host: "codex", Status: "drift"},
+		{Path: "/p/a", Host: "codex", Status: "drift"},
+		{Path: "/p/voice", Kind: "voice", Status: "drift"},
+	}}
+	got := installationSection(management.Options{}, st).Lines
+	want := []string{
+		"drift  claude, codex  The installed file was changed or cannot be read", "  /p/a",
+		"unowned  grok  A file exists that Hive did not write", "  /p/a",
+		"drift  claude  The installed file was changed or cannot be read", "  /p/b",
+		"drift  shared  The installed file was changed or cannot be read", "  /p/voice",
+		driftRepairLine,
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("lines:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestDoctorInstallationHidesNotInstalledRows(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude")
 	entries, err := management.Status(management.Options{Scope: "user", Home: home, StateDir: o.StateDir, Hosts: []string{"claude"}})
