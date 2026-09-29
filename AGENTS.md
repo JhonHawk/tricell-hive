@@ -51,7 +51,9 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 
 ## Refreshing a local installation
 
-Refresh a local installation only when the user asks, as the rule above requires. The binary and the deployed content update separately:
+Refresh a local installation only when the user asks, as the rule above requires. **Temporary, until the rebuild merges into `master`:** each commit or merged pull request that lands on `rebuild/harness-engineering` is that request. Refresh right after it lands, following the steps below for what it changed, and report the deployed commit. Remove this exception when the rebuild merges into `master`.
+
+The binary and the deployed content update separately:
 
 - **Manager changes** (`tooling/`, `integrations/`): rebuild the binary from this checkout with `go build -o "$(command -v hive)" ./tooling/cli`. `hive update` does not replace the binary.
 - **Content changes** (`content/`): run `hive update` from this checkout, or add `--source <checkout>` elsewhere. It deploys the committed `HEAD`, never uncommitted edits, to every registered host, and asks for confirmation. Use `--dry-run` to preview. Open sessions load the new guidance only after a restart.
