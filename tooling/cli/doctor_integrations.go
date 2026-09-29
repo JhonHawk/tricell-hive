@@ -169,20 +169,21 @@ var recordSentences = map[string]string{
 }
 
 // nextStep says what to do about one row, from what Hive found locally and what
-// the last record says. The row's Source and Record are already set. Hive does
-// not install or configure any of these tools, so the steps point to the
-// official source; the only command is Context7's.
+// the last record says. The row's Record is already set. Hive does not install
+// or configure any of these tools, so the steps point to the official source;
+// the only command is Context7's. The Source line is printed right above the
+// step, so the step says "see Source above" instead of repeating the address.
 func nextStep(r integrationRow) string {
 	var step string
 	switch r.ID {
 	case string(providers.Context7):
 		step = context7NextStep(r.Found)
 	case string(providers.Engram):
-		step = engramNextStep(r.Found, r.Source)
+		step = engramNextStep(r.Found)
 	case string(providers.PiSubagents):
-		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see the official instructions at " + r.Source + "."
+		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see Source above for the official instructions."
 	default:
-		step = agentBrowserNextStep(r.Found, r.Source)
+		step = agentBrowserNextStep(r.Found)
 	}
 	if s, ok := recordSentences[r.Record]; ok {
 		step += " " + s
@@ -203,28 +204,29 @@ func context7NextStep(found string) string {
 	return "Hive could not look for it here. To install or refresh it, run " + context7Command + signIn
 }
 
-func engramNextStep(found, source string) string {
+func engramNextStep(found string) string {
 	switch found {
 	case "detected":
-		return "Hive does not configure Engram. For each CLI, follow Engram's official setup instructions at " + source + "."
+		return "Hive does not configure Engram. For each CLI, follow Engram's official setup instructions (see Source above)."
 	case "not detected":
-		return "Install it from " + source + "; Hive does not install it."
+		return "Install it from the official source (see Source above); Hive does not install it."
 	}
-	return "Hive could not look for it here. Hive does not install or configure it; the official instructions are at " + source + "."
+	return "Hive could not look for it here. Hive does not install or configure it; see Source above for the official instructions."
 }
 
-func agentBrowserNextStep(found, source string) string {
+func agentBrowserNextStep(found string) string {
+	const official = "follow the official instructions (see Source above)."
 	switch found {
 	case "cli + skill":
-		return "Found. Hive does not install or update it; to update it, follow the official instructions at " + source + "."
+		return "Found. Hive does not install or update it; to update it, " + official
 	case "cli":
-		return "The program was found but no skill file. Optional; Hive does not install it. To add the skill, follow the official instructions at " + source + "."
+		return "The program was found but no skill file. Optional; Hive does not install it. To add the skill, " + official
 	case "skill":
-		return "The skill file was found but not the program. Optional; Hive does not install it. To install the program, follow the official instructions at " + source + "."
+		return "The skill file was found but not the program. Optional; Hive does not install it. To install the program, " + official
 	case "not detected":
-		return "Not found. Optional; Hive does not install it. To install the program and its skill, follow the official instructions at " + source + "."
+		return "Not found. Optional; Hive does not install it. To install the program and its skill, " + official
 	}
-	return "Hive could not look for the program here. Optional; Hive does not install it. To install the program and its skill, follow the official instructions at " + source + "."
+	return "Hive could not look for the program here. Optional; Hive does not install it. To install the program and its skill, " + official
 }
 
 // onboardingRecord is the last finished record, or why there is none.

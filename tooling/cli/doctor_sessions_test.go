@@ -102,7 +102,7 @@ func TestSessionsClaudeMarksOnlySessionsStartedBeforeTheRelease(t *testing.T) {
 	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
 	text := sectionText(sec)
 	mustContain(t, text, "claude: 2 open sessions, 1 to restart")
-	if sec.Lines[0] != "1 open session should be restarted" {
+	if sec.Lines[0] != "1 open Claude Code session should be restarted" {
 		t.Fatalf("first line = %q, want the summary; section:\n%s", sec.Lines[0], text)
 	}
 	old := sessionLine(t, sec, "pid 101")
@@ -157,7 +157,7 @@ func TestSessionsGrokMarksOnlySessionsOpenedBeforeTheRelease(t *testing.T) {
 	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
 	text := sectionText(sec)
 	mustContain(t, text, "grok: 2 open sessions, 1 to restart")
-	if sec.Lines[0] != "1 open session should be restarted" {
+	if sec.Lines[0] != "1 open Grok session should be restarted" {
 		t.Fatalf("first line = %q, want the summary; section:\n%s", sec.Lines[0], text)
 	}
 	mustContain(t, sessionLine(t, sec, "pid 401"), "/g/old", "started before the installed release; restart it")
@@ -185,7 +185,7 @@ func TestSessionsNoOpenSessions(t *testing.T) {
 	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
 	mustContain(t, text, "claude: no open sessions", "grok: no open sessions")
 	mustNotContain(t, text, "estimates")
-	if first := strings.SplitN(text, "\n", 3)[1]; first != "  No open session needs a restart" {
+	if first := strings.SplitN(text, "\n", 3)[1]; first != "  No open Claude Code or Grok session needs a restart" {
 		t.Fatalf("first line = %q", first)
 	}
 }
@@ -250,17 +250,50 @@ func TestSessionsUnavailableWhenClaudeFileIsOversizedOrUnknown(t *testing.T) {
 
 func TestSessionsNoticesForHostsHiveCannotSee(t *testing.T) {
 	o, _, f := sessionsFixture(t, "codex,pi,cursor,opencode")
-	text := sectionText(collectDoctor(o, t.TempDir(), f.deps()).Sessions)
+	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
+	text := sectionText(sec)
 	mustContain(t, text,
-		"codex: Hive cannot see its open sessions; restart them after each update",
-		"pi: Hive cannot see its open sessions; restart them after each update",
-		"cursor: Hive cannot see its open sessions; restart them after each update",
+		"Hive cannot see Codex, Pi or Cursor sessions; restart them after each update.",
 		"opencode: reloads its instructions on the next message; no restart needed")
-	mustNotContain(t, text, "claude", "grok", "estimates")
-	// Nothing was checked, so there is no summary: the first line is the
-	// first host's own notice.
-	if sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions; !strings.HasPrefix(sec.Lines[0], "codex: ") {
+	// The one line replaces the per-host restart lines.
+	mustNotContain(t, text, "codex:", "pi:", "cursor:", "claude", "grok", "estimates", "should be restarted", "needs a restart")
+	// Nothing was checked, so there is no summary: the notice leads.
+	if sec.Lines[0] != "Hive cannot see Codex, Pi or Cursor sessions; restart them after each update." {
 		t.Fatalf("first line = %q", sec.Lines[0])
+	}
+}
+
+// TestSessionsHeadlineIsScopedToTheHostsHiveChecked covers H1: the headline
+// names Claude Code and Grok, the only hosts whose sessions Hive can read, and
+// the line right under it says which registered hosts it cannot see, so the
+// headline is never read as covering them.
+func TestSessionsHeadlineIsScopedToTheHostsHiveChecked(t *testing.T) {
+	for _, tc := range []struct {
+		hosts, headline, notice string
+	}{
+		{"claude,grok,codex,pi,cursor", "No open Claude Code or Grok session needs a restart", "Hive cannot see Codex, Pi or Cursor sessions; restart them after each update."},
+		{"claude,codex", "No open Claude Code session needs a restart", "Hive cannot see Codex sessions; restart them after each update."},
+		{"grok,pi,cursor", "No open Grok session needs a restart", "Hive cannot see Pi or Cursor sessions; restart them after each update."},
+		{"claude,grok", "No open Claude Code or Grok session needs a restart", ""},
+	} {
+		t.Run(tc.hosts, func(t *testing.T) {
+			o, _, f := sessionsFixture(t, tc.hosts)
+			f.alive = map[int]bool{}
+			sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
+			if sec.Lines[0] != tc.headline {
+				t.Fatalf("first line = %q, want %q:\n%s", sec.Lines[0], tc.headline, sectionText(sec))
+			}
+			if tc.notice == "" {
+				mustNotContain(t, sectionText(sec), "Hive cannot see")
+				return
+			}
+			if sec.Lines[1] != tc.notice {
+				t.Fatalf("second line = %q, want %q:\n%s", sec.Lines[1], tc.notice, sectionText(sec))
+			}
+			if n := strings.Count(sectionText(sec), "Hive cannot see"); n != 1 {
+				t.Fatalf("the notice appears %d times:\n%s", n, sectionText(sec))
+			}
+		})
 	}
 }
 
@@ -275,7 +308,7 @@ func TestSessionsSummaryLeadsAndCountsAcrossHosts(t *testing.T) {
 	grokSessions(t, filepath.Join(home, ".grok"), grokEntry(1201, "/g/old", sessionBefore), grokEntry(1202, "/g/new", sessionAfter))
 	f.alive[1101], f.alive[1102], f.alive[1103], f.alive[1201], f.alive[1202] = true, true, true, true, true
 	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
-	if sec.Lines[0] != "3 open sessions should be restarted" {
+	if sec.Lines[0] != "3 open Claude Code or Grok sessions should be restarted" {
 		t.Fatalf("first line = %q:\n%s", sec.Lines[0], sectionText(sec))
 	}
 	mustContain(t, sectionText(sec), "claude: 3 open sessions, 2 to restart", "grok: 2 open sessions, 1 to restart")
@@ -286,7 +319,7 @@ func TestSessionsSummaryLeadsAndCountsAcrossHosts(t *testing.T) {
 	// Every live session is up to date.
 	f.alive = map[int]bool{1103: true, 1202: true}
 	sec = collectDoctor(o, t.TempDir(), f.deps()).Sessions
-	if sec.Lines[0] != "No open session needs a restart" {
+	if sec.Lines[0] != "No open Claude Code or Grok session needs a restart" {
 		t.Fatalf("first line = %q", sec.Lines[0])
 	}
 	mustContain(t, sectionText(sec), "claude: 1 open session, none to restart", "grok: 1 open session, none to restart")
@@ -299,14 +332,14 @@ func TestSessionsSummaryNamesTheHostsThatCouldNotBeChecked(t *testing.T) {
 
 	writeFile(t, filepath.Join(home, ".grok", "active_sessions.json"), "garbage")
 	sec := collectDoctor(o, t.TempDir(), f.deps()).Sessions
-	if sec.Lines[0] != "1 open session should be restarted (Grok could not be checked)" {
+	if sec.Lines[0] != "1 open Claude Code session should be restarted; Grok could not be checked." {
 		t.Fatalf("first line = %q:\n%s", sec.Lines[0], sectionText(sec))
 	}
 	mustContain(t, sectionText(sec), "Session check unavailable for grok: ")
 
 	f.alive = map[int]bool{}
 	sec = collectDoctor(o, t.TempDir(), f.deps()).Sessions
-	if sec.Lines[0] != "No open session needs a restart (Grok could not be checked)" {
+	if sec.Lines[0] != "No open Claude Code session needs a restart; Grok could not be checked." {
 		t.Fatalf("first line = %q", sec.Lines[0])
 	}
 

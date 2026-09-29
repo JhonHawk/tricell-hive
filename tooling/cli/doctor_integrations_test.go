@@ -300,7 +300,7 @@ func TestIntegrationsEveryRowShowsItsSourceAndNextStep(t *testing.T) {
 			t.Fatalf("%s: source %q next %q", id, r.Source, r.Next)
 		}
 	}
-	if next := rowByID(t, rows, "engram").Next; !strings.Contains(next, "Install it from github.com/Gentleman-Programming/engram") {
+	if next := rowByID(t, rows, "engram").Next; !strings.Contains(next, "Install it from the official source (see Source above)") {
 		t.Fatalf("engram next step = %q; want a step for a program that was not found", next)
 	}
 	text := integrationsText(o, f.deps())
@@ -308,6 +308,14 @@ func TestIntegrationsEveryRowShowsItsSourceAndNextStep(t *testing.T) {
 		mustContain(t, text, "Source: "+source)
 	}
 	mustContain(t, text, "Next step:")
+	// The Next step follows the Source line directly.
+	for _, r := range rows {
+		lines := r.detailLines()
+		n := len(lines)
+		if !strings.HasPrefix(lines[n-2], "Source: ") || !strings.HasPrefix(lines[n-1], "Next step: ") {
+			t.Fatalf("%s: the detail must end with Source and Next step, got %q", r.ID, lines[n-2:])
+		}
+	}
 }
 
 // installSkill writes a nonempty skill file, the evidence Hive looks for.
@@ -335,9 +343,9 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 	}{
 		{"nothing found", func(t *testing.T, f *doctorFake, home string) {}, map[string][]string{
 			"context7":      {"To install it, run " + ctx7, "sign in"},
-			"engram":        {"Install it from github.com/Gentleman-Programming/engram", "Hive does not install it"},
-			"pi-subagents":  {"cannot check it without reading Pi's configuration", "If you use Pi, install it with Pi's own package manager", "github.com/nicobailon/pi-subagents"},
-			"agent-browser": {"Optional", "Hive does not install it", "follow the official instructions at " + agentBrowserSource},
+			"engram":        {"Install it from the official source (see Source above)", "Hive does not install it"},
+			"pi-subagents":  {"cannot check it without reading Pi's configuration", "If you use Pi, install it with Pi's own package manager", "see Source above"},
+			"agent-browser": {"Optional", "Hive does not install it", "follow the official instructions (see Source above)"},
 		}},
 		{"everything found", func(t *testing.T, f *doctorFake, home string) {
 			f.install("engram", "")
@@ -346,19 +354,19 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 			installSkill(t, home, ".agents", "agent-browser")
 		}, map[string][]string{
 			"context7":      {"To refresh it, run " + ctx7, "sign in"},
-			"engram":        {"Hive does not configure Engram", "each CLI", "github.com/Gentleman-Programming/engram"},
+			"engram":        {"Hive does not configure Engram", "each CLI", "see Source above"},
 			"pi-subagents":  {"cannot check it"},
-			"agent-browser": {"Hive does not install or update it", "follow the official instructions at " + agentBrowserSource},
+			"agent-browser": {"Hive does not install or update it", "follow the official instructions (see Source above)"},
 		}},
 		{"agent-browser only as a program", func(t *testing.T, f *doctorFake, home string) {
 			f.install("agent-browser", "")
 		}, map[string][]string{
-			"agent-browser": {"program was found but no skill file", "follow the official instructions at " + agentBrowserSource},
+			"agent-browser": {"program was found but no skill file", "follow the official instructions (see Source above)"},
 		}},
 		{"agent-browser only as a skill", func(t *testing.T, f *doctorFake, home string) {
 			installSkill(t, home, ".codex", "agent-browser")
 		}, map[string][]string{
-			"agent-browser": {"skill file was found but not the program", "follow the official instructions at " + agentBrowserSource},
+			"agent-browser": {"skill file was found but not the program", "follow the official instructions (see Source above)"},
 		}},
 		{"context7 file that cannot be verified", func(t *testing.T, f *doctorFake, home string) {
 			if err := os.MkdirAll(filepath.Join(home, ".agents", "skills", "find-docs", "SKILL.md"), 0o700); err != nil {
@@ -389,6 +397,11 @@ func assertNoCatalogReasonOrInventedCommand(t *testing.T, rows []integrationRow,
 	t.Helper()
 	for _, r := range rows {
 		mustNotContain(t, r.Next, "validation is pending", "Native install")
+		// L2: the Source line sits right above the Next step, so the step
+		// points to it instead of repeating (and wrapping) the address.
+		if r.Source != "" && r.Source != "-" {
+			mustNotContain(t, r.Next, r.Source)
+		}
 		rest := strings.ReplaceAll(r.Next, known, "")
 		mustNotContain(t, rest, "npx ", "npm ", "brew ", "go install", "pip ", "curl ", "cargo ")
 		if r.ID != "context7" && strings.Contains(r.Next, known) {
@@ -401,10 +414,10 @@ func TestIntegrationsNextStepWhenNothingCanBeChecked(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude") // synthetic: no program is looked up
 	rows, _ := collectIntegrationRows(o, newDoctorFake(home).deps())
 	engram := rowByID(t, rows, "engram").Next
-	mustContain(t, engram, "could not look for it here", "github.com/Gentleman-Programming/engram", "Hive does not install")
+	mustContain(t, engram, "could not look for it here", "see Source above", "Hive does not install")
 	mustNotContain(t, engram, "Install it from")
 	browser := rowByID(t, rows, "agent-browser").Next
-	mustContain(t, browser, "could not look for the program here", "follow the official instructions at "+agentBrowserSource)
+	mustContain(t, browser, "could not look for the program here", "follow the official instructions (see Source above)")
 	assertNoCatalogReasonOrInventedCommand(t, rows, "npx ctx7@latest setup --cli")
 }
 

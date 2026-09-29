@@ -35,7 +35,7 @@ func TestDoctorViewShowsThreeSectionsAndNotTheOthers(t *testing.T) {
 	f := newDoctorFake(home)
 	f.install("claude", "2.1.284\n")
 	_, d, _ := openDoctorView(t, o, f, 80, 40)
-	d.mustShow("Diagnostics", "CLIs", "Installation", "Sessions", "CLI version 2.1.284", "Hive release "+shortHash(releaseIDOf(t, stateDir)), "No problems found")
+	d.mustShow("Diagnostics", "CLIs", "Installation", "Sessions", "CLI 2.1.284", "Hive "+shortHash(releaseIDOf(t, stateDir)), "No problems found")
 	d.mustNotShow("Integrations", "Project", "Loading", "Checking")
 	assertFits(t, d, 80, 40)
 }
@@ -62,19 +62,19 @@ func TestDoctorViewReloadsWithRAndIgnoresStaleResults(t *testing.T) {
 	f := newDoctorFake(home)
 	f.install("claude", "1.0.0\n")
 	_, d, v := openDoctorView(t, o, f, 80, 40)
-	d.mustShow("CLI version 1.0.0")
+	d.mustShow("CLI 1.0.0")
 
 	f.versions["/fake/bin/claude"] = "2.0.0\n"
 	d.key("r")
-	d.mustShow("CLI version 2.0.0")
-	d.mustNotShow("CLI version 1.0.0")
+	d.mustShow("CLI 2.0.0")
+	d.mustNotShow("CLI 1.0.0")
 
 	// A result from an older load is dropped.
 	stale := doctorLoadedMsg{owned: owned{v}, seq: v.seq - 1}
 	stale.sections[0] = doctorSection{Title: "CLIs", Lines: []string{"STALE"}}
 	d.send(stale)
 	d.mustNotShow("STALE")
-	d.mustShow("CLI version 2.0.0")
+	d.mustShow("CLI 2.0.0")
 
 	// A double r while loading starts one load only.
 	cmd, _ := v.Update(keyMsg(t, "r"))
@@ -284,7 +284,7 @@ func TestDoctorViewAnswersWhetherToRestartAndHowToRepairDrift(t *testing.T) {
 			}
 			squeezed := strings.Join(strings.Fields(seen.String()), "")
 			for _, want := range []string{
-				"1 open session should be restarted",
+				"1 open Claude Code session should be restarted",
 				"claude: 2 open sessions, 1 to restart",
 				driftRepairLine,
 			} {
@@ -294,6 +294,62 @@ func TestDoctorViewAnswersWhetherToRestartAndHowToRepairDrift(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDoctorViewShowsTheSessionsAnswerOnTheFirstScreenAt80x24 covers M3: with
+// six registered and detected CLIs, real version strings and nothing in drift,
+// every CLIs row but the longest fits one line at 80 columns, so the Sessions
+// headline is on the first screen with at least two lines of margin below it.
+func TestDoctorViewShowsTheSessionsAnswerOnTheFirstScreenAt80x24(t *testing.T) {
+	o, home, stateDir := doctorHome(t, "claude,codex,cursor,grok,opencode,pi")
+	o = nonSyntheticOptions(t, o, home)
+	f := newDoctorFake(home)
+	versions := map[string]string{
+		"claude":   "2.1.284 (Claude Code)",
+		"codex":    "codex-cli 0.159.0",
+		"cursor":   "2026.09.23-86fc751",
+		"grok":     "grok 1.0.45 (c33bff361a6f) [alpha]",
+		"opencode": "opencode v2.0.19",
+		"pi":       "0.87.1",
+	}
+	for host, v := range versions {
+		f.install(host, "unused\n")
+		f.install(versionBinary(host), v+"\n")
+	}
+	_, d, v := openDoctorView(t, o, f, 80, 24)
+	assertFits(t, d, 80, 24)
+	short := shortHash(releaseIDOf(t, stateDir))
+	lines := d.lines()
+	for host, version := range versions {
+		if host == "grok" {
+			continue // its version alone is 34 characters and may wrap
+		}
+		found := false
+		for _, l := range lines {
+			l = strings.TrimSpace(l)
+			found = found || (strings.HasPrefix(l, host+" ") && strings.HasSuffix(l, "CLI "+version) && strings.Contains(l, "Hive "+short))
+		}
+		if !found {
+			t.Errorf("the %s row is not on one line at 80 columns:\n%s", host, d.screen())
+		}
+	}
+	if v.box.vp.YOffset() != 0 {
+		t.Fatalf("the view opened scrolled:\n%s", d.screen())
+	}
+	shown := strings.Split(stripANSI(v.box.vp.View()), "\n")
+	headline := -1
+	for i, l := range shown {
+		if strings.Contains(l, "No open Claude Code or Grok session needs a restart") {
+			headline = i
+		}
+	}
+	if headline < 0 {
+		t.Fatalf("the Sessions headline is not on the first screen:\n%s", d.screen())
+	}
+	if margin := len(shown) - 1 - headline; margin < 2 {
+		t.Fatalf("only %d lines below the Sessions headline, want at least 2:\n%s", margin, d.screen())
+	}
+	d.mustShow("Hive cannot see Codex, Pi or Cursor sessions")
 }
 
 func TestDoctorViewLeavesStateAndHomeUnchanged(t *testing.T) {

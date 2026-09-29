@@ -116,7 +116,7 @@ func TestIntegrationsViewArrowsMoveTheCursorAndTheDetail(t *testing.T) {
 func TestIntegrationsViewShowsTheConcreteNextStepOfTheSelectedRow(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
 	_, d, _ := openIntegrationsView(t, o, f, 80, 24)
-	mustShowUnwrapped(t, d, "Install it from github.com/Gentleman-Programming/engram")
+	mustShowUnwrapped(t, d, "Install it from the official source (see Source above)")
 	d.mustNotShow("validation is pending")
 	d.key("down")
 	mustShowUnwrapped(t, d, "To install it, run npx ctx7@latest setup --cli")

@@ -1,7 +1,8 @@
-// doctor_sessions.go is the Sessions section: a one-line summary of how many
-// open sessions of Claude Code and Grok started before the installed release
-// and should be restarted, then each CLI's own sessions, and what to do for the
-// CLIs whose sessions Hive cannot see. The session files are internal,
+// doctor_sessions.go is the Sessions section: a one-line summary, scoped to the
+// hosts Hive checked, of how many open sessions of Claude Code and Grok started
+// before the installed release and should be restarted; one line naming the
+// registered CLIs whose sessions Hive cannot see; then each checked CLI's own
+// sessions. The session files are internal,
 // undocumented formats of those CLIs: they are read defensively (size limit,
 // tolerant decoding) and only pid, working directory and start time are shown.
 package main
@@ -49,8 +50,25 @@ type hostSessions struct {
 	compared bool
 }
 
-// hostDisplayNames are the names the summary uses for the CLIs it checks.
-var hostDisplayNames = map[string]string{"claude": "Claude Code", "grok": "Grok"}
+// hostDisplayNames are the names the summary uses for the CLIs it checks and
+// for the ones it cannot see.
+var hostDisplayNames = map[string]string{
+	"claude": "Claude Code", "grok": "Grok",
+	"codex": "Codex", "pi": "Pi", "cursor": "Cursor",
+}
+
+// unseenHosts are the CLIs whose open sessions Hive cannot read, in the order
+// the notice names them.
+var unseenHosts = []string{"codex", "pi", "cursor"}
+
+// listWords joins names as "A", "A or B" or "A, B or C" (conjunction "or" or
+// "and").
+func listWords(names []string, conjunction string) string {
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " " + conjunction + " " + names[len(names)-1]
+}
 
 func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Sessions"}
@@ -90,12 +108,19 @@ func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 			lines = append(lines, res.lines...)
 		case "opencode":
 			lines = append(lines, "opencode: reloads its instructions on the next message; no restart needed")
-		default:
-			lines = append(lines, host+": Hive cannot see its open sessions; restart them after each update")
 		}
 	}
 	if summary := sessionsSummary(checks); summary != "" {
 		sec.Lines = append(sec.Lines, summary)
+	}
+	var unseen []string
+	for _, host := range unseenHosts {
+		if st.isRegistered(host) {
+			unseen = append(unseen, hostDisplayNames[host])
+		}
+	}
+	if len(unseen) > 0 {
+		sec.Lines = append(sec.Lines, "Hive cannot see "+listWords(unseen, "or")+" sessions; restart them after each update.")
 	}
 	sec.Lines = append(sec.Lines, lines...)
 	if estimate {
@@ -104,34 +129,43 @@ func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 	return sec
 }
 
-// sessionsSummary answers "do I need to restart sessions?" for the CLIs whose
-// sessions Hive can read (Claude Code and Grok), in one line. It is empty when
-// none of them is registered, because then nothing was checked.
+// sessionsSummary answers "do I need to restart sessions?" in one line, for the
+// CLIs whose sessions Hive can read (Claude Code and Grok) and names only the
+// ones it could check, so it is not read as covering CLIs Hive cannot see. A
+// CLI it could not check follows after a semicolon. It is empty when none of
+// them is registered, because then nothing was checked.
 func sessionsSummary(checks []hostSessions) string {
 	if len(checks) == 0 {
 		return ""
 	}
-	stale, checked := 0, 0
-	var unavailable []string
+	stale := 0
+	var checked, unavailable []string
 	for _, c := range checks {
 		stale += c.stale
 		if c.checked {
-			checked++
+			checked = append(checked, hostDisplayNames[c.host])
 		} else {
 			unavailable = append(unavailable, hostDisplayNames[c.host])
 		}
 	}
 	note := ""
 	if len(unavailable) > 0 {
-		note = " (" + strings.Join(unavailable, " and ") + " could not be checked)"
+		note = listWords(unavailable, "and") + " could not be checked"
 	}
-	switch {
-	case stale > 0:
-		return fmt.Sprintf("%d open %s should be restarted%s", stale, plural(stale, "session", "sessions"), note)
-	case checked == 0:
-		return "Hive could not check whether any open session needs a restart" + note
+	if len(checked) == 0 {
+		return "Hive could not check whether any open session needs a restart (" + note + ")"
 	}
-	return "No open session needs a restart" + note
+	hosts := listWords(checked, "or")
+	var line string
+	if stale > 0 {
+		line = fmt.Sprintf("%d open %s %s should be restarted", stale, hosts, plural(stale, "session", "sessions"))
+	} else {
+		line = "No open " + hosts + " session needs a restart"
+	}
+	if note != "" {
+		line += "; " + note + "."
+	}
+	return line
 }
 
 // checkHostSessions checks one CLI (claude or grok) and returns its lines and

@@ -351,18 +351,18 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 		}
 		switch {
 		case st.err != nil:
-			parts = append(parts, "Hive release unknown")
+			parts = append(parts, "Hive unknown")
 		case !st.isRegistered(host):
 			parts = append(parts, "not installed by Hive")
 		default:
 			inst := st.hostInstallation(host)
 			switch {
 			case inst.Release == "":
-				parts = append(parts, "Hive release -")
+				parts = append(parts, "Hive -")
 			case inst.State == "":
-				parts = append(parts, "Hive release "+shortHash(inst.Release))
+				parts = append(parts, "Hive "+shortHash(inst.Release))
 			default:
-				parts = append(parts, fmt.Sprintf("Hive release %s (%s)", shortHash(inst.Release), inst.State))
+				parts = append(parts, fmt.Sprintf("Hive %s (%s)", shortHash(inst.Release), inst.State))
 			}
 		}
 		if detected[i] {
@@ -377,24 +377,25 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 }
 
 // cliVersion returns the text after the CLI's name in its row: the version the
-// host binary reports (labeled "CLI version", to tell it from Hive's release),
-// or why that is unavailable.
+// host binary reports (labeled "CLI", to tell it from the "Hive" release before
+// it; both labels are short so a row fits 80 columns), or why that is
+// unavailable.
 func cliVersion(deps doctorDeps, host string) string {
 	bin := versionBinary(host)
 	path, err := deps.lookPath(bin)
 	if err != nil {
-		return "CLI version unavailable: " + bin + " not found"
+		return "CLI unavailable: " + bin + " not found"
 	}
 	out, err := deps.runVersion(path)
 	if err != nil {
-		return "CLI version unavailable: " + truncateRunes(sanitizeLine(err.Error()), versionMaxRunes)
+		return "CLI unavailable: " + truncateRunes(sanitizeLine(err.Error()), versionMaxRunes)
 	}
 	line, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
 	line = strings.TrimSpace(sanitizeLine(line))
 	if line == "" {
-		return "CLI version unavailable: no output"
+		return "CLI unavailable: no output"
 	}
-	return "CLI version " + truncateRunes(line, versionMaxRunes)
+	return "CLI " + truncateRunes(line, versionMaxRunes)
 }
 
 // ---------------------------------------------------------------------------
@@ -419,7 +420,7 @@ var installationPhrases = map[string]string{
 // TestNoCommandRepairsADriftedManagedFile), so the only way back is to put the
 // file as Hive wrote it. Drift also covers a file that cannot be read.
 const driftRepairText = "Hive cannot repair a changed file by itself: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
-	"Undo the change (or fix its permissions), or restore the file from a backup, then run hive status to check."
+	"Undo the change (or fix its permissions), or restore the file from a backup, then open Diagnostics again (or run hive doctor) to check."
 
 func installationSection(o management.Options, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Installation"}
