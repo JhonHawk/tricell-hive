@@ -74,8 +74,8 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 **Verification:** `go test ./tooling/cli -run 'Doctor|Sessions|SanitizeLine'` pasa, con estos casos:
 - **AC2:**
   - un CLI detectado muestra su versión, su release corta y el estado de su instalación;
-  - `cursor` ejecuta `cursor-agent`, y sin `cursor-agent` dice «version unavailable: cursor-agent not found»;
-  - un `--version` falso que tarda 5 s da «version unavailable» y la sección termina en menos de 5 s;
+  - `cursor` ejecuta `cursor-agent`, y sin `cursor-agent` dice «CLI version unavailable: cursor-agent not found»;
+  - un `--version` falso que tarda 5 s da «CLI version unavailable» y la sección termina en menos de 5 s;
   - un CLI no detectado no se ejecuta: el ejecutable falso escribe un marcador si corre, y el marcador no existe;
   - con `--home`, no se ejecuta nada.
 - **AC3:**
@@ -303,5 +303,6 @@ La prueba de sincronía falla si se quita `Review` de `hiveSettingKeys`: se comp
   - `hive-review-ux` sobre `9021d85`: no pasa por H1 (alto: las líneas largas se partían sin sangría a 80 columnas). Hallazgos medios M1 a M6.
   - Correcciones: H1 y D2 con sangría francesa en Diagnostics, Project e Integrations (`ecf15c3`); D1, M2, M3 y M5 (`1b427c9`, `e3163a5`). M1, M4 y M6 quedan para decisión del usuario.
   - Segunda revisión de `hive-review-ux` sobre `e3163a5`: aprobada, sin bloqueantes ni altos. Resueltos H1, D1, M2, M3 y M5; D2 en parte (una ruta sin guiones se parte a mitad de un nombre, N2). N1 (error repetido en tres secciones) y N3 (ruta de Project recortada) corregidos en `8330653`; N2, N4 y N5 quedan como posibles tickets. El revisor cerró el servidor `tmux` por defecto al limpiar; no afectó archivos.
-  - En curso: `go test -race ./tooling/cli` sobre el candidato final.
+  - Recorrido del usuario sobre la configuración real (2026-09-29): sin hallazgos.
+  - Decisión D1-B del usuario (2026-09-29): corregir M1 (siguiente paso concreto en Integrations), M4 (resumen de sesiones por reiniciar y cómo reparar el `drift`) y M6 (la versión del CLI se distingue de la versión de Hive) en esta rama, antes de `/code-review`.
 - **Siguiente paso:** recorrido del usuario, luego `/code-review`.

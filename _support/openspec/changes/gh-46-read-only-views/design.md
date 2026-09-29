@@ -76,13 +76,15 @@ Inspeccionado el 2026-09-29 sobre `82f2dcc`. Dos subagentes `sdd-explore` leyero
     - 3 s de límite y `cmd.WaitDelay` de 1 s, para que un proceso nieto que retiene la salida no alargue la espera;
     - la primera línea recortada a 80 runas.
   - Los seis CLIs se consultan en paralelo, así que la carga dura como máximo unos 4 s.
-  - Si `cursor-agent` no está en `PATH` aunque `cursor` sí, se muestra «version unavailable: cursor-agent not found».
+  - Si `cursor-agent` no está en `PATH` aunque `cursor` sí, se muestra «CLI version unavailable: cursor-agent not found».
   - Release y estado de la instalación desde las filas de `Status` de ese CLI.
 - **Installation:**
   - Filas de `Status` con estado distinto de `installed`, `retained_shared` y `not_installed` (`plan.go:772`).
   - Con una operación pendiente (`management.Pending`), las filas `recovery_required` se resumen en una línea con `hive recover`, en lugar de listarse una por una.
   - Cada estado tiene una frase fija en inglés, y un estado desconocido muestra su código tal cual.
+  - Con al menos una fila `drift`, una sola línea explica que Hive no puede reparar un archivo cambiado y que el usuario debe deshacer el cambio, arreglar permisos o restaurarlo, y luego revisar con `hive status` (D1-B, M4).
 - **Sessions:**
+  - **Resumen:** con Claude Code o Grok registrado, la primera línea responde si hay que reiniciar algo («N open sessions should be restarted» o «No open session needs a restart», con el CLI que no se pudo comprobar), y la línea de cada CLI suma su cuenta («claude: 3 open sessions, 1 to restart») (D1-B, M4).
   - **Hora de referencia:** el `LastWrittenAt` de la release que el CLI tiene instalada.
   - **Claude Code:** el directorio sale de `CLAUDE_CONFIG_DIR` o de `~/.claude`, `sessions/*.json`. Se ignoran los archivos que no son `<número>.json`.
   - **Grok:** el directorio sale de `GROK_HOME` o de `~/.grok`, `active_sessions.json`.
@@ -94,7 +96,7 @@ Inspeccionado el 2026-09-29 sobre `82f2dcc`. Dos subagentes `sdd-explore` leyero
   - **Codex, Pi y Cursor:** una línea por CLI registrado, que dice que Hive no ve sus sesiones y que hay que reiniciarlas tras actualizar.
   - **OpenCode:** una línea que dice que recarga en el siguiente mensaje.
   - **Límites declarados:** la marca es una estimación, por estas razones:
-    - `releases/<id>.json` se reescribe en cada transacción que lleva esa release (`apply.go:399-407`), como agregar otro CLI o reparar un `drift`. Eso adelanta la hora de referencia y puede marcar sesiones de más.
+    - `releases/<id>.json` se reescribe en cada transacción que lleva esa release (`apply.go:399-407`), como agregar otro CLI. Ningún comando repara un `drift`: `install`, `update` y `plan remove` se niegan mientras un archivo gestionado difiere (`TestNoCommandRepairsADriftedManagedFile`). Eso adelanta la hora de referencia y puede marcar sesiones de más.
     - Un `/compact` en Claude Code o un cambio de voz no la mueven.
     - `LastWrittenAt` tiene precisión de segundos.
     - Un `pid` reutilizado puede hacer pasar por viva una sesión muerta.
@@ -103,7 +105,7 @@ Inspeccionado el 2026-09-29 sobre `82f2dcc`. Dos subagentes `sdd-explore` leyero
   - **Context7:** los archivos de `context7Candidates`.
   - **pi-subagents:** solo el registro, porque detectarlo exige leer la configuración de Pi.
   - **`agent-browser`:** `lookPath("agent-browser")` y `skills/agent-browser/SKILL.md` en las mismas raíces que `context7Candidates`.
-  - A cada fila se le agrega el estado del último registro, cuando lo hay, y la fuente y el motivo de `providers.Catalog`. `agent-browser` no entra al catálogo de instalación: su fuente se fija en el código de la vista.
+  - A cada fila se le agrega el estado del último registro, cuando lo hay, y la fuente de `providers.Catalog`. El siguiente paso se calcula por fila y por caso (encontrado, no encontrado, estado del registro); el único comando que sugiere es `npx ctx7@latest setup --cli` (D1-B, M1). `agent-browser` no entra al catálogo de instalación: su fuente se fija en el código de la vista.
 - **Project:**
   - **Raíz del repositorio:** `git -C <dir> rev-parse --show-toplevel`, donde `<dir>` es el directorio actual o `--project`.
   - **Sección:** en `AGENTS.md` de esa raíz se busca la línea exacta `## Hive`. Sus elementos son las líneas `- Clave: valor` hasta el siguiente encabezado `#`.
