@@ -582,15 +582,24 @@ func recoverWithAdapterFactory(o management.Options, factory onboardingAdapterFa
 	return recoverInstallOnboarding(o.StateDir, adapter)
 }
 
+// legacyScanError is the error of the legacy-installation scan alone. The
+// candidates that detectInstallerHosts returns with it are complete except for
+// their Legacy flag, so a caller that only lists hosts can still show them,
+// while a caller that treats any error as fatal (the installer) is unchanged.
+type legacyScanError struct{ err error }
+
+func (e *legacyScanError) Error() string { return e.err.Error() }
+func (e *legacyScanError) Unwrap() error { return e.err }
+
+// detectInstallerHosts lists the supported hosts with what is known about
+// each. When only the legacy scan fails, it returns the candidates together
+// with a *legacyScanError.
 func detectInstallerHosts(o management.Options) ([]hostCandidate, error) {
 	registered, err := management.RegisteredHosts(o)
 	if err != nil {
 		return nil, err
 	}
-	legacy, err := management.DetectLegacyHosts(o)
-	if err != nil {
-		return nil, err
-	}
+	legacy, legacyErr := management.DetectLegacyHosts(o)
 	seenRegistered := hostSet(registered)
 	seenLegacy := hostSet(legacy)
 	candidates := make([]hostCandidate, 0, len(installerHosts))
@@ -600,6 +609,9 @@ func detectInstallerHosts(o management.Options) ([]hostCandidate, error) {
 			candidate.Detected = hostDetected(exec.LookPath, host)
 		}
 		candidates = append(candidates, candidate)
+	}
+	if legacyErr != nil {
+		return candidates, &legacyScanError{err: legacyErr}
 	}
 	return candidates, nil
 }

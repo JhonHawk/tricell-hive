@@ -46,16 +46,37 @@ type hostsLoadedMsg struct {
 	seq     int
 	rows    []hostRow
 	pending management.PendingKind
-	err     error
+	// scanNote is set when only the legacy-installation scan failed: the rows
+	// are still complete, except that a legacy install may not be labeled.
+	scanNote string
+	err      error
+}
+
+// legacyScanNote explains, in plain words followed by a "Detail:" line with the
+// raw error, why the legacy scan failed. The scan reads every file Hive could
+// have installed, and a file the user changed by hand fails it, so the usual
+// cause is a changed file, which Diagnostics explains how to restore.
+func legacyScanNote(err error) string {
+	raw := sanitizeLine(err.Error())
+	words := "Hive could not check for a legacy installation, so installing or removing may be refused. Open Diagnostics for details."
+	if path, ok := strings.CutPrefix(raw, "modified legacy file requires manual resolution: "); ok {
+		words = "A file Hive installed was changed (" + path + "). Open Diagnostics to see how to restore it before installing or removing."
+	}
+	return words + "\nDetail: " + raw
 }
 
 // loadHostRows lists the detected, registered and legacy CLIs with what
 // management.Status reports for the registered ones, and checks whether an
-// operation is pending. It only reads state.
-func loadHostRows(o management.Options, deps installDependencies) ([]hostRow, management.PendingKind, error) {
+// operation is pending. It only reads state. A failed legacy scan does not
+// hide the hosts: its note comes back beside the rows.
+func loadHostRows(o management.Options, deps installDependencies) (rows []hostRow, pending management.PendingKind, scanNote string, err error) {
 	candidates, err := deps.DiscoverHosts(o)
+	var scanErr *legacyScanError
+	if errors.As(err, &scanErr) {
+		scanNote, err = legacyScanNote(scanErr), nil
+	}
 	if err != nil {
-		return nil, management.PendingNone, err
+		return nil, management.PendingNone, "", err
 	}
 	var registered []string
 	for _, c := range candidates {
@@ -68,10 +89,9 @@ func loadHostRows(o management.Options, deps installDependencies) ([]hostRow, ma
 		so := o
 		so.Hosts = registered
 		if entries, err = management.Status(so); err != nil {
-			return nil, management.PendingNone, err
+			return nil, management.PendingNone, "", err
 		}
 	}
-	var rows []hostRow
 	for _, c := range candidates {
 		if !c.Registered && !c.Legacy && !c.Detected {
 			continue
@@ -88,8 +108,8 @@ func loadHostRows(o management.Options, deps installDependencies) ([]hostRow, ma
 		}
 		rows = append(rows, row)
 	}
-	pending, err := deps.Pending(o.StateDir)
-	return rows, pending, err
+	pending, err = deps.Pending(o.StateDir)
+	return rows, pending, scanNote, err
 }
 
 // hostStatusFields reads one host's short release, product version and drift
@@ -199,6 +219,7 @@ type hostsView struct {
 	seq          int
 	loading      bool
 	loadErr      string
+	scanNote     string // why the legacy scan failed, when the rows are still shown
 	planning     string
 	message      string
 	messageErr   bool
@@ -233,8 +254,8 @@ func (v *hostsView) reload() tea.Cmd {
 	v.loading = true
 	seq, o, deps := v.seq, v.options(), v.cfg.Deps
 	return func() tea.Msg {
-		rows, pending, err := loadHostRows(o, deps)
-		return hostsLoadedMsg{owned: owned{v}, seq: seq, rows: rows, pending: pending, err: err}
+		rows, pending, scanNote, err := loadHostRows(o, deps)
+		return hostsLoadedMsg{owned: owned{v}, seq: seq, rows: rows, pending: pending, scanNote: scanNote, err: err}
 	}
 }
 
@@ -310,10 +331,10 @@ func (v *hostsView) onLoaded(msg hostsLoadedMsg) (tea.Cmd, action) {
 	}
 	v.loading = false
 	if msg.err != nil {
-		v.loadErr, v.rows = msg.err.Error(), nil
+		v.loadErr, v.scanNote, v.rows = msg.err.Error(), "", nil
 		return nil, action{nav: navNone}
 	}
-	v.loadErr = ""
+	v.loadErr, v.scanNote = "", msg.scanNote
 	v.rows = msg.rows
 	v.checked = map[string]bool{}
 	for _, r := range v.rows {
@@ -791,6 +812,21 @@ func (v *hostsView) View(c viewCtx) string {
 			lines = append(lines, th.Muted.Render("1 pending change: press a to review it."))
 		} else if n > 1 {
 			lines = append(lines, th.Muted.Render(fmt.Sprintf("%d pending changes: press a to review them.", n)))
+		}
+		if v.scanNote != "" {
+			words, detail := errLines(v.scanNote)
+			lines = append(lines, "")
+			for _, l := range wrapLines(words, c.Width) {
+				lines = append(lines, th.Danger.Render(l))
+			}
+			if v.message != "" {
+				detail = nil // a result or error below needs the room more than the raw error
+			}
+			for _, d := range detail {
+				for _, l := range wrapLines(d, c.Width) {
+					lines = append(lines, th.Muted.Render(l))
+				}
+			}
 		}
 	}
 	if v.planning != "" {
