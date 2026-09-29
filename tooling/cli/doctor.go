@@ -22,6 +22,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 )
 
@@ -468,19 +469,35 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 	return sec
 }
 
-// recoverCommand names hive recover, with --state-dir when the state
-// directory is not the default one a bare `hive recover` uses.
+// recoverCommand names hive recover, with --state-dir unless the state
+// directory is the one a bare `hive recover` reaches. That command has no
+// --home: it always uses the default state directory of the real user home,
+// whatever home this report was run with. Both sides are compared with
+// symlinks resolved, since the state directory arrives already resolved.
 func recoverCommand(o management.Options, st doctorState) string {
-	home := o.Home
-	if home == "" {
-		if h, err := os.UserHomeDir(); err == nil {
-			home = h
-		}
-	}
-	if def, err := management.DefaultStateDir(home, o.Home != ""); err == nil && filepath.Clean(def) == filepath.Clean(st.stateDir) {
+	if bareRecoverReaches(st.stateDir) {
 		return "run hive recover"
 	}
 	return "run hive recover --state-dir " + shellQuote(st.stateDir)
+}
+
+// bareRecoverReaches reports whether `hive recover` without --state-dir would
+// act on stateDir.
+func bareRecoverReaches(stateDir string) bool {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	def, err := management.DefaultStateDir(home, false)
+	if err != nil {
+		return false
+	}
+	want, err := target.Canonical(def)
+	if err != nil {
+		return false
+	}
+	got, err := target.Canonical(stateDir)
+	return err == nil && got == want
 }
 
 // ---------------------------------------------------------------------------

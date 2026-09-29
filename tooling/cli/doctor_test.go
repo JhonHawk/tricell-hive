@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 )
 
@@ -683,19 +684,72 @@ func TestDoctorInstallationPendingOperationIsOneRecoverLine(t *testing.T) {
 	mustNotContain(t, sectionText(r.Installation), "No problems found")
 }
 
-func TestDoctorRecoverCommandOmitsDefaultStateDir(t *testing.T) {
-	home := t.TempDir()
-	def, err := management.DefaultStateDir(home, true)
+// realHomeForRecover points HOME at a temporary directory, so a test never
+// reads the developer's real home, and clears XDG_STATE_HOME so the default
+// state directory depends on HOME alone.
+func realHomeForRecover(t *testing.T, home string) {
+	t.Helper()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_STATE_HOME", "")
+}
+
+// canonicalDefaultStateDir is the state directory a bare `hive recover` uses
+// for home, as the managers resolve it (symlinks resolved).
+func canonicalDefaultStateDir(t *testing.T, home string) string {
+	t.Helper()
+	def, err := management.DefaultStateDir(home, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	o := management.Options{Home: home}
-	if got := recoverCommand(o, doctorState{stateDir: def}); got != "run hive recover" {
-		t.Fatalf("default: %q", got)
+	dir, err := target.Canonical(def)
+	if err != nil {
+		t.Fatal(err)
 	}
-	got := recoverCommand(o, doctorState{stateDir: "/some dir/state"})
+	return dir
+}
+
+func TestDoctorRecoverCommandOmitsTheRealDefaultStateDir(t *testing.T) {
+	home := t.TempDir()
+	realHomeForRecover(t, home)
+	got := recoverCommand(management.Options{}, doctorState{stateDir: canonicalDefaultStateDir(t, home)})
+	if got != "run hive recover" {
+		t.Fatalf("real default: %q", got)
+	}
+}
+
+func TestDoctorRecoverCommandNamesAnyOtherStateDir(t *testing.T) {
+	realHomeForRecover(t, t.TempDir())
+	got := recoverCommand(management.Options{}, doctorState{stateDir: "/some dir/state"})
 	if got != "run hive recover --state-dir '/some dir/state'" {
 		t.Fatalf("explicit: %q", got)
+	}
+}
+
+// A bare `hive recover` has no --home and always uses the real home's state,
+// so the default under a synthetic --home is not the one it would reach.
+func TestDoctorRecoverCommandNamesTheStateDirOfASyntheticHome(t *testing.T) {
+	realHomeForRecover(t, t.TempDir())
+	synthetic := t.TempDir()
+	def, err := management.DefaultStateDir(synthetic, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := recoverCommand(management.Options{Home: synthetic}, doctorState{stateDir: def})
+	mustContain(t, got, "hive recover --state-dir ", def)
+}
+
+func TestDoctorRecoverCommandOmitsTheDefaultOfASymlinkedHome(t *testing.T) {
+	real := t.TempDir()
+	link := filepath.Join(t.TempDir(), "home-link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	realHomeForRecover(t, link)
+	// The state directory reaches the command already canonical, so it sits
+	// under the link's target while the default is computed from the link.
+	got := recoverCommand(management.Options{}, doctorState{stateDir: canonicalDefaultStateDir(t, link)})
+	if got != "run hive recover" {
+		t.Fatalf("symlinked home: %q", got)
 	}
 }
 
