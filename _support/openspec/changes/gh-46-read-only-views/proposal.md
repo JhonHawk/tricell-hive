@@ -56,16 +56,16 @@ Este cambio agrega cuatro vistas que solo leen: Diagnostics, Models, Integration
   - la primera línea de `<binario> --version`, con `cursor-agent` para Cursor;
   - la release corta y el estado de la instalación (`verified`, `partial`, `drift`, `legacy`).
 
-  Un CLI no detectado no se ejecuta. Un `--version` que falla o tarda más de 3 s muestra «CLI version unavailable» y el motivo. La versión del CLI y la release de Hive llevan etiquetas distintas («CLI version» y «Hive release») (D1-B, M6). *Falso en la base cuando* ninguna salida del gestor muestra la versión de un CLI.
+  Un CLI no detectado no se ejecuta. Un `--version` que falla o tarda más de 3 s muestra «CLI unavailable» y el motivo. La versión del CLI y la release de Hive llevan etiquetas distintas («CLI» y «Hive») (D1-B, M6). *Falso en la base cuando* ninguna salida del gestor muestra la versión de un CLI.
 - AC3. La sección Installation muestra cada fila de `management.Status` que no está en `installed`, `retained_shared` ni `not_installed`, con su ruta y una frase clara. Cuando hay una operación pendiente, las filas `recovery_required` se resumen en una sola línea con `hive recover`. Por ejemplo, `unowned_or_conflicting` dice «Hive markers are missing, duplicated or broken». También muestra una operación pendiente con el comando `hive recover`. Con una fila `drift`, una línea explica que Hive no repara un archivo cambiado y qué puede hacer el usuario (D1-B, M4). Sin problemas, dice «No problems found». *Falso en la base cuando* no existe una vista ni un comando que traduzca los estados de `Status`.
 - AC4. La sección Sessions:
   - **Claude Code:** lee `sessions/*.json` de su directorio de configuración.
   - **Grok:** lee `active_sessions.json` de su home.
   - **Solo sesiones vivas:** en ambos casos considera solo las sesiones cuyo `pid` sigue vivo.
-  - **Resumen:** con Claude Code o Grok registrado, la primera línea dice cuántas sesiones hay que reiniciar, o que ninguna, y qué CLI no se pudo comprobar (D1-B, M4).
+  - **Resumen:** con Claude Code o Grok registrado, la primera línea dice cuántas sesiones de los CLIs revisados hay que reiniciar, o que ninguna, y qué CLI no se pudo comprobar (D1-B, M4).
   - **Marca de desactualizada:** marca «started before the installed release; restart it» cuando la sesión empezó antes del `LastWrittenAt` de la release instalada para ese CLI.
   - **Formato no reconocido:** un archivo ilegible, que pasa de 1 MiB o tiene un formato desconocido da «Session check unavailable for <host>: <motivo>», sin fallar la vista.
-  - **Codex, Pi y Cursor registrados:** un aviso de reiniciar tras cada actualización.
+  - **Codex, Pi y Cursor registrados:** una sola línea bajo el resumen, con los registrados, que avisa de reiniciar tras cada actualización.
   - **OpenCode:** una nota de que recarga en el siguiente mensaje.
 
   *Falso en la base cuando* nada en `tooling/` lee esos archivos.

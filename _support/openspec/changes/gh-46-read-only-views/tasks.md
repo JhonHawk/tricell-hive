@@ -74,8 +74,8 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 **Verification:** `go test ./tooling/cli -run 'Doctor|Sessions|SanitizeLine'` pasa, con estos casos:
 - **AC2:**
   - un CLI detectado muestra su versión, su release corta y el estado de su instalación;
-  - `cursor` ejecuta `cursor-agent`, y sin `cursor-agent` dice «CLI version unavailable: cursor-agent not found»;
-  - un `--version` falso que tarda 5 s da «CLI version unavailable» y la sección termina en menos de 5 s;
+  - `cursor` ejecuta `cursor-agent`, y sin `cursor-agent` dice «CLI unavailable: cursor-agent not found»;
+  - un `--version` falso que tarda 5 s da «CLI unavailable» y la sección termina en menos de 5 s;
   - un CLI no detectado no se ejecuta: el ejecutable falso escribe un marcador si corre, y el marcador no existe;
   - con `--home`, no se ejecuta nada.
 - **AC3:**

@@ -76,7 +76,7 @@ Inspeccionado el 2026-09-29 sobre `82f2dcc`. Dos subagentes `sdd-explore` leyero
     - 3 s de límite y `cmd.WaitDelay` de 1 s, para que un proceso nieto que retiene la salida no alargue la espera;
     - la primera línea recortada a 80 runas.
   - Los seis CLIs se consultan en paralelo, así que la carga dura como máximo unos 4 s.
-  - Si `cursor-agent` no está en `PATH` aunque `cursor` sí, se muestra «CLI version unavailable: cursor-agent not found».
+  - Si `cursor-agent` no está en `PATH` aunque `cursor` sí, se muestra «CLI unavailable: cursor-agent not found».
   - Release y estado de la instalación desde las filas de `Status` de ese CLI.
 - **Installation:**
   - Filas de `Status` con estado distinto de `installed`, `retained_shared` y `not_installed` (`plan.go:772`).
@@ -84,7 +84,7 @@ Inspeccionado el 2026-09-29 sobre `82f2dcc`. Dos subagentes `sdd-explore` leyero
   - Cada estado tiene una frase fija en inglés, y un estado desconocido muestra su código tal cual.
   - Con al menos una fila `drift`, una sola línea explica que Hive no puede reparar un archivo cambiado y que el usuario debe deshacer el cambio, arreglar permisos o restaurarlo, y luego revisar con `hive status` (D1-B, M4).
 - **Sessions:**
-  - **Resumen:** con Claude Code o Grok registrado, la primera línea responde si hay que reiniciar algo («N open sessions should be restarted» o «No open session needs a restart», con el CLI que no se pudo comprobar), y la línea de cada CLI suma su cuenta («claude: 3 open sessions, 1 to restart») (D1-B, M4).
+  - **Resumen:** con Claude Code o Grok registrado, la primera línea responde si hay que reiniciar algo en los CLIs revisados («N open Claude Code or Grok sessions should be restarted» o «No open Claude Code or Grok session needs a restart», y «; Grok could not be checked.» cuando uno no se pudo revisar), y la línea de cada CLI suma su cuenta («claude: 3 open sessions, 1 to restart») (D1-B, M4).
   - **Hora de referencia:** el `LastWrittenAt` de la release que el CLI tiene instalada.
   - **Claude Code:** el directorio sale de `CLAUDE_CONFIG_DIR` o de `~/.claude`, `sessions/*.json`. Se ignoran los archivos que no son `<número>.json`.
   - **Grok:** el directorio sale de `GROK_HOME` o de `~/.grok`, `active_sessions.json`.
@@ -93,7 +93,7 @@ Inspeccionado el 2026-09-29 sobre `82f2dcc`. Dos subagentes `sdd-explore` leyero
   - **Sesiones vivas:** se cuentan las de `pid` vivo, comprobado con `syscall.Kill(pid, 0)`, donde `nil` o `EPERM` significan vivo. Un `pid` de 0 o menos se descarta, porque `Kill` lo daría por vivo.
   - **Marca por sesión:** desactualizada si empezó antes de la hora de referencia, al día si no.
   - **Datos que se muestran:** solo `pid`, `cwd` y la hora de inicio, nunca el contenido de otros campos.
-  - **Codex, Pi y Cursor:** una línea por CLI registrado, que dice que Hive no ve sus sesiones y que hay que reiniciarlas tras actualizar.
+  - **Codex, Pi y Cursor:** una sola línea bajo el resumen, que nombra solo los registrados y dice que Hive no ve sus sesiones y que hay que reiniciarlas tras actualizar.
   - **OpenCode:** una línea que dice que recarga en el siguiente mensaje.
   - **Límites declarados:** la marca es una estimación, por estas razones:
     - `releases/<id>.json` se reescribe en cada transacción que lleva esa release (`apply.go:399-407`), como agregar otro CLI. Ningún comando repara un `drift`: `install`, `update` y `plan remove` se niegan mientras un archivo gestionado difiere (`TestNoCommandRepairsADriftedManagedFile`). Eso adelanta la hora de referencia y puede marcar sesiones de más.
