@@ -1,11 +1,11 @@
 ---
-name: "sdd-explore"
-description: "Investigate a bounded technical question or current project and delivery state. Use for delegated read-only research into code, conflicting sources, or project and delivery state, instead of a host's built-in explorer."
+name: "hive-research"
+description: "Investigate a bounded technical question or the current project and delivery state, and return an evidence-backed synthesis. Use for delegated read-only research into code or conflicting sources, instead of a host's built-in explorer; not when the task is only to collect the current state of named tickets, branches, or runs."
 model_profile: "execution"
 access_profile: "observe"
 ---
 
-# sdd-explore
+# hive-research
 
 1. Clarify the question and inspect relevant entry points, callers, tests, documentation, and available delivery evidence. Research needs no plan, ledger, or specs repository.
 

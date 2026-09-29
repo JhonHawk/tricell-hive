@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "_support/docs/harness-engineering/harness-audit-rules.md"
-DEPLOYED = [ROOT / "content/skills/harness-audit", ROOT / "content/agents/review/review-harness.md"]
+DEPLOYED = [ROOT / "content/skills/harness-audit", ROOT / "content/agents/review/hive-review-harness.md"]
 RULE_ID = re.compile(r"HA-[A-Z]+-[0-9]+")
 ACTIVE_ROW = re.compile(r"^\| (HA-[A-Z]+-[0-9]+) \|.*\| active \|$", re.MULTILINE)
 

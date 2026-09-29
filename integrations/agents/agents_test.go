@@ -45,7 +45,7 @@ func TestCatalogueRendersAllRolesForEveryHost(t *testing.T) {
 
 func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 	profiles := repositoryProfiles(t)
-	source := "content/agents/review/sdd-explore.md"
+	source := "content/agents/review/hive-research.md"
 	data, err := os.ReadFile(filepath.Join("..", "..", source))
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +75,7 @@ func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 
 func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	profiles := repositoryProfiles(t)
-	source := "content/agents/review/sdd-explore.md"
+	source := "content/agents/review/hive-research.md"
 	data, err := os.ReadFile(filepath.Join("..", "..", source))
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +133,7 @@ func TestProfilesRejectWrongPiToolRestrictionType(t *testing.T) {
 
 func TestCursorObserveRendersInheritModelAndReadonly(t *testing.T) {
 	profiles := repositoryProfiles(t)
-	source := "content/agents/review/sdd-explore.md"
+	source := "content/agents/review/hive-research.md"
 	data, err := os.ReadFile(filepath.Join("..", "..", source))
 	if err != nil {
 		t.Fatal(err)
@@ -252,26 +252,26 @@ func TestRepositorySourcesMatchExpectedEffortLevels(t *testing.T) {
 	profiles := repositoryProfiles(t)
 	// {Claude, Codex, Pi} expected effort level per role.
 	expected := map[string][3]string{
-		"backend-developer":              {"high", "high", "high"},
-		"frontend-developer":             {"high", "high", "high"},
-		"kotlin-multiplatform-developer": {"high", "high", "high"},
-		"devops-engineer":                {"high", "high", "high"},
-		"test-engineer":                  {"high", "high", "high"},
-		"sdd-verify":                     {"high", "high", "high"},
-		"review-ux":                      {"high", "high", "high"},
-		"sdd-explore":                    {"high", "high", "high"},
-		"sdd-spec-writer":                {"medium", "medium", "medium"},
-		"state-fetcher":                  {"low", "low", "low"},
-		"database-specialist":            {"high", "medium", "medium"},
-		"performance-engineer":           {"high", "medium", "medium"},
-		"review-code":                    {"high", "medium", "medium"},
-		"review-task":                    {"high", "medium", "medium"},
-		"review-harness":                 {"high", "medium", "medium"},
-		"review-plan":                    {"medium", "medium", "medium"},
-		"solution-architect":             {"high", "high", "high"},
-		"visual-designer":                {"high", "high", "high"},
-		"review-refuter":                 {"high", "high", "high"},
-		"review-security":                {"max", "max", "max"},
+		"hive-build-backend":       {"high", "high", "high"},
+		"hive-build-frontend":      {"high", "high", "high"},
+		"hive-build-kmp":           {"high", "high", "high"},
+		"hive-build-infra":         {"high", "high", "high"},
+		"hive-write-tests":         {"high", "high", "high"},
+		"hive-verify-change":       {"high", "high", "high"},
+		"hive-review-ux":           {"high", "high", "high"},
+		"hive-research":            {"high", "high", "high"},
+		"hive-write-spec":          {"medium", "medium", "medium"},
+		"hive-read-state":          {"low", "low", "low"},
+		"hive-build-data":          {"high", "medium", "medium"},
+		"hive-tune-performance":    {"high", "medium", "medium"},
+		"hive-review-code":         {"high", "medium", "medium"},
+		"hive-verify-task":         {"high", "medium", "medium"},
+		"hive-review-harness":      {"high", "medium", "medium"},
+		"hive-review-plan":         {"medium", "medium", "medium"},
+		"hive-design-architecture": {"high", "high", "high"},
+		"hive-design-ui":           {"high", "high", "high"},
+		"hive-refute-claim":        {"high", "high", "high"},
+		"hive-review-security":     {"max", "max", "max"},
 	}
 	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
 	if err != nil {
@@ -362,7 +362,7 @@ func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	if _, err := ReadProfiles(data); err != nil {
 		t.Fatalf("five-host profile rejected: %v", err)
 	}
-	source := "content/agents/review/sdd-explore.md"
+	source := "content/agents/review/hive-research.md"
 	body, err := os.ReadFile(filepath.Join("..", "..", source))
 	if err != nil {
 		t.Fatal(err)

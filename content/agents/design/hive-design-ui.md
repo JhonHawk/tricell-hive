@@ -1,11 +1,11 @@
 ---
-name: "visual-designer"
-description: "Design or refine interfaces using the product’s visual language and real user tasks. Use to design or refine the layout, hierarchy, and visual consistency of a screen, component, or shared pattern."
+name: "hive-design-ui"
+description: "Design or refine interfaces using the product's visual language and real user tasks, delivering the design or its implementation with rendered evidence. Use when the layout, hierarchy, or visual consistency of a screen, component, or shared pattern is not yet settled."
 model_profile: "inherit"
 access_profile: "implement"
 ---
 
-# visual-designer
+# hive-design-ui
 
 1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes.
 

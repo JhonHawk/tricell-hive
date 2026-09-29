@@ -1,11 +1,11 @@
 ---
-name: "kotlin-multiplatform-developer"
-description: "Implement Kotlin Multiplatform changes across the project’s supported targets. Use for shared or platform-specific Kotlin Multiplatform code."
+name: "hive-build-kmp"
+description: "Implement Kotlin Multiplatform changes across the project's supported targets. Use for shared or platform-specific Kotlin Multiplatform code whose interface is settled."
 model_profile: "execution"
 access_profile: "implement"
 ---
 
-# kotlin-multiplatform-developer
+# hive-build-kmp
 
 1. Inspect Gradle and Kotlin versions, source sets, dependency compatibility, and the targets the project actually builds.
 

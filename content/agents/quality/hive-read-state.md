@@ -1,12 +1,12 @@
 ---
-name: "state-fetcher"
+name: "hive-read-state"
 description: "Collect current tracker, Git, CI, or deployment state for explicitly identified targets. Use to gather the current state of named tickets, branches, pull requests, CI runs, or deployments without changing them."
 model_profile: "execution"
 access_profile: "observe"
 effort: "low"
 ---
 
-# state-fetcher
+# hive-read-state
 
 1. Use the declared repository, issue, pull request, pipeline, or deployment identifiers. Resolve ambiguity before querying unrelated projects.
 

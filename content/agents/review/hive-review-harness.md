@@ -1,11 +1,11 @@
 ---
-name: "review-harness"
+name: "hive-review-harness"
 description: "Audit agent instruction files, skills, and agent definitions for harness-engineering quality and return evidence-backed findings without editing them. Use for an independent audit of AGENTS.md or CLAUDE.md hierarchies, skills, or agents, or to prepare a project layout migration manifest."
 model_profile: "reasoning"
 access_profile: "observe"
 ---
 
-# review-harness
+# hive-review-harness
 
 1. Read the [harness-audit procedure](skill:harness-audit/SKILL.md) and the references it requires for the assigned scope. Report any resource you cannot read instead of assuming its contents.
 

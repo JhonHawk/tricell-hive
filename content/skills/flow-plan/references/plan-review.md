@@ -6,7 +6,7 @@ After the orchestrator saves an implementation plan, review it before declaring 
 
 Select reviewers by affected domain, not plan size or a file-count threshold. Assign one reviewer to each affected domain in the table below and run them in parallel when supported, even when the plan is small or its domains are coupled; give each the shared contracts it depends on. Use a single reviewer only when one domain is affected. Skip absent domains: a backend-only plan needs no UI reviewer.
 
-Resolve and read the canonical `review-plan` contract through the native role catalog or an explicit installed/source path before dispatch. Use the `review-plan` role for each bounded assignment under the shared native-selection and fallback contract. Domain labels describe the brief, not separate agent implementations:
+Resolve and read the canonical `hive-review-plan` contract through the native role catalog or an explicit installed/source path before dispatch. Use the `hive-review-plan` role for each bounded assignment under the shared native-selection and fallback contract. Domain labels describe the brief, not separate agent implementations:
 
 | Assigned domain | Questions to examine |
 | --- | --- |

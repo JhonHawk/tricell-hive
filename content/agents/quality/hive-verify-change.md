@@ -1,11 +1,11 @@
 ---
-name: "sdd-verify"
-description: "Independently verify implemented behavior and report evidence without fixing source. Use after implementation for an independent check of acceptance criteria, including in-vivo runs, separate from the implementer."
+name: "hive-verify-change"
+description: "Independently verify a completed change's behavior end to end, including in-vivo and browser runs, and report evidence without fixing source. Use after a change is implemented, whatever its number of tasks and with or without a plan, separate from the implementer; not for verifying one task of a retained plan during the build."
 model_profile: "execution"
 access_profile: "verify"
 ---
 
-# sdd-verify
+# hive-verify-change
 
 1. Read the agreed requirements, changed behavior, and available environment before choosing checks.
 

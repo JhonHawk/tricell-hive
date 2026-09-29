@@ -1,11 +1,11 @@
 ---
-name: "frontend-developer"
+name: "hive-build-frontend"
 description: "Implement web interfaces in the repository’s existing framework, preserving application boundaries, accessibility, and user behavior. Use to implement or change screens, components, and client-side behavior whose design is settled."
 model_profile: "execution"
 access_profile: "implement"
 ---
 
-# frontend-developer
+# hive-build-frontend
 
 1. Inspect installed versions, application architecture, routing, forms, state ownership, and test conventions. Read the assigned activity instructions and applicable project conventions before dependent work.
 

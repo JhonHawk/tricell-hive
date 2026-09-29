@@ -6,7 +6,7 @@ Agent instructions have one source at `content/agents/<category>/<name>.md`. Cat
 
 ## Roles and profiles
 
-Twenty roles cover design, implementation, documentation, operations, verification, and review, including harness-engineering audits by `review-harness` and per-task verification of a retained plan by `review-task` (change `per-task-verification`, 2026-09-26). `solution-architect` includes contract design formerly assigned to `sdd-design` and cloud infrastructure design formerly assigned to `cloud-architect`, which had no recorded invocation on any of the six hosts through 2026-09-25; `review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
+Twenty roles cover design, implementation, documentation, operations, verification, and review, including harness-engineering audits by `hive-review-harness` and per-task verification of a retained plan by `hive-verify-task` (change `per-task-verification`, 2026-09-26). `hive-design-architecture` includes contract design formerly assigned to `sdd-design` and cloud infrastructure design formerly assigned to `cloud-architect`, which had no recorded invocation on any of the six hosts through 2026-09-25; `hive-review-security` includes detection formerly assigned to `secrets-auditor`. Dedicated `sdd-spec-reviewer`, `sdd-product-critic`, `workspace-custodian`, and `prompt-engineer` remain deferred. The reference checkout is preserved.
 
 | Profile | Claude | Codex | Pi | Grok | OpenCode V2 | Cursor CLI |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -14,13 +14,13 @@ Twenty roles cover design, implementation, documentation, operations, verificati
 | reasoning | Opus / high | Astra / medium | Astra / medium | Inherit | Claude Opus 5.5 via GitHub Copilot | Inherit |
 | inherit | Inherit / high | Inherit / high | Inherit / high | Inherit | DeepSeek v4.1 Flash / max | Inherit |
 
-OpenCode's `reasoning` profile runs `database-specialist`, `performance-engineer`, `review-code`, `review-harness`, `review-plan`, and `review-task` on `github-copilot/claude-opus-5.5`, so that per-task verification of a DeepSeek build runs on a different model family (change `per-task-verification`). It depends on the user's GitHub Copilot Pro+ plan: the model and the `github-copilot` credential were present in the local OpenCode catalog and auth file on 2026-09-26, and the [Copilot plans](https://docs.github.com/en/copilot/get-started/plans) page does not state behavior for third-party clients or exhausted credits. When the model cannot run, `flow-build` leaves the task unverified and asks the user rather than substituting a child on the implementer's model. The main thread and the `execution` and `inherit` roles stay on DeepSeek. On Grok and Cursor the `reasoning` profile inherits the session model, so there the verifier runs on the same model as the session.
+OpenCode's `reasoning` profile runs `hive-build-data`, `hive-tune-performance`, `hive-review-code`, `hive-review-harness`, `hive-review-plan`, and `hive-verify-task` on `github-copilot/claude-opus-5.5`, so that per-task verification of a DeepSeek build runs on a different model family (change `per-task-verification`). It depends on the user's GitHub Copilot Pro+ plan: the model and the `github-copilot` credential were present in the local OpenCode catalog and auth file on 2026-09-26, and the [Copilot plans](https://docs.github.com/en/copilot/get-started/plans) page does not state behavior for third-party clients or exhausted credits. When the model cannot run, `flow-build` leaves the task unverified and asks the user rather than substituting a child on the implementer's model. The main thread and the `execution` and `inherit` roles stay on DeepSeek. On Grok and Cursor the `reasoning` profile inherits the session model, so there the verifier runs on the same model as the session.
 
 Cursor inherits the parent model in every profile: its model IDs depend on the subscription plan, and its documentation states that Cursor replaces a configured model the plan does not include. Choosing per-profile models is deferred until role delivery is observed. Cursor is optional in `agent-profiles.json` so that releases frozen with the five original hosts remain installable for them; installing Cursor from such a release fails with `unsupported agent host "cursor"`.
 
 ### Effort
 
-Every profile that can carry an effort declares one, so no role inherits the session effort on Claude, Codex, or Pi: a user lowering the session effort to stay in the loop would otherwise lower delegated children that nobody steers. A role declares `effort` only when its task needs a different level on every host; the value is absolute and replaces the profile's. Current exceptions: `review-security` `max`, where effort gains most for security work ([Spending your effort](https://claude.dev/blog/spending-your-effort/)); `state-fetcher` `low`; `review-plan` and `sdd-spec-writer` `medium`.
+Every profile that can carry an effort declares one, so no role inherits the session effort on Claude, Codex, or Pi: a user lowering the session effort to stay in the loop would otherwise lower delegated children that nobody steers. A role declares `effort` only when its task needs a different level on every host; the value is absolute and replaces the profile's. Current exceptions: `hive-review-security` `max`, where effort gains most for security work ([Spending your effort](https://claude.dev/blog/spending-your-effort/)); `hive-read-state` `low`; `hive-review-plan` and `hive-write-spec` `medium`.
 
 | Host | Rendered key | Levels |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ Every profile that can carry an effort declares one, so no role inherits the ses
 | Pi + pi-subagents | `thinking` | `off`–`max` (0.67.0 `src/shared/model-info.ts`); the level is appended to the resolved model without a capability check, so provider handling is unverified |
 | Grok, Cursor, OpenCode | none | Role exceptions have no effect. Grok has no effort field, so children inherit the session effort; Cursor binds effort to a concrete model, which Hive leaves as `inherit`, with the same result; OpenCode renders no effort field: its `execution` and `inherit` roles run on the fixed DeepSeek `#max` variant, and its `reasoning` roles on Claude Opus 5.5 without a variant, because the OpenCode catalog lists none for that model |
 
-A level missing from a host's scale would render as that host's highest documented level; all three rendering hosts currently accept `low`–`max`. The mapping follows the host's scale, not the model's: a role on the `inherit` profile, such as `review-security`, runs on the session's model, whose support for `max` the renderer cannot know. Codex and Pi keep the reasoning profile at `medium` on GPT-6 Astra because OpenAI recommends starting Astra at `low`.
+A level missing from a host's scale would render as that host's highest documented level; all three rendering hosts currently accept `low`–`max`. The mapping follows the host's scale, not the model's: a role on the `inherit` profile, such as `hive-review-security`, runs on the session's model, whose support for `max` the renderer cannot know. Codex and Pi keep the reasoning profile at `medium` on GPT-6 Astra because OpenAI recommends starting Astra at `low`.
 
 Profiles are delivery defaults, not a replacement for the host's authentication, model loop, or permissions. The canonical JSON contains the exact model identifiers. A configured model is not proof of account availability or a successful run.
 
@@ -45,9 +45,9 @@ For example, a backend implementation assignment identifies the authorized API c
 
 Role links use `skill:owner/path` logical resource identities, for example `skill:flow-plan/references/ui-planning.md`. They resolve from the named skill's discovered directory, not the native agent file. This is an authoring convention interpreted through instructions, not a new CLI URI handler. The release validator checks the owning skill and resource exist in the bundle; the renderer preserves the link without embedding content or a machine-specific path. See [instruction resources](instruction-resources.md) for authoring and validation limits.
 
-This contract is authored guidance, not deterministic loading enforcement or a demonstrated quality improvement. The backend role covers the repository’s actual language and framework, including TypeScript. The former `ts-backend-developer` source is consolidated into `backend-developer`, retaining runtime validation, package/workspace inspection and shared-contract guidance. The former `react-developer` and `angular-developer` sources are consolidated into `frontend-developer`, with concise framework-conditional guidance for server/client boundaries, change detection, subscriptions, lifecycle and forms.
+This contract is authored guidance, not deterministic loading enforcement or a demonstrated quality improvement. The backend role covers the repository’s actual language and framework, including TypeScript. The former `ts-backend-developer` source is consolidated into `hive-build-backend`, retaining runtime validation, package/workspace inspection and shared-contract guidance. The former `react-developer` and `angular-developer` sources are consolidated into `hive-build-frontend`, with concise framework-conditional guidance for server/client boundaries, change detection, subscriptions, lifecycle and forms.
 
-Retain separate implementation and review contracts: `test-engineer` authors tests while `sdd-verify` reports independent verification without fixing source; design and operational implementation remain different assignments. Database, performance and Kotlin Multiplatform roles retain their distinct evidence requirements. Security, UX and refutation reviews are selected for the relevant risk or question, not an obligatory review chain; state collection is a bounded assignment, not a mandatory workflow stage. No per-language backend roles or additional stack routing registry are needed for this catalog.
+Retain separate implementation and review contracts: `hive-write-tests` authors tests while `hive-verify-change` reports independent verification without fixing source; design and operational implementation remain different assignments. Database, performance and Kotlin Multiplatform roles retain their distinct evidence requirements. Security, UX and refutation reviews are selected for the relevant risk or question, not an obligatory review chain; state collection is a bounded assignment, not a mandatory workflow stage. No per-language backend roles or additional stack routing registry are needed for this catalog.
 
 ## Native destinations
 
@@ -81,7 +81,7 @@ Documentation establishes intended formats. Parser tests establish serialization
 
 ## Saved-plan review
 
-`review-plan` uses the existing observe profile and returns feedback without edits or gate execution. `flow-plan` owns its domain selection and reconciliation procedure; one canonical role can serve multiple bounded backend, frontend/UI, infrastructure or other domain assignments. Native observe controls vary by host and do not establish universal read-only isolation. The orchestrator remains the sole plan writer.
+`hive-review-plan` uses the existing observe profile and returns feedback without edits or gate execution. `flow-plan` owns its domain selection and reconciliation procedure; one canonical role can serve multiple bounded backend, frontend/UI, infrastructure or other domain assignments. Native observe controls vary by host and do not establish universal read-only isolation. The orchestrator remains the sole plan writer.
 
 ## Native selection and evidence
 
@@ -97,6 +97,8 @@ The shared delegation contract lives in `content/guidance/global.md` as a capabi
 | Cursor CLI | `Task` with `subagent_type`; 2026.09.18 and 2026.09.23 list only project-level and built-in types, so sessions fall back to a generic child with the role contract. |
 
 Isolating a guidance variant per process for such pilots: Claude Code `--settings` with `claudeMdExcludes` plus `--append-system-prompt`; Codex and Pi a shadow `CODEX_HOME` or `PI_CODING_AGENT_DIR` with symlinks; Grok a shadow `HOME` with the real `GROK_HOME`; OpenCode 2 needs `opencode run --standalone`, because its background service ignores process environment overrides; Cursor a project `.cursor/rules` file.
+
+Ids as observed, before the 2026-09-29 rename to `hive-<verb>-<object>`.
 
 | Host inspected | Evidence through 2026-09-22 | Remaining limit |
 | --- | --- | --- |

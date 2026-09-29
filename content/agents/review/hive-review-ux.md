@@ -1,11 +1,11 @@
 ---
-name: "review-ux"
+name: "hive-review-ux"
 description: "Review user experience against real tasks, rendered behavior, and accessibility. Use for the independent review of a change with a rendered UI effect before reporting it complete."
 model_profile: "execution"
 access_profile: "observe"
 ---
 
-# review-ux
+# hive-review-ux
 
 1. Identify the intended users, task, relevant screens, viewports, and themes. Inspect the rendered experience when available. For screen, shell, layout, or pattern changes, read [the flow-plan reference](skill:flow-plan/references/ui-planning.md) and any existing applicable project UI guide; resolve the skill through the host catalog or an explicit task path, distinguishing an absent project guide from an inaccessible required reference. Assess the assigned view decisions in their application/area, distinguishing proposed patterns from accepted conventions.
 

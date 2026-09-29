@@ -1,11 +1,11 @@
 ---
-name: "backend-developer"
+name: "hive-build-backend"
 description: "Implement backend behavior in the repository’s existing language and framework. Use to implement server-side code, APIs, jobs, or integrations whose interface is settled."
 model_profile: "execution"
 access_profile: "implement"
 ---
 
-# backend-developer
+# hive-build-backend
 
 1. Identify the actual runtime, framework, package manager, workspace and service boundaries, entry points, callers, and test commands before changing code. Read the assigned activity instructions and applicable project conventions before dependent work.
 

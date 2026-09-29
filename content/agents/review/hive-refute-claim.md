@@ -1,11 +1,11 @@
 ---
-name: "review-refuter"
+name: "hive-refute-claim"
 description: "Challenge a specific claim or proposed finding with counterevidence. Use to test whether a reported finding or conclusion holds before acting on it."
 model_profile: "inherit"
 access_profile: "observe"
 ---
 
-# review-refuter
+# hive-refute-claim
 
 1. State the claim and the evidence that would confirm or refute it. Inspect the actual code path, configuration, versions, and assumptions.
 
