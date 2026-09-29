@@ -17,6 +17,8 @@ Distinguish the shell (navigation and persistent frame), screen pattern (list, d
 | Guide, design, and implementation disagree | Record the discrepancy and resolve which behavior to preserve or change from current intent and evidence; none automatically takes precedence |
 | No suitable pattern exists | Propose a composition and settle consequential visual/interaction choices before dependent implementation; use a sketch or mockup when it helps make the decision reviewable |
 
+When you ask the user to choose between compositions, while planning or after a human validation, show each option as an ASCII sketch of the affected screen or region, at most 60 characters wide, with its real labels and item count. Put it in the option preview of the host's question tool when it offers one; otherwise put each sketch in a code block in the message before the question.
+
 An existing screen is a candidate, not automatically an accepted standard. Distinguish proposed, accepted, and deprecated patterns using the project's decision process. Resolve material ambiguity with the user; routine reuse under an established convention needs no additional approval. Keep independent work moving while dependent visual decisions remain unresolved. An unavailable rendered reference is an explicit evidence limit, not permission to claim visual consistency from source alone.
 
 ## Record the view decisions
