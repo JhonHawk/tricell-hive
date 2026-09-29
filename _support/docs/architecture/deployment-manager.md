@@ -58,6 +58,27 @@ With a voice active, `plan install`, and therefore `hive install` and `hive upda
 
 The voice is stored in `state.json` as `voice` and `voice_spans` without a schema change. A manager from before this feature keeps those fields while it only reads the state, but drops them the next time it writes it, leaving the spans in the files; its `plan remove` also leaves a file's voice span behind. The current manager then reports those spans as unregistered conflicts, and every operation on such a file, `hive voice off` included, stops until the user deletes the voice span by hand, from its begin marker through its end marker. Run `hive voice off` before returning to an older manager.
 
+### Read-only diagnostics
+
+```sh
+go run ./tooling/cli doctor [--home DIR] [--state-dir DIR] [--project DIR]
+go run ./tooling/cli models [--home DIR] [--state-dir DIR]
+```
+
+`hive doctor` prints five sections with the same text as the Diagnostics, Integrations, and Project views: CLIs, Installation, Sessions, Integrations, and Project. `hive models` prints, per registered host, the effective model and effort of each installed role, with the same words as the Models view. Both write no file or state and exit with status 0 when they report findings; only their own errors, such as a state directory that is a file, give a non-zero status.
+
+- **CLIs** lists each supported host in installer order: detected on `PATH` or not, the first line of `<binary> --version` (`cursor-agent` for Cursor), and the host's release and installation state (`verified`, `partial`, `drift`, `legacy`). Only a detected host is executed, with fixed arguments, no shell, and a 3-second limit; a failure or timeout shows `version unavailable` and its reason.
+- **Installation** lists every `status` row other than `installed`, `retained_shared`, and `not_installed`, with a plain phrase and its path, or `No problems found`. With a pending operation it shows one line naming `hive recover` instead of the `recovery_required` rows, because `status` then marks every row that way.
+- **Sessions** reads Claude Code's `sessions/*.json` under `CLAUDE_CONFIG_DIR` or `~/.claude` and Grok's `active_sessions.json` under `GROK_HOME` or `~/.grok`. It counts only sessions whose process is alive and marks one `started before the installed release; restart it` when it started before the installed release's snapshot was last written. It shows only the process ID, working directory, and start time. A file larger than 1 MiB, unreadable, or in an unknown format makes that host `Session check unavailable` without failing the other sections. Codex, Pi, and Cursor get a restart notice, because Hive cannot see their sessions; OpenCode gets a note that it reloads its instructions on the next message.
+- **Integrations** shows Engram, Context7, pi-subagents, and `agent-browser`: the local evidence (the program on `PATH` or the skill file, with its path), the status in the last onboarding record, the official source, and the next step. It executes no integration program and reads no host or provider configuration, so pi-subagents shows only its onboarding status. `agent-browser` is detected but is not part of the optional capability catalog.
+- **Project** validates the `## Hive` section of `AGENTS.md` at the root of the Git repository that contains `--project`, or the current directory: missing or duplicated section, missing or empty required values (`Project`, `Base branch`, `Tracker`, `Specs`), a `Specs` path that is not a directory, a `Base branch` that is neither a local branch nor on `origin`, unknown keys, and `Delivery` or `Hive guidance` values other than `direct-base` and `required`. It runs read-only `git` queries with Git's local environment variables removed. A section in a workspace `AGENTS.md` outside a repository is not checked.
+
+With `--home`, as elsewhere, host environment overrides are ignored, no host binary is looked up or executed, and sessions are read under that home; `--project` still runs `git` in the named repository. Text read from outside the manager (versions, paths, session directories, `AGENTS.md` values) has control characters and escape sequences removed before it is shown.
+
+Limits: the session files of Claude Code and Grok are internal and undocumented, so any host version may change them and turn the check into `Session check unavailable`. The restart mark is an estimate: a release snapshot is rewritten by every transaction that carries it, such as adding a host or repairing drift, which moves the reference time forward and can mark sessions that already have the current content; `/compact` in Claude Code and voice changes do not move it; the write time has one-second precision; and a reused process ID can make a finished session look alive. Codex, Pi, and Cursor have no session detection.
+
+To change a model or effort, edit `integrations/agent-profiles.json` in the Hive checkout and run `hive update`; the diagnostics never write models or `## Hive` values.
+
 ### Terminal interface
 
 ```sh
@@ -65,9 +86,9 @@ go run ./tooling/cli
 go run ./tooling/cli tui [--home DIR] [--state-dir DIR] [--source DIR]
 ```
 
-`hive` without arguments in a terminal, or `hive tui`, opens a full-screen application on the terminal's alternate screen: a menu with CLIs, Update, Releases, Voice, and Quit, under a status line with the number of registered hosts, the installed release, and the voice, and above a help bar that lists the current view's keys. Changing views redraws the whole screen, and leaving the application restores the terminal's previous content. Below 80×24 it shows the minimum size instead of the view, and keeps the view's state until the terminal is large enough again. The theme follows the terminal's light or dark background; `NO_COLOR` removes colors, and checkboxes, the cursor, and the selected button always use symbols.
+`hive` without arguments in a terminal, or `hive tui`, opens a full-screen application on the terminal's alternate screen: a menu with CLIs, Update, Releases, Voice, Diagnostics, Models, Integrations, Project, and Quit, under a status line with the number of registered hosts, the installed release, and the voice, and above a help bar that lists the current view's keys. Changing views redraws the whole screen, and leaving the application restores the terminal's previous content. Below 80×24 it shows the minimum size instead of the view, and keeps the view's state until the terminal is large enough again. The theme follows the terminal's light or dark background; `NO_COLOR` removes colors, and checkboxes, the cursor, and the selected button always use symbols.
 
-The application needs a terminal on standard input and output. Without one, `hive` without arguments keeps its usage error, and `hive tui` fails naming the text commands. Those commands (`hive status`, `install`, `update`, `releases`, `voice`, `plan`/`apply` to remove hosts, and `recover`) are the path for scripts and screen readers; the application has no line-based mode. `hive install` remains the plain-text installer that `install.sh` and the online bootstrap use.
+The application needs a terminal on standard input and output. Without one, `hive` without arguments keeps its usage error, and `hive tui` fails naming the text commands. Those commands (`hive status`, `install`, `update`, `releases`, `voice`, `doctor`, `models`, `plan`/`apply` to remove hosts, and `recover`) are the path for scripts and screen readers; the application has no line-based mode. `hive install` remains the plain-text installer that `install.sh` and the online bootstrap use.
 
 Keys:
 
@@ -81,6 +102,13 @@ Each view reuses the plans and summaries of its command, so it writes the same f
 - **Update** edits the source (`.`) and revision (`HEAD`) in place and shows the `hive update` summary. When the revision changes nothing, it records the source commit without asking, as `hive update` does.
 - **Releases** lists retained releases, newest first, with the installed one marked. `/` filters by text and Esc clears the filter. Choosing a release returns to it through `plan install --release` for the registered hosts.
 - **Voice** shows the active voice as rows (voice, address, name when the address is `name`, and intensity) changed in place with the arrows, then previews `hive voice set` or `off`. With Off, only the voice row shows.
+
+The four read-only views show what `hive doctor` and `hive models` print (see [Read-only diagnostics](#read-only-diagnostics)) and change nothing. Each loads in the background with a spinner, `r` reloads it, and a load error shows inside the view with `r to retry`. Long content scrolls with PgUp and PgDn, and with ↑↓ except in Integrations:
+
+- **Diagnostics** shows the CLIs, Installation, and Sessions sections.
+- **Models** shows one host at a time, chosen with ←→ and shown in brackets, as a table of role, profile, model, and effort; the role name is never cut.
+- **Integrations** lists the four integrations with a `>` cursor moved by ↑↓, and the selected one's detail below.
+- **Project** shows the checked `AGENTS.md` path and `Valid` or the findings, with the values read.
 
 Apart from that unchanged update, every writing action shows its summary, which scrolls, and asks for confirmation. Declining or going back shows `Cancelled. No changes applied.` inside the originating view; an error shows the command's message there; a successful action refreshes the view and shows its result. When the application opens with a pending operation, it offers to recover it. Recovery messages name `hive recover`, adding `--state-dir DIR` when the application was opened with an explicit state directory. Adding hosts in CLIs, and Voice, read the catalog from `--source`, which defaults to the current directory: outside a Hive checkout or package they report `Run hive from a Hive checkout or package, or pass --source`.
 
