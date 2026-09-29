@@ -96,7 +96,7 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 
 ## T2 — Integraciones
 
-- [/] La vista Integrations muestra Engram, Context7, pi-subagents y `agent-browser` con evidencia local, estado del último registro, fuente y siguiente paso.
+- [x] La vista Integrations muestra Engram, Context7, pi-subagents y `agent-browser` con evidencia local, estado del último registro, fuente y siguiente paso.
 
 **Closes:** AC6.
 
@@ -136,7 +136,7 @@ Las rutas son relativas a la raíz del repositorio. Los comandos se corren desde
 
 ## T3 — Validación de `## Hive`
 
-- [/] La vista Project valida la sección `## Hive` del repositorio actual y reporta cada hallazgo.
+- [x] La vista Project valida la sección `## Hive` del repositorio actual y reporta cada hallazgo.
 
 **Closes:** AC7, AC10.
 
@@ -173,7 +173,7 @@ La prueba de sincronía falla si se quita `Review` de `hiveSettingKeys`: se comp
 
 ## T5 — Comandos, menú y tamaños
 
-- [ ] `hive doctor` y `hive models` imprimen las secciones, el menú abre las cuatro vistas y todas caben a 80×24 y a 120×40.
+- [x] `hive doctor` y `hive models` imprimen las secciones, el menú abre las cuatro vistas y todas caben a 80×24 y a 120×40.
 
 **Closes:** AC1, AC8, AC9.
 
@@ -217,7 +217,8 @@ La prueba de sincronía falla si se quita `Review` de `hiveSettingKeys`: se comp
 
 ## T6 — Documentación y especificación
 
-- [ ] `deployment-manager.md` documenta las vistas, `hive doctor`, `hive models` y sus límites. La especificación del cambio está completa.
+- [x] `deployment-manager.md` documenta las vistas, `hive doctor`, `hive models` y sus límites. La especificación del cambio está completa.
+  Ronda 1, AC11: el escenario «Unreadable session record» de la especificación dice que un registro que falta se reporta como no disponible, pero el código lo trata como «no open sessions».
 
 **Closes:** AC11.
 
@@ -292,5 +293,15 @@ La prueba de sincronía falla si se quita `Review` de `hiveSettingKeys`: se comp
   - Para T5: con una lista vacía, `renderModelsText` dice «No agents are installed.» y omite los CLIs registrados sin agentes, mientras la vista dice «No CLI hosts are registered» o «No agents installed for <host>». AC8 pide el mismo contenido, así que `hive models` debe alinearse con la vista.
   - T4 verificada por `hive-verify-task` (AC2, AC3 y AC4 met) e integrada (`3b04ae0`). Tras la verificación se quitó la cuenta de recursos de la línea de operación pendiente, porque `Status` marca todas las filas y la cuenta salía inflada. Un solo archivo de sesión de Claude ilegible deja todo Claude como «unavailable», como pide AC4.
   - T5 empezada en el hilo principal: `hive doctor`, `hive models` y el mensaje sin terminal (`bbc7b56`).
-  - T2 y T3 en curso.
-- **Siguiente paso:** integrar T4 y lanzar T2 y T3.
+  - T3 verificada por `hive-verify-task` (AC7 y AC10 met) e integrada (`9d2fcaf`). La verificación vio que las pruebas de T4 ejecutaban `git` sobre el repositorio real al pasar un proyecto vacío; ahora pasan un directorio temporal (`cb2218e`). Las pruebas que abren Project desde el menú siguen leyendo el `AGENTS.md` de este repositorio, porque la vista usa el directorio actual; solo leen.
+  - T2 verificada por `hive-verify-task` (AC6 met) e integrada (`19ec6b3`, `31cc53d`). `hive doctor` imprime el detalle de las cuatro integraciones, mientras la vista muestra el de la fila elegida; los dos usan los mismos renderizadores.
+  - T5 verificada por `hive-verify-task` (AC1, AC8 y AC9 met): `bbc7b56`, `13b1506`, `345d714`, `5fa1e83`. Tras la verificación, `hive doctor` nombra el `AGENTS.md` o el directorio revisado, como la vista, y una prueba comprueba que la ayuda lista los dos comandos (`9021d85`).
+  - T6 verificada por `hive-verify-task` en la segunda ronda (AC11 met): `0adb30c`, `6d4712e` y una precisión de redacción posterior.
+- **Gates de cierre (2026-09-29):**
+  - Suite completa (`go vet` y `go test -race -timeout 20m ./...`) en `0adb30c`: pasa. `go.mod` y `go.sum` iguales a la base.
+  - `hive-verify-change` sobre `9021d85`: AC1 a AC9 pasan, las vistas y los comandos no escriben, y los comandos existentes dan la misma salida que la base. Defectos: D1 (sin CLIs registrados no se veía una operación pendiente) y D2 (rutas largas partidas sin sangría).
+  - `hive-review-ux` sobre `9021d85`: no pasa por H1 (alto: las líneas largas se partían sin sangría a 80 columnas). Hallazgos medios M1 a M6.
+  - Correcciones: H1 y D2 con sangría francesa en Diagnostics, Project e Integrations (`ecf15c3`); D1, M2, M3 y M5 (`1b427c9`, `e3163a5`). M1, M4 y M6 quedan para decisión del usuario.
+  - Segunda revisión de `hive-review-ux` sobre `e3163a5`: aprobada, sin bloqueantes ni altos. Resueltos H1, D1, M2, M3 y M5; D2 en parte (una ruta sin guiones se parte a mitad de un nombre, N2). N1 (error repetido en tres secciones) y N3 (ruta de Project recortada) corregidos en `8330653`; N2, N4 y N5 quedan como posibles tickets. El revisor cerró el servidor `tmux` por defecto al limpiar; no afectó archivos.
+  - En curso: `go test -race ./tooling/cli` sobre el candidato final.
+- **Siguiente paso:** recorrido del usuario, luego `/code-review`.

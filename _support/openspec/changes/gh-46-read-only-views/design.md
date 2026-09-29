@@ -131,10 +131,10 @@ Las cuatro son de solo lectura y siguen el patrón de carga de CLIs y Releases:
 
 | Vista | Filas fijas | Contenido y teclas | Vacío y error |
 | --- | --- | --- | --- |
-| Diagnostics | Título y posición (2) | Las secciones CLIs, Installation y Sessions con encabezados, en un solo `scrollBox`; ↑↓, PgUp y PgDn desplazan | Sin CLIs registrados, Installation y Sessions dicen «No CLI hosts are registered» |
+| Diagnostics | Título y posición (2) | Las secciones CLIs, Installation y Sessions con encabezados, en un solo `scrollBox`; ↑↓, PgUp y PgDn desplazan. Con el estado ilegible, la explicación completa va solo en CLIs, e Installation y Sessions dicen «Not checked: Hive's state could not be read (see above).» | Sin CLIs registrados, Installation y Sessions dicen «No CLI hosts are registered» |
 | Models | Título, fila de CLIs, encabezado de la tabla, posición y pie de 2 líneas (6) | ←→ cambia de CLI; tabla Role, Profile, Model y Effort en `scrollBox`. Anchos a 80 columnas: Role tan ancho como el rol más largo (hoy 24), Profile 10, Model 28 como mínimo y Effort 8, con separaciones de 2; Model se recorta con «…» y Role nunca se recorta; a 120 columnas, Model crece. Pie: cómo cambiarlos (D2-A) | Sin CLIs: «No CLI hosts are registered». Un CLI sin agentes: «No agents installed for <host>» |
 | Integrations | Título, encabezado y las 4 filas de la lista (6) | ↑↓ mueve el cursor `>`. Debajo, el detalle de la fila elegida (fuente, estado del registro y siguiente paso) ocupa las filas restantes (15 a 80×24) en un `scrollBox` que ajusta el texto sin recortarlo y se desplaza con PgUp y PgDn | Sin registro: «No onboarding record yet» en la columna de estado |
-| Project | Título, ruta del `AGENTS.md` y posición (3) | «Valid» o la lista de hallazgos, y los valores leídos, en `scrollBox` | Fuera de un repositorio, dos líneas: «Not inside a Git repository; run hive from a repository.» y «Workspace-level ## Hive sections are not checked.» |
+| Project | Título y posición (2) | La ruta del `AGENTS.md`, o `Directory: …` fuera de un repositorio, como primera línea del `scrollBox`, ajustada con sangría en las continuaciones en lugar de recortada; después «Valid» o la lista de hallazgos, y los valores leídos | Fuera de un repositorio, dos líneas: «Not inside a Git repository; run hive from a repository.» y «Workspace-level ## Hive sections are not checked.» |
 
 El menú agrega las cuatro entradas antes de Quit: 9 filas más el título ocupan 11 de las 21. Las pruebas del menú cambian así:
 - `menuRowPattern` (`tui_test.go:313`) reconoce los nueve nombres;
