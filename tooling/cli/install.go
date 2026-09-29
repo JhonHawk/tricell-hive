@@ -20,6 +20,31 @@ import (
 
 var installerHosts = []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
 
+// hostBinaries lists, for a host whose executables are not just its own name,
+// the programs whose presence on PATH shows its CLI is installed. The first one
+// is the CLI itself and reports the version; the others only count as evidence.
+// Cursor's CLI is cursor-agent, while the cursor launcher may be the only one
+// installed. Both installer detection and Diagnostics read this list.
+var hostBinaries = map[string][]string{"cursor": {"cursor-agent", "cursor"}}
+
+// detectionBinaries returns the executables to look for on PATH for a host.
+func detectionBinaries(host string) []string {
+	if bins, ok := hostBinaries[host]; ok {
+		return bins
+	}
+	return []string{host}
+}
+
+// hostDetected reports whether any of the host's executables is found by lookPath.
+func hostDetected(lookPath func(string) (string, error), host string) bool {
+	for _, bin := range detectionBinaries(host) {
+		if _, err := lookPath(bin); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 type hostCandidate struct {
 	Name       string
 	Detected   bool
@@ -572,9 +597,7 @@ func detectInstallerHosts(o management.Options) ([]hostCandidate, error) {
 	for _, host := range installerHosts {
 		candidate := hostCandidate{Name: host, Registered: seenRegistered[host], Legacy: seenLegacy[host]}
 		if o.Home == "" {
-			if _, err := exec.LookPath(host); err == nil {
-				candidate.Detected = true
-			}
+			candidate.Detected = hostDetected(exec.LookPath, host)
 		}
 		candidates = append(candidates, candidate)
 	}

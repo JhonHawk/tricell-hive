@@ -382,20 +382,59 @@ func TestDoctorCLIsRealVersionTimesOutWithoutWaiting(t *testing.T) {
 	mustContain(t, text, "CLI unavailable: timed out after 3s", "CLI codex 1.0")
 }
 
-func TestDoctorUndetectedHostIsNotExecuted(t *testing.T) {
+// cursorLine returns the Cursor row of the CLIs section.
+func cursorLine(t *testing.T, sec doctorSection) string {
+	t.Helper()
+	for _, l := range sec.Lines {
+		if strings.HasPrefix(l, "cursor") {
+			return l
+		}
+	}
+	t.Fatalf("no cursor row in:\n%s", sectionText(sec))
+	return ""
+}
+
+// I2: Cursor's CLI is cursor-agent, and the editor launcher is cursor; either
+// on the path means the host is there, and only cursor-agent is ever executed.
+func TestDoctorCLIsCursorAgentAloneIsDetectedWithItsVersion(t *testing.T) {
+	o, home, _ := doctorHome(t, "claude")
+	o = nonSyntheticOptions(t, o, home)
+	f := newDoctorFake(home)
+	f.install("cursor-agent", "2026.09.23\n")
+	r := collectDoctor(o, t.TempDir(), f.deps())
+	line := cursorLine(t, r.CLIs)
+	mustContain(t, line, "detected", "CLI 2026.09.23")
+	mustNotContain(t, line, "not detected")
+	if len(f.ran) != 1 || f.ran[0] != "/fake/bin/cursor-agent" {
+		t.Fatalf("ran %v, want only cursor-agent", f.ran)
+	}
+}
+
+func TestDoctorCLIsCursorAloneIsDetectedAndNothingRuns(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude")
 	o = nonSyntheticOptions(t, o, home)
 	bin, marker := t.TempDir(), filepath.Join(t.TempDir(), "ran")
 	f := newDoctorFake(home)
-	// cursor is not detected (no "cursor" on the path) although its version
-	// binary exists: it must not run.
-	f.paths["cursor-agent"] = fakeExecutable(t, bin, "cursor-agent", "touch "+marker)
+	f.paths["cursor"] = fakeExecutable(t, bin, "cursor", "touch "+marker)
 	deps := f.deps()
 	deps.runVersion = runVersionCommand
-	r := collectDoctor(o, t.TempDir(), deps)
-	mustContain(t, sectionText(r.CLIs), "not detected")
+	line := cursorLine(t, collectDoctor(o, t.TempDir(), deps).CLIs)
+	mustContain(t, line, "detected", "CLI unavailable: cursor-agent not found")
+	mustNotContain(t, line, "not detected")
 	if _, err := os.Stat(marker); err == nil {
-		t.Fatal("an undetected CLI was executed")
+		t.Fatal("the cursor launcher was executed")
+	}
+}
+
+func TestDoctorCLIsWithoutAnyCursorBinaryIsNotDetected(t *testing.T) {
+	o, home, _ := doctorHome(t, "claude")
+	o = nonSyntheticOptions(t, o, home)
+	f := newDoctorFake(home)
+	line := cursorLine(t, collectDoctor(o, t.TempDir(), f.deps()).CLIs)
+	mustContain(t, line, "not detected")
+	mustNotContain(t, line, "CLI ")
+	if len(f.ran) != 0 {
+		t.Fatalf("ran %v", f.ran)
 	}
 }
 

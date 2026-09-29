@@ -647,3 +647,67 @@ func TestInstallUnchangedCoreWithCapabilityFitsTerminal(t *testing.T) {
 		t.Fatalf("error line exceeds 80 columns (%d): %q", len(line), line)
 	}
 }
+
+// hostDetectionPath makes only the named executables findable and returns
+// nothing else on PATH, with HOME and every host override pointing at a
+// temporary directory, so detectInstallerHosts never sees the developer's tools.
+func hostDetectionPath(t *testing.T, names ...string) management.Options {
+	t.Helper()
+	home := t.TempDir()
+	isolateDoctorEnv(t, home)
+	bin := t.TempDir()
+	for _, name := range names {
+		fakeExecutable(t, bin, name, "exit 0")
+	}
+	t.Setenv("PATH", bin)
+	return management.Options{Scope: "user", StateDir: filepath.Join(home, "state")}
+}
+
+func detectedHosts(t *testing.T, o management.Options) map[string]bool {
+	t.Helper()
+	candidates, err := detectInstallerHosts(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, c := range candidates {
+		got[c.Name] = c.Detected
+	}
+	return got
+}
+
+// I2: Cursor's CLI executable is cursor-agent; the cursor launcher counts too.
+func TestDetectInstallerHostsCursorNeedsEitherBinary(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		bins  []string
+		found bool
+	}{
+		{"cursor-agent alone", []string{"cursor-agent"}, true},
+		{"cursor alone", []string{"cursor"}, true},
+		{"both", []string{"cursor", "cursor-agent"}, true},
+		{"neither", []string{"claude"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := detectedHosts(t, hostDetectionPath(t, tc.bins...))
+			if got["cursor"] != tc.found {
+				t.Fatalf("cursor detected = %v, want %v", got["cursor"], tc.found)
+			}
+			for _, other := range []string{"codex", "grok", "opencode", "pi"} {
+				if got[other] {
+					t.Fatalf("%s detected without its binary", other)
+				}
+			}
+		})
+	}
+}
+
+func TestDetectInstallerHostsSyntheticHomeDetectsNothing(t *testing.T) {
+	o := hostDetectionPath(t, "cursor-agent", "cursor", "claude", "codex")
+	o.Home = t.TempDir()
+	for host, detected := range detectedHosts(t, o) {
+		if detected {
+			t.Fatalf("%s detected under a synthetic home", host)
+		}
+	}
+}

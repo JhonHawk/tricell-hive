@@ -318,12 +318,10 @@ func (st doctorState) hostInstallation(host string) hostInstall {
 // CLIs.
 // ---------------------------------------------------------------------------
 
-// versionBinary is the executable that reports a CLI's version.
+// versionBinary is the executable that reports a CLI's version: the first of
+// the host's detection binaries (see hostBinaries).
 func versionBinary(host string) string {
-	if host == "cursor" {
-		return "cursor-agent"
-	}
-	return host
+	return detectionBinaries(host)[0]
 }
 
 func cliSection(deps doctorDeps, st doctorState) doctorSection {
@@ -332,7 +330,7 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 	detected := make([]bool, len(installerHosts))
 	var wg sync.WaitGroup
 	for i, host := range installerHosts {
-		if _, err := deps.lookPath(host); err != nil {
+		if !hostDetected(deps.lookPath, host) {
 			continue
 		}
 		detected[i] = true
