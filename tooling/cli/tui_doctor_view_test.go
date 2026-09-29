@@ -253,6 +253,49 @@ func TestDoctorViewScrollsToTheLastRowAndBack(t *testing.T) {
 	}
 }
 
+// TestDoctorViewAnswersWhetherToRestartAndHowToRepairDrift covers M4 in the
+// view: the Sessions summary leads its section, and Installation says how to get
+// out of drift, at both sizes and all the way down the scrolled text.
+func TestDoctorViewAnswersWhetherToRestartAndHowToRepairDrift(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			o, home, _ := doctorHome(t, "claude,codex")
+			o = nonSyntheticOptions(t, o, home)
+			f := newDoctorFake(home)
+			claudeSession(t, filepath.Join(home, ".claude"), "2001.json", 2001, "/work/old", sessionBefore)
+			claudeSession(t, filepath.Join(home, ".claude"), "2002.json", 2002, "/work/new", sessionAfter)
+			f.alive[2001], f.alive[2002] = true, true
+			setReleaseTime(t, o.StateDir, sessionRelease)
+			claudeMD := filepath.Join(home, ".claude", "CLAUDE.md")
+			data, err := os.ReadFile(claudeMD)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(claudeMD, []byte(strings.Replace(string(data), "Minimal test guidance.", "Edited by hand.", 1)), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, d, _ := openDoctorView(t, o, f, size[0], size[1])
+			assertFits(t, d, size[0], size[1])
+			var seen strings.Builder
+			for range 12 {
+				seen.WriteString(d.screen())
+				d.key("pgdown")
+				assertFits(t, d, size[0], size[1])
+			}
+			squeezed := strings.Join(strings.Fields(seen.String()), "")
+			for _, want := range []string{
+				"1 open session should be restarted",
+				"claude: 2 open sessions, 1 to restart",
+				driftRepairLine,
+			} {
+				if !strings.Contains(squeezed, strings.Join(strings.Fields(want), "")) {
+					t.Fatalf("the view never showed %q:\n%s", want, seen.String())
+				}
+			}
+		})
+	}
+}
+
 func TestDoctorViewLeavesStateAndHomeUnchanged(t *testing.T) {
 	o, home, stateDir := doctorHome(t, "claude,codex")
 	f := newDoctorFake(home)

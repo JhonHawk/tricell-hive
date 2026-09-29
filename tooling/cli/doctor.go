@@ -413,6 +413,14 @@ var installationPhrases = map[string]string{
 	"recovery_required":      "An unfinished operation must be recovered",
 }
 
+// driftRepairText says what to do about a file in drift. No Hive command
+// repairs one: hive install, hive update and hive plan remove all refuse to run
+// while a managed file differs from what Hive wrote (proved in
+// TestNoCommandRepairsADriftedManagedFile), so the only way back is to put the
+// file as Hive wrote it. Drift also covers a file that cannot be read.
+const driftRepairText = "Hive cannot repair a changed file by itself: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
+	"Undo the change (or fix its permissions), or restore the file from a backup, then run hive status to check."
+
 func installationSection(o management.Options, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Installation"}
 	if st.err != nil {
@@ -423,6 +431,7 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 	if len(st.registered) == 0 {
 		sec.Lines = []string{noHostsText}
 	}
+	drift := false
 	for _, e := range st.entries {
 		switch e.Status {
 		case "installed", "retained_shared", "not_installed":
@@ -440,9 +449,13 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 		if host == "" {
 			host = "shared"
 		}
+		drift = drift || e.Status == "drift"
 		sec.Lines = append(sec.Lines,
 			fmt.Sprintf("%s  %s  %s", sanitizeLine(e.Status), sanitizeLine(host), phrase),
 			"  "+sanitizeLine(e.Path))
+	}
+	if drift {
+		sec.Lines = append(sec.Lines, driftRepairText)
 	}
 	if st.pending != management.PendingNone {
 		sec.Lines = append(sec.Lines, "An unfinished Hive operation is pending; "+recoverCommand(o, st)+" to finish it")

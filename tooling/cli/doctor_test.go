@@ -539,6 +539,56 @@ func TestDoctorInstallationListsDriftAndDuplicatedMarkersWithPath(t *testing.T) 
 	mustNotContain(t, text, "No problems found", "not_installed")
 }
 
+// driftRepairLine is what Installation says once a file is in drift (M4), spelled
+// out here so a change to the wording is deliberate. No Hive command repairs
+// drift (see TestNoCommandRepairsADriftedManagedFile), so the line says what the
+// person can do.
+const driftRepairLine = "Hive cannot repair a changed file by itself: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
+	"Undo the change (or fix its permissions), or restore the file from a backup, then run hive status to check."
+
+func TestDoctorInstallationDriftSaysHowToRepairIt(t *testing.T) {
+	o, home, _ := doctorHome(t, "claude,codex")
+	for _, path := range []string{filepath.Join(home, ".claude", "CLAUDE.md"), filepath.Join(home, ".codex", "AGENTS.md")} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, bytes.Replace(data, []byte("Minimal test guidance."), []byte("Edited by hand."), 1), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sec := collectDoctor(o, t.TempDir(), newDoctorFake(home).deps()).Installation
+	// Two files drifted, one line: after the rows it explains.
+	var at []int
+	for i, l := range sec.Lines {
+		if l == driftRepairLine {
+			at = append(at, i)
+		}
+	}
+	if len(at) != 1 || at[0] != len(sec.Lines)-1 {
+		t.Fatalf("repair line at %v in:\n%s", at, sectionText(sec))
+	}
+	mustContain(t, sectionText(sec), "drift  claude", "drift  codex")
+}
+
+func TestDoctorInstallationRepairLineOnlyForDrift(t *testing.T) {
+	// Other findings, and a clean installation, do not get it.
+	st := doctorState{registered: []string{"claude"}, entries: []management.StatusEntry{
+		{Path: "/p/unowned", Host: "claude", Status: "unowned"},
+		{Path: "/p/broken", Host: "claude", Status: "unowned_or_conflicting"},
+		{Path: "/p/shadowed", Host: "claude", Status: "shadowed"},
+		{Path: "/p/migrate", Host: "claude", Status: "migration_required"},
+	}}
+	mustNotContain(t, sectionText(installationSection(management.Options{}, st)), "Hive cannot repair", "hive plan remove")
+	st.entries = []management.StatusEntry{{Path: "/p/ok", Host: "claude", Status: "installed"}}
+	mustNotContain(t, sectionText(installationSection(management.Options{}, st)), "Hive cannot repair")
+
+	// A voice row in drift counts too, and its row is listed as shared.
+	st.entries = []management.StatusEntry{{Path: "/p/voice", Kind: "voice", Status: "drift"}}
+	text := sectionText(installationSection(management.Options{}, st))
+	mustContain(t, text, "drift  shared", driftRepairLine)
+}
+
 func TestDoctorInstallationHidesNotInstalledRows(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude")
 	entries, err := management.Status(management.Options{Scope: "user", Home: home, StateDir: o.StateDir, Hosts: []string{"claude"}})

@@ -1,5 +1,6 @@
-// doctor_sessions.go is the Sessions section: which open sessions of Claude
-// Code and Grok started before the installed release, and what to do for the
+// doctor_sessions.go is the Sessions section: a one-line summary of how many
+// open sessions of Claude Code and Grok started before the installed release
+// and should be restarted, then each CLI's own sessions, and what to do for the
 // CLIs whose sessions Hive cannot see. The session files are internal,
 // undocumented formats of those CLIs: they are read defensively (size limit,
 // tolerant decoding) and only pid, working directory and start time are shown.
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -33,6 +35,23 @@ type openSession struct {
 	Started time.Time
 }
 
+// hostSessions is what checking one CLI (claude or grok) found.
+type hostSessions struct {
+	host  string
+	lines []string
+	live  int // open sessions whose process is alive
+	stale int // of those, the ones that started before the installed release
+	// checked is false when the sessions could not be read, or could be read but
+	// not compared with the release time; the summary then names the host.
+	checked bool
+	// compared is true when live sessions were compared with the release time,
+	// which makes the marks estimates the section explains.
+	compared bool
+}
+
+// hostDisplayNames are the names the summary uses for the CLIs it checks.
+var hostDisplayNames = map[string]string{"claude": "Claude Code", "grok": "Grok"}
+
 func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Sessions"}
 	if st.err != nil {
@@ -48,7 +67,11 @@ func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 	if err != nil {
 		sec.Err = "cannot resolve the home directory: " + sanitizeLine(err.Error())
 	}
-	estimate := false
+	var (
+		checks   []hostSessions
+		lines    []string
+		estimate bool
+	)
 	for _, host := range installerHosts {
 		if !st.isRegistered(host) {
 			continue
@@ -56,29 +79,65 @@ func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 		switch host {
 		case "claude", "grok":
 			if err != nil {
-				sec.Lines = append(sec.Lines, fmt.Sprintf("Session check unavailable for %s: no home directory", host))
+				checks = append(checks, hostSessions{host: host})
+				lines = append(lines, fmt.Sprintf("Session check unavailable for %s: no home directory", host))
 				continue
 			}
 			ref, hasRef := st.released[st.hostInstallation(host).Release]
-			lines, compared := hostSessionLines(deps, host, home, ref, hasRef)
-			estimate = estimate || compared
-			sec.Lines = append(sec.Lines, lines...)
+			res := checkHostSessions(deps, host, home, ref, hasRef)
+			checks = append(checks, res)
+			estimate = estimate || res.compared
+			lines = append(lines, res.lines...)
 		case "opencode":
-			sec.Lines = append(sec.Lines, "opencode: reloads its instructions on the next message; no restart needed")
+			lines = append(lines, "opencode: reloads its instructions on the next message; no restart needed")
 		default:
-			sec.Lines = append(sec.Lines, host+": Hive cannot see its open sessions; restart them after each update")
+			lines = append(lines, host+": Hive cannot see its open sessions; restart them after each update")
 		}
 	}
+	if summary := sessionsSummary(checks); summary != "" {
+		sec.Lines = append(sec.Lines, summary)
+	}
+	sec.Lines = append(sec.Lines, lines...)
 	if estimate {
 		sec.Lines = append(sec.Lines, "Restart marks are estimates: they compare each start time with when the installed release was last written.")
 	}
 	return sec
 }
 
-// hostSessionLines checks one CLI (claude or grok) and returns its lines, and
-// whether it compared live sessions with the release time (which makes the
-// marks estimates the section explains).
-func hostSessionLines(deps doctorDeps, host, home string, ref time.Time, hasRef bool) (lines []string, compared bool) {
+// sessionsSummary answers "do I need to restart sessions?" for the CLIs whose
+// sessions Hive can read (Claude Code and Grok), in one line. It is empty when
+// none of them is registered, because then nothing was checked.
+func sessionsSummary(checks []hostSessions) string {
+	if len(checks) == 0 {
+		return ""
+	}
+	stale, checked := 0, 0
+	var unavailable []string
+	for _, c := range checks {
+		stale += c.stale
+		if c.checked {
+			checked++
+		} else {
+			unavailable = append(unavailable, hostDisplayNames[c.host])
+		}
+	}
+	note := ""
+	if len(unavailable) > 0 {
+		note = " (" + strings.Join(unavailable, " and ") + " could not be checked)"
+	}
+	switch {
+	case stale > 0:
+		return fmt.Sprintf("%d open %s should be restarted%s", stale, plural(stale, "session", "sessions"), note)
+	case checked == 0:
+		return "Hive could not check whether any open session needs a restart" + note
+	}
+	return "No open session needs a restart" + note
+}
+
+// checkHostSessions checks one CLI (claude or grok) and returns its lines and
+// counts.
+func checkHostSessions(deps doctorDeps, host, home string, ref time.Time, hasRef bool) hostSessions {
+	res := hostSessions{host: host}
 	var (
 		sessions []openSession
 		err      error
@@ -90,7 +149,8 @@ func hostSessionLines(deps doctorDeps, host, home string, ref time.Time, hasRef 
 		sessions, err = readGrokSessions(deps, home)
 	}
 	if err != nil {
-		return []string{fmt.Sprintf("Session check unavailable for %s: %s", host, sanitizeLine(err.Error()))}, false
+		res.lines = []string{fmt.Sprintf("Session check unavailable for %s: %s", host, sanitizeLine(err.Error()))}
+		return res
 	}
 	var live []openSession
 	for _, s := range sessions {
@@ -99,27 +159,45 @@ func hostSessionLines(deps doctorDeps, host, home string, ref time.Time, hasRef 
 		}
 	}
 	sort.Slice(live, func(i, j int) bool { return live[i].PID < live[j].PID })
+	res.live = len(live)
 	if len(live) == 0 {
-		return []string{host + ": no open sessions"}, false
+		res.checked = true
+		res.lines = []string{host + ": no open sessions"}
+		return res
 	}
-	lines = []string{fmt.Sprintf("%s: %d open %s", host, len(live), plural(len(live), "session", "sessions"))}
+	res.compared = hasRef
+	res.checked = hasRef
+	for _, s := range live {
+		if hasRef && s.Started.Before(ref) {
+			res.stale++
+		}
+	}
+	count := fmt.Sprintf("%s: %d open %s", host, len(live), plural(len(live), "session", "sessions"))
+	switch {
+	case !hasRef:
+	case res.stale == 0:
+		count += ", none to restart"
+	default:
+		count += fmt.Sprintf(", %d to restart", res.stale)
+	}
+	res.lines = []string{count}
 	if !hasRef {
-		lines = append(lines, "  The installed release's write time is unknown, so sessions are not compared with it.")
+		res.lines = append(res.lines, "  The installed release's write time is unknown, so sessions are not compared with it.")
 	}
 	now := deps.now()
 	for _, s := range live {
-		lines = append(lines,
+		res.lines = append(res.lines,
 			fmt.Sprintf("  pid %d  started %s (%s)", s.PID, s.Started.UTC().Format("2006-01-02 15:04 UTC"), age(now.Sub(s.Started))),
 			"    "+sanitizeLine(s.CWD))
 		switch {
 		case !hasRef:
 		case s.Started.Before(ref):
-			lines = append(lines, "    "+staleSessionMark)
+			res.lines = append(res.lines, "    "+staleSessionMark)
 		default:
-			lines = append(lines, "    up to date")
+			res.lines = append(res.lines, "    up to date")
 		}
 	}
-	return lines, hasRef
+	return res
 }
 
 func plural(n int, one, many string) string {

@@ -45,7 +45,7 @@ func TestDoctorCommandPrintsFindingsAndExitsZero(t *testing.T) {
 	if runErr != nil {
 		t.Fatalf("doctor failed on a finding: %v\n%s", runErr, out)
 	}
-	for _, want := range []string{"CLIs\n", "Installation\n", "Sessions\n", "drift  codex", block} {
+	for _, want := range []string{"CLIs\n", "Installation\n", "Sessions\n", "drift  codex", block, "Hive cannot repair a changed file by itself"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}
