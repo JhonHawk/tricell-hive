@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 type fakeExternal struct {
@@ -248,5 +249,186 @@ func TestOnboardingCrashAfterCoreCommitSkipsUnstartedSteps(t *testing.T) {
 	}
 	if result.Phase != "partial" || runner.calls != 0 || len(stateFor(t, o).Records) == 0 {
 		t.Fatal("unsafe recovery")
+	}
+}
+
+// onboardOnce runs one onboarding with the given step IDs and returns its result.
+func onboardOnce(t *testing.T, o Options, ids ...string) OnboardingResult {
+	t.Helper()
+	var steps []ExternalStep
+	for _, id := range ids {
+		steps = append(steps, ExternalStep{ID: id, Payload: json.RawMessage(`{}`)})
+	}
+	result, err := (Engine{}).Onboard(plan(t, "install", o), steps, &fakeExternal{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func TestLastOnboardingWithoutRecordsReportsNone(t *testing.T) {
+	o := setup(t)
+	for name, prepare := range map[string]func(){
+		"no state directory": func() {},
+		"empty onboarding directory": func() {
+			if err := os.MkdirAll(filepath.Join(o.StateDir, "onboarding"), 0700); err != nil {
+				t.Fatal(err)
+			}
+		},
+	} {
+		prepare()
+		if _, _, ok, err := LastOnboarding(o.StateDir); ok || err != nil {
+			t.Fatalf("%s: ok=%v err=%v; want no record and no error", name, ok, err)
+		}
+	}
+	if _, err := os.Lstat(o.StateDir + "/onboarding-pending.json"); !os.IsNotExist(err) {
+		t.Fatal("reading created state")
+	}
+}
+
+func TestLastOnboardingPicksTheNewestRecord(t *testing.T) {
+	o := setup(t)
+	first := onboardOnce(t, o, "first-manual")
+	second := onboardOnce(t, o, "second-manual")
+	dir := filepath.Join(o.StateDir, "onboarding")
+	old := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	fresh := old.Add(48 * time.Hour)
+	for id, at := range map[string]time.Time{first.ID: fresh, second.ID: old} {
+		if err := os.Chtimes(filepath.Join(dir, id+".json"), at, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, when, ok, err := LastOnboarding(o.StateDir)
+	if err != nil || !ok {
+		t.Fatalf("ok=%v err=%v", ok, err)
+	}
+	if got.ID != first.ID || got.Phase != "completed" || len(got.Steps) != 1 || got.Steps[0].Step.ID != "first-manual" {
+		t.Fatalf("picked %+v; want the record with the newest modification time (%s)", got, first.ID)
+	}
+	if !when.Equal(fresh) {
+		t.Fatalf("time = %s; want %s", when, fresh)
+	}
+}
+
+func TestLastOnboardingReadsThroughASymlinkedStateDirectory(t *testing.T) {
+	o := setup(t)
+	want := onboardOnce(t, o, "engram-manual")
+	link := filepath.Join(t.TempDir(), "state-link")
+	if err := os.Symlink(o.StateDir, link); err != nil {
+		t.Fatal(err)
+	}
+	got, _, ok, err := LastOnboarding(link)
+	if err != nil || !ok || got.ID != want.ID {
+		t.Fatalf("got %+v ok=%v err=%v; a state directory reached through a symlink must read as valid", got, ok, err)
+	}
+}
+
+func TestLastOnboardingIgnoresFilesWithOtherNames(t *testing.T) {
+	o := setup(t)
+	want := onboardOnce(t, o, "engram-manual")
+	dir := filepath.Join(o.StateDir, "onboarding")
+	orig, err := os.ReadFile(filepath.Join(dir, want.ID+".json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	future := time.Now().Add(time.Hour)
+	for _, name := range []string{"notes.json", want.ID + ".json.bak", "ABCDEF0123456789ABCDEF0123456789.json", want.ID[:31] + ".json", ".hidden"} {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte("not a record"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(p, future, future); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir, strings.Repeat("a", 32)+".json"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	got, _, ok, err := LastOnboarding(o.StateDir)
+	if err != nil || !ok || got.ID != want.ID {
+		t.Fatalf("got %+v ok=%v err=%v; other names must be ignored", got, ok, err)
+	}
+	if after, _ := os.ReadFile(filepath.Join(dir, want.ID+".json")); string(after) != string(orig) {
+		t.Fatal("reading changed the record")
+	}
+}
+
+func TestLastOnboardingRejectsTamperedRecords(t *testing.T) {
+	tamper := map[string]func(string) string{
+		"changed step status": func(s string) string { return strings.Replace(s, `"verified"`, `"failed"`, 1) },
+		"changed phase":       func(s string) string { return strings.Replace(s, `"completed"`, `"partial"`, 1) },
+		"trailing data":       func(s string) string { return s + "{}" },
+		"not json":            func(string) string { return "{" },
+	}
+	for name, edit := range tamper {
+		t.Run(name, func(t *testing.T) {
+			o := setup(t)
+			result := onboardOnce(t, o, "engram-manual")
+			p := filepath.Join(o.StateDir, "onboarding", result.ID+".json")
+			raw, err := os.ReadFile(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			changed := edit(string(raw))
+			if changed == string(raw) {
+				t.Fatal("the edit changed nothing")
+			}
+			if err := os.WriteFile(p, []byte(changed), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, ok, err := LastOnboarding(o.StateDir); err == nil || ok {
+				t.Fatalf("ok=%v err=%v; a tampered record must be an error", ok, err)
+			}
+		})
+	}
+}
+
+func TestLastOnboardingRejectsARecordWhoseNameIsNotItsID(t *testing.T) {
+	o := setup(t)
+	result := onboardOnce(t, o, "engram-manual")
+	dir := filepath.Join(o.StateDir, "onboarding")
+	other := strings.Repeat("b", 32)
+	if err := os.Rename(filepath.Join(dir, result.ID+".json"), filepath.Join(dir, other+".json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok, err := LastOnboarding(o.StateDir); err == nil || ok {
+		t.Fatalf("ok=%v err=%v; a file whose name differs from the record ID must be an error", ok, err)
+	}
+}
+
+func TestLastOnboardingRejectsARecordFromAnotherStateDirectory(t *testing.T) {
+	a, b := setup(t), setup(t)
+	result := onboardOnce(t, a, "engram-manual")
+	dst := filepath.Join(b.StateDir, "onboarding")
+	if err := os.MkdirAll(dst, 0700); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(a.StateDir, "onboarding", result.ID+".json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dst, result.ID+".json"), raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok, err := LastOnboarding(b.StateDir); err == nil || ok {
+		t.Fatalf("ok=%v err=%v; a record copied from another state directory must be an error", ok, err)
+	}
+}
+
+func TestLastOnboardingRejectsAnUnfinishedRecord(t *testing.T) {
+	o := setup(t)
+	result := onboardOnce(t, o, "engram-manual")
+	p := filepath.Join(o.StateDir, "onboarding", result.ID+".json")
+	var j onboardingJournal
+	if err := decodeFile(p, &j); err != nil {
+		t.Fatal(err)
+	}
+	j.Phase = "providers_pending"
+	j.Integrity = onboardingHash(j) // consistent, but never finished
+	if err := writeJSON(p, j); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok, err := LastOnboarding(o.StateDir); err == nil || ok {
+		t.Fatalf("ok=%v err=%v; a record that never finished must be an error", ok, err)
 	}
 }

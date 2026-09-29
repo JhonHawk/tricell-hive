@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 )
@@ -131,25 +132,96 @@ func loadOnboarding(dir string) (onboardingJournal, error) {
 	if err := decodeFile(onboardingPath(dir), &j); err != nil {
 		return j, err
 	}
-	if j.Version != 1 || j.StateDir != dir || !regexp.MustCompile(`^[a-f0-9]{32}$`).MatchString(j.ID) || j.CoreID != j.ID || j.Integrity != onboardingHash(j) {
-		return j, fmt.Errorf("invalid onboarding journal")
+	return j, validateOnboarding(j, dir)
+}
+
+var (
+	onboardingIDPattern     = regexp.MustCompile(`^[a-f0-9]{32}$`)
+	onboardingRecordPattern = regexp.MustCompile(`^[a-f0-9]{32}\.json$`)
+	onboardingStepPattern   = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+)
+
+// validateOnboarding checks a decoded journal or finished record against the
+// canonical state directory it must belong to: format version, directory, ID,
+// integrity hash, phase and every step. The pending journal and the finished
+// records share it.
+func validateOnboarding(j onboardingJournal, dir string) error {
+	if j.Version != 1 || j.StateDir != dir || !onboardingIDPattern.MatchString(j.ID) || j.CoreID != j.ID || j.Integrity != onboardingHash(j) {
+		return fmt.Errorf("invalid onboarding journal")
 	}
 	switch j.Phase {
 	case "prepared", "core_pending", "core_committed", "providers_pending", "completed", "partial":
 	default:
-		return j, fmt.Errorf("invalid onboarding phase")
+		return fmt.Errorf("invalid onboarding phase")
 	}
 	seen := map[string]bool{}
 	for _, s := range j.Steps {
-		if seen[s.Step.ID] || !regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`).MatchString(s.Step.ID) || !json.Valid(s.Step.Payload) {
-			return j, fmt.Errorf("invalid onboarding step")
+		if seen[s.Step.ID] || !onboardingStepPattern.MatchString(s.Step.ID) || !json.Valid(s.Step.Payload) {
+			return fmt.Errorf("invalid onboarding step")
 		}
 		seen[s.Step.ID] = true
 		if !validStepStatus(s.Status) {
-			return j, fmt.Errorf("invalid provider status")
+			return fmt.Errorf("invalid provider status")
 		}
 	}
-	return j, nil
+	return nil
+}
+
+// LastOnboarding returns the most recently modified finished onboarding record
+// under stateDir/onboarding, with its modification time, or false when there is
+// none. Only regular files named <32 hex digits>.json are considered; the
+// newest one must carry that ID, belong to this state directory and pass the
+// journal's own integrity check, otherwise the error says so. It is read-only
+// and does not create the state directory. stateDir is resolved like the
+// manager resolves its own, so a path that goes through a symlink reads the
+// same records.
+func LastOnboarding(stateDir string) (OnboardingResult, time.Time, bool, error) {
+	dir, err := target.Canonical(stateDir)
+	if err != nil {
+		return OnboardingResult{}, time.Time{}, false, err
+	}
+	records := filepath.Join(dir, "onboarding")
+	if err := target.Safe(records); err != nil {
+		return OnboardingResult{}, time.Time{}, false, err
+	}
+	entries, err := os.ReadDir(records)
+	if os.IsNotExist(err) {
+		return OnboardingResult{}, time.Time{}, false, nil
+	}
+	if err != nil {
+		return OnboardingResult{}, time.Time{}, false, err
+	}
+	var newest string
+	var when time.Time
+	for _, e := range entries {
+		if !e.Type().IsRegular() || !onboardingRecordPattern.MatchString(e.Name()) {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			return OnboardingResult{}, time.Time{}, false, err
+		}
+		if newest == "" || info.ModTime().After(when) || (info.ModTime().Equal(when) && e.Name() > newest) {
+			newest, when = e.Name(), info.ModTime()
+		}
+	}
+	if newest == "" {
+		return OnboardingResult{}, time.Time{}, false, nil
+	}
+	var j onboardingJournal
+	if err := decodeFile(filepath.Join(records, newest), &j); err != nil {
+		return OnboardingResult{}, time.Time{}, false, fmt.Errorf("onboarding record %s: %w", newest, err)
+	}
+	if err := validateOnboarding(j, dir); err != nil {
+		return OnboardingResult{}, time.Time{}, false, fmt.Errorf("onboarding record %s: %w", newest, err)
+	}
+	if j.ID+".json" != newest {
+		return OnboardingResult{}, time.Time{}, false, fmt.Errorf("onboarding record %s: file name does not match its ID", newest)
+	}
+	if j.Phase != "completed" && j.Phase != "partial" {
+		return OnboardingResult{}, time.Time{}, false, fmt.Errorf("onboarding record %s: unfinished phase %q", newest, j.Phase)
+	}
+	return j.OnboardingResult, when, true, nil
 }
 func finishOnboarding(j onboardingJournal) error {
 	if err := saveOnboarding(j); err != nil {
