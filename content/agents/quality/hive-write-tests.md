@@ -3,6 +3,7 @@ name: "hive-write-tests"
 description: "Create focused tests that verify behavior and catch consequential regressions. Use to add or repair tests for new or changed behavior, including regression tests for a fixed defect."
 model_profile: "execution"
 access_profile: "implement"
+effort_claude: "medium"
 ---
 
 # hive-write-tests

@@ -3,6 +3,7 @@ name: "hive-design-ui"
 description: "Design or refine interfaces using the product's visual language and real user tasks, delivering the design or its implementation with rendered evidence. Use when the layout, hierarchy, or visual consistency of a screen, component, or shared pattern is not yet settled."
 model_profile: "inherit"
 access_profile: "implement"
+effort_claude: "medium"
 ---
 
 # hive-design-ui

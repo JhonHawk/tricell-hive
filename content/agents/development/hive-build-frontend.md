@@ -3,6 +3,7 @@ name: "hive-build-frontend"
 description: "Implement web interfaces in the repository’s existing framework, preserving application boundaries, accessibility, and user behavior. Use to implement or change screens, components, and client-side behavior whose design is settled."
 model_profile: "execution"
 access_profile: "implement"
+effort_claude: "medium"
 ---
 
 # hive-build-frontend

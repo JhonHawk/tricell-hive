@@ -6,7 +6,7 @@
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit"]}, "implement": {}, "verify": {}}
     },
     "codex": {
-      "models": {"execution": {"model": "gpt-5.6-terra", "effort": "high"}, "reasoning": {"model": "gpt-6-astra", "effort": "medium"}, "inherit": {"effort": "high"}},
+      "models": {"execution": {"model": "gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "gpt-6.1-sol", "effort": "high"}, "inherit": {"effort": "high"}},
       "access": {"observe": {"sandbox_mode": "read-only"}, "implement": {}, "verify": {}}
     },
     "grok": {
@@ -14,11 +14,11 @@
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit", "search_replace", "write_file", "apply_patch"]}, "implement": {}, "verify": {}}
     },
     "pi": {
-      "models": {"execution": {"model": "openai-codex/gpt-5.6-terra", "effort": "high"}, "reasoning": {"model": "openai-codex/gpt-6-astra", "effort": "medium"}, "inherit": {"model": "inherit", "effort": "high"}},
+      "models": {"execution": {"model": "openai-codex/gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "openai-codex/gpt-6.1-sol", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}},
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
-      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "reasoning": {"model": "github-copilot/claude-opus-5.5"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}},
+      "models": {"execution": {"model": "github-copilot/gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "github-copilot/gpt-6.1-sol", "effort": "high"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
     },
     "cursor": {
