@@ -804,6 +804,26 @@ func (v *hostsView) rowLines(c viewCtx) []string {
 	return lines
 }
 
+// editorOnlyNote explains the "editor only" state, which only Cursor has: the
+// editor launcher is on PATH but not the cursor-agent CLI.
+const editorOnlyNote = "editor only: the Cursor editor is installed, but not its CLI (cursor-agent). Hive can still install Cursor's files."
+
+// editorOnlyNoteLines draws the note under the table when a row says "editor
+// only", and nothing otherwise.
+func (v *hostsView) editorOnlyNoteLines(c viewCtx) []string {
+	for _, r := range v.rows {
+		if r.State != "editor only" {
+			continue
+		}
+		var lines []string
+		for _, l := range wrapLines(editorOnlyNote, c.Width) {
+			lines = append(lines, c.Theme.Muted.Render(l))
+		}
+		return lines
+	}
+	return nil
+}
+
 func (v *hostsView) View(c viewCtx) string {
 	th := c.Theme
 	v.messageCut = false
@@ -832,6 +852,7 @@ func (v *hostsView) View(c viewCtx) string {
 		lines = append(lines, v.scanNoteLines(c)...)
 	default:
 		lines = append(lines, v.rowLines(c)...)
+		lines = append(lines, v.editorOnlyNoteLines(c)...)
 		remove, add := v.pendingChanges()
 		if n := len(remove) + len(add); n == 1 {
 			lines = append(lines, th.Muted.Render("1 pending change: press a to review it."))

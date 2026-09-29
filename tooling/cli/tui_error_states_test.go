@@ -317,6 +317,13 @@ func TestCLIsViewNamesCursorsEditorOnlyLikeDiagnostics(t *testing.T) {
 			if len(rows) != 1 || rows[0].name != "cursor" || rows[0].state != tc.state {
 				t.Fatalf("rows = %+v, want one cursor row with state %q:\n%s", rows, tc.state, d.screen())
 			}
+			// K3: the state is explained under the table only when a row has it.
+			const note = "editor only: the Cursor editor is installed, but not its CLI (cursor-agent). Hive can still install Cursor's files."
+			if tc.state == "editor only" {
+				mustShowFlat(d, note)
+			} else {
+				d.mustNotShow("editor only")
+			}
 			d.key("space")
 			if rows = hostRows(d); !rows[0].checked {
 				t.Errorf("Cursor is not installable:\n%s", d.screen())
@@ -385,5 +392,30 @@ func TestInstallRefusalReadsInPlainWords(t *testing.T) {
 		if !bytes.Equal(after[rel], data) {
 			t.Errorf("%s changed", rel)
 		}
+	}
+}
+
+// TestCLIsViewEditorOnlyNoteFitsWithOtherNotes (K3): the editor-only note sits
+// under the table, before the pending-change line, and the screen still fits
+// 80x24 with every host listed.
+func TestCLIsViewEditorOnlyNoteFitsWithOtherNotes(t *testing.T) {
+	home, stateDir := newHostsTestHome(t)
+	deps := defaultInstallDependencies(coreOnlyAdapterFactory)
+	deps.DiscoverHosts = func(o management.Options) ([]hostCandidate, error) {
+		return discoverInstallerHosts(o, func(name string) (string, error) {
+			if name == "cursor" || name == "claude" || name == "codex" {
+				return "/fake/bin/" + name, nil
+			}
+			return "", errors.New("not found")
+		})
+	}
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		_, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), deps), size[0], size[1])
+		d.key("enter")
+		d.mustShow("CLIs")
+		mustShowFlat(d, "editor only: the Cursor editor is installed, but not its CLI (cursor-agent). Hive can still install Cursor's files.")
+		d.key("space")
+		mustShowFlat(d, "1 pending change: press a to review it.")
+		assertFits(t, d, size[0], size[1])
 	}
 }
