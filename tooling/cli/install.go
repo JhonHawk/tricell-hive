@@ -502,7 +502,7 @@ func recoveryPhrase(online bool, stateDir string) string {
 func recoveryPhraseFor(fromInterface, explicitStateDir, online bool, stateDir string) string {
 	if fromInterface {
 		if explicitStateDir {
-			return fmt.Sprintf("run hive recover --state-dir %s", stateDir)
+			return "run hive recover --state-dir " + shellQuote(stateDir)
 		}
 		return "run hive recover"
 	}

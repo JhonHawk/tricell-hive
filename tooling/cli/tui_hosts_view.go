@@ -202,6 +202,7 @@ type hostsView struct {
 	messageTitle string // the read-in-full view's title; "" means Result, or Error for a failure
 	messageCut   bool   // the last drawn message was cut, so `m` shows more
 	offered      bool   // the recovery view was already offered for a pending operation
+	dirty        bool   // the state may have changed under the view: reload when it is revealed
 	stillPending bool
 	flow         *hostsFlow
 	flowSeq      int
@@ -224,6 +225,7 @@ func (v *hostsView) NeedsSpinner() bool { return v.loading || v.planning != "" }
 // reload reads the rows and the pending check again; the checkboxes go back to
 // the registered state.
 func (v *hostsView) reload() tea.Cmd {
+	v.dirty = false
 	v.seq++
 	v.loading = true
 	seq, o, deps := v.seq, v.options(), v.cfg.Deps
@@ -233,10 +235,12 @@ func (v *hostsView) reload() tea.Cmd {
 	}
 }
 
-// Reveal reloads the view when the views above it were popped, unless a flow
-// or a load is already in progress.
+// Reveal reloads the view when the views above it were popped and the state may
+// have changed (after a write or a recovery), unless a flow or a load is already
+// in progress. After a read-only view (the full message) the rows and the
+// user's pending marks stay as they are.
 func (v *hostsView) Reveal() tea.Cmd {
-	if v.flow != nil || v.loading {
+	if v.flow != nil || v.loading || !v.dirty {
 		return nil
 	}
 	return v.reload()
@@ -251,6 +255,7 @@ func (v *hostsView) finish(text string, isErr bool) tea.Cmd {
 
 func (v *hostsView) recoveryView(kind management.PendingKind) view {
 	v.offered = true
+	v.dirty = true // a recovery may change the state
 	return newRecoveryView(kind, v.options(), v.cfg.ExplicitStateDir, v.cfg.Deps)
 }
 

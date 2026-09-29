@@ -361,3 +361,46 @@ func TestVoiceViewEditingClearsThePreviousResult(t *testing.T) {
 		d.mustNotShow("Voice set")
 	})
 }
+
+// TestVoiceViewShowsAnActiveVoiceMissingFromTheSource covers a home whose active
+// voice is not among this source's voices: the view shows it, marked as not in
+// the source, and Enter does not propose turning the voice off.
+func TestVoiceViewShowsAnActiveVoiceMissingFromTheSource(t *testing.T) {
+	f := newVoiceFixture(t)
+	// Activate a voice that only another source has.
+	other := t.TempDir()
+	if err := os.CopyFS(other, os.DirFS(f.source)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(other, "content", "voices", "elsewhere.md"), []byte("Elsewhere: only in the other source.\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := management.BuildVoicePlan("set", management.Options{Source: other, Home: f.home, StateDir: f.stateDir}, management.VoiceSetting{ID: "elsewhere", Address: "sir", Intensity: "marked"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (management.Engine{}).Apply(plan); err != nil {
+		t.Fatal(err)
+	}
+	before := collectFiles(t, f.home)
+
+	_, d := f.open(t, 80, 24) // f.source has no "elsewhere"
+	rows := voiceRows(d)
+	if !strings.HasPrefix(rows["Voice"].value, "elsewhere") || !strings.Contains(rows["Voice"].value, "not in this source") {
+		t.Fatalf("the active voice is not shown as missing from the source: %+v\n%s", rows, d.screen())
+	}
+	if rows["Address"].value != "sir" || rows["Intensity"].value != "marked" {
+		t.Fatalf("the active voice's settings were lost: %+v", rows)
+	}
+	d.key("enter")
+	d.mustNotShow("Turn the voice off", "Voice: off")
+	d.mustNotShow("[Apply]")
+	if got := collectFiles(t, f.home); len(got) != len(before) {
+		t.Fatal("reviewing changed the home")
+	}
+	// Off and the source's own voices stay reachable.
+	d.key("right")
+	if v := voiceRows(d)["Voice"].value; v != "Off" {
+		t.Fatalf("→ from the last voice should wrap to Off, got %q", v)
+	}
+}

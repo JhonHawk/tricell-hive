@@ -262,6 +262,12 @@ Pruebas nuevas:
     - **Corrección local de N1, N3 y N4 en el hilo principal:** sin nueva ronda de revisión, lo verifican sus pruebas y el recorrido del usuario.
     - **Para el recorrido del usuario (N2):** Enter en CLIs abre el resumen, y el resumen de una baja arranca en Apply, así que dos Enter aplican una baja.
   - **Recorrido del usuario (2026-09-29):** aprobado («me encanta») sobre los homes `full` y `detected` con el binario de `5ffd00c`. N2 queda como está.
+  - **Rebase:** sobre `rebuild/harness-engineering` (`b2b1f63`), sin conflictos. Los 5 commits nuevos de la base son de guía y no tocan `tooling/`.
+  - **`/code-review` (medio, verifica sus propios hallazgos), sobre `rebuild/harness-engineering...5ca5945`:** cuatro hallazgos, todos corregidos en la misma rama:
+    - medio: con `--home` sin `--state-dir`, el aviso de recuperación decía `hive recover` sin la ruta, y ese comando actuaría sobre el estado real;
+    - bajo: la ruta de `--state-dir` en el aviso iba sin comillas;
+    - bajo: volver de una vista de solo lectura borraba las marcas pendientes en CLIs;
+    - bajo: una voz activa que no está en la fuente se mostraba como Off.
 
 **Depends on:** T11.
 

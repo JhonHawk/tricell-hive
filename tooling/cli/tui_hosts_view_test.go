@@ -1254,3 +1254,28 @@ func (manualRunner) Execute(management.ExternalStep) (json.RawMessage, error) {
 func (manualRunner) Reconcile(management.ExternalStep, json.RawMessage) (string, error) {
 	return management.StepManual, nil
 }
+
+// TestHostsViewKeepsPendingMarksAfterAReadOnlyView covers the checkboxes: they
+// go back to the registered state only after a write or a recovery, not when a
+// read-only view (the full message) closes.
+func TestHostsViewKeepsPendingMarksAfterAReadOnlyView(t *testing.T) {
+	source := minimalTestSource(t)
+	deps := hostsTestDeps(coreOnlyAdapterFactory)
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, source, "claude,codex", "y\n", deps)
+	m, d := openHostsApp(t, home, stateDir, source, deps)
+	toggle(t, d, "claude", "pi")
+	d.mustShow("2 pending changes")
+	m.top().(*hostsView).message = "Hive removed (x)."
+	d.key("m") // read the message
+	d.mustShow("Result")
+	d.key("esc")
+	d.mustShow("2 pending changes", "→ remove", "→ install")
+	if r := rowFor(t, d, "claude"); r.checked {
+		t.Fatalf("claude's mark was dropped: %+v", r)
+	}
+	if r := rowFor(t, d, "pi"); !r.checked {
+		t.Fatalf("pi's mark was dropped: %+v", r)
+	}
+	// After a write the marks do reset, as before (covered by the apply tests).
+}

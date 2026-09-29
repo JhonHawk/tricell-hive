@@ -134,7 +134,8 @@ type (
 type appConfig struct {
 	// Options are normalized: StateDir is a concrete path.
 	Options management.Options
-	// ExplicitStateDir tells recovery phrases to name --state-dir.
+	// ExplicitStateDir tells recovery phrases to name --state-dir: it is true
+	// whenever the state directory is not the one a bare `hive recover` uses.
 	ExplicitStateDir bool
 	Deps             installDependencies
 	// Dark selects the dark palette; NoColor removes color entirely.

@@ -171,6 +171,12 @@ func (v *voiceView) prefill(active *management.VoiceSetting) {
 			v.voice = i + 1
 		}
 	}
+	if v.voice == 0 {
+		// The active voice is not among this source's voices: show it, marked,
+		// rather than Off, so reviewing never proposes turning it off.
+		v.voices = append(v.voices, management.VoiceInfo{ID: active.ID, Description: "(not in this source)"})
+		v.voice = len(v.voices)
+	}
 	for i, a := range voiceAddresses {
 		if a == active.Address {
 			v.address = i

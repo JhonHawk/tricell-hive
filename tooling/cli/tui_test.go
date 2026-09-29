@@ -1530,3 +1530,59 @@ func TestAppRealProgramSigtermAtIdleQuitsCleanly(t *testing.T) {
 		t.Fatal("the alternate screen was not left")
 	}
 }
+
+// TestAppConfigNamesTheStateDirWhenItDiffersFromTheDefault covers the recovery
+// phrases: a bare `hive recover` targets the real user's state, so the app
+// names the state directory whenever --state-dir or --home moved it, not only
+// with --state-dir.
+func TestAppConfigNamesTheStateDirWhenItDiffersFromTheDefault(t *testing.T) {
+	cases := []struct {
+		name     string
+		o        options
+		explicit bool
+	}{
+		{"nothing given", options{Source: "."}, false},
+		{"--state-dir", options{StateDir: filepath.Join(t.TempDir(), "state"), Source: "."}, true},
+		{"--home alone moves the state", options{Home: t.TempDir(), Source: "."}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := newAppConfig(tc.o)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.ExplicitStateDir != tc.explicit {
+				t.Fatalf("ExplicitStateDir = %v, want %v", cfg.ExplicitStateDir, tc.explicit)
+			}
+		})
+	}
+	// End to end: the recovery offer of a --home-only run names its state.
+	cfg, err := newAppConfig(options{Home: t.TempDir(), Source: "."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Deps.Pending = func(string) (management.PendingKind, error) { return management.PendingCore, nil }
+	_, d := newTestApp(t, cfg, 80, 24)
+	mustShowFlat(d, "Run hive recover --state-dir "+shellQuote(cfg.Options.StateDir))
+}
+
+// TestRecoveryPhrasesQuoteThePathForTheShell covers the phrases the app builds:
+// a state directory with spaces (macOS "Application Support") or a quote must
+// paste into a shell as one argument; a plain path stays as it is.
+func TestRecoveryPhrasesQuoteThePathForTheShell(t *testing.T) {
+	cases := []struct{ path, quoted string }{
+		{"/tmp/plain-state_1", "/tmp/plain-state_1"},
+		{"/Users/x/Library/Application Support/tricell-hive", "'/Users/x/Library/Application Support/tricell-hive'"},
+		{"/tmp/it's here", `'/tmp/it'\''s here'`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			if got, want := recoveryTextOnOpen(true)(tc.path, true), "Run hive recover --state-dir "+tc.quoted; got != want {
+				t.Errorf("recoveryTextOnOpen = %q, want %q", got, want)
+			}
+			if got, want := recoveryPhraseFor(true, true, false, tc.path), "run hive recover --state-dir "+tc.quoted; got != want {
+				t.Errorf("recoveryPhraseFor = %q, want %q", got, want)
+			}
+		})
+	}
+}

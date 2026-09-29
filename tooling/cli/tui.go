@@ -50,30 +50,41 @@ var interfaceStdio = struct {
 // plan/apply for removing hosts and recover.
 const noTerminalMessage = "hive tui needs a terminal; use the text commands: hive status, install, update, releases, voice, plan/apply to remove hosts, recover"
 
+// newAppConfig builds the application's configuration from the entry options:
+// the options normalized, and the default dependencies. Colors are left to the
+// caller.
+func newAppConfig(o options) (appConfig, error) {
+	mo := management.Options{Scope: "user", Home: o.Home, StateDir: o.StateDir, Source: o.Source}
+	_, stateDir, err := management.NormalizeOptions(mo)
+	if err != nil {
+		return appConfig{}, err
+	}
+	mo.StateDir = stateDir
+	return appConfig{
+		Options: mo,
+		// A synthetic --home moves the state directory too, so a bare `hive
+		// recover` would target the real user's state: name it then as well.
+		ExplicitStateDir: o.StateDir != "" || o.Home != "",
+		Deps:             defaultInstallDependencies(nativeProviderAdapterFactory),
+	}, nil
+}
+
 // runApp opens the full-screen application over a normalized copy of o. The
 // terminal background is detected before the program starts, as the earlier
 // interface did; NO_COLOR skips the detection and removes every color.
 func runApp(o options, in io.Reader, out io.Writer) error {
-	mo := management.Options{Scope: "user", Home: o.Home, StateDir: o.StateDir, Source: o.Source}
-	_, stateDir, err := management.NormalizeOptions(mo)
+	cfg, err := newAppConfig(o)
 	if err != nil {
 		return err
 	}
-	mo.StateDir = stateDir
-	noColor := os.Getenv("NO_COLOR") != ""
-	dark := true
-	if inFile, ok := in.(*os.File); ok && !noColor {
+	cfg.NoColor = os.Getenv("NO_COLOR") != ""
+	cfg.Dark = true
+	if inFile, ok := in.(*os.File); ok && !cfg.NoColor {
 		if outFile, ok := out.(*os.File); ok {
-			dark = lipgloss.HasDarkBackground(inFile, outFile)
+			cfg.Dark = lipgloss.HasDarkBackground(inFile, outFile)
 		}
 	}
-	return runAppWith(appConfig{
-		Options:          mo,
-		ExplicitStateDir: o.StateDir != "",
-		Deps:             defaultInstallDependencies(nativeProviderAdapterFactory),
-		Dark:             dark,
-		NoColor:          noColor,
-	}, in, out)
+	return runAppWith(cfg, in, out)
 }
 
 // runBareInterface implements bare `hive` with no arguments (D14-A): exactly
@@ -88,18 +99,35 @@ func runBareInterface() error {
 	return interfaceStdio.start(o, interfaceStdio.in, interfaceStdio.out)
 }
 
-// recoveryTextOnOpen is the recovery phrase the interface uses (T2 fix round
-// item 5): it names hive recover — with --state-dir when the interface was
-// opened against an explicit one, so the operator recovers the same, possibly
-// synthetic, state they are looking at — and only when the attempted recovery
-// still leaves something pending, never after one that already succeeded.
+// shellQuote returns s as one shell word: unchanged when it holds only safe
+// characters, otherwise in single quotes with any quote inside escaped.
+func shellQuote(s string) string {
+	safe := s != ""
+	for _, r := range s {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("_@%+=:,./-", r)) {
+			safe = false
+			break
+		}
+	}
+	if safe {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// recoveryTextOnOpen is the recovery phrase the interface uses: it names hive
+// recover — with --state-dir (quoted for the shell) when the interface was
+// opened against a state directory other than the default, so the operator
+// recovers the same, possibly synthetic, state they are looking at — and only
+// when the attempted recovery still leaves something pending, never after one
+// that already succeeded.
 func recoveryTextOnOpen(explicitStateDir bool) func(stateDir string, stillNeeded bool) string {
 	return func(stateDir string, stillNeeded bool) string {
 		if !stillNeeded {
 			return ""
 		}
 		if explicitStateDir {
-			return fmt.Sprintf("Run hive recover --state-dir %s", stateDir)
+			return "Run hive recover --state-dir " + shellQuote(stateDir)
 		}
 		return "Run hive recover"
 	}
