@@ -19,6 +19,9 @@ import (
 const (
 	longRoleName  = "hive-design-architecture" // the longest catalogue role, 24 columns
 	modelsProfile = "integrations/agent-profiles.json"
+	// modelsProfileFixture is the synthetic profiles file the view tests read;
+	// modelsTestSource installs it at modelsProfile in the temporary source.
+	modelsProfileFixture = "testdata/agent-profiles.json"
 )
 
 func modelsRoleSource(name, profile string) string {
@@ -30,8 +33,8 @@ func modelsRoleSourceWithAccess(name, profile, access string) string {
 	return "---\nname: " + name + "\ndescription: Test role\nmodel_profile: " + profile + "\naccess_profile: " + access + "\n---\nUse evidence.\n"
 }
 
-// modelsTestSource builds a Hive source with the repository's real agent
-// profiles and three roles: a reasoning one with the longest role name, an
+// modelsTestSource builds a Hive source with the synthetic agent
+// profiles (testdata/agent-profiles.json) and three roles: a reasoning one with the longest role name, an
 // execution one, and one that inherits its parent session's model.
 func modelsTestSource(t *testing.T) string {
 	t.Helper()
@@ -48,7 +51,7 @@ func modelsTestSource(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
-	profiles, err := os.ReadFile(filepath.Join("..", "..", modelsProfile))
+	profiles, err := os.ReadFile(filepath.FromSlash(modelsProfileFixture))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,13 +121,13 @@ func TestModelsViewSwitchesCLIWithArrowsAndBracketsTheSelectedOne(t *testing.T) 
 	if got := selectedModelsHost(t, d); got != "codex" {
 		t.Fatalf("after right: %s", got)
 	}
-	d.mustShow("gpt-6.1-sol")
-	d.mustNotShow("sonnet")
+	d.mustShow("syn-codex-exec")
+	d.mustNotShow("syn-claude-exec")
 	d.key("left")
 	if got := selectedModelsHost(t, d); got != "claude" {
 		t.Fatalf("after left: %s", got)
 	}
-	d.mustShow("sonnet")
+	d.mustShow("syn-claude-exec")
 	d.key("left") // the first CLI stays selected
 	if got := selectedModelsHost(t, d); got != "claude" {
 		t.Fatalf("left at the first CLI moved to %s", got)
@@ -154,19 +157,19 @@ func TestModelsViewSplitsTheOpenCodeVariantIntoTheEffortColumn(t *testing.T) {
 	_, d, _, _, _ := openModelsView(t, "claude,opencode", 80, 24)
 	d.key("right")
 	row := modelsRowFor(t, d, "plain-role")
-	if len(row) != 4 || row[2] != "github-copilot/gpt-6.1-sol" || row[3] != "medium" {
+	if len(row) != 4 || row[2] != "syn-oc/exec" || row[3] != "medium" {
 		t.Fatalf("OpenCode execution row = %q, want model without #medium and effort medium\n%s", row, d.screen())
 	}
 	d.mustNotShow("#medium")
 	row = modelsRowFor(t, d, longRoleName)
-	if len(row) != 4 || row[2] != "github-copilot/gpt-6.1-sol" || row[3] != "high" {
+	if len(row) != 4 || row[2] != "syn-oc/reason" || row[3] != "high" {
 		t.Fatalf("OpenCode reasoning row = %q", row)
 	}
 }
 
 func TestModelsViewShowsRoleEffortAndProfileColumns(t *testing.T) {
 	_, d, _, _, _ := openModelsView(t, "claude", 80, 24)
-	if row := modelsRowFor(t, d, "plain-role"); len(row) != 4 || row[1] != "execution" || row[2] != "sonnet" || row[3] != "high" {
+	if row := modelsRowFor(t, d, "plain-role"); len(row) != 4 || row[1] != "execution" || row[2] != "syn-claude-exec" || row[3] != "medium" {
 		t.Fatalf("Claude plain row = %q", row)
 	}
 	d.mustShow("Role", "Profile", "Model", "Effort")
@@ -293,7 +296,7 @@ func TestModelsViewLoadErrorOffersRetryAndRReloads(t *testing.T) {
 	if v.seq != seq+1 {
 		t.Fatalf("r did not start a reload (seq %d -> %d)", seq, v.seq)
 	}
-	d.mustShow("[claude]", "sonnet")
+	d.mustShow("[claude]", "syn-claude-exec")
 	d.mustNotShow("could not be read")
 }
 

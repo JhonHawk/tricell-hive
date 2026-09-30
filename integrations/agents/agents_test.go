@@ -5,11 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
 
+// repositoryProfiles returns the real profiles file. Use it only for
+// invariants that must hold for any valid content, never for exact values.
 func repositoryProfiles(t *testing.T) []byte {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("..", "agent-profiles.json"))
@@ -19,37 +20,101 @@ func repositoryProfiles(t *testing.T) []byte {
 	return data
 }
 
-func TestCatalogueRendersAllRolesForEveryHost(t *testing.T) {
+// syntheticProfiles returns the fixed profiles under testdata, whose values
+// exist nowhere in the real profiles.
+func syntheticProfiles(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "profiles.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+// syntheticRole returns the canonical source path and bytes of a role under
+// testdata/roles.
+func syntheticRole(t *testing.T, name string) (string, []byte) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "roles", name+".md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return "content/agents/synthetic/" + name + ".md", data
+}
+
+// replaceOnce replaces the first occurrence of old and fails if it is absent,
+// so a mutation of the synthetic profiles cannot silently do nothing.
+func replaceOnce(t *testing.T, s, old, replacement string) string {
+	t.Helper()
+	if !strings.Contains(s, old) {
+		t.Fatalf("synthetic profiles do not contain %q", old)
+	}
+	return strings.Replace(s, old, replacement, 1)
+}
+
+var allHosts = []string{"claude", "codex", "grok", "pi", "opencode", "cursor"}
+
+// effortKeyPrefix is how each host's rendered effort line starts. Hosts that
+// do not emit an effort are absent from the map.
+var effortKeyPrefix = map[string]string{
+	"claude": `effort: "`,
+	"codex":  `model_reasoning_effort = "`,
+	"pi":     `thinking: "`,
+}
+
+// hasLinePrefix reports whether any line of out starts with prefix.
+func hasLinePrefix(out []byte, prefix string) bool {
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.HasPrefix(line, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted renders
+// every real role on all six hosts: each must render, Claude, Codex and Pi
+// must declare an effort with their own key, and Grok, OpenCode and Cursor
+// must start no line with any of those keys. The valid effort values are not
+// repeated here; Parse and ReadProfiles enforce them.
+func TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted(t *testing.T) {
 	profiles := repositoryProfiles(t)
 	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sources) != 20 {
-		t.Fatalf("catalogue has %d roles, want 20", len(sources))
+	if len(sources) == 0 {
+		t.Fatal("catalogue has no roles")
 	}
 	for _, source := range sources {
 		data, err := os.ReadFile(source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		canonical := filepath.ToSlash(source)
-		canonical = strings.TrimPrefix(canonical, "../../")
-		for _, host := range []string{"claude", "codex", "grok", "pi", "opencode", "cursor"} {
-			if _, err := Render(canonical, data, profiles, host); err != nil {
+		canonical := strings.TrimPrefix(filepath.ToSlash(source), "../../")
+		for _, host := range allHosts {
+			out, err := Render(canonical, data, profiles, host)
+			if err != nil {
 				t.Fatalf("Render(%s, %s): %v", host, canonical, err)
+			}
+			if want, emits := effortKeyPrefix[host]; emits {
+				if !hasLinePrefix(out, want) {
+					t.Fatalf("Render(%s, %s) has no line starting %q:\n%s", host, canonical, want, out)
+				}
+				continue
+			}
+			for _, prefix := range effortKeyPrefix {
+				if hasLinePrefix(out, prefix) {
+					t.Fatalf("Render(%s, %s) has a line starting %q, want no effort:\n%s", host, canonical, prefix, out)
+				}
 			}
 		}
 	}
 }
 
 func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
-	profiles := repositoryProfiles(t)
-	source := "content/agents/review/hive-research.md"
-	data, err := os.ReadFile(filepath.Join("..", "..", source))
-	if err != nil {
-		t.Fatal(err)
-	}
+	profiles := syntheticProfiles(t)
+	source, data := syntheticRole(t, "synthetic-observer")
 	out, err := Render(source, data, profiles, "pi")
 	if err != nil {
 		t.Fatal(err)
@@ -74,12 +139,8 @@ func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 }
 
 func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
-	profiles := repositoryProfiles(t)
-	source := "content/agents/review/hive-research.md"
-	data, err := os.ReadFile(filepath.Join("..", "..", source))
-	if err != nil {
-		t.Fatal(err)
-	}
+	profiles := syntheticProfiles(t)
+	source, data := syntheticRole(t, "synthetic-observer")
 	out, err := Render(source, data, profiles, "codex")
 	if err != nil {
 		t.Fatal(err)
@@ -98,10 +159,32 @@ func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	if strings.Contains(got, "\n---\n") || strings.Contains(got, "\\x") {
 		t.Fatalf("Codex TOML contains unsupported frontmatter or escape:\n%s", got)
 	}
+
+	// The unicode role puts double quotes, single quotes, backslashes, a tab
+	// and non-ASCII text in both the description and the instruction body.
+	source, data = syntheticRole(t, "synthetic-unicode")
+	out, err = Render(source, data, profiles, "codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = string(out)
+	for _, want := range []string{
+		// Quotes and backslashes are escaped; non-ASCII text is kept verbatim.
+		`description = "A \"quoted\" role at C:\\work with mañana."` + "\n",
+		`\"double quotes\", 'single quotes', C:\\\\work, and `,
+		"mañana, naïve café, 日本語, and a tab:\\tend.",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("Codex TOML missing escaped text %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "\t") {
+		t.Fatalf("Codex TOML holds a raw tab instead of an escape:\n%s", got)
+	}
 }
 
 func TestCodexTOMLRoundTripsQuotedUnicodeInstructions(t *testing.T) {
-	profiles := repositoryProfiles(t)
+	profiles := syntheticProfiles(t)
 	source := "content/agents/design/test-agent.md"
 	body := "Use \"quoted\" values, C:\\\\work, and mañana.\n"
 	data := []byte("---\nname: test-agent\ndescription: \"A \\\"quoted\\\" role at C:\\\\work\"\nmodel_profile: inherit\naccess_profile: observe\n---\n" + body)
@@ -125,19 +208,15 @@ func TestCodexTOMLRoundTripsQuotedUnicodeInstructions(t *testing.T) {
 }
 
 func TestProfilesRejectWrongPiToolRestrictionType(t *testing.T) {
-	bad := strings.Replace(string(repositoryProfiles(t)), `"excludeTools": ["write", "edit"]`, `"excludeTools": "write,edit"`, 1)
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"excludeTools": ["write", "edit"]`, `"excludeTools": "write,edit"`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil {
 		t.Fatal("ReadProfiles accepted scalar Pi tool restriction")
 	}
 }
 
 func TestCursorObserveRendersInheritModelAndReadonly(t *testing.T) {
-	profiles := repositoryProfiles(t)
-	source := "content/agents/review/hive-research.md"
-	data, err := os.ReadFile(filepath.Join("..", "..", source))
-	if err != nil {
-		t.Fatal(err)
-	}
+	profiles := syntheticProfiles(t)
+	source, data := syntheticRole(t, "synthetic-observer")
 	out, err := Render(source, data, profiles, "cursor")
 	if err != nil {
 		t.Fatal(err)
@@ -154,42 +233,39 @@ func TestCursorObserveRendersInheritModelAndReadonly(t *testing.T) {
 }
 
 func TestProfilesRejectCursorEffort(t *testing.T) {
-	bad := strings.Replace(string(repositoryProfiles(t)), `"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`, `"execution": {"model": "inherit", "effort": "high"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`, 1)
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`, `"execution": {"model": "inherit", "effort": "high"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "inherited effort") {
 		t.Fatalf("ReadProfiles accepted a Cursor model effort: %v", err)
 	}
 }
 
 func TestProfilesRejectCursorReadonlyAsString(t *testing.T) {
-	bad := strings.Replace(string(repositoryProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"readonly": "true"}`, 1)
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"readonly": "true"}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil {
 		t.Fatal("ReadProfiles accepted a string Cursor readonly value")
 	}
 }
 
 func TestProfilesRejectCursorReadonlyFalse(t *testing.T) {
-	bad := strings.Replace(string(repositoryProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"readonly": false}`, 1)
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"readonly": false}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil {
 		t.Fatal("ReadProfiles accepted a false Cursor readonly value")
 	}
 }
 
 func TestProfilesRejectCursorUnsupportedAccessKey(t *testing.T) {
-	bad := strings.Replace(string(repositoryProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"permissionMode": "plan"}`, 1)
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"permissionMode": "plan"}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil {
 		t.Fatal("ReadProfiles accepted an unsupported Cursor access key")
 	}
 }
 
 func TestProfilesRejectUnknownHost(t *testing.T) {
-	bad := strings.Replace(string(repositoryProfiles(t)), `"cursor": {`, `"cursorx": {`, 1)
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"cursor": {`, `"cursorx": {`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "unsupported agent profile host") {
 		t.Fatalf("ReadProfiles accepted an unknown host key: %v", err)
 	}
 }
-
-// emittedEffort matches an effort key at the start of a rendered line.
-var emittedEffort = regexp.MustCompile(`(?m)^(effort|thinking|model_reasoning_effort)\b`)
 
 func TestParseRejectsInvalidEffortValue(t *testing.T) {
 	source := "content/agents/design/test-agent.md"
@@ -209,9 +285,9 @@ func TestParseRejectsClaudeEffortAsUnknownField(t *testing.T) {
 }
 
 func TestRoleEffortOverridesProfileEffortOnClaudeCodexAndPi(t *testing.T) {
-	profiles := repositoryProfiles(t)
+	profiles := syntheticProfiles(t)
 	source := "content/agents/design/test-agent.md"
-	// execution profile carries effort "high" by default; the role declares "low".
+	// the synthetic execution profile carries effort "medium"; the role declares "low".
 	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"low\"\n---\nBody\n")
 	cases := []struct{ host, want string }{
 		{"claude", "effort: \"low\"\n"},
@@ -230,7 +306,7 @@ func TestRoleEffortOverridesProfileEffortOnClaudeCodexAndPi(t *testing.T) {
 }
 
 func TestGrokOpenCodeAndCursorEmitNoEffortEvenWhenRoleDeclaresOne(t *testing.T) {
-	profiles := repositoryProfiles(t)
+	profiles := syntheticProfiles(t)
 	source := "content/agents/design/test-agent.md"
 	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"max\"\n---\nBody\n")
 	for _, host := range []string{"grok", "opencode", "cursor"} {
@@ -238,107 +314,9 @@ func TestGrokOpenCodeAndCursorEmitNoEffortEvenWhenRoleDeclaresOne(t *testing.T) 
 		if err != nil {
 			t.Fatalf("Render(%s): %v", host, err)
 		}
-		if emittedEffort.Match(out) {
-			t.Fatalf("Render(%s) emitted effort despite the role declaring one:\n%s", host, out)
-		}
-	}
-}
-
-// TestRepositorySourcesMatchExpectedEffortLevels renders the canonical roles
-// for all six hosts and checks the exact Claude/Codex/Pi effort level: every
-// Claude-rendered role must declare an effort line, and Grok/OpenCode/Cursor
-// must never declare one.
-func TestRepositorySourcesMatchExpectedEffortLevels(t *testing.T) {
-	profiles := repositoryProfiles(t)
-	// {Claude, Codex, Pi} expected effort level per role.
-	expected := map[string][3]string{
-		"hive-build-backend":       {"medium", "medium", "medium"},
-		"hive-build-frontend":      {"medium", "medium", "medium"},
-		"hive-build-kmp":           {"medium", "medium", "medium"},
-		"hive-build-infra":         {"medium", "medium", "medium"},
-		"hive-write-tests":         {"medium", "medium", "medium"},
-		"hive-verify-change":       {"high", "medium", "medium"},
-		"hive-review-ux":           {"high", "medium", "medium"},
-		"hive-research":            {"high", "medium", "medium"},
-		"hive-write-spec":          {"medium", "medium", "medium"},
-		"hive-read-state":          {"low", "low", "low"},
-		"hive-build-data":          {"high", "high", "high"},
-		"hive-tune-performance":    {"high", "high", "high"},
-		"hive-review-code":         {"high", "high", "high"},
-		"hive-verify-task":         {"high", "high", "high"},
-		"hive-review-harness":      {"high", "high", "high"},
-		"hive-review-plan":         {"medium", "medium", "medium"},
-		"hive-design-architecture": {"high", "high", "high"},
-		"hive-design-ui":           {"medium", "high", "high"},
-		"hive-refute-claim":        {"high", "high", "high"},
-		"hive-review-security":     {"max", "max", "max"},
-	}
-	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(sources) != len(expected) {
-		t.Fatalf("catalogue has %d roles, want %d", len(sources), len(expected))
-	}
-	claudeEffort := regexp.MustCompile(`(?m)^effort: "([a-z]+)"$`)
-	codexEffort := regexp.MustCompile(`(?m)^model_reasoning_effort = "([a-z]+)"$`)
-	piEffort := regexp.MustCompile(`(?m)^thinking: "([a-z]+)"$`)
-	for _, source := range sources {
-		data, err := os.ReadFile(source)
-		if err != nil {
-			t.Fatal(err)
-		}
-		name := strings.TrimSuffix(filepath.Base(source), ".md")
-		want, ok := expected[name]
-		if !ok {
-			t.Fatalf("no expected effort levels declared for role %s", name)
-		}
-		canonical := filepath.ToSlash(source)
-		canonical = strings.TrimPrefix(canonical, "../../")
-
-		claudeOut, err := Render(canonical, data, profiles, "claude")
-		if err != nil {
-			t.Fatalf("Render(claude, %s): %v", name, err)
-		}
-		m := claudeEffort.FindSubmatch(claudeOut)
-		if m == nil {
-			t.Fatalf("Render(claude, %s) has no effort line:\n%s", name, claudeOut)
-		}
-		if got := string(m[1]); got != want[0] {
-			t.Fatalf("Render(claude, %s) effort = %q, want %q", name, got, want[0])
-		}
-
-		codexOut, err := Render(canonical, data, profiles, "codex")
-		if err != nil {
-			t.Fatalf("Render(codex, %s): %v", name, err)
-		}
-		m = codexEffort.FindSubmatch(codexOut)
-		if m == nil {
-			t.Fatalf("Render(codex, %s) has no model_reasoning_effort line:\n%s", name, codexOut)
-		}
-		if got := string(m[1]); got != want[1] {
-			t.Fatalf("Render(codex, %s) effort = %q, want %q", name, got, want[1])
-		}
-
-		piOut, err := Render(canonical, data, profiles, "pi")
-		if err != nil {
-			t.Fatalf("Render(pi, %s): %v", name, err)
-		}
-		m = piEffort.FindSubmatch(piOut)
-		if m == nil {
-			t.Fatalf("Render(pi, %s) has no thinking line:\n%s", name, piOut)
-		}
-		if got := string(m[1]); got != want[2] {
-			t.Fatalf("Render(pi, %s) effort = %q, want %q", name, got, want[2])
-		}
-
-		for _, host := range []string{"grok", "opencode", "cursor"} {
-			out, err := Render(canonical, data, profiles, host)
-			if err != nil {
-				t.Fatalf("Render(%s, %s): %v", host, name, err)
-			}
-			if emittedEffort.Match(out) {
-				t.Fatalf("Render(%s, %s) emitted effort:\n%s", host, name, out)
+		for _, prefix := range effortKeyPrefix {
+			if hasLinePrefix(out, prefix) {
+				t.Fatalf("Render(%s) emitted a line starting %q despite the role declaring an effort:\n%s", host, prefix, out)
 			}
 		}
 	}
@@ -350,7 +328,7 @@ func TestRepositorySourcesMatchExpectedEffortLevels(t *testing.T) {
 // stable error rather than a validation error over a missing host.
 func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	var frozen map[string]any
-	if err := json.Unmarshal(repositoryProfiles(t), &frozen); err != nil {
+	if err := json.Unmarshal(syntheticProfiles(t), &frozen); err != nil {
 		t.Fatal(err)
 	}
 	hosts := frozen["hosts"].(map[string]any)
@@ -362,11 +340,7 @@ func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	if _, err := ReadProfiles(data); err != nil {
 		t.Fatalf("five-host profile rejected: %v", err)
 	}
-	source := "content/agents/review/hive-research.md"
-	body, err := os.ReadFile(filepath.Join("..", "..", source))
-	if err != nil {
-		t.Fatal(err)
-	}
+	source, body := syntheticRole(t, "synthetic-observer")
 	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode"} {
 		if _, err := Render(source, body, data, host); err != nil {
 			t.Fatalf("Render(%s) on five-host profile: %v", host, err)

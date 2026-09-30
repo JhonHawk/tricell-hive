@@ -10,6 +10,32 @@ import (
 	"tricell-hive/integrations/agents"
 )
 
+// Synthetic values from testdata/agent-profiles.json that the assertions pin.
+const (
+	syntheticProfiles      = "testdata/agent-profiles.json"
+	claudeExecModel        = "syn-claude-exec"
+	claudeNextModel        = "syn-claude-next"
+	codexExecModel         = "syn-codex-exec"
+	codexNextModel         = "syn-codex-next"
+	opencodeExecModel      = "syn-oc/exec"
+	opencodeReasoningModel = "syn-oc/reason"
+	opencodeExecEffort     = "medium"
+	syntheticExecEffort    = "medium" // the execution profile's effort on Claude, Codex and Pi
+	opencodeRoleEffort     = "max"
+)
+
+// swapModel replaces every occurrence of a synthetic model in the profiles
+// file, and fails when the constant is absent so the swap cannot silently do
+// nothing.
+func swapModel(t *testing.T, profiles, from, to string) string {
+	t.Helper()
+	quoted := `"` + from + `"`
+	if !strings.Contains(profiles, quoted) {
+		t.Fatalf("synthetic profiles do not contain %s", quoted)
+	}
+	return strings.ReplaceAll(profiles, quoted, `"`+to+`"`)
+}
+
 var allAgentHosts = []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
 
 func modelsRole(name, profile, effort string) string {
@@ -20,12 +46,12 @@ func modelsRole(name, profile, effort string) string {
 	return front + "---\nUse evidence.\n"
 }
 
-// modelsSource writes the real agent profiles and three roles into o.Source:
+// modelsSource writes the synthetic agent profiles and three roles into o.Source:
 // one on the execution profile, one on reasoning with its own effort, and one
 // that inherits.
 func modelsSource(t *testing.T, o Options) {
 	t.Helper()
-	profiles, err := os.ReadFile(filepath.Join("..", "..", agents.ProfilesSource))
+	profiles, err := os.ReadFile(syntheticProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,8 +161,8 @@ func TestEffectiveModelsRoleEffortWinsOnClaudeCodexAndPi(t *testing.T) {
 		if r := byKey[host+"/inherit-role"]; r.Effort != "low" || r.Profile != "inherit" {
 			t.Errorf("%s/inherit-role = %+v, want the role's own low effort", host, r)
 		}
-		if r := byKey[host+"/plain-role"]; r.Effort != "high" && r.Effort != "medium" {
-			t.Errorf("%s/plain-role = %+v, want the profile's effort", host, r)
+		if r := byKey[host+"/plain-role"]; r.Effort != syntheticExecEffort || r.Profile != "execution" {
+			t.Errorf("%s/plain-role = %+v, want the execution profile's %s effort", host, r, syntheticExecEffort)
 		}
 	}
 	for _, host := range []string{"grok", "opencode", "cursor"} {
@@ -147,11 +173,11 @@ func TestEffectiveModelsRoleEffortWinsOnClaudeCodexAndPi(t *testing.T) {
 	if r := byKey["grok/plain-role"]; r.Model != "" {
 		t.Errorf("grok model = %q, want the host default (empty)", r.Model)
 	}
-	if r := byKey["opencode/plain-role"]; r.Model != "github-copilot/gpt-6.1-sol#medium" {
+	if r := byKey["opencode/plain-role"]; r.Model != opencodeExecModel+"#"+opencodeExecEffort {
 		t.Errorf("opencode model = %q", r.Model)
 	}
 	// On OpenCode a role's effort replaces the profile's variant.
-	if r := byKey["opencode/deep-role"]; r.Model != "github-copilot/gpt-6.1-sol#max" {
+	if r := byKey["opencode/deep-role"]; r.Model != opencodeReasoningModel+"#"+opencodeRoleEffort {
 		t.Errorf("opencode/deep-role model = %q, want the role's max variant", r.Model)
 	}
 }
@@ -164,8 +190,8 @@ func TestEffectiveModelsUseTheRecordsOwnRelease(t *testing.T) {
 
 	// A second release changes both models, but only Codex moves to it.
 	profilesPath := filepath.Join(o.Source, agents.ProfilesSource)
-	profiles := strings.ReplaceAll(get(t, profilesPath), `"model": "sonnet"`, `"model": "haiku"`)
-	profiles = strings.ReplaceAll(profiles, `"gpt-6.1-sol"`, `"gpt-next"`)
+	profiles := swapModel(t, get(t, profilesPath), claudeExecModel, claudeNextModel)
+	profiles = swapModel(t, profiles, codexExecModel, codexNextModel)
 	put(t, profilesPath, profiles)
 	o.Hosts = []string{"codex"}
 	apply(t, plan(t, "install", o))
@@ -176,11 +202,11 @@ func TestEffectiveModelsUseTheRecordsOwnRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 	byKey := modelRowsByKey(rows)
-	if got := byKey["claude/plain-role"].Model; got != "sonnet" {
-		t.Errorf("claude stayed on the older release, model = %q, want sonnet", got)
+	if got := byKey["claude/plain-role"].Model; got != claudeExecModel {
+		t.Errorf("claude stayed on the older release, model = %q, want %q", got, claudeExecModel)
 	}
-	if got := byKey["codex/plain-role"].Model; got != "gpt-next" {
-		t.Errorf("codex is on the newer release, model = %q, want gpt-next", got)
+	if got := byKey["codex/plain-role"].Model; got != codexNextModel {
+		t.Errorf("codex is on the newer release, model = %q, want %q", got, codexNextModel)
 	}
 	state := stateFor(t, o)
 	releases := map[string]bool{}
@@ -249,7 +275,7 @@ func twoReleaseClaudeState(t *testing.T) (Options, string, string) {
 	first := plan(t, "install", o)
 	apply(t, first)
 	profilesPath := filepath.Join(o.Source, agents.ProfilesSource)
-	put(t, profilesPath, strings.ReplaceAll(get(t, profilesPath), `"model": "sonnet"`, `"model": "haiku"`))
+	put(t, profilesPath, swapModel(t, get(t, profilesPath), claudeExecModel, claudeNextModel))
 	o.Hosts = []string{"codex"}
 	second := plan(t, "install", o)
 	apply(t, second)
@@ -287,8 +313,8 @@ func TestEffectiveModelsPreferTheCurrentDestinationOverAShadowedRecord(t *testin
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := modelRowsByKey(rows)["claude/plain-role"].Model; got != "sonnet" {
-			t.Fatalf("iteration %d: claude/plain-role model = %q, want sonnet from the current destination", i, got)
+		if got := modelRowsByKey(rows)["claude/plain-role"].Model; got != claudeExecModel {
+			t.Fatalf("iteration %d: claude/plain-role model = %q, want %q from the current destination", i, got, claudeExecModel)
 		}
 	}
 }
@@ -325,8 +351,8 @@ func TestEffectiveModelsFallBackToTheNewestReleaseWhenNoRecordIsCurrent(t *testi
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := modelRowsByKey(rows)["claude/plain-role"].Model; got != "haiku" {
-			t.Fatalf("iteration %d: claude/plain-role model = %q, want haiku from the newest release", i, got)
+		if got := modelRowsByKey(rows)["claude/plain-role"].Model; got != claudeNextModel {
+			t.Fatalf("iteration %d: claude/plain-role model = %q, want %q from the newest release", i, got, claudeNextModel)
 		}
 	}
 }

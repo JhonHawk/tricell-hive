@@ -19,9 +19,8 @@ import (
 	"tricell-hive/tooling/version"
 )
 
-// bootstrapFixtureOrigin serves a download index plus a real, install-shaped
-// package (this checkout's own content/ and integrations/agent-profiles.json,
-// exactly as install_test.go's --source ../.. uses them, packaged the same
+// bootstrapFixtureOrigin serves a download index plus an install-shaped
+// package (the minimal synthetic source's content/ and integrations/agent-profiles.json, packaged the same
 // way tooling/distribution's own fixtures build a package directory: plain
 // bytes for bin/hive rather than a real compiled binary, since only Go-level
 // bootstrap() is under test here — bootstrap_shell_test.go covers the real
@@ -645,12 +644,12 @@ func TestBootstrapOnlinePendingRecoveryPointsToRetainedManager(t *testing.T) {
 // addBootstrapFixtureSkillAndAgent adds a nested synthetic skill and one
 // synthetic agent to a package directory, so the bootstrap tests still package
 // and checksum-verify nested skill files and agent files. The shared minimal
-// source stays skill- and agent-free. An agent release needs the real agent
-// profiles (the minimal source carries none), so they replace the minimal ones
+// source stays skill- and agent-free. An agent release needs agent profiles
+// (the minimal source carries none), so the synthetic ones replace the minimal ones
 // in the package directory.
 func addBootstrapFixtureSkillAndAgent(t *testing.T, dir string) {
 	t.Helper()
-	profiles, err := os.ReadFile(filepath.Join("..", "..", "integrations", "agent-profiles.json"))
+	profiles, err := os.ReadFile(filepath.FromSlash(modelsProfileFixture))
 	if err != nil {
 		t.Fatal(err)
 	}

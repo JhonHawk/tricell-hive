@@ -60,14 +60,14 @@ func skillBody(text string) string {
 }
 
 // writeUpdateCatalog writes the minimal catalog tasks.md's T3 test setup
-// calls for: the global instruction, a skill, an agent role and the real
-// agent profiles this repository ships (management's own helpers, mirrored
+// calls for: the global instruction, a skill, an agent role and the synthetic
+// agent profiles (modelsProfileFixture) (management's own helpers, mirrored
 // here per tasks.md, are unexported and not reusable across packages).
 func writeUpdateCatalog(t *testing.T, dir, skill string) {
 	t.Helper()
 	putCharacterization(t, filepath.Join(dir, management.GlobalSource), "# Rules\nKeep user content.\n")
 	putCharacterization(t, filepath.Join(dir, management.SkillSource), skill)
-	profiles, err := os.ReadFile(filepath.Join("..", "..", agents.ProfilesSource))
+	profiles, err := os.ReadFile(filepath.FromSlash(modelsProfileFixture))
 	if err != nil {
 		t.Fatal(err)
 	}

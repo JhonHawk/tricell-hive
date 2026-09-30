@@ -2,8 +2,6 @@ package agents
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -19,17 +17,19 @@ func resolveRole(profile, effort string) []byte {
 }
 
 func TestResolveReturnsProfileModelAndProfileEffort(t *testing.T) {
-	profiles := repositoryProfiles(t)
+	profiles := syntheticProfiles(t)
 	cases := []struct {
 		host, profile string
 		want          Model
 	}{
-		{"claude", "execution", Model{"sonnet", "high"}},
-		{"claude", "reasoning", Model{"opus", "high"}},
-		{"claude", "inherit", Model{"inherit", "high"}},
-		{"codex", "reasoning", Model{"gpt-6.1-sol", "high"}},
+		{"claude", "execution", Model{"syn-claude-exec", "medium"}},
+		{"claude", "reasoning", Model{"syn-claude-reason", "high"}},
+		{"claude", "inherit", Model{"inherit", "low"}},
+		{"codex", "reasoning", Model{"syn-codex-reason", "high"}},
+		{"codex", "inherit", Model{"", "low"}},
 		{"grok", "execution", Model{}},
-		{"opencode", "execution", Model{"github-copilot/gpt-6.1-sol#medium", ""}},
+		{"opencode", "execution", Model{"syn-oc/exec#medium", ""}},
+		{"opencode", "inherit", Model{"syn-oc/inherit#max", ""}},
 		{"cursor", "reasoning", Model{"inherit", ""}},
 	}
 	for _, c := range cases {
@@ -44,7 +44,7 @@ func TestResolveReturnsProfileModelAndProfileEffort(t *testing.T) {
 }
 
 func TestResolveRoleEffortWinsOnlyWhereHostAcceptsEffort(t *testing.T) {
-	profiles := repositoryProfiles(t)
+	profiles := syntheticProfiles(t)
 	data := resolveRole("execution", "low")
 	for _, host := range []string{"claude", "codex", "pi"} {
 		_, m, err := Resolve(resolveSource, data, profiles, host)
@@ -59,13 +59,13 @@ func TestResolveRoleEffortWinsOnlyWhereHostAcceptsEffort(t *testing.T) {
 		}
 	}
 	// OpenCode carries the role's effort as the model variant.
-	if _, m, err := Resolve(resolveSource, data, profiles, "opencode"); err != nil || m != (Model{"github-copilot/gpt-6.1-sol#low", ""}) {
+	if _, m, err := Resolve(resolveSource, data, profiles, "opencode"); err != nil || m != (Model{"syn-oc/exec#low", ""}) {
 		t.Fatalf("Resolve(opencode) = %+v, %v; want the role's low variant", m, err)
 	}
 }
 
 func TestResolveRejectsBadInput(t *testing.T) {
-	profiles := repositoryProfiles(t)
+	profiles := syntheticProfiles(t)
 	if _, _, err := Resolve(resolveSource, resolveRole("execution", ""), profiles, "vim"); err == nil || !strings.Contains(err.Error(), "unsupported agent host") {
 		t.Fatalf("unknown host error = %v", err)
 	}
@@ -78,11 +78,11 @@ func TestResolveRejectsBadInput(t *testing.T) {
 }
 
 // editProfiles applies edit to the models object of every host in the
-// repository profiles and returns the re-encoded JSON.
+// synthetic profiles and returns the re-encoded JSON.
 func editProfiles(t *testing.T, edit func(host string, models map[string]any)) []byte {
 	t.Helper()
 	var doc map[string]any
-	if err := json.Unmarshal(repositoryProfiles(t), &doc); err != nil {
+	if err := json.Unmarshal(syntheticProfiles(t), &doc); err != nil {
 		t.Fatal(err)
 	}
 	for host, h := range doc["hosts"].(map[string]any) {
@@ -145,7 +145,7 @@ func TestParseAcceptsVerifierModelProfile(t *testing.T) {
 
 func TestResolveVerifierAgainstThreeProfilesNamesHostAndProfile(t *testing.T) {
 	profiles := threeProfiles(t)
-	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode", "cursor"} {
+	for _, host := range allHosts {
 		_, _, err := Resolve(resolveSource, resolveRole("verifier", ""), profiles, host)
 		if err == nil || !strings.Contains(err.Error(), host) || !strings.Contains(err.Error(), "verifier") {
 			t.Fatalf("Resolve(%s) error = %v, want one naming host and verifier", host, err)
@@ -168,19 +168,15 @@ func TestRepositoryProfilesDeclareVerifierOnAllHosts(t *testing.T) {
 	}
 }
 
-func TestResolveVerifyTaskRoleAgainstRepositoryProfiles(t *testing.T) {
-	source := "content/agents/quality/hive-verify-task.md"
-	data, err := os.ReadFile(filepath.Join("..", "..", source))
-	if err != nil {
-		t.Fatal(err)
-	}
-	profiles := repositoryProfiles(t)
+func TestResolveVerifierRoleAgainstSyntheticProfiles(t *testing.T) {
+	source, data := syntheticRole(t, "synthetic-verifier")
+	profiles := syntheticProfiles(t)
 	cases := []struct{ host, model, effort string }{
-		{"claude", "opus", "high"},
-		{"codex", "gpt-6-astra", "high"},
-		{"pi", "xai/grok-4.7", "high"},
-		{"opencode", "github-copilot/claude-opus-5.5#high", ""},
-		{"grok", "grok-4.6", ""},
+		{"claude", "syn-claude-verify", "xhigh"},
+		{"codex", "syn-codex-verify", "xhigh"},
+		{"pi", "syn-pi/verify", "xhigh"},
+		{"opencode", "syn-oc/verify#xhigh", ""},
+		{"grok", "syn-grok-verify", ""},
 		{"cursor", "inherit", ""},
 	}
 	for _, c := range cases {

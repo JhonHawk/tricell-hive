@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "hosts": {
+    "claude": {
+      "models": {"execution": {"model": "syn-claude-exec", "effort": "medium"}, "reasoning": {"model": "syn-claude-reason", "effort": "high"}, "inherit": {"model": "inherit", "effort": "low"}, "verifier": {"model": "syn-claude-verify", "effort": "xhigh"}},
+      "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit"]}, "implement": {}, "verify": {}}
+    },
+    "codex": {
+      "models": {"execution": {"model": "syn-codex-exec", "effort": "medium"}, "reasoning": {"model": "syn-codex-reason", "effort": "high"}, "inherit": {"effort": "low"}, "verifier": {"model": "syn-codex-verify", "effort": "xhigh"}},
+      "access": {"observe": {"sandbox_mode": "read-only"}, "implement": {}, "verify": {}}
+    },
+    "grok": {
+      "models": {"execution": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "syn-grok-verify"}},
+      "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit", "search_replace", "write_file", "apply_patch"]}, "implement": {}, "verify": {}}
+    },
+    "pi": {
+      "models": {"execution": {"model": "syn-pi/exec", "effort": "medium"}, "reasoning": {"model": "syn-pi/reason", "effort": "high"}, "inherit": {"model": "inherit", "effort": "low"}, "verifier": {"model": "syn-pi/verify", "effort": "xhigh"}},
+      "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
+    },
+    "opencode": {
+      "models": {"execution": {"model": "syn-oc/exec", "effort": "medium"}, "reasoning": {"model": "syn-oc/reason", "effort": "high"}, "inherit": {"model": "syn-oc/inherit#max"}, "verifier": {"model": "syn-oc/verify", "effort": "xhigh"}},
+      "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
+    },
+    "cursor": {
+      "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
+      "access": {"observe": {"readonly": true}, "implement": {}, "verify": {}}
+    }
+  }
+}
