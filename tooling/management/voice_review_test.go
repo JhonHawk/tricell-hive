@@ -207,8 +207,8 @@ func TestVoiceOffFailsAtPlanTimeWhenHiveBlockMissing(t *testing.T) {
 
 // TestVoiceRecordFromSpanNamesTheFileInErrors covers voiceRecordFromSpan's
 // empty Target.Path: owned's "modified or missing managed block" error (and
-// every other owned/transform error keyed on Target.Path) must end with the
-// actual file path, not a bare trailing colon.
+// every other owned/transform error keyed on Target.Path) must name the
+// actual file path exactly once, not a bare trailing colon.
 func TestVoiceRecordFromSpanNamesTheFileInErrors(t *testing.T) {
 	const path = "/some/synthetic/path/CLAUDE.md"
 	span := &VoiceSpan{Managed: []byte(VoiceBegin + "\nbody\n" + VoiceEnd + "\n")}
@@ -221,8 +221,8 @@ func TestVoiceRecordFromSpanNamesTheFileInErrors(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected a mismatch error")
 	}
-	if !strings.HasSuffix(err.Error(), path) {
-		t.Fatalf("expected the error to end with the path %s, got %q", path, err.Error())
+	if n := strings.Count(err.Error(), path); n != 1 {
+		t.Fatalf("expected the error to name the path %s exactly once, got %d times in %q", path, n, err.Error())
 	}
 }
 

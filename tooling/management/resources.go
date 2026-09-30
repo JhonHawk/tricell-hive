@@ -49,7 +49,7 @@ func readResource(t target.Target, migration bool) (snapshot, error) {
 func transformResource(s snapshot, ch Change) (snapshot, error) {
 	if ch.Replaces != nil {
 		if s.Kind != "skill-directory" || ch.After == nil || ch.Target.Kind != "symlink" {
-			return snapshot{}, fmt.Errorf("invalid legacy skill migration")
+			return snapshot{}, fmt.Errorf("%s: invalid legacy skill migration", ch.Target.Path)
 		}
 		if err := owned(snapshot{Exists: true, Data: s.Data, Mode: s.FileMode}, *ch.Replaces, hiveMarkers); err != nil {
 			return snapshot{}, err

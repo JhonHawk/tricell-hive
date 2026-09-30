@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"testing"
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/legacy"
 )
 
 type snapshot struct {
@@ -255,30 +256,41 @@ func managedBlock(body, current []byte, m markers) []byte {
 	return []byte(m.begin + nl + strings.ReplaceAll(s, "\n", nl) + nl + m.end + nl)
 }
 func owned(s snapshot, r Record, m markers) error {
+	path := r.Target.Path
 	if !s.Exists {
-		return fmt.Errorf("managed file is missing: %s", r.Target.Path)
+		e := &ManagedFileChangedError{Path: path, Kind: ManagedFileMissing}
+		if r.Target.Kind != "skill" && r.Target.Kind != "agent" && r.Target.Kind != "symlink" {
+			e.Block = m.name
+		}
+		return e
 	}
 	if r.Target.Kind == "symlink" {
 		if s.Kind != "symlink" || s.LinkTarget != r.Target.LinkTarget {
-			return fmt.Errorf("modified managed symlink: %s", r.Target.Path)
+			return &ManagedFileChangedError{Path: path, Kind: ManagedFileChanged}
 		}
 		return nil
 	}
 	if s.Kind != "" {
-		return fmt.Errorf("managed resource type changed: %s", r.Target.Path)
+		return &ManagedFileChangedError{Path: path, Kind: ManagedFileChanged}
 	}
 	if r.Target.Kind == "skill" || r.Target.Kind == "agent" {
-		if !bytes.Equal(s.Data, r.Managed) || (r.Mode != 0 && s.Mode != r.Mode) {
-			return fmt.Errorf("modified managed skill: %s", r.Target.Path)
+		if !bytes.Equal(s.Data, r.Managed) {
+			return &ManagedFileChangedError{Path: path, Kind: ManagedFileChanged}
+		}
+		if r.Mode != 0 && s.Mode != r.Mode {
+			return &ManagedFileChangedError{Path: path, Kind: ManagedPermissionsChanged}
 		}
 		return nil
 	}
 	a, b, err := blockRange(s.Data, m)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", path, err)
 	}
-	if a < 0 || !bytes.Equal(s.Data[a:b], r.Managed) {
-		return fmt.Errorf("modified or missing managed block: %s", r.Target.Path)
+	if a < 0 {
+		return &ManagedFileChangedError{Path: path, Kind: ManagedBlockMissing, Block: m.name}
+	}
+	if !bytes.Equal(s.Data[a:b], r.Managed) {
+		return &ManagedFileChangedError{Path: path, Kind: ManagedBlockChanged, Block: m.name}
 	}
 	return nil
 }
@@ -291,6 +303,12 @@ func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	if before == nil && after == nil {
 		return s, nil
 	}
+	path := ""
+	if before != nil {
+		path = before.Target.Path
+	} else {
+		path = after.Target.Path
+	}
 	mode := s.Mode
 	if !s.Exists {
 		mode = 0600
@@ -300,7 +318,7 @@ func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	}
 	if after != nil && (after.Target.Kind == "skill" || after.Target.Kind == "agent") {
 		if before == nil && s.Exists {
-			return snapshot{}, fmt.Errorf("unowned skill collision")
+			return snapshot{}, fmt.Errorf("%s: unowned skill collision", path)
 		}
 		return snapshot{Exists: true, Data: after.Managed, Mode: mode}, nil
 	}
@@ -309,7 +327,7 @@ func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	}
 	if after != nil && after.Target.Kind == "symlink" {
 		if before == nil && s.Exists {
-			return snapshot{}, fmt.Errorf("unowned symlink collision")
+			return snapshot{}, fmt.Errorf("%s: unowned symlink collision", path)
 		}
 		return snapshot{Exists: true, Kind: "symlink", LinkTarget: after.Target.LinkTarget}, nil
 	}
@@ -318,11 +336,11 @@ func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	}
 	a, b, err := blockRange(s.Data, m)
 	if err != nil {
-		return snapshot{}, err
+		return snapshot{}, fmt.Errorf("%s: %w", path, err)
 	}
 	if before == nil {
 		if a >= 0 {
-			return snapshot{}, fmt.Errorf("unowned %s block", m.name)
+			return snapshot{}, fmt.Errorf("%s: unowned %s block", path, m.name)
 		}
 		out := append(append(append([]byte{}, s.Data...), []byte(after.Leading)...), after.Managed...)
 		return snapshot{Exists: true, Data: out, Mode: mode}, nil
@@ -338,4 +356,45 @@ func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 		return snapshot{}, nil
 	}
 	return snapshot{Exists: true, Data: out, Mode: mode}, nil
+}
+
+// ManagedFileChangedError reports a managed file that no longer matches what
+// Hive recorded. Callers find the path with errors.As, and the text names it
+// once; owned() is the only place that adds a path to its errors, so callers
+// return them as they are.
+type ManagedFileChangedError struct {
+	Path string
+	Kind ManagedChange
+	// Block names the marker pair ("Hive", "voice") for the block kinds, and
+	// for ManagedFileMissing when the missing file held a managed block.
+	Block string
+}
+
+// ManagedChange classifies a ManagedFileChangedError into its wordings.
+type ManagedChange int
+
+const (
+	ManagedFileChanged ManagedChange = iota
+	ManagedPermissionsChanged
+	ManagedBlockChanged
+	ManagedBlockMissing
+	ManagedFileMissing
+)
+
+func (e *ManagedFileChangedError) Error() string {
+	switch e.Kind {
+	case ManagedPermissionsChanged:
+		return e.Path + " differs from what Hive expects there: its permissions changed; restore them or restore the file from a backup"
+	case ManagedBlockChanged:
+		return "the " + e.Block + " block in " + e.Path + " differs from what Hive wrote; undo the change inside the block"
+	case ManagedBlockMissing:
+		return "the " + e.Block + " block in " + e.Path + " is gone; restore the file from a backup"
+	case ManagedFileMissing:
+		if e.Block != "" {
+			return e.Path + ", which held the " + e.Block + " block, is no longer there; restore it from a backup"
+		}
+		return "Hive installed " + e.Path + " and it is no longer there; restore it from a backup"
+	}
+	// One source with the legacy scan, so the two texts cannot drift apart.
+	return (&legacy.ModifiedFileError{Path: e.Path}).Error()
 }

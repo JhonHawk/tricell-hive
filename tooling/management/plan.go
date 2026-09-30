@@ -422,7 +422,7 @@ func BuildPlan(action string, o Options) (Plan, error) {
 			return p, err
 		}
 		if _, err = transformResource(s, ch); err != nil {
-			return p, fmt.Errorf("%s: %w", t.Path, err)
+			return p, err
 		}
 		p.Changes = append(p.Changes, ch)
 	}
