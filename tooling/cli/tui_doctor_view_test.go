@@ -284,13 +284,13 @@ func TestDoctorViewAnswersWhetherToRestartAndHowToRepairDrift(t *testing.T) {
 				d.key("pgdown")
 				assertFits(t, d, size[0], size[1])
 			}
-			squeezed := strings.Join(strings.Fields(seen.String()), "")
+			squeezed := squash(seen.String())
 			for _, want := range []string{
 				"1 open Claude Code session should be restarted",
 				"claude: 2 open sessions, 1 to restart",
 				driftRepairLine,
 			} {
-				if !strings.Contains(squeezed, strings.Join(strings.Fields(want), "")) {
+				if !strings.Contains(squeezed, squash(want)) {
 					t.Fatalf("the view never showed %q:\n%s", want, seen.String())
 				}
 			}
@@ -412,7 +412,7 @@ func TestDoctorViewGroupsSharedDriftedFileAndKeepsSessionsReachable(t *testing.T
 			_, d, v := openDoctorView(t, o, f, size[0], size[1])
 			assertFits(t, d, size[0], size[1])
 			d.mustShow("drift  claude, codex, cursor, grok, opencode, pi")
-			if n := strings.Count(strings.Join(strings.Fields(d.screen()), ""), strings.Join(strings.Fields(paths[0]), "")); n > 1 {
+			if n := strings.Count(squash(d.screen()), squash(paths[0])); n > 1 {
 				t.Fatalf("the path is drawn %d times:\n%s", n, d.screen())
 			}
 			if size[0] == 120 {

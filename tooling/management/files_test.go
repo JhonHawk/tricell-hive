@@ -244,12 +244,12 @@ func TestBlockRangeErrorTextsNameTheBlock(t *testing.T) {
 func TestTransformUnownedBlockErrorNamesTheBlock(t *testing.T) {
 	after := blockRecord("/f", managedBlock([]byte("body\n"), nil, hiveMarkers))
 	s := snapshot{Exists: true, Data: managedBlock([]byte("someone else's block\n"), nil, hiveMarkers)}
-	if _, err := transform(s, nil, &after, hiveMarkers); err == nil || err.Error() != "unowned Hive block" {
+	if _, err := transform(s, nil, &after, hiveMarkers); err == nil || err.Error() != "/f: unowned Hive block" {
 		t.Fatalf("got %v", err)
 	}
 	afterVoice := blockRecord("/f", managedBlock([]byte("body\n"), nil, voiceMarkers))
 	sv := snapshot{Exists: true, Data: managedBlock([]byte("someone else's block\n"), nil, voiceMarkers)}
-	if _, err := transform(sv, nil, &afterVoice, voiceMarkers); err == nil || err.Error() != "unowned voice block" {
+	if _, err := transform(sv, nil, &afterVoice, voiceMarkers); err == nil || err.Error() != "/f: unowned voice block" {
 		t.Fatalf("got %v", err)
 	}
 }

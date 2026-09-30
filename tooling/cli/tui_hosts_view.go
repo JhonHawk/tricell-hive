@@ -50,6 +50,7 @@ type hostsLoadedMsg struct {
 	// scanNote is set when only the legacy-installation scan failed: the rows
 	// are still complete, except that a legacy install may not be labeled.
 	scanNote string
+	scanPath string // the file scanNote names, when it names one
 	err      error
 }
 
@@ -59,18 +60,15 @@ type hostsLoadedMsg struct {
 // once used fails it; the file may be one Hive wrote or the user's own, so the
 // note names the path and the ways out without saying which. It does not point
 // to Diagnostics, which lists only files Hive currently manages.
-// changedFilePhrase is how both the scan note and the refusal of a changed
-// file (legacy.ModifiedFileError) describe it, so the view shows it once.
-const changedFilePhrase = "differs from what Hive expects there"
 
 func legacyScanNote(err error) string {
 	raw := sanitizeLine(err.Error())
-	words := "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why."
+	words := "Hive could not check for a legacy installation, so installing or updating may be refused. The Detail line says why."
 	var modified *legacy.ModifiedFileError
 	if errors.As(err, &modified) {
 		path := sanitizeLine(modified.Path)
 		// The raw error says the same thing, so no Detail line repeats it.
-		return path + " " + changedFilePhrase + ". Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."
+		return path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or updating. Removing may also be refused if Hive installed that file."
 	}
 	return words + "\nDetail: " + raw
 }
@@ -79,7 +77,7 @@ func legacyScanNote(err error) string {
 // management.Status reports for the registered ones, and checks whether an
 // operation is pending. It only reads state. A failed legacy scan does not
 // hide the hosts: its note comes back beside the rows.
-func loadHostRows(o management.Options, deps installDependencies) (rows []hostRow, pending management.PendingKind, scanNote string, err error) {
+func loadHostRows(o management.Options, deps installDependencies) (rows []hostRow, pending management.PendingKind, scanNote, scanPath string, err error) {
 	candidates, err := deps.DiscoverHosts(o)
 	var scanErr *legacyScanError
 	scanFailed := errors.As(err, &scanErr)
@@ -87,7 +85,7 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 		err = nil
 	}
 	if err != nil {
-		return nil, management.PendingNone, "", err
+		return nil, management.PendingNone, "", "", err
 	}
 	var registered []string
 	for _, c := range candidates {
@@ -97,13 +95,17 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 	}
 	if scanFailed {
 		scanNote = legacyScanNote(scanErr)
+		var modified *legacy.ModifiedFileError
+		if errors.As(scanErr, &modified) {
+			scanPath = modified.Path
+		}
 	}
 	var entries []management.StatusEntry
 	if len(registered) > 0 {
 		so := o
 		so.Hosts = registered
 		if entries, err = management.Status(so); err != nil {
-			return nil, management.PendingNone, "", err
+			return nil, management.PendingNone, "", "", err
 		}
 	}
 	for _, c := range candidates {
@@ -125,7 +127,7 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 		rows = append(rows, row)
 	}
 	pending, err = deps.Pending(o.StateDir)
-	return rows, pending, scanNote, err
+	return rows, pending, scanNote, scanPath, err
 }
 
 // hostStatusFields reads one host's short release, product version and drift
@@ -236,6 +238,8 @@ type hostsView struct {
 	loading      bool
 	loadErr      string
 	scanNote     string // why the legacy scan failed, when the rows are still shown
+	scanPath     string // the file the scan note names, when it names one
+	messagePath  string // the file the refusal in message names, when it names one
 	planning     string
 	message      string
 	messageErr   bool
@@ -270,8 +274,8 @@ func (v *hostsView) reload() tea.Cmd {
 	v.loading = true
 	seq, o, deps := v.seq, v.options(), v.cfg.Deps
 	return func() tea.Msg {
-		rows, pending, scanNote, err := loadHostRows(o, deps)
-		return hostsLoadedMsg{owned: owned{v}, seq: seq, rows: rows, pending: pending, scanNote: scanNote, err: err}
+		rows, pending, scanNote, scanPath, err := loadHostRows(o, deps)
+		return hostsLoadedMsg{owned: owned{v}, seq: seq, rows: rows, pending: pending, scanNote: scanNote, scanPath: scanPath, err: err}
 	}
 }
 
@@ -289,7 +293,7 @@ func (v *hostsView) Reveal() tea.Cmd {
 // finish ends the flow with a message shown in the view, and reloads.
 func (v *hostsView) finish(text string, isErr bool) tea.Cmd {
 	v.flow, v.planning = nil, ""
-	v.message, v.messageErr, v.messageTitle = text, isErr, ""
+	v.message, v.messageErr, v.messageTitle, v.messagePath = text, isErr, "", ""
 	return v.reload()
 }
 
@@ -347,10 +351,10 @@ func (v *hostsView) onLoaded(msg hostsLoadedMsg) (tea.Cmd, action) {
 	}
 	v.loading = false
 	if msg.err != nil {
-		v.loadErr, v.scanNote, v.rows = unreadableStateText(stateDirOf(v.cfg.Options), msg.err), "", nil
+		v.loadErr, v.scanNote, v.scanPath, v.rows = unreadableStateText(stateDirOf(v.cfg.Options), msg.err), "", "", nil
 		return nil, action{nav: navNone}
 	}
-	v.loadErr, v.scanNote = "", msg.scanNote
+	v.loadErr, v.scanNote, v.scanPath = "", msg.scanNote, msg.scanPath
 	v.rows = msg.rows
 	v.checked = map[string]bool{}
 	for _, r := range v.rows {
@@ -484,7 +488,7 @@ func (v *hostsView) planRemove() tea.Cmd {
 func (v *hostsView) onRemovePlanned(msg removePlannedMsg) (tea.Cmd, action) {
 	v.planning = ""
 	if msg.err != nil {
-		return v.finish(msg.err.Error(), true), action{nav: navNone}
+		return v.finishRefused(msg.err, refusedText(msg.err)), action{nav: navNone}
 	}
 	f := v.flow
 	title := "Remove " + strings.Join(f.remove, ", ")
@@ -591,14 +595,43 @@ func checkInstall(owner view, id int, o management.Options, deps installDependen
 	return installCheckedMsg{owned: owned{owner}, flow: id, hosts: hosts, notice: notice.String(), needsConsent: needsConsent, err: err}
 }
 
+// refusedText is the error of a step that failed while planning, before
+// anything was written. The first sentence tells the user the action did not
+// happen, since the refusal can read almost like the standing scan note.
+func refusedText(err error) string {
+	return "Nothing was changed. " + err.Error()
+}
+
+// refusedPath is the file a refusal names, when it is about a changed file.
+func refusedPath(err error) string {
+	var managed *management.ManagedFileChangedError
+	if errors.As(err, &managed) {
+		return managed.Path
+	}
+	var modified *legacy.ModifiedFileError
+	if errors.As(err, &modified) {
+		return modified.Path
+	}
+	return ""
+}
+
+// finishRefused ends the flow with text and remembers which file err names, so
+// the scan note is hidden only when it is about that same file.
+func (v *hostsView) finishRefused(err error, text string) tea.Cmd {
+	cmd := v.finish(text, true)
+	v.messagePath = refusedPath(err)
+	return cmd
+}
+
 // failInstall ends the flow with an error from an install step; a removal
 // already applied by step 1 is named first.
 func (v *hostsView) failInstall(err error) (tea.Cmd, action) {
-	text := err.Error()
+	text := refusedText(err)
 	if prefix := v.removedPrefix(); prefix != "" {
+		// Step 1 already wrote, so only the install step can say it changed nothing.
 		text = prefix + "\n" + text
 	}
-	return v.finish(text, true), action{nav: navNone}
+	return v.finishRefused(err, text), action{nav: navNone}
 }
 
 // declineInstall ends the flow when the operator rejects an install step.
@@ -909,7 +942,7 @@ func (v *hostsView) scanNoteLines(c viewCtx) []string {
 	if v.scanNote == "" {
 		return nil
 	}
-	if v.messageErr && strings.Contains(v.message, changedFilePhrase) {
+	if v.messageErr && v.messagePath != "" && v.messagePath == v.scanPath {
 		return nil // the refusal below says the same about the same file
 	}
 	th := c.Theme

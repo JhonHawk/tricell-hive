@@ -60,7 +60,7 @@ func TestHostsViewListsHostsWhenAManagedFileWasChanged(t *testing.T) {
 		d := openDriftedCLIs(t, env, size[0], size[1])
 		// The raw error says the same as the note, so no Detail line repeats it.
 		d.mustNotShow("Cannot read the CLIs", "Diagnostics shows", "Detail:")
-		mustShowFlat(d, skill+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.")
+		mustShowFlat(d, skill+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or updating. Removing may also be refused if Hive installed that file.")
 		if strings.Contains(d.screen(), "legacy") {
 			t.Errorf("the note mentions a legacy file:\n%s", d.screen())
 		}
@@ -87,7 +87,11 @@ func TestHostsViewRefusesChangesWhenAManagedFileWasChanged(t *testing.T) {
 		homeBefore, stateBefore := collectFiles(t, env.home), stateBytes(t, env.stateDir)
 		toggle(t, d, "claude")
 		d.key("a")
-		mustShowFlat(d, "modified managed skill")
+		mustShowFlat(d, "Nothing was changed. "+env.sharedSkillPath()+" differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere")
+		if n := strings.Count(squash(d.screen()), squash(env.sharedSkillPath())); n != 1 {
+			t.Errorf("the path appears %d times, want once:\n%s", n, d.screen())
+		}
+		d.mustNotShow("modified managed skill")
 		assertFits(t, d, 80, 24)
 		assertUntouched(t, env, homeBefore, stateBefore)
 	})
@@ -99,12 +103,49 @@ func TestHostsViewRefusesChangesWhenAManagedFileWasChanged(t *testing.T) {
 		d.key("a")
 		mustShowFlat(d, "differs from what Hive expects there; undo the change")
 		// The refusal says what the note said: the note gives way to it.
-		if n := strings.Count(strings.Join(strings.Fields(d.screen()), " "), "differs from what Hive expects there"); n != 1 {
+		if n := strings.Count(spaced(d.screen()), "differs from what Hive expects there"); n != 1 {
 			t.Errorf("the changed file is explained %d times, want once:\n%s", n, d.screen())
 		}
 		assertFits(t, d, 80, 24)
 		assertUntouched(t, env, homeBefore, stateBefore)
 	})
+}
+
+// squash removes all whitespace, so a path wrapped across lines can be counted.
+func squash(s string) string { return strings.Join(strings.Fields(s), "") }
+
+// spaced collapses every run of whitespace to one space, so a sentence wrapped
+// across lines can be counted.
+func spaced(s string) string { return strings.Join(strings.Fields(s), " ") }
+
+// TestHostsViewAddingCursorWithAChangedSkillRefusesOnce (#66, AC4): adding a
+// host while a shared skill was edited by hand shows one plain refusal that
+// names the path once, with no raw error and no duplicate notice.
+func TestHostsViewAddingCursorWithAChangedSkillRefusesOnce(t *testing.T) {
+	var others []string
+	for _, h := range installerHosts {
+		if h != "cursor" {
+			others = append(others, h)
+		}
+	}
+	env := driftedEnv(t, others)
+	skill := env.sharedSkillPath()
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		d := openDriftedCLIs(t, env, size[0], size[1])
+		homeBefore, stateBefore := collectFiles(t, env.home), stateBytes(t, env.stateDir)
+		toggle(t, d, "cursor")
+		d.key("a")
+		mustShowFlat(d, "Nothing was changed. "+skill+" differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere")
+		if n := strings.Count(spaced(d.screen()), "differs from what Hive expects there"); n != 1 {
+			t.Errorf("%dx%d: the changed file is explained %d times, want once:\n%s", size[0], size[1], n, d.screen())
+		}
+		if n := strings.Count(squash(d.screen()), squash(skill)); n != 1 {
+			t.Errorf("%dx%d: the path appears %d times, want once:\n%s", size[0], size[1], n, d.screen())
+		}
+		d.mustNotShow("press m to read all", "modified managed skill")
+		assertFits(t, d, size[0], size[1])
+		assertUntouched(t, env, homeBefore, stateBefore)
+	}
 }
 
 func assertUntouched(t *testing.T, env updateEnv, homeBefore map[string][]byte, stateBefore []byte) {
@@ -136,7 +177,7 @@ func TestHostsViewNamesAnUnknownLegacyScanFailureWithoutBlamingAFile(t *testing.
 		return candidates, &legacyScanError{err: errors.New("unsupported legacy manifest: /x/manifest.json")}
 	}
 	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), deps)
-	mustShowFlat(d, "Hive could not check for a legacy installation, so installing or removing may be refused. The Detail line says why.")
+	mustShowFlat(d, "Hive could not check for a legacy installation, so installing or updating may be refused. The Detail line says why.")
 	mustShowFlat(d, "Detail: unsupported legacy manifest: /x/manifest.json")
 	d.mustNotShow("differs from what Hive expects", "Open Diagnostics")
 	if n := len(hostRows(d)); n != len(installerHosts) {
@@ -223,10 +264,39 @@ func TestHostsViewShowsTheScanNoteWithNoHosts(t *testing.T) {
 		d.key("enter")
 		d.mustShow("CLIs")
 		mustShowFlat(d, "No CLI hosts were detected or registered.")
-		mustShowFlat(d, path+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing.")
+		mustShowFlat(d, path+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or updating. Removing may also be refused if Hive installed that file.")
 		d.mustNotShow("Detail:")
 		d.mustNotShow("Open Diagnostics", "Hive installed was changed", "Diagnostics shows")
 		assertFits(t, d, size[0], size[1])
+	}
+}
+
+// TestHostsViewUninstallAllWorksWithAUserFileAtALegacyPath: a user's file at a
+// path Hive once used, which the current catalogue does not manage, makes the
+// legacy scan fail and shows the notice, but removing is not refused: Uninstall
+// all still ends with "Hive removed".
+func TestHostsViewUninstallAllWorksWithAUserFileAtALegacyPath(t *testing.T) {
+	source := minimalTestSource(t)
+	deps := hostsTestDeps(coreOnlyAdapterFactory)
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, source, "claude,codex,pi", "y\n", deps)
+	canonical, err := target.Canonical(home) // the scan reports the resolved path
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(canonical, ".agents", "skills", "adversarial-research", "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("My own notes.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, d := openHostsApp(t, home, stateDir, source, deps)
+	mustShowFlat(d, path+" differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or updating. Removing may also be refused if Hive installed that file.")
+	d.key("u", "left", "enter")
+	d.mustShow("Hive removed")
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("the user's file was touched: %v", err)
 	}
 }
 
@@ -355,7 +425,7 @@ func TestScanNoteUsesTheErrorTypeNotTheMessage(t *testing.T) {
 	path := "/home/u/.agents/skills/x/SKILL.md"
 	typed := &legacyScanError{err: fmt.Errorf("scanning: %w", &legacy.ModifiedFileError{Path: path})}
 	words, detail := errLines(legacyScanNote(typed))
-	if want := path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or removing."; words != want {
+	if want := path + " differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or updating. Removing may also be refused if Hive installed that file."; words != want {
 		t.Errorf("words = %q, want %q", words, want)
 	}
 	if len(detail) != 0 {
@@ -425,5 +495,40 @@ func TestCLIsViewEditorOnlyNoteFitsWithOtherNotes(t *testing.T) {
 			}
 		}
 		assertFits(t, d, size[0], size[1])
+	}
+}
+
+// TestScanNoteHidesOnlyForARefusalAboutTheSameFile: the note under the rows is
+// redundant only when the refusal below it names the same path. A refusal about
+// another file, in any of the wordings, leaves the note on screen.
+func TestScanNoteHidesOnlyForARefusalAboutTheSameFile(t *testing.T) {
+	const scanned = "/home/u/.agents/skills/x/SKILL.md"
+	const other = "/home/u/.claude/CLAUDE.md"
+	note := legacyScanNote(&legacyScanError{err: &legacy.ModifiedFileError{Path: scanned}})
+	th := newAppTheme(true, false)
+	refusals := map[string]error{
+		"changed file":  &management.ManagedFileChangedError{Path: scanned, Kind: management.ManagedFileChanged},
+		"legacy file":   &legacy.ModifiedFileError{Path: scanned},
+		"block changed": &management.ManagedFileChangedError{Path: scanned, Kind: management.ManagedBlockChanged, Block: "Hive"},
+		"wrapped":       fmt.Errorf("planning: %w", &management.ManagedFileChangedError{Path: scanned, Kind: management.ManagedFileMissing}),
+	}
+	shown := func(refusal error) bool {
+		v := &hostsView{scanNote: note, scanPath: scanned}
+		v.finishRefused(refusal, refusedText(refusal))
+		return len(v.scanNoteLines(viewCtx{Width: 80, Theme: &th})) > 0
+	}
+	for name, err := range refusals {
+		if shown(err) {
+			t.Errorf("%s: the note stays although the refusal names the same file", name)
+		}
+	}
+	for name, err := range map[string]error{
+		"other changed file": &management.ManagedFileChangedError{Path: other, Kind: management.ManagedFileChanged},
+		"other block":        &management.ManagedFileChangedError{Path: other, Kind: management.ManagedBlockChanged, Block: "Hive"},
+		"no path":            errors.New("unowned Hive block"),
+	} {
+		if !shown(err) {
+			t.Errorf("%s: the note was hidden by a refusal about something else", name)
+		}
 	}
 }

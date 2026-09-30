@@ -319,7 +319,7 @@ func insertVoiceSpan(s snapshot, managed []byte) (snapshot, error) {
 func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpan) error {
 	if hasSpan {
 		if err := owned(s, *voiceRecordFromSpan(path, &existing), voiceMarkers); err != nil {
-			return fmt.Errorf("voice block conflict in %s: %w", path, err)
+			return err
 		}
 		return nil
 	}
