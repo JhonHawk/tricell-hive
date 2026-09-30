@@ -1,7 +1,7 @@
 ---
 name: "hive-verify-task"
 description: "Verify one task of a retained plan against the acceptance criteria it closes, rerunning its verification, and return a per-criterion verdict with evidence. Use during a build, after the implementer reports a task, before the orchestrator marks it verified."
-model_profile: "reasoning"
+model_profile: "verifier"
 access_profile: "verify"
 ---
 
