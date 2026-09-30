@@ -61,21 +61,35 @@ func (e voiceCLIEnv) install(t *testing.T, hosts []string) {
 // --- AC1: list --------------------------------------------------------------
 
 // TestVoiceListShowsRepositoryVoices covers AC1 against the repository's
-// own real content/voices/ (read-only), which must list jarvis, mentor and
-// senior-direct.
+// own real content/voices/ (read-only): every voice file there appears in
+// the list and the shared preamble is not a voice. The IDs come from the
+// directory, so no voice name is pinned.
 func TestVoiceListShowsRepositoryVoices(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
+	}
+	paths, err := filepath.Glob(filepath.Join(root, "content", "voices", "*.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, path := range paths {
+		if id := strings.TrimSuffix(filepath.Base(path), ".md"); id != "preamble" {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		t.Fatal("content/voices has no voice besides preamble.md")
 	}
 	got := captureStdout(t, func() {
 		if err := run([]string{"voice", "list", "--source", root}); err != nil {
 			t.Fatalf("voice list: %v", err)
 		}
 	})
-	for _, id := range []string{"jarvis", "mentor", "senior-direct"} {
-		if !strings.Contains(got, id) {
-			t.Fatalf("expected voice list to mention %q, got:\n%s", id, got)
+	for _, id := range ids {
+		if !strings.Contains(got, id+":") {
+			t.Errorf("voice list must show %q, got:\n%s", id, got)
 		}
 	}
 	if strings.Contains(got, "preamble") {

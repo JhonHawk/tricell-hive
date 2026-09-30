@@ -13,7 +13,7 @@ const researchSource = "content/skills/flow-research/SKILL.md"
 
 func TestAgentCatalogueFreezesRendererProfilesAndModes(t *testing.T) {
 	o := setup(t)
-	profiles, err := os.ReadFile(filepath.Join("..", "..", agents.ProfilesSource))
+	profiles, err := os.ReadFile(syntheticProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func agentTargets(t *testing.T, o Options, source string) map[string]string {
 func TestAgentRenameRetiresOldTarget(t *testing.T) {
 	o := setup(t)
 	o.Hosts = []string{"claude", "codex", "grok", "pi", "opencode", "cursor"}
-	profiles, err := os.ReadFile(filepath.Join("..", "..", agents.ProfilesSource))
+	profiles, err := os.ReadFile(syntheticProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}

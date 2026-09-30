@@ -125,7 +125,7 @@ func TestCursorForeignAGENTSTextIsPreserved(t *testing.T) {
 
 func cursorProfilesAndRole(t *testing.T, o Options) (source string) {
 	t.Helper()
-	repoProfiles, err := os.ReadFile(filepath.Join("..", "..", "integrations", "agent-profiles.json"))
+	repoProfiles, err := os.ReadFile(syntheticProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}

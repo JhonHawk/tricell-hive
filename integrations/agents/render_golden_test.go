@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"testing"
 )
 
@@ -15,26 +14,28 @@ var updateGolden = flag.Bool("update-golden", false, "rewrite testdata/render.go
 
 const goldenPath = "testdata/render.golden"
 
-// renderEverything renders every catalogue role for every host and joins the
+// renderEverything renders every synthetic role for every host and joins the
 // outputs in a stable order, so one file characterizes the whole of Render.
+// The roles and profiles live under testdata, so a content change never
+// touches the golden.
 func renderEverything(t *testing.T) []byte {
 	t.Helper()
-	profiles := repositoryProfiles(t)
-	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
+	profiles := syntheticProfiles(t)
+	sources, err := filepath.Glob(filepath.Join("testdata", "roles", "*.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sources) != 20 {
-		t.Fatalf("catalogue has %d roles, want 20", len(sources))
+	if len(sources) == 0 {
+		t.Fatal("no synthetic roles under testdata/roles")
 	}
 	sort.Strings(sources)
 	var out bytes.Buffer
-	for _, source := range sources {
-		data, err := os.ReadFile(source)
+	for _, path := range sources {
+		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		canonical := strings.TrimPrefix(filepath.ToSlash(source), "../../")
+		canonical := "content/agents/synthetic/" + filepath.Base(path)
 		for _, host := range []string{"claude", "codex", "cursor", "grok", "opencode", "pi"} {
 			rendered, err := Render(canonical, data, profiles, host)
 			if err != nil {
