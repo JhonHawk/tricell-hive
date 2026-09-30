@@ -98,7 +98,7 @@ func Parse(source string, data []byte) (Role, error) {
 	if r.Name != strings.TrimSuffix(path.Base(source), ".md") || strings.TrimSpace(r.Body) == "" {
 		return r, fmt.Errorf("agent name/body mismatch: %s", source)
 	}
-	if !oneOf(r.ModelProfile, "execution", "reasoning", "inherit") || !oneOf(r.AccessProfile, "observe", "implement", "verify") {
+	if !oneOf(r.ModelProfile, "execution", "reasoning", "inherit", "verifier") || !oneOf(r.AccessProfile, "observe", "implement", "verify") {
 		return r, fmt.Errorf("unknown agent profile: %s", source)
 	}
 	return r, nil
@@ -144,10 +144,15 @@ func ReadProfiles(data []byte) (Profiles, error) {
 	}
 	for _, host := range hosts {
 		h, ok := p.Hosts[host]
-		if !ok || len(h.Models) != 3 || len(h.Access) != 3 {
+		// verifier is optional so a frozen release with three model profiles stays readable.
+		models := []string{"execution", "reasoning", "inherit"}
+		if _, ok := h.Models["verifier"]; ok {
+			models = append(models, "verifier")
+		}
+		if !ok || len(h.Models) != len(models) || len(h.Access) != 3 {
 			return p, fmt.Errorf("incomplete profiles for %s", host)
 		}
-		for _, name := range []string{"execution", "reasoning", "inherit"} {
+		for _, name := range models {
 			m, ok := h.Models[name]
 			if !ok || strings.ContainsAny(m.Model+m.Effort, "\r\n\x00") {
 				return p, fmt.Errorf("invalid model profile %s/%s", host, name)
@@ -265,7 +270,10 @@ func Resolve(source string, data, profiles []byte, host string) (profile string,
 	if !ok {
 		return "", m, fmt.Errorf("unsupported agent host %q", host)
 	}
-	m = h.Models[r.ModelProfile]
+	m, ok = h.Models[r.ModelProfile]
+	if !ok {
+		return "", m, fmt.Errorf("agent profiles for %s have no %s model profile", host, r.ModelProfile)
+	}
 	if host == "claude" && r.ClaudeEffort != "" {
 		m.Effort = r.ClaudeEffort
 	} else if r.Effort != "" && acceptsRoleEffort(host, m) {
