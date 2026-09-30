@@ -5,7 +5,7 @@ description: Prepare an authorized Git delivery while preserving unrelated work,
 
 # Deliver an authorized Git change
 
-Apart from the post-merge cleanup below, this skill does not grant any Git action or change the delivery boundary already set by the user or project guidance.
+This skill does not grant any Git action or change the delivery boundary already set by the user or project guidance.
 
 ## Establish the repository context
 
@@ -33,4 +33,4 @@ Stop at the authorization boundary. Do not infer permission to commit from permi
 
 ## Clean up after a merge
 
-After verifying a merge you performed, clean up its branches; this rule authorizes these deletions. First confirm that no open pull request uses the work branch as its base; if one does, keep the branch and report it. `gh pr merge --delete-branch` skips that check, so delete separately. Delete the merged remote branch unless the host already removed it, then the local branch with `git branch -d`, which refuses unmerged work. Return the checkout to the base branch, run `git fetch --prune`, and fast-forward the base. After a promotion, also fast-forward each local environment branch it moved, such as `qa`, when it is behind its remote and has no commits of its own. Delete merged preview or temporary branches that the work created. Apply the same checks to this repository's other local and remote branches whose pull requests are merged into the base. A branch with unmerged commits is a decision, not noise: report its work (`git log <base>..<branch>`) and recommend integrating it or ask; never delete it. Report the branches checked, the deletions, the fast-forwards, and the unmerged branches left.
+After verifying a merge you performed, read [flow-close](../flow-close/SKILL.md#clean-up-after-a-merge) for the branch cleanup.

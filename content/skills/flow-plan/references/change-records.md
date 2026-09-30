@@ -1,6 +1,6 @@
 # Change records
 
-Read when creating, updating, or closing a change folder. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; the global guidance defines its location and when a change folder is required. The layout follows OpenSpec conventions without requiring its CLI, so the project could adopt that tool later without migrating.
+Read when creating or updating a change folder, or when closing one and you need the delta formats. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; the global guidance defines its location and when a change folder is required. The layout follows OpenSpec conventions without requiring its CLI, so the project could adopt that tool later without migrating.
 
 ## Files
 
@@ -51,13 +51,6 @@ When the project keeps a product map (`product/<module>/<view>.md` pages of busi
 - Write one delta file per affected view at `changes/<change-id>/product/<module>/<view>.md`, mirroring the page's section headings. Mark each rule `ADDED`, `MODIFIED` (quoting the current rule), or `REMOVED`, and add a new view page whole when the view does not exist yet.
 - At closure, apply those rules to the page, add the change to the page's traceability line (for example `Influenciada por`), and leave the other sections untouched.
 
-## Close a change
+## Closing
 
-After the change is integrated into its base branch:
-
-1. For each delta file, apply it to the current-requirements home. In `<specs>/specs/`: apply ADDED requirements to `<specs>/specs/<capability>/spec.md`, creating it when absent; replace each MODIFIED requirement block by name; delete each REMOVED block. In a product map, follow the section above. Edit only those blocks, leave the rest of the file untouched, and review the resulting diff.
-2. Set the change's status to closed in `proposal.md` with the integrating commit or pull request.
-3. Move the folder with `git mv <specs>/changes/<change-id> <specs>/changes/archive/YYYY-MM-DD-<change-id>`, using the closing date. Never recreate the files by rewriting them.
-4. Update `<specs>/project.md` only if the phase, an open decision, or a blocker changed.
-
-Deliver these edits as one versioned change under the Git rules of the repository that holds `<specs>`. A change abandoned before integration is archived the same way without merging its deltas, with the reason in `proposal.md`.
+The [flow-close](../../flow-close/SKILL.md#close-the-change-record) skill applies the deltas above, archives the folder, and versions the record once at close.
