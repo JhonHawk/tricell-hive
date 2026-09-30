@@ -22,7 +22,12 @@ const (
 )
 
 func modelsRoleSource(name, profile string) string {
-	return "---\nname: " + name + "\ndescription: Test role\nmodel_profile: " + profile + "\naccess_profile: observe\n---\nUse evidence.\n"
+	return modelsRoleSourceWithAccess(name, profile, "observe")
+}
+
+// modelsRoleSourceWithAccess is modelsRoleSource with an explicit access profile.
+func modelsRoleSourceWithAccess(name, profile, access string) string {
+	return "---\nname: " + name + "\ndescription: Test role\nmodel_profile: " + profile + "\naccess_profile: " + access + "\n---\nUse evidence.\n"
 }
 
 // modelsTestSource builds a Hive source with the repository's real agent
@@ -377,48 +382,41 @@ func TestRenderModelsTextSharesTheViewWordsAndCutsNothing(t *testing.T) {
 	}
 }
 
-// fullCatalogueSource builds a Hive source with the repository's real agent
-// profiles and all of its real roles (AC9: 20 roles on 6 CLIs).
-func fullCatalogueSource(t *testing.T) (string, []string) {
+// syntheticRoleCount is the number of roles syntheticCatalogueSource builds:
+// enough that the Models view scrolls at 80x24, where it shows
+// 24 - modelsFixedRows = 18 rows.
+const syntheticRoleCount = 22
+
+// syntheticCatalogueSource builds a Hive source with the repository's real
+// agent profiles and syntheticRoleCount synthetic roles: modelsTestSource's
+// three (including the longest real role name) plus generated ones that mix
+// every model profile kind of the real catalogue (reasoning, execution,
+// inherit, verifier) with every access profile (observe, implement, verify).
+// It reads no real role.
+func syntheticCatalogueSource(t *testing.T) (string, []string) {
 	t.Helper()
 	dir := modelsTestSource(t)
-	if err := os.RemoveAll(filepath.Join(dir, "content", "agents")); err != nil {
-		t.Fatal(err)
-	}
-	var roles []string
-	root := filepath.Join("..", "..", "content", "agents")
-	err := filepath.WalkDir(root, func(path string, e os.DirEntry, err error) error {
-		if err != nil || e.IsDir() || filepath.Ext(path) != ".md" {
-			return err
+	roles := []string{longRoleName, "plain-role", "inherit-role"}
+	profiles := []string{"reasoning", "execution", "inherit", "verifier"}
+	accesses := []string{"observe", "implement", "verify"}
+	for i := len(roles); i < syntheticRoleCount; i++ {
+		name := fmt.Sprintf("hive-role-%02d", i)
+		path := filepath.Join(dir, "content", "agents", "generated", name+".md")
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
 		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
+		if err := os.WriteFile(path, []byte(modelsRoleSourceWithAccess(name, profiles[i%len(profiles)], accesses[i%len(accesses)])), 0600); err != nil {
+			t.Fatal(err)
 		}
-		rel, _ := filepath.Rel(root, path)
-		dst := filepath.Join(dir, "content", "agents", rel)
-		if err := os.MkdirAll(filepath.Dir(dst), 0700); err != nil {
-			return err
-		}
-		roles = append(roles, strings.TrimSuffix(filepath.Base(path), ".md"))
-		// Keep the front matter, which decides the model, and drop the body,
-		// whose skill references this minimal source cannot resolve.
-		parts := strings.SplitN(string(data), "---\n", 3)
-		if len(parts) != 3 {
-			return fmt.Errorf("%s has no front matter", path)
-		}
-		return os.WriteFile(dst, []byte("---\n"+parts[1]+"---\nUse evidence.\n"), 0600)
-	})
-	if err != nil {
-		t.Fatal(err)
+		roles = append(roles, name)
 	}
 	return dir, roles
 }
 
-func TestModelsViewFitsAndScrollsWithTheFullCatalogueOnSixCLIs(t *testing.T) {
-	source, roles := fullCatalogueSource(t)
-	if len(roles) < 20 {
-		t.Fatalf("the catalogue has %d roles, want at least 20", len(roles))
+func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
+	source, roles := syntheticCatalogueSource(t)
+	if len(roles) != syntheticRoleCount {
+		t.Fatalf("the synthetic catalogue has %d roles, want %d", len(roles), syntheticRoleCount)
 	}
 	sort.Strings(roles)
 	first, last := roles[0], roles[len(roles)-1]
@@ -441,6 +439,9 @@ func TestModelsViewFitsAndScrollsWithTheFullCatalogueOnSixCLIs(t *testing.T) {
 				host := selectedModelsHost(t, d)
 				assertFits(t, d, size[0], size[1])
 				modelsRowFor(t, d, first)
+				if size[0] == 80 && !v.box.scrollable() {
+					t.Fatalf("%s: %d roles do not scroll at %dx%d", host, len(roles), size[0], size[1])
+				}
 				if v.box.scrollable() {
 					for range 40 {
 						d.key("down")

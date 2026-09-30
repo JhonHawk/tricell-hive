@@ -83,7 +83,12 @@ func isolateDoctorEnv(t *testing.T, home string) {
 // synthetic options. Use realHomeOptions for a run that detects CLIs.
 func doctorHome(t *testing.T, hosts string) (o management.Options, home, stateDir string) {
 	t.Helper()
-	source := minimalTestSource(t)
+	// A source without VERSION installs without a product identity, which
+	// the doctor reports as a legacy installation.
+	source := copyMinimalSource(t)
+	if err := os.Remove(filepath.Join(source, "VERSION")); err != nil {
+		t.Fatal(err)
+	}
 	home, stateDir = newHostsTestHome(t)
 	installViaText(t, home, stateDir, source, hosts, "y\n", hostsTestDeps(coreOnlyAdapterFactory))
 	o = management.Options{Scope: "user", Home: home, StateDir: stateDir}

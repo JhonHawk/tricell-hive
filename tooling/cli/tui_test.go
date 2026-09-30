@@ -32,10 +32,7 @@ func interfaceTestOptions(t *testing.T) options {
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	return options{Home: home, StateDir: stateDir, Source: source}
 }
 
@@ -1009,10 +1006,7 @@ func withoutState(files map[string][]byte) map[string][]byte {
 // al abrir": a pending onboarding is offered on open, accepting it recovers,
 // and the resulting home and state equal those of `hive recover` on a twin.
 func TestRecoverOffersPendingOnboardingAndMatchesHiveRecover(t *testing.T) {
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	newHome := func() (home, stateDir string) {
 		home, err := filepath.EvalSymlinks(t.TempDir())
 		if err != nil {

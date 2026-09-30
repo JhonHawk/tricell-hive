@@ -89,10 +89,7 @@ func (a *testOnboardingAdapter) Runner() management.ExternalRunner { return a.ru
 
 func TestInstallDryRunDoesNotCreateStateOrDestinations(t *testing.T) {
 	home := t.TempDir()
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	if err := run([]string{"install", "--home", home, "--hosts", "codex", "--source", source, "--dry-run"}); err != nil {
 		t.Fatal(err)
 	}
@@ -107,10 +104,7 @@ func TestInstallDryRunDoesNotCreateStateOrDestinations(t *testing.T) {
 
 func installArgs(t *testing.T, home string) []string {
 	t.Helper()
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	return []string{"--home", home, "--hosts", "codex", "--source", source}
 }
 
@@ -189,15 +183,12 @@ func TestInstallUnchangedStillConfirms(t *testing.T) {
 func TestInstallWizardCancelsEmptySelection(t *testing.T) {
 	home := t.TempDir()
 	var out bytes.Buffer
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	dependencies.DiscoverHosts = func(management.Options) ([]hostCandidate, error) {
 		return []hostCandidate{{Name: "codex", Detected: true}}, nil
 	}
-	if err = installWithDependencies([]string{"--home", home, "--source", source}, strings.NewReader("\n"), &out, true, dependencies); err != nil {
+	if err := installWithDependencies([]string{"--home", home, "--source", source}, strings.NewReader("\n"), &out, true, dependencies); err != nil {
 		t.Fatal(err)
 	}
 	entries, err := os.ReadDir(home)
@@ -211,10 +202,7 @@ func TestInstallWizardCancelsEmptySelection(t *testing.T) {
 
 func TestInstallWizardBackToHostSelectionKeepsBufferedAnswers(t *testing.T) {
 	home := t.TempDir()
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	dependencies.DiscoverHosts = func(management.Options) ([]hostCandidate, error) {
 		return []hostCandidate{{Name: "codex", Detected: true}, {Name: "claude", Detected: true}}, nil
@@ -237,8 +225,18 @@ func TestInstallSharedHostClosureRequiresConsent(t *testing.T) {
 	dependencies.RequiredHosts = func(management.Options) ([]string, error) {
 		return []string{"codex", "opencode"}, nil
 	}
+	// A skill makes the plan carry the shared .agents resource; the minimal
+	// source has none, so this test adds one to its own copy.
+	source := copyMinimalSource(t)
+	skill := filepath.Join(source, "content", "skills", "shared-skill", "SKILL.md")
+	if err := os.MkdirAll(filepath.Dir(skill), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(skill, []byte("---\nname: shared-skill\ndescription: Shared.\n---\nShared.\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	var out bytes.Buffer
-	err := installWithDependencies(installArgs(t, home), strings.NewReader("n\n"), &out, true, dependencies)
+	err := installWithDependencies([]string{"--home", home, "--hosts", "codex", "--source", source}, strings.NewReader("n\n"), &out, true, dependencies)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,10 +287,7 @@ func TestInstallRecoversOnboardingBeforeCorePending(t *testing.T) {
 		t.Fatal("core recovery ran before onboarding recovery")
 		return "", nil
 	}
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	var out bytes.Buffer
 	if err := installWithDependencies([]string{"--home", home, "--state-dir", stateDir, "--source", source}, strings.NewReader("y\n"), &out, true, dependencies); err != nil {
 		t.Fatal(err)
@@ -339,10 +334,7 @@ func TestInstallPreviewsExactProviderBeforeConfirmation(t *testing.T) {
 func TestInstallRefusesStalePlanChangedBeforeConfirmation(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	mutated := false
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	dependencies.AdapterFactory = func(input onboardingInput) (onboardingAdapter, error) {
@@ -364,7 +356,7 @@ func TestInstallRefusesStalePlanChangedBeforeConfirmation(t *testing.T) {
 	}
 	args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
 	var out bytes.Buffer
-	if err = installWithDependencies(args, strings.NewReader("y\n"), &out, true, dependencies); err == nil {
+	if err := installWithDependencies(args, strings.NewReader("y\n"), &out, true, dependencies); err == nil {
 		t.Fatal("expected refusal to apply a plan made stale by a concurrent change")
 	}
 	if !mutated {
@@ -381,13 +373,12 @@ func TestInstallRefusesStalePlanChangedBeforeConfirmation(t *testing.T) {
 // developmentSourceArgs builds a --source checkout containing only content/
 // and integrations/ (enough for BuildPlan), deliberately without VERSION or
 // release.json — the repro in D1: management.productFromSource returns a nil
-// *ProductIdentity for such a checkout, identifying a development build.
+// *ProductIdentity for such a checkout, identifying a development build. It
+// copies only those two directories of the minimal source, which also carries
+// VERSION, so the copy stays free of product identity.
 func developmentSourceArgs(t *testing.T, home string) []string {
 	t.Helper()
-	repo, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	repo := minimalTestSource(t)
 	source := t.TempDir()
 	// Resolve macOS's /var -> /private/var symlink before use: unlike --home
 	// (canonicalized by management.NormalizeOptions), --source is walked
@@ -522,10 +513,7 @@ func TestInstallSummaryWrapsLongEffectLines(t *testing.T) {
 // of ending the whole process with an error.
 func TestInstallWizardRepromptsInvalidHostSelection(t *testing.T) {
 	home := t.TempDir()
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	dependencies.DiscoverHosts = func(management.Options) ([]hostCandidate, error) {
 		return []hostCandidate{{Name: "codex", Detected: true}, {Name: "claude", Detected: true}}, nil

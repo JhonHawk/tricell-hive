@@ -1,0 +1,3 @@
+# Global
+
+Minimal test guidance.

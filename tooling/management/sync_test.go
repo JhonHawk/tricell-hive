@@ -63,6 +63,34 @@ func TestDiskSyncSwitch(t *testing.T) {
 	}
 }
 
+// TestDisableDiskSyncPanicsOutsideTestBinary swaps the package predicate:
+// the running binary is a test binary, so only the swap can reach the guard.
+func TestDisableDiskSyncPanicsOutsideTestBinary(t *testing.T) {
+	prevPredicate := isTestBinary
+	prevSkip := skipDiskSync.Load()
+	t.Cleanup(func() {
+		isTestBinary = prevPredicate
+		skipDiskSync.Store(prevSkip)
+	})
+	isTestBinary = func() bool { return false }
+	skipDiskSync.Store(false)
+	const want = "DisableDiskSyncForTests called outside a test binary"
+	var got any
+	func() {
+		defer func() { got = recover() }()
+		DisableDiskSyncForTests()
+	}()
+	if got == nil {
+		t.Fatal("DisableDiskSyncForTests did not panic outside a test binary")
+	}
+	if got != want {
+		t.Fatalf("panic = %v, want %q", got, want)
+	}
+	if skipDiskSync.Load() {
+		t.Fatal("disk sync was disabled despite the panic")
+	}
+}
+
 // TestDisableDiskSyncOnlyCalledFromTests keeps the hive binary durable: no
 // non-test Go file in the repository may call the test-only switch.
 func TestDisableDiskSyncOnlyCalledFromTests(t *testing.T) {

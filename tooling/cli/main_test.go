@@ -47,10 +47,7 @@ func TestMainRecoverReconcilesPendingOnboardingFromAnotherTerminal(t *testing.T)
 	}
 	t.Setenv("HOME", home)
 	stateDir := filepath.Join(home, "state")
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	o := management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: source, Hosts: []string{"codex"}}
 	p, err := management.BuildPlan("install", o)
 	if err != nil {
