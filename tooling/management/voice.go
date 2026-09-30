@@ -279,11 +279,29 @@ func voiceRecordFromSpan(path string, span *VoiceSpan) *Record {
 // user wrote after it, so it uses insertVoiceSpan instead. Replace and
 // remove find the existing voice block by its own markers wherever it is,
 // so transform already handles them position-independently.
-func composeVoiceStep(path string, base snapshot, before, after *VoiceSpan) (snapshot, error) {
-	if before == nil && after != nil {
-		return insertVoiceSpan(base, after.Managed)
+//
+// A change marked Gone is first verified against base: it fails closed
+// unless vc.Before is really missing there. It then never removes or
+// replaces anything: After == nil writes nothing, and After inserts the span
+// as a first-time voice block. Without Gone the step behaves as it always
+// did, so "voice off" still removes a block that is present.
+func composeVoiceStep(path string, base snapshot, vc VoiceChange) (snapshot, error) {
+	if vc.Gone {
+		if vc.Before == nil {
+			return snapshot{}, fmt.Errorf("%s: voice block marked gone without a registered span", path)
+		}
+		if err := verifyGone(base, *voiceRecordFromSpan(path, vc.Before), voiceMarkers); err != nil {
+			return snapshot{}, err
+		}
+		if vc.After == nil {
+			return base, nil
+		}
+		return insertVoiceSpan(base, vc.After.Managed)
 	}
-	return transform(base, voiceRecordFromSpan(path, before), voiceRecordFromSpan(path, after), voiceMarkers)
+	if vc.Before == nil && vc.After != nil {
+		return insertVoiceSpan(base, vc.After.Managed)
+	}
+	return transform(base, voiceRecordFromSpan(path, vc.Before), voiceRecordFromSpan(path, vc.After), voiceMarkers)
 }
 
 // insertVoiceSpan splices managed (a complete VoiceBegin..VoiceEnd block,
@@ -315,22 +333,27 @@ func insertVoiceSpan(s snapshot, managed []byte) (snapshot, error) {
 // checkVoiceConflict rejects, before any write, a hand-edited voice span
 // (a registered span whose current bytes no longer match) or an
 // unregistered voice block (markers present with no registered span),
-// naming the voice block explicitly (see design.md "Conflicto").
-func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpan) error {
+// naming the voice block explicitly (see design.md "Conflicto"). A registered
+// span that is missing, because the block or its whole file was deleted by
+// hand, is not a conflict: gone reports it, so callers mark their change Gone.
+func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpan) (gone bool, err error) {
 	if hasSpan {
 		if err := owned(s, *voiceRecordFromSpan(path, &existing), voiceMarkers); err != nil {
-			return err
+			if isMissing(err) {
+				return true, nil
+			}
+			return false, err
 		}
-		return nil
+		return false, nil
 	}
 	a, _, err := blockRange(s.Data, voiceMarkers)
 	if err != nil {
-		return fmt.Errorf("voice block conflict in %s: %w", path, err)
+		return false, fmt.Errorf("voice block conflict in %s: %w", path, err)
 	}
 	if a >= 0 {
-		return fmt.Errorf("voice block conflict in %s: unregistered voice block present", path)
+		return false, fmt.Errorf("voice block conflict in %s: unregistered voice block present", path)
 	}
-	return nil
+	return false, nil
 }
 
 // voiceTargetPaths returns, sorted, every path in state.Records that carries
@@ -449,11 +472,25 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 		if err != nil {
 			return Plan{}, err
 		}
-		if a, _, blockErr := blockRange(s.Data, hiveMarkers); blockErr != nil || a < 0 {
-			return Plan{}, fmt.Errorf("%s no longer has a managed Hive block; run hive install first", path)
-		}
 		existing, hasSpan := state.VoiceSpans[path]
-		if err := checkVoiceConflict(path, s, hasSpan, existing); err != nil {
+		if a, _, blockErr := blockRange(s.Data, hiveMarkers); blockErr != nil || a < 0 {
+			// The Hive block was deleted by hand. "voice set" skips the file:
+			// install restores the block first. "voice off" still removes a
+			// voice block left behind, or drops the record of one that is gone
+			// too (nothing is written); with no record there it skips the file.
+			if blockErr != nil {
+				return Plan{}, fmt.Errorf("%s: %w", path, blockErr)
+			}
+			if action == "set" {
+				p.VoiceSkipped = append(p.VoiceSkipped, path)
+				continue
+			}
+			if !hasSpan {
+				continue
+			}
+		}
+		gone, err := checkVoiceConflict(path, s, hasSpan, existing)
+		if err != nil {
 			return Plan{}, err
 		}
 		var before *VoiceSpan
@@ -472,7 +509,10 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 			managed := managedBlock(body, s.Data, voiceMarkers)
 			after = &VoiceSpan{Managed: managed, SourceHash: srcHash, Consumers: voiceConsumersForPath(c, state, path)}
 		}
-		p.Voice = append(p.Voice, VoiceChange{Path: path, Consumers: voiceConsumersForPath(c, state, path), Expected: finger(s), Before: before, After: after})
+		p.Voice = append(p.Voice, VoiceChange{Path: path, Consumers: voiceConsumersForPath(c, state, path), Expected: finger(s), Before: before, After: after, Gone: gone})
+	}
+	if len(p.Voice) == 0 {
+		return Plan{}, fmt.Errorf("no instruction file has a managed Hive block; run hive install first")
 	}
 	p.ID = planID(p)
 	return p, nil
@@ -524,10 +564,14 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 			return err
 		}
 		existing, hasSpan := state.VoiceSpans[ch.Target.Path]
-		if err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing); err != nil {
+		if _, err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing); err != nil {
 			return err
 		}
 	}
+	// Accepted limit: with no active voice, a pinned release (no voice source
+	// on disk) or a voice that cannot be rendered, nothing regenerates the
+	// voice text, so a voice block deleted by hand is not restored here; its
+	// span stays registered and status shows it as drift.
 	if state.Voice == nil || o.ReleaseID != "" {
 		return nil
 	}
@@ -552,12 +596,16 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 			return err
 		}
 		existing, hasSpan := state.VoiceSpans[ch.Target.Path]
+		gone, err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing)
+		if err != nil {
+			return err
+		}
 		managed := managedBlock(body, s.Data, voiceMarkers)
 		newConsumers := filterUserConsumers(ch.After.Consumers, p.Config)
 		// A shared file's consumer set can widen (a host joins) even when the
 		// rendered bytes don't change; still record that, so status for the
 		// newly joined host lists the voice row right away.
-		if hasSpan && bytes.Equal(existing.Managed, managed) && reflect.DeepEqual(existing.Consumers, newConsumers) {
+		if !gone && hasSpan && bytes.Equal(existing.Managed, managed) && reflect.DeepEqual(existing.Consumers, newConsumers) {
 			continue
 		}
 		var before *VoiceSpan
@@ -566,7 +614,7 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 			before = &span
 		}
 		after := &VoiceSpan{Managed: managed, SourceHash: srcHash, Consumers: newConsumers}
-		p.Voice = append(p.Voice, VoiceChange{Path: ch.Target.Path, Consumers: after.Consumers, Expected: ch.Expected, Before: before, After: after})
+		p.Voice = append(p.Voice, VoiceChange{Path: ch.Target.Path, Consumers: after.Consumers, Expected: ch.Expected, Before: before, After: after, Gone: gone})
 	}
 	return nil
 }
@@ -587,15 +635,18 @@ func addVoiceChangesForRemove(p *Plan, state State) error {
 			return err
 		}
 		existing, hasSpan := state.VoiceSpans[ch.Target.Path]
-		if err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing); err != nil {
+		gone, err := checkVoiceConflict(ch.Target.Path, s, hasSpan, existing)
+		if err != nil {
 			return err
 		}
 		if !hasSpan {
 			continue
 		}
-		if ch.After == nil {
+		// A span deleted by hand is dropped without writing, also when other
+		// hosts still use the file: the next install regenerates it.
+		if ch.After == nil || gone {
 			span := existing
-			p.Voice = append(p.Voice, VoiceChange{Path: ch.Target.Path, Consumers: existing.Consumers, Expected: ch.Expected, Before: &span, After: nil})
+			p.Voice = append(p.Voice, VoiceChange{Path: ch.Target.Path, Consumers: existing.Consumers, Expected: ch.Expected, Before: &span, After: nil, Gone: gone})
 			continue
 		}
 		narrowed := filterUserConsumers(ch.After.Consumers, p.Config)

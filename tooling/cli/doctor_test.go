@@ -624,11 +624,11 @@ func TestDoctorInstallationListsDriftAndDuplicatedMarkersWithPath(t *testing.T) 
 }
 
 // driftRepairLine is what Installation says once a file is in drift (M4), spelled
-// out here so a change to the wording is deliberate. No Hive command repairs
-// drift (see TestNoCommandRepairsADriftedManagedFile), so the line says what the
-// person can do.
-const driftRepairLine = "Hive cannot repair a changed file by itself: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
-	"Undo the change (or fix its permissions), or restore the file from a backup, then open Diagnostics again (or run hive doctor) to check."
+// out here so a change to the wording is deliberate. The line covers both ways a
+// file drifts (see TestEditedManagedFilesAreRefusedAndDeletedOnesReinstalled).
+const driftRepairLine = "If the file was edited or its permissions changed, undo the change or fix the permissions: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
+	"If it was deleted, run hive install or hive update, which put it back. " +
+	"Then open Diagnostics again (or run hive doctor) to check."
 
 func TestDoctorInstallationDriftSaysHowToRepairIt(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude,codex")

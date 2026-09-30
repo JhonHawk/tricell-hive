@@ -3,6 +3,7 @@ package management
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -287,12 +288,28 @@ func owned(s snapshot, r Record, m markers) error {
 		return fmt.Errorf("%s: %w", path, err)
 	}
 	if a < 0 {
+		// Only the marker lines were deleted and the text between them kept:
+		// that is an edit, and writing the block again would duplicate it.
+		if bodyRemains(s.Data, r.Managed, m) {
+			return &ManagedFileChangedError{Path: path, Kind: ManagedBlockChanged, Block: m.name}
+		}
 		return &ManagedFileChangedError{Path: path, Kind: ManagedBlockMissing, Block: m.name}
 	}
 	if !bytes.Equal(s.Data[a:b], r.Managed) {
 		return &ManagedFileChangedError{Path: path, Kind: ManagedBlockChanged, Block: m.name}
 	}
 	return nil
+}
+
+// bodyRemains reports whether the text a managed block held between its
+// markers is still in data, which means the block was not deleted but had
+// its markers removed.
+func bodyRemains(data, managed []byte, m markers) bool {
+	inner := strings.ReplaceAll(string(managed), "\r\n", "\n")
+	inner = strings.Replace(inner, m.begin, "", 1)
+	inner = strings.Replace(inner, m.end, "", 1)
+	inner = strings.TrimSpace(inner)
+	return inner != "" && strings.Contains(strings.ReplaceAll(string(data), "\r\n", "\n"), inner)
 }
 func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	if before != nil {
@@ -397,4 +414,61 @@ func (e *ManagedFileChangedError) Error() string {
 	}
 	// One source with the legacy scan, so the two texts cannot drift apart.
 	return (&legacy.ModifiedFileError{Path: e.Path}).Error()
+}
+
+// isMissing reports whether err says that managed content was deleted: the
+// file, the link, the block, or the user file that held the block.
+func isMissing(err error) bool {
+	var e *ManagedFileChangedError
+	return errors.As(err, &e) && (e.Kind == ManagedFileMissing || e.Kind == ManagedBlockMissing)
+}
+
+// verifyGone checks that r is really missing from s: it returns nil when owned
+// reports the file or block as missing, owned's own error when the content was
+// edited instead, and an error when r is still there. Every step that acts on a
+// Gone flag calls it first, so a stale or forged flag fails closed.
+func verifyGone(s snapshot, r Record, m markers) error {
+	err := owned(s, r, m)
+	if err == nil {
+		return fmt.Errorf("%s: marked gone but it is still there", r.Target.Path)
+	}
+	if !isMissing(err) {
+		return err
+	}
+	return nil
+}
+
+// transformChange applies ch to s for a plan of the given action. A change
+// marked Gone is first verified against s (see verifyGone). Remove then
+// writes nothing whatever After says, since After only drops a consumer and
+// must not recreate a shared file, except that a file Hive created and that
+// is now empty is deleted as a normal remove would. Install and update write
+// After as a fresh installation would, placing a Hive block before a voice
+// block the file still holds (the order a fresh install writes), and write
+// nothing when After is nil.
+func transformChange(s snapshot, ch Change, action string, m markers) (snapshot, error) {
+	if !ch.Gone {
+		return transform(s, ch.Before, ch.After, m)
+	}
+	if ch.Before == nil {
+		return snapshot{}, fmt.Errorf("%s: marked gone without a managed record", ch.Target.Path)
+	}
+	if err := verifyGone(s, *ch.Before, m); err != nil {
+		return snapshot{}, err
+	}
+	if action == "remove" {
+		if ch.Before.CreatedFile && ch.Before.Target.Kind == "block" && s.Exists && len(s.Data) == 0 {
+			return snapshot{}, nil
+		}
+		return s, nil
+	}
+	out, err := transform(s, nil, ch.After, m)
+	if err != nil || ch.After == nil || ch.After.Target.Kind != "block" || m != hiveMarkers {
+		return out, err
+	}
+	if va, _, verr := blockRange(s.Data, voiceMarkers); verr == nil && va >= 0 {
+		data := append(append(append([]byte{}, s.Data[:va]...), ch.After.Managed...), s.Data[va:]...)
+		return snapshot{Exists: true, Data: data, Mode: out.Mode}, nil
+	}
+	return out, nil
 }

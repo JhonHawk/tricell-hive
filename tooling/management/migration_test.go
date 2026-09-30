@@ -243,8 +243,19 @@ func TestLegacyReintroductionIsDetected(t *testing.T) {
 	old := get(t, path)
 	apply(t, plan(t, "install", o))
 	put(t, path, old)
-	if _, err := BuildPlan("install", o); err == nil {
+	// The legacy file no longer carries a Hive block, so it reads as a deleted
+	// block: install scans it as legacy again and replaces it with the current
+	// block instead of appending a second one to the old text.
+	p, err := BuildPlan("install", o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Legacy) == 0 {
 		t.Fatal("reintroduced legacy accepted as current")
+	}
+	apply(t, p)
+	if got := get(t, path); got != Begin+"\n# Rules\nKeep user content.\n"+End+"\n" {
+		t.Fatalf("legacy text survived the reinstall: %q", got)
 	}
 }
 

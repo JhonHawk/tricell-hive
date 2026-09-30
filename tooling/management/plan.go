@@ -371,6 +371,9 @@ func BuildPlan(action string, o Options) (Plan, error) {
 				return p, fmt.Errorf("resource owned by a different target")
 			}
 			ch.Before = &old
+			// Content the user deleted by hand is reinstalled, or removed
+			// without writing; edited content stays an ownership error.
+			ch.Gone = g.Replaces == nil && isMissing(owned(s, old, hiveMarkers))
 		}
 		if action == "remove" && ch.Before == nil && s.Exists {
 			a, _, parseErr := blockRange(s.Data, hiveMarkers)
@@ -417,11 +420,11 @@ func BuildPlan(action string, o Options) (Plan, error) {
 			}
 		}
 	nextRecord:
-		ch.After, err = nextRecord(p, g, ch.Before, s)
+		ch.After, err = nextRecord(p, g, ch.Before, s, ch.Gone)
 		if err != nil {
 			return p, err
 		}
-		if _, err = transformResource(s, ch); err != nil {
+		if _, err = transformResource(s, ch, p.Action); err != nil {
 			return p, err
 		}
 		p.Changes = append(p.Changes, ch)
@@ -433,7 +436,11 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	return p, nil
 }
 
-func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
+// nextRecord returns the record a plan leaves for g. gone marks an install or
+// update of content that was deleted by hand: the record is then rebuilt as
+// for a fresh installation (whether Hive created the file, the separator
+// before the block) while keeping the consumers registered so far.
+func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record, error) {
 	if p.Action == "remove" || g.Retire {
 		if old == nil {
 			return nil, nil
@@ -450,14 +457,16 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot) (*Record, error) {
 		r.Mode = payloadMode(p.Release, g.Target.Source)
 	}
 	if old != nil {
-		r.CreatedFile = old.CreatedFile
-		r.Leading = old.Leading
+		if !gone {
+			r.CreatedFile = old.CreatedFile
+			r.Leading = old.Leading
+		}
 		r.Consumers = sortedConsumers(append(append([]Consumer{}, old.Consumers...), g.Consumers...))
 	}
 	switch g.Target.Kind {
 	case "block":
 		r.Managed = managedBlock(payload(p.Release, g.Target.Source), s.Data, hiveMarkers)
-		if old == nil && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
+		if (old == nil || gone) && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
 			r.Leading = "\n"
 		}
 	case "skill":
@@ -624,12 +633,15 @@ func validatePlan(p Plan, state State) error {
 			if ch.After != nil && bytes.Contains(ch.After.Managed, []byte("\r\n")) {
 				s.Data = []byte("\r\n")
 			}
-			expected, err := nextRecord(p, g, old, s)
+			// A gone install is written as a fresh installation, so its separator
+			// is checked like one; a gone remove keeps the recorded separator.
+			freshGone := ch.Gone && p.Action != "remove"
+			expected, err := nextRecord(p, g, old, s, ch.Gone)
 			if err != nil {
 				return err
 			}
 			if expected != nil && ch.After != nil {
-				if old == nil {
+				if old == nil || freshGone {
 					expected.Leading = ch.After.Leading
 				}
 				if expected.Leading != "" && expected.Leading != "\n" {
@@ -645,7 +657,7 @@ func validatePlan(p Plan, state State) error {
 			if err != nil {
 				return err
 			}
-			if finger(current) == ch.Expected && ch.After != nil && old == nil && g.Target.Kind == "block" {
+			if finger(current) == ch.Expected && ch.After != nil && (old == nil || freshGone) && g.Target.Kind == "block" {
 				leading := ""
 				if len(current.Data) > 0 && !bytes.HasSuffix(current.Data, []byte("\n")) {
 					leading = "\n"

@@ -77,6 +77,8 @@ type VoiceChange struct {
 	Expected  Fingerprint `json:"expected"`
 	Before    *VoiceSpan  `json:"before,omitempty"`
 	After     *VoiceSpan  `json:"after,omitempty"`
+	// Gone is set when the voice block was deleted by hand; see Change.Gone.
+	Gone bool `json:"gone,omitempty"`
 }
 
 type Payload struct {
@@ -134,6 +136,12 @@ type Change struct {
 	Before   *Record       `json:"before,omitempty"`
 	After    *Record       `json:"after,omitempty"`
 	Replaces *Record       `json:"replaces,omitempty"`
+	// Gone is set when the managed file or block this change would touch was
+	// deleted by hand (owned reports ManagedFileMissing or ManagedBlockMissing).
+	// Install and update write it again as a fresh installation would; remove
+	// writes nothing and drops the record. Apply re-verifies it against the
+	// current snapshot and fails closed when the path is no longer missing.
+	Gone bool `json:"gone,omitempty"`
 }
 type Plan struct {
 	Product      *ProductIdentity                `json:"product,omitempty"`
@@ -164,6 +172,11 @@ type Plan struct {
 	// stored spans untouched, and a caller displays this line rather than
 	// failing the whole operation.
 	VoiceWarning string `json:"voice_warning,omitempty"`
+	// VoiceSkipped lists, on a "voice set" plan, the instruction files that
+	// were left out because they no longer hold a managed Hive block (deleted
+	// by hand). Nothing is written to them; hive install restores the block
+	// first. It is informational, so a caller can tell the user.
+	VoiceSkipped []string `json:"voice_skipped,omitempty"`
 }
 
 // ReleaseEntry describes one retained release snapshot for hive releases: its

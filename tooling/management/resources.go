@@ -46,7 +46,7 @@ func readResource(t target.Target, migration bool) (snapshot, error) {
 	}
 	return snapshot{}, fmt.Errorf("unowned or changed alias resource: %s", t.Path)
 }
-func transformResource(s snapshot, ch Change) (snapshot, error) {
+func transformResource(s snapshot, ch Change, action string) (snapshot, error) {
 	if ch.Replaces != nil {
 		if s.Kind != "skill-directory" || ch.After == nil || ch.Target.Kind != "symlink" {
 			return snapshot{}, fmt.Errorf("%s: invalid legacy skill migration", ch.Target.Path)
@@ -56,7 +56,7 @@ func transformResource(s snapshot, ch Change) (snapshot, error) {
 		}
 		return snapshot{Exists: true, Kind: "symlink", LinkTarget: ch.Target.LinkTarget}, nil
 	}
-	return transform(s, ch.Before, ch.After, hiveMarkers)
+	return transformChange(s, ch, action, hiveMarkers)
 }
 
 // A directory snapshot is used only for the known V1 Claude directory -> alias

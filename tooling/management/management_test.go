@@ -178,7 +178,12 @@ func TestManagedDriftAndStalePlans(t *testing.T) {
 			apply(t, p)
 			for _, ch := range p.Changes {
 				if ch.Target.Kind == kind {
+					// A block with its markers intact but a changed body is an edit;
+					// a file with no markers at all reads as a deleted block.
 					put(t, ch.Target.Path, "user changed it")
+					if kind == "block" {
+						put(t, ch.Target.Path, Begin+"\nuser changed it\n"+End+"\n")
+					}
 					break
 				}
 			}

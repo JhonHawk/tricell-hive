@@ -67,7 +67,7 @@ func TestMarkerAndCollisionErrorsNameThePath(t *testing.T) {
 	_, transformErr := transform(bad, nil, &after, hiveMarkers)
 	skill := skillRecord(block, "skill", []byte("a"), 0600)
 	_, collisionErr := transform(snapshot{Exists: true, Data: []byte("mine")}, nil, &skill, hiveMarkers)
-	_, migrationErr := transformResource(snapshot{}, Change{Target: target.Target{Path: block}, Replaces: &skill})
+	_, migrationErr := transformResource(snapshot{}, Change{Target: target.Target{Path: block}, Replaces: &skill}, "install")
 	for name, err := range map[string]error{
 		"owned":     owned(bad, blockRecord(block, []byte("x")), hiveMarkers),
 		"transform": transformErr, "collision": collisionErr, "migration": migrationErr,
@@ -91,7 +91,7 @@ func TestVoiceConflictDoesNotRepeatThePath(t *testing.T) {
 	const path = "/synthetic/home/.codex/AGENTS.md"
 	span := VoiceSpan{Managed: []byte(VoiceBegin + "\noriginal\n" + VoiceEnd + "\n")}
 	edited := snapshot{Exists: true, Data: []byte(VoiceBegin + "\nedited\n" + VoiceEnd + "\n")}
-	err := checkVoiceConflict(path, edited, true, span)
+	_, err := checkVoiceConflict(path, edited, true, span)
 	var changed *ManagedFileChangedError
 	if !errors.As(err, &changed) {
 		t.Fatalf("errors.As failed on %T (%v)", err, err)

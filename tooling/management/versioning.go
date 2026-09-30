@@ -207,7 +207,7 @@ func RequiredHosts(o Options) ([]string, error) {
 			// Preview the new bytes with all known consumers to avoid the conflict gate.
 			expanded := g
 			expanded.Consumers = sortedConsumers(append(append([]Consumer{}, g.Consumers...), old.Consumers...))
-			after, err := nextRecord(p, expanded, &old, current)
+			after, err := nextRecord(p, expanded, &old, current, false)
 			if err != nil {
 				return nil, err
 			}
