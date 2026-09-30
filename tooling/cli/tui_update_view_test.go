@@ -196,7 +196,6 @@ func TestUpdateViewShowsResolvingWhileGitRuns(t *testing.T) {
 // message was wrapped.
 func mustShowFlat(d *appDriver, text string) {
 	d.t.Helper()
-	squash := func(s string) string { return strings.Join(strings.Fields(s), "") }
 	if !strings.Contains(squash(d.screen()), squash(text)) {
 		d.t.Fatalf("screen does not show %q:\n%s", text, d.screen())
 	}
