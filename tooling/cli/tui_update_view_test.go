@@ -28,6 +28,10 @@ func openMenuEntry(t *testing.T, d *appDriver, name string) {
 				d.key("down")
 			}
 			d.key("enter")
+			// Render once before any typing: until a view's first View call
+			// its text input still blinks, and each typed key would then run
+			// a ~530 ms blink command synchronously in this driver (#59).
+			d.screen()
 			return
 		}
 	}
