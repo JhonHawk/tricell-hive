@@ -107,7 +107,7 @@ func sessionsSection(deps doctorDeps, st doctorState) doctorSection {
 			estimate = estimate || res.compared
 			lines = append(lines, res.lines...)
 		case "opencode":
-			lines = append(lines, "opencode: reloads its instructions on the next message; no restart needed")
+			lines = append(lines, "opencode: reloads its instructions on the next message; start a new session for role or skill changes")
 		}
 	}
 	if summary := sessionsSummary(checks); summary != "" {
