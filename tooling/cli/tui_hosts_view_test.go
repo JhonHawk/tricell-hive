@@ -548,11 +548,7 @@ func TestHostsViewMigratesLegacyInstall(t *testing.T) {
 // fails its verification fails with the message `hive install` gives, inside
 // the view, and changes nothing.
 func TestHostsViewTamperedPackageFailsLikeInstall(t *testing.T) {
-	good := minimalTestSource(t)
-	source := t.TempDir()
-	if err := os.CopyFS(source, os.DirFS(good)); err != nil {
-		t.Fatal(err)
-	}
+	source := copyMinimalSource(t)
 	// A package sentinel without its manifest: distribution.VerifyIfPackaged
 	// refuses it.
 	if err := os.MkdirAll(filepath.Join(source, "bin"), 0700); err != nil {

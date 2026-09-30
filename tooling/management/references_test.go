@@ -1,6 +1,7 @@
 package management
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,8 +65,34 @@ func TestRepositoryCatalogueInstructionReferences(t *testing.T) {
 		t.Fatal(err)
 	}
 	o.Source = source
-	p := plan(t, "install", o)
-	if len(p.Release.Files) < 3 {
+	// Plans are cheap: check the references on the default setup hosts. An
+	// apply is expensive, so it runs with the single claude host, which
+	// installs guidance, skills and agents.
+	defaultPlan := plan(t, "install", o)
+	if len(defaultPlan.Release.Files) < 3 {
 		t.Fatal("empty repository catalogue")
+	}
+	o.Hosts = []string{"claude"}
+	p := plan(t, "install", o)
+	apply(t, p)
+	if unchanged, err := PlanUnchanged(plan(t, "install", o)); err != nil || !unchanged {
+		t.Fatalf("second plan after apply: unchanged=%v err=%v", unchanged, err)
+	}
+	claude := filepath.Join(o.Home, ".claude")
+	if !strings.Contains(get(t, filepath.Join(claude, "CLAUDE.md")), Begin) {
+		t.Fatal("global guidance block not installed")
+	}
+	// Skills live in the shared .agents root; claude renders its agents itself.
+	for _, dir := range []string{filepath.Join(o.Home, ".agents", "skills"), filepath.Join(claude, "agents")} {
+		found := false
+		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			if err == nil && !d.IsDir() && strings.HasSuffix(path, ".md") {
+				found = true
+			}
+			return err
+		})
+		if err != nil || !found {
+			t.Fatalf("no installed markdown under %s: %v", dir, err)
+		}
 	}
 }

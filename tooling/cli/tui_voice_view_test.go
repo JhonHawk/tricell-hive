@@ -261,10 +261,7 @@ func TestVoiceViewDecliningAndWriteKeepFiles(t *testing.T) {
 // TestVoiceViewFits covers AC9: with several voices with long descriptions and
 // a long name, every row fits 80x24 and 120x40, the summary too.
 func TestVoiceViewFits(t *testing.T) {
-	src := t.TempDir()
-	if err := os.CopyFS(src, os.DirFS(minimalTestSource(t))); err != nil {
-		t.Fatal(err)
-	}
+	src := copyMinimalSource(t)
 	for i := 1; i <= 8; i++ {
 		text := fmt.Sprintf("Voice%d: %s\n", i, strings.Repeat("a very warm and formal voice with a long description ", 4))
 		if err := os.WriteFile(filepath.Join(src, "content", "voices", fmt.Sprintf("voice-number-%d.md", i)), []byte(text), 0600); err != nil {

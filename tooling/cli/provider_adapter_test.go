@@ -56,16 +56,13 @@ func stepStatus(t *testing.T, result management.OnboardingResult, id string) str
 func TestNativeAdapterManualOfferRunsNoProcess(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(nativeProviderAdapterFactory)
 	args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
 	var out bytes.Buffer
 	// "2" selects Context7 (offers are Engram, then Context7 for host codex);
 	// no version line: every capability is unconditionally manual (U6).
-	err = installWithDependencies(args, strings.NewReader("2\ny\n"), &out, true, dependencies)
+	err := installWithDependencies(args, strings.NewReader("2\ny\n"), &out, true, dependencies)
 	if err == nil {
 		t.Fatal("expected a partial outcome; a manual step never verifies itself")
 	}
@@ -89,16 +86,13 @@ func TestNativeAdapterManualOfferRunsNoProcess(t *testing.T) {
 func TestInstallPartialOnboardingListsPerStepDetail(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(nativeProviderAdapterFactory)
 	args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
 	var out bytes.Buffer
 	// "1" selects Engram alone, so a single manual step drives the outcome;
 	// no version line, since Engram is unconditionally manual here (U6).
-	err = installWithDependencies(args, strings.NewReader("1\ny\n"), &out, true, dependencies)
+	err := installWithDependencies(args, strings.NewReader("1\ny\n"), &out, true, dependencies)
 	if err == nil {
 		t.Fatal("expected a non-nil error (non-zero exit) for a partial outcome")
 	}
@@ -128,10 +122,7 @@ func TestInstallPartialOnboardingListsPerStepDetail(t *testing.T) {
 func TestManualOnlyCapabilitySkipsVersionPromptAndLabelsItself(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	dependencies := defaultInstallDependencies(nativeProviderAdapterFactory)
 	args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
 	var out bytes.Buffer
@@ -193,10 +184,7 @@ func (r *executeThenCrashRunner) Reconcile(s management.ExternalStep, result jso
 func TestProviderRunnerRecoveryReconcilesRunningStepWithoutReexecuting(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	o := management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: source, Hosts: []string{"codex"}}
 	p, err := management.BuildPlan("install", o)
 	if err != nil {

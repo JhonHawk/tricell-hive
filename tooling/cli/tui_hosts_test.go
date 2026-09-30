@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 	"testing"
 
 	"tricell-hive/integrations/target"
@@ -17,73 +16,50 @@ import (
 )
 
 // testVoiceID names the voice content/voices/testvoice.md carries in
-// minimalCatalogSource, distinct from any real voice (jarvis, ...) so a
+// testdata/minimal-source, distinct from any real voice (jarvis, ...) so a
 // test never depends on that content's own wording.
 const testVoiceID = "testvoice"
 
-// minimalCatalogSource builds, once per test binary (sync.OnceValues), a
-// synthetic Hive source tree with just enough content to exercise
-// Install/Remove's own equivalence: content/guidance/global.md (every
-// install plan writes it unconditionally — management.GlobalSource) and one
-// voice (content/voices/preamble.md and testvoice.md), which the
-// active-voice removal test needs. Real Install/Remove behavior does not
-// depend on which skills or agents a source happens to carry, so this
-// file's twin-comparison tests use this instead of the real content/ tree
-// (T3 fix round item 5): a full real-tree install touches ~80 files and
-// dominated this package's own -race run time (549s -> 857s, over go
-// test's own default 10-minute timeout).
-var minimalCatalogSource = sync.OnceValues(func() (string, error) {
-	dir, err := os.MkdirTemp("", "hive-tui-test-catalog-")
-	if err != nil {
-		return "", err
-	}
-	// A macOS temp dir is itself commonly a symlink (/tmp -> /private/tmp);
-	// BuildPlan's own target.Safe rejects a symlinked source ancestor.
-	dir, err = filepath.EvalSymlinks(dir)
-	if err != nil {
-		return "", err
-	}
-	guidanceDir := filepath.Join(dir, "content", "guidance")
-	if err := os.MkdirAll(guidanceDir, 0700); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(guidanceDir, "global.md"), []byte("# Global\n\nMinimal test guidance.\n"), 0600); err != nil {
-		return "", err
-	}
-	voicesDir := filepath.Join(dir, "content", "voices")
-	if err := os.MkdirAll(voicesDir, 0700); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(voicesDir, "preamble.md"), []byte("Voice preamble.\n"), 0600); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(filepath.Join(voicesDir, testVoiceID+".md"), []byte("Test voice: a minimal fixture voice.\n"), 0600); err != nil {
-		return "", err
-	}
-	return dir, nil
-})
-
-// minimalTestSource returns minimalCatalogSource's own directory, failing
-// the test if it could not be built.
+// minimalTestSource returns the absolute path of testdata/minimal-source, a
+// fixed synthetic Hive source with just enough content to exercise
+// Install/Remove: content/guidance/global.md (every install plan writes it
+// unconditionally), one voice (preamble.md and testvoice.md), and a minimal
+// integrations/agent-profiles.json (required by the bootstrap package
+// manifest). Install/Remove behavior does not depend on which skills or
+// agents a source carries, and a full real-tree install under -race
+// dominated this package's run time. A test that writes into its source
+// copies the tree first (copyMinimalSource); it never writes into testdata.
 func minimalTestSource(t *testing.T) string {
 	t.Helper()
-	dir, err := minimalCatalogSource()
+	dir, err := filepath.Abs(filepath.Join("testdata", "minimal-source"))
 	if err != nil {
+		t.Fatal(err)
+	}
+	// Resolve symlinks, as a checkout reached through a symlinked path must
+	// still pass target.Safe, which rejects any symlink ancestor.
+	if dir, err = filepath.EvalSymlinks(dir); err != nil {
 		t.Fatal(err)
 	}
 	return dir
 }
 
-// TestMain removes minimalCatalogSource's own directory once every test in
-// this binary has run: it is built with os.MkdirTemp (not t.TempDir()) so
-// it survives across tests, but nothing needs it once the binary exits.
+// copyMinimalSource copies the minimal source into a fresh t.TempDir() and
+// returns its path, for tests that add files to their source.
+func copyMinimalSource(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	copyTree(t, minimalTestSource(t), dir)
+	return dir
+}
+
+// TestMain turns off fsync for the whole test binary; it must run before any
+// test touches the management layer.
 func TestMain(m *testing.M) {
 	management.DisableDiskSyncForTests()
-	code := m.Run()
-	if dir, err := minimalCatalogSource(); err == nil {
-		os.RemoveAll(dir)
-	}
-	os.Exit(code)
+	os.Exit(m.Run())
 }
 
 // newHostsTestHome builds a fresh synthetic home and state directory, never

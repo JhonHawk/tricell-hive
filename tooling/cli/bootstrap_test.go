@@ -36,16 +36,14 @@ func bootstrapFixtureOrigin(t *testing.T, productVersion string) (srv *httptest.
 	previous := version.Current
 	version.Current = productVersion
 	t.Cleanup(func() { version.Current = previous })
-	src, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := minimalTestSource(t)
 	dir := t.TempDir()
 	for _, rel := range []string{"content", "integrations/agent-profiles.json"} {
 		if err := copyTreeForBootstrapFixture(filepath.Join(src, rel), filepath.Join(dir, rel)); err != nil {
 			t.Fatal(err)
 		}
 	}
+	addBootstrapFixtureSkillAndAgent(t, dir)
 	managerBytes = []byte("#!/bin/sh\nexit 0\n")
 	managerSHA256 = distribution.Digest(managerBytes)
 	if err := os.MkdirAll(filepath.Join(dir, "bin"), 0755); err != nil {
@@ -335,16 +333,14 @@ type bootstrapFixtureConfig struct {
 // where cfg deliberately says otherwise.
 func newBootstrapFixture(t *testing.T, productVersion string, cfg bootstrapFixtureConfig) (srv *httptest.Server, managerBytes []byte, managerSHA256 string) {
 	t.Helper()
-	src, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := minimalTestSource(t)
 	dir := t.TempDir()
 	for _, rel := range []string{"content", "integrations/agent-profiles.json"} {
 		if err := copyTreeForBootstrapFixture(filepath.Join(src, rel), filepath.Join(dir, rel)); err != nil {
 			t.Fatal(err)
 		}
 	}
+	addBootstrapFixtureSkillAndAgent(t, dir)
 	managerBytes = []byte("#!/bin/sh\nexit 0\n")
 	managerSHA256 = distribution.Digest(managerBytes)
 	if err := os.MkdirAll(filepath.Join(dir, "bin"), 0755); err != nil {
@@ -594,10 +590,7 @@ func TestInstallOfflinePendingRecoveryPointsToInstallScript(t *testing.T) {
 	}
 	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
 	dependencies.RecoverCore = func(string) (string, error) { return "core-id", nil }
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	var out bytes.Buffer
 	if err := installWithDependencies([]string{"--home", home, "--state-dir", stateDir, "--source", source}, strings.NewReader("y\n"), &out, true, dependencies); err != nil {
 		t.Fatal(err)
@@ -635,10 +628,7 @@ func TestBootstrapOnlinePendingRecoveryPointsToRetainedManager(t *testing.T) {
 		t.Fatal("BindRetainedInstaller must not run for an already-pending recovery")
 		return p, nil
 	}
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := minimalTestSource(t)
 	var out bytes.Buffer
 	if err := runInstallFlow(management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: source, Hosts: []string{"codex"}}, false, strings.NewReader("y\n"), &out, true, dependencies); err != nil {
 		t.Fatal(err)
@@ -649,5 +639,36 @@ func TestBootstrapOnlinePendingRecoveryPointsToRetainedManager(t *testing.T) {
 	wantManager := filepath.Join(retainedDir, "manager")
 	if !strings.Contains(out.String(), wantManager) || !strings.Contains(out.String(), "recover") || !strings.Contains(out.String(), stateDir) {
 		t.Fatalf("online pending recovery did not name the retained manager and state dir: %s", out.String())
+	}
+}
+
+// addBootstrapFixtureSkillAndAgent adds a nested synthetic skill and one
+// synthetic agent to a package directory, so the bootstrap tests still package
+// and checksum-verify nested skill files and agent files. The shared minimal
+// source stays skill- and agent-free. An agent release needs the real agent
+// profiles (the minimal source carries none), so they replace the minimal ones
+// in the package directory.
+func addBootstrapFixtureSkillAndAgent(t *testing.T, dir string) {
+	t.Helper()
+	profiles, err := os.ReadFile(filepath.Join("..", "..", "integrations", "agent-profiles.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "integrations", "agent-profiles.json"), profiles, 0644); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"content/skills/fixture-skill/SKILL.md":             "---\nname: fixture-skill\ndescription: Synthetic skill for package tests.\n---\nRead [detail](references/detail.md).\n",
+		"content/skills/fixture-skill/references/detail.md": "# Detail\nSynthetic reference.\n",
+		"content/agents/fixture/fixture-agent.md":           "---\nname: \"fixture-agent\"\ndescription: \"Synthetic agent for package tests.\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\n---\n\n# fixture-agent\n\nUse evidence.\n",
+	}
+	for rel, text := range files {
+		path := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(text), 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
