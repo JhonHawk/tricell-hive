@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"syscall"
+	"testing"
 	"tricell-hive/integrations/target"
 )
 
@@ -125,10 +126,19 @@ func write(path string, s snapshot) error {
 // Its zero value keeps syncing on in production; only test code sets it.
 var skipDiskSync atomic.Bool
 
+// isTestBinary reports whether the process is a test binary. It is a variable
+// so a test can simulate a production binary.
+var isTestBinary = testing.Testing
+
 // DisableDiskSyncForTests turns off fsync for the rest of the process. Only
 // test binaries call it, from TestMain: production code must keep its
-// durability guarantee.
-func DisableDiskSyncForTests() { skipDiskSync.Store(true) }
+// durability guarantee, so it panics anywhere else.
+func DisableDiskSyncForTests() {
+	if !isTestBinary() {
+		panic("DisableDiskSyncForTests called outside a test binary")
+	}
+	skipDiskSync.Store(true)
+}
 
 // syncFile flushes a file or directory unless disk sync is disabled.
 func syncFile(f *os.File) error {
