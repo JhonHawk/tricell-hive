@@ -184,14 +184,15 @@ Only directories confirmed created by Hive are cleanup candidates, and only empt
 
 ## Verification
 
-Local verification:
+The repository has no CI: verification runs locally, once on the final candidate of a change.
 
 ```sh
 go vet ./...
 go test ./...
+python3 -m unittest discover -s tests/skills -p '*_test.py'
 ```
 
-The `CI` workflow (`.github/workflows/ci.yml`) runs `go vet ./...`, `go test -race -timeout 40m ./...` and the Python skill tests on every pull request to `development`. Run `go test -race -timeout 20m ./...` locally only when a change touches concurrency: goroutines, locks, state shared across goroutines, or the manager's concurrent-write tests. The race run of `tooling/cli` takes more than `go test`'s default ten-minute limit on macOS, so pass `-timeout` explicitly.
+Run `go test -race ./...` as well when a change touches concurrency: goroutines, locks, state shared across goroutines, or the manager's concurrent-write tests.
 
 Test binaries of `tooling/management` and `tooling/cli` call `management.DisableDiskSyncForTests` from `TestMain`, because fsync dominates their run time on macOS; the `hive` binary always syncs.
 
