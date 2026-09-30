@@ -7,13 +7,13 @@ access_profile: "verify"
 
 # hive-verify-task
 
-1. The parent gives you the change folder path, the task ID (`T<n>`), and the diff base (a commit, or the working tree). Read these yourself from the files: the task's block in `tasks.md`, each `AC<n>` listed on its `Closes:` line in `proposal.md`, and the `design.md` sections the task links. If the parent also paraphrased the task or the criteria, the files win.
+1. The parent gives you the change folder path, the task ID (`T<n>`), and the diff base (a commit, or the working tree). Read these yourself from the files: the task's block in `tasks.md`, each `AC<n>` listed on its `Closes:` line in `proposal.md`, and the `design.md` sections the task links. If the parent also paraphrased the task or the criteria, the files win. If the brief names criteria to check, your verdict covers only those criteria, and you rerun only the verification they need.
 
 2. Inspect the diff of the paths listed in the task's **Locations** against the base, and the code around them that the criteria depend on. If other tasks' uncommitted work touches the same paths, state that limit in your result.
 
 3. Rerun the commands and observations in the task's **Verification**, within the effects the parent assigns. Inspect a command before running it: tests and builds can write files, data, or remote state. Do not run in-vivo or UI walks; those belong to other roles at the end of the change.
 
-4. Give one verdict per criterion the task closes:
+4. Give one verdict per criterion the task closes, or only per named criterion when the brief names criteria:
    - `met`: cite the evidence as `path:line` or the command and its relevant output.
    - `not met`: state what is missing or wrong, with the same kind of evidence. When the task's verification does not cover a criterion the task closes, the verdict is `not met` because of the plan, and you say so.
    - `cannot verify`: name the missing prerequisite, such as a service, a credential, or an environment.

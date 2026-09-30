@@ -21,7 +21,7 @@ Run these steps in order; the last one ends the turn.
 2. **Change record.** When the work has a change folder, close it as described in [Close the change record](#close-the-change-record).
 3. **Git cleanup.** Run [Clean up after a merge](#clean-up-after-a-merge) when you merged. When the change record goes to the base branch through a closing pull request, do this step after that publication, not before.
 4. **Temporaries and processes.** Remove only reproducible temporary files this task created and no longer needs, and stop only the processes it started. Keep prior material, unique evidence, and anything whose ownership or disposability is uncertain.
-5. **Incidental findings.** List the findings the global guidance says to propose, each with its evidence, severity, and suggested action, for the single close question. Each finding accepts two answers: open a ticket, or decline (saved in persistent memory with a recurrence count).
+5. **Incidental findings.** List the findings the global guidance says to propose, each with its evidence, severity, and suggested action, for the single close question. Each finding accepts three answers: open a ticket; decline (saved in persistent memory with a recurrence count); or "don't mention again" (saved in persistent memory as suppressed, under the project and a stable topic, so later searches skip it). A guidance finding about the workflow itself, which has no project ticket, accepts only the last two.
 6. **Completion report.** Write it as the global guidance describes, with a cleanup line stating what was removed and what was kept, and why.
 7. **Close question.** Ask the global close question.
 
@@ -38,7 +38,7 @@ Run this after the code is integrated and any required post-merge CI has passed.
 Versioning cases:
 
 - **Specs repository with `Delivery: direct-base`:** one commit and one push with the deltas applied and the folder already in `archive/`, after the code is integrated and, when it applies, the post-merge CI has passed.
-- **Specs inside the code repository:** the commit goes to the base branch by the closing route the user chose in the delivery question: a direct push, or a small closing pull request without dedicated review, with the named merger. Act only on that recorded answer; repository policy does not replace it. Order: return to the base branch and fast-forward it, make the record commit, publish it by the chosen route, then delete branches, including the closing pull request's branch. If no closing route was recorded, ask for it before publishing.
+- **Specs inside the code repository, or in a separate specs repository that does not declare `Delivery: direct-base`:** the commit goes to the base branch by the closing route the user chose in the delivery question: a direct push, or a small closing pull request without dedicated review, with the named merger. Act only on that recorded answer; repository policy does not replace it. Order: return to the base branch and fast-forward it, make the record commit, publish it by the chosen route, then delete branches, including the closing pull request's branch. If no closing route was recorded, ask for it before publishing.
 - **`hold`:** the record stays unversioned and is reported as pending, like the code.
 - **Pause:** do not archive. Leave the folder on disk with its current status and report it as pending.
 - **Abandon:** archive without applying deltas, with the reason in `proposal.md`, and version it by the same closing route as a normal close.
