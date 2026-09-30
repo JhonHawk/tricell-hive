@@ -127,7 +127,7 @@ never rebuilt with different content; build all platforms of a version in one ru
 one-line `stable.txt` selector is written at publication, not by the builder.
 macOS Intel is unsupported and is rejected even when requested explicitly.
 
-Run `go test ./...`, `go test -race ./...` and `go vet ./...`, followed by the actual
+Run `go vet ./...` and `go test ./...` (the pull request's CI adds `go test -race`), followed by the actual
 packaged installer in synthetic homes. Native execution coverage must be reported
 separately from cross-compilation. Do not distribute an architecture merely because
 its cross-build passed; validate installation and recovery in a compatible runtime.

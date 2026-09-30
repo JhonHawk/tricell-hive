@@ -184,13 +184,16 @@ Only directories confirmed created by Hive are cleanup candidates, and only empt
 
 ## Verification
 
+Local verification:
+
 ```sh
-go test ./...
-go test -race -timeout 20m ./...
 go vet ./...
+go test ./...
 ```
 
-The race run of `tooling/cli` takes about thirteen minutes, beyond `go test`'s default ten-minute limit, so pass `-timeout` explicitly.
+The `CI` workflow (`.github/workflows/ci.yml`) runs `go vet ./...`, `go test -race -timeout 40m ./...` and the Python skill tests on every pull request to `development`. Run `go test -race -timeout 20m ./...` locally only when a change touches concurrency: goroutines, locks, state shared across goroutines, or the manager's concurrent-write tests. The race run of `tooling/cli` takes more than `go test`'s default ten-minute limit on macOS, so pass `-timeout` explicitly.
+
+Test binaries of `tooling/management` and `tooling/cli` call `management.DisableDiskSyncForTests` from `TestMain`, because fsync dominates their run time on macOS; the `hive` binary always syncs.
 
 Tests exercise the six user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. Catalogue tests additionally cover multiple skills and nested Markdown references, source identity and forged payload rejection, new references in owned bundles, unowned reference conflicts, partial consumer retirement, old-release rollback, missing-checkout status/removal, v2 migration and legacy journal recovery. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).
 

@@ -35,7 +35,7 @@ The [harness engineering research index](_support/docs/harness-engineering/READM
 
 The [workspace and artifact policy](_support/docs/architecture/workspace-and-artifacts.md) explains repo versus shared workspace scope, established documentation homes, task-local cleanup, and requested archiving.
 
-The [Go deployment manager](_support/docs/architecture/deployment-manager.md) provides explicit plan/apply/status/recovery operations for Codex, Claude, Grok, Pi, OpenCode, and Cursor. Run `go test -race ./...` and `go vet ./...` to verify it. No model runtime or hook framework is provided. Preserve user-owned configuration, credentials, histories, third-party tools, backups, and the Engram workspace identity.
+The [Go deployment manager](_support/docs/architecture/deployment-manager.md) provides explicit plan/apply/status/recovery operations for Codex, Claude, Grok, Pi, OpenCode, and Cursor. Run `go vet ./...` and `go test ./...` to verify it; the [verification section](_support/docs/architecture/deployment-manager.md#verification) says when `-race` runs. No model runtime or hook framework is provided. Preserve user-owned configuration, credentials, histories, third-party tools, backups, and the Engram workspace identity.
 
 ## Repository structure
 

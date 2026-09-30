@@ -32,7 +32,7 @@ In zsh or bash, this scan must produce no output (it prints file names only, exe
 rg -l -i -P '/Users/|/home/|/Volumes/|/private/|~/|password=|secret=|(?<!EXAMPLE_API_)token=' -g '!README.md' tests/fixtures/regression
 ```
 
-Then run `go vet ./...` and `go test -race ./tests/pilot/...`. A new criterion is appended in `assessFlows` before the case status, so a `fail` also fails the flows case when an existing run directory is re-assessed with `--assess`.
+Then run `go vet ./...` and `go test ./tests/pilot/...`. A new criterion is appended in `assessFlows` before the case status, so a `fail` also fails the flows case when an existing run directory is re-assessed with `--assess`.
 
 ## Limits
 

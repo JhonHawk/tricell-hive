@@ -5,7 +5,7 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 ## Hive
 
 - Project: tricell-hive
-- Base branch: rebuild/harness-engineering (until the rebuild is integrated into `master`)
+- Base branch: development
 - Tracker: GitHub Issues · JhonHawk/tricell-hive
 - Specs: _support/openspec
 
@@ -51,7 +51,7 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 
 ## Refreshing a local installation
 
-Refresh a local installation only when the user asks, as the rule above requires. **Temporary, until the rebuild merges into `master`:** each commit or merged pull request that lands on `rebuild/harness-engineering` is that request. Refresh right after it lands, following the steps below for what it changed, and report the deployed commit. Remove this exception when the rebuild merges into `master`.
+Refresh a local installation only when the user asks, as the rule above requires. **Temporary, until the rebuild merges into `master`:** each commit or merged pull request that lands on `development` is that request. Refresh right after it lands, following the steps below for what it changed, and report the deployed commit. Remove this exception when the rebuild merges into `master`.
 
 The binary and the deployed content update separately:
 
