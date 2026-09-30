@@ -25,7 +25,7 @@ Supply the saved plan path and revision identifier (commit, content hash, or tim
 
 While the round runs, continue work that does not change the candidate, such as preparing the delivery question or the handoff.
 
-Require read-only analysis and feedback to the parent. Do not delegate edits, test execution, hosted reviews, tracker writes or additional agents. Use native read-only controls where available; a prompt contract alone is not proof of technical isolation. Apply the shared dispatch evidence requirements in the existing plan review record, alongside the candidate revision and domain. Require the child to read assigned resources. If delegation is unavailable, disclose the missing independent review and offer manual review or a later supported session; a labeled self-check is not an equivalent pass.
+Require read-only analysis and feedback to the parent. Do not delegate edits, test execution, hosted reviews, tracker writes or additional agents. Use native read-only controls where available; a prompt contract alone is not proof of technical isolation. Apply the shared dispatch evidence requirements in the existing plan review record, alongside the candidate revision and domain. Require the child to read assigned resources. A launcher that does not list `hive-review-plan` still allows delegation: launch a generic child with the role's contract under the shared delegation fallback. Only when no child can be launched at all, disclose the missing independent review and offer manual review or a later supported session; a labeled self-check is not an equivalent pass.
 
 ## Reconcile and close
 
