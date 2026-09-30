@@ -165,6 +165,9 @@ func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
 			t.Fatalf("missing flow case %q", id)
 		}
 	}
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("Node unavailable")
+	}
 	dir := t.TempDir()
 	for p, b := range byID["direct-build"].Files {
 		fixtureFile(t, filepath.Join(dir, p), b)

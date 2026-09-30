@@ -159,5 +159,5 @@ func writeResource(t target.Target, expected, s snapshot, migration bool, fail f
 		return err
 	}
 	defer d.Close()
-	return d.Sync()
+	return syncFile(d)
 }
