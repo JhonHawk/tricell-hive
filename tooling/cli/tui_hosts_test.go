@@ -78,6 +78,7 @@ func minimalTestSource(t *testing.T) string {
 // this binary has run: it is built with os.MkdirTemp (not t.TempDir()) so
 // it survives across tests, but nothing needs it once the binary exits.
 func TestMain(m *testing.M) {
+	management.DisableDiskSyncForTests()
 	code := m.Run()
 	if dir, err := minimalCatalogSource(); err == nil {
 		os.RemoveAll(dir)

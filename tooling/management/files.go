@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"tricell-hive/integrations/target"
 )
@@ -97,7 +98,7 @@ func write(path string, s snapshot) error {
 		_, err = f.Write(s.Data)
 	}
 	if err == nil {
-		err = f.Sync()
+		err = syncFile(f)
 	}
 	cerr := f.Close()
 	if err == nil {
@@ -117,7 +118,24 @@ func write(path string, s snapshot) error {
 		return err
 	}
 	defer d.Close()
-	return d.Sync()
+	return syncFile(d)
+}
+
+// skipDiskSync, when set, stops writes from being flushed to stable storage.
+// Its zero value keeps syncing on in production; only test code sets it.
+var skipDiskSync atomic.Bool
+
+// DisableDiskSyncForTests turns off fsync for the rest of the process. Only
+// test binaries call it, from TestMain: production code must keep its
+// durability guarantee.
+func DisableDiskSyncForTests() { skipDiskSync.Store(true) }
+
+// syncFile flushes a file or directory unless disk sync is disabled.
+func syncFile(f *os.File) error {
+	if skipDiskSync.Load() {
+		return nil
+	}
+	return f.Sync()
 }
 func writeJSON(path string, v any) error {
 	return write(path, snapshot{Exists: true, Data: encode(v), Mode: 0600})
