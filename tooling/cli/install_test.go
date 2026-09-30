@@ -699,3 +699,38 @@ func TestDetectInstallerHostsSyntheticHomeDetectsNothing(t *testing.T) {
 		}
 	}
 }
+
+// TestInstallSummaryCountsReinstalledDeletedFile: with the same source and
+// version, a deleted managed file is put back, and the summary counts it
+// instead of saying the core is already up to date. The install fixture's
+// source holds only instruction files, so the deleted file is one of those.
+func TestInstallSummaryCountsReinstalledDeletedFile(t *testing.T) {
+	home := t.TempDir()
+	args := installArgs(t, home)
+	var first bytes.Buffer
+	if err := install(args, strings.NewReader("\ny\n"), &first, true); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(home, ".codex", "AGENTS.md")
+	original, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	var second bytes.Buffer
+	if err := install(args, strings.NewReader("\ny\n"), &second, true); err != nil {
+		t.Fatalf("install after deleting the file: %v\n%s", err, second.String())
+	}
+	if !strings.Contains(second.String(), "Hive files to install or update: 1;") {
+		t.Fatalf("summary did not count the deleted file:\n%s", second.String())
+	}
+	if strings.Contains(second.String(), "already up to date") || strings.Contains(second.String(), "none change") {
+		t.Fatalf("summary said nothing changes:\n%s", second.String())
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, original) {
+		t.Fatalf("file was not put back as Hive wrote it (err %v)", err)
+	}
+}

@@ -659,3 +659,35 @@ func TestVoiceSummaryCountsOnlyFilesThatChange(t *testing.T) {
 		t.Fatalf("an unchanged file was listed:\n%s", out.String())
 	}
 }
+
+// TestShowVoiceSummaryListsGoneEntryWithEqualSpans: a voice block deleted from
+// a file is put back although Before and After are equal, so the summary must
+// list it. A Gone entry without an After (voice off of a block already missing)
+// writes nothing: it is reported as released, not counted. Skipped paths are
+// printed with the reason.
+func TestShowVoiceSummaryListsGoneEntryWithEqualSpans(t *testing.T) {
+	span := &management.VoiceSpan{Managed: []byte("voice"), SourceHash: "h"}
+	p := management.Plan{
+		Voice: []management.VoiceChange{
+			{Path: "/home/u/.codex/AGENTS.md", Before: span, After: span, Gone: true},
+			{Path: "/home/u/.claude/CLAUDE.md", Before: span, After: span},
+			{Path: "/home/u/.gemini/GEMINI.md", Before: span, After: nil, Gone: true},
+		},
+		VoiceSkipped: []string{"/home/u/.cursor/AGENTS.md"},
+	}
+	var out bytes.Buffer
+	showVoiceSummary(&out, p, false)
+	got := out.String()
+	for _, want := range []string{
+		"Voice files to change: 1\n  /home/u/.codex/AGENTS.md\n",
+		"Already missing, released without writing: 1\n  /home/u/.gemini/GEMINI.md\n",
+		"Skipped (no Hive block; run hive install first): /home/u/.cursor/AGENTS.md\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "CLAUDE.md") {
+		t.Fatalf("listed an entry that does not change:\n%s", got)
+	}
+}

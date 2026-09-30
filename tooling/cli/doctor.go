@@ -428,13 +428,15 @@ var installationPhrases = map[string]string{
 	"recovery_required":      "An unfinished operation must be recovered",
 }
 
-// driftRepairText says what to do about a file in drift. No Hive command
-// repairs one: hive install, hive update and hive plan remove all refuse to run
-// while a managed file differs from what Hive wrote (proved in
-// TestNoCommandRepairsADriftedManagedFile), so the only way back is to put the
-// file as Hive wrote it. Drift also covers a file that cannot be read.
-const driftRepairText = "Hive cannot repair a changed file by itself: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
-	"Undo the change (or fix its permissions), or restore the file from a backup, then open Diagnostics again (or run hive doctor) to check."
+// driftRepairText says what to do about a file in drift. The right step depends
+// on how it drifted (proved in TestEditedManagedFilesAreRefusedAndDeletedOnesReinstalled):
+// hive install, hive update and hive plan remove refuse to run while a managed
+// file was edited or its permissions changed, so the only way back is to put
+// the file as Hive wrote it; a deleted file is put back by hive install or
+// hive update. Drift also covers a file that cannot be read.
+const driftRepairText = "If the file was edited or its permissions changed, undo the change or fix the permissions: hive install, hive update and hive plan remove refuse to run while it differs from what Hive wrote. " +
+	"If it was deleted, run hive install or hive update, which put it back. " +
+	"Then open Diagnostics again (or run hive doctor) to check."
 
 func installationSection(o management.Options, st doctorState) doctorSection {
 	sec := doctorSection{Title: "Installation"}

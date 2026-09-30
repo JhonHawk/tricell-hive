@@ -129,7 +129,7 @@ func PlanUnchanged(p Plan) (bool, error) {
 		if finger(cur) != ch.Expected {
 			return false, fmt.Errorf("stale target: %s", ch.Target.Path)
 		}
-		after, err := transformResource(cur, ch)
+		after, err := transformResource(cur, ch, p.Action)
 		if err != nil {
 			return false, err
 		}
@@ -148,7 +148,7 @@ func PlanUnchanged(p Plan) (bool, error) {
 		if finger(cur) != vc.Expected {
 			return false, fmt.Errorf("stale target: %s", vc.Path)
 		}
-		if !reflect.DeepEqual(vc.Before, vc.After) {
+		if vc.Gone || !reflect.DeepEqual(vc.Before, vc.After) {
 			return false, nil
 		}
 	}
@@ -366,16 +366,16 @@ func prepareEntries(p Plan, state State) ([]entry, error) {
 		}
 		var after snapshot
 		if vcPtr == nil {
-			after, err = transformResource(cur, ch)
+			after, err = transformResource(cur, ch, p.Action)
 		} else if voiceFirst {
 			var s snapshot
-			if s, err = composeVoiceStep(ch.Target.Path, cur, vcPtr.Before, vcPtr.After); err == nil {
-				after, err = transform(s, ch.Before, ch.After, hiveMarkers)
+			if s, err = composeVoiceStep(ch.Target.Path, cur, *vcPtr); err == nil {
+				after, err = transformChange(s, ch, p.Action, hiveMarkers)
 			}
 		} else {
 			var s snapshot
-			if s, err = transform(cur, ch.Before, ch.After, hiveMarkers); err == nil {
-				after, err = composeVoiceStep(ch.Target.Path, s, vcPtr.Before, vcPtr.After)
+			if s, err = transformChange(cur, ch, p.Action, hiveMarkers); err == nil {
+				after, err = composeVoiceStep(ch.Target.Path, s, *vcPtr)
 			}
 		}
 		if err != nil {
@@ -433,7 +433,7 @@ func prepareEntries(p Plan, state State) ([]entry, error) {
 		if finger(cur) != vc.Expected {
 			return nil, fmt.Errorf("stale target: %s", path)
 		}
-		after, err := composeVoiceStep(path, cur, vc.Before, vc.After)
+		after, err := composeVoiceStep(path, cur, vc)
 		if err != nil {
 			return nil, err
 		}

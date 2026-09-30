@@ -207,10 +207,16 @@ func showVoiceSummary(out io.Writer, p management.Plan, unchanged bool) {
 		return
 	}
 	// A voice plan holds one entry per file, including files already at the
-	// chosen voice; only the entries whose span changes are reported.
+	// chosen voice; only the entries whose span changes, or that put back a deleted block, are reported.
+	// A Gone entry is a restore only when it has an After; one without an After
+	// (voice off of a block already missing) writes nothing and is reported apart.
 	paths := make([]string, 0, len(p.Voice))
+	var released []string
 	for _, vc := range p.Voice {
-		if !sameVoiceSpan(vc.Before, vc.After) {
+		switch {
+		case vc.Gone && vc.After == nil:
+			released = append(released, vc.Path)
+		case vc.Gone || !sameVoiceSpan(vc.Before, vc.After):
 			paths = append(paths, vc.Path)
 		}
 	}
@@ -218,6 +224,16 @@ func showVoiceSummary(out io.Writer, p management.Plan, unchanged bool) {
 	sort.Strings(paths)
 	for _, path := range paths {
 		fmt.Fprintf(out, "  %s\n", path)
+	}
+	if len(released) > 0 {
+		sort.Strings(released)
+		fmt.Fprintf(out, "Already missing, released without writing: %d\n", len(released))
+		for _, path := range released {
+			fmt.Fprintf(out, "  %s\n", path)
+		}
+	}
+	for _, path := range p.VoiceSkipped {
+		fmt.Fprintf(out, "Skipped (no Hive block; run hive install first): %s\n", path)
 	}
 }
 

@@ -47,12 +47,15 @@ func buildRemovePlan(o management.Options, hosts []string) (management.Plan, err
 func showRemoveSummary(out io.Writer, p management.Plan) {
 	fmt.Fprintf(out, "Remove %s\n", strings.Join(p.Hosts, ", "))
 	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))
-	var removed, kept []string
+	var removed, kept, released []string
 	for _, ch := range p.Changes {
 		if ch.Before == nil {
 			continue
 		}
-		if ch.After == nil {
+		if ch.Gone && ch.After == nil {
+			// Already deleted by the user: the record is released, nothing is written.
+			released = append(released, ch.Target.Path)
+		} else if ch.After == nil {
 			removed = append(removed, ch.Target.Path)
 		} else {
 			kept = append(kept, ch.Target.Path)
@@ -72,7 +75,9 @@ func showRemoveSummary(out io.Writer, p management.Plan) {
 	}
 	var voiceRemoved []string
 	for _, vc := range p.Voice {
-		if vc.After == nil {
+		if vc.Gone && vc.After == nil {
+			released = append(released, vc.Path)
+		} else if vc.After == nil {
 			voiceRemoved = append(voiceRemoved, vc.Path)
 		}
 	}
@@ -80,6 +85,13 @@ func showRemoveSummary(out io.Writer, p management.Plan) {
 		sort.Strings(voiceRemoved)
 		fmt.Fprintf(out, "Voice blocks to remove: %d\n", len(voiceRemoved))
 		for _, path := range voiceRemoved {
+			fmt.Fprintf(out, "  %s\n", path)
+		}
+	}
+	if len(released) > 0 {
+		sort.Strings(released)
+		fmt.Fprintf(out, "Already missing, released without writing: %d\n", len(released))
+		for _, path := range released {
 			fmt.Fprintf(out, "  %s\n", path)
 		}
 	}

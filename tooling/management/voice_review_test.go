@@ -161,13 +161,12 @@ func TestVoiceRenderFailureFromMarkerInPreambleSkipsRegenerationWithWarning(t *t
 	}
 }
 
-// --- item 3: BuildVoicePlan must check the Hive block exists at plan time ----
+// --- item 3: BuildVoicePlan skips files without a Hive block ---------------------
 
-// TestVoiceSetFailsAtPlanTimeWhenHiveBlockMissing covers a file whose
-// registered Hive block was manually deleted (state still thinks it is
-// registered — a drift the file's own block-status already reports): "voice
-// set" must fail naming that file before any confirmation, not at apply
-// time via a lower-level "no Hive block to attach to" error.
+// A file whose registered Hive block was manually deleted is skipped by
+// "voice set" and "voice off" (a later hive install restores the block); the
+// plan fails only when no file is left, telling the user to run hive install.
+
 func TestVoiceSetFailsAtPlanTimeWhenHiveBlockMissing(t *testing.T) {
 	o := setup(t)
 	o.Hosts = []string{"codex"}
@@ -178,10 +177,10 @@ func TestVoiceSetFailsAtPlanTimeWhenHiveBlockMissing(t *testing.T) {
 
 	_, err := BuildVoicePlan("set", o, jarvisSirSubtle)
 	if err == nil {
-		t.Fatal("expected voice set to fail when the target file has no Hive block")
+		t.Fatal("expected voice set to fail when no file has a Hive block")
 	}
-	if !strings.Contains(err.Error(), codexPath(o)) {
-		t.Fatalf("expected the error to name the file %s, got %v", codexPath(o), err)
+	if !strings.Contains(err.Error(), "run hive install first") {
+		t.Fatalf("expected the run hive install first advice, got %v", err)
 	}
 }
 
@@ -190,16 +189,16 @@ func TestVoiceOffFailsAtPlanTimeWhenHiveBlockMissing(t *testing.T) {
 	o.Hosts = []string{"codex"}
 	voiceSource(t, o)
 	apply(t, plan(t, "install", o))
-	apply(t, voicePlan(t, "set", o, jarvisSirSubtle))
-	// Delete both blocks by hand.
+	// No voice was ever set, and the Hive block is deleted by hand: there is
+	// no voice block and no record to drop anywhere.
 	put(t, codexPath(o), "user text only, no Hive block\n")
 
 	_, err := BuildVoicePlan("off", o, VoiceSetting{})
 	if err == nil {
-		t.Fatal("expected voice off to fail when the target file has no Hive block")
+		t.Fatal("expected voice off to fail when no file has a Hive block")
 	}
-	if !strings.Contains(err.Error(), codexPath(o)) {
-		t.Fatalf("expected the error to name the file %s, got %v", codexPath(o), err)
+	if !strings.Contains(err.Error(), "run hive install first") {
+		t.Fatalf("expected the run hive install first advice, got %v", err)
 	}
 }
 

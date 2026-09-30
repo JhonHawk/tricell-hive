@@ -313,3 +313,31 @@ func TestRecoveryPhraseForNonInterfaceUnchanged(t *testing.T) {
 		}
 	}
 }
+
+// TestShowRemoveSummaryReleasesAlreadyMissingWithoutCounting: a file or voice
+// block the user already deleted is released without writing, so it is neither
+// counted under "Files to remove" nor "Voice blocks to remove".
+func TestShowRemoveSummaryReleasesAlreadyMissingWithoutCounting(t *testing.T) {
+	home := "/synthetic-home"
+	plan := management.Plan{
+		Hosts:    []string{"claude"},
+		StateDir: "/synthetic-state",
+		Config:   target.Config{Home: home, ClaudeHome: filepath.Join(home, ".claude"), CodexHome: filepath.Join(home, ".codex")},
+		Changes: []management.Change{
+			{Target: target.Target{Path: filepath.Join(home, ".codex", "AGENTS.md")}, Before: &management.Record{}, After: nil, Gone: true},
+		},
+		Voice: []management.VoiceChange{
+			{Path: filepath.Join(home, ".claude", "CLAUDE.md"), Before: &management.VoiceSpan{}, After: nil, Gone: true},
+		},
+	}
+	var out bytes.Buffer
+	showRemoveSummary(&out, plan)
+	got := out.String()
+	if !strings.Contains(got, "Files to remove: 0\n") || strings.Contains(got, "Voice blocks to remove") {
+		t.Fatalf("counted already-missing entries as removals:\n%s", got)
+	}
+	want := "Already missing, released without writing: 2\n  " + filepath.Join(home, ".claude", "CLAUDE.md") + "\n  " + filepath.Join(home, ".codex", "AGENTS.md") + "\n"
+	if !strings.Contains(got, want) {
+		t.Fatalf("missing %q in:\n%s", want, got)
+	}
+}

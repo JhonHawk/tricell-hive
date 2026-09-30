@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"time"
 	"tricell-hive/integrations/target"
@@ -231,7 +232,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		if err != nil {
 			return journal{}, State{}, nil, false, err
 		}
-		after, err := transformResource(cur, ch)
+		after, err := transformResource(cur, ch, p.Action)
 		if err != nil {
 			return journal{}, State{}, nil, false, err
 		}
@@ -256,7 +257,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		}
 	}
 	for _, vc := range p.Voice {
-		if !reflect.DeepEqual(vc.Before, vc.After) {
+		if vc.Gone || !reflect.DeepEqual(vc.Before, vc.After) {
 			changed = true
 		}
 		if vc.After == nil {
@@ -296,7 +297,11 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	if err != nil {
 		return journal{}, State{}, nil, false, err
 	}
-	next.CreatedDirs = append(next.CreatedDirs, dirsToCreate...)
+	for _, d := range dirsToCreate {
+		if !slices.Contains(next.CreatedDirs, d) {
+			next.CreatedDirs = append(next.CreatedDirs, d)
+		}
+	}
 	id := make([]byte, 16)
 	if _, err = rand.Read(id); err != nil {
 		return journal{}, State{}, nil, false, err

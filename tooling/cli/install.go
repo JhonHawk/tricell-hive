@@ -783,12 +783,12 @@ func readProviderVersion(terminal installTerminal, offer providerOffer) (string,
 }
 
 // changedChangeCount counts only the Changes whose Before and After differ,
-// excluding the no-op entries BuildPlan always includes for an already
-// up-to-date resource.
+// or that put back a deleted file (Gone), excluding the no-op entries
+// BuildPlan always includes for an already up-to-date resource.
 func changedChangeCount(changes []management.Change) int {
 	n := 0
 	for _, ch := range changes {
-		if !reflect.DeepEqual(ch.Before, ch.After) {
+		if ch.Gone || !reflect.DeepEqual(ch.Before, ch.After) {
 			n++
 		}
 	}
