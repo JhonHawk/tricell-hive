@@ -56,7 +56,7 @@ Refresh a local installation only when the user asks, as the rule above requires
 The binary and the deployed content update separately:
 
 - **Manager changes** (`tooling/`, `integrations/`): rebuild the binary from this checkout with `go build -o "$(command -v hive)" ./tooling/cli`. `hive update` does not replace the binary.
-- **Content changes** (`content/`): run `hive update` from this checkout, or add `--source <checkout>` elsewhere. It deploys the committed `HEAD`, never uncommitted edits, to every registered host, and asks for confirmation. Use `--dry-run` to preview. Open sessions load the new guidance only after a restart.
+- **Content changes** (`content/`): run `hive update` from this checkout, or add `--source <checkout>` elsewhere. It deploys the committed `HEAD`, never uncommitted edits, to every registered host, and asks for confirmation. Use `--dry-run` to preview. Open sessions load the new guidance only after a restart, except that OpenCode applies edits to its global and upward-discovered `AGENTS.md` files before the next model request; start a new OpenCode session for changed roles or skills.
 - **Both:** rebuild first, since an older binary can reject newer content.
 - **Offline-package installations:** `hive update` needs a Git checkout, so those users update by running the new package's `./install.sh` or `bootstrap.sh`.
 

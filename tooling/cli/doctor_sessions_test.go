@@ -254,7 +254,7 @@ func TestSessionsNoticesForHostsHiveCannotSee(t *testing.T) {
 	text := sectionText(sec)
 	mustContain(t, text,
 		"Hive cannot see Codex, Pi or Cursor sessions; restart them after each update.",
-		"opencode: reloads its instructions on the next message; no restart needed")
+		"opencode: reloads its instructions on the next message; start a new session for role or skill changes")
 	// The one line replaces the per-host restart lines.
 	mustNotContain(t, text, "codex:", "pi:", "cursor:", "claude", "grok", "estimates", "should be restarted", "needs a restart")
 	// Nothing was checked, so there is no summary: the notice leads.
