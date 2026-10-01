@@ -18,6 +18,14 @@ import (
 const Version = "1"
 const ProfilesSource = "integrations/agent-profiles.json"
 
+// ModelOverride replaces part of the model a host receives for one role. An
+// empty field keeps the release's value. Only the part that is set is checked
+// by ValidateOverride and applied by Resolve.
+type ModelOverride struct {
+	Model  string `json:"model,omitempty"`
+	Effort string `json:"effort,omitempty"`
+}
+
 type Role struct {
 	Name, Description, ModelProfile, AccessProfile, Body, Effort, ClaudeEffort string
 }
@@ -254,11 +262,59 @@ func Validate(source string, data, profiles []byte) error {
 	return err
 }
 
+var overrideModel = regexp.MustCompile(`^[A-Za-z0-9._:/@+=\[\]-]+$`)
+
+// maxOverrideModel bounds a model name an override may carry.
+const maxOverrideModel = 200
+
+// ValidateOverride checks one role's override for host before it is stored or
+// rendered. The model charset is a closed list so the value that is stored is
+// the value the agent file shows: Pi reads the header with a parser that does
+// not decode escapes, and '#' is the OpenCode variant separator. An empty
+// Model or Effort keeps the release's value and is not checked. Whether
+// OpenCode has a model to carry an effort is decided by Resolve, which sees the
+// profile.
+func ValidateOverride(host string, o ModelOverride) error {
+	if _, ok := knownHosts[host]; !ok {
+		return fmt.Errorf("unsupported agent host %q", host)
+	}
+	if o.Model == "" && o.Effort == "" {
+		return fmt.Errorf("a model override needs a model or an effort")
+	}
+	if o.Model != "" {
+		if len(o.Model) > maxOverrideModel {
+			return fmt.Errorf("model must be at most %d characters", maxOverrideModel)
+		}
+		if !overrideModel.MatchString(o.Model) {
+			return fmt.Errorf("model may only contain letters, digits and . _ : / @ + = [ ] -")
+		}
+	}
+	if o.Effort != "" {
+		if !acceptsProfileEffort(host) {
+			return fmt.Errorf("%s does not support effort", host)
+		}
+		if !oneOf(o.Effort, "low", "medium", "high", "xhigh", "max", "ultra") {
+			return fmt.Errorf("effort must be one of low, medium, high, xhigh, max or ultra")
+		}
+		// pi-subagents 0.67.0 documents its thinking levels as off to max, and the
+		// sibling gotgenes pi-subagents docs say an unknown level silently turns
+		// thinking off, so ultra would store a value that disables thinking.
+		if host == "pi" && o.Effort == "ultra" {
+			return fmt.Errorf(`effort "ultra" is not accepted by pi; its thinking levels end at max`)
+		}
+	}
+	return nil
+}
+
+var knownHosts = map[string]struct{}{"claude": {}, "codex": {}, "grok": {}, "pi": {}, "opencode": {}, "cursor": {}}
+
 // Resolve returns a role's model profile and the model and effort a host
 // receives for it. It is the single place that decides the effective effort:
 // effort_claude replaces the profile's effort on Claude Code only, and a
-// role's effort replaces it on every host that can represent it.
-func Resolve(source string, data, profiles []byte, host string) (profile string, m Model, err error) {
+// role's effort replaces it on every host that can represent it. A non-nil
+// override then replaces the model and effort it sets, whatever the profile or
+// role says, and an invalid one is an error.
+func Resolve(source string, data, profiles []byte, host string, override *ModelOverride) (profile string, m Model, err error) {
 	r, err := Parse(source, data)
 	if err != nil {
 		return "", m, err
@@ -280,6 +336,25 @@ func Resolve(source string, data, profiles []byte, host string) (profile string,
 	} else if r.Effort != "" && acceptsRoleEffort(host, m) {
 		m.Effort = r.Effort
 	}
+	if override != nil {
+		if err := ValidateOverride(host, *override); err != nil {
+			return "", m, fmt.Errorf("model override for %s: %w", host, err)
+		}
+		if override.Model != "" {
+			m.Model = override.Model
+		}
+		if override.Effort != "" {
+			m.Effort = override.Effort
+			if host == "opencode" {
+				// The profile's model may already carry a variant ("inherit" does),
+				// which the override's effort replaces instead of stacking.
+				m.Model, _, _ = strings.Cut(m.Model, "#")
+				if m.Model == "" {
+					return "", m, fmt.Errorf("OpenCode effort requires a model; set a model with the effort")
+				}
+			}
+		}
+	}
 	// OpenCode receives the effort as a model variant, not a separate field.
 	if host == "opencode" && m.Effort != "" {
 		m.Model += "#" + m.Effort
@@ -291,8 +366,8 @@ func Resolve(source string, data, profiles []byte, host string) (profile string,
 // Render builds a host's native role file. skillsDir is the directory the
 // installer places skills in for the target scope; Render stores it in the
 // role body in place of each skill: locator (see mdlinks.RewriteSkillLinks).
-func Render(source string, data, profiles []byte, host, skillsDir string) ([]byte, error) {
-	_, m, err := Resolve(source, data, profiles, host)
+func Render(source string, data, profiles []byte, host, skillsDir string, override *ModelOverride) ([]byte, error) {
+	_, m, err := Resolve(source, data, profiles, host, override)
 	if err != nil {
 		return nil, err
 	}

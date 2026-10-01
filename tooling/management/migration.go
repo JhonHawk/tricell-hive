@@ -118,7 +118,7 @@ func PlanUnchanged(p Plan) (bool, error) {
 		return false, nil
 	}
 	next := s
-	if updateProductState(&next, s, p) {
+	if updateProductState(&next, s, p) || !sameOverrides(s.ModelOverrides, nextModelOverrides(s, p)) {
 		return false, nil
 	}
 	for _, ch := range p.Changes {

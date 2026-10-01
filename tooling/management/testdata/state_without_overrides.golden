@@ -1,0 +1,1582 @@
+=== state.json ===
+{
+  "versions": {
+    "1.2.0": {
+      "version": "1.2.0",
+      "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+      "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+    }
+  },
+  "installations": {
+    "claude\u0000user\u0000<root>/home": {
+      "consumer": {
+        "host": "claude",
+        "scope": "user",
+        "context": "<root>/home"
+      },
+      "product": {
+        "version": "1.2.0",
+        "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+        "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+      },
+      "resources": [
+        {
+          "path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+          "hash": "4a0220d47b61a0ad8cf12835015d298511c405c089cc65155434fe4051862ce7",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.claude/CLAUDE.md",
+          "hash": "eb535337d835b610fe4baff2257949cab68850ae3c38457154cf8b4a3b7efbbd"
+        },
+        {
+          "path": "<root>/home/.claude/agents/deep-role.md",
+          "hash": "73c6c404e7f7467ef8346c6fe064892b9ad50971e9ecc69a6d5a56a4f1673b23",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.claude/agents/inherit-role.md",
+          "hash": "8d666048c0d90176b5ac22d4b32aa518d926aec313a937de67f73044043b4d95",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.claude/agents/plain-role.md",
+          "hash": "15f11e6a5244534c14ef288fcd2fdd211aa283bfe0b6794b5268ef4c2e49ed80",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.claude/skills/workspace-conventions",
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "link_target": "../../.agents/skills/workspace-conventions"
+        }
+      ]
+    },
+    "codex\u0000user\u0000<root>/home": {
+      "consumer": {
+        "host": "codex",
+        "scope": "user",
+        "context": "<root>/home"
+      },
+      "product": {
+        "version": "1.2.0",
+        "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+        "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+      },
+      "resources": [
+        {
+          "path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+          "hash": "4a0220d47b61a0ad8cf12835015d298511c405c089cc65155434fe4051862ce7",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.codex/AGENTS.md",
+          "hash": "eb535337d835b610fe4baff2257949cab68850ae3c38457154cf8b4a3b7efbbd"
+        },
+        {
+          "path": "<root>/home/.codex/agents/deep-role.toml",
+          "hash": "611c4a1b00d357539cd0cf1676b496653a4316962996eae9f8a050eaa502491a",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.codex/agents/inherit-role.toml",
+          "hash": "3f5875c9ce0fda563303deb752c3c29c883271f17e8887d4765d3f93e3fda146",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.codex/agents/plain-role.toml",
+          "hash": "4693048faf28123742d6fd3d0ad764be0395ba22c7bd103f1dab05c8bdff97dc",
+          "mode": 416
+        }
+      ]
+    },
+    "grok\u0000user\u0000<root>/home": {
+      "consumer": {
+        "host": "grok",
+        "scope": "user",
+        "context": "<root>/home"
+      },
+      "product": {
+        "version": "1.2.0",
+        "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+        "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+      },
+      "resources": [
+        {
+          "path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+          "hash": "4a0220d47b61a0ad8cf12835015d298511c405c089cc65155434fe4051862ce7",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.claude/CLAUDE.md",
+          "hash": "eb535337d835b610fe4baff2257949cab68850ae3c38457154cf8b4a3b7efbbd"
+        },
+        {
+          "path": "<root>/home/.grok/agents/deep-role.md",
+          "hash": "6be18153ccdbca620ef748e49bca3482a201c0903daf31c7cb9c56bb936999c2",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.grok/agents/inherit-role.md",
+          "hash": "8111806775a77a1aed3211b249c41aeb6b040ceaef1286e4f13ddfc8f6eb7e59",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.grok/agents/plain-role.md",
+          "hash": "b4b54873a03ba27eb8cf8ae783fc6bf76342175ff0fbd4d4dc64c64f9e266fab",
+          "mode": 416
+        }
+      ]
+    },
+    "opencode\u0000user\u0000<root>/home": {
+      "consumer": {
+        "host": "opencode",
+        "scope": "user",
+        "context": "<root>/home"
+      },
+      "product": {
+        "version": "1.2.0",
+        "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+        "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+      },
+      "resources": [
+        {
+          "path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+          "hash": "4a0220d47b61a0ad8cf12835015d298511c405c089cc65155434fe4051862ce7",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.config/opencode/AGENTS.md",
+          "hash": "eb535337d835b610fe4baff2257949cab68850ae3c38457154cf8b4a3b7efbbd"
+        },
+        {
+          "path": "<root>/home/.config/opencode/agents/deep-role.md",
+          "hash": "cac0cbb07d3ea145c4cd86a21e0d0ed82af76b93b82a1236724686f7900d761a",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.config/opencode/agents/inherit-role.md",
+          "hash": "301a8f9eaf47d1f62b5e9ed1d0cd040db65a4534afe01849a29e58f43f3f07ab",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.config/opencode/agents/plain-role.md",
+          "hash": "41ea4a8f276edbac9f403b6271e5dba22a996d018095466ce77e0cc39b3c1112",
+          "mode": 416
+        }
+      ]
+    },
+    "pi\u0000user\u0000<root>/home": {
+      "consumer": {
+        "host": "pi",
+        "scope": "user",
+        "context": "<root>/home"
+      },
+      "product": {
+        "version": "1.2.0",
+        "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+        "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+      },
+      "resources": [
+        {
+          "path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+          "hash": "4a0220d47b61a0ad8cf12835015d298511c405c089cc65155434fe4051862ce7",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.pi/agent/AGENTS.md",
+          "hash": "eb535337d835b610fe4baff2257949cab68850ae3c38457154cf8b4a3b7efbbd"
+        },
+        {
+          "path": "<root>/home/.pi/agent/agents/deep-role.md",
+          "hash": "cb1a165cdd68db24ae105f824a4d0d61abedb217cb2ffe4909ebe1f276f02572",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.pi/agent/agents/inherit-role.md",
+          "hash": "c201d59be53c6cf7e082ead61223322b2b89cf16339ae93804c8312a71b852b7",
+          "mode": 416
+        },
+        {
+          "path": "<root>/home/.pi/agent/agents/plain-role.md",
+          "hash": "6d1f1529977928cdf7d584106e691d6d4a60485f2b1f16b1239c8b3e7d22534e",
+          "mode": 416
+        }
+      ]
+    }
+  },
+  "version": 6,
+  "records": {
+    "<root>/home/.agents/skills/workspace-conventions/SKILL.md": {
+      "target": {
+        "Source": "content/skills/workspace-conventions/SKILL.md",
+        "Path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+        "Kind": "skill",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCm5hbWU6IHdvcmtzcGFjZS1jb252ZW50aW9ucwpkZXNjcmlwdGlvbjogT3JnYW5pemUgcmVjb3Jkcy4KLS0tClByZXNlcnZlIGV2aWRlbmNlLgo=",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "claude",
+          "scope": "user",
+          "context": "<root>/home"
+        },
+        {
+          "host": "codex",
+          "scope": "user",
+          "context": "<root>/home"
+        },
+        {
+          "host": "grok",
+          "scope": "user",
+          "context": "<root>/home"
+        },
+        {
+          "host": "opencode",
+          "scope": "user",
+          "context": "<root>/home"
+        },
+        {
+          "host": "pi",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.claude/CLAUDE.md": {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.claude/CLAUDE.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "claude",
+          "scope": "user",
+          "context": "<root>/home"
+        },
+        {
+          "host": "grok",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.claude/agents/deep-role.md": {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.claude/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Il0KZWZmb3J0OiAibWF4Igptb2RlbDogInN5bi1jbGF1ZGUtcmVhc29uIgpuYW1lOiAiZGVlcC1yb2xlIgpwZXJtaXNzaW9uTW9kZTogInBsYW4iCi0tLQpVc2UgZXZpZGVuY2UuCg==",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "claude",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.claude/agents/inherit-role.md": {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.claude/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Il0KZWZmb3J0OiAibG93Igptb2RlbDogImluaGVyaXQiCm5hbWU6ICJpbmhlcml0LXJvbGUiCnBlcm1pc3Npb25Nb2RlOiAicGxhbiIKLS0tClVzZSBldmlkZW5jZS4K",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "claude",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.claude/agents/plain-role.md": {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.claude/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Il0KZWZmb3J0OiAibWVkaXVtIgptb2RlbDogInN5bi1jbGF1ZGUtZXhlYyIKbmFtZTogInBsYWluLXJvbGUiCnBlcm1pc3Npb25Nb2RlOiAicGxhbiIKLS0tClVzZSBldmlkZW5jZS4K",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "claude",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.claude/skills/workspace-conventions": {
+      "target": {
+        "Source": "content/skills/workspace-conventions/SKILL.md",
+        "Path": "<root>/home/.claude/skills/workspace-conventions",
+        "Kind": "symlink",
+        "Host": "",
+        "Scope": "",
+        "Context": "",
+        "LinkTarget": "../../.agents/skills/workspace-conventions"
+      },
+      "managed": null,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "claude",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.codex/AGENTS.md": {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.codex/AGENTS.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "codex",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.codex/agents/deep-role.toml": {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.codex/agents/deep-role.toml",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "ZGVzY3JpcHRpb24gPSAiVGVzdCByb2xlIgptb2RlbCA9ICJzeW4tY29kZXgtcmVhc29uIgptb2RlbF9yZWFzb25pbmdfZWZmb3J0ID0gIm1heCIKbmFtZSA9ICJkZWVwLXJvbGUiCnNhbmRib3hfbW9kZSA9ICJyZWFkLW9ubHkiCmRldmVsb3Blcl9pbnN0cnVjdGlvbnMgPSAiVXNlIGV2aWRlbmNlLlxuIgo=",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "codex",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.codex/agents/inherit-role.toml": {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.codex/agents/inherit-role.toml",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "ZGVzY3JpcHRpb24gPSAiVGVzdCByb2xlIgptb2RlbF9yZWFzb25pbmdfZWZmb3J0ID0gImxvdyIKbmFtZSA9ICJpbmhlcml0LXJvbGUiCnNhbmRib3hfbW9kZSA9ICJyZWFkLW9ubHkiCmRldmVsb3Blcl9pbnN0cnVjdGlvbnMgPSAiVXNlIGV2aWRlbmNlLlxuIgo=",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "codex",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.codex/agents/plain-role.toml": {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.codex/agents/plain-role.toml",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "ZGVzY3JpcHRpb24gPSAiVGVzdCByb2xlIgptb2RlbCA9ICJzeW4tY29kZXgtZXhlYyIKbW9kZWxfcmVhc29uaW5nX2VmZm9ydCA9ICJtZWRpdW0iCm5hbWUgPSAicGxhaW4tcm9sZSIKc2FuZGJveF9tb2RlID0gInJlYWQtb25seSIKZGV2ZWxvcGVyX2luc3RydWN0aW9ucyA9ICJVc2UgZXZpZGVuY2UuXG4iCg==",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "codex",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.config/opencode/AGENTS.md": {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.config/opencode/AGENTS.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "opencode",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.config/opencode/agents/deep-role.md": {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.config/opencode/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgptb2RlOiAic3ViYWdlbnQiCm1vZGVsOiAic3luLW9jL3JlYXNvbiNtYXgiCnBlcm1pc3Npb25zOiBbeyJhY3Rpb24iOiJlZGl0IiwiZWZmZWN0IjoiZGVueSIsInJlc291cmNlIjoiKiJ9XQotLS0KVXNlIGV2aWRlbmNlLgo=",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "opencode",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.config/opencode/agents/inherit-role.md": {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.config/opencode/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgptb2RlOiAic3ViYWdlbnQiCm1vZGVsOiAic3luLW9jL2luaGVyaXQjbWF4IgpwZXJtaXNzaW9uczogW3siYWN0aW9uIjoiZWRpdCIsImVmZmVjdCI6ImRlbnkiLCJyZXNvdXJjZSI6IioifV0KLS0tClVzZSBldmlkZW5jZS4K",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "opencode",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.config/opencode/agents/plain-role.md": {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.config/opencode/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgptb2RlOiAic3ViYWdlbnQiCm1vZGVsOiAic3luLW9jL2V4ZWMjbWVkaXVtIgpwZXJtaXNzaW9uczogW3siYWN0aW9uIjoiZWRpdCIsImVmZmVjdCI6ImRlbnkiLCJyZXNvdXJjZSI6IioifV0KLS0tClVzZSBldmlkZW5jZS4K",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "opencode",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.grok/agents/deep-role.md": {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.grok/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmFnZW50c01kOiB0cnVlCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Iiwic2VhcmNoX3JlcGxhY2UiLCJ3cml0ZV9maWxlIiwiYXBwbHlfcGF0Y2giXQpuYW1lOiAiZGVlcC1yb2xlIgpwZXJtaXNzaW9uTW9kZTogInBsYW4iCnByb21wdE1vZGU6ICJleHRlbmQiCi0tLQpVc2UgZXZpZGVuY2UuCg==",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "grok",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.grok/agents/inherit-role.md": {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.grok/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmFnZW50c01kOiB0cnVlCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Iiwic2VhcmNoX3JlcGxhY2UiLCJ3cml0ZV9maWxlIiwiYXBwbHlfcGF0Y2giXQpuYW1lOiAiaW5oZXJpdC1yb2xlIgpwZXJtaXNzaW9uTW9kZTogInBsYW4iCnByb21wdE1vZGU6ICJleHRlbmQiCi0tLQpVc2UgZXZpZGVuY2UuCg==",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "grok",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.grok/agents/plain-role.md": {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.grok/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmFnZW50c01kOiB0cnVlCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Iiwic2VhcmNoX3JlcGxhY2UiLCJ3cml0ZV9maWxlIiwiYXBwbHlfcGF0Y2giXQpuYW1lOiAicGxhaW4tcm9sZSIKcGVybWlzc2lvbk1vZGU6ICJwbGFuIgpwcm9tcHRNb2RlOiAiZXh0ZW5kIgotLS0KVXNlIGV2aWRlbmNlLgo=",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "grok",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.pi/agent/AGENTS.md": {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.pi/agent/AGENTS.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "pi",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.pi/agent/agents/deep-role.md": {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.pi/agent/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiB8LQogIFRlc3Qgcm9sZQpleGNsdWRlVG9vbHM6IHdyaXRlLGVkaXQKaW5oZXJpdEdsb2JhbENvbnRleHQ6IHRydWUKaW5oZXJpdFByb2plY3RDb250ZXh0OiB0cnVlCmluaGVyaXRTa2lsbHM6IHRydWUKbW9kZWw6ICJzeW4tcGkvcmVhc29uIgpuYW1lOiAiZGVlcC1yb2xlIgpzeXN0ZW1Qcm9tcHRNb2RlOiAiYXBwZW5kIgp0aGlua2luZzogIm1heCIKLS0tClVzZSBldmlkZW5jZS4K",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "pi",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.pi/agent/agents/inherit-role.md": {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.pi/agent/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiB8LQogIFRlc3Qgcm9sZQpleGNsdWRlVG9vbHM6IHdyaXRlLGVkaXQKaW5oZXJpdEdsb2JhbENvbnRleHQ6IHRydWUKaW5oZXJpdFByb2plY3RDb250ZXh0OiB0cnVlCmluaGVyaXRTa2lsbHM6IHRydWUKbW9kZWw6ICJpbmhlcml0IgpuYW1lOiAiaW5oZXJpdC1yb2xlIgpzeXN0ZW1Qcm9tcHRNb2RlOiAiYXBwZW5kIgp0aGlua2luZzogImxvdyIKLS0tClVzZSBldmlkZW5jZS4K",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "pi",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    },
+    "<root>/home/.pi/agent/agents/plain-role.md": {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.pi/agent/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "managed": "LS0tCmRlc2NyaXB0aW9uOiB8LQogIFRlc3Qgcm9sZQpleGNsdWRlVG9vbHM6IHdyaXRlLGVkaXQKaW5oZXJpdEdsb2JhbENvbnRleHQ6IHRydWUKaW5oZXJpdFByb2plY3RDb250ZXh0OiB0cnVlCmluaGVyaXRTa2lsbHM6IHRydWUKbW9kZWw6ICJzeW4tcGkvZXhlYyIKbmFtZTogInBsYWluLXJvbGUiCnN5c3RlbVByb21wdE1vZGU6ICJhcHBlbmQiCnRoaW5raW5nOiAibWVkaXVtIgotLS0KVXNlIGV2aWRlbmNlLgo=",
+      "mode": 416,
+      "created_file": true,
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "consumers": [
+        {
+          "host": "pi",
+          "scope": "user",
+          "context": "<root>/home"
+        }
+      ]
+    }
+  },
+  "created_dirs": [
+    "<root>/home/.agents",
+    "<root>/home/.agents/skills",
+    "<root>/home/.agents/skills/workspace-conventions",
+    "<root>/home/.claude",
+    "<root>/home/.claude/agents",
+    "<root>/home/.claude/skills",
+    "<root>/home/.codex",
+    "<root>/home/.codex/agents",
+    "<root>/home/.config",
+    "<root>/home/.config/opencode",
+    "<root>/home/.config/opencode/agents",
+    "<root>/home/.grok",
+    "<root>/home/.grok/agents",
+    "<root>/home/.pi",
+    "<root>/home/.pi/agent",
+    "<root>/home/.pi/agent/agents"
+  ],
+  "migrations": [
+    {
+      "config": {
+        "scope": "user",
+        "home": "<root>/home",
+        "codex_home": "<root>/home/.codex",
+        "claude_home": "<root>/home/.claude",
+        "pi_home": "<root>/home/.pi/agent",
+        "grok_home": "<root>/home/.grok",
+        "opencode_home": "<root>/home/.config/opencode",
+        "cursor_home": "<root>/home/.cursor",
+        "synthetic": true
+      },
+      "hosts": [
+        "claude",
+        "codex",
+        "grok",
+        "opencode",
+        "pi"
+      ],
+      "detector": "legacy-hive-16e7d335-v1",
+      "result": "clean",
+      "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+      "transaction": "<id>"
+    }
+  ]
+}
+=== plan ===
+{
+  "product": {
+    "version": "1.2.0",
+    "artifact_id": "2cc32516e09d799e83034bcf5a1656de2f48877f4067d2d40a6a932e58eceb40",
+    "release_id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+  },
+  "version": 6,
+  "action": "install",
+  "config": {
+    "scope": "user",
+    "home": "<root>/home",
+    "codex_home": "<root>/home/.codex",
+    "claude_home": "<root>/home/.claude",
+    "pi_home": "<root>/home/.pi/agent",
+    "grok_home": "<root>/home/.grok",
+    "opencode_home": "<root>/home/.config/opencode",
+    "cursor_home": "<root>/home/.cursor",
+    "synthetic": true
+  },
+  "hosts": [
+    "claude",
+    "codex",
+    "grok",
+    "opencode",
+    "pi"
+  ],
+  "state_dir": "<root>/state",
+  "state_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "release": {
+    "id": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+    "files": [
+      {
+        "path": "content/guidance/global.md",
+        "data": "IyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4K",
+        "mode": 416
+      },
+      {
+        "path": "content/agents/design/plain-role.md",
+        "data": "LS0tCm5hbWU6IHBsYWluLXJvbGUKZGVzY3JpcHRpb246IFRlc3Qgcm9sZQptb2RlbF9wcm9maWxlOiBleGVjdXRpb24KYWNjZXNzX3Byb2ZpbGU6IG9ic2VydmUKLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416
+      },
+      {
+        "path": "content/agents/quality/inherit-role.md",
+        "data": "LS0tCm5hbWU6IGluaGVyaXQtcm9sZQpkZXNjcmlwdGlvbjogVGVzdCByb2xlCm1vZGVsX3Byb2ZpbGU6IGluaGVyaXQKYWNjZXNzX3Byb2ZpbGU6IG9ic2VydmUKZWZmb3J0OiBsb3cKLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416
+      },
+      {
+        "path": "content/agents/review/deep-role.md",
+        "data": "LS0tCm5hbWU6IGRlZXAtcm9sZQpkZXNjcmlwdGlvbjogVGVzdCByb2xlCm1vZGVsX3Byb2ZpbGU6IHJlYXNvbmluZwphY2Nlc3NfcHJvZmlsZTogb2JzZXJ2ZQplZmZvcnQ6IG1heAotLS0KVXNlIGV2aWRlbmNlLgo=",
+        "mode": 416
+      },
+      {
+        "path": "content/skills/workspace-conventions/SKILL.md",
+        "data": "LS0tCm5hbWU6IHdvcmtzcGFjZS1jb252ZW50aW9ucwpkZXNjcmlwdGlvbjogT3JnYW5pemUgcmVjb3Jkcy4KLS0tClByZXNlcnZlIGV2aWRlbmNlLgo=",
+        "mode": 416
+      }
+    ],
+    "profiles": "ewogICJ2ZXJzaW9uIjogMSwKICAiaG9zdHMiOiB7CiAgICAiY2xhdWRlIjogewogICAgICAibW9kZWxzIjogeyJleGVjdXRpb24iOiB7Im1vZGVsIjogInN5bi1jbGF1ZGUtZXhlYyIsICJlZmZvcnQiOiAibWVkaXVtIn0sICJyZWFzb25pbmciOiB7Im1vZGVsIjogInN5bi1jbGF1ZGUtcmVhc29uIiwgImVmZm9ydCI6ICJoaWdoIn0sICJpbmhlcml0IjogeyJtb2RlbCI6ICJpbmhlcml0IiwgImVmZm9ydCI6ICJsb3cifSwgInZlcmlmaWVyIjogeyJtb2RlbCI6ICJzeW4tY2xhdWRlLXZlcmlmeSIsICJlZmZvcnQiOiAieGhpZ2gifX0sCiAgICAgICJhY2Nlc3MiOiB7Im9ic2VydmUiOiB7InBlcm1pc3Npb25Nb2RlIjogInBsYW4iLCAiZGlzYWxsb3dlZFRvb2xzIjogWyJXcml0ZSIsICJFZGl0IiwgIk5vdGVib29rRWRpdCJdfSwgImltcGxlbWVudCI6IHt9LCAidmVyaWZ5Ijoge319CiAgICB9LAogICAgImNvZGV4IjogewogICAgICAibW9kZWxzIjogeyJleGVjdXRpb24iOiB7Im1vZGVsIjogInN5bi1jb2RleC1leGVjIiwgImVmZm9ydCI6ICJtZWRpdW0ifSwgInJlYXNvbmluZyI6IHsibW9kZWwiOiAic3luLWNvZGV4LXJlYXNvbiIsICJlZmZvcnQiOiAiaGlnaCJ9LCAiaW5oZXJpdCI6IHsiZWZmb3J0IjogImxvdyJ9LCAidmVyaWZpZXIiOiB7Im1vZGVsIjogInN5bi1jb2RleC12ZXJpZnkiLCAiZWZmb3J0IjogInhoaWdoIn19LAogICAgICAiYWNjZXNzIjogeyJvYnNlcnZlIjogeyJzYW5kYm94X21vZGUiOiAicmVhZC1vbmx5In0sICJpbXBsZW1lbnQiOiB7fSwgInZlcmlmeSI6IHt9fQogICAgfSwKICAgICJncm9rIjogewogICAgICAibW9kZWxzIjogeyJleGVjdXRpb24iOiB7fSwgInJlYXNvbmluZyI6IHt9LCAiaW5oZXJpdCI6IHt9LCAidmVyaWZpZXIiOiB7Im1vZGVsIjogInN5bi1ncm9rLXZlcmlmeSJ9fSwKICAgICAgImFjY2VzcyI6IHsib2JzZXJ2ZSI6IHsicGVybWlzc2lvbk1vZGUiOiAicGxhbiIsICJkaXNhbGxvd2VkVG9vbHMiOiBbIldyaXRlIiwgIkVkaXQiLCAiTm90ZWJvb2tFZGl0IiwgInNlYXJjaF9yZXBsYWNlIiwgIndyaXRlX2ZpbGUiLCAiYXBwbHlfcGF0Y2giXX0sICJpbXBsZW1lbnQiOiB7fSwgInZlcmlmeSI6IHt9fQogICAgfSwKICAgICJwaSI6IHsKICAgICAgIm1vZGVscyI6IHsiZXhlY3V0aW9uIjogeyJtb2RlbCI6ICJzeW4tcGkvZXhlYyIsICJlZmZvcnQiOiAibWVkaXVtIn0sICJyZWFzb25pbmciOiB7Im1vZGVsIjogInN5bi1waS9yZWFzb24iLCAiZWZmb3J0IjogImhpZ2gifSwgImluaGVyaXQiOiB7Im1vZGVsIjogImluaGVyaXQiLCAiZWZmb3J0IjogImxvdyJ9LCAidmVyaWZpZXIiOiB7Im1vZGVsIjogInN5bi1waS92ZXJpZnkiLCAiZWZmb3J0IjogInhoaWdoIn19LAogICAgICAiYWNjZXNzIjogeyJvYnNlcnZlIjogeyJleGNsdWRlVG9vbHMiOiBbIndyaXRlIiwgImVkaXQiXX0sICJpbXBsZW1lbnQiOiB7fSwgInZlcmlmeSI6IHt9fQogICAgfSwKICAgICJvcGVuY29kZSI6IHsKICAgICAgIm1vZGVscyI6IHsiZXhlY3V0aW9uIjogeyJtb2RlbCI6ICJzeW4tb2MvZXhlYyIsICJlZmZvcnQiOiAibWVkaXVtIn0sICJyZWFzb25pbmciOiB7Im1vZGVsIjogInN5bi1vYy9yZWFzb24iLCAiZWZmb3J0IjogImhpZ2gifSwgImluaGVyaXQiOiB7Im1vZGVsIjogInN5bi1vYy9pbmhlcml0I21heCJ9LCAidmVyaWZpZXIiOiB7Im1vZGVsIjogInN5bi1vYy92ZXJpZnkiLCAiZWZmb3J0IjogInhoaWdoIn19LAogICAgICAiYWNjZXNzIjogeyJvYnNlcnZlIjogeyJwZXJtaXNzaW9ucyI6IFt7ImFjdGlvbiI6ICJlZGl0IiwgInJlc291cmNlIjogIioiLCAiZWZmZWN0IjogImRlbnkifV19LCAiaW1wbGVtZW50Ijoge30sICJ2ZXJpZnkiOiB7fX0KICAgIH0sCiAgICAiY3Vyc29yIjogewogICAgICAibW9kZWxzIjogeyJleGVjdXRpb24iOiB7Im1vZGVsIjogImluaGVyaXQifSwgInJlYXNvbmluZyI6IHsibW9kZWwiOiAiaW5oZXJpdCJ9LCAiaW5oZXJpdCI6IHsibW9kZWwiOiAiaW5oZXJpdCJ9LCAidmVyaWZpZXIiOiB7Im1vZGVsIjogImluaGVyaXQifX0sCiAgICAgICJhY2Nlc3MiOiB7Im9ic2VydmUiOiB7InJlYWRvbmx5IjogdHJ1ZX0sICJpbXBsZW1lbnQiOiB7fSwgInZlcmlmeSI6IHt9fQogICAgfQogIH0KfQo=",
+    "renderer": "1"
+  },
+  "changes": [
+    {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.claude/CLAUDE.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/guidance/global.md",
+          "Path": "<root>/home/.claude/CLAUDE.md",
+          "Kind": "block",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "claude",
+            "scope": "user",
+            "context": "<root>/home"
+          },
+          {
+            "host": "grok",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.codex/AGENTS.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/guidance/global.md",
+          "Path": "<root>/home/.codex/AGENTS.md",
+          "Kind": "block",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "codex",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.config/opencode/AGENTS.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/guidance/global.md",
+          "Path": "<root>/home/.config/opencode/AGENTS.md",
+          "Kind": "block",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "opencode",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/guidance/global.md",
+        "Path": "<root>/home/.pi/agent/AGENTS.md",
+        "Kind": "block",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/guidance/global.md",
+          "Path": "<root>/home/.pi/agent/AGENTS.md",
+          "Kind": "block",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "PCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkJFR0lOID09PSAtLT4KIyBSdWxlcwpLZWVwIHVzZXIgY29udGVudC4KPCEtLSA9PT0gVFJJQ0VMTCBISVZFIFJVTEVTOkVORCA9PT0gLS0+Cg==",
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "pi",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/skills/workspace-conventions/SKILL.md",
+        "Path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+        "Kind": "skill",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/skills/workspace-conventions/SKILL.md",
+          "Path": "<root>/home/.agents/skills/workspace-conventions/SKILL.md",
+          "Kind": "skill",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCm5hbWU6IHdvcmtzcGFjZS1jb252ZW50aW9ucwpkZXNjcmlwdGlvbjogT3JnYW5pemUgcmVjb3Jkcy4KLS0tClByZXNlcnZlIGV2aWRlbmNlLgo=",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "claude",
+            "scope": "user",
+            "context": "<root>/home"
+          },
+          {
+            "host": "codex",
+            "scope": "user",
+            "context": "<root>/home"
+          },
+          {
+            "host": "grok",
+            "scope": "user",
+            "context": "<root>/home"
+          },
+          {
+            "host": "opencode",
+            "scope": "user",
+            "context": "<root>/home"
+          },
+          {
+            "host": "pi",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.claude/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/review/deep-role.md",
+          "Path": "<root>/home/.claude/agents/deep-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Il0KZWZmb3J0OiAibWF4Igptb2RlbDogInN5bi1jbGF1ZGUtcmVhc29uIgpuYW1lOiAiZGVlcC1yb2xlIgpwZXJtaXNzaW9uTW9kZTogInBsYW4iCi0tLQpVc2UgZXZpZGVuY2UuCg==",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "claude",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.claude/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/quality/inherit-role.md",
+          "Path": "<root>/home/.claude/agents/inherit-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Il0KZWZmb3J0OiAibG93Igptb2RlbDogImluaGVyaXQiCm5hbWU6ICJpbmhlcml0LXJvbGUiCnBlcm1pc3Npb25Nb2RlOiAicGxhbiIKLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "claude",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.claude/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/design/plain-role.md",
+          "Path": "<root>/home/.claude/agents/plain-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Il0KZWZmb3J0OiAibWVkaXVtIgptb2RlbDogInN5bi1jbGF1ZGUtZXhlYyIKbmFtZTogInBsYWluLXJvbGUiCnBlcm1pc3Npb25Nb2RlOiAicGxhbiIKLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "claude",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.codex/agents/deep-role.toml",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/review/deep-role.md",
+          "Path": "<root>/home/.codex/agents/deep-role.toml",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "ZGVzY3JpcHRpb24gPSAiVGVzdCByb2xlIgptb2RlbCA9ICJzeW4tY29kZXgtcmVhc29uIgptb2RlbF9yZWFzb25pbmdfZWZmb3J0ID0gIm1heCIKbmFtZSA9ICJkZWVwLXJvbGUiCnNhbmRib3hfbW9kZSA9ICJyZWFkLW9ubHkiCmRldmVsb3Blcl9pbnN0cnVjdGlvbnMgPSAiVXNlIGV2aWRlbmNlLlxuIgo=",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "codex",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.codex/agents/inherit-role.toml",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/quality/inherit-role.md",
+          "Path": "<root>/home/.codex/agents/inherit-role.toml",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "ZGVzY3JpcHRpb24gPSAiVGVzdCByb2xlIgptb2RlbF9yZWFzb25pbmdfZWZmb3J0ID0gImxvdyIKbmFtZSA9ICJpbmhlcml0LXJvbGUiCnNhbmRib3hfbW9kZSA9ICJyZWFkLW9ubHkiCmRldmVsb3Blcl9pbnN0cnVjdGlvbnMgPSAiVXNlIGV2aWRlbmNlLlxuIgo=",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "codex",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.codex/agents/plain-role.toml",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/design/plain-role.md",
+          "Path": "<root>/home/.codex/agents/plain-role.toml",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "ZGVzY3JpcHRpb24gPSAiVGVzdCByb2xlIgptb2RlbCA9ICJzeW4tY29kZXgtZXhlYyIKbW9kZWxfcmVhc29uaW5nX2VmZm9ydCA9ICJtZWRpdW0iCm5hbWUgPSAicGxhaW4tcm9sZSIKc2FuZGJveF9tb2RlID0gInJlYWQtb25seSIKZGV2ZWxvcGVyX2luc3RydWN0aW9ucyA9ICJVc2UgZXZpZGVuY2UuXG4iCg==",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "codex",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.config/opencode/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/review/deep-role.md",
+          "Path": "<root>/home/.config/opencode/agents/deep-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgptb2RlOiAic3ViYWdlbnQiCm1vZGVsOiAic3luLW9jL3JlYXNvbiNtYXgiCnBlcm1pc3Npb25zOiBbeyJhY3Rpb24iOiJlZGl0IiwiZWZmZWN0IjoiZGVueSIsInJlc291cmNlIjoiKiJ9XQotLS0KVXNlIGV2aWRlbmNlLgo=",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "opencode",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.config/opencode/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/quality/inherit-role.md",
+          "Path": "<root>/home/.config/opencode/agents/inherit-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgptb2RlOiAic3ViYWdlbnQiCm1vZGVsOiAic3luLW9jL2luaGVyaXQjbWF4IgpwZXJtaXNzaW9uczogW3siYWN0aW9uIjoiZWRpdCIsImVmZmVjdCI6ImRlbnkiLCJyZXNvdXJjZSI6IioifV0KLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "opencode",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.config/opencode/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/design/plain-role.md",
+          "Path": "<root>/home/.config/opencode/agents/plain-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgptb2RlOiAic3ViYWdlbnQiCm1vZGVsOiAic3luLW9jL2V4ZWMjbWVkaXVtIgpwZXJtaXNzaW9uczogW3siYWN0aW9uIjoiZWRpdCIsImVmZmVjdCI6ImRlbnkiLCJyZXNvdXJjZSI6IioifV0KLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "opencode",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.grok/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/review/deep-role.md",
+          "Path": "<root>/home/.grok/agents/deep-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmFnZW50c01kOiB0cnVlCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Iiwic2VhcmNoX3JlcGxhY2UiLCJ3cml0ZV9maWxlIiwiYXBwbHlfcGF0Y2giXQpuYW1lOiAiZGVlcC1yb2xlIgpwZXJtaXNzaW9uTW9kZTogInBsYW4iCnByb21wdE1vZGU6ICJleHRlbmQiCi0tLQpVc2UgZXZpZGVuY2UuCg==",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "grok",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.grok/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/quality/inherit-role.md",
+          "Path": "<root>/home/.grok/agents/inherit-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmFnZW50c01kOiB0cnVlCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Iiwic2VhcmNoX3JlcGxhY2UiLCJ3cml0ZV9maWxlIiwiYXBwbHlfcGF0Y2giXQpuYW1lOiAiaW5oZXJpdC1yb2xlIgpwZXJtaXNzaW9uTW9kZTogInBsYW4iCnByb21wdE1vZGU6ICJleHRlbmQiCi0tLQpVc2UgZXZpZGVuY2UuCg==",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "grok",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.grok/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/design/plain-role.md",
+          "Path": "<root>/home/.grok/agents/plain-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmFnZW50c01kOiB0cnVlCmRlc2NyaXB0aW9uOiAiVGVzdCByb2xlIgpkaXNhbGxvd2VkVG9vbHM6IFsiV3JpdGUiLCJFZGl0IiwiTm90ZWJvb2tFZGl0Iiwic2VhcmNoX3JlcGxhY2UiLCJ3cml0ZV9maWxlIiwiYXBwbHlfcGF0Y2giXQpuYW1lOiAicGxhaW4tcm9sZSIKcGVybWlzc2lvbk1vZGU6ICJwbGFuIgpwcm9tcHRNb2RlOiAiZXh0ZW5kIgotLS0KVXNlIGV2aWRlbmNlLgo=",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "grok",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/review/deep-role.md",
+        "Path": "<root>/home/.pi/agent/agents/deep-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/review/deep-role.md",
+          "Path": "<root>/home/.pi/agent/agents/deep-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiB8LQogIFRlc3Qgcm9sZQpleGNsdWRlVG9vbHM6IHdyaXRlLGVkaXQKaW5oZXJpdEdsb2JhbENvbnRleHQ6IHRydWUKaW5oZXJpdFByb2plY3RDb250ZXh0OiB0cnVlCmluaGVyaXRTa2lsbHM6IHRydWUKbW9kZWw6ICJzeW4tcGkvcmVhc29uIgpuYW1lOiAiZGVlcC1yb2xlIgpzeXN0ZW1Qcm9tcHRNb2RlOiAiYXBwZW5kIgp0aGlua2luZzogIm1heCIKLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "pi",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/quality/inherit-role.md",
+        "Path": "<root>/home/.pi/agent/agents/inherit-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/quality/inherit-role.md",
+          "Path": "<root>/home/.pi/agent/agents/inherit-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiB8LQogIFRlc3Qgcm9sZQpleGNsdWRlVG9vbHM6IHdyaXRlLGVkaXQKaW5oZXJpdEdsb2JhbENvbnRleHQ6IHRydWUKaW5oZXJpdFByb2plY3RDb250ZXh0OiB0cnVlCmluaGVyaXRTa2lsbHM6IHRydWUKbW9kZWw6ICJpbmhlcml0IgpuYW1lOiAiaW5oZXJpdC1yb2xlIgpzeXN0ZW1Qcm9tcHRNb2RlOiAiYXBwZW5kIgp0aGlua2luZzogImxvdyIKLS0tClVzZSBldmlkZW5jZS4K",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "pi",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/agents/design/plain-role.md",
+        "Path": "<root>/home/.pi/agent/agents/plain-role.md",
+        "Kind": "agent",
+        "Host": "",
+        "Scope": "",
+        "Context": ""
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/agents/design/plain-role.md",
+          "Path": "<root>/home/.pi/agent/agents/plain-role.md",
+          "Kind": "agent",
+          "Host": "",
+          "Scope": "",
+          "Context": ""
+        },
+        "managed": "LS0tCmRlc2NyaXB0aW9uOiB8LQogIFRlc3Qgcm9sZQpleGNsdWRlVG9vbHM6IHdyaXRlLGVkaXQKaW5oZXJpdEdsb2JhbENvbnRleHQ6IHRydWUKaW5oZXJpdFByb2plY3RDb250ZXh0OiB0cnVlCmluaGVyaXRTa2lsbHM6IHRydWUKbW9kZWw6ICJzeW4tcGkvZXhlYyIKbmFtZTogInBsYWluLXJvbGUiCnN5c3RlbVByb21wdE1vZGU6ICJhcHBlbmQiCnRoaW5raW5nOiAibWVkaXVtIgotLS0KVXNlIGV2aWRlbmNlLgo=",
+        "mode": 416,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "pi",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    },
+    {
+      "target": {
+        "Source": "content/skills/workspace-conventions/SKILL.md",
+        "Path": "<root>/home/.claude/skills/workspace-conventions",
+        "Kind": "symlink",
+        "Host": "",
+        "Scope": "",
+        "Context": "",
+        "LinkTarget": "../../.agents/skills/workspace-conventions"
+      },
+      "expected": {
+        "exists": false,
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 0
+      },
+      "after": {
+        "target": {
+          "Source": "content/skills/workspace-conventions/SKILL.md",
+          "Path": "<root>/home/.claude/skills/workspace-conventions",
+          "Kind": "symlink",
+          "Host": "",
+          "Scope": "",
+          "Context": "",
+          "LinkTarget": "../../.agents/skills/workspace-conventions"
+        },
+        "managed": null,
+        "created_file": true,
+        "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
+        "consumers": [
+          {
+            "host": "claude",
+            "scope": "user",
+            "context": "<root>/home"
+          }
+        ]
+      }
+    }
+  ],
+  "id": "",
+  "migration": {
+    "config": {
+      "scope": "user",
+      "home": "<root>/home",
+      "codex_home": "<root>/home/.codex",
+      "claude_home": "<root>/home/.claude",
+      "pi_home": "<root>/home/.pi/agent",
+      "grok_home": "<root>/home/.grok",
+      "opencode_home": "<root>/home/.config/opencode",
+      "cursor_home": "<root>/home/.cursor",
+      "synthetic": true
+    },
+    "hosts": [
+      "claude",
+      "codex",
+      "grok",
+      "opencode",
+      "pi"
+    ],
+    "detector": "legacy-hive-16e7d335-v1",
+    "result": "clean",
+    "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+  }
+}

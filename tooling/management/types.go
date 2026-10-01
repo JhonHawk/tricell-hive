@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"tricell-hive/integrations/agents"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/legacy"
@@ -52,6 +53,10 @@ type VoiceSetting struct {
 	Name      string `json:"name,omitempty"`
 	Intensity string `json:"intensity"`
 }
+
+// ModelOverride is one role's model and effort on one CLI, chosen by the user
+// and stored in State.ModelOverrides. An empty field keeps the release's value.
+type ModelOverride = agents.ModelOverride
 
 // VoiceSpan is one rendered voice block as installed in a file: its managed
 // text, the hash of the sources RenderVoice rendered it from, and its
@@ -120,6 +125,10 @@ type State struct {
 	// the rendered span currently written there.
 	Voice      *VoiceSetting        `json:"voice,omitempty"`
 	VoiceSpans map[string]VoiceSpan `json:"voice_spans,omitempty"`
+	// ModelOverrides holds the user's per-role model and effort, keyed CLI then
+	// role, for the user scope. Schema stays 6: a state with no override encodes
+	// as before, because the field is omitted when empty and kept nil then.
+	ModelOverrides map[string]map[string]ModelOverride `json:"model_overrides,omitempty"`
 }
 type Fingerprint struct {
 	TreeHash   string `json:"tree_hash,omitempty"`
@@ -177,6 +186,11 @@ type Plan struct {
 	// by hand). Nothing is written to them; hive install restores the block
 	// first. It is informational, so a caller can tell the user.
 	VoiceSkipped []string `json:"voice_skipped,omitempty"`
+	// ModelOverrides is, on a user-scope install plan, the complete set of
+	// overrides the state holds after the plan: the plan's CLIs carry their new
+	// set and every other CLI carries what the state already has. Remove, voice
+	// and project-scope plans carry none. Apply stores the plan's CLIs' sets.
+	ModelOverrides map[string]map[string]ModelOverride `json:"model_overrides,omitempty"`
 }
 
 // ReleaseEntry describes one retained release snapshot for hive releases: its

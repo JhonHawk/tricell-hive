@@ -33,7 +33,7 @@ func TestResolveReturnsProfileModelAndProfileEffort(t *testing.T) {
 		{"cursor", "reasoning", Model{"inherit", ""}},
 	}
 	for _, c := range cases {
-		profile, m, err := Resolve(resolveSource, resolveRole(c.profile, ""), profiles, c.host)
+		profile, m, err := Resolve(resolveSource, resolveRole(c.profile, ""), profiles, c.host, nil)
 		if err != nil {
 			t.Fatalf("Resolve(%s/%s): %v", c.host, c.profile, err)
 		}
@@ -47,32 +47,32 @@ func TestResolveRoleEffortWinsOnlyWhereHostAcceptsEffort(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	data := resolveRole("execution", "low")
 	for _, host := range []string{"claude", "codex", "pi"} {
-		_, m, err := Resolve(resolveSource, data, profiles, host)
+		_, m, err := Resolve(resolveSource, data, profiles, host, nil)
 		if err != nil || m.Effort != "low" {
 			t.Fatalf("Resolve(%s) effort = %q, %v; want the role's low", host, m.Effort, err)
 		}
 	}
 	for _, host := range []string{"grok", "cursor"} {
-		_, m, err := Resolve(resolveSource, data, profiles, host)
+		_, m, err := Resolve(resolveSource, data, profiles, host, nil)
 		if err != nil || m.Effort != "" {
 			t.Fatalf("Resolve(%s) effort = %q, %v; want none", host, m.Effort, err)
 		}
 	}
 	// OpenCode carries the role's effort as the model variant.
-	if _, m, err := Resolve(resolveSource, data, profiles, "opencode"); err != nil || m != (Model{"syn-oc/exec#low", ""}) {
+	if _, m, err := Resolve(resolveSource, data, profiles, "opencode", nil); err != nil || m != (Model{"syn-oc/exec#low", ""}) {
 		t.Fatalf("Resolve(opencode) = %+v, %v; want the role's low variant", m, err)
 	}
 }
 
 func TestResolveRejectsBadInput(t *testing.T) {
 	profiles := syntheticProfiles(t)
-	if _, _, err := Resolve(resolveSource, resolveRole("execution", ""), profiles, "vim"); err == nil || !strings.Contains(err.Error(), "unsupported agent host") {
+	if _, _, err := Resolve(resolveSource, resolveRole("execution", ""), profiles, "vim", nil); err == nil || !strings.Contains(err.Error(), "unsupported agent host") {
 		t.Fatalf("unknown host error = %v", err)
 	}
-	if _, _, err := Resolve("not/a/source.md", resolveRole("execution", ""), profiles, "claude"); err == nil {
+	if _, _, err := Resolve("not/a/source.md", resolveRole("execution", ""), profiles, "claude", nil); err == nil {
 		t.Fatal("invalid source accepted")
 	}
-	if _, _, err := Resolve(resolveSource, resolveRole("execution", ""), []byte("{}"), "claude"); err == nil {
+	if _, _, err := Resolve(resolveSource, resolveRole("execution", ""), []byte("{}"), "claude", nil); err == nil {
 		t.Fatal("invalid profiles accepted")
 	}
 }
@@ -146,7 +146,7 @@ func TestParseAcceptsVerifierModelProfile(t *testing.T) {
 func TestResolveVerifierAgainstThreeProfilesNamesHostAndProfile(t *testing.T) {
 	profiles := threeProfiles(t)
 	for _, host := range allHosts {
-		_, _, err := Resolve(resolveSource, resolveRole("verifier", ""), profiles, host)
+		_, _, err := Resolve(resolveSource, resolveRole("verifier", ""), profiles, host, nil)
 		if err == nil || !strings.Contains(err.Error(), host) || !strings.Contains(err.Error(), "verifier") {
 			t.Fatalf("Resolve(%s) error = %v, want one naming host and verifier", host, err)
 		}
@@ -180,7 +180,7 @@ func TestResolveVerifierRoleAgainstSyntheticProfiles(t *testing.T) {
 		{"cursor", "inherit", ""},
 	}
 	for _, c := range cases {
-		profile, m, err := Resolve(source, data, profiles, c.host)
+		profile, m, err := Resolve(source, data, profiles, c.host, nil)
 		if err != nil || profile != "verifier" || m.Model != c.model || m.Effort != c.effort {
 			t.Errorf("Resolve(%s) = %q, %+v, %v; want verifier, %s/%q", c.host, profile, m, err, c.model, c.effort)
 		}

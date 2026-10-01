@@ -4,12 +4,16 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"unicode/utf8"
 
+	"tricell-hive/integrations/agents"
 	"tricell-hive/tooling/management"
 )
 
@@ -25,6 +29,10 @@ const (
 	modelHostDefault   = "host default"
 	modelInheritLabel  = "inherit (parent session)"
 	modelEffortMissing = "-"
+
+	modelOverrideMarker = " *"
+	modelOverrideNote   = "* set with hive models set"
+	modelNotApplied     = "not applied: role not in the installed release"
 )
 
 // modelCells are the four texts of one table row.
@@ -51,7 +59,11 @@ func modelCellsFor(r management.ModelRow) modelCells {
 	if effort == "" {
 		effort = modelEffortMissing
 	}
-	return modelCells{role: r.Role, profile: r.Profile, model: model, effort: effort}
+	role := r.Role
+	if r.Override {
+		role += modelOverrideMarker
+	}
+	return modelCells{role: role, profile: r.Profile, model: model, effort: effort}
 }
 
 // modelColumns are the widths of the four columns.
@@ -124,6 +136,12 @@ func collectModels(o management.Options) (hosts []string, rows []management.Mode
 // renderModelsText writes one table per registered CLI, without cutting any
 // text, and the same empty states as the Models view.
 func renderModelsText(hosts []string, rows []management.ModelRow, w io.Writer) {
+	renderModelsTextWith(hosts, rows, nil, w)
+}
+
+// renderModelsTextWith is renderModelsText plus, per CLI, the roles whose stored
+// override the installed release cannot apply, and a note when a row is marked.
+func renderModelsTextWith(hosts []string, rows []management.ModelRow, unapplied map[string][]string, w io.Writer) {
 	if len(hosts) == 0 {
 		fmt.Fprintln(w, noHostsText)
 		return
@@ -141,12 +159,313 @@ func renderModelsText(hosts []string, rows []management.ModelRow, w io.Writer) {
 		fmt.Fprintln(w, host)
 		if len(byHost[host]) == 0 {
 			fmt.Fprintln(w, "  No agents installed for "+host)
-			continue
+		} else {
+			header, lines := modelTable(byHost[host], 0)
+			fmt.Fprintln(w, "  "+header)
+			for _, l := range lines {
+				fmt.Fprintln(w, "  "+l)
+			}
 		}
-		header, lines := modelTable(byHost[host], 0)
-		fmt.Fprintln(w, "  "+header)
-		for _, l := range lines {
-			fmt.Fprintln(w, "  "+l)
+		for _, role := range unapplied[host] {
+			fmt.Fprintf(w, "  %s: %s\n", role, modelNotApplied)
 		}
 	}
+	for _, r := range rows {
+		if r.Override {
+			fmt.Fprintln(w)
+			fmt.Fprintln(w, modelOverrideNote)
+			break
+		}
+	}
+}
+
+// runModels prints the effective model and effort of every installed role, or
+// runs the set and reset subcommands that change them.
+func runModels(args []string, w io.Writer) error {
+	if len(args) > 0 && (args[0] == "set" || args[0] == "reset") {
+		return modelsWrite(args[0], args[1:], os.Stdin, w, terminalInput(os.Stdin))
+	}
+	o, ok, err := readOnlyOptions(flag.NewFlagSet("models", flag.ContinueOnError), args)
+	if !ok {
+		return err
+	}
+	hosts, rows, err := collectModels(o)
+	if err != nil {
+		return err
+	}
+	stored, err := management.StoredModelOverrides(o)
+	if err != nil {
+		return err
+	}
+	applied := map[string]bool{}
+	for _, r := range rows {
+		applied[r.Host+"/"+r.Role] = true
+	}
+	unapplied := map[string][]string{}
+	for host, roles := range stored {
+		for role := range roles {
+			if !applied[host+"/"+role] {
+				unapplied[host] = append(unapplied[host], role)
+			}
+		}
+		sort.Strings(unapplied[host])
+	}
+	renderModelsTextWith(hosts, rows, unapplied, w)
+	return nil
+}
+
+// modelsChange is one role's change: the parts to set and the parts to drop.
+// `hive models set` and the Models view both express their request with it, so
+// the same request leaves the same override.
+type modelsChange struct {
+	set                            management.ModelOverride
+	dropAll, dropModel, dropEffort bool
+}
+
+func (c modelsChange) empty() bool {
+	return c.set == (management.ModelOverride{}) && !c.dropAll && !c.dropModel && !c.dropEffort
+}
+
+// applyTo returns the CLI's override set after the change to role. Parts the
+// change does not name keep their stored value; the release's values are never
+// copied in, so the rest keeps following the release.
+func (c modelsChange) applyTo(stored map[string]management.ModelOverride, role string) map[string]management.ModelOverride {
+	next := map[string]management.ModelOverride{}
+	for r, v := range stored {
+		next[r] = v
+	}
+	v := next[role]
+	switch {
+	case c.dropAll:
+		v = management.ModelOverride{}
+	default:
+		if c.dropModel {
+			v.Model = ""
+		}
+		if c.dropEffort {
+			v.Effort = ""
+		}
+	}
+	if c.set.Model != "" {
+		v.Model = c.set.Model
+	}
+	if c.set.Effort != "" {
+		v.Effort = c.set.Effort
+	}
+	if v == (management.ModelOverride{}) {
+		delete(next, role)
+	} else {
+		next[role] = v
+	}
+	return next
+}
+
+// planModelsChange builds the plan that makes next the override set of host,
+// with the effective rows as they are before it.
+func planModelsChange(o management.Options, host string, next map[string]management.ModelOverride) (management.Plan, []management.ModelRow, error) {
+	o.Hosts = []string{host}
+	before, err := management.EffectiveModels(o)
+	if err != nil {
+		return management.Plan{}, nil, err
+	}
+	p, err := management.BuildModelsPlan(o, host, next)
+	return p, before, err
+}
+
+// modelsFlags are the flags of `hive models set` and `hive models reset`.
+type modelsFlags struct {
+	host, role, model, effort, only, home, stateDir, out string
+	all, dry                                             bool
+	modelGiven, effortGiven                              bool
+}
+
+func parseModelsFlags(sub string, args []string) (f modelsFlags, err error) {
+	fs := flag.NewFlagSet("models "+sub, flag.ContinueOnError)
+	fs.StringVar(&f.host, "host", "", "CLI whose role is changed")
+	fs.StringVar(&f.role, "role", "", "agent role")
+	if sub == "set" {
+		fs.StringVar(&f.model, "model", "", "model for the role")
+		fs.StringVar(&f.effort, "effort", "", "effort for the role")
+	} else {
+		fs.BoolVar(&f.all, "all", false, "remove every override of the CLI")
+		fs.StringVar(&f.only, "only", "", "remove only the model or the effort of the role's override")
+	}
+	fs.StringVar(&f.home, "home", "", "explicit synthetic home; ignores host environment paths")
+	fs.StringVar(&f.stateDir, "state-dir", "", "state directory (default: user Application Support/tricell-hive)")
+	fs.BoolVar(&f.dry, "dry-run", false, "preview only; do not change anything")
+	fs.StringVar(&f.out, "out", "", "save the plan to FILE instead of applying")
+	if err = fs.Parse(args); err != nil {
+		return f, err
+	}
+	if fs.NArg() != 0 {
+		return f, fmt.Errorf("unexpected positional arguments")
+	}
+	fs.Visit(func(fl *flag.Flag) {
+		switch fl.Name {
+		case "model":
+			f.modelGiven = true
+		case "effort":
+			f.effortGiven = true
+		}
+	})
+	return f, nil
+}
+
+// modelsWrite runs `hive models set` or `hive models reset`: it builds the plan
+// of management.BuildModelsPlan from the CLI's stored overrides and the change
+// asked for, then previews, confirms and applies it like `hive voice set`.
+func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interactive bool) error {
+	f, err := parseModelsFlags(sub, args)
+	if err != nil {
+		if err == flag.ErrHelp {
+			return nil
+		}
+		return err
+	}
+	if f.host == "" {
+		return fmt.Errorf("--host is required")
+	}
+	o := management.Options{Home: f.home, StateDir: f.stateDir}
+	stored, err := management.StoredModelOverrides(o)
+	if err != nil {
+		return err
+	}
+	var next map[string]management.ModelOverride
+	if sub == "set" {
+		if f.role == "" {
+			return fmt.Errorf("--role is required")
+		}
+		if f.modelGiven && f.model == "" {
+			return fmt.Errorf("--model must not be empty; use hive models reset --only model to return to the release's model")
+		}
+		if f.effortGiven && f.effort == "" {
+			return fmt.Errorf("--effort must not be empty; use hive models reset --only effort to return to the release's effort")
+		}
+		if !f.modelGiven && !f.effortGiven {
+			return fmt.Errorf("hive models set needs --model or --effort")
+		}
+		next = modelsChange{set: management.ModelOverride{Model: f.model, Effort: f.effort}}.applyTo(stored[f.host], f.role)
+	} else {
+		switch {
+		case f.all && (f.role != "" || f.only != ""):
+			if f.role != "" {
+				return fmt.Errorf("--all cannot be combined with --role")
+			}
+			return fmt.Errorf("--only needs --role")
+		case !f.all && f.role == "":
+			return fmt.Errorf("hive models reset needs --role or --all")
+		case f.only != "" && f.only != "model" && f.only != "effort":
+			return fmt.Errorf("--only must be model or effort")
+		}
+		if f.all {
+			next = map[string]management.ModelOverride{}
+		} else {
+			next = modelsChange{dropAll: f.only == "", dropModel: f.only == "model", dropEffort: f.only == "effort"}.applyTo(stored[f.host], f.role)
+		}
+	}
+	p, before, err := planModelsChange(o, f.host, next)
+	if err != nil {
+		return err
+	}
+	if sub == "reset" && f.role != "" {
+		_, known := stored[f.host][f.role]
+		for _, r := range before {
+			known = known || r.Role == f.role
+		}
+		if !known {
+			return fmt.Errorf("role %q is unknown for %s", f.role, f.host)
+		}
+	}
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
+	return confirmAndApplyPlan(p, planRun{
+		summary:   func(unchanged bool) { showModelsSummary(out, f.host, p, before, stored[f.host], unchanged) },
+		doneVerb:  "Model settings updated",
+		unchanged: "Nothing to change: the model settings already match.",
+		stateOnly: !modelsFilesChange(p),
+	}, out, interactive, f.dry, f.out, terminal)
+}
+
+// showModelsSummary lists, per role whose override changes, the effective model
+// and effort before and after, and the agent file that is rewritten.
+func showModelsSummary(out io.Writer, host string, p management.Plan, before []management.ModelRow, stored map[string]management.ModelOverride, unchanged bool) {
+	if unchanged {
+		return
+	}
+	rowOf := map[string]management.ModelRow{}
+	for _, r := range before {
+		rowOf[r.Role] = r
+	}
+	fileOf := map[string]string{}
+	for _, ch := range p.Changes {
+		if ch.Target.Kind == "agent" && ch.Before != nil && ch.After != nil && string(ch.Before.Managed) != string(ch.After.Managed) {
+			fileOf[strings.TrimSuffix(pathBase(ch.Target.Source), ".md")] = ch.Target.Path
+		}
+	}
+	roleSet := map[string]bool{}
+	for role, v := range p.ModelOverrides[host] {
+		if old, ok := stored[role]; !ok || old != v {
+			roleSet[role] = true
+		}
+	}
+	for role, v := range stored {
+		if new, ok := p.ModelOverrides[host][role]; !ok || new != v {
+			roleSet[role] = true
+		}
+	}
+	roles := make([]string, 0, len(roleSet))
+	for role := range roleSet {
+		roles = append(roles, role)
+	}
+	sort.Strings(roles)
+	for _, role := range roles {
+		old, ok := rowOf[role]
+		if !ok {
+			fmt.Fprintf(out, "%s %s: not applied (role not in the installed release); only the stored setting changes\n", host, role)
+			continue
+		}
+		after, err := resolveAfter(p, host, role, old)
+		if err != nil {
+			fmt.Fprintf(out, "%s %s: %v\n", host, role, err)
+			continue
+		}
+		b, a := modelCellsFor(old), modelCellsFor(after)
+		fmt.Fprintf(out, "%s %s: model %s → %s, effort %s → %s\n", host, role, b.model, a.model, b.effort, a.effort)
+		if file, ok := fileOf[role]; ok {
+			fmt.Fprintf(out, "  File: %s\n", file)
+		} else {
+			fmt.Fprintln(out, "  No file changes; the setting is saved in Hive's state.")
+		}
+	}
+	fmt.Fprintln(out, "Open sessions keep the previous model until they restart.")
+}
+
+// resolveAfter is the model row a role gets once p is applied.
+func resolveAfter(p management.Plan, host, role string, old management.ModelRow) (management.ModelRow, error) {
+	for _, f := range p.Release.Files {
+		if !agents.IsSource(f.Path) || strings.TrimSuffix(pathBase(f.Path), ".md") != role {
+			continue
+		}
+		var override *management.ModelOverride
+		if v, ok := p.ModelOverrides[host][role]; ok {
+			override = &v
+		}
+		profile, m, err := agents.Resolve(f.Path, f.Data, p.Release.Profiles, host, override)
+		if err != nil {
+			return old, err
+		}
+		return management.ModelRow{Host: host, Role: role, Profile: profile, Model: m.Model, Effort: m.Effort, Override: override != nil}, nil
+	}
+	return old, fmt.Errorf("role is not in the release")
+}
+
+func pathBase(p string) string { return p[strings.LastIndex(p, "/")+1:] }
+
+// modelsFilesChange reports whether p rewrites an agent file.
+func modelsFilesChange(p management.Plan) bool {
+	for _, ch := range p.Changes {
+		if ch.Target.Kind == "agent" && ch.Before != nil && ch.After != nil && string(ch.Before.Managed) != string(ch.After.Managed) {
+			return true
+		}
+	}
+	return false
 }
