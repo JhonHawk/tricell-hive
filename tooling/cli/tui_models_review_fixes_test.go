@@ -57,7 +57,7 @@ func TestModelsConfirmationFitsEightyColumnsWithLongOpenCodeIDs(t *testing.T) {
 	if len(headers) != 1 || len(rows) != 1 || len(wide) != 0 {
 		t.Fatalf("headers %q, rows %q, too wide %q:\n%s", headers, rows, wide, e.d.screen())
 	}
-	if !strings.Contains(rows[0], "gpt-6.1-sol") || !strings.Contains(rows[0], "claude-opus-4.7") || !strings.Contains(rows[0], "→") {
+	if !strings.Contains(rows[0], "pt-6.1-sol") || !strings.Contains(rows[0], "opus-4.7") || !strings.Contains(rows[0], "→") {
 		t.Fatalf("the row lost the model names: %q", rows[0])
 	}
 	assertFits(t, e.d, 80, 24)
@@ -299,4 +299,53 @@ func TestModelsViewCapturesTheLongIDConfirmationsForHandoff(t *testing.T) {
 	pick(g.d, "thinking")
 	g.d.key("enter")
 	fmt.Printf("SEVEN ROLES\n%s\n", g.d.screen())
+}
+
+// An effort-only change on a role whose model id is long: the unchanged id is cut
+// like a changed one, so the row, and the header above it, still fit.
+func TestModelsConfirmationCutsAnUnchangedLongIDForAnEffortOnlyChange(t *testing.T) {
+	huge := "github-copilot/" + strings.Repeat("claude-opus-4.7-thinking-", 5) + "high" // over 130 characters
+	for name, id := range map[string]string{"44 characters": longToThinking, "over 130 characters": huge} {
+		t.Run("single role, "+name, func(t *testing.T) {
+			f := standardFake()
+			f.out["opencode"] = id + "\n"
+			e := newModelsEditEnvWith(t, modelsTestSource(t), "claude,opencode", 80, 24, f.run)
+			store(t, e.home, e.stateDir, "opencode", map[string]management.ModelOverride{longRoleName: {Model: id}})
+			e.d.key("r")
+			toHost(t, e.d, "opencode")
+			selectRole(t, e.d, longRoleName)
+			e.d.key("enter", "down", "right", "right") // high -> xhigh -> max
+			e.d.key("enter")
+			e.d.mustShow("[Apply]", "high → max")
+			headers, rows, wide := changeTableLines(e.d, longRoleName, 80)
+			if len(headers) != 1 || len(rows) != 1 || len(wide) != 0 {
+				t.Fatalf("headers %d, rows %q, too wide %q:\n%s", len(headers), rows, wide, e.d.screen())
+			}
+			if !strings.Contains(rows[0], "…") || !strings.Contains(rows[0], "high → max") {
+				t.Fatalf("the row %q did not cut the id or lost the effort", rows[0])
+			}
+			assertFits(t, e.d, 80, 24)
+		})
+	}
+}
+
+func TestModelsConfirmationOfAnOpenCodeGroupCutsUnchangedLongIDsForAnEffortOnlyChange(t *testing.T) {
+	source, roles := bulkSource(t)
+	huge := "github-copilot/" + strings.Repeat("claude-opus-4.7-thinking-", 5) + "high"
+	e := newModelsEditEnvWith(t, source, "claude,opencode", 80, 24, standardFake().run)
+	prior := map[string]management.ModelOverride{}
+	for _, r := range roles {
+		prior[r] = management.ModelOverride{Model: huge}
+	}
+	store(t, e.home, e.stateDir, "opencode", prior)
+	e.d.key("r")
+	toHost(t, e.d, "opencode")
+	e.d.key("enter", "down", "right") // medium -> high, the model untouched
+	e.d.key("enter")
+	e.d.mustShow("[Apply]", "Change the Bulk group on opencode (7 roles)", "medium → high")
+	headers, rows, wide := changeTableLines(e.d, "bulk-role-", 80)
+	if len(headers) != 1 || len(rows) != 7 || len(wide) != 0 {
+		t.Fatalf("headers %d, rows %d, too wide %q:\n%s", len(headers), len(rows), wide, e.d.screen())
+	}
+	assertFits(t, e.d, 80, 24)
 }

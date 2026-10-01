@@ -589,3 +589,18 @@ func TestProjectViewFormLongErrorRowFits(t *testing.T) {
 		})
 	}
 }
+
+func TestProjectViewSaysCreatedOrUpdatedAfterTheWrite(t *testing.T) {
+	root := formRepo(t) // no AGENTS.md yet
+	_, d, _ := openForm(t, root, 80, 24)
+	d.key("enter")
+	d.key("y")
+	d.mustShow("Created AGENTS.md")
+	d.mustNotShow("Updated AGENTS.md")
+	d.key("e")
+	d.key("down", "down", "down", "down", "down", "down", "right") // Delivery
+	d.key("enter")
+	d.key("y")
+	d.mustShow("Updated AGENTS.md")
+	d.mustNotShow("Created AGENTS.md")
+}

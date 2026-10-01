@@ -136,3 +136,40 @@ func TestProjectCommandUnsetOptionalKey(t *testing.T) {
 		t.Fatalf("Review still there:\n%s", got)
 	}
 }
+
+// D4: the writer refuses a Base branch value Git rejects, judged on the whole
+// value (the doctor check reads only its first word and is left as it is).
+func TestProjectCommandRefusesABaseBranchGitRejects(t *testing.T) {
+	root := projectRepoWithSpecs(t, "# T\n")
+	path := filepath.Join(root, "AGENTS.md")
+	h := hashOf(t, path)
+	for _, bad := range []string{"bad branch", "main extra", "a..b", "-x", "a~b"} {
+		args := []string{"--project", root, "--set", "Project: demo", "--set", "Base branch: " + bad,
+			"--set", "Tracker: GitHub Issues · o/demo", "--set", "Specs: _support/openspec"}
+		out, err := runProjectSet(t, "y\n", true, args...)
+		if err == nil || !strings.Contains(err.Error(), "Base branch") || !strings.Contains(err.Error(), "not a valid branch name") {
+			t.Errorf("%q: error %v\n%s", bad, err, out)
+		}
+		if hashOf(t, path) != h {
+			t.Fatalf("%q: the file changed", bad)
+		}
+	}
+	for _, good := range []string{"main", "feature/x", "release-1.2"} {
+		if err := validateHiveRequest([]hiveItem{{"Base branch", good}}, nil); err != nil {
+			t.Errorf("%q refused: %v", good, err)
+		}
+	}
+}
+
+// D5: creating the file says "Created", changing it says "Updated".
+func TestProjectCommandReportsCreatedForANewFile(t *testing.T) {
+	root := formRepo(t) // no AGENTS.md yet
+	out, err := runProjectSet(t, "y\n", true, setArgs(root)...)
+	if err != nil || !strings.Contains(out, "Created ") || strings.Contains(out, "Updated ") {
+		t.Fatalf("new file: %v\n%s", err, out)
+	}
+	out, err = runProjectSet(t, "y\n", true, setArgs(root, "--set", "Delivery: direct-base")...)
+	if err != nil || !strings.Contains(out, "Updated ") || strings.Contains(out, "Created ") {
+		t.Fatalf("existing file: %v\n%s", err, out)
+	}
+}

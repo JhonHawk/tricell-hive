@@ -605,7 +605,8 @@ func modelsTitle(verb, role, group, host string, roles int) string {
 // roles that lose a part of their own override; and the agent files written,
 // with their common directory shown once. width wraps the prose lines; 0 leaves
 // them to the caller. tableWidth fits the table to a screen by cutting long ids
-// from the left, so the model name stays visible; 0 keeps the full ids. home is the home in use, to abbreviate paths with "~".
+// in the middle, keeping the start of the provider and the end of the model name;
+// 0 keeps the full ids. home is the home in use, to abbreviate paths with "~".
 func showModelsSummary(out io.Writer, host string, p management.Plan, before []management.ModelRow, stored map[string]management.ModelOverride, replaced []string, home string, width, tableWidth int, unchanged bool) {
 	if unchanged {
 		return
@@ -670,8 +671,13 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 		}
 		cells := make([][3]string, 0, len(table)+1)
 		cells = append(cells, [3]string{"Role", "Model", "Effort"})
+		var same []changeRow // rows whose cut ids would read the same
 		for _, r := range table {
-			cells = append(cells, [3]string{truncateRunes(r.role, roleW), changeModelCell(r.mb, r.ma, modelRoom), changeCell(r.eb, r.ea, 0)})
+			cell, distinct := changeModelCell(r.mb, r.ma, modelRoom)
+			if !distinct {
+				same = append(same, r)
+			}
+			cells = append(cells, [3]string{truncateRunes(r.role, roleW), cell, changeCell(r.eb, r.ea, 0)})
 		}
 		modelW := 0
 		for _, c := range cells {
@@ -681,6 +687,12 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 			fmt.Fprintln(out, strings.TrimRight(padRight(c[0], roleW)+"  "+padRight(c[1], modelW)+"  "+c[2], " "))
 		}
 		fmt.Fprintln(out)
+		for _, r := range same { // the table cannot tell these apart: show both ids whole
+			fmt.Fprintf(out, "%s\n  before  %s\n  after   %s\n", r.role, r.mb, r.ma)
+		}
+		if len(same) > 0 {
+			fmt.Fprintln(out)
+		}
 	}
 	for _, n := range notes {
 		fmt.Fprintln(out, n)
@@ -717,44 +729,60 @@ func changeCell(before, after string, _ int) string {
 }
 
 // changeModelCell is changeCell for a model, cut to room columns when room is
-// positive: an id too long for its half is cut from the left ("…" and the end
-// kept, since the model name is what tells models apart), and the shorter id
-// gives its spare columns to the longer one.
-func changeModelCell(before, after string, room int) string {
-	if before == after || room <= 0 {
-		return changeCell(before, after, 0)
+// positive. An id too long for its half is cut in the middle, keeping the start
+// of its provider and the end of its model name; the shorter id gives its spare
+// columns to the longer one. distinct is false when the two sides would still
+// read the same after the cut, so the caller can show both ids in full.
+func changeModelCell(before, after string, room int) (cell string, distinct bool) {
+	if room <= 0 {
+		return changeCell(before, after, 0), before != after
+	}
+	if before == after { // unchanged, but as long as any other id: cut it the same way
+		return cutMiddle(before, room), true
 	}
 	room -= len(" → ")
 	nb, na := textWidth(before), textWidth(after)
-	if nb+na <= room {
-		return before + " → " + after
+	cb, ca := before, after
+	if nb+na > room {
+		half := room / 2
+		switch {
+		case nb <= half:
+			ca = cutMiddle(after, room-nb)
+		case na <= half:
+			cb = cutMiddle(before, room-na)
+		default:
+			// The same budget on both sides, so a difference in what is kept
+			// comes from the ids and not from one side getting a column more.
+			cb, ca = cutMiddle(before, half), cutMiddle(after, half)
+		}
 	}
-	half := room / 2
-	switch {
-	case nb <= half:
-		return before + " → " + cutLeft(after, room-nb)
-	case na <= half:
-		return cutLeft(before, room-na) + " → " + after
-	}
-	return cutLeft(before, half) + " → " + cutLeft(after, room-half)
+	return cb + " → " + ca, cb != ca
 }
 
-// cutLeft keeps the end of s within width columns, with "…" in front when it cut.
-func cutLeft(s string, width int) string {
-	if textWidth(s) <= width || width < 2 {
+// cutMiddle fits s in width columns with "…" in the middle: the head keeps the
+// provider ("provider/") up to a third of the room, and the tail keeps the end of the
+// model name. It never splits a wide character.
+func cutMiddle(s string, width int) string {
+	if textWidth(s) <= width || width < 3 {
 		return s
 	}
-	r := []rune(s)
-	used, i := 1, len(r) // one column for the "…"
-	for i > 0 {
-		w := textWidth(string(r[i-1]))
-		if used+w > width {
-			break
-		}
-		used += w
-		i--
+	head := (width - 1) / 2
+	if i := strings.Index(s, "/"); i >= 0 {
+		head = min(textWidth(s[:i+1]), max((width-1)/3, 4)) // a third is enough to tell providers apart
 	}
-	return "…" + string(r[i:])
+	tail := width - 1 - head
+	r := []rune(s)
+	h, used := 0, 0
+	for h < len(r) && used+textWidth(string(r[h])) <= head {
+		used += textWidth(string(r[h]))
+		h++
+	}
+	t, used := len(r), 0
+	for t > h && used+textWidth(string(r[t-1])) <= tail {
+		used += textWidth(string(r[t-1]))
+		t--
+	}
+	return string(r[:h]) + "…" + string(r[t:])
 }
 
 // commonDir is the deepest directory that holds every file.

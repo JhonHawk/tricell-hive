@@ -51,8 +51,9 @@ type (
 	}
 	projectWrittenMsg struct {
 		owned
-		flow int
-		err  error
+		flow    int
+		err     error
+		existed bool // the file was there before the write
 	}
 )
 
@@ -73,6 +74,7 @@ type projectView struct {
 	flow    int
 	working string // what the form flow is doing now, "" when idle
 	notice  string // why the form did not open
+	done    string // what the last write did ("Created AGENTS.md"), until the next key
 }
 
 // newProjectView opens Project over the current directory. Tests use
@@ -126,6 +128,7 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 		}
 		return v.onWritten(msg)
 	case tea.KeyPressMsg:
+		v.done = ""
 		if v.form != nil {
 			return v.formKey(msg)
 		}
@@ -205,6 +208,8 @@ func (v *projectView) View(c viewCtx) string {
 		position = c.Spinner + " " + th.Muted.Render("Refreshing…")
 	case v.failed:
 		position = th.Danger.Render("The check failed") + th.Muted.Render(" · r to retry")
+	case v.done != "":
+		position = th.Success.Render(v.done)
 	case v.box.scrollable():
 		position = th.Muted.Render(v.box.position())
 	}
@@ -481,7 +486,7 @@ func (v *projectView) onReviewed(msg projectReviewedMsg) (tea.Cmd, action) {
 			flow, edit := v.flow, msg.edit
 			return func() tea.Msg {
 				err := writeProjectFile(edit.File, edit.Before, edit.Existed, edit.After)
-				return projectWrittenMsg{owned: owned{v}, flow: flow, err: err}
+				return projectWrittenMsg{owned: owned{v}, flow: flow, err: err, existed: edit.Existed}
 			}, action{nav: navNone, write: true, result: v}
 		},
 		OnCancel: func() (tea.Cmd, action) {
@@ -500,6 +505,10 @@ func (v *projectView) onWritten(msg projectWrittenMsg) (tea.Cmd, action) {
 		return nil, action{nav: navPop}
 	}
 	v.form = nil
+	v.done = "Created " + projectFileName
+	if msg.existed {
+		v.done = "Updated " + projectFileName
+	}
 	return v.reload(), action{nav: navPop}
 }
 
