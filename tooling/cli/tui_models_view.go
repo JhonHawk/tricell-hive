@@ -14,6 +14,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -781,9 +782,9 @@ func (v *modelsView) panelKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 		// letter starts the filter. Backspace never leaves the view.
 		switch {
 		case name == "right":
-			p.openList("")
+			v.openPicker("")
 		case msg.Text != "" && msg.Text != " ":
-			p.openList(msg.Text)
+			v.openPicker(msg.Text)
 		}
 		return nil, action{nav: navNone}
 	}
@@ -1145,7 +1146,12 @@ func (v *modelsView) panelLines(c viewCtx) []string {
 	if p.textMode {
 		modelLine = mark(p.row == 0) + label("Model") + inputView(p.model, th)
 	} else {
-		modelLine = th.Text.Render(truncateRunes(mark(p.row == 0)+label("Model")+p.modelLabel(), c.Width))
+		// "▸" says the value opens a list; the hint shows while the row has the focus.
+		text := truncateRunes(mark(p.row == 0)+label("Model")+p.modelLabel()+" ▸", c.Width)
+		modelLine = th.Text.Render(text)
+		if hint := "  → choose"; p.row == 0 && utf8.RuneCountInString(text)+utf8.RuneCountInString(hint) <= c.Width {
+			modelLine += th.Muted.Render(hint)
+		}
 	}
 	lines := []string{roleLine, modelLine}
 	switch {
@@ -1179,8 +1185,8 @@ func (v *modelsView) Keys() []key.Binding {
 	if v.panel != nil {
 		return []key.Binding{
 			binding("up,down", "↑/↓", "field"),
+			binding("right", "→", "choose model"),
 			binding("left,right", "←/→", "effort"),
-			binding("type", "type", "model"),
 			binding("enter", "enter", "review"),
 			binding("esc", "esc", "close"),
 		}

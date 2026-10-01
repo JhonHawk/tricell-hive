@@ -134,7 +134,12 @@ func panelField(t *testing.T, d *appDriver, label string) (string, bool) {
 	t.Helper()
 	for _, line := range d.lines() {
 		if m := panelRowPattern.FindStringSubmatch(line); m != nil && m[2] == label {
-			return strings.TrimSpace(m[3]), m[1] == "> "
+			text := strings.TrimSpace(m[3])
+			if label == "Model" { // the value opens a list: "value ▸", and a hint on the focused row
+				text = strings.TrimSpace(strings.TrimSuffix(text, "→ choose"))
+				text = strings.TrimSpace(strings.TrimSuffix(text, "▸"))
+			}
+			return text, m[1] == "> "
 		}
 	}
 	t.Fatalf("no %s row in the panel:\n%s", label, d.screen())

@@ -1,7 +1,9 @@
-// tui_models_picker.go is the model picker of the Models view (#46, D9-A): a
-// bordered box over the edit panel and the table, opened from the Model field.
-// It lists the models in use on the CLI first, then the CLI's own list by
-// provider, and ends with two entries, "release default" and "Other…".
+// tui_models_picker.go is the model picker of the Models view (#46, D9-A and
+// its corrections): a raised panel over the edit panel and the table, opened
+// from the Model field. It lists the CLI's models, by provider on the CLIs whose
+// ids carry one and flat on the rest, and ends with two entries, "release
+// default" and "Other…". It draws no border: every line is padded to the view's
+// width on the panel's own background, so nothing can run past the screen's edge.
 package main
 
 import (
@@ -9,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // modelList is the open picker: the search text, the cursor and the scroll
@@ -20,21 +23,47 @@ type modelList struct {
 }
 
 const (
-	pickerInUse   = "In use on "
 	currentMarker = "● "
 	pickerHint    = "↑↓ enter esc"
+	pickerRowsFix = 5 // title, blank, search, status or blank, and the bottom row
 )
+
+// providerTitles are the readable names of the providers OpenCode and Pi list;
+// any other provider shows its own id.
+var providerTitles = map[string]string{
+	"github-copilot": "GitHub Copilot", "openai": "OpenAI", "anthropic": "Anthropic",
+	"opencode": "OpenCode", "opencode-go": "OpenCode Go", "xai": "xAI", "google": "Google",
+	"openai-codex": "OpenAI Codex", "mistral": "Mistral", "deepseek": "DeepSeek", "groq": "Groq",
+	"openrouter": "OpenRouter", "amazon-bedrock": "Amazon Bedrock", "azure": "Azure",
+}
+
+func providerTitle(id string) string {
+	if t, ok := providerTitles[id]; ok {
+		return t
+	}
+	return id
+}
 
 // pickRow is one selectable model.
 type pickRow struct {
 	id, name, provider string
 	current            bool
-	showProvider       bool // the provider is not the section's header
 }
 
-// pickLine is one line of the scrolling area: a section header, or a row.
+// shortID is the id as the picker shows it under a provider: without its
+// "<provider>/" prefix. The value chosen stays the full id.
+func (r pickRow) shortID() string {
+	if r.provider != "" {
+		return strings.TrimPrefix(r.id, r.provider+"/")
+	}
+	return r.id
+}
+
+// pickLine is one line of the scrolling area: a section header, a blank
+// separator, or a model row.
 type pickLine struct {
 	header string
+	blank  bool
 	row    int
 }
 
@@ -43,9 +72,22 @@ type pickerContent struct {
 	lines []pickLine
 }
 
-// openList opens the picker, with text as the first characters of the search.
-func (p *modelsPanel) openList(text string) {
+// openPicker opens the picker over the Model field, with text as the first
+// characters of the search. With no search the cursor starts on the model the
+// panel stands on, or on the first model when none is (a mixed group).
+func (v *modelsView) openPicker(text string) {
+	p := v.panel
 	p.list = &modelList{filter: text}
+	cur := 0
+	if text == "" {
+		for i, r := range v.pickerContent().rows {
+			if r.current {
+				cur = i
+				break
+			}
+		}
+	}
+	v.moveList(cur)
 }
 
 // currentModel is the model the panel stands on, for the "●" mark: the chosen
@@ -64,81 +106,58 @@ func providerOf(host, id string) string {
 	return catalogText(provider)
 }
 
-// shortID is the id as the picker shows it: without its "<provider>/" prefix
-// when the row has a provider. The value chosen stays the full id.
-func (r pickRow) shortID() string {
-	if r.provider != "" {
-		return strings.TrimPrefix(r.id, r.provider+"/")
-	}
-	return r.id
-}
-
-// pickerContent lays the picker out for the current search: the models in use
-// on the CLI, then the CLI's models by provider, in order of first appearance.
-// A model in use is not repeated below.
+// pickerContent lays the picker out for the current search. OpenCode and Pi get
+// one section per provider in order of first appearance; the other CLIs get one
+// flat list. The model the panel stands on is listed even when the CLI's own
+// list lacks it, so it can always be seen and kept.
 func (v *modelsView) pickerContent() pickerContent {
 	p, host := v.panel, v.host
-	byID := map[string]catalogModel{}
-	for _, m := range p.catalog {
-		byID[m.ID] = m
-	}
+	models := append([]catalogModel(nil), p.catalog...)
 	current := p.currentModel()
+	if current != "" {
+		found := false
+		for _, m := range models {
+			found = found || m.ID == current
+		}
+		if !found {
+			models = append([]catalogModel{{ID: current, Provider: providerOf(host, current)}}, models...)
+		}
+	}
+	sections := host == "opencode" || host == "pi"
 	filter := strings.ToLower(p.list.filter)
-	match := func(r pickRow) bool {
-		return filter == "" || strings.Contains(strings.ToLower(r.name), filter) ||
-			strings.Contains(strings.ToLower(r.id), filter) || strings.Contains(strings.ToLower(r.provider), filter)
-	}
 	var c pickerContent
-	add := func(header string, rows []pickRow) {
-		var kept []pickRow
-		for _, r := range rows {
-			if match(r) {
-				kept = append(kept, r)
-			}
-		}
-		if len(kept) == 0 {
-			return
-		}
-		c.lines = append(c.lines, pickLine{header: header})
-		for _, r := range kept {
-			c.lines = append(c.lines, pickLine{row: len(c.rows)})
-			c.rows = append(c.rows, r)
-		}
-	}
-	inUse := map[string]bool{}
-	var used []pickRow
-	for _, r := range v.hostRows() {
-		model, _ := effectiveParts(r)
-		if model == "" || inUse[model] {
-			continue
-		}
-		inUse[model] = true
-		row := pickRow{id: model, provider: providerOf(host, model), current: model == current}
-		if m, ok := byID[model]; ok {
-			row.name, row.provider = m.Name, m.Provider
-		}
-		row.showProvider = row.provider != ""
-		used = append(used, row)
-	}
-	add(pickerInUse+host, used)
 	var order []string
 	groups := map[string][]pickRow{}
-	for _, m := range p.catalog {
-		if inUse[m.ID] {
+	for _, m := range models {
+		r := pickRow{id: m.ID, name: m.Name, provider: m.Provider, current: m.ID == current}
+		if filter != "" && !strings.Contains(strings.ToLower(r.name), filter) &&
+			!strings.Contains(strings.ToLower(r.id), filter) && !strings.Contains(strings.ToLower(r.provider), filter) {
 			continue
 		}
-		key := m.Provider
+		key := ""
+		if sections {
+			key = m.Provider
+		}
 		if _, ok := groups[key]; !ok {
 			order = append(order, key)
 		}
-		groups[key] = append(groups[key], pickRow{id: m.ID, name: m.Name, provider: m.Provider, current: m.ID == current})
+		groups[key] = append(groups[key], r)
 	}
-	for _, key := range order {
-		header := key
-		if key == "" {
-			header = host + " models"
+	for i, key := range order {
+		if sections {
+			if i > 0 {
+				c.lines = append(c.lines, pickLine{blank: true})
+			}
+			header := host + " models"
+			if key != "" {
+				header = providerTitle(key)
+			}
+			c.lines = append(c.lines, pickLine{header: header})
 		}
-		add(header, groups[key])
+		for _, r := range groups[key] {
+			c.lines = append(c.lines, pickLine{row: len(c.rows)})
+			c.rows = append(c.rows, r)
+		}
 	}
 	return c
 }
@@ -158,18 +177,11 @@ func (v *modelsView) listStatus() (loading bool, text string) {
 	return false, ""
 }
 
-// pickerBoxHeight is the box's height: everything between the CLI row and the footer.
-func (v *modelsView) pickerBoxHeight() int { return max(v.height-4, 5) }
+// pickerBoxHeight is the panel's height: everything between the CLI row and the footer.
+func (v *modelsView) pickerBoxHeight() int { return max(v.height-4, pickerRowsFix+1) }
 
-// listHeight is the number of lines the scrolling area has room for: the box
-// less its borders, the search row, the bottom row and the status row.
-func (v *modelsView) listHeight() int {
-	h := v.pickerBoxHeight() - 2 - 1 - 1
-	if loading, text := v.listStatus(); loading || text != "" {
-		h--
-	}
-	return max(h, 1)
-}
+// listHeight is the number of lines the scrolling area has room for.
+func (v *modelsView) listHeight() int { return max(v.pickerBoxHeight()-pickerRowsFix, 1) }
 
 // moveList moves the cursor among the model rows and the two bottom entries,
 // and keeps a model row, with its section header above it, in view.
@@ -181,7 +193,7 @@ func (v *modelsView) moveList(to int) {
 	if l.cur < n {
 		at := 0
 		for i, ln := range c.lines {
-			if ln.header == "" && ln.row == l.cur {
+			if !ln.blank && ln.header == "" && ln.row == l.cur {
 				at = i
 			}
 		}
@@ -216,7 +228,7 @@ func (v *modelsView) listKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 			v.moveList(l.cur - 1)
 		}
 	case "down":
-		if l.cur < n || l.cur == n {
+		if l.cur <= n {
 			v.moveList(l.cur + 1)
 		}
 	case "left":
@@ -277,37 +289,65 @@ func (v *modelsView) choose(cur int) (tea.Cmd, action) {
 	return nil, action{nav: navNone}
 }
 
-// pickerLines draws the box: borders, search, status, the scrolling sections and
-// the bottom entries, in exactly pickerBoxHeight lines of the view's width.
+// pickSeg is a piece of a panel line with its style.
+type pickSeg struct {
+	text string
+	st   lipgloss.Style
+}
+
+// paint draws one panel line of exactly width columns: one column of padding on
+// each side and the surface background under everything.
+func paintPanelLine(th *appTheme, width int, segs ...pickSeg) string {
+	bg := th.Surface.GetBackground()
+	var b strings.Builder
+	used := 0
+	put := func(text string, st lipgloss.Style) {
+		if text == "" {
+			return
+		}
+		b.WriteString(st.Background(bg).Render(text))
+		used += utf8.RuneCountInString(text)
+	}
+	put(" ", th.Text)
+	for _, s := range segs {
+		put(s.text, s.st)
+	}
+	put(strings.Repeat(" ", max(width-used, 0)), th.Text)
+	return b.String()
+}
+
+// spacerFor is the filler that right-aligns what follows, inside inner columns.
+func spacerFor(inner int, left, right string) string {
+	return strings.Repeat(" ", max(inner-utf8.RuneCountInString(left)-utf8.RuneCountInString(right), 1))
+}
+
+// pickerLines draws the panel: title, search, status, the scrolling list and the
+// bottom entries, in exactly pickerBoxHeight lines of exactly the view's width.
 func (v *modelsView) pickerLines(c viewCtx) []string {
 	th, p := c.Theme, v.panel
 	W := max(c.Width, 20)
-	inner := W - 4
-	border := func(s string) string { return th.Muted.Render(s) }
-	boxed := func(rendered string, plain int) string {
-		return border("│ ") + rendered + strings.Repeat(" ", max(inner-plain, 0)) + border(" │")
-	}
+	inner := W - 2
+	blank := func() string { return paintPanelLine(th, W) }
 	who := p.role
 	if p.group != "" {
 		who = strings.ToUpper(p.group[:1]) + p.group[1:] + " group"
 	}
-	left := truncateRunes(" Select model · "+v.host+" · "+who+" ", max(W-10, 4))
-	fill := max(W-2-utf8.RuneCountInString(left)-utf8.RuneCountInString(" esc "), 0)
-	lines := []string{border("┌") + th.Title.Render(left) + border(strings.Repeat("─", fill)) + th.Muted.Render(" esc ") + border("┐")}
-
-	search := p.list.filter
-	if search == "" {
-		lines = append(lines, boxed(th.Muted.Render("Search"), len("Search")))
+	title, ctx := "Select model", truncateRunes(" · "+v.host+" · "+who, max(inner-len("Select model")-len("esc")-2, 1))
+	lines := []string{paintPanelLine(th, W,
+		pickSeg{title, th.Text.Bold(true)}, pickSeg{ctx, th.Muted},
+		pickSeg{spacerFor(inner, title+ctx, "esc"), th.Text}, pickSeg{"esc", th.Muted})}
+	lines = append(lines, blank())
+	if p.list.filter == "" {
+		lines = append(lines, paintPanelLine(th, W, pickSeg{"Search", th.Muted}))
 	} else {
-		text := truncateRunes("Search: "+search, inner)
-		lines = append(lines, boxed(th.Text.Render(text), utf8.RuneCountInString(text)))
+		lines = append(lines, paintPanelLine(th, W, pickSeg{truncateRunes("Search: "+p.list.filter, inner), th.Text}))
 	}
 	if loading, text := v.listStatus(); loading {
-		text = truncateRunes(text, inner-2)
-		lines = append(lines, boxed(c.Spinner+" "+th.Muted.Render(text), 2+utf8.RuneCountInString(text)))
+		lines = append(lines, paintPanelLine(th, W, pickSeg{c.Spinner + " ", th.Text}, pickSeg{truncateRunes(text, inner-2), th.Muted}))
 	} else if text != "" {
-		text = truncateRunes(text, inner)
-		lines = append(lines, boxed(th.Danger.Render(text), utf8.RuneCountInString(text)))
+		lines = append(lines, paintPanelLine(th, W, pickSeg{truncateRunes(text, inner), th.Danger}))
+	} else {
+		lines = append(lines, blank())
 	}
 
 	v.moveList(p.list.cur) // the content or the room may have changed since the last key
@@ -317,24 +357,25 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 	for i := p.list.off; i < min(p.list.off+h, len(content.lines)); i++ {
 		ln := content.lines[i]
 		shown++
-		if ln.header != "" {
-			text := truncateRunes(ln.header, inner)
-			lines = append(lines, boxed(th.Accent.Render(text), utf8.RuneCountInString(text)))
-			continue
+		switch {
+		case ln.blank:
+			lines = append(lines, blank())
+		case ln.header != "":
+			lines = append(lines, paintPanelLine(th, W, pickSeg{truncateRunes(ln.header, inner), th.Accent}))
+		default:
+			lines = append(lines, pickerRow(th, W, content.rows[ln.row], ln.row == p.list.cur, v.host))
 		}
-		rendered, plain := pickerRow(th, content.rows[ln.row], ln.row == p.list.cur, inner)
-		lines = append(lines, boxed(rendered, plain))
 	}
 	for ; shown < h; shown++ {
-		lines = append(lines, boxed("", 0))
+		lines = append(lines, blank())
 	}
-	lines = append(lines, v.pickerBottom(c, len(content.rows), inner, boxed))
-	return append(lines, border("└"+strings.Repeat("─", W-2)+"┘"))
+	return append(lines, v.pickerBottom(c, W, len(content.rows)))
 }
 
-// pickerRow draws one model row of width inner and returns its visible width.
-// The selected row is highlighted across the line, or marked ">" under NO_COLOR.
-func pickerRow(th *appTheme, r pickRow, selected bool, inner int) (string, int) {
+// pickerRow draws one model row. The selected row is highlighted across the
+// whole line, or marked ">" under NO_COLOR.
+func pickerRow(th *appTheme, W int, r pickRow, selected bool, host string) string {
+	inner := W - 2
 	cursor := "  "
 	if selected && th.NoColor {
 		cursor = "> "
@@ -343,72 +384,55 @@ func pickerRow(th *appTheme, r pickRow, selected bool, inner int) (string, int) 
 	if r.current {
 		mark = currentMarker
 	}
-	right := ""
-	if r.showProvider {
-		right = r.provider
+	id := r.id
+	if host == "opencode" || host == "pi" {
+		id = r.shortID()
+	}
+	primary := id
+	if r.name != "" {
+		primary = r.name
 	}
 	budget := inner - 4
-	if right != "" {
-		budget -= utf8.RuneCountInString(right) + 2
-	}
-	primary := r.name
-	if primary == "" {
-		primary = r.shortID()
-	}
 	primary = truncateRunes(primary, max(budget, 1))
 	secondary := ""
 	if r.name != "" {
 		if room := budget - utf8.RuneCountInString(primary) - 2; room >= 4 {
-			secondary = truncateRunes(r.shortID(), room)
+			secondary = truncateRunes(id, room)
 		}
 	}
-	used := 4 + utf8.RuneCountInString(primary)
-	if secondary != "" {
-		used += 2 + utf8.RuneCountInString(secondary)
-	}
-	pad := max(inner-used-utf8.RuneCountInString(right), 0)
 	if selected && !th.NoColor {
-		line := cursor + mark + primary
+		text := cursor + mark + primary
 		if secondary != "" {
-			line += "  " + secondary
+			text += "  " + secondary
 		}
-		line += strings.Repeat(" ", pad) + right
-		return th.ButtonOn.Render(line), utf8.RuneCountInString(line)
+		return th.ButtonOn.Render(" " + text + strings.Repeat(" ", max(W-1-utf8.RuneCountInString(text), 0)))
 	}
-	out := th.Text.Render(cursor + mark + primary)
+	segs := []pickSeg{{cursor + mark + primary, th.Text}}
 	if secondary != "" {
-		out += th.Muted.Render("  " + secondary)
+		segs = append(segs, pickSeg{"  " + secondary, th.Muted})
 	}
-	out += strings.Repeat(" ", pad) + th.Muted.Render(right)
-	return out, used + pad + utf8.RuneCountInString(right)
+	return paintPanelLine(th, W, segs...)
 }
 
-// pickerBottom draws the box's last line: the two entries that always stay, and
-// the key hints on the right.
-func (v *modelsView) pickerBottom(c viewCtx, n, inner int, boxed func(string, int) string) string {
+// pickerBottom draws the last line: the two entries that always stay, and the
+// key hints on the right.
+func (v *modelsView) pickerBottom(c viewCtx, W, n int) string {
 	th, l := c.Theme, v.panel.list
-	labels := []string{effortReleaseText, otherModelText}
-	var out string
-	plain := 0
-	for i, label := range labels {
+	var segs []pickSeg
+	used := 0
+	for i, label := range []string{effortReleaseText, otherModelText} {
 		sel := l.cur == n+i
-		var text string
+		text := "  " + label
+		st := th.Text
 		switch {
 		case sel && th.NoColor:
-			text = "> " + label
-			out += th.Accent.Render(text)
+			text, st = "> "+label, th.Accent
 		case sel:
-			text = " " + label + " "
-			out += th.ButtonOn.Render(text)
-		default:
-			text = "  " + label
-			out += th.Text.Render(text)
+			text, st = " "+label+" ", th.ButtonOn
 		}
-		plain += utf8.RuneCountInString(text)
-		out += "  "
-		plain += 2
+		segs = append(segs, pickSeg{text, st}, pickSeg{"  ", th.Text})
+		used += utf8.RuneCountInString(text) + 2
 	}
-	hint := pickerHint
-	gap := max(inner-plain-utf8.RuneCountInString(hint), 1)
-	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(hint), plain+gap+utf8.RuneCountInString(hint))
+	gap := max(W-2-used-utf8.RuneCountInString(pickerHint), 1)
+	return paintPanelLine(th, W, append(segs, pickSeg{strings.Repeat(" ", gap), th.Text}, pickSeg{pickerHint, th.Muted})...)
 }
