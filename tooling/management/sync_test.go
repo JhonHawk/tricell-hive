@@ -2,6 +2,7 @@ package management
 
 import (
 	"errors"
+	"flag"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -16,6 +17,13 @@ var syncDefault = !skipDiskSync.Load()
 
 func TestMain(m *testing.M) {
 	DisableDiskSyncForTests()
+	// The tests call target.Safe, which Lstats every ancestor of a path, some
+	// 700k times in temp homes. cmd/go records each call in a test log and
+	// re-verifies it line by line when it looks up a cached result, which cost
+	// minutes and gigabytes (#91). With no log file there is nothing to verify,
+	// so the package is simply run each time. A missing or renamed internal flag
+	// is ignored.
+	disableTestLog()
 	os.Exit(m.Run())
 }
 
@@ -115,5 +123,14 @@ func TestDisableDiskSyncOnlyCalledFromTests(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// disableTestLog stops cmd/go from logging file-system calls of this test
+// binary, which also keeps its result out of the test cache.
+func disableTestLog() {
+	flag.Parse()
+	if f := flag.Lookup("test.testlogfile"); f != nil {
+		_ = f.Value.Set("")
 	}
 }

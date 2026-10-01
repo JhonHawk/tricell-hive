@@ -227,7 +227,7 @@ python3 -m unittest discover -s tests/skills -p '*_test.py'
 
 Run `go test -race ./...` as well when a change touches concurrency: goroutines, locks, state shared across goroutines, or the manager's concurrent-write tests.
 
-Test binaries of `tooling/management` and `tooling/cli` call `management.DisableDiskSyncForTests` from `TestMain`, because fsync dominates their run time on macOS; the `hive` binary always syncs.
+Test binaries of `tooling/management` and `tooling/cli` call `management.DisableDiskSyncForTests` from `TestMain`, because fsync dominates their run time on macOS; the `hive` binary always syncs. The same two `TestMain` functions also clear `test.testlogfile`, which disables Go's test-result cache for these packages on purpose: their tests Lstat path ancestors some 700k times, and the go command re-verifies that log line by line on every cached run (112–300 s and several GB without it, about 20 s with it), so running them each time is cheaper than the cache.
 
 Tests exercise the six user-scope mappings and the two supported project mappings with synthetic homes and projects, preserved LF/CRLF content and permissions, snapshots/downgrades, idempotence, conflicts, stale plans, links, concurrent directory creation, and recovery at each write boundary. Catalogue tests additionally cover multiple skills and nested Markdown references, source identity and forged payload rejection, new references in owned bundles, unowned reference conflicts, partial consumer retirement, old-release rollback, missing-checkout status/removal, v2 migration and legacy journal recovery. The pilot protocol and its limitations are in the [workspace screening fixtures](../../../tests/fixtures/workspace-conventions/README.md).
 
