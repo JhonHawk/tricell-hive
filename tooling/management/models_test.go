@@ -356,3 +356,25 @@ func TestEffectiveModelsFallBackToTheNewestReleaseWhenNoRecordIsCurrent(t *testi
 		}
 	}
 }
+
+// TestEffectiveModelsRowsCarryTheGroupOfTheirSourcePath fixes ModelRow.Group
+// (#46, T8): the folder under content/agents/ that holds the role's source.
+func TestEffectiveModelsRowsCarryTheGroupOfTheirSourcePath(t *testing.T) {
+	o := setup(t)
+	o.Hosts = allAgentHosts
+	modelsSource(t, o)
+	apply(t, plan(t, "install", o))
+	rows, err := EffectiveModels(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"plain-role": "design", "deep-role": "review", "inherit-role": "quality"}
+	for _, r := range rows {
+		if r.Group != want[r.Role] {
+			t.Errorf("%s/%s: group %q, want %q", r.Host, r.Role, r.Group, want[r.Role])
+		}
+	}
+	if len(rows) == 0 {
+		t.Fatal("no rows")
+	}
+}

@@ -18,6 +18,8 @@ import (
 // suffix of Model instead.
 type ModelRow struct {
 	Host, Role, Profile, Model, Effort string
+	// Group is the folder of the role's source under content/agents/.
+	Group string
 	// Override is set when a stored override changed Model or Effort.
 	Override bool
 }
@@ -123,7 +125,7 @@ func EffectiveModels(o Options) ([]ModelRow, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s on %s: %w", cand.role, cand.host, err)
 		}
-		rows = append(rows, ModelRow{Host: cand.host, Role: cand.role, Profile: profile, Model: m.Model, Effort: m.Effort, Override: override != nil})
+		rows = append(rows, ModelRow{Host: cand.host, Role: cand.role, Group: path.Base(path.Dir(record.Target.Source)), Profile: profile, Model: m.Model, Effort: m.Effort, Override: override != nil})
 	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].Host != rows[j].Host {
