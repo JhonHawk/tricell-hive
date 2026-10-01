@@ -480,8 +480,51 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 	if err := addVoiceChanges(&p, o, state); err != nil {
 		return p, err
 	}
+	if err := planPiPackage(&p); err != nil {
+		return p, err
+	}
 	p.ID = planID(p)
 	return p, nil
+}
+
+func planPiPackage(p *Plan) error {
+	if p.Action != "install" || p.Config.Scope != "user" {
+		return nil
+	}
+	hasPi := false
+	for _, h := range p.Hosts {
+		if h == "pi" {
+			hasPi = true
+			break
+		}
+	}
+	if !hasPi {
+		return nil
+	}
+	path := filepath.Join(p.Config.PiHome, "settings.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			p.PiPackage = &PiPackageStep{Action: PackageInstall, Source: pi.HiveSubagentsSource, AddedByHive: true}
+			return nil
+		}
+		return err
+	}
+	d, err := pi.ClassifySubagents(data)
+	if err != nil {
+		return err
+	}
+	switch d.Status {
+	case pi.Absent:
+		p.PiPackage = &PiPackageStep{Action: PackageInstall, Source: pi.HiveSubagentsSource, AddedByHive: true}
+	case pi.Present:
+		p.PiPackage = &PiPackageStep{Action: PackageOmit, Source: d.Source}
+	case pi.Conflict:
+		return fmt.Errorf("pi-subagents conflict: extensions: [] or a filter that does not load the extension")
+	default:
+		return fmt.Errorf("pi-subagents: unknown status")
+	}
+	return nil
 }
 
 // overrideRenderError names the CLI and role of a role that has an override and

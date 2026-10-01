@@ -31,6 +31,8 @@ type journal struct {
 	BeforeState, AfterState snapshot
 	CreatedDirs             []string
 	Integrity               string
+	PackageDone             bool `json:",omitempty"`
+	PackagePending          bool `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -209,6 +211,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.CreatedDirs = append([]string(nil), state.CreatedDirs...)
 	next.Migrations = append([]MigrationReceipt(nil), state.Migrations...)
 	next.Voice = state.Voice
+	next.PiSubagentsSource = state.PiSubagentsSource
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
 		for k, v := range state.VoiceSpans {
@@ -296,6 +299,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	if !sameOverrides(state.ModelOverrides, next.ModelOverrides) {
 		changed = true
 	}
+	if p.PiPackage != nil && p.PiPackage.Action == PackageInstall {
+		changed = true
+	}
+	if p.Action == "remove" && hostsIncludePi(p.Hosts) && state.PiSubagentsSource != "" {
+		changed = true
+	}
 	if !changed {
 		return j, next, nil, false, nil
 	}
@@ -351,7 +360,7 @@ func startTransaction(p Plan, j journal, jp, pp string) error {
 
 // commitTransaction performs j's actual writes and verification, updating
 // the journal as it goes so Recover can tell exactly how far it got.
-func (e Engine) commitTransaction(p Plan, j *journal, state, next State, dirsToCreate []string, jp, pp string) error {
+func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, dirsToCreate []string, jp, pp string) error {
 	if err := e.fail("prepared"); err != nil {
 		return err
 	}
@@ -399,13 +408,19 @@ func (e Engine) commitTransaction(p Plan, j *journal, state, next State, dirsToC
 		}
 	}
 	if p.Migration != nil || len(p.Legacy) > 0 {
-		remaining, err := scanLegacy(p.Config, p.Hosts, next)
+		remaining, err := scanLegacy(p.Config, p.Hosts, *next)
 		if err != nil {
 			return err
 		}
 		if remaining.Detected || len(remaining.Edits) > 0 {
 			return fmt.Errorf("legacy retirement verification failed")
 		}
+	}
+	if err := e.fail("pi-package"); err != nil {
+		return err
+	}
+	if err := applyPiPackage(p, next, j, jp, e.fail); err != nil {
+		return err
 	}
 	if p.Release != nil {
 		path := filepath.Join(p.StateDir, "releases", p.Release.ID+".json")
@@ -576,6 +591,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 		return "", err
 	}
 	if !changed {
+		if err := revalidatePiPackage(p); err != nil {
+			return "", err
+		}
 		result := "unchanged"
 		if warning := recordSourceCommit(p); warning != "" {
 			result += "; " + warning
@@ -587,7 +605,7 @@ func (e Engine) Apply(p Plan) (string, error) {
 	if err = startTransaction(p, j, jp, pp); err != nil {
 		return "", err
 	}
-	if err = e.commitTransaction(p, &j, state, next, dirsToCreate, jp, pp); err != nil {
+	if err = e.commitTransaction(p, &j, state, &next, dirsToCreate, jp, pp); err != nil {
 		return j.ID, fmt.Errorf("transaction %s requires recover: %w", j.ID, err)
 	}
 	warning := recordSourceCommit(p)
@@ -649,6 +667,15 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	// retained installer, so a removed or restored copy must not block it.
 	if j.Phase == "committed" || j.Phase == "recovered" {
 		return j.Phase, os.Remove(pp)
+	}
+	if j.PackageDone || j.PackagePending {
+		if err := undoPiPackage(j); err != nil {
+			return "", err
+		}
+		j.PackageDone = false
+		if err := saveJournal(jp, j); err != nil {
+			return "", err
+		}
 	}
 	stateNow, err := read(filepath.Join(dir, "state.json"))
 	if err != nil {

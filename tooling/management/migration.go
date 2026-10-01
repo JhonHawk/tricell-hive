@@ -140,6 +140,15 @@ func PlanUnchanged(p Plan) (bool, error) {
 	if p.Action == "voice" && !reflect.DeepEqual(s.Voice, p.VoiceSetting) {
 		return false, nil
 	}
+	if err := revalidatePiPackage(p); err != nil {
+		return false, err
+	}
+	if p.PiPackage != nil && p.PiPackage.Action == PackageInstall {
+		return false, nil
+	}
+	if p.Action == "remove" && hostsIncludePi(p.Hosts) && s.PiSubagentsSource != "" {
+		return false, nil
+	}
 	for _, vc := range p.Voice {
 		cur, err := read(vc.Path)
 		if err != nil {
