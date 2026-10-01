@@ -30,6 +30,7 @@ const (
 	modelInheritLabel  = "inherit (parent session)"
 	modelEffortMissing = "-"
 
+	modelMixed          = "mixed"
 	modelOverrideMarker = " *"
 	modelOverrideNote   = "* set with hive models set"
 	modelNotApplied     = "not applied: role not in the installed release"
@@ -122,6 +123,60 @@ func modelTable(rows []management.ModelRow, width int) (header string, lines []s
 	return columns.header(), lines
 }
 
+// sortedByGroup returns rows ordered by group and then role. The sort is
+// stable, so rows already ordered by role keep that order inside a group.
+func sortedByGroup(rows []management.ModelRow) []management.ModelRow {
+	out := append([]management.ModelRow(nil), rows...)
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Group != out[j].Group {
+			return out[i].Group < out[j].Group
+		}
+		return out[i].Role < out[j].Role
+	})
+	return out
+}
+
+// groupSummary is what a group header shows: the model and the effort the
+// group's roles have in common, or "mixed" for a part on which they differ, and
+// whether any of its roles has an override of its own. It reads the same cells
+// as the table, so the header and the rows below it never disagree.
+func groupSummary(rows []management.ModelRow) (model, effort string, override bool) {
+	for i, r := range rows {
+		c := modelCellsFor(r)
+		override = override || r.Override
+		if i == 0 {
+			model, effort = c.model, c.effort
+			continue
+		}
+		if c.model != model {
+			model = modelMixed
+		}
+		if c.effort != effort {
+			effort = modelMixed
+		}
+	}
+	return model, effort, override
+}
+
+// groupHeaderLine is the header line of the group that starts at rows[i], or
+// false when the row has no group.
+func groupHeaderLine(rows []management.ModelRow, i int) (string, bool) {
+	group := rows[i].Group
+	if group == "" {
+		return "", false
+	}
+	end := i
+	for end < len(rows) && rows[end].Group == group {
+		end++
+	}
+	model, effort, override := groupSummary(rows[i:end])
+	name := group
+	if override {
+		name += modelOverrideMarker
+	}
+	return name + "  " + model + "  " + effort, true
+}
+
 // collectModels reads the registered CLIs and the effective model of every
 // installed role, for the Models view and the `hive models` command alike.
 func collectModels(o management.Options) (hosts []string, rows []management.ModelRow, err error) {
@@ -160,9 +215,15 @@ func renderModelsTextWith(hosts []string, rows []management.ModelRow, unapplied 
 		if len(byHost[host]) == 0 {
 			fmt.Fprintln(w, "  No agents installed for "+host)
 		} else {
-			header, lines := modelTable(byHost[host], 0)
+			hostRows := sortedByGroup(byHost[host])
+			header, lines := modelTable(hostRows, 0)
 			fmt.Fprintln(w, "  "+header)
-			for _, l := range lines {
+			for i, l := range lines {
+				if i == 0 || hostRows[i].Group != hostRows[i-1].Group {
+					if h, ok := groupHeaderLine(hostRows, i); ok {
+						fmt.Fprintln(w, "  "+h)
+					}
+				}
 				fmt.Fprintln(w, "  "+l)
 			}
 		}
@@ -274,15 +335,16 @@ func planModelsChange(o management.Options, host string, next map[string]managem
 
 // modelsFlags are the flags of `hive models set` and `hive models reset`.
 type modelsFlags struct {
-	host, role, model, effort, only, home, stateDir, out string
-	all, dry                                             bool
-	modelGiven, effortGiven                              bool
+	host, role, group, model, effort, only, home, stateDir, out string
+	all, dry                                                    bool
+	modelGiven, effortGiven                                     bool
 }
 
 func parseModelsFlags(sub string, args []string) (f modelsFlags, err error) {
 	fs := flag.NewFlagSet("models "+sub, flag.ContinueOnError)
 	fs.StringVar(&f.host, "host", "", "CLI whose role is changed")
 	fs.StringVar(&f.role, "role", "", "agent role")
+	fs.StringVar(&f.group, "group", "", "agent group: every role under content/agents/<group>/")
 	if sub == "set" {
 		fs.StringVar(&f.model, "model", "", "model for the role")
 		fs.StringVar(&f.effort, "effort", "", "effort for the role")
@@ -330,10 +392,15 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 	if err != nil {
 		return err
 	}
+	if f.group != "" && f.role != "" {
+		return fmt.Errorf("--group and --role cannot be combined")
+	}
 	var next map[string]management.ModelOverride
+	var groupRows []management.ModelRow
+	var replaced []string
 	if sub == "set" {
-		if f.role == "" {
-			return fmt.Errorf("--role is required")
+		if f.role == "" && f.group == "" {
+			return fmt.Errorf("--role or --group is required")
 		}
 		if f.modelGiven && f.model == "" {
 			return fmt.Errorf("--model must not be empty; use hive models reset --only model to return to the release's model")
@@ -344,23 +411,55 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 		if !f.modelGiven && !f.effortGiven {
 			return fmt.Errorf("hive models set needs --model or --effort")
 		}
-		next = modelsChange{set: management.ModelOverride{Model: f.model, Effort: f.effort}}.applyTo(stored[f.host], f.role)
+		if f.group != "" {
+			if groupRows, err = groupRowsOf(o, f.host, f.group, stored[f.host]); err != nil {
+				return err
+			}
+			next, replaced = setGroup(stored[f.host], groupRows, management.ModelOverride{Model: f.model, Effort: f.effort})
+		} else {
+			set := management.ModelOverride{Model: f.model, Effort: f.effort}
+			if set.Effort == "" {
+				// Only the opencode rule can add an effort; it needs the role's row.
+				rows, err := hostModelRows(o, f.host)
+				if err != nil {
+					return err
+				}
+				for _, r := range rows {
+					if r.Role == f.role {
+						set = keepShownEffort(f.host, r, set)
+					}
+				}
+			}
+			next = modelsChange{set: set}.applyTo(stored[f.host], f.role)
+		}
 	} else {
 		switch {
+		case f.all && f.group != "":
+			return fmt.Errorf("--all cannot be combined with --group")
 		case f.all && (f.role != "" || f.only != ""):
 			if f.role != "" {
 				return fmt.Errorf("--all cannot be combined with --role")
 			}
-			return fmt.Errorf("--only needs --role")
-		case !f.all && f.role == "":
-			return fmt.Errorf("hive models reset needs --role or --all")
+			return fmt.Errorf("--only needs --role or --group")
+		case !f.all && f.role == "" && f.group == "":
+			return fmt.Errorf("hive models reset needs --role, --group or --all")
 		case f.only != "" && f.only != "model" && f.only != "effort":
 			return fmt.Errorf("--only must be model or effort")
 		}
-		if f.all {
+		change := modelsChange{dropAll: f.only == "", dropModel: f.only == "model", dropEffort: f.only == "effort"}
+		switch {
+		case f.all:
 			next = map[string]management.ModelOverride{}
-		} else {
-			next = modelsChange{dropAll: f.only == "", dropModel: f.only == "model", dropEffort: f.only == "effort"}.applyTo(stored[f.host], f.role)
+		case f.group != "":
+			if groupRows, err = groupRowsOf(o, f.host, f.group, stored[f.host]); err != nil {
+				return err
+			}
+			next = stored[f.host]
+			for _, r := range groupRows {
+				next = change.applyTo(next, r.Role)
+			}
+		default:
+			next = change.applyTo(stored[f.host], f.role)
 		}
 	}
 	p, before, err := planModelsChange(o, f.host, next)
@@ -378,11 +477,87 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 	}
 	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	return confirmAndApplyPlan(p, planRun{
-		summary:   func(unchanged bool) { showModelsSummary(out, f.host, p, before, stored[f.host], unchanged) },
+		summary: func(unchanged bool) {
+			if !unchanged && len(replaced) > 0 {
+				fmt.Fprintf(out, "Replaces the own override of: %s\n", strings.Join(replaced, ", "))
+			}
+			showModelsSummary(out, f.host, p, before, stored[f.host], unchanged)
+		},
 		doneVerb:  "Model settings updated",
 		unchanged: "Nothing to change: the model settings already match.",
 		stateOnly: !modelsFilesChange(p),
 	}, out, interactive, f.dry, f.out, terminal)
+}
+
+// hostModelRows is the effective rows of one CLI as they are before a change.
+func hostModelRows(o management.Options, host string) ([]management.ModelRow, error) {
+	o.Hosts = []string{host}
+	return management.EffectiveModels(o)
+}
+
+// groupRowsOf returns the rows of the roles installed for host in group. An
+// unknown group is refused, naming the groups the CLI has. A CLI that cannot be
+// changed at all (not installed, no agents) reports that instead, as it does for
+// --role.
+func groupRowsOf(o management.Options, host, group string, stored map[string]management.ModelOverride) ([]management.ModelRow, error) {
+	rows, err := hostModelRows(o, host)
+	if err != nil {
+		return nil, err
+	}
+	var in []management.ModelRow
+	known := map[string]bool{}
+	for _, r := range rows {
+		known[r.Group] = true
+		if r.Group == group {
+			in = append(in, r)
+		}
+	}
+	if len(in) > 0 {
+		return in, nil
+	}
+	if _, err := management.BuildModelsPlan(o, host, stored); err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(known))
+	for g := range known {
+		names = append(names, g)
+	}
+	sort.Strings(names)
+	return nil, fmt.Errorf("group %q is unknown for %s; known groups: %s", group, host, strings.Join(names, ", "))
+}
+
+// keepShownEffort applies the OpenCode rule: there the effort travels inside
+// the model id as "#variant", so changing the model without choosing an effort
+// would drop the variant the role shows today. The shown effort is written into
+// the override, the one case where a release value is copied into it.
+func keepShownEffort(host string, shown management.ModelRow, set management.ModelOverride) management.ModelOverride {
+	if host != "opencode" || set.Model == "" || set.Effort != "" {
+		return set
+	}
+	if e := modelCellsFor(shown).effort; e != modelEffortMissing {
+		set.Effort = e
+	}
+	return set
+}
+
+// setGroup returns the CLI's override set once every role of the group has an
+// override with only the given parts, replacing its own, and the roles whose own
+// override that replaces with something different.
+func setGroup(stored map[string]management.ModelOverride, rows []management.ModelRow, set management.ModelOverride) (map[string]management.ModelOverride, []string) {
+	next := map[string]management.ModelOverride{}
+	for r, v := range stored {
+		next[r] = v
+	}
+	var replaced []string
+	for _, r := range rows {
+		v := keepShownEffort(r.Host, r, set)
+		if old, ok := stored[r.Role]; ok && old != v {
+			replaced = append(replaced, r.Role)
+		}
+		next[r.Role] = v
+	}
+	sort.Strings(replaced)
+	return next, replaced
 }
 
 // showModelsSummary lists, per role whose override changes, the effective model
@@ -453,7 +628,7 @@ func resolveAfter(p management.Plan, host, role string, old management.ModelRow)
 		if err != nil {
 			return old, err
 		}
-		return management.ModelRow{Host: host, Role: role, Profile: profile, Model: m.Model, Effort: m.Effort, Override: override != nil}, nil
+		return management.ModelRow{Host: host, Role: role, Group: old.Group, Profile: profile, Model: m.Model, Effort: m.Effort, Override: override != nil}, nil
 	}
 	return old, fmt.Errorf("role is not in the release")
 }

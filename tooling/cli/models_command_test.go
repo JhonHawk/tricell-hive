@@ -192,7 +192,7 @@ func TestModelsCommandSetAppliesAndModelsShowsTheMarker(t *testing.T) {
 	if !strings.Contains(text, "plain-role *") || !strings.Contains(text, "opus") || !strings.Contains(text, "* set with hive models set") {
 		t.Fatalf("hive models after set:\n%s", text)
 	}
-	if strings.Count(text, " *\n")+strings.Count(text, " * ") != 1 {
+	if strings.Count(withoutGroupHeaders(text), " *\n")+strings.Count(withoutGroupHeaders(text), " * ") != 1 {
 		t.Fatalf("exactly one row should carry the marker:\n%s", text)
 	}
 }
@@ -410,13 +410,13 @@ func TestModelsCommandRejectionsNameTheProblemAndWriteNothing(t *testing.T) {
 		{"empty effort", "set", []string{"--host", "claude", "--role", "plain-role", "--effort", ""}, "--effort must not be empty"},
 		{"neither model nor effort", "set", []string{"--host", "claude", "--role", "plain-role"}, "needs --model or --effort"},
 		{"missing host", "set", []string{"--role", "plain-role", "--effort", "high"}, "--host is required"},
-		{"missing role", "set", []string{"--host", "claude", "--effort", "high"}, "--role is required"},
+		{"missing role", "set", []string{"--host", "claude", "--effort", "high"}, "--role or --group is required"},
 		{"unknown role", "set", []string{"--host", "claude", "--role", "ghost-role", "--effort", "high"}, `role "ghost-role" is not in the release installed for claude`},
 		{"unregistered CLI", "set", []string{"--host", "cursor", "--role", "plain-role", "--model", "x"}, "cursor is not installed"},
 		{"unknown CLI", "set", []string{"--host", "vim", "--role", "plain-role", "--model", "x"}, "unsupported host"},
-		{"reset without a target", "reset", []string{"--host", "claude"}, "--role or --all"},
+		{"reset without a target", "reset", []string{"--host", "claude"}, "--role, --group or --all"},
 		{"reset all with a role", "reset", []string{"--host", "claude", "--all", "--role", "plain-role"}, "--all cannot be combined"},
-		{"reset only without a role", "reset", []string{"--host", "claude", "--all", "--only", "model"}, "--only needs --role"},
+		{"reset only without a role", "reset", []string{"--host", "claude", "--all", "--only", "model"}, "--only needs --role or --group"},
 		{"reset with a bad part", "reset", []string{"--host", "claude", "--role", "plain-role", "--only", "both"}, "--only must be model or effort"},
 		{"reset of an unknown role", "reset", []string{"--host", "claude", "--role", "ghost-role"}, `role "ghost-role" is unknown for claude`},
 	}
