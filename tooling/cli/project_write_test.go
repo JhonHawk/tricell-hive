@@ -62,6 +62,10 @@ func TestHiveSectionEditTable(t *testing.T) {
 		{"empty file", "", []hiveItem{{"Project", "p"}}, nil, "## Hive\n\n- Project: p\n"},
 		{"empty section gets items after the blank line", "## Hive\n\n## Next\n", []hiveItem{{"Project", "p"}}, nil,
 			"## Hive\n\n- Project: p\n\n## Next\n"},
+		{"prose and an html comment inside the section are kept",
+			"## Hive\n\nWhy these values:\n<!-- keep: reviewed 2026-10 -->\n- Project: a\nMore prose.\n- Base branch: main\n<!-- tail -->\n\n## Next\n",
+			[]hiveItem{{"Project", "b"}, {"Specs", "s"}}, nil,
+			"## Hive\n\nWhy these values:\n<!-- keep: reviewed 2026-10 -->\n- Project: b\nMore prose.\n- Base branch: main\n- Specs: s\n<!-- tail -->\n\n## Next\n"},
 		{"section at end without newline", "## Hive\n- Project: a", []hiveItem{{"Specs", "s"}}, nil,
 			"## Hive\n- Project: a\n- Specs: s"},
 	}
@@ -196,6 +200,36 @@ func TestProjectWriteRejections(t *testing.T) {
 				t.Fatal("the file changed")
 			}
 		})
+	}
+}
+
+func TestProjectWriteRefusesAnExistingValueThatSanitizingWouldChange(t *testing.T) {
+	cases := map[string]string{
+		"escape sequence":    "- Tracker: t\x1b[31mred\n",
+		"right-to-left mark": "- Tracker: t\u202ered\n",
+		"control in the key": "- Tracker: t\n- Mystery\x1b[1m: x\n",
+	}
+	for name, line := range cases {
+		t.Run(name, func(t *testing.T) {
+			root := projectRepoWithSpecs(t, "# T\n\n## Hive\n\n- Project: p\n- Base branch: main\n"+line+"- Specs: _support/openspec\n")
+			path := filepath.Join(root, "AGENTS.md")
+			h := hashOf(t, path)
+			_, err := prepare(t, root, []hiveItem{{"Project", "q"}}, nil)
+			if err == nil || !strings.Contains(err.Error(), "existing value has a control or hidden character") {
+				t.Fatalf("error %v", err)
+			}
+			if strings.Contains(err.Error(), "\x1b") || strings.Contains(err.Error(), "\u202e") {
+				t.Fatalf("the error leaks the raw characters: %q", err)
+			}
+			if hashOf(t, path) != h {
+				t.Fatal("the file changed")
+			}
+		})
+	}
+	// The doctor still only reads and shows it cleaned.
+	root := projectRepoWithSpecs(t, "## Hive\n- Project: p\n- Tracker: t\x1b[31mred\n")
+	if out := strings.Join(validateHiveSection(root, "## Hive\n- Tracker: t\x1b[31mred\n", newGitRunner()), "\n"); strings.Contains(out, "hidden character") {
+		t.Fatalf("doctor output changed:\n%s", out)
 	}
 }
 

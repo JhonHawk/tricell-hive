@@ -457,6 +457,14 @@ func prepareProjectEdit(project string, set []hiveItem, unset []string, git gitR
 	}
 	w := walkHiveSection(string(e.After))
 	blocking, warnings := checkHiveText(w.Items, root, git)
+	// The preview shows every value sanitized, so a value the file already
+	// holds that sanitizing would change must not be written along unseen. The
+	// doctor does not do this check: it only reads.
+	for _, it := range w.Items {
+		if sanitizeLine(it.Key) != it.Key || sanitizeLine(it.Value) != it.Value {
+			blocking = append(blocking, truncateRunes(sanitizeLine(it.Key), 60)+": existing value has a control or hidden character; clean it first")
+		}
+	}
 	if len(blocking) > 0 {
 		return e, fmt.Errorf("%s not changed: %s", projectFileName, strings.Join(blocking, "; "))
 	}
