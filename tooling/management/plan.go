@@ -539,6 +539,11 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			}
 			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config), override)
 			if err != nil {
+				if override != nil {
+					// The stored override no longer fits this release: say whose it is
+					// and the way out, instead of a bare renderer message.
+					return nil, fmt.Errorf("%s %s: %w; run hive models reset --host %s --role %s", c.Host, role, err, c.Host, role)
+				}
 				return nil, err
 			}
 			if rendered != nil && !bytes.Equal(rendered, body) {

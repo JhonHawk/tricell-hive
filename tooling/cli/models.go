@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/charmbracelet/x/ansi"
 	"io"
 	"os"
 	"path/filepath"
@@ -418,18 +419,6 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 			next, replaced = setGroup(stored[f.host], groupRows, management.ModelOverride{Model: f.model, Effort: f.effort})
 		} else {
 			set := management.ModelOverride{Model: f.model, Effort: f.effort}
-			if set.Effort == "" {
-				// Only the opencode rule can add an effort; it needs the role's row.
-				rows, err := hostModelRows(o, f.host)
-				if err != nil {
-					return err
-				}
-				for _, r := range rows {
-					if r.Role == f.role {
-						set = keepShownEffort(f.host, r, set)
-					}
-				}
-			}
 			next = modelsChange{set: set}.applyTo(stored[f.host], f.role)
 		}
 	} else {
@@ -542,20 +531,6 @@ func groupRowsOf(o management.Options, host, group string, stored map[string]man
 	return nil, fmt.Errorf("group %q is unknown for %s; known groups: %s", group, host, strings.Join(names, ", "))
 }
 
-// keepShownEffort applies the OpenCode rule: there the effort travels inside
-// the model id as "#variant", so changing the model without choosing an effort
-// would drop the variant the role shows today. The shown effort is written into
-// the override, the one case where a release value is copied into it.
-func keepShownEffort(host string, shown management.ModelRow, set management.ModelOverride) management.ModelOverride {
-	if host != "opencode" || set.Model == "" || set.Effort != "" {
-		return set
-	}
-	if e := modelCellsFor(shown).effort; e != modelEffortMissing {
-		set.Effort = e
-	}
-	return set
-}
-
 // loses reports whether replacing the override old by next drops a part of old:
 // a part old holds that next lacks or changes. Adding a part loses nothing.
 func loses(old, next management.ModelOverride) bool {
@@ -572,7 +547,7 @@ func setGroup(stored map[string]management.ModelOverride, rows []management.Mode
 	}
 	var replaced []string
 	for _, r := range rows {
-		v := keepShownEffort(r.Host, r, set)
+		v := set
 		if old, ok := stored[r.Role]; ok && loses(old, v) {
 			replaced = append(replaced, r.Role)
 		}
@@ -734,42 +709,54 @@ func changeCell(before, after string, _ int) string {
 // columns to the longer one. distinct is false when the two sides would still
 // read the same after the cut, so the caller can show both ids in full.
 func changeModelCell(before, after string, room int) (cell string, distinct bool) {
+	const arrow = " → "
 	if room <= 0 {
 		return changeCell(before, after, 0), before != after
 	}
 	if before == after { // unchanged, but as long as any other id: cut it the same way
 		return cutMiddle(before, room), true
 	}
-	room -= len(" → ")
+	left := room - textWidth(arrow)
+	if left < 2 { // not even a column for each side: the cell is cut as a whole
+		return ansi.Truncate(before+arrow+after, room, ""), false
+	}
 	nb, na := textWidth(before), textWidth(after)
 	cb, ca := before, after
-	if nb+na > room {
-		half := room / 2
+	if nb+na > left {
+		half := left / 2
 		switch {
 		case nb <= half:
-			ca = cutMiddle(after, room-nb)
+			ca = cutMiddle(after, left-nb)
 		case na <= half:
-			cb = cutMiddle(before, room-na)
+			cb = cutMiddle(before, left-na)
 		default:
 			// The same budget on both sides, so a difference in what is kept
 			// comes from the ids and not from one side getting a column more.
 			cb, ca = cutMiddle(before, half), cutMiddle(after, half)
 		}
 	}
-	return cb + " → " + ca, cb != ca
+	return cb + arrow + ca, cb != ca
 }
 
 // cutMiddle fits s in width columns with "…" in the middle: the head keeps the
-// provider ("provider/") up to a third of the room, and the tail keeps the end of the
-// model name. It never splits a wide character.
+// provider ("provider/") up to a third of the room, and the tail keeps the end of
+// the model name. It never splits a wide character and never returns more than
+// width columns, whatever width is.
 func cutMiddle(s string, width int) string {
-	if textWidth(s) <= width || width < 3 {
+	if width <= 0 {
+		return ""
+	}
+	if textWidth(s) <= width {
 		return s
+	}
+	if width < 3 {
+		return ansi.Truncate(s, width, "…")
 	}
 	head := (width - 1) / 2
 	if i := strings.Index(s, "/"); i >= 0 {
 		head = min(textWidth(s[:i+1]), max((width-1)/3, 4)) // a third is enough to tell providers apart
 	}
+	head = min(head, width-2) // at least one column for the tail
 	tail := width - 1 - head
 	r := []rune(s)
 	h, used := 0, 0

@@ -78,7 +78,7 @@ func TestResolveOverrideReplacesModelAndEffort(t *testing.T) {
 		{"opencode model keeps the release variant", "opencode", "execution", "", ModelOverride{Model: "x/y"}, Model{"x/y#medium", ""}},
 		{"opencode model and effort", "opencode", "execution", "", ModelOverride{"x/y", "low"}, Model{"x/y#low", ""}},
 		{"opencode inherit variant is stripped, not stacked", "opencode", "inherit", "", ModelOverride{Effort: "high"}, Model{"syn-oc/inherit#high", ""}},
-		{"opencode inherit model only drops the release variant", "opencode", "inherit", "", ModelOverride{Model: "x/y"}, Model{"x/y", ""}},
+		{"opencode inherit model only carries the release variant", "opencode", "inherit", "", ModelOverride{Model: "x/y"}, Model{"x/y#max", ""}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

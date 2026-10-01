@@ -265,15 +265,15 @@ func TestModelsCommandGroupRejectionsWriteNothing(t *testing.T) {
 	}
 }
 
-// --- OpenCode keeps the shown effort when only the model changes ------------
+// --- OpenCode keeps each role's own effort when only the model changes: Resolve does it ---
 
 func TestModelsCommandOpenCodeRoleModelKeepsTheShownEffort(t *testing.T) {
 	e := newModelsEnv(t)
 	if out, err := e.write("set", true, "y\n", "--host", "opencode", "--role", "inherit-role", "--model", "x/y"); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	if got := e.stored(t)["opencode"]["inherit-role"]; got != (management.ModelOverride{Model: "x/y", Effort: "max"}) {
-		t.Fatalf("stored = %+v, want model x/y with the shown effort max", got)
+	if got := e.stored(t)["opencode"]["inherit-role"]; got != (management.ModelOverride{Model: "x/y"}) {
+		t.Fatalf("stored = %+v, want the model alone (Resolve carries the variant)", got)
 	}
 	if !strings.Contains(e.read(t, e.agentFile("opencode", "inherit-role")), `model: "x/y#max"`) {
 		t.Fatalf("file:\n%s", e.read(t, e.agentFile("opencode", "inherit-role")))
@@ -286,8 +286,8 @@ func TestModelsCommandOpenCodeGroupWithMixedEffortsKeepsEachRolesEffort(t *testi
 		t.Fatalf("%v\n%s", err, out)
 	}
 	want := map[string]management.ModelOverride{
-		"hive-design-architecture": {Model: "x/y", Effort: "high"},
-		"plain-role":               {Model: "x/y", Effort: "medium"},
+		"hive-design-architecture": {Model: "x/y"},
+		"plain-role":               {Model: "x/y"},
 	}
 	if got := e.stored(t)["opencode"]; !reflect.DeepEqual(got, want) {
 		t.Fatalf("stored = %+v, want %+v", got, want)

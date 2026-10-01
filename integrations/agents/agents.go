@@ -341,6 +341,15 @@ func Resolve(source string, data, profiles []byte, host string, override *ModelO
 			return "", m, fmt.Errorf("model override for %s: %w", host, err)
 		}
 		if override.Model != "" {
+			// OpenCode carries the effort inside the model id. A model override
+			// that sets no effort would drop the "#variant" the profile's model
+			// carries, so the variant moves to the effort first and the file keeps
+			// it; a profile with a separate effort field already follows the release.
+			if host == "opencode" && override.Effort == "" && m.Effort == "" {
+				if _, variant, found := strings.Cut(m.Model, "#"); found && variant != "" {
+					m.Effort = variant
+				}
+			}
 			m.Model = override.Model
 		}
 		if override.Effort != "" {
@@ -350,7 +359,7 @@ func Resolve(source string, data, profiles []byte, host string, override *ModelO
 				// which the override's effort replaces instead of stacking.
 				m.Model, _, _ = strings.Cut(m.Model, "#")
 				if m.Model == "" {
-					return "", m, fmt.Errorf("OpenCode effort requires a model; set a model with the effort")
+					return "", m, fmt.Errorf("OpenCode effort requires a model")
 				}
 			}
 		}
