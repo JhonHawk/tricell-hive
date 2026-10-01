@@ -42,7 +42,7 @@ func renderContent(t *testing.T) []byte {
 		}
 		canonical := filepath.ToSlash(rel)
 		for _, host := range []string{"claude", "codex", "cursor", "grok", "opencode", "pi"} {
-			rendered, err := Render(canonical, data, profiles, host, "/skills")
+			rendered, err := Render(canonical, data, profiles, host, "/skills", nil)
 			if err != nil {
 				t.Fatalf("Render(%s, %s): %v", host, canonical, err)
 			}

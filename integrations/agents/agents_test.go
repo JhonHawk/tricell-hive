@@ -93,7 +93,7 @@ func TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted(t *testi
 		}
 		canonical := strings.TrimPrefix(filepath.ToSlash(source), "../../")
 		for _, host := range allHosts {
-			out, err := Render(canonical, data, profiles, host, "/skills")
+			out, err := Render(canonical, data, profiles, host, "/skills", nil)
 			if err != nil {
 				t.Fatalf("Render(%s, %s): %v", host, canonical, err)
 			}
@@ -115,7 +115,7 @@ func TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted(t *testi
 func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
-	out, err := Render(source, data, profiles, "pi", "/skills")
+	out, err := Render(source, data, profiles, "pi", "/skills", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
-	out, err := Render(source, data, profiles, "codex", "/skills")
+	out, err := Render(source, data, profiles, "codex", "/skills", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	// The unicode role puts double quotes, single quotes, backslashes, a tab
 	// and non-ASCII text in both the description and the instruction body.
 	source, data = syntheticRole(t, "synthetic-unicode")
-	out, err = Render(source, data, profiles, "codex", "/skills")
+	out, err = Render(source, data, profiles, "codex", "/skills", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestCodexTOMLRoundTripsQuotedUnicodeInstructions(t *testing.T) {
 	source := "content/agents/design/test-agent.md"
 	body := "Use \"quoted\" values, C:\\\\work, and mañana.\n"
 	data := []byte("---\nname: test-agent\ndescription: \"A \\\"quoted\\\" role at C:\\\\work\"\nmodel_profile: inherit\naccess_profile: observe\n---\n" + body)
-	out, err := Render(source, data, profiles, "codex", "/skills")
+	out, err := Render(source, data, profiles, "codex", "/skills", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func TestProfilesRejectWrongPiToolRestrictionType(t *testing.T) {
 func TestCursorObserveRendersInheritModelAndReadonly(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
-	out, err := Render(source, data, profiles, "cursor", "/skills")
+	out, err := Render(source, data, profiles, "cursor", "/skills", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestRoleEffortOverridesProfileEffortOnClaudeCodexAndPi(t *testing.T) {
 		{"pi", "thinking: \"low\"\n"},
 	}
 	for _, c := range cases {
-		out, err := Render(source, data, profiles, c.host, "/skills")
+		out, err := Render(source, data, profiles, c.host, "/skills", nil)
 		if err != nil {
 			t.Fatalf("Render(%s): %v", c.host, err)
 		}
@@ -310,7 +310,7 @@ func TestGrokOpenCodeAndCursorEmitNoEffortEvenWhenRoleDeclaresOne(t *testing.T) 
 	source := "content/agents/design/test-agent.md"
 	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"max\"\n---\nBody\n")
 	for _, host := range []string{"grok", "opencode", "cursor"} {
-		out, err := Render(source, data, profiles, host, "/skills")
+		out, err := Render(source, data, profiles, host, "/skills", nil)
 		if err != nil {
 			t.Fatalf("Render(%s): %v", host, err)
 		}
@@ -342,11 +342,11 @@ func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	}
 	source, body := syntheticRole(t, "synthetic-observer")
 	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode"} {
-		if _, err := Render(source, body, data, host, "/skills"); err != nil {
+		if _, err := Render(source, body, data, host, "/skills", nil); err != nil {
 			t.Fatalf("Render(%s) on five-host profile: %v", host, err)
 		}
 	}
-	if _, err := Render(source, body, data, "cursor", "/skills"); err == nil || err.Error() != `unsupported agent host "cursor"` {
+	if _, err := Render(source, body, data, "cursor", "/skills", nil); err == nil || err.Error() != `unsupported agent host "cursor"` {
 		t.Fatalf("Render(cursor) on five-host profile = %v, want unsupported agent host error", err)
 	}
 }
@@ -384,7 +384,7 @@ func TestRenderRewritesSkillLinksOnEveryHost(t *testing.T) {
 	const source = "content/agents/synthetic/link-role.md"
 	for _, dir := range []string{"/home/u/.agents/skills", ".claude/skills"} {
 		for _, host := range allHosts {
-			out, err := Render(source, []byte(linkRole), profiles, host, dir)
+			out, err := Render(source, []byte(linkRole), profiles, host, dir, nil)
 			if err != nil {
 				t.Fatalf("Render(%s): %v", host, err)
 			}

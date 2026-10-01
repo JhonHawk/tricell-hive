@@ -514,7 +514,7 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		}
 		var rendered []byte
 		for _, c := range g.Consumers {
-			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config))
+			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config), nil)
 			if err != nil {
 				return nil, err
 			}

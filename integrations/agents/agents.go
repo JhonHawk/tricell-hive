@@ -18,6 +18,14 @@ import (
 const Version = "1"
 const ProfilesSource = "integrations/agent-profiles.json"
 
+// ModelOverride replaces part of the model a host receives for one role. An
+// empty field keeps the release's value. Only the part that is set is checked
+// by ValidateOverride and applied by Resolve.
+type ModelOverride struct {
+	Model  string `json:"model,omitempty"`
+	Effort string `json:"effort,omitempty"`
+}
+
 type Role struct {
 	Name, Description, ModelProfile, AccessProfile, Body, Effort, ClaudeEffort string
 }
@@ -258,7 +266,7 @@ func Validate(source string, data, profiles []byte) error {
 // receives for it. It is the single place that decides the effective effort:
 // effort_claude replaces the profile's effort on Claude Code only, and a
 // role's effort replaces it on every host that can represent it.
-func Resolve(source string, data, profiles []byte, host string) (profile string, m Model, err error) {
+func Resolve(source string, data, profiles []byte, host string, override *ModelOverride) (profile string, m Model, err error) {
 	r, err := Parse(source, data)
 	if err != nil {
 		return "", m, err
@@ -291,8 +299,8 @@ func Resolve(source string, data, profiles []byte, host string) (profile string,
 // Render builds a host's native role file. skillsDir is the directory the
 // installer places skills in for the target scope; Render stores it in the
 // role body in place of each skill: locator (see mdlinks.RewriteSkillLinks).
-func Render(source string, data, profiles []byte, host, skillsDir string) ([]byte, error) {
-	_, m, err := Resolve(source, data, profiles, host)
+func Render(source string, data, profiles []byte, host, skillsDir string, override *ModelOverride) ([]byte, error) {
+	_, m, err := Resolve(source, data, profiles, host, override)
 	if err != nil {
 		return nil, err
 	}

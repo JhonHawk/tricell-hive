@@ -109,7 +109,7 @@ func EffectiveModels(o Options) ([]ModelRow, error) {
 		if !found {
 			return nil, fmt.Errorf("release %s has no payload for %s", record.Release, record.Target.Source)
 		}
-		profile, m, err := agents.Resolve(record.Target.Source, data, release.Profiles, cand.host)
+		profile, m, err := agents.Resolve(record.Target.Source, data, release.Profiles, cand.host, nil)
 		if err != nil {
 			return nil, fmt.Errorf("%s on %s: %w", cand.role, cand.host, err)
 		}
