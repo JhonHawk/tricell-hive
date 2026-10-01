@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"tricell-hive/integrations/mdlinks"
 	"unicode/utf8"
 )
 
@@ -287,7 +288,10 @@ func Resolve(source string, data, profiles []byte, host string) (profile string,
 	return r.ModelProfile, m, nil
 }
 
-func Render(source string, data, profiles []byte, host string) ([]byte, error) {
+// Render builds a host's native role file. skillsDir is the directory the
+// installer places skills in for the target scope; Render stores it in the
+// role body in place of each skill: locator (see mdlinks.RewriteSkillLinks).
+func Render(source string, data, profiles []byte, host, skillsDir string) ([]byte, error) {
 	_, m, err := Resolve(source, data, profiles, host)
 	if err != nil {
 		return nil, err
@@ -296,6 +300,9 @@ func Render(source string, data, profiles []byte, host string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Rewrite before encoding: Codex's TOML string is one escaped line, which can
+	// no longer be scanned for fenced code.
+	r.Body = mdlinks.RewriteSkillLinks(r.Body, skillsDir)
 	p, err := ReadProfiles(profiles)
 	if err != nil {
 		return nil, err

@@ -12,6 +12,12 @@ import (
 	"tricell-hive/integrations/target"
 )
 
+// SkillsDir returns the directory Hive installs skills into for c. User scope
+// uses the shared store under the home directory.
+func SkillsDir(c target.Config) string {
+	return filepath.Join(c.Home, ".agents", "skills")
+}
+
 // Resolve returns Grok's Claude-compatible home instruction target and the
 // shared skill target. Grok has no native skill copy in this integration.
 func resolveBase(c target.Config) ([]target.Target, error) {
@@ -24,7 +30,7 @@ func resolveBase(c target.Config) ([]target.Target, error) {
 	if err := claudeAgentsEnabled(c.GrokHome, c.Synthetic); err != nil {
 		return nil, err
 	}
-	skill := filepath.Join(c.Home, ".agents", "skills", "workspace-conventions", "SKILL.md")
+	skill := filepath.Join(SkillsDir(c), "workspace-conventions", "SKILL.md")
 	return []target.Target{
 		{Path: filepath.Join(c.Home, ".claude", "CLAUDE.md"), Kind: "block", Host: "grok", Scope: c.Scope, Context: c.Home},
 		{Path: skill, Kind: "skill", Host: "grok", Scope: c.Scope, Context: c.Home},

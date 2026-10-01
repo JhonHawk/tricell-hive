@@ -6,6 +6,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"tricell-hive/integrations/mdlinks"
 )
 
 // These checks cover authored Markdown instruction links, not arbitrary prose,
@@ -19,37 +20,6 @@ func instructionMarkdown(source string) bool {
 		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || strings.Contains(source, "/references/"))))
 }
 
-// Ignore fenced examples: a template's example links are not release dependencies.
-func outsideFences(data string) string {
-	var out strings.Builder
-	var fence byte
-	size := 0
-	for _, line := range strings.Split(data, "\n") {
-		trim := strings.TrimLeft(line, " ")
-		if len(line)-len(trim) <= 3 && len(trim) >= 3 && (trim[0] == '`' || trim[0] == '~') {
-			n := 0
-			for n < len(trim) && trim[n] == trim[0] {
-				n++
-			}
-			if n >= 3 {
-				if fence == 0 {
-					fence, size = trim[0], n
-					continue
-				}
-				if trim[0] == fence && n >= size && strings.TrimSpace(trim[n:]) == "" {
-					fence, size = 0, 0
-					continue
-				}
-			}
-		}
-		if fence == 0 {
-			out.WriteString(line)
-			out.WriteByte('\n')
-		}
-	}
-	return out.String()
-}
-
 func validateInstructionReferences(r Release) error {
 	entries := make(map[string]bool, len(r.Files))
 	for _, f := range r.Files {
@@ -59,7 +29,7 @@ func validateInstructionReferences(r Release) error {
 		if !instructionMarkdown(f.Path) {
 			continue
 		}
-		body := outsideFences(string(f.Data))
+		body := mdlinks.OutsideFences(string(f.Data))
 		if personalResourcePath.MatchString(body) {
 			return fmt.Errorf("nonportable personal path in %s", f.Path)
 		}
