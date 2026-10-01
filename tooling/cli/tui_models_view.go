@@ -618,10 +618,10 @@ func (p *modelsPanel) modelID() string {
 // (Codex lists them per model). A chosen effort the model does not list falls
 // back to "release default" when the person just chose the model, and keeps the
 // list uncut otherwise, so a list that arrives late or a panel that opens does
-// not move an effort nobody changed.
-func (p *modelsPanel) trimEfforts(fromChoice bool) {
+// not move an effort nobody changed. It returns the effort it reset, or "".
+func (p *modelsPanel) trimEfforts(fromChoice bool) (reset string) {
 	if !p.supportsEffort() {
-		return
+		return ""
 	}
 	var allowed []string
 	for _, m := range p.catalog {
@@ -649,11 +649,13 @@ func (p *modelsPanel) trimEfforts(fromChoice bool) {
 	i := indexOf(list, current)
 	if i < 0 {
 		if !fromChoice {
-			return
+			return ""
 		}
 		i = indexOf(list, effortReleaseText)
+		reset = current
 	}
 	p.efforts, p.effort = list, i
+	return reset
 }
 
 // untrimmed is the full effort list of the panel's CLI.
@@ -902,6 +904,7 @@ func (v *modelsView) reset() (tea.Cmd, action) {
 			marked = marked || r.Override
 		}
 		if !marked {
+			v.message, v.msgErr = "Nothing to reset: "+groupTitle(it.group)+" group has no override", false
 			return nil, action{nav: navNone}
 		}
 		rows := it.rows
@@ -914,6 +917,7 @@ func (v *modelsView) reset() (tea.Cmd, action) {
 		}, modelsTitle("Reset", "", it.group, v.host, len(rows)))
 	}
 	if !it.row.Override {
+		v.message, v.msgErr = "Nothing to reset: "+it.row.Role+" has no override", false
 		return nil, action{nav: navNone}
 	}
 	role := it.row.Role
@@ -1226,4 +1230,13 @@ func (v *modelsView) Keys() []key.Binding {
 		binding("r", "r", "reload"),
 		binding("esc", "esc", "back"),
 	)
+}
+
+// groupTitle is a group's name with its first letter in capitals, as the
+// picker titles it.
+func groupTitle(group string) string {
+	if group == "" {
+		return group
+	}
+	return strings.ToUpper(group[:1]) + group[1:]
 }
