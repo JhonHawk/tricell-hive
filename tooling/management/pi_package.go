@@ -168,8 +168,15 @@ func applyPiPackage(p Plan, next *State, j *journal, jp string, fail func(string
 func undoPiPackage(j journal) error {
 	p := j.Plan
 	run := resolveApplyPi(p.Config.Synthetic)
+	d, err := readSubagents(p.Config.PiHome)
+	if err != nil {
+		return err
+	}
 	if p.PiPackage != nil && p.PiPackage.Action == PackageInstall {
-		return run(p.Config.PiHome, "remove", p.PiPackage.Source)
+		if d.Status == pi.Present && d.Source == p.PiPackage.Source {
+			return run(p.Config.PiHome, "remove", p.PiPackage.Source)
+		}
+		return nil
 	}
 	if p.Action == "remove" && hostsIncludePi(p.Hosts) {
 		var before State
@@ -179,7 +186,7 @@ func undoPiPackage(j journal) error {
 		if err := json.Unmarshal(j.BeforeState.Data, &before); err != nil {
 			return err
 		}
-		if before.PiSubagentsSource == "" {
+		if before.PiSubagentsSource == "" || d.Status != pi.Absent {
 			return nil
 		}
 		return run(p.Config.PiHome, "install", before.PiSubagentsSource)

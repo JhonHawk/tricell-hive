@@ -195,6 +195,29 @@ func TestApplyRejectsStaleOmitPlan(t *testing.T) {
 	}
 }
 
+func TestRecoverPreservesUserPinAfterInterruptedInstall(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"pi"}
+	p := plan(t, "install", o)
+	_, err := (Engine{failpoint: func(stage string) error {
+		if stage == "pi-package-after" {
+			return errors.New("injected")
+		}
+		return nil
+	}}).Apply(p)
+	if err == nil {
+		t.Fatal("expected failpoint")
+	}
+	put(t, filepath.Join(o.Home, ".pi", "agent", "settings.json"), `{"packages":["npm:pi-subagents@0.99.0"]}`+"\n")
+	piCalls = nil
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	if len(piCalls) != 0 {
+		t.Fatalf("recover overwrote user pin: %#v", piCalls)
+	}
+}
+
 func TestInterruptedAfterPiInstallRecoverRemovesPackage(t *testing.T) {
 	o := setup(t)
 	o.Hosts = []string{"pi"}
