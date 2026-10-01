@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -35,11 +34,16 @@ func (baseView) TextFocused() bool { return false }
 // ---------------------------------------------------------------------------
 
 func padRight(s string, width int) string {
-	if n := len([]rune(s)); n < width {
+	if n := textWidth(s); n < width {
 		return s + strings.Repeat(" ", width-n)
 	}
 	return s
 }
+
+// textWidth is the number of terminal columns s takes: a CJK character or an
+// emoji is two, a combining mark none. Every layout here counts columns, not
+// runes or bytes, so a wide name cannot push a line past its budget.
+func textWidth(s string) int { return lipgloss.Width(s) }
 
 // wrapLines wraps text to width columns, one entry per line.
 func wrapLines(text string, width int) []string {
@@ -233,20 +237,18 @@ func inputView(in textinput.Model, th *appTheme) string {
 	return b.String()
 }
 
-// truncateRunes returns s unchanged if it fits within width runes,
-// otherwise truncates it to width RUNES with a trailing "…". It counts and
-// slices by rune, not by byte: "…" (U+2026) is three UTF-8 bytes but one
-// terminal column, and every caller's own width here is a column budget —
-// slicing the underlying string by byte index would silently make a long
-// label two bytes (not columns) over budget.
+// truncateRunes returns s unchanged if it fits within width terminal columns,
+// otherwise cuts it so the result, with a trailing "…", takes at most width
+// columns. The name is historical: it measures display width, not runes, so a
+// wide character is never split and never overruns the budget.
 func truncateRunes(s string, width int) string {
-	if utf8.RuneCountInString(s) <= width {
+	if textWidth(s) <= width {
 		return s
 	}
 	if width <= 1 {
 		return strings.Repeat(".", max(width, 0))
 	}
-	return string([]rune(s)[:width-1]) + "…"
+	return ansi.Truncate(s, width, "…")
 }
 
 // ---------------------------------------------------------------------------

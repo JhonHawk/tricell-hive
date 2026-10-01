@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/charmbracelet/x/ansi"
 	"os"
 	"os/exec"
 	"strings"
@@ -157,13 +158,11 @@ func acceptedModels(host string, candidates []catalogModel) ([]catalogModel, err
 // catalogTextCap is the longest name or provider the view is given.
 const catalogTextCap = 60
 
-// catalogText cleans text read from a CLI's output and caps it at 60 runes.
+// catalogText cleans text read from a CLI's output and caps it at 60 terminal
+// columns, never splitting a wide character.
 func catalogText(s string) string {
 	s = strings.TrimSpace(sanitizeLine(s))
-	if r := []rune(s); len(r) > catalogTextCap {
-		s = string(r[:catalogTextCap])
-	}
-	return s
+	return strings.TrimSpace(ansi.Truncate(s, catalogTextCap, ""))
 }
 
 // parseLines turns each non-empty line into a candidate through parse; an empty

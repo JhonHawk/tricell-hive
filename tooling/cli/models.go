@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"unicode/utf8"
 
 	"tricell-hive/integrations/agents"
 	"tricell-hive/tooling/management"
@@ -74,14 +73,14 @@ type modelColumns struct{ role, profile, model, effort int }
 // layoutModelColumns sizes the columns for rows drawn in width columns. With
 // width 0 nothing is cut and every column is as wide as its longest text.
 func layoutModelColumns(cells []modelCells, width int) modelColumns {
-	c := modelColumns{role: utf8.RuneCountInString("Role"), profile: modelProfileWidth, effort: modelEffortWidth}
-	longestModel := utf8.RuneCountInString("Model")
+	c := modelColumns{role: textWidth("Role"), profile: modelProfileWidth, effort: modelEffortWidth}
+	longestModel := textWidth("Model")
 	for _, cell := range cells {
-		c.role = max(c.role, utf8.RuneCountInString(cell.role))
-		longestModel = max(longestModel, utf8.RuneCountInString(cell.model))
+		c.role = max(c.role, textWidth(cell.role))
+		longestModel = max(longestModel, textWidth(cell.model))
 		if width <= 0 {
-			c.profile = max(c.profile, utf8.RuneCountInString(cell.profile))
-			c.effort = max(c.effort, utf8.RuneCountInString(cell.effort))
+			c.profile = max(c.profile, textWidth(cell.profile))
+			c.effort = max(c.effort, textWidth(cell.effort))
 		}
 	}
 	if width <= 0 {
@@ -658,11 +657,11 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 	}
 	fmt.Fprintln(out)
 	if len(table) > 0 {
-		roleW := utf8.RuneCountInString("Role")
-		effW := utf8.RuneCountInString("Effort")
+		roleW := textWidth("Role")
+		effW := textWidth("Effort")
 		for _, r := range table {
-			roleW = max(roleW, utf8.RuneCountInString(r.role))
-			effW = max(effW, utf8.RuneCountInString(changeCell(r.eb, r.ea, 0)))
+			roleW = max(roleW, textWidth(r.role))
+			effW = max(effW, textWidth(changeCell(r.eb, r.ea, 0)))
 		}
 		modelRoom := 0 // 0: no limit
 		if tableWidth > 0 {
@@ -676,7 +675,7 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 		}
 		modelW := 0
 		for _, c := range cells {
-			modelW = max(modelW, utf8.RuneCountInString(c[1]))
+			modelW = max(modelW, textWidth(c[1]))
 		}
 		for _, c := range cells {
 			fmt.Fprintln(out, strings.TrimRight(padRight(c[0], roleW)+"  "+padRight(c[1], modelW)+"  "+c[2], " "))
@@ -726,7 +725,7 @@ func changeModelCell(before, after string, room int) string {
 		return changeCell(before, after, 0)
 	}
 	room -= len(" → ")
-	nb, na := utf8.RuneCountInString(before), utf8.RuneCountInString(after)
+	nb, na := textWidth(before), textWidth(after)
 	if nb+na <= room {
 		return before + " → " + after
 	}
@@ -740,13 +739,22 @@ func changeModelCell(before, after string, room int) string {
 	return cutLeft(before, half) + " → " + cutLeft(after, room-half)
 }
 
-// cutLeft keeps the last width columns of s, with "…" in front when it cut.
+// cutLeft keeps the end of s within width columns, with "…" in front when it cut.
 func cutLeft(s string, width int) string {
-	r := []rune(s)
-	if len(r) <= width || width < 2 {
+	if textWidth(s) <= width || width < 2 {
 		return s
 	}
-	return "…" + string(r[len(r)-width+1:])
+	r := []rune(s)
+	used, i := 1, len(r) // one column for the "…"
+	for i > 0 {
+		w := textWidth(string(r[i-1]))
+		if used+w > width {
+			break
+		}
+		used += w
+		i--
+	}
+	return "…" + string(r[i:])
 }
 
 // commonDir is the deepest directory that holds every file.

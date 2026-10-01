@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -1160,7 +1159,7 @@ func (v *modelsView) panelLines(c viewCtx) []string {
 		// "▸" says the value opens a list; the hint shows while the row has the focus.
 		text := truncateRunes(mark(p.row == 0)+label("Model")+p.modelLabel()+" ▸", c.Width)
 		modelLine = th.Text.Render(text)
-		if hint := "  → choose"; p.row == 0 && utf8.RuneCountInString(text)+utf8.RuneCountInString(hint) <= c.Width {
+		if hint := "  → choose"; p.row == 0 && textWidth(text)+textWidth(hint) <= c.Width {
 			modelLine += th.Muted.Render(hint)
 		}
 	}

@@ -232,8 +232,8 @@ func TestModelsViewArrowOpensTheModelListInOrder(t *testing.T) {
 	e := pickerEnv(t, "claude,codex", f, 80, 24)
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	// The models the CLI's roles use come first, the current one marked; the
-	// CLI's own list follows, without repeating them; two entries close the box.
+	// A flat list for Claude: the model the role stands on is listed (and marked)
+	// even though the CLI's aliases lack it; two entries close the box.
 	want := []string{"● syn-claude-exec", "fable", "opus", "sonnet", "haiku", "release default", "Other…"}
 	got := listItems(t, e.d)
 	if strings.Join(got, "|") != strings.Join(want, "|") {
@@ -1061,7 +1061,7 @@ func TestAbbreviateHomeUsesTheHomeInUse(t *testing.T) {
 
 // --- the boxed picker (D9-A) ----------------------------------------------------------
 
-func TestModelsViewOpenCodeSectionsFollowTheProvidersWithoutRepeatingInUseModels(t *testing.T) {
+func TestModelsViewOpenCodeSectionsFollowTheProvidersAndListEachModelOnce(t *testing.T) {
 	f := standardFake()
 	f.out["opencode"] = "openai/gpt-5.5\nsyn-oc/exec\nanthropic/claude-sonnet-4.5\nopenai/gpt-4\nsolo\n"
 	e := pickerEnv(t, "claude,opencode", f, 80, 24)
@@ -1400,5 +1400,190 @@ func TestModelsViewModelFieldShowsTheChooseIndicatorAndHint(t *testing.T) {
 	e.d.key("esc", "up", "up", "up", "up", "enter")
 	if got := e.d.screen(); !strings.Contains(got, "mixed ▸") {
 		t.Fatalf("a mixed group's Model row lacks \"mixed ▸\":\n%s", got)
+	}
+}
+
+// --- group edge cases ---------------------------------------------------------------
+
+func (e modelsEditEnv) stored(t *testing.T) map[string]map[string]management.ModelOverride {
+	t.Helper()
+	s, err := management.StoredModelOverrides(management.Options{Home: e.home, StateDir: e.stateDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// Changing only the effort of a group whose models differ sends no model.
+func TestModelsViewGroupEffortOnlyOverMixedModelsSendsNoModel(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	twinHome, twinState := e.twin(t)
+	e.d.key("enter", "down", "right", "right", "right") // mixed -> release default -> low -> medium
+	if got, _ := panelField(t, e.d, "Model"); got != "mixed" {
+		t.Fatalf("Model = %q", got)
+	}
+	e.d.key("enter")
+	e.d.mustShow("[Apply]")
+	e.d.key("enter")
+	e.d.mustShow("Open sessions keep the previous model until they restart")
+	command(t, twinHome, twinState, "set", "--host", "claude", "--group", "design", "--effort", "medium")
+	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
+	for role, o := range e.stored(t)["claude"] {
+		if o.Model != "" {
+			t.Errorf("%s got a model override %q", role, o.Model)
+		}
+	}
+}
+
+// Release default for both parts is a reset, and reads as one.
+func TestModelsViewGroupReleaseDefaultForBothPartsIsAReset(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	twinHome, twinState := e.twin(t)
+	prior := map[string]management.ModelOverride{"plain-role": {Model: "opus", Effort: "max"}, "hive-design-architecture": {Model: "opus", Effort: "low"}}
+	store(t, e.home, e.stateDir, "claude", prior)
+	store(t, twinHome, twinState, "claude", prior)
+	e.d.key("r")
+	e.d.key("enter", "right")
+	pickDefault(e.d)
+	e.d.key("down", "right") // mixed -> release default
+	if got, _ := panelField(t, e.d, "Effort"); got != "< release default >" {
+		t.Fatalf("Effort = %q", got)
+	}
+	e.d.key("enter")
+	e.d.mustShow("Reset the Design group on claude (2 roles)", "[Apply]")
+	e.d.mustNotShow("Change the", "Replaces the own override")
+	e.d.key("enter")
+	e.d.mustShow("Open sessions keep the previous model until they restart")
+	command(t, twinHome, twinState, "reset", "--host", "claude", "--group", "design")
+	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
+}
+
+// A role whose own override is kept and only gains a part loses nothing and is not listed.
+func TestModelsViewGroupConfirmationListsOnlyRolesThatLoseAPart(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Model: "opus"}})
+	e.d.key("r")
+	e.d.key("enter", "right")
+	pick(e.d, "opus")
+	e.d.key("down", "right", "right") // mixed -> release default -> low
+	e.d.key("enter")
+	e.d.mustShow("[Apply]", "Effort")
+	e.d.mustNotShow("Replaces the own override")
+
+	// The command's summary says the same.
+	c := newModelsEnv(t)
+	if _, err := c.write("set", true, "y\n", "--host", "claude", "--role", "plain-role", "--model", "opus"); err != nil {
+		t.Fatal(err)
+	}
+	out, err := c.write("set", true, "y\n", "--host", "claude", "--group", "design", "--model", "opus", "--effort", "low")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "Replaces the own override") {
+		t.Fatalf("a role that loses nothing is listed:\n%s", out)
+	}
+	// A role that does lose a part is still listed.
+	out, err = c.write("set", true, "y\n", "--host", "claude", "--group", "design", "--model", "sonnet")
+	if err != nil || !strings.Contains(out, "Replaces the own override of ") {
+		t.Fatalf("err = %v\n%s", err, out)
+	}
+}
+
+func TestModelsViewALongModelIDInTheListIsTruncatedAndFits(t *testing.T) {
+	long := "provider/" + strings.Repeat("m", 141) // 150 characters
+	f := standardFake()
+	f.out["opencode"] = long + "\nx/y\n"
+	e := pickerEnv(t, "claude,opencode", f, 80, 24)
+	toHost(t, e.d, "opencode")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	e.d.mustShow("mmm", "…") // shown without its "provider/" prefix, and cut
+	e.d.mustNotShow(long)
+	assertFits(t, e.d, 80, 24)
+	typeText(e.d, "provider")
+	assertFits(t, e.d, 80, 24)
+}
+
+// The CLI lists the current model below another one: the cursor still starts on it.
+func TestModelsViewCursorStartsOnTheCurrentModelListedBelowAnother(t *testing.T) {
+	f := standardFake()
+	f.out["codex"] = codexList(map[string][]string{"gpt-5.5": {"low"}, "syn-codex-exec": {"low", "medium"}}, "gpt-5.5", "syn-codex-exec")
+	e := pickerEnv(t, "claude,codex", f, 80, 24)
+	toHost(t, e.d, "codex")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	items := listItems(t, e.d)
+	if len(items) < 2 || !strings.HasPrefix(items[0], "GPT-5.5") || !strings.HasPrefix(items[1], "● ") {
+		t.Fatalf("the list does not put the current model below another: %q", items)
+	}
+	if got := pickerSelection(t, e); got != "syn-codex-exec" {
+		t.Fatalf("the cursor starts on %q, want the current model", got)
+	}
+}
+
+// --- display width ------------------------------------------------------------------
+
+// A 50-character CJK name takes 100 columns and an emoji takes two: layouts that
+// count runes would run past the width. Every line must fit, and the box must
+// stay two columns short.
+func TestModelsViewPickerFitsWideCharactersInNames(t *testing.T) {
+	cjk := strings.Repeat("漢", 50)
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			old1, old2 := codexNames["gpt-6.1-sol"], codexNames["gpt-5.5"]
+			codexNames["gpt-6.1-sol"], codexNames["gpt-5.5"] = cjk, "Fast 🚀 Rocket Model 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀"
+			t.Cleanup(func() { codexNames["gpt-6.1-sol"], codexNames["gpt-5.5"] = old1, old2 })
+			e := pickerEnv(t, "claude,codex", standardFake(), size[0], size[1])
+			toHost(t, e.d, "codex")
+			selectRole(t, e.d, "plain-role")
+			e.d.key("enter", "right")
+			e.d.mustShow("漢", "🚀")
+			assertFits(t, e.d, size[0], size[1])
+			in := false
+			for _, l := range e.d.lines() {
+				if strings.HasPrefix(l, "┌") {
+					in = true
+				}
+				if in && lipgloss.Width(l) > size[0]-2 {
+					t.Fatalf("a box line is %d columns, want at most %d: %q", lipgloss.Width(l), size[0]-2, l)
+				}
+				if strings.HasPrefix(l, "└") {
+					in = false
+				}
+			}
+			typeText(e.d, "漢")
+			assertFits(t, e.d, size[0], size[1])
+			e.d.key("enter") // choose the CJK-named model, then review it
+			e.d.key("enter")
+			e.d.mustShow("[Apply]")
+			assertFits(t, e.d, size[0], size[1])
+		})
+	}
+}
+
+func TestCatalogNamesAreCappedByDisplayWidthWithoutSplittingACharacter(t *testing.T) {
+	for _, name := range []string{strings.Repeat("漢", 50), strings.Repeat("🚀", 40), "ab" + strings.Repeat("漢", 40)} {
+		got := catalogText(name)
+		if w := lipgloss.Width(got); w > 60 || w < 58 {
+			t.Errorf("catalogText(%q…) is %d columns, want 58 to 60", name[:6], w)
+		}
+		if !utf8.ValidString(got) {
+			t.Errorf("a character was split: %q", got)
+		}
+	}
+}
+
+func TestChangeTableCutsByDisplayWidth(t *testing.T) {
+	for _, c := range []struct{ before, after string }{
+		{strings.Repeat("漢", 20), strings.Repeat("字", 20)},
+		{"x/" + strings.Repeat("🚀", 15), "y/" + strings.Repeat("🚀", 15)},
+	} {
+		cell := changeModelCell(c.before, c.after, 30)
+		if w := lipgloss.Width(cell); w > 30 {
+			t.Errorf("a cell of %d columns for a room of 30: %q", w, cell)
+		}
+		if !strings.Contains(cell, "…") || !strings.Contains(cell, "→") {
+			t.Errorf("the cell lost its arrow or its cut mark: %q", cell)
+		}
 	}
 }

@@ -373,7 +373,7 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 	}
 	title := "Select model"
 	ctx := truncateRunes(" · "+v.host+" · "+who, max(W-len(title)-len(" esc ")-6, 1))
-	fill := max(W-2-1-len(title)-utf8.RuneCountInString(ctx)-1-len(" esc "), 0)
+	fill := max(W-2-1-len(title)-textWidth(ctx)-1-len(" esc "), 0)
 	lines := []string{border("┌") + th.Text.Render(" ") + th.Title.Render(title) + th.Muted.Render(ctx+" ") +
 		border(strings.Repeat("─", fill)) + th.Muted.Render(" esc ") + border("┐")}
 
@@ -381,14 +381,14 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 		lines = append(lines, boxed(th.Muted.Render("Search"), len("Search")))
 	} else {
 		text := truncateRunes("Search: "+p.list.filter, inner)
-		lines = append(lines, boxed(th.Text.Render(text), utf8.RuneCountInString(text)))
+		lines = append(lines, boxed(th.Text.Render(text), textWidth(text)))
 	}
 	if loading, text := v.listStatus(); loading {
 		text = truncateRunes(text, inner-2)
-		lines = append(lines, boxed(c.Spinner+" "+th.Muted.Render(text), 2+utf8.RuneCountInString(text)))
+		lines = append(lines, boxed(c.Spinner+" "+th.Muted.Render(text), 2+textWidth(text)))
 	} else if text != "" {
 		text = truncateRunes(text, inner)
-		lines = append(lines, boxed(th.Danger.Render(text), utf8.RuneCountInString(text)))
+		lines = append(lines, boxed(th.Danger.Render(text), textWidth(text)))
 	} else {
 		lines = append(lines, boxed("", 0))
 	}
@@ -409,7 +409,7 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 			lines = append(lines, boxed("", 0))
 		case ln.header != "":
 			text := truncateRunes(ln.header, inner)
-			lines = append(lines, boxed(th.Accent.Render(text), utf8.RuneCountInString(text)))
+			lines = append(lines, boxed(th.Accent.Render(text), textWidth(text)))
 		default:
 			rendered, plain := pickerRow(th, inner, content.rows[ln.row], ln.row == p.list.cur, v.host)
 			lines = append(lines, boxed(rendered, plain))
@@ -445,7 +445,7 @@ func pickerRow(th *appTheme, inner int, r pickRow, selected bool, host string) (
 	primary = truncateRunes(primary, max(budget, 1))
 	secondary := ""
 	if r.name != "" {
-		if room := budget - utf8.RuneCountInString(primary) - 2; room >= 4 {
+		if room := budget - textWidth(primary) - 2; room >= 4 {
 			secondary = truncateRunes(id, room)
 		}
 	}
@@ -454,14 +454,14 @@ func pickerRow(th *appTheme, inner int, r pickRow, selected bool, host string) (
 		text += "  " + secondary
 	}
 	if selected && !th.NoColor {
-		text += strings.Repeat(" ", max(inner-utf8.RuneCountInString(text), 0))
-		return th.ButtonOn.Render(text), utf8.RuneCountInString(text)
+		text += strings.Repeat(" ", max(inner-textWidth(text), 0))
+		return th.ButtonOn.Render(text), textWidth(text)
 	}
 	out := th.Text.Render(cursor + mark + primary)
 	if secondary != "" {
 		out += th.Muted.Render("  " + secondary)
 	}
-	return out, utf8.RuneCountInString(text)
+	return out, textWidth(text)
 }
 
 // pickerBottom draws the last line inside the box: the two entries that always
@@ -481,8 +481,8 @@ func (v *modelsView) pickerBottom(c viewCtx, n, inner int, boxed func(string, in
 			text, st = " "+label+" ", th.ButtonOn
 		}
 		out += st.Render(text) + "  "
-		plain += utf8.RuneCountInString(text) + 2
+		plain += textWidth(text) + 2
 	}
-	gap := max(inner-plain-utf8.RuneCountInString(pickerHint), 1)
-	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(pickerHint), plain+gap+utf8.RuneCountInString(pickerHint))
+	gap := max(inner-plain-textWidth(pickerHint), 1)
+	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(pickerHint), plain+gap+textWidth(pickerHint))
 }
