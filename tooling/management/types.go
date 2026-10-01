@@ -129,6 +129,9 @@ type State struct {
 	// role, for the user scope. Schema stays 6: a state with no override encodes
 	// as before, because the field is omitted when empty and kept nil then.
 	ModelOverrides map[string]map[string]ModelOverride `json:"model_overrides,omitempty"`
+	// PiSubagentsSource is the exact npm source Hive installed, or empty when
+	// Hive did not add the package. Schema stays 6 via omitempty.
+	PiSubagentsSource string `json:"pi_subagents_source,omitempty"`
 }
 type Fingerprint struct {
 	TreeHash   string `json:"tree_hash,omitempty"`
@@ -191,6 +194,24 @@ type Plan struct {
 	// set and every other CLI carries what the state already has. Remove, voice
 	// and project-scope plans carry none. Apply stores the plan's CLIs' sets.
 	ModelOverrides map[string]map[string]ModelOverride `json:"model_overrides,omitempty"`
+	// PiPackage is the pi-subagents step for a user-scope install that includes
+	// Pi. It is not a file Change: Pi rewrites settings.json itself.
+	PiPackage *PiPackageStep `json:"pi_package,omitempty"`
+}
+
+// PackageAction is the planned pi-subagents operation.
+type PackageAction string
+
+const (
+	PackageInstall PackageAction = "install"
+	PackageOmit    PackageAction = "omit"
+)
+
+// PiPackageStep is the planned declaration of pi-subagents in Pi user settings.
+type PiPackageStep struct {
+	Action      PackageAction `json:"action"`
+	Source      string        `json:"source,omitempty"`
+	AddedByHive bool          `json:"added_by_hive,omitempty"`
 }
 
 // ReleaseEntry describes one retained release snapshot for hive releases: its

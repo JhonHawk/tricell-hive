@@ -712,7 +712,8 @@
       "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6",
       "transaction": "<id>"
     }
-  ]
+  ],
+  "pi_subagents_source": "npm:pi-subagents@0.74.0"
 }
 === plan ===
 {
@@ -1578,5 +1579,10 @@
     "detector": "legacy-hive-16e7d335-v1",
     "result": "clean",
     "release": "a7f2bc1bdc44327d6e48827486bd551d27f6b794511d15cf603194852d3127a6"
+  },
+  "pi_package": {
+    "action": "install",
+    "source": "npm:pi-subagents@0.74.0",
+    "added_by_hive": true
   }
 }

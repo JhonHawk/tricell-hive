@@ -30,6 +30,10 @@ func get(t *testing.T, path string) string {
 }
 func setup(t *testing.T) Options {
 	t.Helper()
+	piCalls = nil
+	old := applyPiCmd
+	applyPiCmd = stubApplyPi
+	t.Cleanup(func() { applyPiCmd = old })
 	base, err := target.Canonical(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
