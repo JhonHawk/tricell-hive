@@ -549,3 +549,43 @@ func TestProjectViewHelpBarOfTheValidationListsEdit(t *testing.T) {
 		}
 	}
 }
+
+func TestProjectViewTextFocusedFollowsTheFocusedField(t *testing.T) {
+	_, d, v := openProjectView(t, formRepo(t), nil, 80, 24)
+	if v.TextFocused() {
+		t.Fatal("TextFocused is true with the form closed")
+	}
+	d.key("e")
+	d.screen()
+	if !v.TextFocused() {
+		t.Fatal("TextFocused is false on a text field")
+	}
+	d.key("down", "down", "down", "down", "down", "down") // Delivery
+	if v.TextFocused() {
+		t.Fatal("TextFocused is true on Delivery")
+	}
+	d.key("down") // Hive guidance
+	if v.TextFocused() {
+		t.Fatal("TextFocused is true on Hive guidance")
+	}
+	d.key("up", "up", "up") // Specs
+	if !v.TextFocused() {
+		t.Fatal("TextFocused is false on Specs")
+	}
+	d.key("esc")
+	if v.TextFocused() {
+		t.Fatal("TextFocused is true after the form closed")
+	}
+}
+
+func TestProjectViewFormLongErrorRowFits(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			_, d, v := openForm(t, formRepo(t), size[0], size[1])
+			v.form.message = "cannot write AGENTS.md: " + strings.Repeat("e", 200)
+			v.form.messageOK = false
+			d.mustShow("cannot write AGENTS.md", "…")
+			assertFits(t, d, size[0], size[1])
+		})
+	}
+}
