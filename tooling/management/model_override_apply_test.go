@@ -43,7 +43,7 @@ func TestModelOverrideApplyRejectsHandEditedPlansWithTheSpecificReason(t *testin
 		want string
 	}{
 		{"an invalid override", tamper(base, func(p *Plan) { setOverride(p, "claude", plainRole, ModelOverride{Model: "a b"}) }), "model may only contain"},
-		{"an effort on a CLI without effort", tamper(base, func(p *Plan) { setOverride(p, "claude", plainRole, ModelOverride{}) }), "needs a model or an effort"},
+		{"an empty override", tamper(base, func(p *Plan) { setOverride(p, "claude", plainRole, ModelOverride{}) }), "needs a model or an effort"},
 		{"a different override for a CLI outside the plan", tamper(base, func(p *Plan) { setOverride(p, "codex", plainRole, ModelOverride{Model: "x"}) }), "model overrides for codex differ from the state"},
 		{"an unknown CLI", tamper(base, func(p *Plan) { setOverride(p, "vim", plainRole, ModelOverride{Model: "x"}) }), "unsupported host"},
 		{"a role the release does not have", tamper(base, func(p *Plan) { setOverride(p, "claude", "ghost-role", ModelOverride{Model: "x"}) }), `role "ghost-role" is not in the release`},
@@ -91,5 +91,28 @@ func TestModelOverrideStalePlanIsRejectedByStateHash(t *testing.T) {
 	}
 	if got := stateFor(t, o).ModelOverrides["claude"][plainRole]; got != (ModelOverride{Effort: claudeEffort}) {
 		t.Fatalf("the stale plan changed the stored override to %+v", got)
+	}
+}
+
+func TestModelOverrideApplyRejectsAnEffortOnCLIsWithoutEffort(t *testing.T) {
+	o := setup(t)
+	o.Hosts = allAgentHosts
+	modelsSource(t, o)
+	apply(t, plan(t, "install", o))
+	for _, host := range []string{"grok", "cursor"} {
+		t.Run(host, func(t *testing.T) {
+			// A valid plan for the CLI, edited by hand to carry an effort.
+			base := buildModels(t, o, host, map[string]ModelOverride{plainRole: {Model: "some-model"}})
+			edited := tamper(base, func(p *Plan) { setOverride(p, host, plainRole, ModelOverride{Model: "some-model", Effort: "high"}) })
+			stateBefore := stateBytes(t, o)
+			_, err := (Engine{}).Apply(edited)
+			want := host + " does not support effort"
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("Apply error = %v, want one containing %q", err, want)
+			}
+			if stateBytes(t, o) != stateBefore {
+				t.Fatal("a rejected plan changed the state")
+			}
+		})
 	}
 }
