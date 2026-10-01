@@ -23,12 +23,19 @@ type modelsEditEnv struct {
 	home, stateDir, source string
 	hosts                  string
 	deps                   installDependencies
+	runner                 catalogRunner // the fake model-list runner; nil leaves the real selection
 }
 
 // newModelsEditEnv installs source for hosts and opens the Models view.
 func newModelsEditEnv(t *testing.T, source, hosts string, width, height int) modelsEditEnv {
 	t.Helper()
-	e := modelsEditEnv{source: source, hosts: hosts, deps: hostsTestDeps(coreOnlyAdapterFactory)}
+	return newModelsEditEnvWith(t, source, hosts, width, height, nil)
+}
+
+// newModelsEditEnvWith is newModelsEditEnv with a fake model-list runner.
+func newModelsEditEnvWith(t *testing.T, source, hosts string, width, height int, runner catalogRunner) modelsEditEnv {
+	t.Helper()
+	e := modelsEditEnv{source: source, hosts: hosts, deps: hostsTestDeps(coreOnlyAdapterFactory), runner: runner}
 	e.home, e.stateDir = newHostsTestHome(t)
 	installViaText(t, e.home, e.stateDir, source, hosts, "y\n", e.deps)
 	return e.open(t, width, height)
@@ -37,9 +44,10 @@ func newModelsEditEnv(t *testing.T, source, hosts string, width, height int) mod
 func (e modelsEditEnv) open(t *testing.T, width, height int) modelsEditEnv {
 	t.Helper()
 	cfg := hostsAppConfig(t, e.home, e.stateDir, e.source, e.deps)
+	cfg.catalogRunner = e.runner
 	e.m, e.d = newTestApp(t, cfg, width, height)
 	before := len(e.m.stack)
-	e.d.send(pushViewMsg{v: newModelsView(cfg)})
+	e.d.send(pushViewMsg{v: newModelsView(e.m.cfg)}) // the app's cfg carries the shared catalog cache
 	v, ok := e.m.top().(*modelsView)
 	if !ok || len(e.m.stack) != before+1 {
 		t.Fatalf("top view is %T", e.m.top())
@@ -98,6 +106,12 @@ func cursorRole(t *testing.T, d *appDriver) string {
 		}
 	}
 	if found == "" {
+		// The cursor can rest on a group header (T9); no role is selected then.
+		for _, line := range d.lines() {
+			if strings.HasPrefix(line, "> ") && !panelRowPattern.MatchString(line) {
+				return ""
+			}
+		}
 		t.Fatalf("no line carries the cursor:\n%s", d.screen())
 	}
 	return found
@@ -137,8 +151,12 @@ func mustNoPanel(t *testing.T, d *appDriver) {
 	}
 }
 
+// clearModelField turns Model into its text field, through the list's "Other…"
+// entry, and empties the field. The panel's Model is a choice since T9, so every
+// test that types a model first goes through this.
 func clearModelField(d *appDriver) {
 	d.t.Helper()
+	d.key("right", "end", "enter")
 	for range 60 {
 		d.key("backspace")
 	}
@@ -168,17 +186,46 @@ func sameSnapshot(a, b snapshotFiles) bool {
 
 // --- the list ------------------------------------------------------------------
 
+// groupedRoles orders the synthetic catalogue the way the grouped table lists
+// it: by group (design, generated, quality), then by role.
+func groupedRoles(roles []string) []string {
+	group := func(r string) string {
+		switch r {
+		case longRoleName, "plain-role":
+			return "design"
+		case "inherit-role":
+			return "quality"
+		}
+		return "generated"
+	}
+	out := append([]string(nil), roles...)
+	sort.Slice(out, func(i, j int) bool {
+		if gi, gj := group(out[i]), group(out[j]); gi != gj {
+			return gi < gj
+		}
+		return out[i] < out[j]
+	})
+	return out
+}
+
 func TestModelsViewCursorMovesWithArrowsAndReachesTheLastRole(t *testing.T) {
 	source, roles := syntheticCatalogueSource(t)
-	sort.Strings(roles)
+	roles = groupedRoles(roles)
 	e := newModelsEditEnv(t, source, "claude", 80, 24)
-	if got := cursorRole(t, e.d); got != roles[0] {
-		t.Fatalf("the cursor starts on %s, want %s", got, roles[0])
+	// The cursor starts on a group header (T9) and visits the headers too, so
+	// the roles are reached in order with the headers skipped.
+	if got := cursorRole(t, e.d); got != "" {
+		t.Fatalf("the cursor starts on role %s, want a group header", got)
 	}
-	for i := 1; i < len(roles); i++ {
-		e.d.key("down")
+	for i := 0; i < len(roles); i++ {
+		for range 3 { // at most one header sits between two roles
+			e.d.key("down")
+			if cursorRole(t, e.d) != "" {
+				break
+			}
+		}
 		if got := cursorRole(t, e.d); got != roles[i] {
-			t.Fatalf("after %d downs the cursor is on %s, want %s", i, got, roles[i])
+			t.Fatalf("the %dth role is %s, want %s", i+1, got, roles[i])
 		}
 	}
 	assertFits(t, e.d, 80, 24)
@@ -186,7 +233,7 @@ func TestModelsViewCursorMovesWithArrowsAndReachesTheLastRole(t *testing.T) {
 	if got := cursorRole(t, e.d); got != roles[len(roles)-1] {
 		t.Fatalf("the cursor ran past the last role: %s", got)
 	}
-	e.d.key("up")
+	e.d.key("up", "up") // the Quality header sits between the last two roles
 	if got := cursorRole(t, e.d); got != roles[len(roles)-2] {
 		t.Fatalf("up from the last role reaches %s", got)
 	}
@@ -194,7 +241,7 @@ func TestModelsViewCursorMovesWithArrowsAndReachesTheLastRole(t *testing.T) {
 
 func TestModelsViewPageKeysStillScrollAndTheCursorStaysInView(t *testing.T) {
 	source, roles := syntheticCatalogueSource(t)
-	sort.Strings(roles)
+	roles = groupedRoles(roles)
 	e := newModelsEditEnv(t, source, "claude", 80, 24)
 	e.d.key("pgdown")
 	e.d.mustNotShow(roles[0] + " ")
@@ -202,11 +249,15 @@ func TestModelsViewPageKeysStillScrollAndTheCursorStaysInView(t *testing.T) {
 		t.Fatalf("the cursor stayed on a row that scrolled away: %s", got)
 	}
 	e.d.key("end")
-	e.d.mustShow("lines 8-22 of 22")
+	e.d.mustShow(fmt.Sprintf("lines %d-%d of %d", len(roles)+3-14, len(roles)+3, len(roles)+3)) // 3 group headers
 	if got := cursorRole(t, e.d); got != roles[len(roles)-1] {
 		t.Fatalf("End leaves the cursor on %s", got)
 	}
 	e.d.key("home")
+	if got := cursorRole(t, e.d); got != "" { // Home selects the first item, a header
+		t.Fatalf("Home leaves the cursor on %s, want the first header", got)
+	}
+	e.d.key("down")
 	if got := cursorRole(t, e.d); got != roles[0] {
 		t.Fatalf("Home leaves the cursor on %s", got)
 	}
@@ -228,8 +279,16 @@ func TestModelsViewMarksAnOverriddenRoleAndKeepsTheMarkNextToTheCursor(t *testin
 	if line == "" || !strings.Contains(line, "max") {
 		t.Fatalf("the cursor line does not carry the mark and the override:\n%s", e.d.screen())
 	}
-	if n := strings.Count(e.d.screen(), " *  "); n != 1 {
-		t.Fatalf("%d rows carry the mark, want 1:\n%s", n, e.d.screen())
+	// The Design header carries the mark too, because one of its roles is overridden.
+	e.d.mustShow("Design *")
+	marked := 0
+	for _, l := range e.d.lines() {
+		if m := listRowPattern.FindStringSubmatch(l); m != nil && m[3] != "" {
+			marked++
+		}
+	}
+	if marked != 1 {
+		t.Fatalf("%d role rows carry the mark, want 1:\n%s", marked, e.d.screen())
 	}
 }
 
@@ -237,12 +296,13 @@ func TestModelsViewFooterHasTheTwoLinesAndTheFixedRowsStaySix(t *testing.T) {
 	source, roles := syntheticCatalogueSource(t)
 	e := newModelsEditEnv(t, source, "claude", 80, 24)
 	e.d.mustShow(
-		"Enter edits the selected role; x resets one marked *.",
+		"Enter edits the selected role or group; x resets one marked *.",
 		"Defaults come from integrations/agent-profiles.json in the release.",
 	)
 	e.d.mustNotShow("To change a model or effort")
-	// 24 rows less the chrome and the six fixed rows leave 15 table rows.
-	e.d.mustShow(fmt.Sprintf("lines 1-15 of %d", len(roles)))
+	// 24 rows less the chrome and the six fixed rows leave 15 table rows; the
+	// three group headers are table rows too.
+	e.d.mustShow(fmt.Sprintf("lines 1-15 of %d", len(roles)+3))
 	assertFits(t, e.d, 80, 24)
 }
 
@@ -322,7 +382,9 @@ func TestModelsViewPanelKeysEscBackspaceAndTypedLetters(t *testing.T) {
 	selectRole(t, e.d, "plain-role")
 	seq := e.v.seq
 	e.d.key("enter")
+	// Model is a choice until "Other…" makes it a text field (T9). There,
 	// Backspace deletes text; r and x are typed, not commands.
+	e.d.key("right", "end", "enter")
 	e.d.key("backspace", "backspace", "r", "x")
 	if got, _ := panelField(t, e.d, "Model"); got != "syn-claude-exrx" {
 		t.Fatalf("Model = %q, want the typed letters in the field", got)

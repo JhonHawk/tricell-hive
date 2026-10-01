@@ -554,6 +554,10 @@ func setGroup(stored map[string]management.ModelOverride, rows []management.Mode
 		if old, ok := stored[r.Role]; ok && old != v {
 			replaced = append(replaced, r.Role)
 		}
+		if v == (management.ModelOverride{}) {
+			delete(next, r.Role) // the view can ask for the release's values everywhere
+			continue
+		}
 		next[r.Role] = v
 	}
 	sort.Strings(replaced)
