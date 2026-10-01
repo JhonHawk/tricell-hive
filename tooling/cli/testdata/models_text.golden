@@ -1,0 +1,29 @@
+claude
+  Role                      Profile     Model                     Effort
+  hive-design-architecture  reasoning   syn-claude-reason         high
+  inherit-role              inherit     inherit (parent session)  low
+  plain-role                execution   syn-claude-exec           medium
+
+codex
+  Role                      Profile     Model             Effort
+  hive-design-architecture  reasoning   syn-codex-reason  high
+  inherit-role              inherit     host default      low
+  plain-role                execution   syn-codex-exec    medium
+
+grok
+  Role                      Profile     Model         Effort
+  hive-design-architecture  reasoning   host default  -
+  inherit-role              inherit     host default  -
+  plain-role                execution   host default  -
+
+opencode
+  Role                      Profile     Model           Effort
+  hive-design-architecture  reasoning   syn-oc/reason   high
+  inherit-role              inherit     syn-oc/inherit  max
+  plain-role                execution   syn-oc/exec     medium
+
+pi
+  Role                      Profile     Model                     Effort
+  hive-design-architecture  reasoning   syn-pi/reason             high
+  inherit-role              inherit     inherit (parent session)  low
+  plain-role                execution   syn-pi/exec               medium
