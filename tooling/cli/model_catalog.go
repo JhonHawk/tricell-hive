@@ -30,8 +30,14 @@ const (
 // catalogModel is one model a CLI offers. Efforts is empty when the host's
 // general effort list applies.
 type catalogModel struct {
-	ID      string
-	Efforts []string
+	ID string
+	// Name is the CLI's display name for the model, and Provider the part of the
+	// id before the first "/" (OpenCode and Pi). Either is empty when the CLI
+	// does not give it. Both come from command output, so they are cleaned and
+	// capped before anything shows them.
+	Name     string
+	Provider string
+	Efforts  []string
 }
 
 // catalogRunner runs a fixed listing command and returns its standard output.
@@ -108,13 +114,20 @@ func listHostModels(ctx context.Context, host string, run catalogRunner) ([]cata
 			return nil, err
 		}
 	case "opencode":
-		candidates = parseLines(out, func(line string) string { return line })
+		candidates = parseLines(out, func(line string) catalogModel { return catalogModel{ID: line} })
 	case "pi":
-		candidates = parseLines(out, piModelID)
+		candidates = parseLines(out, func(line string) catalogModel { return catalogModel{ID: piModelID(line)} })
 	case "grok":
-		candidates = parseLines(out, grokModelID)
+		candidates = parseLines(out, func(line string) catalogModel { return catalogModel{ID: grokModelID(line)} })
 	case "cursor":
-		candidates = parseLines(out, cursorModelID)
+		candidates = parseLines(out, cursorModel)
+	}
+	if host == "opencode" || host == "pi" {
+		for i := range candidates {
+			if provider, _, found := strings.Cut(candidates[i].ID, "/"); found {
+				candidates[i].Provider = catalogText(provider)
+			}
+		}
 	}
 	return acceptedModels(host, candidates)
 }
@@ -141,17 +154,29 @@ func acceptedModels(host string, candidates []catalogModel) ([]catalogModel, err
 	return models, nil
 }
 
-// parseLines turns each non-empty line into a candidate through id; an empty
+// catalogTextCap is the longest name or provider the view is given.
+const catalogTextCap = 60
+
+// catalogText cleans text read from a CLI's output and caps it at 60 runes.
+func catalogText(s string) string {
+	s = strings.TrimSpace(sanitizeLine(s))
+	if r := []rune(s); len(r) > catalogTextCap {
+		s = string(r[:catalogTextCap])
+	}
+	return s
+}
+
+// parseLines turns each non-empty line into a candidate through parse; an empty
 // id skips the line.
-func parseLines(out []byte, id func(line string) string) []catalogModel {
+func parseLines(out []byte, parse func(line string) catalogModel) []catalogModel {
 	var models []catalogModel
 	for _, line := range strings.Split(string(out), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		if v := id(line); v != "" {
-			models = append(models, catalogModel{ID: v})
+		if m := parse(line); m.ID != "" {
+			models = append(models, m)
 		}
 	}
 	return models
@@ -179,15 +204,24 @@ func grokModelID(line string) string {
 	return f[0]
 }
 
-// cursorModelID reads `id - Name` rows; the header and the tip have no ` - `
-// after a single-token id.
-func cursorModelID(line string) string {
-	id, _, found := strings.Cut(line, " - ")
+// cursorModel reads `id - Name` rows, with the "(default)" and "(current)"
+// markers dropped from the name; the header and the tip have no ` - ` after a
+// single-token id.
+func cursorModel(line string) catalogModel {
+	id, name, found := strings.Cut(line, " - ")
 	id = strings.TrimSpace(id)
 	if !found || id == "" || strings.ContainsAny(id, " \t") {
-		return ""
+		return catalogModel{}
 	}
-	return id
+	name = strings.TrimSpace(name)
+	for {
+		trimmed := strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(name, "(default)"), "(current)"))
+		if trimmed == name {
+			break
+		}
+		name = trimmed
+	}
+	return catalogModel{ID: id, Name: catalogText(name)}
 }
 
 // parseCodexModels reads `codex debug models`: models[].slug with visibility
@@ -195,9 +229,10 @@ func cursorModelID(line string) string {
 func parseCodexModels(out []byte) ([]catalogModel, error) {
 	var doc struct {
 		Models []struct {
-			Slug       string `json:"slug"`
-			Visibility string `json:"visibility"`
-			Levels     []struct {
+			Slug        string `json:"slug"`
+			DisplayName string `json:"display_name"`
+			Visibility  string `json:"visibility"`
+			Levels      []struct {
 				Effort string `json:"effort"`
 			} `json:"supported_reasoning_levels"`
 		} `json:"models"`
@@ -210,7 +245,7 @@ func parseCodexModels(out []byte) ([]catalogModel, error) {
 		if m.Visibility != "list" {
 			continue
 		}
-		c := catalogModel{ID: m.Slug}
+		c := catalogModel{ID: m.Slug, Name: catalogText(m.DisplayName)}
 		for _, l := range m.Levels {
 			if agents.ValidateOverride("codex", agents.ModelOverride{Effort: l.Effort}) == nil {
 				c.Efforts = append(c.Efforts, l.Effort)

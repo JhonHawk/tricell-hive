@@ -57,9 +57,9 @@ func TestCatalogCodexSkipsHiddenModelsAndReadsEfforts(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []catalogModel{
-		{ID: "gpt-6.1-sol", Efforts: []string{"low", "medium", "high", "xhigh", "max", "ultra"}},
-		{ID: "gpt-6-luna", Efforts: []string{"low", "medium", "high", "xhigh", "max"}},
-		{ID: "gpt-5.5", Efforts: []string{"low", "medium", "high", "xhigh"}},
+		{ID: "gpt-6.1-sol", Name: "GPT-6.1 Sol", Efforts: []string{"low", "medium", "high", "xhigh", "max", "ultra"}},
+		{ID: "gpt-6-luna", Name: "GPT-6 Luna", Efforts: []string{"low", "medium", "high", "xhigh", "max"}},
+		{ID: "gpt-5.5", Name: "GPT-5.5", Efforts: []string{"low", "medium", "high", "xhigh"}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("models = %+v, want %+v", got, want)
@@ -389,5 +389,85 @@ func TestCatalogIsNeverQueriedByModelsOrDoctor(t *testing.T) {
 	}
 	if *calls != 0 {
 		t.Fatalf("a model list was queried %d times", *calls)
+	}
+}
+
+func catalogByID(models []catalogModel) map[string]catalogModel {
+	out := map[string]catalogModel{}
+	for _, m := range models {
+		out[m.ID] = m
+	}
+	return out
+}
+
+func TestCatalogCodexReadsTheDisplayName(t *testing.T) {
+	r := &recordingRunner{outputs: [][]byte{readCatalogSample(t, "codex")}}
+	models, err := listHostModels(context.Background(), "codex", r.run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := catalogByID(models)
+	if by["gpt-6.1-sol"].Name != "GPT-6.1 Sol" || by["gpt-5.5"].Name != "GPT-5.5" || by["gpt-5.5"].Provider != "" {
+		t.Fatalf("models = %+v", models)
+	}
+}
+
+func TestCatalogCursorReadsTheNameWithoutItsMarkers(t *testing.T) {
+	r := &recordingRunner{outputs: [][]byte{readCatalogSample(t, "cursor")}}
+	models, err := listHostModels(context.Background(), "cursor", r.run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := catalogByID(models)
+	if by["auto"].Name != "Auto" || by["gpt-5.3-codex-low"].Name != "Codex 5.3 Low" {
+		t.Fatalf("models = %+v", models)
+	}
+	out := []byte("Available models\n\nm-1 - Model One (current)\nm-2 - Model Two (default) (current)\n")
+	r = &recordingRunner{outputs: [][]byte{out}}
+	models, _ = listHostModels(context.Background(), "cursor", r.run)
+	if by = catalogByID(models); by["m-1"].Name != "Model One" || by["m-2"].Name != "Model Two" {
+		t.Fatalf("markers kept: %+v", models)
+	}
+}
+
+func TestCatalogOpenCodeAndPiGiveTheProviderAndNoName(t *testing.T) {
+	for host, ids := range map[string]map[string]string{
+		"opencode": {"opencode/big-pickle": "opencode", "openai/gpt-5.5": "openai", "github-copilot/claude-opus-4.7": "github-copilot"},
+		"pi":       {"openai/gpt-4": "openai", "xai/grok-4.3": "xai"},
+	} {
+		r := &recordingRunner{outputs: [][]byte{readCatalogSample(t, host)}}
+		models, err := listHostModels(context.Background(), host, r.run)
+		if err != nil {
+			t.Fatal(err)
+		}
+		by := catalogByID(models)
+		for id, provider := range ids {
+			if by[id].Provider != provider || by[id].Name != "" {
+				t.Errorf("%s %s = %+v, want provider %q and no name", host, id, by[id], provider)
+			}
+		}
+	}
+	for _, host := range []string{"grok", "claude"} {
+		r := &recordingRunner{outputs: [][]byte{readCatalogSample(t, "grok")}}
+		models, _ := listHostModels(context.Background(), host, r.run)
+		for _, m := range models {
+			if m.Name != "" || m.Provider != "" {
+				t.Errorf("%s gave %+v", host, m)
+			}
+		}
+	}
+}
+
+func TestCatalogNamesAreCleanedAndCapped(t *testing.T) {
+	long := strings.Repeat("n", 90)
+	out := []byte("{\"models\":[{\"slug\":\"m-1\",\"display_name\":\"Bad\\u001b[31m\\tName\\u202e\",\"visibility\":\"list\"},{\"slug\":\"m-2\",\"display_name\":\"" + long + "\",\"visibility\":\"list\"}]}")
+	r := &recordingRunner{outputs: [][]byte{out}}
+	models, err := listHostModels(context.Background(), "codex", r.run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := catalogByID(models)
+	if strings.ContainsAny(by["m-1"].Name, "\x1b\t‮") || len([]rune(by["m-2"].Name)) != 60 {
+		t.Fatalf("names = %q, %q", by["m-1"].Name, by["m-2"].Name)
 	}
 }
