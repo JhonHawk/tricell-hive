@@ -143,3 +143,23 @@ func TestThemeNoColorStylesCarryNoColor(t *testing.T) {
 		}
 	}
 }
+
+// TestThemeSurfaceKeepsTextReadable: the picker's panel paints a background, so
+// every text style it uses must reach 4.5:1 against that background.
+func TestThemeSurfaceKeepsTextReadable(t *testing.T) {
+	for _, isDark := range []bool{true, false} {
+		th := newAppTheme(isDark, false)
+		bg := th.Surface.GetBackground()
+		if _, unset := bg.(lipgloss.NoColor); unset {
+			t.Fatalf("%s: the surface has no background", themeBranch(isDark))
+		}
+		for name, st := range map[string]lipgloss.Style{"Text": th.Text, "Muted": th.Muted, "Title": th.Title, "Accent": th.Accent, "Danger": th.Danger} {
+			if r := wcagContrastRatio(st.GetForeground(), bg); r < wcagNormalTextMinimum {
+				t.Errorf("%s %s on the surface = %.2f, want >= %.1f", themeBranch(isDark), name, r, wcagNormalTextMinimum)
+			}
+		}
+	}
+	if _, ok := newAppTheme(true, true).Surface.GetBackground().(lipgloss.NoColor); !ok {
+		t.Error("the NO_COLOR surface paints a background")
+	}
+}

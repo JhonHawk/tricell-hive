@@ -26,6 +26,8 @@ type appTheme struct {
 	// NoColor is set under NO_COLOR: no style carries a color, so a view marks
 	// the selected row with a symbol instead of a highlight.
 	NoColor bool
+	// Surface paints a raised panel's background; it sets nothing under NO_COLOR.
+	Surface lipgloss.Style
 }
 
 // themeColors is one branch (dark or light terminal background) of the
@@ -34,16 +36,17 @@ type appTheme struct {
 type themeColors struct {
 	text, muted, accent, success, danger string
 	buttonFG, buttonBG                   string
+	surface                              string // the background of a raised panel
 }
 
 var (
 	darkColors = themeColors{
 		text: "#e4e4e4", muted: "#a8a8a8", accent: "#afafff", success: "#5fd787", danger: "#ff8787",
-		buttonFG: "#1a1a1a", buttonBG: "#afafff",
+		buttonFG: "#1a1a1a", buttonBG: "#afafff", surface: "#2b2b2b",
 	}
 	lightColors = themeColors{
 		text: "#262626", muted: "#585858", accent: "#3a3ab8", success: "#006b3c", danger: "#b3001b",
-		buttonFG: "#ffffff", buttonBG: "#3a3ab8",
+		buttonFG: "#ffffff", buttonBG: "#3a3ab8", surface: "#e4e4e4",
 	}
 )
 
@@ -61,6 +64,7 @@ func newAppTheme(isDark, noColor bool) appTheme {
 				FullKey: plain, FullDesc: plain, FullSeparator: plain,
 			},
 			NoColor: true,
+			Surface: plain,
 		}
 	}
 	c := lightColors
@@ -77,6 +81,7 @@ func newAppTheme(isDark, noColor bool) appTheme {
 		Danger:    fg(c.danger).Bold(true),
 		ButtonOn:  plain.Foreground(lipgloss.Color(c.buttonFG)).Background(lipgloss.Color(c.buttonBG)).Bold(true),
 		ButtonOff: fg(c.text),
+		Surface:   plain.Background(lipgloss.Color(c.surface)),
 		Help: help.Styles{
 			ShortKey: fg(c.muted), ShortDesc: fg(c.muted), ShortSeparator: fg(c.muted), Ellipsis: fg(c.muted),
 			FullKey: fg(c.muted), FullDesc: fg(c.muted), FullSeparator: fg(c.muted),
