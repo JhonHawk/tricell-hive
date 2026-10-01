@@ -480,3 +480,23 @@ func TestModelsCommandListsAnOverrideForARoleTheReleaseLostAsNotApplied(t *testi
 		t.Fatal("the unapplied override is still listed after reset")
 	}
 }
+
+func TestModelsCommandStateOnlySetDoesNotAskToOpenNewSessions(t *testing.T) {
+	e := newModelsEnv(t)
+	// An effort equal to the release's value changes no file.
+	out, err := e.write("set", true, "y\n", "--host", "claude", "--role", "plain-role", "--effort", "medium")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if !strings.Contains(out, "No file changes; the setting is saved in Hive's state.") || !strings.Contains(out, "Model settings updated") {
+		t.Fatalf("output:\n%s", out)
+	}
+	if strings.Contains(out, "Open new CLI sessions.") {
+		t.Fatalf("a change of no file asks to open new sessions:\n%s", out)
+	}
+	// A change that rewrites the file still does.
+	out, err = e.write("set", true, "y\n", "--host", "claude", "--role", "plain-role", "--effort", "max")
+	if err != nil || !strings.Contains(out, "Open new CLI sessions.") {
+		t.Fatalf("%v\n%s", err, out)
+	}
+}

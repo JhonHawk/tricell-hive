@@ -381,6 +381,7 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 		summary:   func(unchanged bool) { showModelsSummary(out, f.host, p, before, stored[f.host], unchanged) },
 		doneVerb:  "Model settings updated",
 		unchanged: "Nothing to change: the model settings already match.",
+		stateOnly: !modelsFilesChange(p),
 	}, out, interactive, f.dry, f.out, terminal)
 }
 
@@ -458,3 +459,13 @@ func resolveAfter(p management.Plan, host, role string, old management.ModelRow)
 }
 
 func pathBase(p string) string { return p[strings.LastIndex(p, "/")+1:] }
+
+// modelsFilesChange reports whether p rewrites an agent file.
+func modelsFilesChange(p management.Plan) bool {
+	for _, ch := range p.Changes {
+		if ch.Target.Kind == "agent" && ch.Before != nil && ch.After != nil && string(ch.Before.Managed) != string(ch.After.Managed) {
+			return true
+		}
+	}
+	return false
+}

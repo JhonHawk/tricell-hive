@@ -165,6 +165,9 @@ type planRun struct {
 	summary   func(unchanged bool)
 	doneVerb  string
 	unchanged string
+	// stateOnly marks a plan that writes no file the CLIs read, so success does
+	// not ask to open new CLI sessions.
+	stateOnly bool
 }
 
 // confirmAndApplyPlan applies the same unchanged/dry-run/out/interactive-confirm
@@ -207,7 +210,7 @@ func confirmAndApplyPlan(plan management.Plan, run planRun, out io.Writer, inter
 	if err != nil {
 		return err
 	}
-	reportApplyResult(out, run.doneVerb, result)
+	reportApplyOutcome(out, run.doneVerb, result, !run.stateOnly)
 	return nil
 }
 
