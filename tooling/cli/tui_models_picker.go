@@ -86,6 +86,62 @@ func (v *modelsView) openPicker(text string) {
 		}
 	}
 	v.moveList(cur)
+	if text != "" {
+		v.resetPickerCursor()
+	}
+}
+
+// resetPickerCursor puts the cursor on the first match after the search text
+// changed. With no match it rests on nothing (-1), so Enter cannot choose an
+// entry the person has not reached; ↓ then goes to the bottom entries.
+func (v *modelsView) resetPickerCursor() {
+	l := v.panel.list
+	l.cur, l.off = 0, 0
+	if l.filter != "" && len(v.pickerContent().rows) == 0 {
+		l.cur = -1
+	}
+}
+
+// pickerEntryKey names the highlighted entry: "m:<id>" for a model, "default"
+// or "other" for a bottom entry, "" for none or when the picker is closed.
+func (v *modelsView) pickerEntryKey() string {
+	p := v.panel
+	if p == nil || p.list == nil || p.list.cur < 0 {
+		return ""
+	}
+	rows := v.pickerContent().rows
+	switch cur := p.list.cur; {
+	case cur < len(rows):
+		return "m:" + rows[cur].id
+	case cur == len(rows):
+		return "default"
+	}
+	return "other"
+}
+
+// restorePickerEntry puts the cursor back on the entry key names, after the
+// list it is part of changed (a model list that arrived while the box was open).
+func (v *modelsView) restorePickerEntry(key string) {
+	if key == "" || v.panel == nil || v.panel.list == nil {
+		return
+	}
+	rows := v.pickerContent().rows
+	cur := -1
+	switch key {
+	case "default":
+		cur = len(rows)
+	case "other":
+		cur = len(rows) + 1
+	default:
+		for i, r := range rows {
+			if "m:"+r.id == key {
+				cur = i
+			}
+		}
+	}
+	if cur >= 0 {
+		v.moveList(cur)
+	}
 }
 
 // currentModel is the model the panel stands on, for the "●" mark: the chosen
@@ -186,7 +242,11 @@ func (v *modelsView) listHeight() int { return max(v.pickerBoxHeight()-pickerRow
 func (v *modelsView) moveList(to int) {
 	l, c := v.panel.list, v.pickerContent()
 	n := len(c.rows)
-	l.cur = min(max(to, 0), n+1)
+	lo := 0
+	if n == 0 && l.filter != "" {
+		lo = -1 // a search with no match: the cursor may rest on nothing
+	}
+	l.cur = min(max(to, lo), n+1)
 	h := v.listHeight()
 	if l.cur < n {
 		at := 0
@@ -248,14 +308,17 @@ func (v *modelsView) listKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 	case "backspace":
 		if _, size := utf8.DecodeLastRuneInString(l.filter); size > 0 {
 			l.filter = l.filter[:len(l.filter)-size]
-			l.cur, l.off = 0, 0
+			v.resetPickerCursor()
 		}
 	case "enter":
+		if l.cur < 0 {
+			return nil, action{nav: navNone} // nothing is highlighted
+		}
 		return v.choose(l.cur)
 	default:
 		if msg.Text != "" {
 			l.filter += msg.Text
-			l.cur, l.off = 0, 0
+			v.resetPickerCursor()
 		}
 	}
 	return nil, action{nav: navNone}
@@ -310,7 +373,7 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 	}
 	title := "Select model"
 	ctx := truncateRunes(" · "+v.host+" · "+who, max(W-len(title)-len(" esc ")-6, 1))
-	fill := max(W-2-1-len(title)-utf8.RuneCountInString(ctx)-1-len(" esc "), 0)
+	fill := max(W-2-1-len(title)-textWidth(ctx)-1-len(" esc "), 0)
 	lines := []string{border("┌") + th.Text.Render(" ") + th.Title.Render(title) + th.Muted.Render(ctx+" ") +
 		border(strings.Repeat("─", fill)) + th.Muted.Render(" esc ") + border("┐")}
 
@@ -318,14 +381,14 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 		lines = append(lines, boxed(th.Muted.Render("Search"), len("Search")))
 	} else {
 		text := truncateRunes("Search: "+p.list.filter, inner)
-		lines = append(lines, boxed(th.Text.Render(text), utf8.RuneCountInString(text)))
+		lines = append(lines, boxed(th.Text.Render(text), textWidth(text)))
 	}
 	if loading, text := v.listStatus(); loading {
 		text = truncateRunes(text, inner-2)
-		lines = append(lines, boxed(c.Spinner+" "+th.Muted.Render(text), 2+utf8.RuneCountInString(text)))
+		lines = append(lines, boxed(c.Spinner+" "+th.Muted.Render(text), 2+textWidth(text)))
 	} else if text != "" {
 		text = truncateRunes(text, inner)
-		lines = append(lines, boxed(th.Danger.Render(text), utf8.RuneCountInString(text)))
+		lines = append(lines, boxed(th.Danger.Render(text), textWidth(text)))
 	} else {
 		lines = append(lines, boxed("", 0))
 	}
@@ -334,6 +397,10 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 	content := v.pickerContent()
 	h := v.listHeight()
 	shown := 0
+	if len(content.lines) == 0 && p.list.filter != "" {
+		lines = append(lines, boxed(th.Muted.Render("No matching models"), len("No matching models")))
+		shown++
+	}
 	for i := p.list.off; i < min(p.list.off+h, len(content.lines)); i++ {
 		ln := content.lines[i]
 		shown++
@@ -342,7 +409,7 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 			lines = append(lines, boxed("", 0))
 		case ln.header != "":
 			text := truncateRunes(ln.header, inner)
-			lines = append(lines, boxed(th.Accent.Render(text), utf8.RuneCountInString(text)))
+			lines = append(lines, boxed(th.Accent.Render(text), textWidth(text)))
 		default:
 			rendered, plain := pickerRow(th, inner, content.rows[ln.row], ln.row == p.list.cur, v.host)
 			lines = append(lines, boxed(rendered, plain))
@@ -378,7 +445,7 @@ func pickerRow(th *appTheme, inner int, r pickRow, selected bool, host string) (
 	primary = truncateRunes(primary, max(budget, 1))
 	secondary := ""
 	if r.name != "" {
-		if room := budget - utf8.RuneCountInString(primary) - 2; room >= 4 {
+		if room := budget - textWidth(primary) - 2; room >= 4 {
 			secondary = truncateRunes(id, room)
 		}
 	}
@@ -387,14 +454,14 @@ func pickerRow(th *appTheme, inner int, r pickRow, selected bool, host string) (
 		text += "  " + secondary
 	}
 	if selected && !th.NoColor {
-		text += strings.Repeat(" ", max(inner-utf8.RuneCountInString(text), 0))
-		return th.ButtonOn.Render(text), utf8.RuneCountInString(text)
+		text += strings.Repeat(" ", max(inner-textWidth(text), 0))
+		return th.ButtonOn.Render(text), textWidth(text)
 	}
 	out := th.Text.Render(cursor + mark + primary)
 	if secondary != "" {
 		out += th.Muted.Render("  " + secondary)
 	}
-	return out, utf8.RuneCountInString(text)
+	return out, textWidth(text)
 }
 
 // pickerBottom draws the last line inside the box: the two entries that always
@@ -414,8 +481,8 @@ func (v *modelsView) pickerBottom(c viewCtx, n, inner int, boxed func(string, in
 			text, st = " "+label+" ", th.ButtonOn
 		}
 		out += st.Render(text) + "  "
-		plain += utf8.RuneCountInString(text) + 2
+		plain += textWidth(text) + 2
 	}
-	gap := max(inner-plain-utf8.RuneCountInString(pickerHint), 1)
-	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(pickerHint), plain+gap+utf8.RuneCountInString(pickerHint))
+	gap := max(inner-plain-textWidth(pickerHint), 1)
+	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(pickerHint), plain+gap+textWidth(pickerHint))
 }

@@ -13,8 +13,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
-	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -596,8 +596,10 @@ func (v *modelsView) onCatalog(msg catalogLoadedMsg) {
 		return
 	}
 	p.catalogErr = ""
+	key := v.pickerEntryKey() // the highlighted entry, by what it is, not by its place
 	p.catalog = msg.models
 	p.trimEfforts(false)
+	v.restorePickerEntry(key)
 }
 
 // modelID is the model the panel stands on: the one chosen, or the effective
@@ -932,7 +934,7 @@ type modelsBuild func(stored map[string]management.ModelOverride) (next map[stri
 // the command does.
 func (v *modelsView) plan(build modelsBuild, title string) (tea.Cmd, action) {
 	v.flow++
-	flow, host, o := v.flow, v.host, copyOptions(v.cfg.Options)
+	flow, host, o, width := v.flow, v.host, copyOptions(v.cfg.Options), v.width
 	v.working = "Planning the change…"
 	return func() tea.Msg {
 		msg := modelsPlannedMsg{owned: owned{v}, flow: flow, title: title}
@@ -955,10 +957,18 @@ func (v *modelsView) plan(build modelsBuild, title string) (tea.Cmd, action) {
 			return msg
 		}
 		var summary bytes.Buffer
-		showModelsSummary(&summary, host, plan, before, stored[host], replaced, o.Home, 0, msg.unchanged)
+		showModelsSummary(&summary, host, plan, before, stored[host], replaced, o.Home, 0, width, msg.unchanged)
 		msg.plan, msg.summary = plan, summary.String()
 		return msg
 	}, action{nav: navNone}
+}
+
+// overridePrefix is the technical lead of a validation error: the panel already
+// shows which role and CLI the error is about, so only the actionable part stays.
+var overridePrefix = regexp.MustCompile(`^model override for \S+ \S+: `)
+
+func panelErrorText(err error) string {
+	return sanitizeLine(overridePrefix.ReplaceAllString(err.Error(), ""))
 }
 
 // say shows a result where the user is: in the panel when it is open, in the
@@ -974,7 +984,7 @@ func (v *modelsView) say(text string, ok bool) {
 func (v *modelsView) onPlanned(msg modelsPlannedMsg) (tea.Cmd, action) {
 	v.working = ""
 	if msg.err != nil {
-		v.say(sanitizeLine(msg.err.Error()), false)
+		v.say(panelErrorText(msg.err), false)
 		return nil, action{nav: navNone}
 	}
 	if msg.unchanged {
@@ -1133,7 +1143,7 @@ func (v *modelsView) View(c viewCtx) string {
 func (v *modelsView) panelLines(c viewCtx) []string {
 	th, p := c.Theme, v.panel
 	applyInputStyles(&p.model, th)
-	p.model.SetWidth(max(c.Width-2-modelsPanelLabel, 10))
+	p.model.SetWidth(max(c.Width-2-modelsPanelLabel-1, 10)) // one column for the cursor
 	mark := func(on bool) string {
 		if on {
 			return "> "
@@ -1149,7 +1159,7 @@ func (v *modelsView) panelLines(c viewCtx) []string {
 		// "▸" says the value opens a list; the hint shows while the row has the focus.
 		text := truncateRunes(mark(p.row == 0)+label("Model")+p.modelLabel()+" ▸", c.Width)
 		modelLine = th.Text.Render(text)
-		if hint := "  → choose"; p.row == 0 && utf8.RuneCountInString(text)+utf8.RuneCountInString(hint) <= c.Width {
+		if hint := "  → choose"; p.row == 0 && textWidth(text)+textWidth(hint) <= c.Width {
 			modelLine += th.Muted.Render(hint)
 		}
 	}
@@ -1179,6 +1189,22 @@ func (v *modelsView) Keys() []key.Binding {
 			binding("type", "type", "search"),
 			binding("up,down", "↑/↓", "model"),
 			binding("enter", "enter", "choose"),
+			binding("esc", "esc", "close"),
+		}
+	}
+	if p := v.panel; p != nil && p.textMode {
+		if p.row == 0 { // typing: ←/→ move the text cursor, so no effort or list keys
+			return []key.Binding{
+				binding("type", "type", "model"),
+				binding("up,down", "↑/↓", "field"),
+				binding("enter", "enter", "review"),
+				binding("esc", "esc", "close"),
+			}
+		}
+		return []key.Binding{
+			binding("up,down", "↑/↓", "field"),
+			binding("left,right", "←/→", "effort"),
+			binding("enter", "enter", "review"),
 			binding("esc", "esc", "close"),
 		}
 	}

@@ -476,6 +476,7 @@ func (v *projectView) onReviewed(msg projectReviewedMsg) (tea.Cmd, action) {
 	confirm := newConfirmView(confirmOptions{
 		Title:   "Write AGENTS.md",
 		Summary: msg.summary,
+		Hanging: true,
 		OnApply: func() (tea.Cmd, action) {
 			flow, edit := v.flow, msg.edit
 			return func() tea.Msg {

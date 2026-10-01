@@ -597,7 +597,7 @@ func TestModelsViewValidationErrorTakesOneRow(t *testing.T) {
 			}
 			rows := 0
 			for _, l := range e.d.lines() {
-				if strings.Contains(l, "model") && strings.Contains(l, "override") {
+				if strings.Contains(l, "may only contain") {
 					rows++
 				}
 			}
