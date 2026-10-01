@@ -7,11 +7,19 @@ import (
 	"tricell-hive/integrations/target"
 )
 
+// SkillsDir returns the directory Hive installs skills into for c: the shared
+// store under the home directory at user scope, the project's own at project scope.
+func SkillsDir(c target.Config) string {
+	if c.Scope == "project" {
+		return filepath.Join(c.Root, ".agents", "skills")
+	}
+	return filepath.Join(c.Home, ".agents", "skills")
+}
+
 func resolveBase(c target.Config) ([]target.Target, error) {
-	base, skills, context := c.CodexHome, filepath.Join(c.Home, ".agents", "skills"), c.Home
+	base, skills, context := c.CodexHome, SkillsDir(c), c.Home
 	if c.Scope == "project" {
 		base = c.Root
-		skills = filepath.Join(c.Root, ".agents", "skills")
 		context = c.Root
 	}
 	instruction := filepath.Join(base, "AGENTS.md")

@@ -203,7 +203,7 @@ func RequiredHosts(o Options) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			p := Plan{Action: "install", Release: &r}
+			p := Plan{Action: "install", Config: c, Release: &r}
 			// Preview the new bytes with all known consumers to avoid the conflict gate.
 			expanded := g
 			expanded.Consumers = sortedConsumers(append(append([]Consumer{}, g.Consumers...), old.Consumers...))

@@ -7,6 +7,16 @@ import (
 	"tricell-hive/integrations/target"
 )
 
+// SkillsDir returns the directory Hive installs skills into for c. At user
+// scope that is the shared store under the home directory, which Claude's own
+// skills directory links into; at project scope it is the project's.
+func SkillsDir(c target.Config) string {
+	if c.Scope == "project" {
+		return filepath.Join(c.Root, ".claude", "skills")
+	}
+	return filepath.Join(c.Home, ".agents", "skills")
+}
+
 func resolveBase(c target.Config) ([]target.Target, error) {
 	base, context := c.ClaudeHome, c.Home
 	instruction := filepath.Join(base, "CLAUDE.md")
@@ -14,13 +24,13 @@ func resolveBase(c target.Config) ([]target.Target, error) {
 	if c.Scope == "project" {
 		context = c.Root
 		instruction = filepath.Join(c.Root, "CLAUDE.md")
-		skills = filepath.Join(c.Root, ".claude", "skills")
+		skills = SkillsDir(c)
 		return []target.Target{{Path: instruction, Kind: "block", Host: "claude", Scope: c.Scope, Context: context}, {Path: filepath.Join(skills, "workspace-conventions", "SKILL.md"), Kind: "skill", Host: "claude", Scope: c.Scope, Context: context}}, nil
 	}
 	if c.Scope != "user" {
 		return nil, fmt.Errorf("explicit scope must be user or project")
 	}
-	sharedSkillDir := filepath.Join(c.Home, ".agents", "skills", "workspace-conventions")
+	sharedSkillDir := filepath.Join(SkillsDir(c), "workspace-conventions")
 	skillLink := filepath.Join(skills, "workspace-conventions")
 	linkTarget, err := filepath.Rel(filepath.Dir(skillLink), sharedSkillDir)
 	if err != nil {

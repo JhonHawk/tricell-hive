@@ -17,11 +17,40 @@ import (
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/cursor"
 	"tricell-hive/integrations/grok"
+	"tricell-hive/integrations/mdlinks"
 	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/pi"
 	"tricell-hive/integrations/target"
 	"unicode/utf8"
 )
+
+// skillsDirFor returns the directory skills links point into for host: the
+// absolute shared store at user scope, the path relative to the project root at
+// project scope, so versioned project files carry no personal path. It is a
+// variable so tests can force hosts to disagree.
+var skillsDirFor = func(host string, c target.Config) string {
+	var dir string
+	switch host {
+	case "codex":
+		dir = codex.SkillsDir(c)
+	case "claude":
+		dir = claude.SkillsDir(c)
+	case "grok":
+		dir = grok.SkillsDir(c)
+	case "pi":
+		dir = pi.SkillsDir(c)
+	case "opencode":
+		dir = opencode.SkillsDir(c)
+	case "cursor":
+		dir = cursor.SkillsDir(c)
+	}
+	if c.Scope == "project" {
+		if rel, err := filepath.Rel(c.Root, dir); err == nil {
+			return rel
+		}
+	}
+	return dir
+}
 
 func resolve(c target.Config, hosts []string, sources ...string) ([]target.Target, error) {
 	var out []target.Target
@@ -465,7 +494,15 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 	}
 	switch g.Target.Kind {
 	case "block":
-		r.Managed = managedBlock(payload(p.Release, g.Target.Source), s.Data, hiveMarkers)
+		var text []byte
+		for _, c := range g.Consumers {
+			rewritten := []byte(mdlinks.RewriteSkillLinks(string(payload(p.Release, g.Target.Source)), skillsDirFor(c.Host, p.Config)))
+			if text != nil && !bytes.Equal(text, rewritten) {
+				return nil, fmt.Errorf("shared block rendering differs by host: %s", g.Target.Path)
+			}
+			text = rewritten
+		}
+		r.Managed = managedBlock(text, s.Data, hiveMarkers)
 		if (old == nil || gone) && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
 			r.Leading = "\n"
 		}
@@ -477,7 +514,7 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		}
 		var rendered []byte
 		for _, c := range g.Consumers {
-			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host)
+			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config))
 			if err != nil {
 				return nil, err
 			}

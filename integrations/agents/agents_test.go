@@ -93,7 +93,7 @@ func TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted(t *testi
 		}
 		canonical := strings.TrimPrefix(filepath.ToSlash(source), "../../")
 		for _, host := range allHosts {
-			out, err := Render(canonical, data, profiles, host)
+			out, err := Render(canonical, data, profiles, host, "/skills")
 			if err != nil {
 				t.Fatalf("Render(%s, %s): %v", host, canonical, err)
 			}
@@ -115,7 +115,7 @@ func TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted(t *testi
 func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
-	out, err := Render(source, data, profiles, "pi")
+	out, err := Render(source, data, profiles, "pi", "/skills")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
-	out, err := Render(source, data, profiles, "codex")
+	out, err := Render(source, data, profiles, "codex", "/skills")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	// The unicode role puts double quotes, single quotes, backslashes, a tab
 	// and non-ASCII text in both the description and the instruction body.
 	source, data = syntheticRole(t, "synthetic-unicode")
-	out, err = Render(source, data, profiles, "codex")
+	out, err = Render(source, data, profiles, "codex", "/skills")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestCodexTOMLRoundTripsQuotedUnicodeInstructions(t *testing.T) {
 	source := "content/agents/design/test-agent.md"
 	body := "Use \"quoted\" values, C:\\\\work, and mañana.\n"
 	data := []byte("---\nname: test-agent\ndescription: \"A \\\"quoted\\\" role at C:\\\\work\"\nmodel_profile: inherit\naccess_profile: observe\n---\n" + body)
-	out, err := Render(source, data, profiles, "codex")
+	out, err := Render(source, data, profiles, "codex", "/skills")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func TestProfilesRejectWrongPiToolRestrictionType(t *testing.T) {
 func TestCursorObserveRendersInheritModelAndReadonly(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
-	out, err := Render(source, data, profiles, "cursor")
+	out, err := Render(source, data, profiles, "cursor", "/skills")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestRoleEffortOverridesProfileEffortOnClaudeCodexAndPi(t *testing.T) {
 		{"pi", "thinking: \"low\"\n"},
 	}
 	for _, c := range cases {
-		out, err := Render(source, data, profiles, c.host)
+		out, err := Render(source, data, profiles, c.host, "/skills")
 		if err != nil {
 			t.Fatalf("Render(%s): %v", c.host, err)
 		}
@@ -310,7 +310,7 @@ func TestGrokOpenCodeAndCursorEmitNoEffortEvenWhenRoleDeclaresOne(t *testing.T) 
 	source := "content/agents/design/test-agent.md"
 	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"max\"\n---\nBody\n")
 	for _, host := range []string{"grok", "opencode", "cursor"} {
-		out, err := Render(source, data, profiles, host)
+		out, err := Render(source, data, profiles, host, "/skills")
 		if err != nil {
 			t.Fatalf("Render(%s): %v", host, err)
 		}
@@ -342,11 +342,62 @@ func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	}
 	source, body := syntheticRole(t, "synthetic-observer")
 	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode"} {
-		if _, err := Render(source, body, data, host); err != nil {
+		if _, err := Render(source, body, data, host, "/skills"); err != nil {
 			t.Fatalf("Render(%s) on five-host profile: %v", host, err)
 		}
 	}
-	if _, err := Render(source, body, data, "cursor"); err == nil || err.Error() != `unsupported agent host "cursor"` {
+	if _, err := Render(source, body, data, "cursor", "/skills"); err == nil || err.Error() != `unsupported agent host "cursor"` {
 		t.Fatalf("Render(cursor) on five-host profile = %v, want unsupported agent host error", err)
+	}
+}
+
+const linkRole = "---\nname: link-role\ndescription: Link role\nmodel_profile: execution\naccess_profile: observe\n---\n" +
+	"Read [browser automation](skill:flow-build/references/browser-automation.md).\n\n" +
+	"```\n[example](skill:flow-build/references/example.md)\n```\n\n" +
+	"[ref]: skill:flow-build/references/defined.md\n"
+
+// roleBody returns the instruction text a host would give the model: the
+// Markdown after the frontmatter, or the decoded TOML string for Codex.
+func roleBody(t *testing.T, host string, out []byte) string {
+	t.Helper()
+	if host == "codex" {
+		for _, line := range strings.Split(string(out), "\n") {
+			if v, ok := strings.CutPrefix(line, "developer_instructions = "); ok {
+				var s string
+				if err := json.Unmarshal([]byte(v), &s); err != nil {
+					t.Fatalf("decode developer_instructions: %v", err)
+				}
+				return s
+			}
+		}
+		t.Fatalf("no developer_instructions in:\n%s", out)
+	}
+	_, body, ok := strings.Cut(strings.TrimPrefix(string(out), "---\n"), "\n---\n")
+	if !ok {
+		t.Fatalf("no frontmatter end in:\n%s", out)
+	}
+	return body
+}
+
+func TestRenderRewritesSkillLinksOnEveryHost(t *testing.T) {
+	profiles := syntheticProfiles(t)
+	const source = "content/agents/synthetic/link-role.md"
+	for _, dir := range []string{"/home/u/.agents/skills", ".claude/skills"} {
+		for _, host := range allHosts {
+			out, err := Render(source, []byte(linkRole), profiles, host, dir)
+			if err != nil {
+				t.Fatalf("Render(%s): %v", host, err)
+			}
+			body := roleBody(t, host, out)
+			if want := "[browser automation](<" + dir + "/flow-build/references/browser-automation.md>)"; !strings.Contains(body, want) {
+				t.Errorf("%s %s: body lacks %q:\n%s", host, dir, want, body)
+			}
+			if strings.Count(body, "](skill:") != 1 || !strings.Contains(body, "[example](skill:flow-build/references/example.md)") {
+				t.Errorf("%s %s: only the fenced link may keep skill: —\n%s", host, dir, body)
+			}
+			if !strings.Contains(body, "[ref]: skill:flow-build/references/defined.md") {
+				t.Errorf("%s %s: reference-style definition changed:\n%s", host, dir, body)
+			}
+		}
 	}
 }
