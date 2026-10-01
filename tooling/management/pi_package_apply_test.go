@@ -151,6 +151,54 @@ func TestRemoveSkipsChangedPin(t *testing.T) {
 	if len(piCalls) != 0 {
 		t.Fatalf("changed pin invoked pi: %#v", piCalls)
 	}
+	if stateFor(t, o).PiSubagentsSource != "" {
+		t.Fatal("obsolete Hive receipt was kept")
+	}
+}
+
+func TestApplyRejectsStaleOmitPlan(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"pi"}
+	put(t, filepath.Join(o.Home, ".pi", "agent", "settings.json"), `{"packages":["npm:pi-subagents@0.67.0"]}`+"\n")
+	p := plan(t, "install", o)
+	if p.PiPackage == nil || p.PiPackage.Action != PackageOmit {
+		t.Fatalf("want omit, got %#v", p.PiPackage)
+	}
+	if err := os.Remove(filepath.Join(o.Home, ".pi", "agent", "settings.json")); err != nil {
+		t.Fatal(err)
+	}
+	_, err := (Engine{}).Apply(p)
+	if err == nil || !strings.Contains(err.Error(), "no longer declared") {
+		t.Fatalf("want stale omit, got %v", err)
+	}
+	if len(piCalls) != 0 {
+		t.Fatalf("stale omit invoked pi: %#v", piCalls)
+	}
+}
+
+func TestInterruptedAfterPiInstallRecoverRemovesPackage(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"pi"}
+	p := plan(t, "install", o)
+	_, err := (Engine{failpoint: func(stage string) error {
+		if stage == "pi-package-after" {
+			return errors.New("injected")
+		}
+		return nil
+	}}).Apply(p)
+	if err == nil {
+		t.Fatal("expected failpoint")
+	}
+	if len(piCalls) != 1 || piCalls[0].Action != "install" {
+		t.Fatalf("install calls %#v", piCalls)
+	}
+	piCalls = nil
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	if len(piCalls) != 1 || piCalls[0].Action != "remove" {
+		t.Fatalf("recover calls %#v", piCalls)
+	}
 }
 
 func TestInterruptedPiInstallRecoverDoesNotRemove(t *testing.T) {

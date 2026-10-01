@@ -31,6 +31,7 @@ type journal struct {
 	BeforeState, AfterState snapshot
 	CreatedDirs             []string
 	Integrity               string
+	PackageDone             bool `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -422,10 +423,14 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 		return err
 	}
 	if next.PiSubagentsSource != beforePkg {
+		j.PackageDone = true
 		j.AfterState = snapshot{Exists: true, Data: encode(*next), Mode: 0600}
 		if err := saveJournal(jp, *j); err != nil {
 			return err
 		}
+	}
+	if err := e.fail("pi-package-after"); err != nil {
+		return err
 	}
 	if p.Release != nil {
 		path := filepath.Join(p.StateDir, "releases", p.Release.ID+".json")
@@ -669,6 +674,15 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	// retained installer, so a removed or restored copy must not block it.
 	if j.Phase == "committed" || j.Phase == "recovered" {
 		return j.Phase, os.Remove(pp)
+	}
+	if j.PackageDone {
+		if err := undoPiPackage(j); err != nil {
+			return "", err
+		}
+		j.PackageDone = false
+		if err := saveJournal(jp, j); err != nil {
+			return "", err
+		}
 	}
 	stateNow, err := read(filepath.Join(dir, "state.json"))
 	if err != nil {
