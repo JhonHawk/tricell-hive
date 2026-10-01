@@ -483,7 +483,7 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 			if !unchanged {
 				fmt.Fprintln(out, title)
 			}
-			showModelsSummary(out, f.host, p, before, stored[f.host], replaced, f.home, 80, unchanged)
+			showModelsSummary(out, f.host, p, before, stored[f.host], replaced, f.home, 80, 0, unchanged)
 		},
 		doneVerb:  "Model settings updated",
 		unchanged: "Nothing to change: the model settings already match.",
@@ -605,8 +605,9 @@ func modelsTitle(verb, role, group, host string, roles int) string {
 // a part that changes reads "before → after" and the others read plain; the
 // roles that lose a part of their own override; and the agent files written,
 // with their common directory shown once. width wraps the prose lines; 0 leaves
-// them to the caller. home is the home in use, to abbreviate paths with "~".
-func showModelsSummary(out io.Writer, host string, p management.Plan, before []management.ModelRow, stored map[string]management.ModelOverride, replaced []string, home string, width int, unchanged bool) {
+// them to the caller. tableWidth fits the table to a screen by cutting long ids
+// from the left, so the model name stays visible; 0 keeps the full ids. home is the home in use, to abbreviate paths with "~".
+func showModelsSummary(out io.Writer, host string, p management.Plan, before []management.ModelRow, stored map[string]management.ModelOverride, replaced []string, home string, width, tableWidth int, unchanged bool) {
 	if unchanged {
 		return
 	}
@@ -638,13 +639,8 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 		roles = append(roles, role)
 	}
 	sort.Strings(roles)
-	part := func(b, a string) string {
-		if b == a {
-			return a
-		}
-		return b + " → " + a
-	}
-	table := [][3]string{{"Role", "Model", "Effort"}}
+	type changeRow struct{ role, mb, ma, eb, ea string }
+	var table []changeRow
 	var notes []string
 	for _, role := range roles {
 		old, ok := rowOf[role]
@@ -658,18 +654,32 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 			continue
 		}
 		b, a := modelCellsFor(old), modelCellsFor(after)
-		table = append(table, [3]string{role, part(b.model, a.model), part(b.effort, a.effort)})
+		table = append(table, changeRow{role, b.model, a.model, b.effort, a.effort})
 	}
 	fmt.Fprintln(out)
-	if len(table) > 1 {
-		var w [3]int
+	if len(table) > 0 {
+		roleW := utf8.RuneCountInString("Role")
+		effW := utf8.RuneCountInString("Effort")
 		for _, r := range table {
-			for i := range w {
-				w[i] = max(w[i], utf8.RuneCountInString(r[i]))
-			}
+			roleW = max(roleW, utf8.RuneCountInString(r.role))
+			effW = max(effW, utf8.RuneCountInString(changeCell(r.eb, r.ea, 0)))
 		}
+		modelRoom := 0 // 0: no limit
+		if tableWidth > 0 {
+			roleW = min(roleW, max(tableWidth/3, 12))
+			modelRoom = max(tableWidth-roleW-effW-4, 10)
+		}
+		cells := make([][3]string, 0, len(table)+1)
+		cells = append(cells, [3]string{"Role", "Model", "Effort"})
 		for _, r := range table {
-			fmt.Fprintln(out, strings.TrimRight(padRight(r[0], w[0])+"  "+padRight(r[1], w[1])+"  "+r[2], " "))
+			cells = append(cells, [3]string{truncateRunes(r.role, roleW), changeModelCell(r.mb, r.ma, modelRoom), changeCell(r.eb, r.ea, 0)})
+		}
+		modelW := 0
+		for _, c := range cells {
+			modelW = max(modelW, utf8.RuneCountInString(c[1]))
+		}
+		for _, c := range cells {
+			fmt.Fprintln(out, strings.TrimRight(padRight(c[0], roleW)+"  "+padRight(c[1], modelW)+"  "+c[2], " "))
 		}
 		fmt.Fprintln(out)
 	}
@@ -697,6 +707,46 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 	}
 	fmt.Fprintf(out, "Writes %d %s in %s\n", len(files), noun, abbreviateHome(commonDir(files), home))
 	fmt.Fprintln(out, "Open sessions keep the previous model until they restart.")
+}
+
+// changeCell reads "before → after", or the plain value when it does not change.
+func changeCell(before, after string, _ int) string {
+	if before == after {
+		return after
+	}
+	return before + " → " + after
+}
+
+// changeModelCell is changeCell for a model, cut to room columns when room is
+// positive: an id too long for its half is cut from the left ("…" and the end
+// kept, since the model name is what tells models apart), and the shorter id
+// gives its spare columns to the longer one.
+func changeModelCell(before, after string, room int) string {
+	if before == after || room <= 0 {
+		return changeCell(before, after, 0)
+	}
+	room -= len(" → ")
+	nb, na := utf8.RuneCountInString(before), utf8.RuneCountInString(after)
+	if nb+na <= room {
+		return before + " → " + after
+	}
+	half := room / 2
+	switch {
+	case nb <= half:
+		return before + " → " + cutLeft(after, room-nb)
+	case na <= half:
+		return cutLeft(before, room-na) + " → " + after
+	}
+	return cutLeft(before, half) + " → " + cutLeft(after, room-half)
+}
+
+// cutLeft keeps the last width columns of s, with "…" in front when it cut.
+func cutLeft(s string, width int) string {
+	r := []rune(s)
+	if len(r) <= width || width < 2 {
+		return s
+	}
+	return "…" + string(r[len(r)-width+1:])
 }
 
 // commonDir is the deepest directory that holds every file.

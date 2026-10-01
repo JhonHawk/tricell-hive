@@ -86,6 +86,62 @@ func (v *modelsView) openPicker(text string) {
 		}
 	}
 	v.moveList(cur)
+	if text != "" {
+		v.resetPickerCursor()
+	}
+}
+
+// resetPickerCursor puts the cursor on the first match after the search text
+// changed. With no match it rests on nothing (-1), so Enter cannot choose an
+// entry the person has not reached; ↓ then goes to the bottom entries.
+func (v *modelsView) resetPickerCursor() {
+	l := v.panel.list
+	l.cur, l.off = 0, 0
+	if l.filter != "" && len(v.pickerContent().rows) == 0 {
+		l.cur = -1
+	}
+}
+
+// pickerEntryKey names the highlighted entry: "m:<id>" for a model, "default"
+// or "other" for a bottom entry, "" for none or when the picker is closed.
+func (v *modelsView) pickerEntryKey() string {
+	p := v.panel
+	if p == nil || p.list == nil || p.list.cur < 0 {
+		return ""
+	}
+	rows := v.pickerContent().rows
+	switch cur := p.list.cur; {
+	case cur < len(rows):
+		return "m:" + rows[cur].id
+	case cur == len(rows):
+		return "default"
+	}
+	return "other"
+}
+
+// restorePickerEntry puts the cursor back on the entry key names, after the
+// list it is part of changed (a model list that arrived while the box was open).
+func (v *modelsView) restorePickerEntry(key string) {
+	if key == "" || v.panel == nil || v.panel.list == nil {
+		return
+	}
+	rows := v.pickerContent().rows
+	cur := -1
+	switch key {
+	case "default":
+		cur = len(rows)
+	case "other":
+		cur = len(rows) + 1
+	default:
+		for i, r := range rows {
+			if "m:"+r.id == key {
+				cur = i
+			}
+		}
+	}
+	if cur >= 0 {
+		v.moveList(cur)
+	}
 }
 
 // currentModel is the model the panel stands on, for the "●" mark: the chosen
@@ -186,7 +242,11 @@ func (v *modelsView) listHeight() int { return max(v.pickerBoxHeight()-pickerRow
 func (v *modelsView) moveList(to int) {
 	l, c := v.panel.list, v.pickerContent()
 	n := len(c.rows)
-	l.cur = min(max(to, 0), n+1)
+	lo := 0
+	if n == 0 && l.filter != "" {
+		lo = -1 // a search with no match: the cursor may rest on nothing
+	}
+	l.cur = min(max(to, lo), n+1)
 	h := v.listHeight()
 	if l.cur < n {
 		at := 0
@@ -248,14 +308,17 @@ func (v *modelsView) listKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 	case "backspace":
 		if _, size := utf8.DecodeLastRuneInString(l.filter); size > 0 {
 			l.filter = l.filter[:len(l.filter)-size]
-			l.cur, l.off = 0, 0
+			v.resetPickerCursor()
 		}
 	case "enter":
+		if l.cur < 0 {
+			return nil, action{nav: navNone} // nothing is highlighted
+		}
 		return v.choose(l.cur)
 	default:
 		if msg.Text != "" {
 			l.filter += msg.Text
-			l.cur, l.off = 0, 0
+			v.resetPickerCursor()
 		}
 	}
 	return nil, action{nav: navNone}
@@ -334,6 +397,10 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 	content := v.pickerContent()
 	h := v.listHeight()
 	shown := 0
+	if len(content.lines) == 0 && p.list.filter != "" {
+		lines = append(lines, boxed(th.Muted.Render("No matching models"), len("No matching models")))
+		shown++
+	}
 	for i := p.list.off; i < min(p.list.off+h, len(content.lines)); i++ {
 		ln := content.lines[i]
 		shown++

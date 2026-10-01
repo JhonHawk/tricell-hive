@@ -167,6 +167,8 @@ func pickerSelection(t *testing.T, e modelsEditEnv) string {
 	l := e.v.panel.list
 	c := e.v.pickerContent()
 	switch {
+	case l.cur < 0:
+		return ""
 	case l.cur < len(c.rows):
 		return c.rows[l.cur].id
 	case l.cur == len(c.rows):
@@ -1142,7 +1144,7 @@ func TestModelsViewSearchMatchesNameIDAndProvider(t *testing.T) {
 		}
 	}
 	e.v.panel.list.filter = "no-such-model"
-	if got := strings.Join(listItems(t, e.d), "|"); got != "release default|Other…" {
+	if got := strings.Join(listItems(t, e.d), "|"); got != "No matching models|release default|Other…" {
 		t.Fatalf("a search with no match leaves %q", got)
 	}
 }
