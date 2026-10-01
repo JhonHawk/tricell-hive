@@ -397,3 +397,23 @@ func validateModelOverrides(p Plan, state State) error {
 	}
 	return nil
 }
+
+// StoredModelOverrides returns, read-only, the overrides the state holds for the
+// user scope of o.Home, keyed CLI then role. It is empty, never nil, when none
+// are stored, and a copy the caller may change.
+func StoredModelOverrides(o Options) (map[string]map[string]ModelOverride, error) {
+	o.Scope = "user"
+	_, dir, err := normalize(o)
+	if err != nil {
+		return nil, err
+	}
+	state, _, err := readState(dir)
+	if err != nil {
+		return nil, err
+	}
+	out := copyOverrides(state.ModelOverrides)
+	if out == nil {
+		out = map[string]map[string]ModelOverride{}
+	}
+	return out, nil
+}

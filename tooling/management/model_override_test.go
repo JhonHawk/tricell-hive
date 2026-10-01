@@ -579,3 +579,20 @@ func TestModelsPlanRefusalCoversLegacyAndMigration(t *testing.T) {
 		}
 	}
 }
+
+func TestStoredModelOverridesIsAnEmptyCopyOfTheState(t *testing.T) {
+	o, _ := installedFiveHosts(t)
+	got, err := StoredModelOverrides(o)
+	if err != nil || got == nil || len(got) != 0 {
+		t.Fatalf("StoredModelOverrides on a clean state = %#v, %v; want an empty, non-nil map", got, err)
+	}
+	apply(t, buildModels(t, o, "claude", map[string]ModelOverride{plainRole: {Effort: "max"}}))
+	got, err = StoredModelOverrides(o)
+	if err != nil || !reflect.DeepEqual(got, map[string]map[string]ModelOverride{"claude": {plainRole: {Effort: "max"}}}) {
+		t.Fatalf("StoredModelOverrides = %+v, %v", got, err)
+	}
+	got["claude"][plainRole] = ModelOverride{Model: "mutated"}
+	if again, _ := StoredModelOverrides(o); again["claude"][plainRole].Model != "" {
+		t.Fatal("the returned map aliases the state")
+	}
+}
