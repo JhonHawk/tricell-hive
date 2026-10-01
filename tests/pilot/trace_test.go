@@ -381,3 +381,27 @@ func TestPiMessageEndAssignsMessageKeyToItsToolCallsAndDistinguishesRole(t *test
 		t.Fatal("Pi's toolResult-role message_end text was tagged as assistant role")
 	}
 }
+
+// Issue #80: an OpenCode V2 background subagent call completes with a launch
+// acknowledgement, and `opencode run --format json` never prints the child's
+// completion, so a run that launched one cannot be reported as completed.
+func TestOpenCodeBackgroundSubagentLeavesRunUnverified(t *testing.T) {
+	launch := func(input string) string {
+		return `{"type":"tool_use","sessionID":"ses-1","part":{"type":"tool","tool":"subagent","callID":"c1","messageID":"msg-1","state":{"status":"completed","input":` + input + `,"output":"started"}}}
+{"type":"step_finish","sessionID":"ses-1","part":{"type":"step-finish","messageID":"msg-2","reason":"stop"}}`
+	}
+	r := parseTrace("opencode", strings.NewReader(launch(`{"agent":"hive-research","prompt":"p","background":true}`)))
+	if len(r.BackgroundLaunches) != 1 || r.BackgroundLaunches[0] != "c1" {
+		t.Fatalf("background launch not recorded: %v", r.BackgroundLaunches)
+	}
+	if got := terminalState(r, 0, ""); got != "background_unverified" {
+		t.Fatalf("got %s, want background_unverified", got)
+	}
+	r = parseTrace("opencode", strings.NewReader(launch(`{"agent":"hive-research","prompt":"p"}`)))
+	if len(r.BackgroundLaunches) != 0 {
+		t.Fatalf("foreground call recorded as background: %v", r.BackgroundLaunches)
+	}
+	if got := terminalState(r, 0, ""); got != "completed" {
+		t.Fatalf("foreground subagent run: got %s, want completed", got)
+	}
+}

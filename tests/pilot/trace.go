@@ -9,6 +9,7 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -55,6 +56,10 @@ type traceReport struct {
 	Skills                                    []string                    `json:",omitempty"`
 	Events                                    []traceEvent
 	Usage                                     []map[string]any `json:",omitempty"`
+	// BackgroundLaunches holds the call IDs of OpenCode subagent calls made
+	// with background: true. Their tool result is only the launch
+	// acknowledgement, and the JSON stream never reports the child's end.
+	BackgroundLaunches []string `json:",omitempty"`
 }
 
 type openCodeCompletionEvidence struct {
@@ -578,6 +583,9 @@ func parseTrace(host string, input io.Reader) traceReport {
 				// group a message's calls/results without line adjacency,
 				// matching Claude/Grok/Pi's Message correlation.
 				addTool(line, str(p["tool"]), id, object(s["input"]), str(p["messageID"]))
+				if str(p["tool"]) == "subagent" && object(s["input"])["background"] == true && id != "" && !slices.Contains(r.BackgroundLaunches, id) {
+					r.BackgroundLaunches = append(r.BackgroundLaunches, id)
+				}
 				if status := str(s["status"]); status == "completed" || status == "error" {
 					finishTool(line, id, first(s, "output", "error"), status == "error")
 				}
@@ -630,6 +638,9 @@ func terminalState(t traceReport, exitCode int, processError string) string {
 	}
 	if t.HostError {
 		return "host_error"
+	}
+	if len(t.BackgroundLaunches) > 0 {
+		return "background_unverified"
 	}
 	if t.TerminalSeen {
 		return "completed"
