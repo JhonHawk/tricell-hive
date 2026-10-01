@@ -214,6 +214,64 @@ func runModels(args []string, w io.Writer) error {
 	return nil
 }
 
+// modelsChange is one role's change: the parts to set and the parts to drop.
+// `hive models set` and the Models view both express their request with it, so
+// the same request leaves the same override.
+type modelsChange struct {
+	set                            management.ModelOverride
+	dropAll, dropModel, dropEffort bool
+}
+
+func (c modelsChange) empty() bool {
+	return c.set == (management.ModelOverride{}) && !c.dropAll && !c.dropModel && !c.dropEffort
+}
+
+// applyTo returns the CLI's override set after the change to role. Parts the
+// change does not name keep their stored value; the release's values are never
+// copied in, so the rest keeps following the release.
+func (c modelsChange) applyTo(stored map[string]management.ModelOverride, role string) map[string]management.ModelOverride {
+	next := map[string]management.ModelOverride{}
+	for r, v := range stored {
+		next[r] = v
+	}
+	v := next[role]
+	switch {
+	case c.dropAll:
+		v = management.ModelOverride{}
+	default:
+		if c.dropModel {
+			v.Model = ""
+		}
+		if c.dropEffort {
+			v.Effort = ""
+		}
+	}
+	if c.set.Model != "" {
+		v.Model = c.set.Model
+	}
+	if c.set.Effort != "" {
+		v.Effort = c.set.Effort
+	}
+	if v == (management.ModelOverride{}) {
+		delete(next, role)
+	} else {
+		next[role] = v
+	}
+	return next
+}
+
+// planModelsChange builds the plan that makes next the override set of host,
+// with the effective rows as they are before it.
+func planModelsChange(o management.Options, host string, next map[string]management.ModelOverride) (management.Plan, []management.ModelRow, error) {
+	o.Hosts = []string{host}
+	before, err := management.EffectiveModels(o)
+	if err != nil {
+		return management.Plan{}, nil, err
+	}
+	p, err := management.BuildModelsPlan(o, host, next)
+	return p, before, err
+}
+
 // modelsFlags are the flags of `hive models set` and `hive models reset`.
 type modelsFlags struct {
 	host, role, model, effort, only, home, stateDir, out string
@@ -272,10 +330,7 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 	if err != nil {
 		return err
 	}
-	next := map[string]management.ModelOverride{}
-	for role, v := range stored[f.host] {
-		next[role] = v
-	}
+	var next map[string]management.ModelOverride
 	if sub == "set" {
 		if f.role == "" {
 			return fmt.Errorf("--role is required")
@@ -289,16 +344,7 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 		if !f.modelGiven && !f.effortGiven {
 			return fmt.Errorf("hive models set needs --model or --effort")
 		}
-		// Only the parts given change; the release's values are never copied in,
-		// so the override keeps following the release for the rest.
-		v := next[f.role]
-		if f.modelGiven {
-			v.Model = f.model
-		}
-		if f.effortGiven {
-			v.Effort = f.effort
-		}
-		next[f.role] = v
+		next = modelsChange{set: management.ModelOverride{Model: f.model, Effort: f.effort}}.applyTo(stored[f.host], f.role)
 	} else {
 		switch {
 		case f.all && (f.role != "" || f.only != ""):
@@ -311,32 +357,13 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 		case f.only != "" && f.only != "model" && f.only != "effort":
 			return fmt.Errorf("--only must be model or effort")
 		}
-		switch {
-		case f.all:
+		if f.all {
 			next = map[string]management.ModelOverride{}
-		default:
-			v := next[f.role]
-			switch f.only {
-			case "model":
-				v.Model = ""
-			case "effort":
-				v.Effort = ""
-			default:
-				v = management.ModelOverride{}
-			}
-			if v == (management.ModelOverride{}) {
-				delete(next, f.role)
-			} else {
-				next[f.role] = v
-			}
+		} else {
+			next = modelsChange{dropAll: f.only == "", dropModel: f.only == "model", dropEffort: f.only == "effort"}.applyTo(stored[f.host], f.role)
 		}
 	}
-	o.Hosts = []string{f.host}
-	before, err := management.EffectiveModels(o)
-	if err != nil {
-		return err
-	}
-	p, err := management.BuildModelsPlan(o, f.host, next)
+	p, before, err := planModelsChange(o, f.host, next)
 	if err != nil {
 		return err
 	}
