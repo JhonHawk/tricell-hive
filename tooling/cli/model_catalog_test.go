@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -252,7 +251,7 @@ func fakeCLI(t *testing.T, bin, script string) string {
 
 func TestCatalogRunnerRunsTheFixedCommandInANeutralDirectoryWithoutATerminal(t *testing.T) {
 	record := filepath.Join(t.TempDir(), "record")
-	fakeCLI(t, "codex", `{ echo "argv=$*"; echo "cwd=$(pwd -P)"; if [ -t 0 ]; then echo stdin=tty; else echo stdin=none; fi; } > "`+record+`"
+	fakeCLI(t, "codex", `PATH=/usr/bin:/bin; { echo "argv=$*"; echo "cwd=$(pwd -P)"; if [ -t 0 ]; then echo stdin=tty; else echo stdin=none; fi; echo "tty=$(ps -o tty= -p $$ | tr -d ' ')"; } > "`+record+`"
 echo '{"models":[]}'
 `)
 	repo := t.TempDir()
@@ -267,8 +266,12 @@ echo '{"models":[]}'
 	data, _ := os.ReadFile(record)
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	tmp, _ := filepath.EvalSymlinks(os.TempDir())
-	if lines[0] != "argv=debug models" || lines[1] != "cwd="+tmp || lines[2] != "stdin=none" {
+	if len(lines) != 4 || lines[0] != "argv=debug models" || lines[1] != "cwd="+tmp || lines[2] != "stdin=none" {
 		t.Fatalf("record = %q (want cwd %q, not the repository %q)", lines, tmp, repo)
+	}
+	// ps prints "??" (macOS) or "?" (Linux) for a process with no controlling terminal.
+	if tty := strings.TrimPrefix(lines[3], "tty="); tty != "??" && tty != "?" {
+		t.Fatalf("the CLI has a controlling terminal: %q", lines[3])
 	}
 }
 
@@ -353,18 +356,24 @@ func TestCatalogRunnerForSyntheticHomeExecutesNothing(t *testing.T) {
 	}
 }
 
-// TestCatalogIsNeverQueriedByModelsOrDoctor is AC13: the listing commands do
-// not run for `hive models`, `hive doctor` or any view that does not edit. The
-// Models view without an open panel is covered when T9 wires the view.
-func TestCatalogIsNeverQueriedByModelsOrDoctor(t *testing.T) {
+// countCatalogQueries counts every attempt to list a model list, through
+// whatever runner, until the test ends. Counting at listHostModels, not at the
+// real runner, keeps the guard honest under --home, where catalogRunnerFor
+// returns a refusing runner that a runner-level counter never sees.
+func countCatalogQueries(t *testing.T) *int {
+	t.Helper()
 	calls := 0
-	old := defaultCatalogRunner
-	defaultCatalogRunner = func(context.Context, string, []string) ([]byte, error) {
-		calls++
-		return nil, errors.New("must not run")
-	}
-	t.Cleanup(func() { defaultCatalogRunner = old })
+	old := catalogQueryHook
+	catalogQueryHook = func(string) { calls++ }
+	t.Cleanup(func() { catalogQueryHook = old })
+	return &calls
+}
 
+// TestCatalogIsNeverQueriedByModelsOrDoctor is AC13: the listing commands do
+// not run for `hive models` or `hive doctor`. Browsing the Models view without
+// opening a panel is covered in the view's tests.
+func TestCatalogIsNeverQueriedByModelsOrDoctor(t *testing.T) {
+	calls := countCatalogQueries(t)
 	e := newModelsEnv(t)
 	var out bytes.Buffer
 	if err := runModels(e.common(), &out); err != nil {
@@ -378,7 +387,7 @@ func TestCatalogIsNeverQueriedByModelsOrDoctor(t *testing.T) {
 			t.Fatalf("hive %s: %v", args[0], err)
 		}
 	}
-	if calls != 0 {
-		t.Fatalf("the listing runner ran %d times", calls)
+	if *calls != 0 {
+		t.Fatalf("a model list was queried %d times", *calls)
 	}
 }

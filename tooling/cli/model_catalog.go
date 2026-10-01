@@ -62,9 +62,18 @@ func catalogCommand(host string) (bin string, args []string, ok bool) {
 	return "", nil, false
 }
 
+// catalogQueryHook, when set, is told of every attempt to list a host's models,
+// before any runner is consulted. Tests use it to prove that a path never
+// queries a list, whatever runner it would have used, so a refusing runner
+// under --home cannot hide a call.
+var catalogQueryHook func(host string)
+
 // listHostModels runs the host's listing command and parses its output. Only
 // ids that an override accepts are returned.
 func listHostModels(ctx context.Context, host string, run catalogRunner) ([]catalogModel, error) {
+	if catalogQueryHook != nil {
+		catalogQueryHook(host)
+	}
 	if host == "claude" {
 		models := make([]catalogModel, 0, len(claudeAliases))
 		for _, id := range claudeAliases {
