@@ -105,3 +105,18 @@ func TestLinkIdentityAndFollowedPayloadAreProtected(t *testing.T) {
 		t.Fatal("link retarget with equal payload hidden")
 	}
 }
+
+// TestOpenCodeCLISettingsAreProtected covers issue #81: OpenCode V2 keeps its
+// terminal-client settings in the global cli.json, so a pilot that changed it
+// must leave a fingerprint delta for the opencode worker.
+func TestOpenCodeCLISettingsAreProtected(t *testing.T) {
+	clearRoots(t)
+	home := t.TempDir()
+	path := filepath.Join(home, ".config/opencode/cli.json")
+	fixtureFile(t, path, "{}\n")
+	before := protectedFor("opencode", home)
+	fixtureFile(t, path, "{\"theme\":\"changed\"}\n")
+	if got := changedProtected(before, protectedFor("opencode", home)); len(got) != 1 || got[0] != path {
+		t.Fatalf("cli.json change not detected: %v", got)
+	}
+}
