@@ -90,61 +90,78 @@ func hostsIncludePi(hosts []string) bool {
 	return false
 }
 
-func applyPiPackage(p Plan, next *State) error {
-	run := resolveApplyPi(p.Config.Synthetic)
-	if p.Action == "remove" && hostsIncludePi(p.Hosts) && next.PiSubagentsSource != "" {
-		return removeHivePiPackage(p.Config.PiHome, next, run)
-	}
-	if p.PiPackage == nil {
+func revalidatePiPackage(p Plan) error {
+	if p.PiPackage == nil || p.PiPackage.Action != PackageOmit {
 		return nil
-	}
-	if p.PiPackage.Action == PackageOmit {
-		d, err := readSubagents(p.Config.PiHome)
-		if err != nil {
-			return err
-		}
-		if d.Status != pi.Present {
-			return fmt.Errorf("stale plan: pi-subagents is no longer declared")
-		}
-		return nil
-	}
-	if p.PiPackage.Action != PackageInstall {
-		return nil
-	}
-	if err := revalidateAbsent(p.Config.PiHome); err != nil {
-		return err
-	}
-	if err := run(p.Config.PiHome, "install", p.PiPackage.Source); err != nil {
-		return err
 	}
 	d, err := readSubagents(p.Config.PiHome)
 	if err != nil {
 		return err
 	}
-	if d.Status != pi.Present || d.Source != p.PiPackage.Source {
-		return fmt.Errorf("pi-subagents install did not declare %s", p.PiPackage.Source)
+	if d.Status != pi.Present {
+		return fmt.Errorf("stale plan: pi-subagents is no longer declared")
 	}
-	next.PiSubagentsSource = p.PiPackage.Source
 	return nil
 }
 
-func removeHivePiPackage(piHome string, next *State, run func(string, string, string) error) error {
-	d, err := readSubagents(piHome)
-	if err != nil {
-		return err
-	}
-	if d.Status == pi.Absent {
-		next.PiSubagentsSource = ""
+func applyPiPackage(p Plan, next *State, j *journal, jp string, fail func(string) error) error {
+	run := resolveApplyPi(p.Config.Synthetic)
+	var action, source string
+	switch {
+	case p.Action == "remove" && hostsIncludePi(p.Hosts) && next.PiSubagentsSource != "":
+		d, err := readSubagents(p.Config.PiHome)
+		if err != nil {
+			return err
+		}
+		if d.Status == pi.Absent || d.Source != next.PiSubagentsSource {
+			next.PiSubagentsSource = ""
+			j.AfterState = snapshot{Exists: true, Data: encode(*next), Mode: 0600}
+			return saveJournal(jp, *j)
+		}
+		action, source = "remove", next.PiSubagentsSource
+	case p.PiPackage != nil && p.PiPackage.Action == PackageOmit:
+		return revalidatePiPackage(p)
+	case p.PiPackage != nil && p.PiPackage.Action == PackageInstall:
+		if err := revalidateAbsent(p.Config.PiHome); err != nil {
+			return err
+		}
+		action, source = "install", p.PiPackage.Source
+	default:
 		return nil
 	}
-	if d.Source != next.PiSubagentsSource {
-		next.PiSubagentsSource = ""
-		return nil
-	}
-	if err := run(piHome, "remove", next.PiSubagentsSource); err != nil {
+	j.PackagePending = true
+	if err := saveJournal(jp, *j); err != nil {
 		return err
 	}
-	next.PiSubagentsSource = ""
+	if fail != nil {
+		if err := fail("pi-package-run"); err != nil {
+			return err
+		}
+	}
+	if err := run(p.Config.PiHome, action, source); err != nil {
+		return err
+	}
+	j.PackagePending = false
+	j.PackageDone = true
+	if action == "install" {
+		d, err := readSubagents(p.Config.PiHome)
+		if err != nil {
+			return err
+		}
+		if d.Status != pi.Present || d.Source != source {
+			return fmt.Errorf("pi-subagents install did not declare %s", source)
+		}
+		next.PiSubagentsSource = source
+	} else {
+		next.PiSubagentsSource = ""
+	}
+	j.AfterState = snapshot{Exists: true, Data: encode(*next), Mode: 0600}
+	if err := saveJournal(jp, *j); err != nil {
+		return err
+	}
+	if fail != nil {
+		return fail("pi-package-after")
+	}
 	return nil
 }
 

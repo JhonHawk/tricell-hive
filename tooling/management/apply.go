@@ -32,6 +32,7 @@ type journal struct {
 	CreatedDirs             []string
 	Integrity               string
 	PackageDone             bool `json:",omitempty"`
+	PackagePending          bool `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -418,18 +419,7 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 	if err := e.fail("pi-package"); err != nil {
 		return err
 	}
-	beforePkg := next.PiSubagentsSource
-	if err := applyPiPackage(p, next); err != nil {
-		return err
-	}
-	if next.PiSubagentsSource != beforePkg {
-		j.PackageDone = true
-		j.AfterState = snapshot{Exists: true, Data: encode(*next), Mode: 0600}
-		if err := saveJournal(jp, *j); err != nil {
-			return err
-		}
-	}
-	if err := e.fail("pi-package-after"); err != nil {
+	if err := applyPiPackage(p, next, j, jp, e.fail); err != nil {
 		return err
 	}
 	if p.Release != nil {
@@ -601,6 +591,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 		return "", err
 	}
 	if !changed {
+		if err := revalidatePiPackage(p); err != nil {
+			return "", err
+		}
 		result := "unchanged"
 		if warning := recordSourceCommit(p); warning != "" {
 			result += "; " + warning
@@ -675,7 +668,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if j.Phase == "committed" || j.Phase == "recovered" {
 		return j.Phase, os.Remove(pp)
 	}
-	if j.PackageDone {
+	if j.PackageDone || j.PackagePending {
 		if err := undoPiPackage(j); err != nil {
 			return "", err
 		}

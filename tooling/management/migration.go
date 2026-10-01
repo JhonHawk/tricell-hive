@@ -140,6 +140,9 @@ func PlanUnchanged(p Plan) (bool, error) {
 	if p.Action == "voice" && !reflect.DeepEqual(s.Voice, p.VoiceSetting) {
 		return false, nil
 	}
+	if err := revalidatePiPackage(p); err != nil {
+		return false, err
+	}
 	if p.PiPackage != nil && p.PiPackage.Action == PackageInstall {
 		return false, nil
 	}

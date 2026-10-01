@@ -156,6 +156,25 @@ func TestRemoveSkipsChangedPin(t *testing.T) {
 	}
 }
 
+func TestUnchangedOmitRevalidatesDeclaration(t *testing.T) {
+	o := setup(t)
+	o.Hosts = []string{"pi"}
+	put(t, filepath.Join(o.Home, ".pi", "agent", "settings.json"), `{"packages":["npm:pi-subagents@0.67.0"]}`+"\n")
+	apply(t, plan(t, "install", o))
+	p := plan(t, "install", o)
+	if p.PiPackage == nil || p.PiPackage.Action != PackageOmit {
+		t.Fatalf("want omit, got %#v", p.PiPackage)
+	}
+	if err := os.Remove(filepath.Join(o.Home, ".pi", "agent", "settings.json")); err != nil {
+		t.Fatal(err)
+	}
+	piCalls = nil
+	_, err := (Engine{}).Apply(p)
+	if err == nil || !strings.Contains(err.Error(), "no longer declared") {
+		t.Fatalf("want stale omit on unchanged, got %v", err)
+	}
+}
+
 func TestApplyRejectsStaleOmitPlan(t *testing.T) {
 	o := setup(t)
 	o.Hosts = []string{"pi"}
