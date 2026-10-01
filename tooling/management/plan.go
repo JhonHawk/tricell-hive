@@ -3,9 +3,11 @@ package management
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -344,6 +346,14 @@ func validateRelease(r Release) error {
 	return validateInstructionReferences(r)
 }
 func BuildPlan(action string, o Options) (Plan, error) {
+	return buildPlan(action, o, nil)
+}
+
+// buildPlan is BuildPlan with an optional adjust hook. It runs on the plan once
+// the release, the product identity and the inherited model overrides are set
+// and before any change is computed, so BuildModelsPlan can replace a CLI's
+// overrides and keep its receipt without a second planning pass.
+func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan, error) {
 	var p Plan
 	if action != "install" && action != "remove" {
 		return p, fmt.Errorf("action must be install or remove")
@@ -377,6 +387,15 @@ func BuildPlan(action string, o Options) (Plan, error) {
 		p.Release = &r
 		p.Product, err = productFromSource(o, r, state)
 		if err != nil {
+			return p, err
+		}
+		// Every install, update and rollback applies the overrides again.
+		if c.Scope == "user" {
+			p.ModelOverrides = copyOverrides(state.ModelOverrides)
+		}
+	}
+	if adjust != nil {
+		if err = adjust(&p, state); err != nil {
 			return p, err
 		}
 	}
@@ -465,6 +484,17 @@ func BuildPlan(action string, o Options) (Plan, error) {
 	return p, nil
 }
 
+// overrideRenderError names the CLI and role of a role that has an override and
+// failed to render. Only an error that comes from the override gets the way out:
+// dropping it does nothing for a problem in the release itself.
+func overrideRenderError(host, role string, err error) error {
+	var oe *agents.OverrideError
+	if errors.As(err, &oe) {
+		return fmt.Errorf("%s %s: %w; run hive models reset --host %s --role %s", host, role, err, host, role)
+	}
+	return fmt.Errorf("%s %s: %w", host, role, err)
+}
+
 // nextRecord returns the record a plan leaves for g. gone marks an install or
 // update of content that was deleted by hand: the record is then rebuilt as
 // for a fresh installation (whether Hive created the file, the separator
@@ -513,9 +543,17 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			return nil, fmt.Errorf("agent renderer version changed; regenerate plan")
 		}
 		var rendered []byte
+		role := strings.TrimSuffix(path.Base(g.Target.Source), ".md")
 		for _, c := range g.Consumers {
-			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config))
+			var override *ModelOverride
+			if v, ok := p.ModelOverrides[c.Host][role]; ok {
+				override = &v
+			}
+			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config), override)
 			if err != nil {
+				if override != nil {
+					return nil, overrideRenderError(c.Host, role, err)
+				}
 				return nil, err
 			}
 			if rendered != nil && !bytes.Equal(rendered, body) {
@@ -643,6 +681,9 @@ func validatePlan(p Plan, state State) error {
 		if err := validateProduct(p.Product, state, p.Release.ID); err != nil {
 			return err
 		}
+	}
+	if err := validateModelOverrides(p, state); err != nil {
+		return err
 	}
 	if p.Action != "voice" {
 		gs, err := desiredResources(p.Config, p.Hosts, state, p.Action, p.Release)

@@ -208,12 +208,21 @@ func planFromCommit(gitPath string, env []string, source, commit string, o manag
 // swallowed, and the result is never compared with == "unchanged" since it
 // may carry that suffix.
 func reportApplyResult(out io.Writer, verb, result string) {
+	reportApplyOutcome(out, verb, result, true)
+}
+
+// reportApplyOutcome is reportApplyResult; sessionNote says whether to end with
+// the advice to open new CLI sessions, which only makes sense when a file the
+// CLIs read was written.
+func reportApplyOutcome(out io.Writer, verb, result string, sessionNote bool) {
 	id, warning, hasWarning := strings.Cut(result, "; ")
 	fmt.Fprintf(out, "%s (%s).\n", verb, id)
 	if hasWarning {
 		fmt.Fprintln(out, warning)
 	}
-	fmt.Fprintln(out, "Open new CLI sessions.")
+	if sessionNote {
+		fmt.Fprintln(out, "Open new CLI sessions.")
+	}
 }
 
 // filteredGitEnv copies the process environment without the variables Git

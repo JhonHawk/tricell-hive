@@ -140,6 +140,12 @@ type appConfig struct {
 	Deps             installDependencies
 	// Dark selects the dark palette; NoColor removes color entirely.
 	Dark, NoColor bool
+	// catalog is the model-list cache shared by every view; newAppModel sets it
+	// once, and the pointer survives the copies of appConfig.
+	catalog *modelCatalogCache
+	// catalogRunner replaces the real listing runner; tests inject a fake one.
+	// Nil means catalogRunnerFor(Options).
+	catalogRunner catalogRunner
 }
 
 // copyOptions returns o with its own Hosts slice, so a Cmd never shares memory
@@ -169,6 +175,9 @@ type appModel struct {
 var quitBinding = key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit"))
 
 func newAppModel(cfg appConfig) *appModel {
+	if cfg.catalog == nil {
+		cfg.catalog = newModelCatalogCache()
+	}
 	theme := newAppTheme(cfg.Dark, cfg.NoColor)
 	h := help.New()
 	h.Styles = theme.Help
@@ -338,6 +347,16 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status, m.statusFailed = "", true
 		}
 		return m, nil
+	case catalogLoadedMsg:
+		msg.cache.finish(msg.host, msg.models, msg.err)
+		var cmds []tea.Cmd
+		for _, v := range m.stack {
+			if mv, ok := v.(*modelsView); ok {
+				cmd, act := mv.Update(msg)
+				cmds = append(cmds, m.apply(cmd, act))
+			}
+		}
+		return m, tea.Batch(cmds...)
 	case pendingCheckedMsg:
 		return m, m.onPendingChecked(msg)
 	case pushViewMsg:

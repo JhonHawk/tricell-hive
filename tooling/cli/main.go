@@ -71,6 +71,8 @@ func run(args []string) error {
 		return runDoctor(rest, os.Stdout, realDoctorDeps())
 	case "models":
 		return runModels(rest, os.Stdout)
+	case "project":
+		return runProject(rest)
 	case "tui":
 		return runInterfaceCommand(rest)
 	default:
@@ -87,6 +89,8 @@ func printHelp() {
 	fmt.Println("hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update from a Git commit; needs Git and a checkout, unlike install.sh)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
 	fmt.Println("hive voice list [--source DIR]  (print each voice's ID and description)\nhive voice set ID [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]\nhive voice off [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]")
 	fmt.Println("hive doctor [--home DIR] [--state-dir DIR] [--project DIR]  (read-only diagnostics: CLIs, installation, sessions, integrations, project)\nhive models [--home DIR] [--state-dir DIR]  (read-only effective model and effort per role)")
+	fmt.Println("hive models set --host H (--role R | --group G) [--model M] [--effort E] [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]\nhive models reset --host H ((--role R | --group G) [--only model|effort] | --all) [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]  (override a role's or a group's model or effort; reset returns to the release's values)")
+	fmt.Println("hive project set [--project DIR] --set 'Key: value'... [--unset Key...] [--dry-run]  (edit the ## Hive section of the repository's AGENTS.md after confirmation)")
 }
 
 // readOnlyOptions parses the --home and --state-dir flags that the read-only
@@ -131,20 +135,6 @@ func runDoctor(args []string, w io.Writer, deps doctorDeps) error {
 		}
 	}
 	renderDoctorText(collectDoctor(o, project, deps), w)
-	return nil
-}
-
-// runModels prints the effective model and effort of every installed role.
-func runModels(args []string, w io.Writer) error {
-	o, ok, err := readOnlyOptions(flag.NewFlagSet("models", flag.ContinueOnError), args)
-	if !ok {
-		return err
-	}
-	hosts, rows, err := collectModels(o)
-	if err != nil {
-		return err
-	}
-	renderModelsText(hosts, rows, w)
 	return nil
 }
 

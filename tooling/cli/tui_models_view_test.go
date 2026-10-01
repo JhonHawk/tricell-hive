@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"testing"
 
@@ -76,7 +75,7 @@ func openModelsView(t *testing.T, hosts string, width, height int) (*appModel, *
 	cfg := hostsAppConfig(t, home, stateDir, source, deps)
 	m, d := newTestApp(t, cfg, width, height)
 	before := len(m.stack)
-	d.send(pushViewMsg{v: newModelsView(cfg)})
+	d.send(pushViewMsg{v: newModelsView(m.cfg)})
 	v, ok := m.top().(*modelsView)
 	if !ok || len(m.stack) != before+1 {
 		t.Fatalf("top view is %T", m.top())
@@ -102,6 +101,8 @@ func selectedModelsHost(t *testing.T, d *appDriver) string {
 func modelsRowFor(t *testing.T, d *appDriver, role string) []string {
 	t.Helper()
 	for _, line := range d.lines() {
+		// Every table line starts with the two columns of the cursor mark.
+		line = strings.TrimLeft(strings.TrimPrefix(strings.TrimPrefix(line, "> "), "  "), " ") // roles sit under their header
 		if strings.HasPrefix(line, role+" ") || line == role {
 			return regexp.MustCompile(`\s{2,}`).Split(strings.TrimSpace(line), -1)
 		}
@@ -175,12 +176,12 @@ func TestModelsViewShowsRoleEffortAndProfileColumns(t *testing.T) {
 	d.mustShow("Role", "Profile", "Model", "Effort")
 }
 
-func TestModelsViewFooterSaysHowToChangeModels(t *testing.T) {
+func TestModelsViewFooterSaysHowToEditAndWhereDefaultsComeFrom(t *testing.T) {
 	_, d, _, _, _ := openModelsView(t, "claude", 80, 24)
-	d.mustShow("integrations/agent-profiles.json", "hive update")
+	d.mustShow("Enter edits the selected role or group; x resets one marked *.", "Defaults come from integrations/agent-profiles.json in the release.")
 	lines := d.lines()
 	// The help bar is the last line; the footer is the two lines above it.
-	if !strings.Contains(strings.Join(lines[len(lines)-3:len(lines)-1], "\n"), "hive update") {
+	if !strings.Contains(strings.Join(lines[len(lines)-3:len(lines)-1], "\n"), "Defaults come from") {
 		t.Fatalf("the footer is not the two lines above the help bar:\n%s", d.screen())
 	}
 }
@@ -216,10 +217,10 @@ func TestModelsViewColumnsAt80And120Columns(t *testing.T) {
 		assertFits(t, d, size.w, size.h)
 		var header, first string
 		for _, l := range d.lines() {
-			if strings.HasPrefix(l, "Role") {
+			if strings.HasPrefix(l, "  Role") {
 				header = l
 			}
-			if strings.HasPrefix(l, longRoleName) {
+			if strings.HasPrefix(l, "> "+longRoleName) || strings.HasPrefix(l, "  "+longRoleName) {
 				first = l
 			}
 		}
@@ -227,11 +228,12 @@ func TestModelsViewColumnsAt80And120Columns(t *testing.T) {
 			t.Fatalf("%dx%d: table not found:\n%s", size.w, size.h, d.screen())
 		}
 		// Role is as wide as the longest role, Profile follows at +2, and so on.
-		if i := strings.Index(header, "Profile"); i != 26 {
-			t.Errorf("%dx%d: Profile starts at column %d, want 26", size.w, size.h, i)
+		// The table starts after the two columns of the cursor mark.
+		if i := strings.Index(header, "Profile"); i != 28 {
+			t.Errorf("%dx%d: Profile starts at column %d, want 28", size.w, size.h, i)
 		}
-		if i := strings.Index(header, "Model"); i != 26+10+2 {
-			t.Errorf("%dx%d: Model starts at column %d, want 38", size.w, size.h, i)
+		if i := strings.Index(header, "Model"); i != 28+10+2 {
+			t.Errorf("%dx%d: Model starts at column %d, want 40", size.w, size.h, i)
 		}
 		if size.w == 80 {
 			if !strings.Contains(first, "…") || strings.Contains(first, long) {
@@ -240,7 +242,7 @@ func TestModelsViewColumnsAt80And120Columns(t *testing.T) {
 			if got := len([]rune(first)); got > 80 {
 				t.Errorf("row is %d runes: %q", got, first)
 			}
-			modelCol := []rune(first)[38:]
+			modelCol := []rune(first)[40:]
 			cut := strings.SplitN(string(modelCol), "  ", 2)[0]
 			if n := len([]rune(cut)); n < 28 {
 				t.Errorf("Model column shows %d runes, want at least 28: %q", n, cut)
@@ -248,7 +250,7 @@ func TestModelsViewColumnsAt80And120Columns(t *testing.T) {
 		} else if !strings.Contains(first, long) {
 			t.Errorf("120 columns: the model should show whole: %q", first)
 		}
-		if !strings.HasPrefix(first, longRoleName+"  reasoning") {
+		if !strings.HasPrefix(first[2:], longRoleName+"  reasoning") {
 			t.Errorf("the role was cut or misaligned: %q", first)
 		}
 	}
@@ -421,7 +423,7 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 	if len(roles) != syntheticRoleCount {
 		t.Fatalf("the synthetic catalogue has %d roles, want %d", len(roles), syntheticRoleCount)
 	}
-	sort.Strings(roles)
+	roles = groupedRoles(roles) // the table lists roles by group, then by name
 	first, last := roles[0], roles[len(roles)-1]
 	deps := hostsTestDeps(coreOnlyAdapterFactory)
 	home, stateDir := newHostsTestHome(t)
@@ -430,7 +432,7 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			m, d := newTestApp(t, cfg, size[0], size[1])
-			d.send(pushViewMsg{v: newModelsView(cfg)})
+			d.send(pushViewMsg{v: newModelsView(m.cfg)})
 			v, ok := m.top().(*modelsView)
 			if !ok {
 				t.Fatalf("top view is %T", m.top())

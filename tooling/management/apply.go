@@ -290,6 +290,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	if updateProductState(&next, state, p) {
 		changed = true
 	}
+	// A change of overrides is saved even when no file reflects it, such as the
+	// reset of an override whose role the release lost.
+	next.ModelOverrides = nextModelOverrides(state, p)
+	if !sameOverrides(state.ModelOverrides, next.ModelOverrides) {
+		changed = true
+	}
 	if !changed {
 		return j, next, nil, false, nil
 	}
