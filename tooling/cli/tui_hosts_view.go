@@ -27,7 +27,7 @@ import (
 // strings, "-" when unknown, the same values `hive status` reports.
 type hostRow struct {
 	Name       string
-	State      string // "registered", "legacy install" or "detected"
+	State      string // "registered", "legacy install", "editor only", "detected" or "not detected"
 	Registered bool
 	Release    string
 	Version    string
@@ -109,7 +109,7 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 		}
 	}
 	for _, c := range candidates {
-		if !c.Registered && !c.Legacy && !c.Detected {
+		if !c.Registered && !c.Legacy && !c.Detected && !c.Offered {
 			continue
 		}
 		row := hostRow{Name: c.Name, Registered: c.Registered, Release: "-", Version: "-", Drift: "-"}
@@ -121,6 +121,8 @@ func loadHostRows(o management.Options, deps installDependencies) (rows []hostRo
 			row.State = "legacy install"
 		case c.EditorOnly:
 			row.State = "editor only"
+		case !c.Detected:
+			row.State = "not detected"
 		default:
 			row.State = "detected"
 		}

@@ -294,7 +294,7 @@ func testAppConfig(t *testing.T) appConfig {
 	return appConfig{
 		Options:          mo,
 		ExplicitStateDir: true,
-		Deps:             defaultInstallDependencies(coreOnlyAdapterFactory),
+		Deps:             nothingDetectedDeps(coreOnlyAdapterFactory),
 		Dark:             true,
 	}
 }

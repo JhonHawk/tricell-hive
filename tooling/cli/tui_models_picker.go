@@ -6,6 +6,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"unicode/utf8"
 
@@ -346,7 +347,9 @@ func (v *modelsView) choose(cur int) (tea.Cmd, action) {
 	default:
 		p.chosen, p.touched, p.textMode = c.rows[cur].id, true, false
 	}
-	p.trimEfforts(true)
+	if reset := p.trimEfforts(true); reset != "" {
+		p.message, p.messageOK = "Effort "+reset+" dropped (not offered by "+p.modelID()+"); using release default", true
+	}
 	return nil, action{nav: navNone}
 }
 
@@ -369,7 +372,7 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 	}
 	who := p.role
 	if p.group != "" {
-		who = strings.ToUpper(p.group[:1]) + p.group[1:] + " group"
+		who = groupTitle(p.group) + " group"
 	}
 	title := "Select model"
 	ctx := truncateRunes(" · "+v.host+" · "+who, max(W-len(title)-len(" esc ")-6, 1))
@@ -483,6 +486,13 @@ func (v *modelsView) pickerBottom(c viewCtx, n, inner int, boxed func(string, in
 		out += st.Render(text) + "  "
 		plain += textWidth(text) + 2
 	}
-	gap := max(inner-plain-textWidth(pickerHint), 1)
-	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(pickerHint), plain+gap+textWidth(pickerHint))
+	hint := pickerHint
+	if l.cur >= 0 && l.cur < n {
+		// The cursor's place among the models, when the row has room for it.
+		if with := fmt.Sprintf("%d of %d  %s", l.cur+1, n, pickerHint); inner-plain-textWidth(with) >= 1 {
+			hint = with
+		}
+	}
+	gap := max(inner-plain-textWidth(hint), 1)
+	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(hint), plain+gap+textWidth(hint))
 }

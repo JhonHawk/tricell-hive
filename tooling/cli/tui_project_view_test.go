@@ -254,7 +254,7 @@ func TestProjectViewShowsTheSameLocationLineAsTheCommand(t *testing.T) {
 		sec := collectProject(dir, doctorDeps{})
 		_, d, _ := openProjectView(t, dir, nil, 120, 40)
 		mustShowWhole(t, d, sec.Lines[0])
-		mustContain(t, projectBoxText(checkProject(dir, newGitRunner())), sec.Lines[0]+"\n")
+		mustContain(t, projectBoxText(checkProject(dir, newGitRunner()), ""), sec.Lines[0]+"\n")
 	}
 }
 
@@ -603,4 +603,73 @@ func TestProjectViewSaysCreatedOrUpdatedAfterTheWrite(t *testing.T) {
 	d.key("y")
 	d.mustShow("Updated AGENTS.md")
 	d.mustNotShow("Created AGENTS.md")
+}
+
+func TestProjectViewKeepsTheClaudeMDWarningAfterTheWrite(t *testing.T) {
+	root := formRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte("own\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, d, _ := openForm(t, root, 80, 24)
+	d.key("enter")
+	d.key("y")
+	d.mustShow("Valid", "CLAUDE.md does not import @AGENTS.md")
+	assertFits(t, d, 80, 24)
+	// Once CLAUDE.md imports AGENTS.md the warning goes away.
+	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte("@AGENTS.md\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d.key("r")
+	d.mustShow("Valid")
+	d.mustNotShow("does not import")
+}
+
+func TestProjectDoctorSectionDoesNotCarryTheClaudeMDWarning(t *testing.T) {
+	root := formRepo(t)
+	writeAgents(t, root, "# T\n\n## Hive\n\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: _support/openspec\n")
+	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte("own\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(checkProject(root, newGitRunner()).Section.Lines, "\n"); strings.Contains(got, "CLAUDE.md") {
+		t.Fatalf("the shared check changed hive doctor output:\n%s", got)
+	}
+}
+
+func TestProjectViewShowsNoClaudeMDWarningWithoutAnAgentsFile(t *testing.T) {
+	root := formRepo(t) // no AGENTS.md
+	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte("own\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, d, _ := openProjectView(t, root, nil, 80, 24)
+	d.mustNotShow("does not import")
+	// Outside a repository the section cannot be checked either.
+	_, d, _ = openProjectView(t, t.TempDir(), nil, 80, 24)
+	d.mustNotShow("does not import")
+}
+
+func TestProjectBoxTextTakesTheWarningFromItsArgumentAndReadsNoFile(t *testing.T) {
+	root := formRepo(t)
+	writeAgents(t, root, "# T\n\n## Hive\n\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: _support/openspec\n")
+	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte("own\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := checkProject(root, newGitRunner())
+	if got := projectBoxText(c, ""); strings.Contains(got, "\nWarning:") {
+		t.Fatalf("a warning appeared that nobody passed in:\n%s", got)
+	}
+	got := projectBoxText(c, "passed in")
+	if !strings.Contains(got, "Valid\nWarning: passed in\n") {
+		t.Fatalf("the passed warning is not under the verdict:\n%s", got)
+	}
+}
+
+func TestProjectLoadedMessageCarriesTheWarning(t *testing.T) {
+	root := formRepo(t)
+	writeAgents(t, root, "# T\n\n## Hive\n\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: _support/openspec\n")
+	os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte("own\n"), 0o644)
+	v := newProjectViewWith(testAppConfig(t), root, doctorDeps{})
+	msg, ok := v.reload()().(projectLoadedMsg)
+	if !ok || !strings.Contains(msg.warning, "does not import @AGENTS.md") {
+		t.Fatalf("message = %+v", msg)
+	}
 }

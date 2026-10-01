@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,6 +34,18 @@ func hostsTestDeps(factory onboardingAdapterFactory) installDependencies {
 			candidates[i].Detected = true
 		}
 		return candidates, err
+	}
+	return deps
+}
+
+// nothingDetectedDeps is the default install dependencies on a machine where
+// no supported CLI executable is found: the view then lists only what is
+// registered or left by a legacy install. Under a synthetic home the real
+// discovery offers every host instead (H3 of #91).
+func nothingDetectedDeps(factory onboardingAdapterFactory) installDependencies {
+	deps := defaultInstallDependencies(factory)
+	deps.DiscoverHosts = func(o management.Options) ([]hostCandidate, error) {
+		return discoverInstallerHosts(o, func(string) (string, error) { return "", errors.New("not found") })
 	}
 	return deps
 }
@@ -279,7 +292,7 @@ func TestHostsViewLabelsLegacyInstall(t *testing.T) {
 	source := minimalTestSource(t)
 	home, stateDir := newHostsTestHome(t)
 	seedLegacyCodex(t, home)
-	deps := defaultInstallDependencies(coreOnlyAdapterFactory) // real detection: only legacy shows
+	deps := nothingDetectedDeps(coreOnlyAdapterFactory) // only the legacy install shows
 	_, d := openHostsApp(t, home, stateDir, source, deps)
 	rows := hostRows(d)
 	if len(rows) != 1 || rows[0].name != "codex" || rows[0].state != "legacy install" || rows[0].checked {
@@ -291,7 +304,7 @@ func TestHostsViewLabelsLegacyInstall(t *testing.T) {
 // detected or registered.
 func TestHostsViewEmptyStateNamesTheProblem(t *testing.T) {
 	home, stateDir := newHostsTestHome(t)
-	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory))
+	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), nothingDetectedDeps(coreOnlyAdapterFactory))
 	d.mustShow("No CLI hosts were detected or registered")
 	d.key("a")
 	d.mustShow("Nothing to apply")
@@ -1225,7 +1238,7 @@ func TestHostsViewShowsPendingChangesAndEnterReviewsThem(t *testing.T) {
 // view with nothing to act on.
 func TestHostsViewEmptyStateListsOnlyUsefulKeys(t *testing.T) {
 	home, stateDir := newHostsTestHome(t)
-	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory))
+	_, d := openHostsApp(t, home, stateDir, minimalTestSource(t), nothingDetectedDeps(coreOnlyAdapterFactory))
 	d.mustShow("No CLI hosts were detected or registered")
 	help := d.lines()[len(d.lines())-1]
 	for _, useless := range []string{"space", "apply", "uninstall", "move"} {
@@ -1326,4 +1339,51 @@ func TestHostsViewKeepsPendingMarksAfterAReadOnlyView(t *testing.T) {
 		t.Fatalf("pi's mark was dropped: %+v", r)
 	}
 	// After a write the marks do reset, as before (covered by the apply tests).
+}
+
+// H3 of #91: under a synthetic --home no executable is detected, yet the view
+// offers every supported CLI so a removed one can be installed again.
+func TestHostsViewUnderASyntheticHomeOffersEverySupportedCLINotDetected(t *testing.T) {
+	source := minimalTestSource(t)
+	deps := defaultInstallDependencies(coreOnlyAdapterFactory) // the real discovery
+	home, stateDir := newHostsTestHome(t)
+	installViaText(t, home, stateDir, source, "claude,codex", "y\n", deps)
+	_, d := openHostsApp(t, home, stateDir, source, deps)
+	rows := hostRows(d)
+	if len(rows) != len(installerHosts) {
+		t.Fatalf("%d rows, want %d:\n%s", len(rows), len(installerHosts), d.screen())
+	}
+	for _, r := range rows {
+		want := "not detected"
+		if r.name == "claude" || r.name == "codex" {
+			want = "registered"
+		}
+		if r.state != want {
+			t.Fatalf("%s state = %q, want %q:\n%s", r.name, r.state, want, d.screen())
+		}
+	}
+	assertFits(t, d, 80, 24)
+	// A removed host can be installed again from the interface.
+	toggle(t, d, "grok")
+	d.key("a")
+	d.mustShow("Install grok")
+	d.key("enter")
+	d.mustShow("Hive installed and verified")
+	if r := rowFor(t, d, "grok"); r.state != "registered" {
+		t.Fatalf("grok state = %q after the install:\n%s", r.state, d.screen())
+	}
+}
+
+func TestInstallerHostDiscoveryUnderASyntheticHomeStillDetectsNothing(t *testing.T) {
+	o := hostDetectionPath(t, "claude")
+	o.Home = t.TempDir()
+	candidates, err := detectInstallerHosts(o)
+	if err != nil || len(candidates) != len(installerHosts) {
+		t.Fatalf("candidates = %v, err = %v", candidates, err)
+	}
+	for _, c := range candidates {
+		if c.Detected || c.Registered {
+			t.Fatalf("%s is pre-selected-looking under a synthetic home: %+v", c.Name, c)
+		}
+	}
 }

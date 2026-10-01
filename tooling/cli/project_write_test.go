@@ -514,3 +514,33 @@ func TestHiveRequestRefusesEveryKindOfSpaceInABaseBranch(t *testing.T) {
 		}
 	}
 }
+
+func TestClaudeMDWarningAcceptsAnImportAnywhereOutsideCode(t *testing.T) {
+	for _, tc := range []struct {
+		name, text string
+		warns      bool
+	}{
+		{"inline", "# x\nRead @AGENTS.md first.\n", false},
+		{"dot slash", "@./AGENTS.md\n", false},
+		{"in parentheses", "See (@AGENTS.md) for rules\n", true},
+		{"double quoted", "\"@AGENTS.md\"\n", true},
+		{"single quoted", "'@AGENTS.md'\n", true},
+		{"trailing period", "Read @AGENTS.md.\n", true},
+		{"tilde block holding a backtick fence", "~~~md\n```\n@AGENTS.md\n```\n~~~\n", true},
+		{"longer fence is not closed by a shorter one", "````\n```\n@AGENTS.md\n````\n", true},
+		{"import after a nested block", "~~~\n```\n~~~\n@AGENTS.md\n", false},
+		{"fenced example", "```\n@AGENTS.md\n```\n", true},
+		{"tilde fence", "~~~md\nRead @AGENTS.md\n~~~\n", true},
+		{"inline code span", "Write `@AGENTS.md` to import it.\n", true},
+		{"other file", "Read @AGENTS.md.bak and @docs/AGENTS.md\n", true},
+		{"after a fence", "```\nx\n```\n@AGENTS.md\n", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte(tc.text), 0o644)
+			if got := claudeMDWarning(root) != ""; got != tc.warns {
+				t.Fatalf("warns = %v, want %v for %q", got, tc.warns, tc.text)
+			}
+		})
+	}
+}

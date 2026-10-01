@@ -54,6 +54,10 @@ type hostCandidate struct {
 	EditorOnly bool
 	Registered bool
 	Legacy     bool
+	// Offered marks a candidate listed although nothing was looked up: under a
+	// synthetic home no executable is detected, so every supported host is a
+	// not-detected candidate a view may offer. It selects nothing.
+	Offered bool
 }
 
 type installTerminal struct {
@@ -618,7 +622,7 @@ func discoverInstallerHosts(o management.Options, lookPath func(string) (string,
 	seenLegacy := hostSet(legacy)
 	candidates := make([]hostCandidate, 0, len(installerHosts))
 	for _, host := range installerHosts {
-		candidate := hostCandidate{Name: host, Registered: seenRegistered[host], Legacy: seenLegacy[host]}
+		candidate := hostCandidate{Name: host, Registered: seenRegistered[host], Legacy: seenLegacy[host], Offered: lookPath == nil}
 		if lookPath != nil {
 			candidate.Detected = hostDetected(lookPath, host)
 			candidate.EditorOnly = editorOnly(lookPath, host, candidate.Detected)
