@@ -1,6 +1,6 @@
 # Change records
 
-Read when creating or updating a change folder, or when closing one and you need the delta formats. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; the global guidance defines its location and when a change folder is required. The layout follows OpenSpec conventions without requiring its CLI, so the project could adopt that tool later without migrating.
+Read when creating or updating a change folder, when closing one and you need the delta formats, or when locating the specs as the global guidance directs. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; the global guidance defines its location and when a change folder is required. The layout follows OpenSpec conventions without requiring its CLI, so the project could adopt that tool later without migrating.
 
 ## Files
 
@@ -41,6 +41,8 @@ Name a capability after a product or system ability in English kebab-case, such 
 
 ## Areas still described by older documents
 
+Existing documents that still describe current behavior, such as epics, READMEs, or design notes that mix current rules with delivery history, remain authoritative for areas no capability spec or product map covers yet, until a change moves those rules into the current-requirements home.
+
 When a change touches an area whose current rules live only in an older document, such as an epic that mixes current rules with delivery history, its deltas add those current rules as `ADDED` requirements (or a new product-map page) together with the change's own modifications. Cite the source document in `proposal.md`. At closure the area moves to the current-requirements home, and the older document stays as history for it. Do not rewrite older documents outside a change.
 
 ## Product map projects
@@ -50,6 +52,14 @@ When the project keeps a product map (`product/<module>/<view>.md` pages of busi
 - `proposal.md` lists the affected views with a one-line delta each.
 - Write one delta file per affected view at `changes/<change-id>/product/<module>/<view>.md`, mirroring the page's section headings. Mark each rule `ADDED`, `MODIFIED` (quoting the current rule), or `REMOVED`, and add a new view page whole when the view does not exist yet.
 - At closure, apply those rules to the page, add the change to the page's traceability line (for example `Influenciada por`), and leave the other sections untouched.
+
+## Locate the specs
+
+Read when a task needs specs that are not at the `Specs` path, or when several repositories share a project without a specs repository.
+
+- When the specs are not at the path, use a sibling checkout whose `origin` matches the declared URL and report its path; otherwise ask before cloning the URL there.
+- If the path holds another repository or the clone fails, pause only the work that needs specs and ask: grant access or correct the URL, move to `_support/openspec` (a contract change), or continue without specs. Never create a specs repository to fill the gap.
+- When several repositories share a project without a specs repository, ask before the first change whether to create one (recommended when they share capabilities) or designate one repository, and point every `Specs` at that directory.
 
 ## Closing
 
