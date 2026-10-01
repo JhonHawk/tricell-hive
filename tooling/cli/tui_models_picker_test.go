@@ -831,3 +831,104 @@ func TestModelsViewCapturesTheGroupedScreensForHandoff(t *testing.T) {
 	e.d.key("enter")
 	fmt.Printf("GROUP CONFIRMATION\n%s\n", e.d.screen())
 }
+
+// --- group edge cases ---------------------------------------------------------------
+
+// Changing only the effort of a group whose models differ sends no model.
+func TestModelsViewGroupEffortOnlyOverMixedModelsSendsNoModel(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	twinHome, twinState := e.twin(t)
+	e.d.key("enter", "down", "right", "right", "right") // mixed -> release default -> low -> medium
+	if got, _ := panelField(t, e.d, "Model"); got != "mixed" {
+		t.Fatalf("Model = %q", got)
+	}
+	e.d.key("enter")
+	e.d.mustShow("[Apply]")
+	e.d.key("enter")
+	e.d.mustShow("Open sessions keep the previous model until they restart")
+	command(t, twinHome, twinState, "set", "--host", "claude", "--group", "design", "--effort", "medium")
+	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
+	for role, o := range e.stored(t)["claude"] {
+		if o.Model != "" {
+			t.Errorf("%s got a model override %q", role, o.Model)
+		}
+	}
+}
+
+func (e modelsEditEnv) stored(t *testing.T) map[string]map[string]management.ModelOverride {
+	t.Helper()
+	s, err := management.StoredModelOverrides(management.Options{Home: e.home, StateDir: e.stateDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// Release default for both parts is a reset, and reads as one.
+func TestModelsViewGroupReleaseDefaultForBothPartsIsAReset(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	twinHome, twinState := e.twin(t)
+	prior := map[string]management.ModelOverride{"plain-role": {Model: "opus", Effort: "max"}, "hive-design-architecture": {Model: "opus", Effort: "low"}}
+	store(t, e.home, e.stateDir, "claude", prior)
+	store(t, twinHome, twinState, "claude", prior)
+	e.d.key("r")
+	e.d.key("enter", "right")
+	e.d.key("enter")         // release default
+	e.d.key("down", "right") // mixed -> release default
+	if got, _ := panelField(t, e.d, "Effort"); got != "< release default >" {
+		t.Fatalf("Effort = %q", got)
+	}
+	e.d.key("enter")
+	e.d.mustShow("Reset the design group on claude", "[Apply]")
+	e.d.mustNotShow("Change the", "Replaces the own override")
+	e.d.key("enter")
+	e.d.mustShow("Open sessions keep the previous model until they restart")
+	command(t, twinHome, twinState, "reset", "--host", "claude", "--group", "design")
+	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
+}
+
+// A role whose own override is kept and only gains a part loses nothing and is not listed.
+func TestModelsViewGroupConfirmationListsOnlyRolesThatLoseAPart(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Model: "opus"}})
+	e.d.key("r")
+	e.d.key("enter", "right")
+	pick(e.d, "opus")
+	e.d.key("down", "right", "right") // mixed -> release default -> low
+	e.d.key("enter")
+	e.d.mustShow("[Apply]", "effort")
+	e.d.mustNotShow("Replaces the own override")
+
+	// The command's summary says the same.
+	c := newModelsEnv(t)
+	if _, err := c.write("set", true, "y\n", "--host", "claude", "--role", "plain-role", "--model", "opus"); err != nil {
+		t.Fatal(err)
+	}
+	out, err := c.write("set", true, "y\n", "--host", "claude", "--group", "design", "--model", "opus", "--effort", "low")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "Replaces the own override") {
+		t.Fatalf("a role that loses nothing is listed:\n%s", out)
+	}
+	// A role that does lose a part is still listed.
+	out, err = c.write("set", true, "y\n", "--host", "claude", "--group", "design", "--model", "sonnet")
+	if err != nil || !strings.Contains(out, "Replaces the own override of: ") {
+		t.Fatalf("err = %v\n%s", err, out)
+	}
+}
+
+func TestModelsViewALongModelIDInTheListIsTruncatedAndFits(t *testing.T) {
+	long := "provider/" + strings.Repeat("m", 141) // 150 characters
+	f := standardFake()
+	f.out["opencode"] = long + "\nx/y\n"
+	e := pickerEnv(t, "claude,opencode", f, 80, 24)
+	toHost(t, e.d, "opencode")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	e.d.mustShow("provider/mmm", "…")
+	e.d.mustNotShow(long)
+	assertFits(t, e.d, 80, 24)
+	typeText(e.d, "provider")
+	assertFits(t, e.d, 80, 24)
+}

@@ -540,9 +540,15 @@ func keepShownEffort(host string, shown management.ModelRow, set management.Mode
 	return set
 }
 
+// loses reports whether replacing the override old by next drops a part of old:
+// a part old holds that next lacks or changes. Adding a part loses nothing.
+func loses(old, next management.ModelOverride) bool {
+	return (old.Model != "" && next.Model != old.Model) || (old.Effort != "" && next.Effort != old.Effort)
+}
+
 // setGroup returns the CLI's override set once every role of the group has an
-// override with only the given parts, replacing its own, and the roles whose own
-// override that replaces with something different.
+// override with only the given parts, replacing its own, and the roles that lose
+// a part of their own override by it.
 func setGroup(stored map[string]management.ModelOverride, rows []management.ModelRow, set management.ModelOverride) (map[string]management.ModelOverride, []string) {
 	next := map[string]management.ModelOverride{}
 	for r, v := range stored {
@@ -551,7 +557,7 @@ func setGroup(stored map[string]management.ModelOverride, rows []management.Mode
 	var replaced []string
 	for _, r := range rows {
 		v := keepShownEffort(r.Host, r, set)
-		if old, ok := stored[r.Role]; ok && old != v {
+		if old, ok := stored[r.Role]; ok && loses(old, v) {
 			replaced = append(replaced, r.Role)
 		}
 		if v == (management.ModelOverride{}) {

@@ -971,8 +971,15 @@ func (v *modelsView) review() (tea.Cmd, action) {
 			return nil, action{nav: navNone}
 		}
 		rows := p.groupRows
-		return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string) {
-			return setGroup(stored, rows, p.groupRequest(stored))
+		group := p.group
+		return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+			set := p.groupRequest(stored)
+			next, replaced := setGroup(stored, rows, set)
+			if set == (management.ModelOverride{}) {
+				// Both parts go back to the release's values: this is a reset.
+				return next, nil, "Reset the " + group + " group on " + host
+			}
+			return next, replaced, ""
 		}, "Change the "+p.group+" group on "+host)
 	}
 	change := p.request(host)
@@ -981,8 +988,8 @@ func (v *modelsView) review() (tea.Cmd, action) {
 		return nil, action{nav: navNone}
 	}
 	role := p.role
-	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string) {
-		return change.applyTo(stored, role), nil
+	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+		return change.applyTo(stored, role), nil, ""
 	}, "Change "+role+" on "+host)
 }
 
@@ -1003,26 +1010,26 @@ func (v *modelsView) reset() (tea.Cmd, action) {
 			return nil, action{nav: navNone}
 		}
 		rows := it.rows
-		return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string) {
+		return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
 			next := stored
 			for _, r := range rows {
 				next = drop.applyTo(next, r.Role)
 			}
-			return next, nil
+			return next, nil, ""
 		}, "Reset the "+it.group+" group on "+v.host)
 	}
 	if !it.row.Override {
 		return nil, action{nav: navNone}
 	}
 	role := it.row.Role
-	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string) {
-		return drop.applyTo(stored, role), nil
+	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+		return drop.applyTo(stored, role), nil, ""
 	}, "Reset "+role+" on "+v.host)
 }
 
 // modelsBuild turns the overrides stored for a CLI into the set a change asks
 // for, with the roles whose own override it replaces.
-type modelsBuild func(stored map[string]management.ModelOverride) (next map[string]management.ModelOverride, replaced []string)
+type modelsBuild func(stored map[string]management.ModelOverride) (next map[string]management.ModelOverride, replaced []string, title string)
 
 // plan builds the plan off the UI thread, from the overrides stored now, like
 // the command does.
@@ -1037,7 +1044,10 @@ func (v *modelsView) plan(build modelsBuild, title string) (tea.Cmd, action) {
 			msg.err = err
 			return msg
 		}
-		next, replaced := build(stored[host])
+		next, replaced, retitle := build(stored[host])
+		if retitle != "" {
+			msg.title = retitle
+		}
 		plan, before, err := planModelsChange(o, host, next)
 		if err != nil {
 			msg.err = err
