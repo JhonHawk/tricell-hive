@@ -100,6 +100,19 @@ The shared delegation contract lives in `content/guidance/global.md` as a capabi
 | OpenCode V2 | `subagent` with `agent` set to the configured agent ID; V1 used `Task`/`subagent_type`. |
 | Cursor CLI | `Task` with `subagent_type`; 2026.09.18 and 2026.09.23 list only project-level and built-in types, so sessions fall back to a generic child with the role contract. |
 
+`global.md` asks for a background launch of a child expected to outlast one stretch of the wait, because a foreground launch blocks the parent's turn and the stretch status line cannot be written ([issue #44](https://github.com/JhonHawk/tricell-hive/issues/44): a 27.8-minute foreground child on OpenCode, sample-project session `ses_f1e800deeffe`, 2026-09-27). Every host offers one; inspected 2026-09-30 from documentation and installed binaries, without model runs:
+
+| Host | Background launch | Completion reaches the parent as |
+| --- | --- | --- |
+| Claude Code 2.1.286 | `Agent` with `run_in_background`; the default for interactive spawns since 2.1.278 | A notification in a later turn |
+| Codex 0.159.1 | `spawn_agent` returns at once | `wait_agent` with a timeout; push delivery to a later turn is undocumented |
+| Grok Build 1.0.45 | `spawn_subagent`; a foreground child over its time budget is moved to the background | An automatic notification, or `wait_commands_or_subagents` |
+| Pi 0.87.1 + pi-subagents 0.67.0 | `subagent` with `async`, on by default | A message that triggers a new turn |
+| OpenCode V2 2.0.20 | `subagent` with `background: true`; a running foreground call can be moved with `POST /api/session/{id}/background` | A synthetic parent message `<subagent sessionID=… state=…>` with `metadata.source: "subagent"`, which wakes the parent |
+| Cursor CLI 2026.09.28 | Only per role, through `is_background` in the agent file | Undocumented; a `subagentStop` hook exists |
+
+Non-interactive runs are unverified on every host. On OpenCode, `opencode run --format json` prints no synthetic message and returns when the parent finishes, so a child that completes later probably goes unreported.
+
 Isolating a guidance variant per process for such pilots: Claude Code `--settings` with `claudeMdExcludes` plus `--append-system-prompt`; Codex and Pi a shadow `CODEX_HOME` or `PI_CODING_AGENT_DIR` with symlinks; Grok a shadow `HOME` with the real `GROK_HOME`; OpenCode 2 needs `opencode run --standalone`, because its background service ignores process environment overrides; Cursor a project `.cursor/rules` file.
 
 Ids as observed, before the 2026-09-29 rename to `hive-<verb>-<object>`.
