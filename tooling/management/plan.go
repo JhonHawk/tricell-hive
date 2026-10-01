@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -344,6 +345,14 @@ func validateRelease(r Release) error {
 	return validateInstructionReferences(r)
 }
 func BuildPlan(action string, o Options) (Plan, error) {
+	return buildPlan(action, o, nil)
+}
+
+// buildPlan is BuildPlan with an optional adjust hook. It runs on the plan once
+// the release, the product identity and the inherited model overrides are set
+// and before any change is computed, so BuildModelsPlan can replace a CLI's
+// overrides and keep its receipt without a second planning pass.
+func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan, error) {
 	var p Plan
 	if action != "install" && action != "remove" {
 		return p, fmt.Errorf("action must be install or remove")
@@ -377,6 +386,15 @@ func BuildPlan(action string, o Options) (Plan, error) {
 		p.Release = &r
 		p.Product, err = productFromSource(o, r, state)
 		if err != nil {
+			return p, err
+		}
+		// Every install, update and rollback applies the overrides again.
+		if c.Scope == "user" {
+			p.ModelOverrides = copyOverrides(state.ModelOverrides)
+		}
+	}
+	if adjust != nil {
+		if err = adjust(&p, state); err != nil {
 			return p, err
 		}
 	}
@@ -513,8 +531,13 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			return nil, fmt.Errorf("agent renderer version changed; regenerate plan")
 		}
 		var rendered []byte
+		role := strings.TrimSuffix(path.Base(g.Target.Source), ".md")
 		for _, c := range g.Consumers {
-			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config), nil)
+			var override *ModelOverride
+			if v, ok := p.ModelOverrides[c.Host][role]; ok {
+				override = &v
+			}
+			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config), override)
 			if err != nil {
 				return nil, err
 			}
@@ -643,6 +666,9 @@ func validatePlan(p Plan, state State) error {
 		if err := validateProduct(p.Product, state, p.Release.ID); err != nil {
 			return err
 		}
+	}
+	if err := validateModelOverrides(p, state); err != nil {
+		return err
 	}
 	if p.Action != "voice" {
 		gs, err := desiredResources(p.Config, p.Hosts, state, p.Action, p.Release)
