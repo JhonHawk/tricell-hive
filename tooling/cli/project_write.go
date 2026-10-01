@@ -360,23 +360,30 @@ func suggestHiveValues(root string, git gitRunner) map[string]string {
 
 // importsAgents says whether text holds an `@AGENTS.md` or `@./AGENTS.md`
 // token outside fenced code blocks and inline code spans. Claude Code imports
-// an `@path` anywhere in the text, not only on a line of its own.
+// an `@path` anywhere in the text, not only on a line of its own; the path ends
+// at the first whitespace and a quoted one is not imported.
 func importsAgents(text string) bool {
-	fenced := false
+	var fence string // the fence that opened the current block, "" outside one
 	for _, raw := range strings.Split(text, "\n") {
 		line := strings.TrimSpace(raw)
-		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
-			fenced = !fenced
-			continue
+		if run := fenceRun(line); run != "" {
+			switch {
+			case fence == "":
+				fence = run
+				continue
+			case run[0] == fence[0] && len(run) >= len(fence) && strings.Trim(line, run[:1]) == "":
+				fence = "" // only a fence of the same character, at least as long, closes
+				continue
+			}
 		}
-		if fenced {
+		if fence != "" {
 			continue
 		}
 		parts := strings.Split(line, "`") // the even parts are outside code spans
 		for i := 0; i < len(parts); i += 2 {
+			// A path ends at the first whitespace and a quoted one is not
+			// imported, so a token counts only when it is exactly the import.
 			for _, tok := range strings.Fields(parts[i]) {
-				tok = strings.TrimLeft(tok, "(<[\"'")
-				tok = strings.TrimRight(tok, ").,;:!?>]\"'")
 				if tok == "@AGENTS.md" || tok == "@./AGENTS.md" {
 					return true
 				}
@@ -384,6 +391,19 @@ func importsAgents(text string) bool {
 		}
 	}
 	return false
+}
+
+// fenceRun is the run of three or more backticks or tildes a line starts with,
+// or "".
+func fenceRun(line string) string {
+	if line == "" || (line[0] != '`' && line[0] != '~') {
+		return ""
+	}
+	n := len(line) - len(strings.TrimLeft(line, line[:1]))
+	if n < 3 {
+		return ""
+	}
+	return line[:n]
 }
 
 // claudeMDWarning returns the warning for a CLAUDE.md at root that does not
