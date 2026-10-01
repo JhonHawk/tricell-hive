@@ -226,13 +226,26 @@ func dropValid(lines []string) []string {
 // hiveItem is one `- Key: value` line of the section.
 type hiveItem struct{ Key, Value string }
 
-// parseHiveSection finds the exact `## Hive` headings and returns the items of
+// hiveWalk is the result of walking a document for its `## Hive` section.
+// Positions are indexes into strings.Split(content, "\n"), so the validator
+// and the editor read the same lines.
+type hiveWalk struct {
+	Items    []hiveItem // the `- Key: value` lines of the first section
+	Lines    []int      // Lines[i] is the line index of Items[i]
+	Headings int        // how many exact `## Hive` headings the document has
+	Heading  int        // line index of the first heading; -1 without one
+	End      int        // line index of the heading that ends the first section, or the line count
+}
+
+// walkHiveSection finds the exact `## Hive` headings and returns the items of
 // the first one: the `- Key: value` lines until the next heading. Lines inside
 // fenced code blocks are neither headings nor items, so an example of the
 // section in documentation is not mistaken for the section.
-func parseHiveSection(content string) (items []hiveItem, headings int) {
+func walkHiveSection(content string) hiveWalk {
+	lines := strings.Split(content, "\n")
+	w := hiveWalk{Heading: -1, End: len(lines)}
 	fenced, in := false, false
-	for _, raw := range strings.Split(content, "\n") {
+	for i, raw := range lines {
 		line := strings.TrimRight(raw, " \t\r")
 		if trimmed := strings.TrimLeft(line, " "); strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
 			fenced = !fenced
@@ -242,13 +255,19 @@ func parseHiveSection(content string) (items []hiveItem, headings int) {
 			continue
 		}
 		if strings.HasPrefix(line, "#") {
+			if in && w.Headings == 1 {
+				w.End = i
+			}
 			in = line == hiveHeading
 			if in {
-				headings++
+				w.Headings++
+				if w.Headings == 1 {
+					w.Heading = i
+				}
 			}
 			continue
 		}
-		if !in || headings != 1 {
+		if !in || w.Headings != 1 {
 			continue
 		}
 		rest, ok := strings.CutPrefix(line, "- ")
@@ -259,9 +278,97 @@ func parseHiveSection(content string) (items []hiveItem, headings int) {
 		if key = strings.TrimSpace(key); !ok || key == "" {
 			continue
 		}
-		items = append(items, hiveItem{Key: key, Value: strings.TrimSpace(value)})
+		w.Items = append(w.Items, hiveItem{Key: key, Value: strings.TrimSpace(value)})
+		w.Lines = append(w.Lines, i)
 	}
-	return items, headings
+	return w
+}
+
+// parseHiveSection returns the items of the first `## Hive` section and how
+// many such headings the content holds.
+func parseHiveSection(content string) (items []hiveItem, headings int) {
+	w := walkHiveSection(content)
+	return w.Items, w.Headings
+}
+
+// hiveFinding is one validation finding, in display order.
+type hiveFinding struct {
+	Text     string
+	Blocking bool // a write must not proceed; otherwise it only warns
+}
+
+// checkHiveText validates a section's items without reading the file: it
+// returns the findings that must stop a write apart from those that only
+// warn. A missing or invalid required setting, an invalid Delivery or Hive
+// guidance, and a branch name git rejects block; a branch or Specs path that
+// does not exist, and an unknown key, warn.
+func checkHiveText(items []hiveItem, root string, git gitRunner) (blocking, warnings []string) {
+	for _, f := range hiveFindings(items, root, git) {
+		if f.Blocking {
+			blocking = append(blocking, f.Text)
+		} else {
+			warnings = append(warnings, f.Text)
+		}
+	}
+	return blocking, warnings
+}
+
+// hiveFindings is checkHiveText in the order the doctor shows it.
+func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
+	values := map[string]string{}
+	for _, it := range items {
+		if _, dup := values[it.Key]; !dup {
+			values[it.Key] = it.Value
+		}
+	}
+	var findings []hiveFinding
+	add := func(blocking bool, key, format string, a ...any) {
+		findings = append(findings, hiveFinding{Text: key + ": " + fmt.Sprintf(format, a...), Blocking: blocking})
+	}
+	for _, k := range hiveSettingKeys {
+		v, present := values[k.Name]
+		switch {
+		case k.Required && !present:
+			add(true, k.Name, "required value is missing")
+			continue
+		case k.Required && v == "":
+			add(true, k.Name, "value is empty")
+			continue
+		}
+		switch k.Name {
+		case "Specs":
+			path, _, _ := strings.Cut(v, " · ")
+			path = strings.TrimSpace(path)
+			full := path
+			if !filepath.IsAbs(full) {
+				full = filepath.Join(root, full)
+			}
+			if info, err := os.Stat(full); err != nil || !info.IsDir() {
+				add(false, k.Name, "%s is not an existing directory", shown(path))
+			}
+		case "Base branch":
+			branch := strings.Fields(v)[0]
+			if problem := checkBaseBranch(root, branch, git); problem != "" {
+				add(problem != branchAbsent, k.Name, "%s %s", shown(branch), problem)
+			}
+		case "Delivery":
+			if present && v != hiveDeliveryWant {
+				add(true, k.Name, "expected %q, found %q", hiveDeliveryWant, shown(v))
+			}
+		case "Hive guidance":
+			if present && v != hiveGuidanceWant {
+				add(true, k.Name, "expected %q, found %q", hiveGuidanceWant, shown(v))
+			}
+		}
+	}
+	reported := map[string]bool{}
+	for _, it := range items {
+		if !knownHiveKey(it.Key) && !reported[it.Key] {
+			reported[it.Key] = true
+			add(false, truncateRunes(sanitizeLine(it.Key), 60), "unknown key")
+		}
+	}
+	return findings
 }
 
 // validateHiveSection checks the section in content, the text of the AGENTS.md
@@ -275,60 +382,15 @@ func validateHiveSection(root, content string, git gitRunner) []string {
 	case headings > 1:
 		return []string{fmt.Sprintf("%s: section appears %d times; keep one", hiveHeading, headings)}
 	}
-	values := map[string]string{}
-	for _, it := range items {
-		if _, dup := values[it.Key]; !dup {
-			values[it.Key] = it.Value
-		}
-	}
 	var findings []string
-	add := func(key, format string, a ...any) {
-		findings = append(findings, key+": "+fmt.Sprintf(format, a...))
+	unknown := false
+	for _, f := range hiveFindings(items, root, git) {
+		findings = append(findings, f.Text)
 	}
-	for _, k := range hiveSettingKeys {
-		v, present := values[k.Name]
-		switch {
-		case k.Required && !present:
-			add(k.Name, "required value is missing")
-			continue
-		case k.Required && v == "":
-			add(k.Name, "value is empty")
-			continue
-		}
-		switch k.Name {
-		case "Specs":
-			path, _, _ := strings.Cut(v, " · ")
-			path = strings.TrimSpace(path)
-			full := path
-			if !filepath.IsAbs(full) {
-				full = filepath.Join(root, full)
-			}
-			if info, err := os.Stat(full); err != nil || !info.IsDir() {
-				add(k.Name, "%s is not an existing directory", shown(path))
-			}
-		case "Base branch":
-			branch := strings.Fields(v)[0]
-			if problem := checkBaseBranch(root, branch, git); problem != "" {
-				add(k.Name, "%s %s", shown(branch), problem)
-			}
-		case "Delivery":
-			if present && v != hiveDeliveryWant {
-				add(k.Name, "expected %q, found %q", hiveDeliveryWant, shown(v))
-			}
-		case "Hive guidance":
-			if present && v != hiveGuidanceWant {
-				add(k.Name, "expected %q, found %q", hiveGuidanceWant, shown(v))
-			}
-		}
-	}
-	reported := map[string]bool{}
 	for _, it := range items {
-		if !knownHiveKey(it.Key) && !reported[it.Key] {
-			reported[it.Key] = true
-			add(truncateRunes(sanitizeLine(it.Key), 60), "unknown key")
-		}
+		unknown = unknown || !knownHiveKey(it.Key)
 	}
-	if len(reported) > 0 {
+	if unknown {
 		findings = append(findings, "Known keys: "+strings.Join(hiveKeyNames(false), ", "))
 	}
 	lines := findings
@@ -373,6 +435,10 @@ func knownHiveKey(name string) bool {
 // shown makes text from AGENTS.md safe and short enough to display.
 func shown(s string) string { return truncateRunes(sanitizeLine(s), hiveValueRunes) }
 
+// branchAbsent is the checkBaseBranch problem for a well-formed name that is
+// neither a local branch nor on origin; a write only warns about it.
+const branchAbsent = "is not a local branch or on origin"
+
 // checkBaseBranch returns why branch is not usable as the base branch, or "".
 // A name that starts with "-" or holds "@{" is rejected without running git:
 // the first would be read as an option and the second expands through the
@@ -398,5 +464,5 @@ func checkBaseBranch(root, branch string, git gitRunner) string {
 			return "could not be checked: " + shown(err.Error())
 		}
 	}
-	return "is not a local branch or on origin"
+	return branchAbsent
 }
