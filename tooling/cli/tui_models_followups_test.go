@@ -17,11 +17,11 @@ func TestModelsViewCodexEffortResetSaysSoInThePanel(t *testing.T) {
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
 	pick(e.d, "gpt-5.5")
-	e.d.mustShow("Effort reset to release default: gpt-5.5 has no max")
+	e.d.mustShow("Effort max dropped (not offered by gpt-5.5); using release default")
 	// A choice that keeps the effort says nothing.
 	e.d.key("right")
 	pick(e.d, "gpt-6.1")
-	e.d.mustNotShow("Effort reset to release default")
+	e.d.mustNotShow("Effort max dropped")
 }
 
 func TestModelsViewXOnARoleWithoutOverrideSaysThereIsNothingToReset(t *testing.T) {
@@ -86,4 +86,19 @@ func TestModelsViewPickerShowsThePositionAmongTheModels(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestModelsViewEffortResetNoticeKeepsTheEffortWhenTheIDIsLong(t *testing.T) {
+	long := "gpt-5.5-with-an-extremely-long-model-identifier-that-cannot-fit-in-one-row-at-all"
+	f := standardFake()
+	f.out["codex"] = codexList(map[string][]string{"gpt-6.1-sol": allEfforts, long: {"low", "medium"}}, "gpt-6.1-sol", long)
+	e := pickerEnv(t, "claude,codex", f, 80, 24)
+	toHost(t, e.d, "codex")
+	store(t, e.home, e.stateDir, "codex", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
+	e.d.key("r")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	pick(e.d, "extremely-long")
+	e.d.mustShow("Effort max dropped")
+	assertFits(t, e.d, 80, 24)
 }

@@ -134,3 +134,17 @@ func disableTestLog() {
 		_ = f.Value.Set("")
 	}
 }
+
+// TestTestLogFlagStillExists guards the test-cache opt-out in TestMain: it
+// relies on cmd/go's internal -test.testlogfile flag. If Go renames or removes
+// it, this fails; revisit the opt-out (see deployment-manager.md, Verification)
+// before the packages' cached runs slow down again.
+func TestTestLogFlagStillExists(t *testing.T) {
+	f := flag.Lookup("test.testlogfile")
+	if f == nil {
+		t.Fatal("flag test.testlogfile is gone: Go changed its internal flag, so the test-cache opt-out in TestMain no longer works and must be revisited")
+	}
+	if got := f.Value.String(); got != "" {
+		t.Fatalf("test.testlogfile = %q after TestMain, want it cleared by the opt-out", got)
+	}
+}

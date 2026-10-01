@@ -358,8 +358,36 @@ func suggestHiveValues(root string, git gitRunner) map[string]string {
 	return out
 }
 
+// importsAgents says whether text holds an `@AGENTS.md` or `@./AGENTS.md`
+// token outside fenced code blocks and inline code spans. Claude Code imports
+// an `@path` anywhere in the text, not only on a line of its own.
+func importsAgents(text string) bool {
+	fenced := false
+	for _, raw := range strings.Split(text, "\n") {
+		line := strings.TrimSpace(raw)
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			fenced = !fenced
+			continue
+		}
+		if fenced {
+			continue
+		}
+		parts := strings.Split(line, "`") // the even parts are outside code spans
+		for i := 0; i < len(parts); i += 2 {
+			for _, tok := range strings.Fields(parts[i]) {
+				tok = strings.TrimLeft(tok, "(<[\"'")
+				tok = strings.TrimRight(tok, ").,;:!?>]\"'")
+				if tok == "@AGENTS.md" || tok == "@./AGENTS.md" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // claudeMDWarning returns the warning for a CLAUDE.md at root that does not
-// import AGENTS.md, or "". A CLAUDE.md that is a link to AGENTS.md is
+// import AGENTS.md anywhere in its text, or "". A CLAUDE.md that is a link to AGENTS.md is
 // AGENTS.md, so it gets none. Source of the text: Claude Code memory
 // documentation, «AGENTS.md» (checked 2026-10-01 through Context7).
 func claudeMDWarning(root string) string {
@@ -380,16 +408,8 @@ func claudeMDWarning(root string) string {
 	if err != nil {
 		return ""
 	}
-	fenced := false
-	for _, raw := range strings.Split(string(data), "\n") {
-		line := strings.TrimSpace(raw)
-		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
-			fenced = !fenced
-			continue
-		}
-		if !fenced && line == "@AGENTS.md" {
-			return ""
-		}
+	if importsAgents(string(data)) {
+		return ""
 	}
 	return claudeMDText
 }

@@ -348,7 +348,7 @@ func (v *modelsView) choose(cur int) (tea.Cmd, action) {
 		p.chosen, p.touched, p.textMode = c.rows[cur].id, true, false
 	}
 	if reset := p.trimEfforts(true); reset != "" {
-		p.message, p.messageOK = "Effort reset to release default: "+p.modelID()+" has no "+reset, true
+		p.message, p.messageOK = "Effort "+reset+" dropped (not offered by "+p.modelID()+"); using release default", true
 	}
 	return nil, action{nav: navNone}
 }

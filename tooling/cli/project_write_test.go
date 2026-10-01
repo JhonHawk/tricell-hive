@@ -514,3 +514,27 @@ func TestHiveRequestRefusesEveryKindOfSpaceInABaseBranch(t *testing.T) {
 		}
 	}
 }
+
+func TestClaudeMDWarningAcceptsAnImportAnywhereOutsideCode(t *testing.T) {
+	for _, tc := range []struct {
+		name, text string
+		warns      bool
+	}{
+		{"inline", "# x\nRead @AGENTS.md first.\n", false},
+		{"dot slash", "@./AGENTS.md\n", false},
+		{"in parentheses", "See (@AGENTS.md) for rules\n", false},
+		{"fenced example", "```\n@AGENTS.md\n```\n", true},
+		{"tilde fence", "~~~md\nRead @AGENTS.md\n~~~\n", true},
+		{"inline code span", "Write `@AGENTS.md` to import it.\n", true},
+		{"other file", "Read @AGENTS.md.bak and @docs/AGENTS.md\n", true},
+		{"after a fence", "```\nx\n```\n@AGENTS.md\n", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte(tc.text), 0o644)
+			if got := claudeMDWarning(root) != ""; got != tc.warns {
+				t.Fatalf("warns = %v, want %v for %q", got, tc.warns, tc.text)
+			}
+		})
+	}
+}

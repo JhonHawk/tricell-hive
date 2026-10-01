@@ -12,6 +12,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -29,6 +30,9 @@ type projectLoadedMsg struct {
 	owned
 	seq   int
 	check projectCheck
+	// warning is the CLAUDE.md import warning, worked out beside the check so
+	// that nothing reads a file while the view draws.
+	warning string
 }
 
 // Messages of the form flow. flow lets a result that arrives after the form
@@ -98,7 +102,16 @@ func (v *projectView) reload() tea.Cmd {
 	v.loading = true
 	seq, dir, git := v.seq, v.dir, v.git
 	return func() tea.Msg {
-		return projectLoadedMsg{owned: owned{v}, seq: seq, check: checkProject(dir, git)}
+		check := checkProject(dir, git)
+		msg := projectLoadedMsg{owned: owned{v}, seq: seq, check: check}
+		// View-only (hive doctor does not carry it), and only for a section that
+		// was checked in an AGENTS.md that exists.
+		if check.Root != "" && check.Section.Err == "" && check.File != "" {
+			if info, err := os.Stat(check.File); err == nil && info.Mode().IsRegular() {
+				msg.warning = claudeMDWarning(check.Root)
+			}
+		}
+		return msg
 	}
 }
 
@@ -111,7 +124,7 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 		v.loading, v.loaded = false, true
 		v.check = msg.check
 		v.failed = msg.check.Section.Err != ""
-		v.box.setText(projectBoxText(msg.check))
+		v.box.setText(projectBoxText(msg.check, msg.warning))
 	case projectFormOpenedMsg:
 		if msg.flow != v.flow {
 			break
@@ -160,9 +173,9 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 
 // projectBoxText is the scrolling text: the location line first, as hive
 // doctor prints it, then the reason the check could not finish when it could
-// not, then the section's lines, with the CLAUDE.md import warning when it
-// applies.
-func projectBoxText(c projectCheck) string {
+// not, then the section's lines, with the CLAUDE.md import warning, when
+// there is one, under the verdict.
+func projectBoxText(c projectCheck, warning string) string {
 	text := ""
 	if label, path := c.location(); path != "" {
 		text = label + path + "\n"
@@ -173,11 +186,6 @@ func projectBoxText(c projectCheck) string {
 		for _, l := range rest {
 			text += "  " + l + "\n"
 		}
-	}
-	warning := ""
-	if c.Root != "" {
-		// View-only: the shared check, and so hive doctor, does not carry it.
-		warning = claudeMDWarning(c.Root)
 	}
 	for i, l := range c.Section.Lines {
 		text += l + "\n"
