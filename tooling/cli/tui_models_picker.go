@@ -64,6 +64,15 @@ func providerOf(host, id string) string {
 	return catalogText(provider)
 }
 
+// shortID is the id as the picker shows it: without its "<provider>/" prefix
+// when the row has a provider. The value chosen stays the full id.
+func (r pickRow) shortID() string {
+	if r.provider != "" {
+		return strings.TrimPrefix(r.id, r.provider+"/")
+	}
+	return r.id
+}
+
 // pickerContent lays the picker out for the current search: the models in use
 // on the CLI, then the CLI's models by provider, in order of first appearance.
 // A model in use is not repeated below.
@@ -344,13 +353,13 @@ func pickerRow(th *appTheme, r pickRow, selected bool, inner int) (string, int) 
 	}
 	primary := r.name
 	if primary == "" {
-		primary = r.id
+		primary = r.shortID()
 	}
 	primary = truncateRunes(primary, max(budget, 1))
 	secondary := ""
 	if r.name != "" {
 		if room := budget - utf8.RuneCountInString(primary) - 2; room >= 4 {
-			secondary = truncateRunes(r.id, room)
+			secondary = truncateRunes(r.shortID(), room)
 		}
 	}
 	used := 4 + utf8.RuneCountInString(primary)

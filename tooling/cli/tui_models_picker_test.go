@@ -392,11 +392,11 @@ func TestModelsViewTwoHundredNineModelsReachTheLastOneWithPageDown(t *testing.T)
 	toHost(t, e.d, "opencode")
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	e.d.mustNotShow("p/m-209")
+	e.d.mustNotShow("m-209")
 	for range 40 {
 		e.d.key("pgdown")
 	}
-	e.d.mustShow("p/m-209", "Other…")
+	e.d.mustShow("m-209", "Other…") // shown without its "p/" provider
 	e.d.key("home")
 	e.d.mustShow("release default")
 	e.d.key("end")
@@ -1075,9 +1075,9 @@ func TestModelsViewOpenCodeSectionsFollowTheProvidersWithoutRepeatingInUseModels
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
 	want := []string{
-		"In use on opencode", "syn-oc/reason syn-oc", "● syn-oc/exec syn-oc", "syn-oc/inherit syn-oc",
-		"openai", "openai/gpt-5.5", "openai/gpt-4",
-		"anthropic", "anthropic/claude-sonnet-4.5",
+		"In use on opencode", "reason syn-oc", "● exec syn-oc", "inherit syn-oc",
+		"openai", "gpt-5.5", "gpt-4",
+		"anthropic", "claude-sonnet-4.5",
 		"opencode models", "solo",
 		"release default", "Other…",
 	}
@@ -1089,9 +1089,21 @@ func TestModelsViewOpenCodeSectionsFollowTheProvidersWithoutRepeatingInUseModels
 		f := strings.Fields(strings.TrimPrefix(l, "● "))
 		seen[f[0]]++
 	}
-	if seen["syn-oc/exec"] != 1 {
-		t.Fatalf("an in-use model is listed %d times", seen["syn-oc/exec"])
+	if seen["exec"] != 1 {
+		t.Fatalf("an in-use model is listed %d times", seen["exec"])
 	}
+	// What is displayed short is chosen and searched as the full id.
+	e.v.panel.list.filter = "openai/gpt-4"
+	if got := strings.Join(listItems(t, e.d), "|"); !strings.Contains(got, "openai|gpt-4|") {
+		t.Fatalf("a search by the full id finds %q", got)
+	}
+	e.v.panel.list.filter = ""
+	for _, r := range e.v.pickerContent().rows {
+		if r.id == "openai/gpt-5.5" {
+			return
+		}
+	}
+	t.Fatal("the selectable value is not the full id")
 }
 
 func TestModelsViewPiSectionsFollowTheProviders(t *testing.T) {
@@ -1102,7 +1114,7 @@ func TestModelsViewPiSectionsFollowTheProviders(t *testing.T) {
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
 	got := strings.Join(listItems(t, e.d), "|")
-	for _, want := range []string{"openai|openai/gpt-4|openai/gpt-4-turbo|xai|xai/grok-4.3"} {
+	for _, want := range []string{"openai|gpt-4|gpt-4-turbo|xai|grok-4.3"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("sections = %q, want %q", got, want)
 		}
