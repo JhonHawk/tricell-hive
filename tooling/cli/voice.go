@@ -147,18 +147,36 @@ func voiceOff(args []string, in io.Reader, out io.Writer, interactive bool) erro
 	return voicePlanWith(p, "Voice turned off", out, interactive, f.DryRun, f.Out, terminal)
 }
 
-// voicePlanWith shows the summary, then applies the same
-// unchanged/dry-run/out/interactive-confirm sequence hive update uses
-// (update.go's update function): unchanged is reported and the command
-// exits 0 without writing anything, since a voice plan carries no source
-// commit to record the way an install/update plan does. voiceSet and
-// voiceOff call it with their own installTerminal.
+// voicePlanWith shows the voice summary, then runs the shared plan sequence
+// with the voice's own wording. voiceSet and voiceOff call it with their own
+// installTerminal.
 func voicePlanWith(plan management.Plan, doneVerb string, out io.Writer, interactive, dry bool, outFile string, terminal installTerminal) error {
+	return confirmAndApplyPlan(plan, planRun{
+		summary:   func(unchanged bool) { showVoiceSummary(out, plan, unchanged) },
+		doneVerb:  doneVerb,
+		unchanged: "Nothing to change: the voice already matches.",
+	}, out, interactive, dry, outFile, terminal)
+}
+
+// planRun is what differs between the commands that preview, confirm and apply
+// one plan: the summary they print, the verb that reports success and the
+// sentence for a plan that changes nothing.
+type planRun struct {
+	summary   func(unchanged bool)
+	doneVerb  string
+	unchanged string
+}
+
+// confirmAndApplyPlan applies the same unchanged/dry-run/out/interactive-confirm
+// sequence hive update uses (update.go's update function): unchanged is
+// reported and the command exits 0 without writing anything, since these plans
+// carry no source commit to record the way an install/update plan does.
+func confirmAndApplyPlan(plan management.Plan, run planRun, out io.Writer, interactive, dry bool, outFile string, terminal installTerminal) error {
 	unchanged, err := management.PlanUnchanged(plan)
 	if err != nil {
 		return err
 	}
-	showVoiceSummary(out, plan, unchanged)
+	run.summary(unchanged)
 	if dry {
 		fmt.Fprintln(out, "Preview: nothing was changed.")
 		return nil
@@ -171,7 +189,7 @@ func voicePlanWith(plan management.Plan, doneVerb string, out io.Writer, interac
 		return nil
 	}
 	if unchanged {
-		fmt.Fprintln(out, "Nothing to change: the voice already matches.")
+		fmt.Fprintln(out, run.unchanged)
 		return nil
 	}
 	if !interactive {
@@ -189,7 +207,7 @@ func voicePlanWith(plan management.Plan, doneVerb string, out io.Writer, interac
 	if err != nil {
 		return err
 	}
-	reportApplyResult(out, doneVerb, result)
+	reportApplyResult(out, run.doneVerb, result)
 	return nil
 }
 
