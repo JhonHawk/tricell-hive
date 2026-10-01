@@ -160,7 +160,8 @@ func (v *projectView) Update(msg tea.Msg) (tea.Cmd, action) {
 
 // projectBoxText is the scrolling text: the location line first, as hive
 // doctor prints it, then the reason the check could not finish when it could
-// not, then the section's lines.
+// not, then the section's lines, with the CLAUDE.md import warning when it
+// applies.
 func projectBoxText(c projectCheck) string {
 	text := ""
 	if label, path := c.location(); path != "" {
@@ -173,8 +174,20 @@ func projectBoxText(c projectCheck) string {
 			text += "  " + l + "\n"
 		}
 	}
-	for _, l := range c.Section.Lines {
+	warning := ""
+	if c.Root != "" {
+		// View-only: the shared check, and so hive doctor, does not carry it.
+		warning = claudeMDWarning(c.Root)
+	}
+	for i, l := range c.Section.Lines {
 		text += l + "\n"
+		if i == 0 && l == "Valid" && warning != "" {
+			text += "Warning: " + warning + "\n" // right under the verdict
+			warning = ""
+		}
+	}
+	if warning != "" {
+		text += "Warning: " + warning + "\n"
 	}
 	return text
 }
