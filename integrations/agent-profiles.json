@@ -14,7 +14,7 @@
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit", "search_replace", "write_file", "apply_patch"]}, "implement": {}, "verify": {}}
     },
     "pi": {
-      "models": {"execution": {"model": "openai-codex/gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "openai-codex/gpt-6.1-sol", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "xai/grok-4.7", "effort": "high"}},
+      "models": {"execution": {"model": "openai/gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "openai/gpt-6.1-sol", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "xai/grok-4.7", "effort": "high"}},
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
