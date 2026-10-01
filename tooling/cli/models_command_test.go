@@ -168,8 +168,9 @@ func TestModelsCommandSetAppliesAndModelsShowsTheMarker(t *testing.T) {
 		t.Fatalf("set: %v\n%s", err, out)
 	}
 	for _, want := range []string{
-		"claude plain-role: model syn-claude-exec → opus, effort medium → max",
-		file,
+		"Change plain-role on claude",
+		"plain-role  syn-claude-exec → opus  medium → max",
+		"Writes 1 file in ~/.claude/agents", // the --home directory is shown as ~
 		"Open sessions keep the previous model until they restart.",
 	} {
 		if !strings.Contains(out, want) {
@@ -205,7 +206,7 @@ func TestModelsCommandDryRunWritesNothing(t *testing.T) {
 		if err != nil {
 			t.Fatalf("dry-run: %v\n%s", err, out)
 		}
-		if !strings.Contains(out, "codex plain-role: model syn-codex-exec → syn-codex-exec, effort medium → high") || !strings.Contains(out, "Preview: nothing was changed.") {
+		if !strings.Contains(out, "plain-role  syn-codex-exec  medium → high") || !strings.Contains(out, "Preview: nothing was changed.") {
 			t.Errorf("dry-run output:\n%s", out)
 		}
 	}
@@ -488,7 +489,7 @@ func TestModelsCommandStateOnlySetDoesNotAskToOpenNewSessions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	if !strings.Contains(out, "No file changes; the setting is saved in Hive's state.") || !strings.Contains(out, "Model settings updated") {
+	if !strings.Contains(out, "No agent file changes; the setting is saved in Hive's state.") || !strings.Contains(out, "Model settings updated") {
 		t.Fatalf("output:\n%s", out)
 	}
 	if strings.Contains(out, "Open new CLI sessions.") {

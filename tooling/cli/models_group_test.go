@@ -133,8 +133,8 @@ func TestModelsCommandSetGroupReplacesTheOwnOverrideAndNamesTheRole(t *testing.T
 	if err != nil {
 		t.Fatalf("set --group: %v\n%s", err, out)
 	}
-	if !strings.HasPrefix(out, "Replaces the own override of: plain-role\n") {
-		t.Fatalf("summary does not start with the replaced override:\n%s", out)
+	if !strings.HasPrefix(out, "Change the Design group on claude (2 roles)\n\n") || !strings.Contains(out, "\nReplaces the own override of plain-role.\n") {
+		t.Fatalf("summary lacks the title or the replaced override:\n%s", out)
 	}
 	if got := e.stored(t)["claude"]["plain-role"]; got != (management.ModelOverride{Model: "opus"}) {
 		t.Fatalf("plain-role stored = %+v, want the model alone: the effort override is replaced", got)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -475,18 +476,34 @@ func modelsWrite(sub string, args []string, in io.Reader, out io.Writer, interac
 			return fmt.Errorf("role %q is unknown for %s", f.role, f.host)
 		}
 	}
+	title := modelsCommandTitle(sub, f, groupRows, next)
 	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	return confirmAndApplyPlan(p, planRun{
 		summary: func(unchanged bool) {
-			if !unchanged && len(replaced) > 0 {
-				fmt.Fprintf(out, "Replaces the own override of: %s\n", strings.Join(replaced, ", "))
+			if !unchanged {
+				fmt.Fprintln(out, title)
 			}
-			showModelsSummary(out, f.host, p, before, stored[f.host], unchanged)
+			showModelsSummary(out, f.host, p, before, stored[f.host], replaced, f.home, 80, unchanged)
 		},
 		doneVerb:  "Model settings updated",
 		unchanged: "Nothing to change: the model settings already match.",
 		stateOnly: !modelsFilesChange(p),
 	}, out, interactive, f.dry, f.out, terminal)
+}
+
+// modelsCommandTitle is the heading the command prints above its summary.
+func modelsCommandTitle(sub string, f modelsFlags, groupRows []management.ModelRow, next map[string]management.ModelOverride) string {
+	verb := "Change"
+	if sub == "reset" {
+		verb = "Reset"
+	}
+	switch {
+	case f.all:
+		return "Reset every override on " + f.host
+	case f.group != "":
+		return modelsTitle(verb, "", f.group, f.host, len(groupRows))
+	}
+	return modelsTitle(verb, f.role, "", f.host, 0)
 }
 
 // hostModelRows is the effective rows of one CLI as they are before a change.
@@ -570,9 +587,26 @@ func setGroup(stored map[string]management.ModelOverride, rows []management.Mode
 	return next, replaced
 }
 
-// showModelsSummary lists, per role whose override changes, the effective model
-// and effort before and after, and the agent file that is rewritten.
-func showModelsSummary(out io.Writer, host string, p management.Plan, before []management.ModelRow, stored map[string]management.ModelOverride, unchanged bool) {
+// modelsTitle is the heading of a change's confirmation. A group names itself
+// and its size; a role names itself.
+func modelsTitle(verb, role, group, host string, roles int) string {
+	if group == "" {
+		return verb + " " + role + " on " + host
+	}
+	noun := "roles"
+	if roles == 1 {
+		noun = "role"
+	}
+	return fmt.Sprintf("%s the %s group on %s (%d %s)", verb, strings.ToUpper(group[:1])+group[1:], host, roles, noun)
+}
+
+// showModelsSummary writes the body of a change's confirmation, after its title:
+// a table with one row per role whose effective model or effort changes, where
+// a part that changes reads "before → after" and the others read plain; the
+// roles that lose a part of their own override; and the agent files written,
+// with their common directory shown once. width wraps the prose lines; 0 leaves
+// them to the caller. home is the home in use, to abbreviate paths with "~".
+func showModelsSummary(out io.Writer, host string, p management.Plan, before []management.ModelRow, stored map[string]management.ModelOverride, replaced []string, home string, width int, unchanged bool) {
 	if unchanged {
 		return
 	}
@@ -580,10 +614,12 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 	for _, r := range before {
 		rowOf[r.Role] = r
 	}
-	fileOf := map[string]string{}
+	var files []string
+	fileOf := map[string]bool{}
 	for _, ch := range p.Changes {
 		if ch.Target.Kind == "agent" && ch.Before != nil && ch.After != nil && string(ch.Before.Managed) != string(ch.After.Managed) {
-			fileOf[strings.TrimSuffix(pathBase(ch.Target.Source), ".md")] = ch.Target.Path
+			fileOf[strings.TrimSuffix(pathBase(ch.Target.Source), ".md")] = true
+			files = append(files, ch.Target.Path)
 		}
 	}
 	roleSet := map[string]bool{}
@@ -602,26 +638,103 @@ func showModelsSummary(out io.Writer, host string, p management.Plan, before []m
 		roles = append(roles, role)
 	}
 	sort.Strings(roles)
+	part := func(b, a string) string {
+		if b == a {
+			return a
+		}
+		return b + " → " + a
+	}
+	table := [][3]string{{"Role", "Model", "Effort"}}
+	var notes []string
 	for _, role := range roles {
 		old, ok := rowOf[role]
 		if !ok {
-			fmt.Fprintf(out, "%s %s: not applied (role not in the installed release); only the stored setting changes\n", host, role)
+			notes = append(notes, role+": not applied (role not in the installed release); only the stored setting changes")
 			continue
 		}
 		after, err := resolveAfter(p, host, role, old)
 		if err != nil {
-			fmt.Fprintf(out, "%s %s: %v\n", host, role, err)
+			notes = append(notes, role+": "+err.Error())
 			continue
 		}
 		b, a := modelCellsFor(old), modelCellsFor(after)
-		fmt.Fprintf(out, "%s %s: model %s → %s, effort %s → %s\n", host, role, b.model, a.model, b.effort, a.effort)
-		if file, ok := fileOf[role]; ok {
-			fmt.Fprintf(out, "  File: %s\n", file)
-		} else {
-			fmt.Fprintln(out, "  No file changes; the setting is saved in Hive's state.")
+		table = append(table, [3]string{role, part(b.model, a.model), part(b.effort, a.effort)})
+	}
+	fmt.Fprintln(out)
+	if len(table) > 1 {
+		var w [3]int
+		for _, r := range table {
+			for i := range w {
+				w[i] = max(w[i], utf8.RuneCountInString(r[i]))
+			}
+		}
+		for _, r := range table {
+			fmt.Fprintln(out, strings.TrimRight(padRight(r[0], w[0])+"  "+padRight(r[1], w[1])+"  "+r[2], " "))
+		}
+		fmt.Fprintln(out)
+	}
+	for _, n := range notes {
+		fmt.Fprintln(out, n)
+	}
+	if len(replaced) > 0 {
+		list := strings.Join(replaced, ", ")
+		if n := len(replaced); n > 1 {
+			list = strings.Join(replaced[:n-1], ", ") + " and " + replaced[n-1]
+		}
+		text := "Replaces the own override of " + list + "."
+		if width > 0 {
+			text = strings.Join(wrapLines(text, width), "\n")
+		}
+		fmt.Fprintln(out, text)
+	}
+	if len(files) == 0 {
+		fmt.Fprintln(out, "No agent file changes; the setting is saved in Hive's state.")
+		return
+	}
+	noun := "files"
+	if len(files) == 1 {
+		noun = "file"
+	}
+	fmt.Fprintf(out, "Writes %d %s in %s\n", len(files), noun, abbreviateHome(commonDir(files), home))
+	fmt.Fprintln(out, "Open sessions keep the previous model until they restart.")
+}
+
+// commonDir is the deepest directory that holds every file.
+func commonDir(files []string) string {
+	dir := strings.Split(filepath.Dir(files[0]), string(filepath.Separator))
+	for _, f := range files[1:] {
+		parts := strings.Split(filepath.Dir(f), string(filepath.Separator))
+		n := 0
+		for n < len(dir) && n < len(parts) && dir[n] == parts[n] {
+			n++
+		}
+		dir = dir[:n]
+	}
+	return strings.Join(dir, string(filepath.Separator))
+}
+
+// abbreviateHome writes path relative to the home in use as "~/…". With no
+// explicit home, the user's home is used. A path that is not under it stays whole.
+func abbreviateHome(path, home string) string {
+	if home == "" {
+		home, _ = os.UserHomeDir()
+	}
+	if home == "" {
+		return path
+	}
+	bases := []string{filepath.Clean(home)}
+	if real, err := filepath.EvalSymlinks(home); err == nil {
+		bases = append(bases, real)
+	}
+	for _, b := range bases {
+		if path == b {
+			return "~"
+		}
+		if strings.HasPrefix(path, b+string(filepath.Separator)) {
+			return "~" + path[len(b):]
 		}
 	}
-	fmt.Fprintln(out, "Open sessions keep the previous model until they restart.")
+	return path
 }
 
 // resolveAfter is the model row a role gets once p is applied.

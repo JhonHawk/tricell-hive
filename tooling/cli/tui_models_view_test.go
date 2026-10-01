@@ -102,7 +102,7 @@ func modelsRowFor(t *testing.T, d *appDriver, role string) []string {
 	t.Helper()
 	for _, line := range d.lines() {
 		// Every table line starts with the two columns of the cursor mark.
-		line = strings.TrimPrefix(strings.TrimPrefix(line, "> "), "  ")
+		line = strings.TrimLeft(strings.TrimPrefix(strings.TrimPrefix(line, "> "), "  "), " ") // roles sit under their header
 		if strings.HasPrefix(line, role+" ") || line == role {
 			return regexp.MustCompile(`\s{2,}`).Split(strings.TrimSpace(line), -1)
 		}

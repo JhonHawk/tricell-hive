@@ -32,6 +32,13 @@ const modelsFixedRows = 6
 // role, Model, Effort, an error row and a blank one.
 const modelsPanelRows = 5
 
+// modelsGroupMark opens a group header and modelsRoleIndent sets a grouped role
+// under it, so the structure reads without color.
+const (
+	modelsGroupMark  = "▾ "
+	modelsRoleIndent = "  "
+)
+
 const (
 	modelsPanelLabel  = 9 // "Model" and "Effort" plus the gap, after the two-column cursor
 	effortReleaseText = "release default"
@@ -129,6 +136,7 @@ const (
 // modelsItem is one line of the grouped table: a group header or a role.
 type modelsItem struct {
 	header bool
+	blank  bool // the empty row that separates a group from the one before it
 	group  string
 	cells  modelCells            // the header's cells: the group's name and its common model and effort
 	rows   []management.ModelRow // the group's roles, for a header
@@ -143,6 +151,9 @@ type modelsKey struct {
 }
 
 func (k modelsKey) of(it modelsItem) bool {
+	if it.blank {
+		return false
+	}
 	if it.header {
 		return k.header && k.name == it.group
 	}
@@ -234,7 +245,10 @@ func buildItems(rows []management.ModelRow) []modelsItem {
 				end++
 			}
 			model, effort, override := groupSummary(rows[i:end])
-			name := strings.ToUpper(r.Group[:1]) + r.Group[1:]
+			name := modelsGroupMark + strings.ToUpper(r.Group[:1]) + r.Group[1:]
+			if len(items) > 0 {
+				items = append(items, modelsItem{blank: true})
+			}
 			if override {
 				name += modelOverrideMarker
 			}
@@ -285,10 +299,15 @@ func keyOf(it modelsItem) modelsKey {
 func (v *modelsView) render() {
 	cells := make([]modelCells, len(v.items))
 	for i, it := range v.items {
-		if it.header {
+		switch {
+		case it.blank:
+		case it.header:
 			cells[i] = it.cells
-		} else {
+		default:
 			cells[i] = modelCellsFor(it.row)
+			if it.group != "" {
+				cells[i].role = modelsRoleIndent + cells[i].role
+			}
 		}
 	}
 	columns := layoutModelColumns(cells, max(v.width-2, 1))
@@ -298,6 +317,9 @@ func (v *modelsView) render() {
 		prefix := "  "
 		if i == v.cur {
 			prefix = "> "
+		}
+		if v.items[i].blank {
+			continue
 		}
 		out[i] = prefix + columns.line(cells[i])
 	}
@@ -311,14 +333,35 @@ func (v *modelsView) render() {
 	}
 }
 
-// moveCursor selects item i of the CLI's table.
+// moveCursor selects item i of the CLI's table. A blank separator row cannot be
+// selected: the cursor goes to the next item, or to the previous one at the end.
 func (v *modelsView) moveCursor(i int) {
 	if len(v.items) == 0 {
 		return
 	}
-	v.cur = min(max(i, 0), len(v.items)-1)
+	i = min(max(i, 0), len(v.items)-1)
+	if v.items[i].blank {
+		if i+1 < len(v.items) {
+			i++
+		} else {
+			i--
+		}
+	}
+	v.cur = i
 	v.curKey = keyOf(v.items[v.cur])
 	v.render()
+}
+
+// step moves the cursor one selectable item up or down.
+func (v *modelsView) step(delta int) {
+	i := v.cur + delta
+	for i >= 0 && i < len(v.items) && v.items[i].blank {
+		i += delta
+	}
+	if i < 0 || i >= len(v.items) {
+		return
+	}
+	v.moveCursor(i)
 }
 
 // scroll applies a paging key to the table, then keeps the cursor inside the
@@ -431,9 +474,9 @@ func (v *modelsView) onKey(name string) (tea.Cmd, action) {
 	case "right":
 		v.selectHost(v.hostIndex() + 1)
 	case "up":
-		v.moveCursor(v.cur - 1)
+		v.step(-1)
 	case "down":
-		v.moveCursor(v.cur + 1)
+		v.step(1)
 	case "pgup", "pgdown", "home", "end":
 		v.scroll(name)
 	case "enter":
@@ -977,10 +1020,10 @@ func (v *modelsView) review() (tea.Cmd, action) {
 			next, replaced := setGroup(stored, rows, set)
 			if set == (management.ModelOverride{}) {
 				// Both parts go back to the release's values: this is a reset.
-				return next, nil, "Reset the " + group + " group on " + host
+				return next, nil, modelsTitle("Reset", "", group, host, len(rows))
 			}
 			return next, replaced, ""
-		}, "Change the "+p.group+" group on "+host)
+		}, modelsTitle("Change", "", group, host, len(rows)))
 	}
 	change := p.request(host)
 	if change.empty() {
@@ -990,7 +1033,7 @@ func (v *modelsView) review() (tea.Cmd, action) {
 	role := p.role
 	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
 		return change.applyTo(stored, role), nil, ""
-	}, "Change "+role+" on "+host)
+	}, modelsTitle("Change", role, "", host, 0))
 }
 
 // reset opens the reset confirmation of the selected role or group when it has
@@ -1016,7 +1059,7 @@ func (v *modelsView) reset() (tea.Cmd, action) {
 				next = drop.applyTo(next, r.Role)
 			}
 			return next, nil, ""
-		}, "Reset the "+it.group+" group on "+v.host)
+		}, modelsTitle("Reset", "", it.group, v.host, len(rows)))
 	}
 	if !it.row.Override {
 		return nil, action{nav: navNone}
@@ -1024,7 +1067,7 @@ func (v *modelsView) reset() (tea.Cmd, action) {
 	role := it.row.Role
 	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
 		return drop.applyTo(stored, role), nil, ""
-	}, "Reset "+role+" on "+v.host)
+	}, modelsTitle("Reset", role, "", v.host, 0))
 }
 
 // modelsBuild turns the overrides stored for a CLI into the set a change asks
@@ -1058,10 +1101,7 @@ func (v *modelsView) plan(build modelsBuild, title string) (tea.Cmd, action) {
 			return msg
 		}
 		var summary bytes.Buffer
-		if !msg.unchanged && len(replaced) > 0 {
-			fmt.Fprintf(&summary, "Replaces the own override of: %s\n", strings.Join(replaced, ", "))
-		}
-		showModelsSummary(&summary, host, plan, before, stored[host], msg.unchanged)
+		showModelsSummary(&summary, host, plan, before, stored[host], replaced, o.Home, 0, msg.unchanged)
 		msg.plan, msg.summary = plan, summary.String()
 		return msg
 	}, action{nav: navNone}
@@ -1189,6 +1229,11 @@ func (v *modelsView) View(c viewCtx) string {
 		default:
 			header = th.Muted.Render("  " + v.tableHeader)
 			body = strings.Split(v.box.vp.View(), "\n")
+			for i, off := 0, v.box.vp.YOffset(); i < len(body); i++ {
+				if k := off + i; k < len(v.items) && v.items[k].header {
+					body[i] = th.Accent.Bold(true).Render(strings.TrimRight(body[i], " "))
+				}
+			}
 			if v.box.scrollable() {
 				position = th.Muted.Render(v.box.position())
 			}
