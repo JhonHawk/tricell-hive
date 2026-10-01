@@ -89,7 +89,7 @@ func command(t *testing.T, home, stateDir, sub string, args ...string) {
 }
 
 var (
-	listRowPattern  = regexp.MustCompile(`^(> |  )([a-z][a-z0-9-]*)( \*)?  +\S`)
+	listRowPattern  = regexp.MustCompile(`^(> |  )(?:  )?([a-z][a-z0-9-]*)( \*)?  +\S`) // roles sit two columns under their group header
 	panelRowPattern = regexp.MustCompile(`^(> |  )(Model|Effort|Role) +(.*)$`)
 )
 
@@ -249,7 +249,7 @@ func TestModelsViewPageKeysStillScrollAndTheCursorStaysInView(t *testing.T) {
 		t.Fatalf("the cursor stayed on a row that scrolled away: %s", got)
 	}
 	e.d.key("end")
-	e.d.mustShow(fmt.Sprintf("lines %d-%d of %d", len(roles)+3-14, len(roles)+3, len(roles)+3)) // 3 group headers
+	e.d.mustShow(fmt.Sprintf("lines %d-%d of %d", len(roles)+5-14, len(roles)+5, len(roles)+5)) // 3 group headers and 2 separators
 	if got := cursorRole(t, e.d); got != roles[len(roles)-1] {
 		t.Fatalf("End leaves the cursor on %s", got)
 	}
@@ -272,7 +272,7 @@ func TestModelsViewMarksAnOverriddenRoleAndKeepsTheMarkNextToTheCursor(t *testin
 	selectRole(t, e.d, "plain-role")
 	line := ""
 	for _, l := range e.d.lines() {
-		if strings.HasPrefix(l, "> plain-role *") {
+		if strings.HasPrefix(l, ">   plain-role *") {
 			line = l
 		}
 	}
@@ -301,8 +301,8 @@ func TestModelsViewFooterHasTheTwoLinesAndTheFixedRowsStaySix(t *testing.T) {
 	)
 	e.d.mustNotShow("To change a model or effort")
 	// 24 rows less the chrome and the six fixed rows leave 15 table rows; the
-	// three group headers are table rows too.
-	e.d.mustShow(fmt.Sprintf("lines 1-15 of %d", len(roles)+3))
+	// three group headers and two separators are table rows too.
+	e.d.mustShow(fmt.Sprintf("lines 1-15 of %d", len(roles)+5))
 	assertFits(t, e.d, 80, 24)
 }
 
@@ -439,13 +439,14 @@ func TestModelsViewConfirmationNamesTheChangeAndCancelChangesNothing(t *testing.
 	e.d.key("down", "right") // medium -> high
 	e.d.key("enter")
 	e.d.mustShow(
-		"claude plain-role: model syn-claude-exec → opus, effort medium → high",
-		"File: ",
+		"Change plain-role on claude",
+		"plain-role  syn-claude-exec → opus  medium → high",
+		"Writes 1 file in ~/.claude/agents",
 		"Open sessions keep the previous model until they restart.",
 		"[Apply]",
 	)
-	if !strings.Contains(e.d.screen(), "plain-role.md") {
-		t.Fatalf("the confirmation does not name the file:\n%s", e.d.screen())
+	if !strings.Contains(e.d.screen(), "Writes 1 file in ~/.claude/agents") {
+		t.Fatalf("the confirmation does not name the directory with ~:\n%s", e.d.screen())
 	}
 	assertFits(t, e.d, 80, 24)
 	e.d.key("n")
@@ -558,7 +559,7 @@ func TestModelsViewXResetsAnOverriddenRoleLikeTheCommand(t *testing.T) {
 	}
 	selectRole(t, e.d, "plain-role")
 	e.d.key("x")
-	e.d.mustShow("claude plain-role: model opus → syn-claude-exec, effort max → medium", "[Apply]")
+	e.d.mustShow("Reset plain-role on claude", "plain-role  opus → syn-claude-exec  max → medium", "[Apply]")
 	e.d.key("n")
 	e.d.mustShow("Cancelled. No changes applied.")
 	if !sameSnapshot(before, snap(t, e)) {
@@ -746,7 +747,7 @@ func TestModelsViewTrimsSpacesAroundATypedModel(t *testing.T) {
 	clearModelField(e.d)
 	typeText(e.d, "  opus  ")
 	e.d.key("enter")
-	e.d.mustShow("model syn-claude-exec → opus,", "[Apply]")
+	e.d.mustShow("syn-claude-exec → opus", "[Apply]")
 	e.d.key("enter")
 	e.d.mustShow("Open sessions keep the previous model until they restart")
 	command(t, twinHome, twinState, "set", "--host", "claude", "--role", "plain-role", "--model", "opus")

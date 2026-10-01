@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"unicode/utf8"
 
 	"tricell-hive/tooling/management"
 )
@@ -247,7 +249,7 @@ func TestModelsViewChoosingAModelReturnsToThePanelAndEnterReviews(t *testing.T) 
 		t.Fatalf("Model = %q (cursor %v)\n%s", got, cursor, e.d.screen())
 	}
 	e.d.key("enter")
-	e.d.mustShow("claude plain-role: model syn-claude-exec → opus,", "[Apply]")
+	e.d.mustShow("Change plain-role on claude", "syn-claude-exec → opus", "[Apply]")
 	e.d.key("enter")
 	e.d.mustShow("Open sessions keep the previous model until they restart")
 	command(t, twinHome, twinState, "set", "--host", "claude", "--role", "plain-role", "--model", "opus")
@@ -333,7 +335,7 @@ func TestModelsViewEnterInThePanelStillReviewsOnGrok(t *testing.T) {
 	e.d.mustShow("grok-4.6")
 	pick(e.d, "4.6")
 	e.d.key("enter")
-	e.d.mustShow("grok plain-role: model host default → grok-4.6", "[Apply]")
+	e.d.mustShow("Change plain-role on grok", "host default → grok-4.6", "[Apply]")
 }
 
 func TestModelsViewTwoHundredNineModelsReachTheLastOneWithPageDown(t *testing.T) {
@@ -610,11 +612,11 @@ func TestModelsViewGroupHeadersAppearInOrderAndTheCursorLandsOnThem(t *testing.T
 	if !(design >= 0 && design < hive && hive < quality) {
 		t.Fatalf("headers out of order (design %d, role %d, quality %d):\n%s", design, hive, quality, e.d.screen())
 	}
-	if got := selectedLine(t, e.d); !strings.HasPrefix(got, "Design") {
+	if got := selectedLine(t, e.d); !strings.HasPrefix(got, "▾ Design") {
 		t.Fatalf("the cursor starts on %q, want the Design header", got)
 	}
 	e.d.key("down", "down", "down")
-	if got := selectedLine(t, e.d); !strings.HasPrefix(got, "Quality") {
+	if got := selectedLine(t, e.d); !strings.HasPrefix(got, "▾ Quality") {
 		t.Fatalf("after three downs the cursor is on %q, want the Quality header", got)
 	}
 	// The header sits in the table's columns: the group under Role, and the
@@ -625,7 +627,7 @@ func TestModelsViewGroupHeadersAppearInOrderAndTheCursorLandsOnThem(t *testing.T
 			line = l
 		}
 	}
-	if f := strings.Fields(line); strings.Join(f, " ") != "Design mixed mixed" && strings.Join(f, " ") != "> Design mixed mixed" {
+	if f := strings.Fields(line); strings.Join(f, " ") != "▾ Design mixed mixed" && strings.Join(f, " ") != "> ▾ Design mixed mixed" {
 		t.Fatalf("header line = %q", line)
 	}
 	head := ""
@@ -634,7 +636,8 @@ func TestModelsViewGroupHeadersAppearInOrderAndTheCursorLandsOnThem(t *testing.T
 			head = l
 		}
 	}
-	if strings.Index(line, "mixed") != strings.Index(head, "Model") {
+	col := func(text, sub string) int { return utf8.RuneCountInString(text[:strings.Index(text, sub)]) } // "▾" is one column
+	if col(line, "mixed") != col(head, "Model") {
 		t.Fatalf("the header's model is not under the Model heading:\n%s", e.d.screen())
 	}
 }
@@ -643,7 +646,7 @@ func TestModelsViewHeaderCarriesTheMarkWhenARoleIsOverridden(t *testing.T) {
 	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
 	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
 	e.d.key("r")
-	e.d.mustShow("Design *")
+	e.d.mustShow("▾ Design *")
 	e.d.mustNotShow("Quality *")
 }
 
@@ -712,17 +715,17 @@ func TestModelsViewGroupConfirmationStartsWithTheReplacedOverrides(t *testing.T)
 	pick(e.d, "opus")
 	e.d.key("enter")
 	lines := e.d.lines()
-	replaced, first := -1, -1
+	replaced, last := -1, -1
 	for i, l := range lines {
-		if strings.Contains(l, "Replaces the own override of: plain-role") && replaced < 0 {
+		if strings.Contains(l, "Replaces the own override of plain-role.") && replaced < 0 {
 			replaced = i
 		}
-		if strings.Contains(l, "claude hive-design-architecture:") && first < 0 {
-			first = i
+		if strings.HasPrefix(l, "plain-role ") {
+			last = i
 		}
 	}
-	if replaced < 0 || first < 0 || replaced > first {
-		t.Fatalf("the confirmation does not start with the replaced overrides:\n%s", e.d.screen())
+	if replaced < 0 || last < 0 || replaced < last {
+		t.Fatalf("the confirmation does not put the replaced overrides after the table:\n%s", e.d.screen())
 	}
 	assertFits(t, e.d, 80, 24)
 }
@@ -735,7 +738,7 @@ func TestModelsViewXOnAHeaderEqualsResetGroup(t *testing.T) {
 	store(t, twinHome, twinState, "claude", prior)
 	e.d.key("r")
 	e.d.key("x")
-	e.d.mustShow("claude plain-role: model opus →", "claude hive-design-architecture:", "[Apply]")
+	e.d.mustShow("Reset the Design group on claude (2 roles)", "opus →", "hive-design-architecture", "[Apply]")
 	e.d.mustNotShow("inherit-role:")
 	e.d.key("y")
 	e.d.mustShow("Open sessions keep the previous model until they restart")
@@ -817,118 +820,198 @@ func TestModelsViewCapturesTheGroupedScreensForHandoff(t *testing.T) {
 	if os.Getenv("HIVE_CAPTURE") == "" {
 		t.Skip("set HIVE_CAPTURE=1 to print the captures")
 	}
-	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	e := pickerEnv(t, "claude,codex", standardFake(), 120, 40)
 	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
 	e.d.key("r")
 	fmt.Printf("GROUPED TABLE\n%s\n", e.d.screen())
-	selectRole(t, e.d, "plain-role")
-	e.d.key("enter", "right")
-	fmt.Printf("MODEL LIST OPEN\n%s\n", e.d.screen())
-	e.d.key("esc", "esc", "up", "up")
 	e.d.key("enter", "right")
 	pick(e.d, "opus")
-	fmt.Printf("GROUP PANEL\n%s\n", e.d.screen())
 	e.d.key("enter")
 	fmt.Printf("GROUP CONFIRMATION\n%s\n", e.d.screen())
+	e.d.key("n", "esc")
+	selectRole(t, e.d, "hive-design-architecture")
+	e.d.key("enter", "right")
+	pick(e.d, "sonnet")
+	e.d.key("enter")
+	fmt.Printf("SINGLE-ROLE CONFIRMATION\n%s\n", e.d.screen())
 }
 
-// --- group edge cases ---------------------------------------------------------------
+// --- table structure and the readable confirmation (correction round 1) -----------
 
-// Changing only the effort of a group whose models differ sends no model.
-func TestModelsViewGroupEffortOnlyOverMixedModelsSendsNoModel(t *testing.T) {
-	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
-	twinHome, twinState := e.twin(t)
-	e.d.key("enter", "down", "right", "right", "right") // mixed -> release default -> low -> medium
-	if got, _ := panelField(t, e.d, "Model"); got != "mixed" {
-		t.Fatalf("Model = %q", got)
+// openModelsEnvWith opens the view over a source, with the theme choice.
+func openModelsNoColor(t *testing.T, noColor bool) modelsEditEnv {
+	t.Helper()
+	e := modelsEditEnv{source: modelsTestSource(t), hosts: "claude,codex", deps: hostsTestDeps(coreOnlyAdapterFactory)}
+	e.home, e.stateDir = newHostsTestHome(t)
+	installViaText(t, e.home, e.stateDir, e.source, e.hosts, "y\n", e.deps)
+	cfg := hostsAppConfig(t, e.home, e.stateDir, e.source, e.deps)
+	cfg.NoColor = noColor
+	e.m, e.d = newTestApp(t, cfg, 80, 24)
+	e.d.send(pushViewMsg{v: newModelsView(e.m.cfg)})
+	e.v = e.m.top().(*modelsView)
+	e.d.screen()
+	return e
+}
+
+func TestModelsViewNoColorTableKeepsMarkerIndentAndBlankRow(t *testing.T) {
+	e := openModelsNoColor(t, true)
+	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
+	e.d.key("r")
+	if colorSGR(e.d.raw()) {
+		t.Fatalf("NO_COLOR table emits a color sequence: %q", e.d.raw())
 	}
-	e.d.key("enter")
-	e.d.mustShow("[Apply]")
-	e.d.key("enter")
-	e.d.mustShow("Open sessions keep the previous model until they restart")
-	command(t, twinHome, twinState, "set", "--host", "claude", "--group", "design", "--effort", "medium")
-	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
-	for role, o := range e.stored(t)["claude"] {
-		if o.Model != "" {
-			t.Errorf("%s got a model override %q", role, o.Model)
+	lines := e.d.lines()
+	design, quality := -1, -1
+	for i, l := range lines {
+		switch {
+		case strings.Contains(l, "▾ Design *"):
+			design = i
+		case strings.Contains(l, "▾ Quality"):
+			quality = i
 		}
 	}
+	if design < 0 || quality < 0 {
+		t.Fatalf("headers lack the marker or the override star:\n%s", e.d.screen())
+	}
+	if strings.TrimSpace(lines[quality-1]) != "" {
+		t.Fatalf("no blank row before the second group:\n%s", e.d.screen())
+	}
+	if strings.TrimSpace(lines[design-1]) == "" {
+		t.Fatalf("a blank row sits before the first group:\n%s", e.d.screen())
+	}
+	if !strings.HasPrefix(lines[design+1], "    hive-design-architecture") {
+		t.Fatalf("roles are not indented under their header: %q", lines[design+1])
+	}
+	// The blank row cannot be selected: from the last Design role, down lands on Quality.
+	selectRole(t, e.d, "plain-role")
+	e.d.key("down")
+	if got := selectedLine(t, e.d); !strings.HasPrefix(got, "▾ Quality") {
+		t.Fatalf("the cursor is on %q, want the Quality header", got)
+	}
+	e.d.key("up")
+	if cursorRole(t, e.d) != "plain-role" {
+		t.Fatal("up from the header did not skip the blank row")
+	}
 }
 
-func (e modelsEditEnv) stored(t *testing.T) map[string]map[string]management.ModelOverride {
+func TestModelsViewHeaderStyleDiffersFromRolesInColor(t *testing.T) {
+	e := openModelsNoColor(t, false)
+	e.d.key("down", "down") // the cursor leaves the header and the first roles
+	var header, role string
+	for _, l := range strings.Split(e.d.raw(), "\n") {
+		switch {
+		case strings.Contains(l, "Quality"):
+			header = l
+		case strings.Contains(l, "inherit-role"):
+			role = l
+		}
+	}
+	if !strings.Contains(header, "\x1b[") || strings.Contains(role, "\x1b[1") {
+		t.Fatalf("header %q and role %q do not differ in style", header, role)
+	}
+	if !strings.Contains(header, "\x1b[1") && !strings.Contains(header, ";1") {
+		t.Fatalf("the header is not bold: %q", header)
+	}
+}
+
+// bulkSource adds seven roles to one group, each with an override already.
+func bulkSource(t *testing.T) (string, []string) {
 	t.Helper()
-	s, err := management.StoredModelOverrides(management.Options{Home: e.home, StateDir: e.stateDir})
-	if err != nil {
-		t.Fatal(err)
+	dir := modelsTestSource(t)
+	var roles []string
+	for i := 1; i <= 7; i++ {
+		name := fmt.Sprintf("bulk-role-%d", i)
+		path := filepath.Join(dir, "content", "agents", "bulk", name+".md")
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(modelsRoleSource(name, "execution")), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		roles = append(roles, name)
 	}
-	return s
+	return dir, roles
 }
 
-// Release default for both parts is a reset, and reads as one.
-func TestModelsViewGroupReleaseDefaultForBothPartsIsAReset(t *testing.T) {
-	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
-	twinHome, twinState := e.twin(t)
-	prior := map[string]management.ModelOverride{"plain-role": {Model: "opus", Effort: "max"}, "hive-design-architecture": {Model: "opus", Effort: "low"}}
+func TestModelsViewSevenRoleGroupConfirmationFitsAndScrolls(t *testing.T) {
+	source, roles := bulkSource(t)
+	e := newModelsEditEnvWith(t, source, "claude", 80, 24, nil)
+	prior := map[string]management.ModelOverride{}
+	for _, r := range roles {
+		prior[r] = management.ModelOverride{Model: "sonnet", Effort: "low"}
+	}
 	store(t, e.home, e.stateDir, "claude", prior)
-	store(t, twinHome, twinState, "claude", prior)
-	e.d.key("r")
-	e.d.key("enter", "right")
-	e.d.key("enter")         // release default
-	e.d.key("down", "right") // mixed -> release default
-	if got, _ := panelField(t, e.d, "Effort"); got != "< release default >" {
-		t.Fatalf("Effort = %q", got)
-	}
-	e.d.key("enter")
-	e.d.mustShow("Reset the design group on claude", "[Apply]")
-	e.d.mustNotShow("Change the", "Replaces the own override")
-	e.d.key("enter")
-	e.d.mustShow("Open sessions keep the previous model until they restart")
-	command(t, twinHome, twinState, "reset", "--host", "claude", "--group", "design")
-	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
-}
-
-// A role whose own override is kept and only gains a part loses nothing and is not listed.
-func TestModelsViewGroupConfirmationListsOnlyRolesThatLoseAPart(t *testing.T) {
-	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
-	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Model: "opus"}})
-	e.d.key("r")
+	e.d.key("r") // the Bulk header comes first alphabetically, so the cursor starts on it
 	e.d.key("enter", "right")
 	pick(e.d, "opus")
-	e.d.key("down", "right", "right") // mixed -> release default -> low
 	e.d.key("enter")
-	e.d.mustShow("[Apply]", "effort")
-	e.d.mustNotShow("Replaces the own override")
+	e.d.mustShow("Change the Bulk group on claude (7 roles)", "[Apply]")
+	assertFits(t, e.d, 80, 24)
+	e.d.mustShow("bulk-role-7  sonnet → opus", "Open sessions keep the previous model until they restart.")
+}
 
-	// The command's summary says the same.
-	c := newModelsEnv(t)
-	if _, err := c.write("set", true, "y\n", "--host", "claude", "--role", "plain-role", "--model", "opus"); err != nil {
-		t.Fatal(err)
+// A group too big for the screen scrolls inside the confirmation.
+func TestModelsViewBigGroupConfirmationScrolls(t *testing.T) {
+	source, _ := syntheticCatalogueSource(t) // the generated group holds most of the catalogue
+	e := newModelsEditEnvWith(t, source, "claude", 80, 24, nil)
+	for range 30 {
+		if strings.HasPrefix(selectedLine(t, e.d), "▾ Generated") {
+			break
+		}
+		e.d.key("down")
 	}
-	out, err := c.write("set", true, "y\n", "--host", "claude", "--group", "design", "--model", "opus", "--effort", "low")
-	if err != nil {
-		t.Fatal(err)
+	e.d.key("enter", "right")
+	pick(e.d, "opus")
+	e.d.key("enter")
+	e.d.mustShow("Change the Generated group on claude (", "[Apply]")
+	assertFits(t, e.d, 80, 24)
+	c, ok := e.m.top().(*confirmView)
+	if !ok || !c.box.scrollable() {
+		t.Fatalf("the confirmation of a big group does not scroll at 80x24:\n%s", e.d.screen())
 	}
-	if strings.Contains(out, "Replaces the own override") {
-		t.Fatalf("a role that loses nothing is listed:\n%s", out)
+	e.d.mustNotShow("Open sessions keep")
+	for range 6 {
+		e.d.key("pgdown")
 	}
-	// A role that does lose a part is still listed.
-	out, err = c.write("set", true, "y\n", "--host", "claude", "--group", "design", "--model", "sonnet")
-	if err != nil || !strings.Contains(out, "Replaces the own override of: ") {
-		t.Fatalf("err = %v\n%s", err, out)
+	e.d.mustShow("Open sessions keep the previous model until they restart.")
+	assertFits(t, e.d, 80, 24)
+}
+
+func TestModelsConfirmationReadsAsATableWithTheDirectoryOnce(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 120, 40)
+	e.d.key("enter", "right")
+	pick(e.d, "opus")
+	e.d.key("enter")
+	screen := e.d.screen()
+	for _, want := range []string{
+		"Change the Design group on claude (2 roles)",
+		"Role                      Model                     Effort",
+		"hive-design-architecture  syn-claude-reason → opus  high",
+		"plain-role                syn-claude-exec → opus    medium",
+		"Writes 2 files in ~/.claude/agents",
+		"Open sessions keep the previous model until they restart.",
+	} {
+		if !strings.Contains(screen, want) {
+			t.Errorf("confirmation lacks %q:\n%s", want, screen)
+		}
+	}
+	if strings.Contains(screen, "File:") || strings.Contains(screen, "claude plain-role:") || strings.Contains(screen, "high → high") {
+		t.Fatalf("the old per-role lines are still there:\n%s", screen)
 	}
 }
 
-func TestModelsViewALongModelIDInTheListIsTruncatedAndFits(t *testing.T) {
-	long := "provider/" + strings.Repeat("m", 141) // 150 characters
-	f := standardFake()
-	f.out["opencode"] = long + "\nx/y\n"
-	e := pickerEnv(t, "claude,opencode", f, 80, 24)
-	toHost(t, e.d, "opencode")
-	selectRole(t, e.d, "plain-role")
-	e.d.key("enter", "right")
-	e.d.mustShow("provider/mmm", "…")
-	e.d.mustNotShow(long)
-	assertFits(t, e.d, 80, 24)
-	typeText(e.d, "provider")
-	assertFits(t, e.d, 80, 24)
+func TestAbbreviateHomeUsesTheHomeInUse(t *testing.T) {
+	home := t.TempDir()
+	real, _ := filepath.EvalSymlinks(home)
+	for _, c := range []struct{ path, home, want string }{
+		{filepath.Join(home, ".claude", "agents"), home, "~/.claude/agents"},
+		{filepath.Join(real, ".claude", "agents"), home, "~/.claude/agents"},
+		{real, home, "~"},
+		{"/elsewhere/agents", home, "/elsewhere/agents"},
+		{home + "-other/agents", home, home + "-other/agents"},
+	} {
+		if got := abbreviateHome(c.path, c.home); got != c.want {
+			t.Errorf("abbreviateHome(%q) = %q, want %q", c.path, got, c.want)
+		}
+	}
 }
