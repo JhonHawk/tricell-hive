@@ -621,3 +621,72 @@ func TestModelsViewUpdatedMessageDependsOnWhetherAFileChanged(t *testing.T) {
 		t.Fatalf("message = %q", e.v.message)
 	}
 }
+
+// A request that is not empty but whose plan changes nothing says so, opens no
+// confirmation and writes nothing.
+func TestModelsViewNonEmptyRequestWithNoEffectSaysNothingToChange(t *testing.T) {
+	e := newModelsEditEnv(t, modelsTestSource(t), modelsEditHosts, 80, 24)
+	selectRole(t, e.d, "plain-role")
+	before := snap(t, e)
+	// The effort goes to "release default" while no override holds one: the
+	// panel asks to drop a part that is not stored.
+	e.d.key("enter", "down", "left", "left")
+	if got, _ := panelField(t, e.d, "Effort"); got != "< release default >" {
+		t.Fatalf("Effort = %q, want the release default", got)
+	}
+	e.d.key("enter")
+	e.d.mustShow("Nothing to change")
+	if e.m.top() != view(e.v) {
+		t.Fatalf("a confirmation opened for a plan that changes nothing; top is %T", e.m.top())
+	}
+	if !sameSnapshot(before, snap(t, e)) {
+		t.Fatal("files changed")
+	}
+}
+
+func TestModelsViewTwoHundredCharacterValidationErrorStaysOneRow(t *testing.T) {
+	model := strings.Repeat("a", 100) + " " + strings.Repeat("b", 99) // 200 characters, one of them a space
+	if len(model) != 200 {
+		t.Fatalf("test setup: %d characters", len(model))
+	}
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			e := newModelsEditEnv(t, modelsTestSource(t), modelsEditHosts, size[0], size[1])
+			selectRole(t, e.d, "plain-role")
+			before := snap(t, e)
+			e.d.key("enter")
+			clearModelField(e.d)
+			typeText(e.d, model)
+			e.d.key("enter")
+			e.d.mustShow("model may only contain")
+			rows := 0
+			for _, l := range e.d.lines() {
+				if strings.Contains(l, "may only contain") {
+					rows++
+				}
+			}
+			if rows != 1 {
+				t.Fatalf("the error spans %d rows:\n%s", rows, e.d.screen())
+			}
+			assertFits(t, e.d, size[0], size[1])
+			if !sameSnapshot(before, snap(t, e)) {
+				t.Fatal("a rejected change wrote something")
+			}
+		})
+	}
+}
+
+func TestModelsViewTrimsSpacesAroundATypedModel(t *testing.T) {
+	e := newModelsEditEnv(t, modelsTestSource(t), modelsEditHosts, 80, 24)
+	twinHome, twinState := e.twin(t)
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter")
+	clearModelField(e.d)
+	typeText(e.d, "  opus  ")
+	e.d.key("enter")
+	e.d.mustShow("model syn-claude-exec → opus,", "[Apply]")
+	e.d.key("enter")
+	e.d.mustShow("Open sessions keep the previous model until they restart")
+	command(t, twinHome, twinState, "set", "--host", "claude", "--role", "plain-role", "--model", "opus")
+	assertTwin(t, e.home, e.stateDir, twinHome, twinState)
+}
