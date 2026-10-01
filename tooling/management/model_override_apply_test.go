@@ -1,6 +1,8 @@
 package management
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,5 +148,22 @@ func TestPlanNamesTheRoleWhoseStoredOverrideNoLongerFits(t *testing.T) {
 	want := "opencode plain-role: OpenCode effort requires a model; run hive models reset --host opencode --role plain-role"
 	if err == nil || !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %v, want it to contain %q", err, want)
+	}
+}
+
+// Only an error that comes from the override gets the "hive models reset" hint;
+// a problem in the release names the CLI and role but offers no reset, which
+// would not help.
+func TestOverrideRenderErrorHintsAResetOnlyForErrorsThatComeFromTheOverride(t *testing.T) {
+	fromOverride := &agents.OverrideError{Err: errors.New("OpenCode effort requires a model")}
+	got := overrideRenderError("opencode", "plain-role", fromOverride).Error()
+	if want := "opencode plain-role: OpenCode effort requires a model; run hive models reset --host opencode --role plain-role"; got != want {
+		t.Fatalf("override error = %q, want %q", got, want)
+	}
+	for _, release := range []error{errors.New("unknown agent profile: x"), errors.New("incomplete profiles for opencode"), fmt.Errorf("bad access: %w", errors.New("x"))} {
+		got := overrideRenderError("opencode", "plain-role", release).Error()
+		if !strings.HasPrefix(got, "opencode plain-role: ") || strings.Contains(got, "hive models reset") {
+			t.Errorf("release error %q became %q", release, got)
+		}
 	}
 }

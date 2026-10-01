@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -415,8 +416,9 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 			problems = append(problems, it.Key+": value has a line break or control character")
 		case it.Value == "" && !isRequiredHiveKey(it.Key):
 			problems = append(problems, it.Key+": value is empty; use --unset to remove the key")
-		case it.Key == "Base branch" && strings.ContainsAny(it.Value, " \t"):
-			// Git never accepts whitespace in a branch name. The doctor check of
+		case it.Key == "Base branch" && strings.IndexFunc(it.Value, unicode.IsSpace) >= 0:
+			// Git never accepts whitespace in a branch name, of any kind (a non-breaking
+			// space or an em space included). The doctor check of
 			// the same key reads only the first word, so the writer says it for
 			// the whole value; the rest is judged by that check, with its runner.
 			problems = append(problems, fmt.Sprintf("Base branch: %s is not a valid branch name", shown(it.Value)))

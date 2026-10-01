@@ -5,6 +5,7 @@ package agents
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -308,6 +309,13 @@ func ValidateOverride(host string, o ModelOverride) error {
 
 var knownHosts = map[string]struct{}{"claude": {}, "codex": {}, "grok": {}, "pi": {}, "opencode": {}, "cursor": {}}
 
+// OverrideError marks a failure that comes from a model override, as opposed to
+// the release's own roles and profiles. Dropping the override fixes it.
+type OverrideError struct{ Err error }
+
+func (e *OverrideError) Error() string { return e.Err.Error() }
+func (e *OverrideError) Unwrap() error { return e.Err }
+
 // Resolve returns a role's model profile and the model and effort a host
 // receives for it. It is the single place that decides the effective effort:
 // effort_claude replaces the profile's effort on Claude Code only, and a
@@ -338,7 +346,7 @@ func Resolve(source string, data, profiles []byte, host string, override *ModelO
 	}
 	if override != nil {
 		if err := ValidateOverride(host, *override); err != nil {
-			return "", m, fmt.Errorf("model override for %s: %w", host, err)
+			return "", m, &OverrideError{fmt.Errorf("model override for %s: %w", host, err)}
 		}
 		if override.Model != "" {
 			// OpenCode carries the effort inside the model id. A model override
@@ -359,7 +367,7 @@ func Resolve(source string, data, profiles []byte, host string, override *ModelO
 				// which the override's effort replaces instead of stacking.
 				m.Model, _, _ = strings.Cut(m.Model, "#")
 				if m.Model == "" {
-					return "", m, fmt.Errorf("OpenCode effort requires a model")
+					return "", m, &OverrideError{errors.New("OpenCode effort requires a model")}
 				}
 			}
 		}

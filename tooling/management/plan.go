@@ -3,6 +3,7 @@ package management
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -483,6 +484,17 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 	return p, nil
 }
 
+// overrideRenderError names the CLI and role of a role that has an override and
+// failed to render. Only an error that comes from the override gets the way out:
+// dropping it does nothing for a problem in the release itself.
+func overrideRenderError(host, role string, err error) error {
+	var oe *agents.OverrideError
+	if errors.As(err, &oe) {
+		return fmt.Errorf("%s %s: %w; run hive models reset --host %s --role %s", host, role, err, host, role)
+	}
+	return fmt.Errorf("%s %s: %w", host, role, err)
+}
+
 // nextRecord returns the record a plan leaves for g. gone marks an install or
 // update of content that was deleted by hand: the record is then rebuilt as
 // for a fresh installation (whether Hive created the file, the separator
@@ -540,9 +552,7 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			body, err := agents.Render(g.Target.Source, payload(p.Release, g.Target.Source), p.Release.Profiles, c.Host, skillsDirFor(c.Host, p.Config), override)
 			if err != nil {
 				if override != nil {
-					// The stored override no longer fits this release: say whose it is
-					// and the way out, instead of a bare renderer message.
-					return nil, fmt.Errorf("%s %s: %w; run hive models reset --host %s --role %s", c.Host, role, err, c.Host, role)
+					return nil, overrideRenderError(c.Host, role, err)
 				}
 				return nil, err
 			}

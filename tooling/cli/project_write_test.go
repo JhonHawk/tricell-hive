@@ -504,3 +504,13 @@ func TestSuggestHiveValuesBranchAndSpecs(t *testing.T) {
 		t.Fatalf("unusable branch suggested: %v", got)
 	}
 }
+
+// F1: a Base branch value with any kind of space is refused, not only a space or a tab.
+func TestHiveRequestRefusesEveryKindOfSpaceInABaseBranch(t *testing.T) {
+	for name, v := range map[string]string{"no-break space": "main x", "em space": "a b", "ideographic space": "a　b", "line separator": "a b"} {
+		err := validateHiveRequest([]hiveItem{{"Base branch", v}}, nil)
+		if err == nil || !strings.Contains(err.Error(), "Base branch") {
+			t.Errorf("%s: %q was accepted (%v)", name, v, err)
+		}
+	}
+}
