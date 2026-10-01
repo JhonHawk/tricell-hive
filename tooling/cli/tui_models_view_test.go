@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"testing"
 
@@ -76,7 +75,7 @@ func openModelsView(t *testing.T, hosts string, width, height int) (*appModel, *
 	cfg := hostsAppConfig(t, home, stateDir, source, deps)
 	m, d := newTestApp(t, cfg, width, height)
 	before := len(m.stack)
-	d.send(pushViewMsg{v: newModelsView(cfg)})
+	d.send(pushViewMsg{v: newModelsView(m.cfg)})
 	v, ok := m.top().(*modelsView)
 	if !ok || len(m.stack) != before+1 {
 		t.Fatalf("top view is %T", m.top())
@@ -179,7 +178,7 @@ func TestModelsViewShowsRoleEffortAndProfileColumns(t *testing.T) {
 
 func TestModelsViewFooterSaysHowToEditAndWhereDefaultsComeFrom(t *testing.T) {
 	_, d, _, _, _ := openModelsView(t, "claude", 80, 24)
-	d.mustShow("Enter edits the selected role; x resets one marked *.", "Defaults come from integrations/agent-profiles.json in the release.")
+	d.mustShow("Enter edits the selected role or group; x resets one marked *.", "Defaults come from integrations/agent-profiles.json in the release.")
 	lines := d.lines()
 	// The help bar is the last line; the footer is the two lines above it.
 	if !strings.Contains(strings.Join(lines[len(lines)-3:len(lines)-1], "\n"), "Defaults come from") {
@@ -424,7 +423,7 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 	if len(roles) != syntheticRoleCount {
 		t.Fatalf("the synthetic catalogue has %d roles, want %d", len(roles), syntheticRoleCount)
 	}
-	sort.Strings(roles)
+	roles = groupedRoles(roles) // the table lists roles by group, then by name
 	first, last := roles[0], roles[len(roles)-1]
 	deps := hostsTestDeps(coreOnlyAdapterFactory)
 	home, stateDir := newHostsTestHome(t)
@@ -433,7 +432,7 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			m, d := newTestApp(t, cfg, size[0], size[1])
-			d.send(pushViewMsg{v: newModelsView(cfg)})
+			d.send(pushViewMsg{v: newModelsView(m.cfg)})
 			v, ok := m.top().(*modelsView)
 			if !ok {
 				t.Fatalf("top view is %T", m.top())

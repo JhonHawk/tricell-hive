@@ -1,0 +1,9 @@
+provider        model                         context  max-out  thinking  images
+github-copilot  claude-fable-5                1M       128K     yes       yes   
+github-copilot  claude-fable-5.1              1M       128K     yes       yes   
+openai          gpt-4                         8.2K     8.2K     no        no    
+openai          gpt-4-turbo                   128K     4.1K     no        yes   
+opencode-go     deepseek-v4-flash             1M       384K     yes       no    
+opencode-go     deepseek-v4-flash-vision-exp  1M       384K     yes       yes   
+xai             grok-4.3                      1M       30K      yes       yes   
+xai             grok-4.5                      500K     500K     yes       yes   

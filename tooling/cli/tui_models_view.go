@@ -2,13 +2,19 @@
 // en la vista Models"): the model and effort each installed agent role gets on
 // each registered CLI, read from the release snapshot the role was installed
 // from. A cursor selects a role; Enter opens a panel that edits its model and
-// effort, and x resets a marked role. Both build the plan `hive models set` or
-// `reset` builds, show its summary and confirm before writing.
+// effort, and x resets a marked role. Roles are grouped by the folder of their
+// source: a header row stands for its group, and Enter or x on it edits or
+// resets every role of the group. The Model field is a list the CLI supplies
+// (T9). Every change builds the plan `hive models set` or `reset` builds, shows
+// its summary and confirms before writing.
 package main
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -62,20 +68,86 @@ type modelsLoadedMsg struct {
 	err   error
 }
 
-// modelsPanel is the edit panel of one role.
+// modelsPanel is the edit panel of one role, or of one group when group is set.
 type modelsPanel struct {
-	role          string
-	row           int // 0 Model, 1 Effort
-	model         textinput.Model
+	host      string
+	role      string
+	group     string                // set for a group panel
+	groupRows []management.ModelRow // the roles of the group
+	title     string                // the Role line
+	row       int                   // 0 Model, 1 Effort
+
+	// Model is a choice from a list until "Other…" turns it into a text field.
+	model        textinput.Model
+	textMode     bool
+	chosen       string // the model picked from the list; "" is the release's model
+	touched      bool   // a choice was made from the list
+	initialModel string
+	modelMixed   bool // a group whose roles have different models
+	list         *modelList
+
 	efforts       []string // effortReleaseText, then the values the CLI accepts; one entry when it takes none
 	effort        int
-	initialModel  string
-	initialEffort int
-	message       string
-	messageOK     bool // message is information, not an error
+	initialEffort string // the effort value shown when the panel opened; "" is the release default
+	effortMixed   bool
+
+	catalog    []catalogModel // the CLI's list, once loaded
+	catalogErr string         // why the list is unavailable
+	noCatalog  bool           // no list is ever queried here (a synthetic home)
+
+	message   string
+	messageOK bool // message is information, not an error
 }
 
 func (p *modelsPanel) supportsEffort() bool { return len(p.efforts) > 1 }
+
+// modelList is the open model list: its filter text and cursor.
+type modelList struct {
+	filter string
+	cur    int
+	off    int
+}
+
+// modelListEntry is one line of the list.
+type modelListEntry struct {
+	label string
+	value string
+	kind  int
+}
+
+const (
+	entryDefault = iota // "release default"
+	entryModel
+	entryOther
+)
+
+const (
+	otherModelText  = "Other…"
+	effortMixedText = "mixed"
+)
+
+// modelsItem is one line of the grouped table: a group header or a role.
+type modelsItem struct {
+	header bool
+	group  string
+	cells  modelCells            // the header's cells: the group's name and its common model and effort
+	rows   []management.ModelRow // the group's roles, for a header
+	row    management.ModelRow   // the role's row, for a role
+}
+
+// modelsKey identifies the item under the cursor across reloads and CLI
+// switches. A header and a role never share a key.
+type modelsKey struct {
+	header bool
+	name   string
+}
+
+func (k modelsKey) of(it modelsItem) bool {
+	if it.header {
+		return k.header && k.name == it.group
+	}
+	return !k.header && k.name == it.row.Role
+}
 
 type modelsView struct {
 	cfg     appConfig
@@ -89,24 +161,41 @@ type modelsView struct {
 	width   int
 	height  int
 
-	cur     int    // index of the selected role among the CLI's rows
-	curRole string // the selected role's name, kept across reloads and CLI switches
-	panel   *modelsPanel
-	flow    int
-	working string // what the edit flow is doing now, "" when idle
-	message string // the last result, shown in the position row until a key is pressed
-	msgErr  bool
+	items       []modelsItem // the selected CLI's table: headers and roles in order
+	tableHeader string       // the column header line drawn for items
+	cur         int          // index of the selected item
+	curKey      modelsKey    // the selected item's key, kept across reloads and CLI switches
+	panel       *modelsPanel
+	flow        int
+	working     string // what the edit flow is doing now, "" when idle
+	message     string // the last result, shown in the position row until a key is pressed
+	msgErr      bool
 }
 
 func newModelsView(cfg appConfig) *modelsView {
+	if cfg.catalog == nil {
+		cfg.catalog = newModelCatalogCache()
+	}
 	return &modelsView{cfg: cfg, loading: true, box: newScrollBox()}
 }
 
 func (v *modelsView) Init() tea.Cmd { return v.reload() }
 
-func (v *modelsView) NeedsSpinner() bool { return v.loading || v.working != "" }
+// NeedsSpinner is true while the rows load, an edit works, or the open panel
+// waits for its CLI's model list.
+func (v *modelsView) NeedsSpinner() bool {
+	return v.loading || v.working != "" || v.catalogLoading()
+}
 
-func (v *modelsView) TextFocused() bool { return v.panel != nil && v.panel.row == 0 }
+func (v *modelsView) catalogLoading() bool {
+	return v.panel != nil && !v.panel.noCatalog && v.cfg.catalog.isLoading(v.host)
+}
+
+// TextFocused is true while a text field takes the keys: the model field after
+// "Other…", and the open list's filter.
+func (v *modelsView) TextFocused() bool {
+	return v.panel != nil && (v.panel.list != nil || (v.panel.row == 0 && v.panel.textMode))
+}
 
 func (v *modelsView) reload() tea.Cmd {
 	v.seq++
@@ -124,7 +213,7 @@ func (v *modelsView) Resize(w, h int) {
 	v.layout()
 }
 
-// hostRows are the rows of the selected CLI.
+// hostRows are the rows of the selected CLI, ordered by group and then role.
 func (v *modelsView) hostRows() []management.ModelRow {
 	var out []management.ModelRow
 	for _, r := range v.rows {
@@ -132,7 +221,28 @@ func (v *modelsView) hostRows() []management.ModelRow {
 			out = append(out, r)
 		}
 	}
-	return out
+	return sortedByGroup(out)
+}
+
+// buildItems lays the CLI's rows out as headers and roles.
+func buildItems(rows []management.ModelRow) []modelsItem {
+	var items []modelsItem
+	for i, r := range rows {
+		if r.Group != "" && (i == 0 || rows[i-1].Group != r.Group) {
+			end := i
+			for end < len(rows) && rows[end].Group == r.Group {
+				end++
+			}
+			model, effort, override := groupSummary(rows[i:end])
+			name := strings.ToUpper(r.Group[:1]) + r.Group[1:]
+			if override {
+				name += modelOverrideMarker
+			}
+			items = append(items, modelsItem{header: true, group: r.Group, cells: modelCells{role: name, model: model, effort: effort}, rows: rows[i:end]})
+		}
+		items = append(items, modelsItem{group: r.Group, row: r})
+	}
+	return items
 }
 
 // tableRows is the number of table rows the screen has room for.
@@ -145,35 +255,53 @@ func (v *modelsView) tableRows() int {
 }
 
 // layout redraws the table for the selected CLI and the current size, with the
-// cursor on the selected role.
+// cursor on the selected item.
 func (v *modelsView) layout() {
 	v.box.vp.SetWidth(max(v.width, 1))
 	v.box.vp.SetHeight(v.tableRows())
-	rows := v.hostRows()
+	v.items = buildItems(v.hostRows())
 	v.cur = 0
-	for i, r := range rows {
-		if r.Role == v.curRole {
+	for i, it := range v.items {
+		if v.curKey.of(it) {
 			v.cur = i
 		}
 	}
-	if len(rows) > 0 {
-		v.curRole = rows[v.cur].Role
+	if len(v.items) > 0 {
+		v.curKey = keyOf(v.items[v.cur])
 	}
 	v.render()
 }
 
-// render draws the table lines with the cursor mark and keeps the cursor in view.
+func keyOf(it modelsItem) modelsKey {
+	if it.header {
+		return modelsKey{header: true, name: it.group}
+	}
+	return modelsKey{name: it.row.Role}
+}
+
+// render draws the table lines with the cursor mark and keeps the cursor in
+// view. Group headers sit in the same columns as the roles: the group's name
+// under Role, and its common model and effort under Model and Effort.
 func (v *modelsView) render() {
-	rows := v.hostRows()
-	_, lines := modelTable(rows, max(v.width-2, 1))
-	for i := range lines {
+	cells := make([]modelCells, len(v.items))
+	for i, it := range v.items {
+		if it.header {
+			cells[i] = it.cells
+		} else {
+			cells[i] = modelCellsFor(it.row)
+		}
+	}
+	columns := layoutModelColumns(cells, max(v.width-2, 1))
+	v.tableHeader = columns.header()
+	out := make([]string, len(v.items))
+	for i := range v.items {
 		prefix := "  "
 		if i == v.cur {
 			prefix = "> "
 		}
-		lines[i] = prefix + lines[i]
+		out[i] = prefix + columns.line(cells[i])
 	}
-	v.box.setText(strings.Join(lines, "\n"))
+	v.box.setText(strings.Join(out, "\n"))
 	off, h := v.box.vp.YOffset(), v.box.vp.Height()
 	switch {
 	case v.cur < off:
@@ -183,26 +311,25 @@ func (v *modelsView) render() {
 	}
 }
 
-// moveCursor selects row i of the CLI's rows.
+// moveCursor selects item i of the CLI's table.
 func (v *modelsView) moveCursor(i int) {
-	rows := v.hostRows()
-	if len(rows) == 0 {
+	if len(v.items) == 0 {
 		return
 	}
-	v.cur = min(max(i, 0), len(rows)-1)
-	v.curRole = rows[v.cur].Role
+	v.cur = min(max(i, 0), len(v.items)-1)
+	v.curKey = keyOf(v.items[v.cur])
 	v.render()
 }
 
 // scroll applies a paging key to the table, then keeps the cursor inside the
-// rows the screen shows; Home and End select the first and the last role.
+// rows the screen shows; Home and End select the first and the last item.
 func (v *modelsView) scroll(name string) {
 	switch name {
 	case "home":
 		v.moveCursor(0)
 		return
 	case "end":
-		v.moveCursor(len(v.hostRows()) - 1)
+		v.moveCursor(len(v.items) - 1)
 		return
 	}
 	v.box.handleKey(name)
@@ -210,13 +337,12 @@ func (v *modelsView) scroll(name string) {
 	v.moveCursor(min(max(v.cur, off), off+h-1))
 }
 
-// selectedRow is the row under the cursor.
-func (v *modelsView) selectedRow() (management.ModelRow, bool) {
-	rows := v.hostRows()
-	if v.cur < 0 || v.cur >= len(rows) {
-		return management.ModelRow{}, false
+// selectedItem is the item under the cursor.
+func (v *modelsView) selectedItem() (modelsItem, bool) {
+	if v.cur < 0 || v.cur >= len(v.items) {
+		return modelsItem{}, false
 	}
-	return rows[v.cur], true
+	return v.items[v.cur], true
 }
 
 func (v *modelsView) hostIndex() int {
@@ -256,6 +382,8 @@ func (v *modelsView) Update(msg tea.Msg) (tea.Cmd, action) {
 			}
 		}
 		v.layout()
+	case catalogLoadedMsg:
+		v.onCatalog(msg)
 	case modelsPlannedMsg:
 		if msg.flow != v.flow {
 			break
@@ -272,7 +400,7 @@ func (v *modelsView) Update(msg tea.Msg) (tea.Cmd, action) {
 		}
 		return v.onKey(msg.String())
 	default:
-		if v.TextFocused() {
+		if v.panel != nil && v.panel.row == 0 && v.panel.textMode {
 			var cmd tea.Cmd
 			v.panel.model, cmd = v.panel.model.Update(msg)
 			return cmd, action{nav: navNone}
@@ -309,7 +437,7 @@ func (v *modelsView) onKey(name string) (tea.Cmd, action) {
 	case "pgup", "pgdown", "home", "end":
 		v.scroll(name)
 	case "enter":
-		v.openPanel()
+		return v.openPanel(), action{nav: navNone}
 	case "x":
 		return v.reset()
 	}
@@ -328,6 +456,21 @@ func effectiveParts(r management.ModelRow) (model, effort string) {
 	return model, effort
 }
 
+// commonParts are the model and effort the rows share, and whether each part
+// differs between them.
+func commonParts(rows []management.ModelRow) (model, effort string, modelMixed, effortMixed bool) {
+	for i, r := range rows {
+		m, e := effectiveParts(r)
+		if i == 0 {
+			model, effort = m, e
+			continue
+		}
+		modelMixed = modelMixed || m != model
+		effortMixed = effortMixed || e != effort
+	}
+	return model, effort, modelMixed, effortMixed
+}
+
 // effortChoices are "release default" and the efforts host accepts, asked of
 // the same validator the commands use.
 func effortChoices(host string) []string {
@@ -340,32 +483,362 @@ func effortChoices(host string) []string {
 	return choices
 }
 
-// openPanel opens the edit panel on the selected role.
-func (v *modelsView) openPanel() {
-	row, ok := v.selectedRow()
+// openPanel opens the edit panel on the selected role or group and starts the
+// CLI's model query when it was never made (or failed the last time).
+func (v *modelsView) openPanel() tea.Cmd {
+	it, ok := v.selectedItem()
 	if !ok || v.loading {
-		return
+		return nil
 	}
-	model, effort := effectiveParts(row)
-	p := &modelsPanel{role: row.Role, model: textinput.New(), efforts: effortChoices(row.Host), initialModel: model}
+	rows := []management.ModelRow{it.row}
+	p := &modelsPanel{host: v.host, role: it.row.Role, model: textinput.New()}
+	title := "  " + p.role + " on " + v.host
+	if it.header {
+		rows = it.rows
+		p.role, p.group, p.groupRows = "", it.group, it.rows
+		noun := "roles"
+		if len(rows) == 1 {
+			noun = "role"
+		}
+		title = fmt.Sprintf("%s group on %s (%d %s)", strings.ToUpper(it.group[:1])+it.group[1:], v.host, len(rows), noun)
+	} else {
+		title = p.role + " on " + v.host
+	}
+	p.title = title
+	model, effort, modelMixed, effortMixed := commonParts(rows)
+	p.chosen, p.initialModel, p.modelMixed = model, model, modelMixed
 	p.model.Prompt = ""
 	p.model.SetStyles(textinput.Styles{}) // a static cursor until the first draw applies the theme
-	p.model.SetValue(model)
-	p.model.CursorEnd()
-	for i, e := range p.efforts {
-		if i > 0 && e == effort {
-			p.effort = i
+	p.efforts = effortChoices(v.host)
+	if effortMixed && len(p.efforts) > 1 {
+		p.efforts = append([]string{effortMixedText}, p.efforts...)
+		p.effortMixed = true
+		p.initialEffort = effortMixedText
+		p.effort = 0
+	} else {
+		for i, e := range p.efforts {
+			if i > 0 && e == effort {
+				p.effort = i
+			}
+		}
+		p.initialEffort = p.efforts[p.effort]
+		if p.initialEffort == effortReleaseText {
+			p.initialEffort = ""
 		}
 	}
-	p.initialEffort = p.effort
 	v.panel = p
 	v.layout()
-	_ = p.model.Focus()
+	return v.loadCatalog()
+}
+
+// loadCatalog gives the panel the CLI's list, and starts the query when it has
+// not run. Under a synthetic home nothing is ever queried, so the list offers
+// only the current value and "Other…".
+func (v *modelsView) loadCatalog() tea.Cmd {
+	p, host := v.panel, v.host
+	if v.cfg.catalogRunner == nil && v.cfg.Options.Home != "" && host != "claude" {
+		p.noCatalog = true
+		return nil
+	}
+	if models, ok := v.cfg.catalog.get(host); ok {
+		p.catalog = models
+		p.trimEfforts(false)
+		return nil
+	}
+	if !v.cfg.catalog.begin(host) {
+		return nil // a query is already running; its result reaches the panel
+	}
+	run := v.cfg.catalogRunner
+	if run == nil {
+		run = catalogRunnerFor(v.cfg.Options)
+	}
+	cache := v.cfg.catalog
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), catalogTimeout+2*catalogWaitDelay)
+		defer cancel()
+		models, err := listHostModels(ctx, host, run)
+		return catalogLoadedMsg{cache: cache, host: host, models: models, err: err}
+	}
+}
+
+// onCatalog hands a finished query to the open panel of the same CLI. The
+// cache was already written by appModel.Update.
+func (v *modelsView) onCatalog(msg catalogLoadedMsg) {
+	p := v.panel
+	if p == nil || msg.host != v.host {
+		return
+	}
+	if msg.err != nil {
+		p.catalogErr = sanitizeLine(msg.err.Error())
+		return
+	}
+	p.catalogErr = ""
+	p.catalog = msg.models
+	p.trimEfforts(false)
+}
+
+// modelID is the model the panel stands on: the one chosen, or the effective
+// one while nothing was chosen. It is empty when no single model is known.
+func (p *modelsPanel) modelID() string {
+	if p.modelChanged() {
+		return p.modelValue()
+	}
+	if p.modelMixed {
+		return ""
+	}
+	return p.initialModel
+}
+
+// trimEfforts cuts the effort choices to the levels the panel's model lists
+// (Codex lists them per model). A chosen effort the model does not list falls
+// back to "release default" when the person just chose the model, and keeps the
+// list uncut otherwise, so a list that arrives late or a panel that opens does
+// not move an effort nobody changed.
+func (p *modelsPanel) trimEfforts(fromChoice bool) {
+	if !p.supportsEffort() {
+		return
+	}
+	var allowed []string
+	for _, m := range p.catalog {
+		if id := p.modelID(); id != "" && m.ID == id {
+			allowed = m.Efforts
+		}
+	}
+	current := p.efforts[p.effort]
+	base := []string{effortReleaseText}
+	if p.effortMixed {
+		base = []string{effortMixedText, effortReleaseText}
+	}
+	list := base
+	for _, e := range p.untrimmed() {
+		if contains(base, e) {
+			continue
+		}
+		if len(allowed) == 0 || contains(allowed, e) {
+			list = append(list, e)
+		}
+	}
+	if len(allowed) == 0 {
+		list = p.untrimmed()
+	}
+	i := indexOf(list, current)
+	if i < 0 {
+		if !fromChoice {
+			return
+		}
+		i = indexOf(list, effortReleaseText)
+	}
+	p.efforts, p.effort = list, i
+}
+
+// untrimmed is the full effort list of the panel's CLI.
+func (p *modelsPanel) untrimmed() []string {
+	list := effortChoices(p.host)
+	if p.effortMixed {
+		list = append([]string{effortMixedText}, list...)
+	}
+	return list
+}
+
+func contains(list []string, s string) bool { return indexOf(list, s) >= 0 }
+
+func indexOf(list []string, s string) int {
+	for i, x := range list {
+		if x == s {
+			return i
+		}
+	}
+	return -1
 }
 
 func (v *modelsView) closePanel() {
 	v.panel = nil
 	v.layout()
+}
+
+// modelValue is the model the panel asks for: the text of the field after
+// "Other…", or the list's choice; "" means the release's model.
+func (p *modelsPanel) modelValue() string {
+	if p.textMode {
+		return strings.TrimSpace(p.model.Value())
+	}
+	return p.chosen
+}
+
+// modelChanged says whether the person asked for another model.
+func (p *modelsPanel) modelChanged() bool {
+	switch {
+	case p.modelMixed && p.textMode:
+		return strings.TrimSpace(p.model.Value()) != ""
+	case p.modelMixed:
+		return p.touched
+	}
+	return p.modelValue() != p.initialModel
+}
+
+// effortValue is the chosen effort; "" is the release default.
+func (p *modelsPanel) effortValue() string {
+	e := p.efforts[p.effort]
+	if e == effortReleaseText {
+		return ""
+	}
+	return e
+}
+
+// effortChanged says whether the chosen effort differs, by value, from the
+// effort the panel opened with.
+func (p *modelsPanel) effortChanged() bool {
+	if !p.supportsEffort() {
+		return false
+	}
+	return p.efforts[p.effort] != p.openingEffort()
+}
+
+// openingEffort is the effort entry the panel opened on.
+func (p *modelsPanel) openingEffort() string {
+	if p.initialEffort == "" {
+		return effortReleaseText
+	}
+	return p.initialEffort
+}
+
+// modelLabel is how the Model row reads while it is not a text field.
+func (p *modelsPanel) modelLabel() string {
+	switch {
+	case p.modelMixed && !p.touched:
+		return effortMixedText
+	case p.chosen == "" && p.initialModel == "" && !p.touched:
+		return modelHostDefault
+	case p.chosen == "":
+		return effortReleaseText
+	}
+	return p.chosen
+}
+
+// openList opens the model list, with text as the first characters of the filter.
+func (p *modelsPanel) openList(text string) {
+	p.list = &modelList{filter: text}
+}
+
+// listEntries are the list's lines for the current filter: "release default",
+// the effective model when the CLI does not list it, the CLI's models, and
+// "Other…", which no filter hides.
+func (p *modelsPanel) listEntries() []modelListEntry {
+	entries := []modelListEntry{{label: effortReleaseText, kind: entryDefault}}
+	listed := map[string]bool{}
+	for _, m := range p.catalog {
+		listed[m.ID] = true
+	}
+	if !p.modelMixed && p.initialModel != "" && !listed[p.initialModel] {
+		entries = append(entries, modelListEntry{label: p.initialModel, value: p.initialModel, kind: entryModel})
+	}
+	for _, m := range p.catalog {
+		entries = append(entries, modelListEntry{label: m.ID, value: m.ID, kind: entryModel})
+	}
+	filter := strings.ToLower(p.list.filter)
+	out := entries[:0:0]
+	for _, e := range entries {
+		if strings.Contains(strings.ToLower(e.label), filter) {
+			out = append(out, e)
+		}
+	}
+	return append(out, modelListEntry{label: otherModelText, kind: entryOther})
+}
+
+// listStatus is the list's status row: the spinner text while the query runs,
+// or why the list is unavailable. It is empty when neither applies.
+func (v *modelsView) listStatus() (loading bool, text string) {
+	p := v.panel
+	switch {
+	case p.noCatalog:
+		return false, ""
+	case v.catalogLoading():
+		return true, "Loading models…"
+	case p.catalogErr != "":
+		return false, "Model list unavailable: " + p.catalogErr
+	}
+	return false, ""
+}
+
+// listHeight is the number of list entries the table area has room for.
+func (v *modelsView) listHeight() int {
+	h := v.tableRows() - 1 // the Filter row
+	if loading, text := v.listStatus(); loading || text != "" {
+		h--
+	}
+	return max(h, 1)
+}
+
+// moveList moves the list's cursor and keeps it in view.
+func (v *modelsView) moveList(to int) {
+	l := v.panel.list
+	n := len(v.panel.listEntries())
+	l.cur = min(max(to, 0), n-1)
+	h := v.listHeight()
+	switch {
+	case l.cur < l.off:
+		l.off = l.cur
+	case l.cur >= l.off+h:
+		l.off = l.cur - h + 1
+	}
+	l.off = min(max(l.off, 0), max(n-h, 0))
+}
+
+// listKey handles a key while the model list is open.
+func (v *modelsView) listKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
+	p, l, name := v.panel, v.panel.list, msg.String()
+	switch name {
+	case "esc":
+		p.list = nil
+	case "up":
+		v.moveList(l.cur - 1)
+	case "down":
+		v.moveList(l.cur + 1)
+	case "pgup":
+		v.moveList(l.cur - v.listHeight())
+	case "pgdown":
+		v.moveList(l.cur + v.listHeight())
+	case "home":
+		v.moveList(0)
+	case "end":
+		v.moveList(len(p.listEntries()) - 1)
+	case "backspace":
+		if _, size := utf8.DecodeLastRuneInString(l.filter); size > 0 {
+			l.filter = l.filter[:len(l.filter)-size]
+			l.cur, l.off = 0, 0
+		}
+	case "enter":
+		return v.choose(p.listEntries()[min(l.cur, len(p.listEntries())-1)])
+	default:
+		if msg.Text != "" {
+			l.filter += msg.Text
+			l.cur, l.off = 0, 0
+		}
+	}
+	return nil, action{nav: navNone}
+}
+
+// choose applies the list's entry and returns to the panel with the focus on Model.
+func (v *modelsView) choose(e modelListEntry) (tea.Cmd, action) {
+	p := v.panel
+	p.list, p.row, p.message = nil, 0, ""
+	switch e.kind {
+	case entryOther:
+		start := p.modelValue() // read before the field takes over
+		if p.modelMixed && !p.touched {
+			start = ""
+		}
+		p.textMode = true
+		p.model.SetValue(start)
+		p.model.CursorEnd()
+		return p.model.Focus(), action{nav: navNone}
+	case entryDefault:
+		p.chosen, p.touched, p.textMode = "", true, false
+	default:
+		p.chosen, p.touched, p.textMode = e.value, true, false
+	}
+	p.trimEfforts(true)
+	return nil, action{nav: navNone}
 }
 
 // panelKey handles a key while the edit panel is open.
@@ -378,13 +851,19 @@ func (v *modelsView) panelKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 		}
 		return nil, action{nav: navNone}
 	}
+	if p.list != nil {
+		return v.listKey(msg)
+	}
 	switch name {
 	case "esc":
 		v.closePanel()
 		return nil, action{nav: navNone}
 	case "up":
 		p.row = 0
-		return p.model.Focus(), action{nav: navNone}
+		if p.textMode {
+			return p.model.Focus(), action{nav: navNone}
+		}
+		return nil, action{nav: navNone}
 	case "down":
 		if p.supportsEffort() {
 			p.row = 1
@@ -396,9 +875,21 @@ func (v *modelsView) panelKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 	}
 	if p.row == 0 {
 		p.message = ""
-		var cmd tea.Cmd
-		p.model, cmd = p.model.Update(msg)
-		return cmd, action{nav: navNone}
+		if p.textMode {
+			var cmd tea.Cmd
+			p.model, cmd = p.model.Update(msg)
+			p.trimEfforts(false) // typing never moves an effort
+			return cmd, action{nav: navNone}
+		}
+		// The Model field is a choice: → or a letter opens the list, and the
+		// letter starts the filter. Backspace never leaves the view.
+		switch {
+		case name == "right":
+			p.openList("")
+		case msg.Text != "" && msg.Text != " ":
+			p.openList(msg.Text)
+		}
+		return nil, action{nav: navNone}
 	}
 	switch name {
 	case "left", "right":
@@ -413,57 +904,136 @@ func (v *modelsView) panelKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 	return nil, action{nav: navNone}
 }
 
-// request is the change the panel asks for: only what differs from the values
-// the table shows. On OpenCode a new model also sends the effort shown, as
-// `hive models set --model x --effort <shown>` does, because a model override
-// otherwise drops the variant the release's model carried.
+// request is the change a role panel asks for: only what differs from the
+// values the table shows. On OpenCode a new model also keeps the effort shown,
+// as `hive models set --model x` does, because a model override otherwise drops
+// the variant the release's model carried.
 func (p *modelsPanel) request(host string) modelsChange {
 	var c modelsChange
-	text := strings.TrimSpace(p.model.Value())
-	if text != p.initialModel {
-		if text == "" {
+	if p.modelChanged() {
+		if text := p.modelValue(); text == "" {
 			c.dropModel = true
 		} else {
 			c.set.Model = text
 		}
 	}
-	if p.supportsEffort() && p.effort != p.initialEffort {
-		if p.effort == 0 {
+	if p.effortChanged() {
+		if v := p.effortValue(); v == "" {
 			c.dropEffort = true
 		} else {
-			c.set.Effort = p.efforts[p.effort]
+			c.set.Effort = v
 		}
 	}
-	if host == "opencode" && c.set.Model != "" && c.set.Effort == "" && p.effort != 0 {
-		c.set.Effort = p.efforts[p.effort]
+	if host == "opencode" && c.set.Model != "" && c.set.Effort == "" && !c.dropEffort && p.initialEffort != "" {
+		c.set.Effort = p.initialEffort
 	}
 	return c
+}
+
+// groupRequest is the override every role of a group gets: only the parts the
+// person chose. A part left untouched is kept only when every role of the group
+// already holds it as its own override, and a part left "mixed" is not sent.
+func (p *modelsPanel) groupRequest(stored map[string]management.ModelOverride) management.ModelOverride {
+	var set management.ModelOverride
+	every := func(has func(management.ModelOverride) bool) bool {
+		for _, r := range p.groupRows {
+			if !has(stored[r.Role]) {
+				return false
+			}
+		}
+		return true
+	}
+	switch {
+	case p.modelChanged():
+		set.Model = p.modelValue()
+	case !p.modelMixed && p.initialModel != "" && every(func(o management.ModelOverride) bool { return o.Model == p.initialModel }):
+		set.Model = p.initialModel
+	}
+	switch {
+	case p.effortChanged():
+		if v := p.effortValue(); v != effortMixedText {
+			set.Effort = v
+		}
+	case !p.effortMixed && p.initialEffort != "" && every(func(o management.ModelOverride) bool { return o.Effort == p.initialEffort }):
+		set.Effort = p.initialEffort
+	}
+	return set
 }
 
 // review builds the plan for the panel's request and shows its summary.
 func (v *modelsView) review() (tea.Cmd, action) {
 	p := v.panel
 	p.message = ""
-	change := p.request(v.host)
+	host := v.host
+	if p.group != "" {
+		if !p.modelChanged() && !p.effortChanged() {
+			p.message, p.messageOK = "Nothing to change", true
+			return nil, action{nav: navNone}
+		}
+		rows := p.groupRows
+		group := p.group
+		return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+			set := p.groupRequest(stored)
+			next, replaced := setGroup(stored, rows, set)
+			if set == (management.ModelOverride{}) {
+				// Both parts go back to the release's values: this is a reset.
+				return next, nil, "Reset the " + group + " group on " + host
+			}
+			return next, replaced, ""
+		}, "Change the "+p.group+" group on "+host)
+	}
+	change := p.request(host)
 	if change.empty() {
 		p.message, p.messageOK = "Nothing to change", true
 		return nil, action{nav: navNone}
 	}
-	return v.plan(p.role, change, "Change "+p.role+" on "+v.host)
+	role := p.role
+	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+		return change.applyTo(stored, role), nil, ""
+	}, "Change "+role+" on "+host)
 }
 
-// reset opens the reset confirmation of the selected role when it has an override.
+// reset opens the reset confirmation of the selected role or group when it has
+// an override.
 func (v *modelsView) reset() (tea.Cmd, action) {
-	row, ok := v.selectedRow()
-	if !ok || !row.Override || v.loading {
+	it, ok := v.selectedItem()
+	if !ok || v.loading {
 		return nil, action{nav: navNone}
 	}
-	return v.plan(row.Role, modelsChange{dropAll: true}, "Reset "+row.Role+" on "+v.host)
+	drop := modelsChange{dropAll: true}
+	if it.header {
+		marked := false
+		for _, r := range it.rows {
+			marked = marked || r.Override
+		}
+		if !marked {
+			return nil, action{nav: navNone}
+		}
+		rows := it.rows
+		return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+			next := stored
+			for _, r := range rows {
+				next = drop.applyTo(next, r.Role)
+			}
+			return next, nil, ""
+		}, "Reset the "+it.group+" group on "+v.host)
+	}
+	if !it.row.Override {
+		return nil, action{nav: navNone}
+	}
+	role := it.row.Role
+	return v.plan(func(stored map[string]management.ModelOverride) (map[string]management.ModelOverride, []string, string) {
+		return drop.applyTo(stored, role), nil, ""
+	}, "Reset "+role+" on "+v.host)
 }
+
+// modelsBuild turns the overrides stored for a CLI into the set a change asks
+// for, with the roles whose own override it replaces.
+type modelsBuild func(stored map[string]management.ModelOverride) (next map[string]management.ModelOverride, replaced []string, title string)
 
 // plan builds the plan off the UI thread, from the overrides stored now, like
 // the command does.
-func (v *modelsView) plan(role string, change modelsChange, title string) (tea.Cmd, action) {
+func (v *modelsView) plan(build modelsBuild, title string) (tea.Cmd, action) {
 	v.flow++
 	flow, host, o := v.flow, v.host, copyOptions(v.cfg.Options)
 	v.working = "Planning the change…"
@@ -474,7 +1044,11 @@ func (v *modelsView) plan(role string, change modelsChange, title string) (tea.C
 			msg.err = err
 			return msg
 		}
-		plan, before, err := planModelsChange(o, host, change.applyTo(stored[host], role))
+		next, replaced, retitle := build(stored[host])
+		if retitle != "" {
+			msg.title = retitle
+		}
+		plan, before, err := planModelsChange(o, host, next)
 		if err != nil {
 			msg.err = err
 			return msg
@@ -484,6 +1058,9 @@ func (v *modelsView) plan(role string, change modelsChange, title string) (tea.C
 			return msg
 		}
 		var summary bytes.Buffer
+		if !msg.unchanged && len(replaced) > 0 {
+			fmt.Fprintf(&summary, "Replaces the own override of: %s\n", strings.Join(replaced, ", "))
+		}
 		showModelsSummary(&summary, host, plan, before, stored[host], msg.unchanged)
 		msg.plan, msg.summary = plan, summary.String()
 		return msg
@@ -574,7 +1151,7 @@ func (v *modelsView) View(c viewCtx) string {
 	}
 	title := th.Title.Render("Models")
 	footer := []string{
-		th.Muted.Render("Enter edits the selected role; x resets one marked *."),
+		th.Muted.Render("Enter edits the selected role or group; x resets one marked *."),
 		th.Muted.Render("Defaults come from integrations/agent-profiles.json in the release."),
 	}
 	if !v.loading && v.loadErr == "" && len(v.hosts) == 0 {
@@ -604,11 +1181,13 @@ func (v *modelsView) View(c viewCtx) string {
 		}
 	default:
 		host = v.hostRow(th)
-		if rows := v.hostRows(); len(rows) == 0 {
+		switch {
+		case len(v.items) == 0:
 			body = append(body, th.Text.Render("No agents installed for "+v.host))
-		} else {
-			h, _ := modelTable(rows, max(c.Width-2, 1))
-			header = th.Muted.Render("  " + h)
+		case v.panel != nil && v.panel.list != nil:
+			body = v.listLines(c)
+		default:
+			header = th.Muted.Render("  " + v.tableHeader)
 			body = strings.Split(v.box.vp.View(), "\n")
 			if v.box.scrollable() {
 				position = th.Muted.Render(v.box.position())
@@ -648,6 +1227,30 @@ func (v *modelsView) View(c viewCtx) string {
 	return strings.Join(lines, "\n")
 }
 
+// listLines draws the open model list in the table area: the filter, a status
+// row when the query runs or failed, and the entries with a cursor and scrolling.
+func (v *modelsView) listLines(c viewCtx) []string {
+	th, p := c.Theme, v.panel
+	lines := []string{th.Text.Render(truncateRunes("Filter: "+p.list.filter, max(c.Width, 1)))}
+	if loading, text := v.listStatus(); loading {
+		lines = append(lines, c.Spinner+" "+th.Muted.Render(text))
+	} else if text != "" {
+		lines = append(lines, th.Danger.Render(truncateRunes(text, max(c.Width, 1))))
+	}
+	v.moveList(p.list.cur) // the entries or the room may have changed since the last key
+	entries := p.listEntries()
+	h := v.listHeight()
+	for i := p.list.off; i < min(p.list.off+h, len(entries)); i++ {
+		text := truncateRunes(entries[i].label, max(c.Width-2, 1))
+		if i == p.list.cur {
+			lines = append(lines, th.Accent.Render("> "+text))
+		} else {
+			lines = append(lines, th.Text.Render("  "+text))
+		}
+	}
+	return lines
+}
+
 // panelLines draws the edit panel's modelsPanelRows rows.
 func (v *modelsView) panelLines(c viewCtx) []string {
 	th, p := c.Theme, v.panel
@@ -660,10 +1263,14 @@ func (v *modelsView) panelLines(c viewCtx) []string {
 		return "  "
 	}
 	label := func(text string) string { return padRight(text, modelsPanelLabel) }
-	lines := []string{
-		th.Muted.Render(truncateRunes("  "+label("Role")+p.role+" on "+v.host, c.Width)),
-		mark(p.row == 0) + label("Model") + inputView(p.model, th),
+	roleLine := th.Muted.Render(truncateRunes("  "+label("Role")+p.title, c.Width))
+	var modelLine string
+	if p.textMode {
+		modelLine = mark(p.row == 0) + label("Model") + inputView(p.model, th)
+	} else {
+		modelLine = th.Text.Render(truncateRunes(mark(p.row == 0)+label("Model")+p.modelLabel(), c.Width))
 	}
+	lines := []string{roleLine, modelLine}
 	switch {
 	case !p.supportsEffort():
 		lines = append(lines, th.Muted.Render(truncateRunes("  "+label("Effort")+"not supported by "+v.host, c.Width)))
@@ -684,16 +1291,25 @@ func (v *modelsView) panelLines(c viewCtx) []string {
 }
 
 func (v *modelsView) Keys() []key.Binding {
+	if v.panel != nil && v.panel.list != nil {
+		return []key.Binding{
+			binding("type", "type", "filter"),
+			binding("up,down", "↑/↓", "model"),
+			binding("enter", "enter", "choose"),
+			binding("esc", "esc", "close"),
+		}
+	}
 	if v.panel != nil {
 		return []key.Binding{
 			binding("up,down", "↑/↓", "field"),
 			binding("left,right", "←/→", "effort"),
+			binding("type", "type", "model"),
 			binding("enter", "enter", "review"),
 			binding("esc", "esc", "close"),
 		}
 	}
 	keys := []key.Binding{}
-	if len(v.hostRows()) > 0 {
+	if len(v.items) > 0 {
 		keys = append(keys,
 			binding("up,down", "↑/↓", "role"),
 			binding("enter", "enter", "edit"),
