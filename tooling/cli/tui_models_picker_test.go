@@ -109,22 +109,22 @@ func pickerEnv(t *testing.T, hosts string, f *fakeCatalog, width, height int) mo
 	return newModelsEditEnvWith(t, modelsTestSource(t), hosts, width, height, run)
 }
 
-// boxInterior returns the picker panel's lines, from its title row to just above
-// the footer, with runs of spaces collapsed, or fails when it is not open.
+// boxInterior returns the picker box's lines, the top border and the bottom one
+// included, without the side borders and with runs of spaces collapsed, or fails
+// when the box is not open.
 func boxInterior(t *testing.T, d *appDriver) []string {
 	t.Helper()
 	var out []string
 	in := false
 	for _, l := range d.lines() {
 		switch {
-		case strings.HasPrefix(strings.TrimSpace(l), "Select model"):
+		case strings.HasPrefix(l, "┌"):
 			in = true
-		case strings.HasPrefix(l, "Enter edits the selected"):
-			if in {
-				return out
-			}
+		case strings.HasPrefix(l, "└"):
+			return out
 		}
 		if in {
+			l = strings.TrimSuffix(strings.TrimPrefix(strings.TrimRight(l, " "), "│"), "│")
 			out = append(out, strings.Join(strings.Fields(l), " "))
 		}
 	}
@@ -134,13 +134,13 @@ func boxInterior(t *testing.T, d *appDriver) []string {
 
 // listItems returns what the picker lists: section headers and models in order
 // (a "●" prefix marks the current model), then its two bottom entries. The
-// title, search and status rows and the blank separators are left out.
+// borders, search and status rows and the blank separators are left out.
 func listItems(t *testing.T, d *appDriver) []string {
 	t.Helper()
 	in := boxInterior(t, d)
 	var items []string
 	for i, l := range in {
-		if i < 4 || i == len(in)-1 || l == "" {
+		if i < 3 || i == len(in)-1 || l == "" { // top border, search, status; the bottom entries
 			continue
 		}
 		items = append(items, l)
@@ -150,7 +150,7 @@ func listItems(t *testing.T, d *appDriver) []string {
 
 func boxStatus(t *testing.T, d *appDriver) string {
 	t.Helper()
-	return boxInterior(t, d)[3]
+	return boxInterior(t, d)[2]
 }
 
 func mustHaveNoList(t *testing.T, d *appDriver) {
@@ -1318,9 +1318,10 @@ func TestModelsViewCursorStartsOnTheCurrentModelOrTheFirstOneWhenMixed(t *testin
 }
 
 // The regression for the picker that ran past the screen's edge: every line of
-// the screen fits, the panel's lines are as wide as the view, and no line is
-// drawn with the box characters whose width terminals disagree about.
-func TestModelsViewPickerNeverExceedsTheWidth(t *testing.T) {
+// the screen fits, and the box stays two columns short of the view's width, so a
+// terminal that draws an ambiguous-width character as two columns cannot wrap
+// its border.
+func TestModelsViewPickerBoxStaysTwoColumnsShortOfTheWidth(t *testing.T) {
 	long := strings.Repeat("An Extremely Long Display Name ", 3)
 	for _, size := range [][2]int{{80, 24}, {120, 40}, {200, 50}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
@@ -1339,20 +1340,23 @@ func TestModelsViewPickerNeverExceedsTheWidth(t *testing.T) {
 				e.d.key("enter", "right")
 				for step := 0; step < 4; step++ {
 					assertFits(t, e.d, size[0], size[1])
-					if strings.ContainsAny(e.d.screen(), "┌┐└┘│─") {
-						t.Fatalf("the picker draws box characters:\n%s", e.d.screen())
-					}
-					in := false
+					in, boxLines := false, 0
 					for _, l := range e.d.lines() {
-						if strings.HasPrefix(strings.TrimSpace(l), "Select model") {
+						if strings.HasPrefix(l, "┌") {
 							in = true
 						}
-						if strings.HasPrefix(l, "Enter edits the selected") {
+						if in {
+							boxLines++
+							if w := lipgloss.Width(l); w > size[0]-2 {
+								t.Fatalf("a box line is %d wide, want at most %d: %q", w, size[0]-2, l)
+							}
+						}
+						if strings.HasPrefix(l, "└") {
 							in = false
 						}
-						if in && lipgloss.Width(l) != size[0] {
-							t.Fatalf("a panel line is %d wide, want %d: %q", lipgloss.Width(l), size[0], l)
-						}
+					}
+					if boxLines < 8 {
+						t.Fatalf("the box has %d lines:\n%s", boxLines, e.d.screen())
 					}
 					e.d.key("pgdown")
 				}

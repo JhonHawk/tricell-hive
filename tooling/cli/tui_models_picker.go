@@ -1,9 +1,8 @@
 // tui_models_picker.go is the model picker of the Models view (#46, D9-A and
-// its corrections): a raised panel over the edit panel and the table, opened
+// its corrections): a bordered box over the edit panel and the table, opened
 // from the Model field. It lists the CLI's models, by provider on the CLIs whose
 // ids carry one and flat on the rest, and ends with two entries, "release
-// default" and "Other…". It draws no border: every line is padded to the view's
-// width on the panel's own background, so nothing can run past the screen's edge.
+// default" and "Other…". The box stops two columns short of the view's width.
 package main
 
 import (
@@ -11,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 )
 
 // modelList is the open picker: the search text, the cursor and the scroll
@@ -289,65 +287,47 @@ func (v *modelsView) choose(cur int) (tea.Cmd, action) {
 	return nil, action{nav: navNone}
 }
 
-// pickSeg is a piece of a panel line with its style.
-type pickSeg struct {
-	text string
-	st   lipgloss.Style
-}
+// pickerMargin is how many columns the box leaves free at the right of the
+// view. A terminal that draws an ambiguous-width character ("·", "●", "…", "▸")
+// as two columns pushes a line past its measured width by a few columns; the
+// margin keeps the border from wrapping when it does.
+const pickerMargin = 2
 
-// paint draws one panel line of exactly width columns: one column of padding on
-// each side and the surface background under everything.
-func paintPanelLine(th *appTheme, width int, segs ...pickSeg) string {
-	bg := th.Surface.GetBackground()
-	var b strings.Builder
-	used := 0
-	put := func(text string, st lipgloss.Style) {
-		if text == "" {
-			return
-		}
-		b.WriteString(st.Background(bg).Render(text))
-		used += utf8.RuneCountInString(text)
-	}
-	put(" ", th.Text)
-	for _, s := range segs {
-		put(s.text, s.st)
-	}
-	put(strings.Repeat(" ", max(width-used, 0)), th.Text)
-	return b.String()
-}
-
-// spacerFor is the filler that right-aligns what follows, inside inner columns.
-func spacerFor(inner int, left, right string) string {
-	return strings.Repeat(" ", max(inner-utf8.RuneCountInString(left)-utf8.RuneCountInString(right), 1))
-}
-
-// pickerLines draws the panel: title, search, status, the scrolling list and the
-// bottom entries, in exactly pickerBoxHeight lines of exactly the view's width.
+// pickerLines draws the bordered box: the title in the top border, search,
+// status, the scrolling list and the bottom entries, in exactly pickerBoxHeight
+// lines, each pickerMargin columns narrower than the view.
 func (v *modelsView) pickerLines(c viewCtx) []string {
 	th, p := c.Theme, v.panel
-	W := max(c.Width, 20)
-	inner := W - 2
-	blank := func() string { return paintPanelLine(th, W) }
+	W := max(c.Width-pickerMargin, 24)
+	inner := W - 4 // inside the borders and one column of padding on each side
+	border := func(s string) string { return th.Muted.Render(s) }
+	boxed := func(rendered string, plain int) string {
+		return border("│ ") + rendered + strings.Repeat(" ", max(inner-plain, 0)) + border(" │")
+	}
 	who := p.role
 	if p.group != "" {
 		who = strings.ToUpper(p.group[:1]) + p.group[1:] + " group"
 	}
-	title, ctx := "Select model", truncateRunes(" · "+v.host+" · "+who, max(inner-len("Select model")-len("esc")-2, 1))
-	lines := []string{paintPanelLine(th, W,
-		pickSeg{title, th.Text.Bold(true)}, pickSeg{ctx, th.Muted},
-		pickSeg{spacerFor(inner, title+ctx, "esc"), th.Text}, pickSeg{"esc", th.Muted})}
-	lines = append(lines, blank())
+	title := "Select model"
+	ctx := truncateRunes(" · "+v.host+" · "+who, max(W-len(title)-len(" esc ")-6, 1))
+	fill := max(W-2-1-len(title)-utf8.RuneCountInString(ctx)-1-len(" esc "), 0)
+	lines := []string{border("┌") + th.Text.Render(" ") + th.Title.Render(title) + th.Muted.Render(ctx+" ") +
+		border(strings.Repeat("─", fill)) + th.Muted.Render(" esc ") + border("┐")}
+
 	if p.list.filter == "" {
-		lines = append(lines, paintPanelLine(th, W, pickSeg{"Search", th.Muted}))
+		lines = append(lines, boxed(th.Muted.Render("Search"), len("Search")))
 	} else {
-		lines = append(lines, paintPanelLine(th, W, pickSeg{truncateRunes("Search: "+p.list.filter, inner), th.Text}))
+		text := truncateRunes("Search: "+p.list.filter, inner)
+		lines = append(lines, boxed(th.Text.Render(text), utf8.RuneCountInString(text)))
 	}
 	if loading, text := v.listStatus(); loading {
-		lines = append(lines, paintPanelLine(th, W, pickSeg{c.Spinner + " ", th.Text}, pickSeg{truncateRunes(text, inner-2), th.Muted}))
+		text = truncateRunes(text, inner-2)
+		lines = append(lines, boxed(c.Spinner+" "+th.Muted.Render(text), 2+utf8.RuneCountInString(text)))
 	} else if text != "" {
-		lines = append(lines, paintPanelLine(th, W, pickSeg{truncateRunes(text, inner), th.Danger}))
+		text = truncateRunes(text, inner)
+		lines = append(lines, boxed(th.Danger.Render(text), utf8.RuneCountInString(text)))
 	} else {
-		lines = append(lines, blank())
+		lines = append(lines, boxed("", 0))
 	}
 
 	v.moveList(p.list.cur) // the content or the room may have changed since the last key
@@ -359,23 +339,25 @@ func (v *modelsView) pickerLines(c viewCtx) []string {
 		shown++
 		switch {
 		case ln.blank:
-			lines = append(lines, blank())
+			lines = append(lines, boxed("", 0))
 		case ln.header != "":
-			lines = append(lines, paintPanelLine(th, W, pickSeg{truncateRunes(ln.header, inner), th.Accent}))
+			text := truncateRunes(ln.header, inner)
+			lines = append(lines, boxed(th.Accent.Render(text), utf8.RuneCountInString(text)))
 		default:
-			lines = append(lines, pickerRow(th, W, content.rows[ln.row], ln.row == p.list.cur, v.host))
+			rendered, plain := pickerRow(th, inner, content.rows[ln.row], ln.row == p.list.cur, v.host)
+			lines = append(lines, boxed(rendered, plain))
 		}
 	}
 	for ; shown < h; shown++ {
-		lines = append(lines, blank())
+		lines = append(lines, boxed("", 0))
 	}
-	return append(lines, v.pickerBottom(c, W, len(content.rows)))
+	lines = append(lines, v.pickerBottom(c, len(content.rows), inner, boxed))
+	return append(lines, border("└"+strings.Repeat("─", W-2)+"┘"))
 }
 
-// pickerRow draws one model row. The selected row is highlighted across the
-// whole line, or marked ">" under NO_COLOR.
-func pickerRow(th *appTheme, W int, r pickRow, selected bool, host string) string {
-	inner := W - 2
+// pickerRow draws one model row of width inner and returns its visible width.
+// The selected row is highlighted across the line, or marked ">" under NO_COLOR.
+func pickerRow(th *appTheme, inner int, r pickRow, selected bool, host string) (string, int) {
 	cursor := "  "
 	if selected && th.NoColor {
 		cursor = "> "
@@ -400,26 +382,27 @@ func pickerRow(th *appTheme, W int, r pickRow, selected bool, host string) strin
 			secondary = truncateRunes(id, room)
 		}
 	}
-	if selected && !th.NoColor {
-		text := cursor + mark + primary
-		if secondary != "" {
-			text += "  " + secondary
-		}
-		return th.ButtonOn.Render(" " + text + strings.Repeat(" ", max(W-1-utf8.RuneCountInString(text), 0)))
-	}
-	segs := []pickSeg{{cursor + mark + primary, th.Text}}
+	text := cursor + mark + primary
 	if secondary != "" {
-		segs = append(segs, pickSeg{"  " + secondary, th.Muted})
+		text += "  " + secondary
 	}
-	return paintPanelLine(th, W, segs...)
+	if selected && !th.NoColor {
+		text += strings.Repeat(" ", max(inner-utf8.RuneCountInString(text), 0))
+		return th.ButtonOn.Render(text), utf8.RuneCountInString(text)
+	}
+	out := th.Text.Render(cursor + mark + primary)
+	if secondary != "" {
+		out += th.Muted.Render("  " + secondary)
+	}
+	return out, utf8.RuneCountInString(text)
 }
 
-// pickerBottom draws the last line: the two entries that always stay, and the
-// key hints on the right.
-func (v *modelsView) pickerBottom(c viewCtx, W, n int) string {
+// pickerBottom draws the last line inside the box: the two entries that always
+// stay, and the key hints on the right.
+func (v *modelsView) pickerBottom(c viewCtx, n, inner int, boxed func(string, int) string) string {
 	th, l := c.Theme, v.panel.list
-	var segs []pickSeg
-	used := 0
+	var out string
+	plain := 0
 	for i, label := range []string{effortReleaseText, otherModelText} {
 		sel := l.cur == n+i
 		text := "  " + label
@@ -430,9 +413,9 @@ func (v *modelsView) pickerBottom(c viewCtx, W, n int) string {
 		case sel:
 			text, st = " "+label+" ", th.ButtonOn
 		}
-		segs = append(segs, pickSeg{text, st}, pickSeg{"  ", th.Text})
-		used += utf8.RuneCountInString(text) + 2
+		out += st.Render(text) + "  "
+		plain += utf8.RuneCountInString(text) + 2
 	}
-	gap := max(W-2-used-utf8.RuneCountInString(pickerHint), 1)
-	return paintPanelLine(th, W, append(segs, pickSeg{strings.Repeat(" ", gap), th.Text}, pickSeg{pickerHint, th.Muted})...)
+	gap := max(inner-plain-utf8.RuneCountInString(pickerHint), 1)
+	return boxed(out+strings.Repeat(" ", gap)+th.Muted.Render(pickerHint), plain+gap+utf8.RuneCountInString(pickerHint))
 }
