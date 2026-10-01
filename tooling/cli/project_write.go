@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -397,6 +398,8 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 			problems = append(problems, it.Key+": value has a line break or control character")
 		case it.Value == "" && !isRequiredHiveKey(it.Key):
 			problems = append(problems, it.Key+": value is empty; use --unset to remove the key")
+		case it.Key == "Base branch" && it.Value != "" && !validBranchValue(it.Value):
+			problems = append(problems, fmt.Sprintf("Base branch: %s is not a valid branch name", shown(it.Value)))
 		}
 	}
 	for _, k := range unset {
@@ -408,6 +411,22 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 		return errors.New(strings.Join(problems, "; "))
 	}
 	return nil
+}
+
+// validBranchValue says whether the whole value is a branch name Git accepts:
+// no whitespace, and `git check-ref-format --branch` agrees. The doctor check of
+// the same key reads only the first word and is deliberately left alone; the
+// writer must not store what it would later misread. Without git on the PATH
+// only the whitespace rule applies.
+func validBranchValue(v string) bool {
+	if strings.ContainsAny(v, " \t") {
+		return false
+	}
+	git, err := exec.LookPath("git")
+	if err != nil {
+		return true
+	}
+	return exec.Command(git, "check-ref-format", "--branch", v).Run() == nil
 }
 
 // prepareProjectEdit resolves the repository that holds project ("" means the

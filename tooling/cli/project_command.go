@@ -94,7 +94,11 @@ func projectSet(args []string, in io.Reader, out io.Writer, interactive bool) er
 	if err := writeProjectFile(edit.File, edit.Before, edit.Existed, edit.After); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Updated %s\n", sanitizeLine(edit.File))
+	verb := "Updated"
+	if !edit.Existed {
+		verb = "Created"
+	}
+	fmt.Fprintf(out, "%s %s\n", verb, sanitizeLine(edit.File))
 	return nil
 }
 

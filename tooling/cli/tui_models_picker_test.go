@@ -1578,12 +1578,88 @@ func TestChangeTableCutsByDisplayWidth(t *testing.T) {
 		{strings.Repeat("漢", 20), strings.Repeat("字", 20)},
 		{"x/" + strings.Repeat("🚀", 15), "y/" + strings.Repeat("🚀", 15)},
 	} {
-		cell := changeModelCell(c.before, c.after, 30)
+		cell, _ := changeModelCell(c.before, c.after, 30)
 		if w := lipgloss.Width(cell); w > 30 {
 			t.Errorf("a cell of %d columns for a room of 30: %q", w, cell)
 		}
 		if !strings.Contains(cell, "…") || !strings.Contains(cell, "→") {
 			t.Errorf("the cell lost its arrow or its cut mark: %q", cell)
 		}
+	}
+}
+
+// N1: a cut must not hide where two ids differ. Long ids are cut in the middle,
+// keeping the provider's start and the model name's end, and when the two sides
+// would still read the same the cell says so, so the caller can show both in full.
+func TestChangeTableCutsInTheMiddleAndKeepsDifferencesVisible(t *testing.T) {
+	for _, c := range []struct {
+		name, before, after string
+		distinct            bool
+	}{
+		{"a provider change", "xgithub-copilot/gpt-6.1-sol", "github-copilot/gpt-6.1-sol", true},
+		{"another provider", "openai/claude-opus-4.7-thinking-high", "github-copilot/claude-opus-4.7-thinking-high", true},
+		{"a change at the end", "github-copilot/claude-opus-4.7-thinking-high", "github-copilot/claude-opus-4.7-thinking-low", true},
+		{"a change in the cut middle", "github-copilot/claude-opus-4.7-thinking-high", "github-copilot/claude-opus-5.7-thinking-high", false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			cell, distinct := changeModelCell(c.before, c.after, 40)
+			if w := lipgloss.Width(cell); w > 40 {
+				t.Fatalf("%d columns for a room of 40: %q", w, cell)
+			}
+			if distinct != c.distinct {
+				t.Fatalf("distinct = %v for %q", distinct, cell)
+			}
+			if halves := strings.Split(cell, " → "); len(halves) != 2 || (halves[0] == halves[1]) == distinct {
+				t.Fatalf("the halves of %q do not match distinct = %v", cell, distinct)
+			}
+			if distinct && !strings.HasSuffix(cell, c.after[len(c.after)-6:]) && !strings.Contains(cell, c.after[len(c.after)-6:]) {
+				t.Errorf("the end of the model name is not kept: %q", cell)
+			}
+			if !strings.Contains(cell, "gith") && !strings.Contains(cell, "open") {
+				t.Errorf("the provider's start is not kept: %q", cell)
+			}
+		})
+	}
+}
+
+func TestModelsConfirmationShowsWhereLongIDsDifferAt80Columns(t *testing.T) {
+	cases := []struct {
+		name, from, to string
+		full           bool // the table cannot show the difference, so both ids follow in full
+	}{
+		{"a provider change", "xgithub-copilot/gpt-6.1-sol", "github-copilot/gpt-6.1-sol", false},
+		{"a change the cut would hide", "github-copilot/claude-opus-4.7-thinking-high", "github-copilot/claude-opus-5.7-thinking-high", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			f := standardFake()
+			f.out["opencode"] = c.to + "\n"
+			e := newModelsEditEnvWith(t, modelsTestSource(t), "claude,opencode", 80, 24, f.run)
+			store(t, e.home, e.stateDir, "opencode", map[string]management.ModelOverride{longRoleName: {Model: c.from}})
+			e.d.key("r")
+			toHost(t, e.d, "opencode")
+			selectRole(t, e.d, longRoleName)
+			e.d.key("enter", "right")
+			typeText(e.d, "github-copilot") // the current model matches too, and comes first
+			e.d.key("down", "enter", "enter")
+			e.d.mustShow("[Apply]")
+			assertFits(t, e.d, 80, 24)
+			_, rows, _ := changeTableLines(e.d, longRoleName, 80)
+			if len(rows) != 1 {
+				t.Fatalf("rows = %q\n%s", rows, e.d.screen())
+			}
+			halves := strings.Split(rows[0], "→")
+			if len(halves) != 2 {
+				t.Fatalf("no arrow in %q", rows[0])
+			}
+			left := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(halves[0]), longRoleName))
+			same := left == strings.Fields(halves[1])[0]
+			if c.full {
+				// The cut hides the difference, so both ids follow in full.
+				e.d.mustShow("before  "+c.from, "after   "+c.to)
+			} else if same {
+				t.Fatalf("before and after read the same: %q", rows[0])
+			}
+		})
 	}
 }
