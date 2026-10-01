@@ -1,8 +1,12 @@
 package management
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"tricell-hive/integrations/agents"
 )
 
 // tamper edits a plan the way a hand-edited --out file would and recomputes its
@@ -114,5 +118,33 @@ func TestModelOverrideApplyRejectsAnEffortOnCLIsWithoutEffort(t *testing.T) {
 				t.Fatal("a rejected plan changed the state")
 			}
 		})
+	}
+}
+
+// A stored override that the next release cannot render names its CLI and role,
+// and the command that drops it, instead of a bare renderer message.
+func TestPlanNamesTheRoleWhoseStoredOverrideNoLongerFits(t *testing.T) {
+	o, _ := installedFiveHosts(t)
+	bp, err := BuildModelsPlan(o, "opencode", map[string]ModelOverride{"plain-role": {Effort: "high"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	apply(t, bp)
+	// The next release's OpenCode execution profile has no model, so an
+	// effort-only override has nowhere to put its variant.
+	profiles, err := os.ReadFile(filepath.Join(o.Source, agents.ProfilesSource))
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := strings.Replace(string(profiles), `"execution": {"model": "syn-oc/exec", "effort": "medium"}`, `"execution": {}`, 1)
+	if next == string(profiles) {
+		t.Fatal("test setup: the synthetic OpenCode profile changed shape")
+	}
+	put(t, filepath.Join(o.Source, agents.ProfilesSource), next)
+	put(t, filepath.Join(o.Source, "VERSION"), "1.3.0\n")
+	_, err = BuildPlan("install", o)
+	want := "opencode plain-role: OpenCode effort requires a model; run hive models reset --host opencode --role plain-role"
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("error = %v, want it to contain %q", err, want)
 	}
 }

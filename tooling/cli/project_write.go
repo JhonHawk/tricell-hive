@@ -13,7 +13,6 @@ import (
 	"io/fs"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -119,7 +118,11 @@ func editHiveSection(data []byte, set []hiveItem, unset []string) ([]byte, error
 			return nil, fmt.Errorf("%s appears more than once in %s", k, hiveHeading)
 		}
 	}
-	lines := strings.Split(content, "\n")
+	// The final newline, and the file's line ending, are kept whatever is added:
+	// the lines are edited without the last terminator, which goes back at the end.
+	finalNL := strings.HasSuffix(content, "\n")
+	lines := strings.Split(strings.TrimSuffix(content, "\n"), "\n")
+	cr := strings.TrimSuffix(eol, "\n") // "\r" for a CRLF file, "" for LF
 	itemAt := map[int]hiveItem{}
 	for i, line := range w.Lines {
 		itemAt[line] = w.Items[i]
@@ -134,14 +137,22 @@ func editHiveSection(data []byte, set []hiveItem, unset []string) ([]byte, error
 	var added []string
 	for _, it := range ordered {
 		if _, there := counts[it.Key]; !there {
-			added = append(added, render(it)+strings.TrimSuffix(eol, "\n"))
+			added = append(added, render(it)+cr)
 		}
 		present[it.Key] = true
 	}
-	// A section with no items followed directly by the next heading needs a
-	// blank line after what is added.
-	if len(w.Lines) == 0 && len(added) > 0 && insertAt < len(lines) && strings.TrimSpace(lines[insertAt]) != "" {
-		added = append(added, "")
+	if len(w.Lines) == 0 && len(added) > 0 {
+		switch {
+		case w.Heading+1 >= len(lines):
+			// The heading is the last line: a blank line goes between it and the items.
+			added = append([]string{cr}, added...)
+		case insertAt < len(lines) && strings.TrimSpace(lines[insertAt]) != "":
+			// The next heading follows directly: a blank line goes after what is added.
+			added = append(added, cr)
+		}
+	}
+	if insertAt >= len(lines) && len(added) > 0 && cr != "" && !strings.HasSuffix(lines[len(lines)-1], "\r") {
+		lines[len(lines)-1] += cr // a last line without a terminator gets the file's line ending before more follows
 	}
 	out := make([]string, 0, len(lines)+len(added))
 	for i := 0; i <= len(lines); i++ {
@@ -165,7 +176,13 @@ func editHiveSection(data []byte, set []hiveItem, unset []string) ([]byte, error
 		}
 		out = append(out, lines[i])
 	}
-	return []byte(strings.Join(out, "\n")), nil
+	result := strings.Join(out, "\n")
+	if finalNL {
+		result += "\n"
+	} else {
+		result = strings.TrimSuffix(result, "\r") // no terminator at the end, so no bare CR either
+	}
+	return []byte(result), nil
 }
 
 func trailingCR(line string) string {
@@ -398,7 +415,10 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 			problems = append(problems, it.Key+": value has a line break or control character")
 		case it.Value == "" && !isRequiredHiveKey(it.Key):
 			problems = append(problems, it.Key+": value is empty; use --unset to remove the key")
-		case it.Key == "Base branch" && it.Value != "" && !validBranchValue(it.Value):
+		case it.Key == "Base branch" && strings.ContainsAny(it.Value, " \t"):
+			// Git never accepts whitespace in a branch name. The doctor check of
+			// the same key reads only the first word, so the writer says it for
+			// the whole value; the rest is judged by that check, with its runner.
 			problems = append(problems, fmt.Sprintf("Base branch: %s is not a valid branch name", shown(it.Value)))
 		}
 	}
@@ -411,22 +431,6 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 		return errors.New(strings.Join(problems, "; "))
 	}
 	return nil
-}
-
-// validBranchValue says whether the whole value is a branch name Git accepts:
-// no whitespace, and `git check-ref-format --branch` agrees. The doctor check of
-// the same key reads only the first word and is deliberately left alone; the
-// writer must not store what it would later misread. Without git on the PATH
-// only the whitespace rule applies.
-func validBranchValue(v string) bool {
-	if strings.ContainsAny(v, " \t") {
-		return false
-	}
-	git, err := exec.LookPath("git")
-	if err != nil {
-		return true
-	}
-	return exec.Command(git, "check-ref-format", "--branch", v).Run() == nil
 }
 
 // prepareProjectEdit resolves the repository that holds project ("" means the

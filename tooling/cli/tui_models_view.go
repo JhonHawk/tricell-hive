@@ -804,9 +804,8 @@ func (v *modelsView) panelKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 }
 
 // request is the change a role panel asks for: only what differs from the
-// values the table shows. On OpenCode a new model also keeps the effort shown,
-// as `hive models set --model x` does, because a model override otherwise drops
-// the variant the release's model carried.
+// values the table shows. (On OpenCode, agents.Resolve keeps the effort a model
+// override would otherwise drop, so nothing is added here.)
 func (p *modelsPanel) request(host string) modelsChange {
 	var c modelsChange
 	if p.modelChanged() {
@@ -822,9 +821,6 @@ func (p *modelsPanel) request(host string) modelsChange {
 		} else {
 			c.set.Effort = v
 		}
-	}
-	if host == "opencode" && c.set.Model != "" && c.set.Effort == "" && !c.dropEffort && p.initialEffort != "" {
-		c.set.Effort = p.initialEffort
 	}
 	return c
 }

@@ -1663,3 +1663,29 @@ func TestModelsConfirmationShowsWhereLongIDsDifferAt80Columns(t *testing.T) {
 		})
 	}
 }
+
+// A cell is never wider than the room it was asked to fit, for any room, any ids
+// and any provider prefix, and the arrow counts as the columns it takes.
+func TestChangeModelCellNeverExceedsTheRoom(t *testing.T) {
+	ids := []string{"a", "x/y", "github-copilot/gpt-6.1-sol", "openai/" + strings.Repeat("m", 40), strings.Repeat("漢", 12), "p/" + strings.Repeat("🚀", 8), "averyveryverylongproviderprefix/m"}
+	for room := 1; room <= 12; room++ {
+		for _, before := range ids {
+			for _, after := range append([]string{before}, ids...) {
+				cell, _ := changeModelCell(before, after, room)
+				if w := lipgloss.Width(cell); w > room {
+					t.Errorf("room %d: %q is %d columns (%q → %q)", room, cell, w, before, after)
+				}
+				if m := cutMiddle(before, room); lipgloss.Width(m) > room {
+					t.Errorf("cutMiddle(%q, %d) = %q is %d columns", before, room, m, lipgloss.Width(m))
+				}
+			}
+		}
+	}
+	// With no limit the full text comes back.
+	if cell, _ := changeModelCell("a/b", "c/d", 0); cell != "a/b → c/d" {
+		t.Errorf("no limit: %q", cell)
+	}
+	if cutMiddle("abc", 0) != "" {
+		t.Error("a width of 0 must give nothing")
+	}
+}
