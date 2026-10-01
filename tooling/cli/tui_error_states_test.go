@@ -260,7 +260,7 @@ func legacyPathEnv(t *testing.T) (home, stateDir, path string) {
 func TestHostsViewShowsTheScanNoteWithNoHosts(t *testing.T) {
 	home, stateDir, path := legacyPathEnv(t)
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
-		_, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), defaultInstallDependencies(coreOnlyAdapterFactory)), size[0], size[1])
+		_, d := newTestApp(t, hostsAppConfig(t, home, stateDir, minimalTestSource(t), nothingDetectedDeps(coreOnlyAdapterFactory)), size[0], size[1])
 		d.key("enter")
 		d.mustShow("CLIs")
 		mustShowFlat(d, "No CLI hosts were detected or registered.")
