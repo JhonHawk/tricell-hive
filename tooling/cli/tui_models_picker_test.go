@@ -68,10 +68,17 @@ func codexList(models map[string][]string, order ...string) string {
 		for _, e := range models[id] {
 			levels = append(levels, `{"effort":"`+e+`"}`)
 		}
-		parts = append(parts, `{"slug":"`+id+`","visibility":"list","supported_reasoning_levels":[`+strings.Join(levels, ",")+`]}`)
+		name := ""
+		if n, ok := codexNames[id]; ok {
+			name = `"display_name":"` + n + `",`
+		}
+		parts = append(parts, `{"slug":"`+id+`",`+name+`"visibility":"list","supported_reasoning_levels":[`+strings.Join(levels, ",")+`]}`)
 	}
 	return `{"models":[` + strings.Join(parts, ",") + `]}`
 }
+
+// codexNames are the display names the fake `codex debug models` gives.
+var codexNames = map[string]string{"gpt-6.1-sol": "GPT-6.1 Sol", "gpt-5.5": "GPT-5.5", "syn-codex-exec": "Synthetic Exec"}
 
 var allEfforts = []string{"low", "medium", "high", "xhigh", "max", "ultra"}
 
@@ -99,38 +106,84 @@ func pickerEnv(t *testing.T, hosts string, f *fakeCatalog, width, height int) mo
 	return newModelsEditEnvWith(t, modelsTestSource(t), hosts, width, height, run)
 }
 
-// listItems returns the entries the open model list shows, without cursor marks.
+// boxInterior returns the text lines inside the picker's border, trimmed of the
+// border and with runs of spaces collapsed, or fails when the box is not open.
+func boxInterior(t *testing.T, d *appDriver) []string {
+	t.Helper()
+	var out []string
+	in := false
+	for _, l := range d.lines() {
+		switch {
+		case strings.HasPrefix(l, "┌"):
+			in = true
+		case strings.HasPrefix(l, "└"):
+			return out
+		case in:
+			l = strings.TrimSuffix(strings.TrimPrefix(strings.TrimRight(l, " "), "│"), "│")
+			out = append(out, strings.Join(strings.Fields(l), " "))
+		}
+	}
+	t.Fatalf("the model picker is not open:\n%s", d.screen())
+	return nil
+}
+
+// listItems returns what the picker lists, section headers and models in order
+// (a "●" prefix marks the current model), then its two bottom entries. The
+// search and status rows are left out.
 func listItems(t *testing.T, d *appDriver) []string {
 	t.Helper()
-	lines := d.lines()
-	start := -1
-	for i, l := range lines {
-		if strings.HasPrefix(l, "Filter:") {
-			start = i
-			break
-		}
-	}
-	if start < 0 {
-		t.Fatalf("no Filter row: the model list is not open:\n%s", d.screen())
-	}
+	in := boxInterior(t, d)
 	var items []string
-	for _, l := range lines[start+1:] {
-		if strings.HasPrefix(l, "Enter edits") {
-			break
+	for i, l := range in {
+		if i == 0 || i == len(in)-1 || l == "" || strings.HasPrefix(l, "Model list unavailable") || strings.Contains(l, "Loading models…") {
+			continue
 		}
-		l = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(l, "> "), "  "))
-		if l != "" {
-			items = append(items, l)
-		}
+		items = append(items, l)
 	}
-	return items
+	return append(items, "release default", "Other…")
+}
+
+func boxStatus(t *testing.T, d *appDriver) string {
+	t.Helper()
+	in := boxInterior(t, d)
+	if len(in) > 2 && (strings.HasPrefix(in[1], "Model list unavailable") || strings.Contains(in[1], "Loading models…")) {
+		return in[1]
+	}
+	return ""
 }
 
 func mustHaveNoList(t *testing.T, d *appDriver) {
 	t.Helper()
-	if strings.Contains(d.screen(), "Filter:") {
-		t.Fatalf("the model list is open:\n%s", d.screen())
+	if strings.Contains(d.screen(), "Select model") {
+		t.Fatalf("the model picker is open:\n%s", d.screen())
 	}
+}
+
+// pickerSelection is the entry the picker's cursor is on: a model id, or one of
+// the two bottom entries. The highlight is color, so the tests read the state.
+func pickerSelection(t *testing.T, e modelsEditEnv) string {
+	t.Helper()
+	l := e.v.panel.list
+	c := e.v.pickerContent()
+	switch {
+	case l.cur < len(c.rows):
+		return c.rows[l.cur].id
+	case l.cur == len(c.rows):
+		return "release default"
+	}
+	return "Other…"
+}
+
+// pickDefault chooses "release default", the first of the two bottom entries.
+func pickDefault(d *appDriver) {
+	d.t.Helper()
+	d.key("end", "left", "enter")
+}
+
+// pickOther chooses "Other…", the last entry.
+func pickOther(d *appDriver) {
+	d.t.Helper()
+	d.key("end", "enter")
 }
 
 // pick filters the open list by text and chooses the first entry.
@@ -138,22 +191,6 @@ func pick(d *appDriver, filter string) {
 	d.t.Helper()
 	typeText(d, filter)
 	d.key("enter")
-}
-
-func listCursor(t *testing.T, d *appDriver) string {
-	t.Helper()
-	found := ""
-	inList := false
-	for _, l := range d.lines() {
-		if strings.HasPrefix(l, "Filter:") {
-			inList = true
-			continue
-		}
-		if inList && strings.HasPrefix(l, "> ") {
-			found = strings.TrimSpace(strings.TrimPrefix(l, "> "))
-		}
-	}
-	return found
 }
 
 // selectedLine is the text of the table line that carries the cursor.
@@ -192,14 +229,20 @@ func TestModelsViewArrowOpensTheModelListInOrder(t *testing.T) {
 	e := pickerEnv(t, "claude,codex", f, 80, 24)
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	want := []string{"release default", "syn-claude-exec", "fable", "opus", "sonnet", "haiku", "Other…"}
+	// The models the CLI's roles use come first, the current one marked; the
+	// CLI's own list follows, without repeating them; two entries close the box.
+	want := []string{
+		"In use on claude", "syn-claude-reason", "● syn-claude-exec", "inherit",
+		"claude models", "fable", "opus", "sonnet", "haiku",
+		"release default", "Other…",
+	}
 	got := listItems(t, e.d)
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("list = %q, want %q\n%s", got, want, e.d.screen())
 	}
-	e.d.mustShow("Filter:")
-	if listCursor(t, e.d) != "release default" {
-		t.Fatalf("the cursor is on %q", listCursor(t, e.d))
+	e.d.mustShow("Select model · claude · plain-role", "esc", "Search")
+	if got := pickerSelection(t, e); got != "syn-claude-reason" {
+		t.Fatalf("the cursor is on %q", got)
 	}
 	if strings.Contains(e.d.screen(), "Role   ") && strings.Contains(e.d.screen(), "Profile") {
 		t.Fatalf("the table header is still shown:\n%s", e.d.screen())
@@ -214,7 +257,7 @@ func TestModelsViewListDoesNotRepeatAnEffectiveModelTheCLIListsAndKeepsCatalogOr
 	toHost(t, e.d, "codex")
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	want := "release default|gpt-5.5|syn-codex-exec|Other…"
+	want := "In use on codex|syn-codex-reason|● Synthetic Exec syn-codex-exec|codex models|GPT-5.5 gpt-5.5|release default|Other…"
 	if got := strings.Join(listItems(t, e.d), "|"); got != want {
 		t.Fatalf("list = %q, want %q", got, want)
 	}
@@ -224,15 +267,15 @@ func TestModelsViewLetterOpensTheListAndFiltersCaseInsensitively(t *testing.T) {
 	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "o")
-	e.d.mustShow("Filter: o")
+	e.d.mustShow("Search: o")
 	e.d.key("P")
-	e.d.mustShow("Filter: oP")
+	e.d.mustShow("Search: oP")
 	got := listItems(t, e.d)
-	if strings.Join(got, "|") != "opus|Other…" {
+	if strings.Join(got, "|") != "claude models|opus|release default|Other…" {
 		t.Fatalf("filtered list = %q", got)
 	}
 	e.d.key("backspace")
-	e.d.mustShow("Filter: o")
+	e.d.mustShow("Search: o")
 	if e.m.top() != view(e.v) {
 		t.Fatal("Backspace in the list left the view")
 	}
@@ -265,7 +308,7 @@ func TestModelsViewReleaseDefaultEqualsResetOnlyModel(t *testing.T) {
 	e.d.key("r")
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	e.d.key("enter") // the first entry is "release default"
+	pickDefault(e.d)
 	if got, _ := panelField(t, e.d, "Model"); got != "release default" {
 		t.Fatalf("Model = %q", got)
 	}
@@ -303,7 +346,7 @@ func TestModelsViewOtherTurnsModelIntoTheTextField(t *testing.T) {
 	twinHome, twinState := e.twin(t)
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	pick(e.d, "Other")
+	pickOther(e.d)
 	if !e.v.TextFocused() {
 		t.Fatalf("the text field has no focus:\n%s", e.d.screen())
 	}
@@ -357,8 +400,8 @@ func TestModelsViewTwoHundredNineModelsReachTheLastOneWithPageDown(t *testing.T)
 	e.d.key("home")
 	e.d.mustShow("release default")
 	e.d.key("end")
-	if listCursor(t, e.d) != "Other…" {
-		t.Fatalf("End leaves the cursor on %q", listCursor(t, e.d))
+	if got := pickerSelection(t, e); got != "Other…" {
+		t.Fatalf("End leaves the cursor on %q", got)
 	}
 	assertFits(t, e.d, 80, 24)
 }
@@ -560,7 +603,7 @@ func TestModelsViewUnderASyntheticHomeRunsNothingAndOffersTheCurrentValueAndOthe
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
 	got := strings.Join(listItems(t, e.d), "|")
-	if got != "release default|syn-codex-exec|Other…" {
+	if got != "In use on codex|syn-codex-reason|● syn-codex-exec|release default|Other…" {
 		t.Fatalf("list = %q", got)
 	}
 	e.d.mustNotShow("unavailable")
@@ -759,7 +802,7 @@ func TestModelsViewBackspaceOnEffortOrInTheListNeverClosesTheView(t *testing.T) 
 	if e.m.top() != view(e.v) {
 		t.Fatal("Backspace in the list closed the view")
 	}
-	e.d.mustShow("Filter:")
+	e.d.mustShow("Select model")
 }
 
 func TestModelsViewFooterNamesRolesAndGroups(t *testing.T) {
@@ -776,7 +819,7 @@ func TestModelsViewHelpBarWithTheListOpen(t *testing.T) {
 	e.d.key("enter", "right")
 	lines := e.d.lines()
 	help := lines[len(lines)-1]
-	for _, want := range []string{"type filter", "↑/↓ model", "enter choose", "esc close", "ctrl+c quit"} {
+	for _, want := range []string{"type search", "↑/↓ model", "enter choose", "esc close", "ctrl+c quit"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help bar %q lacks %q", help, want)
 		}
@@ -816,25 +859,31 @@ func TestModelsViewFitsTheListTheMixedGroupAndTheGroupConfirmation(t *testing.T)
 
 // TestModelsViewCapturesTheGroupedScreensForHandoff prints the grouped table,
 // the open model list and a group confirmation at 80x24 for a person to review.
-func TestModelsViewCapturesTheGroupedScreensForHandoff(t *testing.T) {
+func TestModelsViewCapturesThePickerForHandoff(t *testing.T) {
 	if os.Getenv("HIVE_CAPTURE") == "" {
 		t.Skip("set HIVE_CAPTURE=1 to print the captures")
 	}
-	e := pickerEnv(t, "claude,codex", standardFake(), 120, 40)
-	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
-	e.d.key("r")
-	fmt.Printf("GROUPED TABLE\n%s\n", e.d.screen())
+	f := standardFake()
+	f.out["opencode"] = readCatalogString(t, "opencode") + "openai/gpt-4\nanthropic/claude-opus-4.7\nsyn-oc/extra\n"
+	e := pickerEnv(t, "claude,codex,opencode", f, 120, 40)
+	toHost(t, e.d, "opencode")
+	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	pick(e.d, "opus")
-	e.d.key("enter")
-	fmt.Printf("GROUP CONFIRMATION\n%s\n", e.d.screen())
-	e.d.key("n", "esc")
-	selectRole(t, e.d, "hive-design-architecture")
+	fmt.Printf("OPENCODE (providers)\n%s\n", e.d.screen())
+	e.d.key("esc", "esc")
+	toHost(t, e.d, "codex")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right", "down", "down")
+	fmt.Printf("CODEX (names)\n%s\n", e.d.screen())
+	e.d.key("esc", "esc")
+	toHost(t, e.d, "opencode")
+	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
-	pick(e.d, "sonnet")
-	e.d.key("enter")
-	fmt.Printf("SINGLE-ROLE CONFIRMATION\n%s\n", e.d.screen())
+	typeText(e.d, "claude")
+	fmt.Printf("FILTERED SEARCH (claude, over opencode)\n%s\n", e.d.screen())
 }
+
+func readCatalogString(t *testing.T, name string) string { return string(readCatalogSample(t, name)) }
 
 // --- table structure and the readable confirmation (correction round 1) -----------
 
@@ -1013,5 +1062,182 @@ func TestAbbreviateHomeUsesTheHomeInUse(t *testing.T) {
 		if got := abbreviateHome(c.path, c.home); got != c.want {
 			t.Errorf("abbreviateHome(%q) = %q, want %q", c.path, got, c.want)
 		}
+	}
+}
+
+// --- the boxed picker (D9-A) ----------------------------------------------------------
+
+func TestModelsViewOpenCodeSectionsFollowTheProvidersWithoutRepeatingInUseModels(t *testing.T) {
+	f := standardFake()
+	f.out["opencode"] = "openai/gpt-5.5\nsyn-oc/exec\nanthropic/claude-sonnet-4.5\nopenai/gpt-4\nsolo\n"
+	e := pickerEnv(t, "claude,opencode", f, 80, 24)
+	toHost(t, e.d, "opencode")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	want := []string{
+		"In use on opencode", "syn-oc/reason syn-oc", "● syn-oc/exec syn-oc", "syn-oc/inherit syn-oc",
+		"openai", "openai/gpt-5.5", "openai/gpt-4",
+		"anthropic", "anthropic/claude-sonnet-4.5",
+		"opencode models", "solo",
+		"release default", "Other…",
+	}
+	if got := listItems(t, e.d); strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("sections:\n%q\nwant:\n%q\n%s", got, want, e.d.screen())
+	}
+	seen := map[string]int{}
+	for _, l := range listItems(t, e.d) {
+		f := strings.Fields(strings.TrimPrefix(l, "● "))
+		seen[f[0]]++
+	}
+	if seen["syn-oc/exec"] != 1 {
+		t.Fatalf("an in-use model is listed %d times", seen["syn-oc/exec"])
+	}
+}
+
+func TestModelsViewPiSectionsFollowTheProviders(t *testing.T) {
+	f := standardFake()
+	f.out["pi"] = "provider model context\nopenai gpt-4 8K\nxai grok-4.3 1M\nopenai gpt-4-turbo 128K\n"
+	e := pickerEnv(t, "claude,pi", f, 80, 24)
+	toHost(t, e.d, "pi")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	got := strings.Join(listItems(t, e.d), "|")
+	for _, want := range []string{"openai|openai/gpt-4|openai/gpt-4-turbo|xai|xai/grok-4.3"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("sections = %q, want %q", got, want)
+		}
+	}
+}
+
+func TestModelsViewCodexRowsShowTheNameAndThenTheID(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	toHost(t, e.d, "codex")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	got := strings.Join(listItems(t, e.d), "|")
+	if !strings.Contains(got, "GPT-6.1 Sol gpt-6.1-sol|GPT-5.5 gpt-5.5") {
+		t.Fatalf("names are not shown before ids: %q", got)
+	}
+}
+
+func TestModelsViewSearchMatchesNameIDAndProvider(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	toHost(t, e.d, "codex")
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	e.v.panel.catalog = []catalogModel{{ID: "m-1", Name: "Zebra Pro", Provider: "acme"}, {ID: "m-2", Provider: "other"}}
+	for filter, want := range map[string]string{
+		"zebra": "m-1", // the name
+		"m-2":   "m-2", // the id
+		"ACME":  "m-1", // the provider, whatever its case
+	} {
+		e.v.panel.list.filter = filter
+		got := strings.Join(listItems(t, e.d), "|")
+		if !strings.Contains(got, want) || (want == "m-1" && strings.Contains(got, "m-2")) {
+			t.Errorf("search %q = %q", filter, got)
+		}
+	}
+	e.v.panel.list.filter = "no-such-model"
+	if got := strings.Join(listItems(t, e.d), "|"); got != "release default|Other…" {
+		t.Fatalf("a search with no match leaves %q", got)
+	}
+}
+
+func TestModelsViewBottomEntriesAreReachableWithTheArrows(t *testing.T) {
+	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	n := len(e.v.pickerContent().rows)
+	for range n {
+		e.d.key("down")
+	}
+	if got := pickerSelection(t, e); got != "release default" {
+		t.Fatalf("past the last model the cursor is on %q", got)
+	}
+	e.d.key("right")
+	if got := pickerSelection(t, e); got != "Other…" {
+		t.Fatalf("→ reaches %q", got)
+	}
+	e.d.key("right", "down")
+	if got := pickerSelection(t, e); got != "Other…" {
+		t.Fatalf("→ and ↓ at the end move to %q", got)
+	}
+	e.d.key("left")
+	if got := pickerSelection(t, e); got != "release default" {
+		t.Fatalf("← reaches %q", got)
+	}
+	e.d.key("up")
+	if got := pickerSelection(t, e); got != "haiku" {
+		t.Fatalf("↑ from the entries reaches %q, want the last model", got)
+	}
+	e.d.key("home")
+	if got := pickerSelection(t, e); got != "syn-claude-reason" {
+		t.Fatalf("Home reaches %q", got)
+	}
+}
+
+func TestModelsViewNoColorMarksTheSelectedRowAndEntryWithAnArrow(t *testing.T) {
+	e := openModelsNoColor(t, true)
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	if colorSGR(e.d.raw()) {
+		t.Fatalf("NO_COLOR picker emits a color sequence: %q", e.d.raw())
+	}
+	count := func() (marked []string) {
+		for _, l := range boxInterior(t, e.d) {
+			if strings.HasPrefix(l, "> ") {
+				marked = append(marked, l)
+			}
+		}
+		return marked
+	}
+	if got := count(); len(got) != 1 || !strings.HasPrefix(got[0], "> syn-claude-reason") {
+		t.Fatalf("marked rows = %q\n%s", got, e.d.screen())
+	}
+	e.d.key("end", "left")
+	if got := count(); len(got) != 1 || !strings.HasPrefix(got[0], "> release default") {
+		t.Fatalf("marked entries = %q\n%s", got, e.d.screen())
+	}
+}
+
+func TestModelsViewPickerFitsWith209ModelsAndLongNames(t *testing.T) {
+	longName := strings.Repeat("An Extremely Long Display Name ", 3) // capped at 60 by the catalog
+	for _, size := range [][2]int{{80, 24}, {120, 40}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			f := standardFake()
+			var oc, codex []string
+			names := map[string][]string{}
+			for i := 1; i <= 209; i++ {
+				oc = append(oc, fmt.Sprintf("provider-with-a-long-name-%d/model-with-a-long-name-%03d", i%4, i))
+				id := fmt.Sprintf("gpt-%03d", i)
+				codex = append(codex, id)
+				names[id] = allEfforts
+				codexNames[id] = longName
+			}
+			t.Cleanup(func() {
+				for _, id := range codex {
+					delete(codexNames, id)
+				}
+			})
+			f.out["opencode"] = strings.Join(oc, "\n") + "\n"
+			f.out["codex"] = codexList(names, codex...)
+			e := pickerEnv(t, "claude,codex,opencode", f, size[0], size[1])
+			for _, host := range []string{"opencode", "codex"} {
+				toHost(t, e.d, host)
+				selectRole(t, e.d, "plain-role")
+				e.d.key("enter", "right")
+				assertFits(t, e.d, size[0], size[1])
+				for range 5 {
+					e.d.key("pgdown")
+					assertFits(t, e.d, size[0], size[1])
+				}
+				e.d.key("end")
+				assertFits(t, e.d, size[0], size[1])
+				e.d.key("home")
+				typeText(e.d, "model")
+				assertFits(t, e.d, size[0], size[1])
+				e.d.key("esc", "esc")
+			}
+		})
 	}
 }

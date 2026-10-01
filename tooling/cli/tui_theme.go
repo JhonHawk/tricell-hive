@@ -23,6 +23,9 @@ type appTheme struct {
 	ButtonOn  lipgloss.Style
 	ButtonOff lipgloss.Style
 	Help      help.Styles
+	// NoColor is set under NO_COLOR: no style carries a color, so a view marks
+	// the selected row with a symbol instead of a highlight.
+	NoColor bool
 }
 
 // themeColors is one branch (dark or light terminal background) of the
@@ -57,6 +60,7 @@ func newAppTheme(isDark, noColor bool) appTheme {
 				ShortKey: plain, ShortDesc: plain, ShortSeparator: plain, Ellipsis: plain,
 				FullKey: plain, FullDesc: plain, FullSeparator: plain,
 			},
+			NoColor: true,
 		}
 	}
 	c := lightColors

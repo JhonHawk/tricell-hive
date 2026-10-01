@@ -14,7 +14,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -107,26 +106,6 @@ type modelsPanel struct {
 }
 
 func (p *modelsPanel) supportsEffort() bool { return len(p.efforts) > 1 }
-
-// modelList is the open model list: its filter text and cursor.
-type modelList struct {
-	filter string
-	cur    int
-	off    int
-}
-
-// modelListEntry is one line of the list.
-type modelListEntry struct {
-	label string
-	value string
-	kind  int
-}
-
-const (
-	entryDefault = iota // "release default"
-	entryModel
-	entryOther
-)
 
 const (
 	otherModelText  = "Other…"
@@ -758,132 +737,6 @@ func (p *modelsPanel) modelLabel() string {
 	return p.chosen
 }
 
-// openList opens the model list, with text as the first characters of the filter.
-func (p *modelsPanel) openList(text string) {
-	p.list = &modelList{filter: text}
-}
-
-// listEntries are the list's lines for the current filter: "release default",
-// the effective model when the CLI does not list it, the CLI's models, and
-// "Other…", which no filter hides.
-func (p *modelsPanel) listEntries() []modelListEntry {
-	entries := []modelListEntry{{label: effortReleaseText, kind: entryDefault}}
-	listed := map[string]bool{}
-	for _, m := range p.catalog {
-		listed[m.ID] = true
-	}
-	if !p.modelMixed && p.initialModel != "" && !listed[p.initialModel] {
-		entries = append(entries, modelListEntry{label: p.initialModel, value: p.initialModel, kind: entryModel})
-	}
-	for _, m := range p.catalog {
-		entries = append(entries, modelListEntry{label: m.ID, value: m.ID, kind: entryModel})
-	}
-	filter := strings.ToLower(p.list.filter)
-	out := entries[:0:0]
-	for _, e := range entries {
-		if strings.Contains(strings.ToLower(e.label), filter) {
-			out = append(out, e)
-		}
-	}
-	return append(out, modelListEntry{label: otherModelText, kind: entryOther})
-}
-
-// listStatus is the list's status row: the spinner text while the query runs,
-// or why the list is unavailable. It is empty when neither applies.
-func (v *modelsView) listStatus() (loading bool, text string) {
-	p := v.panel
-	switch {
-	case p.noCatalog:
-		return false, ""
-	case v.catalogLoading():
-		return true, "Loading models…"
-	case p.catalogErr != "":
-		return false, "Model list unavailable: " + p.catalogErr
-	}
-	return false, ""
-}
-
-// listHeight is the number of list entries the table area has room for.
-func (v *modelsView) listHeight() int {
-	h := v.tableRows() - 1 // the Filter row
-	if loading, text := v.listStatus(); loading || text != "" {
-		h--
-	}
-	return max(h, 1)
-}
-
-// moveList moves the list's cursor and keeps it in view.
-func (v *modelsView) moveList(to int) {
-	l := v.panel.list
-	n := len(v.panel.listEntries())
-	l.cur = min(max(to, 0), n-1)
-	h := v.listHeight()
-	switch {
-	case l.cur < l.off:
-		l.off = l.cur
-	case l.cur >= l.off+h:
-		l.off = l.cur - h + 1
-	}
-	l.off = min(max(l.off, 0), max(n-h, 0))
-}
-
-// listKey handles a key while the model list is open.
-func (v *modelsView) listKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
-	p, l, name := v.panel, v.panel.list, msg.String()
-	switch name {
-	case "esc":
-		p.list = nil
-	case "up":
-		v.moveList(l.cur - 1)
-	case "down":
-		v.moveList(l.cur + 1)
-	case "pgup":
-		v.moveList(l.cur - v.listHeight())
-	case "pgdown":
-		v.moveList(l.cur + v.listHeight())
-	case "home":
-		v.moveList(0)
-	case "end":
-		v.moveList(len(p.listEntries()) - 1)
-	case "backspace":
-		if _, size := utf8.DecodeLastRuneInString(l.filter); size > 0 {
-			l.filter = l.filter[:len(l.filter)-size]
-			l.cur, l.off = 0, 0
-		}
-	case "enter":
-		return v.choose(p.listEntries()[min(l.cur, len(p.listEntries())-1)])
-	default:
-		if msg.Text != "" {
-			l.filter += msg.Text
-			l.cur, l.off = 0, 0
-		}
-	}
-	return nil, action{nav: navNone}
-}
-
-// choose applies the list's entry and returns to the panel with the focus on Model.
-func (v *modelsView) choose(e modelListEntry) (tea.Cmd, action) {
-	p := v.panel
-	p.list, p.row, p.message = nil, 0, ""
-	switch e.kind {
-	case entryOther:
-		start := p.modelValue() // read before the field takes over
-		if p.modelMixed && !p.touched {
-			start = ""
-		}
-		p.textMode = true
-		p.model.SetValue(start)
-		p.model.CursorEnd()
-		return p.model.Focus(), action{nav: navNone}
-	case entryDefault:
-		p.chosen, p.touched, p.textMode = "", true, false
-	default:
-		p.chosen, p.touched, p.textMode = e.value, true, false
-	}
-	p.trimEfforts(true)
-	return nil, action{nav: navNone}
-}
-
 // panelKey handles a key while the edit panel is open.
 func (v *modelsView) panelKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 	p, name := v.panel, msg.String()
@@ -1197,6 +1050,11 @@ func (v *modelsView) View(c viewCtx) string {
 	if !v.loading && v.loadErr == "" && len(v.hosts) == 0 {
 		footer = nil // with no registered CLI there is no model to change
 	}
+	if v.panel != nil && v.panel.list != nil && v.loadErr == "" && len(v.hosts) > 0 && len(v.items) > 0 {
+		// The picker is a box over the panel and the table.
+		lines := append([]string{title, v.hostRow(th)}, v.pickerLines(c)...)
+		return strings.Join(append(lines, footer...), "\n")
+	}
 	var host, header, position string
 	body := []string{}
 	switch {
@@ -1224,8 +1082,6 @@ func (v *modelsView) View(c viewCtx) string {
 		switch {
 		case len(v.items) == 0:
 			body = append(body, th.Text.Render("No agents installed for "+v.host))
-		case v.panel != nil && v.panel.list != nil:
-			body = v.listLines(c)
 		default:
 			header = th.Muted.Render("  " + v.tableHeader)
 			body = strings.Split(v.box.vp.View(), "\n")
@@ -1272,30 +1128,6 @@ func (v *modelsView) View(c viewCtx) string {
 	return strings.Join(lines, "\n")
 }
 
-// listLines draws the open model list in the table area: the filter, a status
-// row when the query runs or failed, and the entries with a cursor and scrolling.
-func (v *modelsView) listLines(c viewCtx) []string {
-	th, p := c.Theme, v.panel
-	lines := []string{th.Text.Render(truncateRunes("Filter: "+p.list.filter, max(c.Width, 1)))}
-	if loading, text := v.listStatus(); loading {
-		lines = append(lines, c.Spinner+" "+th.Muted.Render(text))
-	} else if text != "" {
-		lines = append(lines, th.Danger.Render(truncateRunes(text, max(c.Width, 1))))
-	}
-	v.moveList(p.list.cur) // the entries or the room may have changed since the last key
-	entries := p.listEntries()
-	h := v.listHeight()
-	for i := p.list.off; i < min(p.list.off+h, len(entries)); i++ {
-		text := truncateRunes(entries[i].label, max(c.Width-2, 1))
-		if i == p.list.cur {
-			lines = append(lines, th.Accent.Render("> "+text))
-		} else {
-			lines = append(lines, th.Text.Render("  "+text))
-		}
-	}
-	return lines
-}
-
 // panelLines draws the edit panel's modelsPanelRows rows.
 func (v *modelsView) panelLines(c viewCtx) []string {
 	th, p := c.Theme, v.panel
@@ -1338,7 +1170,7 @@ func (v *modelsView) panelLines(c viewCtx) []string {
 func (v *modelsView) Keys() []key.Binding {
 	if v.panel != nil && v.panel.list != nil {
 		return []key.Binding{
-			binding("type", "type", "filter"),
+			binding("type", "type", "search"),
 			binding("up,down", "↑/↓", "model"),
 			binding("enter", "enter", "choose"),
 			binding("esc", "esc", "close"),
