@@ -17,7 +17,7 @@ Twenty roles cover design, implementation, documentation, operations, verificati
 
 The `verifier` model profile, used by `hive-verify-task` (change `verifier-model-and-validation-handoff`, 2026-09-29), is distinct from the `verify` access profile, which the same role also uses and which only selects permissions. `verifier` is optional when reading profiles, so releases frozen with three model profiles remain readable, and required in the repository profiles; resolving a role that asks for it against a host without it fails with an error naming the host and the profile. Catalog evidence, 2026-09-29: `pi --list-models` lists `xai grok-4.7`; `opencode models` lists `github-copilot/claude-opus-5.5`; on 2026-09-30 the local catalog cache (`~/.cache/opencode/models.json`) listed `high` among that model's `reasoning_options` efforts — the cache declares efforts under `reasoning_options`, not under a `variants` key — and the running service decoded the installed `hive-verify-task` role's `#high` reference into variant `high`, so only an observed run of that role on that model remains unverified; the Codex model comes from Codex's `models_cache.json`. Pi finding: its resolver (`@earendil-works/pi-coding-agent` `core/model-resolver.js` lines 447-454) accepts a model id missing from its catalog when the provider is known, warning "Using custom model id", so `openai-codex/gpt-6.1-sol` stays in Pi's `execution` and `reasoning` profiles although `pi --list-models` does not list it.
 
-OpenCode renders the configured base model and effort as `provider/model#variant`: its execution roles use `github-copilot/gpt-6.1-sol#medium`, its reasoning roles use `github-copilot/gpt-6.1-sol#high`, and role exceptions replace that suffix. The local OpenCode 2.0.19 catalog listed that model and its `low`, `medium`, `high`, `xhigh`, and `max` variants on 2026-09-29. Its `inherit` profile remains the fixed `opencode-go/deepseek-v4.1-flash#max`; role exceptions do not change a legacy profile that already embeds a variant and declares no effort. The GitHub Copilot model depends on the user's plan and credentials. When it cannot run, `flow-build` leaves the task unverified and asks the user rather than substituting a child on the implementer's model. Before each launch `flow-build` compares the implementer's model with the verifier's, treats an unknown or session-inheriting model as the same, and when they match launches the verifier with another model through the launch's model option or asks the user once. Cursor's `verifier` profile inherits the session model, so there that comparison chooses the model at launch; Grok's `grok-4.6` is a configured model that the host may still override.
+OpenCode renders the configured base model and effort as `provider/model#variant`: its execution roles use `github-copilot/gpt-6.1-sol#medium`, its reasoning roles use `github-copilot/gpt-6.1-sol#high`, and role exceptions replace that suffix. The local OpenCode catalog listed that model and its `low`, `medium`, `high`, `xhigh`, and `max` variants on 2026-09-29. Its `inherit` profile remains the fixed `opencode-go/deepseek-v4.1-flash#max`; role exceptions do not change a legacy profile that already embeds a variant and declares no effort. The GitHub Copilot model depends on the user's plan and credentials. When it cannot run, `flow-build` leaves the task unverified and asks the user rather than substituting a child on the implementer's model. Before each launch `flow-build` compares the implementer's model with the verifier's, treats an unknown or session-inheriting model as the same, and when they match launches the verifier with another model through the launch's model option or asks the user once. Cursor's `verifier` profile inherits the session model, so there that comparison chooses the model at launch; Grok's `grok-4.6` is a configured model that the host may still override, for example through a `[subagents.models]` pin in the user's `config.toml`.
 
 Cursor inherits the parent model in every profile: its model IDs depend on the subscription plan, and its documentation states that Cursor replaces a configured model the plan does not include. Choosing per-profile models is deferred until role delivery is observed. Cursor is optional in `agent-profiles.json` so that releases frozen with the five original hosts remain installable for them; installing Cursor from such a release fails with `unsupported agent host "cursor"`.
 
@@ -28,7 +28,7 @@ Every profile that can carry an effort declares one, so no role inherits the ses
 | Host | Rendered key | Levels |
 | --- | --- | --- |
 | Claude Code | `effort` | `low`–`max`; the active model clamps an unsupported level to its highest supported one ([model configuration](https://code.claude.com/docs/en/model-config)) |
-| Codex | `model_reasoning_effort` | `low`–`max`; behavior for a level the model does not support is undocumented, and `max` is not documented for GPT-6 Astra ([subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)) |
+| Codex | `model_reasoning_effort` | `low`–`max`, plus `ultra`, which Codex also lists and the validator accepts but no Hive profile uses; behavior for a level the model does not support is undocumented, and `max` is not documented for GPT-6 Astra ([subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)) |
 | Pi + pi-subagents | `thinking` | `off`–`max` (0.67.0 `src/shared/model-info.ts`); the level is appended to the resolved model without a capability check, so provider handling is unverified |
 | OpenCode V2 | `model: provider/model#variant` | `low`–`max`; generated from the profile effort, with role exceptions replacing the variant only for profiles that declare a base model and effort |
 | Grok, Cursor | none | Role exceptions have no effect. Grok has no effort field, so children inherit the session effort; Cursor binds effort to a concrete model, which Hive leaves as `inherit`, with the same result |
@@ -72,7 +72,7 @@ The manager owns only its recorded destinations. Unmanaged collisions and edits 
 
 ## Evidence and limits
 
-Inspected on 2026-09-21: Codex 0.155.1, Claude Code 2.1.278, Grok Build 1.0.40, Pi 0.86.1 with pi-subagents 0.67.0, and OpenCode 2.0.9. Native contract sources:
+Native contract sources:
 
 - [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 - [Claude Code subagents](https://code.claude.com/docs/en/sub-agents)
@@ -104,12 +104,12 @@ The shared delegation contract lives in `content/guidance/global.md` as a capabi
 
 | Host | Background launch | Completion reaches the parent as |
 | --- | --- | --- |
-| Claude Code 2.1.286 | `Agent` with `run_in_background`; the default for interactive spawns since 2.1.278 | A notification in a later turn |
-| Codex 0.159.1 | `spawn_agent` returns at once | `wait_agent` with a timeout; push delivery to a later turn is undocumented |
-| Grok Build 1.0.45 | `spawn_subagent`; a foreground child over its time budget is moved to the background | An automatic notification, or `wait_commands_or_subagents` |
-| Pi 0.87.1 + pi-subagents 0.67.0 | `subagent` with `async`, on by default | A message that triggers a new turn |
-| OpenCode V2 2.0.20 | `subagent` with `background: true`; a running foreground call can be moved with `POST /api/session/{id}/background` | A synthetic parent message `<subagent sessionID=… state=…>` with `metadata.source: "subagent"`, which wakes the parent |
-| Cursor CLI 2026.09.28 | Only per role, through `is_background` in the agent file | Undocumented; a `subagentStop` hook exists |
+| Claude Code | `Agent` with `run_in_background`; the default for interactive spawns since 2.1.278 | A notification in a later turn |
+| Codex | `spawn_agent` returns at once | `wait_agent` with a timeout; push delivery to a later turn is undocumented |
+| Grok Build | `spawn_subagent`; a foreground child over its time budget is moved to the background | An automatic notification, or `wait_commands_or_subagents` |
+| Pi + pi-subagents | `subagent` with `async`, on by default | A message that triggers a new turn |
+| OpenCode V2 | `subagent` with `background: true`; a running foreground call can be moved with `POST /api/session/{id}/background` | A synthetic parent message `<subagent sessionID=… state=…>` with `metadata.source: "subagent"`, which wakes the parent |
+| Cursor CLI | Only per role, through `is_background` in the agent file | Undocumented; a `subagentStop` hook exists |
 
 Non-interactive runs are unverified on every host. On OpenCode, `opencode run --format json` prints no synthetic message and returns when the parent finishes, so a child that completes later probably goes unreported.
 

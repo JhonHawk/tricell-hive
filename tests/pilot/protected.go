@@ -62,7 +62,7 @@ func protectedPaths(host, home, codex, claude, grok, pi, oc string) map[string]s
 		"claude":   {filepath.Join(claude, "settings.json"), filepath.Join(claude, "settings.local.json")},
 		"grok":     {filepath.Join(grok, "config.toml")},
 		"pi":       {filepath.Join(pi, "settings.json"), filepath.Join(pi, "models.json")},
-		"opencode": {filepath.Join(oc, "opencode.json"), filepath.Join(oc, "opencode.jsonc")},
+		"opencode": {filepath.Join(oc, "opencode.json"), filepath.Join(oc, "opencode.jsonc"), filepath.Join(oc, "cli.json")},
 	}
 	paths = append(paths, configs[host]...)
 	out := map[string]string{}
