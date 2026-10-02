@@ -146,6 +146,105 @@ func claudeAgentsEnabled(home string, synthetic bool) error {
 	return nil
 }
 
+// CursorAgentsEnabled reports whether Grok loads Cursor's instruction files
+// (compat.cursor.agents), resolving the documented env > TOML > default-on
+// order. Hive only warns about this setting and never writes it, so any
+// ambiguous or unreadable form returns an error and the caller omits the
+// warning.
+func CursorAgentsEnabled(home string, synthetic bool) (bool, error) {
+	if value, ok := os.LookupEnv("GROK_CURSOR_AGENTS_ENABLED"); ok && !synthetic {
+		enabled, err := strconv.ParseBool(strings.TrimSpace(value))
+		if err != nil {
+			return false, fmt.Errorf("unsupported GROK_CURSOR_AGENTS_ENABLED value")
+		}
+		return enabled, nil
+	}
+	f, err := os.Open(filepath.Join(home, "config.toml"))
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("read Grok config: %w", err)
+	}
+	defer f.Close()
+
+	unsupported := fmt.Errorf("unsupported Grok compat.cursor TOML form")
+	section := ""
+	seenTable := false
+	value := ""
+	valueSet := false
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		trimmed := strings.TrimSpace(stripTOMLComment(scanner.Text()))
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "[") {
+			if strings.HasPrefix(trimmed, "[[") || !strings.HasSuffix(trimmed, "]") {
+				if isCursorCompatTable(trimmed) {
+					return false, unsupported
+				}
+				section = ""
+				continue
+			}
+			section = strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(trimmed, "["), "]"))
+			if isCursorCompatTable(section) && section != "compat.cursor" {
+				return false, unsupported
+			}
+			if section == "compat.cursor" {
+				if seenTable {
+					return false, fmt.Errorf("duplicate Grok compat.cursor TOML table")
+				}
+				seenTable = true
+			}
+			continue
+		}
+		parts := strings.SplitN(trimmed, "=", 2)
+		key := strings.TrimSpace(parts[0])
+		switch section {
+		case "":
+			if normalizeTOMLKey(key) == "compat" || isCursorCompatTable(key) {
+				return false, unsupported
+			}
+		case "compat":
+			if normalizeTOMLKey(key) == "cursor" || strings.Contains(strings.ToLower(trimmed), "cursor") {
+				return false, unsupported
+			}
+		case "compat.cursor":
+			if len(parts) != 2 {
+				return false, unsupported
+			}
+			if normalizeTOMLKey(key) == "agents" && key != "agents" {
+				return false, unsupported
+			}
+			if key != "agents" {
+				continue
+			}
+			if valueSet {
+				return false, fmt.Errorf("duplicate Grok compat.cursor.agents setting")
+			}
+			value = strings.TrimSpace(parts[1])
+			valueSet = true
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return false, fmt.Errorf("read Grok config: %w", err)
+	}
+	if !valueSet {
+		return true, nil
+	}
+	enabled, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("unsupported Grok compat.cursor.agents value")
+	}
+	return enabled, nil
+}
+
+func isCursorCompatTable(value string) bool {
+	lower := strings.ToLower(value)
+	return strings.Contains(lower, "compat") && strings.Contains(lower, "cursor")
+}
+
 func normalizeTOMLKey(key string) string {
 	key = strings.TrimSpace(key)
 	if len(key) >= 2 && ((key[0] == '"' && key[len(key)-1] == '"') || (key[0] == '\'' && key[len(key)-1] == '\'')) {
