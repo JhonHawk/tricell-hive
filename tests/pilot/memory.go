@@ -100,8 +100,12 @@ func codexMemoryArgs(args, env []string, cwd string) ([]string, error) {
 	return nil, fmt.Errorf("memory overrides require Codex exec")
 }
 
+// engramDataDir is where a run's isolated Engram store lives; the guidance
+// variant's shadow OpenCode config points its Engram server at the same path.
+func engramDataDir(output string) string { return filepath.Join(output, "engram-data") }
+
 func prepareMemoryIsolation(output string, parentEnv []string) (*memoryIsolation, []string, error) {
-	dataDir := filepath.Join(output, "engram-data")
+	dataDir := engramDataDir(output)
 	if err := os.Mkdir(dataDir, 0700); err != nil {
 		return nil, nil, fmt.Errorf("create isolated Engram data directory: %w", err)
 	}

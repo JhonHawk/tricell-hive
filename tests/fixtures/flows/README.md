@@ -137,7 +137,7 @@ all original run evidence and do not make additional model calls.
 ## Guidance variant pilot (`close-sequence`, `--guidance-source`/`--arm`)
 
 `--guidance-source <checkout dir>` installs that checkout's Hive guidance into
-a per-run shadow home for `--host codex` or `--host grok` only, together with
+a per-run shadow home for `--host codex`, `--host grok` or `--host opencode` only, together with
 a required `--arm A|B` label (a plain label here, not a selector — the
 checkout passed as `--guidance-source` is what actually varies). `--arm`
 without `--guidance-source` in `deployed-global` still fails clearly, and
@@ -146,10 +146,12 @@ either flag with any other host fails clearly. Neither flag changes
 
 Per run, the shadow home lives at `<out>/shadow-home` and never touches the
 real user home beyond a read of its Codex `auth.json`/`config.toml`
-([mcp_servers.engram] launch definition only) when `--host codex`. `run.json`
+([mcp_servers.engram] launch definition only) when `--host codex`, or of
+the `mcp.engram` launch command in OpenCode's `opencode.json`, its model
+catalog and one exported credential when `--host opencode`. `run.json`
 records the guidance source, arm, the shadow home, and the sha256 hashes of
 the two files that host's own resolver reads from it (Codex's `AGENTS.md`,
-Grok's Claude-compatible `CLAUDE.md`, and `flow-build/SKILL.md` in both
+Grok's Claude-compatible `CLAUDE.md`, OpenCode's `.config/opencode/AGENTS.md`, and `flow-build/SKILL.md` in both
 cases). Both hosts launch with `HOME` set to the shadow home; Codex also gets
 `CODEX_HOME` there, since its skills live under `$HOME/.agents/skills`. Grok
 keeps its real `GROK_HOME` for authentication — a declared limitation: Grok
@@ -159,7 +161,38 @@ itself (Grok's `CLAUDE.md`/skills resolve through the shadowed `HOME`, not
 `GROK_HOME`). Codex's shadow `auth.json` is a symlink to the real one, never a
 copy; at the end of the run it is removed, and if Codex had replaced it with a
 renewed regular file, that file is deleted unread and a warning is printed to
-stderr and recorded in `run.json`. The isolated Engram store from the existing
+stderr and recorded in `run.json`. OpenCode gets only `HOME` set to the shadow home (its config, data, state and
+cache directories default under `HOME`; inherited `XDG_*_HOME`,
+`OPENCODE_CONFIG` and `OPENCODE_CONFIG_DIR` are dropped), a minimal generated
+`opencode.json` holding just the Engram MCP server pinned to the run's isolated
+store (the user's real plugins, other MCP servers and permissions are not
+loaded), skills from `$HOME/.agents/skills`, and a copy of the real cache's
+`models.json` model catalog (never a link). OpenCode v2 keeps credentials in
+its SQLite database and imports `auth.json` only in a v1-to-v2 migration that a
+fresh shadow database never runs, so no `auth.json` is linked. Instead the
+runner pipes `opencode auth export <provider>` (the provider taken from
+`--model provider/model`, read-only against the real install) into
+`opencode auth import --standalone` under the shadow home; the credential is
+never read, printed or logged. It runs after cleanup is registered, so a
+failure or signal still removes the copy. Because the shadow data directory
+then holds that copy, the whole `.local/share/opencode` directory is deleted at
+the end of the run (and on an abnormal exit), with nothing retained from it,
+log included, since any file there may hold credential-related data. A signal
+during the import kills the in-flight import's process group first. The outcome
+is recorded as
+`ShadowCredentialStoreRemoved`, or `ShadowCredentialWarning` if anything
+survived or the directory was unexpectedly absent after a successful import. `--model` must be `provider/model` for this host, checked before
+`--out` is created. The export and import subprocesses run in the system temp
+dir and the shadow home, never in a project directory.
+
+OpenCode also requires the fixture working directory to be outside the real
+home: with a working directory under the real home, OpenCode v2.0.22 loads that
+home's `~/.claude/skills`, `~/.agents/skills` and `~/.opencode/skill(s)` despite
+the shadow `HOME`. The runner refuses such a run before creating `--out`. The
+flows suite puts the fixture under `--out`, which must be below
+`<source>/_support/workspace`, so an OpenCode variant flows run needs a
+`--source` checkout outside the real home (for example a git worktree under
+`/tmp`); other suites use `TMPDIR`. The isolated Engram store from the existing
 per-run lifecycle is unaffected: the shadow home is applied before its HTTP
 server starts, so `ENGRAM_DATA_DIR` keeps precedence inside it.
 

@@ -307,7 +307,7 @@ func main() {
 	host := flag.String("host", "", "codex, claude, grok, pi, or opencode")
 	caseID := flag.String("case", "", "fixture ID or smoke")
 	arm := flag.String("arm", "", "A or B")
-	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok only, requires --arm)")
+	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok/opencode only, requires --arm)")
 	out := flag.String("out", "", "new raw evidence directory")
 	source := flag.String("source", ".", "checkout root")
 	model := flag.String("model", "", "explicit override")
@@ -348,7 +348,7 @@ func main() {
 		must(fmt.Errorf("--guidance-source requires --delivery deployed-global"))
 	}
 	if *delivery == "deployed-global" {
-		must(validateGuidanceVariantFlags(*host, *guidanceSource, *arm))
+		must(validateGuidanceVariantFlags(*host, *guidanceSource, *arm, *model))
 	}
 	if *suite != "workspace-conventions" && *suite != "flows" {
 		must(fmt.Errorf("unknown suite"))
@@ -372,6 +372,12 @@ func main() {
 		if !under(output, workspace) || output == workspace {
 			must(fmt.Errorf("flows output must be below repository _support/workspace"))
 		}
+	}
+	userHome, e := os.UserHomeDir()
+	must(e)
+	if *guidanceSource != "" && *host == "opencode" {
+		// Checked before --out is created so a refused run leaves nothing behind.
+		must(checkOpenCodeCwdOutsideHome(fixtureParentDir(*suite, output), userHome))
 	}
 	if _, e = os.Stat(output); !os.IsNotExist(e) {
 		must(fmt.Errorf("output must not exist"))
@@ -399,11 +405,8 @@ func main() {
 	if f.ID == "" {
 		must(fmt.Errorf("unknown fixture"))
 	}
-	fixtureParent := ""
-	if *suite == "flows" {
-		fixtureParent = output
-	}
-	root, e := os.MkdirTemp(fixtureParent, "hive-pilot-"+*host+"-"+f.ID+"-"+*arm+"-")
+	// The same function the OpenCode isolation guard used, so the two cannot diverge.
+	root, e := os.MkdirTemp(fixtureParentDir(*suite, output), "hive-pilot-"+*host+"-"+f.ID+"-"+*arm+"-")
 	must(e)
 	root, e = target.Canonical(root)
 	must(e)
@@ -482,11 +485,12 @@ func main() {
 	r.Before, e = inventory(root)
 	must(e)
 	save(filepath.Join(output, "before.json"), r.Before)
-	userHome, e := os.UserHomeDir()
-	must(e)
+	// The real-home snapshot precedes guidance setup, whose OpenCode credential
+	// export runs against the real install.
+	beforeProtected := protectedFor(*host, userHome)
 	var guidance *guidanceVariant
 	if *guidanceSource != "" {
-		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome)
+		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome, *model, engramDataDir(output))
 		must(e)
 		r.GuidanceVariant = &guidance.report
 		// Registered immediately so any must() failure or SIGINT/SIGTERM
@@ -496,8 +500,10 @@ func main() {
 		// direct call afterward, and a possible second run from a later
 		// must() failure, are both harmless.
 		registerCleanup(guidance.cleanup)
+		// After the cleanup registration: a failure or signal during the import
+		// still removes the shadow credential copy.
+		must(guidance.importCredential())
 	}
-	beforeProtected := protectedFor(*host, userHome)
 	if guidance != nil {
 		beforeProtected = mergeProtected(beforeProtected, protectedForHome(*host, guidance.shadowHome))
 	}
