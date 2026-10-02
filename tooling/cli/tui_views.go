@@ -272,7 +272,7 @@ var mainMenuItems = []menuItem{
 	{"Voice", "Choose the assistant voice", func(cfg appConfig) view { return newVoiceView(cfg) }},
 	{"Diagnostics", "Check CLI versions, the installation and open sessions", func(cfg appConfig) view { return newDoctorView(cfg) }},
 	{"Models", "See and change the model and effort of each role", func(cfg appConfig) view { return newModelsView(cfg) }},
-	{"Integrations", "Check Engram, Context7, pi-subagents and agent-browser", func(cfg appConfig) view { return newIntegrationsView(cfg) }},
+	{"Integrations", "Check Engram, Context7, pi-subagents, Pi codemode, agent-browser", func(cfg appConfig) view { return newIntegrationsView(cfg) }},
 	{"Project", "Check or edit this repository's ## Hive section", func(cfg appConfig) view { return newProjectView(cfg) }},
 	{"Quit", "Leave Hive", nil},
 }

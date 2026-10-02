@@ -81,10 +81,17 @@ func fakePrograms(t *testing.T, names ...string) (pathDir, marker string) {
 	return pathDir, marker
 }
 
-// integrationsFixture is an installed home with nothing detected.
+// integrationsFixture is an installed home with Claude Code and Pi registered
+// and nothing detected.
 func integrationsFixture(t *testing.T) (o management.Options, f *doctorFake, home, stateDir string) {
 	t.Helper()
-	o, home, stateDir = doctorHome(t, "claude")
+	return integrationsFixtureHosts(t, "claude,pi")
+}
+
+// integrationsFixtureHosts is integrationsFixture with the given registered hosts.
+func integrationsFixtureHosts(t *testing.T, hosts string) (o management.Options, f *doctorFake, home, stateDir string) {
+	t.Helper()
+	o, home, stateDir = doctorHome(t, hosts)
 	o = nonSyntheticOptions(t, o, home)
 	return o, newDoctorFake(home), home, stateDir
 }
@@ -111,7 +118,7 @@ func rowByID(t *testing.T, rows []integrationRow, id string) integrationRow {
 	return integrationRow{}
 }
 
-func TestIntegrationsSectionListsTheFourRowsInOrder(t *testing.T) {
+func TestIntegrationsSectionListsTheFiveRowsInOrderWithPi(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
 	sec := collectIntegrations(o, f.deps())
 	if sec.Title != "Integrations" || sec.Err != "" {
@@ -119,12 +126,77 @@ func TestIntegrationsSectionListsTheFourRowsInOrder(t *testing.T) {
 	}
 	text := sectionText(sec)
 	last := -1
-	for _, name := range []string{"Engram", "Context7", "pi-subagents", "agent-browser"} {
+	for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser"} {
 		i := strings.Index(text, name)
 		if i < 0 || i < last {
 			t.Fatalf("%s missing or out of order in:\n%s", name, text)
 		}
 		last = i
+	}
+}
+
+func TestIntegrationsSectionListsFourRowsWithoutPi(t *testing.T) {
+	o, f, _, _ := integrationsFixtureHosts(t, "claude")
+	rows, errText := collectIntegrationRows(o, f.deps())
+	if errText != "" {
+		t.Fatalf("errText = %q", errText)
+	}
+	var ids []string
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser"; got != want {
+		t.Fatalf("rows = %s, want %s", got, want)
+	}
+	if strings.Contains(integrationsText(o, f.deps()), "codemode") {
+		t.Fatal("the section mentions codemode without Pi registered")
+	}
+}
+
+func TestPiCodemodeRowTexts(t *testing.T) {
+	o, f, _, _ := integrationsFixture(t)
+	rows, _ := collectIntegrationRows(o, f.deps())
+	var ids []string
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,pi-codemode,agent-browser"; got != want {
+		t.Fatalf("rows = %s, want %s", got, want)
+	}
+	r := rowByID(t, rows, "pi-codemode")
+	if r.Name != "Pi codemode" || r.Found != "not checked" {
+		t.Fatalf("row = %+v", r)
+	}
+	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: finding it would mean reading Pi's configuration, which Hive does not do." {
+		t.Fatalf("evidence = %q", r.Evidence)
+	}
+	if r.Record != recordNotTracked || r.RecordDetail != "Not part of onboarding: Hive does not configure Pi's tools." {
+		t.Fatalf("record = %q / %q", r.Record, r.RecordDetail)
+	}
+	if r.Source != "github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/cli.md#enable-codemode" {
+		t.Fatalf("source = %q", r.Source)
+	}
+	wantNext := `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
+	if r.Next != wantNext {
+		t.Fatalf("next = %q", r.Next)
+	}
+}
+
+// TestPiCodemodeRowIgnoresPiSettings runs over a non-synthetic home, where the
+// lookups are real, with a settings file that already enables codemode.
+func TestPiCodemodeRowIgnoresPiSettings(t *testing.T) {
+	o, f, home, _ := integrationsFixture(t)
+	dir := filepath.Join(home, ".pi", "agent")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"defaultTools": ["+codemode"]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := collectIntegrationRows(o, f.deps())
+	r := rowByID(t, rows, "pi-codemode")
+	if r.Found != "not checked" || !strings.Contains(r.Next, `"defaultTools": ["+codemode"]`) {
+		t.Fatalf("row = %+v", r)
 	}
 }
 
