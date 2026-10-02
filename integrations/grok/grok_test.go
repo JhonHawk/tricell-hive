@@ -111,3 +111,61 @@ func TestResolveRejectsUnsupportedCompatibilityTOMLForms(t *testing.T) {
 		})
 	}
 }
+
+func unsetCursorEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("GROK_CURSOR_AGENTS_ENABLED", "")
+	if err := os.Unsetenv("GROK_CURSOR_AGENTS_ENABLED"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCursorAgentsEnabled(t *testing.T) {
+	cases := []struct {
+		name    string
+		config  *string
+		env     string
+		setEnv  bool
+		synth   bool
+		want    bool
+		wantErr bool
+	}{
+		{name: "no config file", want: true},
+		{name: "no cursor table", config: ptr("[compat.claude]\nagents = true\n"), want: true},
+		{name: "table true", config: ptr("[compat.cursor]\nagents = true\n"), want: true},
+		{name: "table false", config: ptr("[compat.cursor]\nagents = false # off\n"), want: false},
+		{name: "other keys ignored", config: ptr("[compat.cursor]\nrules = false\n"), want: true},
+		{name: "env false wins over toml true", config: ptr("[compat.cursor]\nagents = true\n"), env: "false", setEnv: true, want: false},
+		{name: "env true wins over toml false", config: ptr("[compat.cursor]\nagents = false\n"), env: "true", setEnv: true, want: true},
+		{name: "env ignored when synthetic", config: ptr("[compat.cursor]\nagents = true\n"), env: "false", setEnv: true, synth: true, want: true},
+		{name: "bad env", env: "maybe", setEnv: true, wantErr: true},
+		{name: "bad value", config: ptr("[compat.cursor]\nagents = maybe\n"), wantErr: true},
+		{name: "duplicate table", config: ptr("[compat.cursor]\nagents = false\n[compat.cursor]\nagents = true\n"), wantErr: true},
+		{name: "inline compat form", config: ptr("compat = { cursor = { agents = false } }\n"), wantErr: true},
+		{name: "dotted root form", config: ptr("compat.cursor.agents = false\n"), wantErr: true},
+		{name: "cursor key under compat", config: ptr("[compat]\ncursor = { agents = false }\n"), wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			unsetCursorEnv(t)
+			home := t.TempDir()
+			if tc.config != nil {
+				if err := os.WriteFile(filepath.Join(home, "config.toml"), []byte(*tc.config), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.setEnv {
+				t.Setenv("GROK_CURSOR_AGENTS_ENABLED", tc.env)
+			}
+			got, err := CursorAgentsEnabled(home, tc.synth)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if err == nil && got != tc.want {
+				t.Fatalf("enabled = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func ptr(s string) *string { return &s }

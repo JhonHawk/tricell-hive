@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"tricell-hive/integrations/grok"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
@@ -883,7 +884,39 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	if !dry && mentionDryRunFlag {
 		fmt.Fprintln(out, "Use --dry-run to see the full file list before applying.")
 	}
+	if notice := grokCursorDuplicateNotice(p); notice != "" {
+		fmt.Fprintln(out, notice)
+	}
 	fmt.Fprintln(out, "Close these CLI sessions before continuing.")
+}
+
+// grokCursorDuplicateNotice returns the one-line warning that Grok loads
+// Cursor's copy of the Hive guidance a second time, or "" when it does not
+// apply: Grok and Cursor must both be in the plan or already registered, and
+// Grok's compat.cursor.agents must be enabled. Hive never writes Grok's
+// config, and a failure to read the setting only omits the line.
+func grokCursorDuplicateNotice(p management.Plan) string {
+	hosts := map[string]bool{}
+	for _, h := range p.Hosts {
+		hosts[h] = true
+	}
+	if !hosts["grok"] || !hosts["cursor"] {
+		if registered, err := management.RegisteredHosts(management.Options{Scope: p.Config.Scope, Home: p.Config.Home, Root: p.Config.Root, StateDir: p.StateDir}); err == nil {
+			for _, h := range registered {
+				hosts[h] = true
+			}
+		}
+	}
+	if !hosts["grok"] || !hosts["cursor"] || p.Config.GrokHome == "" || p.Config.CursorHome == "" {
+		return ""
+	}
+	enabled, err := grok.CursorAgentsEnabled(p.Config.GrokHome, p.Config.Synthetic)
+	if err != nil || !enabled {
+		return ""
+	}
+	cursorFile := filepath.Join(p.Config.CursorHome, "AGENTS.md")
+	return fmt.Sprintf("Grok also loads Cursor's copy of the Hive guidance (%s), about 10,700 tokens per session. To skip it, add [compat.cursor] agents = false to %s; your own text in %s then stops loading in Grok.",
+		cursorFile, filepath.Join(p.Config.GrokHome, "config.toml"), cursorFile)
 }
 
 // showPartialOnboardingDetail lists every provider step's terminal status so a
