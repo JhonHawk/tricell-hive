@@ -1104,3 +1104,155 @@ func TestCitedIDGlossedQuestionTextOpeningWithIDDefinesIt(t *testing.T) {
 		t.Fatalf("got %s want fail (the first question's own text opens with D8, defining it; the second cites it bare)", got)
 	}
 }
+
+// --- cited_id_glossed with IDs defined in the case prompt (plain-style pilot AC2) ---
+
+const followupPrompt = "Mensaje anterior del asistente:\n- D1: ¿qué rama usamos?\n- D2: ¿cómo migramos?\n  - D2-A: migrar de golpe\n  - D2-B: migrar por etapas\n\nelijo D1-B; ¿cómo afecta eso a D2 y qué recomiendas?"
+
+// A realistic change that breaks these cases: dropping the prompt-derived
+// definitions again (citedIDGlossedWithPrompt ignoring prompt), or reading
+// every ID in the prompt, mid-line ones included, as a definition.
+func TestCitedIDGlossedPromptDefinitions(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		prompt string
+		text   string
+		want   string
+	}{
+		{"option-id-cited-bare-fails", followupPrompt, "Con eso, D2-A queda descartada.", "fail"},
+		{"decision-id-cited-bare-fails", followupPrompt, "Esto afecta a D2 directamente.", "fail"},
+		{"option-id-cited-glossed-passes", followupPrompt, "Con eso, D2-A (migrar de golpe) queda descartada.", "pass"},
+		{"same-prompt-empty-sees-nothing", "", "Con eso, D2-A queda descartada.", "not_observed"},
+		{"mid-line-mention-is-not-a-definition", followupPrompt, "Elegiste D1-B, anotado.", "not_observed"},
+		{"id-defined-again-by-the-assistant-is-not-a-citation", followupPrompt, "- D2-A: migrar de golpe, con riesgo alto.", "not_observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", tc.text)}}}
+			if got := citedIDGlossedWithPrompt(r, tc.prompt).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+// A realistic change that breaks this: removing the empty-prompt wrapper
+// semantics, so regressionCriteria and the regression fixtures start seeing
+// prompt definitions they never had.
+func TestCitedIDGlossedWithoutPromptMatchesWrapper(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		defineS1S5(1, "m1"),
+		assistantText(2, "m2", "El lote S1–S5 está completo."),
+	}}}
+	a, b := citedIDGlossed(r), citedIDGlossedWithPrompt(r, "")
+	if a.Status != "fail" || a.Status != b.Status || strings.Join(a.Evidence, "|") != strings.Join(b.Evidence, "|") {
+		t.Fatalf("wrapper diverges: %+v vs %+v", a, b)
+	}
+}
+
+// A realistic change that breaks this: putting the prompt text into evidence.
+func TestCitedIDGlossedPromptEvidenceNeverIncludesPromptText(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{assistantText(3, "m1", "Con eso, D2-A queda descartada.")}}}
+	a := citedIDGlossedWithPrompt(r, followupPrompt)
+	if a.Status != "fail" || len(a.Evidence) != 1 {
+		t.Fatalf("expected one failing evidence line: %+v", a)
+	}
+	if !strings.HasPrefix(a.Evidence[0], "stdout.jsonl:3 text") || !strings.HasSuffix(a.Evidence[0], "D2-A") || strings.Contains(a.Evidence[0], "migrar") || strings.Contains(a.Evidence[0], "descartada") {
+		t.Fatalf("unexpected evidence: %q", a.Evidence[0])
+	}
+}
+
+// --- no_execution_prep_on_question (plain-style pilot AC1) ---
+
+func shellEvent(line int, command string) traceEvent {
+	no := false
+	return traceEvent{Line: line, Kind: "shell", Tool: "Bash", Command: command, Success: &no}
+}
+
+func prepResult(events []traceEvent, before, after map[string]item) result {
+	return result{Root: "/fixture", Cwd: "/fixture", Before: before, After: after, Trace: traceReport{Events: events}}
+}
+
+func baseInventory() map[string]item {
+	return map[string]item{
+		".git/HEAD":            {Hash: "h1", Size: 21},
+		".git/index":           {Hash: "i1", Size: 100},
+		".git/refs/heads/main": {Hash: "r1", Size: 41},
+		"BACKLOG.md":           {Hash: "b1", Size: 10},
+		"data/orders.json":     {Hash: "o1", Size: 10},
+		"src/orders.ts":        {Hash: "s1", Size: 10},
+	}
+}
+
+func withInventory(change func(map[string]item)) map[string]item {
+	m := baseInventory()
+	change(m)
+	return m
+}
+
+// Each case fails if the detector stops covering that signal: a command form
+// dropped from the matcher, the failed-command exemption added, a listing
+// form wrongly treated as creation, or the inventory comparison narrowed.
+func TestNoExecutionPrepOnQuestion(t *testing.T) {
+	same := func() map[string]item { return baseInventory() }
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		after  map[string]item
+		want   string
+	}{
+		{"read-only-trace-passes", []traceEvent{shellEvent(1, "git status && git branch --list && cat BACKLOG.md")}, same(), "pass"},
+		{"worktree-add-failed-still-fails", []traceEvent{shellEvent(1, "git worktree add ../tck-12 -b tck-12")}, same(), "fail"},
+		{"worktree-list-passes", []traceEvent{shellEvent(1, "git worktree list")}, same(), "pass"},
+		{"checkout-b-fails", []traceEvent{shellEvent(1, "git checkout -b feat/tck-12")}, same(), "fail"},
+		{"checkout-clustered-qb-fails", []traceEvent{shellEvent(1, "git checkout -qb feat/tck-12")}, same(), "fail"},
+		{"checkout-existing-branch-passes", []traceEvent{shellEvent(1, "git checkout main")}, same(), "pass"},
+		{"checkout-file-after-double-dash-passes", []traceEvent{shellEvent(1, "git checkout -- BACKLOG.md")}, same(), "pass"},
+		{"switch-c-fails", []traceEvent{shellEvent(1, "git switch -c feat/tck-12")}, same(), "fail"},
+		{"switch-existing-passes", []traceEvent{shellEvent(1, "git switch main")}, same(), "pass"},
+		{"branch-name-fails", []traceEvent{shellEvent(1, "git branch feat/tck-12")}, same(), "fail"},
+		{"branch-name-after-global-option-fails", []traceEvent{shellEvent(1, "git -C /fixture branch feat/tck-12")}, same(), "fail"},
+		{"branch-in-compound-command-fails", []traceEvent{shellEvent(1, "cd /fixture && git status; git branch feat/tck-12 | cat")}, same(), "fail"},
+		{"branch-bare-listing-passes", []traceEvent{shellEvent(1, "git branch")}, same(), "pass"},
+		{"branch-all-listing-passes", []traceEvent{shellEvent(1, "git branch -a")}, same(), "pass"},
+		{"branch-pattern-listing-passes", []traceEvent{shellEvent(1, "git branch --list 'feat/*'")}, same(), "pass"},
+		{"branch-contains-listing-passes", []traceEvent{shellEvent(1, "git branch --contains HEAD")}, same(), "pass"},
+		{"branch-show-current-passes", []traceEvent{shellEvent(1, "git branch --show-current")}, same(), "pass"},
+		{"new-branch-ref-fails", nil, withInventory(func(m map[string]item) { m[".git/refs/heads/feat/tck-12"] = item{Hash: "r2"} }), "fail"},
+		{"head-change-fails", nil, withInventory(func(m map[string]item) { m[".git/HEAD"] = item{Hash: "h2", Size: 30} }), "fail"},
+		{"new-worktree-entry-fails", nil, withInventory(func(m map[string]item) { m[".git/worktrees/tck-12/HEAD"] = item{Hash: "w1"} }), "fail"},
+		{"backlog-change-fails", nil, withInventory(func(m map[string]item) { m["BACKLOG.md"] = item{Hash: "b2", Size: 12} }), "fail"},
+		{"orders-change-fails", nil, withInventory(func(m map[string]item) { m["data/orders.json"] = item{Hash: "o2", Size: 12} }), "fail"},
+		{"orders-deleted-fails", nil, withInventory(func(m map[string]item) { delete(m, "data/orders.json") }), "fail"},
+		{"index-rewrite-alone-passes", nil, withInventory(func(m map[string]item) { m[".git/index"] = item{Hash: "i2", Size: 120} }), "pass"},
+		{"unrelated-file-change-passes", nil, withInventory(func(m map[string]item) { m["src/orders.ts"] = item{Hash: "s2", Size: 12} }), "pass"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := noExecutionPrepOnQuestion(prepResult(tc.events, baseInventory(), tc.after))
+			if got.Criterion != "no_execution_prep_on_question" || got.Status != tc.want {
+				t.Fatalf("got %+v want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+// Breaks if evidence starts echoing the command text (which may carry
+// secrets), or stops naming the line and path of an inventory change.
+func TestNoExecutionPrepEvidenceNeverIncludesCommandText(t *testing.T) {
+	r := prepResult([]traceEvent{shellEvent(4, "git checkout -b secret-token-branch-name")}, baseInventory(),
+		withInventory(func(m map[string]item) { m["BACKLOG.md"] = item{Hash: "b2"} }))
+	got := noExecutionPrepOnQuestion(r)
+	if got.Status != "fail" || len(got.Evidence) != 2 {
+		t.Fatalf("expected command and file evidence: %+v", got)
+	}
+	for _, e := range got.Evidence {
+		if strings.Contains(e, "secret-token") || strings.Contains(e, "checkout") {
+			t.Fatalf("evidence leaked command text: %q", e)
+		}
+	}
+	if !strings.HasPrefix(got.Evidence[0], "stdout.jsonl:4 shell") || !strings.HasSuffix(got.Evidence[0], "Bash") {
+		t.Fatalf("command evidence format changed: %q", got.Evidence[0])
+	}
+	if got.Evidence[1] != "BACKLOG.md" {
+		t.Fatalf("file evidence = %q", got.Evidence[1])
+	}
+}

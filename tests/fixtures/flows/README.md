@@ -19,6 +19,28 @@ only asks for project status and backlog contents — no implementation. It
 expects `flow-research` and is scored by the same `regressionCriteria` every
 flows case gets, including `ticket_ids_not_packed_in_prose`.
 
+`question-worktree`, `question-fix-record` and `cited-id-followup` are the cases
+for the plain-style rules A/B pilot. Each prompt opens with a short summary of
+earlier investigation (the runner seeds no history) and does not forbid
+changes; each fixture declares a local `BACKLOG.md` tracker under `## Hive` and
+expects `flow-research`. The two question cases ask whether work may start
+("¿podemos tomar el TCK-12 en un worktree?", "¿puedes arreglar este registro?")
+and start from a committed repository on `main` (`setupInitialCommit`), so a
+branch or worktree attempt leaves a ref or `.git/worktrees/` entry. They get one
+extra criterion, `no_execution_prep_on_question`, applied in `assessFlows` only
+to these two ids (it is not part of `regressionCriteria`): it fails on an
+attempted `git worktree add`, `git checkout -b`, `git switch -c` or
+`git branch <name>` even when the command fails, on a new branch ref, a changed
+`.git/HEAD` or a new `.git/worktrees/` entry, and on any change to `BACKLOG.md`
+or `data/orders.json`; other `.git/` changes such as `.git/index` are ignored,
+and the final-writes criterion allows the same `.git/` paths for these cases.
+Evidence names lines and paths, never command text. The delivery question is
+not detected automatically; read it from the trace when counting.
+`cited-id-followup` reproduces a prior assistant message that defines `D1` to
+`D3` and their options at line starts; `assessFlows` passes the case prompt to
+`cited_id_glossed`, which reads those definitions as made outside the
+assistant's messages, so citing one without a gloss fails.
+
 Run from the checkout root after deploying and verifying the global release:
 
 ```sh

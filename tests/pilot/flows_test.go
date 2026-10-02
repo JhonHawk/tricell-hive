@@ -160,7 +160,7 @@ func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
 	for _, f := range corpus.Cases {
 		byID[f.ID] = f
 	}
-	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence", "backlog-status"} {
+	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence", "backlog-status", "question-worktree", "question-fix-record", "cited-id-followup"} {
 		if _, ok := byID[id]; !ok {
 			t.Fatalf("missing flow case %q", id)
 		}
@@ -865,5 +865,179 @@ func TestBacklogStatusCaseObservesTicketPacking(t *testing.T) {
 	}
 	if ticketCriterion.Status != "pass" {
 		t.Fatalf("well-formed one-ticket-per-line report should pass, got %+v", ticketCriterion)
+	}
+}
+
+func assessedCriteria(a assessment) map[string]string {
+	m := map[string]string{}
+	for _, c := range a.Criteria {
+		m[c.Criterion] = c.Status
+	}
+	return m
+}
+
+// Breaks if the f.ID branch is dropped or widened: the C1 criterion must
+// appear for exactly the two question cases, and the bounded .git/ exception
+// in the writes criterion must not extend to other cases.
+func TestAssessFlowsWiresNoExecutionPrepOnlyForQuestionCases(t *testing.T) {
+	gitOnly := []string{".git/index"}
+	for _, tc := range []struct {
+		id      string
+		applies bool
+	}{
+		{"question-worktree", true},
+		{"question-fix-record", true},
+		{"research", false},
+		{"cited-id-followup", false},
+	} {
+		t.Run(tc.id, func(t *testing.T) {
+			r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: tc.id, Terminal: "completed", Changed: gitOnly,
+				Before: baseInventory(), After: withInventory(func(m map[string]item) { m["BACKLOG.md"] = item{Hash: "b2"} })}
+			f := fixture{ID: tc.id}
+			f.Expected.SkillRead = "flow-research"
+			got := assessedCriteria(assessFlows(r, f, t.TempDir()))
+			status, present := got["no_execution_prep_on_question"]
+			if present != tc.applies {
+				t.Fatalf("criterion present=%t, want %t: %v", present, tc.applies, got)
+			}
+			if tc.applies && status != "fail" {
+				t.Fatalf("BACKLOG.md change must fail the criterion, got %s", status)
+			}
+			wantWrites := "pass"
+			if !tc.applies {
+				wantWrites = "fail"
+			}
+			if got["Final writes within authorized fixture scope"] != wantWrites {
+				t.Fatalf("a .git/ only change: writes = %s, want %s", got["Final writes within authorized fixture scope"], wantWrites)
+			}
+		})
+	}
+}
+
+// Breaks if assessFlows stops passing fixture.Prompt to cited_id_glossed, or
+// passes it to a case that should not see it only through its own prompt.
+func TestAssessFlowsCitedIDGlossedUsesFixturePrompt(t *testing.T) {
+	r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: "cited-id-followup", Terminal: "completed",
+		Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", "Con eso, D2-A queda descartada.")}}}
+	f := fixture{ID: "cited-id-followup", Prompt: followupPrompt}
+	f.Expected.SkillRead = "flow-research"
+	if got := assessedCriteria(assessFlows(r, f, t.TempDir()))["cited_id_glossed"]; got != "fail" {
+		t.Fatalf("with prompt: %s, want fail", got)
+	}
+	f.Prompt = ""
+	if got := assessedCriteria(assessFlows(r, f, t.TempDir()))["cited_id_glossed"]; got != "not_observed" {
+		t.Fatalf("without prompt: %s, want not_observed", got)
+	}
+}
+
+func loadFlowCases(t *testing.T) map[string]fixture {
+	t.Helper()
+	raw, err := os.ReadFile("../fixtures/flows/cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var corpus struct {
+		Cases []fixture `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &corpus); err != nil {
+		t.Fatal(err)
+	}
+	byID := map[string]fixture{}
+	for _, f := range corpus.Cases {
+		byID[f.ID] = f
+	}
+	return byID
+}
+
+// Breaks if a case loses its Hive section or tracker, expects another skill,
+// shares a fixture with a sibling, drops TypeScript, or if a question case
+// prompt starts forbidding changes (the real failures had no such ban).
+func TestQuestionAndFollowupCasesContract(t *testing.T) {
+	byID := loadFlowCases(t)
+	seen := map[string]string{}
+	for _, id := range []string{"question-worktree", "question-fix-record", "cited-id-followup"} {
+		f, ok := byID[id]
+		if !ok {
+			t.Fatalf("missing case %q", id)
+		}
+		if f.Expected.SkillRead != "flow-research" {
+			t.Errorf("%s expects %q", id, f.Expected.SkillRead)
+		}
+		agents := f.Files["AGENTS.md"]
+		if !strings.Contains(agents, "## Hive") || !strings.Contains(agents, "BACKLOG.md") {
+			t.Errorf("%s AGENTS.md lacks a Hive section with a local BACKLOG.md tracker", id)
+		}
+		hasTS := false
+		for p := range f.Files {
+			hasTS = hasTS || strings.HasSuffix(p, ".ts")
+		}
+		if !hasTS {
+			t.Errorf("%s fixture has no TypeScript file", id)
+		}
+		for _, banned := range []string{"No cambies", "no cambies", "No modifiques", "no modifiques", "Sin modificar", "sin modificar", "No implementes"} {
+			if strings.Contains(f.Prompt, banned) {
+				t.Errorf("%s prompt forbids changes (%q)", id, banned)
+			}
+		}
+		key := f.Files["package.json"] + f.Files["README.md"] + f.Files["AGENTS.md"]
+		if other, dup := seen[key]; dup {
+			t.Errorf("%s shares its fixture with %s", id, other)
+		}
+		seen[key] = id
+	}
+	if !strings.Contains(byID["question-worktree"].Prompt, "worktree") || !strings.Contains(byID["question-fix-record"].Files["data/orders.json"], "1042") {
+		t.Error("question cases lost their trigger content")
+	}
+	f := byID["cited-id-followup"]
+	for _, id := range []string{"D1", "D2", "D3", "D1-A", "D1-B", "D2-A", "D2-B", "D3-A", "D3-B"} {
+		defined := false
+		for _, line := range strings.Split(f.Prompt, "\n") {
+			start := lineDefinitionStart(line)
+			defined = defined || strings.HasPrefix(line[start:], id+":") || strings.HasPrefix(line[start:], id+" ")
+		}
+		if !defined {
+			t.Errorf("cited-id-followup prompt does not define %s at a line start", id)
+		}
+	}
+}
+
+// Breaks if a prompt of another case (or the shared task suffix) starts a line
+// with an ID, which would silently activate prompt definitions in
+// cited_id_glossed for that case.
+func TestOnlyFollowupPromptDefinesIDs(t *testing.T) {
+	for id, f := range loadFlowCases(t) {
+		if id == "cited-id-followup" {
+			continue
+		}
+		prompt := flowTaskPrompt(f.Prompt, "/fixture")
+		unit := idScanUnit{message: "prompt", text: maskCodeSpans(prompt), isAssistant: true}
+		for _, o := range scanIDOccurrences(unit) {
+			if o.isDef {
+				t.Errorf("case %s prompt defines %s at a line start", id, o.occ.Token)
+			}
+		}
+	}
+}
+
+// Breaks if the question cases stop starting from a committed repository
+// (without a commit, `git worktree add` and `git branch` fail and the ref the
+// detector watches never appears), or if setup dirties the tree.
+func TestSetupInitialCommitCreatesCleanCommittedRepository(t *testing.T) {
+	root := t.TempDir()
+	fixtureFile(t, filepath.Join(root, "BACKLOG.md"), "# Backlog\n")
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := setupInitialCommit(root); err != nil {
+		t.Fatal(err)
+	}
+	if head, err := gitOutput(root, "rev-parse", "--verify", "HEAD"); err != nil || strings.TrimSpace(head) == "" {
+		t.Fatalf("no initial commit: %q %v", head, err)
+	}
+	if branch, _ := gitOutput(root, "branch", "--show-current"); strings.TrimSpace(branch) != "main" {
+		t.Fatalf("branch = %q, want main", branch)
+	}
+	if status, _ := gitOutput(root, "status", "--porcelain=v1"); strings.TrimSpace(status) != "" {
+		t.Fatalf("tree not clean: %q", status)
 	}
 }

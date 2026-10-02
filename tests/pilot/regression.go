@@ -1380,6 +1380,15 @@ func scanIDOccurrences(u idScanUnit) []idScanOccurrence {
 // to avoid registering a pathological span as individual definitions — a
 // range wider than that registers only its two endpoints.
 func citedIDGlossed(r result) criterionAssessment {
+	return citedIDGlossedWithPrompt(r, "")
+}
+
+// citedIDGlossedWithPrompt is citedIDGlossed plus IDs the case prompt defines
+// at a definition position (lineDefinitionStart): the prompt stands in for an
+// earlier message outside the trace, so the assistant citing such an ID
+// without a gloss fails. Only the prompt's definitions are used; its other
+// mentions are never checked. An empty prompt gives citedIDGlossed exactly.
+func citedIDGlossedWithPrompt(r result, prompt string) criterionAssessment {
 	c := criterionAssessment{Criterion: "cited_id_glossed", Status: "not_observed"}
 	units := buildIDScanUnits(r.Trace.Events)
 	var flat []idScanOccurrence
@@ -1413,6 +1422,17 @@ func citedIDGlossed(r result) criterionAssessment {
 	recordDefinition := func(token, msg string) {
 		if _, ok := defined[token]; !ok {
 			defined[token] = msg
+		}
+	}
+	if strings.TrimSpace(prompt) != "" {
+		promptUnit := idScanUnit{message: "prompt@case", text: maskCodeSpans(prompt), isAssistant: true}
+		for _, o := range scanIDOccurrences(promptUnit) {
+			if o.isDef {
+				recordDefinition(o.occ.Token, promptUnit.message)
+				for _, member := range rangeMembers(o.occ) {
+					recordDefinition(member, promptUnit.message)
+				}
+			}
 		}
 	}
 	observed := false
