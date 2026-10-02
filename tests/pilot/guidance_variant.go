@@ -8,6 +8,7 @@ import (
 	"strings"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/grok"
+	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 )
@@ -28,6 +29,10 @@ type guidanceVariantReport struct {
 	FlowBuildSkillPath, FlowBuildSkillHash string
 	CodexAuthSymlinkPreserved              bool   `json:",omitempty"`
 	CodexAuthWarning                       string `json:",omitempty"`
+	// AuthSymlinkPreserved and AuthWarning are the OpenCode counterparts of the
+	// Codex fields above, kept apart so Codex's existing run.json shape is unchanged.
+	AuthSymlinkPreserved bool   `json:",omitempty"`
+	AuthWarning          string `json:",omitempty"`
 }
 
 // guidanceVariant is the runtime handle a single run keeps for its shadow
@@ -38,12 +43,12 @@ type guidanceVariant struct {
 	shadowHome   string
 	host         string
 	realGrokHome string
-	authPath     string // empty unless host == "codex"
+	authPath     string // empty unless host == "codex" or "opencode"
 }
 
 // validateGuidanceVariantFlags is main()'s pure guard for --guidance-source
 // and --arm in deployed-global: both are required together, --arm must be
-// A or B, and only codex/grok are supported for now. Passing neither is the
+// A or B, and only codex, grok and opencode are supported for now. Passing neither is the
 // ordinary deployed-global run and is always allowed.
 func validateGuidanceVariantFlags(host, guidanceSource, arm string) error {
 	if guidanceSource == "" && arm == "" {
@@ -58,8 +63,8 @@ func validateGuidanceVariantFlags(host, guidanceSource, arm string) error {
 	if arm != "A" && arm != "B" {
 		return fmt.Errorf("--arm must be A or B")
 	}
-	if host != "codex" && host != "grok" {
-		return fmt.Errorf("--guidance-source is only supported for --host codex or grok")
+	if host != "codex" && host != "grok" && host != "opencode" {
+		return fmt.Errorf("--guidance-source is only supported for --host codex, grok or opencode")
 	}
 	return nil
 }
@@ -100,6 +105,8 @@ func guidanceReadPaths(host, shadowHome string) (blockPath, skillPath string, er
 		targets, err = codex.Resolve(c, flowBuildSkillSource)
 	case "grok":
 		targets, err = grok.Resolve(c, flowBuildSkillSource)
+	case "opencode":
+		targets, err = opencode.Resolve(c, flowBuildSkillSource)
 	default:
 		return "", "", fmt.Errorf("guidance variant unsupported for host %q", host)
 	}
@@ -322,11 +329,20 @@ func writeShadowCodexConfig(shadowCodexHome, realCodexHome string) error {
 // the shadow CODEX_HOME, so Codex authenticates without a credential copy
 // living in run evidence.
 func linkCodexAuth(shadowCodexHome, realCodexHome string) error {
-	real := filepath.Join(realCodexHome, "auth.json")
+	return linkAuthFile(shadowCodexHome, realCodexHome, "Codex")
+}
+
+// linkAuthFile symlinks realDir/auth.json to shadowDir/auth.json, never reading
+// it. label only names the host in the error.
+func linkAuthFile(shadowDir, realDir, label string) error {
+	real := filepath.Join(realDir, "auth.json")
 	if _, err := os.Lstat(real); err != nil {
-		return fmt.Errorf("real Codex auth.json unavailable: %w", err)
+		return fmt.Errorf("real %s auth.json unavailable: %w", label, err)
 	}
-	shadow := filepath.Join(shadowCodexHome, "auth.json")
+	if err := os.MkdirAll(shadowDir, 0700); err != nil {
+		return err
+	}
+	shadow := filepath.Join(shadowDir, "auth.json")
 	if err := os.Remove(shadow); err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -339,16 +355,93 @@ func linkCodexAuth(shadowCodexHome, realCodexHome string) error {
 // still-intact symlink is simply removed. An already-absent path is neither
 // a warning nor a still-symlink.
 func verifyAndCleanupAuthSymlink(path string) (stillSymlink bool, warning string) {
+	return cleanupAuthSymlink(path, "Codex replaced the shadow CODEX_HOME auth.json symlink with a regular file during this run; it was deleted without being read. If Codex authentication now fails, run `codex login` again to renew the real credential.")
+}
+
+// cleanupAuthSymlink is verifyAndCleanupAuthSymlink with the host's own
+// replaced-file warning text.
+func cleanupAuthSymlink(path, replacedWarning string) (stillSymlink bool, warning string) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return false, ""
 	}
 	stillSymlink = info.Mode()&os.ModeSymlink != 0
 	if !stillSymlink {
-		warning = "Codex replaced the shadow CODEX_HOME auth.json symlink with a regular file during this run; it was deleted without being read. If Codex authentication now fails, run `codex login` again to renew the real credential."
+		warning = replacedWarning
 	}
 	os.Remove(path)
 	return stillSymlink, warning
+}
+
+// realOpenCodeDirs returns the real OpenCode config and data directories the
+// way OpenCode itself resolves them (verified with `opencode debug paths`,
+// v2.0.22): XDG_CONFIG_HOME/XDG_DATA_HOME when set, else HOME-relative
+// ~/.config/opencode and ~/.local/share/opencode.
+func realOpenCodeDirs(userHome string, getenv func(string) string) (config, data string, err error) {
+	resolve := func(env, fallback string) (string, error) {
+		base := getenv(env)
+		if base == "" {
+			return filepath.Join(userHome, fallback, "opencode"), nil
+		}
+		if !filepath.IsAbs(base) {
+			return "", fmt.Errorf("%s must be an absolute path", env)
+		}
+		return filepath.Join(base, "opencode"), nil
+	}
+	if config, err = resolve("XDG_CONFIG_HOME", ".config"); err != nil {
+		return "", "", err
+	}
+	if data, err = resolve("XDG_DATA_HOME", filepath.Join(".local", "share")); err != nil {
+		return "", "", err
+	}
+	return config, data, nil
+}
+
+// writeShadowOpenCodeConfig generates a minimal shadow opencode.json carrying
+// only the real mcp.engram server's launch command, pinned to the run's
+// isolated Engram store through the server's own environment. No other key of
+// the real config (plugins, other MCP servers, permissions) is read or copied,
+// so only the variant's installed AGENTS.md and skills shape the run.
+func writeShadowOpenCodeConfig(shadowConfigDir, realConfigDir, engramDataDir string) error {
+	raw, err := os.ReadFile(filepath.Join(realConfigDir, "opencode.json"))
+	if err != nil {
+		return fmt.Errorf("read real OpenCode opencode.json: %w", err)
+	}
+	var real struct {
+		Mcp map[string]struct {
+			Command []string `json:"command"`
+		} `json:"mcp"`
+	}
+	if err := json.Unmarshal(raw, &real); err != nil {
+		return fmt.Errorf("parse real OpenCode opencode.json: %w", err)
+	}
+	engram, ok := real.Mcp["engram"]
+	if !ok || len(engram.Command) == 0 {
+		return fmt.Errorf("real OpenCode opencode.json has no usable mcp.engram command")
+	}
+	shadow := map[string]any{
+		"$schema": "https://opencode.ai/config.json",
+		"mcp": map[string]any{"engram": map[string]any{
+			"type":        "local",
+			"command":     engram.Command,
+			"enabled":     true,
+			"environment": map[string]string{"ENGRAM_DATA_DIR": engramDataDir, "ENGRAM_CLOUD_AUTOSYNC": "0"},
+		}},
+	}
+	out, err := json.MarshalIndent(shadow, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(shadowConfigDir, 0700); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(shadowConfigDir, "opencode.json"), out, 0600)
+}
+
+// linkOpenCodeAuth symlinks (never copies) the real OpenCode data directory's
+// auth.json into the shadow data directory.
+func linkOpenCodeAuth(shadowDataDir, realDataDir string) error {
+	return linkAuthFile(shadowDataDir, realDataDir, "OpenCode")
 }
 
 // setupGuidanceVariant is the top-level orchestration for design.md's
@@ -389,6 +482,22 @@ func setupGuidanceVariant(source, arm, output, host, userHome string) (*guidance
 		g.authPath = filepath.Join(shadowCodexHome, "auth.json")
 	case "grok":
 		g.realGrokHome = envRoot("GROK_HOME", filepath.Join(userHome, ".grok"))
+	case "opencode":
+		realConfig, realData, err := realOpenCodeDirs(userHome, os.Getenv)
+		if err != nil {
+			return nil, err
+		}
+		// Mirrors the shadow layout `opencode debug paths` reports under a
+		// shadowed HOME with no XDG overrides.
+		shadowConfig := filepath.Join(shadowHome, ".config", "opencode")
+		shadowData := filepath.Join(shadowHome, ".local", "share", "opencode")
+		if err := writeShadowOpenCodeConfig(shadowConfig, realConfig, filepath.Join(output, "engram-data")); err != nil {
+			return nil, err
+		}
+		if err := linkOpenCodeAuth(shadowData, realData); err != nil {
+			return nil, err
+		}
+		g.authPath = filepath.Join(shadowData, "auth.json")
 	}
 	return g, nil
 }
@@ -402,6 +511,14 @@ func setupGuidanceVariant(source, arm, output, host, userHome string) (*guidance
 // prepareMemoryIsolation) and every other entry survive untouched.
 func (g *guidanceVariant) applyEnvironment(env []string) []string {
 	blocked := map[string]bool{"HOME": true, "CODEX_HOME": true, "GROK_HOME": true}
+	if g.host == "opencode" {
+		// OpenCode honors these over HOME-relative defaults (verified with
+		// `opencode debug paths`), so an inherited one would point the run back
+		// at the real config, data, state, or cache directories.
+		for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR"} {
+			blocked[k] = true
+		}
+	}
 	out := make([]string, 0, len(env)+2)
 	for _, e := range env {
 		key, _, _ := strings.Cut(e, "=")
@@ -424,6 +541,10 @@ func (g *guidanceVariant) applyEnvironment(env []string) []string {
 // records the outcome onto the report the caller re-embeds into run.json.
 func (g *guidanceVariant) cleanup() {
 	if g == nil || g.authPath == "" {
+		return
+	}
+	if g.host == "opencode" {
+		g.report.AuthSymlinkPreserved, g.report.AuthWarning = cleanupAuthSymlink(g.authPath, "OpenCode replaced the shadow auth.json symlink with a regular file during this run; it was deleted without being read. If OpenCode authentication now fails, log in again to renew the real credential.")
 		return
 	}
 	stillSymlink, warning := verifyAndCleanupAuthSymlink(g.authPath)

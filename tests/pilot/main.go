@@ -307,7 +307,7 @@ func main() {
 	host := flag.String("host", "", "codex, claude, grok, pi, or opencode")
 	caseID := flag.String("case", "", "fixture ID or smoke")
 	arm := flag.String("arm", "", "A or B")
-	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok only, requires --arm)")
+	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok/opencode only, requires --arm)")
 	out := flag.String("out", "", "new raw evidence directory")
 	source := flag.String("source", ".", "checkout root")
 	model := flag.String("model", "", "explicit override")
@@ -577,6 +577,9 @@ func main() {
 	if guidance != nil {
 		guidance.cleanup()
 		r.GuidanceVariant = &guidance.report
+		if guidance.report.AuthWarning != "" {
+			fmt.Fprintln(os.Stderr, "WARNING:", guidance.report.AuthWarning)
+		}
 		if guidance.report.CodexAuthWarning != "" {
 			fmt.Fprintln(os.Stderr, "WARNING:", guidance.report.CodexAuthWarning)
 		}

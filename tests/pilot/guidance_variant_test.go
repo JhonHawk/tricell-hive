@@ -22,6 +22,8 @@ func TestValidateGuidanceVariantFlags(t *testing.T) {
 		{"unsupported host fails", "claude", "/src", "A", true},
 		{"codex arm A accepted", "codex", "/src", "A", false},
 		{"grok arm B accepted", "grok", "/src", "B", false},
+		{"opencode arm A accepted", "opencode", "/src", "A", false},
+		{"pi still unsupported", "pi", "/src", "A", true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			err := validateGuidanceVariantFlags(c.host, c.source, c.arm)
@@ -37,7 +39,7 @@ func TestGuidanceReadPathsAreInsideShadowHomeForEachHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, host := range []string{"codex", "grok"} {
+	for _, host := range []string{"codex", "grok", "opencode"} {
 		agents, skill, err := guidanceReadPaths(host, shadow)
 		if err != nil {
 			t.Fatal(err)
@@ -182,7 +184,7 @@ func TestScrubManagerEnvLeavesUnsetVariablesUnset(t *testing.T) {
 }
 
 func TestGuidanceVariantEnvironmentPreservesEngramIsolationAndSetsHostHomes(t *testing.T) {
-	for _, tc := range []struct{ host string }{{"codex"}, {"grok"}} {
+	for _, tc := range []struct{ host string }{{"codex"}, {"grok"}, {"opencode"}} {
 		g := &guidanceVariant{shadowHome: "/shadow", host: tc.host, realGrokHome: "/real/grok"}
 		in := []string{"HOME=/old-home", "CODEX_HOME=/old-codex", "GROK_HOME=/old-grok", "ENGRAM_DATA_DIR=/isolated/store", "PATH=/bin"}
 		out := g.applyEnvironment(in)
@@ -226,6 +228,12 @@ func TestGuidanceVariantEnvironmentPreservesEngramIsolationAndSetsHostHomes(t *t
 			}
 			if _, ok := get("CODEX_HOME"); ok {
 				t.Fatal("a grok run must not carry CODEX_HOME")
+			}
+		case "opencode":
+			for _, key := range []string{"CODEX_HOME", "GROK_HOME"} {
+				if _, ok := get(key); ok {
+					t.Fatalf("an opencode run must not carry %s", key)
+				}
 			}
 		}
 	}
@@ -334,5 +342,156 @@ func TestVerifyAndCleanupAuthSymlinkAbsentIsQuiet(t *testing.T) {
 	stillSymlink, warning := verifyAndCleanupAuthSymlink(filepath.Join(t.TempDir(), "auth.json"))
 	if stillSymlink || warning != "" {
 		t.Fatalf("an already-absent path must be quiet: stillSymlink=%v warning=%q", stillSymlink, warning)
+	}
+}
+
+func TestOpenCodeEnvironmentDropsXDGAndConfigOverrides(t *testing.T) {
+	g := &guidanceVariant{shadowHome: "/shadow", host: "opencode"}
+	in := []string{"HOME=/old", "XDG_CONFIG_HOME=/real/cfg", "XDG_DATA_HOME=/real/data", "XDG_STATE_HOME=/real/state", "XDG_CACHE_HOME=/real/cache", "XDG_DATA_DIRS=/usr/share", "OPENCODE_CONFIG=/real/o.json", "OPENCODE_CONFIG_DIR=/real/dir", "OPENCODE_EXPERIMENTAL=1", "ENGRAM_DATA_DIR=/iso"}
+	out := g.applyEnvironment(in)
+	have := map[string]string{}
+	for _, e := range out {
+		k, v, _ := strings.Cut(e, "=")
+		have[k] = v
+	}
+	for _, gone := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR"} {
+		if _, ok := have[gone]; ok {
+			t.Fatalf("%s would leak the real OpenCode directories into the shadow run", gone)
+		}
+	}
+	for k, want := range map[string]string{"HOME": "/shadow", "XDG_DATA_DIRS": "/usr/share", "OPENCODE_EXPERIMENTAL": "1", "ENGRAM_DATA_DIR": "/iso"} {
+		if have[k] != want {
+			t.Fatalf("%s = %q, want %q", k, have[k], want)
+		}
+	}
+}
+
+func TestRealOpenCodeDirsHonorXDGThenHomeDefaults(t *testing.T) {
+	cfg, data, err := realOpenCodeDirs("/home/u", func(string) string { return "" })
+	if err != nil || cfg != "/home/u/.config/opencode" || data != "/home/u/.local/share/opencode" {
+		t.Fatalf("defaults: %s %s %v", cfg, data, err)
+	}
+	env := map[string]string{"XDG_CONFIG_HOME": "/x/c", "XDG_DATA_HOME": "/x/d"}
+	cfg, data, err = realOpenCodeDirs("/home/u", func(k string) string { return env[k] })
+	if err != nil || cfg != "/x/c/opencode" || data != "/x/d/opencode" {
+		t.Fatalf("xdg: %s %s %v", cfg, data, err)
+	}
+	if _, _, err := realOpenCodeDirs("/home/u", func(k string) string {
+		if k == "XDG_DATA_HOME" {
+			return "relative"
+		}
+		return ""
+	}); err == nil {
+		t.Fatal("a relative XDG path must be rejected")
+	}
+}
+
+func TestWriteShadowOpenCodeConfigCarriesOnlyIsolatedEngramServer(t *testing.T) {
+	real := t.TempDir()
+	realConfig := `{"autoupdate":"notify","mcp":{"linear":{"type":"remote","url":"https://example.invalid/mcp"},"engram":{"command":["/opt/bin/engram","mcp","--tools=agent"],"enabled":true,"type":"local"}},"permission":{"bash":{"*":"allow"}},"plugin":["real-plugin"]}`
+	if err := os.WriteFile(filepath.Join(real, "opencode.json"), []byte(realConfig), 0600); err != nil {
+		t.Fatal(err)
+	}
+	shadow := t.TempDir()
+	if err := writeShadowOpenCodeConfig(shadow, real, "/out/engram-data"); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(shadow, "opencode.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cfg struct {
+		Mcp map[string]struct {
+			Type        string
+			Command     []string
+			Enabled     bool
+			Environment map[string]string
+		}
+	}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		t.Fatalf("shadow config is not JSON: %v", err)
+	}
+	e, ok := cfg.Mcp["engram"]
+	if len(cfg.Mcp) != 1 || !ok || e.Type != "local" || !e.Enabled || strings.Join(e.Command, " ") != "/opt/bin/engram mcp --tools=agent" {
+		t.Fatalf("unexpected engram server: %+v", cfg.Mcp)
+	}
+	if e.Environment["ENGRAM_DATA_DIR"] != "/out/engram-data" || e.Environment["ENGRAM_CLOUD_AUTOSYNC"] != "0" {
+		t.Fatalf("engram server is not pinned to the isolated store: %v", e.Environment)
+	}
+	for _, unwanted := range []string{"linear", "real-plugin", "permission", "autoupdate", "example.invalid"} {
+		if strings.Contains(string(b), unwanted) {
+			t.Fatalf("shadow config copied unrelated real configuration (%q)", unwanted)
+		}
+	}
+}
+
+func TestWriteShadowOpenCodeConfigFailsClearlyWithoutEngramServer(t *testing.T) {
+	real := t.TempDir()
+	if err := os.WriteFile(filepath.Join(real, "opencode.json"), []byte(`{"mcp":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeShadowOpenCodeConfig(t.TempDir(), real, "/out/engram-data"); err == nil {
+		t.Fatal("expected a missing Engram server definition to fail clearly")
+	}
+}
+
+func TestLinkOpenCodeAuthSymlinksRatherThanCopies(t *testing.T) {
+	realData := t.TempDir()
+	if err := os.WriteFile(filepath.Join(realData, "auth.json"), []byte(`{"token":"secret-value"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	shadowData := filepath.Join(t.TempDir(), ".local", "share", "opencode")
+	if err := linkOpenCodeAuth(shadowData, realData); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(shadowData, "auth.json")
+	if info, err := os.Lstat(link); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatal("expected a symlink, not a copy")
+	}
+	if dest, err := os.Readlink(link); err != nil || dest != filepath.Join(realData, "auth.json") {
+		t.Fatalf("wrong symlink target: %s", dest)
+	}
+	if err := linkOpenCodeAuth(t.TempDir(), t.TempDir()); err == nil {
+		t.Fatal("expected a clear error when the real auth.json is absent")
+	}
+}
+
+func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigAndAuthLink(t *testing.T) {
+	userHome := t.TempDir()
+	realCfg := filepath.Join(userHome, ".config", "opencode")
+	realData := filepath.Join(userHome, ".local", "share", "opencode")
+	for _, d := range []string{realCfg, realData} {
+		if err := os.MkdirAll(d, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	os.WriteFile(filepath.Join(realCfg, "opencode.json"), []byte(`{"mcp":{"engram":{"command":["engram","mcp"],"type":"local"}}}`), 0600)
+	os.WriteFile(filepath.Join(realData, "auth.json"), []byte(`{}`), 0600)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("XDG_DATA_HOME", "")
+	out, err := target.Canonical(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules A\n"), "A", out, "opencode", userHome)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantBlock := filepath.Join(out, "shadow-home", ".config", "opencode", "AGENTS.md")
+	if g.report.GuidanceBlockPath != wantBlock || g.report.GuidanceBlockHash == "absent" || g.report.FlowBuildSkillHash == "absent" {
+		t.Fatalf("report does not record the installed guidance: %+v", g.report)
+	}
+	if _, err := os.Stat(filepath.Join(out, "shadow-home", ".config", "opencode", "opencode.json")); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(g.authPath); err != nil || info.Mode()&os.ModeSymlink == 0 || g.authPath != filepath.Join(out, "shadow-home", ".local", "share", "opencode", "auth.json") {
+		t.Fatalf("auth link missing or misplaced: %s", g.authPath)
+	}
+	g.cleanup()
+	if _, err := os.Lstat(g.authPath); !os.IsNotExist(err) {
+		t.Fatal("auth symlink was not removed")
+	}
+	if !g.report.AuthSymlinkPreserved || g.report.AuthWarning != "" {
+		t.Fatalf("cleanup outcome not recorded: %+v", g.report)
 	}
 }
