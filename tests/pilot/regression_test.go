@@ -1124,7 +1124,7 @@ func TestCitedIDGlossedPromptDefinitions(t *testing.T) {
 		{"option-id-cited-glossed-passes", followupPrompt, "Con eso, D2-A (migrar de golpe) queda descartada.", "pass"},
 		{"same-prompt-empty-sees-nothing", "", "Con eso, D2-A queda descartada.", "not_observed"},
 		{"mid-line-mention-is-not-a-definition", followupPrompt, "Elegiste D1-B, anotado.", "not_observed"},
-		{"id-defined-again-by-the-assistant-is-not-a-citation", followupPrompt, "- D2-A: migrar de golpe, con riesgo alto.", "not_observed"},
+		{"restating-a-prompt-defined-id-at-line-start-is-a-glossed-citation", followupPrompt, "- D2-A: migrar de golpe, con riesgo alto.", "pass"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := result{Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", tc.text)}}}
@@ -1132,6 +1132,44 @@ func TestCitedIDGlossedPromptDefinitions(t *testing.T) {
 				t.Fatalf("got %s want %s", got, tc.want)
 			}
 		})
+	}
+}
+
+// A realistic change that breaks these: letting an assistant line-start
+// restatement of a prompt-defined ID move its definition into the current
+// message (the ID stops being a citation, the run turns not_observed, or a
+// bare citation later in the same message is wrongly excused).
+func TestCitedIDGlossedPromptDefinedIDRestatedByAssistant(t *testing.T) {
+	restated := "D2: ¿cuándo se reconstruye?\n- D2-A: al arrancar el servicio\n- D2-B: bajo demanda\n"
+	for _, tc := range []struct {
+		name string
+		text string
+		want string
+	}{
+		{"A-restated-then-bare-citation-fails", restated + "\nMe quedo con D2-A para esto.", "fail"},
+		{"B-restated-then-glossed-citation-passes", restated + "\nMe quedo con D2-A (al arrancar el servicio) para esto.", "pass"},
+		{"C-only-restated-is-observable-pass", restated, "pass"},
+		{"restated-then-bare-decision-id-fails", restated + "\nEso resuelve D2 por completo.", "fail"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", tc.text)}}}
+			if got := citedIDGlossedWithPrompt(r, followupPrompt).Status; got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+// A realistic change that breaks this: applying the prompt-defined rule to IDs
+// the assistant defines itself, or to an empty prompt.
+func TestCitedIDGlossedAssistantDefinedIDKeepsSameMessageRule(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		assistantText(1, "m1", "- Z1: hallazgo propio\n\nRevisa Z1 otra vez."),
+	}}}
+	for _, prompt := range []string{"", followupPrompt} {
+		if got := citedIDGlossedWithPrompt(r, prompt).Status; got != "not_observed" {
+			t.Fatalf("prompt %q: got %s want not_observed", prompt, got)
+		}
 	}
 }
 

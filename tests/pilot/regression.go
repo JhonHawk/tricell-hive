@@ -1399,17 +1399,6 @@ func citedIDGlossedWithPrompt(r result, prompt string) criterionAssessment {
 		}
 		sameMessageDefined[msg][token] = true
 	}
-	for _, u := range units {
-		for _, o := range scanIDOccurrences(u) {
-			flat = append(flat, o)
-			if o.isDef {
-				markDefined(u.message, o.occ.Token)
-				for _, member := range rangeMembers(o.occ) {
-					markDefined(u.message, member)
-				}
-			}
-		}
-	}
 	// `defined` is built incrementally below, in the same forward
 	// (trace-order) pass that also checks citations — /code-review H3: a
 	// token mentioned before its own (only) definition must not be read as
@@ -1419,6 +1408,7 @@ func citedIDGlossedWithPrompt(r result, prompt string) criterionAssessment {
 	// itself" depends only on message membership, not on which of a
 	// message's own occurrences comes first.
 	defined := map[string]string{}
+	promptDefined := map[string]bool{}
 	recordDefinition := func(token, msg string) {
 		if _, ok := defined[token]; !ok {
 			defined[token] = msg
@@ -1428,16 +1418,50 @@ func citedIDGlossedWithPrompt(r result, prompt string) criterionAssessment {
 		promptUnit := idScanUnit{message: "prompt@case", text: maskCodeSpans(prompt), isAssistant: true}
 		for _, o := range scanIDOccurrences(promptUnit) {
 			if o.isDef {
+				promptDefined[o.occ.Token] = true
 				recordDefinition(o.occ.Token, promptUnit.message)
 				for _, member := range rangeMembers(o.occ) {
+					promptDefined[member] = true
 					recordDefinition(member, promptUnit.message)
+				}
+			}
+		}
+	}
+	isPromptDefined := func(o idOccurrence) bool {
+		if promptDefined[o.Token] {
+			return true
+		}
+		for _, ep := range o.Endpoint {
+			if promptDefined[ep] {
+				return true
+			}
+		}
+		return false
+	}
+	for _, u := range units {
+		for _, o := range scanIDOccurrences(u) {
+			flat = append(flat, o)
+			if o.isDef && !(u.isAssistant && len(promptDefined) > 0 && isPromptDefined(o.occ)) {
+				markDefined(u.message, o.occ.Token)
+				for _, member := range rangeMembers(o.occ) {
+					markDefined(u.message, member)
 				}
 			}
 		}
 	}
 	observed := false
 	for _, f := range flat {
-		if f.isDef {
+		// A prompt-defined ID restated by the assistant stays defined by the
+		// prompt: a restatement at a definition position is a glossed citation
+		// (its line carries the meaning) and must not excuse the ID's other
+		// occurrences in this message, which keep the plain gloss check.
+		if f.unit.isAssistant && len(promptDefined) > 0 && isPromptDefined(f.occ) {
+			if f.isDef {
+				observed = true
+				continue
+			}
+			f.glossed = glossedAt(f.unit.text, f.occ.End)
+		} else if f.isDef {
 			recordDefinition(f.occ.Token, f.unit.message)
 			for _, member := range rangeMembers(f.occ) {
 				recordDefinition(member, f.unit.message)
