@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +24,9 @@ import (
 // is not in providers.Catalog, because Hive never offers to install it, so its
 // source is fixed here (Context7 resolves the library to /vercel-labs/agent-browser).
 const agentBrowserSource = "github.com/vercel-labs/agent-browser"
+
+// piCodemodeSource is Pi's own documentation of how to enable codemode.
+const piCodemodeSource = "github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/cli.md#enable-codemode"
 
 // context7Command is the one vendor command Hive has verified (see "Optional
 // Context7 setup recommendation" in deployment-manager.md); hive setup prints
@@ -137,10 +141,26 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 		rec.apply(r, recErr)
 	}
 	browser.Record, browser.RecordDetail = recordNotTracked, "Not part of onboarding: Hive does not offer this tool."
-	for _, r := range []*integrationRow{&engram, &ctx7, &pi, &browser} {
-		r.Next = nextStep(*r)
+	rows = []integrationRow{engram, ctx7, pi}
+	// The Pi codemode row is built from constants only: it is neither in the
+	// catalog nor in the onboarding record, and it never reads Pi's
+	// configuration. Hive's own state decides whether Pi is registered; if
+	// that cannot be read, the informative row still shows.
+	hosts, hostsErr := management.RegisteredHosts(o)
+	if hostsErr != nil || slices.Contains(hosts, "pi") {
+		rows = append(rows, integrationRow{
+			ID: "pi-codemode", Name: "Pi codemode", Found: "not checked",
+			Evidence:     []string{"Not checked: finding it would mean reading Pi's configuration, which Hive does not do."},
+			Record:       recordNotTracked,
+			RecordDetail: "Not part of onboarding: Hive does not configure Pi's tools.",
+			Source:       piCodemodeSource,
+		})
 	}
-	return []integrationRow{engram, ctx7, pi, browser}, errText
+	rows = append(rows, browser)
+	for i := range rows {
+		rows[i].Next = nextStep(rows[i])
+	}
+	return rows, errText
 }
 
 // fillSourceFromCatalog copies the official source from providers.Catalog. The
@@ -171,8 +191,10 @@ var recordSentences = map[string]string{
 // nextStep says what to do about one row, from what Hive found locally and what
 // the last record says. The row's Record is already set. Hive does not install
 // or configure any of these tools, so the steps point to the official source;
-// the only command is Context7's. The Source line is printed right above the
-// step, so the step says "see Source above" instead of repeating the address.
+// the only command is Context7's. The Pi codemode step names a line for Pi's
+// own settings file and Pi's /reload, which are not Hive commands. The Source
+// line is printed right above the step, so the step says "see Source above"
+// instead of repeating the address.
 func nextStep(r integrationRow) string {
 	var step string
 	switch r.ID {
@@ -182,6 +204,8 @@ func nextStep(r integrationRow) string {
 		step = engramNextStep(r.Found)
 	case string(providers.PiSubagents):
 		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see Source above for the official instructions."
+	case "pi-codemode":
+		step = `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
 	default:
 		step = agentBrowserNextStep(r.Found)
 	}
