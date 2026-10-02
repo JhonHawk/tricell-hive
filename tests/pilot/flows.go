@@ -634,6 +634,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 		if f.ID == "close-sequence" {
 			allowed = p == "src/greeting.ts" || p == "tests/greeting.test.ts" || strings.HasPrefix(p, ".git/")
 		}
+		if questionFlowCase(f.ID) {
+			allowed = allowed || strings.HasPrefix(p, ".git/")
+		}
 		if !allowed {
 			unexpected = append(unexpected, p)
 		}
@@ -817,7 +820,15 @@ func assessFlows(r result, f fixture, files string) assessment {
 	// report-readability's cited_id_glossed and no_bare_url, and
 	// backlog-report-scope's ticket_ids_not_packed_in_prose) apply to every
 	// flows case, not only the ones needing source reads above.
-	a.Criteria = append(a.Criteria, regressionCriteria(r)...)
+	for _, c := range regressionCriteria(r) {
+		if c.Criterion == "cited_id_glossed" {
+			c = citedIDGlossedWithPrompt(r, f.Prompt)
+		}
+		a.Criteria = append(a.Criteria, c)
+	}
+	if questionFlowCase(f.ID) {
+		a.Criteria = append(a.Criteria, noExecutionPrepOnQuestion(r))
+	}
 	fail, unknown := false, false
 	for _, c := range a.Criteria {
 		fail = fail || c.Status == "fail"
@@ -943,4 +954,126 @@ func closeSequenceCleanupLabel(r result) criterionAssessment {
 		c.Status = "fail"
 	}
 	return c
+}
+
+// questionCaseProtectedFiles are the fixture files a question-only prompt
+// must leave untouched: a single-prompt run cannot show a prior confirmation.
+var questionCaseProtectedFiles = []string{"BACKLOG.md", "data/orders.json"}
+
+func questionFlowCase(id string) bool {
+	return id == "question-worktree" || id == "question-fix-record"
+}
+
+// noExecutionPrepOnQuestion is C1 (no_execution_prep_on_question) for the
+// question cases: the user only asked whether work could be done, so the run
+// must not create a branch or worktree, move the ticket or edit the record.
+// It fails on an attempted `git worktree add`, `git checkout -b`/`-B`,
+// `git switch -c`/`-C`, or `git branch <name>` (listing and deletion forms
+// excepted), counting the attempt even when the command failed; on a new
+// ref under .git/refs/heads/, a changed .git/HEAD or a new .git/worktrees/
+// entry; and on any change to a protected fixture file. Other .git/ changes,
+// such as .git/index, are ignored. Evidence never includes command text.
+func noExecutionPrepOnQuestion(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "no_execution_prep_on_question", Status: "pass"}
+	for _, e := range r.Trace.Events {
+		if e.Kind != "shell" {
+			continue
+		}
+		for _, args := range shellSegments(e.Command, 0) {
+			isGit, sub, _ := gitInvocation(args, r.Cwd)
+			if isGit && sub < len(args) && createsBranchOrWorktree(args[sub], args[sub+1:]) {
+				c.Status = "fail"
+				c.Evidence = append(c.Evidence, regressionEvidence(e))
+			}
+		}
+	}
+	paths := []string{}
+	for p, after := range r.After {
+		p = filepath.ToSlash(p)
+		before, existed := r.Before[p]
+		switch {
+		case strings.HasPrefix(p, ".git/refs/heads/"), strings.HasPrefix(p, ".git/worktrees/"):
+			if !existed {
+				paths = append(paths, p)
+			}
+		case p == ".git/HEAD":
+			if existed && before != after {
+				paths = append(paths, p)
+			}
+		}
+	}
+	for _, p := range questionCaseProtectedFiles {
+		before, existed := r.Before[p]
+		after, exists := r.After[p]
+		if existed != exists || before != after {
+			paths = append(paths, p)
+		}
+	}
+	if _, ok := r.Before[".git/HEAD"]; ok {
+		if _, ok = r.After[".git/HEAD"]; !ok {
+			paths = append(paths, ".git/HEAD")
+		}
+	}
+	sort.Strings(paths)
+	if len(paths) > 0 {
+		c.Status = "fail"
+		c.Evidence = append(c.Evidence, paths...)
+	}
+	return c
+}
+
+// branchNonCreationFlags are `git branch` options whose presence means the
+// invocation lists, deletes, renames or edits rather than creating a branch.
+var branchNonCreationFlags = map[string]bool{
+	"-l": true, "--list": true, "-a": true, "--all": true, "-r": true, "--remotes": true,
+	"--show-current": true, "-v": true, "-vv": true, "--verbose": true,
+	"--contains": true, "--no-contains": true, "--merged": true, "--no-merged": true, "--points-at": true,
+	"-d": true, "-D": true, "--delete": true, "-m": true, "-M": true, "--move": true,
+	"-c": true, "-C": true, "--copy": true, "--edit-description": true,
+	"--unset-upstream": true, "-u": true, "--set-upstream-to": true,
+}
+
+func createsBranchOrWorktree(sub string, rest []string) bool {
+	switch sub {
+	case "worktree":
+		for _, a := range rest {
+			if !strings.HasPrefix(a, "-") {
+				return a == "add"
+			}
+		}
+	case "checkout", "switch":
+		for _, a := range rest {
+			if a == "--" {
+				return false
+			}
+			if strings.HasPrefix(a, "--") {
+				if sub == "switch" && (a == "--create" || a == "--force-create") || strings.HasPrefix(a, "--orphan") {
+					return true
+				}
+				continue
+			}
+			if strings.HasPrefix(a, "-") {
+				letters := "bB"
+				if sub == "switch" {
+					letters = "cC"
+				}
+				if strings.ContainsAny(a[1:], letters) {
+					return true
+				}
+			}
+		}
+	case "branch":
+		positional := false
+		for _, a := range rest {
+			name, _, _ := strings.Cut(a, "=")
+			if branchNonCreationFlags[name] || strings.HasPrefix(a, "--sort") || strings.HasPrefix(a, "--format") {
+				return false
+			}
+			if !strings.HasPrefix(a, "-") {
+				positional = true
+			}
+		}
+		return positional
+	}
+	return false
 }

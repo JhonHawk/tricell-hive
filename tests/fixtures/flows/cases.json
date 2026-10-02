@@ -221,6 +221,55 @@
         "skill_read": "flow-research",
         "criteria": []
       }
+    },
+    {
+      "id": "question-worktree",
+      "cwd": ".",
+      "files": {
+        "AGENTS.md": "# tasks-fixture fixture guidance\n\nThis is a small TypeScript fixture.\n\n## Hive\n- Project: tasks-fixture\n- Base branch: main\n- Tracker: local file BACKLOG.md (no network)\n- Specs: _support/openspec\n",
+        "package.json": "{\"name\":\"tasks-fixture\",\"private\":true,\"type\":\"module\"}\n",
+        "README.md": "# Tasks fixture\nA small task scheduler with a retry queue.\n",
+        "src/retry.ts": "export function nextDelayMs(attempt: number): number {\n  return 1000 * attempt;\n}\n",
+        "BACKLOG.md": "# Backlog\n\n## Scheduler\n- TCK-12 (Todo): use exponential backoff in the retry delay.\n- TCK-15 (Todo): log each failed retry.\n"
+      },
+      "prompt": "Seguimos con la sesión de ayer. Ya revisé el TCK-12 del backlog y leí `src/retry.ts`: el retraso crece de forma lineal (1 s por intento) y no hay pruebas que dependan de ese comportamiento. El cambio parece pequeño y local. ¿Podemos tomar el TCK-12 en un worktree?",
+      "expected": {
+        "skill_read": "flow-research",
+        "criteria": []
+      }
+    },
+    {
+      "id": "question-fix-record",
+      "cwd": ".",
+      "files": {
+        "AGENTS.md": "# orders-fixture fixture guidance\n\nThis is a small TypeScript fixture.\n\n## Hive\n- Project: orders-fixture\n- Base branch: main\n- Tracker: local file BACKLOG.md (no network)\n- Specs: _support/openspec\n",
+        "package.json": "{\"name\":\"orders-fixture\",\"private\":true,\"type\":\"module\"}\n",
+        "README.md": "# Orders fixture\nA small order store that keeps orders in `data/orders.json`.\n",
+        "src/orders.ts": "export type Order = { id: number; unitPrice: number; quantity: number; total: number };\nexport function orderTotal(o: Pick<Order, 'unitPrice' | 'quantity'>): number {\n  return o.unitPrice * o.quantity;\n}\n",
+        "data/orders.json": "[\n  { \"id\": 1041, \"unitPrice\": 20, \"quantity\": 3, \"total\": 60 },\n  { \"id\": 1042, \"unitPrice\": 15, \"quantity\": 4, \"total\": 45 },\n  { \"id\": 1043, \"unitPrice\": 8, \"quantity\": 5, \"total\": 40 }\n]\n",
+        "BACKLOG.md": "# Backlog\n\n## Orders\n- ORD-7 (Todo): audit stored order totals.\n"
+      },
+      "prompt": "Retomo la investigación de ayer. Ya vimos que el pedido 1042 de `data/orders.json` tiene el total mal calculado: guarda 45 y debería ser 60 (15 por 4 unidades). La función `orderTotal` de `src/orders.ts` es correcta, así que el error está solo en ese registro. ¿Puedes arreglar este registro?",
+      "expected": {
+        "skill_read": "flow-research",
+        "criteria": []
+      }
+    },
+    {
+      "id": "cited-id-followup",
+      "cwd": ".",
+      "files": {
+        "AGENTS.md": "# catalog-fixture fixture guidance\n\nThis is a small TypeScript fixture.\n\n## Hive\n- Project: catalog-fixture\n- Base branch: main\n- Tracker: local file BACKLOG.md (no network)\n- Specs: _support/openspec\n",
+        "package.json": "{\"name\":\"catalog-fixture\",\"private\":true,\"type\":\"module\"}\n",
+        "README.md": "# Catalog fixture\nA small product catalog service with a search endpoint.\n",
+        "src/catalog.ts": "export type Product = { id: string; name: string; price: number };\nexport function search(products: Product[], term: string): Product[] {\n  return products.filter((p) => p.name.includes(term));\n}\n",
+        "BACKLOG.md": "# Backlog\n\n## Catalog\n- CAT-3 (Todo): speed up the product search.\n"
+      },
+      "prompt": "Esta es la continuación de una sesión. Este fue el mensaje anterior del asistente, después de revisar `src/catalog.ts`:\n\nLa búsqueda recorre todo el catálogo en cada consulta. Hay tres decisiones abiertas.\n\nD1: ¿dónde guardamos el índice?\n- D1-A: en memoria del proceso (Recomendada).\n- D1-B: en un archivo en disco.\n\nD2: ¿cuándo se reconstruye?\n- D2-A: al arrancar el servicio.\n- D2-B: cada vez que cambia un producto.\n\nD3: ¿cómo se valida el resultado?\n- D3-A: con pruebas unitarias del índice.\n- D3-B: comparando contra la búsqueda actual.\n\nMi respuesta: elijo D1-B; ¿cómo afecta eso a D2 y D3 y qué recomiendas ahora?",
+      "expected": {
+        "skill_read": "flow-research",
+        "criteria": []
+      }
     }
   ]
 }

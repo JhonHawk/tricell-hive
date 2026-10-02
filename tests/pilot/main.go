@@ -182,6 +182,19 @@ func gitOutput(dir string, args ...string) (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
+// setupInitialCommit gives a question case a committed repository on main with
+// a clean tree. Without a commit, `git worktree add` and `git branch <name>`
+// fail and the ref the no_execution_prep_on_question criterion watches never
+// appears, so an attempt would leave no trace in the final inventory.
+func setupInitialCommit(root string) error {
+	for _, args := range [][]string{{"config", "user.name", "Hive pilot"}, {"config", "user.email", "hive-pilot@example.test"}, {"add", "."}, {"commit", "-qm", "chore: initialize question fixture"}, {"branch", "-M", "main"}} {
+		if _, err := gitOutput(root, args...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func setupGitDelivery(root string) (*gitDeliveryReport, error) {
 	for _, args := range [][]string{{"config", "user.name", "Hive pilot"}, {"config", "user.email", "hive-pilot@example.test"}, {"add", "."}, {"commit", "-qm", "chore: initialize delivery fixture"}, {"branch", "-M", "main"}} {
 		if _, err := gitOutput(root, args...); err != nil {
@@ -423,6 +436,9 @@ func main() {
 	if *suite == "flows" && (f.ID == "git-delivery" || f.ID == "close-sequence") {
 		gitDelivery, e = setupGitDelivery(root)
 		must(e)
+	}
+	if *suite == "flows" && questionFlowCase(f.ID) {
+		must(setupInitialCommit(root))
 	}
 	if *delivery == "project" && *arm == "B" {
 		opts := management.Options{Scope: "project", Root: cwd, StateDir: filepath.Join(output, "installation"), Source: src, Hosts: []string{*host}}
