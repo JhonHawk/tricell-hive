@@ -469,6 +469,44 @@ func writeShadowOpenCodeConfig(shadowConfigDir, realConfigDir, engramDataDir str
 	return os.WriteFile(filepath.Join(shadowConfigDir, "opencode.json"), out, 0600)
 }
 
+// checkOpenCodeOutputOutsideHome guards the isolation of an OpenCode variant
+// run. Observed on OpenCode v2.0.22 with a shadow HOME: when the working
+// directory sits under the real home, OpenCode also watches and loads the real
+// ~/.claude/skills, ~/.agents/skills and ~/.opencode/skill(s) (smoke run 3
+// loaded flow-research from the real ~/.agents/skills); with the same shadow
+// home and a working directory outside the real home only the shadow's paths
+// appear. HOME, OPENCODE_TEST_HOME and the XDG variables do not change this,
+// and OPENCODE_DISABLE_PROJECT_CONFIG=1 would also drop the fixture's own
+// AGENTS.md, so the supported fix is to keep --out outside the real home.
+func checkOpenCodeOutputOutsideHome(output, userHome string) error {
+	out, err := filepath.Abs(output)
+	if err != nil {
+		return err
+	}
+	// Resolve symlinks through the nearest existing ancestor: --out may not exist yet.
+	existing, rest := out, ""
+	for {
+		if resolved, err := filepath.EvalSymlinks(existing); err == nil {
+			out = filepath.Join(resolved, rest)
+			break
+		}
+		parent := filepath.Dir(existing)
+		if parent == existing {
+			break
+		}
+		rest = filepath.Join(filepath.Base(existing), rest)
+		existing = parent
+	}
+	home := userHome
+	if resolved, err := filepath.EvalSymlinks(userHome); err == nil {
+		home = resolved
+	}
+	if under(out, home) {
+		return fmt.Errorf("--out %s is under the real home %s: OpenCode would load the real home's skills into this variant run; use an --out directory outside %s (for example under /tmp)", output, userHome, userHome)
+	}
+	return nil
+}
+
 // openCodeIntegration returns the integration (provider) ID in an OpenCode
 // model such as "opencode-go/deepseek-v4.1-flash#max".
 func openCodeIntegration(model string) (string, error) {
@@ -528,6 +566,11 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 // installs source's guidance into it for host, records the read-path hashes,
 // and for Codex prepares its config.toml and auth symlink.
 func setupGuidanceVariant(source, arm, output, host, userHome, model string) (*guidanceVariant, error) {
+	if host == "opencode" {
+		if err := checkOpenCodeOutputOutsideHome(output, userHome); err != nil {
+			return nil, err
+		}
+	}
 	shadowHome := filepath.Join(output, "shadow-home")
 	if err := os.MkdirAll(shadowHome, 0700); err != nil {
 		return nil, err

@@ -176,7 +176,11 @@ runner pipes `opencode auth export <provider>` (the provider taken from
 never read, printed or logged. Because the shadow `opencode.db` then holds that
 copy, it and its WAL/SHM files are deleted at the end of the run (and on an
 abnormal exit), recorded as `ShadowCredentialDBRemoved` in `run.json`. `--model`
-is therefore required to be `provider/model` for this host. The isolated Engram store from the existing
+is therefore required to be `provider/model` for this host. For OpenCode, `--out` must also be outside the real home directory (for
+example under `/tmp`): with a working directory under the real home, OpenCode
+v2.0.22 also loads that home's `~/.claude/skills`, `~/.agents/skills` and
+`~/.opencode/skill(s)` despite the shadow `HOME`, so the runner refuses such an
+`--out` for this variant. The isolated Engram store from the existing
 per-run lifecycle is unaffected: the shadow home is applied before its HTTP
 server starts, so `ENGRAM_DATA_DIR` keeps precedence inside it.
 

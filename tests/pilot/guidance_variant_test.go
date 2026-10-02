@@ -603,3 +603,27 @@ func TestCopyOpenCodeModelCatalogCopiesRatherThanLinks(t *testing.T) {
 		t.Fatal("expected a clear error when the real models.json is missing")
 	}
 }
+
+func TestOpenCodeOutputMustBeOutsideRealHome(t *testing.T) {
+	home := t.TempDir()
+	if err := checkOpenCodeOutputOutsideHome(filepath.Join(home, "runs", "r1"), home); err == nil {
+		t.Fatal("an output directory under the real home must be rejected: OpenCode would load the real home's skills")
+	}
+	if err := checkOpenCodeOutputOutsideHome(home, home); err == nil {
+		t.Fatal("the real home itself must be rejected")
+	}
+	if err := checkOpenCodeOutputOutsideHome(t.TempDir(), home); err != nil {
+		t.Fatalf("an output directory outside the real home is valid: %v", err)
+	}
+}
+
+func TestSetupGuidanceVariantOpenCodeRejectsOutputUnderRealHomeBeforeWriting(t *testing.T) {
+	userHome := t.TempDir()
+	out := filepath.Join(userHome, "runs", "r1")
+	if _, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules\n"), "A", out, "opencode", userHome, "opencode-go/m"); err == nil {
+		t.Fatal("expected a rejection")
+	}
+	if _, err := os.Stat(filepath.Join(out, "shadow-home")); !os.IsNotExist(err) {
+		t.Fatal("nothing may be written before the isolation check")
+	}
+}
