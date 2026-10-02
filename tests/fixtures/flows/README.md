@@ -166,7 +166,8 @@ cache directories default under `HOME`; inherited `XDG_*_HOME`,
 `OPENCODE_CONFIG` and `OPENCODE_CONFIG_DIR` are dropped), a minimal generated
 `opencode.json` holding just the Engram MCP server pinned to the run's isolated
 store (the user's real plugins, other MCP servers and permissions are not
-loaded), skills from `$HOME/.agents/skills`, and `auth.json` as a symlink with
+loaded), skills from `$HOME/.agents/skills`, and `auth.json` as a symlink, a copy of the real cache's `models.json` model
+catalog (never a link), with
 the same end-of-run cleanup and warning as Codex (recorded as
 `AuthSymlinkPreserved`/`AuthWarning`). The isolated Engram store from the existing
 per-run lifecycle is unaffected: the shadow home is applied before its HTTP

@@ -397,6 +397,34 @@ func realOpenCodeDirs(userHome string, getenv func(string) string) (config, data
 	return config, data, nil
 }
 
+// realOpenCodeCacheDir resolves OpenCode's real cache directory like
+// realOpenCodeDirs: XDG_CACHE_HOME when set, else ~/.cache/opencode.
+func realOpenCodeCacheDir(userHome string, getenv func(string) string) (string, error) {
+	base := getenv("XDG_CACHE_HOME")
+	if base == "" {
+		return filepath.Join(userHome, ".cache", "opencode"), nil
+	}
+	if !filepath.IsAbs(base) {
+		return "", fmt.Errorf("XDG_CACHE_HOME must be an absolute path")
+	}
+	return filepath.Join(base, "opencode"), nil
+}
+
+// copyOpenCodeModelCatalog copies (never links, so the run cannot modify the
+// real cache) the real cache's models.json, the models.dev catalog snapshot,
+// into the shadow cache. Without it a shadow run fails with provider.no-route
+// "Model unavailable". The file is a public catalog, not a credential.
+func copyOpenCodeModelCatalog(shadowCacheDir, realCacheDir string) error {
+	data, err := os.ReadFile(filepath.Join(realCacheDir, "models.json"))
+	if err != nil {
+		return fmt.Errorf("real OpenCode model catalog models.json unavailable: %w", err)
+	}
+	if err := os.MkdirAll(shadowCacheDir, 0700); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(shadowCacheDir, "models.json"), data, 0600)
+}
+
 // writeShadowOpenCodeConfig generates a minimal shadow opencode.json carrying
 // only the real mcp.engram server's launch command, pinned to the run's
 // isolated Engram store through the server's own environment. No other key of
@@ -498,6 +526,13 @@ func setupGuidanceVariant(source, arm, output, host, userHome string) (*guidance
 			return nil, err
 		}
 		g.authPath = filepath.Join(shadowData, "auth.json")
+		realCache, err := realOpenCodeCacheDir(userHome, os.Getenv)
+		if err != nil {
+			return nil, err
+		}
+		if err := copyOpenCodeModelCatalog(filepath.Join(shadowHome, ".cache", "opencode"), realCache); err != nil {
+			return nil, err
+		}
 	}
 	return g, nil
 }

@@ -469,6 +469,9 @@ func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigAndAuthLink(t *testin
 	os.WriteFile(filepath.Join(realData, "auth.json"), []byte(`{}`), 0600)
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("XDG_DATA_HOME", "")
+	t.Setenv("XDG_CACHE_HOME", "")
+	os.MkdirAll(filepath.Join(userHome, ".cache", "opencode"), 0700)
+	os.WriteFile(filepath.Join(userHome, ".cache", "opencode", "models.json"), []byte(`{}`), 0600)
 	out, err := target.Canonical(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -487,11 +490,54 @@ func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigAndAuthLink(t *testin
 	if info, err := os.Lstat(g.authPath); err != nil || info.Mode()&os.ModeSymlink == 0 || g.authPath != filepath.Join(out, "shadow-home", ".local", "share", "opencode", "auth.json") {
 		t.Fatalf("auth link missing or misplaced: %s", g.authPath)
 	}
+	if _, err := os.Stat(filepath.Join(out, "shadow-home", ".cache", "opencode", "models.json")); err != nil {
+		t.Fatal("model catalog was not copied into the shadow cache")
+	}
 	g.cleanup()
 	if _, err := os.Lstat(g.authPath); !os.IsNotExist(err) {
 		t.Fatal("auth symlink was not removed")
 	}
 	if !g.report.AuthSymlinkPreserved || g.report.AuthWarning != "" {
 		t.Fatalf("cleanup outcome not recorded: %+v", g.report)
+	}
+}
+
+func TestRealOpenCodeCacheDirHonorsXDGThenHomeDefault(t *testing.T) {
+	if d, err := realOpenCodeCacheDir("/home/u", func(string) string { return "" }); err != nil || d != "/home/u/.cache/opencode" {
+		t.Fatalf("default: %s %v", d, err)
+	}
+	if d, err := realOpenCodeCacheDir("/home/u", func(string) string { return "/x/cache" }); err != nil || d != "/x/cache/opencode" {
+		t.Fatalf("xdg: %s %v", d, err)
+	}
+	if _, err := realOpenCodeCacheDir("/home/u", func(string) string { return "rel" }); err == nil {
+		t.Fatal("a relative XDG_CACHE_HOME must be rejected")
+	}
+}
+
+func TestCopyOpenCodeModelCatalogCopiesRatherThanLinks(t *testing.T) {
+	realCache := t.TempDir()
+	if err := os.WriteFile(filepath.Join(realCache, "models.json"), []byte(`{"catalog":1}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	shadowCache := filepath.Join(t.TempDir(), ".cache", "opencode")
+	if err := copyOpenCodeModelCatalog(shadowCache, realCache); err != nil {
+		t.Fatal(err)
+	}
+	dst := filepath.Join(shadowCache, "models.json")
+	info, err := os.Lstat(dst)
+	if err != nil || !info.Mode().IsRegular() {
+		t.Fatalf("expected a regular copy: %v", err)
+	}
+	if b, _ := os.ReadFile(dst); string(b) != `{"catalog":1}` {
+		t.Fatalf("copy differs: %s", b)
+	}
+	if err := os.WriteFile(dst, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(realCache, "models.json")); string(b) != `{"catalog":1}` {
+		t.Fatal("writing the copy modified the real cache")
+	}
+	if err := copyOpenCodeModelCatalog(t.TempDir(), t.TempDir()); err == nil {
+		t.Fatal("expected a clear error when the real models.json is missing")
 	}
 }
