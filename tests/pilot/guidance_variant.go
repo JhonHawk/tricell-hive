@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/grok"
 	"tricell-hive/integrations/opencode"
@@ -29,10 +32,9 @@ type guidanceVariantReport struct {
 	FlowBuildSkillPath, FlowBuildSkillHash string
 	CodexAuthSymlinkPreserved              bool   `json:",omitempty"`
 	CodexAuthWarning                       string `json:",omitempty"`
-	// AuthSymlinkPreserved and AuthWarning are the OpenCode counterparts of the
-	// Codex fields above, kept apart so Codex's existing run.json shape is unchanged.
-	AuthSymlinkPreserved bool   `json:",omitempty"`
-	AuthWarning          string `json:",omitempty"`
+	// ShadowCredentialDBRemoved records that the OpenCode shadow database, which
+	// holds a copy of one imported credential, was deleted at the end of the run.
+	ShadowCredentialDBRemoved bool `json:",omitempty"`
 }
 
 // guidanceVariant is the runtime handle a single run keeps for its shadow
@@ -43,7 +45,8 @@ type guidanceVariant struct {
 	shadowHome   string
 	host         string
 	realGrokHome string
-	authPath     string // empty unless host == "codex" or "opencode"
+	authPath     string // empty unless host == "codex"
+	credentialDB string // empty unless host == "opencode": shadow opencode.db holding the imported credential
 }
 
 // validateGuidanceVariantFlags is main()'s pure guard for --guidance-source
@@ -466,17 +469,65 @@ func writeShadowOpenCodeConfig(shadowConfigDir, realConfigDir, engramDataDir str
 	return os.WriteFile(filepath.Join(shadowConfigDir, "opencode.json"), out, 0600)
 }
 
-// linkOpenCodeAuth symlinks (never copies) the real OpenCode data directory's
-// auth.json into the shadow data directory.
-func linkOpenCodeAuth(shadowDataDir, realDataDir string) error {
-	return linkAuthFile(shadowDataDir, realDataDir, "OpenCode")
+// openCodeIntegration returns the integration (provider) ID in an OpenCode
+// model such as "opencode-go/deepseek-v4.1-flash#max".
+func openCodeIntegration(model string) (string, error) {
+	id, _, ok := strings.Cut(model, "/")
+	if !ok || id == "" {
+		return "", fmt.Errorf("OpenCode guidance variants need --model provider/model, got %q", model)
+	}
+	return id, nil
+}
+
+// importOpenCodeCredential gives the shadow home the one credential its model
+// needs. OpenCode v2 keeps credentials in its SQLite database and imports the
+// legacy auth.json only in a v1-to-v2 migration, which a fresh shadow database
+// never runs (observed: auth.json symlinked, credential table empty, run fails
+// with provider.no-route). So `auth export <integration>` against the real
+// install (read-only, default service) is piped straight into `auth import
+// --standalone` under the shadow home. The credential only ever travels through
+// that pipe: it is never read, logged or put in an error, and both commands'
+// output is discarded.
+func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integration string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	export := exec.CommandContext(ctx, "opencode", "auth", "export", integration)
+	export.Env = parentEnv
+	imp := exec.CommandContext(ctx, "opencode", "auth", "import", "--standalone")
+	imp.Env = g.applyEnvironment(parentEnv)
+	r, w, err := os.Pipe()
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	export.Stdout = w
+	imp.Stdin = r
+	if err := export.Start(); err != nil {
+		w.Close()
+		return fmt.Errorf("start OpenCode credential export: %w", err)
+	}
+	w.Close()
+	if err := imp.Start(); err != nil {
+		cancel()
+		export.Wait()
+		return fmt.Errorf("start OpenCode credential import: %w", err)
+	}
+	exportErr := export.Wait()
+	importErr := imp.Wait()
+	if exportErr != nil {
+		return fmt.Errorf("OpenCode credential export for %q failed: %v", integration, exportErr)
+	}
+	if importErr != nil {
+		return fmt.Errorf("OpenCode credential import into the shadow home failed: %v", importErr)
+	}
+	return nil
 }
 
 // setupGuidanceVariant is the top-level orchestration for design.md's
 // "Piloto con el runner" steps 1-2: it creates the run's shadow home,
 // installs source's guidance into it for host, records the read-path hashes,
 // and for Codex prepares its config.toml and auth symlink.
-func setupGuidanceVariant(source, arm, output, host, userHome string) (*guidanceVariant, error) {
+func setupGuidanceVariant(source, arm, output, host, userHome, model string) (*guidanceVariant, error) {
 	shadowHome := filepath.Join(output, "shadow-home")
 	if err := os.MkdirAll(shadowHome, 0700); err != nil {
 		return nil, err
@@ -511,21 +562,26 @@ func setupGuidanceVariant(source, arm, output, host, userHome string) (*guidance
 	case "grok":
 		g.realGrokHome = envRoot("GROK_HOME", filepath.Join(userHome, ".grok"))
 	case "opencode":
-		realConfig, realData, err := realOpenCodeDirs(userHome, os.Getenv)
+		realConfig, _, err := realOpenCodeDirs(userHome, os.Getenv)
+		if err != nil {
+			return nil, err
+		}
+		integration, err := openCodeIntegration(model)
 		if err != nil {
 			return nil, err
 		}
 		// Mirrors the shadow layout `opencode debug paths` reports under a
 		// shadowed HOME with no XDG overrides.
 		shadowConfig := filepath.Join(shadowHome, ".config", "opencode")
-		shadowData := filepath.Join(shadowHome, ".local", "share", "opencode")
 		if err := writeShadowOpenCodeConfig(shadowConfig, realConfig, filepath.Join(output, "engram-data")); err != nil {
 			return nil, err
 		}
-		if err := linkOpenCodeAuth(shadowData, realData); err != nil {
+		// Set before the import so cleanup also removes a partial database.
+		g.credentialDB = filepath.Join(shadowHome, ".local", "share", "opencode", "opencode.db")
+		if err := importOpenCodeCredential(g, os.Environ(), integration); err != nil {
+			g.cleanup()
 			return nil, err
 		}
-		g.authPath = filepath.Join(shadowData, "auth.json")
 		realCache, err := realOpenCodeCacheDir(userHome, os.Getenv)
 		if err != nil {
 			return nil, err
@@ -575,11 +631,18 @@ func (g *guidanceVariant) applyEnvironment(env []string) []string {
 // shadow auth"), guarding against a renewed token left as a plain file, and
 // records the outcome onto the report the caller re-embeds into run.json.
 func (g *guidanceVariant) cleanup() {
-	if g == nil || g.authPath == "" {
+	if g == nil {
 		return
 	}
-	if g.host == "opencode" {
-		g.report.AuthSymlinkPreserved, g.report.AuthWarning = cleanupAuthSymlink(g.authPath, "OpenCode replaced the shadow auth.json symlink with a regular file during this run; it was deleted without being read. If OpenCode authentication now fails, log in again to renew the real credential.")
+	if g.credentialDB != "" {
+		// The database and its WAL/shared-memory sidecars hold the credential copy.
+		for _, suffix := range []string{"", "-wal", "-shm"} {
+			if err := os.Remove(g.credentialDB + suffix); err == nil && suffix == "" {
+				g.report.ShadowCredentialDBRemoved = true
+			}
+		}
+	}
+	if g.authPath == "" {
 		return
 	}
 	stillSymlink, warning := verifyAndCleanupAuthSymlink(g.authPath)

@@ -147,8 +147,8 @@ either flag with any other host fails clearly. Neither flag changes
 Per run, the shadow home lives at `<out>/shadow-home` and never touches the
 real user home beyond a read of its Codex `auth.json`/`config.toml`
 ([mcp_servers.engram] launch definition only) when `--host codex`, or of
-OpenCode's `auth.json` and the `mcp.engram` launch command in its
-`opencode.json` when `--host opencode`. `run.json`
+the `mcp.engram` launch command in OpenCode's `opencode.json`, its model
+catalog and one exported credential when `--host opencode`. `run.json`
 records the guidance source, arm, the shadow home, and the sha256 hashes of
 the two files that host's own resolver reads from it (Codex's `AGENTS.md`,
 Grok's Claude-compatible `CLAUDE.md`, OpenCode's `.config/opencode/AGENTS.md`, and `flow-build/SKILL.md` in both
@@ -166,10 +166,17 @@ cache directories default under `HOME`; inherited `XDG_*_HOME`,
 `OPENCODE_CONFIG` and `OPENCODE_CONFIG_DIR` are dropped), a minimal generated
 `opencode.json` holding just the Engram MCP server pinned to the run's isolated
 store (the user's real plugins, other MCP servers and permissions are not
-loaded), skills from `$HOME/.agents/skills`, and `auth.json` as a symlink, a copy of the real cache's `models.json` model
-catalog (never a link), with
-the same end-of-run cleanup and warning as Codex (recorded as
-`AuthSymlinkPreserved`/`AuthWarning`). The isolated Engram store from the existing
+loaded), skills from `$HOME/.agents/skills`, and a copy of the real cache's
+`models.json` model catalog (never a link). OpenCode v2 keeps credentials in
+its SQLite database and imports `auth.json` only in a v1-to-v2 migration that a
+fresh shadow database never runs, so no `auth.json` is linked. Instead the
+runner pipes `opencode auth export <provider>` (the provider taken from
+`--model provider/model`, read-only against the real install) into
+`opencode auth import --standalone` under the shadow home; the credential is
+never read, printed or logged. Because the shadow `opencode.db` then holds that
+copy, it and its WAL/SHM files are deleted at the end of the run (and on an
+abnormal exit), recorded as `ShadowCredentialDBRemoved` in `run.json`. `--model`
+is therefore required to be `provider/model` for this host. The isolated Engram store from the existing
 per-run lifecycle is unaffected: the shadow home is applied before its HTTP
 server starts, so `ENGRAM_DATA_DIR` keeps precedence inside it.
 

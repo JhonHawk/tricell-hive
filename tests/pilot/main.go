@@ -486,7 +486,7 @@ func main() {
 	must(e)
 	var guidance *guidanceVariant
 	if *guidanceSource != "" {
-		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome)
+		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome, *model)
 		must(e)
 		r.GuidanceVariant = &guidance.report
 		// Registered immediately so any must() failure or SIGINT/SIGTERM
@@ -577,9 +577,6 @@ func main() {
 	if guidance != nil {
 		guidance.cleanup()
 		r.GuidanceVariant = &guidance.report
-		if guidance.report.AuthWarning != "" {
-			fmt.Fprintln(os.Stderr, "WARNING:", guidance.report.AuthWarning)
-		}
 		if guidance.report.CodexAuthWarning != "" {
 			fmt.Fprintln(os.Stderr, "WARNING:", guidance.report.CodexAuthWarning)
 		}

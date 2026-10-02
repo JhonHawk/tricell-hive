@@ -435,71 +435,133 @@ func TestWriteShadowOpenCodeConfigFailsClearlyWithoutEngramServer(t *testing.T) 
 	}
 }
 
-func TestLinkOpenCodeAuthSymlinksRatherThanCopies(t *testing.T) {
-	realData := t.TempDir()
-	if err := os.WriteFile(filepath.Join(realData, "auth.json"), []byte(`{"token":"secret-value"}`), 0600); err != nil {
+// fakeOpenCodeOnPath installs a fake `opencode` that records how it was called:
+// `auth export <id>` prints a marker document, and `auth import` stores stdin
+// plus the HOME and flags it ran with, so tests never touch a real credential.
+func fakeOpenCodeOnPath(t *testing.T) string {
+	t.Helper()
+	bin := t.TempDir()
+	script := `#!/bin/sh
+if [ "$1" = "auth" ] && [ "$2" = "export" ]; then
+  echo "export-home=$HOME args=$*" >> "$FAKE_OPENCODE_LOG"
+  printf '{"marker":"%s"}' "$3"
+  exit 0
+fi
+if [ "$1" = "auth" ] && [ "$2" = "import" ]; then
+  echo "import-home=$HOME args=$*" >> "$FAKE_OPENCODE_LOG"
+  mkdir -p "$HOME/.local/share/opencode"
+  cat > "$HOME/.local/share/opencode/opencode.db"
+  exit 0
+fi
+exit 1
+`
+	if err := os.WriteFile(filepath.Join(bin, "opencode"), []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	shadowData := filepath.Join(t.TempDir(), ".local", "share", "opencode")
-	if err := linkOpenCodeAuth(shadowData, realData); err != nil {
+	logPath := filepath.Join(t.TempDir(), "calls.log")
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("FAKE_OPENCODE_LOG", logPath)
+	return logPath
+}
+
+func TestImportOpenCodeCredentialPipesExportIntoShadowImport(t *testing.T) {
+	logPath := fakeOpenCodeOnPath(t)
+	shadow := t.TempDir()
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode"}
+	if err := importOpenCodeCredential(g, os.Environ(), "opencode-go"); err != nil {
 		t.Fatal(err)
 	}
-	link := filepath.Join(shadowData, "auth.json")
-	if info, err := os.Lstat(link); err != nil || info.Mode()&os.ModeSymlink == 0 {
-		t.Fatal("expected a symlink, not a copy")
+	b, err := os.ReadFile(filepath.Join(shadow, ".local", "share", "opencode", "opencode.db"))
+	if err != nil || string(b) != `{"marker":"opencode-go"}` {
+		t.Fatalf("export did not reach the shadow import: %q %v", b, err)
 	}
-	if dest, err := os.Readlink(link); err != nil || dest != filepath.Join(realData, "auth.json") {
-		t.Fatalf("wrong symlink target: %s", dest)
+	calls, _ := os.ReadFile(logPath)
+	got := string(calls)
+	if !strings.Contains(got, "export-home="+os.Getenv("HOME")+" args=auth export opencode-go") {
+		t.Fatalf("export must run against the real home for only that integration: %s", got)
 	}
-	if err := linkOpenCodeAuth(t.TempDir(), t.TempDir()); err == nil {
-		t.Fatal("expected a clear error when the real auth.json is absent")
+	if !strings.Contains(got, "import-home="+shadow+" args=auth import --standalone") {
+		t.Fatalf("import must run standalone under the shadow home: %s", got)
 	}
 }
 
-func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigAndAuthLink(t *testing.T) {
+func TestImportOpenCodeCredentialFailsClearlyWhenExportFails(t *testing.T) {
+	bin := t.TempDir()
+	os.WriteFile(filepath.Join(bin, "opencode"), []byte("#!/bin/sh\necho SECRET-LEAK >&2\nexit 3\n"), 0700)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	g := &guidanceVariant{shadowHome: t.TempDir(), host: "opencode"}
+	err := importOpenCodeCredential(g, os.Environ(), "opencode-go")
+	if err == nil || strings.Contains(err.Error(), "SECRET-LEAK") {
+		t.Fatalf("expected a clear error that carries no command output: %v", err)
+	}
+}
+
+func TestOpenCodeIntegrationFromModel(t *testing.T) {
+	for model, want := range map[string]string{"opencode-go/deepseek-v4.1-flash#max": "opencode-go", "openai/gpt-6": "openai"} {
+		if got, err := openCodeIntegration(model); err != nil || got != want {
+			t.Fatalf("%s: %q %v", model, got, err)
+		}
+	}
+	for _, bad := range []string{"", "no-slash", "/x"} {
+		if _, err := openCodeIntegration(bad); err == nil {
+			t.Fatalf("%q must be rejected", bad)
+		}
+	}
+}
+
+func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCredentialAndCatalog(t *testing.T) {
+	logPath := fakeOpenCodeOnPath(t)
 	userHome := t.TempDir()
 	realCfg := filepath.Join(userHome, ".config", "opencode")
-	realData := filepath.Join(userHome, ".local", "share", "opencode")
-	for _, d := range []string{realCfg, realData} {
+	for _, d := range []string{realCfg, filepath.Join(userHome, ".cache", "opencode")} {
 		if err := os.MkdirAll(d, 0700); err != nil {
 			t.Fatal(err)
 		}
 	}
 	os.WriteFile(filepath.Join(realCfg, "opencode.json"), []byte(`{"mcp":{"engram":{"command":["engram","mcp"],"type":"local"}}}`), 0600)
-	os.WriteFile(filepath.Join(realData, "auth.json"), []byte(`{}`), 0600)
-	t.Setenv("XDG_CONFIG_HOME", "")
-	t.Setenv("XDG_DATA_HOME", "")
-	t.Setenv("XDG_CACHE_HOME", "")
-	os.MkdirAll(filepath.Join(userHome, ".cache", "opencode"), 0700)
 	os.WriteFile(filepath.Join(userHome, ".cache", "opencode", "models.json"), []byte(`{}`), 0600)
+	for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"} {
+		t.Setenv(k, "")
+	}
 	out, err := target.Canonical(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules A\n"), "A", out, "opencode", userHome)
+	g, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules A\n"), "A", out, "opencode", userHome, "opencode-go/deepseek-v4.1-flash#max")
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantBlock := filepath.Join(out, "shadow-home", ".config", "opencode", "AGENTS.md")
+	shadow := filepath.Join(out, "shadow-home")
+	wantBlock := filepath.Join(shadow, ".config", "opencode", "AGENTS.md")
 	if g.report.GuidanceBlockPath != wantBlock || g.report.GuidanceBlockHash == "absent" || g.report.FlowBuildSkillHash == "absent" {
 		t.Fatalf("report does not record the installed guidance: %+v", g.report)
 	}
-	if _, err := os.Stat(filepath.Join(out, "shadow-home", ".config", "opencode", "opencode.json")); err != nil {
-		t.Fatal(err)
+	for _, f := range []string{filepath.Join(".config", "opencode", "opencode.json"), filepath.Join(".cache", "opencode", "models.json")} {
+		if _, err := os.Stat(filepath.Join(shadow, f)); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if info, err := os.Lstat(g.authPath); err != nil || info.Mode()&os.ModeSymlink == 0 || g.authPath != filepath.Join(out, "shadow-home", ".local", "share", "opencode", "auth.json") {
-		t.Fatalf("auth link missing or misplaced: %s", g.authPath)
+	if calls, _ := os.ReadFile(logPath); !strings.Contains(string(calls), "args=auth export opencode-go") {
+		t.Fatalf("credential for the model's integration was not transferred: %s", calls)
 	}
-	if _, err := os.Stat(filepath.Join(out, "shadow-home", ".cache", "opencode", "models.json")); err != nil {
-		t.Fatal("model catalog was not copied into the shadow cache")
+	dbPath := filepath.Join(shadow, ".local", "share", "opencode", "opencode.db")
+	if g.credentialDB != dbPath {
+		t.Fatalf("credential DB path not tracked: %q", g.credentialDB)
+	}
+	// A DB, its WAL and shared-memory sidecars all hold the credential copy.
+	for _, side := range []string{"-wal", "-shm"} {
+		os.WriteFile(dbPath+side, []byte("x"), 0600)
 	}
 	g.cleanup()
-	if _, err := os.Lstat(g.authPath); !os.IsNotExist(err) {
-		t.Fatal("auth symlink was not removed")
+	for _, f := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+		if _, err := os.Lstat(f); !os.IsNotExist(err) {
+			t.Fatalf("credential copy left behind: %s", f)
+		}
 	}
-	if !g.report.AuthSymlinkPreserved || g.report.AuthWarning != "" {
+	if !g.report.ShadowCredentialDBRemoved {
 		t.Fatalf("cleanup outcome not recorded: %+v", g.report)
 	}
+	g.cleanup() // idempotent
 }
 
 func TestRealOpenCodeCacheDirHonorsXDGThenHomeDefault(t *testing.T) {
