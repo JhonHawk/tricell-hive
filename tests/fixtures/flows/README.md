@@ -173,14 +173,24 @@ fresh shadow database never runs, so no `auth.json` is linked. Instead the
 runner pipes `opencode auth export <provider>` (the provider taken from
 `--model provider/model`, read-only against the real install) into
 `opencode auth import --standalone` under the shadow home; the credential is
-never read, printed or logged. Because the shadow `opencode.db` then holds that
-copy, it and its WAL/SHM files are deleted at the end of the run (and on an
-abnormal exit), recorded as `ShadowCredentialDBRemoved` in `run.json`. `--model`
-is therefore required to be `provider/model` for this host. For OpenCode, `--out` must also be outside the real home directory (for
-example under `/tmp`): with a working directory under the real home, OpenCode
-v2.0.22 also loads that home's `~/.claude/skills`, `~/.agents/skills` and
-`~/.opencode/skill(s)` despite the shadow `HOME`, so the runner refuses such an
-`--out` for this variant. The isolated Engram store from the existing
+never read, printed or logged. It runs after cleanup is registered, so a
+failure or signal still removes the copy. Because the shadow data directory
+then holds that copy, the whole `.local/share/opencode` directory is deleted at
+the end of the run (and on an abnormal exit); its `log/` is first moved to
+`shadow-home/opencode-log` as evidence. The outcome is recorded as
+`ShadowCredentialStoreRemoved`, or `ShadowCredentialWarning` if anything
+survived. `--model` must be `provider/model` for this host, checked before
+`--out` is created. The export and import subprocesses run in the system temp
+dir and the shadow home, never in a project directory.
+
+OpenCode also requires the fixture working directory to be outside the real
+home: with a working directory under the real home, OpenCode v2.0.22 loads that
+home's `~/.claude/skills`, `~/.agents/skills` and `~/.opencode/skill(s)` despite
+the shadow `HOME`. The runner refuses such a run before creating `--out`. The
+flows suite puts the fixture under `--out`, which must be below
+`<source>/_support/workspace`, so an OpenCode variant flows run needs a
+`--source` checkout outside the real home (for example a git worktree under
+`/tmp`); other suites use `TMPDIR`. The isolated Engram store from the existing
 per-run lifecycle is unaffected: the shadow home is applied before its HTTP
 server starts, so `ENGRAM_DATA_DIR` keeps precedence inside it.
 

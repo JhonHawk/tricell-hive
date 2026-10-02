@@ -32,28 +32,32 @@ type guidanceVariantReport struct {
 	FlowBuildSkillPath, FlowBuildSkillHash string
 	CodexAuthSymlinkPreserved              bool   `json:",omitempty"`
 	CodexAuthWarning                       string `json:",omitempty"`
-	// ShadowCredentialDBRemoved records that the OpenCode shadow database, which
-	// holds a copy of one imported credential, was deleted at the end of the run.
-	ShadowCredentialDBRemoved bool `json:",omitempty"`
+	// ShadowCredentialStoreRemoved records that the OpenCode shadow data
+	// directory, whose database holds a copy of one imported credential, was
+	// deleted at the end of the run; ShadowCredentialWarning says what survived
+	// when it could not be.
+	ShadowCredentialStoreRemoved bool   `json:",omitempty"`
+	ShadowCredentialWarning      string `json:",omitempty"`
 }
 
 // guidanceVariant is the runtime handle a single run keeps for its shadow
 // home: enough to compute the child environment and to tear down the
 // authentication symlink afterward. It never touches memory.go's isolation.
 type guidanceVariant struct {
-	report       guidanceVariantReport
-	shadowHome   string
-	host         string
-	realGrokHome string
-	authPath     string // empty unless host == "codex"
-	credentialDB string // empty unless host == "opencode": shadow opencode.db holding the imported credential
+	report        guidanceVariantReport
+	shadowHome    string
+	host          string
+	realGrokHome  string
+	authPath      string // empty unless host == "codex"
+	shadowDataDir string // empty unless host == "opencode": shadow data dir holding the imported credential
+	integration   string // OpenCode provider whose credential importCredential transfers
 }
 
 // validateGuidanceVariantFlags is main()'s pure guard for --guidance-source
 // and --arm in deployed-global: both are required together, --arm must be
 // A or B, and only codex, grok and opencode are supported for now. Passing neither is the
 // ordinary deployed-global run and is always allowed.
-func validateGuidanceVariantFlags(host, guidanceSource, arm string) error {
+func validateGuidanceVariantFlags(host, guidanceSource, arm, model string) error {
 	if guidanceSource == "" && arm == "" {
 		return nil
 	}
@@ -68,6 +72,11 @@ func validateGuidanceVariantFlags(host, guidanceSource, arm string) error {
 	}
 	if host != "codex" && host != "grok" && host != "opencode" {
 		return fmt.Errorf("--guidance-source is only supported for --host codex, grok or opencode")
+	}
+	if host == "opencode" {
+		if _, err := openCodeIntegration(model); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -332,20 +341,11 @@ func writeShadowCodexConfig(shadowCodexHome, realCodexHome string) error {
 // the shadow CODEX_HOME, so Codex authenticates without a credential copy
 // living in run evidence.
 func linkCodexAuth(shadowCodexHome, realCodexHome string) error {
-	return linkAuthFile(shadowCodexHome, realCodexHome, "Codex")
-}
-
-// linkAuthFile symlinks realDir/auth.json to shadowDir/auth.json, never reading
-// it. label only names the host in the error.
-func linkAuthFile(shadowDir, realDir, label string) error {
-	real := filepath.Join(realDir, "auth.json")
+	real := filepath.Join(realCodexHome, "auth.json")
 	if _, err := os.Lstat(real); err != nil {
-		return fmt.Errorf("real %s auth.json unavailable: %w", label, err)
+		return fmt.Errorf("real Codex auth.json unavailable: %w", err)
 	}
-	if err := os.MkdirAll(shadowDir, 0700); err != nil {
-		return err
-	}
-	shadow := filepath.Join(shadowDir, "auth.json")
+	shadow := filepath.Join(shadowCodexHome, "auth.json")
 	if err := os.Remove(shadow); err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -358,29 +358,57 @@ func linkAuthFile(shadowDir, realDir, label string) error {
 // still-intact symlink is simply removed. An already-absent path is neither
 // a warning nor a still-symlink.
 func verifyAndCleanupAuthSymlink(path string) (stillSymlink bool, warning string) {
-	return cleanupAuthSymlink(path, "Codex replaced the shadow CODEX_HOME auth.json symlink with a regular file during this run; it was deleted without being read. If Codex authentication now fails, run `codex login` again to renew the real credential.")
-}
-
-// cleanupAuthSymlink is verifyAndCleanupAuthSymlink with the host's own
-// replaced-file warning text.
-func cleanupAuthSymlink(path, replacedWarning string) (stillSymlink bool, warning string) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return false, ""
 	}
 	stillSymlink = info.Mode()&os.ModeSymlink != 0
 	if !stillSymlink {
-		warning = replacedWarning
+		warning = "Codex replaced the shadow CODEX_HOME auth.json symlink with a regular file during this run; it was deleted without being read. If Codex authentication now fails, run `codex login` again to renew the real credential."
 	}
 	os.Remove(path)
 	return stillSymlink, warning
 }
 
-// realOpenCodeDirs returns the real OpenCode config and data directories the
-// way OpenCode itself resolves them (verified with `opencode debug paths`,
-// v2.0.22): XDG_CONFIG_HOME/XDG_DATA_HOME when set, else HOME-relative
-// ~/.config/opencode and ~/.local/share/opencode.
-func realOpenCodeDirs(userHome string, getenv func(string) string) (config, data string, err error) {
+// checkOpenCodeCwdOutsideHome guards the isolation of an OpenCode variant
+// run. Observed on OpenCode v2.0.22 with a shadow HOME: when the working
+// directory sits under the real home, OpenCode also watches and loads the real
+// ~/.claude/skills, ~/.agents/skills and ~/.opencode/skill(s) (smoke run 3
+// loaded flow-research from the real ~/.agents/skills); with the same shadow
+// home and a working directory outside the real home only the shadow's paths
+// appear. HOME, OPENCODE_TEST_HOME and the XDG variables do not change this,
+// and OPENCODE_DISABLE_PROJECT_CONFIG=1 would also drop the fixture's own
+// AGENTS.md, so the working directory must be outside the real home.
+func checkOpenCodeCwdOutsideHome(cwd, userHome string) error {
+	dir, err := target.Canonical(cwd)
+	if err != nil {
+		return err
+	}
+	home, err := target.Canonical(userHome)
+	if err != nil {
+		return err
+	}
+	if under(dir, home) {
+		return fmt.Errorf("the OpenCode working directory %s is under the real home %s: OpenCode would load the real home's skills into this variant run; use a --source checkout (flows) or TMPDIR (other suites) outside %s", cwd, userHome, userHome)
+	}
+	return nil
+}
+
+// openCodeFixtureParent is the directory main() creates the fixture root in:
+// under --out for the flows suite, the system temp directory otherwise. It
+// lets the isolation check refuse a run before --out is created.
+func openCodeFixtureParent(suite, output string) string {
+	if suite == "flows" {
+		return output
+	}
+	return os.TempDir()
+}
+
+// realOpenCodeDirs returns the real OpenCode config and cache directories the
+// way OpenCode resolves them (verified with `opencode debug paths`, v2.0.22):
+// XDG_CONFIG_HOME/XDG_CACHE_HOME when set, else ~/.config/opencode and
+// ~/.cache/opencode.
+func realOpenCodeDirs(userHome string, getenv func(string) string) (config, cache string, err error) {
 	resolve := func(env, fallback string) (string, error) {
 		base := getenv(env)
 		if base == "" {
@@ -394,29 +422,15 @@ func realOpenCodeDirs(userHome string, getenv func(string) string) (config, data
 	if config, err = resolve("XDG_CONFIG_HOME", ".config"); err != nil {
 		return "", "", err
 	}
-	if data, err = resolve("XDG_DATA_HOME", filepath.Join(".local", "share")); err != nil {
+	if cache, err = resolve("XDG_CACHE_HOME", ".cache"); err != nil {
 		return "", "", err
 	}
-	return config, data, nil
-}
-
-// realOpenCodeCacheDir resolves OpenCode's real cache directory like
-// realOpenCodeDirs: XDG_CACHE_HOME when set, else ~/.cache/opencode.
-func realOpenCodeCacheDir(userHome string, getenv func(string) string) (string, error) {
-	base := getenv("XDG_CACHE_HOME")
-	if base == "" {
-		return filepath.Join(userHome, ".cache", "opencode"), nil
-	}
-	if !filepath.IsAbs(base) {
-		return "", fmt.Errorf("XDG_CACHE_HOME must be an absolute path")
-	}
-	return filepath.Join(base, "opencode"), nil
+	return config, cache, nil
 }
 
 // copyOpenCodeModelCatalog copies (never links, so the run cannot modify the
 // real cache) the real cache's models.json, the models.dev catalog snapshot,
-// into the shadow cache. Without it a shadow run fails with provider.no-route
-// "Model unavailable". The file is a public catalog, not a credential.
+// into the shadow cache. The file is a public catalog, not a credential.
 func copyOpenCodeModelCatalog(shadowCacheDir, realCacheDir string) error {
 	data, err := os.ReadFile(filepath.Join(realCacheDir, "models.json"))
 	if err != nil {
@@ -469,44 +483,6 @@ func writeShadowOpenCodeConfig(shadowConfigDir, realConfigDir, engramDataDir str
 	return os.WriteFile(filepath.Join(shadowConfigDir, "opencode.json"), out, 0600)
 }
 
-// checkOpenCodeOutputOutsideHome guards the isolation of an OpenCode variant
-// run. Observed on OpenCode v2.0.22 with a shadow HOME: when the working
-// directory sits under the real home, OpenCode also watches and loads the real
-// ~/.claude/skills, ~/.agents/skills and ~/.opencode/skill(s) (smoke run 3
-// loaded flow-research from the real ~/.agents/skills); with the same shadow
-// home and a working directory outside the real home only the shadow's paths
-// appear. HOME, OPENCODE_TEST_HOME and the XDG variables do not change this,
-// and OPENCODE_DISABLE_PROJECT_CONFIG=1 would also drop the fixture's own
-// AGENTS.md, so the supported fix is to keep --out outside the real home.
-func checkOpenCodeOutputOutsideHome(output, userHome string) error {
-	out, err := filepath.Abs(output)
-	if err != nil {
-		return err
-	}
-	// Resolve symlinks through the nearest existing ancestor: --out may not exist yet.
-	existing, rest := out, ""
-	for {
-		if resolved, err := filepath.EvalSymlinks(existing); err == nil {
-			out = filepath.Join(resolved, rest)
-			break
-		}
-		parent := filepath.Dir(existing)
-		if parent == existing {
-			break
-		}
-		rest = filepath.Join(filepath.Base(existing), rest)
-		existing = parent
-	}
-	home := userHome
-	if resolved, err := filepath.EvalSymlinks(userHome); err == nil {
-		home = resolved
-	}
-	if under(out, home) {
-		return fmt.Errorf("--out %s is under the real home %s: OpenCode would load the real home's skills into this variant run; use an --out directory outside %s (for example under /tmp)", output, userHome, userHome)
-	}
-	return nil
-}
-
 // openCodeIntegration returns the integration (provider) ID in an OpenCode
 // model such as "opencode-go/deepseek-v4.1-flash#max".
 func openCodeIntegration(model string) (string, error) {
@@ -531,8 +507,13 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 	defer cancel()
 	export := exec.CommandContext(ctx, "opencode", "auth", "export", integration)
 	export.Env = parentEnv
+	// Neither command may start in a project directory, whose opencode.json
+	// would otherwise be picked up: export runs in the system temp dir, import
+	// in the shadow home.
+	export.Dir = os.TempDir()
 	imp := exec.CommandContext(ctx, "opencode", "auth", "import", "--standalone")
 	imp.Env = g.applyEnvironment(parentEnv)
+	imp.Dir = g.shadowHome
 	r, w, err := os.Pipe()
 	if err != nil {
 		return err
@@ -561,16 +542,22 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 	return nil
 }
 
+// importCredential is the OpenCode credential transfer as a separate step, run
+// by main() after registering cleanup: every fallible setup step then precedes
+// it, and a failure or signal during or after the import still removes the
+// shadow data directory. It is a no-op for other hosts.
+func (g *guidanceVariant) importCredential() error {
+	if g == nil || g.host != "opencode" {
+		return nil
+	}
+	return importOpenCodeCredential(g, os.Environ(), g.integration)
+}
+
 // setupGuidanceVariant is the top-level orchestration for design.md's
 // "Piloto con el runner" steps 1-2: it creates the run's shadow home,
 // installs source's guidance into it for host, records the read-path hashes,
 // and for Codex prepares its config.toml and auth symlink.
-func setupGuidanceVariant(source, arm, output, host, userHome, model string) (*guidanceVariant, error) {
-	if host == "opencode" {
-		if err := checkOpenCodeOutputOutsideHome(output, userHome); err != nil {
-			return nil, err
-		}
-	}
+func setupGuidanceVariant(source, arm, output, host, userHome, model, engramDataDir string) (*guidanceVariant, error) {
 	shadowHome := filepath.Join(output, "shadow-home")
 	if err := os.MkdirAll(shadowHome, 0700); err != nil {
 		return nil, err
@@ -605,33 +592,23 @@ func setupGuidanceVariant(source, arm, output, host, userHome, model string) (*g
 	case "grok":
 		g.realGrokHome = envRoot("GROK_HOME", filepath.Join(userHome, ".grok"))
 	case "opencode":
-		realConfig, _, err := realOpenCodeDirs(userHome, os.Getenv)
+		realConfig, realCache, err := realOpenCodeDirs(userHome, os.Getenv)
 		if err != nil {
 			return nil, err
 		}
-		integration, err := openCodeIntegration(model)
-		if err != nil {
+		if g.integration, err = openCodeIntegration(model); err != nil {
 			return nil, err
 		}
 		// Mirrors the shadow layout `opencode debug paths` reports under a
-		// shadowed HOME with no XDG overrides.
-		shadowConfig := filepath.Join(shadowHome, ".config", "opencode")
-		if err := writeShadowOpenCodeConfig(shadowConfig, realConfig, filepath.Join(output, "engram-data")); err != nil {
-			return nil, err
-		}
-		// Set before the import so cleanup also removes a partial database.
-		g.credentialDB = filepath.Join(shadowHome, ".local", "share", "opencode", "opencode.db")
-		if err := importOpenCodeCredential(g, os.Environ(), integration); err != nil {
-			g.cleanup()
-			return nil, err
-		}
-		realCache, err := realOpenCodeCacheDir(userHome, os.Getenv)
-		if err != nil {
+		// shadowed HOME with no XDG overrides. The credential import is not
+		// done here: see importCredential.
+		if err := writeShadowOpenCodeConfig(filepath.Join(shadowHome, ".config", "opencode"), realConfig, engramDataDir); err != nil {
 			return nil, err
 		}
 		if err := copyOpenCodeModelCatalog(filepath.Join(shadowHome, ".cache", "opencode"), realCache); err != nil {
 			return nil, err
 		}
+		g.shadowDataDir = filepath.Join(shadowHome, ".local", "share", "opencode")
 	}
 	return g, nil
 }
@@ -649,7 +626,7 @@ func (g *guidanceVariant) applyEnvironment(env []string) []string {
 		// OpenCode honors these over HOME-relative defaults (verified with
 		// `opencode debug paths`), so an inherited one would point the run back
 		// at the real config, data, state, or cache directories.
-		for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR"} {
+		for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "OPENCODE_CONFIG_CONTENT"} {
 			blocked[k] = true
 		}
 	}
@@ -677,13 +654,8 @@ func (g *guidanceVariant) cleanup() {
 	if g == nil {
 		return
 	}
-	if g.credentialDB != "" {
-		// The database and its WAL/shared-memory sidecars hold the credential copy.
-		for _, suffix := range []string{"", "-wal", "-shm"} {
-			if err := os.Remove(g.credentialDB + suffix); err == nil && suffix == "" {
-				g.report.ShadowCredentialDBRemoved = true
-			}
-		}
+	if g.shadowDataDir != "" {
+		g.removeShadowDataDir()
 	}
 	if g.authPath == "" {
 		return
@@ -691,4 +663,22 @@ func (g *guidanceVariant) cleanup() {
 	stillSymlink, warning := verifyAndCleanupAuthSymlink(g.authPath)
 	g.report.CodexAuthSymlinkPreserved = stillSymlink
 	g.report.CodexAuthWarning = warning
+}
+
+// removeShadowDataDir deletes the whole shadow OpenCode data directory, whose
+// database, WAL and any other file may hold the imported credential. The run's
+// own log is kept first, moved next to it as evidence; if anything survives the
+// removal, a warning goes to the report instead of a silent leak.
+func (g *guidanceVariant) removeShadowDataDir() {
+	if _, err := os.Lstat(g.shadowDataDir); err != nil {
+		return
+	}
+	os.Rename(filepath.Join(g.shadowDataDir, "log"), filepath.Join(g.shadowHome, "opencode-log"))
+	os.RemoveAll(g.shadowDataDir)
+	if _, err := os.Lstat(g.shadowDataDir); err == nil {
+		g.report.ShadowCredentialStoreRemoved = false
+		g.report.ShadowCredentialWarning = "the shadow OpenCode data directory could not be fully removed and may still hold a copy of the imported credential: " + g.shadowDataDir
+		return
+	}
+	g.report.ShadowCredentialStoreRemoved = true
 }

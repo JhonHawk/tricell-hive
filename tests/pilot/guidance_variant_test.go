@@ -26,7 +26,7 @@ func TestValidateGuidanceVariantFlags(t *testing.T) {
 		{"pi still unsupported", "pi", "/src", "A", true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := validateGuidanceVariantFlags(c.host, c.source, c.arm)
+			err := validateGuidanceVariantFlags(c.host, c.source, c.arm, "opencode-go/m")
 			if (err != nil) != c.wantErr {
 				t.Fatalf("host=%s source=%q arm=%q: err=%v wantErr=%v", c.host, c.source, c.arm, err, c.wantErr)
 			}
@@ -347,14 +347,14 @@ func TestVerifyAndCleanupAuthSymlinkAbsentIsQuiet(t *testing.T) {
 
 func TestOpenCodeEnvironmentDropsXDGAndConfigOverrides(t *testing.T) {
 	g := &guidanceVariant{shadowHome: "/shadow", host: "opencode"}
-	in := []string{"HOME=/old", "XDG_CONFIG_HOME=/real/cfg", "XDG_DATA_HOME=/real/data", "XDG_STATE_HOME=/real/state", "XDG_CACHE_HOME=/real/cache", "XDG_DATA_DIRS=/usr/share", "OPENCODE_CONFIG=/real/o.json", "OPENCODE_CONFIG_DIR=/real/dir", "OPENCODE_EXPERIMENTAL=1", "ENGRAM_DATA_DIR=/iso"}
+	in := []string{"HOME=/old", "XDG_CONFIG_HOME=/real/cfg", "XDG_DATA_HOME=/real/data", "XDG_STATE_HOME=/real/state", "XDG_CACHE_HOME=/real/cache", "XDG_DATA_DIRS=/usr/share", "OPENCODE_CONFIG=/real/o.json", "OPENCODE_CONFIG_DIR=/real/dir", "OPENCODE_CONFIG_CONTENT={}", "OPENCODE_EXPERIMENTAL=1", "ENGRAM_DATA_DIR=/iso"}
 	out := g.applyEnvironment(in)
 	have := map[string]string{}
 	for _, e := range out {
 		k, v, _ := strings.Cut(e, "=")
 		have[k] = v
 	}
-	for _, gone := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR"} {
+	for _, gone := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "OPENCODE_CONFIG_CONTENT"} {
 		if _, ok := have[gone]; ok {
 			t.Fatalf("%s would leak the real OpenCode directories into the shadow run", gone)
 		}
@@ -367,22 +367,24 @@ func TestOpenCodeEnvironmentDropsXDGAndConfigOverrides(t *testing.T) {
 }
 
 func TestRealOpenCodeDirsHonorXDGThenHomeDefaults(t *testing.T) {
-	cfg, data, err := realOpenCodeDirs("/home/u", func(string) string { return "" })
-	if err != nil || cfg != "/home/u/.config/opencode" || data != "/home/u/.local/share/opencode" {
-		t.Fatalf("defaults: %s %s %v", cfg, data, err)
+	cfg, cache, err := realOpenCodeDirs("/home/u", func(string) string { return "" })
+	if err != nil || cfg != "/home/u/.config/opencode" || cache != "/home/u/.cache/opencode" {
+		t.Fatalf("defaults: %s %s %v", cfg, cache, err)
 	}
-	env := map[string]string{"XDG_CONFIG_HOME": "/x/c", "XDG_DATA_HOME": "/x/d"}
-	cfg, data, err = realOpenCodeDirs("/home/u", func(k string) string { return env[k] })
-	if err != nil || cfg != "/x/c/opencode" || data != "/x/d/opencode" {
-		t.Fatalf("xdg: %s %s %v", cfg, data, err)
+	env := map[string]string{"XDG_CONFIG_HOME": "/x/c", "XDG_CACHE_HOME": "/x/k"}
+	cfg, cache, err = realOpenCodeDirs("/home/u", func(k string) string { return env[k] })
+	if err != nil || cfg != "/x/c/opencode" || cache != "/x/k/opencode" {
+		t.Fatalf("xdg: %s %s %v", cfg, cache, err)
 	}
-	if _, _, err := realOpenCodeDirs("/home/u", func(k string) string {
-		if k == "XDG_DATA_HOME" {
-			return "relative"
+	for _, bad := range []string{"XDG_CONFIG_HOME", "XDG_CACHE_HOME"} {
+		if _, _, err := realOpenCodeDirs("/home/u", func(k string) string {
+			if k == bad {
+				return "relative"
+			}
+			return ""
+		}); err == nil {
+			t.Fatalf("a relative %s must be rejected", bad)
 		}
-		return ""
-	}); err == nil {
-		t.Fatal("a relative XDG path must be rejected")
 	}
 }
 
@@ -509,7 +511,7 @@ func TestOpenCodeIntegrationFromModel(t *testing.T) {
 	}
 }
 
-func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCredentialAndCatalog(t *testing.T) {
+func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCatalogThenImportsCredentialSeparately(t *testing.T) {
 	logPath := fakeOpenCodeOnPath(t)
 	userHome := t.TempDir()
 	realCfg := filepath.Join(userHome, ".config", "opencode")
@@ -527,7 +529,7 @@ func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCredentialAndCatalog(
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules A\n"), "A", out, "opencode", userHome, "opencode-go/deepseek-v4.1-flash#max")
+	g, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules A\n"), "A", out, "opencode", userHome, "opencode-go/deepseek-v4.1-flash#max", filepath.Join(out, "engram-data"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,38 +543,25 @@ func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCredentialAndCatalog(
 			t.Fatal(err)
 		}
 	}
+	if b, _ := os.ReadFile(filepath.Join(shadow, ".config", "opencode", "opencode.json")); !strings.Contains(string(b), filepath.Join(out, "engram-data")) {
+		t.Fatal("the shadow config must carry the memory isolation's data directory")
+	}
+	if calls, _ := os.ReadFile(logPath); len(calls) != 0 {
+		t.Fatalf("setup must not import the credential itself, so every fallible step can precede it: %s", calls)
+	}
+	if err := g.importCredential(); err != nil {
+		t.Fatal(err)
+	}
 	if calls, _ := os.ReadFile(logPath); !strings.Contains(string(calls), "args=auth export opencode-go") {
 		t.Fatalf("credential for the model's integration was not transferred: %s", calls)
 	}
-	dbPath := filepath.Join(shadow, ".local", "share", "opencode", "opencode.db")
-	if g.credentialDB != dbPath {
-		t.Fatalf("credential DB path not tracked: %q", g.credentialDB)
-	}
-	// A DB, its WAL and shared-memory sidecars all hold the credential copy.
-	for _, side := range []string{"-wal", "-shm"} {
-		os.WriteFile(dbPath+side, []byte("x"), 0600)
+	data := filepath.Join(shadow, ".local", "share", "opencode")
+	if g.shadowDataDir != data {
+		t.Fatalf("shadow data dir not tracked: %q", g.shadowDataDir)
 	}
 	g.cleanup()
-	for _, f := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
-		if _, err := os.Lstat(f); !os.IsNotExist(err) {
-			t.Fatalf("credential copy left behind: %s", f)
-		}
-	}
-	if !g.report.ShadowCredentialDBRemoved {
-		t.Fatalf("cleanup outcome not recorded: %+v", g.report)
-	}
-	g.cleanup() // idempotent
-}
-
-func TestRealOpenCodeCacheDirHonorsXDGThenHomeDefault(t *testing.T) {
-	if d, err := realOpenCodeCacheDir("/home/u", func(string) string { return "" }); err != nil || d != "/home/u/.cache/opencode" {
-		t.Fatalf("default: %s %v", d, err)
-	}
-	if d, err := realOpenCodeCacheDir("/home/u", func(string) string { return "/x/cache" }); err != nil || d != "/x/cache/opencode" {
-		t.Fatalf("xdg: %s %v", d, err)
-	}
-	if _, err := realOpenCodeCacheDir("/home/u", func(string) string { return "rel" }); err == nil {
-		t.Fatal("a relative XDG_CACHE_HOME must be rejected")
+	if _, err := os.Lstat(data); !os.IsNotExist(err) {
+		t.Fatal("credential copy left behind")
 	}
 }
 
@@ -604,26 +593,96 @@ func TestCopyOpenCodeModelCatalogCopiesRatherThanLinks(t *testing.T) {
 	}
 }
 
-func TestOpenCodeOutputMustBeOutsideRealHome(t *testing.T) {
+func TestCheckOpenCodeCwdOutsideHome(t *testing.T) {
 	home := t.TempDir()
-	if err := checkOpenCodeOutputOutsideHome(filepath.Join(home, "runs", "r1"), home); err == nil {
-		t.Fatal("an output directory under the real home must be rejected: OpenCode would load the real home's skills")
+	if err := checkOpenCodeCwdOutsideHome(filepath.Join(home, "runs", "r1", "fixture"), home); err == nil {
+		t.Fatal("a working directory under the real home must be rejected: OpenCode would load the real home's skills")
 	}
-	if err := checkOpenCodeOutputOutsideHome(home, home); err == nil {
+	if err := checkOpenCodeCwdOutsideHome(home, home); err == nil {
 		t.Fatal("the real home itself must be rejected")
 	}
-	if err := checkOpenCodeOutputOutsideHome(t.TempDir(), home); err != nil {
-		t.Fatalf("an output directory outside the real home is valid: %v", err)
+	if err := checkOpenCodeCwdOutsideHome(filepath.Join(t.TempDir(), "not-yet"), home); err != nil {
+		t.Fatalf("a working directory outside the real home is valid: %v", err)
 	}
 }
 
-func TestSetupGuidanceVariantOpenCodeRejectsOutputUnderRealHomeBeforeWriting(t *testing.T) {
-	userHome := t.TempDir()
-	out := filepath.Join(userHome, "runs", "r1")
-	if _, err := setupGuidanceVariant(newFixtureCheckout(t, "# Rules\n"), "A", out, "opencode", userHome, "opencode-go/m"); err == nil {
-		t.Fatal("expected a rejection")
+func TestOpenCodeFixtureParent(t *testing.T) {
+	if got := openCodeFixtureParent("flows", "/out/run"); got != "/out/run" {
+		t.Fatalf("flows fixtures live under --out: %s", got)
 	}
-	if _, err := os.Stat(filepath.Join(out, "shadow-home")); !os.IsNotExist(err) {
-		t.Fatal("nothing may be written before the isolation check")
+	if got := openCodeFixtureParent("workspace-conventions", "/out/run"); got != os.TempDir() {
+		t.Fatalf("other suites use the system temp dir: %s", got)
+	}
+}
+
+func TestCleanupRemovesWholeShadowDataDirKeepsLogAndWarnsOnSurvivor(t *testing.T) {
+	shadow := t.TempDir()
+	data := filepath.Join(shadow, ".local", "share", "opencode")
+	os.MkdirAll(filepath.Join(data, "log"), 0700)
+	for _, f := range []string{"opencode.db", "opencode.db-wal", "credentials-extra.json", filepath.Join("log", "opencode.log")} {
+		os.WriteFile(filepath.Join(data, f), []byte("x"), 0600)
+	}
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode", shadowDataDir: data}
+	g.cleanup()
+	if _, err := os.Stat(data); !os.IsNotExist(err) {
+		t.Fatal("the whole shadow data directory must be removed")
+	}
+	if b, err := os.ReadFile(filepath.Join(shadow, "opencode-log", "opencode.log")); err != nil || string(b) != "x" {
+		t.Fatalf("the run log must be preserved as evidence: %v", err)
+	}
+	if !g.report.ShadowCredentialStoreRemoved || g.report.ShadowCredentialWarning != "" {
+		t.Fatalf("unexpected outcome: %+v", g.report)
+	}
+	g.cleanup() // idempotent
+	if !g.report.ShadowCredentialStoreRemoved {
+		t.Fatal("a second cleanup must not undo the recorded outcome")
+	}
+}
+
+func TestCleanupWarnsWhenShadowDataSurvives(t *testing.T) {
+	shadow := t.TempDir()
+	data := filepath.Join(shadow, ".local", "share", "opencode")
+	os.MkdirAll(data, 0700)
+	os.WriteFile(filepath.Join(data, "opencode.db"), []byte("x"), 0600)
+	// A read-only parent makes the removal fail on every platform the tests run on.
+	parent := filepath.Dir(data)
+	os.Chmod(parent, 0500)
+	defer os.Chmod(parent, 0700)
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode", shadowDataDir: data}
+	g.cleanup()
+	if g.report.ShadowCredentialStoreRemoved || g.report.ShadowCredentialWarning == "" {
+		t.Fatalf("a surviving credential store must be reported: %+v", g.report)
+	}
+}
+
+func TestImportOpenCodeCredentialRunsOutsideProjectDirectories(t *testing.T) {
+	bin := t.TempDir()
+	script := "#!/bin/sh\npwd >> \"$FAKE_OPENCODE_LOG\"\ncat > /dev/null\nprintf '{}'\n"
+	os.WriteFile(filepath.Join(bin, "opencode"), []byte(script), 0700)
+	logPath := filepath.Join(t.TempDir(), "pwd.log")
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("FAKE_OPENCODE_LOG", logPath)
+	shadow, err := target.Canonical(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode"}
+	if err := importOpenCodeCredential(g, os.Environ(), "opencode-go"); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(logPath)
+	dirs := strings.Fields(string(b))
+	tmp, _ := target.Canonical(os.TempDir())
+	if len(dirs) != 2 {
+		t.Fatalf("expected export and import working directories: %v", dirs)
+	}
+	// The two processes run concurrently, so their log order is not defined.
+	seen := map[string]bool{}
+	for _, d := range dirs {
+		c, _ := target.Canonical(d)
+		seen[c] = true
+	}
+	if !seen[tmp] || !seen[shadow] {
+		t.Fatalf("export must run in the system temp dir and import in the shadow home, ran in %v", dirs)
 	}
 }
