@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/grok"
@@ -51,6 +53,16 @@ type guidanceVariant struct {
 	authPath      string // empty unless host == "codex"
 	shadowDataDir string // empty unless host == "opencode": shadow data dir holding the imported credential
 	integration   string // OpenCode provider whose credential importCredential transfers
+	// credentialImported is set once the credential import succeeded, so cleanup
+	// can tell an absent data directory (a credential that went somewhere
+	// unexpected) from a run that never imported.
+	credentialImported bool
+	// mu guards the in-flight import state below: cleanup may run from the
+	// signal-handler goroutine while importOpenCodeCredential is mid-run.
+	mu         sync.Mutex
+	cleaned    bool
+	importCmds []*exec.Cmd
+	importDone chan struct{}
 }
 
 // validateGuidanceVariantFlags is main()'s pure guard for --guidance-source
@@ -394,10 +406,10 @@ func checkOpenCodeCwdOutsideHome(cwd, userHome string) error {
 	return nil
 }
 
-// openCodeFixtureParent is the directory main() creates the fixture root in:
+// fixtureParentDir is the directory main() creates the fixture root in:
 // under --out for the flows suite, the system temp directory otherwise. It
 // lets the isolation check refuse a run before --out is created.
-func openCodeFixtureParent(suite, output string) string {
+func fixtureParentDir(suite, output string) string {
 	if suite == "flows" {
 		return output
 	}
@@ -505,15 +517,7 @@ func openCodeIntegration(model string) (string, error) {
 func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integration string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	export := exec.CommandContext(ctx, "opencode", "auth", "export", integration)
-	export.Env = parentEnv
-	// Neither command may start in a project directory, whose opencode.json
-	// would otherwise be picked up: export runs in the system temp dir, import
-	// in the shadow home.
-	export.Dir = os.TempDir()
-	imp := exec.CommandContext(ctx, "opencode", "auth", "import", "--standalone")
-	imp.Env = g.applyEnvironment(parentEnv)
-	imp.Dir = g.shadowHome
+	export, imp := openCodeAuthCommands(ctx, g, parentEnv, integration)
 	r, w, err := os.Pipe()
 	if err != nil {
 		return err
@@ -521,16 +525,30 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 	defer r.Close()
 	export.Stdout = w
 	imp.Stdin = r
+	// Registered under the lock together with the start, so a concurrent cleanup
+	// either sees both processes and kills them or has already forbidden the start.
+	g.mu.Lock()
+	if g.cleaned {
+		g.mu.Unlock()
+		w.Close()
+		return fmt.Errorf("OpenCode credential import refused: cleanup already ran")
+	}
+	g.importDone = make(chan struct{})
+	defer close(g.importDone)
 	if err := export.Start(); err != nil {
+		g.mu.Unlock()
 		w.Close()
 		return fmt.Errorf("start OpenCode credential export: %w", err)
 	}
 	w.Close()
 	if err := imp.Start(); err != nil {
-		cancel()
+		g.mu.Unlock()
+		killProcessGroup(export)
 		export.Wait()
 		return fmt.Errorf("start OpenCode credential import: %w", err)
 	}
+	g.importCmds = []*exec.Cmd{export, imp}
+	g.mu.Unlock()
 	exportErr := export.Wait()
 	importErr := imp.Wait()
 	if exportErr != nil {
@@ -542,6 +560,29 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 	return nil
 }
 
+// openCodeAuthCommands builds the export and import commands without starting
+// them. Each runs outside any project directory (export in the system temp
+// dir, import in the shadow home) with PWD matching it, and in its own process
+// group so cleanup can kill the CLI and any standalone server it spawned.
+func openCodeAuthCommands(ctx context.Context, g *guidanceVariant, parentEnv []string, integration string) (export, imp *exec.Cmd) {
+	export = exec.CommandContext(ctx, "opencode", "auth", "export", integration)
+	export.Dir = os.TempDir()
+	export.Env = environmentInDirectory(parentEnv, export.Dir)
+	imp = exec.CommandContext(ctx, "opencode", "auth", "import", "--standalone")
+	imp.Dir = g.shadowHome
+	imp.Env = environmentInDirectory(g.applyEnvironment(parentEnv), imp.Dir)
+	for _, c := range []*exec.Cmd{export, imp} {
+		c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
+	return export, imp
+}
+
+func killProcessGroup(c *exec.Cmd) {
+	if c != nil && c.Process != nil {
+		syscall.Kill(-c.Process.Pid, syscall.SIGKILL)
+	}
+}
+
 // importCredential is the OpenCode credential transfer as a separate step, run
 // by main() after registering cleanup: every fallible setup step then precedes
 // it, and a failure or signal during or after the import still removes the
@@ -550,7 +591,11 @@ func (g *guidanceVariant) importCredential() error {
 	if g == nil || g.host != "opencode" {
 		return nil
 	}
-	return importOpenCodeCredential(g, os.Environ(), g.integration)
+	if err := importOpenCodeCredential(g, os.Environ(), g.integration); err != nil {
+		return err
+	}
+	g.credentialImported = true
+	return nil
 }
 
 // setupGuidanceVariant is the top-level orchestration for design.md's
@@ -654,6 +699,7 @@ func (g *guidanceVariant) cleanup() {
 	if g == nil {
 		return
 	}
+	g.stopImport()
 	if g.shadowDataDir != "" {
 		g.removeShadowDataDir()
 	}
@@ -665,15 +711,38 @@ func (g *guidanceVariant) cleanup() {
 	g.report.CodexAuthWarning = warning
 }
 
+// stopImport forbids any later import, kills an import still in flight (its
+// whole process group, since the CLI may have spawned a standalone server that
+// would otherwise recreate the database after removal) and waits for
+// importOpenCodeCredential to return.
+func (g *guidanceVariant) stopImport() {
+	g.mu.Lock()
+	g.cleaned = true
+	for _, c := range g.importCmds {
+		killProcessGroup(c)
+	}
+	done := g.importDone
+	g.mu.Unlock()
+	if done != nil {
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+		}
+	}
+}
+
 // removeShadowDataDir deletes the whole shadow OpenCode data directory, whose
-// database, WAL and any other file may hold the imported credential. The run's
-// own log is kept first, moved next to it as evidence; if anything survives the
-// removal, a warning goes to the report instead of a silent leak.
+// database, WAL, log and any other file may hold the imported credential or
+// data derived from it; nothing from it is kept. If anything survives, or the
+// directory is absent after a successful import, a warning goes to the report
+// instead of a silent leak.
 func (g *guidanceVariant) removeShadowDataDir() {
 	if _, err := os.Lstat(g.shadowDataDir); err != nil {
+		if g.credentialImported && !g.report.ShadowCredentialStoreRemoved {
+			g.report.ShadowCredentialWarning = "the credential import succeeded but the shadow OpenCode data directory is absent, so the copy went somewhere unexpected: " + g.shadowDataDir
+		}
 		return
 	}
-	os.Rename(filepath.Join(g.shadowDataDir, "log"), filepath.Join(g.shadowHome, "opencode-log"))
 	os.RemoveAll(g.shadowDataDir)
 	if _, err := os.Lstat(g.shadowDataDir); err == nil {
 		g.report.ShadowCredentialStoreRemoved = false

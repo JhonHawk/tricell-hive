@@ -1,32 +1,41 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 )
 
 func TestValidateGuidanceVariantFlags(t *testing.T) {
 	for _, c := range []struct {
-		name, host, source, arm string
-		wantErr                 bool
+		name, host, source, arm, model string
+		wantErr                        bool
 	}{
-		{"neither flag is the ordinary run", "codex", "", "", false},
-		{"arm without source fails", "codex", "", "A", true},
-		{"source without arm fails", "codex", "/src", "", true},
-		{"bad arm value fails", "codex", "/src", "C", true},
-		{"unsupported host fails", "claude", "/src", "A", true},
-		{"codex arm A accepted", "codex", "/src", "A", false},
-		{"grok arm B accepted", "grok", "/src", "B", false},
-		{"opencode arm A accepted", "opencode", "/src", "A", false},
-		{"pi still unsupported", "pi", "/src", "A", true},
+		{"neither flag is the ordinary run", "codex", "", "", "gpt-6", false},
+		{"arm without source fails", "codex", "", "A", "gpt-6", true},
+		{"source without arm fails", "codex", "/src", "", "gpt-6", true},
+		{"bad arm value fails", "codex", "/src", "C", "gpt-6", true},
+		{"unsupported host fails", "claude", "/src", "A", "m", true},
+		{"codex arm A accepted", "codex", "/src", "A", "gpt-6", false},
+		{"grok arm B accepted", "grok", "/src", "B", "grok-5", false},
+		{"opencode arm A accepted", "opencode", "/src", "A", "opencode-go/m", false},
+		{"opencode with variant suffix accepted", "opencode", "/src", "B", "opencode-go/m#max", false},
+		{"opencode model without provider prefix fails", "opencode", "/src", "A", "deepseek-v4.1-flash", true},
+		{"opencode empty provider fails", "opencode", "/src", "A", "/m", true},
+		{"opencode empty model fails", "opencode", "/src", "A", "", true},
+		{"pi still unsupported", "pi", "/src", "A", "p/m", true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			err := validateGuidanceVariantFlags(c.host, c.source, c.arm, "opencode-go/m")
+			err := validateGuidanceVariantFlags(c.host, c.source, c.arm, c.model)
 			if (err != nil) != c.wantErr {
 				t.Fatalf("host=%s source=%q arm=%q: err=%v wantErr=%v", c.host, c.source, c.arm, err, c.wantErr)
 			}
@@ -607,15 +616,15 @@ func TestCheckOpenCodeCwdOutsideHome(t *testing.T) {
 }
 
 func TestOpenCodeFixtureParent(t *testing.T) {
-	if got := openCodeFixtureParent("flows", "/out/run"); got != "/out/run" {
+	if got := fixtureParentDir("flows", "/out/run"); got != "/out/run" {
 		t.Fatalf("flows fixtures live under --out: %s", got)
 	}
-	if got := openCodeFixtureParent("workspace-conventions", "/out/run"); got != os.TempDir() {
+	if got := fixtureParentDir("workspace-conventions", "/out/run"); got != os.TempDir() {
 		t.Fatalf("other suites use the system temp dir: %s", got)
 	}
 }
 
-func TestCleanupRemovesWholeShadowDataDirKeepsLogAndWarnsOnSurvivor(t *testing.T) {
+func TestCleanupRemovesWholeShadowDataDirIncludingLog(t *testing.T) {
 	shadow := t.TempDir()
 	data := filepath.Join(shadow, ".local", "share", "opencode")
 	os.MkdirAll(filepath.Join(data, "log"), 0700)
@@ -627,8 +636,11 @@ func TestCleanupRemovesWholeShadowDataDirKeepsLogAndWarnsOnSurvivor(t *testing.T
 	if _, err := os.Stat(data); !os.IsNotExist(err) {
 		t.Fatal("the whole shadow data directory must be removed")
 	}
-	if b, err := os.ReadFile(filepath.Join(shadow, "opencode-log", "opencode.log")); err != nil || string(b) != "x" {
-		t.Fatalf("the run log must be preserved as evidence: %v", err)
+	entries, _ := os.ReadDir(shadow)
+	for _, e := range entries {
+		if e.Name() != ".local" {
+			t.Fatalf("nothing from the data directory may be retained, found %s", e.Name())
+		}
 	}
 	if !g.report.ShadowCredentialStoreRemoved || g.report.ShadowCredentialWarning != "" {
 		t.Fatalf("unexpected outcome: %+v", g.report)
@@ -639,7 +651,23 @@ func TestCleanupRemovesWholeShadowDataDirKeepsLogAndWarnsOnSurvivor(t *testing.T
 	}
 }
 
+func TestCleanupWarnsWhenImportSucceededButDataDirIsAbsent(t *testing.T) {
+	g := &guidanceVariant{shadowHome: t.TempDir(), host: "opencode", shadowDataDir: filepath.Join(t.TempDir(), "gone"), credentialImported: true}
+	g.cleanup()
+	if g.report.ShadowCredentialWarning == "" || g.report.ShadowCredentialStoreRemoved {
+		t.Fatalf("a credential that went somewhere unexpected must be reported: %+v", g.report)
+	}
+	quiet := &guidanceVariant{shadowHome: t.TempDir(), host: "opencode", shadowDataDir: filepath.Join(t.TempDir(), "gone")}
+	quiet.cleanup()
+	if quiet.report.ShadowCredentialWarning != "" {
+		t.Fatal("no import happened, so an absent directory is not a warning")
+	}
+}
+
 func TestCleanupWarnsWhenShadowDataSurvives(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions, so the removal cannot be made to fail")
+	}
 	shadow := t.TempDir()
 	data := filepath.Join(shadow, ".local", "share", "opencode")
 	os.MkdirAll(data, 0700)
@@ -684,5 +712,90 @@ func TestImportOpenCodeCredentialRunsOutsideProjectDirectories(t *testing.T) {
 	}
 	if !seen[tmp] || !seen[shadow] {
 		t.Fatalf("export must run in the system temp dir and import in the shadow home, ran in %v", dirs)
+	}
+}
+
+func TestOpenCodeAuthCommandsSetDirAndMatchingPWD(t *testing.T) {
+	shadow := t.TempDir()
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode"}
+	export, imp := openCodeAuthCommands(context.Background(), g, []string{"HOME=/real", "PWD=/runner/cwd", "OLDPWD=/x"}, "opencode-go")
+	for name, c := range map[string]*exec.Cmd{"export": export, "import": imp} {
+		if c.Dir == "" {
+			t.Fatalf("%s has no working directory", name)
+		}
+		pwd := 0
+		for _, e := range c.Env {
+			if strings.HasPrefix(e, "PWD=") {
+				pwd++
+				if e != "PWD="+c.Dir {
+					t.Fatalf("%s: PWD %q disagrees with Dir %q", name, e, c.Dir)
+				}
+			}
+			if strings.HasPrefix(e, "OLDPWD=") {
+				t.Fatalf("%s: stale OLDPWD kept", name)
+			}
+		}
+		if pwd != 1 {
+			t.Fatalf("%s: expected exactly one PWD, got %d", name, pwd)
+		}
+	}
+	if !strings.Contains(strings.Join(imp.Env, "\n"), "HOME="+shadow) {
+		t.Fatal("import must run under the shadow HOME")
+	}
+}
+
+func TestCleanupKillsInFlightImportAndKeepsDataDirRemoved(t *testing.T) {
+	bin := t.TempDir()
+	pidFile := filepath.Join(t.TempDir(), "pid")
+	script := `#!/bin/sh
+if [ "$2" = "export" ]; then printf '{}'; exit 0; fi
+echo $$ > "$FAKE_OPENCODE_PID"
+mkdir -p "$HOME/.local/share/opencode"
+cat > /dev/null
+sleep 30
+echo late > "$HOME/.local/share/opencode/opencode.db"
+`
+	os.WriteFile(filepath.Join(bin, "opencode"), []byte(script), 0700)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("FAKE_OPENCODE_PID", pidFile)
+	shadow, _ := target.Canonical(t.TempDir())
+	data := filepath.Join(shadow, ".local", "share", "opencode")
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode", shadowDataDir: data, integration: "opencode-go"}
+	done := make(chan error, 1)
+	go func() { done <- g.importCredential() }()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if _, err := os.Stat(pidFile); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the fake import never started")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	started := time.Now()
+	g.cleanup()
+	if time.Since(started) > 8*time.Second {
+		t.Fatal("cleanup must not wait for the 30 s import")
+	}
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("an interrupted import must report an error")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("importCredential did not return after cleanup killed the import")
+	}
+	raw, _ := os.ReadFile(pidFile)
+	pid, _ := strconv.Atoi(strings.TrimSpace(string(raw)))
+	if err := syscall.Kill(pid, 0); err == nil {
+		t.Fatal("the import process is still alive after cleanup")
+	}
+	if _, err := os.Lstat(data); !os.IsNotExist(err) {
+		t.Fatal("the shadow data directory must be gone")
+	}
+	// An import starting after cleanup already ran must refuse to start.
+	if err := g.importCredential(); err == nil {
+		t.Fatal("no import may start after cleanup")
 	}
 }

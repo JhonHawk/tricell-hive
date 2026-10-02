@@ -176,10 +176,12 @@ runner pipes `opencode auth export <provider>` (the provider taken from
 never read, printed or logged. It runs after cleanup is registered, so a
 failure or signal still removes the copy. Because the shadow data directory
 then holds that copy, the whole `.local/share/opencode` directory is deleted at
-the end of the run (and on an abnormal exit); its `log/` is first moved to
-`shadow-home/opencode-log` as evidence. The outcome is recorded as
+the end of the run (and on an abnormal exit), with nothing retained from it,
+log included, since any file there may hold credential-related data. A signal
+during the import kills the in-flight import's process group first. The outcome
+is recorded as
 `ShadowCredentialStoreRemoved`, or `ShadowCredentialWarning` if anything
-survived. `--model` must be `provider/model` for this host, checked before
+survived or the directory was unexpectedly absent after a successful import. `--model` must be `provider/model` for this host, checked before
 `--out` is created. The export and import subprocesses run in the system temp
 dir and the shadow home, never in a project directory.
 

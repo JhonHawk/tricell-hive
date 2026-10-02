@@ -377,7 +377,7 @@ func main() {
 	must(e)
 	if *guidanceSource != "" && *host == "opencode" {
 		// Checked before --out is created so a refused run leaves nothing behind.
-		must(checkOpenCodeCwdOutsideHome(openCodeFixtureParent(*suite, output), userHome))
+		must(checkOpenCodeCwdOutsideHome(fixtureParentDir(*suite, output), userHome))
 	}
 	if _, e = os.Stat(output); !os.IsNotExist(e) {
 		must(fmt.Errorf("output must not exist"))
@@ -405,11 +405,8 @@ func main() {
 	if f.ID == "" {
 		must(fmt.Errorf("unknown fixture"))
 	}
-	fixtureParent := ""
-	if *suite == "flows" {
-		fixtureParent = output
-	}
-	root, e := os.MkdirTemp(fixtureParent, "hive-pilot-"+*host+"-"+f.ID+"-"+*arm+"-")
+	// The same function the OpenCode isolation guard used, so the two cannot diverge.
+	root, e := os.MkdirTemp(fixtureParentDir(*suite, output), "hive-pilot-"+*host+"-"+f.ID+"-"+*arm+"-")
 	must(e)
 	root, e = target.Canonical(root)
 	must(e)
