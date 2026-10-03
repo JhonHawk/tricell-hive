@@ -25,6 +25,8 @@ Start with [AGENTS.md](AGENTS.md), the common project guidance. Claude Code impo
 
 The [harness engineering research index](_support/docs/harness-engineering/README.md) links to the source-backed host comparison and the analysis of the supplied `uber-software-factory.zip` corpus. This branch retains that research; earlier implementation, audit, pilot, and retirement records remain in Git history. The research does not demonstrate a quality improvement. Recheck mutable host documentation against the installed CLI version before adapting its behavior.
 
+The [history and technical provenance](_support/docs/history/history-and-provenance.md) documents five preserved milestones, historical attribution, and the limits of Git and GitHub dates.
+
 ## Where work goes
 
 - Source changes stay in the existing source directories.
