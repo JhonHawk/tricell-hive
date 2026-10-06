@@ -34,3 +34,9 @@ __pycache__/
 # Private optional research sources
 /_support/workspace/
 /CLAUDE.local.md
+
+# Documentation site (site/): dependencies and build output
+site/node_modules
+site/dist
+site/.astro
+site/.wrangler
