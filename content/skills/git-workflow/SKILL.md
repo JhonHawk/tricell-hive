@@ -23,7 +23,7 @@ Before committing, record the pre-existing index and name the exact candidate pa
 
 If a Git command needs an auxiliary file such as a commit message or a pathspec list, follow the canonical global artifact-placement guidance to resolve the current task's scratch directory. Remove only an auxiliary file created by this delivery when it is demonstrably reproducible and no longer needed.
 
-When a pull request is authorized, describe the problem, the resulting behavior, and the checks actually run. Follow the repository's template and contribution requirements where present.
+When a pull request is authorized, describe the problem, the resulting behavior, and the checks actually run. State whether a revert fully undoes the merge or some effect would remain, such as migrated data, a published contract, or a released version, and what the change would affect if it were wrong. Follow the repository's template and contribution requirements where present.
 
 ## Verify the authorized effect
 
