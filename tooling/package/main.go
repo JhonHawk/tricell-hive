@@ -105,7 +105,6 @@ func run(args []string) error {
 		fmt.Fprintf(&identity, "%s\x00%o\x00%s\n", name, info.Mode().Perm(), inventory[name])
 	}
 	sourceID := distribution.Digest([]byte(identity.String()))
-	index := distribution.DownloadIndex{Version: 1, ProductVersion: productVersion}
 	for _, p := range targets {
 		pair := strings.Split(p, "/")
 		label := archiveLabel(productVersion, pair[0], pair[1])
@@ -156,18 +155,6 @@ func run(args []string) error {
 		if err := os.Mkdir(releaseDir, 0700); err != nil {
 			return err
 		}
-		rawBytes, err := os.ReadFile(binary)
-		if err != nil {
-			return err
-		}
-		rawBinary := filepath.Join(releaseDir, "hive")
-		if err := writeNew(rawBinary, rawBytes, 0755); err != nil {
-			return err
-		}
-		rawChecksum := distribution.Digest(rawBytes)
-		if err := writeNew(filepath.Join(releaseDir, "hive.sha256"), []byte(rawChecksum+"\n"), 0644); err != nil {
-			return err
-		}
 		archive := filepath.Join(releaseDir, label+".tar.gz")
 		if err := writeArchive(dir, archive); err != nil {
 			return err
@@ -188,17 +175,14 @@ func run(args []string) error {
 		if closeErr != nil {
 			return closeErr
 		}
-		index.Releases = append(index.Releases, distribution.DownloadRelease{
-			Platform: p, SourceID: sourceID, Package: filepath.ToSlash(filepath.Join("versions", productVersion, pair[0]+"-"+pair[1], filepath.Base(archive))), PackageSHA256: distribution.Digest(compressed), RawBinary: filepath.ToSlash(filepath.Join("versions", productVersion, pair[0]+"-"+pair[1], "hive")), RawBinarySHA256: rawChecksum,
-		})
 		fmt.Println(archive)
 	}
-	return distribution.WriteDownloadIndex(filepath.Join(versionDir, "index.json"), index)
+	return nil
 }
 
 // reserveVersion claims versions/<label> exclusively before anything is built,
 // so rebuilding a label (or splitting its platforms across runs) fails instead
-// of mixing new binaries with an earlier package, checksum and index.
+// of mixing new binaries with an earlier package and checksum.
 func reserveVersion(out, productVersion string) (string, error) {
 	versions := filepath.Join(out, "versions")
 	if err := os.MkdirAll(versions, 0700); err != nil {
@@ -212,18 +196,6 @@ func reserveVersion(out, productVersion string) (string, error) {
 		return "", err
 	}
 	return dir, nil
-}
-
-func writeNew(path string, data []byte, mode os.FileMode) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, mode)
-	if err != nil {
-		return err
-	}
-	if _, err := f.Write(data); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
 }
 
 // frozenInputs discovers all local Go dependencies for every requested target,

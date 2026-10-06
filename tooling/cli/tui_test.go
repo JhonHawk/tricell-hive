@@ -1600,7 +1600,7 @@ func TestRecoveryPhrasesQuoteThePathForTheShell(t *testing.T) {
 			if got, want := recoveryTextOnOpen(true)(tc.path, true), "Run hive recover --state-dir "+tc.quoted; got != want {
 				t.Errorf("recoveryTextOnOpen = %q, want %q", got, want)
 			}
-			if got, want := recoveryPhraseFor(true, true, false, tc.path), "run hive recover --state-dir "+tc.quoted; got != want {
+			if got, want := recoveryPhraseFor(true, true, tc.path), "run hive recover --state-dir "+tc.quoted; got != want {
 				t.Errorf("recoveryPhraseFor = %q, want %q", got, want)
 			}
 		})

@@ -659,8 +659,7 @@ func LoadPlan(path string) (Plan, error) {
 var sourceCommitPattern = regexp.MustCompile(`^([0-9a-f]{40}|[0-9a-f]{64})$`)
 
 // BindSourceCommit attaches the Git commit a plan's source was extracted
-// from and recomputes the plan ID, as BindInstaller does for the retained
-// installer.
+// from and recomputes the plan ID.
 func BindSourceCommit(plan Plan, commit string) (Plan, error) {
 	if !sourceCommitPattern.MatchString(commit) {
 		return Plan{}, fmt.Errorf("invalid source commit %q", commit)

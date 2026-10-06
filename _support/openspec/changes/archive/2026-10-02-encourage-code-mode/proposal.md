@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado el 2026-10-02 en `development` por el [PR #101](https://github.com/JhonHawk/tricell-hive/pull/101) (`edcaa72`); desplegado con `hive update` (release `c1c15fcc0b75`) |
+| Estado | Cerrado · integrado el 2026-10-02 en `development` por el [PR #101](https://github.com/JhonHawk/tricell-hive-private/pull/101) (`edcaa72`); desplegado con `hive update` (release `c1c15fcc0b75`) |
 | Tracker · GitHub Issues | Sin issue: el cambio nace de una conversación del 2026-10-02 |
 | Git | `automatic` a `development` · sin parada humana · sin revisión dedicada |
 | Verificación | `go vet ./...` · `go test ./...` · `hive doctor` local · `hive update` y lectura del bloque desplegado |

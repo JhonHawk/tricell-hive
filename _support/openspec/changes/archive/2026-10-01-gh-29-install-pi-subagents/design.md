@@ -4,7 +4,7 @@
 
 - `integrations/pi/pi.go` (HEAD `e4fae19`) resuelve bloque, skill compartida y `<Pi home>/agents/`. Alcance de proyecto: error `Pi project scope is unsupported`.
 - El gestor no ejecuta procesos de proveedor: `tooling/providers/run.go` solo admite pasos `manual`. No hay `exec` en `tooling/management`.
-- Comentario del [29](https://github.com/JhonHawk/tricell-hive/issues/29) (2026-09-25, Pi 0.87.1): la identidad npm es el nombre (`pi-subagents`), no el pin; `pi install` con otra cadena sustituye la entrada; `pi remove` no vale de recover si la entrada ya era del usuario; `extensions: []` está declarado y no carga la extensión (conflicto); `pi list` no es JSON, hay que leer `settings.json`.
+- Comentario del [29](https://github.com/JhonHawk/tricell-hive-private/issues/29) (2026-09-25, Pi 0.87.1): la identidad npm es el nombre (`pi-subagents`), no el pin; `pi install` con otra cadena sustituye la entrada; `pi remove` no vale de recover si la entrada ya era del usuario; `extensions: []` está declarado y no carga la extensión (conflicto); `pi list` no es JSON, hay que leer `settings.json`.
 - Pi 1.0.0 instalado: `pi install <source>` sigue siendo el mecanismo (`docs/packages.md`). Esta máquina declara `pi-subagents` 0.74.0. D3-B usa ese pin solo si falta la entrada.
 - Criterio de “rol seleccionable”: los pilotos de modelo están pausados. El 29 lo baja a descubrimiento de archivos.
 - Spec actual (`Optional operation capabilities`): no ejecutar un instalador de proveedor hasta que la receta pase su puerta nativa; hasta entonces, manual.

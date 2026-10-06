@@ -2,8 +2,8 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado el 2026-10-01 en `development` por el [PR #89](https://github.com/JhonHawk/tricell-hive/pull/89) (`c0cbedb`) |
-| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive/issues/46) (pantallas 5 y 6, escrituras) |
+| Estado | Cerrado · integrado el 2026-10-01 en `development` por el [PR #89](https://github.com/JhonHawk/tricell-hive-private/pull/89) (`c0cbedb`) |
+| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive-private/issues/46) (pantallas 5 y 6, escrituras) |
 | Git | `interactive` a `development` (D4-A) · parada antes del push para el recorrido del usuario · `/code-review` antes del merge (D5-A) |
 | Verificación | `go vet ./...` · `go test ./...` · `hive-review-ux` y `hive-verify-change` en `tmux` · recorrido del usuario |
 | Siguiente paso | Ninguno en este cambio |

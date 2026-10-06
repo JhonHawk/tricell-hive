@@ -2,8 +2,8 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #73](https://github.com/JhonHawk/tricell-hive/pull/73) (merge `b8eb49a`); #61 cerrado |
-| Tracker · GitHub Issues | • [#61 — test: use fixtures instead of the real repository tree and data](https://github.com/JhonHawk/tricell-hive/issues/61) (parte de datos fijados; la de velocidad se entregó en #71) |
+| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #73](https://github.com/JhonHawk/tricell-hive-private/pull/73) (merge `b8eb49a`); #61 cerrado |
+| Tracker · GitHub Issues | • [#61 — test: use fixtures instead of the real repository tree and data](https://github.com/JhonHawk/tricell-hive-private/issues/61) (parte de datos fijados; la de velocidad se entregó en #71) |
 | Git | `automatic` · rama `feat/gh-61-synthetic-test-data` desde `development`, PR a `development`, `/code-review` antes del push, CI en verde, merge · sin parada humana |
 | Verificación | `go vet ./...` · `go test ./...` en local · pruebas de mutación de datos reales · sin CI (T6) |
 | Siguiente paso | Ninguno en este cambio |

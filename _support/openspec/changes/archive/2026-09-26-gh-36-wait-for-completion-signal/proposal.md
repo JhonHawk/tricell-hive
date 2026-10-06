@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado en `rebuild/harness-engineering` (`5bf5b19`) y desplegado como release `86b08f50d04a` |
-| Tracker · GitHub Issues | • [#36 — Esperas de CI y subagentes: una espera bloqueante y aviso al usuario](https://github.com/JhonHawk/tricell-hive/issues/36) |
+| Tracker · GitHub Issues | • [#36 — Esperas de CI y subagentes: una espera bloqueante y aviso al usuario](https://github.com/JhonHawk/tricell-hive-private/issues/36) |
 | Git | `direct-base` a `rebuild/harness-engineering` · sin PR · despliegue a los seis hosts tras el push |
 | Verificación | `go test ./tests/content/...` · `go test -race ./tests/pilot/...` · `go vet ./...` · reversión por rama de cada fixture que falla |
 | Siguiente paso | Ninguno en este cambio. El efecto en sesiones reales de Codex no se midió, porque los pilotos están pausados |

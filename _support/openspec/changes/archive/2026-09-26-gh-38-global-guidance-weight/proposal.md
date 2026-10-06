@@ -3,14 +3,14 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado en `rebuild/harness-engineering` (`08abd00`) y desplegado como release `baf1ec3c938e` |
-| Tracker · GitHub Issues | • [#38 — Poda del peso de global.md](https://github.com/JhonHawk/tricell-hive/issues/38) |
+| Tracker · GitHub Issues | • [#38 — Poda del peso de global.md](https://github.com/JhonHawk/tricell-hive-private/issues/38) |
 | Git | Commit `08abd00` con push a `rebuild/harness-engineering` |
 | Verificación | `go vet ./...` · `go test -race ./...` · validación de enlaces del release · revisión independiente de equivalencia (K4-A) |
 | Siguiente paso | Ninguno en este cambio; el efecto en la atención no se midió (pilotos pausados) |
 
 ## Objetivo
 
-`content/guidance/global.md` pesa 41177 bytes y se carga en cada sesión de los seis hosts. El [issue #38](https://github.com/JhonHawk/tricell-hive/issues/38) pide reducirlo sin perder lo que necesitan los modelos de ejecución: el perfil `execution` de `integrations/agent-profiles.json`, con `deepseek-v4.1-flash` como piso, y la clase Haiku, que pidió el usuario.
+`content/guidance/global.md` pesa 41177 bytes y se carga en cada sesión de los seis hosts. El [issue #38](https://github.com/JhonHawk/tricell-hive-private/issues/38) pide reducirlo sin perder lo que necesitan los modelos de ejecución: el perfil `execution` de `integrations/agent-profiles.json`, con `deepseek-v4.1-flash` como piso, y la clase Haiku, que pidió el usuario.
 
 La auditoría del 2026-09-26 (tres `review-harness` en paralelo, método `prompt-audit` más `harness-audit`) encontró que la mayor parte es esencial. Las reglas de ubicación de artefactos no pueden depender de un skill (`AGENTS.md`). La parte de la delegación que toca al hilo principal debe seguir global, porque los hijos genéricos no reciben otra cosa. Y la entrega por skills o referencias llegó al modelo solo en ~45–70% de las sesiones medidas (`_support/docs/architecture/repository-and-distribution.md`). El cambio condensa sin cambiar el significado (C1) y mueve tres bloques situacionales a skills (C2), dejando en global el disparador y lo que falló en sesiones reales. De paso corrige dos contradicciones (V1 y V2).
 

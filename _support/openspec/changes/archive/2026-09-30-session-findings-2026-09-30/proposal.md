@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado en `development` por [PR #86](https://github.com/JhonHawk/tricell-hive/pull/86) (`3988d0b`) y desplegado con `hive update` |
+| Estado | Cerrado · integrado en `development` por [PR #86](https://github.com/JhonHawk/tricell-hive-private/pull/86) (`3988d0b`) y desplegado con `hive update` |
 | Tracker · GitHub Issues | Sin issue: el trabajo nace de la revisión de sesiones; no se abre ninguno sin pedirlo |
 | Git | `automatic` · PR #86 integrado en `development` |
 | Verificación | Pruebas Go (`go test ./...`), prueba de presupuesto de la guía global, búsquedas de texto por criterio, `hive update --dry-run` |

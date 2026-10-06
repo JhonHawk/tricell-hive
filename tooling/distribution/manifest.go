@@ -120,7 +120,7 @@ func verifyManifest(root string) error {
 	if _, err := hex.DecodeString(m.SourceID); err != nil {
 		return fmt.Errorf("invalid package identity")
 	}
-	for _, required := range []string{"bin/hive", "bin/hive.sha256", "install.sh", "platform", "content/guidance/global.md", "integrations/agent-profiles.json"} {
+	for _, required := range []string{"bin/hive", "bin/hive.sha256", "install.sh", "platform", "content/guidance/global.md", "integrations/agent-profiles.json", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
 		if _, ok := m.Files[required]; !ok {
 			return fmt.Errorf("incomplete package: %s", required)
 		}

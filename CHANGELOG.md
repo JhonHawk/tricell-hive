@@ -8,6 +8,24 @@ the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A content test that keeps `THIRD_PARTY_NOTICES.md` in sync with `go.mod` and
+  the local Go toolchain.
+
+### Changed
+
+- Installation now refuses a package that lacks `LICENSE` or
+  `THIRD_PARTY_NOTICES.md`.
+
+### Removed
+
+- The `hive bootstrap` subcommand. Plans and onboarding journals written by it
+  (they carry an `installer` field) are still read and the field is ignored, so
+  `hive recover` keeps working on that state.
+- The package outputs `versions/<v>/index.json` and the raw per-platform `hive`
+  and `hive.sha256` files next to the archives.
+
 ## [0.1.0] - 2026-10-05
 
 First public release.

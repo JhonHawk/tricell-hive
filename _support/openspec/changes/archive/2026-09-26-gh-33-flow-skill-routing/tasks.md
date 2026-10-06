@@ -51,7 +51,7 @@
 - `/code-review` alto (2026-09-26), 10 hallazgos, todos con fundamento:
   - **Corregido en el hilo principal:**
     - 3: la viñeta ya no menciona `git-workflow`; queda en 36,936 bytes con el presupuesto ajustado.
-    - 5: los límites del modelo de trazas quedaron registrados en [#34](https://github.com/JhonHawk/tricell-hive/issues/34), como pide `AGENTS.md`.
+    - 5: los límites del modelo de trazas quedaron registrados en [#34](https://github.com/JhonHawk/tricell-hive-private/issues/34), como pide `AGENTS.md`.
   - **Delegados a `test-engineer`:** 1, 2, 4, 6, 7, 8, 9 y 10 (lectura con contenido, orden por resultado, `git merge` y `gh api`, paridad del helper, comentarios, deduplicación y rendimiento).
 - Correcciones de `/code-review` (2026-09-26, `test-engineer`, revisadas):
   - 1, 2, 4, 6, 7, 8, 9 y 10 corregidos.

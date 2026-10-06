@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Completado · integrado en `81682f9` (PR 94) |
-| Tracker · GitHub Issues | • [29 — Instalar pi-subagents al desplegar el host Pi](https://github.com/JhonHawk/tricell-hive/issues/29) |
+| Tracker · GitHub Issues | • [29 — Instalar pi-subagents al desplegar el host Pi](https://github.com/JhonHawk/tricell-hive-private/issues/29) |
 | Git | automático · tricell-hive `development` · sin parada humana antes del push |
 | Verificación | pruebas Go con `pi` falso y home sintético · sin piloto de modelo |
 | Siguiente paso | commit, PR y `hive-review-code` |

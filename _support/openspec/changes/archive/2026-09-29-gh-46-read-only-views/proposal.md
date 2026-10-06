@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado el 2026-09-29 por push directo de `feat/gh-46-read-only-views` a `rebuild/harness-engineering` (D5-B), con `7f06e70` incluido (D2-A) |
-| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive/issues/46) (pantallas 4 a 7, solo lectura) |
+| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive-private/issues/46) (pantallas 4 a 7, solo lectura) |
 | Git | `direct-base` a `rebuild/harness-engineering` desde el worktree (D5-B) · recorrido del usuario y `/code-review` antes del push (D6-A) |
 | Verificación | `go vet ./...` · `go test -race -timeout 20m ./...` · `hive-review-ux` y `hive-verify-change` en `tmux` · recorrido del usuario |
 | Siguiente paso | Ninguno en este cambio; las escrituras de las pantallas 5 y 6 van en el segundo cambio de #46 (D1-A) |

@@ -191,22 +191,6 @@ func TestOnboardingKeepsParentWhenCoreFailedAfterStarting(t *testing.T) {
 	}
 }
 
-func TestOnboardRejectsChangedRetainedInstallerBeforeAnyJournal(t *testing.T) {
-	o := setup(t)
-	bound := boundInstallPlan(t, o, strings.Repeat("9", 64))
-	if err := os.WriteFile(bound.Installer.Package, []byte("changed"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	runner := &fakeExternal{}
-	if _, err := (Engine{}).Onboard(bound, []ExternalStep{{ID: "fixture", Payload: json.RawMessage(`{}`)}}, runner); err == nil {
-		t.Fatal("onboarded a plan whose retained installer changed")
-	}
-	if pending, err := OnboardingPending(o.StateDir); err != nil || pending {
-		t.Fatalf("parent journal written before installer validation (%v, %v)", pending, err)
-	}
-	absent(t, bound.Changes[0].Target.Path)
-}
-
 func TestOnboardingCrashBetweenCoreCommitAndParentReceiptKeepsCore(t *testing.T) {
 	o := setup(t)
 	runner := &fakeExternal{}

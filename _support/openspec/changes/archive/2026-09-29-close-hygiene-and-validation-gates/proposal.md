@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · PR [#67](https://github.com/JhonHawk/tricell-hive/pull/67) mergeado en `rebuild/harness-engineering` (`343d694`) |
+| Estado | Cerrado · PR [#67](https://github.com/JhonHawk/tricell-hive-private/pull/67) mergeado en `rebuild/harness-engineering` (`343d694`) |
 | Tracker · GitHub Issues | Sin issue; nace de la auditoría de sesiones ark/sample-project del 2026-09-29 |
 | Git | Automático · PR a `rebuild/harness-engineering`, merge tras T5 · sin parada humana |
 | Verificación | `rg` por criterio · `go test ./...` · `go vet ./...` · `update --dry-run` (catálogo y enlaces) |

@@ -734,3 +734,29 @@ func TestInstallSummaryCountsReinstalledDeletedFile(t *testing.T) {
 		t.Fatalf("file was not put back as Hive wrote it (err %v)", err)
 	}
 }
+
+// TestInstallOfflinePendingRecoveryPointsToInstallScript covers L3's offline
+// side: an install invocation that finds a pending core
+// operation must still say to run ./install.sh again, exactly as before —
+// that script exists in this flow, and re-running it is the correct offline
+// recovery step.
+func TestInstallOfflinePendingRecoveryPointsToInstallScript(t *testing.T) {
+	home := t.TempDir()
+	stateDir := filepath.Join(home, "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stateDir, "pending.json"), []byte(`{"id":"core"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+	dependencies.RecoverCore = func(string) (string, error) { return "core-id", nil }
+	source := minimalTestSource(t)
+	var out bytes.Buffer
+	if err := installWithDependencies([]string{"--home", home, "--state-dir", stateDir, "--source", source}, strings.NewReader("y\n"), &out, true, dependencies); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "run ./install.sh again") {
+		t.Fatalf("offline pending recovery lost its ./install.sh instruction: %s", out.String())
+	}
+}

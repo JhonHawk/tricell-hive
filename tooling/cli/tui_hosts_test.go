@@ -25,7 +25,7 @@ const testVoiceID = "testvoice"
 // fixed synthetic Hive source with just enough content to exercise
 // Install/Remove: content/guidance/global.md (every install plan writes it
 // unconditionally), one voice (preamble.md and testvoice.md), and a minimal
-// integrations/agent-profiles.json (required by the bootstrap package
+// integrations/agent-profiles.json (required by the package
 // manifest). Install/Remove behavior does not depend on which skills or
 // agents a source carries, and a full real-tree install under -race
 // dominated this package's run time. A test that writes into its source
@@ -289,35 +289,31 @@ func TestInstallCommandKeepsDryRunHint(t *testing.T) {
 }
 
 // TestRecoveryPhraseForInterfaceAlwaysNamesHiveRecover pins
-// recoveryPhraseFor's own contract directly: fromInterface always wins,
-// regardless of online, and names --state-dir too when explicitStateDir is
-// true (T4 leftover from T3 verification).
+// recoveryPhraseFor's own contract directly: fromInterface always names
+// hive recover, and names --state-dir too when explicitStateDir is true (T4
+// leftover from T3 verification).
 func TestRecoveryPhraseForInterfaceAlwaysNamesHiveRecover(t *testing.T) {
-	for _, online := range []bool{false, true} {
-		got := recoveryPhraseFor(true, false, online, "/synthetic-state")
-		if got != "run hive recover" {
-			t.Fatalf("recoveryPhraseFor(fromInterface=true, explicitStateDir=false, online=%v, ...) = %q, want %q", online, got, "run hive recover")
-		}
-		got = recoveryPhraseFor(true, true, online, "/synthetic-state")
-		want := "run hive recover --state-dir /synthetic-state"
-		if got != want {
-			t.Fatalf("recoveryPhraseFor(fromInterface=true, explicitStateDir=true, online=%v, ...) = %q, want %q", online, got, want)
-		}
+	got := recoveryPhraseFor(true, false, "/synthetic-state")
+	if got != "run hive recover" {
+		t.Fatalf("recoveryPhraseFor(fromInterface=true, explicitStateDir=false, ...) = %q, want %q", got, "run hive recover")
+	}
+	got = recoveryPhraseFor(true, true, "/synthetic-state")
+	want := "run hive recover --state-dir /synthetic-state"
+	if got != want {
+		t.Fatalf("recoveryPhraseFor(fromInterface=true, explicitStateDir=true, ...) = %q, want %q", got, want)
 	}
 }
 
 // TestRecoveryPhraseForNonInterfaceUnchanged pins that fromInterface=false
-// defers to recoveryPhrase exactly, for install's and bootstrap's own
-// callers, regardless of explicitStateDir.
+// defers to installRecoveryPhrase exactly, for install's own callers, regardless of
+// explicitStateDir.
 func TestRecoveryPhraseForNonInterfaceUnchanged(t *testing.T) {
 	stateDir := t.TempDir()
-	for _, online := range []bool{false, true} {
-		for _, explicitStateDir := range []bool{false, true} {
-			got := recoveryPhraseFor(false, explicitStateDir, online, stateDir)
-			want := recoveryPhrase(online, stateDir)
-			if got != want {
-				t.Fatalf("recoveryPhraseFor(fromInterface=false, explicitStateDir=%v, online=%v, ...) = %q, want %q (recoveryPhrase's own result)", explicitStateDir, online, got, want)
-			}
+	for _, explicitStateDir := range []bool{false, true} {
+		got := recoveryPhraseFor(false, explicitStateDir, stateDir)
+		want := installRecoveryPhrase
+		if got != want {
+			t.Fatalf("recoveryPhraseFor(fromInterface=false, explicitStateDir=%v, ...) = %q, want %q (installRecoveryPhrase)", explicitStateDir, got, want)
 		}
 	}
 }

@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado en `rebuild/harness-engineering` (`3b5a254`) · voz sin activar en los CLIs del usuario |
-| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive/issues/46) (pantalla 2, sin TUI) |
+| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive-private/issues/46) (pantalla 2, sin TUI) |
 | Git | `direct-base` a `rebuild/harness-engineering` · `/code-review` antes del push · sin despliegue (decisiones de la sesión D7-A y D8-A) |
 | Verificación | `go vet ./...` · `go test -race ./...` · prueba local sobre un home de prueba · validación humana del texto de las tres voces |
 | Siguiente paso | Ninguno en este cambio. #46 sigue abierto para la TUI con `huh` |

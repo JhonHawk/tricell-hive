@@ -741,7 +741,7 @@ La implementación deja los comandos exactos, ya probados, en el reporte de entr
   - **Parada para el recorrido final del usuario** sobre `e7afd4a`, con un home y un repositorio de prueba nuevos.
   - **Recorrido final aceptado por el usuario** («adelante») sobre `e7afd4a`.
   - **Entrega:**
-    - push de `feat/gh-46-model-and-project-writes` y [PR #89](https://github.com/JhonHawk/tricell-hive/pull/89) a `development`;
+    - push de `feat/gh-46-model-and-project-writes` y [PR #89](https://github.com/JhonHawk/tricell-hive-private/pull/89) a `development`;
     - antes del push se buscaron datos de cuenta y patrones de credenciales en las muestras grabadas, sin coincidencias. El repositorio no declara un escáner de secretos;
     - `/code-review` de Claude Code en curso (D5-A).
   - **`/code-review` (medio) del PR #89 sobre `e7afd4a`:** diez hallazgos.
@@ -762,7 +762,7 @@ La implementación deja los comandos exactos, ya probados, en el reporte de entr
     - F2: la pista de reset aparece también en errores de la release.
   - **Decisión del usuario D10-A:** corregirlos y fusionar sin otra revisión.
   - **Correcciones de F1 y F2** en `d00793c`, integradas en `4a06722`. La suite y `-race` pasan.
-  - **Merge del [PR #89](https://github.com/JhonHawk/tricell-hive/pull/89)** en `development` como `c0cbedb` el 2026-10-01. No hay CI.
+  - **Merge del [PR #89](https://github.com/JhonHawk/tricell-hive-private/pull/89)** en `development` como `c0cbedb` el 2026-10-01. No hay CI.
   - **Binario local:** `~/.local/bin/hive` se reconstruyó desde `c0cbedb`. El cambio no toca `content/`, así que `hive update` no tiene nada nuevo que desplegar.
   - **Cierre:**
     - delta aplicado a `specs/versioned-installation/spec.md`;
