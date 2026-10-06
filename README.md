@@ -6,6 +6,7 @@
 <p>Clarify the request. Preserve the project. Verify the result.</p>
 
 <p>
+<a href="https://hive.tricell.tech/">Docs</a> ·
 <a href="#get-started">Get started</a> ·
 <a href="#a-workflow-with-room-for-judgment">Workflow</a> ·
 <a href="#hosts">Hosts</a> ·
@@ -278,14 +279,14 @@ flowchart TD
     class Answer,Ready,Result,Finish outcome
 ```
 
-- [Research](content/skills/flow-research/SKILL.md) turns uncertainty into a supported
+- [Research](https://hive.tricell.tech/flows/research/) turns uncertainty into a supported
   answer. It can stand alone and does not authorize implementation.
-- [Plan](content/skills/flow-plan/SKILL.md) resolves consequential decisions and
+- [Plan](https://hive.tricell.tech/flows/plan/) resolves consequential decisions and
   defines contracts, verifiable tasks, and acceptance criteria when needed.
-- [Build](content/skills/flow-build/SKILL.md) reconciles current state, implements
+- [Build](https://hive.tricell.tech/flows/build/) reconciles current state, implements
   authorized work, and verifies affected behavior. Independent verification and
   dedicated review follow the applicable task and risk rules.
-- [Close](content/skills/flow-close/SKILL.md) reconciles the completion record and
+- [Close](https://hive.tricell.tech/flows/close/) reconciles the completion record and
   cleans up task-owned temporary resources while preserving unfinished work.
 
 The [shared guidance](content/guidance/global.md) owns the detailed authorization,
@@ -332,6 +333,8 @@ native locations. The files an agent should read first are in
 
 ## Documentation
 
+- [Documentation site](https://hive.tricell.tech/) — one page per flow: when to
+  use it, what it produces, and what it does not do.
 - [Changelog](CHANGELOG.md), [contributing](CONTRIBUTING.md), and
   [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —

@@ -46,7 +46,7 @@ Restricciones que deben seguir cumpliéndose:
 - AC5. `git check-ignore` reconoce `site/node_modules`, `site/dist`, `site/.astro` y `site/.wrangler`. *Falso en la base cuando* no imprime ninguno.
 - AC6. La cabecera muestra el ícono de Hive (variante oscura en tema oscuro y clara en tema claro, decorativo, con `alt=""`) junto al título visible `Hive`, y cada par de color de [design.md](design.md#marca-visual) alcanza al menos 4.5:1 en los dos temas, medido con `contrast-check.py`. *Falso en la base cuando* no hay sitio.
 - AC7. El `AGENTS.md` raíz tiene una regla que dice qué contiene el README y que el README y `llms.txt` se actualizan en el mismo PR que cambie algo que afirman; `CONTRIBUTING.md` la exige a quien contribuye, y el README (`For AI agents`), `llms.txt` y el mapa del `AGENTS.md` nombran `site/` como material que no se instala. *Falso en la base cuando* ninguno de esos archivos tiene la regla ni nombra `site/`.
-- AC8. Tras publicar, `https://hive.tricell.tech/` y `https://hive.tricell.tech/flows/plan/` responden `200` con el sitio, una ruta inexistente responde `404` con la página de Starlight, `https://hive.tricell.tech/install.sh` responde `302` hacia `https://raw.githubusercontent.com/JhonHawk/tricell-hive/master/get-hive.sh` antes y después de volver a desplegar, y la configuración de builds muestra la rama de producción `master` con las vistas previas apagadas. *Falso en la base cuando* la raíz no tiene origen.
+- AC8. Tras publicar, `https://hive.tricell.tech/` y `https://hive.tricell.tech/flows/plan/` responden `200` con el sitio, una ruta inexistente responde `404` con la página de Starlight, `https://hive.tricell.tech/install.sh` responde `302` hacia `https://raw.githubusercontent.com/JhonHawk/tricell-hive/master/get-hive.sh` antes y después de volver a desplegar. *Falso en la base cuando* la raíz no tiene origen.
 - AC9. Tras publicar, el README enlaza el sitio en su navegación y en `Documentation`, sus viñetas de flujos apuntan a las páginas del sitio y `llms.txt` lista el sitio. *Falso en la base cuando* ninguno menciona el sitio.
 
 ## Decisiones
@@ -62,6 +62,7 @@ Restricciones que deben seguir cumpliéndose:
 | D7-A | Hosting en Cloudflare Workers con *static assets* y Workers Builds, conectado por ruta y no por Custom Domain (propuesta de la revisión de infraestructura). |
 | D8-A | pnpm 12.8.1; si Workers Builds no lo acepta en el primer build, se baja a 11.28.5. |
 | D9-A | La plantilla distribuida se actualiza en este mismo cambio. |
+| D10 | Publicación (2026-10-06): primer despliegue y ruta con `wrangler` desde la CLI, en la cuenta de Jmartinez@tricell.com.mx; conectar Workers Builds en el panel queda para después, fuera de #17. Por eso AC8 ya no exige leer la configuración de builds. |
 
 Decidido por convención: el sitio está en inglés, porque el README y el repositorio público lo están y el texto para usuarios sigue el idioma del producto.
 
