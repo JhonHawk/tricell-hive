@@ -352,7 +352,8 @@ func prepareEntries(p Plan, state State) ([]entry, error) {
 	// install/update composes Hive then voice; remove and "voice set|off"
 	// compose voice then Hive, so a Hive removal that empties the file (a
 	// Hive-created file's CreatedFile check) sees the already-voice-stripped
-	// buffer. See design.md "Order of the two changes" (archived record heading, originally in Spanish).
+	// buffer. See design.md "Order of the two changes"
+	// (archived heading "Orden de los dos cambios").
 	voiceFirst := p.Action != "install"
 	for _, ch := range p.Changes {
 		cur, err := overlayRead(p, ch.Target, ch.Replaces != nil)

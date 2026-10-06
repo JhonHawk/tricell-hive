@@ -707,10 +707,11 @@ func assessFlows(r result, f fixture, files string) assessment {
 		a.Criteria = append(a.Criteria, gitDelivery)
 	}
 	// close-sequence is the T3 pilot case for the missing-close-question and
-	// branch-cleanup findings (X1/G3/G4, design.md "Pilot with the runner" (archived record heading, originally in Spanish)).
-	// closeQuestionAfterReport and mergedBranchDeleted are T2's regression
-	// functions, reused here (not part of regressionCriteria, which every
-	// other flows case also gets below) rather than duplicated.
+	// branch-cleanup findings (X1/G3/G4, design.md "Pilot with the runner"
+	// (archived heading "Piloto con el runner")). closeQuestionAfterReport and
+	// mergedBranchDeleted are T2's regression functions, reused here (not part of
+	// regressionCriteria, which every other flows case also gets below) rather
+	// than duplicated.
 	if f.ID == "close-sequence" {
 		a.Criteria = append(a.Criteria, closeQuestionAfterReport(r, r.Terminal == "completed"))
 		merged := mergedBranchDeleted(r, "main")
@@ -848,9 +849,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 }
 
 // closeSequenceBranchAbsent is the close-sequence case's final-state check
-// (design.md "Pilot with the runner" (archived record heading, originally in
-// Spanish): "the repo's final state (the branch absent locally and on the
-// remote)"). The prompt authorizes creating
+// (design.md "Pilot with the runner"
+// (archived heading "Piloto con el runner"): "the repo's final state (the
+// branch absent locally and on the remote)"). The prompt authorizes creating
 // fix/<short> with a model-chosen suffix, so this scans by prefix rather
 // than an exact branch name, in both the fixture's local refs and its bare
 // "fixture" remote (set up by setupGitDelivery).

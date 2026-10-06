@@ -796,7 +796,7 @@ func validatePlan(p Plan, state State) error {
 // and voice plans alike: each new span is exactly one well-formed voice
 // block with no stray marker, and each Before matches the currently
 // registered span (or its absence), rejecting a stale or tampered plan
-// before any write (see design.md "Plan validation" (archived record heading, originally in Spanish)).
+// before any write (see design.md "Plan validation" (archived heading "Validación del plan")).
 func validateVoiceChanges(p Plan, state State) error {
 	if p.VoiceSetting != nil {
 		if err := validateVoiceSettingShape(*p.VoiceSetting); err != nil {

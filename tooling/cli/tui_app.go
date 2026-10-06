@@ -1,9 +1,9 @@
 // tui_app.go is the full-screen application's root model (design.md
-// "Application", archived record heading originally in Spanish): one Bubble Tea program with a stack of views on the alternate
-// screen. The root owns the status line, the help bar, the global keys, the
-// minimum-size warning and the write flag; views own their own content and
-// keys. Long operations run as tea.Cmd values that return result messages, so
-// the model only changes inside Update.
+// "Application" (archived heading "Aplicación")): one Bubble Tea program with a
+// stack of views on the alternate screen. The root owns the status line, the help
+// bar, the global keys, the minimum-size warning and the write flag; views own
+// their own content and keys. Long operations run as tea.Cmd values that return
+// result messages, so the model only changes inside Update.
 package main
 
 import (
@@ -26,7 +26,7 @@ import (
 )
 
 // Below this size the application shows a warning instead of the view
-// (design.md "Minimum size" (archived record heading, originally in Spanish)).
+// (design.md "Minimum size" (archived heading "Tamaño mínimo")).
 const (
 	minWidth  = 80
 	minHeight = 24
@@ -193,7 +193,7 @@ func newAppModel(cfg appConfig) *appModel {
 }
 
 // optionsCopy is the Options every Cmd receives (design.md "Long operations"
-// (archived record heading, originally in Spanish)).
+// (archived heading "Operaciones largas")).
 func (m *appModel) optionsCopy() management.Options { return copyOptions(m.cfg.Options) }
 
 func (m *appModel) isWriting() bool { return m.writing }
@@ -400,9 +400,10 @@ func (m *appModel) onPendingChecked(msg pendingCheckedMsg) tea.Cmd {
 	return m.apply(nil, action{nav: navPush, push: rv})
 }
 
-// handleKey applies the global keys (design.md "Global keys" (archived record heading, originally in Spanish)): every key
-// is ignored while a write runs; Ctrl-C quits; a view sees each other key
-// first and the root applies the default for Esc and Backspace.
+// handleKey applies the global keys (design.md "Global keys"
+// (archived heading "Teclas globales")): every key is ignored while a write runs;
+// Ctrl-C quits; a view sees each other key first and the root applies the default
+// for Esc and Backspace.
 func (m *appModel) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	if m.writing {
 		return nil
@@ -524,10 +525,11 @@ func (m *appModel) View() tea.View {
 	return v
 }
 
-// appFilter is the program's message filter (design.md "Application" (archived record heading, originally in Spanish)): while
-// the root marks a write in progress it drops InterruptMsg (an external
-// SIGINT) and QuitMsg, so nothing cuts an apply short. A SIGKILL still can;
-// the operation stays pending and is offered for recovery on the next open.
+// appFilter is the program's message filter (design.md "Application"
+// (archived heading "Aplicación")): while the root marks a write in progress it
+// drops InterruptMsg (an external SIGINT) and QuitMsg, so nothing cuts an apply
+// short. A SIGKILL still can; the operation stays pending and is offered for
+// recovery on the next open.
 func appFilter(m tea.Model, msg tea.Msg) tea.Msg {
 	if am, ok := m.(*appModel); ok && am.writing {
 		switch msg.(type) {

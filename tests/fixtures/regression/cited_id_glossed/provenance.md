@@ -100,7 +100,7 @@ revert-check evidence below for the confirmed effect.
 
 ## claude-range-fail.jsonl
 
-Source: same session as `claude-fail.jsonl` (876d776d), a distinct occurrence
+Source: same session as `claude-fail.jsonl` (e8c62372), a distinct occurrence
 covering the range-token and option-description surfaces (both untouched by
 `claude-fail.jsonl`, which uses only single IDs and a question's own
 `question` field):
@@ -152,7 +152,7 @@ pre-check copy of the file confirmed the restore was byte-for-byte exact.
 
 All five fixtures use Claude Code's real nested `AskUserQuestion` input,
 `{"questions":[{"header","question","options":[{"label","description"}]}]}`,
-confirmed against session `876d776d`'s own `input` keys (`jq
+confirmed against session `e8c62372`'s own `input` keys (`jq
 '.message.content[]?|select(.type=="tool_use" and .name=="AskUserQuestion")|
 .input|keys'` → `["questions"]`), not the flat `{"question":…}` shape the
 pre-existing `question_after_detail/claude-*.jsonl` fixtures use (those are

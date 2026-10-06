@@ -14,7 +14,7 @@ import (
 )
 
 // sourceHasCatalog reports whether source looks like a real Hive checkout
-// or package (design.md "Entry point" (archived record heading, originally in Spanish):
+// or package (design.md "Entry point" (archived heading "Punto de entrada"):
 // "Screens that need a source ... show an error ... if that source has no
 // catalog").
 // It only needs to check for content/guidance/global.md
@@ -39,12 +39,13 @@ func buildRemovePlan(o management.Options, hosts []string) (management.Plan, err
 	return management.BuildPlan("remove", ro)
 }
 
-// showRemoveSummary is the removal summary (design.md "The interface" (archived record heading, originally in Spanish), Remove
-// CLIs row), never showInstallSummary's: which files are removed outright, which shared
-// resources are kept because other, non-selected hosts still consume them,
-// and which voice blocks are removed. It never reuses showInstallSummary:
-// a remove plan's own Change.After == nil means the resource is deleted,
-// the opposite of what "unchanged" means for install/update.
+// showRemoveSummary is the removal summary (design.md "The interface"
+// (archived heading "La interfaz"), Remove CLIs row), never showInstallSummary's:
+// which files are removed outright, which shared resources are kept because
+// other, non-selected hosts still consume them, and which voice blocks are
+// removed. It never reuses showInstallSummary: a remove plan's own Change.After
+// == nil means the resource is deleted, the opposite of what "unchanged" means
+// for install/update.
 func showRemoveSummary(out io.Writer, p management.Plan) {
 	fmt.Fprintf(out, "Remove %s\n", strings.Join(p.Hosts, ", "))
 	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))

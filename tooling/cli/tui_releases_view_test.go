@@ -405,14 +405,14 @@ func twoReleasesEnv(t *testing.T) (env updateEnv, olderID string, olderBody []by
 
 // TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors covers Releases' own
 // "a release the current manager cannot validate" case (design.md "The
-// interface" (archived record heading, originally in Spanish)) precisely (T4 fix round item 3): the documented downgrade hint
-// is attached only to a real release-validation failure, reproduced here by
-// planting a syntactically-decodable but fingerprint-invalid release JSON
-// file directly under releases/ (lighter than building a full retired-
-// agent-field fixture; integrations/agents_test.go already covers that
-// specific parse error directly) — never to an unrelated BuildPlan failure
-// such as "explicit hosts required", which loadRelease's own validation is
-// never reached to produce.
+// interface" (archived heading "La interfaz")) precisely (T4 fix round item 3):
+// the documented downgrade hint is attached only to a real release-validation
+// failure, reproduced here by planting a syntactically-decodable but
+// fingerprint-invalid release JSON file directly under releases/ (lighter than
+// building a full retired- agent-field fixture; integrations/agents_test.go
+// already covers that specific parse error directly) — never to an unrelated
+// BuildPlan failure such as "explicit hosts required", which loadRelease's own
+// validation is never reached to produce.
 func TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors(t *testing.T) {
 	t.Run("release validation error gets the hint", func(t *testing.T) {
 		source := minimalTestSource(t)
@@ -458,7 +458,7 @@ func TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors(t *testing.T) {
 }
 
 // TestFormatReleaseLabelMarksInstalledAndTruncates pins formatReleaseLabel's
-// own shape (design.md "The interface" (archived record heading, originally in Spanish):
+// own shape (design.md "The interface" (archived heading "La interfaz"):
 // "labels of 78 columns or less"):
 // short ID, date, first commit, sorted host list, and an "(installed)"
 // marker exactly when asked for one.

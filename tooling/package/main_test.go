@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -148,8 +149,11 @@ func TestPackageArchiveContainsLicenseAndNotices(t *testing.T) {
 	tr := tar.NewReader(gz)
 	for {
 		h, err := tr.Next()
-		if err != nil {
+		if err == io.EOF {
 			break
+		}
+		if err != nil {
+			t.Fatalf("reading archive %s: %v", archives[0], err)
 		}
 		found[h.Name] = h.Size
 	}

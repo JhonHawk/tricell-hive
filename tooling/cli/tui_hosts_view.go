@@ -1,10 +1,10 @@
 // tui_hosts_view.go is the CLIs view (T8; design.md "Views" and "CLI diff"
-// (archived record headings, originally in Spanish)): one row per detected or registered CLI with a checkbox, and an
-// apply that turns the checkboxes into removals and additions. Every step
-// reuses the pieces the commands use: BuildPlan and Engine.Apply for
-// removals, and the install flow's checks, plan, summary and
-// applyInstallOnboarding for additions. Planning and applying run as tea.Cmd
-// values; the view only changes inside Update, and it owns the flow that
+// (archived headings "Vistas" and "Diff de CLIs")): one row per detected or
+// registered CLI with a checkbox, and an apply that turns the checkboxes into
+// removals and additions. Every step reuses the pieces the commands use:
+// BuildPlan and Engine.Apply for removals, and the install flow's checks, plan,
+// summary and applyInstallOnboarding for additions. Planning and applying run as
+// tea.Cmd values; the view only changes inside Update, and it owns the flow that
 // stacks the summary and confirmation views above it.
 package main
 
@@ -434,9 +434,9 @@ func (v *hostsView) pendingChanges() (remove, add []string) {
 	return remove, add
 }
 
-// startApply turns the checkboxes into the diff of design.md "CLI diff" (archived record heading, originally in Spanish):
-// the unchecked registered CLIs are removed first, then the checked
-// unregistered ones are installed.
+// startApply turns the checkboxes into the diff of design.md "CLI diff"
+// (archived heading "Diff de CLIs"): the unchecked registered CLIs are removed
+// first, then the checked unregistered ones are installed.
 func (v *hostsView) startApply() (tea.Cmd, action) {
 	remove, add := v.pendingChanges()
 	v.message = ""
