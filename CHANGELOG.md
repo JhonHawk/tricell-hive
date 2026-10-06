@@ -8,6 +8,15 @@ Each release sets [VERSION](VERSION) to its version; between releases it reads `
 
 ## [Unreleased]
 
+### Added
+
+- One-line installation: `curl -fsSL https://hive.tricell.tech/install.sh | sh`
+  runs `get-hive.sh`, which downloads the latest release package, verifies its
+  checksum, keeps it in `~/.local/share/hive/packages/`, and runs its
+  `install.sh`; `--dry-run` previews without changes (add `--hosts` when no
+  terminal is available) and `--version` selects
+  a release (#11).
+
 ### Changed
 
 - `git-workflow` asks pull-request descriptions to state whether a revert fully

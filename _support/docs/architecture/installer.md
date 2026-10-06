@@ -21,13 +21,52 @@ The package installer never falls back to compiling or downloading missing files
 `hive --version` prints the product version of the running manager; a checkout
 without `VERSION` or a release label is reported as a development build.
 
+## One-line installation
+
+```sh
+curl -fsSL https://hive.tricell.tech/install.sh | sh
+curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --dry-run
+curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --version 0.1.0 --hosts claude,codex
+```
+
+`https://hive.tricell.tech/install.sh` redirects to `get-hive.sh` on `master`.
+The script automates the manual steps below with the same checks and needs
+`curl`, `tar`, `shasum` or `sha256sum`, and basic POSIX utilities (`mktemp`,
+`uname`, `find`, `wc`, `mv`, `rm`, `rmdir`, `mkdir`); it checks for them before
+any download. `--help` prints its usage. It:
+
+1. Resolves the latest release from the `releases/latest` redirect, or uses
+   `--version`.
+2. Downloads `hive-<version>-<os>-<arch>.tar.gz` and its `.sha256` file over
+   HTTPS. Every request must end on `github.com` or a subdomain of
+   `githubusercontent.com`; the origin is fixed in the script and no environment
+   variable or argument changes it.
+3. Verifies the checksum and rejects archive entries outside the package's
+   single root directory or of a type other than directory or regular file.
+4. Keeps the package in `${XDG_DATA_HOME:-$HOME/.local/share}/hive/packages/hive-<version>-<os>-<arch>/`
+   (a relative `XDG_DATA_HOME` is ignored),
+   replacing a previous copy of the same package only after the new one is in
+   place. It does not change `PATH`; it prints the path of `bin/hive`.
+5. Runs that package's `install.sh` with every argument except `--version`, reading from the
+   terminal. Without `--dry-run` it requires a controlling terminal and stops
+   before any download when there is none. With `--dry-run` it uses the terminal
+   when one is available, so hosts can be chosen in the preview; without one,
+   pass `--hosts`.
+
+Its whole body runs from a function called on its last line, so a truncated
+download executes nothing. To update, run the same command again. The script is
+not part of the package, and the package installation itself remains
+network-free. The checksum has the limit described below.
+
 ## Installing from a GitHub Release
 
 Packages are published as GitHub Releases assets, one archive per supported
-platform with its `.sha256` checksum file beside it. There is no one-line online
-installer: `bootstrap.sh` and the `hive bootstrap` subcommand it served were retired for the first public release (0.1.0). To
-install, download the archive for your platform and its `.sha256` file from the
-release page, verify the checksum, extract, and run the installer from a terminal.
+platform with its `.sha256` checksum file beside it. The `bootstrap.sh` script
+and `hive bootstrap` subcommand of earlier development builds were retired in
+0.1.0; the one-line installation above replaces them with a shell-only script.
+To install by hand, download the archive for your platform and its `.sha256`
+file from the release page, verify the checksum, extract, and run the installer
+from a terminal.
 
 ```sh
 shasum -a 256 -c hive-<version>-<os>-<arch>.tar.gz.sha256
@@ -47,7 +86,8 @@ An interrupted installation is finished with `./install.sh` or `hive recover`.
 `install` detects CLI executables, registered consumers, and recognized legacy
 resources. It displays selected hosts, destinations and private backup location,
 then asks for one affirmative terminal confirmation. Cancellation, EOF and piped
-input cannot apply changes. `--dry-run` is read-only and works without a terminal.
+input cannot apply changes. `--dry-run` is read-only and works without a terminal
+when `--hosts` selects the hosts; choosing hosts interactively needs one.
 An already current installation exits without rewriting files or asking again.
 No CLI executable is installed by Hive. `--hosts` selects configuration consumers;
 shared legacy resources can require selecting additional consumers together.

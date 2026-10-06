@@ -6,7 +6,8 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 
 ## Docs
 
-- [README](README.md): overview, installation from a release package or source, hosts, update, recovery, and uninstall
+- [README](README.md): overview, installation (one-line, release package, or source), hosts, update, recovery, and uninstall. One-line install: `curl -fsSL https://hive.tricell.tech/install.sh | sh`; append `-s -- --dry-run --hosts <hosts>` to preview without changes, which needs no terminal; a real installation needs a terminal
+- [One-line installer script](get-hive.sh): what the one-line command downloads and runs
 - [Changelog](CHANGELOG.md): release history, starting with 0.1.0
 - [Contributing](CONTRIBUTING.md): local test suite, conventions, and language rules
 - [Security](SECURITY.md): how to report a vulnerability privately
