@@ -11,8 +11,18 @@ import (
 
 func packageFixture(t *testing.T) string {
 	t.Helper()
+	return packageFixtureWithout(t, "")
+}
+
+// packageFixtureWithout builds a valid package fixture, leaving out the one
+// payload file named by skip (empty keeps every file).
+func packageFixtureWithout(t *testing.T, skip string) string {
+	t.Helper()
 	root := t.TempDir()
-	for _, p := range []string{"bin/hive", "bin/hive.sha256", "install.sh", "platform", "content/guidance/global.md", "integrations/agent-profiles.json"} {
+	for _, p := range []string{"bin/hive", "bin/hive.sha256", "install.sh", "platform", "content/guidance/global.md", "integrations/agent-profiles.json", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		if p == skip {
+			continue
+		}
 		path := filepath.Join(root, p)
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 			t.Fatal(err)
@@ -128,6 +138,14 @@ func TestPackageIntegrity(t *testing.T) {
 			t.Fatal("accepted symlink")
 		}
 	})
+	for _, name := range []string{"LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		t.Run("missing "+name, func(t *testing.T) {
+			err := VerifyIfPackaged(packageFixtureWithout(t, name))
+			if err == nil || !strings.Contains(err.Error(), "incomplete package: "+name) {
+				t.Fatalf("VerifyIfPackaged() = %v, want incomplete package: %s", err, name)
+			}
+		})
+	}
 	t.Run("checkout", func(t *testing.T) {
 		if err := VerifyIfPackaged(t.TempDir()); err != nil {
 			t.Fatal(err)

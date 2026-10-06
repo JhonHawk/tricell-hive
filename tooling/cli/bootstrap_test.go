@@ -61,6 +61,11 @@ func bootstrapFixtureOrigin(t *testing.T, productVersion string) (srv *httptest.
 	if err := os.WriteFile(filepath.Join(dir, "platform"), []byte(platform+"\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	for _, name := range []string{"LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("fixture "+name+"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	files, err := distribution.Files(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -357,6 +362,11 @@ func newBootstrapFixture(t *testing.T, productVersion string, cfg bootstrapFixtu
 	platform := runtime.GOOS + "/" + runtime.GOARCH
 	if err := os.WriteFile(filepath.Join(dir, "platform"), []byte(platform+"\n"), 0644); err != nil {
 		t.Fatal(err)
+	}
+	for _, name := range []string{"LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("fixture "+name+"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	files, err := distribution.Files(dir)
 	if err != nil {
