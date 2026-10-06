@@ -57,8 +57,9 @@ While the version is below 1.0:
   delivers: defect fixes, wording that restores the intended behavior, and
   dependency or template version updates.
 
-The documentation site is published from `master`, so a change that touches only
-the site waits for the next release. The one exception: a site fix that cannot
+The documentation site is published from `master`: each release deploys `site/`
+from its tag with `pnpm exec wrangler deploy`, and nothing else deploys it. A
+change that touches only the site therefore waits for the next release. The one exception: a site fix that cannot
 wait may go out as a patch release of its own.
 
 ## Language

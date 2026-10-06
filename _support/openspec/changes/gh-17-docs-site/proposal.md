@@ -62,7 +62,7 @@ Restricciones que deben seguir cumpliéndose:
 | D7-A | Hosting en Cloudflare Workers con *static assets* y Workers Builds, conectado por ruta y no por Custom Domain (propuesta de la revisión de infraestructura). |
 | D8-A | pnpm 12.8.1; si Workers Builds no lo acepta en el primer build, se baja a 11.28.5. |
 | D9-A | La plantilla distribuida se actualiza en este mismo cambio. |
-| D10 | Publicación (2026-10-06): primer despliegue y ruta con `wrangler` desde la CLI, en la cuenta de Jmartinez@tricell.com.mx; conectar Workers Builds en el panel queda para después, fuera de #17. Por eso AC8 ya no exige leer la configuración de builds. |
+| D10-B | Publicación (2026-10-06): primer despliegue y ruta con `wrangler` desde la CLI, en la cuenta de Cloudflare que tiene la zona `tricell.tech`; conectar Workers Builds en el panel queda para después, fuera de #17. Por eso AC8 ya no exige leer la configuración de builds. |
 
 Decidido por convención: el sitio está en inglés, porque el README y el repositorio público lo están y el texto para usuarios sigue el idioma del producto.
 
