@@ -8,14 +8,14 @@
 
 /* Dark theme: text-accent = accent-high, text-invert = accent-low. */
 :root {
-	--sl-color-accent-low: #551318;
-	--sl-color-accent: #ff2a2a;
-	--sl-color-accent-high: #ff6464;
+  --sl-color-accent-low: #551318;
+  --sl-color-accent: #ff2a2a;
+  --sl-color-accent-high: #ff6464;
 }
 
 /* Light theme: text-accent = accent, text-invert = white. */
 :root[data-theme="light"] {
-	--sl-color-accent-low: #fbe4e5;
-	--sl-color-accent: #c8102e;
-	--sl-color-accent-high: #8c2028;
+  --sl-color-accent-low: #fbe4e5;
+  --sl-color-accent: #c8102e;
+  --sl-color-accent-high: #8c2028;
 }

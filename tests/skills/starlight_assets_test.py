@@ -29,6 +29,12 @@ class StarlightAssetsTest(unittest.TestCase):
             self.assertTrue((folder / "src/content/docs/index.mdx").is_file())
             workspace = (folder / "pnpm-workspace.yaml").read_text(encoding="utf-8")
             self.assertIn("allowBuilds:\n  esbuild: false\n", workspace)
+            biome = json.loads((folder / "biome.json").read_text(encoding="utf-8"))
+            self.assertTrue(biome["vcs"]["useIgnoreFile"])
+            self.assertEqual(biome["formatter"]["indentStyle"], "space")
+            ignored = (folder / ".gitignore").read_text(encoding="utf-8").splitlines()
+            for path in ("node_modules/", "dist/", ".astro/"):
+                self.assertIn(path, ignored)
 
     def test_assets_do_not_impose_delivery_or_fixed_locale(self) -> None:
         for profile in ("user-manual", "spec-site"):
