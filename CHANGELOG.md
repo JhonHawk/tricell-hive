@@ -8,6 +8,8 @@ Each release sets [VERSION](VERSION) to its version; between releases it reads `
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
 ### Added
 
 - One-line installation: `curl -fsSL https://hive.tricell.tech/install.sh | sh`
