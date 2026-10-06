@@ -242,11 +242,7 @@ Revisión del plan:
   - T1 confirma la clave de aprobaciones de pnpm 12 y `SKILL.md` explica cómo fusionarla en un monorepo;
   - el PR de enlaces de T6 pone `workers_dev: false`;
   - AC8 nombra la comprobación después de volver a desplegar.
-- **Límites que quedan para T6** (están en [design.md](design.md#contexto-verificado)):
-  - que Workers Builds acepte pnpm 12.8.1;
-  - que una ruta creada en el panel sobreviva a `wrangler deploy` con `workers_dev: true`;
-  - cómo se interpretan las rutas que disparan el build.
-  - Los cubren las comprobaciones de T6, y la recuperación es quitar la ruta.
+- **Límites que quedaban para T6**: Workers Builds con pnpm 12.8.1, ruta del panel frente a `wrangler deploy`, y rutas que disparan el build. D10-B los dejó sin objeto: el despliegue es por CLI y la ruta está en `wrangler.jsonc`.
 
 Avance (build iniciado el 2026-10-06 con `/flow-build`):
 - **T1**: commit `fce8f6fb`.
@@ -298,4 +294,14 @@ Avance (build iniciado el 2026-10-06 con `/flow-build`):
     - el registro sin versionar entra al PR antes del merge;
     - los flujos listados dos veces en la portada son la estructura que validaste.
   - Comprobado después: comparación de 8 palabras en 0, build de 6 páginas, lint limpio y render a 390 px sin desbordes.
+- **Versión 0.2.1** (regla de versiones V1-A, V2-A y V3-A, en el [PR #19](https://github.com/JhonHawk/tricell-hive/pull/19)):
+  - [Release v0.2.1](https://github.com/JhonHawk/tricell-hive/releases/tag/v0.2.1), con 6 archivos; `master` en `86b3c52e`; `hive` local en 0.2.1 desplegado desde la etiqueta; `VERSION=dev` en el PR #21.
+  - El lockfile no se actualizó: las correcciones de la auditoría aún no cumplen 7 días.
+- **T6, publicación por CLI (D10-B)**:
+  - `wrangler deploy` desde una copia limpia de `v0.2.1`, con la sesión OAuth y sin el `CLOUDFLARE_API_TOKEN` del shell, que no puede leer la cuenta.
+  - `workers.dev`: portada y las cuatro páginas en 200, y 404 con la página de Starlight.
+  - Segundo despliegue con la ruta `hive.tricell.tech/*`: el dominio da los mismos resultados, y `/install.sh` sigue en `302` hacia `get-hive.sh`.
+  - AC8 cumplido. Conectar Workers Builds en el panel queda fuera de #17 (D10-B).
+  - El PR de enlaces lleva `routes` y `workers_dev: false` a `wrangler.jsonc`, para que los builds futuros conserven la ruta y quiten la copia en `workers.dev`.
+  - Tercer despliegue: el contenido de `v0.2.1` con esa configuración (versión `63dc333a`). El dominio sigue en 200 y 404, `/install.sh` en `302`, y `workers.dev` ya responde 404.
 - **Modelos de verificación**: T2 y T3 los implementaron roles en `sonnet` (configurado, no observado), así que su verificación corrió con `hive-verify-task` en `opus` (configurado). T1 y T5 los implementó el hilo principal (Claude Opus 5.5, observado). `hive-verify-task` tiene `opus` configurado, que es el mismo modelo, así que se lanza con `sonnet` mediante la opción de modelo del lanzamiento (configurado, no observado).

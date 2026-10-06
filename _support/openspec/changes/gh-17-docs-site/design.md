@@ -40,7 +40,7 @@ site/
   pnpm-workspace.yaml allowBuilds con los scripts de build aprobados
   .node-version       24
   go.mod              módulo vacío que saca site/ del módulo raíz
-  wrangler.jsonc      name · compatibility_date · assets · workers_dev
+  wrangler.jsonc      name · compatibility_date · assets · routes · workers_dev
   astro.config.mjs    title Hive · site https://hive.tricell.tech · logo · customCss · sidebar
   src/assets/hive-mark.svg        variante oscura (copia de .github/assets)
   src/assets/hive-mark-light.svg  variante clara (nueva, T4)
@@ -57,9 +57,10 @@ site/
   - `name: "hive-docs"`, que debe coincidir con el nombre del Worker que se crea en el panel;
   - `compatibility_date: "2026-10-03"`, la más nueva que soporta el `workerd` de wrangler 4.143.0 (con `2026-10-06`, `wrangler dev` falla);
   - `assets: { directory: "./dist", not_found_handling: "404-page" }`, para servir el `404.html` de Starlight;
-  - `workers_dev: true`, para comprobar el sitio en su URL `workers.dev` antes de que la ruta reciba tráfico.
+  - en la versión 0.2.1, `workers_dev: true` y sin ruta, para comprobar el sitio en `workers.dev` antes de que el dominio reciba tráfico;
+  - desde el PR #22 (D10-B), `routes: [{ pattern: "hive.tricell.tech/*", zone_name: "tricell.tech" }]` y `workers_dev: false`, para que cada despliegue mantenga la ruta y no publique una copia en `workers.dev`.
 
-  La ruta `hive.tricell.tech/*` no va en `wrangler.jsonc`. La agregas tú en el panel después de comprobar el sitio en `workers.dev`, para que el primer despliegue no reciba tráfico del dominio y para poder quitarla en segundos si `/install.sh` deja de redirigir.
+  Como la ruta está en la configuración, cualquier `wrangler deploy` publica en el dominio. Por eso solo se despliega desde la etiqueta de una versión, como dice `CONTRIBUTING.md`, y hace falta la sesión de la cuenta de Cloudflare.
 
   El implementador confirma estos campos en la documentación de Workers (Context7 `/cloudflare/cloudflare-docs`) antes de usarlos La comprobación local del 404 con `pnpm exec wrangler dev` la hace T3, después del primer build completo. Si `wrangler dev` exige iniciar sesión, pasa a T6.
 - **Logo.** Starlight recibe `logo: { dark, light, alt: "" }` con `replacesTitle: false`. El ícono es decorativo y el título visible `Hive` lo nombra; así un lector de pantalla no anuncia "Hive Hive".
@@ -133,7 +134,9 @@ El orden evita dos riesgos: enlaces muertos en el README que muestra GitHub, y u
 4. **Ruta.** Agregar en el panel la ruta `hive.tricell.tech/*` del Worker, sobre el `AAAA 100::` con proxy que ya existe. No se toca el DNS ni la Single Redirect. Enseguida se corren los `curl` de AC8. Después se vuelve a desplegar desde el panel y se comprueba que la ruta sigue y que `/install.sh` sigue respondiendo `302`.
 5. **Enlaces.** Con el sitio en línea, PR a `development` con los enlaces del README y de `llms.txt` (AC9). El mismo PR pone `workers_dev: false`, que es la receta de Wrangler para rutas gestionadas solo desde el panel y quita la copia duplicada en `workers.dev`. Ese cambio llega a `master` con la siguiente versión, y entonces se repite la comprobación de que la ruta persiste.
 
-**Recuperación**: quitar la ruta en el panel. `hive.tricell.tech` vuelve a quedar solo con la redirección, como hoy. No hay registros DNS que restaurar.
+**Lo que se hizo (D10-B, 2026-10-06)**: en lugar de los pasos 2 a 4 en el panel, el despliegue se hizo con `wrangler` desde la CLI, desde una copia limpia de la etiqueta. Primero sin ruta, para comprobar `workers.dev`, y después con `--route hive.tricell.tech/*`. Conectar Workers Builds en el panel queda fuera de #17; si se conecta, usa la misma `wrangler.jsonc`.
+
+**Recuperación**: quitar la ruta en el panel corta el tráfico al momento, y `hive.tricell.tech` vuelve a quedar solo con la redirección. Como la ruta está en `wrangler.jsonc`, también hay que quitarla de ahí, en un PR, antes del siguiente despliegue; si no, el despliegue la vuelve a crear. No hay registros DNS que restaurar.
 
 ### Dependencias del sitio (auditoría de T2)
 

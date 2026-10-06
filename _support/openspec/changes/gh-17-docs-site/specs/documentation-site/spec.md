@@ -1,15 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: Published documentation site
-The repository SHALL contain a static documentation site in `site/`, built with the pinned toolchain in `site/package.json`, and Cloudflare Workers Builds SHALL publish it from `master` at `https://hive.tricell.tech/`. The site SHALL have a landing page and one page per flow skill: `flows/research/`, `flows/plan/`, `flows/build/`, and `flows/close/`. Its text SHALL be in English, the product language.
+The repository SHALL contain a static documentation site in `site/`, built with the pinned toolchain in `site/package.json`, and it SHALL be published from `master` at `https://hive.tricell.tech/`, as a Cloudflare Worker reached through the route `hive.tricell.tech/*`. The site SHALL have a landing page and one page per flow skill: `flows/research/`, `flows/plan/`, `flows/build/`, and `flows/close/`. Its text SHALL be in English, the product language.
 
 #### Scenario: Site served after a release
-- **WHEN** a release promotes a commit containing `site/` to `master`
+- **WHEN** a release promotes a commit containing `site/` to `master` and deploys `site/` from its tag
 - **THEN** `https://hive.tricell.tech/` and each flow page respond `200` with that commit's site
 
 #### Scenario: Other branches do not publish
 - **WHEN** a commit lands on `development` or a work branch
-- **THEN** no production or preview deployment of the site is built
+- **THEN** the published site does not change until a release moves `master`
 
 ### Requirement: Flow pages describe without copying rules
 Each flow page SHALL contain the sections `When to use`, `What it produces`, `What it does not do`, `Related flows`, and `FAQ`, and SHALL link to its skill's `SKILL.md` on `master`. A page SHALL describe the flow's behavior for people and SHALL NOT reproduce rule text from the flow skills (`content/skills/flow-*/`) or the shared guidance (`content/guidance/global.md`), so each rule keeps one canonical home.
