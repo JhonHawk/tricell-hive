@@ -1412,3 +1412,61 @@ func TestGetHiveTruncatedCopiesDoNothing(t *testing.T) {
 		}
 	})
 }
+
+func TestGetHiveRejectsMacOSIntelBeforeAnyRequest(t *testing.T) {
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for _, machine := range []string{"x86_64", "amd64"} {
+			t.Run(machine, func(t *testing.T) {
+				e := newGhEnv(t)
+				e.fakeBin("uname", fmt.Sprintf("case \"$1\" in -s) echo Darwin ;; -m) echo %s ;; esac\n", machine))
+				res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion}})
+				e.assertNothingHappened(res)
+				if !strings.Contains(res.stderr, "macOS Intel") {
+					t.Errorf("message should name macOS Intel:\n%s", res.stderr)
+				}
+			})
+		}
+	})
+}
+
+// TestGetHiveHostRuleWithShippedAllowedHosts runs host_allowed from the script
+// with the shipped allowed_hosts value, which the other tests replace by an
+// exact loopback entry, so the dot-suffix branch is exercised here.
+func TestGetHiveHostRuleWithShippedAllowedHosts(t *testing.T) {
+	script := ghSubstitute(t, readRepoFile(t, ghScriptName), map[string]string{ghFinalLine: "# call removed for the host rule test"})
+	path := filepath.Join(t.TempDir(), ghScriptName)
+	mustWriteFile(t, path, script, 0o644)
+	cases := map[string]bool{
+		"https://github.com/JhonHawk/tricell-hive/releases/latest": true,
+		"https://github.com":                                          true,
+		"https://github.com:443/x":                                    true,
+		"https://release-assets.githubusercontent.com/a/b?x=1":        true,
+		"https://objects.githubusercontent.com":                       true,
+		"https://githubusercontent.com/x":                             false,
+		"https://evilgithubusercontent.com/x":                         false,
+		"https://evilgithub.com/x":                                    false,
+		"https://github.com.evil.example/x":                           false,
+		"https://github.com@evil.example/x":                           false,
+		"https://evil.example@github.com/x":                           false,
+		"https://evil.example/x.githubusercontent.com/":               false,
+		"https://evil.example/github.com":                             false,
+		"https://evil.example?github.com":                             false,
+		"https://evil.example#github.com":                             false,
+		"https://evil.example?x=.githubusercontent.com":               false,
+		"https://.githubusercontent.com/x":                            false,
+		"https://:443/x":                                              false,
+		"ftp://github.com/x":                                          false,
+		"github.com/x":                                                false,
+		"https://GITHUB.com/x":                                        false,
+		"https://release-assets.githubusercontent.com.evil.example/x": false,
+	}
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for url, want := range cases {
+			cmd := exec.Command(shell, "-c", `. "$1" && host_allowed "$2"`, "sh", path, url)
+			got := cmd.Run() == nil
+			if got != want {
+				t.Errorf("host_allowed(%q) = %v, want %v", url, got, want)
+			}
+		}
+	})
+}

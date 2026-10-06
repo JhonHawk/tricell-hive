@@ -328,6 +328,9 @@ main() {
     x86_64|amd64) platform_arch=amd64 ;;
     *) fail 'unsupported architecture: use ARM64 or AMD64' ;;
   esac
+  if [ "$platform_os" = darwin ] && [ "$platform_arch" = amd64 ]; then
+    fail 'unsupported platform: macOS Intel is not supported; use macOS Apple Silicon or Linux'
+  fi
 
   # Opening the device is the only reliable test: [ -r /dev/tty ] only reads the
   # node's permission bits, which look fine even with no controlling terminal.
