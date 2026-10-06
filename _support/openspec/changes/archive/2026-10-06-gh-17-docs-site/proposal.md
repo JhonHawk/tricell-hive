@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Esperando publicación · T1–T5 entregados en el [PR #18](https://github.com/JhonHawk/tricell-hive/pull/18) a `development` · T6 pendiente de la próxima versión |
+| Estado | Cerrado el 2026-10-06 · código en los PR [#18](https://github.com/JhonHawk/tricell-hive/pull/18), [#19](https://github.com/JhonHawk/tricell-hive/pull/19) y [#22](https://github.com/JhonHawk/tricell-hive/pull/22) (merge `856adb6b`); [v0.2.1](https://github.com/JhonHawk/tricell-hive/releases/tag/v0.2.1) en `master`; sitio en https://hive.tricell.tech/; AC1–AC9 cumplidos |
 | Tracker · GitHub Issues | • [#17 — Sitio de documentación por flujo y regla de actualización del README](https://github.com/JhonHawk/tricell-hive/issues/17) |
 | Git | interactiva · rama → validación tuya del sitio compilado → push, PR a `development`, `/code-review`, merge · publicación (T6) con la próxima versión y orden aparte |
 | Verificación | prueba de la plantilla · build y `astro check` del sitio · `go vet`/`go test` con la protección · contraste · `hive-review-ux` y `hive-verify-change` · suite local · comprobación en vivo al publicar |
-| Siguiente paso | T6 con la orden de publicar la próxima versión ([design.md](design.md#publicación-t6-d4-a-y-d7-a)) |
+| Siguiente paso | ninguno en este cambio |
 
 ## Objetivo
 
