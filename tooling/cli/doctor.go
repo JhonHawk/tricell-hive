@@ -2,7 +2,7 @@
 // the future `hive doctor` command: which CLIs are installed and at what
 // version, whether Hive's own files are healthy, and which open sessions
 // started before the installed release. It never writes, and it only executes
-// `<cli> --version` for a detected CLI (design.md "Reglas por sección").
+// `<cli> --version` for a detected CLI (design.md "Rules per section" (archived record heading, originally in Spanish)).
 package main
 
 import (

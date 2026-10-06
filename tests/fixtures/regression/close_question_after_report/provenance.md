@@ -12,7 +12,7 @@ the source line.
 
 ## codex-fail.jsonl (X1)
 
-Source: Codex sample-project session `01a0dab1-f01c-78a2-9e36-aa58218c79b2`
+Source: Codex sample-project session `28f83c89-690f-5e71-bf59-e543c1720625`
 (gpt-6-sol medium), rollout dated 2026-09-25 (82 lines total).
 
 Verified via `jq` (`type`/`payload.type`/`payload.role` only):
@@ -40,7 +40,7 @@ followed by `turn.completed`.
 
 ## grok-fail.jsonl (G3)
 
-Source: Grok globex session `01a0daf9-ddec-7421-ad4e-7b7e439dd873`
+Source: Grok globex session `51892774-80e6-5df4-b3af-e65b6180cb43`
 (grok-4.7-build-fast high), `chat_history.jsonl` (557 lines total).
 
 Verified via `jq` (`type`, `tool_calls[].name`, `content` length, and a

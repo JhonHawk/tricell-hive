@@ -404,8 +404,8 @@ func twoReleasesEnv(t *testing.T) (env updateEnv, olderID string, olderBody []by
 }
 
 // TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors covers Releases' own
-// "a release the current manager cannot validate" case (design.md "La
-// interfaz") precisely (T4 fix round item 3): the documented downgrade hint
+// "a release the current manager cannot validate" case (design.md "The
+// interface" (archived record heading, originally in Spanish)) precisely (T4 fix round item 3): the documented downgrade hint
 // is attached only to a real release-validation failure, reproduced here by
 // planting a syntactically-decodable but fingerprint-invalid release JSON
 // file directly under releases/ (lighter than building a full retired-
@@ -458,7 +458,8 @@ func TestBuildRollbackPlanWrapsOnlyReleaseValidationErrors(t *testing.T) {
 }
 
 // TestFormatReleaseLabelMarksInstalledAndTruncates pins formatReleaseLabel's
-// own shape (design.md "La interfaz": "etiquetas de 78 columnas o menos"):
+// own shape (design.md "The interface" (archived record heading, originally in Spanish):
+// "labels of 78 columns or less"):
 // short ID, date, first commit, sorted host list, and an "(installed)"
 // marker exactly when asked for one.
 func TestFormatReleaseLabelMarksInstalledAndTruncates(t *testing.T) {

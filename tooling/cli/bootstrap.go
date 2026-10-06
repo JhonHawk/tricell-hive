@@ -17,8 +17,8 @@ import (
 
 // bootstrap is the online entry point bootstrap.sh execs after it has
 // already downloaded a raw manager binary and verified its checksum
-// externally (see bootstrap.sh's final line and design.md's "Entrada online
-// y confianza"). This process IS that verified manager; --manager and
+// externally (see bootstrap.sh's final line and design.md's "Online entry and trust"
+// (archived record heading, originally in Spanish)). This process IS that verified manager; --manager and
 // --manager-sha256 name the same file bootstrap.sh just checked, so this
 // function can re-derive and cross-check that identity without trusting the
 // shell's verification alone.
@@ -181,9 +181,9 @@ func extractBootstrapPackage(packageData []byte, requestedVersion string) (extra
 // same interactive install flow (runInstallFlow) the offline package uses.
 // Only after the operator consents does it retain the verified manager and
 // package and bind them into the plan, via dependencies.BindRetainedInstaller
-// — download and extraction alone never authorize installation (design.md:
-// "Invocar la entrada online solicita descarga temporal ... No autoriza
-// instalación").
+// — download and extraction alone never authorize installation (design.md, archived record quoted in translation from Spanish:
+// "Invoking the online entry requests a temporary download ... It does not
+// authorize installation").
 func bootstrapWithDependencies(args []string, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
 	flags, err := parseBootstrapFlags(args, out)
 	if err != nil {

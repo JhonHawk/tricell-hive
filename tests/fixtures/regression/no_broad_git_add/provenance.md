@@ -7,7 +7,7 @@ line was never printed or pasted.
 
 ## grok-fail.jsonl
 
-Source: ark Grok session `01a0d734-a562-7462-afac-258ac95b8788`, line 511
+Source: ark Grok session `7d0be0d4-144c-5989-8bf3-2799c14c91f9`, line 511
 (archiving an OpenSpec change during batch close).
 
 Located by a boolean `jq` match on `.command | test("git add -A")` (no
@@ -29,7 +29,7 @@ chain, following a `git mv`.
 
 ## grok-pass.jsonl
 
-Source: sample-project Grok session `01a0d735-762c-7821-ae46-a394c13f0dbb`, line
+Source: sample-project Grok session `a46abe80-7f7e-54a1-ad8f-d2bade219875`, line
 202 (a literal, path-scoped `git add`).
 
 Located the same way (a boolean `jq` match on `.command | test("git add")`,

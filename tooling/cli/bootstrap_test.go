@@ -23,8 +23,8 @@ import (
 // package (the minimal synthetic source's content/ and integrations/agent-profiles.json, packaged the same
 // way tooling/distribution's own fixtures build a package directory: plain
 // bytes for bin/hive rather than a real compiled binary, since only Go-level
-// bootstrap() is under test here — bootstrap_shell_test.go covers the real
-// exec'd manager). It returns the httptest server and the manager bytes and
+// bootstrap() is under test here; the shell-level tests of the real exec'd
+// manager were retired with bootstrap.sh in 0.1.0). It returns the httptest server and the manager bytes and
 // checksum bootstrap.sh would have already verified before invoking bootstrap.
 func bootstrapFixtureOrigin(t *testing.T, productVersion string) (srv *httptest.Server, managerBytes []byte, managerSHA256 string) {
 	t.Helper()
@@ -600,7 +600,7 @@ func TestInstallOfflinePendingRecoveryPointsToInstallScript(t *testing.T) {
 }
 
 // TestBootstrapOnlinePendingRecoveryPointsToRetainedManager covers L3's
-// online side: bootstrap.sh deletes its own temporary manager on exit, so a
+// online side: the (now retired) bootstrap.sh deleted its own temporary manager on exit, so a
 // pending core operation found under `hive bootstrap` must never tell the
 // operator to run ./install.sh (a file that does not exist in this flow).
 // Instead it must name the retained manager's absolute path and the state

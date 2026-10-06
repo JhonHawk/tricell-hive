@@ -14,8 +14,9 @@ import (
 )
 
 // sourceHasCatalog reports whether source looks like a real Hive checkout
-// or package (design.md "Punto de entrada": "Las pantallas que necesitan
-// una fuente ... muestran un error ... si esa fuente no tiene catálogo").
+// or package (design.md "Entry point" (archived record heading, originally in Spanish):
+// "Screens that need a source ... show an error ... if that source has no
+// catalog").
 // It only needs to check for content/guidance/global.md
 // (management.GlobalSource), the one file every install plan writes
 // unconditionally (management.loadRelease's own sources list starts with
@@ -38,7 +39,7 @@ func buildRemovePlan(o management.Options, hosts []string) (management.Plan, err
 	return management.BuildPlan("remove", ro)
 }
 
-// showRemoveSummary is the removal summary (design.md "La interfaz", Remove
+// showRemoveSummary is the removal summary (design.md "The interface" (archived record heading, originally in Spanish), Remove
 // CLIs row), never showInstallSummary's: which files are removed outright, which shared
 // resources are kept because other, non-selected hosts still consume them,
 // and which voice blocks are removed. It never reuses showInstallSummary:

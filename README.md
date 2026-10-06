@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>Hive</h1>
+<img src=".github/assets/banner.png" alt="Hive" width="720">
 
 <p><strong>Portable guidance for deliberate work with coding agents.</strong></p>
 <p>Clarify the request. Preserve the project. Verify the result.</p>
@@ -8,7 +8,8 @@
 <p>
 <a href="#get-started">Get started</a> ·
 <a href="#a-workflow-with-room-for-judgment">Workflow</a> ·
-<a href="#cli-targets">CLI targets</a> ·
+<a href="#hosts">Hosts</a> ·
+<a href="#for-ai-agents">For AI agents</a> ·
 <a href="#documentation">Documentation</a>
 </p>
 
@@ -23,10 +24,11 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Development preview · 0.0.2**
-> The project is in a rebuild phase. [VERSION](VERSION) is the canonical product
-> version; this version is being prepared locally. Packages can be built from
-> source, but no published release or online distribution origin is advertised here.
+> **Version 0.1.0 · first public release**
+> [VERSION](VERSION) is the canonical product version. Packages for macOS Apple
+> Silicon and Linux arm64/amd64 are published on
+> [GitHub Releases](https://github.com/JhonHawk/tricell-hive/releases). See the
+> [changelog](CHANGELOG.md) for what this release contains.
 
 ## Why Hive
 
@@ -49,6 +51,41 @@ Install your coding CLI separately, then choose a Hive installation route. Hive
 neither installs CLI executables nor authenticates providers. Close affected CLI
 sessions before applying changes and start new sessions afterward.
 
+### From a release package
+
+Packages are built for **macOS Apple Silicon (arm64)** and **Linux arm64 and
+amd64**. macOS Intel is unsupported. Download
+`hive-<version>-<os>-<arch>.tar.gz` and its `.sha256` file from the
+[GitHub Releases page](https://github.com/JhonHawk/tricell-hive/releases), then
+verify, extract, preview, and install:
+
+```sh
+shasum -a 256 -c hive-<version>-<os>-<arch>.tar.gz.sha256   # or: sha256sum -c
+tar -xzf hive-<version>-<os>-<arch>.tar.gz
+cd hive-<version>-<os>-<arch>
+./install.sh --dry-run
+./install.sh
+```
+
+`install.sh` asks which hosts to install and confirms before it writes. It does
+not put `hive` on your `PATH`: run later commands with the extracted `bin/hive`
+(for example `./bin/hive status ...`), or copy that file to a directory on your
+`PATH`.
+
+On macOS, Gatekeeper may block a binary downloaded through a browser (a
+possibility, not verified here). Either download with `curl` or `gh release
+download`, or clear the quarantine flag on the extracted files:
+
+```sh
+xattr -dr com.apple.quarantine hive-<version>-<os>-<arch>
+```
+
+The core installs offline and needs no Go, Git, or GitHub CLI. The one network
+step is optional: selecting the Pi host may run
+`pi install npm:pi-subagents@0.74.0`, which downloads that package from npm.
+GitHub's automatic **Source code** archives are not packages; use the
+`hive-<version>-…` assets.
+
 ### From a source checkout
 
 From the checkout root, with **Go 1.27.0 or later** as declared in [go.mod](go.mod):
@@ -64,36 +101,19 @@ Replace `codex` with your host, or a comma-separated selection such as
 before requiring affirmative confirmation. The first build needs access to the
 Go modules unless they are already cached.
 
-### From a complete package
-
-Extract a complete package for **macOS Apple Silicon** or **Linux ARM64/AMD64**,
-then run:
-
-```sh
-./install.sh --dry-run
-./install.sh
-```
-
-Offline installation needs no Go, Git, GitHub CLI, network download, or terminal
-authentication. A complete package includes the executable, content, and
-verification inventory; GitHub's automatic **Source code** archives do not.
-macOS Intel is unsupported. Platform build support and native installation
-verification are separate checks.
-
 <details>
 <summary><strong>Package building and optional capabilities</strong></summary>
 
 Maintainers can build packages locally with `go run ./tooling/package --out ./dist`.
-Building does not publish a release. `bootstrap.sh` still contains an origin
-placeholder and is unsuitable for online installation until an HTTPS origin is
-published and configured.
+Building does not publish a release.
 
-Engram, Context7, and pi-subagents are optional, separately managed capabilities.
-This version provides official manual instructions, with no automated provider
-recipes or credential requests. Selecting a manual capability leaves the installed
+Engram and Context7 are optional, separately managed capabilities with official
+manual instructions and no automated provider recipes or credential requests. The
+one automated step is pi-subagents, which a user-scope Pi installation adds with
+`pi install` when Pi does not already declare it. Selecting a manual capability leaves the installed
 core intact but returns a non-zero exit status to signal unfinished setup.
-`go run ./tooling/cli setup` reports local discovery without installing tools;
-discovery does not establish authentication, service access, or host loading.
+`hive setup` reports local discovery without installing tools; discovery does not
+establish authentication, service access, or host loading.
 
 See the [installer contract](_support/docs/architecture/installer.md) for package
 checks, legacy migration, and interrupted-install recovery, and
@@ -101,6 +121,103 @@ checks, legacy migration, and interrupted-install recovery, and
 for capability requirements.
 
 </details>
+
+## Hosts
+
+Six host adapters are implemented. Their presence and installation on disk do
+not prove that a particular session loaded the content or followed it.
+
+| Host | Scope | Requirements and limits |
+| --- | --- | --- |
+| Claude Code | User and project | Native instructions, skills, and rendered roles. A project's `CLAUDE.md` must import `@AGENTS.md`. |
+| Codex | User and project | Native instructions, shared skills, and rendered roles. |
+| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. |
+| Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Honors `PI_CODING_AGENT_DIR`. |
+| OpenCode V2 | User | Needs your own model providers; the default role profiles assume GitHub Copilot and OpenCode Go models, so set others with `hive models set`. |
+| Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). User-level role selection remains unverified. |
+
+Only Claude Code and Codex support `--scope project`; the other four reject it.
+Project scope writes inside one repository:
+
+```sh
+./bin/hive plan install --hosts codex,claude --scope project --root /absolute/project --out /absolute/plan.json
+./bin/hive apply --plan /absolute/plan.json
+```
+
+**Shared resources.** Hosts that share one file, such as the skills under
+`~/.agents/skills`, are registered as consumers of it. Updating shared bytes
+requires selecting every registered consumer, so installing one host may require
+selecting others. Removing one host keeps a shared file until its last consumer
+is removed.
+
+**Grok and Cursor together.** Grok loads Hive's guidance from
+`~/.claude/CLAUDE.md` and again from `~/.cursor/AGENTS.md`, about 10,700 tokens
+per session. The installer warns about it; setting `agents = false` under
+`[compat.cursor]` in Grok's `config.toml` removes the copy, at the cost that your
+own text in `~/.cursor/AGENTS.md` stops loading in Grok.
+
+**Cursor pointer.** Cursor CLI does not read `~/.cursor/AGENTS.md` on its own. Add
+this line to each repository's `AGENTS.md` where you use Cursor, near the top and
+outside its `## Hive` section:
+
+```markdown
+Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/AGENTS.md` before any other action and follow it. If that file is missing, say so and continue.
+```
+
+See [native destinations](_support/docs/architecture/deployment-manager.md#content-and-native-destinations)
+and [agent delivery](_support/docs/architecture/agent-delivery.md) for documented
+versions and observations. [Role profiles](integrations/agent-profiles.json)
+configure model and effort defaults; account access, effective child models,
+native permissions, and parent overrides still need to be checked in context.
+Hive supplies no model runtime or universal permission sandbox.
+
+## Update, verify, recover, and uninstall
+
+**Update.** Package users run the newer package's `./install.sh`. Source users
+pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
+and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,
+and does not replace the binary:
+
+```sh
+git pull
+go build -o ~/bin/hive ./tooling/cli   # if tooling/ or integrations/ changed; use your hive path
+hive update --dry-run
+hive update
+```
+
+**Verify.** `status` checks managed files, `doctor` reports CLI and installation
+diagnostics, and `models` reports effective role configuration. Installed files,
+discovered roles, and a successful model task are different kinds of evidence.
+
+```sh
+hive status --hosts codex --scope user
+hive doctor
+hive models
+```
+
+**Recover.** An interrupted operation blocks further plans until recovery runs:
+
+```sh
+hive recover [--state-dir DIR]
+```
+
+**Uninstall.** Write a removal plan, review it, then apply it. Without `--out`,
+`plan remove` only prints the plan:
+
+```sh
+hive plan remove --hosts <hosts> --scope user --out <plan.json>
+hive apply --plan <plan.json>
+```
+
+Only the managed instruction block and files Hive created are removed; your
+other content stays. In the full-screen interface (`hive`, or `hive tui`), `u` in
+the CLIs view opens **Uninstall all**, which removes every registered host after a
+confirmation that starts on Cancel. In a source checkout, use
+`go run ./tooling/cli` in place of `hive`. The
+[manager contract](_support/docs/architecture/deployment-manager.md) documents
+project scope, saved plans, removal, and recovery; the
+[update reference](_support/docs/architecture/deployment-manager.md#update-from-a-commit-and-list-releases)
+covers exact revision selection.
 
 ## A workflow with room for judgment
 
@@ -163,57 +280,28 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 Close this work item and clean up only the temporary resources it created.
 ```
 
-Inspect your installation from the checkout:
+## For AI agents
 
-```sh
-go run ./tooling/cli status --hosts codex --scope user
-go run ./tooling/cli doctor
-go run ./tooling/cli models
-```
+Hive is a guidance layer plus a manager: shared rules, activity skills, and
+specialist role definitions that the manager installs into each coding CLI's
+native locations. The files an agent should read first are in
+[llms.txt](llms.txt).
 
-`status` checks managed files, `doctor` reports CLI and installation diagnostics,
-and `models` reports effective role configuration. Installed files, discovered
-roles, and a successful model task are different kinds of evidence.
-
-<details>
-<summary><strong>Updating, project scope, removal, and recovery</strong></summary>
-
-The manager executable and installed content update separately. `update` requires
-Git and a Hive checkout and deploys a committed revision to registered hosts,
-never uncommitted edits. It does not replace the running manager binary. Preview
-with `go run ./tooling/cli update --dry-run`. Package users update by running the
-new complete package's installer.
-
-The [manager contract](_support/docs/architecture/deployment-manager.md) documents
-explicit project scope, saved plans, removal, and recovery; the
-[update reference](_support/docs/architecture/deployment-manager.md#update-from-a-commit-and-list-releases)
-covers exact revision selection and confirmation behavior.
-
-</details>
-
-## CLI targets
-
-Six host adapters are implemented. Their presence and installation on disk do
-not prove that a particular session loaded the content or followed it.
-
-| Host | Managed scope | Integration boundary |
-| --- | --- | --- |
-| Claude Code | User and project | Native instructions, skills, and rendered roles |
-| Codex | User and project | Native instructions, shared skills, and rendered roles |
-| Grok Build | User | Claude instruction compatibility must be enabled; role selection varies by version |
-| Pi | User | Native instructions and shared skills; delegated roles require optional pi-subagents |
-| OpenCode V2 | User | Native instructions and rendered roles; model access depends on user providers |
-| Cursor CLI | User | Global guidance requires a project instruction pointer; user-level role selection remains unverified |
-
-See [native destinations](_support/docs/architecture/deployment-manager.md#content-and-native-destinations)
-and [agent delivery](_support/docs/architecture/agent-delivery.md) for documented
-versions and observations. [Role profiles](integrations/agent-profiles.json)
-configure model and effort defaults; account access, effective child models,
-native permissions, and parent overrides still need to be checked in context.
-Hive supplies no model runtime or universal permission sandbox.
+- `content/` is distributable: shared guidance, activity skills, canonical roles,
+  and voices.
+- `integrations/` is distributable: per-host destinations and role profiles.
+- `tooling/` is the Go manager, distribution logic, and package builder.
+- `_support/` is internal maintainer material: architecture docs, research, and
+  change records under `_support/openspec/`. It is not installed.
+- `tests/` holds content checks, fixtures, and evaluation tooling. It is not
+  installed.
+- The root [AGENTS.md](AGENTS.md) is maintainer guidance for this repository, not
+  guidance to copy into another project.
 
 ## Documentation
 
+- [Changelog](CHANGELOG.md), [contributing](CONTRIBUTING.md), and
+  [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —
   structure, ownership, managed instruction blocks, and preservation.
 - [Requirements and changes](_support/openspec/) — versioned requirements and

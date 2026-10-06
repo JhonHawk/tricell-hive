@@ -10,7 +10,7 @@ format, not a copy of the source line.
 ## claude-fail.jsonl / grok-fail.jsonl
 
 Source: ark Grok session
-`01a0d734-a562-7462-afac-258ac95b8788`, lines 545–548 (ARK-706 batch close).
+`7d0be0d4-144c-5989-8bf3-2799c14c91f9`, lines 545–548 (ARK-706 batch close).
 
 Verified via `jq` (type, tool name, assistant-text length only):
 - line 545: `assistant` message, tool call `use_tool` wrapping
@@ -31,7 +31,7 @@ confirmed against this session's tool-call name distribution.
 ## claude-pass.jsonl / grok-pass.jsonl
 
 Source: sample-project Grok session
-`01a0d735-762c-7821-ae46-a394c13f0dbb`, line 398.
+`a46abe80-7f7e-54a1-ad8f-d2bade219875`, line 398.
 
 Verified via `jq` (type, tool name, assistant-text length only): `assistant`
 message, tool call `ask_user_question`, assistant text length 1293 — i.e.

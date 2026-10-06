@@ -18,6 +18,7 @@ go run ./tooling/cli plan install --hosts codex --scope project --root /absolute
 go run ./tooling/cli apply --plan /absolute/new-plan.json
 go run ./tooling/cli status --hosts codex --scope project --root /absolute/project
 go run ./tooling/cli plan remove --hosts codex --scope project --root /absolute/project --out /absolute/remove-plan.json
+go run ./tooling/cli plan remove --hosts codex --scope user --out /absolute/remove-user-plan.json
 go run ./tooling/cli recover --state-dir /absolute/state-directory
 ```
 
@@ -119,7 +120,7 @@ go run ./tooling/cli tui [--home DIR] [--state-dir DIR] [--source DIR]
 
 `hive` without arguments in a terminal, or `hive tui`, opens a full-screen application on the terminal's alternate screen: a menu with CLIs, Update, Releases, Voice, Diagnostics, Models, Integrations, Project, and Quit, under a status line with the number of registered hosts, the installed release, and the voice (when Hive's state cannot be read it says `Status unavailable: state could not be read; see Diagnostics.` and never prints the raw error, which Diagnostics shows), and above a help bar that lists the current view's keys. Changing views redraws the whole screen, and leaving the application restores the terminal's previous content. Below 80×24 it shows the minimum size instead of the view, and keeps the view's state until the terminal is large enough again. The theme follows the terminal's light or dark background; `NO_COLOR` removes colors, and checkboxes, the cursor, and the selected button always use symbols.
 
-The application needs a terminal on standard input and output. Without one, `hive` without arguments keeps its usage error, and `hive tui` fails naming the text commands. Those commands (`hive status`, `install`, `update`, `releases`, `voice`, `doctor`, `models`, `project`, `plan`/`apply` to remove hosts, and `recover`) are the path for scripts and screen readers; the application has no line-based mode. `hive install` remains the plain-text installer that `install.sh` and the online bootstrap use.
+The application needs a terminal on standard input and output. Without one, `hive` without arguments keeps its usage error, and `hive tui` fails naming the text commands. Those commands (`hive status`, `install`, `update`, `releases`, `voice`, `doctor`, `models`, `project`, `plan`/`apply` to remove hosts, and `recover`) are the path for scripts and screen readers; the application has no line-based mode. `hive install` remains the plain-text installer that `install.sh` uses. The `hive bootstrap` subcommand stays in the code but is unused: no shipped script invokes it, since the online installer was retired in 0.1.0.
 
 Keys:
 

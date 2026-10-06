@@ -20,7 +20,7 @@ import (
 
 // options is the interface's own explicit home/state-dir/source, exactly
 // like install's own flags, letting an operator or a test open it over a
-// synthetic home instead of the real one (design.md "Punto de entrada").
+// synthetic home instead of the real one (design.md "Entry point" (archived record heading, originally in Spanish)).
 type options struct {
 	Home, StateDir, Source string
 }
@@ -172,7 +172,7 @@ func recoverPending(kind management.PendingKind, o management.Options, explicitS
 }
 
 // interfaceStatusLine renders the menu's own one-line summary (design.md
-// "La interfaz"): the registered host count, the release currently
+// "The interface", archived record heading originally in Spanish): the registered host count, the release currently
 // installed for them, and the active voice, each shown only when known. It
 // only reads state, the same read-only contract hive status itself has.
 func interfaceStatusLine(o management.Options) (string, error) {
@@ -230,7 +230,7 @@ func activeVoiceID(entries []management.StatusEntry) (string, bool) {
 }
 
 // runInterfaceCommand implements the explicit `hive tui` subcommand
-// (design.md "Punto de entrada"): its own --home/--state-dir/--source mirror
+// (design.md "Entry point" (archived record heading, originally in Spanish)): its own --home/--state-dir/--source mirror
 // install's. Without a terminal it fails with noTerminalMessage, which names
 // the text commands: running this subcommand already expresses the intent to
 // open the interface, unlike bare `hive`, whose failure stays today's plain

@@ -202,7 +202,8 @@ func parseOrigin(value string) (*url.URL, error) {
 // allowLoopbackHTTPValue is a build-time-only test seam: a test-built manager
 // binary sets it via
 // "-ldflags -X tricell-hive/tooling/distribution.allowLoopbackHTTPValue=true"
-// (see bootstrap_shell_test.go's buildRealManager). It must be a string
+// (the shell-level bootstrap.sh tests that used it were retired with that
+// script in 0.1.0; no current test builds such a binary). It must be a string
 // because -X can only overwrite a package-level string variable at link
 // time. Production binaries built by tooling/package never pass that flag,
 // so it stays empty and allowLoopbackHTTP stays false in every shipped

@@ -3,7 +3,7 @@ package management
 // Characterization tests for the Hive block mechanics in files.go: blockRange,
 // managedBlock, owned and transform. They pin current behavior for the Hive
 // marker pair before those functions are parametrized by a marker pair (see
-// design.md "Bloque de voz"), so the parametrization can be verified to leave
+// design.md "Voice block" (archived record heading, originally in Spanish)), so the parametrization can be verified to leave
 // Hive behavior unchanged.
 
 import (

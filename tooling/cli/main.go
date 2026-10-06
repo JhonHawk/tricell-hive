@@ -82,7 +82,7 @@ func run(args []string) error {
 
 func printHelp() {
 	fmt.Println("hive tui [--home DIR] [--state-dir DIR] [--source DIR]  (full-screen interface; bare `hive` in a terminal opens it too; without a terminal use the text commands below)")
-	fmt.Println("hive bootstrap --origin URL --version X.Y.Z --manager PATH --manager-sha256 HASH  (invoked by bootstrap.sh only)")
+	fmt.Println("hive bootstrap --origin URL --version X.Y.Z --manager PATH --manager-sha256 HASH  (internal and currently unused: no shipped script invokes it)")
 	fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
 	fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")

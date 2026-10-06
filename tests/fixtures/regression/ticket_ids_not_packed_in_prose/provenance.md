@@ -1,6 +1,6 @@
 # Provenance — ticket_ids_not_packed_in_prose
 
-Derived 2026-09-26 from ark Grok session `01a0dd4c-33d8-7920-85ef-9df30c78f78d`,
+Derived 2026-09-26 from ark Grok session `db49ff2a-34b1-5037-8922-5d0cfe3b9c6d`,
 line 61 of that session's `chat_history.jsonl` (assistant text, 8463 chars),
 2026-09-26. The session was not opened directly here: the shape below was
 handed down already sanitized by the main thread (the finding's own

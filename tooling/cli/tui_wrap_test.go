@@ -73,7 +73,7 @@ func TestScrollBoxWithoutHangingIndentIsUnchanged(t *testing.T) {
 
 // longPath is 120 characters and has a "/" every few characters and no "-".
 func longPath() string {
-	p := "/home/user/Development/projects/tricell/tricell_hive/.claude/worktrees/tui_polish/content/skills/adversarial_research/SKILL.md"
+	p := "/home/user/development/projects/example/hive_checkout/.claude/worktrees/tui_polish/content/skills/adversarial_research/SKILL.md"
 	return p[:120]
 }
 

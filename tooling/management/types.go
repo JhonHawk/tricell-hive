@@ -21,7 +21,7 @@ const End = "<!-- === TRICELL HIVE RULES:END === -->"
 
 // VoiceBegin and VoiceEnd delimit the optional voice block, a second managed
 // span in the same instruction file, always placed after the Hive block. See
-// design.md "Bloque de voz".
+// design.md "Voice block" (archived record heading, originally in Spanish).
 const VoiceBegin = "<!-- === TRICELL HIVE VOICE:BEGIN === -->"
 const VoiceEnd = "<!-- === TRICELL HIVE VOICE:END === -->"
 const GlobalSource = "content/guidance/global.md"
@@ -70,7 +70,7 @@ type VoiceSpan struct {
 // VoiceChange is one file's voice-block change within a Plan, parallel to
 // Change for the Hive block but addressed by Path rather than by a resolved
 // target.Target: voice paths come from the block Records of already
-// registered hosts (see design.md "Rutas de la voz"), not from resolve().
+// registered hosts (see design.md "Voice paths" (archived record heading, originally in Spanish)), not from resolve().
 // It carries only the managed span, never the whole file, so a plan with
 // voice changes can still be saved with --out (see SavePlan). Expected is
 // the whole file's fingerprint before this plan's changes, exactly like

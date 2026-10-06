@@ -10,7 +10,7 @@ that prints a whole transcript line.
 
 ## claude-fail.jsonl
 
-Source: Claude Code session `0f38c529-7e2e-4332-a023-c71bffb96909` in this
+Source: Claude Code session `69e9dd88-2845-50ea-82a6-22ea09451a54` in this
 project's local transcript history, 2026-09-23, 2437 lines — the session
 design.md's own "URLs sueltas" finding names (chosen there specifically to
 avoid carrying client URLs, per its own text).
