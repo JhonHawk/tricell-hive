@@ -1,8 +1,69 @@
 ---
-title: Project manual
-description: A starting point for operational documentation.
+title: Hive
+description: Portable guidance that helps coding agents work deliberately, with clear scope and checked results.
+template: splash
+hero:
+  title: Hive
+  tagline: Portable guidance for deliberate work with coding agents. Clarify the request, protect the project, check the result.
+  actions:
+    - text: Choose a flow
+      link: "#the-four-flows"
+      icon: right-arrow
+      variant: primary
+    - text: GitHub
+      link: https://github.com/JhonHawk/tricell-hive
+      icon: external
+      variant: minimal
 ---
 
-## Start here
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-Replace this page with the first task a reader needs to complete.
+## What Hive is
+
+Hive is a small set of shared instructions and skills for coding agents. It does not replace the agent. Your tool keeps its own model, sign-in, permissions and history.
+
+Hive adds a few habits to every session: the agent confirms what you asked for, leaves your existing work alone, and shows evidence before it says something is done. Four flows cover the common kinds of work. You can start at any of them.
+
+## Install
+
+Run this in a terminal:
+
+```sh
+curl -fsSL https://hive.tricell.tech/install.sh | sh
+```
+
+Other install routes, supported tools, updating and removal are in the [README on GitHub](https://github.com/JhonHawk/tricell-hive#get-started).
+
+## The four flows
+
+<CardGrid>
+  <LinkCard
+    title="Research"
+    href="/flows/research/"
+    description="Answer a question with evidence, without changing anything."
+  />
+  <LinkCard
+    title="Plan"
+    href="/flows/plan/"
+    description="Settle the decisions of a larger change and split it into tasks you can check."
+  />
+  <LinkCard
+    title="Build"
+    href="/flows/build/"
+    description="Make an approved change and prove that it works."
+  />
+  <LinkCard
+    title="Close"
+    href="/flows/close/"
+    description="Wrap up a finished piece of work and tidy what it left behind."
+  />
+</CardGrid>
+
+## How the flows connect
+
+They are routes, not a required sequence. A small, clear change can go straight to Build.
+
+1. Start with **Research** when you have a question, or when you are not sure what to do yet. It ends with an answer and, often, a suggested next route.
+2. Move to **Plan** when the change is large or has choices that need your decision. It ends with tasks and checks that another agent could follow.
+3. Use **Build** once you have approved the work, with or without a plan. It ends with a verified result.
+4. Finish with **Close**, which records the outcome and cleans up after the work.
