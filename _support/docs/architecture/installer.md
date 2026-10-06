@@ -38,20 +38,26 @@ any download. `--help` prints its usage. It:
 1. Resolves the latest release from the `releases/latest` redirect, or uses
    `--version`.
 2. Downloads `hive-<version>-<os>-<arch>.tar.gz` and its `.sha256` file over
-   HTTPS. Every request must end on `github.com` or a subdomain of
-   `githubusercontent.com`; the origin is fixed in the script and no environment
-   variable or argument changes it.
+   HTTPS. Every redirect hop must use HTTPS, and the final URL of each request
+   must be on `github.com` or a subdomain of `githubusercontent.com`; only the
+   final host is checked, not intermediate hops. The origin is fixed in the
+   script and no environment variable or argument changes it.
 3. Verifies the checksum and rejects archive entries outside the package's
    single root directory or of a type other than directory or regular file.
 4. Keeps the package in `${XDG_DATA_HOME:-$HOME/.local/share}/hive/packages/hive-<version>-<os>-<arch>/`
-   (a relative `XDG_DATA_HOME` is ignored),
-   replacing a previous copy of the same package only after the new one is in
-   place. It does not change `PATH`; it prints the path of `bin/hive`.
+   (a relative `XDG_DATA_HOME` is ignored). A previous copy of the same package
+   is touched only after the new one is extracted and checked: it is moved
+   aside, the new one is moved in, and the old copy is deleted, or restored if
+   the move fails or the script is interrupted. Packages of other versions stay
+   until the user deletes them. It does not change `PATH`; it prints the path of
+   `bin/hive`.
 5. Runs that package's `install.sh` with every argument except `--version`, reading from the
    terminal. Without `--dry-run` it requires a controlling terminal and stops
    before any download when there is none. With `--dry-run` it uses the terminal
    when one is available, so hosts can be chosen in the preview; without one,
-   pass `--hosts`.
+   pass `--hosts`. `--dry-run` previews the installation without changing any
+   host, but the package is still downloaded and kept as in step 4. Flags may be
+   written as `--flag`, `-flag`, or `--flag=value`, as `hive install` accepts.
 
 Its whole body runs from a function called on its last line, so a truncated
 download executes nothing. To update, run the same command again. The script is

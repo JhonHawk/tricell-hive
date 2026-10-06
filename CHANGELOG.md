@@ -13,9 +13,9 @@ Each release sets [VERSION](VERSION) to its version; between releases it reads `
 - One-line installation: `curl -fsSL https://hive.tricell.tech/install.sh | sh`
   runs `get-hive.sh`, which downloads the latest release package, verifies its
   checksum, keeps it in `~/.local/share/hive/packages/`, and runs its
-  `install.sh`; `--dry-run` previews without changes (add `--hosts` when no
-  terminal is available) and `--version` selects
-  a release (#11).
+  `install.sh`. `--dry-run` previews the installation without changing any host
+  (the package is still downloaded and kept; add `--hosts` when no terminal is
+  available), and `--version` selects a release (#11).
 
 ### Changed
 

@@ -68,8 +68,9 @@ GitHub Releases, verifies them, keeps the package in
 `$XDG_DATA_HOME` when set), and runs that package's `install.sh`, which asks
 which hosts to install and confirms before it writes. Add `--version <version>`
 to choose a release; other arguments, such as `--hosts claude,codex`, go to
-`install.sh`. It needs `curl`, `tar`, and `shasum` or `sha256sum`. It does not
-put `hive` on your `PATH`; it prints where `bin/hive` is. The
+`install.sh`. The preview changes no host but still downloads and keeps the
+package. It needs `curl`, `tar`, and `shasum` or `sha256sum`. It does not put
+`hive` on your `PATH`; it prints where `bin/hive` is. The
 [installer contract](_support/docs/architecture/installer.md#one-line-installation)
 lists its checks.
 
@@ -195,7 +196,9 @@ Hive supplies no model runtime or universal permission sandbox.
 
 ## Update, verify, recover, and uninstall
 
-**Update.** One-line users run the same command again. Package users run the
+**Update.** One-line users run the same command again; each version adds its
+own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
+once you no longer need them for recovery. Package users run the
 newer package's `./install.sh`. Source users
 pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
 and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,
