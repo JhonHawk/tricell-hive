@@ -322,8 +322,7 @@ func archiveGitCommit(gitPath string, env []string, source, commit, prefix strin
 
 // adaptGitArchive turns raw `git archive --format=tar` output into the
 // gzip-compressed form distribution.Extract accepts. Extract itself is the
-// bootstrap's security boundary and is left unchanged (it also serves the
-// network-facing downloader); this adapter only normalizes the two ways
+// archive-extraction security boundary and is left unchanged; this adapter only normalizes the two ways
 // Git's own tar output differs from what Extract requires:
 //   - it drops the pax_global_header entry (tar.TypeXGlobalHeader) Git
 //     writes with the commit hash in its comment;

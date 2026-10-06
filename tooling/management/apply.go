@@ -66,7 +66,7 @@ func (e Engine) fail(stage string) error {
 // preflight is Apply's and Onboard's single authoritative gate. It rejects
 // an obviously stale or invalid plan before creating a state directory,
 // then re-validates it under the lock together with any pending core
-// operation and the retained installer binding, returning the validated
+// operation, returning the validated
 // state and the still-held lock's release function. Both entry points call
 // it exactly once; the nested core transaction Onboard starts trusts this
 // result instead of repeating the checks (see Engine.nested).
@@ -122,9 +122,6 @@ func authoritativePreflight(p Plan) (State, error) {
 		return State{}, fmt.Errorf("stale plan: state changed")
 	}
 	if err = validatePlan(p, state); err != nil {
-		return State{}, err
-	}
-	if err = ValidateInstallerBinding(p); err != nil {
 		return State{}, err
 	}
 	return state, nil
@@ -663,8 +660,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		return "", fmt.Errorf("invalid transaction")
 	}
 	removeOrphanWrites(dir, j)
-	// Rollback restores Hive's own bytes from the journal; it never needs the
-	// retained installer, so a removed or restored copy must not block it.
+	// Rollback restores Hive's own bytes from the journal.
 	if j.Phase == "committed" || j.Phase == "recovered" {
 		return j.Phase, os.Remove(pp)
 	}

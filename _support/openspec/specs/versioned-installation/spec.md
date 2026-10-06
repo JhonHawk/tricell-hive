@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Versioned, consented installation of Hive from an offline package or a verified online bootstrap, with recoverable transactions and optional capabilities offered as manual instructions until each passes a native gate.
+Versioned, consented installation of Hive from an offline package, with recoverable transactions and optional capabilities offered as manual instructions until each passes a native gate.
 
 ## Requirements
 

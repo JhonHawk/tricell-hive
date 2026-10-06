@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"time"
 	"tricell-hive/integrations/target"
-	"tricell-hive/tooling/distribution"
 )
 
 type ExternalStep struct {
@@ -97,8 +96,7 @@ type OnboardingResult struct {
 	Steps []StepReceipt `json:"steps,omitempty"`
 }
 type onboardingJournal struct {
-	Version   int                             `json:"version"`
-	Installer *distribution.RetainedInstaller `json:"installer,omitempty"`
+	Version int `json:"version"`
 	OnboardingResult
 	StateDir  string `json:"state_dir"`
 	CoreID    string `json:"core_id"`
@@ -283,7 +281,7 @@ func beginOnboarding(p Plan, steps []ExternalStep) (onboardingJournal, error) {
 	if _, err := rand.Read(id); err != nil {
 		return onboardingJournal{}, err
 	}
-	j := onboardingJournal{Version: 1, Installer: p.Installer, StateDir: p.StateDir, OnboardingResult: OnboardingResult{ID: hex.EncodeToString(id), Phase: "prepared"}}
+	j := onboardingJournal{Version: 1, StateDir: p.StateDir, OnboardingResult: OnboardingResult{ID: hex.EncodeToString(id), Phase: "prepared"}}
 	j.CoreID = j.ID
 	for _, s := range steps {
 		j.Steps = append(j.Steps, StepReceipt{Step: s, Status: StepPending})

@@ -62,7 +62,7 @@ func TestReserveVersionRefusesAnExistingVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	published := filepath.Join(dir, "darwin-arm64", "hive")
+	published := filepath.Join(dir, "darwin-arm64", "hive-1.2.3-darwin-arm64.tar.gz")
 	if err := os.MkdirAll(filepath.Dir(published), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestReserveVersionRefusesAnExistingVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A rebuild of the same label must fail before any artifact is rewritten,
-	// or a new binary would sit beside the old package, checksum and index.
+	// or a new binary would sit beside the old package and checksum.
 	if _, err := reserveVersion(out, "1.2.3"); err == nil {
 		t.Fatal("reserved an existing version")
 	}

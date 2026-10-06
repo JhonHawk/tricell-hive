@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
@@ -141,13 +140,6 @@ type installDependencies struct {
 	RecoverOnboarding func(string, onboardingAdapter) (management.OnboardingResult, error)
 	RecoverCore       func(string) (string, error)
 	AdapterFactory    onboardingAdapterFactory
-	// BindRetainedInstaller is set only by the online bootstrap entry point.
-	// It runs once, right after the operator confirms and before the plan
-	// mutates anything: it retains the already-verified manager and package
-	// privately, then binds that retained installer's identity into the
-	// plan so a later `hive recover` (from another terminal, offline) can
-	// find and reverify it. Ordinary local installs leave this nil.
-	BindRetainedInstaller func(management.Options, management.Plan) (management.Plan, error)
 }
 
 func install(args []string, in io.Reader, out io.Writer, interactive bool) error {
@@ -199,13 +191,10 @@ func installWithDependencies(args []string, in io.Reader, out io.Writer, interac
 	return runInstallFlow(o, dry, in, out, interactive, dependencies)
 }
 
-// runInstallFlow is the interactive core shared by a local offline install
-// and the online bootstrap hand-off: both resolve an Options value (hosts,
-// home, state directory, and a source distribution tree) before reaching
-// here, then walk the same detection/summary/consent/apply loop. Only
-// bootstrap sets dependencies.BindRetainedInstaller. It runs package
-// verification, options normalization, the pending-operation check and the
-// onboarding wizard.
+// runInstallFlow is the interactive core of a local offline install. It
+// receives an Options value (hosts, home, state directory, and a source
+// distribution tree), then runs package verification, options normalization,
+// the pending-operation check and the onboarding wizard.
 func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
 	p := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	if err := validateInstallDependencies(dependencies); err != nil {
@@ -224,24 +213,18 @@ func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer,
 		return err
 	}
 	o.StateDir = stateDir
-	// online is set only by the bootstrap entry point (see bootstrap.go):
-	// every recovery message below must name a concrete offline command
-	// instead of "./install.sh", a file that the online hand-off's
-	// temporary checkout never contains. No shipped script reaches this path
-	// today (bootstrap.sh is retired); the code stays for a possible reconnection.
-	online := dependencies.BindRetainedInstaller != nil
-	// stillNeeded is ignored here: install's and bootstrap's own recovery
+	// stillNeeded is ignored here: install's own recovery
 	// phrase names the concrete next command unconditionally
-	// (bootstrap_test.go's TestInstallOfflinePendingRecoveryPointsToInstallScript
-	// pins this for a successful recovery too). withRecoverySentence embeds
+	// (TestInstallOfflinePendingRecoveryPointsToInstallScript pins this for a
+	// successful recovery too). withRecoverySentence embeds
 	// the phrase as its own standalone sentence.
 	recoveryText := func(stateDir string, stillNeeded bool) string {
-		return recoveryPhrase(online, stateDir)
+		return recoveryPhrase()
 	}
 	if handled, err := handlePendingInstallOperation(o, dry, p, out, recoveryText, dependencies); handled {
 		return err
 	}
-	return runOnboardingWizard(o, dry, p, out, online, explicitStateDir, dependencies)
+	return runOnboardingWizard(o, dry, p, out, explicitStateDir, dependencies)
 }
 
 func validateInstallDependencies(dependencies installDependencies) error {
@@ -254,7 +237,7 @@ func validateInstallDependencies(dependencies installDependencies) error {
 // withRecoverySentence appends recovery as its own trailing sentence onto
 // base only when recovery is non-empty, so a caller (the recovery view's
 // recoverPending) can omit the whole sentence once nothing more needs
-// recovering, while install's and bootstrap's own closures, which never
+// recovering, while install's own closure, which never
 // return "", keep their exact existing wording (matching format and trailing
 // period) byte for byte.
 func withRecoverySentence(base, recovery string) string {
@@ -323,7 +306,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal inst
 
 // runOnboardingWizard walks the host-selection/summary/consent/apply loop
 // once no pending operation blocks it.
-func runOnboardingWizard(o management.Options, dry bool, terminal installTerminal, out io.Writer, online, explicitStateDir bool, dependencies installDependencies) error {
+func runOnboardingWizard(o management.Options, dry bool, terminal installTerminal, out io.Writer, explicitStateDir bool, dependencies installDependencies) error {
 	stateDir := o.StateDir
 	explicitHosts := len(o.Hosts) > 0
 
@@ -391,18 +374,8 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			fmt.Fprintln(out, "Cancelled. No changes applied.")
 			return nil
 		}
-		// Consent is now in hand. Bootstrap's hook retains the already
-		// verified manager and package and binds their identity into the
-		// plan here, after consent and strictly before applyInstallOnboarding
-		// mutates anything, so recovery from another terminal can find them.
-		if dependencies.BindRetainedInstaller != nil {
-			p, err = dependencies.BindRetainedInstaller(o, p)
-			if err != nil {
-				return err
-			}
-		}
 		result, err := applyInstallOnboarding(p, preview, adapter)
-		return finalizeInstallResult(out, result, err, online, explicitStateDir, stateDir, false)
+		return finalizeInstallResult(out, result, err, explicitStateDir, stateDir, false)
 	}
 }
 
@@ -461,13 +434,13 @@ func expandToRequiredHosts(terminal installTerminal, out io.Writer, o management
 // runs, so it never decides whether to retry. fromInterface/explicitStateDir
 // route every recovery phrase here through recoveryPhraseFor: the CLIs view
 // passes true, the install command false.
-func finalizeInstallResult(out io.Writer, result management.OnboardingResult, err error, online, explicitStateDir bool, stateDir string, fromInterface bool) error {
+func finalizeInstallResult(out io.Writer, result management.OnboardingResult, err error, explicitStateDir bool, stateDir string, fromInterface bool) error {
 	if err != nil {
 		if result.Phase == "partial" {
-			showPartialOnboardingDetail(out, result, online, explicitStateDir, stateDir, fromInterface)
+			showPartialOnboardingDetail(out, result, explicitStateDir, stateDir, fromInterface)
 			return fmt.Errorf("optional capabilities incomplete (%s)", result.ID)
 		}
-		return fmt.Errorf("installation did not complete: %w; %s to check recovery", err, recoveryPhraseFor(fromInterface, explicitStateDir, online, stateDir))
+		return fmt.Errorf("installation did not complete: %w; %s to check recovery", err, recoveryPhraseFor(fromInterface, explicitStateDir, stateDir))
 	}
 	if result.ID == "unchanged" {
 		// management.Engine.Apply's own literal sentinel ID (no exported
@@ -481,46 +454,10 @@ func finalizeInstallResult(out io.Writer, result management.OnboardingResult, er
 	return nil
 }
 
-// retainedManagerPath returns the absolute path to a manager binary retained
-// under stateDir by a prior consented bootstrap, so an online-flow recovery
-// message can name a concrete offline command instead of pointing at a
-// script the online hand-off has already deleted. It reports ok=false when nothing
-// is retained yet.
-func retainedManagerPath(stateDir string) (path string, ok bool) {
-	entries, err := os.ReadDir(filepath.Join(stateDir, "installers"))
-	if err != nil {
-		return "", false
-	}
-	var names []string
-	for _, e := range entries {
-		if e.IsDir() {
-			names = append(names, e.Name())
-		}
-	}
-	sort.Strings(names)
-	for i := len(names) - 1; i >= 0; i-- {
-		candidate := filepath.Join(stateDir, "installers", names[i], "manager")
-		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {
-			return candidate, true
-		}
-	}
-	return "", false
-}
-
 // recoveryPhrase names the concrete next command for a pending or
 // interrupted operation, as a lower-case clause fit for embedding mid
-// sentence. Online (bootstrap) invocations point to the manager already
-// retained under the state directory, because the online hand-off deleted its
-// own temporary manager on exit; without a retained manager they can only
-// suggest fetching a fresh package. No shipped script reaches the online path
-// since bootstrap.sh was retired in 0.1.0.
-func recoveryPhrase(online bool, stateDir string) string {
-	if online {
-		if path, ok := retainedManagerPath(stateDir); ok {
-			return fmt.Sprintf("run the retained manager's recover (%s recover --state-dir %s)", path, stateDir)
-		}
-		return "download the Hive package again and run its ./install.sh"
-	}
+// sentence.
+func recoveryPhrase() string {
 	return "run ./install.sh again"
 }
 
@@ -528,21 +465,22 @@ func recoveryPhrase(online bool, stateDir string) string {
 // recovery text reached while fromInterface is true (the CLIs view) must name
 // hive recover, a subcommand the interface's own operator can always run
 // directly, instead of ./install.sh (a script this process may not have been
-// launched from at all) or a bootstrap-only retained-manager phrase, neither
-// of which apply inside the full-screen interface. When the interface was
+// launched from at all) which this process may not
+// have been launched from, and which does not apply inside the full-screen
+// interface. When the interface was
 // opened against an explicit --state-dir, that phrase names it too, so the
 // operator recovers the same, possibly synthetic, state they are looking at
 // rather than the real user's default. fromInterface false defers to
-// recoveryPhrase unchanged, for install's and bootstrap's own callers,
+// recoveryPhrase unchanged, for install's own callers,
 // ignoring explicitStateDir.
-func recoveryPhraseFor(fromInterface, explicitStateDir, online bool, stateDir string) string {
+func recoveryPhraseFor(fromInterface, explicitStateDir bool, stateDir string) string {
 	if fromInterface {
 		if explicitStateDir {
 			return "run hive recover --state-dir " + shellQuote(stateDir)
 		}
 		return "run hive recover"
 	}
-	return recoveryPhrase(online, stateDir)
+	return recoveryPhrase()
 }
 
 // capitalize upper-cases a phrase's first byte for sentence-initial use,
@@ -924,10 +862,10 @@ func grokCursorDuplicateNotice(p management.Plan) string {
 // showPartialOnboardingDetail lists every provider step's terminal status so a
 // partial outcome is never reported as a single opaque message: the core is
 // installed, but the operator must see exactly which optional capability
-// needs manual follow-up. online/stateDir let nextOnboardingStepAction name a
+// needs manual follow-up. stateDir lets nextOnboardingStepAction name a
 // concrete recovery command instead of a hard-coded ./install.sh (see
 // recoveryPhrase).
-func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResult, online, explicitStateDir bool, stateDir string, fromInterface bool) {
+func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResult, explicitStateDir bool, stateDir string, fromInterface bool) {
 	fmt.Fprintf(out, "Partial installation (%s).\n", result.ID)
 	fmt.Fprintln(out, "The core was installed; optional capabilities pending:")
 	for _, step := range result.Steps {
@@ -938,7 +876,7 @@ func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResu
 		if json.Unmarshal(step.Step.Payload, &decoded) == nil && decoded.ManualReason != "" {
 			printLabeled(out, "    Reason: ", decoded.ManualReason)
 		}
-		if action := nextOnboardingStepAction(step.Status, online, explicitStateDir, stateDir, fromInterface); action != "" {
+		if action := nextOnboardingStepAction(step.Status, explicitStateDir, stateDir, fromInterface); action != "" {
 			printLabeled(out, "    Next action: ", action)
 		}
 	}
@@ -960,8 +898,8 @@ func printLabeled(out io.Writer, label, text string) {
 // nextOnboardingStepAction turns a provider step's terminal status into the
 // concrete next action for the operator, matching design.md's per-provider
 // states (pending -> running -> verified|failed|unknown|skipped|auth_pending).
-func nextOnboardingStepAction(status string, online, explicitStateDir bool, stateDir string, fromInterface bool) string {
-	recovery := recoveryPhraseFor(fromInterface, explicitStateDir, online, stateDir)
+func nextOnboardingStepAction(status string, explicitStateDir bool, stateDir string, fromInterface bool) string {
+	recovery := recoveryPhraseFor(fromInterface, explicitStateDir, stateDir)
 	switch status {
 	case management.StepManual:
 		return "Complete the installation following the official instructions, then " + recovery + " to confirm it."

@@ -761,7 +761,7 @@ func applyInstallCmd(owner view, planned installPlannedMsg, preview onboardingPr
 	return func() tea.Msg {
 		result, err := applyInstallOnboarding(planned.plan, preview, planned.adapter)
 		var text bytes.Buffer
-		finalErr := finalizeInstallResult(&text, result, err, false, cfg.ExplicitStateDir, stateDir, true)
+		finalErr := finalizeInstallResult(&text, result, err, cfg.ExplicitStateDir, stateDir, true)
 		msg := installAppliedMsg{owned: owned{owner}, flow: planned.flow, text: text.String(), err: finalErr, partial: result.Phase == "partial"}
 		if finalErr != nil {
 			msg.pending = pendingAfterFailure(cfg.Deps, stateDir)

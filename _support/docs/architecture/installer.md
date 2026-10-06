@@ -25,7 +25,7 @@ without `VERSION` or a release label is reported as a development build.
 
 Packages are published as GitHub Releases assets, one archive per supported
 platform with its `.sha256` checksum file beside it. There is no one-line online
-installer: `bootstrap.sh` was retired for the first public release (0.1.0). To
+installer: `bootstrap.sh` and the `hive bootstrap` subcommand it served were retired for the first public release (0.1.0). To
 install, download the archive for your platform and its `.sha256` file from the
 release page, verify the checksum, extract, and run the installer from a terminal.
 
@@ -40,12 +40,7 @@ The checksum file names the archive, so run `shasum -a 256 -c` in the directory
 that holds both files. The checksum detects a corrupted or truncated download; it
 is not an independent signature, because it comes from the same release page.
 
-The `hive bootstrap` subcommand (an online hand-off that downloads and verifies a
-package from a published origin) remains in the manager's code but no shipped
-script invokes it. A follow-up decision will retire it or reconnect it. Until
-then its recovery text for an interrupted online flow is unreachable in practice;
-an interrupted offline installation is finished with `./install.sh` or
-`hive recover`.
+An interrupted installation is finished with `./install.sh` or `hive recover`.
 
 ## Interaction
 
@@ -123,8 +118,7 @@ go run ./tooling/package --out ./dist
 
 The builder freezes the source inputs, computes a source identity, and produces
 macOS ARM64 and Linux ARM64/AMD64 archives with preserved executable modes and deterministic
-archive metadata under `versions/<version>/`, plus raw managers, checksums and an
-`index.json` release index (read only by the unused `hive bootstrap` subcommand). A version already present in
+archive metadata under `versions/<version>/<os>-<arch>/`, each with its `.sha256` checksum. A version already present in
 the output directory is refused before anything is built, so a published label is
 never rebuilt with different content; build all platforms of a version in one run.
 `--platforms linux/arm64` can select a subset. Building publishes nothing; a
