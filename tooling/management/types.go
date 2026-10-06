@@ -155,19 +155,22 @@ type Change struct {
 	Gone bool `json:"gone,omitempty"`
 }
 type Plan struct {
-	Product      *ProductIdentity  `json:"product,omitempty"`
-	Version      int               `json:"version"`
-	Action       string            `json:"action"`
-	Config       target.Config     `json:"config"`
-	Hosts        []string          `json:"hosts"`
-	StateDir     string            `json:"state_dir"`
-	StateHash    string            `json:"state_hash"`
-	Release      *Release          `json:"release,omitempty"`
-	Changes      []Change          `json:"changes"`
-	ID           string            `json:"id"`
-	Legacy       []legacy.Edit     `json:"legacy,omitempty"`
-	Migration    *MigrationReceipt `json:"migration,omitempty"`
-	SourceCommit string            `json:"source_commit,omitempty"`
+	Product *ProductIdentity `json:"product,omitempty"`
+	// LegacyInstaller is written only by the retired hive bootstrap; read and
+	// ignored. It stays at this position so old plan IDs still verify.
+	LegacyInstaller json.RawMessage   `json:"installer,omitempty"`
+	Version         int               `json:"version"`
+	Action          string            `json:"action"`
+	Config          target.Config     `json:"config"`
+	Hosts           []string          `json:"hosts"`
+	StateDir        string            `json:"state_dir"`
+	StateHash       string            `json:"state_hash"`
+	Release         *Release          `json:"release,omitempty"`
+	Changes         []Change          `json:"changes"`
+	ID              string            `json:"id"`
+	Legacy          []legacy.Edit     `json:"legacy,omitempty"`
+	Migration       *MigrationReceipt `json:"migration,omitempty"`
+	SourceCommit    string            `json:"source_commit,omitempty"`
 	// Voice carries this plan's voice-block changes, addressed by Path (see
 	// VoiceChange). VoiceSetting is the choice apply will write to
 	// State.Voice, consulted only when Action is "voice": non-nil for

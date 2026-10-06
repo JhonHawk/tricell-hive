@@ -219,7 +219,7 @@ func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer,
 	// successful recovery too). withRecoverySentence embeds
 	// the phrase as its own standalone sentence.
 	recoveryText := func(stateDir string, stillNeeded bool) string {
-		return recoveryPhrase()
+		return installRecoveryPhrase
 	}
 	if handled, err := handlePendingInstallOperation(o, dry, p, out, recoveryText, dependencies); handled {
 		return err
@@ -454,25 +454,19 @@ func finalizeInstallResult(out io.Writer, result management.OnboardingResult, er
 	return nil
 }
 
-// recoveryPhrase names the concrete next command for a pending or
+// installRecoveryPhrase names the concrete next command for a pending or
 // interrupted operation, as a lower-case clause fit for embedding mid
 // sentence.
-func recoveryPhrase() string {
-	return "run ./install.sh again"
-}
+const installRecoveryPhrase = "run ./install.sh again"
 
-// recoveryPhraseFor is recoveryPhrase's own interface-aware wrapper: every
-// recovery text reached while fromInterface is true (the CLIs view) must name
-// hive recover, a subcommand the interface's own operator can always run
-// directly, instead of ./install.sh (a script this process may not have been
-// launched from at all) which this process may not
-// have been launched from, and which does not apply inside the full-screen
-// interface. When the interface was
-// opened against an explicit --state-dir, that phrase names it too, so the
-// operator recovers the same, possibly synthetic, state they are looking at
-// rather than the real user's default. fromInterface false defers to
-// recoveryPhrase unchanged, for install's own callers,
-// ignoring explicitStateDir.
+// recoveryPhraseFor returns the recovery phrase for the caller. Inside the
+// full-screen interface (fromInterface true) it names hive recover, which the
+// operator can always run directly, instead of ./install.sh, a script this
+// process may not have been launched from. When the interface was opened with
+// an explicit --state-dir, the phrase names it too, so the operator recovers
+// the same, possibly synthetic, state they are looking at rather than the real
+// user's default. Outside the interface it returns installRecoveryPhrase and
+// ignores explicitStateDir.
 func recoveryPhraseFor(fromInterface, explicitStateDir bool, stateDir string) string {
 	if fromInterface {
 		if explicitStateDir {
@@ -480,7 +474,7 @@ func recoveryPhraseFor(fromInterface, explicitStateDir bool, stateDir string) st
 		}
 		return "run hive recover"
 	}
-	return recoveryPhrase()
+	return installRecoveryPhrase
 }
 
 // capitalize upper-cases a phrase's first byte for sentence-initial use,
@@ -864,7 +858,7 @@ func grokCursorDuplicateNotice(p management.Plan) string {
 // installed, but the operator must see exactly which optional capability
 // needs manual follow-up. stateDir lets nextOnboardingStepAction name a
 // concrete recovery command instead of a hard-coded ./install.sh (see
-// recoveryPhrase).
+// installRecoveryPhrase).
 func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResult, explicitStateDir bool, stateDir string, fromInterface bool) {
 	fmt.Fprintf(out, "Partial installation (%s).\n", result.ID)
 	fmt.Fprintln(out, "The core was installed; optional capabilities pending:")

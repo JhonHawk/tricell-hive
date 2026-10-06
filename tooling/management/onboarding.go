@@ -97,6 +97,9 @@ type OnboardingResult struct {
 }
 type onboardingJournal struct {
 	Version int `json:"version"`
+	// LegacyInstaller is written only by the retired hive bootstrap; read and
+	// ignored. It stays at this position so old integrity hashes still verify.
+	LegacyInstaller json.RawMessage `json:"installer,omitempty"`
 	OnboardingResult
 	StateDir  string `json:"state_dir"`
 	CoreID    string `json:"core_id"`

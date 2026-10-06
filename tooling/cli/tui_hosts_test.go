@@ -305,15 +305,15 @@ func TestRecoveryPhraseForInterfaceAlwaysNamesHiveRecover(t *testing.T) {
 }
 
 // TestRecoveryPhraseForNonInterfaceUnchanged pins that fromInterface=false
-// defers to recoveryPhrase exactly, for install's own callers, regardless of
+// defers to installRecoveryPhrase exactly, for install's own callers, regardless of
 // explicitStateDir.
 func TestRecoveryPhraseForNonInterfaceUnchanged(t *testing.T) {
 	stateDir := t.TempDir()
 	for _, explicitStateDir := range []bool{false, true} {
 		got := recoveryPhraseFor(false, explicitStateDir, stateDir)
-		want := recoveryPhrase()
+		want := installRecoveryPhrase
 		if got != want {
-			t.Fatalf("recoveryPhraseFor(fromInterface=false, explicitStateDir=%v, ...) = %q, want %q (recoveryPhrase's own result)", explicitStateDir, got, want)
+			t.Fatalf("recoveryPhraseFor(fromInterface=false, explicitStateDir=%v, ...) = %q, want %q (installRecoveryPhrase)", explicitStateDir, got, want)
 		}
 	}
 }
