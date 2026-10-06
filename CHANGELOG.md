@@ -4,9 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-[VERSION](VERSION) holds the current product version.
+Each release sets [VERSION](VERSION) to its version; between releases it reads `dev`.
 
 ## [Unreleased]
+
+### Changed
+
+- `git-workflow` asks pull-request descriptions to state whether a revert fully
+  undoes the merge and what the change would affect if it were wrong.
 
 ## [0.1.0] - 2026-10-05
 

@@ -25,7 +25,8 @@ an understood task through implementation and verification—with clear boundari
 between what was requested, what was authorized, and what was demonstrated.
 
 > **Version 0.1.0 · first public release**
-> [VERSION](VERSION) is the canonical product version. Packages for macOS Apple
+> Each release sets [VERSION](VERSION) to its product version; between releases,
+> `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
 > [GitHub Releases](https://github.com/JhonHawk/tricell-hive/releases). See the
 > [changelog](CHANGELOG.md) for what this release contains.
