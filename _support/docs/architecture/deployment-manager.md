@@ -244,7 +244,9 @@ Shared resources may retain their original provenance without implying drift.
 A legacy snapshot with no product receipt retains its hash and is not relabeled.
 
 Published version labels cannot be rebound to a different artifact in the local
-version index. Development builds use `dev`. This local check does not certify a
+version index. Development builds use `dev`: between releases, `VERSION` on
+`development` reads `dev`, so `hive update` can deploy each merge, and each
+release commit sets its number. This local check does not certify a
 remote release channel or authorize public distribution. Source-code visibility
 and package publication remain independent decisions.
 
