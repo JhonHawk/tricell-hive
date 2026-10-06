@@ -24,7 +24,7 @@ The agent goes through these steps in order:
 1. When the work is complete, moves the ticket to its finished state, along with the sub-issues the same work covered. A paused or abandoned ticket does not move to finished.
 2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, and it archives the folder. An abandoned change is archived without touching the requirements.
 3. Deletes branches that are fully merged, and their clean working copies.
-4. Removes temporary files the task made and stops processes it started.
+4. Removes temporary files the task made, stops processes it started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
 5. Lists side findings, so you can open a ticket for each, decline it, or ask not to hear about it again.
 6. Writes a completion report that says what was done, what was cleaned and what stays open.
 7. Asks what to do next: continue with a suggested ticket, take it to a new session, or end.
@@ -46,7 +46,7 @@ The agent goes through these steps in order:
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, interface screenshots you did not ask to keep. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, interface screenshots you did not ask to keep, unless the work is paused and continues in another session. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.
