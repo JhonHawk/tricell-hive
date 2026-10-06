@@ -14,7 +14,7 @@ wording are removed or replaced), not a copy of the source lines.
 
 ## claude-fail.jsonl
 
-Source: Claude Code (`claude-opus-5-5`) session `876d776d-273d-4deb-b977-e88e9ee02582`
+Source: Claude Code (`claude-opus-5-5`) session `e8c62372-8843-5c54-b784-b9563e24a9d8`
 in this project's local transcript history, 2026-09-25, 3444 lines.
 
 Verified via `jq` reading only `.type`, and, for `type=="assistant"`, the
@@ -62,7 +62,7 @@ still, and only, the bare `D3-A` in the `question` field).
 
 ## claude-pass.jsonl
 
-Source: Claude Code (`claude-sonnet-5`) session `9d7ef3ee-b714-45a0-9194-0fe8cc7a4952`,
+Source: Claude Code (`claude-sonnet-5`) session `04192cfb-d9bd-56b1-9825-dd8102dce715`,
 2026-09-25.
 
 Verified via `jq` on the same two field families:
@@ -100,7 +100,7 @@ revert-check evidence below for the confirmed effect.
 
 ## claude-range-fail.jsonl
 
-Source: same session as `claude-fail.jsonl` (876d776d), a distinct occurrence
+Source: same session as `claude-fail.jsonl` (e8c62372), a distinct occurrence
 covering the range-token and option-description surfaces (both untouched by
 `claude-fail.jsonl`, which uses only single IDs and a question's own
 `question` field):
@@ -152,7 +152,7 @@ pre-check copy of the file confirmed the restore was byte-for-byte exact.
 
 All five fixtures use Claude Code's real nested `AskUserQuestion` input,
 `{"questions":[{"header","question","options":[{"label","description"}]}]}`,
-confirmed against session `876d776d`'s own `input` keys (`jq
+confirmed against session `e8c62372`'s own `input` keys (`jq
 '.message.content[]?|select(.type=="tool_use" and .name=="AskUserQuestion")|
 .input|keys'` → `["questions"]`), not the flat `{"question":…}` shape the
 pre-existing `question_after_detail/claude-*.jsonl` fixtures use (those are

@@ -25,9 +25,10 @@ const flowBuildSkillSource = "content/skills/flow-build/SKILL.md"
 // guidanceVariantReport is the run.json-visible record of a --guidance-source
 // installation: which checkout and arm label were used, where its shadow home
 // lives, and the hashes of the two guidance files the host is meant to read
-// from inside that shadow home (design.md "Piloto con el runner", step 4).
-// GuidanceBlockPath is Codex's AGENTS.md or Grok's Claude-compatible
-// CLAUDE.md, whichever that host's own resolver actually reads.
+// from inside that shadow home (design.md "Pilot with the runner"
+// (archived heading "Piloto con el runner"), step 4). GuidanceBlockPath is
+// Codex's AGENTS.md or Grok's Claude-compatible CLAUDE.md, whichever that host's
+// own resolver actually reads.
 type guidanceVariantReport struct {
 	Source, Arm, ShadowHome                string
 	GuidanceBlockPath, GuidanceBlockHash   string
@@ -599,7 +600,8 @@ func (g *guidanceVariant) importCredential() error {
 }
 
 // setupGuidanceVariant is the top-level orchestration for design.md's
-// "Piloto con el runner" steps 1-2: it creates the run's shadow home,
+// "Pilot with the runner" (archived heading "Piloto con el runner")
+// steps 1-2: it creates the run's shadow home,
 // installs source's guidance into it for host, records the read-path hashes,
 // and for Codex prepares its config.toml and auth symlink.
 func setupGuidanceVariant(source, arm, output, host, userHome, model, engramDataDir string) (*guidanceVariant, error) {
@@ -661,10 +663,10 @@ func setupGuidanceVariant(source, arm, output, host, userHome, model, engramData
 // applyEnvironment sets HOME to the shadow home for both hosts (step 3): for
 // Codex, CODEX_HOME follows it there too, since its skills live under
 // $HOME/.agents/skills; for Grok, GROK_HOME stays the real one, a declared
-// limitation (design.md "Riesgos acotados") since Grok then reads its
-// deployed agents rather than this arm's. It only ever filters and replaces
-// HOME/CODEX_HOME/GROK_HOME, so ENGRAM_DATA_DIR (already set by
-// prepareMemoryIsolation) and every other entry survive untouched.
+// limitation (design.md "Bounded risks" (archived heading "Riesgos acotados"))
+// since Grok then reads its deployed agents rather than this arm's. It only ever
+// filters and replaces HOME/CODEX_HOME/GROK_HOME, so ENGRAM_DATA_DIR (already set
+// by prepareMemoryIsolation) and every other entry survive untouched.
 func (g *guidanceVariant) applyEnvironment(env []string) []string {
 	blocked := map[string]bool{"HOME": true, "CODEX_HOME": true, "GROK_HOME": true}
 	if g.host == "opencode" {

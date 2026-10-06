@@ -8,7 +8,7 @@ provenance, or any brief.
 
 ## grok-fail.jsonl (G4)
 
-Source: Grok globex session `01a0daf9-ddec-7421-ad4e-7b7e439dd873`
+Source: Grok globex session `51892774-80e6-5df4-b3af-e65b6180cb43`
 (grok-4.7-build-fast high), `chat_history.jsonl` (557 lines total; the
 same session as `close_question_after_report`'s G3).
 

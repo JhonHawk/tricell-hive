@@ -17,8 +17,9 @@ import (
 
 // bootstrap is the online entry point bootstrap.sh execs after it has
 // already downloaded a raw manager binary and verified its checksum
-// externally (see bootstrap.sh's final line and design.md's "Entrada online
-// y confianza"). This process IS that verified manager; --manager and
+// externally (see bootstrap.sh's final line and design.md's "Online entry and trust"
+// (archived heading "Entrada online y confianza")). This process IS that verified
+// manager; --manager and
 // --manager-sha256 name the same file bootstrap.sh just checked, so this
 // function can re-derive and cross-check that identity without trusting the
 // shell's verification alone.
@@ -46,10 +47,10 @@ func parseBootstrapFlags(args []string, out io.Writer) (bootstrapFlags, error) {
 	f.Options = management.Options{Scope: "user"}
 	fs := flag.NewFlagSet("bootstrap", flag.ContinueOnError)
 	fs.SetOutput(out)
-	fs.StringVar(&f.Origin, "origin", "", "trusted HTTPS origin bootstrap.sh already verified a manager from (required)")
-	fs.StringVar(&f.RequestedVersion, "version", "", "product version bootstrap.sh already resolved and verified (required)")
-	fs.StringVar(&f.ManagerPath, "manager", "", "path to the manager binary bootstrap.sh already checksum-verified (required)")
-	fs.StringVar(&f.ManagerSHA256, "manager-sha256", "", "checksum bootstrap.sh already verified for --manager (required)")
+	fs.StringVar(&f.Origin, "origin", "", "trusted HTTPS origin the caller already verified a manager from (required)")
+	fs.StringVar(&f.RequestedVersion, "version", "", "product version the caller already resolved and verified (required)")
+	fs.StringVar(&f.ManagerPath, "manager", "", "path to the manager binary the caller already checksum-verified (required)")
+	fs.StringVar(&f.ManagerSHA256, "manager-sha256", "", "checksum the caller already verified for --manager (required)")
 	fs.StringVar(&f.Hosts, "hosts", "", "selected CLIs, comma-separated; detected by default")
 	fs.StringVar(&f.Options.Home, "home", "", "synthetic home; ignores user paths and executables")
 	fs.StringVar(&f.Options.StateDir, "state-dir", "", "private state directory")
@@ -181,9 +182,9 @@ func extractBootstrapPackage(packageData []byte, requestedVersion string) (extra
 // same interactive install flow (runInstallFlow) the offline package uses.
 // Only after the operator consents does it retain the verified manager and
 // package and bind them into the plan, via dependencies.BindRetainedInstaller
-// — download and extraction alone never authorize installation (design.md:
-// "Invocar la entrada online solicita descarga temporal ... No autoriza
-// instalación").
+// — download and extraction alone never authorize installation (design.md, archived record quoted in translation from Spanish:
+// "Invoking the online entry requests a temporary download ... It does not
+// authorize installation").
 func bootstrapWithDependencies(args []string, in io.Reader, out io.Writer, interactive bool, dependencies installDependencies) error {
 	flags, err := parseBootstrapFlags(args, out)
 	if err != nil {

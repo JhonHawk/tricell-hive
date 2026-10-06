@@ -3,9 +3,12 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -108,6 +111,56 @@ func TestFrozenInputsIncludeRuntimeAndLocalDependencies(t *testing.T) {
 	for _, required := range []string{"go.mod", "install.sh", "content", "integrations", "tooling/cli", "tooling/version", "tooling/distribution"} {
 		if !set[required] {
 			t.Fatalf("missing frozen input %q", required)
+		}
+	}
+}
+
+func TestPackageArchiveContainsLicenseAndNotices(t *testing.T) {
+	platform := runtime.GOOS + "/" + runtime.GOARCH
+	supported := false
+	for _, known := range platforms {
+		if known == platform {
+			supported = true
+		}
+	}
+	if !supported {
+		t.Skipf("host platform %s is not a package target", platform)
+	}
+	out := t.TempDir()
+	if err := run([]string{"--source", filepath.Clean("../.."), "--out", out, "--platforms", platform}); err != nil {
+		t.Fatal(err)
+	}
+	archives, err := filepath.Glob(filepath.Join(out, "versions", "*", "*", "*.tar.gz"))
+	if err != nil || len(archives) != 1 {
+		t.Fatalf("want exactly one archive, got %v (err %v)", archives, err)
+	}
+	f, err := os.Open(archives[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer gz.Close()
+	top := strings.TrimSuffix(filepath.Base(archives[0]), ".tar.gz")
+	found := map[string]int64{}
+	tr := tar.NewReader(gz)
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("reading archive %s: %v", archives[0], err)
+		}
+		found[h.Name] = h.Size
+	}
+	for _, name := range []string{"LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		size, ok := found[top+"/"+name]
+		if !ok || size == 0 {
+			t.Errorf("archive lacks a non-empty %s/%s", top, name)
 		}
 	}
 }

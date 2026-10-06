@@ -1,6 +1,7 @@
 // hive project edits the `## Hive` section of the AGENTS.md at the root of a
-// Git repository (design.md "Escritura de ## Hive"). The file belongs to the
-// project and Git is its recovery, so there is no plan, no journal and no
+// Git repository (design.md "Writing the ## Hive section"
+// (archived heading "Escritura de `## Hive`")). The file belongs to the project
+// and Git is its recovery, so there is no plan, no journal and no
 // --out: the command shows what will change, asks, and writes.
 package main
 

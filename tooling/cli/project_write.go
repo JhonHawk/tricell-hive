@@ -1,8 +1,9 @@
 // project_write.go edits and writes the `## Hive` section of a repository's
-// AGENTS.md (design.md "Escritura de ## Hive"). The edit is a pure function on
-// bytes; the write re-checks the file and replaces it atomically. Neither
-// touches a file other than AGENTS.md, and neither runs anything but fixed
-// `git` argument vectors through newGitRunner.
+// AGENTS.md (design.md "Writing the ## Hive section"
+// (archived heading "Escritura de `## Hive`")). The edit is a pure function on
+// bytes; the write re-checks the file and replaces it atomically. Neither touches
+// a file other than AGENTS.md, and neither runs anything but fixed `git` argument
+// vectors through newGitRunner.
 package main
 
 import (

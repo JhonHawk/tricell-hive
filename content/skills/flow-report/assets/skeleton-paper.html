@@ -446,22 +446,22 @@
 
   <!-- ===== TITLE BLOCK: compact on screen, a cover page in print ===== -->
   <header class="titleblock">
-    <p class="doctype">Postmortem · Incidente</p>
+    <p class="doctype">Postmortem · Incident</p>
     <h1>Document title stating the subject, not the genre</h1>
     <p class="subtitle">One line of context a reader needs before section one —
       what happened, or what this proposes.</p>
     <dl class="docmeta">
-      <dt>Estado</dt><dd><span class="status review">En revisión</span></dd>
-      <dt>Autoría</dt><dd>Nombre · equipo</dd>
-      <dt>Fecha</dt><dd>2026-01-01</dd>
-      <dt>Versión</dt><dd>1.2</dd>
-      <dt>Revisores</dt><dd>Nombre, nombre</dd>
+      <dt>Status</dt><dd><span class="status review">In review</span></dd>
+      <dt>Author</dt><dd>Name · team</dd>
+      <dt>Date</dt><dd>2026-01-01</dd>
+      <dt>Version</dt><dd>1.2</dd>
+      <dt>Reviewers</dt><dd>Name, name</dd>
     </dl>
   </header>
 
   <!-- ===== ABSTRACT: what a reader who stops here must still take away ===== -->
   <section class="abstract">
-    <h2>Resumen</h2>
+    <h2>Summary</h2>
     <p>Three to five sentences that stand alone. For a postmortem: what broke,
       who it affected, for how long, and what stops it recurring. For a design
       doc: the problem, the proposed shape, and the one tradeoff accepted.</p>
@@ -470,55 +470,55 @@
   <!-- ===== CONTENTS: hierarchical. Internal links only — page numbers are
        impossible without a paged-media engine. ===== -->
   <nav class="contents">
-    <strong>Contenido</strong>
+    <strong>Contents</strong>
     <ol>
-      <li><a href="#impacto">Impacto</a>
+      <li><a href="#impact">Impact</a>
         <ol>
-          <li><a href="#alcance">Alcance y duración</a></li>
-          <li><a href="#deteccion">Detección</a></li>
+          <li><a href="#scope">Scope and duration</a></li>
+          <li><a href="#detection">Detection</a></li>
         </ol>
       </li>
-      <li><a href="#causa">Causa raíz</a></li>
-      <li><a href="#procedimiento">Procedimiento de recuperación</a></li>
-      <li><a href="#acciones">Acciones correctivas</a></li>
+      <li><a href="#cause">Root cause</a></li>
+      <li><a href="#procedure">Recovery procedure</a></li>
+      <li><a href="#actions">Corrective actions</a></li>
     </ol>
   </nav>
 
   <!-- ===== SECTIONS: numbering is automatic (CSS counters). Never type
        "1." into a heading. ===== -->
-  <h2 id="impacto">Impacto</h2>
+  <h2 id="impact">Impact</h2>
   <p>Prose runs at a capped measure so the eye finds the next line without
     effort. This is the one archetype where the shell itself is narrow — the
     text is never capped inside a wider container.</p>
 
-  <h3 id="alcance">Alcance y duración</h3>
-  <p>A cross-reference reads like this: see <a class="xref" href="#causa">§2</a>.
+  <h3 id="scope">Scope and duration</h3>
+  <p>A cross-reference reads like this: see <a class="xref" href="#cause">§2</a>.
     In a document people consult rather than read end to end, these are what let
     someone who arrived at one section find the context they skipped.<a class="fnref" href="#fn1" id="fnref1">1</a></p>
 
   <div class="tablewrap">
-    <p class="tcaption">Ventana del incidente y usuarios afectados.</p>
+    <p class="tcaption">Incident window and affected users.</p>
     <table>
       <thead>
-        <tr><th>Momento</th><th>Evento</th><th class="num">Usuarios</th></tr>
+        <tr><th>Time</th><th>Event</th><th class="num">Users</th></tr>
       </thead>
       <tbody>
-        <tr><td>14:02</td><td>Primer error en la cola de escritura</td><td class="num">0</td></tr>
-        <tr><td>14:11</td><td>Saturación del pool de conexiones</td><td class="num">1,240</td></tr>
-        <tr><td>14:38</td><td>Mitigación aplicada</td><td class="num">1,240</td></tr>
-        <tr><td>14:52</td><td>Servicio restablecido</td><td class="num">0</td></tr>
+        <tr><td>14:02</td><td>First error in the write queue</td><td class="num">0</td></tr>
+        <tr><td>14:11</td><td>Connection pool saturation</td><td class="num">1,240</td></tr>
+        <tr><td>14:38</td><td>Mitigation applied</td><td class="num">1,240</td></tr>
+        <tr><td>14:52</td><td>Service restored</td><td class="num">0</td></tr>
       </tbody>
     </table>
   </div>
 
-  <h3 id="deteccion">Detección</h3>
+  <h3 id="detection">Detection</h3>
   <p>A figure that needs room breaks out of the measure while the prose around
     it keeps it — that is what the grid is for.</p>
 
   <figure class="bleed">
     <svg viewBox="0 0 1120 112" role="img" aria-labelledby="tl-title tl-desc">
-      <title id="tl-title">Cronología del incidente</title>
-      <desc id="tl-desc">La detección automática ocurre nueve minutos después del primer error y la mitigación veintisiete minutos más tarde.</desc>
+      <title id="tl-title">Incident timeline</title>
+      <desc id="tl-desc">Automatic detection happens nine minutes after the first error and mitigation twenty-seven minutes later.</desc>
       <rect class="d-bg" width="100%" height="100%"/>
       <line class="d-rule" x1="60" y1="56" x2="1060" y2="56"/>
       <circle class="d-node" cx="120" cy="56" r="7"/>
@@ -526,112 +526,112 @@
       <circle class="d-node" cx="700" cy="56" r="7"/>
       <circle class="d-node" cx="1000" cy="56" r="7"/>
       <text class="d-label" x="120" y="32" text-anchor="middle">14:02</text>
-      <text class="d-sub" x="120" y="86" text-anchor="middle">primer error</text>
+      <text class="d-sub" x="120" y="86" text-anchor="middle">first error</text>
       <text class="d-label" x="380" y="32" text-anchor="middle">14:11</text>
-      <text class="d-sub" x="380" y="86" text-anchor="middle">alerta disparada</text>
+      <text class="d-sub" x="380" y="86" text-anchor="middle">alert fired</text>
       <text class="d-label" x="700" y="32" text-anchor="middle">14:38</text>
-      <text class="d-sub" x="700" y="86" text-anchor="middle">mitigación</text>
+      <text class="d-sub" x="700" y="86" text-anchor="middle">mitigation</text>
       <text class="d-label" x="1000" y="32" text-anchor="middle">14:52</text>
-      <text class="d-sub" x="1000" y="86" text-anchor="middle">restablecido</text>
+      <text class="d-sub" x="1000" y="86" text-anchor="middle">restored</text>
     </svg>
-    <figcaption>Nueve minutos hasta la alerta; el resto fue diagnóstico.</figcaption>
+    <figcaption>Nine minutes to the alert; the rest was diagnosis.</figcaption>
   </figure>
 
-  <h2 id="causa">Causa raíz</h2>
+  <h2 id="cause">Root cause</h2>
   <p>Body prose, with a <code>code reference</code> and a quotation when the
     exact wording of a source matters:</p>
   <blockquote>
     The pool was sized for the median request, not for the retry storm that a
     single slow dependency produces.
-    <cite>Nota del diagnóstico, 14:33</cite>
+    <cite>Diagnosis note, 14:33</cite>
   </blockquote>
 
   <div class="callout">
-    <span class="lbl">Nota</span>
-    <p>Un callout marca lo que el lector no debe pasar por alto — sin robarle
-      protagonismo al texto.</p>
+    <span class="lbl">Note</span>
+    <p>A callout marks what the reader must not overlook — without stealing
+      the spotlight from the text.</p>
   </div>
 
   <!-- ===== INSTRUCTION LAYER: prerequisites, steps, callouts, keys.
        A procedure or guide needs these; a postmortem usually does not. ===== -->
-  <h2 id="procedimiento">Procedimiento de recuperación</h2>
+  <h2 id="procedure">Recovery procedure</h2>
 
   <div class="prereq">
-    <strong>Antes de empezar</strong>
+    <strong>Before you start</strong>
     <ul>
-      <li>Acceso de escritura al repositorio de infraestructura.</li>
-      <li>Credenciales del entorno afectado, vigentes.</li>
-      <li>Confirmación del responsable de guardia.</li>
+      <li>Write access to the infrastructure repository.</li>
+      <li>Valid credentials for the affected environment.</li>
+      <li>Confirmation from the on-call owner.</li>
     </ul>
   </div>
 
   <ol class="steps">
     <li>
-      <strong>Confirma que la saturación persiste.</strong>
-      Abre el panel de conexiones y verifica que el uso siga por encima del 90 %.
+      <strong>Confirm that the saturation persists.</strong>
+      Open the connections panel and check that usage is still above 90%.
       <pre class="code">psql -c "select count(*) from pg_stat_activity;"</pre>
     </li>
     <li>
-      <strong>Aplica el límite temporal.</strong>
-      Pulsa <kbd>Cmd</kbd> + <kbd>K</kbd> en el panel y ejecuta la acción guardada.
+      <strong>Apply the temporary limit.</strong>
+      Press <kbd>Cmd</kbd> + <kbd>K</kbd> in the panel and run the saved action.
     </li>
     <li>
-      <strong>Verifica la recuperación.</strong>
-      La tasa de error debe caer por debajo del 1 % en menos de dos minutos.
+      <strong>Verify the recovery.</strong>
+      The error rate must drop below 1% in under two minutes.
     </li>
   </ol>
 
   <div class="callout warn">
-    <span class="lbl">Aviso</span>
-    <p>El límite temporal expira a las seis horas. Si no se sustituye por la
-      corrección definitiva, el incidente se repite.</p>
+    <span class="lbl">Warning</span>
+    <p>The temporary limit expires after six hours. If it is not replaced by the
+      permanent fix, the incident recurs.</p>
   </div>
 
   <div class="callout danger">
-    <span class="lbl">Precaución</span>
-    <p>No reinicies el servicio primario mientras la cola siga drenando: se
-      pierden los mensajes en vuelo, sin recuperación posible.</p>
+    <span class="lbl">Caution</span>
+    <p>Do not restart the primary service while the queue is still draining: in-flight
+      messages are lost, with no possible recovery.</p>
   </div>
 
-  <h2 id="acciones">Acciones correctivas</h2>
+  <h2 id="actions">Corrective actions</h2>
   <div class="tablewrap">
-    <p class="tcaption">Cada acción con dueño y fecha — sin eso, no es una acción.</p>
+    <p class="tcaption">Every action with an owner and a date — without those, it is not an action.</p>
     <table class="actions">
       <thead>
-        <tr><th>Acción</th><th>Dueño</th><th>Fecha</th></tr>
+        <tr><th>Action</th><th>Owner</th><th>Date</th></tr>
       </thead>
       <tbody>
-        <tr><td>Dimensionar el pool contra el pico, no la mediana</td>
-            <td class="owner">Nombre</td><td class="due">2026-02-10</td></tr>
-        <tr><td>Alerta sobre saturación de conexiones al 70 %</td>
-            <td class="owner">Nombre</td><td class="due">2026-02-03</td></tr>
+        <tr><td>Size the pool against the peak, not the median</td>
+            <td class="owner">Name</td><td class="due">2026-02-10</td></tr>
+        <tr><td>Alert on connection saturation at 70%</td>
+            <td class="owner">Name</td><td class="due">2026-02-03</td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- ===== REFERENCES: internal artefacts, not bibliography ===== -->
   <section class="refs">
-    <h2>Referencias</h2>
+    <h2>References</h2>
     <ol>
-      <li><span class="kind">Ticket</span> OPS-1204 — saturación del pool en producción</li>
-      <li><span class="kind">PR</span> platform#889 — límite temporal de conexiones</li>
-      <li><span class="kind">Runbook</span> Recuperación de la cola de escritura</li>
+      <li><span class="kind">Ticket</span> OPS-1204 — pool saturation in production</li>
+      <li><span class="kind">PR</span> platform#889 — temporary connection limit</li>
+      <li><span class="kind">Runbook</span> Write queue recovery</li>
     </ol>
   </section>
 
   <!-- ===== FOOTNOTES: numbered, each with a return anchor ===== -->
   <section class="footnotes">
-    <h2>Notas</h2>
+    <h2>Notes</h2>
     <ol>
-      <li id="fn1">Las notas al pie se eligieron sobre las notas al margen porque
-        se comportan igual en pantalla, en móvil y en papel.<a class="fnback" href="#fnref1">&#8617;</a></li>
+      <li id="fn1">Footnotes were chosen over margin notes because
+        they behave the same on screen, on mobile, and on paper.<a class="fnback" href="#fnref1">&#8617;</a></li>
     </ol>
   </section>
 
   <details class="prov" open>
-    <summary>Procedencia</summary>
-    <p><strong>Generado:</strong> 2026-01-01 · <strong>Fuente:</strong> "prompt truncado" ·
-      <strong>Archivos:</strong> <code>ruta/al/origen</code></p>
+    <summary>Provenance</summary>
+    <p><strong>Generated:</strong> 2026-01-01 · <strong>Source:</strong> "truncated prompt" ·
+      <strong>Files:</strong> <code>path/to/source</code></p>
   </details>
 
 </article>

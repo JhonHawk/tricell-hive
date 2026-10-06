@@ -3,7 +3,7 @@
 ## grok-fail.jsonl / grok-pass.jsonl
 
 Source (named, never opened): ark `sdd-verify` Grok session
-`01a0d75e-1c53-7bf3-aaef-8f4d11a2c3fa`. Per this change's brief, that
+`0efea523-203e-5dd0-8394-da69faa29eba`. Per this change's brief, that
 transcript contains a real secret value and must not be read at all; it was
 not opened at any point while deriving these fixtures. Both fixtures are
 built solely from the shape recorded in `design.md` → "Contexto verificado":

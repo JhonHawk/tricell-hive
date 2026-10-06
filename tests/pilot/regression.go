@@ -34,7 +34,8 @@ func regressionCriteria(r result) []criterionAssessment {
 }
 
 // regressionEvidence extends evidenceLine with the tool name, per design.md's
-// "línea, tipo y ruta, más el nombre de la herramienta". It never includes
+// "line, type and path, plus the tool name" (archived record, quoted in
+// translation from Spanish). It never includes
 // Command or Text, which may carry a literal secret value or pattern.
 func regressionEvidence(e traceEvent) string {
 	return evidenceLine(e) + " " + e.Tool
@@ -1073,7 +1074,8 @@ func rangeMembers(o idOccurrence) []string {
 
 // glossedAt reports whether field, right after byte offset end (optional
 // spaces, then one of glossMarks), glosses whatever ends at end. It is the
-// only rule-1 check (design.md's "espacio opcional y (, —, – o :"); rule 2
+// only rule-1 check (design.md's "optional space and (, —, –, or :", archived record quoted in
+// translation from Spanish); rule 2
 // (an option label with a non-empty description) and rule 3 (the occurrence
 // is itself, or shares a definition with, the line/field that defines it)
 // are applied by the caller, which already knows the field's role.
@@ -1142,9 +1144,10 @@ func maskCodeSpans(s string) string {
 // definition-position ID would need to start: after leading spaces/tabs and,
 // if present, one recognized marker (a "- "/"* " list bullet, an "N. "
 // ordered-list marker, or a leading "|" table-cell delimiter), per
-// design.md's "al inicio de una línea (tras espacios, un marcador de lista
-// -, *, N., o | de celda)". A plain line with no marker still counts, since
-// "tras espacios" alone is sufficient — a declared source of false positives
+// design.md's "at the start of a line (after spaces, a list marker
+// -, *, N., or table-cell |)" (archived record, quoted in translation from
+// Spanish). A plain line with no marker still counts, since
+// "after spaces" alone is sufficient — a declared source of false positives
 // (design.md: a line-initial token that merely looks like an ID, such as a
 // "H2" heading fragment, is indistinguishable from a real finding ID here).
 func lineDefinitionStart(line string) int {
@@ -1219,7 +1222,8 @@ func decodeAskQuestion(input json.RawMessage) []askQuestionEntry {
 // message is the key events.go's Message would use, except every question
 // event is forced onto its own synthetic key (idQuestionMessageKey) even
 // when its wire-format message.id happens to match a preceding text block's
-// — design.md: "Un evento question es siempre su propio mensaje" — so a
+// — design.md (archived record, quoted in translation from Spanish): "A question
+// event is always its own message" — so a
 // citation in a question is never suppressed as "the same message already
 // defines it" merely because a host emitted the definition and the question
 // as one native turn.
@@ -1236,7 +1240,8 @@ type idScanUnit struct {
 	// isAssistant, so it never defines.
 	isQuestionText bool
 	// labelHasDescription is only meaningful when isLabel: design.md's rule 2
-	// ("o es una etiqueta de opción cuya descripción no está vacía") glosses
+	// ("or is an option label whose description is not empty", archived record
+	// quoted in translation from Spanish) glosses
 	// any OTHER (non-start) ID cited within a label whose sibling option has
 	// a non-empty description — this is a citation-side leniency, not a
 	// definition, so it is kept separate from isLabel's start-of-label check.
@@ -1583,7 +1588,7 @@ func maskMarkdownLinkURLs(line string) string {
 // bold span ("**label**" or "__label__"). ticket_ids_not_packed_in_prose
 // blanks a span's entire content, markers included, before scanning: a
 // group label such as "**S2: API Keys (ABC-220, ABC-221, ABC-222)** —
-// pequeña/mediana" or a bare "**ABC-220 · ABC-221 · ABC-222**" line names a
+// small/medium" or a bare "**ABC-220 · ABC-221 · ABC-222**" line names a
 // set of tickets meant to be worked together, not a prose citation, and the
 // guidance this criterion enforces explicitly allows that shape (backlog-
 // report-scope, real-session false positive). Each pattern's character class
@@ -1738,7 +1743,7 @@ var ticketIDPattern = regexp.MustCompile(`\b[A-Z][A-Z0-9]{1,9}-\d+\b`)
 const ticketProsePackThreshold = 3
 
 // ticketIDsNotPackedInProse is ticket_ids_not_packed_in_prose
-// (backlog-report-scope, ark Grok session 01a0dd4c-33d8-7920-85ef-9df30c78f78d
+// (backlog-report-scope, ark Grok session db49ff2a-34b1-5037-8922-5d0cfe3b9c6d
 // line 61): a backlog report must put each ticket, or each group of tickets
 // that belongs together, on its own list line rather than chaining several
 // into one prose paragraph. It scans every assistant text message

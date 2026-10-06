@@ -1,129 +1,129 @@
-# Mapa general de flujos de trabajo de Hive
+# Hive workflow map
 
-Fecha de revisión: 2026-09-20. Estado: inventario documental del Hive anterior y propuestas para el rebuild; no es una implementación ni reactiva sus instrucciones.
+Review date: 2026-09-20. Status: documentary inventory of the previous Hive and proposals for the rebuild; it is not an implementation and does not reactivate its instructions.
 
-## Propósito y alcance
+## Purpose and scope
 
-Este documento responde qué trabajos cubría Hive, cómo se recorrían y qué podemos aprender de los repositorios de referencia. Un flujo se define por su objetivo, entradas, actividades y evidencia de cierre. Una skill, un agente o un comando puede participar en varios flujos; no equivale por sí solo a un flujo de trabajo.
+This document answers which jobs Hive covered, how they were carried out, and what we can learn from the reference repositories. A workflow is defined by its objective, inputs, activities, and closing evidence. A skill, an agent, or a command can take part in several workflows; none of them is a workflow by itself.
 
-La fuente principal es el clon local de `master` en `/path/to/reference-volume/dev-resources/tricell-hive-master`, commit `16e7d3357a3c41530d5e31460c3024872566f3c7`. El catálogo describe lo que sus fuentes prescriben, no garantiza que se ejecutara correctamente ni que siga instalado. Las referencias externas se revisaron en sus checkouts locales, sin actualizar remotos ni probar integraciones.
+The main source is the local clone of `master` at `/path/to/reference-volume/dev-resources/tricell-hive-master`, commit `16e7d3357a3c41530d5e31460c3024872566f3c7`. The catalog describes what its sources prescribe; it does not guarantee that they ran correctly or that they are still installed. The external references were reviewed in their local checkouts, without updating remotes or testing integrations.
 
-Las reglas del rebuild y la autorización del usuario siguen vigentes. Los requisitos de delegación, hooks, publicación y estructura del Hive anterior se estudian como material de referencia, no como instrucciones para esta sesión.
+The rebuild rules and the user's authorization remain in force. The delegation, hook, publication, and structure requirements of the previous Hive are studied as reference material, not as instructions for this session.
 
-## 1. Las tres rutas de entrada
+## 1. The three entry routes
 
-| Ruta documentada | Cuándo entra | Recorrido | Salida y límite |
+| Documented route | When it applies | Path | Output and limit |
 |---|---|---|---|
-| Investigación | Resolver una pregunta mediante código, documentos o fuentes externas | Delimitar pregunta → inspeccionar evidencia → contrastar → responder | Respuesta sustentada; archivo si se pide conservarlo. No implica implementación ni plan formal. |
-| Trabajo directo | Obtener un resultado autorizado sin seleccionar el contrato formal de desarrollo | Entender entregable y efectos → explorar lo necesario → ejecutar → comprobar → cerrar | Resultado proporcional al trabajo. Puede tener un registro reanudable; no exige un plan formal por ser complejo. |
-| Desarrollo formal | Petición explícita de `/flow-plan` y posteriormente `/flow-build`, o su equivalente | Explorar → definir → diseñar/planear → implementar → verificar/revisar → entregar/cerrar | Plan portable, permisos y evidencia de ejecución diferenciados. Planear, implementar y publicar son autorizaciones distintas. |
+| Research | Answering a question through code, documents, or external sources | Delimit the question → inspect evidence → cross-check → answer | A supported answer; a saved file only if requested. It implies neither implementation nor a formal plan. |
+| Direct work | Obtaining an authorized result without selecting the formal development contract | Understand the deliverable and effects → explore what is needed → execute → check → close | A result proportional to the work. It may have a resumable record; it does not require a formal plan just because it is complex. |
+| Formal development | Explicit request for `/flow-plan` and then `/flow-build`, or their equivalent | Explore → define → design/plan → implement → verify/review → deliver/close | A portable plan, with permissions and execution evidence kept distinct. Planning, implementing, and publishing are separate authorizations. |
 
-Fuentes: [flow-research][h-research], [task-routing][h-routing], [common intake y ruta directa][h-agents], [flow-plan][h-plan], [flow-build][h-build].
+Sources: [flow-research][h-research], [task-routing][h-routing], [common intake and direct route][h-agents], [flow-plan][h-plan], [flow-build][h-build].
 
-El trabajo directo también cubre análisis de negocio/BI, propuestas de arquitectura y operaciones de infraestructura. El tipo de entregable determina la evidencia necesaria; no convierte esos trabajos en desarrollo formal. Una consulta breve o un cambio mecánico no necesita toda esta estructura.
+Direct work also covers business/BI analysis, architecture proposals, and infrastructure operations. The type of deliverable determines the evidence needed; it does not turn these jobs into formal development. A brief query or a mechanical change does not need all of this structure.
 
-## 2. Catálogo de trabajos que cubría Hive
+## 2. Catalog of jobs Hive covered
 
-La agrupación siguiente es una síntesis del inventario, no una nueva lista de comandos obligatorios.
+The grouping below is a synthesis of the inventory, not a new list of mandatory commands.
 
-| Trabajo | Entrada habitual | Secuencia esencial | Entregable y criterio de cierre | Fuente de master |
+| Job | Usual input | Essential sequence | Deliverable and closing criterion | Source in master |
 |---|---|---|---|---|
-| Investigar y comparar | Pregunta, afirmación o decisión pendiente | Precisar la pregunta, buscar evidencia, contrastar contradicciones y límites | Respuesta con fuentes; incertidumbre explícita cuando falta evidencia | `flow-research`; `adversarial-research` como variante explícita |
-| Consultar estado y pendientes | Proyecto o repositorio identificado | Consultar Git, tracker declarado, PR y despliegues aplicables; reconciliar observaciones | Estado fechado y pendientes comprobados; consultar no decide qué ejecutar | `status-fetch` |
-| Analizar datos o proponer arquitectura | Datos, necesidad de negocio o restricciones | Definir métricas/supuestos o alternativas, analizar y justificar | Cálculos reproducibles o propuesta con compromisos y decisiones abiertas | `agent-routing.md`, Common intake |
-| Iniciar un proyecto | Idea, conversación, brief o código inicial | Refinar requisitos, resolver preguntas, establecer workspace y base técnica según lo que falte | Requisitos, convenciones, estructura y fundamento técnico; no equivale a desplegar | `bootstrap-playbook.md` |
-| Especificar producto y revisar negocio | Requisitos o cambio de alcance | Crear/revisar épica y mapa de producto, revisar reglas y escenarios, derivar tareas después del gate de negocio | Especificación y criterios de aceptación; cambios respecto a lo ya construido identificados | `spec-writing-playbook.md` |
-| Planear desarrollo | Cambio acotado que requiere contrato formal | Explorar archivos y contratos, resolver decisiones/prerrequisitos, escribir tareas y verificación, registrar aprobación | Plan con contrato, autorización y ejecución separados | `flow-plan` y `plan-format.md` |
-| Implementar y reanudar | Petición directa o plan autorizado | Reconciliar estado real, ejecutar trabajo pendiente, conservar evidencia y resolver desvíos | Cambio acotado y comprobado; al reanudar no repetir trabajo ya aplicado | Ruta directa o `flow-build`, reconcile/execute |
-| Diagnosticar y corregir | Fallo reproducible o comportamiento inesperado | Obtener evidencia, localizar causa, aplicar corrección autorizada, comprobar regresión | Causa sustentada y corrección verificada, o límite concreto del diagnóstico | `debugging.md`, `testing.md`, ruta directa/build |
-| Revisar y verificar | Diff, cambio construido, spec o criterios | Seleccionar controles pertinentes, revisar, ejecutar comprobaciones y registrar resultados | Hallazgos o evidencia observable; una revisión aprobada no concede publicación | `flow-build/references/verify-gate.md`; matriz de `agent-routing.md` |
-| Auditar deuda y riesgos | Código o arquitectura existentes | Revisar por lentes, validar hallazgos, clasificar severidad y priorizar | Hallazgos con evidencia y acciones propuestas; auditoría no autoriza arreglar todo | `audit-playbook.md` |
-| Entregar y promover | Cambio verificado y destino autorizado | Reconciliar permisos/estado Git, cumplir controles, publicar o promover, comprobar entorno | Estado terminal observado, salud/smoke y validación funcional aplicable; notas de entrega | `flow-build` CLOSE, `git-mechanics.md`, `promotion-playbook.md` |
-| Migrar y mantener el workspace | Proyecto anterior al modelo o documentación desordenada | Inventariar, clasificar, proponer movimientos/reparaciones, aplicar lo autorizado | Estructura reconciliada sin perder decisiones, referencias ni evidencias necesarias | `migration-playbook.md`, `workspace-hygiene-playbook.md`, `workspace-archive` |
-| Consolidar repositorios | Migración explícita a monorepo | Inspeccionar dependencias y contratos, planear el corte, ejecutar y verificar consumidores | Corte acotado con evidencia de compatibilidad; no se confunde con mover documentos | `monorepo-cutover` |
-| Comunicar y documentar | Resultados, conocimiento o entregable documental | Organizar contenido, elegir formato, generar y revisar legibilidad/enlaces | Documento, reporte o sitio verificable; crearlo no autoriza distribuirlo | `flow-report`, `starlight-docs-site` |
+| Investigate and compare | A question, claim, or pending decision | Pin down the question, look for evidence, cross-check contradictions and limits | An answer with sources; explicit uncertainty where evidence is missing | `flow-research`; `adversarial-research` as an explicit variant |
+| Check status and pending items | An identified project or repository | Query Git, the declared tracker, PRs, and applicable deployments; reconcile observations | A dated status and verified pending items; querying does not decide what to run | `status-fetch` |
+| Analyze data or propose architecture | Data, a business need, or constraints | Define metrics/assumptions or alternatives, analyze, and justify | Reproducible calculations or a proposal with trade-offs and open decisions | `agent-routing.md`, Common intake |
+| Start a project | An idea, conversation, brief, or initial code | Refine requirements, resolve questions, set up the workspace and technical base as needed | Requirements, conventions, structure, and technical foundation; it does not mean deploying | `bootstrap-playbook.md` |
+| Specify product and review business | Requirements or a scope change | Create/review the epic and product map, review rules and scenarios, derive tasks after the business gate | A specification and acceptance criteria; changes relative to what is already built are identified | `spec-writing-playbook.md` |
+| Plan development | A bounded change that needs a formal contract | Explore files and contracts, resolve decisions/prerequisites, write tasks and verification, record approval | A plan with contract, authorization, and execution kept separate | `flow-plan` and `plan-format.md` |
+| Implement and resume | A direct request or an authorized plan | Reconcile the real state, execute pending work, keep evidence, and resolve deviations | A bounded, verified change; when resuming, do not repeat work already applied | Direct route or `flow-build`, reconcile/execute |
+| Diagnose and fix | A reproducible failure or unexpected behavior | Obtain evidence, locate the cause, apply the authorized fix, check for regressions | A supported cause and a verified fix, or the concrete limit of the diagnosis | `debugging.md`, `testing.md`, direct route/build |
+| Review and verify | A diff, a built change, a spec, or criteria | Select the relevant controls, review, run checks, and record results | Findings or observable evidence; an approved review does not grant publication | `flow-build/references/verify-gate.md`; matrix in `agent-routing.md` |
+| Audit debt and risks | Existing code or architecture | Review by lenses, validate findings, classify severity, and prioritize | Findings with evidence and proposed actions; an audit does not authorize fixing everything | `audit-playbook.md` |
+| Deliver and promote | A verified change and an authorized destination | Reconcile permissions/Git state, meet the controls, publish or promote, check the environment | The observed terminal state, health/smoke checks, and applicable functional validation; delivery notes | `flow-build` CLOSE, `git-mechanics.md`, `promotion-playbook.md` |
+| Migrate and maintain the workspace | A project predating the model or messy documentation | Inventory, classify, propose moves/repairs, apply what is authorized | A reconciled structure without losing decisions, references, or needed evidence | `migration-playbook.md`, `workspace-hygiene-playbook.md`, `workspace-archive` |
+| Consolidate repositories | An explicit migration to a monorepo | Inspect dependencies and contracts, plan the cutover, execute and verify consumers | A bounded cutover with compatibility evidence; not confused with moving documents | `monorepo-cutover` |
+| Communicate and document | Results, knowledge, or a documentation deliverable | Organize content, choose a format, generate and review readability/links | A verifiable document, report, or site; creating it does not authorize distributing it | `flow-report`, `starlight-docs-site` |
 
-Los playbooks se encuentran en `global/skills/flow-core/references/`; las reglas citadas por nombre, en `global/rules-situational/`. El [árbol de skills][h-skills] permite localizar las demás entradas.
+The playbooks are in `global/skills/flow-core/references/`; the rules cited by name are in `global/rules-situational/`. The [skills tree][h-skills] helps locate the other entries.
 
-## 3. Cómo se conectan
+## 3. How they connect
 
-No hay una única cadena obligatoria para toda petición. Estos recorridos ilustran las conexiones documentadas:
+There is no single mandatory chain for every request. These paths illustrate the documented connections:
 
-- **Proyecto nuevo:** necesidad → requisitos → fundamento del proyecto → especificación y revisión de negocio → desarrollo → verificación → entrega autorizada.
-- **Cambio sobre producto existente:** petición → exploración → ruta directa o plan formal explícito → implementación → verificación → entrega dentro del alcance autorizado.
-- **Pregunta o decisión:** pregunta → investigación → respuesta/propuesta. Se detiene ahí; implementar requiere otra instrucción que lo cubra.
-- **Auditoría:** inventario → hallazgos validados → priorización → selección de correcciones. Solo las correcciones elegidas entran al flujo de desarrollo.
-- **Incidente o bug:** evidencia → diagnóstico → corrección autorizada → comprobación; promoción al entorno si forma parte del alcance concedido.
-- **Retomar trabajo:** leer registro/handoff → contrastar con estado actual → identificar pendiente real → continuar por la ruta correspondiente.
+- **New project:** need → requirements → project foundation → specification and business review → development → verification → authorized delivery.
+- **Change to an existing product:** request → exploration → direct route or explicit formal plan → implementation → verification → delivery within the authorized scope.
+- **Question or decision:** question → research → answer/proposal. It stops there; implementing requires another instruction that covers it.
+- **Audit:** inventory → validated findings → prioritization → selection of fixes. Only the chosen fixes enter the development workflow.
+- **Incident or bug:** evidence → diagnosis → authorized fix → check; promotion to the environment if it is part of the granted scope.
+- **Resuming work:** read the record/handoff → compare with the current state → identify the real pending work → continue along the corresponding route.
 
-La revisión de negocio valida qué debe hacer el producto. La revisión técnica y las pruebas validan el cambio construido. La comprobación posterior al despliegue valida el entorno entregado. Son evidencias diferentes; ninguna sustituye automáticamente a las otras.
+Business review validates what the product must do. Technical review and tests validate the built change. The post-deployment check validates the delivered environment. These are different evidence; none automatically substitutes for the others.
 
-## 4. Capacidades transversales, no flujos nuevos
+## 4. Cross-cutting capabilities, not new workflows
 
-| Capacidad | Función en los recorridos |
+| Capability | Role in the paths |
 |---|---|
-| Intake y control de alcance | Identificar entregable, exclusiones, efectos autorizados, evidencia de cierre y punto de parada. |
-| Memoria y continuidad | Recuperar decisiones y contexto; contrastarlos con fuentes actuales. `memory-policy`, `memory-sync` y `engram-init-workspace` cubrían partes de este ámbito. |
-| Organización de artefactos | Separar código, documentos durables, sesiones, evidencia y temporales. Las rutas históricas de master no sustituyen las convenciones actuales del rebuild. |
-| Delegación y revisión independiente | Distribuir trabajo cuando aporte valor y el host lo permita. No es una nueva fase de producto ni justifica instalar otro runtime. |
-| Reglas técnicas | Orientar pruebas, debugging, seguridad y stack según el cambio. `language-rules` era una superficie de acceso, no un flujo completo. |
-| Reportes y handoff | Comunicar resultados y dejar información suficiente para continuar. `flow-core` era una biblioteca compartida, no un workflow ejecutable. |
-| Autonomía acotada | `unattended-delegation` trataba misiones delegadas con límites; no convertía toda tarea en trabajo desatendido. |
+| Intake and scope control | Identify the deliverable, exclusions, authorized effects, closing evidence, and stopping point. |
+| Memory and continuity | Recover decisions and context; cross-check them against current sources. `memory-policy`, `memory-sync`, and `engram-init-workspace` covered parts of this area. |
+| Artifact organization | Separate code, durable documents, sessions, evidence, and temporary files. The historical paths in master do not replace the rebuild's current conventions. |
+| Delegation and independent review | Distribute work when it adds value and the host allows it. It is not a new product phase and does not justify installing another runtime. |
+| Technical rules | Guide tests, debugging, security, and stack according to the change. `language-rules` was an access surface, not a complete workflow. |
+| Reports and handoff | Communicate results and leave enough information to continue. `flow-core` was a shared library, not an executable workflow. |
+| Bounded autonomy | `unattended-delegation` handled delegated missions with limits; it did not turn every task into unattended work. |
 
-## 5. Qué aportan los repositorios de referencia
+## 5. What the reference repositories contribute
 
-Estas comparaciones se refieren a las versiones locales inspeccionadas. Sus afirmaciones de ahorro, calidad o compatibilidad no fueron reproducidas en esta revisión.
+These comparisons refer to the local versions inspected. Their claims about savings, quality, or compatibility were not reproduced in this review.
 
-| Referencia | Patrón documentado | Qué vale la pena estudiar para Hive | Diferencia o límite |
+| Reference | Documented pattern | What is worth studying for Hive | Difference or limit |
 |---|---|---|---|
-| **optional reference project** | ODD para el trabajo cotidiano; SDD por elección explícita, con proposal/spec/design/tasks y fases adicionales | Mantener pequeño el trabajo pequeño; registro único para trabajo sustancial; separar investigación de implementación y preservar continuidad | Su SDD local permite archivado sin verification como gate: `/sdd-verify` es diagnóstico opcional y puede archivarse trabajo parcial explicitando pendientes. No equivale al gate `built → verified` de Hive formal. |
-| **optional reference project** | Brainstorming → entorno aislado → plan → ejecución → pruebas/revisión → cierre de rama | Especificaciones ejecutables, debugging sistemático, revisión contra intención y evidencia antes del cierre | Su README presenta el recorrido como obligatorio y prescribe prácticas fuertes de TDD. No trasladar esa obligatoriedad ni sus acciones Git al rebuild sin decisión propia. |
-| **optional reference project** | Reconocer → auditar → validar hallazgos → priorizar → escribir planes; ejecución delegada y reconciliación como opciones | Un plan como entregable completo, con archivos, contexto, comandos y criterios; volver a comprobar backlog antes de ejecutarlo | Es una referencia de auditoría/asesoría, no cubre por sí sola todo el ciclo de Hive. La ventaja de usar ejecutores baratos es una propuesta del proyecto, no un resultado medido aquí. |
-| **optional reference project** | Entender el problema y buscar la solución suficiente: reutilización, biblioteca estándar, plataforma y dependencias existentes | Reducir código y complejidad innecesarios sin quitar validación, seguridad o accesibilidad | Es principalmente criterio de implementación/revisión, no sustituto de planificación, autorizaciones o verificación. Sus benchmarks no prueban mejora para Hive. |
+| **optional reference project** | ODD for everyday work; SDD by explicit choice, with proposal/spec/design/tasks and additional phases | Keep small work small; a single record for substantial work; separate research from implementation and preserve continuity | Its local SDD allows archiving without verification as a gate: `/sdd-verify` is an optional diagnostic and partial work can be archived with the pending items made explicit. It is not equivalent to Hive's formal `built → verified` gate. |
+| **optional reference project** | Brainstorming → isolated environment → plan → execution → tests/review → branch closure | Executable specifications, systematic debugging, review against intent, and evidence before closing | Its README presents the path as mandatory and prescribes strong TDD practices. Do not carry over that obligation or its Git actions into the rebuild without a decision of our own. |
+| **optional reference project** | Recognize → audit → validate findings → prioritize → write plans; delegated execution and reconciliation as options | A plan as a complete deliverable, with files, context, commands, and criteria; re-check the backlog before executing it | It is an audit/advisory reference and does not by itself cover Hive's whole cycle. The advantage of using cheap executors is a proposal of the project, not a result measured here. |
+| **optional reference project** | Understand the problem and look for the sufficient solution: reuse, standard library, platform, and existing dependencies | Reduce unnecessary code and complexity without removing validation, security, or accessibility | It is mainly an implementation/review criterion, not a substitute for planning, authorizations, or verification. Its benchmarks do not prove an improvement for Hive. |
 
-Fuentes: optional external research source, optional external research source, optional external research source, optional external research source, optional external research source.
+Sources: optional external research source, optional external research source, optional external research source, optional external research source, optional external research source.
 
-La investigación del [corpus de harness engineering](2026-09-20-portable-harness-research.md), incluido el ZIP de Uber, aporta criterios de diseño y medición. No define por sí sola nuestros flujos ni demuestra que adoptar estas referencias mejoraría los resultados.
+The research on the [harness engineering corpus](2026-09-20-portable-harness-research.md), including the Uber ZIP, provides design and measurement criteria. By itself it neither defines our workflows nor shows that adopting these references would improve results.
 
-## 6. Propuesta para organizar el rebuild
+## 6. Proposal for organizing the rebuild
 
-**Propuesta, pendiente de decisión:** conservar este mapa de necesidades y elegir gradualmente qué procedimientos mínimos implementamos. No restaurar el catálogo antiguo entero ni combinar todos los frameworks.
+**Proposal, pending a decision:** keep this map of needs and gradually choose which minimal procedures we implement. Do not restore the whole old catalog or combine all the frameworks.
 
-Un primer corte útil sería:
+A useful first cut would be:
 
-1. **Investigar y decidir:** respuesta o propuesta con evidencia y límite claro de alcance.
-2. **Cambiar y verificar:** una ruta directa proporcional; el plan formal queda disponible cuando se elige y aporta valor.
-3. **Entregar y operar:** publicar/promover solo en el alcance autorizado, comprobar estado real y registrar pendientes.
-4. **Conservar y retomar:** documentación y continuidad suficientes, sin acumular scratch como conocimiento durable.
+1. **Investigate and decide:** an answer or proposal with evidence and a clear scope limit.
+2. **Change and verify:** a proportional direct route; the formal plan stays available when it is chosen and adds value.
+3. **Deliver and operate:** publish/promote only within the authorized scope, check the real state, and record pending items.
+4. **Preserve and resume:** enough documentation and continuity, without accumulating scratch material as durable knowledge.
 
-Bootstrap, specs, auditoría, migración y documentación seguirían siendo procedimientos especializados que se seleccionan por necesidad. Este agrupamiento es una hipótesis de organización, no cuatro nuevas skills ni un compromiso de implementación.
+Bootstrap, specs, audit, migration, and documentation would remain specialized procedures selected as needed. This grouping is an organizational hypothesis, not four new skills or a commitment to implement.
 
-El siguiente paso sería elegir un recorrido real y su criterio de éxito; después escribir la guía mínima y probar unos pocos casos comparables. La existencia de este mapa no valida aún la selección automática de procedimientos ni su funcionamiento entre hosts.
+The next step would be to choose a real path and its success criterion; then write the minimal guidance and test a few comparable cases. The existence of this map does not yet validate automatic selection of procedures or their operation across hosts.
 
-## 7. Dónde conservar las referencias
+## 7. Where to keep the references
 
-Ubicación actual: `/path/to/reference-volume/dev-resources/reference/`. El usuario autorizó mover las cuatro referencias y confirmó que el volumen es prácticamente fijo en esta Mac. Se trasladaron los checkouts completos, incluidos `.git`, archivos locales y el marcador `.jbcontextignore` del directorio padre. Los cuatro árboles de trabajo quedaron limpios y conservaron sus commits. No se actualizaron los remotos.
+Current location: `/path/to/reference-volume/dev-resources/reference/`. The user authorized moving the four references and confirmed that the volume is practically fixed on this Mac. The complete checkouts were moved, including `.git`, local files, and the `.jbcontextignore` marker of the parent directory. The four working trees ended up clean and kept their commits. The remotes were not updated.
 
-| Repo | Commit local inspeccionado | Tamaño aproximado del checkout |
+| Repo | Local commit inspected | Approximate checkout size |
 |---|---|---|
 | optional reference project | `95edf9ff9172ca82f18ef34ccca2776b15348bb1` | 106 MB |
 | optional reference project | `5bf4e78011075bcfc0dc295f0724994cd123ee71` | 8.5 MB |
 | optional reference project | `cac56e1ebd3c279aa9153616cfeac7b174ab90f9` | 284 KB |
 | optional reference project | `e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156` | 3.5 MB |
-| optional reference project | `c55ee46073ed923f86ce59a5eb3b6d895095d1b7` (clonado 2026-09-24 desde `optional reference project`; aún no inspeccionado) | 3.2 MB |
-| optional reference project | `e0881d2de397d5e9761d7b35ff5017d8f5ebf69b` (`github.com/pbakaus/optional reference project`; aún no inspeccionado). Solo se consulta para temas de UI/UX | — |
-| optional reference project | `be0b51e8d0a14f7efd6f2fe5b3c2468daaecf362` (clonado 2026-09-24 desde `github.com/686f6c61/optional reference project`; inspeccionado). Plugin solo para Claude Code basado en hooks y runtime Python, contrario a la arquitectura de Hive; se conserva únicamente por las checklists sin equivalente en otras referencias (`skills/{threat-model,compliance-check,evaluate-dependency,sbom-generate,incident-response}/SKILL.md`) y como precedente de guardas que bloquean antes de ejecutar (`hooks/secret-guard.py`, `dangerous-command-guard.py`, `evidence-guard.py`) si un fallo medido llegara a justificarlas | 8.6 MB |
+| optional reference project | `c55ee46073ed923f86ce59a5eb3b6d895095d1b7` (cloned 2026-09-24 from `optional reference project`; not yet inspected) | 3.2 MB |
+| optional reference project | `e0881d2de397d5e9761d7b35ff5017d8f5ebf69b` (`github.com/pbakaus/optional reference project`; not yet inspected). Consulted only for UI/UX topics | — |
+| optional reference project | `be0b51e8d0a14f7efd6f2fe5b3c2468daaecf362` (cloned 2026-09-24 from `github.com/686f6c61/optional reference project`; inspected). A Claude Code-only plugin based on hooks and a Python runtime, contrary to Hive's architecture; it is kept only for the checklists with no equivalent in the other references (`skills/{threat-model,compliance-check,evaluate-dependency,sbom-generate,incident-response}/SKILL.md`) and as a precedent for guards that block before executing (`hooks/secret-guard.py`, `dangerous-command-guard.py`, `evidence-guard.py`) if a measured failure ever justified them | 8.6 MB |
 
-**Decisión aplicada:** referencias externas juntas en el volumen de recursos; Hive en desarrollo permanece en su workspace habitual y el clon de `master` sigue en `dev-resources/tricell-hive-master`. Se retiró el directorio original después de verificar 3,505 entradas de archivos/enlaces por contenido, permisos de archivo y destino de enlaces; los archivos se compararon con SHA-256. No se dejó una segunda copia ni un enlace de compatibilidad.
+**Decision applied:** external references together on the resources volume; Hive under development stays in its usual workspace and the `master` clone stays at `dev-resources/tricell-hive-master`. The original directory was removed after verifying 3,505 file/link entries by content, file permissions, and link targets; the files were compared with SHA-256. No second copy or compatibility link was left.
 
-Antes del traslado se comprobó que cada repositorio tenía únicamente su worktree principal y no contenía enlaces simbólicos absolutos. La búsqueda de la ruta anterior en el checkout activo de Hive y en las configuraciones principales de Codex/Claude solo encontró este documento; no fue una auditoría de todos los consumidores de la Mac. Los enlaces de procedencia fijados a commits no cambian. Si el volumen no está montado, la consulta local queda temporalmente indisponible.
+Before the move, each repository was checked to have only its main worktree and no absolute symbolic links. The search for the previous path in Hive's active checkout and in the main Codex/Claude configurations found only this document; it was not an audit of all consumers on the Mac. Provenance links pinned to commits do not change. If the volume is not mounted, local lookup is temporarily unavailable.
 
-## 8. Fuentes y límites de esta revisión
+## 8. Sources and limits of this review
 
-- Hive: lectura de las entradas de investigación, routing, planificación, construcción y biblioteca común; procedimientos de bootstrap, especificación, promoción e higiene; inventario de skills y estructura de auditoría/migración.
-- Referencias: README y documentación de uso pertinente de los cuatro repositorios. Se contrastó en particular la separación ODD/SDD y la política local de verificación/archivado de optional reference project.
-- No se ejecutaron estos workflows, no se probaron integraciones, no se validaron benchmarks y no se auditó todo el código de los proyectos externos.
-- Los enlaces siguientes están fijados a commits inspeccionados, no a ramas móviles. Se incluyen para trazabilidad; la lectura realizada fue local.
+- Hive: reading of the research, routing, planning, build, and common-library entries; bootstrap, specification, promotion, and hygiene procedures; skills inventory and audit/migration structure.
+- References: README and relevant usage documentation of the four repositories. In particular, the ODD/SDD separation and the local verification/archiving policy of optional reference project were cross-checked.
+- These workflows were not executed, integrations were not tested, benchmarks were not validated, and the full code of the external projects was not audited.
+- The links below are pinned to inspected commits, not to moving branches. They are included for traceability; the reading itself was done locally.
 
 [h-research]: https://github.com/JhonHawk/tricell-hive/blob/16e7d3357a3c41530d5e31460c3024872566f3c7/global/skills/flow-research/SKILL.md
 [h-routing]: https://github.com/JhonHawk/tricell-hive/blob/16e7d3357a3c41530d5e31460c3024872566f3c7/global/skills/task-routing/SKILL.md
@@ -131,8 +131,3 @@ Antes del traslado se comprobó que cada repositorio tenía únicamente su workt
 [h-plan]: https://github.com/JhonHawk/tricell-hive/blob/16e7d3357a3c41530d5e31460c3024872566f3c7/global/skills/flow-plan/SKILL.md
 [h-build]: https://github.com/JhonHawk/tricell-hive/blob/16e7d3357a3c41530d5e31460c3024872566f3c7/global/skills/flow-build/SKILL.md
 [h-skills]: https://github.com/JhonHawk/tricell-hive/tree/16e7d3357a3c41530d5e31460c3024872566f3c7/global/skills
-
-
-
-
-

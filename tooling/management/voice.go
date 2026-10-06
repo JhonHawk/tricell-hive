@@ -2,9 +2,9 @@
 // communication rules, rendered into its own managed block (VoiceBegin /
 // VoiceEnd) placed after the Hive block. This file owns the voice catalogue
 // (listing the available voices and rendering one voice's text, see
-// design.md "Generación del texto"), the standalone "voice set"/"voice off"
-// plan (BuildVoicePlan), and install/remove's own voice-change generation
-// (addVoiceChanges, called from BuildPlan).
+// design.md "Text generation" (archived heading "Generación del texto")), the
+// standalone "voice set"/"voice off" plan (BuildVoicePlan), and install/remove's
+// own voice-change generation (addVoiceChanges, called from BuildPlan).
 package management
 
 import (
@@ -32,12 +32,11 @@ type VoiceInfo struct {
 // CurrentVoice returns the home's own active voice setting, or nil when no
 // voice is set. It reads state the same read-only way Status does
 // (normalize + readState) but needs no host list: a voice is one per home,
-// not one per host (design.md "La interfaz"). It never writes and adds no
-// on-disk schema of its own — state.Voice is already recorded by
-// BuildVoicePlan/Apply. The caller in tooling/cli (the Voice view) uses this
-// instead of parsing Status's own formatted "id (address, intensity)"
-// string, which cannot recover Name at all (formatVoiceStatus never
-// includes it).
+// not one per host (design.md "The interface" (archived heading "La interfaz")).
+// It never writes and adds no on-disk schema of its own — state.Voice is already
+// recorded by BuildVoicePlan/Apply. The caller in tooling/cli (the Voice view)
+// uses this instead of parsing Status's own formatted "id (address, intensity)"
+// string, which cannot recover Name at all (formatVoiceStatus never includes it).
 func CurrentVoice(o Options) (*VoiceSetting, error) {
 	_, dir, err := normalize(o)
 	if err != nil {
@@ -103,9 +102,9 @@ func firstNonEmptyLine(data []byte) string {
 
 // RenderVoice renders one voice's block text: the shared preamble, the
 // voice's own description, an address line and an intensity line, per
-// design.md "Generación del texto". It validates entirely before returning
-// any error, so it never partially renders. Address defaults to "none" and
-// Intensity to "subtle" when left empty.
+// design.md "Text generation" (archived heading "Generación del texto"). It
+// validates entirely before returning any error, so it never partially renders.
+// Address defaults to "none" and Intensity to "subtle" when left empty.
 //
 // sourceHash identifies exactly what this body was rendered from: the
 // preamble's bytes, the voice file's bytes, and voiceRenderVersion, each
@@ -275,10 +274,10 @@ func voiceRecordFromSpan(path string, span *VoiceSpan) *Record {
 // remove, depending on which of before/after is nil) to base. A first-time
 // insert (before == nil) does not go through transform's generic insert
 // path, which appends at EOF: the voice block belongs immediately after the
-// Hive block's END line (design.md "Ubicación"), regardless of what text a
-// user wrote after it, so it uses insertVoiceSpan instead. Replace and
-// remove find the existing voice block by its own markers wherever it is,
-// so transform already handles them position-independently.
+// Hive block's END line (design.md "Location" (archived heading "Ubicación")),
+// regardless of what text a user wrote after it, so it uses insertVoiceSpan
+// instead. Replace and remove find the existing voice block by its own markers
+// wherever it is, so transform already handles them position-independently.
 //
 // A change marked Gone is first verified against base: it fails closed
 // unless vc.Before is really missing there. It then never removes or
@@ -333,9 +332,10 @@ func insertVoiceSpan(s snapshot, managed []byte) (snapshot, error) {
 // checkVoiceConflict rejects, before any write, a hand-edited voice span
 // (a registered span whose current bytes no longer match) or an
 // unregistered voice block (markers present with no registered span),
-// naming the voice block explicitly (see design.md "Conflicto"). A registered
-// span that is missing, because the block or its whole file was deleted by
-// hand, is not a conflict: gone reports it, so callers mark their change Gone.
+// naming the voice block explicitly (see design.md "Conflict"
+// (archived heading "Conflicto")). A registered span that is missing, because the
+// block or its whole file was deleted by hand, is not a conflict: gone reports
+// it, so callers mark their change Gone.
 func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpan) (gone bool, err error) {
 	if hasSpan {
 		if err := owned(s, *voiceRecordFromSpan(path, &existing), voiceMarkers); err != nil {
@@ -358,9 +358,9 @@ func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpa
 
 // voiceTargetPaths returns, sorted, every path in state.Records that carries
 // a Hive block for a user-scope consumer at c.Home: the files voice
-// operates on (see design.md "Rutas de la voz" — sourced from the block
-// Records, not resolve(), so a Codex/Grok CLAUDE_CONFIG_DIR override is
-// still the file the CLI actually reads).
+// operates on (see design.md "Voice paths" (archived heading "Rutas de la voz") —
+// sourced from the block Records, not resolve(), so a Codex/Grok
+// CLAUDE_CONFIG_DIR override is still the file the CLI actually reads).
 func voiceTargetPaths(c target.Config, state State) []string {
 	var paths []string
 	for path, r := range state.Records {
@@ -409,8 +409,9 @@ func formatVoiceStatus(v VoiceSetting) string {
 // BuildVoicePlan builds a "voice set" or "voice off" plan: Action "voice",
 // zero Changes, and one VoiceChange per instruction file that already
 // carries a managed Hive block for a registered user-scope host (see
-// design.md "Operaciones"). Voice is always user scope regardless of
-// o.Scope: proposal.md excludes project scope from this change.
+// design.md "Operations" (archived heading "Operaciones")). Voice is always user
+// scope regardless of o.Scope: proposal.md excludes project scope from this
+// change.
 func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 	var p Plan
 	if action != "set" && action != "off" {
@@ -519,14 +520,13 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 }
 
 // addVoiceChanges extends an install or remove Plan (already built by
-// BuildPlan) with voice changes, per design.md "Operaciones", restricted to
-// p.Config.Scope == "user" (voice never applies to project scope — see
-// proposal.md). It walks p.Changes rather than every registered voice path,
-// so it only ever touches files this specific plan's p.Hosts already
-// resolved, and it checks every touched block path for an unregistered
-// voice block regardless of whether a voice is even active, before
-// generating anything. It only reads; BuildPlan calls it before p.ID is
-// computed.
+// BuildPlan) with voice changes, per design.md "Operations"
+// (archived heading "Operaciones"), restricted to p.Config.Scope == "user" (voice
+// never applies to project scope — see proposal.md). It walks p.Changes rather
+// than every registered voice path, so it only ever touches files this specific
+// plan's p.Hosts already resolved, and it checks every touched block path for an
+// unregistered voice block regardless of whether a voice is even active, before
+// generating anything. It only reads; BuildPlan calls it before p.ID is computed.
 func addVoiceChanges(p *Plan, o Options, state State) error {
 	if p.Config.Scope != "user" {
 		return nil

@@ -1,12 +1,12 @@
-// tui_project_view.go is the Project view (design.md "Vistas"): the result of
-// validating the `## Hive` section of the current repository's AGENTS.md. Two
-// rows are fixed (heading, position); the AGENTS.md path, the verdict or
-// findings and the values read scroll between them, so a long path wraps
-// instead of being cut. Reading is the default; `e` opens the form that edits
-// the section (design.md "Formulario en la vista Project"). The load runs as a
-// Cmd whose result is addressed to the view (owned) and carries a sequence
-// number, so a double reload or a result that arrives after the view was left
-// is dropped.
+// tui_project_view.go is the Project view (design.md "Views"
+// (archived heading "Vistas")): the result of validating the `## Hive` section of
+// the current repository's AGENTS.md. Two rows are fixed (heading, position); the
+// AGENTS.md path, the verdict or findings and the values read scroll between
+// them, so a long path wraps instead of being cut. Reading is the default; `e`
+// opens the form that edits the section (design.md "Form in the Project view"
+// (archived heading "Formulario en la vista Project")). The load runs as a Cmd
+// whose result is addressed to the view (owned) and carries a sequence number, so
+// a double reload or a result that arrives after the view was left is dropped.
 package main
 
 import (

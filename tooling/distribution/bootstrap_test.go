@@ -48,8 +48,8 @@ func TestDownloadRejectsRedirectOutsideOrigin(t *testing.T) {
 
 // TestDownloadAllowsLoopbackHTTPOnlyWhenTestSeamIsEnabled covers the Go-side
 // loopback-HTTP test seam: same-package tests set allowLoopbackHTTP directly
-// (or a test-built manager binary sets it via -ldflags, see
-// bootstrap_shell_test.go's buildRealManager) so their own httptest fixtures
+// (a test-built manager binary could also set it via -ldflags; the shell-level
+// tests that did were retired with bootstrap.sh in 0.1.0) so their own httptest fixtures
 // can use plain HTTP, without weakening production, which must still refuse
 // HTTP to a loopback host when the seam is off — the default in every
 // shipped binary, since production never sets allowLoopbackHTTPValue.

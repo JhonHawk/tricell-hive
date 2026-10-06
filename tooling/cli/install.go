@@ -226,8 +226,9 @@ func runInstallFlow(o management.Options, dry bool, in io.Reader, out io.Writer,
 	o.StateDir = stateDir
 	// online is set only by the bootstrap entry point (see bootstrap.go):
 	// every recovery message below must name a concrete offline command
-	// instead of "./install.sh", a file that bootstrap.sh's temporary
-	// checkout never contains.
+	// instead of "./install.sh", a file that the online hand-off's
+	// temporary checkout never contains. No shipped script reaches this path
+	// today (bootstrap.sh is retired); the code stays for a possible reconnection.
 	online := dependencies.BindRetainedInstaller != nil
 	// stillNeeded is ignored here: install's and bootstrap's own recovery
 	// phrase names the concrete next command unconditionally
@@ -483,7 +484,7 @@ func finalizeInstallResult(out io.Writer, result management.OnboardingResult, er
 // retainedManagerPath returns the absolute path to a manager binary retained
 // under stateDir by a prior consented bootstrap, so an online-flow recovery
 // message can name a concrete offline command instead of pointing at a
-// script bootstrap.sh has already deleted. It reports ok=false when nothing
+// script the online hand-off has already deleted. It reports ok=false when nothing
 // is retained yet.
 func retainedManagerPath(stateDir string) (path string, ok bool) {
 	entries, err := os.ReadDir(filepath.Join(stateDir, "installers"))
@@ -508,16 +509,17 @@ func retainedManagerPath(stateDir string) (path string, ok bool) {
 
 // recoveryPhrase names the concrete next command for a pending or
 // interrupted operation, as a lower-case clause fit for embedding mid
-// sentence. Online (bootstrap) invocations must never point to
-// ./install.sh: bootstrap.sh deletes its own temporary manager on exit, so
-// the only thing left to run offline, from another terminal, is the
-// manager already retained under the state directory.
+// sentence. Online (bootstrap) invocations point to the manager already
+// retained under the state directory, because the online hand-off deleted its
+// own temporary manager on exit; without a retained manager they can only
+// suggest fetching a fresh package. No shipped script reaches the online path
+// since bootstrap.sh was retired in 0.1.0.
 func recoveryPhrase(online bool, stateDir string) string {
 	if online {
 		if path, ok := retainedManagerPath(stateDir); ok {
 			return fmt.Sprintf("run the retained manager's recover (%s recover --state-dir %s)", path, stateDir)
 		}
-		return "run bootstrap.sh again once you have network access"
+		return "download the Hive package again and run its ./install.sh"
 	}
 	return "run ./install.sh again"
 }

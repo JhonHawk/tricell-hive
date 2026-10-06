@@ -3,7 +3,7 @@ package management
 // TDD tests for the voice catalogue: ListVoices and RenderVoice. They run
 // against synthetic content/voices/ trees in temp dirs, never the real
 // content/voices/ tree another worker is writing concurrently (see
-// design.md "Generación del texto").
+// design.md "Text generation" (archived heading "Generación del texto")).
 
 import (
 	"crypto/sha256"

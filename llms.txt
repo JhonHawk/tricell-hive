@@ -1,0 +1,33 @@
+# Hive
+
+> Hive is a portable guidance layer for deliberate work with coding agents. It supplies shared rules, activity skills, and specialist role definitions, plus a Go manager that installs them into the native locations of Claude Code, Codex, Grok Build, Pi, OpenCode V2, and Cursor CLI. Each host keeps its own model loop, authentication, tools, permissions, and history.
+
+Distributable content lives in `content/` and `integrations/`; the manager is in `tooling/`. `_support/`, `tests/`, and the root `AGENTS.md` are maintainer material for this repository and are not installed. Links are relative to the repository root.
+
+## Docs
+
+- [README](README.md): overview, installation from a release package or source, hosts, update, recovery, and uninstall
+- [Changelog](CHANGELOG.md): release history, starting with 0.1.0
+- [Contributing](CONTRIBUTING.md): local test suite, conventions, and language rules
+- [Security](SECURITY.md): how to report a vulnerability privately
+- [Installer contract](_support/docs/architecture/installer.md): package checks, migration, and interrupted-install recovery
+- [Deployment manager](_support/docs/architecture/deployment-manager.md): manager commands, plans, scopes, ownership, and recovery
+- [Agent delivery](_support/docs/architecture/agent-delivery.md): canonical roles, native profiles, and per-host delegation limits
+
+## Guidance
+
+- [Shared guidance](content/guidance/global.md): authorization, preservation, evidence, and artifact-placement rules installed into each host
+- [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
+- [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
+- [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and verify the result
+- [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources
+- [Role profiles](integrations/agent-profiles.json): default model and effort per role and host
+
+## Optional
+
+- [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
+- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, and pi-subagents
+- [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard
+- [History and provenance](_support/docs/history/history-and-provenance.md): how the project evolved
+- [Requirements and change records](_support/openspec/): versioned requirements and planned changes
+- [Tests](tests/): content checks, fixtures, and evaluation tooling

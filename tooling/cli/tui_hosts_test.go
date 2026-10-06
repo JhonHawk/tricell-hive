@@ -153,8 +153,8 @@ func collectFiles(t *testing.T, root string) map[string][]byte {
 
 // assertHomesMatch fails with every path difference between two homes
 // instead of stopping at the first one, so a real mismatch is never hidden
-// behind an incidental first difference (AC2/AC3: "el resultado en archivos
-// ... es el mismo").
+// behind an incidental first difference (AC2/AC3, quoted in translation from the archived Spanish record: "the
+// result in files ... is the same").
 func assertHomesMatch(t *testing.T, gotRoot, wantRoot string) {
 	t.Helper()
 	got := collectFiles(t, gotRoot)
@@ -180,8 +180,8 @@ func assertHomesMatch(t *testing.T, gotRoot, wantRoot string) {
 	}
 }
 
-// assertStateJSONMatches compares state.json (AC2/AC3: "... y el mismo
-// estado") between two independent synthetic homes, rather than byte for
+// assertStateJSONMatches compares state.json (AC2/AC3, quoted in translation from the archived Spanish record: "...
+// and the same state") between two independent synthetic homes, rather than byte for
 // byte: state.json embeds each home's own absolute path throughout
 // (Config.Home and every Records key), which necessarily differs between
 // two different t.TempDir()s even for an otherwise identical result, so
