@@ -48,31 +48,30 @@ between what was requested, what was authorized, and what was demonstrated.
 
 ## Get started
 
-Install your coding CLI separately, then choose a Hive installation route. Hive
-neither installs CLI executables nor authenticates providers. Close affected CLI
-sessions before applying changes and start new sessions afterward.
+Install your coding CLI separately first; Hive neither installs CLI executables
+nor authenticates providers. Close affected CLI sessions before installing and
+start new ones afterward. The one-line installation is the recommended route;
+the release package and the source checkout are alternatives.
 
-### One-line installation
+### One-line installation (recommended)
 
-On **macOS Apple Silicon (arm64)** or **Linux arm64 and amd64**, run in a
-terminal:
+On **macOS Apple Silicon** or **Linux (arm64/amd64)**, in a terminal:
 
 ```sh
-curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --dry-run   # preview only
 curl -fsSL https://hive.tricell.tech/install.sh | sh
 ```
 
-The script downloads the latest release package and its `.sha256` file from
-GitHub Releases, verifies them, keeps the package in
-`~/.local/share/hive/packages/hive-<version>-<os>-<arch>/` (under
-`$XDG_DATA_HOME` when set), and runs that package's `install.sh`, which asks
-which hosts to install and confirms before it writes. Add `--version <version>`
-to choose a release; other arguments, such as `--hosts claude,codex`, go to
-`install.sh`. The preview changes no host but still downloads and keeps the
-package. It needs `curl`, `tar`, and `shasum` or `sha256sum`. It does not put
-`hive` on your `PATH`; it prints where `bin/hive` is. The
-[installer contract](_support/docs/architecture/installer.md#one-line-installation)
-lists its checks.
+It asks which hosts to install and confirms before it writes.
+
+- **Preview first:** append `-s -- --dry-run`. No host changes; the package is
+  still downloaded.
+- **Pick a release or hosts:** append `-s -- --version 0.2.0 --hosts claude,codex`.
+- **Afterwards:** `hive` is not added to your `PATH`. It lives at
+  `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
+- **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
+
+The [installer contract](_support/docs/architecture/installer.md#one-line-installation)
+lists what the script checks.
 
 ### From a release package
 
@@ -196,6 +195,12 @@ Hive supplies no model runtime or universal permission sandbox.
 
 ## Update, verify, recover, and uninstall
 
+The commands below call `hive`. After a one-line installation it is
+`~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`; after a
+package installation, the extracted `bin/hive`; in a source checkout, use
+`go run ./tooling/cli`. Copy or link it into a directory on your `PATH` to type
+`hive` directly.
+
 **Update.** One-line users run the same command again; each version adds its
 own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
 once you no longer need them for recovery. Package users run the
@@ -238,8 +243,7 @@ hive apply --plan <plan.json>
 Only the managed instruction block and files Hive created are removed; your
 other content stays. In the full-screen interface (`hive`, or `hive tui`), `u` in
 the CLIs view opens **Uninstall all**, which removes every registered host after a
-confirmation that starts on Cancel. In a source checkout, use
-`go run ./tooling/cli` in place of `hive`. The
+confirmation that starts on Cancel. The
 [manager contract](_support/docs/architecture/deployment-manager.md) documents
 project scope, saved plans, removal, and recovery; the
 [update reference](_support/docs/architecture/deployment-manager.md#update-from-a-commit-and-list-releases)
