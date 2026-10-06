@@ -34,10 +34,10 @@ describes what the tests cover.
 - Use [Conventional Commits](https://www.conventionalcommits.org/), such as
   `fix(cli): ...`, `feat(guidance): ...`, or `docs: ...`.
 - Keep a change focused, and do not mix unrelated fixes into it.
-- When a change alters something that `README.md`, `llms.txt`, or a page of the
-  documentation site in `site/` states, update it in the same pull request. The
-  [README and llms.txt](AGENTS.md#readme-and-llmstxt) section lists what each one
-  covers.
+- Keep `README.md`, `llms.txt`, and the documentation site in `site/` in step
+  with your change, in the same pull request, as the
+  [README and llms.txt](AGENTS.md#readme-and-llmstxt) section of `AGENTS.md`
+  describes.
 
 ## Language
 
