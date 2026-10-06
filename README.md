@@ -52,10 +52,32 @@ Install your coding CLI separately, then choose a Hive installation route. Hive
 neither installs CLI executables nor authenticates providers. Close affected CLI
 sessions before applying changes and start new sessions afterward.
 
+### One-line installation
+
+On **macOS Apple Silicon (arm64)** or **Linux arm64 and amd64**, run in a
+terminal:
+
+```sh
+curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --dry-run   # preview only
+curl -fsSL https://hive.tricell.tech/install.sh | sh
+```
+
+The script downloads the latest release package and its `.sha256` file from
+GitHub Releases, verifies them, keeps the package in
+`~/.local/share/hive/packages/hive-<version>-<os>-<arch>/` (under
+`$XDG_DATA_HOME` when set), and runs that package's `install.sh`, which asks
+which hosts to install and confirms before it writes. Add `--version <version>`
+to choose a release; other arguments, such as `--hosts claude,codex`, go to
+`install.sh`. The preview changes no host but still downloads and keeps the
+package. It needs `curl`, `tar`, and `shasum` or `sha256sum`. It does not put
+`hive` on your `PATH`; it prints where `bin/hive` is. The
+[installer contract](_support/docs/architecture/installer.md#one-line-installation)
+lists its checks.
+
 ### From a release package
 
 Packages are built for **macOS Apple Silicon (arm64)** and **Linux arm64 and
-amd64**. macOS Intel is unsupported. Download
+amd64**. macOS Intel is unsupported. To install by hand, download
 `hive-<version>-<os>-<arch>.tar.gz` and its `.sha256` file from the
 [GitHub Releases page](https://github.com/JhonHawk/tricell-hive/releases), then
 verify, extract, preview, and install:
@@ -174,7 +196,10 @@ Hive supplies no model runtime or universal permission sandbox.
 
 ## Update, verify, recover, and uninstall
 
-**Update.** Package users run the newer package's `./install.sh`. Source users
+**Update.** One-line users run the same command again; each version adds its
+own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
+once you no longer need them for recovery. Package users run the
+newer package's `./install.sh`. Source users
 pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
 and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,
 and does not replace the binary:
