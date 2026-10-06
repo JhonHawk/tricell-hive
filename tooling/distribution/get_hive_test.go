@@ -694,20 +694,39 @@ func TestGetHivePropagatesInstallerExitCode(t *testing.T) {
 func TestGetHiveDryRunNeedsNoTerminal(t *testing.T) {
 	ghEachShell(t, func(t *testing.T, shell string) {
 		e := newGhEnv(t)
-		res := e.run(ghRun{shell: shell, script: e.script(e.missingTTY()), args: []string{"--dry-run"}})
+		res := e.run(ghRun{shell: shell, script: e.script(e.missingTTY()), args: []string{"--dry-run"}, stdin: "inherited stdin\n"})
 		if res.code != 0 {
 			t.Fatalf("exit %d\nstderr:\n%s", res.code, res.stderr)
 		}
 		if got := e.recordLine("args:"); got != "args: [--dry-run]" {
 			t.Errorf("%q", got)
 		}
-		if got := e.recordLine("stdin:"); got != "stdin:EOF" {
-			t.Errorf("with --dry-run stdin must not be redirected to the terminal: %q", got)
+		if got := e.recordLine("stdin:"); got != "stdin:inherited stdin" {
+			t.Errorf("with --dry-run and no terminal stdin must stay untouched: %q", got)
 		}
 		if _, err := os.Stat(e.missingTTY()); !os.IsNotExist(err) {
 			t.Errorf("the terminal path was created: %v", err)
 		}
 		ghAssertRequests(t, e, ghExpectedRequests(e, true))
+	})
+}
+
+func TestGetHiveDryRunReadsHostChoicesFromTheTerminalWhenAvailable(t *testing.T) {
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for _, pipe := range []bool{false, true} {
+			e := newGhEnv(t)
+			res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: []string{"--dry-run"}, pipe: pipe, stdin: "not the terminal\n"})
+			if res.code != 0 {
+				t.Fatalf("pipe=%v: exit %d\nstderr:\n%s", pipe, res.code, res.stderr)
+			}
+			if got, want := e.recordLine("stdin:"), "stdin:"+ghTTYAnswer; got != want {
+				t.Errorf("pipe=%v: install.sh stdin %q, want the terminal device (%q)", pipe, got, want)
+			}
+			if got := e.recordLine("args:"); got != "args: [--dry-run]" {
+				t.Errorf("pipe=%v: %q", pipe, got)
+			}
+			ghAssertRequests(t, e, ghExpectedRequests(e, true))
+		}
 	})
 }
 

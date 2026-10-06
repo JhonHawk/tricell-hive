@@ -32,7 +32,7 @@ usage() {
   printf '%s\n' 'Usage: get-hive.sh [--version X.Y.Z[-PRERELEASE]] [--dry-run] [install.sh options]'
   printf '%s\n' 'Downloads and verifies a Hive release package, keeps it under the data folder'
   printf '%s\n' '(XDG_DATA_HOME or ~/.local/share, then hive/packages), and runs its install.sh.'
-  printf '%s\n' 'Without --dry-run a terminal is required. Other arguments go to install.sh.'
+  printf '%s\n' 'Without --dry-run a terminal is required; a preview uses it when available. Other arguments go to install.sh.'
 }
 
 say() {
@@ -333,10 +333,15 @@ main() {
   # node's permission bits, which look fine even with no controlling terminal.
   # "exec" with a failing redirection exits the shell that runs it, so it runs in
   # a subshell and only that subshell exits.
-  if [ "$dry_run" -eq 0 ]; then
-    if ( exec 3<>"$tty_device" ) 2>/dev/null; then
-      :
-    else
+  # Decided up front, before any request. A preview (--dry-run) uses the terminal
+  # when one opens, so the installer can ask which hosts to preview; without one
+  # it leaves stdin alone and install.sh then needs --hosts. A real installation
+  # requires the terminal.
+  if ( exec 3<>"$tty_device" ) 2>/dev/null; then
+    have_tty=1
+  else
+    have_tty=0
+    if [ "$dry_run" -eq 0 ]; then
       fail 'a terminal is required so the installer can ask questions; run it from a terminal, add --dry-run to only preview, or install from the package manually'
     fi
   fi
@@ -393,7 +398,7 @@ main() {
   say "Hive package kept at $package"
   say "Hive executable: $package/bin/hive"
   # exec replaces this shell, so the EXIT trap would not run: cleanup ran above.
-  if [ "$dry_run" -eq 1 ]; then
+  if [ "$have_tty" -eq 0 ]; then
     exec "$package/install.sh" "$@"
   fi
   exec "$package/install.sh" "$@" < "$tty_device"
