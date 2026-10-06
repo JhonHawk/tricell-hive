@@ -72,8 +72,8 @@ The installer SHALL persist optional steps in a parent onboarding journal before
 - **WHEN** the installer stops after the core transaction commits but before optional steps are recorded
 - **THEN** recovery keeps the committed core and does not run any optional step.
 
-### Requirement: Verified online bootstrap and offline installation
-The online entry SHALL verify its downloaded manager before executing it, then validate and safely extract the package. The local offline package SHALL remain usable without Go, Git, GitHub CLI, or network downloads for the core. Production downloads SHALL use the configured HTTPS origin and bounded inputs.
+### Requirement: Verified release package installation
+A complete package published as a GitHub Release asset SHALL be installable after the user verifies it against its published `.sha256` file and runs the package's `install.sh`. The installer SHALL validate and safely extract the package. The core installation SHALL work without Go, Git, GitHub CLI, or network downloads; only the Pi host's pi-subagents step may download, from npm. Every package SHALL include `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
 #### Scenario: Invalid archive
 - **WHEN** the package checksum, archive paths, entry types, or limits fail validation
@@ -81,14 +81,11 @@ The online entry SHALL verify its downloaded manager before executing it, then v
 
 #### Scenario: Cancellation or unavailable terminal
 - **WHEN** the user cancels before application or a controlling terminal is unavailable
-- **THEN** no persistent installation changes occur; the online bootstrap removes only its disposable temporary download.
+- **THEN** no persistent installation changes occur.
 
-### Requirement: Recovery executable retention
-An online installation SHALL retain its verified compatible manager and package privately after confirmation and before applying changes, and SHALL identify how to recover from a later terminal without network access.
-
-#### Scenario: Interrupted online installation
-- **WHEN** the bootstrap process exits during installation
-- **THEN** the retained manager and durable operation receipts remain available for recovery.
+#### Scenario: Pi host selected without pi-subagents
+- **WHEN** a user-scope package installation includes the Pi host and Pi's settings do not declare pi-subagents
+- **THEN** the plan runs `pi install` for the pinned pi-subagents source, which downloads from npm; no other host step downloads.
 
 ### Requirement: Update from a committed revision
 From a Git checkout of Hive, the manager SHALL build an install plan from the content of one resolved commit, excluding uncommitted changes, for every consumer already installed in user scope. It SHALL apply a plan that changes files only after interactive confirmation, and without a terminal SHALL only preview or save that plan for a separate `apply`. A plan that changes no file MAY be applied without confirmation, since its only write is the source-commit record; when a plan file is requested, the plan SHALL still be saved. It SHALL remove its temporary extraction on every return path. The offline package SHALL NOT require Git.
