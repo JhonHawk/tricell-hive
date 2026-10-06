@@ -7,6 +7,13 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Hive",
+      logo: {
+        dark: "./src/assets/hive-mark.svg",
+        light: "./src/assets/hive-mark-light.svg",
+        alt: "",
+        replacesTitle: false,
+      },
+      customCss: ["./src/styles/theme.css"],
       sidebar: [
         { label: "Start", items: [{ slug: "index" }] },
         {

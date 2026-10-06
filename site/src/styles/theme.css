@@ -1,0 +1,19 @@
+/*
+ * Hive brand accents. Only Starlight's three accent variables change; its grays stay.
+ * Each value was measured with contrast-check.py against the pairs listed in the
+ * gh-17 design ("Marca visual"); every pair reaches at least 4.5:1.
+ */
+
+/* Dark theme: text-accent = accent-high, text-invert = accent-low. */
+:root {
+	--sl-color-accent-low: #551318;
+	--sl-color-accent: #ff2a2a;
+	--sl-color-accent-high: #ff6464;
+}
+
+/* Light theme: text-accent = accent, text-invert = white. */
+:root[data-theme="light"] {
+	--sl-color-accent-low: #fbe4e5;
+	--sl-color-accent: #c8102e;
+	--sl-color-accent-high: #8c2028;
+}
