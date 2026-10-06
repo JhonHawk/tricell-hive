@@ -118,17 +118,22 @@ host_allowed() {
   return 1
 }
 
+# Every request goes through this one helper so no call can miss a restriction.
+# -q must be the first argument so a user's ~/.curlrc is never read.
+safe_curl() {
+  curl -q --fail --silent --show-error --location --max-redirs 5 \
+    --proto "$proto_restriction" --proto-redir "$proto_restriction" \
+    --connect-timeout 20 "$@" </dev/null
+}
+
 # fetch URL OUTPUT LIMIT: download with every restriction, then check the final
 # host and the real size on disk (--max-filesize only sees a declared length).
-# -q must be the first argument so a user's ~/.curlrc is never read.
 fetch() {
   fetch_url=$1
   fetch_out=$2
   fetch_limit=$3
-  final_url=$(curl -q --fail --silent --show-error --location --max-redirs 5 \
-    --proto "$proto_restriction" --proto-redir "$proto_restriction" \
-    --connect-timeout 20 --max-time 600 --max-filesize "$fetch_limit" \
-    --output "$fetch_out" --write-out '%{url_effective}' "$fetch_url" </dev/null) || return 1
+  final_url=$(safe_curl --max-time 600 --max-filesize "$fetch_limit" \
+    --output "$fetch_out" --write-out '%{url_effective}' "$fetch_url") || return 1
   host_allowed "$final_url" || {
     printf 'get-hive: refusing a redirect to a host that is not allowed: %s\n' "${final_url%%[?#]*}" >&2
     return 1
@@ -140,10 +145,8 @@ fetch() {
 
 # The latest release is where GitHub redirects /releases/latest to.
 latest_version() {
-  latest_url=$(curl -q --fail --silent --show-error --location --max-redirs 5 --head \
-    --proto "$proto_restriction" --proto-redir "$proto_restriction" \
-    --connect-timeout 20 --max-time 60 \
-    --output /dev/null --write-out '%{url_effective}' "$repo_url/releases/latest" </dev/null) || return 1
+  latest_url=$(safe_curl --head --max-time 60 \
+    --output /dev/null --write-out '%{url_effective}' "$repo_url/releases/latest") || return 1
   host_allowed "$latest_url" || return 1
   tag_prefix="$repo_url/releases/tag/v"
   case $latest_url in
@@ -227,18 +230,31 @@ check_extracted() {
 }
 
 # Runs on exit and on INT, TERM and HUP. It removes the downloads and the staging
-# folder, and if the previous package was moved aside it puts it back, unless
-# something else now occupies its place, in which case it is kept and reported.
-# It never deletes a package folder that existed before this run.
+# folder. While a replacement is in progress (swap_active, set before the first
+# move) it looks at what is actually on disk: if the previous package is in the
+# hidden folder and the final path is free, it puts it back; if the new package
+# is already in place (placing, set right before the second move, and the staged
+# copy is gone), the swap is complete and the hidden copy is simply removed; if
+# something else occupies the final path, the previous package is kept and
+# reported. It never deletes a package that existed before this run unless the
+# new one has replaced it.
 cleanup() {
   if [ "$swap_active" -eq 1 ]; then
     swap_active=0
-    if [ ! -e "$final_dir" ] && [ ! -L "$final_dir" ] && mv "$old_dir/$label" "$final_dir" 2>/dev/null; then
-      rmdir "$old_dir" 2>/dev/null
-      old_dir=
-    else
-      printf 'get-hive: the previous package was kept at %s\n' "$old_dir/$label" >&2
-      old_dir=
+    if [ -e "$old_dir/$label" ] || [ -L "$old_dir/$label" ]; then
+      if [ ! -e "$final_dir" ] && [ ! -L "$final_dir" ]; then
+        if mv "$old_dir/$label" "$final_dir" 2>/dev/null; then
+          rmdir "$old_dir" 2>/dev/null
+        else
+          printf 'get-hive: the previous package was kept at %s\n' "$old_dir/$label" >&2
+        fi
+        old_dir=
+      elif [ "$placing" -eq 1 ] && [ ! -e "$stage_dir/$label" ] && [ ! -L "$stage_dir/$label" ]; then
+        :
+      else
+        printf 'get-hive: the previous package was kept at %s\n' "$old_dir/$label" >&2
+        old_dir=
+      fi
     fi
   fi
   if [ -n "$dl_dir" ]; then
@@ -265,14 +281,16 @@ install_package() {
   check_extracted "$stage_dir" "$label" || fail 'the package has an unexpected layout'
   if [ -e "$final_dir" ] || [ -L "$final_dir" ]; then
     old_dir=$(mktemp -d "$packages_dir/.old.XXXXXX") || fail 'could not create a folder for the previous package'
-    mv "$final_dir" "$old_dir/$label" || fail "could not move the previous package aside: $final_dir"
     swap_active=1
+    mv "$final_dir" "$old_dir/$label" || fail "could not move the previous package aside: $final_dir"
   fi
   if [ -e "$final_dir" ] || [ -L "$final_dir" ]; then
     fail "$final_dir appeared while installing; leaving it untouched"
   fi
+  placing=1
   mv "$stage_dir/$label" "$final_dir" || fail "could not move the package into $final_dir"
   swap_active=0
+  placing=0
 }
 
 main() {
@@ -290,15 +308,27 @@ main() {
         usage
         return 0
         ;;
-      --version)
+      --version|-version)
         [ "$remaining" -gt 0 ] || fail '--version requires a value'
         version=$1
         version_given=1
         shift
         remaining=$((remaining - 1))
         ;;
-      --dry-run)
+      --version=*|-version=*)
+        version=${arg#*=}
+        version_given=1
+        ;;
+      --dry-run|-dry-run)
         dry_run=1
+        set -- "$@" "$arg"
+        ;;
+      --dry-run=*|-dry-run=*)
+        # install.sh's flag parser accepts these boolean spellings, so they are
+        # forwarded unchanged; only a true value makes this a preview.
+        case ${arg#*=} in
+          1|t|T|true|TRUE|True) dry_run=1 ;;
+        esac
         set -- "$@" "$arg"
         ;;
       *)
@@ -328,6 +358,12 @@ main() {
     x86_64|amd64) platform_arch=amd64 ;;
     *) fail 'unsupported architecture: use ARM64 or AMD64' ;;
   esac
+  # Apple Silicon running this shell under Rosetta reports x86_64.
+  if [ "$platform_os" = darwin ] && [ "$platform_arch" = amd64 ] && command -v sysctl >/dev/null 2>&1; then
+    if [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = 1 ] || [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then
+      platform_arch=arm64
+    fi
+  fi
   if [ "$platform_os" = darwin ] && [ "$platform_arch" = amd64 ]; then
     fail 'unsupported platform: macOS Intel is not supported; use macOS Apple Silicon or Linux'
   fi
@@ -360,6 +396,7 @@ main() {
   stage_dir=
   old_dir=
   swap_active=0
+  placing=0
   final_dir=
   label=
   saved_umask=$(umask)

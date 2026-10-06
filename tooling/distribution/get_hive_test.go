@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -593,7 +594,7 @@ func TestGetHiveShippedLines(t *testing.T) {
 		case depth == 0 && (trimmed == "" || strings.HasPrefix(trimmed, "#")):
 		case depth == 0 && strings.HasSuffix(trimmed, "() {"):
 			depth = 1
-		case depth == 0 && strings.Contains(trimmed, "="):
+		case depth == 0 && ghIsPlainAssignment(line):
 		case depth == 1 && line == "}":
 			depth = 0
 		case depth == 1:
@@ -603,6 +604,27 @@ func TestGetHiveShippedLines(t *testing.T) {
 	}
 	if depth != 0 {
 		t.Error("a function is not closed before the final line")
+	}
+}
+
+// ghIsPlainAssignment accepts only a literal top-level assignment, so a command
+// substitution or a prefixed command can never hide among the definitions.
+func ghIsPlainAssignment(line string) bool {
+	return ghAssignmentLine.MatchString(line)
+}
+
+var ghAssignmentLine = regexp.MustCompile("^[a-z_]+=('[^']*'|[^$`;&| ()'\"]*)$")
+
+func TestGetHiveTopLevelAssignmentRule(t *testing.T) {
+	for _, line := range []string{"x=1", "repo_url='https://example.test/x'", "hosts='a b .c'", "tty=/dev/tty"} {
+		if !ghIsPlainAssignment(line) {
+			t.Errorf("%q should be accepted", line)
+		}
+	}
+	for _, line := range []string{"x=$(curl example.test)", "x=`id`", "FOO=1 cmd", "x=1; y=2", "x=1 && y", "x=a|b", "x=$HOME", "cmd --flag=1", " x=1"} {
+		if ghIsPlainAssignment(line) {
+			t.Errorf("%q should be rejected", line)
+		}
 	}
 }
 
@@ -1083,6 +1105,7 @@ echo "$n" > "$HIVE_TEST_MV_COUNT"
 if [ "$n" -eq "${HIVE_TEST_MV_FAIL_AT:-0}" ]; then
   case ${HIVE_TEST_MV_MODE:-fail} in
     fail) echo "fake mv: failing call $n" >&2; exit 1 ;;
+    hangafter) trap '' INT TERM HUP; "$HIVE_TEST_REAL_MV" "$@" || exit 1; : > "$HIVE_TEST_MV_MARKER"; sleep 1; exit 0 ;;
     hang) trap '' INT TERM HUP; : > "$HIVE_TEST_MV_MARKER"; sleep 1; echo "fake mv: failing call $n" >&2; exit 1 ;;
   esac
 fi
@@ -1419,6 +1442,9 @@ func TestGetHiveRejectsMacOSIntelBeforeAnyRequest(t *testing.T) {
 			t.Run(machine, func(t *testing.T) {
 				e := newGhEnv(t)
 				e.fakeBin("uname", fmt.Sprintf("case \"$1\" in -s) echo Darwin ;; -m) echo %s ;; esac\n", machine))
+				// A real Intel Mac: not translated, no arm64 capability. The fake keeps
+				// the result independent of the machine running the tests.
+				e.fakeBin("sysctl", "case \"$2\" in sysctl.proc_translated|hw.optional.arm64) echo 0 ;; *) exit 1 ;; esac\n")
 				res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion}})
 				e.assertNothingHappened(res)
 				if !strings.Contains(res.stderr, "macOS Intel") {
@@ -1467,6 +1493,172 @@ func TestGetHiveHostRuleWithShippedAllowedHosts(t *testing.T) {
 			if got != want {
 				t.Errorf("host_allowed(%q) = %v, want %v", url, got, want)
 			}
+		}
+	})
+}
+
+func TestGetHiveTreatsRosettaAsAppleSilicon(t *testing.T) {
+	cases := map[string]string{
+		"translated process":         `case "$2" in sysctl.proc_translated) echo 1 ;; hw.optional.arm64) echo 0 ;; esac`,
+		"arm64 capable":              `case "$2" in sysctl.proc_translated) echo 0 ;; hw.optional.arm64) echo 1 ;; esac`,
+		"only the capability exists": `case "$2" in hw.optional.arm64) echo 1 ;; *) echo "unknown oid" >&2; exit 1 ;; esac`,
+	}
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for name, body := range cases {
+			t.Run(name, func(t *testing.T) {
+				e := newGhEnv(t)
+				label := "hive-" + ghVersion + "-darwin-arm64"
+				e.srv.archiveName = label + ".tar.gz"
+				e.setArchive(ghGoodEntries(label))
+				e.fakeBin("uname", "case \"$1\" in -s) echo Darwin ;; -m) echo x86_64 ;; esac\n")
+				e.fakeBin("sysctl", body+"\n")
+				res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion}})
+				if res.code != 0 {
+					t.Fatalf("exit %d\nstderr:\n%s", res.code, res.stderr)
+				}
+				if _, err := os.Stat(filepath.Join(e.packagesDir(), label, "install.sh")); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	})
+}
+
+func TestGetHiveDoesNotNeedSysctlOffDarwinIntel(t *testing.T) {
+	// The restricted-PATH test above has no sysctl and passes on this platform;
+	// on Linux x86_64 a missing sysctl must not matter either.
+	ghEachShell(t, func(t *testing.T, shell string) {
+		e := newGhEnv(t)
+		label := "hive-" + ghVersion + "-linux-amd64"
+		e.srv.archiveName = label + ".tar.gz"
+		e.setArchive(ghGoodEntries(label))
+		e.fakeBin("uname", "case \"$1\" in -s) echo Linux ;; -m) echo x86_64 ;; esac\n")
+		e.fakeBin("sysctl", "echo 'sysctl must not be called' >&2; exit 9\n")
+		res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion}})
+		if res.code != 0 || strings.Contains(res.stderr, "sysctl must not") {
+			t.Fatalf("exit %d\nstderr:\n%s", res.code, res.stderr)
+		}
+	})
+}
+
+func TestGetHiveAcceptsGoFlagSpellings(t *testing.T) {
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for _, spelling := range [][]string{{"--version", ghVersion}, {"-version", ghVersion}, {"--version=" + ghVersion}, {"-version=" + ghVersion}} {
+			t.Run(strings.Join(spelling, " "), func(t *testing.T) {
+				e := newGhEnv(t)
+				res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: append([]string{"--hosts", "a"}, spelling...)})
+				if res.code != 0 {
+					t.Fatalf("exit %d\nstderr:\n%s", res.code, res.stderr)
+				}
+				if got := e.recordLine("args:"); got != "args: [--hosts] [a]" {
+					t.Errorf("version spelling was not consumed: %q", got)
+				}
+				ghAssertRequests(t, e, ghExpectedRequests(e, false))
+			})
+		}
+		for _, flag := range []string{"--dry-run", "-dry-run", "--dry-run=true", "-dry-run=true", "--dry-run=1", "-dry-run=T", "--dry-run=TRUE"} {
+			t.Run("preview "+flag, func(t *testing.T) {
+				e := newGhEnv(t)
+				res := e.run(ghRun{shell: shell, script: e.script(e.missingTTY()), args: []string{"--version", ghVersion, flag}})
+				if res.code != 0 {
+					t.Fatalf("exit %d: %s must not need a terminal\nstderr:\n%s", res.code, flag, res.stderr)
+				}
+				if got, want := e.recordLine("args:"), "args: ["+flag+"]"; got != want {
+					t.Errorf("%q, want %q (forwarded unchanged)", got, want)
+				}
+			})
+		}
+		for _, flag := range []string{"--dry-run=false", "-dry-run=false", "--dry-run=0", "-dry-run=F"} {
+			t.Run("not a preview "+flag, func(t *testing.T) {
+				e := newGhEnv(t)
+				res := e.run(ghRun{shell: shell, script: e.script(e.missingTTY()), args: []string{"--version", ghVersion, flag}})
+				e.assertNothingHappened(res)
+				e = newGhEnv(t)
+				res = e.run(ghRun{shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion, flag}})
+				if res.code != 0 {
+					t.Fatalf("exit %d\nstderr:\n%s", res.code, res.stderr)
+				}
+				if got, want := e.recordLine("args:"), "args: ["+flag+"]"; got != want {
+					t.Errorf("%q, want %q", got, want)
+				}
+				if got := e.recordLine("stdin:"); got != "stdin:"+ghTTYAnswer {
+					t.Errorf("a real installation reads from the terminal: %q", got)
+				}
+			})
+		}
+		for _, args := range [][]string{{"--version="}, {"-version="}, {"-version=bad"}, {"--version=1.2"}, {"-version"}} {
+			e := newGhEnv(t)
+			res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: args})
+			if res.code == 0 || e.srv.count() != 0 {
+				t.Errorf("%q: exit %d, %d requests", args, res.code, e.srv.count())
+			}
+		}
+	})
+}
+
+func TestGetHiveRestoresWhenInterruptedRightAfterTheFirstMove(t *testing.T) {
+	signals := map[string]syscall.Signal{"INT": syscall.SIGINT, "TERM": syscall.SIGTERM, "HUP": syscall.SIGHUP}
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for name, sig := range signals {
+			t.Run(name, func(t *testing.T) {
+				e := newGhEnv(t)
+				ghFakeMv(t, e)
+				before := e.seedPrevious()
+				res := e.run(ghRun{
+					shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion},
+					env:    ghMvEnv(t, e, "HIVE_TEST_MV_FAIL_AT=1", "HIVE_TEST_MV_MODE=hangafter"),
+					signal: sig, signalMarker: filepath.Join(e.out, "mv-marker"),
+				})
+				// A signal exit prints nothing, so assertRejected's message check does not apply.
+				ghEqualTrees(t, ghSnapshot(t, e.packagesDir()), before, "packages folder")
+				if _, ran := e.recordText(); ran {
+					t.Error("install.sh ran after a signal")
+				}
+				if names := ghNames(t, e.tmp); len(names) != 0 {
+					t.Errorf("TMPDIR holds %v", names)
+				}
+				if want := 128 + int(sig); res.code != want {
+					t.Errorf("exit %d, want %d", res.code, want)
+				}
+			})
+		}
+	})
+}
+
+func TestGetHiveKeepsTheNewPackageWhenInterruptedRightAfterTheSecondMove(t *testing.T) {
+	signals := map[string]syscall.Signal{"INT": syscall.SIGINT, "TERM": syscall.SIGTERM, "HUP": syscall.SIGHUP}
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for name, sig := range signals {
+			t.Run(name, func(t *testing.T) {
+				e := newGhEnv(t)
+				ghFakeMv(t, e)
+				e.seedPrevious()
+				res := e.run(ghRun{
+					shell: shell, script: e.script(e.tty), args: []string{"--version", ghVersion},
+					env:    ghMvEnv(t, e, "HIVE_TEST_MV_FAIL_AT=2", "HIVE_TEST_MV_MODE=hangafter"),
+					signal: sig, signalMarker: filepath.Join(e.out, "mv-marker"),
+				})
+				if want := 128 + int(sig); res.code != want {
+					t.Errorf("exit %d, want %d", res.code, want)
+				}
+				if strings.Contains(res.stderr, "kept at") {
+					t.Errorf("the swap finished, so no failure should be reported:\n%s", res.stderr)
+				}
+				want := []string{"hive-1.0.0-" + e.osName + "-" + e.arch, e.label}
+				sort.Strings(want)
+				if names := ghNames(t, e.packagesDir()); strings.Join(names, ",") != strings.Join(want, ",") {
+					t.Errorf("packages folder holds %v, want %v (no hidden previous copy)", names, want)
+				}
+				if data, err := os.ReadFile(filepath.Join(e.packagesDir(), e.label, "VERSION")); err != nil || string(data) != ghVersion+"\n" {
+					t.Errorf("the new package is not in place: %q, %v", data, err)
+				}
+				if _, ran := e.recordText(); ran {
+					t.Error("install.sh ran after a signal")
+				}
+				if names := ghNames(t, e.tmp); len(names) != 0 {
+					t.Errorf("TMPDIR holds %v", names)
+				}
+			})
 		}
 	})
 }
