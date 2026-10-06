@@ -10,10 +10,12 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-06
+
 ### Added
 
 - Documentation site in `site/`, with one page per flow (research, plan, build,
-  close); it is published with the next release.
+  close), published at https://hive.tricell.tech/ from this release on.
 
 ### Changed
 
