@@ -2,8 +2,8 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado en `development` el 2026-09-29 con el [PR #69](https://github.com/JhonHawk/tricell-hive/pull/69) (merge `31cdd43`), con la CI en verde; #62 y #64 cerrados |
-| Tracker · GitHub Issues | • [#64 — chore: run -race only when it adds value, add CI, and scope tests/pilot](https://github.com/JhonHawk/tricell-hive/issues/64)<br>• [#62 — test(management): skip fsync in tests to cut package time](https://github.com/JhonHawk/tricell-hive/issues/62) |
+| Estado | Cerrado · integrado en `development` el 2026-09-29 con el [PR #69](https://github.com/JhonHawk/tricell-hive-private/pull/69) (merge `31cdd43`), con la CI en verde; #62 y #64 cerrados |
+| Tracker · GitHub Issues | • [#64 — chore: run -race only when it adds value, add CI, and scope tests/pilot](https://github.com/JhonHawk/tricell-hive-private/issues/64)<br>• [#62 — test(management): skip fsync in tests to cut package time](https://github.com/JhonHawk/tricell-hive-private/issues/62) |
 | Git | `automatic` · publicar `development` desde la punta de `rebuild/harness-engineering`, rama `feat/gh-64-ci-and-fast-local-tests`, PR a `development`, `/code-review` antes del push, CI en verde, merge · sin parada humana |
 | Verificación | `go vet ./...` · `go test ./...` · un `go test -race` final en la CI del PR · medición de tiempos contra la base · pruebas de Python |
 | Siguiente paso | Ninguno en este cambio. La primera CI tardó 27 min, así que #60 y #61 son el siguiente recorte de tiempo |

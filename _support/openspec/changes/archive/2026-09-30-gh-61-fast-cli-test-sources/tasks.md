@@ -136,7 +136,7 @@ Aceptados:
 - **N4:** un solo CLI y `PlanUnchanged` en T3.
 - **N5:** las referencias a T5 y T6 corregidas.
 
-Construcción (2026-09-30): commits `c45a740` (T1), `901d1b7` (chequeo de T3) y `14eb3fc` (T2 y la prueba del catálogo real), y [PR #71](https://github.com/JhonHawk/tricell-hive/pull/71).
+Construcción (2026-09-30): commits `c45a740` (T1), `901d1b7` (chequeo de T3) y `14eb3fc` (T2 y la prueba del catálogo real), y [PR #71](https://github.com/JhonHawk/tricell-hive-private/pull/71).
 
 `/code-review` devolvió diez hallazgos.
 

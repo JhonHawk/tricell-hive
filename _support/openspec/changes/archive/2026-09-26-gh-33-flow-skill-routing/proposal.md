@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · T1–T3 completos; integrado en `rebuild/harness-engineering` (`de3235e`) y desplegado |
-| Tracker · GitHub Issues | • [#34 — límites del modelo de trazas](https://github.com/JhonHawk/tricell-hive/issues/34)<br>• [#33 — Despliegue sin recorrido funcional: producción en blanco (Grok, globex)](https://github.com/JhonHawk/tricell-hive/issues/33) |
+| Tracker · GitHub Issues | • [#34 — límites del modelo de trazas](https://github.com/JhonHawk/tricell-hive-private/issues/34)<br>• [#33 — Despliegue sin recorrido funcional: producción en blanco (Grok, globex)](https://github.com/JhonHawk/tricell-hive-private/issues/33) |
 | Git | `direct-base` (D21-A) · commit `de3235e` con push a `rebuild/harness-engineering` |
 | Verificación | `go test ./...` · `-race` · `go vet` · caso de regresión nuevo · `/code-review` |
 | Siguiente paso | Ninguno; los límites quedan en #34 |

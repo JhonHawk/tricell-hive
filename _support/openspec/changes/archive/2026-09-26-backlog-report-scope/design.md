@@ -27,4 +27,4 @@ La prueba con Haiku está en la evidencia (historical evidence omitted from publ
   - No revisa el texto de la pregunta nativa.
   - No cuenta los IDs en negrita dentro de la prosa.
   - Un párrafo que compara legítimamente tres tickets cuenta como fallo. Es coherente con la regla.
-  - H1 (seguir el corte pedido) no se expresa. Queda en [#39 (juzgar el corte pedido)](https://github.com/JhonHawk/tricell-hive/issues/39).
+  - H1 (seguir el corte pedido) no se expresa. Queda en [#39 (juzgar el corte pedido)](https://github.com/JhonHawk/tricell-hive-private/issues/39).

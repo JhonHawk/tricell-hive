@@ -53,7 +53,7 @@
 ### T3 — Verificación conjunta, nota en #36 y entrega
 
 - [x] `go vet ./...` y `go test -race -count=1 ./...` en verde, en el árbol de trabajo sin cambios ajenos, sobre `a64fd38` más este cambio.
-- [x] [Comentario en #36](https://github.com/JhonHawk/tricell-hive/issues/36#issuecomment-5850900888) (D2-A): por qué la regla 3 queda fuera y por qué las reglas 1 y 2 se unieron en tramos.
+- [x] [Comentario en #36](https://github.com/JhonHawk/tricell-hive-private/issues/36#issuecomment-5850900888) (D2-A): por qué la regla 3 queda fuera y por qué las reglas 1 y 2 se unieron en tramos.
 - [x] Entrega según [proposal.md](proposal.md#entrega) (E1-A, E3-A):
   - **Commit y push:** `5bf5b19` (20 rutas, gitleaks sin hallazgos), con push a `rebuild/harness-engineering`; la cabeza remota es `5bf5b19`.
   - **Release:** `86b08f50d04a`, desplegada desde un worktree limpio en `5bf5b19` (plan `b68e02a811c3`), con 431 recursos `installed`.

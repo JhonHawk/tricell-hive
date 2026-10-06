@@ -91,7 +91,7 @@ Cerrado el 2026-10-02.
   - Ronda 1, solo estilo: A falló 4 de 5 y B 3 de 5, con un tope de 2.
   - Ronda 2, con la oración de contenido sobre la opción elegida: A falló 2 de 4 y B 2 de 3. Ya no podía ganar y se detuvo.
   - No hubo regresiones. Es la segunda reescritura de estilo que no gana una comparación, después de `2026-09-27-communication-recipe`.
-- **Lo que queda integrado:** el criterio `no_execution_prep_on_question`, el reconocimiento de IDs definidos en el prompt en `cited_id_glossed` y los casos `question-worktree`, `question-fix-record` y `cited-id-followup` ([PR 106](https://github.com/JhonHawk/tricell-hive/pull/106), `07b4b86`).
+- **Lo que queda integrado:** el criterio `no_execution_prep_on_question`, el reconocimiento de IDs definidos en el prompt en `cited_id_glossed` y los casos `question-worktree`, `question-fix-record` y `cited-id-followup` ([PR 106](https://github.com/JhonHawk/tricell-hive-private/pull/106), `07b4b86`).
 - **Lo que no se integra:** la rama `feat/plain-style-rules-b` (commits `c5b82f3` y `d279b72`). Queda local y sin publicar, a decisión del usuario.
 - **Hallazgos:**
   - Con la guía vigente, Codex `gpt-6.1-sol` (perfil `execution`) modificó el registro en 3 de 3 corridas de `question-fix-record`. Grok no falló nunca ese caso.

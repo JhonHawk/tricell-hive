@@ -62,7 +62,7 @@ Anotar el resultado en `design.md`. Si en Pi `max` se descarta con `inherit`, D5
 - Agregar una frase propia para los hosts donde las excepciones no tienen efecto: en Grok y Cursor todos los roles heredan el esfuerzo de la sesión, y en OpenCode todos corren en `#max`.
 - Registrar que la traducción de D5-A usa la escala del host, no la del modelo: en un rol `inherit`, `max` depende del modelo de la sesión.
 - Registrar el límite para volver a releases anteriores.
-- Hallazgo incidental del conteo D1-A: la base de OpenCode registra llamadas `task` con `subagent_type`, mientras la tabla de dialectos dice `subagent` con `agent` en V2. Queda abierto en [#32](https://github.com/JhonHawk/tricell-hive/issues/32), sin tocar la fila.
+- Hallazgo incidental del conteo D1-A: la base de OpenCode registra llamadas `task` con `subagent_type`, mientras la tabla de dialectos dice `subagent` con `agent` en V2. Queda abierto en [#32](https://github.com/JhonHawk/tricell-hive-private/issues/32), sin tocar la fila.
 
 **Verificación:** `rg -n 'claude_effort' _support/docs` no devuelve resultados. Una lectura final confirma que la tabla de perfiles coincide con `agent-profiles.json`.
 

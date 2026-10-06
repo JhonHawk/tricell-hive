@@ -2,8 +2,8 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #71](https://github.com/JhonHawk/tricell-hive/pull/71) (merge `c08388e`), con la CI en verde en 8 min 20 s; #59 cerrado y #61 abierto con la parte de datos fijados |
-| Tracker · GitHub Issues | • [#61 — test: use fixtures instead of the real repository tree and data](https://github.com/JhonHawk/tricell-hive/issues/61) (solo la parte de velocidad, D1-A)<br>• [#59 — test(cli): no_CLI_hosts update subtest waits about 60 s](https://github.com/JhonHawk/tricell-hive/issues/59) |
+| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #71](https://github.com/JhonHawk/tricell-hive-private/pull/71) (merge `c08388e`), con la CI en verde en 8 min 20 s; #59 cerrado y #61 abierto con la parte de datos fijados |
+| Tracker · GitHub Issues | • [#61 — test: use fixtures instead of the real repository tree and data](https://github.com/JhonHawk/tricell-hive-private/issues/61) (solo la parte de velocidad, D1-A)<br>• [#59 — test(cli): no_CLI_hosts update subtest waits about 60 s](https://github.com/JhonHawk/tricell-hive-private/issues/59) |
 | Git | `automatic` · rama `feat/gh-61-fast-cli-test-sources` desde `development`, PR a `development`, `/code-review` antes del push, CI en verde, merge · sin parada humana |
 | Verificación | `go vet ./...` · `go test ./...` · tiempos con y sin `-race` · CI del PR |
 | Siguiente paso | Ninguno en este cambio. Lo que queda de #61 son las pruebas atadas a datos del repositorio |

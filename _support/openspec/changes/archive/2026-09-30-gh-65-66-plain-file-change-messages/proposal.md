@@ -2,8 +2,8 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #75](https://github.com/JhonHawk/tricell-hive/pull/75) (merge `3f24787`); #65 y #66 cerrados |
-| Tracker · GitHub Issues | • [#65 — Vista CLIs: el aviso de archivo cambiado dice que quitar se rechaza, pero Uninstall all funciona](https://github.com/JhonHawk/tricell-hive/issues/65)<br>• [#66 — Vista CLIs: agregar Cursor con una skill editada muestra «modified managed skill» sin explicación](https://github.com/JhonHawk/tricell-hive/issues/66) |
+| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #75](https://github.com/JhonHawk/tricell-hive-private/pull/75) (merge `3f24787`); #65 y #66 cerrados |
+| Tracker · GitHub Issues | • [#65 — Vista CLIs: el aviso de archivo cambiado dice que quitar se rechaza, pero Uninstall all funciona](https://github.com/JhonHawk/tricell-hive-private/issues/65)<br>• [#66 — Vista CLIs: agregar Cursor con una skill editada muestra «modified managed skill» sin explicación](https://github.com/JhonHawk/tricell-hive-private/issues/66) |
 | Git | `automatic` · rama `feat/gh-65-66-plain-file-change-messages` desde `development`, PR a `development`, `/code-review` antes del push, merge · sin CI |
 | Verificación | pruebas por paquete · suite local · `hive-review-ux` y `hive-verify-change` en `tmux` |
 | Siguiente paso | Ninguno en este cambio |

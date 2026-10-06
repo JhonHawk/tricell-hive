@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado en `rebuild/harness-engineering` con `085d889` |
-| Tracker · GitHub Issues | • [#31 — Casos de regresión deterministas para hallazgos de sesiones](https://github.com/JhonHawk/tricell-hive/issues/31) |
+| Tracker · GitHub Issues | • [#31 — Casos de regresión deterministas para hallazgos de sesiones](https://github.com/JhonHawk/tricell-hive-private/issues/31) |
 | Git | direct-base · `rebuild/harness-engineering` · sin parada humana; `/code-review` antes del push |
 | Verificación | `go test -race ./...` · `go vet ./...` · fixtures que fallan y que pasan por criterio |
 | Siguiente paso | Fase 2 en #31 (G3, S4, S2, parser de Cursor y auditor de sesiones) |

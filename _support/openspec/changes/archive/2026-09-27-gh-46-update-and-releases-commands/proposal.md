@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado en `rebuild/harness-engineering` (`390a0cb`) · sin despliegue |
-| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive/issues/46) (primera entrega, sin la TUI)<br>• [#42 — Diferido: extraer el despacho de subcomandos de los run del CLI y del empaquetador](https://github.com/JhonHawk/tricell-hive/issues/42) (solo el `run` del CLI) |
+| Tracker · GitHub Issues | • [#46 — Instalador TUI: CLIs, voz y tono, estado, diagnóstico, modelos por rol, proyecto e integraciones](https://github.com/JhonHawk/tricell-hive-private/issues/46) (primera entrega, sin la TUI)<br>• [#42 — Diferido: extraer el despacho de subcomandos de los run del CLI y del empaquetador](https://github.com/JhonHawk/tricell-hive-private/issues/42) (solo el `run` del CLI) |
 | Git | `direct-base` a `rebuild/harness-engineering` · sin PR · `/code-review` antes del push · sin despliegue |
 | Verificación | `go vet ./...` · `go test -race ./...` · prueba local de `update --dry-run` y `releases` sobre el estado real, solo lectura |
 | Siguiente paso | Ninguno en este cambio. #46 sigue abierto para la TUI (con `huh`) y las demás pantallas |

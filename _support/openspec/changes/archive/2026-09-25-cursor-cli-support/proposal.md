@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · T1–T4 completos; integrado en `rebuild/harness-engineering` (`e678cd9`, `2fd052c`) y desplegado (release `1d2bcbecb084`) |
-| Tracker · GitHub Issues | • [#30 — tabla de selección por host frente a regla por capacidad (R2)](https://github.com/JhonHawk/tricell-hive/issues/30), cerrado |
+| Tracker · GitHub Issues | • [#30 — tabla de selección por host frente a regla por capacidad (R2)](https://github.com/JhonHawk/tricell-hive-private/issues/30), cerrado |
 | Git | `direct-base` (D11-A) · `e678cd9` (Cursor) y `2fd052c` (R2) con push a `rebuild/harness-engineering` |
 | Verificación | `go test ./...` · `-race` · `go vet` · prueba Python de `harness-audit` · `/code-review` · in vivo (T4, autorización aparte) |
 | Siguiente paso | Ninguno; agregar el puntero HA-IF-18 en los proyectos que usen Cursor, en su propia sesión |
@@ -20,7 +20,7 @@ Incluye:
 
 - Adaptador `cursor` en el gestor, solo scope usuario.
 - Roles de Hive renderizados en `~/.cursor/agents/` con el formato de Cursor, y Cursor como sexto host de `integrations/agent-profiles.json` (D7-C).
-- R2 (D10-A, 2026-09-25): la tabla "Native role selection hints" sale de `global.md` y queda una regla por capacidad ("A role the tool does not list counts as lacking role selection; read its contract from the installed role file."), probada en los seis hosts en el [#30](https://github.com/JhonHawk/tricell-hive/issues/30). La tabla, con la fila de Cursor, pasa a `agent-delivery.md` como referencia de mantenimiento.
+- R2 (D10-A, 2026-09-25): la tabla "Native role selection hints" sale de `global.md` y queda una regla por capacidad ("A role the tool does not list counts as lacking role selection; read its contract from the installed role file."), probada en los seis hosts en el [#30](https://github.com/JhonHawk/tricell-hive-private/issues/30). La tabla, con la fila de Cursor, pasa a `agent-delivery.md` como referencia de mantenimiento.
 - Texto canónico del puntero y su comprobación en `harness-audit`.
 - Documentación del gestor, la distribución y la lista de hosts objetivo.
 - Verificación in vivo en Cursor con dos modelos, y comprobación de que el puntero no duplica la guía en Claude Code ni Codex.

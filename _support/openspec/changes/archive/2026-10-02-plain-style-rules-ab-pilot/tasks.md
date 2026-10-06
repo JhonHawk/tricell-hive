@@ -204,7 +204,7 @@ No hay verificación en vivo ni de interfaz: no cambia ninguna pantalla, y el co
   - AC1, AC2 y AC3 cumplidos.
   - Límite: ninguna prueba falla si se borra la llamada a `setupInitialCommit` en `main()`. La primera corrida real de T3 lo comprueba.
   - `go test -count=1 ./...` pasa.
-  - Entrega: commit `a8146b4`, [PR 106](https://github.com/JhonHawk/tricell-hive/pull/106), integrado en `development` en `07b4b86`. Solo toca `tests/`, así que no hace falta `hive update`, y la actualización automática queda suspendida durante el piloto (D8-A).
+  - Entrega: commit `a8146b4`, [PR 106](https://github.com/JhonHawk/tricell-hive-private/pull/106), integrado en `development` en `07b4b86`. Solo toca `tests/`, así que no hace falta `hive update`, y la actualización automática queda suspendida durante el piloto (D8-A).
 - **T3:** en curso desde el 2026-10-02. Seis procesos en segundo plano (3 casos × 2 hosts), cada uno hasta 5 corridas válidas con un tope de 8 intentos. Resumen en `runs/summary.tsv`.
   - En Codex, `Protected global resources preserved` sale `fail`. La evidencia es solo el `config.toml` del home paralelo de la corrida, donde Codex inserta su entrada de confianza.
   - `--allow-native-trust` solo cambia esa evaluación (`tests/pilot/main.go:608-615`), no el comportamiento del modelo. Se omite igual en A y en B.

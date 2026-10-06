@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #77](https://github.com/JhonHawk/tricell-hive/pull/77) (merge `f95ea11`); especificación `versioned-installation` actualizada |
+| Estado | Cerrado · integrado en `development` el 2026-09-30 con el [PR #77](https://github.com/JhonHawk/tricell-hive-private/pull/77) (merge `f95ea11`); especificación `versioned-installation` actualizada |
 | Tracker · GitHub Issues | Sin ticket: es el hallazgo H1 del cierre de #65 y #66, y el usuario pidió resolverlo directamente |
 | Git | `automatic` · rama `feat/reinstall-missing-managed-files` desde `development`, PR a `development`, `/code-review` antes del push, merge · sin CI |
 | Verificación | pruebas por paquete · suite local · `hive-verify-change` con el binario real en un `HOME` temporal |

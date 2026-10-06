@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Cerrado · integrado en `rebuild/harness-engineering` con f1272fc; requisitos en `specs/versioned-installation/spec.md` |
-| Tracker · GitHub Issues | [#29 — instalación de pi-subagents](https://github.com/JhonHawk/tricell-hive/issues/29), para esa parte; sin issue general |
+| Tracker · GitHub Issues | [#29 — instalación de pi-subagents](https://github.com/JhonHawk/tricell-hive-private/issues/29), para esa parte; sin issue general |
 | Git | Entrega autorizada el 2026-09-26 (E1-A: commit, cierre y push) sobre la base `rebuild/harness-engineering`, en lugar de `hold` (D4-A) · sin publicación |
 | Verificación | Tests Go · terminal y paquetes en hogares sintéticos · integración de proveedores por plataforma · revisión del plan completada |
 | Siguiente paso | Ninguno en este cambio; pendientes fuera de él: gates de publicación, validación nativa de proveedores e issues #29, #36 y #37 |
@@ -54,7 +54,7 @@ El checkout tiene cambios ajenos en agentes, perfiles, guía y pruebas. Solo est
 
 ## Entrega
 
-Entregado. E1-A (2026-09-26) reemplazó el modo `hold` de D4-A: commit, cierre y push directo a `rebuild/harness-engineering` en f1272fc y 8214e72. Antes de entregar, la implementación pasó la revisión de D5-A (`review-code` y `review-refuter`), además de `review-ux` y dos rondas de `sdd-verify`, y se recorrió en nativo en Linux x86_64. Los hallazgos diferidos de esa revisión que siguen abiertos están en [#40](https://github.com/JhonHawk/tricell-hive/issues/40). Publicación y HOME real quedan separados.
+Entregado. E1-A (2026-09-26) reemplazó el modo `hold` de D4-A: commit, cierre y push directo a `rebuild/harness-engineering` en f1272fc y 8214e72. Antes de entregar, la implementación pasó la revisión de D5-A (`review-code` y `review-refuter`), además de `review-ux` y dos rondas de `sdd-verify`, y se recorrió en nativo en Linux x86_64. Los hallazgos diferidos de esa revisión que siguen abiertos están en [#40](https://github.com/JhonHawk/tricell-hive-private/issues/40). Publicación y HOME real quedan separados.
 
 Historial: en la planificación, D4-A fijaba `hold` (verificar en aislamiento y entregar diff y recorrido humano, sin commits) y D5-A autorizaba la revisión con `review-code` y `review-refuter` tras las pruebas.
 

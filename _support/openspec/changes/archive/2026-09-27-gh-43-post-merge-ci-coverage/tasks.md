@@ -25,11 +25,11 @@
 
 - [x] Comentario en #43 con D1-A, D2-A, D5-A y D6-A, el caso de ark ARK-734 como segunda evidencia ([design.md](design.md#contexto-verificado)) y el commit de T3.
 
-**Evidencia (T2):** [comentario en #43](https://github.com/JhonHawk/tricell-hive/issues/43#issuecomment-5854590714). `review-task` nativo dio AC4 como `met`: el comentario contiene `71fcebe`, ARK-734, D1-A, D2-A, D5-A y D6-A.
+**Evidencia (T2):** [comentario en #43](https://github.com/JhonHawk/tricell-hive-private/issues/43#issuecomment-5854590714). `review-task` nativo dio AC4 como `met`: el comentario contiene `71fcebe`, ARK-734, D1-A, D2-A, D5-A y D6-A.
 
 **Closes:** AC4.
 **Depende de:** T3 (el comentario cita el commit integrado).
-**Ubicaciones:** [#43](https://github.com/JhonHawk/tricell-hive/issues/43).
+**Ubicaciones:** [#43](https://github.com/JhonHawk/tricell-hive-private/issues/43).
 **Ejecución:** hilo principal; es una escritura en el tracker, que se queda en el hilo principal.
 **Enfoque de prueba:** `check`: el último comentario de #43 contiene cada elemento de AC4.
 **Verificación:** `gh issue view 43 --json comments -q '.comments[-1].body'` contiene el SHA del commit de T3, "ARK-734", "D1-A", "D2-A", "D5-A" y "D6-A".

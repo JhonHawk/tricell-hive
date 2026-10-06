@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado · PR [#68](https://github.com/JhonHawk/tricell-hive/pull/68) mergeado en `rebuild/harness-engineering` (`e9c4c01`) |
+| Estado | Cerrado · PR [#68](https://github.com/JhonHawk/tricell-hive-private/pull/68) mergeado en `rebuild/harness-engineering` (`e9c4c01`) |
 | Tracker · GitHub Issues | Sin issue; hallazgos H1 y H2 de la auditoría del 2026-09-29, resueltos sin abrir ticket por decisión del usuario |
 | Git | Automático · PR a `rebuild/harness-engineering`, merge tras T4 · cierre del registro por push directo |
 | Verificación | TDD en `integrations/agents` · `rg` por criterio · `go vet` · `go test ./...` · `update --dry-run` |

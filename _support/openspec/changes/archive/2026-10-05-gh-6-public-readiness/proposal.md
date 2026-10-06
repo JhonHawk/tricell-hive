@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Cerrado el 2026-10-05 · integrado por el [PR #7](https://github.com/JhonHawk/tricell-hive/pull/7) (merge `e61bf3c` tras la reescritura); `master` y [v0.1.0](https://github.com/JhonHawk/tricell-hive/releases/tag/v0.1.0) publicados · la visibilidad pública queda fuera (autorización aparte) |
+| Estado | Cerrado el 2026-10-05 · integrado por el el PR #7 del repositorio previo a la publicación (merge `e61bf3c` tras la reescritura); `master` y [v0.1.0](https://github.com/JhonHawk/tricell-hive/releases/tag/v0.1.0) publicados · la visibilidad pública queda fuera (autorización aparte) |
 | Tracker · GitHub Issues | • [#6 — Preparar el repositorio para publicarlo](https://github.com/JhonHawk/tricell-hive/issues/6) |
 | Git | interactiva · rama → validación de la documentación y las imágenes → PR → `/code-review` → merge a `development` → reescritura del historial → `master` → `v0.1.0` |
 | Verificación | suite local · prueba del paquete · instalación de prueba del paquete descargado |
