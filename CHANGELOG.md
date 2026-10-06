@@ -8,24 +8,6 @@ the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- A content test that keeps `THIRD_PARTY_NOTICES.md` in sync with `go.mod` and
-  the local Go toolchain.
-
-### Changed
-
-- Installation now refuses a package that lacks `LICENSE` or
-  `THIRD_PARTY_NOTICES.md`.
-
-### Removed
-
-- The `hive bootstrap` subcommand. Plans and onboarding journals written by it
-  (they carry an `installer` field) are still read and the field is ignored, so
-  `hive recover` keeps working on that state.
-- The package outputs `versions/<v>/index.json` and the raw per-platform `hive`
-  and `hive.sha256` files next to the archives.
-
 ## [0.1.0] - 2026-10-05
 
 First public release.
@@ -45,9 +27,12 @@ First public release.
 - Downloadable packages on GitHub Releases for macOS Apple Silicon (arm64) and
   Linux arm64 and amd64. Each package includes the executable, content,
   verification inventory, `LICENSE`, and `THIRD_PARTY_NOTICES.md`, and installs
-  offline with `./install.sh`.
+  offline with `./install.sh`. Installation refuses a package that lacks the
+  license files, and a content test keeps the notices in sync with `go.mod` and
+  the Go toolchain.
 
 ### Removed
 
-- The `bootstrap.sh` online installer. Install from a complete package or a
-  source checkout instead.
+- The `bootstrap.sh` online installer and the `hive bootstrap` subcommand.
+  Install from a complete package or a source checkout instead. State written by
+  the retired subcommand (an `installer` field) is still read and ignored.
