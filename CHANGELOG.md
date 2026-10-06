@@ -5,6 +5,8 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release sets [VERSION](VERSION) to its version; between releases it reads `dev`.
+[CONTRIBUTING.md](CONTRIBUTING.md#releases-and-version-numbers) says which changes
+raise the minor or the patch version.
 
 ## [Unreleased]
 
@@ -16,9 +18,12 @@ Each release sets [VERSION](VERSION) to its version; between releases it reads `
 ### Changed
 
 - The `starlight-docs-site` template pins Astro 7.3.5, Starlight 0.42.4, and
-  pnpm 12.8.1, and denies the `esbuild` install script it does not need.
+  pnpm 12.8.1, denies the `esbuild` install script it does not need, and ships a
+  `biome.json` so `pnpm lint` ignores build output.
 - `README.md`, `llms.txt`, and pages of the documentation site are updated in
   the same pull request as any change to what they state.
+- `CONTRIBUTING.md` defines what the version number tracks and when a release
+  raises the minor or the patch version.
 
 ## [0.2.0] - 2026-10-05
 

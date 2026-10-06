@@ -39,6 +39,28 @@ describes what the tests cover.
   [README and llms.txt](AGENTS.md#readme-and-llmstxt) section of `AGENTS.md`
   describes.
 
+## Releases and version numbers
+
+The version number tracks what the installer delivers: the `hive` binary (its
+commands and flags), the installed content (shared guidance, skills, and roles),
+the supported hosts, and the package format. Changes elsewhere, such as the
+documentation site in `site/`, the README, `_support/`, or tests, ship with the
+next release but do not change the number by themselves.
+
+While the version is below 1.0:
+
+- Raise the minor version (`0.x.0`) for a change users notice in what Hive does:
+  adding, removing, or renaming a skill, role, flow, supported host, command,
+  flag, or installation route; a guidance change that alters how agents work; or
+  any incompatible change, which also needs a migration note in the changelog.
+- Raise the patch version (`0.x.y`) for everything else that reaches users:
+  defect fixes, wording that restores the intended behavior, dependency or
+  template version updates, and documentation.
+
+The documentation site is published from `master`, so a change that touches only
+the site waits for the next release, or goes out in a patch release when it
+cannot wait.
+
 ## Language
 
 Write everything that goes into source files in English: identifiers, file and
