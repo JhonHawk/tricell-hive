@@ -325,6 +325,8 @@ native locations. The files an agent should read first are in
   change records under `_support/openspec/`. It is not installed.
 - `tests/` holds content checks, fixtures, and evaluation tooling. It is not
   installed.
+- `site/` is the source of the documentation site for people. It is
+  not installed.
 - The root [AGENTS.md](AGENTS.md) is maintainer guidance for this repository, not
   guidance to copy into another project.
 

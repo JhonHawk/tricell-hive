@@ -13,6 +13,7 @@ Reviewed: 2026-09-25. The shared guidance, activity skills, six host adapters, G
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
 | `tooling/package/` | Offline package builder | Builds complete platform packages on demand |
 | `tests/{content,fixtures,pilot,skills}/` | Content, fixture, pilot, and skill verification | Integration and management tests live beside their Go packages |
+| `site/` | Documentation site for people | Starlight site published from `master`; not packaged or deployed by the manager |
 | `_support/docs/` | Durable research and decisions | Existing |
 | `_support/sessions/` | Resumable work records | Available |
 | `_support/evidence/` | Curated evidence suitable for version control | Available |

@@ -2,7 +2,7 @@
 
 > Hive is a portable guidance layer for deliberate work with coding agents. It supplies shared rules, activity skills, and specialist role definitions, plus a Go manager that installs them into the native locations of Claude Code, Codex, Grok Build, Pi, OpenCode V2, and Cursor CLI. Each host keeps its own model loop, authentication, tools, permissions, and history.
 
-Distributable content lives in `content/` and `integrations/`; the manager is in `tooling/`. `_support/`, `tests/`, and the root `AGENTS.md` are maintainer material for this repository and are not installed. Links are relative to the repository root.
+Distributable content lives in `content/` and `integrations/`; the manager is in `tooling/`. `_support/`, `tests/`, and the root `AGENTS.md` are maintainer material for this repository and are not installed; `site/` is the documentation site for people and is not installed either. Links are relative to the repository root.
 
 ## Docs
 

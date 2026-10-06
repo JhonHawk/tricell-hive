@@ -8,6 +8,18 @@ Each release sets [VERSION](VERSION) to its version; between releases it reads `
 
 ## [Unreleased]
 
+### Added
+
+- Documentation site in `site/`, with one page per flow (research, plan, build,
+  close); it is published with the next release.
+
+### Changed
+
+- The `starlight-docs-site` template pins Astro 7.3.5, Starlight 0.42.4, and
+  pnpm 12.8.1, and denies the `esbuild` install script it does not need.
+- `README.md`, `llms.txt`, and pages of the documentation site are updated in
+  the same pull request as any change to what they state.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added

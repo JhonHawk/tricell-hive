@@ -1,0 +1,6 @@
+allowBuilds:
+  # esbuild ships its platform binary as an optional dependency, so its install script is not needed.
+  esbuild: false
+  # workerd (a wrangler dependency) ships its platform binary as an optional dependency;
+  # its install script only validates it, so it is not needed for deploy or local dev.
+  workerd: false
