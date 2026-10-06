@@ -9,7 +9,7 @@ Use this skill when readers need a maintained, searchable documentation site. A 
 
 Choose a mode before editing:
 
-- **scaffold**: copy either [user-manual assets](assets/user-manual/) or [spec-site assets](assets/spec-site/) into the explicitly chosen project location. Preserve every established choice of an existing project, including its package manager, locale, theme, content model, and deployment. The supplied assets use exact compatible baseline versions: Astro 7.0.7, Starlight 0.41.3, TypeScript 6.0.3, and pnpm 11.21.0.
+- **scaffold**: copy either [user-manual assets](assets/user-manual/) or [spec-site assets](assets/spec-site/) into the explicitly chosen project location. Preserve every established choice of an existing project, including its package manager, locale, theme, content model, and deployment. The supplied assets use exact compatible baseline versions: Astro 7.3.5, Starlight 0.42.4, TypeScript 6.0.3, and pnpm 12.8.1. Their `pnpm-workspace.yaml` only records which dependency install scripts may run; in a project that already has a pnpm workspace, merge its `allowBuilds` entries into the existing file instead of copying it.
 - **page**: add or revise a page in an existing site, using its established content structure and navigation. Do not create empty page trees.
 - **audit**: check the built site, internal links, page metadata, heading order, keyboard navigation, and meaningful alternative text. Record failures with their page and impact. Report observations separately from changes; do not repair unless authorized.
 
