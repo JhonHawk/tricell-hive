@@ -11,7 +11,7 @@ Use Plan when a change touches several places, has trade-offs you should decide,
 
 Example requests:
 
-```text
+```text wrap
 Plan the API change, including compatibility and acceptance checks.
 Plan moving our uploads to the new storage service. Ask me before choosing anything that affects existing data.
 Break this feature into tasks I can review one at a time.
@@ -48,19 +48,19 @@ A short plan can live in the conversation. When work will span sessions, or you 
 
 ## FAQ
 
-**Do I need a plan for a small change?**
+### Do I need a plan for a small change?
 No. A small change you already understand can go straight to Build. Keep its checks in the conversation.
 
-**Does a ready plan mean the agent may start building?**
+### Does a ready plan mean the agent may start building?
 No. The plan states the next step, but starting the work still needs your instruction, unless you already gave it.
 
-**Will the agent ask me many questions?**
+### Will the agent ask me many questions?
 It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself.
 
-**Why are the criteria numbered?**
+### Why are the criteria numbered?
 Each one is checked later, so every criterion must be testable and covered by at least one task.
 
-**Where is the exact rule?**
+### Where is the exact rule?
 See the source linked below.
 
 Source: [content/skills/flow-plan/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)

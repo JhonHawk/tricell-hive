@@ -11,7 +11,7 @@ Use Close when work reaches its completion point (usually merged into the base b
 
 Example requests:
 
-```text
+```text wrap
 Close this work item and clean up only the temporary resources it created.
 Pause this work. Leave the plan on disk and tell me what is still open.
 Clean up the session.
@@ -45,19 +45,19 @@ The agent goes through these steps in order:
 
 ## FAQ
 
-**What does Close delete?**
+### What does Close delete?
 Only temporary files and processes created by the current task, plus branches that are merged. Anything else is kept.
 
-**Does Close mean the work is shipped?**
+### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.
 
-**What if I only want to stop for now?**
+### What if I only want to stop for now?
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
-**Do I have to answer the closing question?**
+### Do I have to answer the closing question?
 It is how the agent offers the next route. Choosing to end the session is a valid answer.
 
-**Where is the exact rule?**
+### Where is the exact rule?
 See the source linked below.
 
 Source: [content/skills/flow-close/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md)

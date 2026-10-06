@@ -16,7 +16,7 @@ Use Research when the next step depends on facts you do not have yet.
 
 Example requests:
 
-```text
+```text wrap
 Investigate why this endpoint times out. Read only; report evidence and options.
 Compare the two queue libraries we could use and tell me which fits this project.
 What is the real delivery state of the billing work? Check tickets, code and pull requests.
@@ -50,19 +50,19 @@ When the findings suggest work you could start, the agent names the route it rec
 
 ## FAQ
 
-**Does research give the agent permission to implement the fix?**
+### Does research give the agent permission to implement the fix?
 No. A question, an investigation or a recommendation is not a go-ahead. You still choose the route and approve the work.
 
-**Will it write a report file?**
+### Will it write a report file?
 Only if you ask for one or accept a proposal to keep it. By default the findings stay in the chat.
 
-**Why does the agent sometimes use helper agents?**
+### Why does the agent sometimes use helper agents?
 Reading long logs, installed packages or many documents fills the main conversation. Helpers read that material and return only what matters. The main agent still verifies the important claims.
 
-**What if two sources disagree?**
+### What if two sources disagree?
 The agent compares dates, versions and what each source actually covers. If it cannot settle the conflict, it tells you what evidence would.
 
-**Where is the exact rule?**
+### Where is the exact rule?
 See the source linked below for the full text.
 
 Source: [content/skills/flow-research/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)

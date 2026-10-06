@@ -11,7 +11,7 @@ Use Build when you have approved a change and the outcome is clear. That can be 
 
 Example requests:
 
-```text
+```text wrap
 Implement the agreed change locally and verify it. Do not commit or publish.
 Continue the plan in the change folder from the next unfinished task.
 Fix the date parsing bug and add a test that would have caught it.
@@ -47,19 +47,19 @@ If Git delivery was not settled earlier, the agent asks once, before the first e
 
 ## FAQ
 
-**Do I need a plan for a small change?**
+### Do I need a plan for a small change?
 No. Give Build the outcome and its limits.
 
-**Who commits and merges?**
+### Who commits and merges?
 You decide. Say so in your request, or answer the delivery question the agent asks. Without that, the agent stops at a verified local result.
 
-**What if the agent finds that the plan no longer matches the code?**
+### What if the agent finds that the plan no longer matches the code?
 It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing.
 
-**What happens to a user interface change?**
+### What happens to a user interface change?
 The agent leaves the running result available for you to check, with steps to follow, and cleans up the temporary captures later.
 
-**Where is the exact rule?**
+### Where is the exact rule?
 See the source linked below.
 
 Source: [content/skills/flow-build/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/SKILL.md)
