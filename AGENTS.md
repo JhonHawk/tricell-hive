@@ -23,6 +23,12 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 - Give each rule one canonical home. Avoid duplicate routers, fallback chains, generated copies, hooks, or adapters without a measured need.
 - Before changing host-specific behavior, check current official documentation and the installed CLI version. Mark documentary claims, runtime observations, and inferences separately.
 
+## README and llms.txt
+
+- `README.md` is the entry point for people: what Hive is, how to install it, the supported hosts, and how to update, recover, or uninstall it, plus a link to the documentation site once the site is published. Each flow's detail lives on the site, in `site/`, not in the README.
+- Update `README.md` and `llms.txt` in the same pull request as any change that alters something they state, such as an installation command or flag, a supported host, a requirement, a user-facing manager command, or the repository's top-level folders.
+- Update a page in `site/` in the same pull request as any change to the flow behavior that page describes. Pages describe behavior and link to the skill; they do not copy its rules.
+
 ## Language convention
 
 - Write distributed CLI instructions and repository documentation intended to guide agents in English, including rules, skills, references, and implementation contracts.
@@ -84,6 +90,7 @@ After tests finish, remove fictitious test records from Engram. Identify the exa
 - `README.md` — purpose and working boundaries.
 - `content/` — distributable Hive guidance, activity skills, and canonical agents; root `AGENTS.md` governs this repository only.
 - `integrations/` — host-specific differences; `tooling/` — management interfaces and shared operations; `tests/` — verification.
+- `site/` — the documentation site for people; it is not installed.
 - `_support/docs/architecture/repository-and-distribution.md` — structure and managed global-instruction block design.
 - `_support/docs/architecture/deployment-manager.md` — Go manager commands, ownership, recovery, and verification boundaries.
 - `_support/docs/architecture/agent-delivery.md` — canonical roles, native profiles, and inline delivery limits.
