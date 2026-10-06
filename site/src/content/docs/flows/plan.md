@@ -29,7 +29,7 @@ A plan that someone else could follow. It covers:
 - tasks grouped into results you can check separately, each with the command or observation that proves it and what you should see;
 - acceptance criteria that are numbered and can be tested.
 
-Before the agent calls the plan ready, it asks independent reviewer agents to read it, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed.
+When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed.
 
 A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
 

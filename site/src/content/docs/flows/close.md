@@ -7,7 +7,7 @@ Close is the last step of a piece of work. It makes sure the records match reali
 
 ## When to use
 
-Use Close when work is integrated into the base branch, when you abandon it, when you pause it, or when you end the session or ask for a cleanup.
+Use Close when work reaches its completion point (usually merged into the base branch, after any checks that must pass there), when you abandon it, when you pause it, or when you end the session or ask for a cleanup.
 
 Example requests:
 
@@ -21,8 +21,8 @@ Clean up the session.
 
 The agent goes through these steps in order:
 
-1. Moves the ticket to its finished state, along with the sub-issues the same work covered.
-2. Closes the change record, if there is one: it folds the plan's requirement changes into the project's current requirements and archives the folder.
+1. When the work is complete, moves the ticket to its finished state, along with the sub-issues the same work covered. A paused or abandoned ticket does not move to finished.
+2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, and it archives the folder. An abandoned change is archived without touching the requirements.
 3. Deletes branches that are fully merged, and their clean working copies.
 4. Removes temporary files the task made and stops processes it started.
 5. Lists side findings, so you can open a ticket for each, decline it, or ask not to hear about it again.

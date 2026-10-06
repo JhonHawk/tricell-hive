@@ -38,7 +38,7 @@ When the findings suggest work you could start, the agent names the route it rec
 
 ## What it does not do
 
-- It does not change code, tickets, documents or deployments.
+- It does not change code, tickets, documents or deployments, unless you separately ask for that change.
 - It does not save a research document unless you ask for one.
 - It does not treat a documented feature as proof that your setup has it, and it does not treat "no search results" as proof that something is missing.
 
