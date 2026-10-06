@@ -1,4 +1,5 @@
 {
-	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-	"files": { "includes": ["**", "!!**/dist", "!!**/.astro"] }
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "files": { "includes": ["**", "!!**/dist", "!!**/.astro"] },
+  "formatter": { "indentStyle": "space" }
 }

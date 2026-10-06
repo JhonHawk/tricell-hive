@@ -53,13 +53,13 @@ While the version is below 1.0:
   adding, removing, or renaming a skill, role, flow, supported host, command,
   flag, or installation route; a guidance change that alters how agents work; or
   any incompatible change, which also needs a migration note in the changelog.
-- Raise the patch version (`0.x.y`) for everything else that reaches users:
-  defect fixes, wording that restores the intended behavior, dependency or
-  template version updates, and documentation.
+- Raise the patch version (`0.x.y`) for everything else in what the installer
+  delivers: defect fixes, wording that restores the intended behavior, and
+  dependency or template version updates.
 
 The documentation site is published from `master`, so a change that touches only
-the site waits for the next release, or goes out in a patch release when it
-cannot wait.
+the site waits for the next release. The one exception: a site fix that cannot
+wait may go out as a patch release of its own.
 
 ## Language
 
