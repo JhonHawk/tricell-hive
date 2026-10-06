@@ -110,7 +110,7 @@ func run(args []string) error {
 		pair := strings.Split(p, "/")
 		label := archiveLabel(productVersion, pair[0], pair[1])
 		dir := filepath.Join(scratch, label)
-		for _, name := range []string{"content", "integrations/agent-profiles.json", "install.sh"} {
+		for _, name := range []string{"content", "integrations/agent-profiles.json", "install.sh", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
 			if err := copyTree(filepath.Join(frozen, name), filepath.Join(dir, name)); err != nil {
 				return err
 			}
@@ -230,7 +230,7 @@ func writeNew(path string, data []byte, mode os.FileMode) error {
 // so a concurrent CLI or provider addition cannot leave the frozen checkout
 // unbuildable. Runtime content remains an explicit package input.
 func frozenInputs(src string, targets []string) ([]string, error) {
-	inputs := map[string]bool{"go.mod": true, "go.sum": true, "install.sh": true, "content": true, "integrations": true}
+	inputs := map[string]bool{"go.mod": true, "go.sum": true, "install.sh": true, "LICENSE": true, "THIRD_PARTY_NOTICES.md": true, "content": true, "integrations": true}
 	for _, target := range targets {
 		pair := strings.Split(target, "/")
 		command := exec.Command("go", "list", "-deps", "-f", "{{if and .Module (eq .Module.Path \"tricell-hive\")}}{{.ImportPath}}{{end}}", "./tooling/cli")
