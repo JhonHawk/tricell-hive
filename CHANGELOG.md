@@ -10,6 +10,24 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
+### Changed
+
+- Unattended delegation also starts when you say you are leaving, such as going
+  to sleep, while authorized work is running. It lasts until that work completes
+  or you return, decides open questions itself and reports each decision with how
+  to revert it. Irreversible or destructive actions stay forbidden.
+- Before handing a pending item to you, the agent checks its premise and whether
+  the session can do it itself. Closing a work item also restores local state the
+  task changed.
+- A restriction enters project guidance, a plan, or a question option only when a
+  source states it or you decided it.
+- Questions asked in text give each option one line; shared effects and
+  unavailable routes are stated once after the options.
+- The README and `llms.txt` link the documentation site, and the site header
+  links the GitHub repository.
+
 ## [0.2.1] - 2026-10-06
 
 ### Added
