@@ -13,6 +13,13 @@ export default defineConfig({
         alt: "",
         replacesTitle: false,
       },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/JhonHawk/tricell-hive",
+        },
+      ],
       customCss: ["./src/styles/theme.css"],
       sidebar: [
         { label: "Start", items: [{ slug: "index" }] },
