@@ -49,22 +49,22 @@ next release but do not change the number by themselves.
 
 While the version is below 1.0:
 
-- Raise the minor version (`0.x.0`) for a change users notice in what Hive does:
-  adding, removing, or renaming a skill, role, flow, supported host, command,
-  flag, or installation route; a guidance change that alters how agents work; or
-  any incompatible change, which also needs a migration note in the changelog.
+- Raise the minor version (`0.x.0`) for what users add, remove, rename, or must
+  act on: a skill, role, flow, supported host, command, flag, or installation
+  route; a setting of the `## Hive` section; or a file layout the guidance
+  creates in their projects. Any incompatible change also raises it and needs a
+  migration note in the changelog.
 - Raise the patch version (`0.x.y`) for everything else in what the installer
-  delivers: defect fixes, wording that restores the intended behavior, and
-  dependency or template version updates.
+  delivers: defect fixes, guidance changes to how agents carry out existing
+  flows, and dependency or template version updates.
 
 A change does not release by itself. Each pull request adds its entry under
 `[Unreleased]` in `CHANGELOG.md` and leaves `VERSION` at `dev`. A release is cut
 only when the maintainer asks for it: a release pull request sets the number and
 moves the `[Unreleased]` entries under it, the release is promoted to `master`
 and tagged, and a follow-up sets `VERSION` back to `dev`. Agents propose a
-release, without cutting it, when `[Unreleased]` holds a change that alters how
-agents work and is more than seven days old, or a fix for a defect in the latest
-published version.
+release, without cutting it, when `[Unreleased]` holds an entry more than seven
+days old, or a fix for a defect in the latest published version.
 
 The documentation site is published from `master`: each release deploys `site/`
 from its tag with `pnpm exec wrangler deploy`, and nothing else deploys it. A
