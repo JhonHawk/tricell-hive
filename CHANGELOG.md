@@ -10,6 +10,14 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- When diagnosing a failure that can still occur, the agent first runs a command
+  or observation that shows the exact symptom, and only then forms hypotheses or
+  edits code. When it cannot build one, it says what it tried and asks for a
+  reproducing environment, a captured artifact, or temporary instrumentation.
+  Incident mitigation does not wait for it.
+
 ## [0.3.0] - 2026-10-07
 
 ### Changed
