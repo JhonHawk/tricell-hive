@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-08
+
 ### Changed
 
 - When diagnosing a failure that can still occur, the agent first runs a command
@@ -17,6 +19,9 @@ raise the minor or the patch version.
   edits code. When it cannot build one, it says what it tried and asks for a
   reproducing environment, a captured artifact, or temporary instrumentation.
   Incident mitigation does not wait for it.
+
+### Fixed
+
 - Work folders under `_support/` carry the change id with words that identify
   the work, shortened when long, never the ticket key alone; without a change
   they use the ticket key followed by a short description.
