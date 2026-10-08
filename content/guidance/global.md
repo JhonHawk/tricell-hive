@@ -137,7 +137,7 @@ Application code, permanent scripts, and configuration stay in their established
 
 ### Folder contents
 
-Create only the folders and records the work needs. One work item shares its identifier: `<work>` is the `<change-id>` when a change exists.
+Create only the folders and records the work needs. One work item shares its identifier: `<work>` is the full `<change-id>` when a change exists, never its tracker key alone; otherwise, a short English kebab-case description, after the tracker key when one exists.
 
 - `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date.
 - `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root.
