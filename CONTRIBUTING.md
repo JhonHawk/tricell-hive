@@ -57,6 +57,15 @@ While the version is below 1.0:
   delivers: defect fixes, wording that restores the intended behavior, and
   dependency or template version updates.
 
+A change does not release by itself. Each pull request adds its entry under
+`[Unreleased]` in `CHANGELOG.md` and leaves `VERSION` at `dev`. A release is cut
+only when the maintainer asks for it: a release pull request sets the number and
+moves the `[Unreleased]` entries under it, the release is promoted to `master`
+and tagged, and a follow-up sets `VERSION` back to `dev`. Agents propose a
+release, without cutting it, when `[Unreleased]` holds a change that alters how
+agents work and is more than seven days old, or a fix for a defect in the latest
+published version.
+
 The documentation site is published from `master`: each release deploys `site/`
 from its tag with `pnpm exec wrangler deploy`, and nothing else deploys it. A
 change that touches only the site therefore waits for the next release. The one exception: a site fix that cannot

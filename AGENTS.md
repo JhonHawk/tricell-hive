@@ -71,9 +71,13 @@ The binary and the deployed content update separately:
 
 `_support/docs/architecture/deployment-manager.md` holds the commands and their limits.
 
+Refreshing a local installation is not a release. Cut a release only when the user asks; propose one in the closing report when the criterion in [CONTRIBUTING.md](CONTRIBUTING.md#releases-and-version-numbers) is met.
+
 ## Measurement
 
 CLI behavior pilots are paused by user instruction. Do not resume them without explicit authorization. Recommend a pilot only when it is necessary to resolve a consequential behavior uncertainty that inspection or ordinary tests cannot answer; explain the expected evidence and keep the proposed scope minimal. This pause does not prohibit ordinary non-model tests.
+
+A new or stricter rule in distributed guidance, skills, or roles needs a failure observed in two independent real sessions, or the user's explicit decision to adopt it without that evidence. An idea from an external reference meets the same bar; a plausible improvement alone does not. Record a single observed case as a watch item, in an issue or the maintainer's memory, with its count and the occurrence that would justify the rule. Fixing text that contradicts its own intent or the source it describes needs no recurrence.
 
 A guidance change that fixes a failure observed in a real session names that session (host, session ID, date) and the observed failure in its commit message. Do not add a new regression case under `tests/fixtures/regression/` for it: those cases check a detector against synthetic traces, and no real session runs through them while pilots are paused. Keep the existing cases unchanged unless the user decides otherwise.
 
