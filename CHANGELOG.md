@@ -17,6 +17,9 @@ raise the minor or the patch version.
   edits code. When it cannot build one, it says what it tried and asks for a
   reproducing environment, a captured artifact, or temporary instrumentation.
   Incident mitigation does not wait for it.
+- Work folders under `_support/` carry the change id with words that identify
+  the work, shortened when long, never the ticket key alone; without a change
+  they use the ticket key followed by a short description.
 
 ## [0.3.0] - 2026-10-07
 
