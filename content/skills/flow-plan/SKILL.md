@@ -25,7 +25,7 @@ When replacing or migrating an existing system, state which legacy paths are rem
 
 For new or changed screens, shells, layouts, or reusable UI patterns, read [UI planning](references/ui-planning.md). Resolve the affected application and pattern, applicable project conventions, reuse, and intentional differences before calling the visual work ready.
 
-When the plan chooses infrastructure resource names, read [the infrastructure naming reference](references/infra-naming.md). Apply project and provider constraints before its defaults, and record any migration impact for an existing name.
+When the plan chooses infrastructure resource names, or creates resources whose names existing infrastructure code generates, read [the infrastructure naming reference](references/infra-naming.md). Apply project and provider constraints before its defaults, and record any migration impact for an existing name.
 
 ## Make the work verifiable
 
