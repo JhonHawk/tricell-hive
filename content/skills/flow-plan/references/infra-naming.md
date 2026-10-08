@@ -1,6 +1,6 @@
 # Infrastructure naming
 
-Read this reference when planning or implementing a change that creates, chooses, or materially changes an infrastructure resource name. Treat the project's existing naming convention and the relevant provider or platform restrictions as the primary source. Consult current official provider documentation when a restriction affects the proposed name.
+Read this reference when planning or implementing a change that creates, chooses, or materially changes an infrastructure resource name, including resources whose names existing infrastructure code generates. Treat the project's existing naming convention and the relevant provider or platform restrictions as the primary source. Consult current official provider documentation when a restriction affects the proposed name.
 
 ## Default convention
 
@@ -25,6 +25,15 @@ Use a different shape only when the resource's role, the platform, or an establi
 | DNS | Public hostnames commonly put an environment label in a provider- or user-facing position, while the production hostname can omit it. |
 
 Do not force the default token order onto an exception. Do not invent abbreviated environments, limits, or naming constraints without checking the applicable current documentation.
+
+## Names the project already defines
+
+Look for the project's recorded naming convention, such as a naming table in its specifications documentation (for example `docs/conventions/naming.md`), before choosing a name. When the work touches infrastructure code that already generates names, such as Terraform modules or deployment configuration, compare the names that code produces with that convention rather than copying them into the plan or the change:
+
+- When a recorded convention exists, report each mismatch as a finding that names the resource, the generated name, and the conventional one, and add each new name the change introduces to that record.
+- When no recorded convention exists, compare with this reference's default and present a mismatch as a recommendation, not a defect. Recommend recording the chosen names; create that record only when the user agrees.
+
+Whether to rename, keep, or record a mismatch as a project exception is the user's decision. Renaming a resource that does not exist yet costs an edit; renaming an existing one follows the next section.
 
 ## Existing resources
 
