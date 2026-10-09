@@ -22,6 +22,11 @@ raise the minor or the patch version.
   pending list. Research ends each round of findings by offering to show the
   recommendations, and a plan decision that changes the design is presented at
   once under a pause label.
+- A work item is a ticket or the scope you authorized, not each task of a
+  plan: between tasks the agent reports progress and continues. When work
+  continues a plan in progress, the closing question's continue option covers
+  all remaining tasks and asks once for the permissions they still need, and
+  the agent no longer suggests a new session in the middle of that plan.
 
 ## [0.3.1] - 2026-10-08
 

@@ -27,7 +27,7 @@ The agent goes through these steps in order:
 4. Removes temporary files the task made, stops processes it started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
 5. Lists side findings, so you can open a ticket for each, decline it, or ask not to hear about it again.
 6. Writes a completion report that says what was done, what was cleaned and what stays open.
-7. Asks what to do next: continue with a suggested ticket, take it to a new session, or end.
+7. Asks what to do next: continue with a suggested ticket or the rest of the plan, take it to a new session, or end. While a plan is still in progress, continuing covers all its remaining tasks and asks once for the permissions they still need; the agent does not suggest a new session then.
 
 ## What it does not do
 
