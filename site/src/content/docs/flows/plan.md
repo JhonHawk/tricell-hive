@@ -57,6 +57,9 @@ No. The plan states the next step, but starting the work still needs your instru
 ### Will the agent ask me many questions?
 It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself.
 
+### What happens when a decision changes the design?
+The agent does not save it for later. It shows the decision at once in a block labeled "Pause" (in Spanish sessions, «Pausa»), with an explanation, the options and the recommended one. The message ends with the "Waiting for your decision:" line, and work that depends on the decision waits for your answer. Independent questions are still grouped.
+
 ### Why are the criteria numbered?
 Each one is checked later, so every criterion must be testable and covered by at least one task.
 

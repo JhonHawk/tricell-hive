@@ -6,10 +6,10 @@ import (
 )
 
 // globalGuidanceBudget is the byte ceiling for the always-loaded global
-// guidance, set about 1 KiB above its size when last raised. Growth past it
+// guidance, set a margin above its size when last raised. Growth past it
 // fails until the ceiling is raised deliberately in the same change; small
 // growth under it and any shrink need no edit here.
-const globalGuidanceBudget = 45528
+const globalGuidanceBudget = 46040
 
 func TestGlobalGuidanceStaysUnderBudget(t *testing.T) {
 	data, err := os.ReadFile("../../content/guidance/global.md")

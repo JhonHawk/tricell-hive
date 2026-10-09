@@ -41,7 +41,7 @@ The agent goes through these steps in order:
 
 - [Build](/flows/build/) usually comes right before Close.
 - [Plan](/flows/plan/) created the change record that Close archives.
-- [Research](/flows/research/) is separate. A research-only session closes with its own route suggestion instead.
+- [Research](/flows/research/) is separate. A research-only session closes with the offer to show recommendations instead.
 
 ## FAQ
 
@@ -55,7 +55,7 @@ It means the work reached its completion point, for example merged into the base
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. The options are written in the message, which ends with the "Waiting for your decision:" line. If your tool also shows a question card, it is only a shortcut, so dismissing it loses nothing. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.

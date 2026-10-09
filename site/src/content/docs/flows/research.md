@@ -34,7 +34,9 @@ An answer in the conversation. It normally tells you:
 
 For large questions the agent may hand reading work to helper agents, then check their claims itself before reporting. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
 
-When the findings suggest work you could start, the agent names the route it recommends, Plan for larger work or Build for a small, well understood change.
+When the findings concern work you could start, the answer ends with a fixed last line, "Waiting for your decision:" (in Spanish sessions, «Esperando tu decisión:»), that offers to show the recommendations. The options and the route, Plan for larger work or Build for a small, well understood change, appear only when you accept the offer, ask the agent to do the work, or ask how to continue. A ticket offer can join that line as its own numbered question.
+
+Every choice the agent asks you is written out in the message. If your tool also shows a question card, the card is a shortcut: dismissing it loses nothing, because the options are still in the message.
 
 ## What it does not do
 
@@ -51,7 +53,7 @@ When the findings suggest work you could start, the agent names the route it rec
 ## FAQ
 
 ### Does research give the agent permission to implement the fix?
-No. A question, an investigation or a recommendation is not a go-ahead. You still choose the route and approve the work.
+No. A question, an investigation or a recommendation is not a go-ahead. You still choose the route, after the agent shows its recommendations, and approve the work.
 
 ### Will it write a report file?
 Only if you ask for one or accept a proposal to keep it. By default the findings stay in the chat.
