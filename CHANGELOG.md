@@ -40,6 +40,14 @@ raise the minor or the patch version.
   preferably the host's own monitor or watch tool.
 - When work resumes or continues a plan, for example after a close, the agent
   lists the remaining tasks in the host's task list again.
+- A plan's change record quotes the user's request verbatim, and the
+  acceptance criteria of each ticket it names with the date they were read, so
+  requirements are not lost to paraphrase on the way to the implementer.
+- An implementer of a plan task reads the task, the quoted request, and the
+  acceptance criteria it closes from the change folder; the delegation brief
+  points to them instead of paraphrasing them.
+- When the delivery mode makes commits, the agent commits each plan task once
+  it is verified, so every commit holds one verified task and its fix rounds.
 
 ## [0.3.1] - 2026-10-08
 
