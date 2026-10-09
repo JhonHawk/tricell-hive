@@ -10,6 +10,12 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- The documentation site includes a new architectural Hive social preview image
+  with Open Graph and X image metadata on every page, plus a branded homepage
+  sharing title.
+
 ### Changed
 
 - Every choice the agent asks for, including decisions, routes, the close
