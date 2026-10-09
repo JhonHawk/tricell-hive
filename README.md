@@ -25,7 +25,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.3.1 · reproduce before diagnosing**
+> **Version 0.3.2 · every choice complete in the message**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -66,7 +66,7 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded.
-- **Pick a release or hosts:** append `-s -- --version 0.3.1 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.3.2 --hosts claude,codex`.
 - **Afterwards:** `hive` is not added to your `PATH`. It lives at
   `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
 - **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
