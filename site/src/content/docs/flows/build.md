@@ -24,7 +24,7 @@ You do not need a plan first for a small change you understand.
 A changed working tree, plus evidence:
 
 - The agent checks the current state before editing. If a plan exists, it treats the plan as a claim to confirm, not a script to replay.
-- It works in small steps, often with helper agents for pieces that do not overlap, and tells you how it split the work.
+- It works in small steps, often with helper agents for pieces that do not overlap, and tells you how it split the work. A helper reads its task, your quoted request and the criteria from the plan itself instead of a summary; without a saved plan, it gets your request word for word.
 - For behavior that would hurt if it broke, such as calculations, stored data, permissions or public contracts, it writes the test first and watches it fail, when the project's tests can exercise that behavior.
 - It runs the project's own tests, builds and linters and reports the results, including any that failed or could not run.
 - For visible interface changes, independent reviewers look at the running result. The agent's own look does not count for that.
