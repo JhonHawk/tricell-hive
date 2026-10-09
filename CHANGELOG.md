@@ -27,6 +27,10 @@ raise the minor or the patch version.
   continues a plan in progress, the closing question's continue option covers
   all remaining tasks and asks once for the permissions they still need, and
   the agent no longer suggests a new session in the middle of that plan.
+- While authorized work remains, the agent sends each progress line together
+  with its next action, so the turn does not end on an announcement, and it
+  answers a question or notification in one line and keeps working. Each build,
+  deployment, or CI run it starts gets a completion signal before its turn ends.
 
 ## [0.3.1] - 2026-10-08
 

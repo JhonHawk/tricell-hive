@@ -29,6 +29,7 @@ A changed working tree, plus evidence:
 - It runs the project's own tests, builds and linters and reports the results, including any that failed or could not run.
 - For visible interface changes, independent reviewers look at the running result. The agent's own look does not count for that.
 - Between tasks it reports progress in a line and keeps going; the completion report and the closing question come when the scope you authorized is done, not after every task.
+- If you ask how it is going, it answers in a line and keeps working. Builds, deployments and CI runs it starts are watched until they finish, so a failure does not go unnoticed.
 - When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. Other tasks are marked done on the evidence of their own check.
 
 If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed.
