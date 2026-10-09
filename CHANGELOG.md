@@ -10,6 +10,12 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- The documentation site includes a new architectural Hive social preview image
+  with Open Graph and X image metadata on every page, plus a branded homepage
+  sharing title.
+
 ## [0.3.1] - 2026-10-08
 
 ### Changed
