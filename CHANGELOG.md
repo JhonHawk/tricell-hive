@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-09
+
 ### Added
 
 - The documentation site includes a new architectural Hive social preview image
@@ -18,11 +20,6 @@ raise the minor or the patch version.
 
 ### Changed
 
-- Every choice the agent asks for, including decisions, routes, the close
-  question, and yes-or-no offers, is written complete in the message: context,
-  options with their effect, and the recommended one with its reason. The native
-  question card of each host is used as a shortcut and written to stand alone,
-  so the decision survives when the card or the message is hidden.
 - A message that waits on the user ends with one fixed pause line, such as
   "**Esperando tu decisión:**", instead of burying the choice in a report or the
   pending list. Research ends each round of findings by offering to show the
@@ -48,6 +45,14 @@ raise the minor or the patch version.
   points to them instead of paraphrasing them.
 - When the delivery mode makes commits, the agent commits each plan task once
   it is verified, so every commit holds one verified task and its fix rounds.
+
+### Fixed
+
+- Every choice the agent asks for, including decisions, routes, the close
+  question, and yes-or-no offers, is written complete in the message: context,
+  options with their effect, and the recommended one with its reason. The native
+  question card of each host is used as a shortcut and written to stand alone,
+  so the decision survives when the card or the message is hidden.
 
 ## [0.3.1] - 2026-10-08
 
