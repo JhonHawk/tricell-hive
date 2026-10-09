@@ -2,10 +2,11 @@
 
 Use this reference when creating or reviewing a retained plan. A new retained plan is a change folder: its sections are distributed across `proposal.md`, `design.md`, and `tasks.md` as described in [change records](change-records.md). Continuing work keeps an established `<topic>.plan.md` as its single canonical record. Adapt the sections to the task; omit irrelevant sections and resolve or remove template placeholders before delivery. The plan needs no companion research, report, or history file.
 
-Write the actual human-facing plan in the session language, including headings and current status. The English template below is reusable guidance, not a requirement that the delivered document be English. Preserve code, identifiers, and source names.
+Write the actual human-facing plan in the session language, including headings and current status. The English template below is reusable guidance, not a requirement that the delivered document be English. Preserve code, identifiers, source names, and the quoted request.
 
 ## What the document must carry
 
+- The user's request that started the work, quoted verbatim in its original language: the messages that state the requested outcome, not the whole conversation, with links to the tickets they name and without any secret value. When a named ticket states acceptance criteria, quote them verbatim too, with the date you read the ticket, and derive the `AC<n>` from them; the implementer reads the change folder, not the tracker. Paraphrase loses requirements on the way to an implementer; the Objective explains the request, it does not replace it.
 - The outcome, boundaries, constraints, and acceptance criteria written as described in [Acceptance criteria and task markers](#acceptance-criteria-and-task-markers).
 - The inspected context and evidence behind consequential decisions, with relevant versions or dates. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
 - The selected approach, affected contracts, meaningful assumptions, and unresolved blockers. Include migration or recovery behavior only when the work needs it. Record material scope clarifications and proposed expansions with their disposition. The essential decisions must be understandable without recovering the original conversation.
@@ -58,6 +59,12 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 | Git | <mode · agreed destination · next human stop, if any> |
 | Verification | <applicable gates, e.g. tests · local in-vivo · UI> |
 | Next step | <one concrete action; skill when useful> |
+
+## Request
+
+> <The user's messages that requested the work, verbatim and in their original language, with links to the tickets they name.>
+
+<For each named ticket with acceptance criteria: its criteria quoted verbatim, with the date the ticket was read.>
 
 ## Objective
 

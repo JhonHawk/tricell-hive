@@ -16,6 +16,39 @@ raise the minor or the patch version.
   with Open Graph and X image metadata on every page, plus a branded homepage
   sharing title.
 
+### Changed
+
+- Every choice the agent asks for, including decisions, routes, the close
+  question, and yes-or-no offers, is written complete in the message: context,
+  options with their effect, and the recommended one with its reason. The native
+  question card of each host is used as a shortcut and written to stand alone,
+  so the decision survives when the card or the message is hidden.
+- A message that waits on the user ends with one fixed pause line, such as
+  "**Esperando tu decisión:**", instead of burying the choice in a report or the
+  pending list. Research ends each round of findings by offering to show the
+  recommendations, and a plan decision that changes the design is presented at
+  once under a pause label.
+- A work item is a ticket or the scope you authorized, not each task of a
+  plan: between tasks the agent reports progress and continues. When work
+  continues a plan in progress, the closing question's continue option covers
+  all remaining tasks and asks once for the permissions they still need, and
+  the agent no longer suggests a new session in the middle of that plan.
+- While authorized work remains, the agent sends each progress line together
+  with its next action, so the turn does not end on an announcement, and it
+  answers a question or notification in one line and keeps working. Each build,
+  deployment, or CI run it starts gets a completion signal before its turn ends,
+  preferably the host's own monitor or watch tool.
+- When work resumes or continues a plan, for example after a close, the agent
+  lists the remaining tasks in the host's task list again.
+- A plan's change record quotes the user's request verbatim, and the
+  acceptance criteria of each ticket it names with the date they were read, so
+  requirements are not lost to paraphrase on the way to the implementer.
+- An implementer of a plan task reads the task, the quoted request, and the
+  acceptance criteria it closes from the change folder; the delegation brief
+  points to them instead of paraphrasing them.
+- When the delivery mode makes commits, the agent commits each plan task once
+  it is verified, so every commit holds one verified task and its fix rounds.
+
 ## [0.3.1] - 2026-10-08
 
 ### Changed

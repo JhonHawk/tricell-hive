@@ -27,7 +27,7 @@ The agent goes through these steps in order:
 4. Removes temporary files the task made, stops processes it started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
 5. Lists side findings, so you can open a ticket for each, decline it, or ask not to hear about it again.
 6. Writes a completion report that says what was done, what was cleaned and what stays open.
-7. Asks what to do next: continue with a suggested ticket, take it to a new session, or end.
+7. Asks what to do next: continue with a suggested ticket or the rest of the plan, take it to a new session, or end. While a plan is still in progress, continuing covers all its remaining tasks and asks once for the permissions they still need; the agent does not suggest a new session then.
 
 ## What it does not do
 
@@ -41,7 +41,7 @@ The agent goes through these steps in order:
 
 - [Build](/flows/build/) usually comes right before Close.
 - [Plan](/flows/plan/) created the change record that Close archives.
-- [Research](/flows/research/) is separate. A research-only session closes with its own route suggestion instead.
+- [Research](/flows/research/) is separate. A research-only session closes with the offer to show recommendations instead.
 
 ## FAQ
 
@@ -55,7 +55,7 @@ It means the work reached its completion point, for example merged into the base
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. The options are written in the message, which ends with the "Waiting for your decision:" line. If your tool also shows a question card, it is only a shortcut, so dismissing it loses nothing. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.

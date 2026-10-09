@@ -24,10 +24,13 @@ You do not need a plan first for a small change you understand.
 A changed working tree, plus evidence:
 
 - The agent checks the current state before editing. If a plan exists, it treats the plan as a claim to confirm, not a script to replay.
-- It works in small steps, often with helper agents for pieces that do not overlap, and tells you how it split the work.
+- It works in small steps, often with helper agents for pieces that do not overlap, and tells you how it split the work. A helper reads its task, your quoted request and the criteria from the plan itself instead of a summary; without a saved plan, it gets your request word for word.
 - For behavior that would hurt if it broke, such as calculations, stored data, permissions or public contracts, it writes the test first and watches it fail, when the project's tests can exercise that behavior.
 - It runs the project's own tests, builds and linters and reports the results, including any that failed or could not run.
 - For visible interface changes, independent reviewers look at the running result. The agent's own look does not count for that.
+- Between tasks it reports progress in a line and keeps going; the completion report and the closing question come when the scope you authorized is done, not after every task.
+- If you ask how it is going, it answers in a line and keeps working. Builds, deployments and CI runs it starts are watched with your CLI's monitor tool when it has one, until they finish, so a failure does not go unnoticed.
+- When your CLI has a task list, the agent keeps the plan's tasks there, also when it continues a plan after a close, so you can see what is left.
 - When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. Other tasks are marked done on the evidence of their own check.
 
 If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed.
@@ -51,7 +54,7 @@ If Git delivery was not settled earlier, the agent asks once, before the first e
 No. Give Build the outcome and its limits.
 
 ### Who commits and merges?
-You decide. Say so in your request, or answer the delivery question the agent asks. Without that, the agent stops at a verified local result.
+You decide. Say so in your request, or answer the delivery question the agent asks. Without that, the agent stops at a verified local result. When you chose a delivery that commits, the agent makes one commit per task once that task is verified, with the task ID in the message, so the branch history shows each step.
 
 ### What if the agent finds that the plan no longer matches the code?
 It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing.

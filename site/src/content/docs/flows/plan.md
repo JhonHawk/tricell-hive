@@ -31,7 +31,7 @@ A plan that someone else could follow. It covers:
 
 When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed.
 
-A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
+A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
 
 ## What it does not do
 
@@ -56,6 +56,9 @@ No. The plan states the next step, but starting the work still needs your instru
 
 ### Will the agent ask me many questions?
 It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself.
+
+### What happens when a decision changes the design?
+The agent does not save it for later. It shows the decision at once in a block labeled "Pause" (in Spanish sessions, «Pausa»), with an explanation, the options and the recommended one. The message ends with the "Waiting for your decision:" line, and work that depends on the decision waits for your answer. Independent questions are still grouped.
 
 ### Why are the criteria numbered?
 Each one is checked later, so every criterion must be testable and covered by at least one task.
