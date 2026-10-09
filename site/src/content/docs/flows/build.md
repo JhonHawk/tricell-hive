@@ -56,6 +56,9 @@ No. Give Build the outcome and its limits.
 ### Who commits and merges?
 You decide. Say so in your request, or answer the delivery question the agent asks. Without that, the agent stops at a verified local result. When you chose a delivery that commits, the agent makes one commit per task once that task is verified, with the task ID in the message, so the branch history shows each step.
 
+### What about an urgent fix for production?
+The fix enters the base branch and is promoted at once through each environment, in order. If a promotion would also carry work you are holding back, the agent stops and offers a hotfix branch from production, only where your repository's branch policy accepts it, and asks you before that push. Afterwards it offers a short postmortem, written only if you want it.
+
 ### What if the agent finds that the plan no longer matches the code?
 It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing.
 
