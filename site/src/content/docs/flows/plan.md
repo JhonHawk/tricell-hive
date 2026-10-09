@@ -31,7 +31,7 @@ A plan that someone else could follow. It covers:
 
 When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed.
 
-A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
+A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
 
 ## What it does not do
 
