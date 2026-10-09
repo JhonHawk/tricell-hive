@@ -30,7 +30,10 @@ raise the minor or the patch version.
 - While authorized work remains, the agent sends each progress line together
   with its next action, so the turn does not end on an announcement, and it
   answers a question or notification in one line and keeps working. Each build,
-  deployment, or CI run it starts gets a completion signal before its turn ends.
+  deployment, or CI run it starts gets a completion signal before its turn ends,
+  preferably the host's own monitor or watch tool.
+- When work resumes or continues a plan, for example after a close, the agent
+  lists the remaining tasks in the host's task list again.
 
 ## [0.3.1] - 2026-10-08
 
