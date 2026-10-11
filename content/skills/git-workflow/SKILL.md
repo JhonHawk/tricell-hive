@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Prepare an authorized Git delivery while preserving unrelated work, following repository conventions, and verifying the resulting local or remote state. Use when the work includes creating a Git branch, commit, push, pull request, or merge, or verifying one of those effects.
+description: Prepare an authorized Git delivery while preserving unrelated work, following repository conventions, and verifying the resulting local or remote state. Use when the work includes creating a Git branch, worktree, commit, push, pull request, or merge, or verifying one of those effects.
 ---
 
 # Deliver an authorized Git change
@@ -12,6 +12,8 @@ This skill does not grant any Git action or change the delivery boundary already
 Inspect the repository's documented conventions before choosing branch, commit, pull-request, or review conventions. Then inspect the current branch, upstream, remotes, and staged and unstaged changes. Identify which paths belong to the requested delivery and preserve unrelated work, including another person's staged changes.
 
 Use the repository's established conventions when they exist. If it has none, `type/short-slug` is a suitable branch-name default and Conventional Commits with an optional scope are suitable commit-message defaults. These defaults do not require creating a branch or committing.
+
+When the work needs its own checkout, such as a task running beside other work or one that must leave the user's checkout untouched, create a linked worktree with `git worktree add` where the repository's guidance places worktrees; without one, use a sibling folder of the repository, `../<repo>-worktrees/<work>`, with `<work>` the branch name with `/` replaced by `-`. Do not create it inside the repository, where it appears as untracked files, or in a temporary directory, which the system may clear while it holds the only copy of the work. A worktree made by the host's own worktree feature stays where the host puts it. Name each worktree you created in the report, and remove it with its branch as [flow-close](../flow-close/SKILL.md#clean-up-after-a-merge) describes.
 
 For review or a Git action that triggers CI, review, preview, or deployment, read [verification gates and timing](../flow-build/references/verification.md). Inspect the project's applicable automation before the triggering action. Resolve substantial effects not covered by the existing authorization; do not silently change automation settings to avoid them. A review mechanism may be local or remote: identify its candidate, scope, and effects rather than assuming all native reviews are equivalent or free. Review authorization does not itself authorize autofix writes, push, or merge.
 
