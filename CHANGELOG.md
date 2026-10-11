@@ -10,6 +10,31 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- An urgent production fix has its own route: it enters the base branch and is
+  promoted at once through each environment, in order. When a promotion would
+  carry work you are holding back, the agent offers a hotfix branch from
+  production as a separate decision, only where the project's branch policy
+  accepts it, and merges that same branch back instead of cherry-picking. A
+  short postmortem is offered at close.
+
+### Changed
+
+- When the work needs its own checkout, the agent creates the Git worktree
+  where the repository's guidance places worktrees, otherwise in the sibling
+  folder `../<repo>-worktrees/<work>`, never inside the repository or in a
+  temporary directory. It names each worktree in its report and removes it
+  with its branch at close. Worktrees made by a host's own feature keep the
+  host's location.
+
+### Fixed
+
+- Environment branches after the base branch, such as `qa` and `production`,
+  again receive changes only through the promotion path: no direct commit,
+  push, cherry-pick, or hotfix, and every deviation is asked per push, even
+  under unattended delegation.
+
 ## [0.3.2] - 2026-10-09
 
 ### Added
