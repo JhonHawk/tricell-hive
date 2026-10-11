@@ -23,6 +23,10 @@ raise the minor or the patch version.
   one line whether it settles the question, opens the next round, or returns
   the work to an earlier flow, and what that invalidates. The size check on the
   global guidance now only reports its size and no longer fails.
+- A ready plan is summarized in the conversation, not only saved to its file:
+  the objective, the decisions in force, each task in one line, the checks,
+  the delivery, what is still open, and the plan's path. The summary ends with
+  the question whether to start Build now or stop with the plan ready.
 
 ## [0.3.3] - 2026-10-10
 

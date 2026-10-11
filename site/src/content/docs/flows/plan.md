@@ -52,7 +52,7 @@ A short plan can live in the conversation. When work will span sessions, or you 
 No. A small change you already understand can go straight to Build. Keep its checks in the conversation.
 
 ### Does a ready plan mean the agent may start building?
-No. The plan states the next step, but starting the work still needs your instruction, unless you already gave it.
+No. When the plan is ready, the agent summarizes it in the conversation: the objective, the decisions in force, each task in one line, the checks, how it will be delivered, what is still open, and where the full plan is saved. It then asks whether to start Build now or stop with the plan ready. Starting the work still needs your answer, unless you already gave the instruction.
 
 ### Will the agent ask me many questions?
 It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself.
