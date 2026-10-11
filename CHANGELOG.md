@@ -10,6 +10,20 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- A research round about work you could start now ends with the route
+  question directly: the routes with the flow each one runs, keep
+  investigating, or stop at the findings. The agent no longer first offers to
+  show recommendations. With a question card that waits for your answer, the
+  message keeps the explanation and one summary line per question with the
+  recommended option, and the options are in the card; without one, or after a
+  dismissal or timeout, the options are written in the message, and a
+  dismissed card is asked again in text. After each answer the agent says in
+  one line whether it settles the question, opens the next round, or returns
+  the work to an earlier flow, and what that invalidates. The size check on the
+  global guidance now only reports its size and no longer fails.
+
 ## [0.3.3] - 2026-10-10
 
 ### Added
