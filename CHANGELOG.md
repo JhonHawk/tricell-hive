@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-10
+
 ### Added
 
 - An urgent production fix has its own route: it enters the base branch and is
