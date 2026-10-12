@@ -55,7 +55,7 @@ It means the work reached its completion point, for example merged into the base
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal or timeout, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.
