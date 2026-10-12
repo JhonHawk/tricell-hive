@@ -105,7 +105,7 @@ release has no provider recipes: a selected capability is shown with its officia
 source and the reason it is manual, and no provider process runs. The one
 exception is Pi: when the Pi host is selected in a user-scope install and Pi's
 `settings.json` is missing or does not list pi-subagents, Hive itself runs
-`pi install npm:pi-subagents@0.74.0` (the `pi` executable must be on `PATH`),
+`pi install npm:pi-subagents` (the `pi` executable must be on `PATH`),
 which downloads that package from npm. A settings file that already lists
 pi-subagents makes Hive skip the step, and a conflicting entry stops the plan.
 Package installation is therefore network-free except for this step. The core is
