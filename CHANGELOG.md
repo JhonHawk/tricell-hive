@@ -10,6 +10,45 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- The route question can offer an iterative route when the work alternates
+  investigation and implementation toward one measurable objective. Its option
+  states the objective, how it is measured, the number of rounds the agent
+  proposes, and when it stops. Once you choose it, the agent reports each round
+  in one line and keeps going within local editing and verification; it stops
+  and asks when the objective is met, the rounds run out, a round brings no
+  measurable improvement, a step needs an effect the route does not cover, a
+  round needs a plan, the scope changes, or a decision is yours.
+
+### Changed
+
+- A research round about work you could start now ends with the route
+  question directly: the routes with the flow each one runs, keep
+  investigating, or stop at the findings. The agent no longer first offers to
+  show recommendations. With a question card that waits for your answer, the
+  message keeps the explanation and one summary line per question with the
+  recommended option, and the options are in the card; without one, or after a
+  dismissal or timeout, the options are written in the message, and a
+  dismissed card is asked again in text. After each answer the agent says in
+  one line whether it settles the question, opens the next round, or returns
+  the work to an earlier flow, and what that invalidates. The size check on the
+  global guidance now only reports its size and no longer fails.
+- A ready plan is summarized in the conversation, not only saved to its file:
+  the objective, the decisions in force, each task in one line, the checks,
+  the delivery, what is still open, and the plan's path. The summary ends with
+  the question whether to start Build now or stop with the plan ready.
+- Findings from a review that runs inside work you already authorized are fixed
+  as part of that work, without asking again; a review you request on its own
+  still does not authorize fixes.
+- Work that will not end in a Git delivery gets the review question once, if
+  that choice is still open, before the first edit instead of a separate stop
+  when the review is due.
+- After the one follow-up review, a new finding whose fix is small, inside the
+  change and touches no contract is fixed with a test, without another review
+  round, and the report says it was fixed without review; anything larger comes
+  to you as a decision.
+
 ## [0.3.3] - 2026-10-10
 
 ### Added

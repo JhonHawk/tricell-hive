@@ -29,7 +29,7 @@ A plan that someone else could follow. It covers:
 - tasks grouped into results you can check separately, each with the command or observation that proves it and what you should see;
 - acceptance criteria that are numbered and can be tested.
 
-When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed.
+When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed, together with the last design questions that do not depend on those answers.
 
 A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
 
@@ -52,13 +52,13 @@ A short plan can live in the conversation. When work will span sessions, or you 
 No. A small change you already understand can go straight to Build. Keep its checks in the conversation.
 
 ### Does a ready plan mean the agent may start building?
-No. The plan states the next step, but starting the work still needs your instruction, unless you already gave it.
+No. When the plan is ready, the agent summarizes it in the conversation: the objective, the decisions in force, each task in one line, the checks, how it will be delivered, what is still open, and where the full plan is saved. It then asks whether to start Build now or stop with the plan ready. Starting the work still needs your answer, unless you already gave the instruction.
 
 ### Will the agent ask me many questions?
 It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself.
 
 ### What happens when a decision changes the design?
-The agent does not save it for later. It shows the decision at once in a block labeled "Pause" (in Spanish sessions, «Pausa»), with an explanation, the options and the recommended one. The message ends with the "Waiting for your decision:" line, and work that depends on the decision waits for your answer. Independent questions are still grouped.
+The agent does not save it for later. It shows the decision at once in a block labeled "Pause" (in Spanish sessions, «Pausa»), with an explanation and the recommended one, asked like any other question. The message ends with the "Waiting for your decision:" line, and work that depends on the decision waits for your answer: a consequential design question is asked before any task that depends on it is written. After your answer, the agent says in one line whether it settles the question, opens the next round, or sends the work back to research, and if tasks already written become invalid it updates the plan. Independent questions are still grouped.
 
 ### Why are the criteria numbered?
 Each one is checked later, so every criterion must be testable and covered by at least one task.

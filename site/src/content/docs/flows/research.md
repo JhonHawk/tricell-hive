@@ -34,9 +34,13 @@ An answer in the conversation. It normally tells you:
 
 For large questions the agent may hand reading work to helper agents, then check their claims itself before reporting. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
 
-When the findings concern work you could start, the answer ends with a fixed last line, "Waiting for your decision:" (in Spanish sessions, «Esperando tu decisión:»), that offers to show the recommendations. The options and the route, Plan for larger work or Build for a small, well understood change, appear only when you accept the offer, ask the agent to do the work, or ask how to continue. A ticket offer can join that line as its own numbered question.
+When the findings concern work you could start, the same answer ends with the route question. Its options are the ways to act on the findings, each naming the flow it starts (Plan for larger work, Build for a small, well understood change), plus keeping the investigation going and stopping at the findings. The recommended option comes first, with its reason. The message ends with a fixed last line, "Waiting for your decision:" (in Spanish sessions, «Esperando tu decisión:»). A ticket offer can join the same round as its own numbered question. If the findings fully answer the question and there is no work to run, there is no route question.
 
-Every choice the agent asks you is written out in the message. If your tool also shows a question card, the card is a shortcut: dismissing it loses nothing, because the options are still in the message.
+When the next steps would alternate investigating and fixing toward one measurable goal, such as measuring a tool, correcting it and measuring again, the route question can also offer an iterative route. Its option tells you the goal and how it is measured, how many rounds the agent proposes, and when it stops. If you choose it, the agent reports each round in one line and keeps going, as long as every step stays local to your project. It stops and asks when the goal is met, the rounds run out, a round brings no measurable improvement, a step needs something the route does not cover (such as a commit or an installation), a round grows into work that needs a plan, the scope changes, or a decision is yours. The exact conditions are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md).
+
+If your tool shows a question card that waits for your answer, the message keeps the explanation plus one summary line per question with the recommended option, and the options are in the card. Without such a card, or after you dismiss it or it times out, the options are written in the message. A dismissed card is not an answer: the agent asks the question again in text.
+
+After each answer, the agent says in one line whether it settles the question, opens the next round, or returns the work to an earlier flow, and what that invalidates.
 
 ## What it does not do
 
@@ -53,7 +57,7 @@ Every choice the agent asks you is written out in the message. If your tool also
 ## FAQ
 
 ### Does research give the agent permission to implement the fix?
-No. A question, an investigation or a recommendation is not a go-ahead. You still choose the route, after the agent shows its recommendations, and approve the work.
+No. A question, an investigation or a recommendation is not a go-ahead. You still choose the route when the agent asks, and approve the work.
 
 ### Will it write a report file?
 Only if you ask for one or accept a proposal to keep it. By default the findings stay in the chat.

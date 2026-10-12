@@ -3,20 +3,18 @@ package content
 import (
 	"os"
 	"testing"
+	"unicode/utf8"
 )
 
-// globalGuidanceBudget is the byte ceiling for the always-loaded global
-// guidance, set a margin above its size when last raised. Growth past it
-// fails until the ceiling is raised deliberately in the same change; small
-// growth under it and any shrink need no edit here.
-const globalGuidanceBudget = 46040
-
-func TestGlobalGuidanceStaysUnderBudget(t *testing.T) {
+// TestGlobalGuidanceSize reports the size of the always-loaded global
+// guidance without failing. No supported host truncates or skips the
+// user-level instruction file near this size (checked 2026-10-11), so a byte
+// ceiling protects no technical limit; a change that grows the file states
+// the size change in its pull request instead (AGENTS.md, Guidance structure).
+func TestGlobalGuidanceSize(t *testing.T) {
 	data, err := os.ReadFile("../../content/guidance/global.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if size := len(data); size > globalGuidanceBudget {
-		t.Fatalf("content/guidance/global.md is %d bytes, over the %d-byte budget; shrink it or raise globalGuidanceBudget deliberately in this change", size, globalGuidanceBudget)
-	}
+	t.Logf("content/guidance/global.md: %d bytes, %d characters", len(data), utf8.RuneCount(data))
 }

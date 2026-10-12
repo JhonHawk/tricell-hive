@@ -28,12 +28,14 @@ A changed working tree, plus evidence:
 - For behavior that would hurt if it broke, such as calculations, stored data, permissions or public contracts, it writes the test first and watches it fail, when the project's tests can exercise that behavior.
 - It runs the project's own tests, builds and linters and reports the results, including any that failed or could not run.
 - For visible interface changes, independent reviewers look at the running result. The agent's own look does not count for that.
-- Between tasks it reports progress in a line and keeps going; the completion report and the closing question come when the scope you authorized is done, not after every task.
+- Between tasks it reports progress in a line and keeps going; the completion report and the closing question come when the scope you authorized is done, not after every task. On an iterative route you chose in Research, each finished round is one more progress line; the report and the closing question come when the route stops.
 - If you ask how it is going, it answers in a line and keeps working. Builds, deployments and CI runs it starts are watched with your CLI's monitor tool when it has one, until they finish, so a failure does not go unnoticed.
 - When your CLI has a task list, the agent keeps the plan's tasks there, also when it continues a plan after a close, so you can see what is left.
 - When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. Other tasks are marked done on the evidence of their own check.
 
-If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed.
+If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed. When the work will not reach Git, it asks how it should be reviewed only if that choice is still open, so the review does not stop the work later.
+
+Findings from that review are fixed as part of the work. After one follow-up review, a new finding with a small fix inside the change that changes no contract is fixed and covered by a test without another review round, and the report says so; anything larger or changing a contract comes to you as a decision.
 
 ## What it does not do
 
