@@ -8,7 +8,7 @@ import (
 
 // HiveSubagentsSource is the npm source Hive installs when the user settings
 // do not already declare pi-subagents.
-const HiveSubagentsSource = "npm:pi-subagents@0.74.0"
+const HiveSubagentsSource = "npm:pi-subagents"
 
 const subagentsNPMName = "pi-subagents"
 

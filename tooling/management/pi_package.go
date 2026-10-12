@@ -63,7 +63,7 @@ func syntheticApplyPi(home, action, source string) error {
 		if err := os.MkdirAll(pkg, 0700); err != nil {
 			return err
 		}
-		return os.WriteFile(filepath.Join(pkg, "package.json"), []byte(`{"name":"pi-subagents","version":"0.74.0"}`), 0600)
+		return os.WriteFile(filepath.Join(pkg, "package.json"), []byte(`{"name":"pi-subagents","version":"0.0.0-synthetic"}`), 0600)
 	case "remove":
 		var kept []string
 		for _, s := range root.Packages {
