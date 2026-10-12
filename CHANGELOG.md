@@ -41,8 +41,9 @@ raise the minor or the patch version.
 - Findings from a review that runs inside work you already authorized are fixed
   as part of that work, without asking again; a review you request on its own
   still does not authorize fixes.
-- Work that will not end in a Git delivery still gets the review question once,
-  before the first edit, instead of a separate stop when the review is due.
+- Work that will not end in a Git delivery gets the review question once, if
+  that choice is still open, before the first edit instead of a separate stop
+  when the review is due.
 - After the one follow-up review, a new finding whose fix is small, inside the
   change and touches no contract is fixed with a test, without another review
   round, and the report says it was fixed without review; anything larger comes

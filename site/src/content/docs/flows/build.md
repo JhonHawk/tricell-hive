@@ -33,7 +33,7 @@ A changed working tree, plus evidence:
 - When your CLI has a task list, the agent keeps the plan's tasks there, also when it continues a plan after a close, so you can see what is left.
 - When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. Other tasks are marked done on the evidence of their own check.
 
-If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed. When the work will not reach Git, it still asks how it should be reviewed, so the review does not stop the work later.
+If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed. When the work will not reach Git, it asks how it should be reviewed only if that choice is still open, so the review does not stop the work later.
 
 Findings from that review are fixed as part of the work. After one follow-up review, a new finding with a small fix inside the change is fixed and covered by a test without another review round, and the report says so; anything larger comes to you as a decision.
 
