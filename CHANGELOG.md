@@ -10,6 +10,17 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- The route question can offer an iterative route when the work alternates
+  investigation and implementation toward one measurable objective. Its option
+  states the objective, how it is measured, the number of rounds the agent
+  proposes, and when it stops. Once you choose it, the agent reports each round
+  in one line and keeps going within local editing and verification; it stops
+  and asks when the objective is met, the rounds run out, a round brings no
+  measurable improvement, a step needs an effect the route does not cover, a
+  round needs a plan, the scope changes, or a decision is yours.
+
 ### Changed
 
 - A research round about work you could start now ends with the route
@@ -27,6 +38,15 @@ raise the minor or the patch version.
   the objective, the decisions in force, each task in one line, the checks,
   the delivery, what is still open, and the plan's path. The summary ends with
   the question whether to start Build now or stop with the plan ready.
+- Findings from a review that runs inside work you already authorized are fixed
+  as part of that work, without asking again; a review you request on its own
+  still does not authorize fixes.
+- Work that will not end in a Git delivery still gets the review question once,
+  before the first edit, instead of a separate stop when the review is due.
+- After the one follow-up review, a new finding whose fix is small, inside the
+  change and touches no contract is fixed with a test, without another review
+  round, and the report says it was fixed without review; anything larger comes
+  to you as a decision.
 
 ## [0.3.3] - 2026-10-10
 
