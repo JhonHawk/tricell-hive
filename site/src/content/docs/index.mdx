@@ -27,6 +27,12 @@ hero:
 
 Hive is a small layer of shared instructions, skills and helper roles for coding agents such as Claude Code, Codex and others. It does not replace your agent: the tool keeps its own model, sign-in, permissions and history.
 
+The global core keeps essential boundaries and tells the agent when to read each
+canonical procedure. Reporting applies before every chat reply; other references
+are read when their stated conditions apply. A file being installed, discovered,
+supplied to a model and followed are different things. Smaller global text does
+not prove smaller total context or improved reliability for any model family.
+
 ## Install
 
 On macOS Apple Silicon or Linux (arm64 or amd64), run this in a terminal:
@@ -84,6 +90,39 @@ The agent picks these up when the task calls for them.
 For bounded pieces of work, the agent hands off to helper roles with a clear brief: design, building, documentation, quality checks and independent review. Each host runs them with the model and permissions Hive configures for it. The definitions are in [content/agents](https://github.com/JhonHawk/tricell-hive/tree/master/content/agents).
 
 ## Learn more
+
+### Optional OpenCode V2 context loader
+
+At user scope, Hive delivers `hive/context-loader/index.js` and
+`hive/context-loader/context-loader.json` inside your OpenCode home, with no `package.json`, outside the auto-discovered `plugins/` directory.
+Installation does not activate them or change your OpenCode configuration.
+
+If you explicitly choose activation, add the absolute installed
+`<OpenCodeHome>/hive/context-loader` directory path to the native
+`plugins` array in your own `opencode.json(c)`, preserving existing entries, and
+start a new session. Only `hive-review-plan` and `hive-review-harness` receive their
+fixed canonical reference snapshot. Main-thread questions and other roles are not
+covered. The manager derives those snapshots from the validated release payload;
+the loader reads no reference files or metadata during requests. Updating them
+requires manager regeneration and plugin reload. Editing installed Markdown does
+not refresh the snapshot; do not activate the repository's editorial JS template.
+The loader supplies the snapshot on each request; it does not enforce the
+procedure, change models or permissions, or guarantee cancellation if a snapshot
+is unavailable.
+
+To deactivate it, remove that entry or use OpenCode's native
+`-hive.context-loader` directive, then reload through the native host. Remove the directory path entry before uninstalling Hive
+or downgrading to content without the loader; Hive preserves your configuration,
+so leaving the entry can produce a missing-plugin error. New offline packages
+use manifest version 2 and require their accompanying manager; v1-only managers
+cannot verify them. The current manager retains v1-package support. Package
+manifest version 2 is independent of the loader's metadata schema 2, which records
+role/resource/digest provenance, not cryptographic authentication.
+
+See the [loader contract](https://github.com/JhonHawk/tricell-hive/blob/master/_support/docs/architecture/deployment-manager.md#optional-opencode-context-loader)
+for configuration, ownership and verification limits. Source-level checks are
+not native runtime proof; the bounded model experiment has not yet run and remains
+blocked on verifying safe, exact memory cleanup.
 
 - **Start here**: [Research](/flows/research/), the flow most sessions begin with.
 - **Principles**: [Why Hive](https://github.com/JhonHawk/tricell-hive#why-hive) explains the ideas behind it.

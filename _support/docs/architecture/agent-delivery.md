@@ -45,13 +45,49 @@ Profiles are delivery defaults, not a replacement for the host's authentication,
 
 ## Delegation and instruction delivery
 
-`content/guidance/global.md` owns the shared delegation contract. Activity skills own their specific decomposition and review procedure; role descriptions identify stable responsibilities. Project guidance and situational references supply technical conventions. Keep these sources canonical rather than maintaining a second role-by-stack routing table.
+`content/guidance/global.md` retains essential delegation boundaries and explicit read conditions; `content/skills/flow-research/references/delegation.md` owns the detailed dispatch, resource-delivery and wait procedure. Questions and reporting have their own canonical references; reporting applies before every chat reply. Activity skills own their specific decomposition and review procedure; role descriptions identify stable responsibilities. Project guidance and situational references supply technical conventions. Keep these sources canonical rather than maintaining a second role-by-stack routing table.
 
 A role's native configuration does not establish that it received or read a skill. The caller supplies project context, decisions and applicable resource identities or accessible paths. The child locates skills through the host catalog/loader or an explicit task path and reads the required resource before dependent work. Missing context blocks only the affected dependency. Hive does not implement portable skill preloading or filesystem-permission overrides.
 
 For example, a backend implementation assignment identifies the authorized API change, root, owned files, compatibility contract and acceptance checks, then points to the available `flow-build/SKILL.md` and existing project conventions for the detected stack. A read-only reviewer receives the review question and relevant evidence instead of implementation authority. Neither assignment requires creating a new agent for its framework.
 
-Role links use `skill:owner/path` logical resource identities, for example `skill:flow-plan/references/ui-planning.md`. They resolve from the named skill's discovered directory, not the native agent file. This is an authoring convention interpreted through instructions, not a new CLI URI handler. The release validator checks the owning skill and resource exist in the bundle; the renderer preserves the link without embedding content or a machine-specific path. See [instruction resources](instruction-resources.md) for authoring and validation limits.
+Role links use `skill:owner/path` logical resource identities, for example `skill:flow-plan/references/ui-planning.md`. They resolve from the named skill's discovered directory, not the native agent file. This is an authoring convention interpreted through instructions, not a new CLI URI handler. The release validator checks the owning skill and resource exist in the bundle; the renderer rewrites inline locators outside fences to installed resource paths without embedding resource content. See [instruction resources](instruction-resources.md) for authoring and validation limits.
+
+### Optional OpenCode reference supply
+
+At OpenCode user scope, the manager delivers the inactive directory
+`<OpenCodeHome>/hive/context-loader/`, containing `index.js` and
+`context-loader.json` with no `package.json`, outside native autodiscovery.
+Activation adds that directory path to the user configuration’s `plugins` array;
+removing the entry and reloading the plugin through the native host deactivates it. Explicit activation enables `hive.context-loader` to resolve
+`Agent.Info.name` from the active agent ID and supply only:
+
+- `hive-review-plan`: `flow-plan/references/plan-review.md`.
+- `hive-review-harness`: `harness-audit/SKILL.md`.
+
+The manager generates embedded reference snapshots from the validated release
+payload; the references retain one editorial home under their owning skills.
+The context hook supplies that snapshot again for each request, deduplicating
+only its own parts in that request. It performs no reference-file or metadata
+reads. Refresh requires manager regeneration and plugin reload; a live edit to
+installed Markdown alone does not change supplied text. It does not preload conditional references,
+classify main-thread intent, edit history, change tools/models/permissions or
+enforce a procedure. Unknown roles stay untouched. Missing or invalid canonical
+inputs reject generation before delivery. An unavailable snapshot produces a
+bounded diagnostic naming the logical resource and failure code without claiming
+native request cancellation or guaranteed model obedience.
+
+The plugin executes with the host process's access; embedded snapshots and their
+metadata schema 2 digests are provenance, not a sandbox or cryptographic
+authentication of local executable code. Source/unit
+tests establish only their exercised contracts. Native supply before dispatch,
+subsequent plugins and compliance must be observed separately. The planned
+bounded A/B/C experiment has not yet run and remains blocked on verifying safe,
+exact memory cleanup; generation/callback tests do not resolve that prerequisite
+or establish reliability.
+See the [loader lifecycle](deployment-manager.md#optional-opencode-context-loader)
+for activation and removal, and the [reading footprint](instruction-resources.md#declared-reading-footprint)
+for source unions rather than measured tokens.
 
 This contract is authored guidance, not deterministic loading enforcement or a demonstrated quality improvement. The backend role covers the repository’s actual language and framework, including TypeScript. The former `ts-backend-developer` source is consolidated into `hive-build-backend`, retaining runtime validation, package/workspace inspection and shared-contract guidance. The former `react-developer` and `angular-developer` sources are consolidated into `hive-build-frontend`, with concise framework-conditional guidance for server/client boundaries, change detection, subscriptions, lifecycle and forms.
 

@@ -31,6 +31,13 @@ A plan that someone else could follow. It covers:
 
 When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed, together with the last design questions that do not depend on those answers.
 
+The skill links directly to the procedures for questions, project settings,
+change records and plan review. Reading one reference does not start its whole
+owning flow. The optional OpenCode loader can supply a generated plan-review
+snapshot for the explicit reviewer role without runtime reference-file reads;
+refresh requires manager regeneration and plugin reload. It does not prepare the
+plan or choose its scope.
+
 A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
 
 ## What it does not do

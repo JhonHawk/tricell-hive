@@ -34,6 +34,12 @@ An answer in the conversation. It normally tells you:
 
 For large questions the agent may hand reading work to helper agents, then check their claims itself before reporting. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
 
+The global core keeps essential boundaries; Research links directly to the
+canonical questions, reporting and delegation procedures when needed. Reporting
+applies before every chat reply. Optional context delivery covers only the
+explicit OpenCode plan-review and harness-review roles, not intent detection or
+automatic loading for every research task.
+
 When the findings concern work you could start, the same answer ends with the route question. Its options are the ways to act on the findings, each naming the flow it starts (Plan for larger work, Build for a small, well understood change), plus keeping the investigation going and stopping at the findings. The recommended option comes first, with its reason. The message ends with a fixed last line, "Waiting for your decision:" (in Spanish sessions, «Esperando tu decisión:»). A ticket offer can join the same round as its own numbered question. If the findings fully answer the question and there is no work to run, there is no route question.
 
 When the next steps would alternate investigating and fixing toward one measurable goal, such as measuring a tool, correcting it and measuring again, the route question can also offer an iterative route. Its option tells you the goal and how it is measured, how many rounds the agent proposes, and when it stops. If you choose it, the agent reports each round in one line and keeps going, as long as every step stays local to your project. It stops and asks when the goal is met, the rounds run out, a round brings no measurable improvement, a step needs something the route does not cover (such as a commit or an installation), a round grows into work that needs a plan, the scope changes, or a decision is yours. The exact conditions are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md).

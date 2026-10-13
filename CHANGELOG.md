@@ -12,6 +12,26 @@ raise the minor or the patch version.
 
 ### Added
 
+- Optional OpenCode V2 context loader, delivered inactive at user scope as
+  `hive/context-loader/{index.js,context-loader.json}`, outside auto-discovered
+  `plugins/`, with no `package.json`. Explicit
+  native activation supplies canonical references only for `hive-review-plan` and
+  `hive-review-harness`; it does not classify prompts, change permissions or
+  enforce compliance. The manager generates its script snapshots and metadata
+  schema 2 from the validated release payload; requests read no reference files
+  or metadata. Canonical references retain one editorial home. Refresh requires
+  regeneration and plugin reload, not editing installed Markdown. The derived
+  files use existing ownership, drift and recovery machinery; their SHA-256
+  digests record provenance, not cryptographic authentication. Activate the
+  installed `hive/context-loader` directory, not the source template. Remove the user-owned plugin entry
+  before uninstalling or downgrading to content without it.
+- Declared reading-footprint scenarios report unique source bytes and characters,
+  including required procedures and selected activity entrypoints, separately
+  from actual tokens. New offline packages use manifest v2 and include the loader
+  source; the current manager still verifies v1 packages. Older v1-only managers
+  cannot verify v2 packages. This optional integration meets the minor-version
+  feature criterion; no release number is assigned here.
+
 - The route question can offer an iterative route when the work alternates
   investigation and implementation toward one measurable objective. Its option
   states the objective, how it is measured, the number of rounds the agent
@@ -22,6 +42,13 @@ raise the minor or the patch version.
   round needs a plan, the scope changes, or a decision is yours.
 
 ### Changed
+
+- The global core retains essential boundaries and explicit read conditions while
+  canonical skill references hold reporting, questions, delegation, artifact
+  details and project settings. Reporting remains required before every chat
+  reply, including ordinary answers without citations. Smaller global text is
+  not a claim of lower total context or better model reliability; the declared
+  plan/build source union can grow.
 
 - A research round about work you could start now ends with the route
   question directly: the routes with the flow each one runs, keep

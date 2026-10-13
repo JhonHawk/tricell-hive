@@ -164,6 +164,107 @@ Verified against installed `ctx7` 0.5.11 and [official CLI documentation](https:
 
 ## Content and native destinations
 
+### Optional OpenCode context loader
+
+Editorial template: `integrations/opencode/context-loader.js`. When present in
+the release, the manager generates the installed script and metadata only for
+OpenCode user scope at
+`<OpenCodeHome>/hive/context-loader/index.js` and
+`<OpenCodeHome>/hive/context-loader/context-loader.json`, with no `package.json`, not in the
+auto-discovered `plugins/` directory. No other host or project scope gets those
+destinations. `integrations/opencode/context_snapshot.go` derives both files from
+the validated release payload; the canonical references keep their single
+editorial home under their owning skills. No second authored JSON manifest or
+live-file fallback is maintained.
+
+The template contains exactly one `__HIVE_CONTEXT_SNAPSHOT_DATA__` marker. The
+renderer rejects zero or multiple occurrences before writes and substitutes once
+with JSON data serialized by `encoding/json`, not Markdown concatenated as code.
+The embedded object has `schema: 2` and `references`, ordered by role:
+`hive-review-harness`, then `hive-review-plan`. Each entry contains `role`,
+`resource`, `text` and lowercase hexadecimal `sha256`. Text preserves the exact
+valid UTF-8 resource bytes in the release, including line endings and BOM; its
+digest covers those same bytes. Missing, empty or invalid UTF-8 canonical owners
+or references reject generation. The accompanying metadata has `schema: 2` and
+the same ordered `role`, `resource`, `sha256` list, without text, a reading root
+or `skillsDirectory`. It is derived provenance, not a runtime reading capability.
+
+These files use managed `plugin` ownership, exact bytes/modes, conflict checks
+and the existing transaction/recovery machinery. A missing managed file is
+reinstalled; a changed or unowned destination is preserved as a conflict.
+Removal or a release lacking the loader retires its owned resources without
+editing native user configuration. Empty directories created by the manager are
+pruned; a preexisting directory or a directory containing unrelated files is
+preserved. Unpublished candidate names are not accepted as managed resources.
+Saved-plan validation reconstructs both
+derived files from the payload and compares their complete bytes before writes,
+including when plan hashes have been recalculated. Digests establish exact
+canonical-byte provenance, not cryptographic authentication of local executable
+code. A party able to replace the plugin is outside the isolation Hive promises;
+the host loads local executable code with its own access, not a Hive sandbox.
+
+Normal install/update never activates the plugin or writes `opencode.json(c)`.
+After explicitly choosing activation, the user adds the absolute
+`<OpenCodeHome>/hive/context-loader` directory path
+to the native `plugins` array in their own OpenCode configuration, preserving
+existing entries, and starts a new session. The native plugin ID is
+`hive.context-loader`. Remove that entry or use OpenCode's native
+`-hive.context-loader` directive to deactivate, then reload through the native host. Before uninstalling Hive or
+returning to content without the loader, remove the path entry: the manager
+preserves it, and OpenCode can otherwise report a missing plugin. Disabling the
+plugin does not remove the core's obligation to read required references. Do not
+activate the repository's editorial template: it still contains the unsubstituted
+snapshot identifier and is not the generated runnable plugin.
+
+Runtime observation on OpenCode 2.0.27 (2026-10-12): a `plugins` entry
+pointing to a single `.js` file is rejected with "configured plugin path must be
+a directory"; a directory containing `index.js` loads without `package.json`.
+Files under the native `plugins/` directory are auto-discovered, so the inactive
+copy stays under `hive/context-loader/`. This establishes loading only, not
+context injection before dispatch or model effectiveness.
+
+The implementation uses OpenCode V2 `Plugin.define({id, setup})`, a session
+`context` hook, `ctx.agent.get({agentID})` and `Agent.Info.name`, not a filename
+assumed equal to an ID. It maps only `hive-review-plan` to
+`flow-plan/references/plan-review.md` and `hive-review-harness` to
+`harness-audit/SKILL.md`. Each request receives the corresponding embedded
+snapshot again; deduplication touches only parts previously added by this plugin
+to that request. The callback performs zero reference-file or metadata reads and
+does not resolve reference pathnames. An unavailable snapshot adds the bounded
+`missing_snapshot` diagnostic, not an asserted abort or enforcement guarantee.
+It changes no history, models, tools, permissions or generation settings. Later
+plugins may change context.
+
+Freshness follows delivery, not live filesystem edits: regenerate the plugin with
+the manager from the desired validated release payload, then reload the plugin
+through the native host before relying on the new snapshot. Editing an installed
+Markdown reference alone leaves its embedded snapshot unchanged and can produce
+managed drift; the manager preserves detected edits rather than overwriting them.
+There is no parallel live-reading loader.
+
+API documentary basis: [OpenCode V2 plugins](https://opencode.ai/v2/docs/build/plugins),
+consulted for the change on 2026-10-11 with installed OpenCode 2.0.26 reported in
+the plan. Live documentation is not pinned to that binary. Source inspection
+and callback tests are not native discovery, final request or behavioral proof.
+The bounded model pilot has not yet run and remains blocked on verifying safe,
+exact memory cleanup. The snapshot consumer's source/callback checks do not
+resolve that prerequisite or prove model benefit; do not infer success from
+packaging or private-directory permissions.
+
+New offline packages use `release.json` manifest version `2` and must include
+the exact source path `integrations/opencode/context-loader.js`, even when the
+user does not select OpenCode. `tooling/package/main.go` copies it into the
+package. The current verifier accepts versions `1` and `2`; version `1` keeps
+its old required-file set. Old source/snapshot payloads without the loader remain
+usable and do not acquire it automatically. This is separate from the state and
+product version schemas, and independent of the loader's metadata schema `2`.
+Managers whose verifier accepts only manifest `1`
+reject new packages: use the manager shipped with the v2 package, or rebuild the
+manager before using newer content. Do not assume an old binary handles the new
+`plugin` resource kind merely because it can read an old manifest. Returning to
+an old *content release with the current manager* is not the same as downgrading
+the manager binary; use the current manager to retire the loader resources first.
+
 The catalogue contains `content/guidance/global.md`, each `content/skills/<skill>/SKILL.md`, resources recursively below each skill's `references/`, `scripts/`, and `assets/` directories, and canonical roles at `content/agents/<category>/<name>.md`. Skill resources may be `.md`, `.html`, `.py`, `.sh`, `.json`, `.ts`, `.mjs`, `.astro`, `.mdx`, `.css`, `.yaml`, `.yml`, or `.gitignore`; their source modes are frozen and restored, including executable scripts. Agent sources and `integrations/agent-profiles.json` are validated as one catalogue: role names must be unique across categories. Links, duplicate paths, escaping paths, empty payloads, and reserved block delimiters are rejected. Disposable `__pycache__`, `node_modules`, `dist`, and `.astro` directories beneath skill resources are excluded.
 
 Each release ID is a SHA-256 over its ordered payload manifest, source modes, frozen agent-profile input, and renderer version. Resource identity is its source path (`Target.Source`), so a resource cannot be substituted for another payload. Agent files are rendered in memory for each native host and their exact rendered bytes are frozen into the saved plan and snapshot; the profile file itself is never deployed. Rendering also replaces each inline `skill:owner/path` link outside code fences, in roles and in the global block, with the resource path in the host's skills directory: absolute `<home>/.agents/skills` at user scope, project-root-relative at project scope (`integrations/mdlinks`; `SkillsDir` in each host package). A file shared by hosts must render identically or the plan fails before writing. `agents.Version` is unchanged, so older releases still validate, and a plan saved by an older binary fails the recomputation check in `LoadPlan`. Release sources keep `skill:` locators. No generated distribution directory is required for local use. In the paths below, `<relative-file>` is a skill entrypoint or resource.

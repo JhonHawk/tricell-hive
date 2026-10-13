@@ -5,6 +5,11 @@ description: Wrap up a finished, paused or abandoned piece of work and clean up 
 
 Close is the last step of a piece of work. It makes sure the records match reality, removes the leftovers the task made, and tells you where things stand.
 
+Its reporting reference applies before every chat reply, not only a final report.
+Questions and artifact cleanup have their own direct reference links. Those
+procedures retain their existing obligations; reading a reference does not
+invoke another complete flow.
+
 ## When to use
 
 Use Close when work reaches its completion point (usually merged into the base branch, after any checks that must pass there), when you abandon it, when you pause it, or when you end the session or ask for a cleanup.

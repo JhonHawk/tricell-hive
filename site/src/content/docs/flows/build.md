@@ -19,6 +19,11 @@ Fix the date parsing bug and add a test that would have caught it.
 
 You do not need a plan first for a small change you understand.
 
+The global core still controls scope, authorization, preservation and secrets.
+Build links to canonical procedures when a decision, delegation, artifact or
+verification needs them; reporting applies before every chat reply. Neither an
+installed reference nor an optional loader proves that a helper followed it.
+
 ## What it produces
 
 A changed working tree, plus evidence:

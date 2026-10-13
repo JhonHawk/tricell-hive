@@ -21,6 +21,26 @@ OpenCode V2, and Cursor CLI**. It supplies guidance, activity skills, specialist
 role definitions, and a manager that installs them in the host's native locations.
 Each CLI keeps its own model loop, authentication, tools, permissions, and history.
 
+The global core keeps essential boundaries and points to canonical skill
+references before the action that needs them. Reporting applies before every chat
+reply; questions, delegation, artifact details and project settings have explicit
+read conditions. Installing a reference makes it available, not necessarily read
+or followed. This organization does not establish reliability for any model family.
+
+OpenCode V2 also receives an **optional, inactive context loader** at user scope in
+`<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside
+auto-discovered `plugins/`, with no `package.json`.
+When explicitly activated, it supplies a generated snapshot of the fixed reference
+for `hive-review-plan` and `hive-review-harness`, not other roles or main-thread
+questions. It reads no reference files or metadata during requests. Updating the
+snapshot requires manager regeneration and plugin reload; editing an installed
+Markdown file alone does not refresh it. Activate only the installed `hive/context-loader` directory, not the repository's editorial template. It changes
+neither permissions nor models and does not enforce behavior. Manual activation,
+deactivation and removal prerequisites are in the
+[loader contract](_support/docs/architecture/deployment-manager.md#optional-opencode-context-loader).
+New offline packages use manifest version 2 and require the accompanying manager;
+older managers that accept only version 1 cannot verify them.
+
 Use it to investigate an uncertain request, plan a consequential change, or carry
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
