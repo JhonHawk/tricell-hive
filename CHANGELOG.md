@@ -43,6 +43,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `git-workflow` no longer prescribes a worktree location: agents use the host's own
+  worktree feature or the repository's documented place, never a temporary directory,
+  and record each worktree they create in persistent memory so another session or host
+  can resume it.
+
 - OpenCode V2 role profiles now use OpenCode Go models instead of GitHub Copilot:
   `opencode-go/deepseek-v4.1-flash` for execution, `opencode-go/deepseek-v4-pro`
   for reasoning and `opencode-go/glm-5.3` for the verifier.
