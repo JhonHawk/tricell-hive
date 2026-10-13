@@ -5,6 +5,8 @@ description: Archive explicitly selected, explicitly closed support sessions whi
 
 # Archive selected closed sessions
 
+Before writing or cleaning support records, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before reporting mappings or findings, read [reporting](../flow-close/references/reporting.md). Before a user decision about selected sessions, read [questions](../flow-plan/references/questions.md).
+
 Archive only sessions the user selected and whose closure is explicit in their retained record. The helper reads only the first status field in each record (the control-sheet row in `flow-plan` plans). Its value must be `closed`, `completed`, or `cancelled` (Spanish: `cerrado`, `completado`, `cancelado`), case-insensitive, either alone or followed by `·`, `.`, `;`, or a table border: `Status: closed`, `**Estado:** cerrado. …`, or `| Status | Completed · … |`. A qualified value such as `completado parcialmente` counts as open. It does not normalize those files. A closed research record may be archived without a plan. If a session has plans, every plan must carry one of those closed states. Do not classify work by age, normalize names or status values, stage files, commit, or push.
 
 Use [the helper](scripts/archive_sessions.py) with a declared support root and selected session names. It reports a deterministic mapping without changes by default. `--apply` is allowed when the user's authorization already covers those selected moves. An ambiguous or open session stays in place and is reported.

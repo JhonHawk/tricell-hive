@@ -9,6 +9,8 @@ Turn uncertainty into a supported answer that the next decision can use. This pr
 
 ## Frame the investigation
 
+Before resolving needed project settings, read [project settings](../flow-plan/references/project-settings.md). Before delegating or starting an external-work wait, read [delegation and waits](references/delegation.md). Before formulating a user decision, read [questions](../flow-plan/references/questions.md).
+
 Identify the question, the decision it informs, relevant constraints, and what evidence would change the answer. Use context already supplied. Ask only for missing intent that affects the conclusion; discover repository facts directly.
 
 Inspect the relevant entry points, callers, tests, configuration, and project guidance before extending the search. When the question concerns project state or delivery, also reconcile the relevant backlog, documentation, code, pull requests, CI, and deployment evidence; for the project's status or a backlog listing, read [backlog report](references/backlog-report.md) before reporting. Follow references that bear on the question rather than inventorying the entire repository. Let uncertainty and consequences determine depth, not a fixed file or source count.
@@ -26,6 +28,8 @@ In the main thread, delegate under the shared delegation contract any question w
 - Use a bounded check when reading alone cannot answer a consequential question and the check is within the task's authorized effects. Do not turn a read-only investigation into an implementation or deployment.
 
 ## Deliver the finding
+
+Before reporting findings or relaying child/tool results with citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md). Before writing a retained support artifact, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md); retention still needs its existing authorization.
 
 State the answer, supporting source locations or URLs, material alternatives and tradeoffs when they answer the question investigated, remaining uncertainty, and the decision or next step it enables. Do not present a recommendation as an implemented result.
 

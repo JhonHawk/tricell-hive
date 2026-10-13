@@ -2,6 +2,8 @@
 
 Read when planning or executing integration, runtime, UI, performance, hardware, test replacement/removal, promotion, deployment, or costly checks. The build skill owns the essential test-first and completion procedure; this reference selects depth and timing. Follow the project's established commands, environments, and delivery policy. Verification does not grant deployment, publication, destructive effects, or external access.
 
+Before dispatching children or starting an external-work wait, read [delegation and waits](../../flow-research/references/delegation.md). Before a user decision or manual validation request, read [questions](../../flow-plan/references/questions.md). Before writing or cleaning support evidence and UI images, read [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md). Before verification reports or messages with citations, links or externally defined IDs, read [reporting](../../flow-close/references/reporting.md).
+
 ## Select evidence for the change
 
 Identify the failure being guarded against, affected users and dependencies, reversibility, and boundaries crossed: persistence, permissions, processes, devices, or concurrency. Classify the changed surface, not the entire repository. A text edit in a busy service does not automatically need load testing; a landing page's payment flow is not merely presentation.

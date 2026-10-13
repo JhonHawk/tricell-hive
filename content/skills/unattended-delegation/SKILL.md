@@ -9,7 +9,7 @@ Activate this mode only from an explicit delegation, a user's message that they 
 
 At activation, state the objective, root or repository, references, destination, evidence, and an expiry or deadline. This skill grants no broader tools or host permissions.
 
-Delegate under the shared delegation rules. Keep consequential decisions and evidence in the existing task record when one exists. Do not require a ledger, branch, hook, or new tracking system solely for this mode.
+Before delegating or starting an external-work wait, read [delegation and waits](../flow-research/references/delegation.md). Before resolving needed settings, read [project settings](../flow-plan/references/project-settings.md); before writing or cleaning support artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md); before reporting, read [reporting](../flow-close/references/reporting.md). Keep consequential decisions and evidence in the existing task record when one exists. Do not require a ledger, branch, hook, or new tracking system solely for this mode.
 
 ## Decisions
 

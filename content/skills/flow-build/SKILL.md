@@ -9,6 +9,8 @@ Use the requested outcome or supplied plan as the execution brief. This skill do
 
 ## Reconcile before execution
 
+Before resolving needed project settings, read [project settings](../flow-plan/references/project-settings.md). Before formulating a user decision or manual validation request, read [questions](../flow-plan/references/questions.md). Before delegating or starting an external-work wait, read [delegation and waits](../flow-research/references/delegation.md).
+
 Read the relevant project guidance, current source and tests, and the supplied plan and references. Inspect existing changes and completed work. Treat the record as a claim to reconcile with current evidence, not a script to replay blindly.
 
 Identify the candidate, affected applications/services and environments, and the checks needed to close each surface. A supplied plan is optional; keep a small task’s criteria in the conversation. Identify the next unmet acceptance criterion and its dependencies. Preserve valid completed work. If the current state invalidates a decision that sets scope, a contract, an acceptance criterion, or delivery, investigate the mismatch and update the affected plan or ask for the missing decision before dependent edits. Resolve ordinary implementation details within scope; do not stop at every task boundary merely to ask again.
@@ -24,6 +26,8 @@ For new or changed screens, shells, layouts, or reusable UI patterns, read [UI p
 Before installing a missing tool, check the project-local and available system installations and the required version. Prefer the project’s existing setup. Distinguish task-local dependency setup from system-wide installs or shell/global configuration changes; the latter require explicit authorization, which may already be present. Verify the actual OS and shell before using platform-specific commands rather than assuming them from the harness name.
 
 ## Execute in verifiable increments
+
+Before writing or cleaning a support artifact, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before progress reports, completion reports or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md).
 
 Choose a coherent next result and implement it in the existing source layout. Look for an existing solution or pattern before adding a mechanism or abstraction, and justify a new one by the need it serves. Confirm that reused tools or patterns meet this project's requirements. Use the project's declared dependency manager and preserve its lockfile conventions. Select technical references from the actual project stack and affected behavior. Keep dependent edits ordered.
 

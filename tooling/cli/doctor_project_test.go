@@ -372,12 +372,12 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // AC10: the keys the validator knows and the guidance stay in step.
 // ---------------------------------------------------------------------------
 
-// projectSettingsSection returns the lines of «Project settings» in
-// content/guidance/global.md, split into the prose lines and the lines inside
-// fenced code blocks.
+// projectSettingsSection returns the canonical settings declaration, split into
+// prose lines and lines inside fenced code blocks. The global kernel links to
+// this reference rather than repeating the keys and example.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "guidance", "global.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "flow-plan", "references", "project-settings.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,7 +386,7 @@ func projectSettingsSection(t *testing.T) (prose, code []string) {
 		trimmed := strings.TrimSpace(line)
 		switch {
 		case !fenced && strings.HasPrefix(line, "## "):
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Project settings"
+			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Declare settings"
 			continue
 		case !in:
 			continue
@@ -399,7 +399,7 @@ func projectSettingsSection(t *testing.T) (prose, code []string) {
 		}
 	}
 	if len(prose) == 0 || len(code) == 0 {
-		t.Fatalf("the «Project settings» section was not found (prose %d lines, code %d lines)", len(prose), len(code))
+		t.Fatalf("the canonical settings declaration was not found (prose %d lines, code %d lines)", len(prose), len(code))
 	}
 	return prose, code
 }
@@ -419,7 +419,7 @@ func TestHiveSettingKeysAppearInTheGuidance(t *testing.T) {
 			}
 		}
 		if !ok {
-			t.Errorf("key %q is not the start of any backtick-quoted text in «Project settings» of content/guidance/global.md", k.Name)
+			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical project-settings.md declaration", k.Name)
 		}
 	}
 }
@@ -438,7 +438,7 @@ func TestHiveSettingKeysCoverTheGuidanceExample(t *testing.T) {
 		}
 		seen++
 		if !knownHiveKey(strings.TrimSpace(name)) {
-			t.Errorf("the example in content/guidance/global.md uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
+			t.Errorf("the example in project-settings.md uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
 		}
 	}
 	if seen == 0 {

@@ -9,6 +9,8 @@ This skill does not grant any Git action or change the delivery boundary already
 
 ## Establish the repository context
 
+Before resolving needed project settings, read [project settings](../flow-plan/references/project-settings.md). Before a user decision, read [questions](../flow-plan/references/questions.md); before an external-work wait, read [delegation and waits](../flow-research/references/delegation.md). Before writing or cleaning an auxiliary support file, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before a delivery report or message with citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md).
+
 Inspect the repository's documented conventions before choosing branch, commit, pull-request, or review conventions. Then inspect the current branch, upstream, remotes, and staged and unstaged changes. Identify which paths belong to the requested delivery and preserve unrelated work, including another person's staged changes.
 
 Use the repository's established conventions when they exist. If it has none, `type/short-slug` is a suitable branch-name default and Conventional Commits with an optional scope are suitable commit-message defaults. These defaults do not require creating a branch or committing.

@@ -9,6 +9,8 @@ Maintain existing work records without losing their provenance or creating compe
 
 ## Inspect the requested material
 
+Before writing or cleaning a support artifact, read [artifact layout and retention](references/artifact-layout.md). Before reporting the operation, read [reporting](../flow-close/references/reporting.md). Before resolving needed project settings or formulating a user decision, read [project settings](../flow-plan/references/project-settings.md) or [questions](../flow-plan/references/questions.md), respectively.
+
 Resolve the established support home and current work identifier. Read the relevant records and inspect candidate destinations and links before proposing a reorganization. Limit inventory to the requested scope; do not bulk-read unrelated logs or sensitive files.
 
 Distinguish current knowledge, execution history, reproducible scratch, and unique evidence. Check ownership, sensitivity, and whether work is explicitly closed. Establish disposability from positive evidence that the material is reproducible and unowned; an old date, an ignored file, or a rerunnable command is not such evidence. Preserve and report uncertainty.
