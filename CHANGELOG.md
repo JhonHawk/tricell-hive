@@ -99,6 +99,10 @@ raise the minor or the patch version.
   input or state the running system can produce; one traced only inside a component
   stays in the report as unconfirmed. The close question marks which findings it
   recommends opening.
+- The `automatic` delivery mode never stops for human validation. When the project's
+  guidance requires one for a change, such as a visual check of a changed screen, the
+  delivery question marks `automatic` unavailable for that change and names the rule,
+  instead of offering it and stopping before the merge anyway.
 
 ## [0.3.3] - 2026-10-10
 
