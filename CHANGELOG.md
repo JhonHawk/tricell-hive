@@ -95,6 +95,10 @@ raise the minor or the patch version.
   folder again: `flow-build`'s verification reference still pointed to a global
   rule that had moved to `artifact-layout`, and asked for a temporary destination,
   so a session saved its captures where a restart erased them.
+- A side finding becomes a proposed ticket only when its failure can start from an
+  input or state the running system can produce; one traced only inside a component
+  stays in the report as unconfirmed. The close question marks which findings it
+  recommends opening.
 
 ## [0.3.3] - 2026-10-10
 
