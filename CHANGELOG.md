@@ -109,6 +109,11 @@ raise the minor or the patch version.
   guidance requires one for a change, such as a visual check of a changed screen, the
   delivery question marks `automatic` unavailable for that change and names the rule,
   instead of offering it and stopping before the merge anyway.
+- UI review and in-vivo rounds are shorter: the agent seeds the walk's data and
+  passes its records to the children instead of having each one create them through
+  the interface, the UI reviewer no longer repeats the functional journeys the in-vivo
+  check owns, and each child stops after one observation per area, viewport and theme,
+  reporting a check that hangs or fails twice as not verified.
 
 ## [0.3.3] - 2026-10-10
 
