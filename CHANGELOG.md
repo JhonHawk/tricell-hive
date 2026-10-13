@@ -43,6 +43,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- OpenCode V2 role profiles now use OpenCode Go models instead of GitHub Copilot:
+  `opencode-go/deepseek-v4.1-flash` for execution, `opencode-go/deepseek-v4-pro`
+  for reasoning and `opencode-go/glm-5.3` for the verifier.
+
 - The global core retains essential boundaries and explicit read conditions while
   canonical skill references hold reporting, questions, delegation, artifact
   details and project settings. Reporting remains required before every chat

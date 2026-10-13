@@ -18,7 +18,7 @@
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
-      "models": {"execution": {"model": "github-copilot/gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "github-copilot/gpt-6.1-sol", "effort": "high"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "verifier": {"model": "github-copilot/claude-opus-5.5", "effort": "high"}},
+      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "medium"}, "reasoning": {"model": "opencode-go/deepseek-v4-pro", "effort": "high"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "verifier": {"model": "opencode-go/glm-5.3", "effort": "high"}},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
     },
     "cursor": {

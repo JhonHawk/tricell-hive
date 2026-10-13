@@ -176,7 +176,7 @@ not prove that a particular session loaded the content or followed it.
 | Codex | User and project | Native instructions, shared skills, and rendered roles. |
 | Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. |
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Honors `PI_CODING_AGENT_DIR`. |
-| OpenCode V2 | User | Needs your own model providers; the default role profiles assume GitHub Copilot and OpenCode Go models, so set others with `hive models set`. |
+| OpenCode V2 | User | Needs your own model providers; the default role profiles assume OpenCode Go models, so set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). User-level role selection remains unverified. |
 
 Only Claude Code and Codex support `--scope project`; the other four reject it.
