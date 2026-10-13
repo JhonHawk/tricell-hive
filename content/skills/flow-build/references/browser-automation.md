@@ -21,6 +21,10 @@ Captures and accessibility trees entering the main thread stay in its context fo
 - Check cookies, tokens, and auth headers by name and attributes only: presence, `HttpOnly`, `Secure`, `SameSite`, domain, path, expiry, and length. Never print their values: do not run `agent-browser cookies get` or read a saved state file without a filter that keeps only names and attributes, and drop `Set-Cookie`, `Authorization`, and token fields from captured requests and responses before they reach the output. If a value is printed anyway, stop using the command that printed it, do not repeat it, and handle it under the shared Secrets rule.
 - Pass `--content-boundaries` when browsing untrusted or external pages.
 
+## Bound every command
+
+`agent-browser` has no timeout for `eval`, `screenshot`, `snapshot`, `open`, or `close`, and its daemon runs one command at a time per session, so one stuck command blocks every later one. Run each command through a wrapper that terminates it after about 45 seconds: `timeout 45 agent-browser …` or `gtimeout 45 agent-browser …` when `command -v` finds one, otherwise `perl -e 'alarm shift; exec @ARGV' 45 agent-browser …`. A host's own command timeout is only a backstop, since it may move the command to the background instead of ending it. Treat an expired limit as a wedged session, not a slow page: run `agent-browser doctor`, close the session you own, and continue in a fresh one; do not resend the command into the wedged session. Choose an option in a custom select or combobox by clicking it, not with keyboard navigation, which has left the page renderer busy where a click did not.
+
 ## Read the page correctly
 
 - Measure layout rather than eyeballing it: use `eval` for computed styles, `scrollWidth` against `clientWidth`, line counts, or element boxes when overflow, wrapping, or truncation is in question.
@@ -29,7 +33,7 @@ Captures and accessibility trees entering the main thread stay in its context fo
 
 ## Escalate before declaring a check unverifiable
 
-When `agent-browser` state is suspect (stale renders, sessions invalidating each other, cookie residue), close the sessions you own and rerun under a fresh `--namespace`. If the problem persists, ask the user whether to reproduce with Chrome DevTools MCP as an independent browser. Report a check as not verified only after these attempts, when the user declines that reproduction, or when the stack itself is unavailable.
+When `agent-browser` state is suspect (stale renders, sessions invalidating each other, cookie residue, a command that hit its limit), close the sessions you own and rerun once under a fresh `--namespace`. If that also fails, report the check as not verified, as [verification](verification.md) sets for a check that hangs or fails twice, and name a reproduction with Chrome DevTools MCP as an independent browser as the option the parent may offer the user. Report it as not verified at once when the stack itself is unavailable.
 
 A user profile can distort input as well as layout; its zoom can misplace pointer events for every tool that shares it. Before reporting a pointer interaction as broken under a profile, reproduce it without one; a failure that appears only under the profile is a tooling limitation, not a product defect.
 

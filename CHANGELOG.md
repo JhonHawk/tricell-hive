@@ -114,6 +114,10 @@ raise the minor or the patch version.
   the interface, the UI reviewer no longer repeats the functional journeys the in-vivo
   check owns, and each child stops after one observation per area, viewport and theme,
   reporting a check that hangs or fails twice as not verified.
+- A stuck browser command no longer stalls a UI walk for minutes: each `agent-browser`
+  command runs under a wrapper that ends it after about 45 seconds, a command that
+  hits that limit is treated as a wedged session (doctor, close, fresh session), and
+  options in custom selects are chosen by click rather than keyboard.
 
 ## [0.3.3] - 2026-10-10
 
