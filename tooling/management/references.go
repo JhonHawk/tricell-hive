@@ -16,7 +16,7 @@ var definedResourceLink = regexp.MustCompile(`(?m)^ {0,3}\[[^\]\n]+\]:\s*(<[^>\n
 var personalResourcePath = regexp.MustCompile(`(?:/Users/|/home/|/Volumes/|[A-Za-z]:\\Users\\)`)
 
 func instructionMarkdown(source string) bool {
-	return strings.HasSuffix(source, ".md") && (strings.HasPrefix(source, "content/agents/") ||
+	return strings.HasSuffix(source, ".md") && (source == GlobalSource || strings.HasPrefix(source, "content/agents/") ||
 		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || strings.Contains(source, "/references/"))))
 }
 
