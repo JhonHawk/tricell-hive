@@ -109,7 +109,7 @@ func run(args []string) error {
 		pair := strings.Split(p, "/")
 		label := archiveLabel(productVersion, pair[0], pair[1])
 		dir := filepath.Join(scratch, label)
-		for _, name := range []string{"content", "integrations/agent-profiles.json", "install.sh", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		for _, name := range []string{"content", "integrations/agent-profiles.json", "integrations/opencode/context-loader.js", "install.sh", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
 			if err := copyTree(filepath.Join(frozen, name), filepath.Join(dir, name)); err != nil {
 				return err
 			}
@@ -143,7 +143,7 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		manifest := distribution.Manifest{Version: 1, Platform: p, SourceID: sourceID, ProductVersion: productVersion, Files: files}
+		manifest := distribution.Manifest{Version: 2, Platform: p, SourceID: sourceID, ProductVersion: productVersion, Files: files}
 		metadata, err := json.MarshalIndent(manifest, "", "  ")
 		if err != nil {
 			return err

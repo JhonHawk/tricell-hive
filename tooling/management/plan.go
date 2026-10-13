@@ -182,6 +182,13 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 		}); err != nil {
 			return r, err
 		}
+		plugin, err := read(filepath.Join(o.Source, opencode.ContextLoaderSource))
+		if err != nil {
+			return r, err
+		}
+		if plugin.Exists {
+			sources = append(sources, opencode.ContextLoaderSource)
+		}
 		hasAgents := false
 		for _, source := range sources {
 			if agents.IsSource(source) {
@@ -263,7 +270,7 @@ func collectResources(source, root string, out *[]string) error {
 	})
 }
 func validSource(source string) bool {
-	if source == GlobalSource {
+	if source == GlobalSource || source == opencode.ContextLoaderSource {
 		return true
 	}
 	if regexp.MustCompile(`^content/agents/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\.md$`).MatchString(source) {
@@ -343,7 +350,20 @@ func validateRelease(r Release) error {
 	if r.Renderer != "" && (r.Renderer != agents.Version || len(r.Profiles) == 0) {
 		return fmt.Errorf("unsupported agent renderer")
 	}
+	if entries[opencode.ContextLoaderSource] {
+		if _, _, err := renderContextLoader(&r); err != nil {
+			return err
+		}
+	}
 	return validateInstructionReferences(r)
+}
+
+func renderContextLoader(r *Release) ([]byte, []byte, error) {
+	files := make(map[string][]byte, len(r.Files))
+	for _, f := range r.Files {
+		files[f.Path] = f.Data
+	}
+	return opencode.RenderContextLoader(payload(r, opencode.ContextLoaderSource), files)
 }
 func BuildPlan(action string, o Options) (Plan, error) {
 	return buildPlan(action, o, nil)
@@ -555,7 +575,7 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		return &next, nil
 	}
 	r := Record{Target: g.Target, Release: p.Release.ID, CreatedFile: !s.Exists, Consumers: g.Consumers}
-	if g.Target.Kind == "skill" || g.Target.Kind == "agent" {
+	if g.Target.Kind == "skill" || g.Target.Kind == "agent" || g.Target.Kind == "plugin" {
 		r.Mode = payloadMode(p.Release, g.Target.Source)
 	}
 	if old != nil {
@@ -581,6 +601,19 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		}
 	case "skill":
 		r.Managed = payload(p.Release, g.Target.Source)
+	case "plugin":
+		if g.Target.Source != opencode.ContextLoaderSource || p.Config.Scope != "user" {
+			return nil, fmt.Errorf("invalid OpenCode plugin resource")
+		}
+		script, metadata, err := renderContextLoader(p.Release)
+		if err != nil {
+			return nil, err
+		}
+		r.Managed = script
+		if filepath.Base(g.Target.Path) == "context-loader.json" {
+			r.Managed = metadata
+			r.Mode = 0600
+		}
 	case "agent":
 		if p.Release.Renderer != agents.Version {
 			return nil, fmt.Errorf("agent renderer version changed; regenerate plan")

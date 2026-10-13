@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/target"
 )
 
@@ -45,7 +46,7 @@ func normalizeState(s *State) error {
 		if path != r.Target.Path || !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("invalid recorded path")
 		}
-		if r.Target.Kind != "block" && r.Target.Kind != "skill" && r.Target.Kind != "agent" && r.Target.Kind != "symlink" {
+		if r.Target.Kind != "block" && r.Target.Kind != "skill" && r.Target.Kind != "agent" && r.Target.Kind != "plugin" && r.Target.Kind != "symlink" {
 			return fmt.Errorf("invalid recorded kind")
 		}
 		if s.Version < 3 && r.Target.Source == "" {
@@ -58,6 +59,12 @@ func normalizeState(s *State) error {
 		if !validSource(r.Target.Source) {
 			return fmt.Errorf("invalid recorded source")
 		}
+		if r.Target.Kind == "plugin" {
+			name := filepath.Base(path)
+			if r.Target.Source != opencode.ContextLoaderSource || (name != "index.js" && name != "context-loader.json") {
+				return fmt.Errorf("invalid recorded plugin")
+			}
+		}
 		if s.Version == 1 {
 			if r.Target.Host == "" || len(r.Consumers) != 0 || r.Target.Kind == "symlink" {
 				return fmt.Errorf("invalid legacy ownership")
@@ -69,6 +76,9 @@ func normalizeState(s *State) error {
 			return fmt.Errorf("invalid consumer ownership")
 		}
 		for _, c := range r.Consumers {
+			if r.Target.Kind == "plugin" && (c.Host != "opencode" || c.Scope != "user") {
+				return fmt.Errorf("invalid plugin consumer")
+			}
 			if _, err := validateHosts([]string{c.Host}); err != nil {
 				return err
 			}
@@ -154,6 +164,11 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 	for _, r := range state.Records {
 		for _, oldConsumer := range r.Consumers {
 			for _, g := range gs {
+				// Script and derived metadata share one editorial source, not a
+				// relocation. Their exact destinations are resolved independently.
+				if r.Target.Kind == "plugin" && g.Target.Kind == "plugin" && filepath.Dir(r.Target.Path) == filepath.Dir(g.Target.Path) {
+					continue
+				}
 				if !hasConsumer(g.Consumers, oldConsumer) || r.Target.Kind != g.Target.Kind || r.Target.Source != g.Target.Source || r.Target.Path == g.Target.Path {
 					continue
 				}

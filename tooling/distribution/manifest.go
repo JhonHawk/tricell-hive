@@ -114,7 +114,7 @@ func verifyManifest(root string) error {
 	if err != nil {
 		return err
 	}
-	if m.Version != 1 || m.Platform != runtime.GOOS+"/"+runtime.GOARCH || len(m.SourceID) != 64 || len(m.Files) == 0 {
+	if (m.Version != 1 && m.Version != 2) || m.Platform != runtime.GOOS+"/"+runtime.GOARCH || len(m.SourceID) != 64 || len(m.Files) == 0 {
 		return fmt.Errorf("incompatible package or invalid manifest")
 	}
 	if _, err := hex.DecodeString(m.SourceID); err != nil {
@@ -123,6 +123,13 @@ func verifyManifest(root string) error {
 	for _, required := range []string{"bin/hive", "bin/hive.sha256", "install.sh", "platform", "content/guidance/global.md", "integrations/agent-profiles.json", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
 		if _, ok := m.Files[required]; !ok {
 			return fmt.Errorf("incomplete package: %s", required)
+		}
+	}
+	// V1 packages predate the optional loader. New packages must carry its
+	// exact editorial source, even when no OpenCode installation is selected.
+	if m.Version == 2 {
+		if _, ok := m.Files["integrations/opencode/context-loader.js"]; !ok {
+			return fmt.Errorf("incomplete package: integrations/opencode/context-loader.js")
 		}
 	}
 	actual, err := Files(root)

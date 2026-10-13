@@ -25,3 +25,35 @@ func TestResolveOpenCodeRejectsProjectScope(t *testing.T) {
 		t.Fatalf("expected unsupported project-scope error, got %v", err)
 	}
 }
+
+func TestContextLoaderTargetsRequireExactSource(t *testing.T) {
+	home := t.TempDir()
+	c := target.Config{Scope: "user", Home: home, OpenCodeHome: filepath.Join(home, "custom-opencode")}
+	for _, source := range []string{ContextLoaderSource, "integrations/opencode/other.js", "integrations/opencode/context-loader.json"} {
+		ts, err := Resolve(c, source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var plugins []target.Target
+		for _, target := range ts {
+			if target.Kind == "plugin" {
+				plugins = append(plugins, target)
+			}
+		}
+		want := 0
+		if source == ContextLoaderSource {
+			want = 2
+		}
+		if len(plugins) != want {
+			t.Fatalf("source %q: %d plugin destinations, want %d", source, len(plugins), want)
+		}
+		for _, target := range plugins {
+			if filepath.Base(target.Path) != "index.js" && filepath.Base(target.Path) != "context-loader.json" {
+				t.Fatal("unexpected plugin filename")
+			}
+			if filepath.Dir(target.Path) != filepath.Join(c.OpenCodeHome, "hive", "context-loader") || target.Host != "opencode" || target.Scope != "user" {
+				t.Fatal("plugin is not user-level inactive delivery")
+			}
+		}
+	}
+}
