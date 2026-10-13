@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read the applicable conditions and actions before composing a chat reply: findings, progress or completion reports, ordinary answers and explanations, questions, native cards and relayed child/tool notifications. This includes messages with citations, links or IDs defined outside them and replies without them; format rules still apply to an explanation with no citation. Reading this reference does not invoke the closing workflow. For a decision or manual validation request, also read [questions](../../flow-plan/references/questions.md).
+Read the applicable conditions and actions before writing a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it; format rules still apply to an explanation with no citation, and a greeting or a short direct answer needs no read. Reading this reference does not invoke the closing workflow. For a decision or manual validation request, also read [questions](../../flow-plan/references/questions.md).
 
 ## Lead with the result
 
