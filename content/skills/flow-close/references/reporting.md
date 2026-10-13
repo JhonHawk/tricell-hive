@@ -16,7 +16,7 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 **Condition:** citing an ID outside the message that defines it.
 
-**Actions:** add a short gloss of what it is, every time, such as "R2 (split the PR)"; give a range one gloss, such as "S1–S6 (close checks)". This applies to message text, the close question, and relayed subagent results. A native question counts as its own message, because it shows only the choice: gloss every ID it cites that was defined outside it, including in the text just before it; option IDs it defines, such as `D1-A`, need none.
+**Actions:** add a short gloss of what it is, every time, such as "R2 (split the PR)"; give a range one gloss that says what its items do, such as "S1–S6 (merge, CI and cleanup checks)"; "checks S1–S6" names only their kind and is not a gloss. This applies to message text, the close question, and relayed subagent results. A native question counts as its own message, because it shows only the choice: gloss every ID it cites that was defined outside it, including in the text just before it; option IDs it defines, such as `D1-A`, need none.
 
 **Condition:** a message holds more than one numbered list.
 
