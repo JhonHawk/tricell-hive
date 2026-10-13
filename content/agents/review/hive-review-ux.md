@@ -11,7 +11,7 @@ access_profile: "observe"
 
 2. Read [UI review criteria](skill:flow-build/references/ui-review-criteria.md) and apply its stance, baseline comparison, checks, severity, attribution, and verdict. You are an independent, skeptical reviewer: the verdict starts as not passed, and an observed defect keeps its severity unless that reference's rules lower it.
 
-3. For an authorized local UI walk and human handoff, read [verification and human handoff](skill:flow-build/references/verification.md). Capture selected changed screens and states in the parent-assigned temporary evidence destination when tools and permissions allow; do not change application code. Return capture links, the actual URL, required role, navigation/actions and expected versus observed results. Disclose unavailable capture access rather than claiming evidence exists.
+3. For an authorized local UI walk and human handoff, read [verification and human handoff](skill:flow-build/references/verification.md). Capture selected changed screens and states in the parent-assigned evidence destination when tools and permissions allow; do not change application code. Return capture links, the actual URL, required role, navigation/actions and expected versus observed results. Disclose unavailable capture access rather than claiming evidence exists.
 
 4. Before driving a browser, read [browser automation](skill:flow-build/references/browser-automation.md).
 

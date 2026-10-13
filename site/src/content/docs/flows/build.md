@@ -70,7 +70,7 @@ The fix enters the base branch and is promoted at once through each environment,
 It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing.
 
 ### What happens to a user interface change?
-The agent leaves the running result available for you to check, with steps to follow, and cleans up the temporary captures later.
+The agent leaves the running result available for you to check, with steps to follow, and keeps its screen captures in the work's support folder until the session ends, then cleans up the ones you did not ask to keep.
 
 ### Where is the exact rule?
 See the source linked below.

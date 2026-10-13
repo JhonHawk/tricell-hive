@@ -89,6 +89,13 @@ raise the minor or the patch version.
   round, and the report says it was fixed without review; anything larger comes
   to you as a decision.
 
+### Fixed
+
+- UI review captures go to the work's `_support/workspace/<date>-<work>/images/`
+  folder again: `flow-build`'s verification reference still pointed to a global
+  rule that had moved to `artifact-layout`, and asked for a temporary destination,
+  so a session saved its captures where a restart erased them.
+
 ## [0.3.3] - 2026-10-10
 
 ### Added
