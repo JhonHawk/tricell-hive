@@ -12,7 +12,7 @@ effort_claude: "medium"
 
 2. Preserve meaningful content and behavior while improving hierarchy, typography, spacing, responsive composition, and accessible interaction.
 
-3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast, and loading, empty, error, and success states relevant to the task.
+3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast, and loading, empty, error, and success states relevant to the task. Before driving a browser, read [browser automation](skill:flow-build/references/browser-automation.md), and use only the browser tool your brief assigns.
 
 4. Deliver the requested design or implementation with concrete visual evidence and remaining limitations. Do not claim rendered verification from source inspection alone.
 

@@ -43,6 +43,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The browser tool follows the situation: `agent-browser` for journeys, UX review,
+  screenshots and measurements, Chrome DevTools MCP for audits and performance traces
+  or an independent reproduction, Playwright MCP only without `agent-browser`. A child
+  never installs a missing browser tool; it reports the install commands and the user
+  authorizes once. The frontend, UI design and task-verification roles now read the
+  browser rules and use only the browser tool their brief assigns.
+
 - `git-workflow` no longer prescribes a worktree location: agents use the host's own
   worktree feature or the repository's documented place, never a temporary directory,
   make sure an in-repository worktree path is ignored, and record each worktree they
