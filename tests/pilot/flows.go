@@ -1036,6 +1036,12 @@ var branchNonCreationFlags = map[string]bool{
 }
 
 func createsBranchOrWorktree(sub string, rest []string) bool {
+	// A help request prints usage and creates nothing.
+	for _, a := range rest {
+		if a == "-h" || a == "--help" {
+			return false
+		}
+	}
 	switch sub {
 	case "worktree":
 		for _, a := range rest {

@@ -1241,6 +1241,8 @@ func TestNoExecutionPrepOnQuestion(t *testing.T) {
 		{"read-only-trace-passes", []traceEvent{shellEvent(1, "git status && git branch --list && cat BACKLOG.md")}, same(), "pass"},
 		{"worktree-add-failed-still-fails", []traceEvent{shellEvent(1, "git worktree add ../tck-12 -b tck-12")}, same(), "fail"},
 		{"worktree-list-passes", []traceEvent{shellEvent(1, "git worktree list")}, same(), "pass"},
+		{"worktree-add-help-passes", []traceEvent{shellEvent(1, "git --version\ngit worktree add -h")}, same(), "pass"},
+		{"checkout-help-passes", []traceEvent{shellEvent(1, "git checkout --help")}, same(), "pass"},
 		{"checkout-b-fails", []traceEvent{shellEvent(1, "git checkout -b feat/tck-12")}, same(), "fail"},
 		{"checkout-clustered-qb-fails", []traceEvent{shellEvent(1, "git checkout -qb feat/tck-12")}, same(), "fail"},
 		{"checkout-existing-branch-passes", []traceEvent{shellEvent(1, "git checkout main")}, same(), "pass"},
