@@ -8,7 +8,7 @@ Read before launching a child or starting a wait for external work, including re
 
 **Condition:** selecting work to delegate or changing the split.
 
-**Actions:** the main thread coordinates work in proportion to the task. Tell the user in one sentence which work goes to which subagents and why; do not announce that work stays in the main thread. Keep small, understood tasks direct. Send probing likely to produce long output, such as binaries, installed dependencies, build artifacts, long documentation, or broad searches, to a child that returns only the relevant findings, because early context is re-read for the rest of the session. Reassess the split when a direct lookup grows into diagnosis. Delegate independent bounded work; sequence dependencies and avoid overlapping writers.
+**Actions:** the main thread coordinates work in proportion to the task. Tell the user in one sentence which work goes to which subagents and why; do not announce that work stays in the main thread. Keep small, understood tasks direct. Send probing likely to produce long output, such as binaries, installed dependencies, build artifacts, long documentation, or broad searches, to a child that returns only the relevant findings, because early context is re-read for the rest of the session. Reassess the split when a direct lookup grows into diagnosis. Delegate independent bounded work; sequence dependencies and avoid overlapping writers. Launch independent children in the same step, not in waves. When your own bounded lookup has not found where the answer lives, launch one child to locate it first and split the rest by what it finds.
 
 ## Select the role
 
@@ -24,7 +24,7 @@ Read before launching a child or starting a wait for external work, including re
 
 **Condition:** launching a child.
 
-**Actions:** give it the objective, repository or declared root, authorized effects, the files or paths it may modify or delete, relevant contracts, expected output, and acceptance evidence. Delegation grants no additional authority. Label delegated premises as verified facts, source claims, or assumptions, with the relevant evidence or missing check.
+**Actions:** give it the objective, repository or declared root, authorized effects, the files or paths it may modify or delete, relevant contracts, expected output, and acceptance evidence. Delegation grants no additional authority. Label delegated premises as inspected facts, source claims, or assumptions, with the relevant evidence or missing check.
 
 A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. It may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, or writes to trackers, even when the delivery mode authorizes those effects. The main thread reviews its diff before integrating it and owns those effects.
 
