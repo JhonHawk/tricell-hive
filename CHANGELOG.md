@@ -43,6 +43,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A research child cites a live observation by the exact read-only command that
+  produced it, so the parent reruns it unchanged instead of rewriting the query, and
+  children that share a question get disjoint scopes so none repeats another's reads.
+
 - The browser tool follows the situation: `agent-browser` for journeys, UX review,
   screenshots and measurements, Chrome DevTools MCP for audits and performance traces
   or an independent reproduction, Playwright MCP only without `agent-browser`. A child
