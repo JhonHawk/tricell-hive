@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -31,12 +32,14 @@ type memoryIsolationReport struct {
 }
 
 type memoryIsolation struct {
-	outputDir string
-	dataDir   string
-	marker    string
-	ownedInfo os.FileInfo
-	server    *exec.Cmd
-	report    memoryIsolationReport
+	outputDir     string
+	dataDir       string
+	marker        string
+	ownedInfo     os.FileInfo
+	server        *exec.Cmd
+	report        memoryIsolationReport
+	serverMu      sync.Mutex
+	serverStopped bool
 }
 
 const memoryOwnerMarker = "hive pilot isolated Engram store v1\n"
@@ -178,13 +181,20 @@ func (m *memoryIsolation) startHTTP(env []string, cwd string) ([]string, error) 
 	if err != nil || len(strings.TrimSpace(string(id))) != 32 {
 		return nil, fmt.Errorf("isolated Engram identity unavailable")
 	}
+	m.serverMu.Lock()
+	if m.serverStopped {
+		m.serverMu.Unlock()
+		return nil, fmt.Errorf("isolated Engram startup refused after cleanup")
+	}
 	m.server = exec.Command("engram", "serve", port)
 	m.server.Env = env
 	m.server.Dir = cwd
 	if err := m.server.Start(); err != nil {
 		m.server = nil
+		m.serverMu.Unlock()
 		return nil, fmt.Errorf("isolated Engram HTTP startup failed")
 	}
+	m.serverMu.Unlock()
 	client := &http.Client{Timeout: 250 * time.Millisecond}
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -207,6 +217,12 @@ func (m *memoryIsolation) startHTTP(env []string, cwd string) ([]string, error) 
 }
 
 func (m *memoryIsolation) stopHTTP() {
+	if m == nil {
+		return
+	}
+	m.serverMu.Lock()
+	defer m.serverMu.Unlock()
+	m.serverStopped = true
 	if m != nil && m.server != nil {
 		_ = m.server.Process.Kill()
 		_ = m.server.Wait()
@@ -215,6 +231,10 @@ func (m *memoryIsolation) stopHTTP() {
 }
 
 func (m *memoryIsolation) captureStats() {
+	m.captureStatsWithin(time.Now().Add(10 * time.Second))
+}
+
+func (m *memoryIsolation) captureStatsWithin(deadline time.Time) {
 	if m == nil || m.dataDir == "" {
 		return
 	}
@@ -223,16 +243,17 @@ func (m *memoryIsolation) captureStats() {
 		return
 	}
 	env := isolatedMemoryEnvironment(os.Environ(), m.dataDir)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, bin, "stats", "--all")
 	cmd.Env = env
-	stdout, err := cmd.Output()
-	if err != nil {
+	var stdout strings.Builder
+	cmd.Stdout = &stdout
+	if code, _ := runProcess(cmd, time.Until(deadline)); code != 0 {
 		return
 	}
 	counts := map[string]int{}
-	for _, line := range strings.Split(string(stdout), "\n") {
+	for _, line := range strings.Split(stdout.String(), "\n") {
 		for label, key := range map[string]string{"Sessions:": "sessions", "Observations:": "observations", "Prompts:": "prompts"} {
 			if strings.HasPrefix(strings.TrimSpace(line), label) {
 				value := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), label))
@@ -252,11 +273,10 @@ func (m *memoryIsolation) captureStats() {
 	m.report.RuntimeStatsVerified = true
 }
 
-func (m *memoryIsolation) cleanup() string {
+func (m *memoryIsolation) verifyOwnedDataDirectory() string {
 	if m == nil || m.dataDir == "" {
 		return "not_created"
 	}
-	m.stopHTTP()
 	info, err := os.Lstat(m.dataDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -274,9 +294,35 @@ func (m *memoryIsolation) cleanup() string {
 	if err != nil || rel != "engram-data" {
 		return "cleanup_refused_unexpected_path"
 	}
+	markerInfo, err := os.Lstat(m.marker)
+	if err != nil || !markerInfo.Mode().IsRegular() || markerInfo.Mode()&os.ModeSymlink != 0 {
+		return "cleanup_refused_missing_owner_marker"
+	}
 	marker, err := os.ReadFile(m.marker)
 	if err != nil || string(marker) != memoryOwnerMarker {
 		return "cleanup_refused_missing_owner_marker"
+	}
+	if err := filepath.WalkDir(m.dataDir, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("isolated memory symlink")
+		}
+		return nil
+	}); err != nil {
+		return "cleanup_refused_unverified_directory_contents"
+	}
+	return ""
+}
+
+func (m *memoryIsolation) cleanup() string {
+	if m == nil {
+		return "not_created"
+	}
+	m.stopHTTP()
+	if status := m.verifyOwnedDataDirectory(); status != "" {
+		return status
 	}
 	if err := os.RemoveAll(m.dataDir); err != nil {
 		return "cleanup_failed"

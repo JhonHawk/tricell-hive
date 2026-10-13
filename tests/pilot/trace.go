@@ -15,13 +15,17 @@ import (
 )
 
 type traceEvent struct {
-	Line    int    `json:"line"`
-	Kind    string `json:"kind"`
-	Tool    string `json:"tool,omitempty"`
-	ID      string `json:"id,omitempty"`
-	Path    string `json:"path,omitempty"`
-	Command string `json:"command,omitempty"`
-	Text    string `json:"text,omitempty"`
+	SessionID       string `json:"session_id,omitempty"`
+	Agent           string `json:"agent,omitempty"`
+	Model           string `json:"model,omitempty"`
+	Line            int    `json:"line"`
+	Kind            string `json:"kind"`
+	Tool            string `json:"tool,omitempty"`
+	ID              string `json:"id,omitempty"`
+	Path            string `json:"path,omitempty"`
+	Command         string `json:"command,omitempty"`
+	CommandWithheld bool   `json:"command_withheld,omitempty"`
+	Text            string `json:"text,omitempty"`
 	// Role distinguishes assistant-authored text from other roles (Claude/Grok
 	// synthetic "user" messages, Pi's toolResult-role message_end) so a
 	// criterion can require assistant-authored detail specifically.
@@ -258,6 +262,8 @@ func toolKind(name string) string {
 		return "write"
 	case "edit", "search_replace", "multiedit", "apply_patch":
 		return "write"
+	case "delete", "delete_file":
+		return "delete"
 	case "bash", "run_terminal_cmd", "run_terminal_command", "shell", "command_execution", "powershell":
 		return "shell"
 	case "skill":

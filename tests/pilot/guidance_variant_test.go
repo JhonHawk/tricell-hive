@@ -399,7 +399,7 @@ func TestRealOpenCodeDirsHonorXDGThenHomeDefaults(t *testing.T) {
 
 func TestWriteShadowOpenCodeConfigCarriesOnlyIsolatedEngramServer(t *testing.T) {
 	real := t.TempDir()
-	realConfig := `{"autoupdate":"notify","mcp":{"linear":{"type":"remote","url":"https://example.invalid/mcp"},"engram":{"command":["/opt/bin/engram","mcp","--tools=agent"],"enabled":true,"type":"local"}},"permission":{"bash":{"*":"allow"}},"plugin":["real-plugin"]}`
+	realConfig := `{"update":"notify","mcp":{"servers":{"linear":{"type":"remote","url":"https://example.invalid/mcp"},"engram":{"command":["/opt/bin/engram","mcp","--tools=agent"],"disabled":false,"type":"local"}}},"permissions":[{"action":"shell","resource":"*","effect":"allow"}],"plugins":["real-plugin"]}`
 	if err := os.WriteFile(filepath.Join(real, "opencode.json"), []byte(realConfig), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -412,24 +412,26 @@ func TestWriteShadowOpenCodeConfigCarriesOnlyIsolatedEngramServer(t *testing.T) 
 		t.Fatal(err)
 	}
 	var cfg struct {
-		Mcp map[string]struct {
-			Type        string
-			Command     []string
-			Enabled     bool
-			Environment map[string]string
+		Mcp struct {
+			Servers map[string]struct {
+				Type        string
+				Command     []string
+				Disabled    bool
+				Environment map[string]string
+			}
 		}
 	}
 	if err := json.Unmarshal(b, &cfg); err != nil {
 		t.Fatalf("shadow config is not JSON: %v", err)
 	}
-	e, ok := cfg.Mcp["engram"]
-	if len(cfg.Mcp) != 1 || !ok || e.Type != "local" || !e.Enabled || strings.Join(e.Command, " ") != "/opt/bin/engram mcp --tools=agent" {
+	e, ok := cfg.Mcp.Servers["engram"]
+	if len(cfg.Mcp.Servers) != 1 || !ok || e.Type != "local" || e.Disabled || strings.Join(e.Command, " ") != "/opt/bin/engram mcp --tools=agent" {
 		t.Fatalf("unexpected engram server: %+v", cfg.Mcp)
 	}
 	if e.Environment["ENGRAM_DATA_DIR"] != "/out/engram-data" || e.Environment["ENGRAM_CLOUD_AUTOSYNC"] != "0" {
 		t.Fatalf("engram server is not pinned to the isolated store: %v", e.Environment)
 	}
-	for _, unwanted := range []string{"linear", "real-plugin", "permission", "autoupdate", "example.invalid"} {
+	for _, unwanted := range []string{"linear", "real-plugin", "permission", "update", "example.invalid", "\"enabled\""} {
 		if strings.Contains(string(b), unwanted) {
 			t.Fatalf("shadow config copied unrelated real configuration (%q)", unwanted)
 		}
@@ -447,7 +449,7 @@ func TestWriteShadowOpenCodeConfigFailsClearlyWithoutEngramServer(t *testing.T) 
 }
 
 // fakeOpenCodeOnPath installs a fake `opencode` that records how it was called:
-// `auth export <id>` prints a marker document, and `auth import` stores stdin
+// `auth export <id> --standalone` prints a marker document, and `auth import` stores stdin
 // plus the HOME and flags it ran with, so tests never touch a real credential.
 func fakeOpenCodeOnPath(t *testing.T) string {
 	t.Helper()
@@ -488,7 +490,7 @@ func TestImportOpenCodeCredentialPipesExportIntoShadowImport(t *testing.T) {
 	}
 	calls, _ := os.ReadFile(logPath)
 	got := string(calls)
-	if !strings.Contains(got, "export-home="+os.Getenv("HOME")+" args=auth export opencode-go") {
+	if !strings.Contains(got, "export-home="+os.Getenv("HOME")+" args=auth export opencode-go --standalone") {
 		t.Fatalf("export must run against the real home for only that integration: %s", got)
 	}
 	if !strings.Contains(got, "import-home="+shadow+" args=auth import --standalone") {
@@ -529,7 +531,7 @@ func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCatalogThenImportsCre
 			t.Fatal(err)
 		}
 	}
-	os.WriteFile(filepath.Join(realCfg, "opencode.json"), []byte(`{"mcp":{"engram":{"command":["engram","mcp"],"type":"local"}}}`), 0600)
+	os.WriteFile(filepath.Join(realCfg, "opencode.json"), []byte(`{"mcp":{"servers":{"engram":{"command":["engram","mcp"],"type":"local"}}}}`), 0600)
 	os.WriteFile(filepath.Join(userHome, ".cache", "opencode", "models.json"), []byte(`{}`), 0600)
 	for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"} {
 		t.Setenv(k, "")
@@ -561,7 +563,7 @@ func TestSetupGuidanceVariantOpenCodeInstallsGuidanceConfigCatalogThenImportsCre
 	if err := g.importCredential(); err != nil {
 		t.Fatal(err)
 	}
-	if calls, _ := os.ReadFile(logPath); !strings.Contains(string(calls), "args=auth export opencode-go") {
+	if calls, _ := os.ReadFile(logPath); !strings.Contains(string(calls), "args=auth export opencode-go --standalone") {
 		t.Fatalf("credential for the model's integration was not transferred: %s", calls)
 	}
 	data := filepath.Join(shadow, ".local", "share", "opencode")
@@ -632,13 +634,16 @@ func TestCleanupRemovesWholeShadowDataDirIncludingLog(t *testing.T) {
 		os.WriteFile(filepath.Join(data, f), []byte("x"), 0600)
 	}
 	g := &guidanceVariant{shadowHome: shadow, host: "opencode", shadowDataDir: data}
+	if err := g.prepareNativeCleanup(); err != nil {
+		t.Fatal(err)
+	}
 	g.cleanup()
 	if _, err := os.Stat(data); !os.IsNotExist(err) {
 		t.Fatal("the whole shadow data directory must be removed")
 	}
 	entries, _ := os.ReadDir(shadow)
 	for _, e := range entries {
-		if e.Name() != ".local" {
+		if e.Name() != ".local" && e.Name() != ".cache" {
 			t.Fatalf("nothing from the data directory may be retained, found %s", e.Name())
 		}
 	}
@@ -672,11 +677,14 @@ func TestCleanupWarnsWhenShadowDataSurvives(t *testing.T) {
 	data := filepath.Join(shadow, ".local", "share", "opencode")
 	os.MkdirAll(data, 0700)
 	os.WriteFile(filepath.Join(data, "opencode.db"), []byte("x"), 0600)
+	g := &guidanceVariant{shadowHome: shadow, host: "opencode", shadowDataDir: data}
+	if err := g.prepareNativeCleanup(); err != nil {
+		t.Fatal(err)
+	}
 	// A read-only parent makes the removal fail on every platform the tests run on.
 	parent := filepath.Dir(data)
 	os.Chmod(parent, 0500)
 	defer os.Chmod(parent, 0700)
-	g := &guidanceVariant{shadowHome: shadow, host: "opencode", shadowDataDir: data}
 	g.cleanup()
 	if g.report.ShadowCredentialStoreRemoved || g.report.ShadowCredentialWarning == "" {
 		t.Fatalf("a surviving credential store must be reported: %+v", g.report)

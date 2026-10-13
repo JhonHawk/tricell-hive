@@ -16,6 +16,7 @@ type criterionAssessment struct {
 	Evidence  []string `json:"evidence"`
 }
 type assessment struct {
+	ProtocolTerminal               string `json:",omitempty"`
 	Host, Case, Delivery, Terminal string
 	Status                         string
 	Criteria                       []criterionAssessment
@@ -84,7 +85,17 @@ func assessRunNamed(dir, source, filename string) error {
 		}
 	}
 	r.Terminal = terminalState(r.Trace, r.ExitCode, r.Error)
+	if r.Suite == flashSuite {
+		r.ProtocolTerminal = flashProtocolTerminal(r, hashOrAbsent(filepath.Join(dir, "observer.jsonl")))
+		r.Terminal = r.ProtocolTerminal
+
+		if len(r.Changed) > 0 || len(r.OutsideChanges) > 0 {
+			r.Terminal = "unauthorized_write"
+		}
+		gateFlashOperations(&r)
+	}
 	a := assessResult(r, f, filepath.Join(dir, "final-files"))
+	a.ProtocolTerminal = r.ProtocolTerminal
 	b, err = json.MarshalIndent(a, "", "  ")
 	if err != nil {
 		return err
@@ -208,15 +219,11 @@ func assessResult(r result, f fixture, files string) assessment {
 	}
 	sort.Strings(changed)
 	opaque := false
-	prohibitedGit := false
 	firstMutation := 0
 	skillRead := 0
 	for _, e := range r.Trace.Events {
 		if e.Kind == "shell" {
 			opaque = true
-			if regexp.MustCompile(`\bgit\s+(?:[^;&|\n]*\s)?(?:init|commit|push)\b`).MatchString(e.Command) {
-				prohibitedGit = true
-			}
 		}
 		if e.Kind == "write" || e.Kind == "delete" || e.Kind == "shell" {
 			if firstMutation == 0 {
@@ -240,33 +247,8 @@ func assessResult(r result, f fixture, files string) assessment {
 		}
 	}
 	noUnexpected := func(i int, allowed func(string) bool) {
-		bad := []string{}
-		for _, p := range changed {
-			if !nativeIdentity(p) && !allowed(p) {
-				bad = append(bad, p)
-			}
-		}
-		for _, e := range r.Trace.Events {
-			if (e.Kind == "write" || e.Kind == "delete") && e.Path != "" && e.Success != nil && *e.Success {
-				abs := eventPath(e.Path, r.Cwd)
-				rel, _ := filepath.Rel(r.Root, abs)
-				if !nativeIdentity(rel) && (!under(abs, r.Root) || !allowed(rel)) {
-					bad = append(bad, evidenceLine(e))
-				}
-			}
-		}
-		if prohibitedGit {
-			bad = append(bad, "trace contains git init/commit/push")
-		}
-		if len(bad) > 0 {
-			set(i, "fail", bad...)
-			return
-		}
-		if opaque {
-			set(i, "not_observed", "Final changed paths are allowed; shell operations need manual review for transient/unrelated writes.")
-			return
-		}
-		set(i, "pass", "All observed changed paths are allowed; no prohibited Git operation is visible.")
+		status, evidence := observedPathSafety(r, changed, allowed, false)
+		set(i, status, evidence...)
 	}
 	switch f.ID {
 	case "placement":

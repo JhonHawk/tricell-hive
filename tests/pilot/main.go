@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"tricell-hive/integrations/target"
@@ -35,6 +36,9 @@ type item struct {
 	Size int64  `json:"size"`
 }
 type result struct {
+	ProtocolTerminal                                                                                  string         `json:",omitempty"`
+	MemoryStoreMode                                                                                   string         `json:",omitempty"`
+	RuntimeFixtureHash                                                                                string         `json:",omitempty"`
 	Suite                                                                                             string         `json:",omitempty"`
 	Handoff                                                                                           *handoffReport `json:",omitempty"`
 	CodexBypassSandbox                                                                                bool
@@ -54,6 +58,7 @@ type result struct {
 	Trace                                                                                             traceReport
 	GitDelivery                                                                                       *gitDeliveryReport     `json:",omitempty"`
 	GuidanceVariant                                                                                   *guidanceVariantReport `json:",omitempty"`
+	FlashClass                                                                                        *flashClassReport      `json:",omitempty"`
 }
 
 // mergeProtected combines two protected-path snapshots (the real home's and,
@@ -277,10 +282,39 @@ func pilotTimeLimit(limit time.Duration, explicit bool, suite, host, caseID stri
 }
 
 func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
+	if exitSignalActive.Load() && len(cmd.Args) > 1 && cmd.Args[1] == "run" {
+		return -1, "native root start refused during signal cleanup"
+	}
+	if limit <= 0 {
+		return -1, "timeout"
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	var mu sync.Mutex
+	cleaned, running := false, false
+	cleanup := func() {
+		mu.Lock()
+		defer mu.Unlock()
+		cleaned = true
+		if running {
+			_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			running = false
+		}
+	}
+	registerCleanup(cleanup)
+	mu.Lock()
+	if cleaned {
+		mu.Unlock()
+		return -1, "process start refused after cleanup"
+	}
 	if err := cmd.Start(); err != nil {
+		mu.Unlock()
 		return -1, err.Error()
 	}
+	running = true
+	mu.Unlock()
+	// A completed parent does not authorize leaving descendants alive. Native
+	// completion evidence is checked separately; termination alone is not success.
+	defer cleanup()
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	select {
@@ -302,11 +336,11 @@ func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 }
 func main() {
 	startSignalCleanup()
-	suite := flag.String("suite", "workspace-conventions", "workspace-conventions or flows")
+	suite := flag.String("suite", "workspace-conventions", "workspace-conventions, flows or flash-class-guidance")
 	handoff := flag.String("handoff-from", "", "producer plan run directory; required for flows build")
 	host := flag.String("host", "", "codex, claude, grok, pi, or opencode")
 	caseID := flag.String("case", "", "fixture ID or smoke")
-	arm := flag.String("arm", "", "A or B")
+	arm := flag.String("arm", "", "A or B; C only for flash-class-guidance")
 	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok/opencode only, requires --arm)")
 	out := flag.String("out", "", "new raw evidence directory")
 	source := flag.String("source", ".", "checkout root")
@@ -318,9 +352,23 @@ func main() {
 	assessmentName := flag.String("assessment-file", "criterion-assessment.json", "new assessment basename; must not already exist")
 	assess := flag.String("assess", "", "assess an existing run; create criterion-assessment.json once")
 	timeout := flag.Duration("timeout", 180*time.Second, "per-run time limit (default 10m for Grok flow plan/build; 3m otherwise)")
+	printFlashSchedule := flag.Bool("print-flash-schedule", false, "print the fixed 48-root schedule without launching a host")
 	allowTrust := flag.Bool("allow-native-trust", false, "allow only a native Codex trust-table insertion; requires explicit user authorization")
 	codexBypass := flag.Bool("codex-bypass-sandbox", false, "use the user-authorized native Codex approval/sandbox bypass for this invocation")
+	memoryStore := flag.String("memory-store", "", "disposable-container or default bound store")
+	nativeDataRoot := flag.String("native-data-root", "", "container tmpfs root for native data")
 	flag.Parse()
+	_, containerErr := os.Stat("/.dockerenv")
+	must(validateFlashContainer(*memoryStore, *nativeDataRoot, os.Environ(), containerErr == nil || os.Getenv("HIVE_PILOT_CONTAINER") == "1"))
+	if *memoryStore != "" && *suite != flashSuite {
+		must(fmt.Errorf("disposable container mode requires flash-class-guidance"))
+	}
+	if *printFlashSchedule {
+		b, err := json.MarshalIndent(flashSchedule(), "", "  ")
+		must(err)
+		fmt.Println(string(b))
+		return
+	}
 	explicitTimeout := false
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == "timeout" {
@@ -328,6 +376,15 @@ func main() {
 		}
 	})
 	*timeout = pilotTimeLimit(*timeout, explicitTimeout, *suite, *host, *caseID)
+	if *suite == flashSuite {
+		must(validateFlashClassFlags(*host, *caseID, *arm, *guidanceSource, *model, *delivery, *timeout))
+		if *configuredModel == "" {
+			*configuredModel = *model
+		}
+		if *configuredModel != *model || *effort != "" || *provider != "" {
+			must(fmt.Errorf("flash-class-guidance fixes parent and child to the exact approved model"))
+		}
+	}
 	if *codexBypass && *host != "codex" {
 		must(fmt.Errorf("--codex-bypass-sandbox requires --host codex"))
 	}
@@ -347,10 +404,10 @@ func main() {
 	if *guidanceSource != "" && *delivery != "deployed-global" {
 		must(fmt.Errorf("--guidance-source requires --delivery deployed-global"))
 	}
-	if *delivery == "deployed-global" {
+	if *delivery == "deployed-global" && *suite != flashSuite {
 		must(validateGuidanceVariantFlags(*host, *guidanceSource, *arm, *model))
 	}
-	if *suite != "workspace-conventions" && *suite != "flows" {
+	if *suite != "workspace-conventions" && *suite != "flows" && *suite != flashSuite {
 		must(fmt.Errorf("unknown suite"))
 	}
 	if *suite == "flows" && *delivery != "deployed-global" {
@@ -366,6 +423,9 @@ func main() {
 	must(e)
 	output, e := target.Canonical(*out)
 	must(e)
+	if *nativeDataRoot != "" && (under(*nativeDataRoot, output) || under(output, *nativeDataRoot)) {
+		must(fmt.Errorf("native data root and evidence output must be separate"))
+	}
 	if *suite == "flows" {
 		workspace, err := target.Canonical(filepath.Join(src, "_support/workspace"))
 		must(err)
@@ -383,6 +443,9 @@ func main() {
 		must(fmt.Errorf("output must not exist"))
 	}
 	must(os.MkdirAll(output, 0700))
+	privateEvidenceRoot, e := os.OpenRoot(output)
+	must(e)
+	defer privateEvidenceRoot.Close()
 	var corpus struct {
 		Cases []fixture `json:"cases"`
 	}
@@ -410,7 +473,15 @@ func main() {
 	must(e)
 	root, e = target.Canonical(root)
 	must(e)
+	memoryProject := ""
+	if *suite == flashSuite {
+		memoryProject = "flash-class-" + digest([]byte(root))[:24]
+	}
 	for p, s := range f.Files {
+		if memoryProject != "" {
+			s = strings.ReplaceAll(s, "<fixture-project>", memoryProject)
+			f.Files[p] = s
+		}
 		if filepath.IsAbs(p) || strings.Contains(p, "..") {
 			must(fmt.Errorf("unsafe fixture path"))
 		}
@@ -428,7 +499,8 @@ func main() {
 	if *suite == "flows" {
 		f.Prompt = flowTaskPrompt(f.Prompt, root)
 	}
-	cwd := filepath.Join(root, f.Cwd)
+	cwd, e := fixtureWorkingDirectory(root, f.Cwd)
+	must(e)
 	if f.ID == "placement" {
 		must(initGit(filepath.Join(root, "frontend")))
 		must(initGit(filepath.Join(root, "backend")))
@@ -459,7 +531,12 @@ func main() {
 		}
 		must(os.WriteFile(filepath.Join(cwd, filename), []byte(management.Begin+"\n"+strings.TrimRight(string(body), "\n")+"\n"+management.End+"\n"), 0600))
 	}
-	r := result{Suite: *suite, Handoff: imported, CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b), TimeLimitSeconds: timeout.Seconds(), GitDelivery: gitDelivery}
+	r := result{MemoryStoreMode: *memoryStore, Suite: *suite, Handoff: imported, CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b), TimeLimitSeconds: timeout.Seconds(), GitDelivery: gitDelivery}
+	if *suite == flashSuite {
+		runtimeFixture, err := json.Marshal(f)
+		must(err)
+		r.RuntimeFixtureHash = digest(runtimeFixture)
+	}
 	if *delivery == "project" {
 		if r.ModelRequested == "" {
 			if *host == "codex" {
@@ -490,7 +567,7 @@ func main() {
 	beforeProtected := protectedFor(*host, userHome)
 	var guidance *guidanceVariant
 	if *guidanceSource != "" {
-		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome, *model, engramDataDir(output))
+		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome, *model, engramDataDir(output), *nativeDataRoot)
 		must(e)
 		r.GuidanceVariant = &guidance.report
 		// Registered immediately so any must() failure or SIGINT/SIGTERM
@@ -500,12 +577,33 @@ func main() {
 		// direct call afterward, and a possible second run from a later
 		// must() failure, are both harmless.
 		registerCleanup(guidance.cleanup)
-		// After the cleanup registration: a failure or signal during the import
-		// still removes the shadow credential copy.
+	}
+	var flashMemory *flashMemoryGuard
+	if *suite == flashSuite {
+		r.FlashClass, e = setupFlashClass(src, *caseID, *arm, output, *model, guidance, memoryProject)
+		must(e)
+		if *memoryStore == disposableContainer {
+			temporary, err := os.MkdirTemp("", "hive-flash-memory-")
+			e = err
+			flashMemory = &flashMemoryGuard{project: memoryProject, output: output, temporary: temporary, disposable: true}
+		} else {
+			flashMemory, e = prepareFlashMemoryGuard(memoryProject, output, os.Environ())
+		}
+		must(e)
+		registerCleanup(flashMemory.removeTemporaryExports)
+	}
+	// Validate the arm and memory prerequisites before transferring any credential.
+	// Cleanup was registered before this private pipe can begin.
+	if guidance != nil {
 		must(guidance.importCredential())
 	}
 	if guidance != nil {
 		beforeProtected = mergeProtected(beforeProtected, protectedForHome(*host, guidance.shadowHome))
+		if r.FlashClass != nil {
+			for _, path := range flashProtectedPaths(guidance, r.FlashClass.Resource) {
+				beforeProtected[path] = fingerprint(path, map[string]bool{})
+			}
+		}
 	}
 	configPath := filepath.Join(envRoot("CODEX_HOME", filepath.Join(userHome, ".codex")), "config.toml")
 	configBefore, _ := os.ReadFile(configPath)
@@ -525,7 +623,18 @@ func main() {
 	must(e)
 	memory, childEnv, e := prepareMemoryIsolation(output, os.Environ())
 	must(e)
+	if flashMemory == nil {
+		registerCleanup(func() { memory.cleanup() })
+	} else {
+		flashMemory.ownedMemory = memory
+		cleanupEnv := isolatedMemoryEnvironment(os.Environ(), engramDataDir(output))
+		cleanupEnv = append(cleanupEnv, "ENGRAM_PROJECT="+flashMemory.project)
+		registerCleanup(func() { finishInterruptedFlashMemory(flashMemory, memory, cleanupEnv) })
+	}
 	childEnv = environmentInDirectory(childEnv, cwd)
+	if flashMemory != nil {
+		childEnv = append(childEnv, "ENGRAM_PROJECT="+flashMemory.project)
+	}
 	// The shadow home is applied before startHTTP so ENGRAM_DATA_DIR (already
 	// set above) keeps precedence over any default the isolated Engram server
 	// or Codex/Grok themselves would derive from a shadowed HOME.
@@ -534,7 +643,9 @@ func main() {
 	}
 	childEnv, e = memory.startHTTP(childEnv, cwd)
 	if e != nil {
-		memory.cleanup()
+		if flashMemory == nil || !flashMemory.disposable {
+			memory.cleanup()
+		}
 		must(e)
 	}
 	r.MemoryIsolation = memory.report
@@ -559,10 +670,18 @@ func main() {
 	}
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	save(filepath.Join(output, "run.json"), r)
+	writeRunResult(filepath.Join(output, "run.json"), r)
 	fmt.Printf("START %s %s %s\n", *host, f.ID, *arm)
 	started := time.Now()
-	r.ExitCode, r.Error = runProcess(cmd, *timeout)
+	deadline := started.Add(*timeout)
+	executionLimit := *timeout
+	if *suite == flashSuite {
+		executionLimit -= 2 * time.Second
+	}
+	r.ExitCode, r.Error = runProcess(cmd, executionLimit)
+	if exitSignalActive.Load() {
+		select {}
+	}
 	r.Seconds = time.Since(started).Seconds()
 	stdout.Close()
 	stderr.Close()
@@ -570,23 +689,139 @@ func main() {
 	must(e)
 	r.Trace = parseTrace(*host, trace)
 	r.ModelObserved, r.ModelAtInit = r.Trace.Model, r.Trace.ModelAtInit
-	if *host == "opencode" && r.ExitCode == 0 && r.Error == "" && !r.Trace.TerminalSeen {
+	if r.FlashClass != nil {
+		r.ModelObserved = "not_observed"
+	}
+	if *host == "opencode" && *suite != flashSuite && r.ExitCode == 0 && r.Error == "" && !r.Trace.TerminalSeen {
 		_ = verifyOpenCodeCompletion(&r.Trace, *host, cwd, cmd.Env)
 	}
 	memory.stopHTTP()
-	memory.captureStats()
+	if *suite == flashSuite {
+		memory.captureStatsWithin(deadline)
+	} else {
+		memory.captureStats()
+	}
 	r.MemoryIsolation = memory.report
 	r.MemoryIsolation.RuntimeMemoryToolReadSeen = observedMemoryRead(r.Trace.Events)
 	r.Terminal = terminalState(r.Trace, r.ExitCode, r.Error)
+	if r.FlashClass != nil {
+		r.FlashClass.Observations, e = readFlashObservations(filepath.Join(output, "observer.jsonl"))
+		if r.Trace.SessionID == "" {
+			roots := map[string]bool{}
+			for _, o := range r.FlashClass.Observations {
+				if o.ParentID == "" && (o.Phase == "context" || o.Phase == "http") && o.SessionID != "" {
+					roots[o.SessionID] = true
+				}
+			}
+			if len(roots) == 1 {
+				for id := range roots {
+					r.Trace.SessionID = id
+				}
+			}
+		}
+		dispatchCount := 0
+		data, err := exportFlashChild(r.Trace.SessionID, deadline, cwd, childEnv)
+		if err == nil {
+			dispatchCount, _ = flashNativeDispatches(data)
+			primary, proofErr := flashChildFromExport(data, "", "build", *model)
+			if recordFlashPrimary(&r, primary, proofErr) {
+				if err := saveFlashProjection(privateEvidenceRoot, &primary); err != nil {
+					r.FlashClass.Error = err.Error()
+					r.Terminal = "primary_evidence_unverified"
+				}
+				r.FlashClass.PrimaryCompletion = &primary
+				if r.Terminal == "not_verified" {
+					r.Terminal = "completed"
+				}
+			} else {
+				r.Terminal = "primary_unverified"
+			}
+		} else {
+			r.Terminal = "primary_unverified"
+		}
+		r.FlashClass.Observations, e = readFlashObservations(filepath.Join(output, "observer.jsonl"))
+		r.FlashClass.EvidenceHash = hashOrAbsent(filepath.Join(output, "observer.jsonl"))
+		if e != nil {
+			r.FlashClass.Error = e.Error()
+		}
+		seen := map[string]bool{}
+		for _, o := range r.FlashClass.Observations {
+			if o.Phase == "http" || o.Phase == "http_auxiliary" {
+				r.FlashClass.PhysicalHTTPRequests++
+			}
+			if o.SessionID == r.Trace.SessionID && o.Phase == "http" {
+				observeFlashPrimary(&r, o)
+			}
+			if o.Phase != "context" || o.SessionID == r.Trace.SessionID || seen[o.SessionID] {
+				continue
+			}
+			seen[o.SessionID] = true
+			if o.ParentID != r.Trace.SessionID {
+				r.FlashClass.Error = "unrelated or nested native child observed"
+				continue
+			}
+			data, err := exportFlashChild(o.SessionID, deadline, cwd, childEnv)
+			c := flashChild{SessionID: o.SessionID, ParentID: o.ParentID, Agent: o.Agent, AgentName: o.AgentName, Model: o.Model}
+			if err == nil {
+				c, err = flashChildFromExport(data, r.Trace.SessionID, o.AgentName, *model)
+				if c.SessionID != o.SessionID || c.Agent != o.Agent {
+					err = fmt.Errorf("native child export does not match observed identity")
+					c.Completed = false
+				}
+			}
+			if err != nil {
+				r.FlashClass.Error = err.Error()
+			}
+			if c.Completed {
+				if err := saveFlashProjection(privateEvidenceRoot, &c); err != nil {
+					r.FlashClass.Error = err.Error()
+					c.Completed = false
+				}
+			}
+			r.FlashClass.Children = append(r.FlashClass.Children, c)
+		}
+		err = flashCompletion(r.Trace.SessionID, *model, r.FlashClass.Role, r.FlashClass.Children)
+		calls := map[string]bool{}
+		for _, event := range r.Trace.Events {
+			if event.Tool == "subagent" && event.ID != "" {
+				calls[event.ID] = true
+			}
+		}
+		if dispatchCount != 1 || len(calls) > 1 {
+			err = fmt.Errorf("exactly one native child dispatch must be observed")
+		}
+		if err == nil && r.FlashClass.Error == "" {
+			r.FlashClass.Completion = "observed"
+		} else {
+			r.Terminal = "child_unverified"
+		}
+		r.FlashClass.Coverage = flashCoverage(*arm, r.Trace.SessionID, *model, r.FlashClass.Role, r.FlashClass.CanonicalHash, r.FlashClass.Observations)
+		if r.FlashClass.Coverage == "blocked" {
+			r.Terminal = "observation_blocked"
+		}
+		gateFlashOperations(&r)
+		finishFlashMemoryResult(&r, flashMemory, childEnv, deadline)
+		r.FlashClass.MemoryRouting = "unverified"
+		if !flashMemory.records.empty() && r.MemoryIsolation.HTTPStoreVerified && r.MemoryIsolation.RuntimeStatsVerified {
+			r.FlashClass.MemoryRouting = "observed"
+		}
+		if r.FlashClass.Memory != "blocked" && (r.ModelObserved != *model || !flashPrimaryHTTPVerified(r) || (*arm == "C" && r.FlashClass.Coverage != "observed") || r.FlashClass.MemoryRouting != "observed") {
+			r.Terminal = "observation_unverified"
+		}
+		// Gate the observed operations before native history is removed. Inventory
+		// is incorporated again below, but cannot erase a transient write.
+		gateFlashOperations(&r)
+	}
 	trace.Close()
-	r.MemoryIsolation.Cleanup = memory.cleanup()
-	if guidance != nil {
-		guidance.cleanup()
-		r.GuidanceVariant = &guidance.report
-		if guidance.report.CodexAuthWarning != "" {
-			fmt.Fprintln(os.Stderr, "WARNING:", guidance.report.CodexAuthWarning)
+	if r.FlashClass == nil || r.FlashClass.Memory == "verified_clean" {
+		r.MemoryIsolation.Cleanup = memory.cleanup()
+	} else {
+		r.MemoryIsolation.Cleanup = "cleanup_withheld_unverified"
+		if flashMemory != nil && flashMemory.disposable && r.FlashClass.Memory == deferredVolumeDestruction {
+			r.MemoryIsolation.Cleanup = deferredVolumeDestruction
 		}
 	}
+	completeGuidanceCleanup(&r, guidance)
 	save(filepath.Join(output, "events.json"), r.Trace)
 	r.After, e = inventory(root)
 	must(e)
@@ -606,6 +841,11 @@ func main() {
 	afterProtected := protectedFor(*host, userHome)
 	if guidance != nil {
 		afterProtected = mergeProtected(afterProtected, protectedForHome(*host, guidance.shadowHome))
+		if r.FlashClass != nil {
+			for _, path := range flashProtectedPaths(guidance, r.FlashClass.Resource) {
+				afterProtected[path] = fingerprint(path, map[string]bool{})
+			}
+		}
 	}
 	save(filepath.Join(output, "protected-after.json"), afterProtected)
 	for _, p := range changedProtected(beforeProtected, afterProtected) {
@@ -629,8 +869,12 @@ func main() {
 		}
 	}
 	sort.Strings(r.Changed)
+	if r.FlashClass != nil && (len(r.Changed) > 0 || len(r.OutsideChanges) > 0) {
+		r.Terminal = "unauthorized_write"
+	}
+	gateFlashOperations(&r)
 	save(filepath.Join(output, "after.json"), r.After)
-	save(filepath.Join(output, "run.json"), r)
+	writeRunResult(filepath.Join(output, "run.json"), r)
 	save(filepath.Join(output, "fixture.json"), f)
 	// Copy only fixture-tree files, never host configuration or authentication.
 	snapshotDir := filepath.Join(output, "final-files")
@@ -654,5 +898,67 @@ func main() {
 	fmt.Printf("END %s %s %s %s %.1fs changed=%d protected_changes=%d\n", r.Host, r.Case, r.Arm, r.Terminal, r.Seconds, len(r.Changed), len(r.OutsideChanges))
 	if len(r.OutsideChanges) > 0 {
 		os.Exit(3)
+	}
+}
+
+func flashCredentialCleanupUnverified(r result) bool {
+	if r.FlashClass == nil || r.GuidanceVariant == nil {
+		return false
+	}
+	g := r.GuidanceVariant
+	deferred := r.MemoryStoreMode == disposableContainer && g.ShadowCredentialDisposal == "deferred_to_container_destruction"
+	return g.ShadowCredentialWarning != "" || (!g.ShadowCredentialStoreRemoved && !deferred)
+}
+
+func completeGuidanceCleanup(r *result, g *guidanceVariant) {
+	if g == nil {
+		return
+	}
+	g.cleanup()
+	r.GuidanceVariant = &g.report
+	if g.report.CodexAuthWarning != "" {
+		fmt.Fprintln(os.Stderr, "WARNING:", g.report.CodexAuthWarning)
+	}
+	if flashCredentialCleanupUnverified(*r) {
+		r.Terminal = "credential_cleanup_unverified"
+	}
+}
+
+func writeRunResult(path string, r result) {
+	if r.FlashClass != nil {
+		r.ProtocolTerminal = flashProtocolTerminal(r, hashOrAbsent(filepath.Join(filepath.Dir(path), "observer.jsonl")))
+	}
+	save(path, r)
+}
+
+func finishFlashMemoryResult(r *result, g *flashMemoryGuard, env []string, deadline time.Time) {
+	if err := g.finish(env, deadline); err != nil {
+		r.FlashClass.Memory = "blocked"
+		r.FlashClass.Error = err.Error()
+		r.Terminal = "memory_blocked"
+	} else {
+		r.FlashClass.Memory = "verified_clean"
+		if g.disposable {
+			r.FlashClass.Memory = deferredVolumeDestruction
+		}
+	}
+	r.FlashClass.MemoryRecords = g.records
+}
+
+func recordFlashPrimary(r *result, primary flashChild, proofErr error) bool {
+	if proofErr != nil || !primary.Completed || primary.Model != r.ModelRequested || primary.SessionID != r.Trace.SessionID || (r.Trace.FinalAssistantID != "" && primary.FinalAssistantID != r.Trace.FinalAssistantID) {
+		return false
+	}
+	r.FlashClass.PrimaryCompletion = &primary
+	r.ModelObserved = primary.Model
+	return true
+}
+func observeFlashPrimary(r *result, o flashObservation) {
+	if primary := r.FlashClass.PrimaryCompletion; primary != nil {
+		primary.AgentName = o.AgentName
+		if primary.Agent != o.Agent {
+			primary.Completed = false
+			r.Terminal = "primary_unverified"
+		}
 	}
 }
