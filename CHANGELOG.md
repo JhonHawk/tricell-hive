@@ -88,6 +88,12 @@ raise the minor or the patch version.
   change and touches no contract is fixed with a test, without another review
   round, and the report says it was fixed without review; anything larger comes
   to you as a decision.
+- `hive-research` returns a bounded reply: the answer, a status with its stop
+  reason, each deciding claim with a locator and excerpt, counterevidence and what
+  it did not check. `flow-research` checks those claims by opening their locators,
+  gives each research child a stop condition, routes long state collection to
+  `hive-read-state`, and uses the global evidence labels; independent children
+  launch together.
 
 ### Fixed
 

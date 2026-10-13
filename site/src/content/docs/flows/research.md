@@ -32,7 +32,7 @@ An answer in the conversation. It normally tells you:
 - what is still uncertain;
 - what decision or next step the answer makes possible.
 
-For large questions the agent may hand reading work to helper agents, then check their claims itself before reporting. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
+For large questions the agent hands reading work to helper agents. Each helper says where every key claim comes from and what it did not check; the agent opens the cited lines of the claims that decide the answer before reporting. Long ticket, CI or deployment status is collected by a helper too. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
 
 The global core keeps essential boundaries; Research links directly to the
 canonical questions, reporting and delegation procedures when needed. Reporting
