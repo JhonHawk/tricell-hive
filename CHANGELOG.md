@@ -125,6 +125,9 @@ raise the minor or the patch version.
   command runs under a wrapper that ends it after about 45 seconds, a command that
   hits that limit is treated as a wedged session (doctor, close, fresh session), and
   options in custom selects are chosen by click rather than keyboard.
+- Read-only roles on Grok can no longer write files with Grok's `write` tool: the
+  observe deny list named only `Write`, which Grok ignores, so a review child wrote
+  its notes file. The list now names the tool ID `write`.
 
 ## [0.3.3] - 2026-10-10
 

@@ -138,6 +138,23 @@ func TestPiObserveUsesNativeSimpleToolList(t *testing.T) {
 	}
 }
 
+// Grok removes a tool from a role only by its tool ID: `write` removes the
+// write tool and `search_replace` the edit tool, while the daemon display
+// name `Write` removes nothing (Grok 1.0.55 user guide, headless mode).
+func TestGrokObserveDeniesWriteAndEditToolIDs(t *testing.T) {
+	source, data := syntheticRole(t, "synthetic-observer")
+	out, err := Render(source, data, repositoryProfiles(t), "grok", "/skills", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(out)
+	for _, id := range []string{`"write"`, `"search_replace"`} {
+		if !strings.Contains(got, id) {
+			t.Fatalf("Grok observe role must deny tool ID %s:\n%s", id, got)
+		}
+	}
+}
+
 func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	source, data := syntheticRole(t, "synthetic-observer")
