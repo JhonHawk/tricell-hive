@@ -174,7 +174,7 @@ not prove that a particular session loaded the content or followed it.
 | --- | --- | --- |
 | Claude Code | User and project | Native instructions, skills, and rendered roles. A project's `CLAUDE.md` must import `@AGENTS.md`. |
 | Codex | User and project | Native instructions, shared skills, and rendered roles. |
-| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. |
+| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. |
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Honors `PI_CODING_AGENT_DIR`. |
 | OpenCode V2 | User | Needs your own model providers; the default role profiles assume OpenCode Go models, so set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). User-level role selection remains unverified. |
@@ -224,7 +224,8 @@ package installation, the extracted `bin/hive`; in a source checkout, use
 
 **Update.** One-line users run the same command again; each version adds its
 own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
-once you no longer need them for recovery. Package users run the
+once you no longer need them for recovery and Grok's hook no longer points to
+them: run `hive update` or `hive install` from the newer binary first. Package users run the
 newer package's `./install.sh`. Source users
 pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
 and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,

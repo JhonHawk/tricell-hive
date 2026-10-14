@@ -57,6 +57,11 @@ truncation claim; pre-tool context arriving with the tool result is not a
 preventive control over that operation. The old 45–70% delivery estimate is not
 reproducible from the available evidence and is not an acceptance threshold.
 
+Grok gets one managed `PreToolUse` hook that drops `offset` and `limit` when a
+session reads a skill reference, because Grok models read references partially
+in about one session in three; it changes how a reference is read, not what any
+guidance says. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
+
 An optional OpenCode user-scope plugin supplies two fixed-role reference snapshots
 in the session context hook when explicitly activated. The manager generates
 them from the validated release payload; canonical references retain one editorial

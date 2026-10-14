@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Added
 
+- Grok user scope installs `~/.grok/hooks/hive-read-whole-references.json`, a
+  `PreToolUse` hook on `read_file` that runs the hidden `hive grok-hook
+  read-whole` subcommand to drop `offset` and `limit` when a session reads a
+  Markdown file under the shared skills directory (at most 1000 lines and 64 KiB),
+  so references are read whole. It fails open and never denies a call. State gains
+  the `hook` record kind, which older managers reject; a plan built from a `go run`
+  or temporary binary that would install it is refused.
 - Optional OpenCode V2 context loader, delivered inactive at user scope as
   `hive/context-loader/{index.js,context-loader.json}`, outside auto-discovered
   `plugins/`, with no `package.json`. Explicit

@@ -22,7 +22,7 @@ go run ./tooling/cli plan remove --hosts codex --scope user --out /absolute/remo
 go run ./tooling/cli recover --state-dir /absolute/state-directory
 ```
 
-These are interface examples, not authorization to deploy into the user's real configuration. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
+These are interface examples, not authorization to deploy into the user's real configuration. A plan that installs Grok's [read-whole hook](#grok-read-whole-hook) refuses a `go run` binary; build one with `go build -o <path> ./tooling/cli` and run that instead. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
 
 `--home` explicitly selects a synthetic home and ignores host path and compatibility environment overrides. Use it together with `--state-dir` for temporary-home tests. Without `--home`, host configuration environment variables are respected. `--root` is required for project scope. Existing root prefixes are canonicalized; linked target files or ancestors inside those roots are rejected rather than overwritten.
 
@@ -287,6 +287,55 @@ Cursor CLI does not load `~/.cursor/AGENTS.md` natively: 2026.09.18-9a7762b load
 Each user-scoped Claude skill has one managed directory alias, shared by its entrypoint and references. Only these managed Claude skill-directory aliases are supported. Each alias's exact relative link text is journaled and checked; unknown links, retargeted links, unsafe ancestors, changed override resolution, unowned skill directories, or malformed/unknown Hive blocks conflict. Payload creation precedes alias creation; alias removal precedes final payload removal. Whole skills roots and instruction files are never linked. The installed payload is a versioned copy, not a link to this checkout.
 
 The manager does not follow arbitrary import graphs, adopt unrelated deployments, or detect every unregistered CLI consuming a conventional shared path. A successful `status` reports filesystem state, not runtime discovery or loading.
+
+### Grok read-whole hook
+
+Grok models often read a skill reference with a line `limit` and miss its end:
+from 2026-10-01 to 2026-10-13, 29 of 220 per-session reference reads were left
+incomplete in 22 of 65 Grok sessions, against 7 of 248 partial reads in Claude
+Code. Grok 1.0.55's `read_file` ignores `offset` and `limit` only for `SKILL.md`,
+`AGENTS.md` and `CLAUDE.md`, and its own skill guide tells authors to have
+references read with them.
+
+For Grok user scope the manager generates
+`<GrokHome>/hooks/hive-read-whole-references.json`, a global `PreToolUse` hook
+with matcher `read_file` whose command is
+`'<hive>' grok-hook read-whole --skills '<SkillsDir>'`: the absolute path of the
+`hive` binary that planned the install, and the shared `.agents/skills`
+directory, both single-quoted for the `sh -c` Grok runs it with. The hidden
+`grok-hook read-whole` subcommand reads the hook event from stdin and, for a
+`read_file` with `offset` or `limit` on a Markdown file inside that directory of
+at most 1000 lines and 64 KiB, replies with an `updatedInput` that drops both
+fields. It prints nothing and exits 0 for every other call and on any error,
+including a panic, so Grok continues with the read the model asked for; it never
+denies a call. Scripts and assets keep their partial reads.
+
+The record uses kind `hook` with the generated source `integrations/grok/read-whole-hook`,
+accepted only for that file name and the `grok` user-scope consumer, like the
+OpenCode loader's `plugin` records; a release may not list that source as a
+file. Ownership follows agent files: mode 0644, an unowned file at the path is a
+conflict, an edited managed file is refused, removal deletes it, and the other
+files in `hooks/`, such as the user's own hooks, are untouched. The binary path is
+resolved when the plan is built and saved in the plan's `executable` field, so
+`apply` regenerates the same bytes; `apply` refuses a plan whose executable is not
+an absolute, clean regular file reached without a symbolic link, and a plan that
+carries an executable without installing the hook. Only user-scope installs that
+include Grok resolve it. A plan that would install the hook from a binary under
+the system temporary directory, `GOTMPDIR`, `GOCACHE` or the Go build cache, such
+as `go run ./tooling/cli`, is refused: build the binary with `go build` first. The pilot
+runner, which uses `go run`, therefore cannot install Grok.
+
+The hook depends on that binary path. Reinstalling or updating from a binary at
+another path rewrites the command; deleting the package that installed it leaves
+the hook failing open, which Grok shows as a failed hook on each read, until the
+next install or update. `hive models` on Grok refuses after the binary moved,
+since the reinstall would change the hook, until `hive update` runs. A manager
+older than this change rejects state that holds a `hook` record, so rebuild the
+binary before deploying. Grok loads hooks when a session starts: restart open
+sessions, or reload with `r` in `/hooks`, after installing or removing it.
+Subagent sessions run it too. With `toolset.file_toolset = hashline` the read tool
+is `hashline_read`, which the matcher does not cover. Sources: Grok 1.0.55
+`~/.grok/docs/user-guide/10-hooks.md` and `08-skills.md`, read on 2026-10-13.
 
 ## Preservation and state
 
