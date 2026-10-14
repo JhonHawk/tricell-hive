@@ -2,6 +2,13 @@ package pi
 
 import "testing"
 
+func TestHiveSubagentsSourceUnversioned(t *testing.T) {
+	t.Parallel()
+	if HiveSubagentsSource != "npm:pi-subagents" {
+		t.Fatalf("HiveSubagentsSource = %q, want npm:pi-subagents", HiveSubagentsSource)
+	}
+}
+
 func TestClassifySubagents(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

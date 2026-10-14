@@ -26,7 +26,7 @@ impact you observed. Do not include real credentials or tokens in a report.
   store secrets, and it leaves each CLI's authentication and history untouched.
 - Installing from a complete package makes no network requests of its own, with
   one exception: when the Pi host is selected and Pi's settings do not already
-  declare pi-subagents, Hive runs `pi install npm:pi-subagents@0.74.0`, which
+  declare pi-subagents, Hive runs `pi install npm:pi-subagents`, which
   downloads from npm. Building from a source checkout may download Go modules,
   and `hive update` uses Git.
 - Hive does not install CLI executables. Engram and Context7 are separate,

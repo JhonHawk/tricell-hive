@@ -713,7 +713,7 @@
       "transaction": "<id>"
     }
   ],
-  "pi_subagents_source": "npm:pi-subagents@0.74.0"
+  "pi_subagents_source": "npm:pi-subagents"
 }
 === plan ===
 {
@@ -1582,7 +1582,7 @@
   },
   "pi_package": {
     "action": "install",
-    "source": "npm:pi-subagents@0.74.0",
+    "source": "npm:pi-subagents",
     "added_by_hive": true
   }
 }

@@ -20,7 +20,7 @@ are untouched.
 | --- | --- | --- | --- | --- |
 | Engram | Persistent memory and optional host integration | Codex, Claude, OpenCode | Engram installation docs (versioned, checksummed release artifacts; `engram setup <agent>` is separate from the binary) | No platform asset, checksum, target location and host integration has passed a native gate |
 | Context7 | Current library documentation through its CLI and vendor skills | Codex, Claude, Cursor, OpenCode | Context7 CLI docs (`ctx7 setup --cli`, npm distribution; needs Node.js 18+) | Setup is interactive and may authenticate; Hive installs no runtime |
-| pi-subagents | Pi delegated children | Pi | pi-subagents docs (`pi install npm:pi-subagents@<version>`) | Upstream validation covers only Pi 0.86.1 on Linux x64; undoing only an added entry (#29) needs Pi's native gate |
+| pi-subagents | Pi delegated children | Pi | pi-subagents docs (`pi install npm:pi-subagents`) | Upstream validation covers only Pi 0.86.1 on Linux x64; undoing only an added entry (#29) needs Pi's native gate |
 
 ## Evidence and limits
 

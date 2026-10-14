@@ -125,7 +125,7 @@ xattr -dr com.apple.quarantine hive-<version>-<os>-<arch>
 
 The core installs offline and needs no Go, Git, or GitHub CLI. The one network
 step is optional: selecting the Pi host may run
-`pi install npm:pi-subagents@0.74.0`, which downloads that package from npm.
+`pi install npm:pi-subagents`, which downloads that package from npm.
 GitHub's automatic **Source code** archives are not packages; use the
 `hive-<version>-…` assets.
 
