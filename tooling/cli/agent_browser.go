@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -91,16 +92,17 @@ func dirHasEntries(dir string) bool {
 }
 
 // preflightOutput runs a read-only version query with the bounded runner and
-// returns its trimmed output.
+// returns its trimmed standard output; a warning on standard error is not part
+// of the answer and is kept only for the failure message.
 func preflightOutput(argv ...string) (string, error) {
-	res := runBoundedCommand(argv, agentBrowserPreflight, time.Second, agentBrowserPreflightKB)
+	res, stdout := runBoundedCommandContext(context.Background(), argv, agentBrowserPreflight, time.Second, agentBrowserPreflightKB)
 	if res.TimedOut || res.ExitCode != 0 {
 		if res.Message == "" {
 			res.Message = "failed"
 		}
 		return "", fmt.Errorf("%s: %s", argv[0], res.Message)
 	}
-	return strings.TrimSpace(res.Output), nil
+	return strings.TrimSpace(stdout), nil
 }
 
 // npmPrefixWritable reports whether npm's global install directories under

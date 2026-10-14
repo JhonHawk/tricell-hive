@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -737,5 +739,153 @@ func TestRunBoundedCommandReportsExitCodeAndMissingProgram(t *testing.T) {
 	res := runBoundedCommand([]string{"/definitely/not/here"}, time.Second, time.Second, 1024)
 	if res.ExitCode == 0 || res.Message == "" {
 		t.Fatalf("result = %+v", res)
+	}
+}
+
+func writeScript(t *testing.T, name, body string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func waitGone(t *testing.T, pidFile string) {
+	t.Helper()
+	raw, err := os.ReadFile(pidFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(raw)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if err := syscall.Kill(pid, 0); err != nil || processIsZombie(pid) {
+			return
+		}
+		if time.Now().After(deadline) {
+			_ = syscall.Kill(pid, syscall.SIGKILL)
+			t.Fatalf("descendant %d survived", pid)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// Item 1: cancelling the step's context (what SIGINT/SIGTERM do in
+// production) kills the process group and records the step as interrupted.
+func TestRunBoundedCommandContextCancelKillsGroupAndMarksInterrupted(t *testing.T) {
+	pidFile := filepath.Join(t.TempDir(), "child.pid")
+	script := writeScript(t, "slow.sh", "sleep 60 &\necho $! > "+pidFile+"\nsleep 60\n")
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { time.Sleep(400 * time.Millisecond); cancel() }()
+	start := time.Now()
+	res, _ := runBoundedCommandContext(ctx, []string{script}, time.Minute, 300*time.Millisecond, 1024)
+	if time.Since(start) > 10*time.Second || !res.Interrupted || res.TimedOut || res.Message != "interrupted" {
+		t.Fatalf("result = %+v after %s", res, time.Since(start))
+	}
+	waitGone(t, pidFile)
+	if !res.failed() {
+		t.Fatal("an interrupted step must be failed")
+	}
+}
+
+func TestInterruptedStepStopsLaterStepsAndReconcilesFailed(t *testing.T) {
+	f := macBrewFake()
+	useAgentBrowserFake(t, f)
+	script := writeScript(t, "slow.sh", "sleep 60\n")
+	ctx, cancel := context.WithCancel(context.Background())
+	savedCtx := agentBrowserContext
+	agentBrowserContext = func() (context.Context, context.CancelFunc) { return ctx, cancel }
+	agentBrowserExec = func(argv []string) agentBrowserResult {
+		go func() { time.Sleep(300 * time.Millisecond); cancel() }()
+		return runAgentBrowserCommand([]string{script})
+	}
+	t.Cleanup(func() { agentBrowserContext = savedCtx; agentBrowserInterrupted.Store(false) })
+	a := newTestAdapter(t, false, false, true)
+	detectAB(t, a)
+	preview := planAB(t, a)
+	runner := a.Runner()
+	raw, err := runner.Execute(preview.Steps[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := runner.Reconcile(preview.Steps[0], raw); status != management.StepFailed {
+		t.Fatalf("status = %s", status)
+	}
+	agentBrowserExec = func(argv []string) agentBrowserResult {
+		t.Fatalf("ran %v after an interrupt", argv)
+		return agentBrowserResult{}
+	}
+	raw, _ = runner.Execute(preview.Steps[1])
+	var res agentBrowserResult
+	if err := json.Unmarshal(raw, &res); err != nil || !res.Interrupted {
+		t.Fatalf("later step = %+v, %v", res, err)
+	}
+}
+
+// Item 2: a warning on stderr is not part of the parsed answer.
+func TestPreflightParsesStdoutOnly(t *testing.T) {
+	dir := t.TempDir()
+	body := "#!/bin/sh\necho 'npm warn config something' >&2\necho /home/u/.npm-global\n"
+	if err := os.WriteFile(filepath.Join(dir, "npm"), []byte(body), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	got, err := preflightOutput("npm", "config", "get", "prefix")
+	if err != nil || got != "/home/u/.npm-global" {
+		t.Fatalf("prefix = %q, %v", got, err)
+	}
+}
+
+// Item 3: a background descendant does not outlive a step that exits 0.
+func TestRunBoundedCommandKillsDescendantsAfterNormalExit(t *testing.T) {
+	pidFile := filepath.Join(t.TempDir(), "child.pid")
+	script := writeScript(t, "bg.sh", "sleep 60 >/dev/null 2>&1 &\necho $! > "+pidFile+"\nexit 0\n")
+	res := runBoundedCommand([]string{script}, time.Minute, time.Second, 1024)
+	if res.failed() {
+		t.Fatalf("result = %+v", res)
+	}
+	waitGone(t, pidFile)
+}
+
+// Item 4: the command runs in a private directory that is removed afterwards.
+func TestRunBoundedCommandUsesAPrivateWorkingDirectory(t *testing.T) {
+	script := writeScript(t, "pwd.sh", "pwd -P\n")
+	res := runBoundedCommand([]string{script}, time.Minute, time.Second, 1024)
+	dir := strings.TrimSpace(res.Output)
+	shared, _ := filepath.EvalSymlinks(os.TempDir())
+	if dir == "" || dir == shared || dir == os.TempDir() {
+		t.Fatalf("ran in %q", dir)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("private directory %q was not removed (%v)", dir, err)
+	}
+}
+
+// Item 5: a success wins over a deadline or cancellation seen at the same time.
+func TestCommandOutcomeSuccessBeatsDeadline(t *testing.T) {
+	if ok, timedOut, _ := commandOutcome(nil, context.DeadlineExceeded); !ok || timedOut {
+		t.Fatal("a command that exited 0 was recorded as timed out")
+	}
+	if ok, _, interrupted := commandOutcome(nil, context.Canceled); !ok || interrupted {
+		t.Fatal("a command that exited 0 was recorded as interrupted")
+	}
+	if _, timedOut, _ := commandOutcome(errors.New("signal: killed"), context.DeadlineExceeded); !timedOut {
+		t.Fatal("a killed command at the deadline is a timeout")
+	}
+}
+
+// Item 6: a synthetic home reads nothing of the real machine.
+func TestSyntheticSystemFindsNoBrowserAndReadsNoFiles(t *testing.T) {
+	f := macBrewFake()
+	f.exists = map[string]bool{macChrome: true, "/x/.agent-browser/browsers": true, "/opt/chrome": true}
+	f.env = map[string]string{"AGENT_BROWSER_EXECUTABLE_PATH": "/opt/chrome"}
+	useAgentBrowserFake(t, f)
+	a := newTestAdapter(t, true, false, true)
+	if found, path := a.system("/x").browserFound(); found {
+		t.Fatalf("synthetic system found a browser at %s", path)
 	}
 }

@@ -43,6 +43,11 @@ func (a *nativeProviderAdapter) system(home string) agentBrowserSystem {
 		}
 		s.getenv = func(string) string { return "" }
 		s.userHome = func() (string, error) { return home, nil }
+		// Nothing of the real machine is read: no browser exists here.
+		s.pathExists = func(string) bool { return false }
+		s.isFile = func(string) bool { return false }
+		s.dirHasEntries = func(string) bool { return false }
+		s.browserCandidates = func(string) []browserCandidate { return nil }
 	}
 	return s
 }
