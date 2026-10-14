@@ -18,7 +18,8 @@
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
-      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "medium"}, "reasoning": {"model": "opencode-go/deepseek-v4-pro", "effort": "high"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "verifier": {"model": "opencode-go/glm-5.3", "effort": "high"}},
+      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "high"}, "reasoning": {"model": "opencode-go/deepseek-v4-pro", "effort": "high"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "verifier": {"model": "opencode-go/glm-5.3", "effort": "high"}},
+      "variants": {"opencode-go/deepseek-v4.1-flash": ["low", "high", "max"], "opencode-go/deepseek-v4-pro": ["high", "max"], "opencode-go/glm-5.3": ["low", "high", "max"]},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
     },
     "cursor": {

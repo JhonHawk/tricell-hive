@@ -125,6 +125,7 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- OpenCode roles no longer fail to launch with `Variant unavailable`: the execution profile uses `high`, the profiles declare the variants each OpenCode model offers, and an effort a model lacks (a role's `medium`) maps to the nearest offered variant; a test renders every role and fails on an unoffered variant. Existing installations need the rebuilt binary and `hive update` with this content: an installed release keeps its frozen profiles, and an older manager rejects the new `variants` key.
 - UI review captures go to the work's `_support/workspace/<date>-<work>/images/`
   folder again: `flow-build`'s verification reference still pointed to a global
   rule that had moved to `artifact-layout`, and asked for a temporary destination,
