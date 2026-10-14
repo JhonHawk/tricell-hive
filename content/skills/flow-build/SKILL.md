@@ -5,7 +5,7 @@ description: Implement or resume authorized code, configuration, promotion, or d
 
 # Implement and verify authorized work
 
-Use the requested outcome or supplied plan as the execution brief. This skill does not require a formal plan or a prior research skill invocation, and does not grant effects beyond the user's instructions.
+Use the requested outcome or supplied plan as the execution brief. For work the user asked for, this skill does not require a formal plan or a prior research skill invocation; a failure reported without a fix request enters through `flow-research` first, as the global guidance sets. It does not grant effects beyond the user's instructions.
 
 ## Reconcile before execution
 

@@ -9,7 +9,7 @@ Research is for the moments when you need to know something before you decide an
 
 Use Research when the next step depends on facts you do not have yet.
 
-- Something is failing and nobody knows why.
+- Something is failing and nobody knows why, or you report a bug without asking for the fix yet: the agent confirms the cause first, then asks in one round whether to track it and how to continue.
 - You want to compare two ways of solving a problem.
 - You need the real state of a project: what is done, what is open, and where the records disagree.
 - You are asking whether something can be done, such as "can you fix this record?". That is a question, so the agent looks first and waits for your choice.
