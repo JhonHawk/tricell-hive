@@ -48,7 +48,7 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 **Condition:** a work item completes.
 
-**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give what was delivered with its pull-request URLs, the cleanup, and any secret that reached a durable or shared place or other incident the user must know.
+**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give what was delivered with its pull-request URLs, the cleanup, and any secret that reached a durable or shared place or other incident the user must know. List each implementation decision taken without asking that chose between behaviors or contracts the user could reasonably have chosen differently, with its reason and how to revert it; omit the list when none was taken.
 
 **Condition:** a pending item remains.
 

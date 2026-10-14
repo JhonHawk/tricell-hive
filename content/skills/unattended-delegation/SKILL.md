@@ -13,7 +13,7 @@ Before delegating or starting an external-work wait, read [delegation and waits]
 
 ## Decisions
 
-Decide every question that comes up yourself instead of asking or waiting: take the option you would recommend, record the decision and its reason in the task record, and list each one in the final report with how to revert it.
+Decide every question that comes up yourself instead of asking or waiting: take the option you would recommend, record the decision and its reason in the task record, and list them in the final report as [reporting](../flow-close/references/reporting.md#report-a-running-or-completed-item) sets.
 
 ## Effects
 
@@ -26,4 +26,4 @@ Irreversible or destructive actions stay forbidden: deleting or overwriting data
 
 ## End
 
-At expiry or when the objective is complete, stop unattended effects, report completed and unresolved work, every decision taken and every effect applied with how to revert it, and return control to the user. Do not imply activation or success when no matching explicit delegation exists.
+At expiry or when the objective is complete, stop unattended effects, report completed and unresolved work, every effect applied with how to revert it, and the decisions taken, listed as the reporting reference sets for a completion report, and return control to the user. Do not imply activation or success when no matching explicit delegation exists.
