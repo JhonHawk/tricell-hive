@@ -26,13 +26,13 @@ Read before launching a child or starting a wait for external work, including re
 
 **Actions:** give it the objective, repository or declared root, authorized effects, the files or paths it may modify or delete, relevant contracts, expected output, and acceptance evidence. Delegation grants no additional authority. Label delegated premises as inspected facts, source claims, or assumptions, with the relevant evidence or missing check.
 
-A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. It may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, or writes to trackers, even when the delivery mode authorizes those effects. The main thread reviews its diff before integrating it and owns those effects.
+A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. It may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
 
 ## Deliver and resolve instructions
 
 **Condition:** preparing a child brief or reading a required skill resource.
 
-**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs. It does not inherit the parent's conversation or skills already read. Pass the smallest relevant set, not whole manuals or unrelated stacks.
+**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 

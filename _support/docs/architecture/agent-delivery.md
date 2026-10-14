@@ -133,8 +133,8 @@ The shared delegation contract lives in `content/guidance/global.md` as a capabi
 
 | Host | Child selection observed |
 | --- | --- |
-| Claude Code | The exposed delegation tool (`Agent` or `Task`) with the installed role's `subagent_type`; 2.1.278 announced `Task` and executed `Agent`. |
-| Codex | `spawn_agent` with `agent_type` set to the installed TOML role. Some hosted APIs offer model overrides without this role selector. |
+| Claude Code | The exposed delegation tool (`Agent` or `Task`) with the installed role's `subagent_type`; 2.1.278 announced `Task` and executed `Agent`. A `fork` subagent type inherits the parent's full conversation; installed roles start from their brief (obs (local) tool description, 2.1.296, 2026-10-14). |
+| Codex | `spawn_agent` with `agent_type` set to the installed TOML role. Some hosted APIs offer model overrides without this role selector. Its `fork_turns` parameter defaults to `all`, which passes the whole parent history and pins the parent's model and effort; 0.162.1 rejects that fork together with `agent_type` ("omit agent_type, or spawn without a full-history fork"), so a role launch passes `fork_turns: "none"` and starts without history, while a generic child launched without `agent_type` inherits the history by default (obs (src) `codex-rs/core/src/tools/handlers/multi_agents_spec.rs` via Context7, 2026-10-13; obs (bin) `strings` on the installed binary; not observed at runtime). |
 | Grok Build | `spawn_subagent` with `subagent_type` when exposed; 1.0.39–1.0.41 dropped the parameter, so a discovered agent did not establish that the selector exists. |
 | Pi + pi-subagents | `subagent` with `agent` set to the installed role ID. |
 | OpenCode V2 | `subagent` with `agent` set to the configured agent ID; V1 used `Task`/`subagent_type`. |
