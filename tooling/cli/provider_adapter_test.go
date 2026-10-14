@@ -48,11 +48,11 @@ func stepStatus(t *testing.T, result management.OnboardingResult, id string) str
 }
 
 // TestNativeAdapterManualOfferRunsNoProcess covers "manual offer runs no
-// process": no capability in providers.Catalog has passed its own native
-// validation gate in this build (M2), so selecting one must never invoke any
-// external command — there is no providers.System left to inject one
-// through — and must instead leave a single Manual step, disclosed in the
-// preview before confirmation and in the onboarding receipt afterward.
+// process": Engram, Context7 and pi-subagents are manual-only, so selecting
+// one must never invoke any external command and must instead leave a single
+// Manual step, disclosed in the preview before confirmation and in the
+// onboarding receipt afterward. (agent-browser, the one executable recipe, is
+// covered in agent_browser_test.go.)
 func TestNativeAdapterManualOfferRunsNoProcess(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")
@@ -115,10 +115,9 @@ func TestInstallPartialOnboardingListsPerStepDetail(t *testing.T) {
 	}
 }
 
-// TestManualOnlyCapabilitySkipsVersionPromptAndLabelsItself covers U6: every
-// provider capability is unconditionally manual in this build, so the
-// wizard must label it "manual instructions only" in the capability list
-// and never demand an exact version for it.
+// TestManualOnlyCapabilitySkipsVersionPromptAndLabelsItself covers U6: a
+// manual-only capability (Engram here) must be labelled "manual instructions
+// only" in the capability list and never demand an exact version.
 func TestManualOnlyCapabilitySkipsVersionPromptAndLabelsItself(t *testing.T) {
 	home := t.TempDir()
 	stateDir := filepath.Join(home, "state")

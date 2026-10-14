@@ -689,7 +689,7 @@ func (v *hostsView) planInstall(hosts []string) tea.Cmd {
 			msg.err = err
 			return msg
 		}
-		if msg.adapter, err = deps.AdapterFactory(newOnboardingInput(o, false)); err != nil {
+		if msg.adapter, err = deps.AdapterFactory(newOnboardingInput(o, false, true)); err != nil {
 			msg.err = err
 			return msg
 		}
@@ -1088,7 +1088,7 @@ func (v *capsView) toggle() tea.Cmd {
 		v.inputs[i].SetValue("")
 		return nil
 	}
-	if v.offers[i].ManualOnly {
+	if v.offers[i].ManualOnly || v.offers[i].Unversioned {
 		return nil
 	}
 	return v.startEditing(i)
@@ -1102,7 +1102,7 @@ func (v *capsView) proceed() (tea.Cmd, action) {
 		if !v.checked[i] {
 			continue
 		}
-		if offer.ManualOnly {
+		if offer.ManualOnly || offer.Unversioned {
 			requests = append(requests, providerRequest{ID: offer.ID})
 			continue
 		}
@@ -1133,7 +1133,7 @@ func (v *capsView) View(c viewCtx) string {
 		} else {
 			lines = append(lines, th.Text.Render("  "+row))
 		}
-		if v.checked[i] && !offer.ManualOnly {
+		if v.checked[i] && !offer.ManualOnly && !offer.Unversioned {
 			v.inputs[i].SetStyles(in)
 			label := "  Version: "
 			if i == v.cursor && v.editing {
@@ -1165,8 +1165,11 @@ func (v *capsView) Keys() []key.Binding {
 // version.
 func providerOfferLabel(o providerOffer) string {
 	version := "exact version required"
-	if o.ManualOnly {
+	switch {
+	case o.ManualOnly:
 		version = "manual instructions only"
+	case o.Unversioned:
+		version = "installs the latest version"
 	}
 	return fmt.Sprintf("%s (%s; %s)", o.Name, o.Source, version)
 }

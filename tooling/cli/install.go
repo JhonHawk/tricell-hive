@@ -98,11 +98,13 @@ type providerOffer struct {
 	ID     string
 	Name   string
 	Source string
-	// ManualOnly marks a capability whose outcome is unconditionally manual
-	// in this build (no native recipe validation available): the wizard
-	// skips the exact-version prompt for it and labels it accordingly.
+	// ManualOnly marks a capability whose outcome is manual for this run: the
+	// wizard skips the exact-version prompt for it and labels it accordingly.
 	ManualOnly bool
-	Effects    []string
+	// Unversioned marks an installable capability that always installs the
+	// latest version: the wizard asks for no version and says so.
+	Unversioned bool
+	Effects     []string
 }
 
 type providerRequest struct {
@@ -126,6 +128,9 @@ type onboardingInput struct {
 	// adapter that needs to know must read this field, never re-scan raw CLI
 	// arguments for it.
 	DryRun bool
+	// Interactive is true when a person is answering prompts. An adapter that
+	// would run a program to detect a requirement does so only then.
+	Interactive bool
 }
 
 type onboardingAdapterFactory func(onboardingInput) (onboardingAdapter, error)
@@ -275,7 +280,7 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal inst
 		if err != nil || decision != installApply {
 			return true, err
 		}
-		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, dry))
+		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, dry, terminal.interactive))
 		if err != nil {
 			return true, err
 		}
@@ -284,6 +289,9 @@ func handlePendingInstallOperation(o management.Options, dry bool, terminal inst
 			return true, err
 		}
 		fmt.Fprintln(out, withRecoverySentence(fmt.Sprintf("Onboarding recovery: %s (%s).", result.ID, result.Phase), recoveryText(stateDir, result.Phase != "completed")))
+		if result.Phase == "partial" {
+			showPartialOnboardingDetail(out, result, true, stateDir, false)
+		}
 		return true, nil
 	case management.PendingCore:
 		fmt.Fprintf(out, "An operation is pending. Recovery directory: %s\n", stateDir)
@@ -345,7 +353,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 		if err != nil {
 			return err
 		}
-		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, dry))
+		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, dry, terminal.interactive))
 		if err != nil {
 			return err
 		}
@@ -486,8 +494,8 @@ func capitalize(phrase string) string {
 	return strings.ToUpper(phrase[:1]) + phrase[1:]
 }
 
-func newOnboardingInput(o management.Options, dryRun bool) onboardingInput {
-	return onboardingInput{Options: o, DryRun: dryRun}
+func newOnboardingInput(o management.Options, dryRun, interactive bool) onboardingInput {
+	return onboardingInput{Options: o, DryRun: dryRun, Interactive: interactive}
 }
 
 // previewInstallOnboarding's bool result mirrors selectInstallerHosts's own
@@ -518,7 +526,7 @@ func recoverInstallOnboarding(stateDir string, adapter onboardingAdapter) (manag
 // recoverWithAdapterFactory keeps command recovery on the same per-invocation
 // adapter path as install.
 func recoverWithAdapterFactory(o management.Options, factory onboardingAdapterFactory) (management.OnboardingResult, error) {
-	adapter, err := factory(newOnboardingInput(o, false))
+	adapter, err := factory(newOnboardingInput(o, false, false))
 	if err != nil {
 		return management.OnboardingResult{}, err
 	}
@@ -640,11 +648,8 @@ func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([
 	}
 	fmt.Fprintln(terminal.out, "Select optional capabilities")
 	for i, offer := range offers {
-		version := "exact version required"
-		if offer.ManualOnly {
-			version = "manual instructions only"
-		}
-		fmt.Fprintf(terminal.out, "%d. %s (%s; %s)\n", i+1, offer.Name, offer.Source, version)
+		// A long source name must not push the line past 80 columns.
+		printLabeled(terminal.out, fmt.Sprintf("%d. ", i+1), providerOfferLabel(offer))
 	}
 	for {
 		fmt.Fprint(terminal.out, "Enter capability numbers separated by commas, or press Enter to skip: ")
@@ -679,9 +684,9 @@ func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([
 		cancelled := false
 		for _, index := range chosen {
 			offer := offers[index-1]
-			if offer.ManualOnly {
-				// An unconditionally manual outcome needs no version: it
-				// never reaches the automatic recipe that would validate one.
+			if offer.ManualOnly || offer.Unversioned {
+				// A manual outcome needs no version, and an unversioned
+				// recipe always installs the latest.
 				requests = append(requests, providerRequest{ID: offer.ID})
 				continue
 			}
@@ -869,6 +874,18 @@ func showPartialOnboardingDetail(out io.Writer, result management.OnboardingResu
 		var decoded providers.Step
 		if json.Unmarshal(step.Step.Payload, &decoded) == nil && decoded.ManualReason != "" {
 			printLabeled(out, "    Reason: ", decoded.ManualReason)
+		}
+		if message, tail := stepResultDetail(step); message != "" || len(tail) > 0 {
+			if message != "" {
+				label := "    Error: "
+				if step.Status == management.StepSkipped {
+					label = "    Reason: "
+				}
+				printLabeled(out, label, message)
+			}
+			for _, line := range tail {
+				printLabeled(out, "    > ", line)
+			}
 		}
 		if action := nextOnboardingStepAction(step.Status, explicitStateDir, stateDir, fromInterface); action != "" {
 			printLabeled(out, "    Next action: ", action)
