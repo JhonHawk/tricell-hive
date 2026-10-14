@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -67,6 +68,16 @@ func TestMain(m *testing.M) {
 	// so the package is simply run each time. A missing or renamed internal flag
 	// is ignored.
 	disableTestLog()
+	// The test binary and every t.TempDir() live under the temporary directory,
+	// which the Grok hook refuses, so the executable is a checked-in file.
+	exe, err := filepath.Abs(filepath.Join("testdata", "hive-test-executable"))
+	if err == nil {
+		exe, err = filepath.EvalSymlinks(exe)
+	}
+	if err != nil {
+		panic(err)
+	}
+	management.HiveExecutable = func() (string, error) { return exe, nil }
 	os.Exit(m.Run())
 }
 
@@ -112,6 +123,10 @@ func installViaText(t *testing.T, home, stateDir, source, hosts, answers string,
 func collectFiles(t *testing.T, root string) map[string][]byte {
 	t.Helper()
 	files := map[string][]byte{}
+	roots := []string{root}
+	if real, err := filepath.EvalSymlinks(root); err == nil && real != root {
+		roots = append([]string{real}, roots...)
+	}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -141,6 +156,11 @@ func collectFiles(t *testing.T, root string) map[string][]byte {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
+		}
+		// The Grok hook names the home's skills directory, so a file's own
+		// root is replaced as it is for symlink targets.
+		for _, prefix := range roots {
+			data = bytes.ReplaceAll(data, []byte(prefix), []byte("<root>"))
 		}
 		files[rel] = data
 		return nil
@@ -218,6 +238,44 @@ func normalizedStateJSON(t *testing.T, stateDir, home string) string {
 		for _, m := range migrations {
 			if entry, ok := m.(map[string]any); ok {
 				delete(entry, "transaction")
+			}
+		}
+	}
+	// The Grok hook holds the home's skills directory in a base64 payload and
+	// in the receipt hash of that payload, which a text replacement cannot
+	// reach: decode the payload, replace the home and drop the hash.
+	homes := []string{home}
+	if real, err := filepath.EvalSymlinks(home); err == nil && real != home {
+		homes = append([]string{real}, homes...)
+	}
+	if records, ok := raw["records"].(map[string]any); ok {
+		for _, r := range records {
+			record, ok := r.(map[string]any)
+			if !ok {
+				continue
+			}
+			if target, _ := record["target"].(map[string]any); target == nil || target["Kind"] != "hook" {
+				continue
+			}
+			encoded, _ := record["managed"].(string)
+			payload, err := base64.StdEncoding.DecodeString(encoded)
+			if err != nil {
+				t.Fatalf("hook payload is not base64: %v", err)
+			}
+			for _, prefix := range homes {
+				payload = bytes.ReplaceAll(payload, []byte(prefix), []byte("HOME"))
+			}
+			record["managed"] = string(payload)
+		}
+	}
+	if installations, ok := raw["installations"].(map[string]any); ok {
+		for _, i := range installations {
+			installation, _ := i.(map[string]any)
+			resources, _ := installation["resources"].([]any)
+			for _, res := range resources {
+				if resource, ok := res.(map[string]any); ok && strings.HasSuffix(fmt.Sprint(resource["path"]), "hive-read-whole-references.json") {
+					delete(resource, "hash")
+				}
 			}
 		}
 	}

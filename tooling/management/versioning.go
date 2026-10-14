@@ -204,6 +204,13 @@ func RequiredHosts(o Options) ([]string, error) {
 				return nil, err
 			}
 			p := Plan{Action: "install", Config: c, Release: &r}
+			// The Grok hook renders from the binary path, as buildPlan resolves
+			// it, so the preview keeps it under the same scope and conflict gate.
+			if g.Target.Kind == "hook" {
+				if p.Executable, err = HiveExecutable(); err != nil {
+					return nil, fmt.Errorf("resolve the hive executable: %w", err)
+				}
+			}
 			// Preview the new bytes with all known consumers to avoid the conflict gate.
 			expanded := g
 			expanded.Consumers = sortedConsumers(append(append([]Consumer{}, g.Consumers...), old.Consumers...))

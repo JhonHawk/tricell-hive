@@ -24,6 +24,16 @@ func TestMain(m *testing.M) {
 	// so the package is simply run each time. A missing or renamed internal flag
 	// is ignored.
 	disableTestLog()
+	// The test binary and every t.TempDir() live under the temporary directory,
+	// which the Grok hook refuses, so the executable is a checked-in file.
+	exe, err := filepath.Abs(filepath.Join("testdata", "hive-test-executable"))
+	if err == nil {
+		exe, err = filepath.EvalSymlinks(exe)
+	}
+	if err != nil {
+		panic(err)
+	}
+	HiveExecutable = func() (string, error) { return exe, nil }
 	os.Exit(m.Run())
 }
 

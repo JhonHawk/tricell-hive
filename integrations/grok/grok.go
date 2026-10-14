@@ -12,6 +12,10 @@ import (
 	"tricell-hive/integrations/target"
 )
 
+// ReadHookSource names the generated payload of the read-whole hook. It is not
+// a file of any release.
+const ReadHookSource = "integrations/grok/read-whole-hook"
+
 // SkillsDir returns the directory Hive installs skills into for c. User scope
 // uses the shared store under the home directory.
 func SkillsDir(c target.Config) string {
@@ -288,5 +292,9 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	}
 	dir := filepath.Join(c.GrokHome, "agents")
 	out := target.ExpandSkills(base, sources)
-	return target.ExpandAgents(out, sources, dir, ".md", base[0]), nil
+	out = target.ExpandAgents(out, sources, dir, ".md", base[0])
+	// The hook is generated, so it does not depend on the release's sources.
+	hook := base[0]
+	hook.Kind, hook.Source, hook.Path = "hook", ReadHookSource, ReadHookPath(c.GrokHome)
+	return append(out, hook), nil
 }
