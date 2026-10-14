@@ -40,7 +40,7 @@ A changed working tree, plus evidence:
 
 If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed. When the work will not reach Git, it asks how it should be reviewed only if that choice is still open, so the review does not stop the work later.
 
-Findings from that review are fixed as part of the work. After one follow-up review, a new finding with a small fix inside the change that changes no contract is fixed and covered by a test without another review round, and the report says so; anything larger or changing a contract comes to you as a decision.
+Findings from that review are fixed as part of the work. After one follow-up review, a new finding with a small fix inside the change that changes no contract is fixed and covered by a test without another review round, and the report says so; anything larger or changing a contract comes to you as a decision. When a human reviewer is assigned or requested on the pull request, the agent reads each of their comments against the code, asks in the thread when one is unclear, applies them blocking-first and replies in each thread, as the Git workflow skill sets.
 
 ## What it does not do
 
