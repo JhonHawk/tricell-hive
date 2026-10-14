@@ -93,7 +93,22 @@ func integrationsFixtureHosts(t *testing.T, hosts string) (o management.Options,
 	t.Helper()
 	o, home, stateDir = doctorHome(t, hosts)
 	o = nonSyntheticOptions(t, o, home)
+	useBrowserProbe(t, true)
 	return o, newDoctorFake(home), home, stateDir
+}
+
+// useBrowserProbe makes the browser check independent of this machine: darwin
+// candidates only, and a browser that exists or does not. The program and
+// environment lookups still come from the doctor's own dependencies.
+func useBrowserProbe(t *testing.T, present bool) {
+	t.Helper()
+	saved := agentBrowserSys
+	t.Cleanup(func() { agentBrowserSys = saved })
+	agentBrowserSys.goos = "darwin"
+	agentBrowserSys.browserCandidates = realBrowserCandidates
+	agentBrowserSys.pathExists = func(p string) bool { return present && p == macChrome }
+	agentBrowserSys.isFile = func(string) bool { return false }
+	agentBrowserSys.dirHasEntries = func(string) bool { return false }
 }
 
 func integrationsText(o management.Options, deps doctorDeps) string {
@@ -334,11 +349,11 @@ func TestIntegrationsRecordStatusReachesTheMatchingRows(t *testing.T) {
 	if pi.Found != "not checked" {
 		t.Fatalf("pi-subagents found = %q; Hive cannot detect it", pi.Found)
 	}
-	// A provider the last onboarding never offered says so; agent-browser is not part of onboarding.
+	// A provider the last onboarding never offered says so, agent-browser included.
 	if r := rowByID(t, rows, "context7"); r.Record != "not in the last record" {
 		t.Fatalf("context7 record = %q", r.Record)
 	}
-	if r := rowByID(t, rows, "agent-browser"); r.Record != "not part of onboarding" {
+	if r := rowByID(t, rows, "agent-browser"); r.Record != "not in the last record" {
 		t.Fatalf("agent-browser record = %q", r.Record)
 	}
 	mustContain(t, rowByID(t, rows, "engram").RecordDetail, "manual (onboarding partial, ")
@@ -417,7 +432,7 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 			"context7":      {"To install it, run " + ctx7, "sign in"},
 			"engram":        {"Install it from the official source (see Source above)", "Hive does not install it"},
 			"pi-subagents":  {"cannot check it without reading Pi's configuration", "If you use Pi, install it with Pi's own package manager", "see Source above"},
-			"agent-browser": {"Optional", "Hive does not install it", "follow the official instructions (see Source above)"},
+			"agent-browser": {"Optional", "hive install", "follow the official instructions (see Source above)"},
 		}},
 		{"everything found", func(t *testing.T, f *doctorFake, home string) {
 			f.install("engram", "")
@@ -428,7 +443,7 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 			"context7":      {"To refresh it, run " + ctx7, "sign in"},
 			"engram":        {"Hive does not configure Engram", "each CLI", "see Source above"},
 			"pi-subagents":  {"cannot check it"},
-			"agent-browser": {"Hive does not install or update it", "follow the official instructions (see Source above)"},
+			"agent-browser": {"Hive does not update it", "follow the official instructions (see Source above)"},
 		}},
 		{"agent-browser only as a program", func(t *testing.T, f *doctorFake, home string) {
 			f.install("agent-browser", "")
@@ -438,7 +453,7 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 		{"agent-browser only as a skill", func(t *testing.T, f *doctorFake, home string) {
 			installSkill(t, home, ".codex", "agent-browser")
 		}, map[string][]string{
-			"agent-browser": {"skill file was found but not the program", "follow the official instructions (see Source above)"},
+			"agent-browser": {"skill file was found but not the program", "hive install", "follow the official instructions (see Source above)"},
 		}},
 		{"context7 file that cannot be verified", func(t *testing.T, f *doctorFake, home string) {
 			if err := os.MkdirAll(filepath.Join(home, ".agents", "skills", "find-docs", "SKILL.md"), 0o700); err != nil {
@@ -489,7 +504,7 @@ func TestIntegrationsNextStepWhenNothingCanBeChecked(t *testing.T) {
 	mustContain(t, engram, "could not look for it here", "see Source above", "Hive does not install")
 	mustNotContain(t, engram, "Install it from")
 	browser := rowByID(t, rows, "agent-browser").Next
-	mustContain(t, browser, "could not look for the program here", "follow the official instructions (see Source above)")
+	mustContain(t, browser, "could not look for the program here", "hive install", "follow the official instructions (see Source above)")
 	assertNoCatalogReasonOrInventedCommand(t, rows, "npx ctx7@latest setup --cli")
 }
 
@@ -630,4 +645,93 @@ func TestCollectDoctorFillsTheIntegrationsSection(t *testing.T) {
 	var b strings.Builder
 	renderDoctorText(report, &b)
 	mustContain(t, b.String(), "Integrations", "Engram")
+}
+
+// writeStepRecord finishes a real onboarding whose steps end in the given
+// statuses, in order, so a record can carry several steps of one provider.
+func writeStepRecord(t *testing.T, o management.Options, ids []string, statuses map[string]string) {
+	t.Helper()
+	var steps []management.ExternalStep
+	for _, id := range ids {
+		steps = append(steps, management.ExternalStep{ID: id, Payload: json.RawMessage(`{}`)})
+	}
+	o.Source, o.Hosts = minimalTestSource(t), []string{"claude"}
+	plan, err := management.BuildPlan("install", o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = management.Engine{}.Onboard(plan, steps, perStepRunner{statuses})
+	if err != nil && !strings.Contains(err.Error(), "optional capabilities incomplete") {
+		t.Fatalf("onboard: %v", err)
+	}
+}
+
+type perStepRunner struct{ status map[string]string }
+
+func (perStepRunner) Validate(management.ExternalStep) error { return nil }
+func (perStepRunner) Execute(management.ExternalStep) (json.RawMessage, error) {
+	return json.RawMessage(`{}`), nil
+}
+func (r perStepRunner) Reconcile(s management.ExternalStep, _ json.RawMessage) (string, error) {
+	return r.status[s.ID], nil
+}
+
+func TestIntegrationsAgentBrowserNamesHiveInstallWhenAbsentOrWithoutABrowser(t *testing.T) {
+	// Absent: the program is not on PATH.
+	o, f, _, _ := integrationsFixture(t)
+	rows, _ := collectIntegrationRows(o, f.deps())
+	absent := rowByID(t, rows, "agent-browser")
+	mustContain(t, absent.Next, "hive install")
+	mustNotContain(t, absent.Next, "Hive does not install it")
+
+	// Present without a browser.
+	o, f, _, _ = integrationsFixture(t)
+	useBrowserProbe(t, false)
+	f.install("agent-browser", "")
+	rows, _ = collectIntegrationRows(o, f.deps())
+	noBrowser := rowByID(t, rows, "agent-browser")
+	mustContain(t, noBrowser.Next, "No browser was found", "hive install")
+	mustContain(t, strings.Join(noBrowser.Evidence, "\n"), "No browser found")
+	if len(f.ran) != 0 {
+		t.Fatalf("a program was run: %v", f.ran)
+	}
+
+	// Present with a browser: nothing to install.
+	o, f, _, _ = integrationsFixture(t)
+	f.install("agent-browser", "")
+	rows, _ = collectIntegrationRows(o, f.deps())
+	ok := rowByID(t, rows, "agent-browser")
+	mustNotContain(t, ok.Next, "hive install")
+	mustContain(t, strings.Join(ok.Evidence, "\n"), "Browser: "+macChrome)
+
+	// A browser named by the environment counts, and is read through the doctor's own getenv.
+	o, f, _, _ = integrationsFixture(t)
+	useBrowserProbe(t, false)
+	agentBrowserSys.isFile = func(p string) bool { return p == "/opt/chrome/chrome" }
+	f.env["AGENT_BROWSER_EXECUTABLE_PATH"] = "/opt/chrome/chrome"
+	f.install("agent-browser", "")
+	rows, _ = collectIntegrationRows(o, f.deps())
+	mustNotContain(t, rowByID(t, rows, "agent-browser").Next, "hive install")
+}
+
+func TestIntegrationsRecordShowsTheWorstAgentBrowserStep(t *testing.T) {
+	ids := []string{"agent-browser-install", "agent-browser-chrome"}
+	for _, tc := range []struct {
+		install, chrome, want string
+	}{
+		{"verified", "failed", "failed"},
+		{"failed", "skipped", "failed"},
+		{"verified", "verified", "verified"},
+		{"verified", "skipped", "skipped"},
+		{"manual", "verified", "manual"},
+	} {
+		t.Run(tc.install+"+"+tc.chrome, func(t *testing.T) {
+			o, f, _, _ := integrationsFixture(t)
+			writeStepRecord(t, o, ids, map[string]string{ids[0]: tc.install, ids[1]: tc.chrome})
+			rows, _ := collectIntegrationRows(o, f.deps())
+			if r := rowByID(t, rows, "agent-browser"); r.Record != tc.want {
+				t.Fatalf("record = %q, want %q", r.Record, tc.want)
+			}
+		})
+	}
 }
