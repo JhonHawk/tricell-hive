@@ -1,40 +1,40 @@
 # Provider API
 
 `tooling/providers` owns the small typed catalog for Hive's optional
-capabilities (Engram, Context7, pi-subagents). It does not manage Hive
-content, install or configure anything, or persist onboarding journals;
+capabilities (Engram, Context7, pi-subagents, agent-browser). It does not
+manage Hive content, run anything, or persist onboarding journals;
 `tooling/management` owns the parent journal and consent.
 
-No capability's host/platform combination has passed its own native
-install/host-integration validation gate yet. Until one does, Hive never
-executes an installer for it: `providers.Catalog()` lists, for each
-capability, the hosts it is relevant to, the official documentation to
-follow, and the reason it is manual-only in this build.
+Engram, Context7 and pi-subagents are manual-only: `providers.Catalog()` lists,
+for each capability, the hosts it is relevant to, the official documentation
+to follow, and the reason. agent-browser is the one capability with an
+executable recipe: an install step (`brew install agent-browser` or
+`npm install -g agent-browser`) and a Chrome step (`agent-browser install`).
 
 ```go
 for _, p := range providers.Catalog() {
     // p.ID, p.Hosts, p.Source, p.Reason — everything the CLI's capability
-    // list and summary render (A3/A4). Nothing here is executed.
+    // list and summary render. Nothing here is executed.
 }
 
 step := providers.Step{ID: "context7-manual", Provider: providers.Context7,
     Status: providers.Manual, ManualReason: p.Reason}
 payload, _ := json.Marshal(step)
 
-// ValidateStep admits only a Manual step for a known catalog provider.
+// ValidateStep admits a Manual step for a catalog provider and, for
+// agent-browser only, the Planned steps whose argv matches the recipe bound
+// to their step ID. It rejects any other command, a command on a manual step,
+// and unknown fields.
 if err := providers.ValidateStep(payload); err != nil { return err }
 ```
 
 `Step` is the provider-side journal unit persisted inside the parent
-onboarding journal's payload (`management.ExternalStep.Payload`). Its
-`Status` is always `providers.Manual` in this build; the CLI's
-`manualProviderRunner` (`tooling/cli/provider_adapter.go`) is the
-`management.ExternalRunner` that plans and journals it — Execute performs no
-process, and Reconcile (including after a recovery) always confirms the same
-Manual status rather than replaying anything.
-
-When a capability's own native gate is later validated for a given
-host/platform, its recipe (detection, versioned install, structured
-execution, reconciliation, and any safe revert) is added back here alongside
-a new non-Manual `Status`; until then, `Reason` and `Source` are the only
-things this package tells the operator.
+onboarding journal's payload (`management.ExternalStep.Payload`). `Method` and
+`Argv` are `omitempty` and exist only on `Planned` steps, so manual payloads
+written earlier keep validating. The CLI's `providerRunner`
+(`tooling/cli/agent_browser_runner.go`) is the `management.ExternalRunner`:
+manual steps are confirmed back unchanged, and agent-browser's steps run
+without a shell, in their own process group, with an empty stdin, a 15-minute
+limit and stored output capped at 64 KiB. Reconcile settles each step from its
+stored result and the machine's state, and a step with no stored result
+(an interrupted run) is `failed`, never replayed.
