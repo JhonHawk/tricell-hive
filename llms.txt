@@ -36,7 +36,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 ## Optional
 
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
-- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, and pi-subagents
+- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, and agent-browser
 - [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard
 - [History and provenance](_support/docs/history/history-and-provenance.md): how the project evolved
 - [Requirements and change records](_support/openspec/): versioned requirements and planned changes

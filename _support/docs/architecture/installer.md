@@ -95,20 +95,33 @@ then asks for one affirmative terminal confirmation. Cancellation, EOF and piped
 input cannot apply changes. `--dry-run` is read-only and works without a terminal
 when `--hosts` selects the hosts; choosing hosts interactively needs one.
 An already current installation exits without rewriting files or asking again.
-No CLI executable is installed by Hive. `--hosts` selects configuration consumers;
+Hive installs no CLI executable except `agent-browser`, and only with consent (below). `--hosts` selects configuration consumers;
 shared legacy resources can require selecting additional consumers together.
 
 After the hosts, the installer offers optional capabilities for the selected
-hosts: Engram, Context7 and, only with the Pi host, pi-subagents. Their inventory
-and limits are in [optional tool dependencies](tool-dependencies.md). This
-release has no provider recipes: a selected capability is shown with its official
-source and the reason it is manual, and no provider process runs. The one
-exception is Pi: when the Pi host is selected in a user-scope install and Pi's
+hosts: Engram, Context7, `agent-browser` and, only with the Pi host, pi-subagents.
+Their inventory and limits are in [optional tool dependencies](tool-dependencies.md).
+Engram and Context7 have no provider recipes: a selected one is shown with its
+official source and the reason it is manual, and no provider process runs.
+`agent-browser` has the one recipe: in an interactive install on macOS arm64
+with Homebrew, or on Linux amd64 with Node 24 or later and a writable global npm
+prefix, the summary shows the exact commands before consent (`brew install
+agent-browser` or `npm install -g agent-browser`, then `agent-browser install`
+only when no browser is found, which downloads Chrome for Testing), states that
+the latest version is installed and that Homebrew also installs Node, and runs
+them after consent without a shell, with empty standard input, in their own
+process group and with a 15-minute limit. Each step is recorded as verified,
+failed or skipped by its own check; a failed step shows its message in the
+result detail, an interrupted one is recorded as failed, never unknown, and a
+later install offers only the Chrome step when `agent-browser` is present
+without a browser. Elsewhere, or when a prerequisite is missing, it is manual
+with the reason. Non-interactive sessions, `--dry-run` and a synthetic `--home`
+run no program. The other exception is Pi: when the Pi host is selected in a user-scope install and Pi's
 `settings.json` is missing or does not list pi-subagents, Hive itself runs
 `pi install npm:pi-subagents` (the `pi` executable must be on `PATH`),
 which downloads that package from npm. A settings file that already lists
 pi-subagents makes Hive skip the step, and a conflicting entry stops the plan.
-Package installation is therefore network-free except for this step. The core is
+Package installation is therefore network-free except for this step and the consented `agent-browser` steps. The core is
 installed first; the installer then lists each selected capability with its
 reason and next action and exits non-zero, so a manual capability is never
 mistaken for an installed one, while the core remains installed.

@@ -123,9 +123,11 @@ download`, or clear the quarantine flag on the extracted files:
 xattr -dr com.apple.quarantine hive-<version>-<os>-<arch>
 ```
 
-The core installs offline and needs no Go, Git, or GitHub CLI. The one network
-step is optional: selecting the Pi host may run
-`pi install npm:pi-subagents`, which downloads that package from npm.
+The core installs offline and needs no Go, Git, or GitHub CLI. Two network
+steps are optional: selecting the Pi host may run
+`pi install npm:pi-subagents`, which downloads that package from npm, and
+consenting to `agent-browser` downloads it and, when no browser is found,
+Chrome for Testing.
 GitHub's automatic **Source code** archives are not packages; use the
 `hive-<version>-…` assets.
 
@@ -151,9 +153,12 @@ Maintainers can build packages locally with `go run ./tooling/package --out ./di
 Building does not publish a release.
 
 Engram and Context7 are optional, separately managed capabilities with official
-manual instructions and no automated provider recipes or credential requests. The
-one automated step is pi-subagents, which a user-scope Pi installation adds with
-`pi install` when Pi does not already declare it. Selecting a manual capability leaves the installed
+manual instructions and no automated provider recipes or credential requests.
+Two steps are automated: pi-subagents, which a user-scope Pi installation adds
+with `pi install` when Pi does not already declare it, and `agent-browser`, which
+an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
+24+) and installs, at its latest version, only after you consent to the commands
+it shows. Selecting a manual capability leaves the installed
 core intact but returns a non-zero exit status to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.

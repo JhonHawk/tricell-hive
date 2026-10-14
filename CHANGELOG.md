@@ -12,6 +12,16 @@ raise the minor or the patch version.
 
 ### Added
 
+- `hive install` offers `agent-browser` as an optional capability: in an
+  interactive install on macOS arm64 (`brew install agent-browser`) or Linux
+  amd64 with Node 24+ and a writable npm prefix (`npm install -g
+  agent-browser`), it shows the exact commands, installs the latest version
+  after your consent, and runs `agent-browser install` to download Chrome only
+  when no browser is found. Commands run without a shell or `sudo`, with a time
+  limit; a failed step is reported without touching the installed core.
+  `hive doctor` now names `hive install` for a missing `agent-browser` or
+  browser. Elsewhere the capability stays manual. This adds an installation
+  route, so the next release raises the minor version.
 - Grok user scope installs `~/.grok/hooks/hive-read-whole-references.json`, a
   `PreToolUse` hook on `read_file` that runs the hidden `hive grok-hook
   read-whole` subcommand to drop `offset` and `limit` when a session reads a
