@@ -10,7 +10,20 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-15
+
 ### Added
+
+- When a human reviewer is assigned or requested on a pull request, the agent
+  reads each of their comments against the code before changing anything, asks
+  in the thread when one is ambiguous, applies them blocking-first and verifies
+  each one, disagrees with evidence when the code already does what was asked
+  or the request would break declared behavior, and replies in each thread.
+- The completion report lists each implementation decision the agent took
+  without asking, when the user could reasonably have chosen otherwise, with
+  its reason and how to revert it, in attended and unattended work alike.
+- Pi user-scope installs run `pi install npm:pi-subagents` without a version
+  pin, so npm resolves the latest release; an existing pin is left unchanged.
 
 - `hive install` offers `agent-browser` as an optional capability: in an
   interactive install on macOS arm64 (`brew install agent-browser`) or Linux
@@ -59,6 +72,33 @@ raise the minor or the patch version.
   round needs a plan, the scope changes, or a decision is yours.
 
 ### Changed
+
+- Children never receive the parent's conversation history: when the launch
+  tool offers to pass it, the agent launches without it, since the brief
+  carries what the child needs and inherited history never delivers the skills
+  the parent read. Children never launch children of their own, and a child
+  that cannot finish alone reports it; the ten implementer roles say so.
+- Before calling a change mechanical, the agent checks whether the code it
+  alters also serves behavior the request did not name, such as a shared
+  helper, parser or option; if it does, the change alters a contract and is
+  not mechanical.
+- A failure you report, such as a bug, an error or a regression, with or
+  without evidence, enters through Research unless the same message asks for
+  the fix: the agent confirms the cause first, then asks in one round whether
+  to track it and how to continue, and Build asks the delivery and review
+  questions when it starts.
+- `hive-verify-task` runs on its configured verifier model where the host sets
+  one, as a preference rather than a condition: the agent no longer compares
+  models before each launch, asks which model to use, or discounts a verdict on
+  the child's own statement of its model. What makes the verdict independent is
+  a fresh context and a brief without the implementer's report or claims; the
+  verifier never runs on a smaller model or lower effort than the implementer,
+  and when it cannot run it is retried once on the implementer's model before
+  the agent asks.
+- When an MCP server or other integration the task needs fails to connect or
+  authenticate, the agent says so in its next message, names what it uses
+  instead and what that source cannot show, and the action that restores it,
+  instead of substituting another source silently.
 
 - A research child cites a live observation by the exact read-only command that
   produced it, so the parent reruns it unchanged instead of rewriting the query, and
