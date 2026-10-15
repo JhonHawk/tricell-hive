@@ -36,7 +36,7 @@ A changed working tree, plus evidence:
 - Between tasks it reports progress in a line and keeps going; the completion report and the closing question come when the scope you authorized is done, not after every task. On an iterative route you chose in Research, each finished round is one more progress line; the report and the closing question come when the route stops.
 - If you ask how it is going, it answers in a line and keeps working. Builds, deployments and CI runs it starts are watched with your CLI's monitor tool when it has one, until they finish, so a failure does not go unnoticed.
 - When your CLI has a task list, the agent keeps the plan's tasks there, also when it continues a plan after a close, so you can see what is left.
-- When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. Other tasks are marked done on the evidence of their own check.
+- When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. It starts with a clean context, reads the plan itself and reruns the checks, and never sees the implementer's reasoning or claims; where your CLI offers it, it runs on a different model, but the clean context is what makes its verdict independent. Other tasks are marked done on the evidence of their own check.
 
 If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed. When the work will not reach Git, it asks how it should be reviewed only if that choice is still open, so the review does not stop the work later.
 

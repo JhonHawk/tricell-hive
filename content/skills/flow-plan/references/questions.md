@@ -65,7 +65,7 @@ When the user must check several things, give each flow its own block, headed by
 
 ## Worked example: waiting card
 
-Assume this session verified that the required reviewer cannot access its configured model. The task remains unverified. The next call is the waiting native question; no other tool intervenes.
+Assume this session verified that the required reviewer cannot run, on its configured model or on the implementer's. The task remains unverified. The next call is the waiting native question; no other tool intervenes.
 
 ```text
 The required reviewer could not access its model, so the task is still
