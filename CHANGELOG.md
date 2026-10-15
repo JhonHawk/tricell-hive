@@ -10,6 +10,21 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- At close, the agent may delete merged work branches from this work or
+  earlier, with their clean worktrees, as the close procedure already did;
+  the global grant now says so, and environment branches are never work
+  branches (observed: a repository with seven merged work branches left on
+  GitHub).
+- The global guidance no longer states how review-gate findings are fixed; the
+  severity rules in Build's verification reference are their only home, and
+  Build reads that reference for a code review too. A review requested on its
+  own still authorizes no fixes.
+- The global guidance keeps one home per rule: the `openspec` location is one
+  sentence plus the change-records reference, and two sentences that the
+  retention and reporting references already carry left the global text.
+
 ## [0.4.0] - 2026-10-15
 
 ### Added
