@@ -21,6 +21,26 @@ OpenCode V2, and Cursor CLI**. It supplies guidance, activity skills, specialist
 role definitions, and a manager that installs them in the host's native locations.
 Each CLI keeps its own model loop, authentication, tools, permissions, and history.
 
+The global core keeps essential boundaries and points to canonical skill
+references before the action that needs them. Reporting applies before every chat
+reply; questions, delegation, artifact details and project settings have explicit
+read conditions. Installing a reference makes it available, not necessarily read
+or followed. This organization does not establish reliability for any model family.
+
+OpenCode V2 also receives an **optional, inactive context loader** at user scope in
+`<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside
+auto-discovered `plugins/`, with no `package.json`.
+When explicitly activated, it supplies a generated snapshot of the fixed reference
+for `hive-review-plan` and `hive-review-harness`, not other roles or main-thread
+questions. It reads no reference files or metadata during requests. Updating the
+snapshot requires manager regeneration and plugin reload; editing an installed
+Markdown file alone does not refresh it. Activate only the installed `hive/context-loader` directory, not the repository's editorial template. It changes
+neither permissions nor models and does not enforce behavior. Manual activation,
+deactivation and removal prerequisites are in the
+[loader contract](_support/docs/architecture/deployment-manager.md#optional-opencode-context-loader).
+New offline packages use manifest version 2 and require the accompanying manager;
+older managers that accept only version 1 cannot verify them.
+
 Use it to investigate an uncertain request, plan a consequential change, or carry
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
@@ -103,9 +123,11 @@ download`, or clear the quarantine flag on the extracted files:
 xattr -dr com.apple.quarantine hive-<version>-<os>-<arch>
 ```
 
-The core installs offline and needs no Go, Git, or GitHub CLI. The one network
-step is optional: selecting the Pi host may run
-`pi install npm:pi-subagents@0.74.0`, which downloads that package from npm.
+The core installs offline and needs no Go, Git, or GitHub CLI. Two network
+steps are optional: selecting the Pi host may run
+`pi install npm:pi-subagents`, which downloads that package from npm, and
+consenting to `agent-browser` downloads it and, when no browser is found,
+Chrome for Testing.
 GitHub's automatic **Source code** archives are not packages; use the
 `hive-<version>-…` assets.
 
@@ -131,9 +153,12 @@ Maintainers can build packages locally with `go run ./tooling/package --out ./di
 Building does not publish a release.
 
 Engram and Context7 are optional, separately managed capabilities with official
-manual instructions and no automated provider recipes or credential requests. The
-one automated step is pi-subagents, which a user-scope Pi installation adds with
-`pi install` when Pi does not already declare it. Selecting a manual capability leaves the installed
+manual instructions and no automated provider recipes or credential requests.
+Two steps are automated: pi-subagents, which a user-scope Pi installation adds
+with `pi install` when Pi does not already declare it, and `agent-browser`, which
+an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
+24+) and installs, at its latest version, only after you consent to the commands
+it shows. Selecting a manual capability leaves the installed
 core intact but returns a non-zero exit status to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.
@@ -154,9 +179,9 @@ not prove that a particular session loaded the content or followed it.
 | --- | --- | --- |
 | Claude Code | User and project | Native instructions, skills, and rendered roles. A project's `CLAUDE.md` must import `@AGENTS.md`. |
 | Codex | User and project | Native instructions, shared skills, and rendered roles. |
-| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. |
+| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. |
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Honors `PI_CODING_AGENT_DIR`. |
-| OpenCode V2 | User | Needs your own model providers; the default role profiles assume GitHub Copilot and OpenCode Go models, so set others with `hive models set`. |
+| OpenCode V2 | User | Needs your own model providers; the default role profiles assume OpenCode Go models, so set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). User-level role selection remains unverified. |
 
 Only Claude Code and Codex support `--scope project`; the other four reject it.
@@ -204,7 +229,8 @@ package installation, the extracted `bin/hive`; in a source checkout, use
 
 **Update.** One-line users run the same command again; each version adds its
 own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
-once you no longer need them for recovery. Package users run the
+once you no longer need them for recovery and Grok's hook no longer points to
+them: run `hive update` or `hive install` from the newer binary first. Package users run the
 newer package's `./install.sh`. Source users
 pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
 and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,

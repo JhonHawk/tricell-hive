@@ -10,7 +10,29 @@ Native agent renderers can flatten or relocate role files. In role instructions,
 
 ## Runtime resolution
 
-The shared delegation rule in `content/guidance/global.md` owns the runtime contract. Resolve the named skill through the host's available catalog/loader or an explicit task path, then read the resource relative to that skill directory. Reading a reference does not invoke its owner's complete workflow. Native discovery, parent context inheritance, and automatic reference reading are different capabilities; do not assume one establishes another.
+The essential runtime boundaries and read conditions remain in `content/guidance/global.md`; the delegation procedure has its canonical home in `content/skills/flow-research/references/delegation.md`. Resolve the named skill through the host's available catalog/loader or an explicit task path, then read the resource relative to that skill directory. Reading a reference does not invoke its owner's complete workflow. Native discovery, parent context inheritance, and automatic reference reading are different capabilities; do not assume one establishes another.
+
+Canonical procedural homes under `content/skills/`:
+
+- `flow-close/references/reporting.md`: before every chat reply, including ordinary answers, questions and relayed notifications without citations.
+- `flow-plan/references/questions.md`: before a user decision or manual validation request.
+- `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
+- `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
+- `flow-plan/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
+
+Activity and role consumers link directly to required resources. The global core
+does not delegate authorization, preservation or secrets to a selector. The
+[optional OpenCode loader](deployment-manager.md#optional-opencode-context-loader)
+only supplies two fixed-role resources; it does not replace these read conditions.
+
+Those two references retain their single editorial home under their skills. The
+manager generates `index.js` and metadata schema 2 at
+`<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside
+`plugins/` and without `package.json`, from the same
+validated release payload. Requests use those embedded snapshots without reading
+reference files or metadata. Regeneration and plugin reload refresh the supplied
+text; editing an installed Markdown reference alone does not. Derived copies and
+digests record exact canonical UTF-8 provenance, not cryptographic authentication.
 
 Deployed files carry installed paths. The installer rewrites every inline `[label](skill:owner/path)` link outside code fences, in role files for every host (a Codex role is rewritten before its TOML string is encoded) and in the global guidance block, to `<skills-dir>/<owner>/<path>` wrapped in `<...>`. At user scope `<skills-dir>` is the absolute `<home>/.agents/skills`, the shared store every host installs into (`~/.claude/skills/<skill>` links to it). At project scope it is the host's project skills directory relative to the project root, `.claude/skills` for Claude and `.agents/skills` for Codex, so versioned project files carry no personal path. The limitation: a relative path resolves from the project root, so a session opened in a subdirectory, or a worktree that lacks the project's versioned skills, does not find it directly. Reference-style definitions (`[x]: skill:...`) are not rewritten; none exists in `content/`. Source files keep `skill:` locators, and a file shared by several hosts must render to identical bytes or the plan fails before any write. The `skill:` resolution rule above still applies to a locator that reaches a model unrewritten, such as one inside a code fence.
 
@@ -18,9 +40,9 @@ The caller supplies relevant project conventions and task decisions. If resoluti
 
 ## Release validation
 
-The management package checks instruction links when preparing a release and when validating a saved plan before applying it. It resolves links against the release payload, not files left elsewhere in the checkout. Removing an owner or resource while a consumer still requires it fails validation before managed writes.
+The management package checks instruction links in the global core, roles and skills when preparing a release and when validating a saved plan before applying it. It resolves links against the release payload, not files left elsewhere in the checkout. Removing an owner or resource while a consumer still requires it fails validation before managed writes, including a saved plan whose hashes were recalculated.
 
-The supported authoring subset is ordinary inline Markdown links and reference definitions with simple destinations (optionally angle-bracketed or with a double-quoted inline title). Use uncomplicated paths without parentheses. The check covers role Markdown, skill entrypoints, and Markdown under their `references/` directories. It validates relative and `skill:owner/path` targets, checks logical owners, and rejects unsupported local schemes and personal installation paths. A directory link must end in `/` and contain packaged files.
+The supported authoring subset is ordinary inline Markdown links and reference definitions with simple destinations (optionally angle-bracketed or with a double-quoted inline title). Use uncomplicated paths without parentheses. The check covers the global core, role Markdown, skill entrypoints, and Markdown under their `references/` directories. It validates relative and `skill:owner/path` targets, checks logical owners, and rejects unsupported local schemes and personal installation paths. A directory link must end in `/` and contain packaged files.
 
 Fenced examples, asset contents, arbitrary prose/code dependencies, heading anchors, and remote URL availability are outside this check. HTTP(S) and mail links are external. This is a packaging gate, not a full Markdown parser or evidence of runtime reading, permissions, tool availability, or behavioral compliance.
 
@@ -29,6 +51,51 @@ Fenced examples, asset contents, arbitrary prose/code dependencies, heading anch
 Before renaming or removing a skill/resource, find its consumers with `rg`, update their links and read conditions, and run `go test ./...` and `go vet ./...`. Test a missing resource and saved-plan rejection when changing validation. Do not duplicate a resource merely to avoid a cross-skill dependency.
 
 Current delivery selects hosts and scope and ships the complete skill catalogue. No per-skill dependency resolver is needed. If partial skill selection is introduced later, define and test dependency closure and removal behavior before enabling it; never silently omit a required resource. Deployment remains explicitly authorized and uses the existing manager.
+
+## Declared reading footprint
+
+`tests/content/reading_footprint_test.go` reports every selected source and counts
+its UTF-8 bytes and Unicode characters once per scenario. It compares editorial
+baseline A (`d5164f71`) to working-tree B; C uses the same canonical files with
+the optional loader active. This is a declared source union, not an observed
+request, cumulative session cost or proof that references were read. Missing
+required files fail measurement; there is no new size quota.
+
+The predicates and full file lists are in `TestGuidanceReadingFootprint`:
+
+- **Simple query:** factual reply without an activity, decision, delegation or
+  artifact. B reads global plus mandatory reporting; A has reporting in global.
+- **Question:** standalone user decision, with a waiting card or text. Add
+  questions to that common union; neither scenario invokes a whole activity.
+- **Plan/build cycle:** retained backend runtime plan, settings and hold/review
+  decision, read-only plan reviewer, delegated backend implementer and task
+  verifier, local tests, then pause through Close. Include the selected
+  Plan/Build/Close entrypoints, Research's planning exploration criterion,
+  plan format/review, settings/change records, delivery decisions, verification,
+  delegation, artifact layout, questions/reporting and the three role sources.
+  No UI, security/data migration, deployment, Git execution or incidental finding
+  is assumed, so their conditional procedures are not added.
+
+Snapshot measured on 2026-10-12 (source files can change; rerun the test):
+
+| Scenario | A bytes | B/C bytes | Byte change |
+| --- | ---: | ---: | ---: |
+| Global alone, not a chat reply | 46,912 | 25,363 | -45.93% |
+| Simple query | 46,912 | 36,754 | -21.65% |
+| Question | 46,912 | 44,148 | -5.89% |
+| Plan/build cycle | 173,839 | 192,066 | +10.48% |
+
+The global decrease is not total-context savings: mandatory reporting already
+changes the common union, and the declared cycle grows. C's plan-review injection
+adds no unique source to that cycle, but delivery wrappers, repetition and timing
+can change actual requests. The measurement includes raw source frontmatter;
+it excludes native skill/role discovery metadata and rendering, plugin metadata
+and wrappers, repeated reads/copies across readers and requests, project inputs,
+history and host policies. It does not convert bytes to measured tokens.
+Actual delivery, token usage and task outcomes need native observations; the
+bounded pilot is future evidence, not a claim of small-model reliability. It has
+not run and remains blocked on verifying safe, exact memory cleanup; source and
+callback checks do not resolve that separate prerequisite.
 
 ## Vendored upstream material
 

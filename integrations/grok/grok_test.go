@@ -36,8 +36,9 @@ func TestResolveGrokUserTargets(t *testing.T) {
 		filepath.Join(home, ".claude", "CLAUDE.md"),
 		filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md"),
 	}
-	if len(targets) != len(want) {
-		t.Fatalf("got %d targets, want %d", len(targets), len(want))
+	// The generated read-whole hook follows the skill (see hook_test.go).
+	if len(targets) != len(want)+1 {
+		t.Fatalf("got %d targets, want %d", len(targets), len(want)+1)
 	}
 	for i := range want {
 		if targets[i].Path != want[i] {

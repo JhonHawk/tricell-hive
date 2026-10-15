@@ -260,7 +260,7 @@ func owned(s snapshot, r Record, m markers) error {
 	path := r.Target.Path
 	if !s.Exists {
 		e := &ManagedFileChangedError{Path: path, Kind: ManagedFileMissing}
-		if r.Target.Kind != "skill" && r.Target.Kind != "agent" && r.Target.Kind != "symlink" {
+		if r.Target.Kind != "skill" && r.Target.Kind != "agent" && r.Target.Kind != "plugin" && r.Target.Kind != "hook" && r.Target.Kind != "symlink" {
 			e.Block = m.name
 		}
 		return e
@@ -274,7 +274,7 @@ func owned(s snapshot, r Record, m markers) error {
 	if s.Kind != "" {
 		return &ManagedFileChangedError{Path: path, Kind: ManagedFileChanged}
 	}
-	if r.Target.Kind == "skill" || r.Target.Kind == "agent" {
+	if r.Target.Kind == "skill" || r.Target.Kind == "agent" || r.Target.Kind == "plugin" || r.Target.Kind == "hook" {
 		if !bytes.Equal(s.Data, r.Managed) {
 			return &ManagedFileChangedError{Path: path, Kind: ManagedFileChanged}
 		}
@@ -333,13 +333,16 @@ func transform(s snapshot, before, after *Record, m markers) (snapshot, error) {
 	if after != nil && after.Mode != 0 {
 		mode = after.Mode
 	}
-	if after != nil && (after.Target.Kind == "skill" || after.Target.Kind == "agent") {
+	if after != nil && (after.Target.Kind == "skill" || after.Target.Kind == "agent" || after.Target.Kind == "plugin" || after.Target.Kind == "hook") {
 		if before == nil && s.Exists {
+			if after.Target.Kind == "hook" {
+				return snapshot{}, fmt.Errorf("%s: unowned hook collision", path)
+			}
 			return snapshot{}, fmt.Errorf("%s: unowned skill collision", path)
 		}
 		return snapshot{Exists: true, Data: after.Managed, Mode: mode}, nil
 	}
-	if before != nil && (before.Target.Kind == "skill" || before.Target.Kind == "agent") {
+	if before != nil && (before.Target.Kind == "skill" || before.Target.Kind == "agent" || before.Target.Kind == "plugin" || before.Target.Kind == "hook") {
 		return snapshot{}, nil
 	}
 	if after != nil && after.Target.Kind == "symlink" {

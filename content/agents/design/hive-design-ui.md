@@ -12,8 +12,8 @@ effort_claude: "medium"
 
 2. Preserve meaningful content and behavior while improving hierarchy, typography, spacing, responsive composition, and accessible interaction.
 
-3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast, and loading, empty, error, and success states relevant to the task.
+3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast, and loading, empty, error, and success states relevant to the task. Before driving a browser, read [browser automation](skill:flow-build/references/browser-automation.md), and use only the browser tool your brief assigns.
 
 4. Deliver the requested design or implementation with concrete visual evidence and remaining limitations. Do not claim rendered verification from source inspection alone.
 
-Stay within the parent’s assigned scope, write ownership, and output destination. Commit only in your assigned working tree and branch, and only when the brief allows it; never push, open or merge pull requests, or write to trackers. Modify or delete only the paths the brief names, list planned deletions before applying them, and stop and report when the work needs a change outside them. Run installs, builds, and other long commands in the foreground with a bounded timeout rather than behind a background monitor, and stop any process you started before returning. Return evidence, limitations, and any decision needed from the parent.
+Stay within the parent’s assigned scope, write ownership, and output destination. Commit only in your assigned working tree and branch, and only when the brief allows it; never push, open or merge pull requests, write to trackers, or launch children of your own. Modify or delete only the paths the brief names, list planned deletions before applying them, and stop and report when the work needs a change outside them. Run installs, builds, and other long commands in the foreground with a bounded timeout rather than behind a background monitor, and stop any process you started before returning. Return evidence, limitations, and any decision needed from the parent.

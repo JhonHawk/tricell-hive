@@ -8,6 +8,9 @@ import (
 	"tricell-hive/integrations/target"
 )
 
+// ContextLoaderSource is the only editorial plugin payload allowed in releases.
+const ContextLoaderSource = "integrations/opencode/context-loader.js"
+
 // SkillsDir returns the directory Hive installs skills into for c. User scope
 // uses the shared store under the home directory.
 func SkillsDir(c target.Config) string {
@@ -36,5 +39,16 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	}
 	dir := filepath.Join(c.OpenCodeHome, "agents")
 	out := target.ExpandSkills(base, sources)
-	return target.ExpandAgents(out, sources, dir, ".md", base[0]), nil
+	out = target.ExpandAgents(out, sources, dir, ".md", base[0])
+	for _, source := range sources {
+		if source != ContextLoaderSource {
+			continue
+		}
+		for _, name := range []string{"index.js", "context-loader.json"} {
+			t := base[0]
+			t.Kind, t.Source, t.Path = "plugin", source, filepath.Join(c.OpenCodeHome, "hive", "context-loader", name)
+			out = append(out, t)
+		}
+	}
+	return out, nil
 }

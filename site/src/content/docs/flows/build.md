@@ -19,6 +19,11 @@ Fix the date parsing bug and add a test that would have caught it.
 
 You do not need a plan first for a small change you understand.
 
+The global core still controls scope, authorization, preservation and secrets.
+Build links to canonical procedures when a decision, delegation, artifact or
+verification needs them; reporting applies before every chat reply. Neither an
+installed reference nor an optional loader proves that a helper followed it.
+
 ## What it produces
 
 A changed working tree, plus evidence:
@@ -31,11 +36,11 @@ A changed working tree, plus evidence:
 - Between tasks it reports progress in a line and keeps going; the completion report and the closing question come when the scope you authorized is done, not after every task. On an iterative route you chose in Research, each finished round is one more progress line; the report and the closing question come when the route stops.
 - If you ask how it is going, it answers in a line and keeps working. Builds, deployments and CI runs it starts are watched with your CLI's monitor tool when it has one, until they finish, so a failure does not go unnoticed.
 - When your CLI has a task list, the agent keeps the plan's tasks there, also when it continues a plan after a close, so you can see what is left.
-- When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. Other tasks are marked done on the evidence of their own check.
+- When a plan has numbered criteria, a separate verifier checks each task that is proven by a test or a named check. It starts with a clean context, reads the plan itself and reruns the checks, and never sees the implementer's reasoning or claims; where your CLI offers it, it runs on a different model, but the clean context is what makes its verdict independent. Other tasks are marked done on the evidence of their own check.
 
 If Git delivery was not settled earlier, the agent asks once, before the first edit, how you want it delivered and reviewed. When the work will not reach Git, it asks how it should be reviewed only if that choice is still open, so the review does not stop the work later.
 
-Findings from that review are fixed as part of the work. After one follow-up review, a new finding with a small fix inside the change that changes no contract is fixed and covered by a test without another review round, and the report says so; anything larger or changing a contract comes to you as a decision.
+Findings from that review are fixed as part of the work. After one follow-up review, a new finding with a small fix inside the change that changes no contract is fixed and covered by a test without another review round, and the report says so; anything larger or changing a contract comes to you as a decision. When a human reviewer is assigned or requested on the pull request, the agent reads each of their comments against the code, asks in the thread when one is unclear, applies them blocking-first and replies in each thread, as the Git workflow skill sets.
 
 ## What it does not do
 
@@ -65,7 +70,7 @@ The fix enters the base branch and is promoted at once through each environment,
 It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing.
 
 ### What happens to a user interface change?
-The agent leaves the running result available for you to check, with steps to follow, and cleans up the temporary captures later.
+The agent leaves the running result available for you to check, with steps to follow, and keeps its screen captures in the work's support folder until the session ends, then cleans up the ones you did not ask to keep.
 
 ### Where is the exact rule?
 See the source linked below.

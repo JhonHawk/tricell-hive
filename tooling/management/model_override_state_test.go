@@ -43,12 +43,42 @@ func normalized(t *testing.T, o Options, b []byte) []byte {
 // exactly as they did before overrides existed.
 func TestModelOverrideStateWithoutOverridesIsUnchanged(t *testing.T) {
 	o, p := installedFiveHosts(t)
-	state, err := os.ReadFile(filepath.Join(o.StateDir, "state.json"))
+	stored, _, err := readState(o.StateDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The Grok hook holds the checkout path of the test executable and the
+	// temporary home, which no normalization can make stable, so the golden
+	// file leaves it out. grok_hook_test.go covers it.
+	hookDir := filepath.Dir(grokHookPath(o))
+	delete(stored.Records, grokHookPath(o))
+	var dirs []string
+	for _, dir := range stored.CreatedDirs {
+		if dir != hookDir {
+			dirs = append(dirs, dir)
+		}
+	}
+	stored.CreatedDirs = dirs
+	for key, receipt := range stored.Installations {
+		var resources []InstalledResource
+		for _, res := range receipt.Resources {
+			if res.Path != grokHookPath(o) {
+				resources = append(resources, res)
+			}
+		}
+		receipt.Resources = resources
+		stored.Installations[key] = receipt
+	}
+	state := encode(stored)
 	planned := p
 	planned.ID = ""
+	planned.Executable = ""
+	planned.Changes = nil
+	for _, ch := range p.Changes {
+		if ch.Target.Kind != "hook" {
+			planned.Changes = append(planned.Changes, ch)
+		}
+	}
 	got := append(append([]byte("=== state.json ===\n"), normalized(t, o, state)...), "=== plan ===\n"...)
 	got = append(got, normalized(t, o, encode(planned))...)
 	if *updateStateGolden {

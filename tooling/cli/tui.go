@@ -153,7 +153,7 @@ func recoverPending(kind management.PendingKind, o management.Options, explicitS
 	recoveryText := recoveryTextOnOpen(explicitStateDir)
 	switch kind {
 	case management.PendingOnboarding:
-		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, false))
+		adapter, err := dependencies.AdapterFactory(newOnboardingInput(o, false, true))
 		if err != nil {
 			return "", err
 		}

@@ -43,7 +43,7 @@ func stubApplyPi(home, action, source string) error {
 		if err := os.MkdirAll(pkg, 0700); err != nil {
 			return err
 		}
-		return os.WriteFile(filepath.Join(pkg, "package.json"), []byte(`{"name":"pi-subagents","version":"0.74.0"}`), 0600)
+		return os.WriteFile(filepath.Join(pkg, "package.json"), []byte(`{"name":"pi-subagents","version":"0.0.0-synthetic"}`), 0600)
 	case "remove":
 		var kept []string
 		for _, s := range root.Packages {
@@ -238,7 +238,7 @@ func TestInterruptedAfterPiInstallRecoverRemovesPackage(t *testing.T) {
 	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
 		t.Fatal(err)
 	}
-	if len(piCalls) != 1 || piCalls[0].Action != "remove" {
+	if len(piCalls) != 1 || piCalls[0].Action != "remove" || piCalls[0].Source != "npm:pi-subagents" {
 		t.Fatalf("recover calls %#v", piCalls)
 	}
 }

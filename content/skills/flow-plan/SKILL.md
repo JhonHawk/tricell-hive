@@ -9,6 +9,8 @@ Produce enough shared understanding for an implementer to act without inventing 
 
 ## Ground the decisions
 
+Before resolving needed project settings, read [project settings](references/project-settings.md). Before formulating a user decision, read [questions](references/questions.md). Before delegating or waiting for external work, read [delegation and waits](../flow-research/references/delegation.md).
+
 Establish the intended outcome, scope, constraints, authorized effects, and observable acceptance criteria from the conversation. Inspect the relevant implementation, callers, tests, configuration, and project guidance, delegating exploration under the delegation criterion of [flow-research](../flow-research/SKILL.md). Reuse sound research but recheck facts that may have changed. While delegated exploration runs, draft the parts of the plan that settled decisions already determine, such as scope, delivery, and tasks whose approach is known, instead of waiting idle.
 
 Resolve missing consequential choices with the user, offering meaningful alternatives and their tradeoffs. Investigate discoverable facts directly. Treat information that clarifies the requested outcome as an update to the plan; when it proposes a material expansion beyond that outcome, resolve the scope before planning dependent work. If a technical uncertainty can invalidate the approach, resolve it with authorized investigation or mark the affected work blocked; do not hide it in an implementation task. Routine local coding choices need not be frozen in advance.
@@ -51,6 +53,8 @@ Assign each task's execution: the main thread or a delegated child, with the rea
 After saving an implementation plan, read [plan review](references/plan-review.md) and dispatch bounded read-only subagents before declaring it ready. Dispatch one reviewer per affected domain in parallel, even for a small plan; use a single reviewer only when one domain is affected, and omit unaffected areas, including UI when absent. Reviewers return feedback to the orchestrator, who validates findings and alone revises the plan. Disclose unavailable delegation and unresolved coverage.
 
 ## Preserve a useful handoff
+
+Before writing a support artifact, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before a plan-handoff report or any message containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md).
 
 Keep a bounded, understood plan in the conversation unless retention helps. Retain a plan when requested, when work must resume across sessions or agents, when deliveries need coordination, or when consequential decisions or expensive investigation need a durable record. Before writing a retained artifact, resolve its destination through the applicable global artifact-placement instructions and existing work identifier.
 

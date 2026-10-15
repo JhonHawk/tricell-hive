@@ -2,7 +2,8 @@
 // (design.md "Reglas por sección"): for each optional capability, what Hive
 // can see locally, what the last onboarding record says, and where the
 // official instructions are. It only reads. It never runs an integration
-// program (a program is only looked up in PATH) and never reads a host's
+// program (a program is only looked up in PATH, and a browser is looked for
+// by file existence) and never reads a host's
 // configuration: whether Pi has pi-subagents, or a host loads a skill, is not
 // something Hive checks.
 package main
@@ -20,9 +21,9 @@ import (
 	"tricell-hive/tooling/providers"
 )
 
-// agentBrowserSource is where agent-browser's own instructions live. The tool
-// is not in providers.Catalog, because Hive never offers to install it, so its
-// source is fixed here (Context7 resolves the library to /vercel-labs/agent-browser).
+// agentBrowserSource is where agent-browser's own instructions live; it equals
+// the catalog entry's Source (Context7 resolves the library to
+// /vercel-labs/agent-browser).
 const agentBrowserSource = "github.com/vercel-labs/agent-browser"
 
 // piCodemodeSource is Pi's own documentation of how to enable codemode.
@@ -56,6 +57,9 @@ type integrationRow struct {
 	RecordDetail string   // the same, with the record's phase and time when there is one
 	Source       string   // official documentation
 	Next         string   // what to do next, in plain words, for this row's local finding and record
+	// BrowserMissing is set for agent-browser when the program is on PATH but
+	// none of the browsers it uses was found.
+	BrowserMissing bool
 }
 
 // detailLines is the text the view shows under the list for the selected row
@@ -135,12 +139,12 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 
 	browser := integrationRow{ID: "agent-browser", Name: "agent-browser", Source: agentBrowserSource}
 	browser.Found, browser.Evidence = agentBrowserEvidence(deps, synthetic, skillRoots, homeErr)
+	browser.BrowserMissing = agentBrowserBrowserEvidence(deps, synthetic, browser.Found, &browser.Evidence)
 
-	for _, r := range []*integrationRow{&engram, &ctx7, &pi} {
+	for _, r := range []*integrationRow{&engram, &ctx7, &pi, &browser} {
 		fillSourceFromCatalog(r)
 		rec.apply(r, recErr)
 	}
-	browser.Record, browser.RecordDetail = recordNotTracked, "Not part of onboarding: Hive does not offer this tool."
 	rows = []integrationRow{engram, ctx7, pi}
 	// The Pi codemode row is built from constants only: it is neither in the
 	// catalog nor in the onboarding record, and it never reads Pi's
@@ -176,6 +180,19 @@ func fillSourceFromCatalog(r *integrationRow) {
 	r.Source = "-"
 }
 
+// stepStatusRank orders step statuses from best to worst for the Record column
+// of a capability with several steps; an unlisted status ranks worst.
+var stepStatusRank = map[string]int{
+	management.StepVerified:    1,
+	management.StepSkipped:     2,
+	management.StepManual:      3,
+	management.StepAuthPending: 4,
+	management.StepPending:     5,
+	management.StepRunning:     5,
+	management.StepUnknown:     6,
+	management.StepFailed:      7,
+}
+
 // recordSentences paraphrase a step status of the last onboarding record in
 // plain words. Any other Record text (no record, unreadable, not offered) adds
 // nothing to the next step.
@@ -189,12 +206,12 @@ var recordSentences = map[string]string{
 }
 
 // nextStep says what to do about one row, from what Hive found locally and what
-// the last record says. The row's Record is already set. Hive does not install
-// or configure any of these tools, so the steps point to the official source;
-// the only command is Context7's. The Pi codemode step names a line for Pi's
-// own settings file and Pi's /reload, which are not Hive commands. The Source
-// line is printed right above the step, so the step says "see Source above"
-// instead of repeating the address.
+// the last record says. The row's Record is already set. Hive installs only
+// agent-browser, through `hive install`; the other steps point to the official
+// source, and the only vendor command is Context7's. The Pi codemode step
+// names a line for Pi's own settings file and Pi's /reload, which are not Hive
+// commands. The Source line is printed right above the step, so the step says
+// "see Source above" instead of repeating the address.
 func nextStep(r integrationRow) string {
 	var step string
 	switch r.ID {
@@ -207,7 +224,7 @@ func nextStep(r integrationRow) string {
 	case "pi-codemode":
 		step = `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
 	default:
-		step = agentBrowserNextStep(r.Found)
+		step = agentBrowserNextStep(r.Found, r.BrowserMissing)
 	}
 	if s, ok := recordSentences[r.Record]; ok {
 		step += " " + s
@@ -238,19 +255,26 @@ func engramNextStep(found string) string {
 	return "Hive could not look for it here. Hive does not install or configure it; see Source above for the official instructions."
 }
 
-func agentBrowserNextStep(found string) string {
+func agentBrowserNextStep(found string, browserMissing bool) string {
 	const official = "follow the official instructions (see Source above)."
+	const noBrowser = " No browser was found: run hive install to download Chrome for Testing, or set AGENT_BROWSER_EXECUTABLE_PATH to an existing browser."
 	switch found {
 	case "cli + skill":
-		return "Found. Hive does not install or update it; to update it, " + official
+		if browserMissing {
+			return "The program and its skill were found." + noBrowser + " Hive does not update the program; to update it, " + official
+		}
+		return "Found. Hive does not update it; to update it, " + official
 	case "cli":
-		return "The program was found but no skill file. Optional; Hive does not install it. To add the skill, " + official
+		if browserMissing {
+			return "The program was found but no skill file." + noBrowser + " To add the skill, " + official
+		}
+		return "The program was found but no skill file. Optional. To add the skill, " + official
 	case "skill":
-		return "The skill file was found but not the program. Optional; Hive does not install it. To install the program, " + official
+		return "The skill file was found but not the program. Optional. To install the program, run hive install, or " + official
 	case "not detected":
-		return "Not found. Optional; Hive does not install it. To install the program and its skill, " + official
+		return "Not found. Optional. To install the program, run hive install; it offers to install agent-browser and, if no browser is found, Chrome for Testing. Or " + official
 	}
-	return "Hive could not look for the program here. Optional; Hive does not install it. To install the program and its skill, " + official
+	return "Hive could not look for the program here. Optional. To install the program, run hive install, or " + official
 }
 
 // onboardingRecord is the last finished record, or why there is none.
@@ -272,8 +296,9 @@ func readLastOnboarding(o management.Options) (onboardingRecord, error) {
 	return onboardingRecord{found: found, result: result, at: at}, nil
 }
 
-// apply sets the row's record columns. A provider's step is the one whose ID
-// starts with "<provider>-", the name the native adapter gives it.
+// apply sets the row's record columns. A provider's steps are the ones whose ID
+// starts with "<provider>-", the name the native adapter gives them; with
+// several, the column shows the worst status.
 func (rec onboardingRecord) apply(r *integrationRow, err error) {
 	switch {
 	case err != nil:
@@ -283,10 +308,18 @@ func (rec onboardingRecord) apply(r *integrationRow, err error) {
 		r.Record, r.RecordDetail = recordNone, recordNone
 	default:
 		r.Record = recordNotOffered
+		worst := 0
 		for _, s := range rec.result.Steps {
-			if strings.HasPrefix(s.Step.ID, r.ID+"-") {
+			if !strings.HasPrefix(s.Step.ID, r.ID+"-") {
+				continue
+			}
+			rank := stepStatusRank[s.Status]
+			if rank == 0 {
+				rank = len(stepStatusRank) + 1
+			}
+			if rank > worst {
+				worst = rank
 				r.Record = sanitizeLine(s.Status)
-				break
 			}
 		}
 		r.RecordDetail = fmt.Sprintf("%s (onboarding %s, %s)", r.Record, sanitizeLine(rec.result.Phase), rec.at.UTC().Format("2006-01-02 15:04 UTC"))
@@ -400,4 +433,23 @@ func agentBrowserEvidence(deps doctorDeps, synthetic bool, roots []string, homeE
 		return "not checked", evidence
 	}
 	return "not detected", evidence
+}
+
+// agentBrowserBrowserEvidence adds the browser finding to the agent-browser
+// evidence and reports whether a browser is missing. It only reads PATH,
+// environment and files, through the doctor's own dependencies, and only when
+// the program was found and the home is real: without the program there is
+// nothing to run a browser, and under a synthetic home nothing is checked.
+func agentBrowserBrowserEvidence(deps doctorDeps, synthetic bool, found string, evidence *[]string) bool {
+	if synthetic || (found != "cli" && found != "cli + skill") {
+		return false
+	}
+	sys := agentBrowserSys
+	sys.lookPath, sys.getenv, sys.userHome = deps.lookPath, deps.getenv, deps.userHome
+	if ok, path := sys.browserFound(); ok {
+		*evidence = append(*evidence, "Browser: "+sanitizeLine(path))
+		return false
+	}
+	*evidence = append(*evidence, "No browser found; checked "+sanitizeLine(sys.browserCheckedPlaces())+".")
+	return true
 }

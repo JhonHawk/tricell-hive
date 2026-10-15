@@ -1,9 +1,9 @@
 package providers
 
-// Catalog is static metadata for the onboarding summary. Every capability
-// listed here is manual-only in this build: no host/platform combination has
-// passed a native validation gate yet. Hive never installs or configures
-// them; it only shows where to look and why.
+// Catalog is static metadata for the onboarding summary. Engram, Context7 and
+// pi-subagents are manual-only: Hive only shows where to look and why.
+// agent-browser, last so existing indexes stay valid, is the one capability
+// with an executable recipe (see ValidateStep).
 func Catalog() []Provider {
 	return []Provider{
 		{
@@ -23,6 +23,12 @@ func Catalog() []Provider {
 			Hosts:  []string{"pi"},
 			Source: "github.com/nicobailon/pi-subagents",
 			Reason: "Native install validation is pending; use Pi's own package manager and its official instructions.",
+		},
+		{
+			ID:     AgentBrowser,
+			Hosts:  []string{"claude", "codex", "cursor", "grok", "opencode", "pi"},
+			Source: "github.com/vercel-labs/agent-browser",
+			Reason: "Install it with Homebrew or npm and download a browser with agent-browser install, following the official instructions.",
 		},
 	}
 }

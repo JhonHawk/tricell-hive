@@ -12,6 +12,43 @@ raise the minor or the patch version.
 
 ### Added
 
+- `hive install` offers `agent-browser` as an optional capability: in an
+  interactive install on macOS arm64 (`brew install agent-browser`) or Linux
+  amd64 with Node 24+ and a writable npm prefix (`npm install -g
+  agent-browser`), it shows the exact commands, installs the latest version
+  after your consent, and runs `agent-browser install` to download Chrome only
+  when no browser is found. Commands run without a shell or `sudo`, with a time
+  limit; a failed step is reported without touching the installed core.
+  `hive doctor` now names `hive install` for a missing `agent-browser` or
+  browser. Elsewhere the capability stays manual. This adds an installation
+  route, so the next release raises the minor version.
+- Grok user scope installs `~/.grok/hooks/hive-read-whole-references.json`, a
+  `PreToolUse` hook on `read_file` that runs the hidden `hive grok-hook
+  read-whole` subcommand to drop `offset` and `limit` when a session reads a
+  Markdown file under the shared skills directory (at most 1000 lines and 64 KiB),
+  so references are read whole. It fails open and never denies a call. State gains
+  the `hook` record kind, which older managers reject; a plan built from a `go run`
+  or temporary binary that would install it is refused.
+- Optional OpenCode V2 context loader, delivered inactive at user scope as
+  `hive/context-loader/{index.js,context-loader.json}`, outside auto-discovered
+  `plugins/`, with no `package.json`. Explicit
+  native activation supplies canonical references only for `hive-review-plan` and
+  `hive-review-harness`; it does not classify prompts, change permissions or
+  enforce compliance. The manager generates its script snapshots and metadata
+  schema 2 from the validated release payload; requests read no reference files
+  or metadata. Canonical references retain one editorial home. Refresh requires
+  regeneration and plugin reload, not editing installed Markdown. The derived
+  files use existing ownership, drift and recovery machinery; their SHA-256
+  digests record provenance, not cryptographic authentication. Activate the
+  installed `hive/context-loader` directory, not the source template. Remove the user-owned plugin entry
+  before uninstalling or downgrading to content without it.
+- Declared reading-footprint scenarios report unique source bytes and characters,
+  including required procedures and selected activity entrypoints, separately
+  from actual tokens. New offline packages use manifest v2 and include the loader
+  source; the current manager still verifies v1 packages. Older v1-only managers
+  cannot verify v2 packages. This optional integration meets the minor-version
+  feature criterion; no release number is assigned here.
+
 - The route question can offer an iterative route when the work alternates
   investigation and implementation toward one measurable objective. Its option
   states the objective, how it is measured, the number of rounds the agent
@@ -22,6 +59,37 @@ raise the minor or the patch version.
   round needs a plan, the scope changes, or a decision is yours.
 
 ### Changed
+
+- A research child cites a live observation by the exact read-only command that
+  produced it, so the parent reruns it unchanged instead of rewriting the query, and
+  children that share a question get disjoint scopes so none repeats another's reads.
+
+- The browser tool follows the situation: `agent-browser` for journeys, UX review,
+  screenshots and measurements, Chrome DevTools MCP for audits and performance traces
+  or an independent reproduction, Playwright MCP only without `agent-browser`. A child
+  never installs a missing browser tool; it reports the install commands and the user
+  authorizes once. The frontend, UI design and task-verification roles now read the
+  browser rules and use only the browser tool their brief assigns.
+
+- `git-workflow` no longer prescribes a worktree location: agents use the host's own
+  worktree feature or the repository's documented place, never a temporary directory,
+  make sure an in-repository worktree path is ignored, and record each worktree they
+  create in persistent memory so another session or host can resume it; `flow-close`
+  updates that record when it removes the worktree. Agents create a worktree only when
+  the current checkout holds others' changes or a non-base branch, another task writes
+  in the repository at the same time, or the task needs two checkouts at once; otherwise
+  they create the branch in the current checkout.
+
+- OpenCode V2 role profiles now use OpenCode Go models instead of GitHub Copilot:
+  `opencode-go/deepseek-v4.1-flash` for execution, `opencode-go/deepseek-v4-pro`
+  for reasoning and `opencode-go/glm-5.3` for the verifier.
+
+- The global core retains essential boundaries and explicit read conditions while
+  canonical skill references hold reporting, questions, delegation, artifact
+  details and project settings. Reporting remains required before every chat
+  reply, including ordinary answers without citations. Smaller global text is
+  not a claim of lower total context or better model reliability; the declared
+  plan/build source union can grow.
 
 - A research round about work you could start now ends with the route
   question directly: the routes with the flow each one runs, keep
@@ -48,6 +116,40 @@ raise the minor or the patch version.
   change and touches no contract is fixed with a test, without another review
   round, and the report says it was fixed without review; anything larger comes
   to you as a decision.
+- `hive-research` returns a bounded reply: the answer, a status with its stop
+  reason, each deciding claim with a locator and excerpt, counterevidence and what
+  it did not check. `flow-research` checks those claims by opening their locators,
+  gives each research child a stop condition, routes long state collection to
+  `hive-read-state`, and uses the global evidence labels; independent children
+  launch together.
+
+### Fixed
+
+- OpenCode roles no longer fail to launch with `Variant unavailable`: the execution profile uses `high`, the profiles declare the variants each OpenCode model offers, and an effort a model lacks (a role's `medium`) maps to the nearest offered variant; a test renders every role and fails on an unoffered variant. Existing installations need the rebuilt binary and `hive update` with this content: an installed release keeps its frozen profiles, and an older manager rejects the new `variants` key.
+- UI review captures go to the work's `_support/workspace/<date>-<work>/images/`
+  folder again: `flow-build`'s verification reference still pointed to a global
+  rule that had moved to `artifact-layout`, and asked for a temporary destination,
+  so a session saved its captures where a restart erased them.
+- A side finding becomes a proposed ticket only when its failure can start from an
+  input or state the running system can produce; one traced only inside a component
+  stays in the report as unconfirmed. The close question marks which findings it
+  recommends opening.
+- The `automatic` delivery mode never stops for human validation. When the project's
+  guidance requires one for a change, such as a visual check of a changed screen, the
+  delivery question marks `automatic` unavailable for that change and names the rule,
+  instead of offering it and stopping before the merge anyway.
+- UI review and in-vivo rounds are shorter: the agent seeds the walk's data and
+  passes its records to the children instead of having each one create them through
+  the interface, the UI reviewer no longer repeats the functional journeys the in-vivo
+  check owns, and each child stops after one observation per area, viewport and theme,
+  reporting a check that hangs or fails twice as not verified.
+- A stuck browser command no longer stalls a UI walk for minutes: each `agent-browser`
+  command runs under a wrapper that ends it after about 45 seconds, a command that
+  hits that limit is treated as a wedged session (doctor, close, fresh session), and
+  options in custom selects are chosen by click rather than keyboard.
+- Read-only roles on Grok can no longer write files with Grok's `write` tool: the
+  observe deny list named only `Write`, which Grok ignores, so a review child wrote
+  its notes file. The list now names the tool ID `write`.
 
 ## [0.3.3] - 2026-10-10
 

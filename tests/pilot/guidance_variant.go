@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -33,14 +34,17 @@ type guidanceVariantReport struct {
 	Source, Arm, ShadowHome                string
 	GuidanceBlockPath, GuidanceBlockHash   string
 	FlowBuildSkillPath, FlowBuildSkillHash string
+	ReleaseID                              string
 	CodexAuthSymlinkPreserved              bool   `json:",omitempty"`
 	CodexAuthWarning                       string `json:",omitempty"`
 	// ShadowCredentialStoreRemoved records that the OpenCode shadow data
 	// directory, whose database holds a copy of one imported credential, was
 	// deleted at the end of the run; ShadowCredentialWarning says what survived
 	// when it could not be.
-	ShadowCredentialStoreRemoved bool   `json:",omitempty"`
-	ShadowCredentialWarning      string `json:",omitempty"`
+	ShadowCredentialStoreRemoved bool `json:",omitempty"`
+	// ShadowCredentialDisposal records expected container deferral, never destruction.
+	ShadowCredentialDisposal string `json:",omitempty"`
+	ShadowCredentialWarning  string `json:",omitempty"`
 }
 
 // guidanceVariant is the runtime handle a single run keeps for its shadow
@@ -58,12 +62,20 @@ type guidanceVariant struct {
 	// can tell an absent data directory (a credential that went somewhere
 	// unexpected) from a run that never imported.
 	credentialImported bool
+	containerNative    bool
 	// mu guards the in-flight import state below: cleanup may run from the
 	// signal-handler goroutine while importOpenCodeCredential is mid-run.
-	mu         sync.Mutex
-	cleaned    bool
-	importCmds []*exec.Cmd
-	importDone chan struct{}
+	mu                    sync.Mutex
+	cleaned               bool
+	importCmds            []*exec.Cmd
+	importGroups          []*credentialProcess
+	importDone            chan struct{}
+	disposableNativeRoots []string
+	cleanupMu             sync.Mutex
+	cleanupDone           bool
+	nativeHome            *os.Root
+	nativeHomeInfo        os.FileInfo
+	nativeDirectories     map[string]*nativeOwnedDirectory
 }
 
 // validateGuidanceVariantFlags is main()'s pure guard for --guidance-source
@@ -456,35 +468,66 @@ func copyOpenCodeModelCatalog(shadowCacheDir, realCacheDir string) error {
 }
 
 // writeShadowOpenCodeConfig generates a minimal shadow opencode.json carrying
-// only the real mcp.engram server's launch command, pinned to the run's
+// only the real V2 mcp.servers.engram launch command, pinned to the run's
 // isolated Engram store through the server's own environment. No other key of
 // the real config (plugins, other MCP servers, permissions) is read or copied,
 // so only the variant's installed AGENTS.md and skills shape the run.
 func writeShadowOpenCodeConfig(shadowConfigDir, realConfigDir, engramDataDir string) error {
-	raw, err := os.ReadFile(filepath.Join(realConfigDir, "opencode.json"))
+	raw, err := readOpenCodeNativeConfig(realConfigDir)
 	if err != nil {
-		return fmt.Errorf("read real OpenCode opencode.json: %w", err)
+		return err
 	}
 	var real struct {
-		Mcp map[string]struct {
-			Command []string `json:"command"`
+		Mcp struct {
+			Legacy *struct {
+				Type    string   `json:"type"`
+				Command []string `json:"command"`
+				Enabled *bool    `json:"enabled"`
+			} `json:"engram"`
+			Servers struct {
+				Engram *struct {
+					Type     string   `json:"type"`
+					Command  []string `json:"command"`
+					Disabled bool     `json:"disabled"`
+				} `json:"engram"`
+			} `json:"servers"`
 		} `json:"mcp"`
 	}
 	if err := json.Unmarshal(raw, &real); err != nil {
-		return fmt.Errorf("parse real OpenCode opencode.json: %w", err)
+		return fmt.Errorf("real OpenCode configuration is not valid JSONC")
 	}
-	engram, ok := real.Mcp["engram"]
-	if !ok || len(engram.Command) == 0 {
-		return fmt.Errorf("real OpenCode opencode.json has no usable mcp.engram command")
+	engram := struct {
+		Type     string
+		Command  []string
+		Disabled bool
+	}{}
+	ok := real.Mcp.Servers.Engram != nil
+	if ok {
+		engram.Type = real.Mcp.Servers.Engram.Type
+		engram.Command = real.Mcp.Servers.Engram.Command
+		engram.Disabled = real.Mcp.Servers.Engram.Disabled
+	}
+	if real.Mcp.Legacy != nil {
+		legacy := real.Mcp.Legacy
+		disabled := legacy.Enabled != nil && !*legacy.Enabled
+		if ok && (engram.Type != legacy.Type || !slices.Equal(engram.Command, legacy.Command) || engram.Disabled != disabled) {
+			return fmt.Errorf("compatible and native Engram definitions conflict; precedence is unverified")
+		}
+		engram.Type, engram.Command = legacy.Type, legacy.Command
+		engram.Disabled = disabled
+		ok = true
+	}
+	if !ok || engram.Type != "local" || engram.Disabled || len(engram.Command) == 0 || strings.TrimSpace(engram.Command[0]) == "" {
+		return fmt.Errorf("real OpenCode configuration has no usable V2 mcp.servers.engram local command")
 	}
 	shadow := map[string]any{
 		"$schema": "https://opencode.ai/config.json",
-		"mcp": map[string]any{"engram": map[string]any{
+		"mcp": map[string]any{"servers": map[string]any{"engram": map[string]any{
 			"type":        "local",
 			"command":     engram.Command,
-			"enabled":     true,
+			"disabled":    false,
 			"environment": map[string]string{"ENGRAM_DATA_DIR": engramDataDir, "ENGRAM_CLOUD_AUTOSYNC": "0"},
-		}},
+		}}},
 	}
 	out, err := json.MarshalIndent(shadow, "", "  ")
 	if err != nil {
@@ -510,17 +553,37 @@ func openCodeIntegration(model string) (string, error) {
 // needs. OpenCode v2 keeps credentials in its SQLite database and imports the
 // legacy auth.json only in a v1-to-v2 migration, which a fresh shadow database
 // never runs (observed: auth.json symlinked, credential table empty, run fails
-// with provider.no-route). So `auth export <integration>` against the real
+// with provider.no-route). So `auth export <integration> --standalone` against the real
 // install (read-only, default service) is piped straight into `auth import
 // --standalone` under the shadow home. The credential only ever travels through
 // that pipe: it is never read, logged or put in an error, and both commands'
 // output is discarded.
 func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integration string) error {
+	if !g.containerNative {
+		if err := g.prepareNativeCleanup(); err != nil {
+			return err
+		}
+	}
+	if g.shadowDataDir == "" {
+		g.shadowDataDir = filepath.Join(g.shadowHome, ".local/share/opencode")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	export, imp := openCodeAuthCommands(ctx, g, parentEnv, integration)
+	exportNative, importNative := openCodeAuthCommands(ctx, g, parentEnv, integration)
+	exporter, err := superviseCredentialProcess(ctx, exportNative)
+	if err != nil {
+		return fmt.Errorf("credential export supervisor unavailable")
+	}
+	importer, err := superviseCredentialProcess(ctx, importNative)
+	if err != nil {
+		exporter.close()
+		return fmt.Errorf("credential import supervisor unavailable")
+	}
+	export, imp := exporter.cmd, importer.cmd
 	r, w, err := os.Pipe()
 	if err != nil {
+		exporter.close()
+		importer.close()
 		return err
 	}
 	defer r.Close()
@@ -532,31 +595,53 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 	if g.cleaned {
 		g.mu.Unlock()
 		w.Close()
+		exporter.close()
+		importer.close()
 		return fmt.Errorf("OpenCode credential import refused: cleanup already ran")
 	}
 	g.importDone = make(chan struct{})
 	defer close(g.importDone)
-	if err := export.Start(); err != nil {
+	if err := exporter.start(); err != nil {
 		g.mu.Unlock()
 		w.Close()
+		exporter.close()
+		importer.close()
 		return fmt.Errorf("start OpenCode credential export: %w", err)
 	}
 	w.Close()
-	if err := imp.Start(); err != nil {
+	g.importGroups = []*credentialProcess{exporter, importer}
+	if err := importer.start(); err != nil {
 		g.mu.Unlock()
-		killProcessGroup(export)
-		export.Wait()
+		exporter.stop()
+		importer.stop()
 		return fmt.Errorf("start OpenCode credential import: %w", err)
 	}
 	g.importCmds = []*exec.Cmd{export, imp}
 	g.mu.Unlock()
-	exportErr := export.Wait()
-	importErr := imp.Wait()
+	exportStatus, exportErr := exporter.nativeStatus(ctx)
+	exportStopped := exporter.stop()
+	importStatus, importErr := importer.nativeStatus(ctx)
+	importStopped := importer.stop()
+	g.mu.Lock()
+	if exportStopped && importStopped {
+		g.importCmds = nil
+		g.importGroups = nil
+	}
+	g.mu.Unlock()
+	if !exportStopped || !importStopped {
+		return fmt.Errorf("credential process-group termination unverified")
+	}
 	if exportErr != nil {
 		return fmt.Errorf("OpenCode credential export for %q failed: %v", integration, exportErr)
 	}
+	if exportStatus != 0 {
+		return fmt.Errorf("OpenCode credential export failed")
+	}
 	if importErr != nil {
 		return fmt.Errorf("OpenCode credential import into the shadow home failed: %v", importErr)
+	}
+	if importStatus != 0 {
+		return fmt.Errorf("OpenCode credential import failed")
 	}
 	return nil
 }
@@ -566,7 +651,7 @@ func importOpenCodeCredential(g *guidanceVariant, parentEnv []string, integratio
 // dir, import in the shadow home) with PWD matching it, and in its own process
 // group so cleanup can kill the CLI and any standalone server it spawned.
 func openCodeAuthCommands(ctx context.Context, g *guidanceVariant, parentEnv []string, integration string) (export, imp *exec.Cmd) {
-	export = exec.CommandContext(ctx, "opencode", "auth", "export", integration)
+	export = exec.CommandContext(ctx, "opencode", "auth", "export", integration, "--standalone")
 	export.Dir = os.TempDir()
 	export.Env = environmentInDirectory(parentEnv, export.Dir)
 	imp = exec.CommandContext(ctx, "opencode", "auth", "import", "--standalone")
@@ -595,7 +680,9 @@ func (g *guidanceVariant) importCredential() error {
 	if err := importOpenCodeCredential(g, os.Environ(), g.integration); err != nil {
 		return err
 	}
+	g.mu.Lock()
 	g.credentialImported = true
+	g.mu.Unlock()
 	return nil
 }
 
@@ -604,13 +691,17 @@ func (g *guidanceVariant) importCredential() error {
 // steps 1-2: it creates the run's shadow home,
 // installs source's guidance into it for host, records the read-path hashes,
 // and for Codex prepares its config.toml and auth symlink.
-func setupGuidanceVariant(source, arm, output, host, userHome, model, engramDataDir string) (*guidanceVariant, error) {
+func setupGuidanceVariant(source, arm, output, host, userHome, model, engramDataDir string, nativeRoots ...string) (*guidanceVariant, error) {
 	shadowHome := filepath.Join(output, "shadow-home")
 	if err := os.MkdirAll(shadowHome, 0700); err != nil {
 		return nil, err
 	}
-	if _, err := installGuidanceVariant(source, shadowHome, host); err != nil {
+	plan, err := installGuidanceVariant(source, shadowHome, host)
+	if err != nil {
 		return nil, err
+	}
+	if plan.Release == nil {
+		return nil, fmt.Errorf("guidance release identity unavailable")
 	}
 	blockPath, skillPath, err := guidanceReadPaths(host, shadowHome)
 	if err != nil {
@@ -623,6 +714,7 @@ func setupGuidanceVariant(source, arm, output, host, userHome, model, engramData
 			Source: source, Arm: arm, ShadowHome: shadowHome,
 			GuidanceBlockPath: blockPath, GuidanceBlockHash: hashOrAbsent(blockPath),
 			FlowBuildSkillPath: skillPath, FlowBuildSkillHash: hashOrAbsent(skillPath),
+			ReleaseID: plan.Release.ID,
 		},
 	}
 	switch host {
@@ -656,6 +748,13 @@ func setupGuidanceVariant(source, arm, output, host, userHome, model, engramData
 			return nil, err
 		}
 		g.shadowDataDir = filepath.Join(shadowHome, ".local", "share", "opencode")
+		if len(nativeRoots) > 0 && nativeRoots[0] != "" {
+			if err := g.prepareContainerNativeData(nativeRoots[0]); err != nil {
+				return nil, err
+			}
+		} else if err := g.prepareNativeCleanup(); err != nil {
+			return nil, err
+		}
 	}
 	return g, nil
 }
@@ -673,7 +772,7 @@ func (g *guidanceVariant) applyEnvironment(env []string) []string {
 		// OpenCode honors these over HOME-relative defaults (verified with
 		// `opencode debug paths`), so an inherited one would point the run back
 		// at the real config, data, state, or cache directories.
-		for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "OPENCODE_CONFIG_CONTENT"} {
+		for _, k := range []string{"XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR", "OPENCODE_CONFIG_CONTENT", "OPENCODE_TEST_HOME"} {
 			blocked[k] = true
 		}
 	}
@@ -685,6 +784,9 @@ func (g *guidanceVariant) applyEnvironment(env []string) []string {
 		}
 	}
 	out = append(out, "HOME="+g.shadowHome)
+	if g.host == "opencode" && g.containerNative {
+		out = append(out, "XDG_DATA_HOME="+filepath.Dir(g.shadowDataDir))
+	}
 	switch g.host {
 	case "codex":
 		out = append(out, "CODEX_HOME="+filepath.Join(g.shadowHome, ".codex"))
@@ -701,9 +803,41 @@ func (g *guidanceVariant) cleanup() {
 	if g == nil {
 		return
 	}
+	g.cleanupMu.Lock()
+	defer g.cleanupMu.Unlock()
+	if g.cleanupDone {
+		return
+	}
+	g.cleanupDone = true
+	defer g.closeNativeCleanup()
 	g.stopImport()
+	g.mu.Lock()
+	active := len(g.importGroups) > 0
+	g.mu.Unlock()
+	if active {
+		g.report.ShadowCredentialWarning = "credential cleanup withheld: process-group termination unverified"
+		return
+	}
+	if g.containerNative {
+		g.report.ShadowCredentialDisposal = "deferred_to_container_destruction"
+		return
+	}
 	if g.shadowDataDir != "" {
 		g.removeShadowDataDir()
+	}
+	for _, root := range g.disposableNativeRoots {
+		// A refused child cleanup must not be bypassed by subsequently removing
+		// its ancestor. Retain uncertain data for explicit inspection.
+		if g.report.ShadowCredentialWarning != "" {
+			break
+		}
+		if !under(root, g.shadowHome) || root == g.shadowHome {
+			g.report.ShadowCredentialWarning = "native temporary cleanup refused unexpected root"
+			continue
+		}
+		if err := g.removeOwnedNativeDirectory(root); err != nil {
+			g.report.ShadowCredentialWarning = "native temporary storage cleanup unverified"
+		}
 	}
 	if g.authPath == "" {
 		return
@@ -720,11 +854,21 @@ func (g *guidanceVariant) cleanup() {
 func (g *guidanceVariant) stopImport() {
 	g.mu.Lock()
 	g.cleaned = true
-	for _, c := range g.importCmds {
-		killProcessGroup(c)
-	}
+	groups := append([]*credentialProcess(nil), g.importGroups...)
 	done := g.importDone
 	g.mu.Unlock()
+	stopped := true
+	for _, group := range groups {
+		if !group.stop() {
+			stopped = false
+		}
+	}
+	if stopped {
+		g.mu.Lock()
+		g.importGroups = nil
+		g.importCmds = nil
+		g.mu.Unlock()
+	}
 	if done != nil {
 		select {
 		case <-done:
@@ -739,14 +883,16 @@ func (g *guidanceVariant) stopImport() {
 // directory is absent after a successful import, a warning goes to the report
 // instead of a silent leak.
 func (g *guidanceVariant) removeShadowDataDir() {
+	g.mu.Lock()
+	imported := g.credentialImported
+	g.mu.Unlock()
 	if _, err := os.Lstat(g.shadowDataDir); err != nil {
-		if g.credentialImported && !g.report.ShadowCredentialStoreRemoved {
+		if imported && !g.report.ShadowCredentialStoreRemoved {
 			g.report.ShadowCredentialWarning = "the credential import succeeded but the shadow OpenCode data directory is absent, so the copy went somewhere unexpected: " + g.shadowDataDir
 		}
 		return
 	}
-	os.RemoveAll(g.shadowDataDir)
-	if _, err := os.Lstat(g.shadowDataDir); err == nil {
+	if err := g.removeOwnedNativeDirectory(g.shadowDataDir); err != nil {
 		g.report.ShadowCredentialStoreRemoved = false
 		g.report.ShadowCredentialWarning = "the shadow OpenCode data directory could not be fully removed and may still hold a copy of the imported credential: " + g.shadowDataDir
 		return

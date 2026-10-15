@@ -9,6 +9,8 @@ Audit what coding-agent hosts actually load and whether each instruction, skill,
 
 ## Scope
 
+Before resolving project settings needed by the audit or migration, read [project settings](../flow-plan/references/project-settings.md). Before creating or continuing a change record, read [change records](../flow-plan/references/change-records.md). Before writing or cleaning supporting artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before findings or messages with citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md); before a user decision, read [questions](../flow-plan/references/questions.md).
+
 Establish before reading deeply:
 
 - **Targets and artifact types**: instruction files, skills, agents, or a subset.

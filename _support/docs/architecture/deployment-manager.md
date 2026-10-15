@@ -22,7 +22,7 @@ go run ./tooling/cli plan remove --hosts codex --scope user --out /absolute/remo
 go run ./tooling/cli recover --state-dir /absolute/state-directory
 ```
 
-These are interface examples, not authorization to deploy into the user's real configuration. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
+These are interface examples, not authorization to deploy into the user's real configuration. A plan that installs Grok's [read-whole hook](#grok-read-whole-hook) refuses a `go run` binary; build one with `go build -o <path> ./tooling/cli` and run that instead. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
 
 `--home` explicitly selects a synthetic home and ignores host path and compatibility environment overrides. Use it together with `--state-dir` for temporary-home tests. Without `--home`, host configuration environment variables are respected. `--root` is required for project scope. Existing root prefixes are canonicalized; linked target files or ancestors inside those roots are rejected rather than overwritten.
 
@@ -73,7 +73,7 @@ go run ./tooling/cli models [--home DIR] [--state-dir DIR]
 - **CLIs** lists each supported host in installer order: detected on `PATH` or not (Cursor counts as detected when either `cursor-agent` or `cursor` is found, in this report and in `hive install` and the CLIs view alike; both read one list of binary names), `CLI` with the first line of `<binary> --version` (`cursor-agent` for Cursor, so a host with only `cursor` is labeled `editor only` instead of `detected` and shows `CLI unavailable: cursor-agent not found`; the CLIs view labels it `editor only` in its State column too, and it and the installer still offer Cursor then), and `Hive` with the host's release and installation state (`verified`, `partial`, `drift`, `legacy`), as in `claude  detected  Hive 4f8d96b9ce4f (verified)  CLI 2.1.284 (Claude Code)`, so the CLI's version is not mistaken for Hive's. Only a detected host is executed, with fixed arguments, no shell, and a 3-second limit; a failure or timeout shows `CLI unavailable` and its reason.
 - **Installation** lists every `status` row other than `installed`, `retained_shared`, and `not_installed`, with a plain phrase and its path, or `No problems found`. Hosts that share one managed file, such as a skill under `~/.agents/skills`, are grouped into one row per status and path that names them all, as in `drift  claude, codex, cursor, grok, opencode, pi  The installed file was changed or cannot be read` followed by the path once, in the order the rows first appear. When a row is `drift`, one line says what to do in either case: a file or block that was edited, or whose permissions changed, makes `install`, `update`, and `plan remove` refuse, so the user undoes the change or fixes its permissions; one that was deleted is put back by `hive install` or `hive update`. Then the user opens Diagnostics again, or runs `hive doctor`, to check. With a pending operation it shows one line naming `hive recover` instead of the `recovery_required` rows, because `status` then marks every row that way; the line adds `--state-dir DIR` unless that directory is the real user home's default, since `hive recover` has no `--home`.
 - **Sessions** covers the registered hosts. When Claude Code or Grok is registered, its first line answers whether to restart anything for the hosts Hive checked, such as `2 open Claude Code or Grok sessions should be restarted` or `No open Claude Code or Grok session needs a restart`, and names a host it could not check, as in `No open Claude Code session needs a restart; Grok could not be checked.` When Codex, Pi, or Cursor is registered, the next line says `Hive cannot see Codex, Pi or Cursor sessions; restart them after each update.`, naming only the registered ones. Each host's line then reads, for example, `claude: 3 open sessions, 1 to restart`. It reads Claude Code's `sessions/*.json` under `CLAUDE_CONFIG_DIR` or `~/.claude` and Grok's `active_sessions.json` under `GROK_HOME` or `~/.grok`. It counts only sessions whose process is alive and marks one `started before the installed release; restart it` when it started before the installed release's snapshot was last written. It shows only the process ID, working directory, and start time. A missing session directory or file means no open sessions; a file larger than 1 MiB, unreadable, not a regular file, or in an unknown format, or more than 500 Claude Code session files, makes that host `Session check unavailable` without failing the other sections. OpenCode gets a note that it applies `AGENTS.md` instruction changes on the next message and that role or skill changes need a new session.
-- **Integrations** shows Engram, Context7, pi-subagents, `agent-browser`, and, only when Pi is a registered host, a `Pi codemode` row: the local evidence (the program on `PATH` or the skill file, with its path), the status in the last onboarding record, the official source, and a concrete next step for its case. The only Hive-suggested command is Context7's `npx ctx7@latest setup --cli`, which may ask the user to sign in; for the others it points to the Source line above, since Hive does not install them. The `Pi codemode` row is built from constants, whether or not codemode is on (`not checked`), and its next step names the `"defaultTools": ["+codemode"]` line for Pi's own `settings.json` and Pi's `/reload`; Pi turns codemode on by itself with MCP servers of `codemode` exposure. Registration is read from Hive's own state (a failed read still shows the row), never from Pi's configuration. It executes no integration program and reads no host or provider configuration, so pi-subagents shows only its onboarding status and `Pi codemode` none. `agent-browser` is detected but is not part of the optional capability catalog.
+- **Integrations** shows Engram, Context7, pi-subagents, `agent-browser`, and, only when Pi is a registered host, a `Pi codemode` row: the local evidence (the program on `PATH` or the skill file, with its path), the status in the last onboarding record, the official source, and a concrete next step for its case. The Hive-suggested commands are Context7's `npx ctx7@latest setup --cli`, which may ask the user to sign in, and `hive install` for `agent-browser` when it is absent or has no browser, whose record shows the worst status of its onboarding steps; for the others it points to the Source line above, since Hive does not install them. The `agent-browser` check reads `PATH` and files only. The `Pi codemode` row is built from constants, whether or not codemode is on (`not checked`), and its next step names the `"defaultTools": ["+codemode"]` line for Pi's own `settings.json` and Pi's `/reload`; Pi turns codemode on by itself with MCP servers of `codemode` exposure. Registration is read from Hive's own state (a failed read still shows the row), never from Pi's configuration. It executes no integration program and reads no host or provider configuration, so pi-subagents shows only its onboarding status and `Pi codemode` none. `agent-browser` is detected but is not part of the optional capability catalog.
 - **Project** validates the `## Hive` section of `AGENTS.md` at the root of the Git repository that contains `--project`, or the current directory: missing or duplicated section, missing or empty required values (`Project`, `Base branch`, `Tracker`, `Specs`), a `Specs` path that is not a directory, a `Base branch` that is neither a local branch nor on `origin`, unknown keys, and `Delivery` or `Hive guidance` values other than `direct-base` and `required`. A `--project` directory that does not exist, or is not a directory, is reported as `Directory not found` or `Not a directory` without running `git`. It runs read-only `git` queries with Git's local environment variables removed. A section in a workspace `AGENTS.md` outside a repository is not checked.
 
 With `--home`, as elsewhere, host environment overrides are ignored, no program is looked up on `PATH` or executed (neither the host binaries nor `engram` and `agent-browser`), and sessions are read under that home; the Project check still finds and runs `git` in `--project` or the current directory. Text read from outside the manager (versions, paths, session directories, `AGENTS.md` values) has control characters and escape sequences removed before it is shown.
@@ -95,7 +95,7 @@ A group is the folder of the role's source, `content/agents/<group>/<role>.md`: 
 
 Every later installation plan for that host applies the overrides again: `hive update`, `hive install`, and a return to a retained release with `plan install --release`. Removing Hive from a host drops its overrides. An override for a role that the installed release no longer has stays stored and is listed by `hive models` as `not applied: role not in the installed release`; `hive models` marks overridden roles with `*`.
 
-An override is refused, writing nothing, when the host is not registered, the role is not in the host's installed release, the host's agents come from more than one release, the reinstall would change anything other than agent files (a file deleted by hand, a pending legacy migration), the model is empty, longer than 200 characters, or uses a character outside letters, digits, and `._:/@+=[]-`, or the effort is not one of `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. Grok and Cursor accept no effort, Pi does not accept `ultra` (its thinking levels end at `max`), and an effort on OpenCode needs a model to carry it. `--model ""` and `--effort ""` are refused; `reset --only` removes one part. The command does not check the host's model list, so a model the host does not list is written as given; the Models view offers the host's list (below). Claude Code's acceptance of `ultra` is not verified against its documentation.
+An override is refused, writing nothing, when the host is not registered, the role is not in the host's installed release, the host's agents come from more than one release, the reinstall would change anything other than agent files (a file deleted by hand, a pending legacy migration), the model is empty, longer than 200 characters, or uses a character outside letters, digits, and `._:/@+=[]-`, or the effort is not one of `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`. Grok and Cursor accept no effort, Pi does not accept `ultra` (its thinking levels end at `max`), and an effort on OpenCode needs a model to carry it. On OpenCode the release's efforts, including a role's, are mapped to the nearest variant the final model offers (the `variants` table in `agent-profiles.json`; `medium` becomes `high` on the DeepSeek and GLM models), and a model-only override is mapped against the new model, with no mapping when that model has no `variants` entry. An override effort that the final model does not offer is refused, naming the model and the variants it offers, because OpenCode would reject the launch with `Variant unavailable`; a model without a `variants` entry accepts any valid effort. `--model ""` and `--effort ""` are refused; `reset --only` removes one part. The command does not check the host's model list, so a model the host does not list is written as given; the Models view offers the host's list (below). Claude Code's acceptance of `ultra` is not verified against its documentation.
 
 A manager from before this feature drops `model_overrides` the next time it writes the state, leaving the overridden agent files in place; run `hive models reset --host H --all` for each host before returning to an older manager.
 
@@ -164,6 +164,107 @@ Verified against installed `ctx7` 0.5.11 and [official CLI documentation](https:
 
 ## Content and native destinations
 
+### Optional OpenCode context loader
+
+Editorial template: `integrations/opencode/context-loader.js`. When present in
+the release, the manager generates the installed script and metadata only for
+OpenCode user scope at
+`<OpenCodeHome>/hive/context-loader/index.js` and
+`<OpenCodeHome>/hive/context-loader/context-loader.json`, with no `package.json`, not in the
+auto-discovered `plugins/` directory. No other host or project scope gets those
+destinations. `integrations/opencode/context_snapshot.go` derives both files from
+the validated release payload; the canonical references keep their single
+editorial home under their owning skills. No second authored JSON manifest or
+live-file fallback is maintained.
+
+The template contains exactly one `__HIVE_CONTEXT_SNAPSHOT_DATA__` marker. The
+renderer rejects zero or multiple occurrences before writes and substitutes once
+with JSON data serialized by `encoding/json`, not Markdown concatenated as code.
+The embedded object has `schema: 2` and `references`, ordered by role:
+`hive-review-harness`, then `hive-review-plan`. Each entry contains `role`,
+`resource`, `text` and lowercase hexadecimal `sha256`. Text preserves the exact
+valid UTF-8 resource bytes in the release, including line endings and BOM; its
+digest covers those same bytes. Missing, empty or invalid UTF-8 canonical owners
+or references reject generation. The accompanying metadata has `schema: 2` and
+the same ordered `role`, `resource`, `sha256` list, without text, a reading root
+or `skillsDirectory`. It is derived provenance, not a runtime reading capability.
+
+These files use managed `plugin` ownership, exact bytes/modes, conflict checks
+and the existing transaction/recovery machinery. A missing managed file is
+reinstalled; a changed or unowned destination is preserved as a conflict.
+Removal or a release lacking the loader retires its owned resources without
+editing native user configuration. Empty directories created by the manager are
+pruned; a preexisting directory or a directory containing unrelated files is
+preserved. Unpublished candidate names are not accepted as managed resources.
+Saved-plan validation reconstructs both
+derived files from the payload and compares their complete bytes before writes,
+including when plan hashes have been recalculated. Digests establish exact
+canonical-byte provenance, not cryptographic authentication of local executable
+code. A party able to replace the plugin is outside the isolation Hive promises;
+the host loads local executable code with its own access, not a Hive sandbox.
+
+Normal install/update never activates the plugin or writes `opencode.json(c)`.
+After explicitly choosing activation, the user adds the absolute
+`<OpenCodeHome>/hive/context-loader` directory path
+to the native `plugins` array in their own OpenCode configuration, preserving
+existing entries, and starts a new session. The native plugin ID is
+`hive.context-loader`. Remove that entry or use OpenCode's native
+`-hive.context-loader` directive to deactivate, then reload through the native host. Before uninstalling Hive or
+returning to content without the loader, remove the path entry: the manager
+preserves it, and OpenCode can otherwise report a missing plugin. Disabling the
+plugin does not remove the core's obligation to read required references. Do not
+activate the repository's editorial template: it still contains the unsubstituted
+snapshot identifier and is not the generated runnable plugin.
+
+Runtime observation on OpenCode 2.0.27 (2026-10-12): a `plugins` entry
+pointing to a single `.js` file is rejected with "configured plugin path must be
+a directory"; a directory containing `index.js` loads without `package.json`.
+Files under the native `plugins/` directory are auto-discovered, so the inactive
+copy stays under `hive/context-loader/`. This establishes loading only, not
+context injection before dispatch or model effectiveness.
+
+The implementation uses OpenCode V2 `Plugin.define({id, setup})`, a session
+`context` hook, `ctx.agent.get({agentID})` and `Agent.Info.name`, not a filename
+assumed equal to an ID. It maps only `hive-review-plan` to
+`flow-plan/references/plan-review.md` and `hive-review-harness` to
+`harness-audit/SKILL.md`. Each request receives the corresponding embedded
+snapshot again; deduplication touches only parts previously added by this plugin
+to that request. The callback performs zero reference-file or metadata reads and
+does not resolve reference pathnames. An unavailable snapshot adds the bounded
+`missing_snapshot` diagnostic, not an asserted abort or enforcement guarantee.
+It changes no history, models, tools, permissions or generation settings. Later
+plugins may change context.
+
+Freshness follows delivery, not live filesystem edits: regenerate the plugin with
+the manager from the desired validated release payload, then reload the plugin
+through the native host before relying on the new snapshot. Editing an installed
+Markdown reference alone leaves its embedded snapshot unchanged and can produce
+managed drift; the manager preserves detected edits rather than overwriting them.
+There is no parallel live-reading loader.
+
+API documentary basis: [OpenCode V2 plugins](https://opencode.ai/v2/docs/build/plugins),
+consulted for the change on 2026-10-11 with installed OpenCode 2.0.26 reported in
+the plan. Live documentation is not pinned to that binary. Source inspection
+and callback tests are not native discovery, final request or behavioral proof.
+The bounded model pilot has not yet run and remains blocked on verifying safe,
+exact memory cleanup. The snapshot consumer's source/callback checks do not
+resolve that prerequisite or prove model benefit; do not infer success from
+packaging or private-directory permissions.
+
+New offline packages use `release.json` manifest version `2` and must include
+the exact source path `integrations/opencode/context-loader.js`, even when the
+user does not select OpenCode. `tooling/package/main.go` copies it into the
+package. The current verifier accepts versions `1` and `2`; version `1` keeps
+its old required-file set. Old source/snapshot payloads without the loader remain
+usable and do not acquire it automatically. This is separate from the state and
+product version schemas, and independent of the loader's metadata schema `2`.
+Managers whose verifier accepts only manifest `1`
+reject new packages: use the manager shipped with the v2 package, or rebuild the
+manager before using newer content. Do not assume an old binary handles the new
+`plugin` resource kind merely because it can read an old manifest. Returning to
+an old *content release with the current manager* is not the same as downgrading
+the manager binary; use the current manager to retire the loader resources first.
+
 The catalogue contains `content/guidance/global.md`, each `content/skills/<skill>/SKILL.md`, resources recursively below each skill's `references/`, `scripts/`, and `assets/` directories, and canonical roles at `content/agents/<category>/<name>.md`. Skill resources may be `.md`, `.html`, `.py`, `.sh`, `.json`, `.ts`, `.mjs`, `.astro`, `.mdx`, `.css`, `.yaml`, `.yml`, or `.gitignore`; their source modes are frozen and restored, including executable scripts. Agent sources and `integrations/agent-profiles.json` are validated as one catalogue: role names must be unique across categories. Links, duplicate paths, escaping paths, empty payloads, and reserved block delimiters are rejected. Disposable `__pycache__`, `node_modules`, `dist`, and `.astro` directories beneath skill resources are excluded.
 
 Each release ID is a SHA-256 over its ordered payload manifest, source modes, frozen agent-profile input, and renderer version. Resource identity is its source path (`Target.Source`), so a resource cannot be substituted for another payload. Agent files are rendered in memory for each native host and their exact rendered bytes are frozen into the saved plan and snapshot; the profile file itself is never deployed. Rendering also replaces each inline `skill:owner/path` link outside code fences, in roles and in the global block, with the resource path in the host's skills directory: absolute `<home>/.agents/skills` at user scope, project-root-relative at project scope (`integrations/mdlinks`; `SkillsDir` in each host package). A file shared by hosts must render identically or the plan fails before writing. `agents.Version` is unchanged, so older releases still validate, and a plan saved by an older binary fails the recomputation check in `LoadPlan`. Release sources keep `skill:` locators. No generated distribution directory is required for local use. In the paths below, `<relative-file>` is a skill entrypoint or resource.
@@ -186,6 +287,55 @@ Cursor CLI does not load `~/.cursor/AGENTS.md` natively: 2026.09.18-9a7762b load
 Each user-scoped Claude skill has one managed directory alias, shared by its entrypoint and references. Only these managed Claude skill-directory aliases are supported. Each alias's exact relative link text is journaled and checked; unknown links, retargeted links, unsafe ancestors, changed override resolution, unowned skill directories, or malformed/unknown Hive blocks conflict. Payload creation precedes alias creation; alias removal precedes final payload removal. Whole skills roots and instruction files are never linked. The installed payload is a versioned copy, not a link to this checkout.
 
 The manager does not follow arbitrary import graphs, adopt unrelated deployments, or detect every unregistered CLI consuming a conventional shared path. A successful `status` reports filesystem state, not runtime discovery or loading.
+
+### Grok read-whole hook
+
+Grok models often read a skill reference with a line `limit` and miss its end:
+from 2026-10-01 to 2026-10-13, 29 of 220 per-session reference reads were left
+incomplete in 22 of 65 Grok sessions, against 7 of 248 partial reads in Claude
+Code. Grok 1.0.55's `read_file` ignores `offset` and `limit` only for `SKILL.md`,
+`AGENTS.md` and `CLAUDE.md`, and its own skill guide tells authors to have
+references read with them.
+
+For Grok user scope the manager generates
+`<GrokHome>/hooks/hive-read-whole-references.json`, a global `PreToolUse` hook
+with matcher `read_file` whose command is
+`'<hive>' grok-hook read-whole --skills '<SkillsDir>'`: the absolute path of the
+`hive` binary that planned the install, and the shared `.agents/skills`
+directory, both single-quoted for the `sh -c` Grok runs it with. The hidden
+`grok-hook read-whole` subcommand reads the hook event from stdin and, for a
+`read_file` with `offset` or `limit` on a Markdown file inside that directory of
+at most 1000 lines and 64 KiB, replies with an `updatedInput` that drops both
+fields. It prints nothing and exits 0 for every other call and on any error,
+including a panic, so Grok continues with the read the model asked for; it never
+denies a call. Scripts and assets keep their partial reads.
+
+The record uses kind `hook` with the generated source `integrations/grok/read-whole-hook`,
+accepted only for that file name and the `grok` user-scope consumer, like the
+OpenCode loader's `plugin` records; a release may not list that source as a
+file. Ownership follows agent files: mode 0644, an unowned file at the path is a
+conflict, an edited managed file is refused, removal deletes it, and the other
+files in `hooks/`, such as the user's own hooks, are untouched. The binary path is
+resolved when the plan is built and saved in the plan's `executable` field, so
+`apply` regenerates the same bytes; `apply` refuses a plan whose executable is not
+an absolute, clean regular file reached without a symbolic link, and a plan that
+carries an executable without installing the hook. Only user-scope installs that
+include Grok resolve it. A plan that would install the hook from a binary under
+the system temporary directory, `GOTMPDIR`, `GOCACHE` or the Go build cache, such
+as `go run ./tooling/cli`, is refused: build the binary with `go build` first. The pilot
+runner, which uses `go run`, therefore cannot install Grok.
+
+The hook depends on that binary path. Reinstalling or updating from a binary at
+another path rewrites the command; deleting the package that installed it leaves
+the hook failing open, which Grok shows as a failed hook on each read, until the
+next install or update. `hive models` on Grok refuses after the binary moved,
+since the reinstall would change the hook, until `hive update` runs. A manager
+older than this change rejects state that holds a `hook` record, so rebuild the
+binary before deploying. Grok loads hooks when a session starts: restart open
+sessions, or reload with `r` in `/hooks`, after installing or removing it.
+Subagent sessions run it too. With `toolset.file_toolset = hashline` the read tool
+is `hashline_read`, which the matcher does not cover. Sources: Grok 1.0.55
+`~/.grok/docs/user-guide/10-hooks.md` and `08-skills.md`, read on 2026-10-13.
 
 ## Preservation and state
 

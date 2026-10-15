@@ -17,6 +17,9 @@ func TestPlanPiSubagentsStep(t *testing.T) {
 		if p.PiPackage == nil || p.PiPackage.Action != PackageInstall || p.PiPackage.Source != pi.HiveSubagentsSource || !p.PiPackage.AddedByHive {
 			t.Fatalf("PiPackage = %#v", p.PiPackage)
 		}
+		if p.PiPackage.Source != "npm:pi-subagents" {
+			t.Fatalf("Hive install source = %q, want npm:pi-subagents", p.PiPackage.Source)
+		}
 	})
 	t.Run("omit when present", func(t *testing.T) {
 		o := setup(t)

@@ -7,10 +7,10 @@ import (
 )
 
 // TestGlobalGuidanceSize reports the size of the always-loaded global
-// guidance without failing. No supported host truncates or skips the
-// user-level instruction file near this size (checked 2026-10-11), so a byte
-// ceiling protects no technical limit; a change that grows the file states
-// the size change in its pull request instead (AGENTS.md, Guidance structure).
+// guidance without imposing a quota. Source size does not establish host
+// loading or actual token use. A guidance change states its size change in
+// the pull request (AGENTS.md, Guidance structure); scenario unions are
+// reported separately by TestGuidanceReadingFootprint.
 func TestGlobalGuidanceSize(t *testing.T) {
 	data, err := os.ReadFile("../../content/guidance/global.md")
 	if err != nil {

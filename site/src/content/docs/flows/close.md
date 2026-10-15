@@ -5,6 +5,11 @@ description: Wrap up a finished, paused or abandoned piece of work and clean up 
 
 Close is the last step of a piece of work. It makes sure the records match reality, removes the leftovers the task made, and tells you where things stand.
 
+Its reporting reference applies before every chat reply, not only a final report.
+Questions and artifact cleanup have their own direct reference links. Those
+procedures retain their existing obligations; reading a reference does not
+invoke another complete flow.
+
 ## When to use
 
 Use Close when work reaches its completion point (usually merged into the base branch, after any checks that must pass there), when you abandon it, when you pause it, or when you end the session or ask for a cleanup.
@@ -25,8 +30,8 @@ The agent goes through these steps in order:
 2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, and it archives the folder. An abandoned change is archived without touching the requirements.
 3. Deletes branches that are fully merged, and their clean working copies.
 4. Removes temporary files the task made, stops processes it started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
-5. Lists side findings, so you can open a ticket for each, decline it, or ask not to hear about it again.
-6. Writes a completion report that says what was done, what was cleaned and what stays open.
+5. Lists side findings that the running system can actually trigger, marks which ones it recommends turning into tickets, and lets you open a ticket for each, decline it, or ask not to hear about it again. A suspicion it could not trace that far stays in the report as unconfirmed.
+6. Writes a completion report that says what was done, what was cleaned, what stays open, and which implementation decisions it took without asking, with how to revert each.
 7. Asks what to do next: continue with a suggested ticket or the rest of the plan, take it to a new session, or end. While a plan is still in progress, continuing covers all its remaining tasks and asks once for the permissions they still need; the agent does not suggest a new session then.
 
 ## What it does not do

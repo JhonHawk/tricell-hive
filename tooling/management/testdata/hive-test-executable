@@ -1,0 +1,2 @@
+#!/bin/sh
+# Stand-in for the hive binary in tests: a regular file outside the temporary directory.

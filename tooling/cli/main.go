@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tricell-hive/integrations/grok/readhook"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/version"
 )
@@ -73,6 +74,9 @@ func run(args []string) error {
 		return runProject(rest)
 	case "tui":
 		return runInterfaceCommand(rest)
+	case "grok-hook":
+		runGrokHook(rest, os.Stdin, os.Stdout, readhook.ReadWhole)
+		return nil
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}

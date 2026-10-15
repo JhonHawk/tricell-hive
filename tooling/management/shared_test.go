@@ -30,8 +30,8 @@ func TestFiveHostSharedConsumersAndPartialRemoval(t *testing.T) {
 	o := setup(t)
 	o.Hosts = []string{"claude", "codex", "grok", "pi", "opencode"}
 	p := plan(t, "install", o)
-	if len(p.Changes) != 6 {
-		t.Fatalf("expected four blocks, shared skill and alias; got %d", len(p.Changes))
+	if len(p.Changes) != 7 {
+		t.Fatalf("expected four blocks, shared skill, alias and Grok's hook; got %d", len(p.Changes))
 	}
 	apply(t, p)
 	s := stateFor(t, o)

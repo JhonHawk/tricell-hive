@@ -9,7 +9,7 @@ Research is for the moments when you need to know something before you decide an
 
 Use Research when the next step depends on facts you do not have yet.
 
-- Something is failing and nobody knows why.
+- Something is failing and nobody knows why, or you report a bug without asking for the fix yet: the agent confirms the cause first, then asks in one round whether to track it and how to continue.
 - You want to compare two ways of solving a problem.
 - You need the real state of a project: what is done, what is open, and where the records disagree.
 - You are asking whether something can be done, such as "can you fix this record?". That is a question, so the agent looks first and waits for your choice.
@@ -32,7 +32,13 @@ An answer in the conversation. It normally tells you:
 - what is still uncertain;
 - what decision or next step the answer makes possible.
 
-For large questions the agent may hand reading work to helper agents, then check their claims itself before reporting. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
+For large questions the agent hands reading work to helper agents. Each helper says where every key claim comes from and what it did not check; the agent opens the cited lines of the claims that decide the answer before reporting. Long ticket, CI or deployment status is collected by a helper too. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
+
+The global core keeps essential boundaries; Research links directly to the
+canonical questions, reporting and delegation procedures when needed. Reporting
+applies before every chat reply. Optional context delivery covers only the
+explicit OpenCode plan-review and harness-review roles, not intent detection or
+automatic loading for every research task.
 
 When the findings concern work you could start, the same answer ends with the route question. Its options are the ways to act on the findings, each naming the flow it starts (Plan for larger work, Build for a small, well understood change), plus keeping the investigation going and stopping at the findings. The recommended option comes first, with its reason. The message ends with a fixed last line, "Waiting for your decision:" (in Spanish sessions, «Esperando tu decisión:»). A ticket offer can join the same round as its own numbered question. If the findings fully answer the question and there is no work to run, there is no route question.
 

@@ -2,6 +2,8 @@
 
 After the orchestrator saves an implementation plan, review it before declaring it ready, under the shared plan-review gate rule.
 
+Before dispatching a reviewer or waiting for the round, read [delegation and waits](../../flow-research/references/delegation.md). Before reporting findings with citations, links or externally defined IDs, read [reporting](../../flow-close/references/reporting.md). Before offering a user decision about unavailable review, read [questions](questions.md).
+
 ## Choose the useful coverage
 
 Select reviewers by affected domain, not plan size or a file-count threshold. Assign one reviewer to each affected domain in the table below and run them in parallel when supported, even when the plan is small or its domains are coupled; give each the shared contracts it depends on. Use a single reviewer only when one domain is affected. Skip absent domains: a backend-only plan needs no UI reviewer.

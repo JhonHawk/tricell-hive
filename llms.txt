@@ -18,17 +18,25 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 
 ## Guidance
 
+The global core retains essential boundaries and explicit read conditions for
+canonical procedures. Reporting is required before every chat reply; other
+procedures are selected by their stated conditions, not all preloaded. A packaged
+file, its discovery, its delivery into context and compliance are separate facts.
+Source-byte unions are not actual tokens or evidence of small-model reliability.
+
 - [Shared guidance](content/guidance/global.md): authorization, preservation, evidence, and artifact-placement rules installed into each host
 - [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
 - [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
 - [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and verify the result
 - [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources
 - [Role profiles](integrations/agent-profiles.json): default model and effort per role and host
+- [Instruction resources](_support/docs/architecture/instruction-resources.md): canonical procedure homes, resolution, payload validation and declared reading-footprint scenarios
+- [Optional OpenCode context loader](_support/docs/architecture/deployment-manager.md#optional-opencode-context-loader): delivered inactive at user scope as `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside `plugins/`, with no `package.json`; activate only the installed `hive/context-loader` directory, not the editorial template. It supplies two fixed-role snapshots without runtime reference/metadata reads; refresh requires manager regeneration and plugin reload, not a live Markdown edit. Metadata schema 2 records role/resource/digest provenance, not cryptographic authentication. Deactivation/removal preserves user configuration. Package manifest v2 is separate from metadata schema 2; v1 packages remain readable by the current manager
 
 ## Optional
 
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
-- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, and pi-subagents
+- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, and agent-browser
 - [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard
 - [History and provenance](_support/docs/history/history-and-provenance.md): how the project evolved
 - [Requirements and change records](_support/openspec/): versioned requirements and planned changes

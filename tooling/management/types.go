@@ -198,6 +198,10 @@ type Plan struct {
 	// PiPackage is the pi-subagents step for a user-scope install that includes
 	// Pi. It is not a file Change: Pi rewrites settings.json itself.
 	PiPackage *PiPackageStep `json:"pi_package,omitempty"`
+	// Executable is the absolute path of the hive binary that a user-scope
+	// install of Grok writes into its read-whole hook. Apply regenerates the
+	// hook from it, so it is part of the plan ID. Other plans leave it empty.
+	Executable string `json:"executable,omitempty"`
 }
 
 // PackageAction is the planned pi-subagents operation.

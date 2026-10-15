@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
 )
 
@@ -13,6 +15,8 @@ import (
 // path after its setup, not only the happy path that calls its teardown
 // directly.
 var exitCleanups []func()
+var exitCleanupMu sync.Mutex
+var exitSignalActive atomic.Bool
 
 // registerCleanup adds f to the list must() and the signal handler installed
 // by startSignalCleanup run before this process exits abnormally. f must be
@@ -20,16 +24,26 @@ var exitCleanups []func()
 // the same teardown directly on its own happy path, and a second must()
 // failure after that would run every registered cleanup again.
 func registerCleanup(f func()) {
+	exitCleanupMu.Lock()
+	defer exitCleanupMu.Unlock()
 	exitCleanups = append(exitCleanups, f)
 }
 
 // runCleanups runs every registered cleanup, most-recently-registered first,
 // then clears the list so a later call is a no-op.
 func runCleanups() {
-	for i := len(exitCleanups) - 1; i >= 0; i-- {
-		exitCleanups[i]()
+	for {
+		exitCleanupMu.Lock()
+		callbacks := exitCleanups
+		exitCleanups = nil
+		exitCleanupMu.Unlock()
+		if len(callbacks) == 0 {
+			return
+		}
+		for i := len(callbacks) - 1; i >= 0; i-- {
+			callbacks[i]()
+		}
 	}
-	exitCleanups = nil
 }
 
 // installSignalCleanup starts a goroutine that runs every registered cleanup
@@ -59,5 +73,5 @@ func installSignalCleanup(sig <-chan os.Signal, runCleanups func(), exit func(in
 func startSignalCleanup() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	installSignalCleanup(sig, runCleanups, os.Exit)
+	installSignalCleanup(sig, func() { exitSignalActive.Store(true); runCleanups() }, os.Exit)
 }

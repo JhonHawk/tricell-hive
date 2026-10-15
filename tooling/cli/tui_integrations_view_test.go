@@ -118,7 +118,7 @@ func TestIntegrationsViewArrowsMoveTheCursorAndTheDetail(t *testing.T) {
 	if got := cursorRow(t, d); !strings.HasPrefix(got, "> agent-browser") {
 		t.Fatalf("cursor = %q", got)
 	}
-	d.mustShow("Source: "+agentBrowserSource, "Not part of onboarding")
+	d.mustShow("Source: "+agentBrowserSource, "No onboarding record yet")
 	d.key("down") // the last row stays selected
 	if got := cursorRow(t, d); !strings.HasPrefix(got, "> agent-browser") {
 		t.Fatalf("down past the last row moved to %q", got)
@@ -252,7 +252,7 @@ func TestIntegrationsViewShowsATamperedRecordAsAnErrorInside(t *testing.T) {
 	d.mustNotShow("Last onboarding: Cannot read")
 	d.mustNotShow("No onboarding record yet")
 	assertFits(t, d, 80, 24)
-	d.key("down", "down", "down", "down") // agent-browser is not part of onboarding, and its local checks show
+	d.key("down", "down", "down", "down") // agent-browser: its local checks show
 	d.mustShow("Source: "+agentBrowserSource, "r to retry after fixing it")
 }
 

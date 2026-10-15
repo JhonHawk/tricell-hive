@@ -10,6 +10,7 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"tricell-hive/integrations/mdlinks"
@@ -37,6 +38,10 @@ type Model struct {
 type Host struct {
 	Models map[string]Model                      `json:"models"`
 	Access map[string]map[string]json.RawMessage `json:"access"`
+	// Variants lists, per base model, the variants the host accepts for it.
+	// Only OpenCode declares it: a launch that names a variant the model does
+	// not offer is rejected before any provider call.
+	Variants map[string][]string `json:"variants,omitempty"`
 }
 type Profiles struct {
 	Version int             `json:"version"`
@@ -176,6 +181,29 @@ func ReadProfiles(data []byte) (Profiles, error) {
 			if host == "opencode" && m.Effort != "" && (m.Model == "" || strings.Contains(m.Model, "#")) {
 				return p, fmt.Errorf("OpenCode effort requires a base model without a variant")
 			}
+			if host == "opencode" {
+				base, variant, _ := strings.Cut(m.Model, "#")
+				if variant == "" {
+					variant = m.Effort
+				}
+				if offered, ok := h.Variants[base]; ok && variant != "" && !oneOf(variant, offered...) {
+					return p, fmt.Errorf("OpenCode profile %s requests variant %q, which %s does not offer (%s)", name, variant, base, strings.Join(offered, ", "))
+				}
+			}
+		}
+		if err := validateVariants(host, h.Variants); err != nil {
+			return p, err
+		}
+		if host == "opencode" && len(h.Variants) > 0 {
+			// With a table, every model that names a variant needs an entry, so a
+			// typo or a new model cannot silently disable the mapping.
+			for _, name := range models {
+				m := h.Models[name]
+				base, variant, _ := strings.Cut(m.Model, "#")
+				if (m.Effort != "" || variant != "") && h.Variants[base] == nil {
+					return p, fmt.Errorf("OpenCode profile %s uses model %q with a variant but variants declares no entry for it", name, base)
+				}
+			}
 		}
 		for _, name := range []string{"observe", "implement", "verify"} {
 			a, ok := h.Access[name]
@@ -188,6 +216,56 @@ func ReadProfiles(data []byte) (Profiles, error) {
 		}
 	}
 	return p, nil
+}
+
+// effortOrder ranks the efforts a profile may name, lowest first.
+var effortOrder = []string{"low", "medium", "high", "xhigh", "max", "ultra"}
+
+// validateVariants checks the table of variants each model accepts. Only
+// OpenCode declares one.
+func validateVariants(host string, variants map[string][]string) error {
+	if len(variants) == 0 {
+		if variants != nil {
+			return fmt.Errorf("empty variants table for %s", host)
+		}
+		return nil
+	}
+	if host != "opencode" {
+		return fmt.Errorf("%s does not declare model variants", host)
+	}
+	for model, list := range variants {
+		if model == "" || strings.ContainsAny(model, "#\r\n\x00") {
+			return fmt.Errorf("invalid model %q in OpenCode variants", model)
+		}
+		if len(list) == 0 {
+			return fmt.Errorf("OpenCode model %s declares no variants", model)
+		}
+		seen := map[string]bool{}
+		for _, v := range list {
+			if !oneOf(v, effortOrder...) || seen[v] {
+				return fmt.Errorf("invalid or repeated variant %q for OpenCode model %s", v, model)
+			}
+			seen[v] = true
+		}
+	}
+	return nil
+}
+
+// nearestOffered returns effort when offered lists it, and otherwise the
+// offered effort closest to it in effortOrder, the higher one on a tie.
+func nearestOffered(effort string, offered []string) string {
+	rank := func(e string) int { return slices.Index(effortOrder, e) }
+	want, best, bestDist := rank(effort), "", 0
+	for _, o := range offered {
+		d := rank(o) - want
+		if d < 0 {
+			d = -d
+		}
+		if best == "" || d < bestDist || d == bestDist && rank(o) > rank(best) {
+			best, bestDist = o, d
+		}
+	}
+	return best
 }
 
 func validateAccess(host string, values map[string]json.RawMessage) error {
@@ -319,7 +397,8 @@ func (e *OverrideError) Unwrap() error { return e.Err }
 // Resolve returns a role's model profile and the model and effort a host
 // receives for it. It is the single place that decides the effective effort:
 // effort_claude replaces the profile's effort on Claude Code only, and a
-// role's effort replaces it on every host that can represent it. A non-nil
+// role's effort replaces it on every host that can represent it. On OpenCode
+// an effort the model does not offer maps to the nearest offered one. A non-nil
 // override then replaces the model and effort it sets, whatever the profile or
 // role says, and an invalid one is an error.
 func Resolve(source string, data, profiles []byte, host string, override *ModelOverride) (profile string, m Model, err error) {
@@ -369,6 +448,21 @@ func Resolve(source string, data, profiles []byte, host string, override *ModelO
 				if m.Model == "" {
 					return "", m, &OverrideError{errors.New("OpenCode effort requires a model")}
 				}
+			}
+		}
+	}
+	// OpenCode rejects a launch whose variant the model does not offer. Against
+	// the final base model, an effort from the release or the role maps to the
+	// nearest offered one, and an effort the override chose is refused.
+	if host == "opencode" && m.Effort != "" {
+		base, _, _ := strings.Cut(m.Model, "#")
+		if offered, ok := h.Variants[base]; ok {
+			if override != nil && override.Effort != "" {
+				if !oneOf(m.Effort, offered...) {
+					return "", m, &OverrideError{fmt.Errorf("model override for %s: %s does not offer effort %q; it offers %s", host, base, m.Effort, strings.Join(offered, ", "))}
+				}
+			} else {
+				m.Effort = nearestOffered(m.Effort, offered)
 			}
 		}
 	}

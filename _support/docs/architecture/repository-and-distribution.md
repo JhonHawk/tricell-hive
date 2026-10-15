@@ -6,9 +6,9 @@ Reviewed: 2026-09-25. The shared guidance, activity skills, six host adapters, G
 
 | Path | Responsibility | Current state |
 |---|---|---|
-| `content/guidance/global.md` | Single source for distributed global rules | Packaged by the manager; historical installations are recorded separately |
+| `content/guidance/global.md` | Canonical core, essential boundaries and linked read conditions | Packaged by the manager; installation is not proof of loading |
 | `content/skills/` | Activity procedures and their supporting resources | Eleven authored skills; availability and loading depend on each host installation |
-| `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; project scope for Codex and Claude |
+| `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; Codex/Claude project scope; optional inactive OpenCode loader |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout or a complete package |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
 | `tooling/package/` | Offline package builder | Builds complete platform packages on demand |
@@ -38,21 +38,52 @@ Markers occupy complete lines and have distinct, stable start and end identifier
 
 Each integration must resolve the effective global file from documentation and observed host versions. Do not assume all CLIs read the same file, that `CLAUDE.md` always imports `AGENTS.md`, or write to both when doing so duplicates loading. Host compatibility may give a file multiple consumers. Installation records those consumers, and partial removal preserves the consumers that still use the block.
 
-### Why an instruction-file block and not a session-start hook
+### Core, references and optional native supply
 
-Researched on 2026-09-24 against the installed hosts: Claude Code 2.1.281, Codex 0.156.1, Grok Build 1.0.38, Pi 0.86.1 and OpenCode 2.0.15. A hook injects the same text, so it does not reduce density. It also cannot deliver the block with the same effect:
+The core remains in managed instruction channels. Authorization, preservation,
+secrets, evidence and basic artifact placement do not depend on selecting a
+procedure or activating a plugin. Canonical references carry reporting,
+questions, delegation, artifact details and settings with direct read conditions;
+reporting applies before every chat reply. Reading a reference does not invoke
+its owning flow. See [instruction resources](instruction-resources.md) for homes,
+runtime resolution, validation and declared reading-footprint scenarios.
 
-| Host | Session-start injection | Limitation |
-|---|---|---|
-| Claude Code | `SessionStart` `additionalContext` | Silently truncated at 10,000 characters ([anthropics/claude-code#94358](https://github.com/anthropics/claude-code/issues/94358), open). Does not fire for subagents, which do inherit `CLAUDE.md`. `disableAllHooks` in any settings level silences it. Observed: the host frames `CLAUDE.md` as overriding default behavior; hook output gets no such framing. |
-| Codex | `SessionStart` `additionalContext` | About 2,500 tokens by default. Skipped in `codex exec` without a bypass flag ([openai/codex#46210](https://github.com/openai/codex/issues/46210), open). A project `.codex/config.toml` can set `features.hooks = false`, while `AGENTS.md` has no such switch. Its output fills the TUI; Engram moved off this hook for that reason. |
-| Grok Build | None | Bundled hook documentation: `SessionStart` stdout is ignored. |
-| OpenCode | None | Session-start hook requested and closed three times ([anomalyco/opencode#5409](https://github.com/anomalyco/opencode/issues/5409), not planned). V2 GA plugins can instead append system content through the session `context` hook, which runs before every model request rather than once at session start (V2 plugin docs, checked 2026-09-30). |
-| Pi | Extension `before_agent_start` | Can inject; no documented size limit. |
+The earlier September host comparison is historical, not a current prohibition
+on hooks. The October change consulted current official sources, including
+[Claude hooks](https://code.claude.com/docs/en/hooks) and
+[OpenCode V2 plugins](https://opencode.ai/v2/docs/build/plugins). Claude now
+documents a file/preview for long context rather than the previous silent
+truncation claim; pre-tool context arriving with the tool result is not a
+preventive control over that operation. The old 45–70% delivery estimate is not
+reproducible from the available evidence and is not an acceptance threshold.
 
-The reference projects agree. `optional reference project` injects only a ~3 KB bootstrap by hook, removed its Codex hook as worse UX, and never edits the user's global file. `optional reference project` uses a marker block and thinned it (`75c6b2c7`). `optional reference project` injects full rules only because they are 2.6–6.6 KB. The legacy Hive never injected rule text by hook: forcing a reference into the user turn, a stronger channel than any hook, did not improve compliance (legacy `_support/docs/methodology-bibliography.md:1323`).
+Grok gets one managed `PreToolUse` hook that drops `offset` and `limit` when a
+session reads a skill reference, because Grok models read references partially
+in about one session in three; it changes how a reference is read, not what any
+guidance says. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
 
-A hook fits a small payload, conditional injection by session source or project, or re-injection after compaction. The lever for density is a thinner always-on block that keeps gates in place and moves procedure to skills. Rules that must always hold stay in the block, because router and reference delivery reached the model in only about 45–70% of measured sessions.
+An optional OpenCode user-scope plugin supplies two fixed-role reference snapshots
+in the session context hook when explicitly activated. The manager generates
+them from the validated release payload; canonical references retain one editorial
+home. Requests read no reference files or metadata. Refresh requires manager
+regeneration and plugin reload, not a live installed-Markdown edit. It is delivered inactive
+at `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`
+with no `package.json`, outside auto-discovery, not as a replacement for the core or a six-host loader.
+Its editorial JS template is included in manifest v2 offline packages; activation
+targets only the installed `hive/context-loader` directory. Metadata schema 2 records fixed
+role/resource/digest provenance and is independent of package manifest v2; the current manager
+also verifies v1 packages. Older v1-only managers cannot verify v2 packages.
+See [activation and lifecycle](deployment-manager.md#optional-opencode-context-loader).
+
+Packaging, native discovery, reference supply and behavior remain separate
+claims. Current source/callback checks do not establish native final-request
+delivery or better outcomes for Haiku/Flash. The bounded A/B/C model experiment
+is authorized for this change but has not yet run and remains blocked on verifying
+safe, exact memory cleanup. That limit does not invalidate the loader's separately
+checked generation and lifecycle contracts. A smaller global file is not
+lower total context: the simple-query union includes mandatory reporting, and
+the declared retained plan/build cycle grows in source bytes. No arbitrary quota
+or byte-to-token estimate establishes reliability.
 
 Coexistence with user rules: the block is appended after the user's content, and the markers do not set priority. Precedence between the block and user-authored text in the same file is undeclared. Grok Build gives later text precedence, so there the block effectively wins over the user's earlier rules. Hook delivery would leave the user's file untouched, but each host would order the text differently and could silently disable it.
 
