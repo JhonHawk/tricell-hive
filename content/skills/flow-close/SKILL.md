@@ -56,7 +56,7 @@ Offer one option per route, each continue option naming the flow it starts:
 Run this after the code is integrated and any required post-merge CI has passed. While the work runs, `tasks.md` and the status in `proposal.md` are updated on disk only; nobody versions the folder before this step.
 
 1. For each delta file, apply it to the current-requirements home. Use the delta formats in [change records](../flow-plan/references/change-records.md#requirement-deltas) and, for a product map, [product map projects](../flow-plan/references/change-records.md#product-map-projects). In `<specs>/specs/`: apply ADDED requirements to `<specs>/specs/<capability>/spec.md`, creating it when absent; replace each MODIFIED requirement block by name; delete each REMOVED block. Edit only those blocks, leave the rest of the file untouched, and review the resulting diff.
-2. Set the change's status to closed in `proposal.md`, citing the commit or pull request that integrated it.
+2. Set the change's status in `proposal.md` to Completed, the final phase in [the plan format](../flow-plan/references/plan-format.md), citing the commit or pull request that integrated it.
 3. Move the folder to `<specs>/changes/archive/YYYY-MM-DD-<change-id>`, using the closing date. Use `mv` when the folder was never tracked by Git, and `git mv` only when it is already versioned. Never recreate the files by rewriting them.
 4. Update `<specs>/project.md` only if the phase, an open decision, or a blocker changed.
 5. Version the record once, as the cases below say. Stage by named path, never a directory (see [git-workflow](../git-workflow/SKILL.md)).
