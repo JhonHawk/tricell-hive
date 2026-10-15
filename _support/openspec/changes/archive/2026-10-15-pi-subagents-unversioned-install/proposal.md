@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En curso · T1–T3 hechos; publicación no autorizada |
+| Estado | Integrado en `development` el 2026-10-15 por el [PR #52](https://github.com/JhonHawk/tricell-hive/pull/52), merge `1307b1fb`; desplegado en local desde `development` y archivado el 2026-10-15. Estado previo (historia): En curso · T1–T3 hechos; publicación no autorizada |
 | Tracker · GitHub Issues | Sin ticket vinculado |
-| Git | Solo commit · `feat/pi-subagents-unversioned-install` · `57d2fca` `cc4290c` · sin push |
+| Git | Integrado por merge del PR #52; la rama `feat/flash-class-guidance` y su worktree se eliminaron tras el merge |
 | Verificación | `go test ./integrations/pi ./tooling/management` PASS · `hive-review-code` sin bloqueos |
-| Siguiente paso | Push/PR no autorizados (D6). Reiniciar Pi para cargar 0.77.0. |
+| Siguiente paso | Ninguno; registro cerrado. La publicación que D6 no autorizaba quedó autorizada el 2026-10-15 con la integración de la rama |
 
 ## Request
 
