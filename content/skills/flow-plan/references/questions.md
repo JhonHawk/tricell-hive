@@ -61,7 +61,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** an answer arrives, including free text.
 
-**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates. Re-ask an answered question only when the change needs effects not yet authorized.
+**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](../SKILL.md#revise-a-plan-in-progress). Re-ask an answered question only when the change needs effects not yet authorized.
 
 ## Worked example: waiting card
 

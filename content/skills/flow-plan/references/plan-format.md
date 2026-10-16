@@ -17,7 +17,7 @@ Write the actual human-facing plan in the session language, including headings a
 - For a saved implementation plan, the reviewed revision, relevant domain coverage, reconciled findings and unresolved review limits from [plan review](plan-review.md).
 - Current progress, evidence, and the next actionable step. Distinguish work that is ready, work that is authorized, and work that has been verified; one does not imply the others.
 
-Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks.
+Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks, following [Revise a plan in progress](../SKILL.md#revise-a-plan-in-progress) for any revision of the record.
 
 ## Acceptance criteria and task markers
 
@@ -132,7 +132,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Current reviewed revision, relevant domains, reconciled material findings and unresolved coverage. Distinguish plan review from executed implementation tests.>
 
-<Current progress and observed evidence, failed or omitted checks, blockers and the next actionable step. Keep the task checkboxes above current. Retain a short history only for material decisions, changed authority or reopened work; do not append every review round or repeat unchanged limits.>
+<Current progress and observed evidence, failed or omitted checks, blockers and the next actionable step. Keep the task checkboxes above current. Retain a short history only for material decisions, changed authority or reopened work; do not append every review round or repeat unchanged limits, except the one-line cost of each reviewer and re-review that [plan review](plan-review.md) asks for.>
 ```
 
 Scale this structure to the work. Small tasks may combine sections and use a short checklist; larger tasks benefit from separate design subsections and task blocks. Omit irrelevant sections instead of filling them with boilerplate. No fixed word count or section count establishes completeness. Keep the objective in one or two focused paragraphs when sufficient, and the control sheet as short phrases.
