@@ -25,6 +25,16 @@ raise the minor or the patch version.
   sentence plus the change-records reference, and two sentences that the
   retention and reporting references already carry left the global text.
 
+### Fixed
+
+- The Codex `observe` profile no longer declares `sandbox_mode = "read-only"`
+  in the installed role files: Codex 0.163.0 restores the session's
+  permissions after applying a role, so the key never reached the child, and
+  `ReadProfiles` now rejects it for Codex. A child whose browser is blocked by
+  the host's sandbox, such as Codex's default `workspace-write` without network,
+  reports the UI gate as not passed naming the block, and the user lifts it in
+  the host's settings (issue #50).
+
 ## [0.4.0] - 2026-10-15
 
 ### Added
