@@ -36,6 +36,8 @@ Captures and accessibility trees entering the main thread stay in its context fo
 
 When `agent-browser` state is suspect (stale renders, sessions invalidating each other, cookie residue, a command that hit its limit), close the sessions you own and rerun once under a fresh `--namespace`. If that also fails, report the check as not verified, as [verification](verification.md) sets for a check that hangs or fails twice, and name a reproduction with Chrome DevTools MCP as an independent browser as the option the parent may offer the user. Report it as not verified at once when the stack itself is unavailable.
 
+When the host's sandbox blocks the browser, because the temporary profile directory cannot be written or the local server cannot be reached over loopback, report the check as not verified at once: name the block as the host reports it, such as a permission error on the profile directory or a refused connection to a local server that answers the parent, and the checks it leaves unverified. Do not change the host's sandbox, permissions, or network settings yourself; the parent reports the gate as not passed and tells the user which host setting lifts the block.
+
 A user profile can distort input as well as layout; its zoom can misplace pointer events for every tool that shares it. Before reporting a pointer interaction as broken under a profile, reproduce it without one; a failure that appears only under the profile is a tooling limitation, not a product defect.
 
 ## Close what you open
