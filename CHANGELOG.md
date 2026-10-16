@@ -29,9 +29,9 @@ raise the minor or the patch version.
 
 - The Codex `observe` profile no longer declares `sandbox_mode = "read-only"`
   in the installed role files: Codex restores the session's permissions after
-  applying a role (verified on 0.163.0; the 0.155.1 observation showed the
-  same), so the key never reached a child on any supported version, and
-  `ReadProfiles` now rejects it for Codex. A child whose browser is blocked by
+  applying a role (verified on 0.163.0; the 0.155.1 note is consistent with
+  this reading), so the key did not reach the child. Profiles frozen in
+  earlier releases stay readable, and the renderer drops the key for Codex. A child whose browser is blocked by
   the host's sandbox, such as Codex's default `workspace-write` without network,
   reports the UI gate as not passed naming the block, and the user lifts it in
   the host's settings (issue #50).

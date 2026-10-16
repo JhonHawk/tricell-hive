@@ -268,12 +268,19 @@ func nearestOffered(effort string, offered []string) string {
 	return best
 }
 
-// validateAccess accepts only the access keys a host enforces on a child. Codex
-// accepts none: a role file's sandbox_mode is ignored because Codex restores the
-// parent's permissions after applying the role (issue #50, verified on 0.163.0).
+// validateAccess accepts the access keys a host enforces on a child, plus the
+// legacy Codex sandbox_mode that releases frozen before 2026-10-16 embed, so
+// their profiles stay readable. Codex ignores that key because it restores the
+// parent's permissions after applying a role (issue #50, verified on 0.163.0),
+// and Render drops it.
 func validateAccess(host string, values map[string]json.RawMessage) error {
 	for key, raw := range values {
 		switch {
+		case host == "codex" && key == "sandbox_mode":
+			var s string
+			if json.Unmarshal(raw, &s) != nil || !oneOf(s, "read-only", "workspace-write") {
+				return fmt.Errorf("invalid Codex agent sandbox")
+			}
 		case host == "cursor" && key == "readonly":
 			var b bool
 			if json.Unmarshal(raw, &b) != nil || !b {
@@ -494,6 +501,10 @@ func Render(source string, data, profiles []byte, host, skillsDir string, overri
 	h := p.Hosts[host]
 	fields := map[string]any{"name": r.Name, "description": r.Description}
 	for key, raw := range h.Access[r.AccessProfile] {
+		if host == "codex" && key == "sandbox_mode" {
+			// Legacy key from frozen releases; Codex does not apply it to a child.
+			continue
+		}
 		var value any
 		if err := json.Unmarshal(raw, &value); err != nil {
 			return nil, err
