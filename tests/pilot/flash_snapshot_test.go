@@ -138,7 +138,7 @@ func TestFlashClassSnapshotExactBytesAndObserverOnlyArm(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if r.CanonicalHash != digest(data) || r.SourceReferenceHash != digest(data) || r.LoaderHash == "absent" || r.LoaderMetadataHash == "absent" || r.Coverage != "unverified" {
+				if r.CanonicalHash != digest([]byte(flashCanonicalReference(string(data)))) || r.SourceReferenceHash != digest(data) || r.LoaderHash == "absent" || r.LoaderMetadataHash == "absent" || r.Coverage != "unverified" {
 					t.Fatal("exact-byte hashes or independent coverage lost")
 				}
 				if len(r.ConfiguredPluginOrder) != map[string]int{"B": 1, "C": 2}[arm] || r.ConfiguredPluginOrder[len(r.ConfiguredPluginOrder)-1] != "hive.pilot-observer" {

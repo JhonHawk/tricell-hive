@@ -35,6 +35,11 @@ raise the minor or the patch version.
   parts of it now link there.
 - Plan review records each reviewer's duration and token usage when the host
   reports them, so the gate's cost can be weighed against what it caught.
+- The pilot runner (`tests/pilot`, not installed) keeps shell text outside the
+  bounded-read grammar and glob/grep patterns in a private `0600` file beside
+  `run.json`, types every inventory entry, and compares reference coverage on
+  reads normalized of OpenCode's line prefixes, so a batch can be inspected
+  and arms A/B can be observed (issues #48, #49).
 
 ### Removed
 

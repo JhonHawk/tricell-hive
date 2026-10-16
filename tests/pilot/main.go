@@ -34,6 +34,7 @@ type fixture struct {
 type item struct {
 	Hash string `json:"hash"`
 	Size int64  `json:"size"`
+	Kind string `json:"kind,omitempty"`
 }
 type result struct {
 	ProtocolTerminal                                                                                  string         `json:",omitempty"`
@@ -59,6 +60,13 @@ type result struct {
 	GitDelivery                                                                                       *gitDeliveryReport     `json:",omitempty"`
 	GuidanceVariant                                                                                   *guidanceVariantReport `json:",omitempty"`
 	FlashClass                                                                                        *flashClassReport      `json:",omitempty"`
+
+	// evidenceDir locates the private evidence files beside run.json; never serialized.
+	evidenceDir string
+	// privateOps caches the loaded private operations between gate calls.
+	privateOps    map[string]flashPrivateOperation
+	privateOpsErr error
+	privateOpsFor string
 }
 
 // mergeProtected combines two protected-path snapshots (the real home's and,
@@ -159,7 +167,7 @@ func inventory(root string) (map[string]item, error) {
 				return e
 			}
 			rel, _ := filepath.Rel(root, p)
-			out[rel] = item{digest([]byte("symlink:" + link)), int64(len(link))}
+			out[rel] = item{Hash: digest([]byte("symlink:" + link)), Size: int64(len(link)), Kind: "symlink"}
 			return nil
 		}
 		b, e := os.ReadFile(p)
@@ -167,7 +175,7 @@ func inventory(root string) (map[string]item, error) {
 			return e
 		}
 		rel, _ := filepath.Rel(root, p)
-		out[rel] = item{digest(b), int64(len(b))}
+		out[rel] = item{Hash: digest(b), Size: int64(len(b)), Kind: "file"}
 		return nil
 	})
 	return out, err
@@ -795,6 +803,16 @@ func main() {
 		} else {
 			r.Terminal = "child_unverified"
 		}
+		privateOperations := append([]flashChild(nil), r.FlashClass.Children...)
+		if r.FlashClass.PrimaryCompletion != nil {
+			privateOperations = append(privateOperations, *r.FlashClass.PrimaryCompletion)
+		}
+		if name, err := writeFlashPrivateOperations(privateEvidenceRoot, privateOperations...); err != nil {
+			recordFlashError(r.FlashClass, err.Error())
+		} else {
+			r.FlashClass.OperationsFile = name
+		}
+		r.evidenceDir = output
 		r.FlashClass.Coverage = flashCoverage(*arm, r.Trace.SessionID, *model, r.FlashClass.Role, r.FlashClass.CanonicalHash, r.FlashClass.Observations)
 		if r.FlashClass.Coverage == "blocked" {
 			r.Terminal = "observation_blocked"

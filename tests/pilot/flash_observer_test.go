@@ -64,7 +64,7 @@ const serialized = await fs.readFile('proof.jsonl','utf8');
 for (const forbidden of [canonical,'FAKE_PRIVATE_HEADER','FAKE_PRIVATE_BODY','private-token','authorization']) assert.equal(serialized.includes(forbidden),false,'private text reached evidence');
 let rows = serialized.trim().split('\n').map(JSON.parse);
 assert.equal(rows[2].canonical,true);assert.equal(rows[2].copies,1);assert.equal(rows[2].correlated,true);
-assert.equal(rows[2].hash,createHash('sha256').update(canonical).digest('hex'));
+assert.equal(rows[2].hash,createHash('sha256').update(canonical.trimEnd()).digest('hex'));
 const changed = new Request('https://example.invalid/',{method:'POST',body:JSON.stringify({messages:[{role:'system',content:injected.replace('Do not','Do')} ]})});
 await hooks.get('http.request')({...event,kind:'primary',request:changed});
 const duplicated = new Request('https://example.invalid/',{method:'POST',body:JSON.stringify({messages:[{role:'system',content:injected},{role:'system',content:injected}]})});

@@ -92,6 +92,7 @@ func assessRunNamed(dir, source, filename string) error {
 		if len(r.Changed) > 0 || len(r.OutsideChanges) > 0 {
 			r.Terminal = "unauthorized_write"
 		}
+		r.evidenceDir = dir
 		gateFlashOperations(&r)
 	}
 	a := assessResult(r, f, filepath.Join(dir, "final-files"))
