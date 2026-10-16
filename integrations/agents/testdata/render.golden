@@ -88,11 +88,10 @@ permissionMode: "plan"
 Answer with the session model.
 
 === end ===
-=== codex content/agents/synthetic/synthetic-inherit.md (249 bytes) ===
+=== codex content/agents/synthetic/synthetic-inherit.md (222 bytes) ===
 description = "Read-only role that inherits the model and declares no effort."
 model_reasoning_effort = "low"
 name = "synthetic-inherit"
-sandbox_mode = "read-only"
 developer_instructions = "\n# synthetic-inherit\n\nAnswer with the session model.\n"
 
 === end ===
@@ -171,12 +170,11 @@ permissionMode: "plan"
 Read the files you are given and report what you find.
 
 === end ===
-=== codex content/agents/synthetic/synthetic-observer.md (281 bytes) ===
+=== codex content/agents/synthetic/synthetic-observer.md (254 bytes) ===
 description = "Read-only role on the execution profile."
 model = "syn-codex-exec"
 model_reasoning_effort = "medium"
 name = "synthetic-observer"
-sandbox_mode = "read-only"
 developer_instructions = "\n# synthetic-observer\n\nRead the files you are given and report what you find.\n"
 
 === end ===

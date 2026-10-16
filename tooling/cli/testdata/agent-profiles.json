@@ -7,7 +7,7 @@
     },
     "codex": {
       "models": {"execution": {"model": "syn-codex-exec", "effort": "medium"}, "reasoning": {"model": "syn-codex-reason", "effort": "high"}, "inherit": {"effort": "low"}, "verifier": {"model": "syn-codex-verify", "effort": "xhigh"}},
-      "access": {"observe": {"sandbox_mode": "read-only"}, "implement": {}, "verify": {}}
+      "access": {"observe": {}, "implement": {}, "verify": {}}
     },
     "grok": {
       "models": {"execution": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "syn-grok-verify"}},
