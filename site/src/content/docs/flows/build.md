@@ -67,7 +67,7 @@ You decide. Say so in your request, or answer the delivery question the agent as
 The fix enters the base branch and is promoted at once through each environment, in order. If a promotion would also carry work you are holding back, the agent stops and offers a hotfix branch from production, only where your repository's branch policy accepts it, and asks you before that push. Afterwards it offers a short postmortem, written only if you want it.
 
 ### What if the agent finds that the plan no longer matches the code?
-It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing.
+It looks into the mismatch and updates the plan or asks you for the missing decision before it keeps editing. The update follows the Plan flow's rules for revising a plan in progress: a changed criterion, decision or contract goes back to the plan reviewers once, and a change of intent becomes a new change.
 
 ### What happens to a user interface change?
 The agent leaves the running result available for you to check, with steps to follow, and keeps its screen captures in the work's support folder until the session ends, then cleans up the ones you did not ask to keep.
