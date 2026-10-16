@@ -132,7 +132,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Current reviewed revision, relevant domains, reconciled material findings and unresolved coverage. Distinguish plan review from executed implementation tests.>
 
-<Current progress and observed evidence, failed or omitted checks, blockers and the next actionable step. Keep the task checkboxes above current. Retain a short history only for material decisions, changed authority or reopened work; do not append every review round or repeat unchanged limits.>
+<Current progress and observed evidence, failed or omitted checks, blockers and the next actionable step. Keep the task checkboxes above current. Retain a short history only for material decisions, changed authority or reopened work; do not append every review round or repeat unchanged limits, except the one-line cost of each reviewer and re-review that [plan review](plan-review.md) asks for.>
 ```
 
 Scale this structure to the work. Small tasks may combine sections and use a short checklist; larger tasks benefit from separate design subsections and task blocks. Omit irrelevant sections instead of filling them with boilerplate. No fixed word count or section count establishes completeness. Keep the objective in one or two focused paragraphs when sufficient, and the control sheet as short phrases.

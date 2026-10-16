@@ -24,10 +24,10 @@ raise the minor or the patch version.
 - The global guidance keeps one home per rule: the `openspec` location is one
   sentence plus the change-records reference, and two sentences that the
   retention and reporting references already carry left the global text.
-- The `hive-write-spec` role is now `hive-write-docs`: it writes documentation
-  and site pages from sources the plan already verified and reports what a
-  source does not cover as not verified; the change record stays with the main
-  thread. Renaming a role raises the minor version of the next release.
+- The `hive-write-docs` role (formerly `hive-write-spec`, see Removed) writes
+  documentation and site pages from sources the plan already verified and
+  reports what a source does not cover as not verified; the change record
+  stays with the main thread.
 - Plan has one home for revising a retained plan while the work runs
   ("Revise a plan in progress"): who edits, how the request, criteria, tasks
   and deltas stay coherent, when the revision returns to the plan reviewers,
@@ -35,6 +35,12 @@ raise the minor or the patch version.
   parts of it now link there.
 - Plan review records each reviewer's duration and token usage when the host
   reports them, so the gate's cost can be weighed against what it caught.
+
+### Removed
+
+- The `hive-write-spec` role name. `hive update` retires the installed file;
+  a retained plan or brief that names it should name `hive-write-docs`
+  instead. Renaming a role raises the minor version of the next release.
 
 ### Fixed
 

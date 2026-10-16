@@ -48,19 +48,19 @@ Before calling the plan ready, check:
 - A change with a rendered UI effect plans the independent `hive-review-ux` and `hive-verify-change` children when the verification reference requires them: the base revision for comparison, viewports and themes, isolated data and browser sessions, and the browser tool selected by its [browser automation](../flow-build/references/browser-automation.md) rules. The implementer's walk does not replace them.
 - An implementer with this plan and its linked sources can identify what to change, what to preserve, and how to verify it.
 
-## Revise a plan in progress
-
-Read when a retained plan changes after it was declared ready: a decision the current state invalidates, a correction the user requests, a review or verification finding, or a scope clarification.
-
-- Draft the revision in the conversation first and name what it changes: the quoted request, an `AC<n>`, a design decision or contract, a task, or a delta file. Then edit the change folder one file at a time; only the orchestrator edits it, during planning and during the build alike.
-- Keep the files coherent in every direction. A changed criterion updates each task whose `Closes:` names it, that task's verification, and the delta that states the behavior; a changed delta updates its criterion; a changed task keeps its criteria falsifiable at the base commit. A task already `[x]` whose files the revision changes follows the marker rule in [verification](../flow-build/references/verification.md#human-ui-handoff).
-- When the revision changes the outcome or the scope the request named, it is a new change, not an edit: close or pause this one as [flow-close](../flow-close/SKILL.md) sets and plan the new one.
-- Return the revised plan to `hive-review-plan` only under the criterion in [plan review](references/plan-review.md): a changed contract, interface, acceptance criterion, decision, or assumption the plan relies on, with at most one re-review round. A revision outside that criterion, or one that applies a reviewer's own proposal, is reconciled by the orchestrator without a round.
-- Record each revision in the plan's progress section with its reason and what it invalidated, and tell the user in one line what the change settles or returns to an earlier flow, as [questions](references/questions.md) requires for an answer.
-
 Assign each task's execution: the main thread or a delegated child, with the reason. Prefer delegation for units with settled interfaces and no overlapping writes; keep a unit in the main thread only when it is coupled to work in progress or its brief would be longer than the change itself. For delegated work, identify separable results and their interfaces, dependencies, and ownership, without assigning a permanent specialist for every framework. Link the project conventions and technical references each unit needs, without freezing runtime-specific agent names or repeating the shared delegation contract.
 
 After saving an implementation plan, read [plan review](references/plan-review.md) and dispatch bounded read-only subagents before declaring it ready. Dispatch one reviewer per affected domain in parallel, even for a small plan; use a single reviewer only when one domain is affected, and omit unaffected areas, including UI when absent. Reviewers return feedback to the orchestrator, who validates findings and alone revises the plan. Disclose unavailable delegation and unresolved coverage.
+
+## Revise a plan in progress
+
+Read when a retained plan changes after it was written, during planning or during the build: a decision the current state invalidates, an answer that invalidates tasks already written, a correction the user requests, a review or verification finding, a scope clarification, or a reconciliation on resume.
+
+- Draft the revision in the conversation first and name what it changes: the quoted request, an `AC<n>`, a design decision or contract, a task, or a delta file. Then edit the change folder one file at a time; only the orchestrator edits it.
+- Keep the files coherent in every direction. A changed criterion updates each task whose `Closes:` names it, that task's verification, and the delta that states the behavior; a changed delta updates its criterion; a changed task keeps its criteria falsifiable at the base commit. A task already `[x]` whose files the revision changes goes back to `[?]` with a line naming the revision, and [flow-build](../flow-build/SKILL.md) verifies it again under its per-task procedure.
+- When the revision changes the outcome or the scope the request named, it is a new change, not an edit: close or pause this one as [flow-close](../flow-close/SKILL.md) sets and plan the new one.
+- Return the revised plan to `hive-review-plan` only when the revision meets the re-review criterion in [plan review](references/plan-review.md); each such revision gets at most one re-review round of its own, and a gap that survives it goes to the user as a decision. A revision outside that criterion is reconciled by the orchestrator without a round. During a human validation pause, a re-review that a correction makes due runs with the accepted-candidate gate that [verification](../flow-build/references/verification.md#human-ui-handoff) sets, not between correction rounds.
+- Record each revision in the plan's progress section with its reason and what it invalidated, and tell the user in one line what the change settles or returns to an earlier flow, as [questions](references/questions.md) requires for an answer.
 
 ## Preserve a useful handoff
 

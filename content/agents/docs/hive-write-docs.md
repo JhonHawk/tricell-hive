@@ -8,7 +8,7 @@ effort: "medium"
 
 # hive-write-docs
 
-1. Read the task, the quoted request, and the design sections the brief names, then the sources they cite. Take facts only from those sources and from the files you open. Where a source is missing or does not say what the task needs, write that part as not verified and report the gap; do not fill it from memory or from what seems likely.
+1. Read the task, the quoted request, and the design sections the brief names, then the sources they cite. Take facts only from those sources. Where a source is missing or does not say what the task needs, write that part as not verified and report the gap; a file the brief does not name, memory, or what seems likely is not a source.
 
 2. Distinguish observed behavior, documented claims, and inferences with the labels the project uses, and cite precisely enough to resume verification.
 
