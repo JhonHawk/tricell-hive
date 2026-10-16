@@ -342,14 +342,18 @@ func gateFlashOperations(r *result) {
 	for _, child := range r.FlashClass.Children {
 		combined.Trace.Events = append(combined.Trace.Events, child.Operations...)
 	}
-	searched := false
+	accepted := false
 	var loadErr error
 	// A run without a private operations file predates it: its text is gone,
 	// so every shell or tool operation stays opaque.
 	if r.FlashClass.OperationsFile != "" {
-		var reviewed map[string]flashPrivateOperation
-		reviewed, loadErr = loadFlashPrivateOperations(r.evidenceDir, r.FlashClass.OperationsFile)
-		combined.Trace.Events, searched = reviewFlashOperations(combined.Trace.Events, reviewed, r.Cwd, []string{r.Root, r.Cwd})
+		// The three live gates and --assess share one load per file name.
+		if r.privateOps == nil || r.privateOpsFor != r.FlashClass.OperationsFile {
+			r.privateOps, r.privateOpsErr = loadFlashPrivateOperations(r.evidenceDir, r.FlashClass.OperationsFile)
+			r.privateOpsFor = r.FlashClass.OperationsFile
+		}
+		loadErr = r.privateOpsErr
+		combined.Trace.Events, accepted = reviewFlashOperations(combined.Trace.Events, r.privateOps, r.Cwd, []string{r.Root, r.Cwd})
 	} else {
 		combined.Trace.Events = markSearchesOpaque(combined.Trace.Events)
 	}
@@ -362,11 +366,11 @@ func gateFlashOperations(r *result) {
 		}
 	}
 	pending := false
-	if status == "pass" && searched {
+	if status == "pass" && accepted {
 		if r.After == nil {
 			// The inventory is taken after the operations; the final gate decides.
 			pending = true
-			evidence = []string{"Search containment awaits the final fixture inventory."}
+			evidence = []string{"Containment of accepted operations awaits the final fixture inventory."}
 		} else if unproven := flashContainmentEvidence(r.After); len(unproven) > 0 {
 			status, evidence = "not_observed", unproven
 		}

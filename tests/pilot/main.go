@@ -63,6 +63,10 @@ type result struct {
 
 	// evidenceDir locates the private evidence files beside run.json; never serialized.
 	evidenceDir string
+	// privateOps caches the loaded private operations between gate calls.
+	privateOps    map[string]flashPrivateOperation
+	privateOpsErr error
+	privateOpsFor string
 }
 
 // mergeProtected combines two protected-path snapshots (the real home's and,
