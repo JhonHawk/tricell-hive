@@ -17,7 +17,7 @@ Write the actual human-facing plan in the session language, including headings a
 - For a saved implementation plan, the reviewed revision, relevant domain coverage, reconciled findings and unresolved review limits from [plan review](plan-review.md).
 - Current progress, evidence, and the next actionable step. Distinguish work that is ready, work that is authorized, and work that has been verified; one does not imply the others.
 
-Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks, following [Revise a plan in progress](../SKILL.md#revise-a-plan-in-progress) for a revision that changes criteria, decisions, or deltas.
+Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks, following [Revise a plan in progress](../SKILL.md#revise-a-plan-in-progress) for any revision of the record.
 
 ## Acceptance criteria and task markers
 
