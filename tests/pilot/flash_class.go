@@ -136,6 +136,8 @@ type flashClassReport struct {
 	ConfiguredPluginOrder                                                   []string
 	OperationSafety                                                         string
 	OperationEvidence                                                       []string
+	// OperationsFile names the private 0600 file beside run.json; never its contents.
+	OperationsFile string `json:",omitempty"`
 }
 
 func flashCompletion(root, model, role string, children []flashChild) error {
@@ -222,6 +224,7 @@ func flashChildFromExport(data []byte, root, role, requested string) (flashChild
 					Status string
 					Input  struct {
 						Command, Cmd, Code string
+						Pattern            string
 						FilePath           string `json:"filePath"`
 						Path               string `json:"path"`
 						FilePathLegacy     string `json:"file_path"`
@@ -265,6 +268,7 @@ func flashChildFromExport(data []byte, root, role, requested string) (flashChild
 					}
 					command := ""
 					commandWithheld := false
+					privateText := ""
 					if kind == "shell" || strings.EqualFold(part.Name, "execute") {
 						command = part.State.Input.Command
 						if command == "" {
@@ -274,15 +278,21 @@ func flashChildFromExport(data []byte, root, role, requested string) (flashChild
 							command = part.State.Input.Code
 						}
 						originalCommandPresent := command != ""
+						original := command
 						if kind == "shell" {
 							command = flashOperationCommand(command)
 						} else {
 							command = ""
 						}
 						commandWithheld = strings.EqualFold(part.Name, "execute") || (originalCommandPresent && command == "")
+						if commandWithheld {
+							privateText = original
+						}
+					} else if strings.EqualFold(part.Name, "glob") || strings.EqualFold(part.Name, "grep") {
+						privateText = part.State.Input.Pattern
 					}
 					success := part.State.Status == "completed"
-					c.Operations = append(c.Operations, traceEvent{SessionID: c.SessionID, Agent: m.Agent, Model: modelReference(m.Model.ProviderID, m.Model.ID, m.Model.Variant), Kind: kind, Tool: part.Name, ID: part.ID, Message: m.ID, Path: path, Command: command, CommandWithheld: commandWithheld, Success: &success})
+					c.Operations = append(c.Operations, traceEvent{SessionID: c.SessionID, Agent: m.Agent, Model: modelReference(m.Model.ProviderID, m.Model.ID, m.Model.Variant), Kind: kind, Tool: part.Name, ID: part.ID, Message: m.ID, Path: path, Command: command, CommandWithheld: commandWithheld, PrivateText: privateText, Success: &success})
 				}
 			}
 		} else if m.Type != "idle" {
@@ -332,7 +342,20 @@ func gateFlashOperations(r *result) {
 	for _, child := range r.FlashClass.Children {
 		combined.Trace.Events = append(combined.Trace.Events, child.Operations...)
 	}
+	searched := false
+	// A run without a private operations file predates it: its text is gone,
+	// so every shell or tool operation stays opaque.
+	if r.FlashClass.OperationsFile != "" {
+		reviewed := loadFlashPrivateOperations(r.evidenceDir, r.FlashClass.OperationsFile)
+		combined.Trace.Events, searched = reviewFlashOperations(combined.Trace.Events, reviewed, []string{r.Root, r.Cwd})
+	}
 	status, evidence := observedPathSafety(combined, r.Changed, func(string) bool { return false }, true)
+	// The inventory is taken after the operations; judge containment only once it exists.
+	if status == "pass" && searched && r.After != nil {
+		if unproven := flashContainmentEvidence(r.After); len(unproven) > 0 {
+			status, evidence = "not_observed", unproven
+		}
+	}
 	r.FlashClass.OperationSafety, r.FlashClass.OperationEvidence = status, evidence
 	if status == "fail" {
 		r.Terminal = "unauthorized_write"
@@ -495,7 +518,7 @@ func setupFlashClass(source, caseID, arm, output, model string, g *guidanceVaria
 	if err != nil {
 		return nil, fmt.Errorf("arm canonical reference unavailable")
 	}
-	r := &flashClassReport{PluginActive: arm == "C", ObserverHash: digest(observer), Resource: resource, Role: role, CanonicalHash: digest(canonical), Coverage: "unverified", Completion: "unverified", Memory: "unverified", MemoryProject: project}
+	r := &flashClassReport{PluginActive: arm == "C", ObserverHash: digest(observer), Resource: resource, Role: role, CanonicalHash: digest([]byte(flashCanonicalReference(string(canonical)))), Coverage: "unverified", Completion: "unverified", Memory: "unverified", MemoryProject: project}
 	r.SourceGlobalHash = hashOrAbsent(filepath.Join(g.report.Source, "content/guidance/global.md"))
 	r.SourceReferenceHash = hashOrAbsent(filepath.Join(g.report.Source, "content/skills", filepath.FromSlash(resource)))
 	if r.SourceGlobalHash == "absent" || r.SourceReferenceHash == "absent" {

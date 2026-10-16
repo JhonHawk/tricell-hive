@@ -43,7 +43,23 @@ export function requestText(body) {
   return { protocol: "unsupported", texts: [] }
 }
 
-export function inspectReference(texts, resource, canonical) {
+// OpenCode's read tool prefixes each line with its number ("12: text" in 2.x,
+// "00012| text" in 1.x) and adds header or footer lines. Only the copy search
+// sees the stripped view; the canonical text itself is never rewritten.
+const trimEnd = (text) => text.replace(/[ \t\r\n\f\v]+$/, "")
+const stripLinePrefixes = (text) => text.split("\n").map((line) => line.replace(/^[ \t]*\d+[|:][ \t]?/, "")).join("\n")
+function findAll(text, needle) {
+  const found = []
+  let start = 0, position
+  while ((position = text.indexOf(needle, start)) !== -1) {
+    found.push(text.slice(position, position + needle.length))
+    start = position + needle.length
+  }
+  return found
+}
+
+export function inspectReference(texts, resource, canonicalText) {
+  const canonical = trimEnd(canonicalText)
   const prefix = `Hive canonical reference: ${resource}\n\n`
   const extracted = []
   let injectedCopies = 0
@@ -57,11 +73,8 @@ export function inspectReference(texts, resource, canonical) {
         start = contentStart + Math.max(canonical.length, 1)
       }
     } else if (canonical.length > 0) {
-      let start = 0, position
-      while ((position = text.indexOf(canonical, start)) !== -1) {
-        extracted.push(text.slice(position, position + canonical.length))
-        start = position + canonical.length
-      }
+      const exact = findAll(text, canonical)
+      extracted.push(...(exact.length > 0 ? exact : findAll(stripLinePrefixes(text), canonical)))
     }
   }
   const matches = extracted.length > 0 && extracted.every((text) => text === canonical)

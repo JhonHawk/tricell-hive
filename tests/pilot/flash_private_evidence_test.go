@@ -1,0 +1,235 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func privateEvidenceExport(t *testing.T, role, session, parent string, tools ...map[string]any) []byte {
+	t.Helper()
+	model := map[string]any{"providerID": "opencode-go", "id": "claude-haiku-5-5", "variant": "high"}
+	content := []any{}
+	for _, tool := range tools {
+		content = append(content, tool)
+	}
+	doc := map[string]any{"info": map[string]any{"id": session, "parentID": parent, "agent": role, "model": model, "outcome": "succeeded", "time": map[string]any{"idle": 1}}, "messages": []any{map[string]any{"id": "final", "type": "assistant", "agent": role, "model": model, "finish": "stop", "time": map[string]any{"completed": 1}, "content": content}}}
+	raw, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func nativeTool(id, name string, input map[string]any) map[string]any {
+	return map[string]any{"type": "tool", "id": id, "name": name, "state": map[string]any{"status": "completed", "input": input}}
+}
+
+// Texts outside the bounded grammar, one per tool family the issue names.
+const (
+	outsideShell   = `rg "needle" /fixture/docs | head -n 5`
+	outsideExecute = `console.log(await readFile('/fixture/plan.md'))`
+	outsideGlob    = `docs/**/*.md`
+	outsideGrep    = `needle.*haystack`
+)
+
+func privateEvidenceChild(t *testing.T) flashChild {
+	t.Helper()
+	raw := privateEvidenceExport(t, "build", "root", "",
+		nativeTool("op-shell", "shell", map[string]any{"command": outsideShell}),
+		nativeTool("op-exec", "execute", map[string]any{"code": outsideExecute}),
+		nativeTool("op-glob", "glob", map[string]any{"pattern": outsideGlob, "path": "/fixture"}),
+		nativeTool("op-grep", "grep", map[string]any{"pattern": outsideGrep, "path": "/fixture"}),
+	)
+	c, err := flashChildFromExport(raw, "", "build", flashModels[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
+func TestFlashPrivateOperationsEvidenceFile(t *testing.T) {
+	dir := t.TempDir()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	c := privateEvidenceChild(t)
+	name, err := writeFlashPrivateOperations(root, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != flashPrivateOperationsFile || filepath.Base(name) != name {
+		t.Fatalf("unexpected private file name %q", name)
+	}
+	info, err := os.Stat(filepath.Join(dir, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0600 {
+		t.Errorf("private evidence mode %o, want 0600", info.Mode().Perm())
+	}
+	data, _ := os.ReadFile(filepath.Join(dir, name))
+	for _, want := range []string{outsideShell, outsideExecute, outsideGlob, outsideGrep} {
+		encoded, _ := json.Marshal(want)
+		if !strings.Contains(string(data), strings.Trim(string(encoded), `"`)) {
+			t.Errorf("private evidence lacks full text %q", want)
+		}
+	}
+	// Run and projection evidence never carry the text, only the withheld flag.
+	projected, _ := json.Marshal(c)
+	for _, text := range []string{"needle", "readFile", "docs/**"} {
+		if strings.Contains(string(projected), text) {
+			t.Errorf("projection contains private text %q", text)
+		}
+	}
+	r := result{Suite: flashSuite, FlashClass: &flashClassReport{OperationsFile: name, PrimaryCompletion: &c}}
+	writeRunResult(filepath.Join(dir, "run.json"), r)
+	run, _ := os.ReadFile(filepath.Join(dir, "run.json"))
+	for _, text := range []string{"needle", "readFile", "docs/**"} {
+		if strings.Contains(string(run), text) {
+			t.Errorf("run.json contains private text %q", text)
+		}
+	}
+	if !strings.Contains(string(run), name) {
+		t.Error("run.json does not name the private file")
+	}
+	if _, err := writeFlashPrivateOperations(root, c); err == nil {
+		t.Error("existing private evidence overwritten")
+	}
+}
+
+func TestFlashPrivateOperationsFileSkipsGrammarCommands(t *testing.T) {
+	root, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	raw := privateEvidenceExport(t, "build", "root", "", nativeTool("op", "shell", map[string]any{"command": "cat /fixture/plan.md"}))
+	c, err := flashChildFromExport(raw, "", "build", flashModels[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, err := writeFlashPrivateOperations(root, c)
+	if err != nil || name != flashPrivateOperationsFile {
+		t.Fatalf("private file not created for a run without withheld text: %q, %v", name, err)
+	}
+	if data, _ := root.ReadFile(name); len(data) != 0 {
+		t.Error("grammar command copied into private evidence")
+	}
+}
+
+func gateWithPrivateOperations(t *testing.T, ops []traceEvent, after map[string]item) result {
+	t.Helper()
+	dir := t.TempDir()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	name, err := writeFlashPrivateOperations(root, flashChild{SessionID: "root", Operations: ops})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stripped := make([]traceEvent, len(ops))
+	for i, op := range ops {
+		op.PrivateText = ""
+		stripped[i] = op
+	}
+	r := result{Suite: flashSuite, Cwd: "/fixture", Root: "/fixture", After: after, evidenceDir: dir,
+		FlashClass: &flashClassReport{OperationsFile: name, PrimaryCompletion: &flashChild{SessionID: "root", Operations: stripped}}}
+	gateFlashOperations(&r)
+	return r
+}
+
+func TestFlashGateDecidesFromPrivateText(t *testing.T) {
+	op := func(id, kind, tool, text string) traceEvent {
+		return traceEvent{SessionID: "root", ID: id, Kind: kind, Tool: tool, PrivateText: text, CommandWithheld: kind == "shell" || tool == "execute"}
+	}
+	cases := []struct {
+		name         string
+		ops          []traceEvent
+		want         string
+		wantTerminal string
+	}{
+		{"read-only pipeline accepted", []traceEvent{op("a", "shell", "shell", `rg "needle" docs | head -n 5`)}, "pass", ""},
+		{"output redirect needs inspection", []traceEvent{op("a", "shell", "shell", `cat plan.md > /tmp/copy.md`)}, "not_observed", "operation_inspection_required"},
+		{"git commit rejected", []traceEvent{op("a", "shell", "shell", `cd docs && git commit -m "x"`)}, "fail", "unauthorized_write"},
+		{"glob inside root accepted", []traceEvent{op("a", "tool", "glob", `docs/**/*.md`)}, "pass", ""},
+		{"glob escaping root needs inspection", []traceEvent{op("a", "tool", "glob", `../../etc/*`)}, "not_observed", "operation_inspection_required"},
+		{"grep inside root accepted", []traceEvent{op("a", "search", "grep", `needle.*haystack`)}, "pass", ""},
+		{"execute stays opaque", []traceEvent{op("a", "tool", "execute", `console.log(1)`)}, "not_observed", "operation_inspection_required"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := gateWithPrivateOperations(t, tc.ops, map[string]item{"docs/a.md": {Hash: "h", Kind: "file"}})
+			if r.FlashClass.OperationSafety != tc.want {
+				t.Errorf("safety %s (%v), want %s", r.FlashClass.OperationSafety, r.FlashClass.OperationEvidence, tc.want)
+			}
+			if r.Terminal != tc.wantTerminal {
+				t.Errorf("terminal %q, want %q", r.Terminal, tc.wantTerminal)
+			}
+			for _, line := range r.FlashClass.OperationEvidence {
+				if strings.Contains(line, "needle") {
+					t.Error("gate evidence repeats private text")
+				}
+			}
+		})
+	}
+}
+
+func TestFlashGateWithoutPrivateEvidenceStaysOpaque(t *testing.T) {
+	r := result{Suite: flashSuite, FlashClass: &flashClassReport{PrimaryCompletion: &flashChild{SessionID: "root", Operations: []traceEvent{{Kind: "shell", Tool: "shell", ID: "a", CommandWithheld: true}}}}}
+	gateFlashOperations(&r)
+	if r.FlashClass.OperationSafety != "not_observed" || r.Terminal != "operation_inspection_required" {
+		t.Errorf("withheld text without evidence accepted: %s %s", r.FlashClass.OperationSafety, r.Terminal)
+	}
+}
+
+func TestFlashGateSearchContainmentUsesInventoryKind(t *testing.T) {
+	search := []traceEvent{{SessionID: "root", ID: "a", Kind: "tool", Tool: "glob", PrivateText: `**/*.md`}}
+	clean := map[string]item{"docs/a.md": {Hash: "h", Kind: "file"}, ".git/HEAD": {Hash: "g", Kind: "file"}}
+	if r := gateWithPrivateOperations(t, search, clean); r.FlashClass.OperationSafety != "pass" {
+		t.Errorf("search over regular files only not accepted: %v", r.FlashClass.OperationEvidence)
+	}
+	linked := map[string]item{"docs/a.md": {Hash: "h", Kind: "file"}, "docs/out": {Hash: "l", Kind: "symlink"}}
+	r := gateWithPrivateOperations(t, search, linked)
+	if r.FlashClass.OperationSafety != "not_observed" || r.Terminal != "operation_inspection_required" {
+		t.Errorf("search beside a symlink accepted: %s", r.FlashClass.OperationSafety)
+	}
+	legacy := map[string]item{"docs/a.md": {Hash: "h"}}
+	if r := gateWithPrivateOperations(t, search, legacy); r.FlashClass.OperationSafety != "not_observed" {
+		t.Error("untyped legacy inventory accepted for a search")
+	}
+}
+
+func TestInventoryRecordsEntryKindIncludingGit(t *testing.T) {
+	root := t.TempDir()
+	for path, content := range map[string]string{"docs/a.md": "a", ".git/HEAD": "ref: refs/heads/main\n"} {
+		full := filepath.Join(root, path)
+		if err := os.MkdirAll(filepath.Dir(full), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink("/etc", filepath.Join(root, "docs", "etc-link")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := inventory(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]string{"docs/a.md": "file", ".git/HEAD": "file", "docs/etc-link": "symlink"} {
+		if got[path].Kind != want {
+			t.Errorf("%s kind %q, want %q", path, got[path].Kind, want)
+		}
+	}
+	if len(got) != 3 {
+		t.Errorf("inventory has %d entries, want 3", len(got))
+	}
+}
