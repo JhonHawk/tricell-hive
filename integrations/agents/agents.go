@@ -268,6 +268,9 @@ func nearestOffered(effort string, offered []string) string {
 	return best
 }
 
+// validateAccess accepts only the access keys a host enforces on a child. Codex
+// accepts none: a role file's sandbox_mode is ignored because Codex restores the
+// parent's permissions after applying the role (issue #50, verified on 0.163.0).
 func validateAccess(host string, values map[string]json.RawMessage) error {
 	for key, raw := range values {
 		switch {
