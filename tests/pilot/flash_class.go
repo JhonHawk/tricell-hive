@@ -343,18 +343,37 @@ func gateFlashOperations(r *result) {
 		combined.Trace.Events = append(combined.Trace.Events, child.Operations...)
 	}
 	searched := false
+	var loadErr error
 	// A run without a private operations file predates it: its text is gone,
 	// so every shell or tool operation stays opaque.
 	if r.FlashClass.OperationsFile != "" {
-		reviewed := loadFlashPrivateOperations(r.evidenceDir, r.FlashClass.OperationsFile)
-		combined.Trace.Events, searched = reviewFlashOperations(combined.Trace.Events, reviewed, []string{r.Root, r.Cwd})
+		var reviewed map[string]flashPrivateOperation
+		reviewed, loadErr = loadFlashPrivateOperations(r.evidenceDir, r.FlashClass.OperationsFile)
+		combined.Trace.Events, searched = reviewFlashOperations(combined.Trace.Events, reviewed, r.Cwd, []string{r.Root, r.Cwd})
+	} else {
+		combined.Trace.Events = markSearchesOpaque(combined.Trace.Events)
 	}
 	status, evidence := observedPathSafety(combined, r.Changed, func(string) bool { return false }, true)
-	// The inventory is taken after the operations; judge containment only once it exists.
-	if status == "pass" && searched && r.After != nil {
-		if unproven := flashContainmentEvidence(r.After); len(unproven) > 0 {
+	if loadErr != nil {
+		note := loadErr.Error() + "; operations were not fully reviewed from private text."
+		evidence = append([]string{note}, evidence...)
+		if status == "pass" {
+			status = "not_observed"
+		}
+	}
+	pending := false
+	if status == "pass" && searched {
+		if r.After == nil {
+			// The inventory is taken after the operations; the final gate decides.
+			pending = true
+			evidence = []string{"Search containment awaits the final fixture inventory."}
+		} else if unproven := flashContainmentEvidence(r.After); len(unproven) > 0 {
 			status, evidence = "not_observed", unproven
 		}
+	}
+	if pending {
+		r.FlashClass.OperationSafety, r.FlashClass.OperationEvidence = "pending_inventory", evidence
+		return
 	}
 	r.FlashClass.OperationSafety, r.FlashClass.OperationEvidence = status, evidence
 	if status == "fail" {

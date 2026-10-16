@@ -161,6 +161,26 @@ func TestFlashGateDecidesFromPrivateText(t *testing.T) {
 		{"glob inside root accepted", []traceEvent{op("a", "tool", "glob", `docs/**/*.md`)}, "pass", ""},
 		{"glob escaping root needs inspection", []traceEvent{op("a", "tool", "glob", `../../etc/*`)}, "not_observed", "operation_inspection_required"},
 		{"grep inside root accepted", []traceEvent{op("a", "search", "grep", `needle.*haystack`)}, "pass", ""},
+		{"quoted git push text is not a git write", []traceEvent{op("a", "shell", "shell", `rg -n "git push" README.md`)}, "pass", ""},
+		{"quoted delete flag stays opaque", []traceEvent{op("a", "shell", "shell", `find /fixture "-delete"`)}, "not_observed", "operation_inspection_required"},
+		{"quoted output flag stays opaque", []traceEvent{op("a", "shell", "shell", `git diff "--output=/tmp/x"`)}, "not_observed", "operation_inspection_required"},
+		{"search outside root stays opaque", []traceEvent{op("a", "shell", "shell", `rg needle /etc`)}, "not_observed", "operation_inspection_required"},
+		{"read of home secret stays opaque", []traceEvent{op("a", "shell", "shell", `cat /Users/x/.ssh/id_rsa`)}, "not_observed", "operation_inspection_required"},
+		{"quoted escaping path stays opaque", []traceEvent{op("a", "shell", "shell", `cat "../../etc/passwd"`)}, "not_observed", "operation_inspection_required"},
+		{"absolute path inside root accepted", []traceEvent{op("a", "shell", "shell", `cat /fixture/docs/a.md | head -n 5`)}, "pass", ""},
+		{"stderr redirect with trailing glue 1x", []traceEvent{op("a", "shell", "shell", `cat docs/a.md 2>&1x`)}, "not_observed", "operation_inspection_required"},
+		{"stderr redirect to /dev/nullx", []traceEvent{op("a", "shell", "shell", `cat docs/a.md 2>/dev/nullx`)}, "not_observed", "operation_inspection_required"},
+		{"stderr redirect to /dev/null.txt", []traceEvent{op("a", "shell", "shell", `cat docs/a.md 2>/dev/null.txt`)}, "not_observed", "operation_inspection_required"},
+		{"stderr redirect 2>&1x/y", []traceEvent{op("a", "shell", "shell", `cat docs/a.md 2>&1x/y`)}, "not_observed", "operation_inspection_required"},
+		{"stderr to /dev/null accepted", []traceEvent{op("a", "shell", "shell", `cat docs/a.md 2>/dev/null`)}, "pass", ""},
+		{"stderr merged before a pipe accepted", []traceEvent{op("a", "shell", "shell", `cat docs/a.md 2>&1 | rg x`)}, "pass", ""},
+		{"empty quotes glued to a path", []traceEvent{op("a", "shell", "shell", `cat ""/etc/passwd`)}, "not_observed", "operation_inspection_required"},
+		{"quotes inside a dot dot", []traceEvent{op("a", "shell", "shell", `cat .''./etc/passwd`)}, "not_observed", "operation_inspection_required"},
+		{"empty quotes as the path", []traceEvent{op("a", "shell", "shell", `rg needle ''/etc`)}, "not_observed", "operation_inspection_required"},
+		{"quotes glued inside an absolute path", []traceEvent{op("a", "shell", "shell", `cat /fixture/..''/../etc/passwd`)}, "not_observed", "operation_inspection_required"},
+		{"quoted word between spaces and pipe accepted", []traceEvent{op("a", "shell", "shell", `cat docs/a.md | rg "x"`)}, "pass", ""},
+		{"brace glob hiding a parent segment", []traceEvent{op("a", "tool", "glob", `{..,x}/etc`)}, "not_observed", "operation_inspection_required"},
+		{"grep without reviewable text is opaque", []traceEvent{op("a", "search", "grep", ``)}, "not_observed", "operation_inspection_required"},
 		{"execute stays opaque", []traceEvent{op("a", "tool", "execute", `console.log(1)`)}, "not_observed", "operation_inspection_required"},
 	}
 	for _, tc := range cases {
@@ -231,5 +251,91 @@ func TestInventoryRecordsEntryKindIncludingGit(t *testing.T) {
 	}
 	if len(got) != 3 {
 		t.Errorf("inventory has %d entries, want 3", len(got))
+	}
+}
+
+func TestFlashGateSearchWithoutPrivateFileIsOpaque(t *testing.T) {
+	for _, kind := range []string{"search", "tool"} {
+		tool := map[string]string{"search": "grep", "tool": "glob"}[kind]
+		r := result{Suite: flashSuite, FlashClass: &flashClassReport{PrimaryCompletion: &flashChild{SessionID: "root", Operations: []traceEvent{{Kind: kind, Tool: tool, ID: "a"}}}}}
+		gateFlashOperations(&r)
+		if r.FlashClass.OperationSafety != "not_observed" {
+			t.Errorf("legacy %s accepted", tool)
+		}
+	}
+}
+
+func TestFlashGateDefersContainmentUntilInventoryExists(t *testing.T) {
+	dir := t.TempDir()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	name, err := writeFlashPrivateOperations(root, flashChild{Operations: []traceEvent{{SessionID: "root", ID: "a", Kind: "tool", Tool: "glob", PrivateText: `**/*.md`}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := result{Suite: flashSuite, Terminal: "completed", Cwd: "/fixture", Root: "/fixture", evidenceDir: dir,
+		FlashClass: &flashClassReport{OperationsFile: name, PrimaryCompletion: &flashChild{SessionID: "root", Operations: []traceEvent{{SessionID: "root", ID: "a", Kind: "tool", Tool: "glob"}}}}}
+	gateFlashOperations(&r)
+	if r.FlashClass.OperationSafety != "pending_inventory" || r.Terminal != "completed" {
+		t.Errorf("live gate before inventory recorded %s / %s", r.FlashClass.OperationSafety, r.Terminal)
+	}
+	r.After = map[string]item{"docs/link": {Hash: "l", Kind: "symlink"}}
+	gateFlashOperations(&r)
+	if r.FlashClass.OperationSafety != "not_observed" || r.Terminal != "operation_inspection_required" {
+		t.Errorf("final gate ignored the symlink: %s / %s", r.FlashClass.OperationSafety, r.Terminal)
+	}
+}
+
+func TestFlashGateOversizedPrivateLineIsNotSilent(t *testing.T) {
+	dir := t.TempDir()
+	big := strings.Repeat("a", 2<<20)
+	content := `{"session_id":"root","id":"big","text":"` + big + `"}` + "\n" + `{"session_id":"root","id":"a","tool":"shell","text":"cat docs/a.md | head -n 5","class":"outside_grammar"}` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, flashPrivateOperationsFile), []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r := result{Suite: flashSuite, Cwd: "/fixture", Root: "/fixture", evidenceDir: dir,
+		FlashClass: &flashClassReport{OperationsFile: flashPrivateOperationsFile, PrimaryCompletion: &flashChild{SessionID: "root", Operations: []traceEvent{{SessionID: "root", ID: "a", Kind: "shell", Tool: "shell", CommandWithheld: true}}}}}
+	gateFlashOperations(&r)
+	if r.FlashClass.OperationSafety == "pass" || len(r.FlashClass.OperationEvidence) == 0 || !strings.Contains(r.FlashClass.OperationEvidence[0], "private operations") {
+		t.Errorf("truncated private evidence not reported: %s %v", r.FlashClass.OperationSafety, r.FlashClass.OperationEvidence)
+	}
+}
+
+func TestFlashPrivateOperationClassSeparatesExecute(t *testing.T) {
+	root, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	name, err := writeFlashPrivateOperations(root, privateEvidenceChild(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := root.ReadFile(name)
+	classes := map[string]string{}
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		var op flashPrivateOperation
+		if err := json.Unmarshal([]byte(line), &op); err != nil {
+			t.Fatal(err)
+		}
+		classes[op.Tool] = op.Class
+	}
+	want := map[string]string{"shell": "outside_grammar", "execute": "execute", "glob": "pattern", "grep": "pattern"}
+	for tool, class := range want {
+		if classes[tool] != class {
+			t.Errorf("%s class %q, want %q", tool, classes[tool], class)
+		}
+	}
+}
+
+func TestRecordFlashErrorKeepsFirst(t *testing.T) {
+	r := &flashClassReport{}
+	recordFlashError(r, "first")
+	recordFlashError(r, "second")
+	if r.Error != "first" {
+		t.Errorf("error %q, want first", r.Error)
 	}
 }

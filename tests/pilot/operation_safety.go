@@ -2,7 +2,6 @@ package main
 
 import (
 	"path/filepath"
-	"regexp"
 )
 
 // One checker serves the existing assessment and the read-only Flash gate.
@@ -19,7 +18,7 @@ func observedPathSafety(r result, changed []string, allowed func(string) bool, s
 	for _, event := range r.Trace.Events {
 		if event.Kind == "shell" {
 			opaque = true
-			if regexp.MustCompile(`\bgit\s+(?:[^;&|\n]*\s)?(?:init|commit|push)\b`).MatchString(event.Command) {
+			if flashGitWrite.MatchString(event.Command) {
 				bad = append(bad, "trace contains git init/commit/push")
 			}
 		}

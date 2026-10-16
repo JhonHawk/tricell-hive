@@ -804,7 +804,7 @@ func main() {
 			privateOperations = append(privateOperations, *r.FlashClass.PrimaryCompletion)
 		}
 		if name, err := writeFlashPrivateOperations(privateEvidenceRoot, privateOperations...); err != nil {
-			r.FlashClass.Error = err.Error()
+			recordFlashError(r.FlashClass, err.Error())
 		} else {
 			r.FlashClass.OperationsFile = name
 		}
