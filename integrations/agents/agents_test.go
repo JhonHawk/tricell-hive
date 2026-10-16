@@ -166,12 +166,14 @@ func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	for _, prefix := range []string{
 		"description = ",
 		"name = ",
-		"sandbox_mode = \"read-only\"\n",
 		"developer_instructions = ",
 	} {
 		if !strings.Contains(got, prefix) {
 			t.Fatalf("Codex TOML missing %q:\n%s", prefix, got)
 		}
+	}
+	if strings.Contains(got, "sandbox_mode") {
+		t.Fatalf("Codex TOML must not declare sandbox_mode:\n%s", got)
 	}
 	if strings.Contains(got, "\n---\n") || strings.Contains(got, "\\x") {
 		t.Fatalf("Codex TOML contains unsupported frontmatter or escape:\n%s", got)
@@ -274,6 +276,16 @@ func TestProfilesRejectCursorUnsupportedAccessKey(t *testing.T) {
 	bad := replaceOnce(t, string(syntheticProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"permissionMode": "plan"}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil {
 		t.Fatal("ReadProfiles accepted an unsupported Cursor access key")
+	}
+}
+
+func TestProfilesRejectCodexSandboxMode(t *testing.T) {
+	for _, mode := range []string{"read-only", "workspace-write"} {
+		bad := replaceOnce(t, string(syntheticProfiles(t)), `"access": {"observe": {}`, `"access": {"observe": {"sandbox_mode": "`+mode+`"}`)
+		_, err := ReadProfiles([]byte(bad))
+		if err == nil || !strings.Contains(err.Error(), "codex") || !strings.Contains(err.Error(), "sandbox_mode") {
+			t.Fatalf("ReadProfiles accepted Codex sandbox_mode %q or named the wrong key: %v", mode, err)
+		}
 	}
 }
 

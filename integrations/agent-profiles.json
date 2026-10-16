@@ -7,7 +7,7 @@
     },
     "codex": {
       "models": {"execution": {"model": "gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "gpt-6.1-sol", "effort": "high"}, "inherit": {"effort": "high"}, "verifier": {"model": "gpt-6-astra", "effort": "high"}},
-      "access": {"observe": {"sandbox_mode": "read-only"}, "implement": {}, "verify": {}}
+      "access": {"observe": {}, "implement": {}, "verify": {}}
     },
     "grok": {
       "models": {"execution": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "grok-4.6"}},

@@ -271,11 +271,6 @@ func nearestOffered(effort string, offered []string) string {
 func validateAccess(host string, values map[string]json.RawMessage) error {
 	for key, raw := range values {
 		switch {
-		case host == "codex" && key == "sandbox_mode":
-			var s string
-			if json.Unmarshal(raw, &s) != nil || !oneOf(s, "read-only", "workspace-write") {
-				return fmt.Errorf("invalid Codex agent sandbox")
-			}
 		case host == "cursor" && key == "readonly":
 			var b bool
 			if json.Unmarshal(raw, &b) != nil || !b {
