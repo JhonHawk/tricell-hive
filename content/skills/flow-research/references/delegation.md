@@ -44,6 +44,10 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Actions:** continue useful independent work. Give each external process you start a completion signal, such as the host's monitor or watch tool, before your turn ends.
 
+**Condition:** giving an external process a completion signal.
+
+**Actions:** make the signal end on every outcome the process can reach: success, failure, and a target that does not exist yet. Prefer the process's exit status, or a command that reports a final state, over matching its output; when you must match text, first check the pattern against the tool's actual success and failure output, including indentation. When the target may not exist yet, such as checks not yet registered on a pull request you just pushed, use one command that waits for the target to appear and then watches it to a final state, under the wait-stretch rule below. A watch that exits reporting no target, such as `no checks reported`, has not finished: rerun that same command, never a new short sleep-and-check cycle.
+
 **Condition:** a child is expected to outlast one wait stretch and the host supports background launch with a completion signal.
 
 **Actions:** launch it in the background.
