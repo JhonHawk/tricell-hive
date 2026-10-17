@@ -31,7 +31,7 @@ Run these steps in order; the last one ends the turn.
 
 **Condition:** the turn completes a work item, after its report and closing items.
 
-**Actions:** ask the close question under [questions](../flow-plan/references/questions.md), ending with the pause line. This question replaces the Recommendations route question.
+**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question.
 
 **Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item. That report still carries its cleanup label, delivery state, and reminders. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
