@@ -76,7 +76,7 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Actions:** number them, give each its reason, and mark one Recommended when it is clearly better. When the user asked for one or what to take next, ask the routes as a choice, each option naming the flow it starts: `flow-plan` when the route spans several tickets, repositories, or steps, `flow-build` only for a small understood change, and both when either fits, except the iterative route that [flow-research](../../flow-research/SKILL.md) defines. Start the chosen flow without a new command.
 
-The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option. The flow asks for them through its delivery question before its first edit, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
+The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option. The flow asks for them through its delivery question before its first edit, or takes them from the repository's declared settings, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
 
 ### Reminders
 
