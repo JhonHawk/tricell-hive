@@ -38,7 +38,7 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 **Condition:** the user will share or keep a comparison, explainer, or long report.
 
-**Actions:** offer a `flow-report` page in one line.
+**Actions:** offer a `flow-report` page as an option of the question the message ends with, such as a route or close question, or, when the message ends with none, ask it by following [questions](../../flow-plan/references/questions.md).
 
 ## Report a running or completed item
 
@@ -62,7 +62,7 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Condition:** an obligation of the current work in this project is unmet, such as a check, publication, or agreed manual action.
 
-**Actions:** list resulting user actions here. An open choice is not a Pending item: it goes in the pause line. The work is not complete while one remains; another project's items belong in its session. Start each item with its sole owner in the session language, user or you; make the user's request self-sufficient under [questions](../../flow-plan/references/questions.md#make-user-dependent-work-self-sufficient), and state what you will do and when for yours. Before giving an item to the user, verify its premise and whether this session's access and authorization already let you do it; if they do, do it instead. An item stays the user's only for their decision or authorization, access you checked and lack, or an action off this machine; say what you checked.
+**Actions:** list resulting user actions here. An open choice is not a Pending item: ask it by following [questions](../../flow-plan/references/questions.md). The work is not complete while one remains; another project's items belong in its session. Start each item with its sole owner in the session language, user or you; make the user's request self-sufficient under [questions](../../flow-plan/references/questions.md#make-user-dependent-work-self-sufficient), and state what you will do and when for yours. Before giving an item to the user, verify its premise and whether this session's access and authorization already let you do it; if they do, do it instead. An item stays the user's only for their decision or authorization, access you checked and lack, or an action off this machine; say what you checked.
 
 ### Next step
 
@@ -107,4 +107,4 @@ required reviewer returns a passing verdict.
 **Next step:** I will run the already authorized review on this candidate.
 ```
 
-This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, name it through the question procedure and end with its pause line; do not put that open choice under Pending or announce an unchosen next step.
+This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../flow-plan/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.

@@ -26,7 +26,7 @@ Read before launching a child or starting a wait for external work, including re
 
 **Actions:** give it the objective, repository or declared root, authorized effects, the files or paths it may modify or delete, relevant contracts, expected output, and acceptance evidence. Delegation grants no additional authority. Label delegated premises as inspected facts, source claims, or assumptions, with the relevant evidence or missing check.
 
-A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. It may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
+A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. A Git command that rewrites working-tree files, such as `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean`, or `git switch`, changes paths outside the child's own: the child never runs one in a working tree shared with other writers, and neither does the main thread while a child works in that tree; both compare with the base through read-only Git commands or a separate worktree. The child may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
 
 ## Deliver and resolve instructions
 
@@ -43,6 +43,10 @@ The child reads these sources before dependent work and reports any unavailable 
 **Condition:** children or other external processes are running.
 
 **Actions:** continue useful independent work. Give each external process you start a completion signal, such as the host's monitor or watch tool, before your turn ends.
+
+**Condition:** giving an external process a completion signal.
+
+**Actions:** make the signal end on every outcome the process can reach: success, failure, and a target that does not exist yet. Prefer the process's exit status, or a command that reports a final state, over matching its output; when you must match text, first check the pattern against the tool's actual success and failure output, including indentation. When the target may not exist yet, such as checks not yet registered on a pull request you just pushed, use one command that waits for the target to appear and then watches it to a final state, under the wait-stretch rule below. A watch that exits reporting no target, such as `no checks reported`, has not finished: rerun that same command, never a new short sleep-and-check cycle.
 
 **Condition:** a child is expected to outlast one wait stretch and the host supports background launch with a completion signal.
 
