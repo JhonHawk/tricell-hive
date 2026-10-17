@@ -2,13 +2,17 @@
 
 ## When to read
 
-Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
+Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, and before ending a message with an offer or request that waits on the user's answer. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
 
 ## Decide whether a question is needed
 
 **Condition:** a choice genuinely belongs to the user and changes what you do next, such as scope, design, delivery, a route, a validation, or the close.
 
-**Actions:** ask only at that decision point. Look up facts yourself. Make a minor call, one with a conventional default that is neither consequential nor an effect needing authorization, yourself and state it in one line. Never ask only for leave to proceed or to show something you could show.
+**Actions:** ask only at that decision point. Look up facts yourself. Make a minor call, one with a conventional default that is neither consequential nor an effect needing authorization, yourself and state it in one line.
+
+**Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
+
+**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route, close or ticket question, ask it under this procedure, never as a closing sentence alone. Otherwise, such as further work the answer does not call for, leave the offer out.
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
