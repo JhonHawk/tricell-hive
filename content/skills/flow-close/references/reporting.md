@@ -38,7 +38,7 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 **Condition:** the user will share or keep a comparison, explainer, or long report.
 
-**Actions:** offer a `flow-report` page in one line.
+**Actions:** offer a `flow-report` page as an option of the question the message ends with, such as a route or close question, or, when the message ends with none, ask it by following [questions](../../flow-plan/references/questions.md).
 
 ## Report a running or completed item
 
