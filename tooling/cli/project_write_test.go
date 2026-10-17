@@ -126,6 +126,10 @@ func TestHiveTextSeparatesBlockingFromWarnings(t *testing.T) {
 			t.Errorf("warnings %q lack %q", warnings, want)
 		}
 	}
+	blocking, _ = checkHiveText([]hiveItem{{"Project", "p"}, {"Base branch", "main"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}, {"Delivery", "automatic"}}, root, git)
+	if joined := strings.Join(blocking, "\n"); strings.Contains(joined, "Delivery") {
+		t.Errorf("Delivery: automatic must be accepted, blocking %q", blocking)
+	}
 	blocking, _ = checkHiveText([]hiveItem{{"Project", "p"}, {"Base branch", "-x"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}, {"Delivery", "pr"}, {"Hive guidance", "optional"}}, root, git)
 	joined = strings.Join(blocking, "\n")
 	for _, want := range []string{"Base branch: -x is not a valid branch name", "Delivery: expected", "Hive guidance: expected"} {
