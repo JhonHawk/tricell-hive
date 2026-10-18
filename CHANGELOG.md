@@ -40,6 +40,10 @@ raise the minor or the patch version.
   finding, and `hive-verify-task` notes it beside its verdicts.
 - The global guidance points to the browser-automation reference before any
   browser is driven, including recordings and demos outside a build.
+- The labels the host shows while the agent works, such as a command's
+  description, a task's subject and a child's label, follow the session
+  language; a contribution to an external or open-source repository first
+  checks that repository's language and uses it for what reaches it.
 - Before merging a pull request, the agent confirms that the passing checks ran
   against the current base; when the base moved, it merges the base into the
   branch, pushes, and waits for the new run.
