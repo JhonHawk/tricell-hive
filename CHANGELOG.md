@@ -10,8 +10,22 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- A code repository can declare `Delivery: automatic` or `Delivery: interactive`
+  and a `Review` mechanism (or `none`) in its `## Hive` section; the agent then
+  states the mode and the review in one line before the first edit instead of
+  asking, and `hive doctor` and the project form accept the new values.
+
 ### Changed
 
+- Before merging a pull request, the agent confirms that the passing checks ran
+  against the current base; when the base moved, it merges the base into the
+  branch, pushes, and waits for the new run.
+- `hive-review-code` reports a repeated defect once with every location and
+  says in its verdict whether the diff crosses a security boundary, which
+  triggers `hive-review-security`; the urgent-fix postmortem names the layer
+  that should have caught the failure and places the preventive action there.
 - At close, the agent may delete merged work branches from this work or
   earlier, with their clean worktrees, as the close procedure already did;
   the global grant now says so, and environment branches are never work
