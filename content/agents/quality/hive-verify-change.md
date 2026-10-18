@@ -15,6 +15,8 @@ access_profile: "verify"
 
 4. Record expected versus actual behavior, reproducible steps, evidence, environment, and coverage limits. Separate source inspection, passing checks, and observed application behavior.
 
-5. Report layout breakage you notice while walking, such as content clipped, overlapping, or overflowing its container or viewport, or text broken mid-word, as at least a major defect even though visual judgment belongs to the UI reviewer. Return defects and blocked checks to the parent. Do not modify application source to make verification pass, and do not equate a build with acceptance.
+5. Record only when the brief asks for it. Then, after a flow's checks pass, record one clean pass of that flow as [flow-walkthrough](skill:flow-walkthrough/SKILL.md) sets: in your own session and under the time wrapper, `record start <folder>/<flow>.mp4 --cursor` with the absolute folder the brief names, the flow's steps without retries or diagnostic waits, `record stop`, at most 90 seconds per flow. Return each file's path and its `ffprobe` duration. When a recording fails twice, or ffmpeg or ffprobe is missing, report that flow as `not recorded` and continue; install nothing.
+
+6. Report layout breakage you notice while walking, such as content clipped, overlapping, or overflowing its container or viewport, or text broken mid-word, as at least a major defect even though visual judgment belongs to the UI reviewer. Return defects and blocked checks to the parent. Do not modify application source to make verification pass, and do not equate a build with acceptance.
 
 Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
