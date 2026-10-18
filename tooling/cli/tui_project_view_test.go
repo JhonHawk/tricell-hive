@@ -323,9 +323,9 @@ func clearField(d *appDriver) {
 }
 
 // formRows are the field labels in the order the form shows them.
-var formRows = []string{"Project", "Base branch", "Tracker", "Specs", "Environments", "Review", "Delivery", "Hive guidance"}
+var formRows = []string{"Project", "Base branch", "Tracker", "Specs", "Environments", "Review", "Delivery", "Hive guidance", "UI verification"}
 
-func TestProjectViewFormOpensWithEightFieldsAndSuggestions(t *testing.T) {
+func TestProjectViewFormOpensWithNineFieldsAndSuggestions(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			root := formRepo(t)
@@ -353,7 +353,7 @@ func TestProjectViewFormOpensWithEightFieldsAndSuggestions(t *testing.T) {
 func TestProjectViewFormChoiceFieldsCycleAndRequiredFieldsAreChecked(t *testing.T) {
 	_, d, _ := openForm(t, formRepo(t), 80, 24)
 	d.key("down", "down", "down", "down", "down", "down") // Delivery
-	d.mustShow("> Delivery      ‹ none ›")
+	d.mustShow("> Delivery        ‹ none ›")
 	d.key("right")
 	d.mustShow("‹ direct-base ›")
 	d.key("right")
@@ -361,7 +361,7 @@ func TestProjectViewFormChoiceFieldsCycleAndRequiredFieldsAreChecked(t *testing.
 	d.key("right")
 	d.mustShow("‹ interactive ›")
 	d.key("right")
-	d.mustShow("Delivery      ‹ none ›")
+	d.mustShow("Delivery        ‹ none ›")
 	d.key("left")
 	d.mustShow("‹ interactive ›")
 	d.key("left")
@@ -378,6 +378,27 @@ func TestProjectViewFormChoiceFieldsCycleAndRequiredFieldsAreChecked(t *testing.
 	}
 }
 
+func TestProjectViewFormCyclesTheUIVerificationValues(t *testing.T) {
+	_, d, _ := openForm(t, formRepo(t), 80, 24)
+	d.key("down", "down", "down", "down", "down", "down", "down", "down") // UI verification
+	d.mustShow("> UI verification ‹ unset ›")
+	for _, want := range []string{"‹ full ›", "‹ functional ›", "UI verification ‹ none ›", "‹ unset ›"} {
+		d.key("right")
+		d.mustShow(want)
+	}
+	d.key("left")
+	d.mustShow("UI verification ‹ none ›")
+	d.key("left")
+	d.mustShow("‹ functional ›")
+}
+
+func TestProjectViewFormKeepsAnExistingUIVerificationValue(t *testing.T) {
+	root := formRepo(t)
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- UI verification: functional\n", 1))
+	_, d, _ := openForm(t, root, 80, 24)
+	d.mustShow("‹ functional ›")
+}
+
 func TestProjectViewFormLoadsTheExistingSectionWithoutSuggestions(t *testing.T) {
 	root := formRepo(t)
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Delivery: direct-base\n", 1))
@@ -392,7 +413,7 @@ func TestProjectViewFormShowsAnAutomaticDeliveryOnce(t *testing.T) {
 	_, d, _ := openForm(t, root, 80, 24)
 	d.mustShow("‹ automatic ›")
 	d.key("down", "down", "down", "down", "down", "down") // Delivery
-	for _, want := range []string{"‹ interactive ›", "Delivery      ‹ none ›", "‹ direct-base ›", "‹ automatic ›"} {
+	for _, want := range []string{"‹ interactive ›", "Delivery        ‹ none ›", "‹ direct-base ›", "‹ automatic ›"} {
 		d.key("right")
 		d.mustShow(want)
 	}
@@ -508,9 +529,9 @@ func TestProjectViewFormKeys(t *testing.T) {
 	d.key("e")
 	d.mustShow("> Project")
 	d.key("backspace") // deletes the "r" of the suggestion
-	d.mustNotShow("> Project       r")
+	d.mustNotShow("> Project         r")
 	typeText(d, "re")
-	d.mustShow("> Project       re")
+	d.mustShow("> Project         re")
 	if m.top() != view(v) {
 		t.Fatalf("top view is %T", m.top())
 	}
