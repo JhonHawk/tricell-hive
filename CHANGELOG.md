@@ -40,6 +40,12 @@ raise the minor or the patch version.
   finding, and `hive-verify-task` notes it beside its verdicts.
 - The global guidance points to the browser-automation reference before any
   browser is driven, including recordings and demos outside a build.
+- Unattended delegation has a fourth source: the user's silence after they
+  answered the route, delivery and review questions of the running work
+  delegates that work up to the delivery point they chose. The skill names
+  the force-push with an exact lease and the pull-request text edits it
+  allows, each with its way back, and reports an inferred activation as
+  inferred.
 - The labels the host shows while the agent works, such as a command's
   description, a task's subject and a child's label, follow the session
   language; a contribution to an external or open-source repository first
