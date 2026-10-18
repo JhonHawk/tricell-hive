@@ -271,8 +271,8 @@ const (
 
 // projectForm holds one field per setting of hiveSettingKeys. Text settings
 // are text inputs; Delivery and Hive guidance choose among ‹ none › and
-// their one valid value (plus the value the file holds now, when it is
-// neither, so opening the form never drops it silently).
+// their valid values (plus the value the file holds now, when it is none of
+// them, so opening the form never drops it silently).
 type projectForm struct {
 	inputs    []textinput.Model
 	options   [][]string // for a choice field; nil for a text field
@@ -311,12 +311,12 @@ func newProjectForm(items []hiveItem, suggestions map[string]string) *projectFor
 		cur, present := f.current[k.Name]
 		switch k.Name {
 		case "Delivery", "Hive guidance":
-			want := hiveDeliveryWant
+			valid := hiveDeliveryValues
 			if k.Name == "Hive guidance" {
-				want = hiveGuidanceWant
+				valid = []string{hiveGuidanceWant}
 			}
-			f.options[i] = []string{"", want}
-			if present && cur != "" && cur != want {
+			f.options[i] = append([]string{""}, valid...)
+			if present && cur != "" && !slices.Contains(f.options[i], cur) {
 				f.options[i] = append(f.options[i], cur)
 			}
 			f.choice[i] = max(slices.Index(f.options[i], cur), 0)

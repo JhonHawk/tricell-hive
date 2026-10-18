@@ -357,9 +357,15 @@ func TestProjectViewFormChoiceFieldsCycleAndRequiredFieldsAreChecked(t *testing.
 	d.key("right")
 	d.mustShow("‹ direct-base ›")
 	d.key("right")
+	d.mustShow("‹ automatic ›")
+	d.key("right")
+	d.mustShow("‹ interactive ›")
+	d.key("right")
 	d.mustShow("Delivery      ‹ none ›")
 	d.key("left")
-	d.mustShow("‹ direct-base ›")
+	d.mustShow("‹ interactive ›")
+	d.key("left")
+	d.mustShow("‹ automatic ›")
 
 	d.key("up", "up", "up", "up", "up", "up") // Project
 	clearField(d)
@@ -378,6 +384,18 @@ func TestProjectViewFormLoadsTheExistingSectionWithoutSuggestions(t *testing.T) 
 	_, d, _ := openForm(t, root, 80, 24)
 	d.mustShow("> Project", "demo", "main", "GitHub Issues · org/demo", "_support/openspec", "‹ direct-base ›")
 	d.mustNotShow("suggested", "o/r")
+}
+
+func TestProjectViewFormShowsAnAutomaticDeliveryOnce(t *testing.T) {
+	root := formRepo(t)
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Delivery: automatic\n", 1))
+	_, d, _ := openForm(t, root, 80, 24)
+	d.mustShow("‹ automatic ›")
+	d.key("down", "down", "down", "down", "down", "down") // Delivery
+	for _, want := range []string{"‹ interactive ›", "Delivery      ‹ none ›", "‹ direct-base ›", "‹ automatic ›"} {
+		d.key("right")
+		d.mustShow(want)
+	}
 }
 
 func TestProjectViewFormConfirmationShowsTheChangeAndTheWarnings(t *testing.T) {

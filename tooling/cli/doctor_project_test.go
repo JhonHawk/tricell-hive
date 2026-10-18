@@ -270,11 +270,25 @@ func TestHiveSectionUnknownKeyAndOptionalValues(t *testing.T) {
 
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Hive guidance: optional\n- Specs:", 1))
 	text = projectText(t, root)
-	mustContain(t, text, `Delivery: expected "direct-base", found "pr"`, `Hive guidance: expected "required", found "optional"`)
+	mustContain(t, text, `Delivery: expected one of "direct-base", "automatic", "interactive", found "pr"`, `Hive guidance: expected "required", found "optional"`)
 	mustNotContain(t, text, "Valid")
 
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: direct-base\n- Hive guidance: required\n- Environments: a → b\n- Review: /code-review\n- Specs:", 1))
 	mustContain(t, projectText(t, root), "Valid", "Delivery: direct-base", "Hive guidance: required", "Review: /code-review")
+}
+
+func TestDoctorProjectAcceptsDeliveryModes(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	for _, mode := range []string{"direct-base", "automatic", "interactive"} {
+		writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: "+mode+"\n- Specs:", 1))
+		text := projectText(t, root)
+		mustContain(t, text, "Valid", "Delivery: "+mode)
+		mustNotContain(t, text, "Delivery: expected")
+	}
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
+	text := projectText(t, root)
+	mustContain(t, text, `Delivery: expected one of "direct-base", "automatic", "interactive", found "pr"`)
+	mustNotContain(t, text, "Valid")
 }
 
 func TestHiveSectionInheritedGitDirDoesNotChangeTheResult(t *testing.T) {
