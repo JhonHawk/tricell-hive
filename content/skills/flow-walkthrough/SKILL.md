@@ -47,7 +47,7 @@ Also write the walkthrough page: copy [the walkthrough skeleton](../flow-report/
 
 While the user requests corrections during a validation pause, whether to text, behavior, or layout, run one correction round per request: apply the correction; write its test in the same round when it alters behavior of a kind the build skill's test-first rule covers; run the affected tests; rebuild; capture the affected views; and ask again right away in the same way. Between rounds, run no `hive-review-ux`, `hive-verify-change`, `hive-verify-task`, or dedicated code review. When you offer alternatives, sketch them as [UI planning](../flow-plan/references/ui-planning.md) describes.
 
-When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets: the children the `UI verification` value selects on the diff since the last candidate that passed, `hive-verify-task` on the tasks whose files changed, and the re-recording of the stale flows.
+When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets, before any further step.
 
 Markers: when a correction changes the files of a task marked `[x]`, set that task back to `[?]` with a line `reopened by correction round <n>`, and verify it at the accepted-candidate gate. Record a correction outside the plan's tasks in the progress section; `hive-verify-change` covers it at that gate when the value runs it. A correction that changes the retained plan follows [Revise a plan in progress](../flow-plan/SKILL.md#revise-a-plan-in-progress); the plan re-review it may make due runs with the accepted-candidate gate above, not between rounds.
 
