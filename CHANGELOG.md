@@ -12,6 +12,16 @@ raise the minor or the patch version.
 
 ### Added
 
+- `flow-walkthrough`, a skill that owns the human validation of a user
+  interface: the first rendered view of a new layout, the correction rounds,
+  the captures, one short recorded pass per flow (`agent-browser record`,
+  checked with `ffprobe`) and the handoff as a message and a dark-mode HTML
+  page built from the new `flow-report` walkthrough skeleton. Build's
+  verification reference now points to it instead of holding the handoff.
+- `UI verification`, an optional `## Hive` key with `full`, `functional` or
+  `none`, selects which independent children run on a built UI change; without
+  it, Build asks once per repository and session in the review round.
+  `hive doctor` and the project form accept the key.
 - A code repository can declare `Delivery: automatic` or `Delivery: interactive`
   and a `Review` mechanism (or `none`) in its `## Hive` section; the agent then
   states the mode and the review in one line before the first edit instead of
