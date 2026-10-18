@@ -94,6 +94,14 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- A yes-or-no question, such as an authorization, lists its two options with
+  IDs and effects like any other question, and a question tool that returns
+  before the answer, such as Codex's asynchronous card, never replaces the
+  options in the text. In a Codex Default-mode session on 2026-10-18 the
+  Bugbot authorization went out as a bare "do you authorize it?" and a
+  history-rewrite authorization put its options only in the asynchronous
+  card, which closed at the end of the turn, so the user had to answer twice
+  without options.
 - The Codex `observe` profile no longer declares `sandbox_mode = "read-only"`
   in the installed role files: Codex restores the session's permissions after
   applying a role (verified on 0.163.0; the 0.155.1 note is consistent with

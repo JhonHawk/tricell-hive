@@ -16,7 +16,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
-**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason; a yes-or-no question needs no option IDs. Never leave a choice's options only in a ticket or document. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Reuse explicit decisions already in force; silence, preselection, and a dismissed or timed-out question grant nothing.
+**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Reuse explicit decisions already in force; silence, preselection, and a dismissed or timed-out question grant nothing.
 
 **Condition:** several open questions do not depend on one another.
 
@@ -41,9 +41,9 @@ Split questions or options beyond the tool's limit across consecutive calls, eac
 
 ## Use text when no waiting card carries the question
 
-**Condition:** no waiting card carries the question: no such tool exists; a tool returns before the answer, used only while independent work continues; or a dismissed or timed-out question is asked once more in text.
+**Condition:** no waiting card carries the question: no such tool exists; the only tool returns before the answer, such as an asynchronous card that closes when the turn ends; or a dismissed or timed-out question is asked once more in text.
 
-**Actions:** write each option in the text, one line each with only what sets it apart. State once what several options share and any route project policy rules out. Add no "Other" option or reply example. Take the first answer that arrives.
+**Actions:** write each option in the text, one line each with only what sets it apart. State once what several options share and any route project policy rules out. Add no "Other" option or reply example. A tool that returns before the answer may be called in addition, only while independent work continues in the turn, and never replaces the options in the text: the waiting-card procedure above, which omits them from the message, does not apply to it. Take the first answer that arrives.
 
 ## Make user-dependent work self-sufficient
 
