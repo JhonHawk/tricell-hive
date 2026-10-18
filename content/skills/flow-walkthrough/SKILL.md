@@ -1,17 +1,17 @@
 ---
 name: flow-walkthrough
-description: Walk a built user interface for a person to validate it. Show the first rendered view of a new or rearranged layout during a build, run correction rounds, capture the changed screens, record one clean pass per flow, and deliver the walkthrough as a message and a dark HTML page. Use at the human validation stop of flow-build, for the first rendered view during a build, and when the user asks for a walkthrough or a demo of a feature already built.
+description: Walk a built user interface for a person to validate it, and own the UI gate that verifies it. Show the first rendered view of a new or rearranged layout during a build, run the independent UI children the project's `UI verification` value selects, run correction rounds, capture the changed screens, record one clean pass per flow, and deliver the walkthrough as a message and a dark HTML page. Use at the human validation stop of flow-build, for the first rendered view and the UI gate during a build, and when the user asks for a walkthrough or a demo of a feature already built.
 ---
 
 # Walk a user interface for human validation
 
-This skill owns the human side of a user-interface change: what the user sees before validating, how corrections flow, and what evidence accompanies the handoff. The independent checks before this point stay in [verification](../flow-build/references/verification.md).
+This skill owns a user-interface change from the moment it renders until the user validates it: what the user sees before validating, how corrections flow, what evidence accompanies the handoff, and, in [the UI gate](references/ui-gate.md), the implementer's rendered inspection and the independent children that the repository's `UI verification` value selects. Read that reference before any gate on a change with a rendered UI effect. Test depth and the runtime, CI and deployment gates stay in [verification](../flow-build/references/verification.md).
 
 ## When it applies
 
-- At the human validation stop of `flow-build` under `interactive` or `hold` delivery, after the independent checks that [verification](../flow-build/references/verification.md) selects have run; during a build, as soon as a new or rearranged layout exists, for the first rendered view below; and when the user asks for a walkthrough or a demo of a feature already built.
-- Not under `automatic` delivery, which never stops for human validation; run it there only when the user asks.
-- A change that alters only text or a style value without changing layout, state, or flow needs no recording: the implementer's rendered check in [verification](../flow-build/references/verification.md) covers it, and its captures still go to the folder below.
+- At the human validation stop of `flow-build` under `interactive` or `hold` delivery, after the children that [the UI gate](references/ui-gate.md) selects have run; during a build, as soon as a new or rearranged layout exists, for the first rendered view below; and when the user asks for a walkthrough or a demo of a feature already built.
+- Under `automatic` delivery, which never stops for human validation, only [the UI gate](references/ui-gate.md) runs; the handoff below runs there only when the user asks.
+- A change that alters only text or a style value without changing layout, state, or flow needs no recording: the implementer's rendered check in [the UI gate](references/ui-gate.md) covers it, and its captures still go to the folder below.
 
 ## Prepare
 
@@ -47,7 +47,7 @@ Also write the walkthrough page: copy [the walkthrough skeleton](../flow-report/
 
 While the user requests corrections during a validation pause, whether to text, behavior, or layout, run one correction round per request: apply the correction; write its test in the same round when it alters behavior of a kind the build skill's test-first rule covers; run the affected tests; rebuild; capture the affected views; and ask again right away in the same way. Between rounds, run no `hive-review-ux`, `hive-verify-change`, `hive-verify-task`, or dedicated code review. When you offer alternatives, sketch them as [UI planning](../flow-plan/references/ui-planning.md) describes.
 
-When the user accepts, run one gate scoped to the diff between the last candidate that passed the gate and the accepted one, with the children that the repository's `UI verification` value or answer selects: under `full`, `hive-review-ux` on the changed views and `hive-verify-change` on the journeys that touch changed files; under `functional`, only `hive-verify-change`; under `none`, neither; and in every case `hive-verify-task` on the tasks whose files changed. The recorder re-records the stale flows at this gate. If no gate has run yet, run the full gate for the value. When a gate child reports an introduced Blocker or High finding, fix it, show the user the result, and re-review it only with the child that reported it. The delivery's dedicated code review runs on the accepted candidate, at the point the delivery mode already sets.
+When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets: the children the `UI verification` value selects on the diff since the last candidate that passed, `hive-verify-task` on the tasks whose files changed, and the re-recording of the stale flows.
 
 Markers: when a correction changes the files of a task marked `[x]`, set that task back to `[?]` with a line `reopened by correction round <n>`, and verify it at the accepted-candidate gate. Record a correction outside the plan's tasks in the progress section; `hive-verify-change` covers it at that gate when the value runs it. A correction that changes the retained plan follows [Revise a plan in progress](../flow-plan/SKILL.md#revise-a-plan-in-progress); the plan re-review it may make due runs with the accepted-candidate gate above, not between rounds.
 
