@@ -547,7 +547,7 @@ func flowLoadingSkills(id string) []string {
 	case "smoke", "conventions-smoke":
 		return []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
 	case "deployed-smoke":
-		return []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-archive"}
+		return []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-archive", "flow-walkthrough"}
 	default:
 		return nil
 	}
