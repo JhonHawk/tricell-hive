@@ -16,8 +16,12 @@ raise the minor or the patch version.
   interface: the first rendered view of a new layout, the correction rounds,
   the captures, one short recorded pass per flow (`agent-browser record`,
   checked with `ffprobe`) and the handoff as a message and a dark-mode HTML
-  page built from the new `flow-report` walkthrough skeleton. Build's
-  verification reference now points to it instead of holding the handoff.
+  page built from the new `flow-report` walkthrough skeleton. Its reference
+  `ui-gate.md` is the one home of the UI gate: the implementer's rendered
+  inspection, the independent children with their briefs and stops, and the
+  accepted-candidate gate; `ui-review-criteria.md` moved beside it. Build's
+  verification reference now points to them instead of holding the handoff
+  and the gate.
 - `UI verification`, an optional `## Hive` key with `full`, `functional` or
   `none`, selects which independent children run on a built UI change; without
   it, Build asks once per repository and session in the review round.
