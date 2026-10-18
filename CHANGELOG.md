@@ -33,6 +33,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The language rule names URL paths and route segments, including those of
+  public pages, among the identifiers written in English: a URL path is an
+  identifier, not user-facing text.
 - Before merging a pull request, the agent confirms that the passing checks ran
   against the current base; when the base moved, it merges the base into the
   branch, pushes, and waits for the new run.
