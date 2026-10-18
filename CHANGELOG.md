@@ -35,7 +35,11 @@ raise the minor or the patch version.
 
 - The language rule names URL paths and route segments, including those of
   public pages, among the identifiers written in English: a URL path is an
-  identifier, not user-facing text.
+  identifier, not user-facing text. `hive-review-code` reports a new
+  identifier, file name, URL path or route segment in another language as a
+  finding, and `hive-verify-task` notes it beside its verdicts.
+- The global guidance points to the browser-automation reference before any
+  browser is driven, including recordings and demos outside a build.
 - Before merging a pull request, the agent confirms that the passing checks ran
   against the current base; when the base moved, it merges the base into the
   branch, pushes, and waits for the new run.
