@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "lang": "es",
+  "kind": "final",
+  "title": "gh-75 \u2014 vistas de escritorio y m\u00f3vil",
+  "session": {
+    "id": "01a151c9-adf7-7471-aed1-2ca176efe472",
+    "host": "claude-code"
+  },
+  "candidate": {
+    "branch": "feat/viewports",
+    "commit": "1a2b3c4d",
+    "base": "development"
+  },
+  "created_at": "2026-10-18T22:00:00-06:00",
+  "result": "Las dos vistas conviven en un flujo.",
+  "flows": [
+    {
+      "id": "f",
+      "title": "F",
+      "captures": [
+        {
+          "path": "images/a.png",
+          "caption": "c",
+          "viewport": "tablet"
+        }
+      ]
+    }
+  ]
+}

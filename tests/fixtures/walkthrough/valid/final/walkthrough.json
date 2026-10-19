@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "lang": "es",
+  "kind": "final",
+  "title": "gh-67 — recorrido de ejemplo",
+  "session": {
+    "id": "sess-0001",
+    "host": "claude-code"
+  },
+  "candidate": {
+    "branch": "feat/example",
+    "commit": "1a2b3c4d",
+    "base": "development"
+  },
+  "created_at": "2026-10-18T22:00:00-06:00",
+  "flows": [
+    {
+      "id": "sidebar-navigation",
+      "title": "gh-67 - lo que la persona puede hacer en la barra lateral",
+      "steps": [
+        "Abrir la página con la sesión iniciada.",
+        "Pulsar la segunda miniatura. </script><img src=x onerror=alert(1)>",
+        "Esperado: el carrusel muestra 2 / 3."
+      ],
+      "captures": [
+        {
+          "path": "images/nav-1.png",
+          "caption": "Paso 1 — inicio",
+          "alt": "Pantalla de inicio"
+        },
+        {
+          "path": "images/nav-2.png",
+          "caption": "Paso 2 — menú abierto",
+          "alt": "Menú abierto"
+        },
+        {
+          "path": "images/nav-3.png",
+          "caption": "Paso 3 — destino",
+          "alt": "Página de destino"
+        }
+      ],
+      "recording": {
+        "status": "none"
+      }
+    },
+    {
+      "id": "settings",
+      "title": "gh-67 - ajustes",
+      "steps": [
+        "Abrir ajustes.",
+        "Esperado: la pantalla de ajustes."
+      ],
+      "captures": [
+        {
+          "path": "images/settings-1.png",
+          "caption": "Ajustes",
+          "alt": "Pantalla de ajustes"
+        }
+      ],
+      "recording": {
+        "status": "not_recorded",
+        "reason": "las capturas bastan para este flujo"
+      }
+    }
+  ],
+  "ticket": "gh-67-flow-walkthrough-skill",
+  "result": "Aprobado con una advertencia. </script><img src=x onerror=alert(1)>",
+  "checks": [
+    {
+      "name": "AC1 — navegación lateral",
+      "status": "pass",
+      "evidence": "visible en 1440 px"
+    },
+    {
+      "name": "AC2 — carrusel",
+      "status": "pass",
+      "evidence": "teclas y botones"
+    },
+    {
+      "name": "Pruebas unitarias",
+      "status": "pass",
+      "evidence": "python3 -m unittest: 12 pruebas"
+    },
+    {
+      "name": "Revisión de UX",
+      "status": "warn",
+      "evidence": "contraste límite en el pie"
+    },
+    {
+      "name": "Lint",
+      "status": "not_run",
+      "evidence": "sin configuración"
+    }
+  ],
+  "action_required": [
+    "Confirmar el contraste del pie en un monitor real."
+  ],
+  "environment": [
+    {
+      "label": "App",
+      "value": "http://localhost:3000"
+    },
+    {
+      "label": "Cuenta",
+      "value": "test.user@example.com"
+    }
+  ],
+  "provenance": [
+    "Generado por el orquestador a partir de los resultados de los hijos."
+  ]
+}

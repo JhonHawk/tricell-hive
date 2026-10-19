@@ -1,0 +1,558 @@
+{
+  "schema_version": 1,
+  "lang": "es",
+  "kind": "final",
+  "title": "Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Títu",
+  "session": {
+    "id": "sess-0001",
+    "host": "claude-code"
+  },
+  "candidate": {
+    "branch": "feat/example",
+    "commit": "1a2b3c4d",
+    "base": "development"
+  },
+  "created_at": "2026-10-18T22:00:00-06:00",
+  "flows": [
+    {
+      "id": "many",
+      "title": "Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Títu",
+      "steps": [
+        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      ],
+      "captures": [
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 1 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 1"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 2 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 2"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 3 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 3"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 4 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 4"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 5 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 5"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 6 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 6"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 7 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 7"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 8 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 8"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 9 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 9"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 10 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 10"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 11 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 11"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 12 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 12"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 13 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 13"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 14 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 14"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 15 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 15"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 16 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 16"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 17 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 17"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 18 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 18"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 19 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 19"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 20 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 20"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 21 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 21"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 22 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 22"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 23 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 23"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 24 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 24"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 25 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 25"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 26 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 26"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 27 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 27"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 28 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 28"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 29 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 29"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 30 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 30"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 31 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 31"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 32 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 32"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 33 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 33"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 34 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 34"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 35 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 35"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 36 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 36"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 37 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 37"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 38 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 38"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 39 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 39"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 40 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 40"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 41 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 41"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 42 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 42"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 43 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 43"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 44 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 44"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 45 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 45"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 46 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 46"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 47 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 47"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 48 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 48"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 49 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 49"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 50 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 50"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 51 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 51"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 52 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 52"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 53 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 53"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 54 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 54"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 55 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 55"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 56 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 56"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 57 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 57"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 58 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 58"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 59 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 59"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 60 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 60"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 61 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 61"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 62 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 62"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 63 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 63"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 64 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 64"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 65 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 65"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 66 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 66"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 67 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 67"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 68 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 68"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 69 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 69"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 70 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 70"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 71 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 71"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 72 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 72"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 73 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 73"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 74 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 74"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 75 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 75"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 76 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 76"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 77 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 77"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 78 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 78"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 79 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 79"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 80 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 80"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 81 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 81"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 82 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 82"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 83 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 83"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 84 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 84"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 85 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 85"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 86 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 86"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 87 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 87"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 88 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 88"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 89 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 89"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 90 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 90"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 91 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 91"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 92 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 92"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 93 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 93"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 94 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 94"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 95 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 95"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 96 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 96"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 97 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 97"
+        },
+        {
+          "path": "images/shot-1.png",
+          "caption": "Captura 98 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 98"
+        },
+        {
+          "path": "images/shot-2.png",
+          "caption": "Captura 99 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 99"
+        },
+        {
+          "path": "images/shot-0.png",
+          "caption": "Captura 100 Título extremadamente largo Título extremadamente largo Títu",
+          "alt": "Captura 100"
+        }
+      ]
+    },
+    {
+      "id": "unbroken",
+      "title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "captures": [
+        {
+          "path": "images/shot-0.png",
+          "caption": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    }
+  ],
+  "ticket": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "result": "Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Títu",
+  "checks": [
+    {
+      "name": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "status": "pass",
+      "evidence": "Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Título extremadamente largo Títu"
+    }
+  ],
+  "environment": [
+    {
+      "label": "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL",
+      "value": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    }
+  ],
+  "action_required": [
+    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  ],
+  "provenance": [
+    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  ]
+}
