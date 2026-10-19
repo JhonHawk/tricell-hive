@@ -174,6 +174,45 @@ class WalkthroughRenderTest(unittest.TestCase):
                 folder = self.make_folder(self.minimal(**{field: value}))
                 self.assert_rejected(folder, expected)
 
+    def test_created_at_accepts_a_trailing_z(self) -> None:
+        # datetime.fromisoformat rejects "Z" before Python 3.11.
+        for value in ("2026-10-18T22:00:00Z", "2026-10-18T22:00:00z", "2026-10-18T22:00:00.5Z"):
+            with self.subTest(created_at=value):
+                folder = self.make_folder(self.minimal(created_at=value))
+                result = run_generator(folder)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_overflowing_numbers_are_rejected(self) -> None:
+        manifest = self.minimal(
+            flows=[
+                {
+                    "id": "one",
+                    "title": "One",
+                    "captures": [],
+                    "recording": {
+                        "status": "recorded",
+                        "path": "images/v.mp4",
+                        "candidate": "abc",
+                        "duration_seconds": "DURATION",
+                    },
+                }
+            ]
+        )
+        for literal, expected in (
+            ("1e999", "duration_seconds"),
+            ("-1e999", "duration_seconds"),
+            ("1" + "0" * 400, "duration_seconds"),
+            ("Infinity", "walkthrough.json"),
+            ("NaN", "walkthrough.json"),
+        ):
+            with self.subTest(literal=literal[:12]):
+                folder = self.make_folder(manifest, ("images/v.mp4",))
+                text = (folder / "walkthrough.json").read_text(encoding="utf-8")
+                (folder / "walkthrough.json").write_text(
+                    text.replace('"DURATION"', literal), encoding="utf-8"
+                )
+                self.assert_rejected(folder, expected)
+
     def test_recording_status_requirements(self) -> None:
         def flow(recording: dict) -> dict:
             return self.minimal(

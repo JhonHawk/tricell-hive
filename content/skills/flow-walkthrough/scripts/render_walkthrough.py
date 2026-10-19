@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -68,6 +69,14 @@ class ManifestError(Exception):
 def is_one_of(value, allowed):
     """Return whether value is a string in allowed; other types never match."""
     return isinstance(value, str) and value in allowed
+
+def is_finite(number: int | float) -> bool:
+    """Return whether number is finite; an int too large for a float is not."""
+    try:
+        return math.isfinite(float(number))
+    except OverflowError:
+        return False
+
 
 def fail(field: str, message: str) -> ManifestError:
     return ManifestError(field, message)
@@ -149,8 +158,8 @@ def validate_recording(folder: Path, value: object, field: str) -> None:
         check_path(folder, value["path"], f"{field}.path", RECORDING_EXTENSIONS, MAX_RECORDING)
     if "duration_seconds" in value:
         seconds = value["duration_seconds"]
-        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or seconds < 0:
-            raise fail(f"{field}.duration_seconds", "must be a non-negative number")
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or not is_finite(seconds) or seconds < 0:
+            raise fail(f"{field}.duration_seconds", "must be a finite non-negative number")
     for key in ("candidate", "reason"):
         if key in value:
             expect_string(value[key], f"{field}.{key}")
@@ -212,8 +221,10 @@ def validate(folder: Path, manifest: object) -> None:
     for key, value in candidate.items():
         expect_string(value, f"candidate.{key}")
     created = expect_string(root["created_at"], "created_at")
+    # datetime.fromisoformat rejects a trailing "Z" before Python 3.11.
+    normalized = created[:-1] + "+00:00" if created[-1:] in ("Z", "z") else created
     try:
-        datetime.fromisoformat(created)
+        datetime.fromisoformat(normalized)
     except ValueError:
         raise fail("created_at", "must be an ISO 8601 date-time") from None
     for key in ("ticket", "result"):
@@ -279,7 +290,7 @@ def load_manifest(folder: Path) -> object:
 
 
 def inert_json(manifest: object) -> str:
-    text = json.dumps(manifest, ensure_ascii=False, separators=(",", ":"))
+    text = json.dumps(manifest, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     return (
         text.replace("&", "\\u0026")
         .replace("<", "\\u003c")
