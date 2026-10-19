@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -562,11 +563,56 @@ func viewOpen(p viewPaths, w io.Writer, deps viewDeps) error {
 		fmt.Fprintln(w, "The viewer is not running. Start it with `hive view start`.")
 		return nil
 	}
-	if err := deps.open(info.url() + "/#token=" + info.Token); err != nil {
-		return fmt.Errorf("cannot open the viewer: %w", err)
+	code, err := viewAccessCode(info)
+	if err != nil {
+		return err
+	}
+	if err := deps.open(info.url() + "/#code=" + code); err != nil {
+		return errors.New("cannot open the viewer; run `hive view open` to try again")
 	}
 	fmt.Fprintf(w, "Opened %s\n", info.url())
 	return nil
+}
+
+// viewAccessCode never forwards response bodies or transport errors, which may
+// contain credentials. Redirects must not forward the token to another server.
+func viewAccessCode(info serverInfo) (string, error) {
+	req, err := http.NewRequest(http.MethodPost, info.url()+"/api/access-codes", nil)
+	if err != nil {
+		return "", errors.New("cannot request viewer access")
+	}
+	req.Header.Set("X-Hive-Token", info.Token)
+	req.Header.Set("Origin", info.url())
+	client := *viewClient
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", errors.New("cannot request viewer access; run `hive view open` to try again")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errors.New("the running viewer needs an update; run `hive view stop`, `hive view start`, then `hive view open`")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("the viewer did not grant access; run `hive view open` to try again")
+	}
+	var result struct {
+		Code string `json:"code"`
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1025))
+	if err != nil || len(data) > 1024 {
+		return "", errors.New("invalid viewer access response")
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if dec.Decode(&result) != nil || dec.Decode(new(any)) != io.EOF || len(result.Code) != 64 {
+		return "", errors.New("invalid viewer access response")
+	}
+	decoded, err := hex.DecodeString(result.Code)
+	if err != nil || len(decoded) != 32 {
+		return "", errors.New("invalid viewer access response")
+	}
+	return result.Code, nil
 }
 
 func viewRegister(p viewPaths, f viewFlags, w io.Writer) error {

@@ -46,9 +46,9 @@ const LABELS = {
     reposHeading: "Registered repositories",
     copy: "Copy",
     copied: "Copied",
-    accessTitle: "This page needs the server token",
-    noToken: "It was opened without the token, so it shows nothing. Run `hive view open` to open it with access.",
-    tokenRejected: "The server rejected the token (it probably restarted). Run `hive view open` to reopen this page with a new one.",
+    accessTitle: "This page needs access",
+    noToken: "Run `hive view open` to open this page with access.",
+    tokenRejected: "Access was rejected or the opening code expired or was already used. Run `hive view open` to reopen this page.",
     accessNote: "No walkthroughs are requested until the page has a valid token.",
     down: "Cannot reach the Hive viewer server. Start it with `hive view start`, then reopen this page with `hive view open` (a new start usually picks a new port). If the server answers again at this address, the page reconnects by itself.",
     backUp: "Reconnected to the server.",
@@ -95,9 +95,9 @@ const LABELS = {
     reposHeading: "Repositorios registrados",
     copy: "Copiar",
     copied: "Copiado",
-    accessTitle: "Esta página necesita el token del servidor",
-    noToken: "Se abrió sin el token, así que no muestra nada. Ejecuta `hive view open` para abrirla con acceso.",
-    tokenRejected: "El servidor rechazó el token (probablemente se reinició). Ejecuta `hive view open` para volver a abrir esta página con uno nuevo.",
+    accessTitle: "Esta página necesita acceso",
+    noToken: "Ejecuta `hive view open` para abrir esta página con acceso.",
+    tokenRejected: "El acceso fue rechazado o el código de apertura caducó o ya se usó. Ejecuta `hive view open` para volver a abrir esta página.",
     accessNote: "Los recorridos se cargan cuando la página tiene un token válido.",
     down: "No se puede conectar con el servidor de Hive. Inícialo con `hive view start` y vuelve a abrir esta página con `hive view open` (un inicio nuevo suele usar otro puerto). Si el servidor responde otra vez en esta dirección, la página se reconecta sola.",
     backUp: "Reconectado con el servidor.",
@@ -132,6 +132,7 @@ const state = {
   prefer: null,
   hidden: new Set(),
   blocked: false,
+  generation: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -180,15 +181,14 @@ function storage(op, key, value) {
   return "";
 }
 
-// The token arrives in the URL fragment; keep it for this tab and remove it
-// from the address bar.
-function takeToken() {
-  const match = /(?:^#|&)token=([^&]+)/.exec(location.hash);
-  if (match) {
-    storage("set", TOKEN_KEY, decodeURIComponent(match[1]));
+// Remove an opening credential synchronously, before waiting for the network.
+function takeCode() {
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  const code = fragment.get("code");
+  if (fragment.has("code") || fragment.has("token")) {
     history.replaceState(null, "", location.pathname + location.search);
   }
-  return storage("get", TOKEN_KEY);
+  return code;
 }
 
 class HttpError extends Error {
@@ -551,6 +551,7 @@ async function openSession(key, { fromSidebar = false, remount = false } = {}) {
     if (narrow.matches) closePanel(false, true);
     return;
   }
+  const generation = state.generation;
   const seq = ++state.loadSeq;
   const scrollY = remount ? window.scrollY : 0;
   state.openKey = key;
@@ -568,13 +569,13 @@ async function openSession(key, { fromSidebar = false, remount = false } = {}) {
   if (fromSidebar && narrow.matches) closePanel(false, true);
   try {
     const manifest = await getJSON(`/api/sessions/${encodeURIComponent(key)}`);
-    if (seq !== state.loadSeq) return;
+    if (generation !== state.generation || seq !== state.loadSeq) return;
     dom.mount.hidden = false;
     renderWalkthrough(dom.mount, manifest, { fileBase: entry.session.fileBase });
     showStage(null);
     window.scrollTo(0, scrollY);
   } catch (error) {
-    if (seq !== state.loadSeq) return;
+    if (generation !== state.generation || seq !== state.loadSeq) return;
     dom.mount.hidden = true;
     if (error instanceof HttpError && error.status === 403) {
       rejectToken();
@@ -643,16 +644,22 @@ let chain = Promise.resolve();
 let queued = 0;
 function refresh() {
   queued++;
-  chain = chain.then(doRefresh, doRefresh).finally(() => { queued--; });
+  const generation = state.generation;
+  const run = () => doRefresh(generation);
+  chain = chain.then(run, run).finally(() => {
+    if (generation === state.generation) queued--;
+  });
   return chain;
 }
 
-async function doRefresh() {
-  if (state.blocked) return;
+async function doRefresh(generation) {
+  if (generation !== state.generation || state.blocked) return;
   let index;
   try {
     index = await getJSON("/api/index");
+    if (generation !== state.generation) return;
   } catch (error) {
+    if (generation !== state.generation) return;
     if (error instanceof HttpError && error.status === 403) { rejectToken(); return; }
     if (error instanceof HttpError) { console.error(error); return; }
     // A network error: the server is not answering.
@@ -720,13 +727,18 @@ function showAccessCard(rejected) {
 }
 
 function rejectToken() {
+  state.generation++;
+  chain = Promise.resolve();
+  queued = 0;
   state.token = "";
   storage("del", TOKEN_KEY);
   showAccessCard(true);
 }
 
 async function write(method, url) {
+  const generation = state.generation;
   const response = await fetch(url, { method, headers: { "X-Hive-Token": state.token } });
+  if (generation !== state.generation) return null;
   if (response.status === 403) {
     rejectToken();
   }
@@ -734,14 +746,17 @@ async function write(method, url) {
 }
 
 async function setPinned(session, pinned, returnFocus) {
+  const generation = state.generation;
   const name = session.title || session.session_id;
   const menuKey = returnFocus && returnFocus.getAttribute("data-menu");
   const response = await write(pinned ? "POST" : "DELETE", `/api/sessions/${session.key}/pin`).catch(() => null);
+  if (generation !== state.generation) return;
   if (!response || !(response.ok || response.status === 404)) {
     if (response && response.status !== 403) setNotice("write", t.failed(response.status), { kind: "error", timeout: 6000 });
     return;
   }
   await refresh();
+  if (generation !== state.generation) return;
   setNotice("write", pinned ? t.kept1(name) : t.unkept1(name), { kind: "ok", timeout: 4000 });
   const again = returnFocus && returnFocus.isConnected ? returnFocus : menuKey && dom.scroll.querySelector(`[data-menu="${CSS.escape(menuKey)}"]`);
   if (again) again.focus();
@@ -786,9 +801,10 @@ dom.confirmCancel.addEventListener("click", () => dom.confirm.close("cancel"));
 dom.confirmOk.addEventListener("click", () => dom.confirm.close("ok"));
 
 async function requestDelete(entry, returnFocus) {
+  const generation = state.generation;
   const { session, ticket, project } = entry;
   const name = session.title || session.session_id;
-  if (!(await askConfirm(name, returnFocus))) return;
+  if (!(await askConfirm(name, returnFocus)) || generation !== state.generation) return;
 
   // Decide where focus goes before the row disappears.
   const siblings = ticket.sessions.map((s) => s.key);
@@ -797,6 +813,7 @@ async function requestDelete(entry, returnFocus) {
   const wasOpen = session.key === state.openKey;
 
   const response = await write("DELETE", `/api/sessions/${session.key}`).catch(() => null);
+  if (generation !== state.generation) return;
   if (!response || !(response.ok || response.status === 404)) {
     if (response && response.status !== 403) setNotice("write", t.failed(response.status), { kind: "error", timeout: 6000 });
     refocus(returnFocus);
@@ -868,26 +885,53 @@ dom.skip.addEventListener("click", (event) => {
   dom.main.focus();
 });
 
-// Opening the page again with a fresh #token (same tab, same origin) swaps the token without a reload.
-window.addEventListener("hashchange", async () => {
-  const token = takeToken();
-  if (!token || token === state.token) return;
-  state.token = token;
+// A new opening supersedes every older exchange, read and write response.
+async function establishAccess() {
+  const code = takeCode();
+  const generation = ++state.generation;
+  clearTimeout(pollTimer);
+  state.blocked = true;
+  state.loadSeq++;
+  chain = Promise.resolve();
+  queued = 0;
+  if (code !== null) {
+    state.token = "";
+    storage("del", TOKEN_KEY);
+    // Clear the previous view while the explicit opening is being checked.
+    showAccessCard(false);
+    showStage(el("p", { class: "stage-note", role: "status" }, t.loading));
+    try {
+      const response = await fetch("/api/access-codes/exchange", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }), cache: "no-store",
+      });
+      if (generation !== state.generation) return;
+      if (!response.ok) throw new Error("access rejected");
+      const result = await response.json();
+      if (generation !== state.generation) return;
+      if (typeof result.token !== "string" || !result.token) throw new Error("invalid access response");
+      state.token = result.token;
+      storage("set", TOKEN_KEY, state.token);
+    } catch {
+      if (generation === state.generation) rejectToken();
+      return;
+    }
+  } else {
+    state.token = storage("get", TOKEN_KEY);
+  }
+  if (!state.token) { showAccessCard(false); return; }
   state.blocked = false;
   showStage(null);
   dom.scroll.replaceChildren(el("p", { class: "side-note", id: "side-loading" }, t.loading));
   schedulePoll();
   await refresh();
+}
+
+window.addEventListener("hashchange", () => {
+  if (new URLSearchParams(location.hash.slice(1)).has("code")) establishAccess();
 });
 
 // ---------------------------------------------------------------- start
 
-async function main() {
-  applyStaticLabels();
-  state.token = takeToken();
-  if (!state.token) { showAccessCard(false); return; }
-  schedulePoll();
-  await refresh();
-}
-
-main();
+applyStaticLabels();
+establishAccess();
