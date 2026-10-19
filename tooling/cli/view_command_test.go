@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -536,5 +537,97 @@ func TestViewRegisterAcceptsAWorkspaceRootWithoutGit(t *testing.T) {
 	}
 	if _, err := f.view("register", "--dir", t.TempDir()); err == nil || !strings.Contains(err.Error(), "_support/workspace") {
 		t.Fatalf("a folder outside both must fail naming both cases, got %v", err)
+	}
+}
+
+func TestViewHiveProjectReaderRefusesOversizeAndLinks(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "AGENTS.md")
+	big := "## Hive\n\n- Project: demo\n" + strings.Repeat("x", hiveFileLimit)
+	if err := os.WriteFile(path, []byte(big), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if name, ok := viewHiveProject(root); ok {
+		t.Fatalf("an oversize AGENTS.md was truncated and read: %q", name)
+	}
+	other := filepath.Join(root, "other.md")
+	if err := os.WriteFile(other, []byte("## Hive\n\n- Project: demo\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(other, path); err != nil {
+		t.Fatal(err)
+	}
+	if name, ok := viewHiveProject(root); ok {
+		t.Fatalf("a symlinked AGENTS.md was read: %q", name)
+	}
+}
+
+// serve must survive the momentary probe that start, stop and status take on
+// server.lock: it retries for a short window instead of exiting.
+func TestViewServeRetriesALockHeldMomentarily(t *testing.T) {
+	f := newViewFixture(t)
+	p := newViewPaths(f.stateDir)
+	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	probe, err := viewer.AcquireLock(p.lock, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := defaultViewLauncher([]string{"view", "serve", "--state-dir", f.stateDir}, p.log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.launched = append(f.launched, pid)
+	time.Sleep(300 * time.Millisecond) // serve is now retrying
+	if err := probe.Release(); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if info, err := readServerInfo(p.info); err == nil && viewHealth(info, p) == nil {
+			return
+		}
+		if syscall.Kill(pid, 0) == syscall.ESRCH {
+			log, _ := os.ReadFile(p.log)
+			t.Fatalf("serve exited instead of waiting for the probe: %s", log)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("serve never became healthy after the probe released the lock")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestViewStopWaitsLongerThanTheServerShutdown(t *testing.T) {
+	if viewStopWait() <= viewShutdownTimeout {
+		t.Fatalf("stop waits %s, not longer than the server shutdown %s", viewStopWait(), viewShutdownTimeout)
+	}
+	// A server whose shutdown runs to its limit (a request that never ends)
+	// must still be reported as stopped.
+	old := viewShutdownTimeout
+	viewShutdownTimeout = 1500 * time.Millisecond
+	t.Cleanup(func() { viewShutdownTimeout = old })
+	f := newViewFixture(t)
+	t.Setenv(viewShutdownTimeoutEnv, viewShutdownTimeout.String())
+	f.mustView("start")
+	info := f.info()
+	conn, err := net.Dial("tcp4", fmt.Sprintf("127.0.0.1:%d", info.Port))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	// An unfinished request header keeps the connection active.
+	fmt.Fprintf(conn, "GET /api/index HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n", info.Port)
+	time.Sleep(200 * time.Millisecond)
+	start := time.Now()
+	if out, err := f.view("stop"); err != nil {
+		t.Fatalf("stop: %v\n%s", err, out)
+	}
+	if took := time.Since(start); took < time.Second {
+		t.Fatalf("stop returned in %s; the server shutdown was not held up", took)
 	}
 }

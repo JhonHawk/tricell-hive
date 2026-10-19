@@ -32,7 +32,6 @@ import (
 
 const (
 	viewStartTimeout = 5 * time.Second
-	viewStopTimeout  = 5 * time.Second
 	viewHealthLimit  = 2 * time.Second
 	viewPollStep     = 50 * time.Millisecond
 	viewInfoLimit    = 64 << 10
@@ -40,9 +39,23 @@ const (
 	// viewTestServeEnv makes the test binary run as the server (see TestMain).
 	// Only while it is set does `serve` read viewPollIntervalEnv, so the poll
 	// interval is not a user-facing setting.
-	viewTestServeEnv    = "HIVE_VIEW_TEST_SERVE"
-	viewPollIntervalEnv = "HIVE_VIEW_POLL_INTERVAL"
+	viewTestServeEnv       = "HIVE_VIEW_TEST_SERVE"
+	viewPollIntervalEnv    = "HIVE_VIEW_POLL_INTERVAL"
+	viewShutdownTimeoutEnv = "HIVE_VIEW_SHUTDOWN_TIMEOUT"
 )
+
+const (
+	viewStopGrace      = 3 * time.Second // stop waits this long beyond the server's shutdown
+	viewLockRetryLimit = time.Second     // serve waits this long for a momentary probe of server.lock
+)
+
+// viewShutdownTimeout is how long serve lets active requests finish after a
+// signal. It is a variable only so tests can shorten it.
+var viewShutdownTimeout = 5 * time.Second
+
+// viewStopWait is how long stop waits for the lock after SIGTERM: the whole
+// server shutdown plus a margin for the process to exit.
+func viewStopWait() time.Duration { return viewShutdownTimeout + viewStopGrace }
 
 // viewLauncher starts the detached server process with the given arguments
 // (after the executable) and its output going to logPath, and returns its PID.
@@ -319,9 +332,17 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err := os.MkdirAll(p.dir, 0o700); err != nil {
 		return err
 	}
-	lock, err := viewer.AcquireLock(p.lock, false)
-	if errors.Is(err, viewer.ErrLocked) {
-		return fmt.Errorf("another viewer server already owns %s", p.state)
+	// start, stop and status probe server.lock by taking it for an instant, so
+	// a lock that is busy for a moment is retried before it means "owned".
+	var lock *viewer.FileLock
+	for deadline := time.Now().Add(viewLockRetryLimit); ; time.Sleep(20 * time.Millisecond) {
+		lock, err = viewer.AcquireLock(p.lock, false)
+		if !errors.Is(err, viewer.ErrLocked) {
+			break
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("another viewer server already owns %s", p.state)
+		}
 	}
 	if err != nil {
 		return err
@@ -336,9 +357,6 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		GitRemote:   viewGitRemote(git),
 	})
 	if err != nil {
-		return err
-	}
-	if err := store.Startup(); err != nil {
 		return err
 	}
 	ln, err := viewer.Listen(f.port)
@@ -370,10 +388,16 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		fmt.Fprintf(os.Stderr, "%s viewer: %v\n", time.Now().UTC().Format(time.RFC3339), err)
 	}}
 	if os.Getenv(viewTestServeEnv) == "1" {
+		if d, err := time.ParseDuration(os.Getenv(viewShutdownTimeoutEnv)); err == nil && d > 0 {
+			viewShutdownTimeout = d
+		}
 		if d, err := time.ParseDuration(os.Getenv(viewPollIntervalEnv)); err == nil && d > 0 {
 			runOpts.PollInterval = d
 		}
 	}
+	// Run performs the one Startup pass itself. A failure of that pass ends
+	// Run at once and the select below exits serve with its error, removing
+	// server.json, so a broken state directory still fails fast.
 	runDone := make(chan error, 1)
 	go func() { runDone <- store.Run(ctx, runOpts) }()
 	httpSrv := srv.HTTPServer()
@@ -391,7 +415,7 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		}
 	}
 	stop()
-	shutdown, cancel := context.WithTimeout(context.Background(), viewStopTimeout)
+	shutdown, cancel := context.WithTimeout(context.Background(), viewShutdownTimeout)
 	defer cancel()
 	_ = httpSrv.Shutdown(shutdown)
 	return result
@@ -448,7 +472,7 @@ func viewStop(p viewPaths, w io.Writer) error {
 	if err := syscall.Kill(info.PID, syscall.SIGTERM); err != nil {
 		return fmt.Errorf("cannot signal pid %d: %w", info.PID, err)
 	}
-	deadline := time.Now().Add(viewStopTimeout)
+	deadline := time.Now().Add(viewStopWait())
 	for {
 		held, err := viewLockHeld(p)
 		if err != nil {
@@ -460,7 +484,7 @@ func viewStop(p viewPaths, w io.Writer) error {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("pid %d did not release the server lock within %s", info.PID, viewStopTimeout)
+			return fmt.Errorf("pid %d did not release the server lock within %s", info.PID, viewStopWait())
 		}
 		time.Sleep(viewPollStep)
 	}
@@ -596,21 +620,11 @@ func sameDir(a, b string) bool {
 }
 
 // viewHiveProject is the viewer's HiveProjectReader: the `Project:` value of
-// the `## Hive` section of the repository's AGENTS.md, read with the same size
-// limit as hive doctor and never through a link.
+// the `## Hive` section of the repository's AGENTS.md.
 func viewHiveProject(root string) (string, bool) {
-	path := filepath.Join(root, "AGENTS.md")
-	st, err := os.Lstat(path)
-	if err != nil || !st.Mode().IsRegular() {
-		return "", false
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return "", false
-	}
-	defer f.Close()
-	data, err := io.ReadAll(io.LimitReader(f, hiveFileLimit))
-	if err != nil {
+	// readProjectFile refuses a link, a non-regular file and one over 1 MiB.
+	data, existed, _, err := readProjectFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil || !existed {
 		return "", false
 	}
 	items, _ := parseHiveSection(string(data))
