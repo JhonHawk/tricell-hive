@@ -16,7 +16,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
-**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason; a yes-or-no question needs no option IDs. Never leave a choice's options only in a ticket or document. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Reuse explicit decisions already in force; silence, preselection, and a dismissed or timed-out question grant nothing.
+**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Reuse explicit decisions already in force; silence, preselection, and a dismissed or timed-out question grant nothing.
 
 **Condition:** several open questions do not depend on one another.
 
@@ -35,15 +35,15 @@ Read before formulating a decision for the user, with or without a native card, 
 1. Complete memory, tracker and plan updates that apply before the message.
 2. Write the explanation, then one line per question with its ID, the question, and the Recommended option with its reason. Gloss that option's ID; omit the other options from this message.
 3. End the message with the pause line below. Make no tool call between the message and the question call. A response holding only the call is the failure.
-4. Ask through the native tool. Write the card to stand alone, since a host may hide the message: the question carries the context to answer, each option its effect in its description, or in its label when the tool has no description field, and the Recommended option is marked.
+4. Ask through the native tool. Write the card to stand alone, since a host may hide the message: the question opens with the stage and ticket that [reporting](../../flow-close/references/reporting.md#open-with-the-context-line) sets and carries the context to answer, each option its effect in its description, or in its label when the tool has no description field, and the Recommended option is marked.
 
 Split questions or options beyond the tool's limit across consecutive calls, each after a line of text. For a delivery choice with more modes than one card supports, use [delivery decisions](delivery-decisions.md)'s provisional-shortlist procedure: the first subset is not delivery authorization; show every mode and its effects before recording the final choice.
 
 ## Use text when no waiting card carries the question
 
-**Condition:** no waiting card carries the question: no such tool exists; a tool returns before the answer, used only while independent work continues; or a dismissed or timed-out question is asked once more in text.
+**Condition:** no waiting card carries the question: no such tool exists; the only tool returns before the answer, such as an asynchronous card that closes when the turn ends; or a dismissed or timed-out question is asked once more in text.
 
-**Actions:** write each option in the text, one line each with only what sets it apart. State once what several options share and any route project policy rules out. Add no "Other" option or reply example. Take the first answer that arrives.
+**Actions:** write each option in the text, one line each with only what sets it apart. State once what several options share and any route project policy rules out. Add no "Other" option or reply example. A tool that returns before the answer may be called in addition, only while independent work continues in the turn, and never replaces the options in the text: the waiting-card procedure above, which omits them from the message, does not apply to it. Take the first answer that arrives.
 
 ## Make user-dependent work self-sufficient
 
@@ -57,11 +57,11 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** a message waits on the user's choice.
 
-**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report.
+**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. A notification turn that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) answers in one line while the question waits is not a second report and carries no pause line.
 
 **Condition:** an open choice has already been asked.
 
-**Actions:** ask each open choice once; only a dismissed or timed-out question is asked again.
+**Actions:** ask each open choice once; only a dismissed or timed-out question is asked again. When a later result changes what is asked, ask a new question with a new ID that replaces the open one.
 
 **Condition:** an answer arrives, including free text.
 
@@ -72,6 +72,7 @@ When the user must check several things, give each flow its own block, headed by
 Assume this session verified that the required reviewer cannot run, on its configured model or on the implementer's. The task remains unverified. The next call is the waiting native question; no other tool intervenes.
 
 ```text
+**Build · ARK-123 · 2 of 3 tasks verified**
 The required reviewer could not access its model, so the task is still
 unverified. Retrying preserves the agreed independent check.
 D1: How should I handle this check? D1-A (wait and retry) is Recommended
@@ -82,7 +83,7 @@ because it preserves the agreed verification.
 The card carries all options and repeats enough context to stand alone:
 
 ```text
-Question: D1 (the unavailable verification): the required reviewer could
+Question: Build · ARK-123 — D1 (the unavailable verification): the required reviewer could
 not access its model and the task is unverified. How should I proceed?
 D1-A — Wait and retry (Recommended)
 Effect: Preserve the agreed independent check and retry when access returns.
@@ -99,6 +100,7 @@ After a free-text answer naming a replacement: "Your answer settles D1 (the unav
 Assume the same verified failure, and no waiting card is available. Include all options in the message itself, not a second card:
 
 ```text
+**Build · ARK-123 · 2 of 3 tasks verified**
 The required reviewer could not access its model, so the task is still
 unverified. D1: How should I handle this check?
 - D1-A — Wait and retry (Recommended): preserve the agreed check.

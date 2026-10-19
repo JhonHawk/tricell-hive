@@ -5,9 +5,9 @@ description: Wrap up a finished, paused or abandoned piece of work and clean up 
 
 Close is the last step of a piece of work. It makes sure the records match reality, removes the leftovers the task made, and tells you where things stand.
 
-Its reporting reference applies to findings, explanations and messages with
-external links or IDs, including progress updates. Greetings and short direct
-answers need no reference read.
+Its reporting reference applies to findings, relayed results, explanations and
+messages with external links or IDs, including progress updates. Greetings and
+short direct answers need no reference read.
 Questions and artifact cleanup have their own direct reference links. Those
 procedures retain their existing obligations; reading a reference does not
 invoke another complete flow.
@@ -53,7 +53,7 @@ The agent goes through these steps in order:
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, interface screenshots you did not ask to keep, unless the work is paused and continues in another session. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.
@@ -62,7 +62,7 @@ It means the work reached its completion point, for example merged into the base
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal or timeout, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking; a question card opens its question with the stage and ticket. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal or timeout, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.

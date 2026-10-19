@@ -1,6 +1,6 @@
 # UI review criteria
 
-Read when reviewing a rendered UI change, or when briefing the reviewer. [Verification](verification.md) decides when the review is required; [browser automation](browser-automation.md) governs how the browser is driven. Project guides and accepted patterns refine these criteria; they never excuse a failed check.
+Read when reviewing a rendered UI change, or when briefing the reviewer. [The UI gate](ui-gate.md) decides when the review is required; [browser automation](../../flow-build/references/browser-automation.md) governs how the browser is driven. Project guides and accepted patterns refine these criteria; they never excuse a failed check.
 
 ## Stance
 

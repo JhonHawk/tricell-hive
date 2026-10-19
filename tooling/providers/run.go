@@ -17,10 +17,34 @@ var allowedInstallArgv = map[string][]string{
 
 var chromeArgv = []string{"agent-browser", "install"}
 
+// plannedRecipe binds an executable step ID to the provider that owns it, the
+// method it must carry and, when argv is set, the one argv it may carry. The
+// agent-browser install step has two argv by method and is checked apart.
+type plannedRecipe struct {
+	provider ID
+	method   string
+	argv     []string
+}
+
+// allowedPlannedSteps lists the Planned steps ValidateStep admits besides the
+// agent-browser install step, keyed by step ID.
+var allowedPlannedSteps = map[string]plannedRecipe{
+	AgentBrowserChromeStep: {AgentBrowser, MethodAgentBrowser, chromeArgv},
+	CodexQuestionCardEnableStep: {CodexQuestionCard, MethodCodex,
+		[]string{"codex", "features", "enable", CodexQuestionCardFeature}},
+}
+
+// manualStepIDs are the only manual step IDs of providers that also have an
+// executable recipe; the manual-only providers accept any ID.
+var manualStepIDs = map[ID]string{
+	AgentBrowser:      AgentBrowserManualStep,
+	CodexQuestionCard: CodexQuestionCardManualStep,
+}
+
 // ValidateStep admits a manual step for any catalog provider and, for
-// agent-browser only, the two Planned steps whose argv matches the recipe
-// bound to their ID. Everything else is rejected, including argv or method on
-// a manual step and any unknown field.
+// agent-browser and codex-question-card only, the Planned steps whose argv
+// matches the recipe bound to their ID. Everything else is rejected, including
+// argv or method on a manual step and any unknown field.
 func ValidateStep(payload json.RawMessage) error {
 	var s Step
 	d := json.NewDecoder(bytes.NewReader(payload))
@@ -29,7 +53,7 @@ func ValidateStep(payload json.RawMessage) error {
 		return fmt.Errorf("invalid provider payload")
 	}
 	switch s.Provider {
-	case Engram, Context7, PiSubagents, AgentBrowser:
+	case Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard:
 	default:
 		return fmt.Errorf("unknown provider")
 	}
@@ -41,29 +65,30 @@ func ValidateStep(payload json.RawMessage) error {
 		if s.ManualReason == "" {
 			return fmt.Errorf("manual provider step requires a reason")
 		}
-		if s.Provider == AgentBrowser && s.ID != AgentBrowserManualStep {
-			return fmt.Errorf("unknown agent-browser step")
+		if want, ok := manualStepIDs[s.Provider]; ok && s.ID != want {
+			return fmt.Errorf("unknown %s step", s.Provider)
 		}
 		return nil
 	case Planned:
-		if s.Provider != AgentBrowser {
-			return fmt.Errorf("only agent-browser has an executable recipe")
+		if s.Provider != AgentBrowser && s.Provider != CodexQuestionCard {
+			return fmt.Errorf("provider %s has no executable recipe", s.Provider)
 		}
 		if s.ManualReason != "" {
 			return fmt.Errorf("executable provider step cannot carry a manual reason")
 		}
-		switch s.ID {
-		case AgentBrowserInstallStep:
+		if s.ID == AgentBrowserInstallStep {
 			want, ok := allowedInstallArgv[s.Method]
-			if !ok || !slices.Equal(s.Argv, want) {
+			if s.Provider != AgentBrowser || !ok || !slices.Equal(s.Argv, want) {
 				return fmt.Errorf("command not allowed for %s", s.ID)
 			}
-		case AgentBrowserChromeStep:
-			if s.Method != MethodAgentBrowser || !slices.Equal(s.Argv, chromeArgv) {
-				return fmt.Errorf("command not allowed for %s", s.ID)
-			}
-		default:
-			return fmt.Errorf("unknown agent-browser step")
+			return nil
+		}
+		recipe, ok := allowedPlannedSteps[s.ID]
+		if !ok || recipe.provider != s.Provider {
+			return fmt.Errorf("unknown %s step", s.Provider)
+		}
+		if s.Method != recipe.method || !slices.Equal(s.Argv, recipe.argv) {
+			return fmt.Errorf("command not allowed for %s", s.ID)
 		}
 		return nil
 	}

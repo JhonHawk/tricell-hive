@@ -12,6 +12,37 @@ raise the minor or the patch version.
 
 ### Added
 
+- `codex-question-card`, an optional capability that `hive install` offers
+  with the Codex host, selected by default in interactive installs when the
+  installed Codex reports the feature in `codex features list` (uncheck it or
+  type `none` to skip; non-interactive installs never run it; an older Codex
+  gets a manual step that says to update it). After consent it runs `codex features enable
+  default_mode_request_user_input`, Codex's own configuration writer, so Codex
+  shows its question card in Default mode instead of asking in text; the step
+  is verified by reading the Codex `config.toml`, `hive doctor` shows a
+  `Codex question card` row with the record and the enable, disable and list
+  commands, and `codex features disable …` turns it off. The text installer
+  gains a default selection ("Press Enter to accept the default selection, or
+  type none to skip."), an offer can show an effect instead of a version
+  phrase, and the installer's boundary is stated in the tool-dependencies
+  document: Hive edits no host configuration file itself and, with consent,
+  runs the host's own command that writes one. A capability selected by
+  default raises the minor version of the next release.
+
+- `flow-walkthrough`, a skill that owns the human validation of a user
+  interface: the first rendered view of a new layout, the correction rounds,
+  the captures, one short recorded pass per flow (`agent-browser record`,
+  checked with `ffprobe`) and the handoff as a message and a dark-mode HTML
+  page built from the new `flow-report` walkthrough skeleton. Its reference
+  `ui-gate.md` is the one home of the UI gate: the implementer's rendered
+  inspection, the independent children with their briefs and stops, and the
+  accepted-candidate gate; `ui-review-criteria.md` moved beside it. Build's
+  verification reference now points to them instead of holding the handoff
+  and the gate.
+- `UI verification`, an optional `## Hive` key with `full`, `functional` or
+  `none`, selects which independent children run on a built UI change; without
+  it, Build asks once per repository and session in the review round.
+  `hive doctor` and the project form accept the key.
 - The documentation site adds Getting started, Skills, and Inspiration pages
   alongside the complete release history from this changelog, with unreleased
   work distinguished from published versions.
@@ -23,6 +54,40 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Waits, messages and the first rendered view follow one rule each (the
+  analysis of cam session `e2c8d39f`, 2026-10-18). Every progress or decision
+  message opens with a bold context line, stage · ticket · progress, and a
+  question card opens with the stage and ticket. A turn that a notification
+  starts without changing what you need is that line followed by the change,
+  without listing the work still running or repeating an open question. A
+  child that returns, or that the host reports as stopped, while it waits on
+  work of its own is treated as stopped and checked at once. A task brief
+  carries the skills and project documents that the project's rules direct for
+  that work. The first rendered view of a layout is delivered as
+  `walkthrough.html` and the page opens by itself before the question. A task
+  with a rendered UI effect is committed after its first rendered view and the
+  UI review, and the UI review, the full suite and, when the change crosses a
+  security boundary, the security review run before you are asked to validate; later fixes go in an additional commit per
+  task, never an amend. The Build, Close, Research and Plan pages describe
+  this, and the delivery notes record Claude Code's notice for a stopped child.
+
+- The language rule names URL paths and route segments, including those of
+  public pages, among the identifiers written in English: a URL path is an
+  identifier, not user-facing text. `hive-review-code` reports a new
+  identifier, file name, URL path or route segment in another language as a
+  finding, and `hive-verify-task` notes it beside its verdicts.
+- The global guidance points to the browser-automation reference before any
+  browser is driven, including recordings and demos outside a build.
+- Unattended delegation has a fourth source: the user's silence after they
+  answered the route, delivery and review questions of the running work
+  delegates that work up to the delivery point they chose. The skill names
+  the force-push with an exact lease and the pull-request text edits it
+  allows, each with its way back, and reports an inferred activation as
+  inferred.
+- The labels the host shows while the agent works, such as a command's
+  description, a task's subject and a child's label, follow the session
+  language; a contribution to an external or open-source repository first
+  checks that repository's language and uses it for what reaches it.
 - The documentation site uses the Ion theme with Hive branding and an original
   hexagonal hero illustration; contributing guidance covers site content updates,
   preview checks, and the single changelog source. Flow pages match the canonical reporting reference's applicability.
@@ -71,6 +136,14 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- A yes-or-no question, such as an authorization, lists its two options with
+  IDs and effects like any other question, and a question tool that returns
+  before the answer, such as Codex's asynchronous card, never replaces the
+  options in the text. In a Codex Default-mode session on 2026-10-18 the
+  Bugbot authorization went out as a bare "do you authorize it?" and a
+  history-rewrite authorization put its options only in the asynchronous
+  card, which closed at the end of the turn, so the user had to answer twice
+  without options.
 - The Codex `observe` profile no longer declares `sandbox_mode = "read-only"`
   in the installed role files: Codex restores the session's permissions after
   applying a role (verified on 0.163.0; the 0.155.1 note is consistent with

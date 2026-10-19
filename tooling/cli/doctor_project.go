@@ -36,6 +36,7 @@ var hiveSettingKeys = []hiveKey{
 	{"Review", false},
 	{"Delivery", false},
 	{"Hive guidance", false},
+	{"UI verification", false},
 }
 
 const (
@@ -355,6 +356,10 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 			if present && !slices.Contains(hiveDeliveryValues, v) {
 				add(true, k.Name, "expected one of %s, found %q", quotedList(hiveDeliveryValues), shown(v))
 			}
+		case "UI verification":
+			if present && !slices.Contains(hiveUIVerificationValues, v) {
+				add(true, k.Name, "expected one of %s, found %q", quotedList(hiveUIVerificationValues), shown(v))
+			}
 		case "Hive guidance":
 			if present && v != hiveGuidanceWant {
 				add(true, k.Name, "expected %q, found %q", hiveGuidanceWant, shown(v))
@@ -470,6 +475,10 @@ func checkBaseBranch(root, branch string, git gitRunner) string {
 // hiveDeliveryValues are the Delivery values the section accepts, in the
 // order the project form cycles them.
 var hiveDeliveryValues = []string{"direct-base", "automatic", "interactive"}
+
+// hiveUIVerificationValues are the UI verification values the section
+// accepts, in the order the project form cycles them.
+var hiveUIVerificationValues = []string{"full", "functional", "none"}
 
 // quotedList renders values as "a", "b", "c" for a message.
 func quotedList(values []string) string {

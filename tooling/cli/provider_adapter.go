@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
+	"strings"
+	"time"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/providers"
 )
 
 // nativeProviderAdapter offers Hive's optional capabilities. Engram, Context7
-// and pi-subagents are manual instructions only. agent-browser is the one
-// capability with an executable recipe: it is offered without a version, its
+// and pi-subagents are manual instructions only. agent-browser and codex-question-card have
+// executable recipes (the latter only runs Codex's own `features enable`): it is offered without a version, its
 // steps run only after the operator's consent, and it runs no program at all
 // in a non-interactive session, a dry run or under a synthetic home (D-9).
 // A fresh adapter is created for each invocation and keeps only Detect's
@@ -20,10 +23,47 @@ type nativeProviderAdapter struct {
 	dryRun      bool
 	interactive bool
 	browser     *agentBrowserPlan
+	// codexHome is the resolved Codex home the question-card step is checked
+	// against; codexOnPath caches the one PATH lookup for `codex`.
+	codexHome   string
+	codexOnPath *bool
+	// codexSupport caches the one `codex features list` check made by Detect.
+	codexSupport *codexSupportDecision
+}
+
+// codexSupportDecision is Detect's cached verdict on the question-card offer.
+type codexSupportDecision struct {
+	// found is true when `codex` is on PATH; executable additionally means the
+	// installed Codex was confirmed to support the command, or nothing ran to
+	// check it (dry run and non-interactive, where no step is executed).
+	found, executable bool
+}
+
+// codexFeaturesTimeout bounds the `codex features list` check.
+const codexFeaturesTimeout = 30 * time.Second
+
+// codexUnsupportedReason is the manual reason for a Codex that is on PATH but
+// did not report the feature.
+const codexUnsupportedReason = "update Codex to 0.163.0 or later (`codex features list` did not report `" + providers.CodexQuestionCardFeature + "`) and run `codex features enable " + providers.CodexQuestionCardFeature + "`"
+
+// codexFeaturesProbe runs `codex features list` and returns its result and
+// standard output. Tests replace it.
+var codexFeaturesProbe = func() (agentBrowserResult, string) {
+	return runBoundedCommandContext(context.Background(), []string{codexBinary, "features", "list"}, codexFeaturesTimeout, time.Second, agentBrowserMaxOutput)
 }
 
 func nativeProviderAdapterFactory(in onboardingInput) (onboardingAdapter, error) {
-	return newNativeProviderAdapter(in.Options.Home != "", in.DryRun, in.Interactive), nil
+	a := newNativeProviderAdapter(in.Options.Home != "", in.DryRun, in.Interactive)
+	// The same resolution the install itself uses, so the runner reads the
+	// config.toml that `codex features enable` writes (the child inherits
+	// CODEX_HOME through the environment).
+	// When the options cannot be resolved the home stays empty and the step is
+	// never confirmed from the configuration (the install itself reports the
+	// invalid options).
+	if cfg, _, err := management.NormalizeOptions(in.Options); err == nil {
+		a.codexHome = cfg.CodexHome
+	}
+	return a, nil
 }
 
 // newNativeProviderAdapter snapshots agentBrowserSys. A synthetic home detects
@@ -66,6 +106,31 @@ func (a *nativeProviderAdapter) agentBrowserPlan(home string) agentBrowserPlan {
 	return *a.browser
 }
 
+// codexFound looks `codex` up once. A synthetic home detects nothing of the
+// real machine, so it never finds it.
+func (a *nativeProviderAdapter) codexFound(home string) bool {
+	return a.codexDecision(home).found
+}
+
+// codexDecision looks `codex` up and, in a real interactive install, checks
+// once that it supports the command: exit 0 and the feature in the stdout of
+// `codex features list`. A dry run and a non-interactive session run nothing,
+// so the PATH lookup alone makes the offer executable there; a synthetic home
+// finds nothing.
+func (a *nativeProviderAdapter) codexDecision(home string) codexSupportDecision {
+	if a.codexSupport == nil {
+		_, err := a.system(home).lookPath(codexBinary)
+		d := codexSupportDecision{found: err == nil}
+		d.executable = d.found
+		if d.found && a.runsPrograms() {
+			res, stdout := codexFeaturesProbe()
+			d.executable = res.ExitCode == 0 && !res.TimedOut && !res.Interrupted && strings.Contains(stdout, providers.CodexQuestionCardFeature)
+		}
+		a.codexSupport = &d
+	}
+	return *a.codexSupport
+}
+
 func (a *nativeProviderAdapter) Detect(o management.Options) ([]providerOffer, error) {
 	var result []providerOffer
 	for _, p := range providers.Catalog() {
@@ -80,6 +145,13 @@ func (a *nativeProviderAdapter) Detect(o management.Options) ([]providerOffer, e
 			}
 			offer.ManualOnly = plan.manual()
 			offer.Unversioned = !plan.manual()
+		}
+		if p.ID == providers.CodexQuestionCard {
+			offer.ManualOnly = !a.codexDecision(o.Home).executable
+			offer.DefaultOn = !offer.ManualOnly
+			if offer.DefaultOn {
+				offer.Effect = "enables Codex's question card in Default mode"
+			}
 		}
 		result = append(result, offer)
 	}
@@ -123,6 +195,12 @@ func (a *nativeProviderAdapter) Plan(_ management.Plan, requests []providerReque
 		id := providers.ID(request.ID)
 		if id == providers.AgentBrowser {
 			if err := a.planAgentBrowserSteps(&preview); err != nil {
+				return preview, err
+			}
+			continue
+		}
+		if id == providers.CodexQuestionCard {
+			if err := a.planCodexQuestionCardSteps(&preview); err != nil {
 				return preview, err
 			}
 			continue
@@ -181,8 +259,45 @@ func (a *nativeProviderAdapter) planAgentBrowserSteps(preview *onboardingPreview
 	return nil
 }
 
+// planCodexQuestionCardSteps adds the single step for the plan Detect made:
+// Codex's own `features enable` when `codex` is on PATH, otherwise a manual
+// step that names the command.
+func (a *nativeProviderAdapter) planCodexQuestionCardSteps(preview *onboardingPreview) error {
+	command := "codex features enable " + providers.CodexQuestionCardFeature
+	undo := "codex features disable " + providers.CodexQuestionCardFeature
+	var step providers.Step
+	var effects []string
+	decision := a.codexDecision("")
+	if decision.executable {
+		step = providers.Step{ID: providers.CodexQuestionCardEnableStep, Provider: providers.CodexQuestionCard, Status: providers.Planned, Method: providers.MethodCodex,
+			Argv: []string{codexBinary, "features", "enable", providers.CodexQuestionCardFeature}}
+		effects = []string{
+			"runs `" + command + "`, which writes " + providers.CodexQuestionCardFeature + " = true to config.toml in the Codex home (Codex writes the file, not Hive)",
+			"undo with `" + undo + "`",
+		}
+	} else {
+		reason := "install Codex (the `codex` executable was not found in PATH) and run `" + command + "`"
+		if decision.found {
+			reason = codexUnsupportedReason
+		}
+		step = providers.Step{ID: providers.CodexQuestionCardManualStep, Provider: providers.CodexQuestionCard, Status: providers.Manual, ManualReason: reason}
+		effects = []string{string(step.Status) + " — " + reason}
+	}
+	payload, err := json.Marshal(step)
+	if err != nil {
+		return err
+	}
+	preview.Steps = append(preview.Steps, management.ExternalStep{ID: step.ID, Payload: payload})
+	preview.Details = append(preview.Details, providerDetail{
+		ID:      string(providers.CodexQuestionCard),
+		Source:  providerSource(providers.CodexQuestionCard),
+		Effects: effects,
+	})
+	return nil
+}
+
 func (a *nativeProviderAdapter) Runner() management.ExternalRunner {
-	return providerRunner{sys: a.system(""), synthetic: a.synthetic}
+	return providerRunner{sys: a.system(""), synthetic: a.synthetic, codexHome: a.codexHome}
 }
 
 // manualProviderRunner never executes a process: every manual step already

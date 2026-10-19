@@ -89,7 +89,7 @@ func (r integrationRow) summaryLine() string {
 }
 
 func integrationColumns(name, found, record string) string {
-	return fmt.Sprintf("%-14s%-14s%s", name, found, record)
+	return fmt.Sprintf("%-20s%-14s%s", name, found, record)
 }
 
 // collectIntegrations builds the Integrations section. deps may or may not be
@@ -161,6 +161,18 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 		})
 	}
 	rows = append(rows, browser)
+	// The Codex question card row is built like the Pi codemode row: constants
+	// and the onboarding record only. Finding the feature would mean reading
+	// Codex's configuration, so no program is looked up and no file is read.
+	if hostsErr != nil || slices.Contains(hosts, "codex") {
+		card := integrationRow{
+			ID: string(providers.CodexQuestionCard), Name: "Codex question card", Found: "not checked",
+			Evidence: []string{"Not checked: finding it would mean reading Codex's configuration, which Hive does not do."},
+		}
+		fillSourceFromCatalog(&card)
+		rec.apply(&card, recErr)
+		rows = append(rows, card)
+	}
 	for i := range rows {
 		rows[i].Next = nextStep(rows[i])
 	}
@@ -223,6 +235,8 @@ func nextStep(r integrationRow) string {
 		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see Source above for the official instructions."
 	case "pi-codemode":
 		step = `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
+	case string(providers.CodexQuestionCard):
+		step = "Run `codex features enable " + providers.CodexQuestionCardFeature + "` to show Codex's question card in Default mode, or `codex features disable " + providers.CodexQuestionCardFeature + "` to turn it off; `codex features list` shows the current state."
 	default:
 		step = agentBrowserNextStep(r.Found, r.BrowserMissing)
 	}

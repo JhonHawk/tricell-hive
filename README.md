@@ -155,12 +155,19 @@ Building does not publish a release.
 
 Engram and Context7 are optional, separately managed capabilities with official
 manual instructions and no automated provider recipes or credential requests.
-Two steps are automated: pi-subagents, which a user-scope Pi installation adds
-with `pi install` when Pi does not already declare it, and `agent-browser`, which
+Three steps are automated: pi-subagents, which a user-scope Pi installation adds
+with `pi install` when Pi does not already declare it; `agent-browser`, which
 an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 24+) and installs, at its latest version, only after you consent to the commands
-it shows. Selecting a manual capability leaves the installed
-core intact but returns a non-zero exit status to signal unfinished setup.
+it shows; and the Codex question card (`codex-question-card`), which an
+interactive install with the Codex host offers selected by default when the
+installed Codex supports it (0.163.0 or later) and, after you consent, enables with `codex features enable
+default_mode_request_user_input`, Codex's own command, so Codex asks its
+decisions through a card that waits in Default mode (uncheck it, or type `none`,
+to skip it; `codex features disable default_mode_request_user_input` turns it
+off). Hive edits no host configuration file itself. Selecting a manual
+capability leaves the installed core intact but returns a non-zero exit status
+to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.
 

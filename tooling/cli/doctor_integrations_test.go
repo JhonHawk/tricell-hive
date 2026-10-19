@@ -735,3 +735,89 @@ func TestIntegrationsRecordShowsTheWorstAgentBrowserStep(t *testing.T) {
 		})
 	}
 }
+
+func TestCodexQuestionCardRowShownOnlyWithCodexRegistered(t *testing.T) {
+	o, f, _, _ := integrationsFixtureHosts(t, "claude,codex")
+	rows, _ := collectIntegrationRows(o, f.deps())
+	var ids []string
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codex-question-card"; got != want {
+		t.Fatalf("rows = %s, want %s", got, want)
+	}
+	r := rowByID(t, rows, "codex-question-card")
+	if r.Name != "Codex question card" || r.Found != "not checked" {
+		t.Fatalf("row = %+v", r)
+	}
+	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: finding it would mean reading Codex's configuration, which Hive does not do." {
+		t.Fatalf("evidence = %q", r.Evidence)
+	}
+	if r.Source != "github.com/openai/codex" || r.Record != recordNone {
+		t.Fatalf("source/record = %q / %q", r.Source, r.Record)
+	}
+	const enable = "codex features enable default_mode_request_user_input"
+	if !strings.Contains(r.Next, enable) || !strings.Contains(r.Next, "codex features disable default_mode_request_user_input") || !strings.Contains(r.Next, "codex features list") {
+		t.Fatalf("next = %q", r.Next)
+	}
+
+	o2, f2, _, _ := integrationsFixtureHosts(t, "claude")
+	rows2, _ := collectIntegrationRows(o2, f2.deps())
+	for _, r := range rows2 {
+		if r.ID == "codex-question-card" {
+			t.Fatalf("row shown without codex registered: %+v", r)
+		}
+	}
+	if strings.Contains(integrationsText(o2, f2.deps()), "Codex question card") {
+		t.Fatal("the section mentions the card without Codex registered")
+	}
+}
+
+func TestCodexQuestionCardRowRecordReflectsTheStepRecord(t *testing.T) {
+	for status, sentence := range map[string]string{
+		management.StepVerified: recordSentences[management.StepVerified],
+		management.StepFailed:   recordSentences[management.StepFailed],
+	} {
+		t.Run(status, func(t *testing.T) {
+			o, f, _, _ := integrationsFixtureHosts(t, "claude,codex")
+			writeOnboardingRecord(t, o, status, "codex-question-card")
+			rows, errText := collectIntegrationRows(o, f.deps())
+			if errText != "" {
+				t.Fatalf("errText = %q", errText)
+			}
+			r := rowByID(t, rows, "codex-question-card")
+			if r.Record != status || !strings.Contains(r.Next, "codex features enable default_mode_request_user_input") || !strings.HasSuffix(r.Next, sentence) {
+				t.Fatalf("row = %+v", r)
+			}
+		})
+	}
+}
+
+// TestCodexQuestionCardRowIgnoresCodexConfig runs with the feature already on in
+// the Codex home and a codex program on PATH: the row neither reads the file nor
+// looks the program up.
+func TestCodexQuestionCardRowIgnoresCodexConfig(t *testing.T) {
+	o, f, home, _ := integrationsFixtureHosts(t, "claude,codex")
+	dir := filepath.Join(home, ".codex")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cfg := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(cfg, []byte("[features]\ndefault_mode_request_user_input = true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, marker := fakePrograms(t, "codex")
+	deps := f.deps()
+	deps.lookPath = func(name string) (string, error) {
+		if name == "codex" {
+			t.Fatal("the Codex row looked codex up in PATH")
+		}
+		return exec.LookPath(name)
+	}
+	rows, _ := collectIntegrationRows(o, deps)
+	r := rowByID(t, rows, "codex-question-card")
+	if r.Found != "not checked" || !strings.Contains(r.Next, "codex features enable") {
+		t.Fatalf("row = %+v", r)
+	}
+	mustNotExist(t, marker)
+}
