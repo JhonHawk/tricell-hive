@@ -139,8 +139,21 @@ func validateRoot(root *os.Root) (*Manifest, error) {
 	if err != nil {
 		return nil, fail(manifestField, "cannot be read: %v", err)
 	}
+	defer f.Close()
+	info, err = f.Stat()
+	if err != nil {
+		return nil, fail(manifestField, "cannot inspect opened file: %v", err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fail(manifestField, "must be a regular file, not a link")
+	}
+	if info.Size() > maxManifest {
+		return nil, fail(manifestField, "exceeds 1 MiB")
+	}
+	if err := validateSingleLink(info); err != nil {
+		return nil, fail(manifestField, "%v", err)
+	}
 	raw, err := io.ReadAll(io.LimitReader(f, maxManifest+1))
-	f.Close()
 	if err != nil {
 		return nil, fail(manifestField, "cannot be read: %v", err)
 	}
@@ -572,6 +585,9 @@ func (v *validator) path(value any, field string, extensions []string, limit int
 			}
 			if info.Size() > limit {
 				return fail(field, "referenced file exceeds %d MiB: %q", limit>>20, p)
+			}
+			if err := validateSingleLink(info); err != nil {
+				return fail(field, "%q: %v", p, err)
 			}
 		} else if !info.IsDir() {
 			return fail(field, "referenced file does not exist: %q", p)

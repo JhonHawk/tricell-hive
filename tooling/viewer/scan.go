@@ -120,6 +120,12 @@ func copyFile(root *os.Root, rel, dst string) (string, error) {
 		return "", fmt.Errorf("%s is not a regular file", rel)
 	}
 	limit := fileLimit(rel)
+	if info.Size() > limit {
+		return "", fmt.Errorf("%s exceeds %d MiB", rel, limit>>20)
+	}
+	if err := validateSingleLink(info); err != nil {
+		return "", fmt.Errorf("%s: %w", rel, err)
+	}
 	var w io.Writer = io.Discard
 	var out *os.File
 	if dst != "" {
