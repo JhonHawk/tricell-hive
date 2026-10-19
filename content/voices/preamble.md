@@ -4,7 +4,7 @@ This voice section appears after the Hive rules but never overrides the Hive rul
 
 A voice changes tone only. It never changes:
 
-- The first sentence carries the result.
+- The first sentence carries the result, after any context line.
 - The labeled sections, lists, and tables the Hive rules ask for.
 - The vocabulary: plain everyday words, without metaphors or internal labels.
 - The gloss of every ID you cite.

@@ -8,6 +8,14 @@ Read the applicable conditions and actions before writing a report of work or fi
 
 Lead with the answer or outcome; when several openings apply, open with work still running, then a completed work item, then the answer. Match detail to the question and the decision it supports, not the effort spent. Explain necessary context without assuming prior knowledge or belaboring the obvious. Write plain, natural prose in the session language for a reader who did not see the work: complete sentences, everyday words, and concrete names instead of shorthand, metaphors, or internal labels; explain a technical term the first time the reader may not know it. The English terms these instructions use, such as gate, walk, in-vivo, fixture, or cutover, are not the user's vocabulary: say what they mean in everyday words of the session language. Report the evidence that affects the conclusion, not each tool call.
 
+## Open with the context line
+
+**Condition:** a message to the user reports progress, delivers a stage's result, or asks for a decision or a validation.
+
+**Actions:** make its first line the context line, in bold and in the session language: `<stage> · <ticket(s)> · <progress>`. The stage is the flow's, such as research, plan, build, UI validation, or close. Name the ticket by its ID, or the change by its name when there is no ticket. The progress is the stage's own counter when it has one, such as tasks verified of the total, children returned of those launched, or the round of those agreed; omit it when the stage has none. The context line is a heading, not the first sentence: the opening that [Lead with the result](#lead-with-the-result) sets, or a plan's pause block, comes after it, then the body, and the pause line stays last. A message that is only a one-line progress note, such as the line between tasks, an iterative round, a wait stretch, or what an answer settles, is the context line followed by the change on that same line; a one-line statement inside a longer message gets no context line of its own. A native question card, which a host may show alone, opens its question with the stage and ticket.
+
+Greetings, a short direct answer with no work running, a child's return to its parent, and files take no context line.
+
 ## Citations and links
 
 **Condition:** a message includes a link, including tickets, issues and pull requests.
@@ -42,7 +50,16 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 ## Report a running or completed item
 
-**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments.
+**Condition:** a child's or a background process's notification starts the turn, not a message from the user.
+
+**Actions, in order:**
+
+1. When the result or the notice says the child stopped while it still waits on work of its own, it has stopped: apply [Check returned work](../../flow-research/references/delegation.md#check-returned-work) before writing anything.
+2. When the result decides something, brings a new blocker, or changes what the user is asked, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs. A changed request is a new question with a new ID that replaces the open one, asked by following [questions](../../flow-plan/references/questions.md).
+3. Otherwise the turn changes nothing the user needs: reply in one line, the [context line](#open-with-the-context-line) followed by the change, without listing the work still running or repeating an open question or its pause line. While a question waits for the user, every result that does not change it takes this step. This line is not a second report.
+4. Continue with your next tool call when work of your own remains; otherwise end the turn.
+
+**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that the third step above answers in one line.
 
 **Actions:** open with a labeled in-progress item stating what is running, what its result decides, and what happens next, before any findings.
 
@@ -88,7 +105,7 @@ Distinguish work already completed, work you will continue under existing author
 
 ## Work-item boundary
 
-A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in a line and continue. While authorized work remains, send each progress line with your next tool call, since a response without one can end the turn; answer a question or notification that arrives meanwhile in one line and continue.
+A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in a line and continue. While authorized work remains, send each progress line with your next tool call, since a response without one can end the turn; answer a question that arrives meanwhile in one line and continue; a notification that arrives meanwhile follows [the notification turn](#report-a-running-or-completed-item).
 
 End a turn that completes a work item with a close question, after the report and its closing items; a turn that ends on the report is incomplete. Read [the close-question procedure](../SKILL.md#close-question) for its options, ticket selection and exceptions. Investigation-only findings and follow-ups use [flow-research](../../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
@@ -97,6 +114,7 @@ End a turn that completes a work item with a close question, after the report an
 Assume the local checks passed, publishing remains an agreed obligation, and the user already authorized the route. The link below is a fictional template, not a bundled dependency.
 
 ```text
+**Build · ARK-123 · 2 of 2 tasks verified**
 The local change is verified; publication is still pending.
 
 **Delivery:** Updated the retry handling; the targeted tests passed.
