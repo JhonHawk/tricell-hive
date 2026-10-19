@@ -74,6 +74,17 @@ It looks into the mismatch and updates the plan or asks you for the missing deci
 ### What happens to a user interface change?
 When a change adds or rearranges a layout, the agent first shows you its first rendered version as the page `walkthrough.html` with the captures inside, generated from a small JSON file the agent writes, gives you in one line the command to open it and then asks whether the composition is right, while independent work keeps running. The agent leaves the running result available for you to check, with steps to follow, and keeps its screen captures in the work's support folder until the session ends, then cleans up the ones you did not ask to keep. When you validate a change, it writes the same kind of page with the checks table, a carousel of the captures and, when the skill calls for one, a short video of a flow, as [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) sets. Before it asks you to validate, in any mode that stops for your validation, it runs in order the UI review, the full test suite of each affected application locally, even when CI will run it later, and the security review when the change crosses a security boundary. The agent never opens the page for you; the message gives one line to open it yourself, as [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) sets. It keeps these files until the session ends too. To keep walkthroughs after the session and browse them by project, ticket and session, you can run the local viewer `hive view`, which the agent never starts; the [README](https://github.com/JhonHawk/tricell-hive#review-ui-walkthroughs-in-one-place) shows how.
 
+The local viewer excludes new manifests confirmed as tracked in Git. If a stored
+copy's source becomes tracked, it moves to a separate explanatory section; its files,
+pin and normal retention remain. When Git or the source is unavailable, the viewer
+warns that its origin is unknown, rather than claiming agent authorship. It also
+rejects hard-linked manifests and referenced files during ingestion.
+
+On screen, desktop capture previews use one strip width at a time. Additional
+captures remain accessible horizontally, narrow strips keep a peek of the next
+capture, and the carousel and print layout remain available. Previously generated
+standalone pages keep their embedded stylesheet until regenerated.
+
 ### Where is the exact rule?
 See the source linked below.
 

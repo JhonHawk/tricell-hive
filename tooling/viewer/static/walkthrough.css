@@ -81,9 +81,11 @@
 .walkthrough .wt-strip[hidden]{display:none}
 .walkthrough .wt-strip-list{display:flex; gap:12px; margin:0; padding:0; list-style:none; width:max-content}
 .walkthrough .wt-item{flex:0 0 auto; scroll-snap-align:start}
-/* Two desktop thumbnails per row width; on a narrow strip one plus a peek of the next. */
+/* Print keeps two desktop thumbnails per row width; screen uses the full strip width. */
 .walkthrough .wt-item.desktop{width:calc((100cqw - 12px) / 2)}
+@media screen{.walkthrough .wt-item.desktop{width:100cqw}}
 .walkthrough .wt-item.mobile{width:168px}
+/* A narrow strip keeps a peek of the next desktop capture in either medium. */
 @container (max-width:520px){.walkthrough .wt-item.desktop{width:calc(100cqw - 48px)}}
 .walkthrough .wt-item figure{margin:0}
 .walkthrough .wt-thumb{display:block; width:100%; aspect-ratio:16/10; height:auto; padding:0; background:var(--bg); border:1px solid var(--line); border-radius:var(--r); cursor:zoom-in; overflow:hidden; color:inherit}
