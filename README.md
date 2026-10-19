@@ -22,9 +22,10 @@ role definitions, and a manager that installs them in the host's native location
 Each CLI keeps its own model loop, authentication, tools, permissions, and history.
 
 The global core keeps essential boundaries and points to canonical skill
-references before the action that needs them. Reporting applies before every chat
-reply; questions, delegation, artifact details and project settings have explicit
-read conditions. Installing a reference makes it available, not necessarily read
+references before the action that needs them. Reporting applies to findings,
+explanations and messages with external links or IDs; greetings and short direct
+answers need no reference read. Questions, delegation, artifact details and project
+settings have explicit read conditions. Installing a reference makes it available, not necessarily read
 or followed. This organization does not establish reliability for any model family.
 
 OpenCode V2 also receives an **optional, inactive context loader** at user scope in
@@ -366,8 +367,8 @@ native locations. The files an agent should read first are in
 
 ## Documentation
 
-- [Documentation site](https://hive.tricell.tech/) — one page per flow: when to
-  use it, what it produces, and what it does not do.
+- [Documentation site](https://hive.tricell.tech/) — getting started, skills and
+  flow guides, release history, and the projects that inspire Hive.
 - [Changelog](CHANGELOG.md), [contributing](CONTRIBUTING.md), and
   [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —

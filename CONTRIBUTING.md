@@ -39,6 +39,42 @@ describes what the tests cover.
   [README and llms.txt](AGENTS.md#readme-and-llmstxt) section of `AGENTS.md`
   describes.
 
+## Documentation site
+
+The site in `site/` uses Astro Starlight with the Ion theme and Hive's brand
+accents. Its navigation is Home, Getting started, and Changelog, followed by a
+separator, collapsible Skills and Inspiration groups. Skills links to its catalog
+and the four main flow guides. Inspiration lists OpenSpec, gentle-ai, and
+Superpowers, in that order. Keep its existing routes, logo assets, and
+metadata when updating its presentation. Flow pages explain the user experience and link to the canonical
+skill; they do not duplicate the procedural rules in `content/`.
+
+Update the affected flow page in the same pull request as its behavior changes.
+Check claims against the canonical skill and its references on `development`,
+and distinguish supported behavior from verified host behavior. Update
+`README.md` and `llms.txt` too when their claims change.
+
+`CHANGELOG.md` at the repository root is the only editorial source for the
+site's release history. Edit it rather than a second site copy. Keep
+`[Unreleased]` separate from published versions, preserve the recorded release
+dates, and verify historical additions against release tags and release notes.
+An entry under `[Unreleased]` is not a published release.
+
+Use the site's declared Node and pnpm versions. From `site/`, run:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check
+pnpm lint
+pnpm build
+pnpm preview --host 127.0.0.1
+```
+
+Check the affected pages, navigation, search, keyboard access, mobile layout,
+and both color themes in the preview. When changing colors or the theme,
+remeasure text, links, and button contrast against their actual backgrounds.
+Publishing follows the release process below.
+
 ## Releases and version numbers
 
 The version number tracks what the installer delivers: the `hive` binary (its

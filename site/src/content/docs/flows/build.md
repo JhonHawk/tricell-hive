@@ -21,9 +21,10 @@ You do not need a plan first for a small change you understand.
 
 The global core still controls scope, authorization, preservation and secrets.
 Build links to canonical procedures when a decision, delegation, artifact or
-verification needs them; reporting applies before every report, relayed result
-and decision message, not before a greeting or a short direct answer. Neither an
-installed reference nor an optional loader proves that a helper followed it.
+verification needs them. Reporting applies to findings, relayed results,
+explanations and messages with external links or IDs; greetings and short
+direct answers need no reference read. Neither an installed reference nor an
+optional loader proves that a helper followed it.
 
 ## What it produces
 

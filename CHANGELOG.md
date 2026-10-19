@@ -43,6 +43,10 @@ raise the minor or the patch version.
   `none`, selects which independent children run on a built UI change; without
   it, Build asks once per repository and session in the review round.
   `hive doctor` and the project form accept the key.
+- The documentation site adds Getting started, Skills, and Inspiration pages
+  alongside the complete release history from this changelog, with unreleased
+  work distinguished from published versions.
+
 - A code repository can declare `Delivery: automatic` or `Delivery: interactive`
   and a `Review` mechanism (or `none`) in its `## Hive` section; the agent then
   states the mode and the review in one line before the first edit instead of
@@ -84,6 +88,10 @@ raise the minor or the patch version.
   description, a task's subject and a child's label, follow the session
   language; a contribution to an external or open-source repository first
   checks that repository's language and uses it for what reaches it.
+- The documentation site uses the Ion theme with Hive branding and an original
+  hexagonal hero illustration; contributing guidance covers site content updates,
+  preview checks, and the single changelog source. Flow pages match the canonical reporting reference's applicability.
+
 - Before merging a pull request, the agent confirms that the passing checks ran
   against the current base; when the base moved, it merges the base into the
   branch, pushes, and waits for the new run.
