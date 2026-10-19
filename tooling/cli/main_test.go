@@ -86,7 +86,7 @@ func TestHelpAndRequiredScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"hive doctor [--home DIR] [--state-dir DIR] [--project DIR]", "hive models [--home DIR] [--state-dir DIR]"} {
+	for _, want := range []string{"hive doctor [--home DIR] [--state-dir DIR] [--project DIR]", "hive models [--home DIR] [--state-dir DIR]", "hive view start [--port N] [--ttl D]", "hive view register [--dir DIR]"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help does not list %q", want)
 		}

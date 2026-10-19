@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "lang": "es",
+  "kind": "first_view",
+  "title": "gh-67 — primera vista",
+  "session": {
+    "id": "sess-0001",
+    "host": "claude-code"
+  },
+  "candidate": {
+    "branch": "feat/example",
+    "commit": "1a2b3c4d",
+    "base": "development"
+  },
+  "created_at": "2026-10-18T22:00:00-06:00",
+  "flows": [
+    {
+      "id": "layout",
+      "title": "Disposición nueva",
+      "captures": [
+        {
+          "path": "images/layout-1.png",
+          "caption": "Vista inicial",
+          "alt": "Vista inicial"
+        },
+        {
+          "path": "images/layout-2.png",
+          "caption": "Vista estrecha",
+          "alt": "Vista estrecha"
+        }
+      ]
+    }
+  ],
+  "checks": [],
+  "action_required": [
+    "Decidir si la disposición continúa."
+  ]
+}

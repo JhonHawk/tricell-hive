@@ -1,0 +1,156 @@
+/* Walkthrough viewer. Scoped to .walkthrough: no rules on html, body or global selectors. */
+.walkthrough{
+  --bg:#0b0b0c; --paper:#131316;
+  --ink:#e8e6e1; --ink-soft:#b8b5ae; --muted:#8a8780; --faint:#5f5d58;
+  --accent:#4a9eff;
+  --red:#ff6b5a; --amber:#e5a83c; --green:#5ec269;
+  --line:color-mix(in srgb, var(--ink) 16%, transparent);
+  --line-soft:color-mix(in srgb, var(--ink) 9%, transparent);
+  --hover:color-mix(in srgb, var(--ink) 6%, transparent);
+  --accent-bg:color-mix(in srgb, var(--accent) 12%, var(--bg));
+  --red-bg:color-mix(in srgb, var(--red) 12%, var(--bg));
+  --amber-bg:color-mix(in srgb, var(--amber) 12%, var(--bg));
+  --green-bg:color-mix(in srgb, var(--green) 12%, var(--bg));
+  --r:8px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  box-sizing:border-box; display:block; min-height:100vh;
+  background:var(--bg); color:var(--ink); font:18px/1.6 var(--sans);
+  max-width:760px; margin:0 auto; padding:40px 16px 72px;
+  overflow-wrap:anywhere;
+}
+.walkthrough *, .walkthrough *::before, .walkthrough *::after{box-sizing:border-box}
+.walkthrough h1{font-size:30px; line-height:1.25; margin:6px 0 12px}
+.walkthrough h2{font-size:22px; line-height:1.3; margin:44px 0 14px; padding-top:14px; border-top:1px solid var(--line)}
+.walkthrough h3{font-size:19px; line-height:1.35; margin:0 0 10px; scroll-margin-top:16px}
+.walkthrough h3:focus{outline:none}
+.walkthrough p{margin:0 0 12px}
+.walkthrough a{color:var(--accent)}
+.walkthrough code{font-family:var(--mono); font-size:.88em; background:var(--paper); padding:1px 6px; border-radius:4px}
+.walkthrough .wt-kicker{font:600 13px/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin:0}
+.walkthrough .wt-meta{display:flex; flex-wrap:wrap; gap:6px 22px; font:14px/1.5 var(--mono); color:var(--muted)}
+
+/* summary */
+.walkthrough .wt-summary{background:var(--paper); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:var(--r); padding:14px 18px; margin:16px 0}
+.walkthrough .wt-result{margin:0 0 12px}
+.walkthrough .wt-counts{display:flex; flex-wrap:wrap; gap:8px; margin:0; padding:0; list-style:none}
+.walkthrough .wt-totals{font:14px/1.5 var(--mono); color:var(--muted); margin:10px 0 0}
+.walkthrough .wt-index{margin:0; padding-left:24px}
+.walkthrough .wt-index li{margin:0 0 4px}
+.walkthrough .wt-index a{display:inline-block; min-height:24px; padding:2px 0}
+
+/* validation table */
+.walkthrough .wt-tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--paper)}
+.walkthrough table{border-collapse:collapse; width:100%}
+.walkthrough th, .walkthrough td{text-align:left; vertical-align:top; padding:10px 14px; border-bottom:1px solid var(--line-soft); overflow-wrap:break-word}
+/* Real words never split: columns size to their longest word and the wrapper scrolls instead. */
+.walkthrough th:first-child, .walkthrough td:first-child{min-width:12ch}
+/* The result column keeps room even when the first column holds an unbroken token. */
+.walkthrough th:last-child, .walkthrough td:last-child{min-width:9em}
+.walkthrough th{font:600 13px/1.4 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.walkthrough tr:last-child td{border-bottom:none}
+.walkthrough .wt-chip{display:inline-block; font:600 13px/1.5 var(--mono); padding:1px 9px; border-radius:99px; border:1px solid var(--line); white-space:nowrap}
+.walkthrough .wt-chip.pass{color:var(--green); background:var(--green-bg); border-color:color-mix(in srgb, var(--green) 40%, transparent)}
+.walkthrough .wt-chip.fail{color:var(--red); background:var(--red-bg); border-color:color-mix(in srgb, var(--red) 40%, transparent)}
+.walkthrough .wt-chip.warn{color:var(--amber); background:var(--amber-bg); border-color:color-mix(in srgb, var(--amber) 40%, transparent)}
+.walkthrough .wt-chip.info{color:var(--accent); background:var(--accent-bg); border-color:color-mix(in srgb, var(--accent) 40%, transparent)}
+.walkthrough .wt-chip.not_run{color:var(--muted)}
+
+/* checks: a closed <details>; the summary is the heading plus the status counts */
+.walkthrough details.wt-checks{margin:44px 0 14px; padding-top:14px; border-top:1px solid var(--line)}
+.walkthrough details.wt-checks > summary{display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; min-height:32px; padding:4px 0; cursor:pointer; list-style:none}
+.walkthrough details.wt-checks > summary::-webkit-details-marker{display:none}
+.walkthrough details.wt-checks > summary::before{content:""; flex:0 0 auto; width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(-45deg); transition:transform .12s}
+.walkthrough details.wt-checks[open] > summary::before{transform:rotate(45deg)}
+.walkthrough details.wt-checks > summary:hover::before{border-color:var(--ink)}
+.walkthrough .wt-checks-title{display:inline; margin:0; padding:0; border:0; font-size:22px; line-height:1.3}
+.walkthrough .wt-sum-counts{display:flex; flex-wrap:wrap; gap:6px}
+.walkthrough details.wt-checks[open] > .wt-tablewrap{margin-top:12px}
+
+/* flows */
+.walkthrough .wt-flow{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:20px 22px; margin:0 0 18px}
+.walkthrough .wt-steps{margin:0 0 16px; padding-left:28px; line-height:1.7}
+.walkthrough .wt-steps li{margin:0 0 8px}
+.walkthrough .wt-label{font:600 13px/1.4 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:16px 0 8px}
+/* Capture strip: one horizontal scroller per view, so the page height never grows with the count. */
+.walkthrough .wt-tabs{display:inline-flex; gap:4px; padding:4px; margin:0 0 10px; background:var(--bg); border:1px solid var(--line); border-radius:var(--r)}
+.walkthrough .wt-tab{font:600 13px/1 var(--mono); color:var(--muted); background:transparent; border:1px solid transparent; border-radius:6px; padding:9px 14px; min-height:36px; cursor:pointer}
+.walkthrough .wt-tab:hover{color:var(--ink); background:var(--hover)}
+.walkthrough .wt-tab[aria-selected="true"]{color:var(--ink); background:var(--accent-bg); border-color:color-mix(in srgb, var(--accent) 45%, transparent)}
+.walkthrough .wt-strip{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; scroll-snap-type:x proximity; scroll-padding:0 12px; padding:2px 2px 12px; border-radius:var(--r); scrollbar-width:thin; scrollbar-color:var(--faint) transparent; container-type:inline-size}
+.walkthrough .wt-strip[hidden]{display:none}
+.walkthrough .wt-strip-list{display:flex; gap:12px; margin:0; padding:0; list-style:none; width:max-content}
+.walkthrough .wt-item{flex:0 0 auto; scroll-snap-align:start}
+/* Two desktop thumbnails per row width; on a narrow strip one plus a peek of the next. */
+.walkthrough .wt-item.desktop{width:calc((100cqw - 12px) / 2)}
+.walkthrough .wt-item.mobile{width:168px}
+@container (max-width:520px){.walkthrough .wt-item.desktop{width:calc(100cqw - 48px)}}
+.walkthrough .wt-item figure{margin:0}
+.walkthrough .wt-thumb{display:block; width:100%; aspect-ratio:16/10; height:auto; padding:0; background:var(--bg); border:1px solid var(--line); border-radius:var(--r); cursor:zoom-in; overflow:hidden; color:inherit}
+.walkthrough .wt-item.mobile .wt-thumb{aspect-ratio:auto; height:300px}
+.walkthrough .wt-thumb:hover{border-color:var(--accent)}
+.walkthrough .wt-thumb img{display:block; width:100%; height:100%; object-fit:cover; object-position:top center}
+.walkthrough .wt-item figcaption{font-size:14px; line-height:1.4; color:var(--ink-soft); margin-top:6px; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden}
+.walkthrough video{display:block; width:100%; max-width:720px; height:auto; background:#000; border:1px solid var(--line); border-radius:var(--r)}
+.walkthrough .wt-vmeta{font:14px/1.5 var(--mono); color:var(--muted); margin:6px 0 0}
+.walkthrough .wt-mark{margin:0; padding:10px 14px; border:1px dashed var(--line); border-radius:var(--r); color:var(--ink-soft)}
+.walkthrough .wt-mark.stale{border-color:color-mix(in srgb, var(--amber) 55%, transparent); color:var(--amber)}
+
+.walkthrough .wt-action{border-left:3px solid var(--amber); background:var(--amber-bg); border-radius:var(--r); padding:14px 20px}
+.walkthrough .wt-action ul{margin:0; padding-left:22px}
+.walkthrough dl.wt-env{display:grid; grid-template-columns:fit-content(40%) minmax(0,1fr); gap:6px 18px; margin:0}
+.walkthrough dl.wt-env dt{font:600 14px/1.6 var(--mono); color:var(--muted)}
+.walkthrough dl.wt-env dd{margin:0}
+.walkthrough details.wt-prov{margin-top:44px; border-top:1px solid var(--line); padding-top:14px; color:var(--ink-soft); font-size:16px}
+.walkthrough details.wt-prov summary{cursor:pointer; padding:6px 0; font:600 13px/1.4 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.walkthrough details.wt-prov ul{margin:10px 0 0; padding-left:22px}
+
+/* carousel (a <dialog> owned by the root): fixed bar and caption, scrolling body */
+.walkthrough dialog.wt-carousel{max-width:96vw; width:min(96vw,1400px); max-height:94vh; margin:auto; padding:0; border:1px solid var(--line); border-radius:var(--r); background:var(--paper); color:var(--ink); overflow:hidden}
+.walkthrough dialog.wt-carousel[open]{display:flex; flex-direction:column}
+.walkthrough dialog.wt-carousel[data-view="mobile"]{width:min(96vw,470px)}
+.walkthrough dialog.wt-carousel::backdrop{background:rgba(0,0,0,.82)}
+.walkthrough .wt-bar{flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line-soft)}
+.walkthrough .wt-counter{font:600 14px/1 var(--mono); color:var(--ink-soft); min-width:5ch; text-align:center}
+.walkthrough .wt-close{margin-left:auto}
+.walkthrough .wt-body{flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; padding:10px}
+.walkthrough .wt-body img{display:block; max-width:100%; max-height:calc(94vh - 150px); margin:0 auto; object-fit:contain}
+.walkthrough dialog.wt-carousel[data-view="mobile"] .wt-body img{width:100%; max-width:430px; max-height:none; height:auto}
+.walkthrough .wt-caption{flex:0 0 auto; margin:0; padding:10px 16px 12px; border-top:1px solid var(--line-soft); font-size:15px; line-height:1.4; color:var(--ink-soft); text-align:center}
+.walkthrough dialog.wt-carousel button{font:600 14px/1 var(--mono); color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:var(--r); padding:10px 14px; min-width:44px; min-height:40px; cursor:pointer}
+.walkthrough dialog.wt-carousel button:disabled{opacity:.35; cursor:default}
+.walkthrough .wt-body:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.walkthrough a:focus-visible, .walkthrough button:focus-visible, .walkthrough .wt-strip:focus-visible, .walkthrough summary:focus-visible, .walkthrough video:focus-visible, .walkthrough h3:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+@media (max-width:719px){
+  .walkthrough{font-size:16px; padding:24px 16px 56px}
+  .walkthrough h1{font-size:24px}
+  .walkthrough .wt-flow{padding:16px}
+  .walkthrough dl.wt-env{grid-template-columns:minmax(0,1fr)}
+  .walkthrough dl.wt-env dt{max-width:none}
+}
+
+/* PRINT: always light, whatever the screen shows. Print from the browser (Cmd+P -> Save as PDF). */
+@media print{
+  .walkthrough{
+    --bg:#ffffff; --paper:#ffffff;
+    --ink:#111214; --ink-soft:#33353a; --muted:#5c5e64; --faint:#8b8d93;
+    --accent:#14509f; --red:#a11f18; --amber:#7a4f00; --green:#265c2c;
+    font-size:11.5pt; max-width:none; padding:0; min-height:0;
+  }
+  .walkthrough details.wt-checks > summary::before{display:none}
+  .walkthrough details.wt-checks{border-top-color:#999}
+  .walkthrough details.wt-prov{display:block}
+  .walkthrough details.wt-prov > summary{list-style:none}
+  .walkthrough details.wt-prov > summary::-webkit-details-marker{display:none}
+  .walkthrough a{color:var(--ink)}
+  .walkthrough h2, .walkthrough h3{break-after:avoid-page}
+  /* Flows may break across pages (a whole flow card would leave the first page nearly empty); figures stay whole. */
+  .walkthrough figure, .walkthrough tr, .walkthrough .wt-action{break-inside:avoid}
+  .walkthrough thead{display:table-header-group}
+  .walkthrough video{border-color:#999}
+  .walkthrough .wt-chip{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  .walkthrough dialog.wt-carousel, .walkthrough .wt-tabs{display:none !important}
+  .walkthrough .wt-strip, .walkthrough .wt-strip[hidden]{display:block; overflow:visible}
+  .walkthrough .wt-strip-list{width:auto; flex-wrap:wrap}
+}

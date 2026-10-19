@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Hive walkthroughs</title>
+<link rel="stylesheet" href="/assets/walkthrough.css">
+<link rel="stylesheet" href="/assets/viewer.css">
+</head>
+<body class="viewer">
+<a class="skip-link" id="skip-link" href="#viewer-main">Skip to the walkthrough</a>
+<div class="shell" id="shell">
+  <aside class="sidebar" id="sidebar" aria-labelledby="sidebar-title">
+    <div class="side-head">
+      <p class="side-title" id="sidebar-title">Hive walkthroughs</p>
+      <button type="button" class="btn btn-ghost side-close" id="sidebar-close">Close</button>
+    </div>
+    <div class="side-scroll" id="side-scroll"><p class="side-note" id="side-loading">Loading…</p></div>
+    <div class="side-foot" id="side-foot" hidden>
+      <div class="errors-list" id="errors-list" hidden></div>
+      <div class="foot-row">
+        <button type="button" class="btn btn-ghost errors-toggle" id="errors-toggle" aria-expanded="false" aria-controls="errors-list" hidden></button>
+        <span class="ttl" id="ttl"></span>
+      </div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <main class="main" id="viewer-main" tabindex="-1">
+    <header class="topbar" id="topbar">
+      <div class="topbar-row">
+        <button type="button" class="btn menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="sidebar">Walkthroughs</button>
+        <p class="crumb" id="crumb"></p>
+        <div class="actions" id="actions" hidden>
+          <button type="button" class="btn" id="pin-button"></button>
+          <button type="button" class="btn btn-danger" id="delete-button"></button>
+        </div>
+      </div>
+    </header>
+    <div class="stage" id="stage"></div>
+    <div class="walkthrough" id="wt-mount" hidden></div>
+  </main>
+</div>
+<div class="notices" id="notices" role="status" aria-live="polite"></div>
+<dialog class="confirm" id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+  <h2 class="confirm-title" id="confirm-title"></h2>
+  <p class="confirm-name" id="confirm-name"></p>
+  <p class="confirm-body" id="confirm-body"></p>
+  <div class="confirm-actions">
+    <button type="button" class="btn" id="confirm-cancel"></button>
+    <button type="button" class="btn btn-danger-solid" id="confirm-ok"></button>
+  </div>
+</dialog>
+<noscript><p class="side-note">This page needs JavaScript to show walkthroughs.</p></noscript>
+<script type="module" src="/assets/viewer.mjs"></script>
+</body>
+</html>

@@ -7,7 +7,7 @@ description: Create a visual HTML report, printable paper, comparison, explainer
 
 Before writing the support deliverable, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before the chat handoff or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md). Before asking a user decision, read [questions](../flow-plan/references/questions.md).
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record using the research procedure and established workspace location. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML, except the UI walkthrough page and the first-view page of `flow-walkthrough`, which use the walkthrough asset below; the Communication rules of the global guidance shape chat replies.
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record using the research procedure and established workspace location. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; the UI walkthrough page of `flow-walkthrough` is rendered by that skill, not from these assets. The Communication rules of the global guidance shape chat replies.
 
 Choose the asset that matches what the reader receives:
 
@@ -19,10 +19,9 @@ Choose the asset that matches what the reader receives:
 | Code-review verdict | [template](assets/skeleton-review.html) |
 | Unresolved option comparison | [template](assets/skeleton-comparison.html) |
 | Guided presentation | [template](assets/skeleton-deck.html) |
-| UI walkthrough for human validation, or first rendered view of a layout | [template](assets/skeleton-walkthrough.html) |
 
 Copy an asset and replace its placeholders with accurate, audience-appropriate content. Keep its responsive and print behavior unless the report needs a deliberate alternative. Write human-facing content in the session language. Put the report in the destination resolved by the workspace guidance; do not invent a destination or overwrite a retained record without authorization.
 
-Reports are offline by default: keep styles, scripts, images, and diagrams in the file. The one exception is the walkthrough page, which references its captures and recordings as sibling files under `images/` with relative paths, since a video does not fit in the document. If an external asset is necessary, add `<meta name="flow-report-assets" content="external">`, name the dependency in the report, and make the readable content work without it. Include a short provenance footer with the date, inputs, and relevant paths.
+Reports are offline by default: keep styles, scripts, images, and diagrams in the file. If an external asset is necessary, add `<meta name="flow-report-assets" content="external">`, name the dependency in the report, and make the readable content work without it. Include a short provenance footer with the date, inputs, and relevant paths.
 
 Run [the self-check](scripts/self_check.py) with `python3 <skill-dir>/scripts/self_check.py <report.html>` after writing and fix failures. For reports containing inline SVG diagrams, also run [the geometry check](scripts/verify_geometry.py) with `python3 <skill-dir>/scripts/verify_geometry.py <report.html>`. Read [the diagram grammar](references/diagram-grammar.md) before drawing or modifying an SVG diagram.

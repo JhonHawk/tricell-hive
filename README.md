@@ -345,6 +345,29 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 Close this work item and clean up only the temporary resources it created.
 ```
 
+### Review UI walkthroughs in one place
+
+When an agent validates a user interface with you, it writes the walkthrough as
+`walkthrough.json` in the `_support/workspace/` of the repository, or of the
+multi-repository workspace folder that holds it, and renders a page
+beside it. To keep those walkthroughs after the session and browse them by
+project, ticket and session, run the local viewer yourself:
+
+```sh
+hive view register --dir <folder>   # once per repository or workspace; agents run it too
+hive view start      # a server on 127.0.0.1 that keeps running until you stop it
+hive view open       # open it in the browser
+hive view stop
+```
+
+The viewer copies each walkthrough into Hive's state directory, deletes copies
+older than 14 days unless you pin them (`--ttl` changes that), and lets you
+delete one from its sidebar; it never changes files in your repositories.
+The page reads nothing without the access token that `hive view open` passes,
+so open it that way. `register` takes the folder that contains `_support/workspace/` when
+`--dir` points inside it, even if that folder is not a Git repository (a
+multi-repository workspace), and the Git root otherwise. Agents never start it.
+
 ## For AI agents
 
 Hive is a guidance layer plus a manager: shared rules, activity skills, and
