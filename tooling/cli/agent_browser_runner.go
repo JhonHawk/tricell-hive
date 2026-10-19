@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"tricell-hive/integrations/codex"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/providers"
 )
@@ -182,13 +183,18 @@ func lastBytes(s string, n int) string {
 }
 
 // providerRunner is the ExternalRunner for every capability: manual steps are
-// confirmed back unchanged, and agent-browser's planned steps run through
-// agentBrowserExec. A synthetic home never runs a program.
+// confirmed back unchanged, and planned steps (agent-browser's and the Codex
+// question card's) run through agentBrowserExec. A synthetic home never runs a program.
 type providerRunner struct {
 	manual    manualProviderRunner
 	sys       agentBrowserSystem
 	synthetic bool
+	// codexHome is where `codex features enable` writes config.toml.
+	codexHome string
 }
+
+// codexBinary is the program the question-card step runs.
+const codexBinary = "codex"
 
 func (r providerRunner) Validate(s management.ExternalStep) error {
 	return providers.ValidateStep(s.Payload)
@@ -237,6 +243,9 @@ func (r providerRunner) run(step providers.Step) agentBrowserResult {
 		default:
 			res.Message = fmt.Sprintf("%s exited with code %d", step.Argv[0], res.ExitCode)
 		}
+		if step.Method == providers.MethodCodex && (strings.Contains(res.Output, "unrecognized subcommand") || strings.Contains(res.Output, "unexpected argument")) {
+			res.Message = "this Codex version has no `features` subcommand; update Codex (0.163.0 or later) and run the command by hand"
+		}
 		if strings.Contains(res.Output, "EACCES") && step.Method == providers.MethodNpm {
 			res.Message = "npm cannot write to its global prefix (EACCES). Fix the prefix permissions or install agent-browser by hand; Hive never uses sudo."
 		}
@@ -262,6 +271,13 @@ func (r providerRunner) Reconcile(s management.ExternalStep, result json.RawMess
 	}
 	if step.Status == providers.Manual {
 		return r.manual.Reconcile(s, result)
+	}
+	if step.ID == providers.CodexQuestionCardEnableStep && r.codexHome != "" {
+		// Codex's own configuration is the truth: an interruption after Codex
+		// wrote the file must not be reported as a failure.
+		if on, err := codex.FeatureEnabled(r.codexHome, providers.CodexQuestionCardFeature); err == nil && on {
+			return management.StepVerified, nil
+		}
 	}
 	var res agentBrowserResult
 	if len(result) == 0 || string(result) == "{}" || json.Unmarshal(result, &res) != nil {
@@ -294,7 +310,7 @@ func stepResultDetail(step management.StepReceipt) (message string, tail []strin
 	var res agentBrowserResult
 	if len(result) == 0 {
 		// RecoverOnboarding settles an interrupted step with no saved result.
-		if status == management.StepFailed && strings.HasPrefix(step.Step.ID, string(providers.AgentBrowser)+"-") {
+		if status == management.StepFailed && (strings.HasPrefix(step.Step.ID, string(providers.AgentBrowser)+"-") || strings.HasPrefix(step.Step.ID, string(providers.CodexQuestionCard)+"-")) {
 			return "interrupted before its result was recorded", nil
 		}
 		return "", nil

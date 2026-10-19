@@ -104,7 +104,14 @@ type providerOffer struct {
 	// Unversioned marks an installable capability that always installs the
 	// latest version: the wizard asks for no version and says so.
 	Unversioned bool
-	Effects     []string
+	// DefaultOn marks an executable capability the wizard selects by default;
+	// the operator still confirms the plan before anything runs. A manual
+	// offer is never DefaultOn.
+	DefaultOn bool
+	// Effect describes in a few words what a capability that installs no
+	// program does, for the wizard's label.
+	Effect  string
+	Effects []string
 }
 
 type providerRequest struct {
