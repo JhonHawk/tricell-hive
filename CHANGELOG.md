@@ -12,6 +12,21 @@ raise the minor or the patch version.
 
 ### Added
 
+- `hive view`, a local walkthrough viewer the user starts and stops
+  (`start`, `stop`, `status`, `open`, `serve`, `register`). Agents run only
+  `hive view register`; the server on 127.0.0.1 copies each repository's
+  `walkthrough.json` and its files into Hive's state directory, groups them by
+  project, ticket and session in a sidebar, purges unpinned copies after 14
+  days (`--ttl`), and deletes a copy on request without touching the
+  repository. A new manager command raises the minor version of the next
+  release.
+- `flow-walkthrough` renders its page from data: the agent writes
+  `walkthrough.json` as the new `references/walkthrough-manifest.md` sets and
+  runs `scripts/render_walkthrough.py`, which validates it and writes
+  `walkthrough.html` from a fixed template with a summary, a section index and
+  a capture carousel; the page's fixed labels follow the manifest's `lang`
+  (`es` or `en`). The agent no longer copies and fills an HTML skeleton.
+
 - `codex-question-card`, an optional capability that `hive install` offers
   with the Codex host, selected by default in interactive installs when the
   installed Codex reports the feature in `codex features list` (uncheck it or
@@ -31,9 +46,9 @@ raise the minor or the patch version.
 
 - `flow-walkthrough`, a skill that owns the human validation of a user
   interface: the first rendered view of a new layout, the correction rounds,
-  the captures, one short recorded pass per flow (`agent-browser record`,
-  checked with `ffprobe`) and the handoff as a message and a dark-mode HTML
-  page built from the new `flow-report` walkthrough skeleton. Its reference
+  the captures, a short recorded pass when a flow needs one (`agent-browser
+  record`, checked with `ffprobe`) and the handoff as a message and a
+  dark-mode HTML page rendered from a JSON manifest (see below). Its reference
   `ui-gate.md` is the one home of the UI gate: the implementer's rendered
   inspection, the independent children with their briefs and stops, and the
   accepted-candidate gate; `ui-review-criteria.md` moved beside it. Build's
@@ -54,6 +69,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `flow-walkthrough` takes captures by default and records a flow only when it
+  validates an interaction or a transition that captures cannot show, or when
+  the user asks; it no longer records every flow at the validation handoff.
+  The walkthrough skeleton leaves `flow-report`, and the walkthrough's
+  retention unit now includes `walkthrough.json`.
+- `flow-walkthrough` never opens a browser, the page or the viewer by itself:
+  the message gives one line with the page's path, plus `hive view open` when
+  the walkthrough is registered.
+
 - Inspiration opens one page containing OpenSpec, gentle-ai, and Superpowers
   instead of a collapsible sidebar group.
 
@@ -67,7 +91,7 @@ raise the minor or the patch version.
   work of its own is treated as stopped and checked at once. A task brief
   carries the skills and project documents that the project's rules direct for
   that work. The first rendered view of a layout is delivered as
-  `walkthrough.html` and the page opens by itself before the question. A task
+  `walkthrough.html`, and the message gives the command to open it before the question. A task
   with a rendered UI effect is committed after its first rendered view and the
   UI review, and the UI review, the full suite and, when the change crosses a
   security boundary, the security review run before you are asked to validate; later fixes go in an additional commit per

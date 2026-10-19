@@ -53,7 +53,7 @@ The agent goes through these steps in order:
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page with its JSON file that you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.

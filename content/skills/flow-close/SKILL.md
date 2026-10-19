@@ -75,6 +75,6 @@ After verifying a merge you performed, clean up its branches. The global guidanc
 
 ## End the session
 
-1. Delete the UI review images, recordings, and walkthrough page this task created that the user did not explicitly select for retention, as one unit: a selected page keeps every file it references, and a selected file keeps that file while the page goes with the rest; remove or update their report links. When the work item is paused and continues in another session, keep its images, recordings, and page without asking and name their folder in the handoff. Apply [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
+1. Delete the UI review images, recordings, and walkthrough manifest (`walkthrough.json`) and page this task created that the user did not explicitly select for retention, as one unit: a selected page keeps its manifest and every file it references, and a selected file keeps that file while the manifest and page go with the rest; remove or update their report links. When the work item is paused and continues in another session, keep its images, recordings, manifest, and page without asking and name their folder in the handoff. Apply [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
 2. Stop any task-started process that is still running.
 3. List the reminders the user still controls, and what stays open with its owner.
