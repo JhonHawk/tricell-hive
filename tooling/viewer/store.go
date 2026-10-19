@@ -2,6 +2,7 @@ package viewer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,6 +53,8 @@ type Options struct {
 	// projects; see their types.
 	HiveProject HiveProjectReader
 	GitRemote   GitRemoteReader
+	// SourceTracking classifies current manifest paths in one batch; nil is unknown.
+	SourceTracking SourceTrackingReader
 }
 
 // Store is the viewer's persistent state: registry, session copies and the
@@ -60,11 +63,12 @@ type Options struct {
 // mutex, and View reads a published snapshot without taking it. Methods are
 // safe for concurrent use.
 type Store struct {
-	vdir   string
-	ttl    time.Duration
-	now    func() time.Time
-	hive   HiveProjectReader
-	remote GitRemoteReader
+	vdir     string
+	ttl      time.Duration
+	now      func() time.Time
+	hive     HiveProjectReader
+	remote   GitRemoteReader
+	tracking SourceTrackingReader
 
 	// afterValidate, when set by a test, runs in ingest between validating a
 	// folder and reading it again to hash and copy it.
@@ -115,11 +119,12 @@ func Open(o Options) (*Store, error) {
 		return nil, fmt.Errorf("viewer: state directory must be an absolute path, got %q", o.StateDir)
 	}
 	s := &Store{
-		vdir:   viewerDir(o.StateDir),
-		ttl:    o.TTL,
-		now:    o.Now,
-		hive:   o.HiveProject,
-		remote: o.GitRemote,
+		vdir:     viewerDir(o.StateDir),
+		ttl:      o.TTL,
+		now:      o.Now,
+		hive:     o.HiveProject,
+		remote:   o.GitRemote,
+		tracking: o.SourceTracking,
 	}
 	if s.ttl <= 0 {
 		s.ttl = defaultTTL
@@ -318,6 +323,7 @@ func (s *Store) load() *indexData {
 	if reg, err := readRegistry(s.vdir); err == nil {
 		d.Repositories = repositoryStatuses(reg)
 	}
+	s.classifySessions(d, s.classifySources(context.Background(), sessionSourcePaths(d)))
 	s.enrich(d)
 	d.sorted()
 	return d

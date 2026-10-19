@@ -372,6 +372,20 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 	now := s.now()
 	s.noteRepositories(reg)
 	snap := s.current()
+	// Discover paths without reading manifests, then classify before cache or TTL.
+	paths := sessionSourcePaths(snap)
+	namesByRoot := make(map[string][]string)
+	for _, r := range reg.Repositories {
+		ws, names, _ := openWorkspace(r.Root)
+		if ws != nil {
+			ws.Close()
+		}
+		namesByRoot[r.Root] = names
+		for _, name := range names {
+			paths = append(paths, filepath.Join(r.Root, "_support", "workspace", name, manifestFile))
+		}
+	}
+	classification := s.classifySources(ctx, paths)
 	repos := repositoryStatuses(reg)
 	log := &problemLog{count: make([]int, len(reg.Repositories)), omitted: make([]int, len(reg.Repositories))}
 
@@ -415,17 +429,23 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 				log.add(c.repo, filepath.Join(c.folder, manifestFile), err)
 			}
 		}
+		s.classifySessions(d, classification)
 		closeBatch()
 		s.enrich(d)
 		return s.commit(d)
 	}
 	seen := map[string]bool{}
-	var cancelled, flushErr error
+	cancelled := ctx.Err()
+	var flushErr error
 	for i, r := range reg.Repositories {
+		if cancelled != nil {
+			break
+		}
 		if repos[i].Absent {
 			continue
 		}
-		ws, names, errs := openWorkspace(r.Root)
+		ws, _, errs := openWorkspace(r.Root)
+		names := namesByRoot[r.Root]
 		for _, e := range errs {
 			log.add(i, e.Path, errors.New(e.Reason))
 		}
@@ -435,7 +455,11 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 				if cancelled = ctx.Err(); cancelled != nil {
 					break
 				}
-				seen[filepath.Join(wsDir, name)] = true
+				folder := filepath.Join(wsDir, name)
+				seen[folder] = true
+				if classification[filepath.Join(folder, manifestFile)].Status == "tracked" {
+					continue
+				}
 				if c := s.inspect(ws, name, wsDir, now, snap); c != nil {
 					c.repo = i
 					cands = append(cands, c)
@@ -462,6 +486,7 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	d := s.current().clone()
+	s.classifySessions(d, classification)
 	d.Repositories = repos
 	for i, r := range reg.Repositories {
 		if log.omitted[i] > 0 {

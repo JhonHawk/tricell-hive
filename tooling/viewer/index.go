@@ -34,7 +34,9 @@ type Session struct {
 	// Key is the 64-hex SHA-256 of "<source folder>\x00<session id>".
 	Key string `json:"key"`
 	// Source is the folder the copy came from (absolute).
-	Source string `json:"source"`
+	Source       string `json:"source"`
+	SourceStatus string `json:"source_status"`
+	SourceReason string `json:"source_reason,omitempty"`
 	// Repository is the root of the registered repository that holds Source.
 	Repository  string    `json:"repository"`
 	ContentHash string    `json:"content_hash"`

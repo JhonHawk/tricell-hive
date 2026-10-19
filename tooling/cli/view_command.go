@@ -356,10 +356,11 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 
 	git := newGitRunner()
 	store, err := viewer.Open(viewer.Options{
-		StateDir:    p.state,
-		TTL:         ttl,
-		HiveProject: viewHiveProject,
-		GitRemote:   viewGitRemote(git),
+		StateDir:       p.state,
+		TTL:            ttl,
+		HiveProject:    viewHiveProject,
+		GitRemote:      viewGitRemote(git),
+		SourceTracking: viewSourceTracking(runViewerTrackingGit),
 	})
 	if err != nil {
 		return err
