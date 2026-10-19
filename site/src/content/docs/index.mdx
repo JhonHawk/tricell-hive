@@ -1,7 +1,7 @@
 ---
 title: Guidance for coding agents
 description: Portable guidance that helps coding agents work deliberately, with clear scope and checked results.
-template: splash
+tableOfContents: false
 head:
   - tag: meta
     attrs:
@@ -14,6 +14,8 @@ head:
 hero:
   title: Hive
   tagline: Portable guidance for deliberate work with coding agents. Clarify the request, protect the project, check the result.
+  image:
+    html: '<img src="/hive-hero.webp" width="1536" height="1024" alt="Seven black glass hexagonal modules with glowing red edges, connected around a luminous central core." loading="eager" decoding="async" />'
   actions:
     - text: Install
       link: "#install"
@@ -28,8 +30,10 @@ hero:
 Hive is a small layer of shared instructions, skills and helper roles for coding agents such as Claude Code, Codex and others. It does not replace your agent: the tool keeps its own model, sign-in, permissions and history.
 
 The global core keeps essential boundaries and tells the agent when to read each
-canonical procedure. Reporting applies before every chat reply; other references
-are read when their stated conditions apply. A file being installed, discovered,
+canonical procedure. Reporting applies to findings, explanations and messages
+with external links or IDs; greetings and short direct answers need no reference
+read. Other references are read when their stated conditions apply. A file being
+installed, discovered,
 supplied to a model and followed are different things. Smaller global text does
 not prove smaller total context or improved reliability for any model family.
 
@@ -126,4 +130,4 @@ blocked on verifying safe, exact memory cleanup.
 
 - **Start here**: [Research](/flows/research/), the flow most sessions begin with.
 - **Principles**: [Why Hive](https://github.com/JhonHawk/tricell-hive#why-hive) explains the ideas behind it.
-- **What changed**: the [changelog](https://github.com/JhonHawk/tricell-hive/blob/master/CHANGELOG.md) and the [releases](https://github.com/JhonHawk/tricell-hive/releases).
+- **What changed**: the [changelog](/changelog/) and the [releases](https://github.com/JhonHawk/tricell-hive/releases).

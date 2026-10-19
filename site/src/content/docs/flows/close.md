@@ -5,7 +5,9 @@ description: Wrap up a finished, paused or abandoned piece of work and clean up 
 
 Close is the last step of a piece of work. It makes sure the records match reality, removes the leftovers the task made, and tells you where things stand.
 
-Its reporting reference applies before every chat reply, not only a final report.
+Its reporting reference applies to findings, explanations and messages with
+external links or IDs, including progress updates. Greetings and short direct
+answers need no reference read.
 Questions and artifact cleanup have their own direct reference links. Those
 procedures retain their existing obligations; reading a reference does not
 invoke another complete flow.
