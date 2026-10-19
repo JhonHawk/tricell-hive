@@ -78,24 +78,7 @@ export default defineConfig({
             { slug: "flows/close" },
           ],
         },
-        {
-          label: "[spark] Inspiration",
-          collapsed: true,
-          items: [
-            {
-              label: "OpenSpec",
-              link: "https://github.com/Fission-AI/OpenSpec",
-            },
-            {
-              label: "gentle-ai",
-              link: "https://github.com/Gentleman-Programming/gentle-ai",
-            },
-            {
-              label: "Superpowers",
-              link: "https://github.com/obra/superpowers",
-            },
-          ],
-        },
+        { label: "[spark] Inspiration", slug: "inspiration" },
       ],
     }),
   ],

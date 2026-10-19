@@ -54,6 +54,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Inspiration opens one page containing OpenSpec, gentle-ai, and Superpowers
+  instead of a collapsible sidebar group.
+
 - Waits, messages and the first rendered view follow one rule each (the
   analysis of cam session `e2c8d39f`, 2026-10-18). Every progress or decision
   message opens with a bold context line, stage · ticket · progress, and a

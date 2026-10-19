@@ -48,11 +48,6 @@
   cursor: pointer;
 }
 
-/* Keep the requested single divider before Skills. */
-.sidebar .top-level > li:last-child > details > summary {
-  border-top: none;
-}
-
 .sidebar .top-level > li > details > summary::after {
   content: "";
   width: 0.4rem;
