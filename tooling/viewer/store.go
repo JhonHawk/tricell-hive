@@ -2,6 +2,7 @@ package viewer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +30,8 @@ var (
 	// ErrInvalidKey is returned for a session key that is not 64 lowercase
 	// hexadecimal characters. It is checked before any path is built.
 	ErrInvalidKey = errors.New("invalid session key")
+	// ErrExcluded denies normal document and file reads for a tracked source.
+	ErrExcluded = errors.New("session source is tracked")
 	// ErrNotFound is returned for a session or file that does not exist.
 	ErrNotFound = errors.New("not found")
 	// ErrInvalidPath is returned for a file path that breaks the rules of
@@ -52,6 +55,8 @@ type Options struct {
 	// projects; see their types.
 	HiveProject HiveProjectReader
 	GitRemote   GitRemoteReader
+	// SourceTracking classifies current manifest paths in one batch; nil is unknown.
+	SourceTracking SourceTrackingReader
 }
 
 // Store is the viewer's persistent state: registry, session copies and the
@@ -60,11 +65,12 @@ type Options struct {
 // mutex, and View reads a published snapshot without taking it. Methods are
 // safe for concurrent use.
 type Store struct {
-	vdir   string
-	ttl    time.Duration
-	now    func() time.Time
-	hive   HiveProjectReader
-	remote GitRemoteReader
+	vdir     string
+	ttl      time.Duration
+	now      func() time.Time
+	hive     HiveProjectReader
+	remote   GitRemoteReader
+	tracking SourceTrackingReader
 
 	// afterValidate, when set by a test, runs in ingest between validating a
 	// folder and reading it again to hash and copy it.
@@ -115,11 +121,12 @@ func Open(o Options) (*Store, error) {
 		return nil, fmt.Errorf("viewer: state directory must be an absolute path, got %q", o.StateDir)
 	}
 	s := &Store{
-		vdir:   viewerDir(o.StateDir),
-		ttl:    o.TTL,
-		now:    o.Now,
-		hive:   o.HiveProject,
-		remote: o.GitRemote,
+		vdir:     viewerDir(o.StateDir),
+		ttl:      o.TTL,
+		now:      o.Now,
+		hive:     o.HiveProject,
+		remote:   o.GitRemote,
+		tracking: o.SourceTracking,
 	}
 	if s.ttl <= 0 {
 		s.ttl = defaultTTL
@@ -318,6 +325,7 @@ func (s *Store) load() *indexData {
 	if reg, err := readRegistry(s.vdir); err == nil {
 		d.Repositories = repositoryStatuses(reg)
 	}
+	s.classifySessions(d, s.classifySources(context.Background(), sessionSourcePaths(d)))
 	s.enrich(d)
 	d.sorted()
 	return d
@@ -493,9 +501,23 @@ func (s *Store) Purge() ([]string, error) {
 	return purged, firstErr
 }
 
-// Manifest returns the stored walkthrough.json bytes of a session.
+// normalReadAllowed checks the published classification without consulting Git.
+// Management operations intentionally retain access to excluded copies.
+func (s *Store) normalReadAllowed(key string) error {
+	d := s.current()
+	if i, ok := d.session(key); ok && d.Sessions[i].SourceStatus == "tracked" {
+		return ErrExcluded
+	}
+	return nil
+}
+
+// Manifest returns the stored walkthrough.json bytes of a session. Tracked
+// sources return ErrExcluded before any document bytes are read.
 func (s *Store) Manifest(key string) ([]byte, error) {
 	if err := validKey(key); err != nil {
+		return nil, err
+	}
+	if err := s.normalReadAllowed(key); err != nil {
 		return nil, err
 	}
 	data, err := readBounded(filepath.Join(s.sessionDir(key), manifestFile), maxManifest)
@@ -510,9 +532,12 @@ func (s *Store) Manifest(key string) ([]byte, error) {
 // walkthrough.json paths (safe segments, an allowed image or .mp4 extension,
 // no link anywhere on the way), so meta.json and walkthrough.json are not
 // reachable through it. The caller closes the file. Errors: ErrInvalidKey,
-// ErrInvalidPath, ErrNotFound.
+// ErrInvalidPath, ErrNotFound, ErrExcluded.
 func (s *Store) OpenFile(key, rel string) (*os.File, error) {
 	if err := validKey(key); err != nil {
+		return nil, err
+	}
+	if err := s.normalReadAllowed(key); err != nil {
 		return nil, err
 	}
 	segments := strings.Split(rel, "/")

@@ -18,6 +18,8 @@
     </div>
     <div class="side-scroll" id="side-scroll"><p class="side-note" id="side-loading">Loading…</p></div>
     <div class="side-foot" id="side-foot" hidden>
+      <button type="button" class="btn btn-ghost excluded-toggle" id="excluded-toggle" aria-expanded="false" aria-controls="excluded-list" hidden></button>
+      <ul class="list excluded-list" id="excluded-list" hidden></ul>
       <div class="errors-list" id="errors-list" hidden></div>
       <div class="foot-row">
         <button type="button" class="btn btn-ghost errors-toggle" id="errors-toggle" aria-expanded="false" aria-controls="errors-list" hidden></button>
@@ -37,6 +39,7 @@
         </div>
       </div>
     </header>
+    <div class="source-notice" id="source-notice" role="status" hidden></div>
     <div class="stage" id="stage"></div>
     <div class="walkthrough" id="wt-mount" hidden></div>
   </main>

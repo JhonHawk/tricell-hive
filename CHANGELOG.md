@@ -163,6 +163,12 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- The walkthrough viewer distinguishes local and unknown sources, skips new
+  manifests confirmed as tracked in Git, and sets existing tracked copies apart
+  without rendering their instructions or changing their pins and retention.
+  Ingestion checks opened manifests and resources for hard links. Desktop capture
+  previews use the full strip width on screen while preserving narrow-screen
+  navigation and the print layout.
 - A yes-or-no question, such as an authorization, lists its two options with
   IDs and effects like any other question, and a question tool that returns
   before the answer, such as Codex's asynchronous card, never replaces the

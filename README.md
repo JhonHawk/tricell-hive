@@ -360,9 +360,14 @@ hive view open       # open it in the browser
 hive view stop
 ```
 
-The viewer copies each walkthrough into Hive's state directory, deletes copies
+The viewer copies eligible walkthroughs into Hive's state directory, deletes copies
 older than 14 days unless you pin them (`--ttl` changes that), and lets you
 delete one from its sidebar; it never changes files in your repositories.
+Manifests confirmed as tracked in Git are not imported. Previously imported copies
+whose source is now tracked appear separately with an explanation, without rendering
+the walkthrough; their pins and normal retention still apply. If the source cannot
+be classified, the viewer shows an unknown-origin warning. A local file does not
+prove agent authorship. Ingestion rejects hard-linked manifests and referenced files.
 `hive view open` passes a one-use opening code, valid for 60 seconds, in the URL
 fragment. The page removes it before exchanging it for the server token and reads
 no walkthroughs until access succeeds. If opening fails, run the command again. `register` takes the folder that contains `_support/workspace/` when

@@ -208,6 +208,8 @@ func storeError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidKey), errors.Is(err, ErrInvalidPath):
 		httpError(w, http.StatusBadRequest, "bad request")
+	case errors.Is(err, ErrExcluded):
+		httpError(w, http.StatusConflict, "session source is tracked")
 	case errors.Is(err, ErrNotFound):
 		httpError(w, http.StatusNotFound, "not found")
 	default:
@@ -272,11 +274,12 @@ type indexProject struct {
 }
 
 type indexView struct {
-	TTLSeconds   int64              `json:"ttl_seconds"`
-	Projects     []indexProject     `json:"projects"`
-	Repositories []RepositoryStatus `json:"repositories"`
-	Errors       []IngestError      `json:"errors"`
-	Tombstones   []Tombstone        `json:"tombstones"`
+	ExcludedSessions []Session          `json:"excluded_sessions"`
+	TTLSeconds       int64              `json:"ttl_seconds"`
+	Projects         []indexProject     `json:"projects"`
+	Repositories     []RepositoryStatus `json:"repositories"`
+	Errors           []IngestError      `json:"errors"`
+	Tombstones       []Tombstone        `json:"tombstones"`
 }
 
 // fileCap is the capability for the files of one session: the hex
@@ -296,7 +299,8 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	v := s.store.View()
 	out := indexView{
 		TTLSeconds: v.TTLSeconds, Repositories: v.Repositories, Errors: v.Errors, Tombstones: v.Tombstones,
-		Projects: make([]indexProject, 0, len(v.Projects)),
+		ExcludedSessions: v.ExcludedSessions,
+		Projects:         make([]indexProject, 0, len(v.Projects)),
 	}
 	for _, p := range v.Projects {
 		ip := indexProject{Key: p.Key, Name: p.Name, Absent: p.Absent, Tickets: make([]indexTicket, 0, len(p.Tickets))}

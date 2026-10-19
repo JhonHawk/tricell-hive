@@ -126,6 +126,26 @@ Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-or
 
 The server binds only to `127.0.0.1`, checks the `Host` header on every request, and requires the token from `viewer/server.json` (mode 0600) on API requests, reads included, except the access-code exchange below; every write requires an explicit same-origin `Origin`. The page and `/assets/*` carry no data and need no token; copied captures and recordings are served at `/files/<key>/<cap>/<path>`, where `<cap>` is the hex HMAC-SHA256 of the key under the token, handed out only by the authenticated index, because an `<img>` cannot send a header. Every five seconds it scans the registered repositories, validates each manifest with the same rules as the renderer, and copies a valid one with its files into `viewer/sessions/<key>/`, one copy per source folder and session, replaced when the manifest or a referenced file changes. Invalid manifests are listed as ingest errors and never stop the server. Copies older than the TTL (14 days by default, `--ttl`) by ingest time are purged at start and every hour unless pinned; a purged or deleted copy leaves a tombstone so the next scan does not bring it back while its content is unchanged. Deleting from the sidebar removes only the store copy, never a repository file. The package is `tooling/viewer`: no external modules (standard library and in-repository packages), checked by the dependency test. Each workspace folder is opened once as an `os.Root` and that same handle validates, hashes and copies it, and the text of ingest errors is bounded.
 
+Before scanning file content, the viewer checks current Git tracking through a
+bounded, NUL-delimited lookup for the owning repository, including worktrees and
+ancestor repositories. Confirmed tracked manifests are not ingested; an unavailable
+or incomplete check produces an explicit unknown-source warning, not a claim of
+agent authorship or confirmed untracked status. Classification changes are applied
+even when content hashes do not change and are reconstructed without changing
+per-copy `meta.json`. Previously stored copies whose source is now tracked move
+to a separate explanatory section. Their normal document and file reads return
+409; pin, explicit deletion and normal TTL remain available. Unknown sources remain
+accessible with a warning. A local file is not proof of agent authorship.
+
+Manifest and resource ingestion rejects files with more than one hard link using
+metadata from each opened descriptor before reading, including hashing and copying.
+This does not impose a same-owner rule or authenticate the origin of an inode.
+Existing path, symlink, byte-limit and hash checks still apply.
+
+The viewer embeds its assets: replacing the manager binary does not replace a
+running viewer process. The updated behavior and assets activate at its next start;
+refreshing content does not rewrite previously generated standalone HTML pages.
+
 ### Terminal interface
 
 ```sh
