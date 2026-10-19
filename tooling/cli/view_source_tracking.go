@@ -42,7 +42,7 @@ func runViewerTrackingGit(ctx context.Context, dir string, args ...string) ([]by
 		return nil, err
 	}
 	run := func(dir string, env []string, args ...string) ([]byte, error) {
-		cmd := exec.CommandContext(ctx, git, append([]string{"-C", dir}, args...)...)
+		cmd := exec.CommandContext(ctx, git, append([]string{"-c", "core.fsmonitor=", "-C", dir}, args...)...)
 		cmd.Env = env
 		cmd.WaitDelay = gitWaitDelay
 		out := &trackingOutput{limit: viewerTrackingOutputLimit}
@@ -65,7 +65,12 @@ func runViewerTrackingGit(ctx context.Context, dir string, args ...string) ([]by
 	if err != nil {
 		return nil, err
 	}
-	drop := map[string]bool{}
+	drop := map[string]bool{
+		"GIT_LITERAL_PATHSPECS": true,
+		"GIT_GLOB_PATHSPECS":    true,
+		"GIT_NOGLOB_PATHSPECS":  true,
+		"GIT_ICASE_PATHSPECS":   true,
+	}
 	for _, key := range strings.Fields(string(listed)) {
 		drop[key] = true
 	}
@@ -133,6 +138,8 @@ func viewSourceTracking(run viewerTrackingGitRunner) viewer.SourceTrackingReader
 		defer cancel()
 		out := make(map[string]viewer.SourceClassification, len(paths))
 		groups := map[string][]string{}
+		ownerInfo := map[string]os.FileInfo{}
+		sourceRoots := map[string]string{}
 		cache := map[string]trackingRoot{}
 		for _, path := range paths {
 			result := viewerTrackingRoot(path, cache)
@@ -142,7 +149,23 @@ func viewSourceTracking(run viewerTrackingGitRunner) viewer.SourceTrackingReader
 			case result.root == "":
 				out[path] = viewer.SourceClassification{Status: "local"}
 			default:
-				groups[result.root] = append(groups[result.root], path)
+				info, err := os.Stat(result.root)
+				if err != nil {
+					out[path] = viewer.SourceClassification{Status: "unknown", Reason: "git_query_failed"}
+					continue
+				}
+				// Different spellings of a repository root can name the same
+				// directory. Share its query without relying on casing rules.
+				owner := result.root
+				for root, previous := range ownerInfo {
+					if os.SameFile(info, previous) {
+						owner = root
+						break
+					}
+				}
+				ownerInfo[owner] = info
+				groups[owner] = append(groups[owner], path)
+				sourceRoots[path] = result.root
 			}
 		}
 		roots := make([]string, 0, len(groups))
@@ -154,14 +177,14 @@ func viewSourceTracking(run viewerTrackingGitRunner) viewer.SourceTrackingReader
 			prefixes := map[string]bool{}
 			for _, path := range groups[root] {
 				prefix := filepath.Dir(filepath.Dir(path))
-				rel, err := filepath.Rel(root, prefix)
+				rel, err := filepath.Rel(sourceRoots[path], prefix)
 				if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 					rel = "."
 				}
 				if rel == "." {
-					prefixes[":(top,literal)"] = true
+					prefixes[":(top,literal,icase)"] = true
 				} else {
-					prefixes[":(top,literal)"+filepath.ToSlash(rel)+"/"] = true
+					prefixes[":(top,literal,icase)"+filepath.ToSlash(rel)+"/"] = true
 				}
 			}
 			specs := make([]string, 0, len(prefixes))
@@ -177,10 +200,19 @@ func viewSourceTracking(run viewerTrackingGitRunner) viewer.SourceTrackingReader
 				err = errViewerTrackingIncomplete
 			}
 			tracked := map[string]bool{}
+			var trackedFiles []os.FileInfo
 			if err == nil {
 				for _, rel := range bytes.Split(raw, []byte{0}) {
 					if len(rel) > 0 {
-						tracked[filepath.Join(root, filepath.FromSlash(string(rel)))] = true
+						trackedPath := filepath.Join(root, filepath.FromSlash(string(rel)))
+						tracked[trackedPath] = true
+						// The scanner only requests walkthrough.json. Git retains
+						// index spelling, while the filesystem may resolve an alias.
+						if strings.EqualFold(filepath.Base(trackedPath), "walkthrough.json") {
+							if info, statErr := os.Lstat(trackedPath); statErr == nil && info.Mode().IsRegular() {
+								trackedFiles = append(trackedFiles, info)
+							}
+						}
 					}
 				}
 			}
@@ -190,6 +222,13 @@ func viewSourceTracking(run viewerTrackingGitRunner) viewer.SourceTrackingReader
 					c = viewer.SourceClassification{Status: "unknown", Reason: reason}
 				} else if tracked[path] {
 					c.Status = "tracked"
+				} else if info, statErr := os.Lstat(path); statErr == nil && info.Mode().IsRegular() {
+					for _, indexed := range trackedFiles {
+						if os.SameFile(info, indexed) {
+							c.Status = "tracked"
+							break
+						}
+					}
 				}
 				out[path] = c
 			}

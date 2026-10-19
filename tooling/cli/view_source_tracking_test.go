@@ -172,3 +172,119 @@ func TestViewerSourceTrackingLargeRealIndex(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestViewerSourceTrackingDoesNotInvokeRepositoryFSMonitor(t *testing.T) {
+	repo := newProjectRepo(t)
+	path := trackingTestFile(t, repo, "_support/workspace/run/walkthrough.json")
+	gitIn(t, repo, "add", "--", path)
+	hook := filepath.Join(repo, ".git", "tracking-fsmonitor-fixture")
+	script := "#!/bin/sh\nprintf invoked > \"$0.invoked\"\nprintf '\\000'\n"
+	if err := os.WriteFile(hook, []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "config", "core.fsmonitor", hook)
+	got := viewSourceTracking(runViewerTrackingGit)(context.Background(), []string{path})[path]
+	if _, err := os.Stat(hook + ".invoked"); !os.IsNotExist(err) {
+		t.Fatal("tracking query invoked the repository fsmonitor command")
+	}
+	if got.Status != "tracked" {
+		t.Fatalf("disabling helper lost tracking: %+v", got)
+	}
+}
+
+func TestViewerSourceTrackingIgnoresInheritedPathspecEnvironment(t *testing.T) {
+	for _, key := range []string{"GIT_LITERAL_PATHSPECS", "GIT_GLOB_PATHSPECS", "GIT_NOGLOB_PATHSPECS", "GIT_ICASE_PATHSPECS"} {
+		t.Run(key, func(t *testing.T) {
+			repo := newProjectRepo(t)
+			path := trackingTestFile(t, repo, "_support/workspace/run/walkthrough.json")
+			gitIn(t, repo, "add", "--", path)
+			t.Setenv(key, "1")
+			got := viewSourceTracking(runViewerTrackingGit)(context.Background(), []string{path})[path]
+			if got.Status != "tracked" {
+				t.Fatalf("inherited %s changed tracking: %+v", key, got)
+			}
+			if os.Getenv(key) != "1" {
+				t.Fatal("tracking modified the caller environment")
+			}
+		})
+	}
+}
+
+func TestViewerSourceTrackingCaseAliases(t *testing.T) {
+	for _, kind := range []string{"manifest", "parents", "root"} {
+		t.Run(kind, func(t *testing.T) {
+			repo := newProjectRepo(t)
+			rel := "_support/workspace/run/Walkthrough.json"
+			if kind == "parents" {
+				rel = "_Support/Workspace/run/walkthrough.json"
+			}
+			path := trackingTestFile(t, repo, rel)
+			gitIn(t, repo, "add", "--", path)
+			alias := filepath.Join(repo, "_support", "workspace", "run", "walkthrough.json")
+			if kind == "root" {
+				alias = strings.ToUpper(repo) + "/_support/workspace/run/walkthrough.json"
+			}
+			originalInfo, err := os.Lstat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			aliasInfo, err := os.Lstat(alias)
+			if os.IsNotExist(err) {
+				t.Skip("fixture filesystem is case-sensitive")
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !os.SameFile(originalInfo, aliasInfo) {
+				t.Fatal("case alias did not identify the same file")
+			}
+			got := viewSourceTracking(runViewerTrackingGit)(context.Background(), []string{alias})[alias]
+			if got.Status != "tracked" {
+				t.Fatalf("same-file %s alias classified as %+v", kind, got)
+			}
+		})
+	}
+}
+
+func TestViewerSourceTrackingCaseSensitiveDistinctFiles(t *testing.T) {
+	repo := newProjectRepo(t)
+	tracked := trackingTestFile(t, repo, "_support/workspace/run/Walkthrough.json")
+	local := trackingTestFile(t, repo, "_support/workspace/run/walkthrough.json")
+	a, err := os.Lstat(tracked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.Lstat(local)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if os.SameFile(a, b) {
+		t.Skip("fixture filesystem is case-insensitive; distinct-file case requires a case-sensitive volume")
+	}
+	gitIn(t, repo, "-c", "core.ignorecase=false", "add", "--", tracked)
+	got := viewSourceTracking(runViewerTrackingGit)(context.Background(), []string{local})[local]
+	if got.Status != "local" {
+		t.Fatalf("distinct untracked file classified as %+v", got)
+	}
+}
+
+func TestViewerSourceTrackingCaseAliasesShareOwnerQuery(t *testing.T) {
+	repo := newProjectRepo(t)
+	path := trackingTestFile(t, repo, "_Support/Workspace/run/Walkthrough.json")
+	alias := strings.ToUpper(repo) + "/_support/workspace/run/walkthrough.json"
+	if _, err := os.Lstat(alias); os.IsNotExist(err) {
+		t.Skip("fixture filesystem is case-sensitive")
+	} else if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "add", "--", path)
+	calls := 0
+	reader := viewSourceTracking(func(ctx context.Context, dir string, args ...string) ([]byte, error) {
+		calls++
+		return runViewerTrackingGit(ctx, dir, args...)
+	})
+	got := reader(context.Background(), []string{path, alias})
+	if got[path].Status != "tracked" || got[alias].Status != "tracked" || calls != 1 {
+		t.Fatalf("same-owner aliases classified=%v, queries=%d", got, calls)
+	}
+}
