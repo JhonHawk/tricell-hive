@@ -32,7 +32,7 @@ A child works only in its assigned working tree and named paths, lists planned d
 
 **Condition:** preparing a child brief or reading a required skill resource.
 
-**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs, including the skills and project documents that the project's rules direct for this kind of work, evaluating each conditional rule against what this host exposes now, by identity or path. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
+**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs, including the skills and project documents that the project's rules direct for this kind of work, and those a conditional rule activates when this host lists the skill or tool it names, by identity or path. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 
@@ -72,7 +72,7 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Condition:** a child returns, or the host reports that it stopped, while it waits on work of its own, such as a watcher, a wait or a background command.
 
-**Actions:** treat that child as stopped, because its result may be provisional. Check at once whether the child and that work are still alive, then resume the same child or repeat the check. Never report it as in progress.
+**Actions:** treat that child as stopped, because its result may be provisional. Check at once whether the child and that work are still alive. When that work has finished, resume the same child so it returns its final result; when it is still running, give it a completion signal as [Launch and wait](#launch-and-wait) sets and resume the same child when it ends; when the work is gone or the host cannot resume the child, launch the same role again with the same brief, once. Never report it as in progress, and never wait on it in short check cycles.
 
 ## Record consequential delegation
 
