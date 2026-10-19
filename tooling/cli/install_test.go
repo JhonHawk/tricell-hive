@@ -459,7 +459,7 @@ func assertTerminalWidth(t *testing.T, output, home string) {
 	t.Helper()
 	// A terminal echoes the answer and its newline after each prompt; a
 	// buffer does not, so restore that break before measuring.
-	for _, prompt := range []string{"to skip: ", "to cancel: ", "[N] cancel ", "[y/N] "} {
+	for _, prompt := range []string{"to skip: ", "by commas: ", "to cancel: ", "[N] cancel ", "[y/N] "} {
 		output = strings.ReplaceAll(output, prompt, prompt+"\n")
 	}
 	for _, line := range strings.Split(output, "\n") {

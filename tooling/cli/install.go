@@ -656,10 +656,23 @@ func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([
 	fmt.Fprintln(terminal.out, "Select optional capabilities")
 	for i, offer := range offers {
 		// A long source name must not push the line past 80 columns.
-		printLabeled(terminal.out, fmt.Sprintf("%d. ", i+1), providerOfferLabel(offer))
+		label := providerOfferLabel(offer)
+		if offer.DefaultOn {
+			label += " (selected by default)"
+		}
+		printLabeled(terminal.out, fmt.Sprintf("%d. ", i+1), label)
+	}
+	hasDefault := false
+	for _, offer := range offers {
+		hasDefault = hasDefault || offer.DefaultOn
+	}
+	prompt := "Enter capability numbers separated by commas, or press Enter to skip: "
+	if hasDefault {
+		fmt.Fprintln(terminal.out, "Press Enter to accept the default selection, or type none to skip.")
+		prompt = "Enter capability numbers separated by commas: "
 	}
 	for {
-		fmt.Fprint(terminal.out, "Enter capability numbers separated by commas, or press Enter to skip: ")
+		fmt.Fprint(terminal.out, prompt)
 		line, complete, err := terminal.readLine()
 		if err != nil {
 			return nil, false, err
@@ -667,8 +680,17 @@ func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([
 		if !complete {
 			return nil, false, nil
 		}
-		if line == "" {
+		if hasDefault && strings.EqualFold(line, "none") {
 			return nil, true, nil
+		}
+		if line == "" {
+			var requests []providerRequest
+			for _, offer := range offers {
+				if offer.DefaultOn {
+					requests = append(requests, providerRequest{ID: offer.ID})
+				}
+			}
+			return requests, true, nil
 		}
 		indices := strings.Split(line, ",")
 		chosen := make([]int, 0, len(indices))
@@ -691,9 +713,10 @@ func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([
 		cancelled := false
 		for _, index := range chosen {
 			offer := offers[index-1]
-			if offer.ManualOnly || offer.Unversioned {
-				// A manual outcome needs no version, and an unversioned
-				// recipe always installs the latest.
+			if !offerAsksVersion(offer) {
+				// A manual outcome needs no version, an unversioned recipe
+				// always installs the latest, and an effect-only capability
+				// installs no program.
 				requests = append(requests, providerRequest{ID: offer.ID})
 				continue
 			}
@@ -712,6 +735,11 @@ func selectProviderRequests(terminal installTerminal, offers []providerOffer) ([
 		}
 		return requests, true, nil
 	}
+}
+
+// offerAsksVersion reports whether choosing the offer needs an exact version.
+func offerAsksVersion(o providerOffer) bool {
+	return !o.ManualOnly && !o.Unversioned && o.Effect == ""
 }
 
 func readProviderVersion(terminal installTerminal, offer providerOffer) (string, bool, error) {

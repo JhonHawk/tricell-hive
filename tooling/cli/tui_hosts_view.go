@@ -1018,6 +1018,9 @@ func newCapsView(offers []providerOffer, onDone func([]providerRequest) (tea.Cmd
 		onDone:   onDone,
 		onCancel: onCancel,
 	}
+	for i, offer := range offers {
+		v.checked[i] = offer.DefaultOn
+	}
 	for i := range v.inputs {
 		in := textinput.New()
 		in.Prompt = ""
@@ -1088,7 +1091,7 @@ func (v *capsView) toggle() tea.Cmd {
 		v.inputs[i].SetValue("")
 		return nil
 	}
-	if v.offers[i].ManualOnly || v.offers[i].Unversioned {
+	if !offerAsksVersion(v.offers[i]) {
 		return nil
 	}
 	return v.startEditing(i)
@@ -1102,7 +1105,7 @@ func (v *capsView) proceed() (tea.Cmd, action) {
 		if !v.checked[i] {
 			continue
 		}
-		if offer.ManualOnly || offer.Unversioned {
+		if !offerAsksVersion(offer) {
 			requests = append(requests, providerRequest{ID: offer.ID})
 			continue
 		}
@@ -1121,7 +1124,14 @@ func (v *capsView) View(c viewCtx) string {
 	in := textinput.Styles{}
 	in.Focused = textinput.StyleState{Text: th.Text, Placeholder: th.Muted, Prompt: th.Muted}
 	in.Blurred = in.Focused
-	lines := []string{th.Title.Render("Optional capabilities"), th.Muted.Render("None is fine: leave them unchecked and continue."), ""}
+	help := "None is fine: leave them unchecked and continue."
+	for _, offer := range v.offers {
+		if offer.DefaultOn {
+			help = "The checked ones are selected by default; uncheck any you do not want."
+			break
+		}
+	}
+	lines := []string{th.Title.Render("Optional capabilities"), th.Muted.Render(help), ""}
 	for i, offer := range v.offers {
 		box := "[ ]"
 		if v.checked[i] {
@@ -1133,7 +1143,7 @@ func (v *capsView) View(c viewCtx) string {
 		} else {
 			lines = append(lines, th.Text.Render("  "+row))
 		}
-		if v.checked[i] && !offer.ManualOnly && !offer.Unversioned {
+		if v.checked[i] && offerAsksVersion(offer) {
 			v.inputs[i].SetStyles(in)
 			label := "  Version: "
 			if i == v.cursor && v.editing {
@@ -1168,6 +1178,8 @@ func providerOfferLabel(o providerOffer) string {
 	switch {
 	case o.ManualOnly:
 		version = "manual instructions only"
+	case o.Effect != "":
+		version = o.Effect
 	case o.Unversioned:
 		version = "installs the latest version"
 	}
