@@ -8,6 +8,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -144,6 +146,32 @@ func TestViewRequiresKnownSubcommand(t *testing.T) {
 	}
 	if err := run([]string{"view", "frobnicate"}); err == nil || !strings.Contains(err.Error(), "frobnicate") {
 		t.Fatalf("unknown subcommand error = %v", err)
+	}
+}
+
+func TestViewGroupHelpHasNoEffects(t *testing.T) {
+	for _, alias := range []string{"--help", "-h", "help"} {
+		t.Run(alias, func(t *testing.T) {
+			var out bytes.Buffer
+			deps := viewDeps{
+				launch: func([]string, string) (int, error) {
+					t.Fatal("help launched a server")
+					return 0, nil
+				},
+				open: func(string) error {
+					t.Fatal("help opened a browser")
+					return nil
+				},
+			}
+			if err := runView([]string{alias}, &out, deps); err != nil {
+				t.Fatalf("help failed: %v", err)
+			}
+			for _, sub := range []string{"start", "stop", "status", "open", "register", "serve"} {
+				if !strings.Contains(out.String(), sub) {
+					t.Errorf("help does not list %s", sub)
+				}
+			}
+		})
 	}
 }
 
@@ -418,11 +446,27 @@ func TestViewOpenNeedsARunningServer(t *testing.T) {
 		t.Fatalf("open output = %q", out)
 	}
 	f.mustView("start")
-	f.mustView("open")
+	out = f.mustView("open")
 	info := f.info()
-	want := fmt.Sprintf("http://127.0.0.1:%d/#token=%s", info.Port, info.Token)
-	if len(f.opened) != 1 || f.opened[0] != want {
-		t.Fatalf("opener received %v, want %q", f.opened, want)
+	if len(f.opened) != 1 {
+		t.Fatal("expected one opener call")
+	}
+	u, err := url.Parse(f.opened[0])
+	if err != nil {
+		t.Fatal("invalid opener URL")
+	}
+	code := strings.TrimPrefix(u.Fragment, "code=")
+	if !strings.HasPrefix(u.Fragment, "code=") || len(code) != 64 || strings.Contains(f.opened[0], info.Token) {
+		t.Fatal("opener must receive only a one-use code")
+	}
+	if strings.Contains(out, info.Token) || strings.Contains(out, code) {
+		t.Fatal("output exposed credentials")
+	}
+	deps := f.deps()
+	deps.open = func(raw string) error { return errors.New(raw) }
+	var output bytes.Buffer
+	if err := viewOpen(newViewPaths(f.stateDir), &output, deps); err == nil || strings.Contains(err.Error(), "#") || strings.Contains(err.Error(), info.Token) {
+		t.Fatal("opener error must not expose credentials")
 	}
 	f.mustView("stop")
 }
@@ -629,5 +673,100 @@ func TestViewStopWaitsLongerThanTheServerShutdown(t *testing.T) {
 	}
 	if took := time.Since(start); took < time.Second {
 		t.Fatalf("stop returned in %s; the server shutdown was not held up", took)
+	}
+}
+
+func TestViewOpenOldServerNeedsRestart(t *testing.T) {
+	p := newViewPaths(t.TempDir())
+	if err := os.MkdirAll(p.dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := viewer.AcquireLock(p.lock, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Release()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/health" {
+			json.NewEncoder(w).Encode(map[string]any{"pid": os.Getpid(), "state_dir": p.state})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+	port := srv.Listener.Addr().(*net.TCPAddr).Port
+	if err := writeServerInfo(p, serverInfo{PID: os.Getpid(), Port: port, Token: "fixture-token-0123456789", StateDir: p.state}); err != nil {
+		t.Fatal(err)
+	}
+	opened := false
+	err = viewOpen(p, io.Discard, viewDeps{open: func(string) error { opened = true; return nil }})
+	if err == nil || opened {
+		t.Fatal("old server must fail without opening")
+	}
+	for _, command := range []string{"hive view stop", "hive view start", "hive view open"} {
+		if !strings.Contains(err.Error(), command) {
+			t.Fatalf("missing recovery command %s", command)
+		}
+	}
+}
+
+func TestViewAccessCodeValidatesResponsesWithoutExposingCredentials(t *testing.T) {
+	code := strings.Repeat("a", 64)
+	token := "fixture-token-0123456789"
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   string
+		valid  bool
+	}{
+		{"valid", 200, `{"code":"` + code + `"}`, true},
+		{"non hex", 200, `{"code":"` + strings.Repeat("z", 64) + `"}`, false},
+		{"short", 200, `{"code":"short"}`, false},
+		{"extra field", 200, `{"code":"` + code + `","token":"` + token + `"}`, false},
+		{"trailing json", 200, `{"code":"` + code + `"} {}`, false},
+		{"oversized", 200, `{"code":"` + code + `"}` + strings.Repeat(" ", 1024), false},
+		{"error body", 503, token + code, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "POST" || r.URL.Path != "/api/access-codes" || r.Header.Get("X-Hive-Token") != token || r.Header.Get("Origin") != "http://"+r.Host {
+					t.Error("issuance request did not meet access contract")
+				}
+				body, _ := io.ReadAll(r.Body)
+				if len(body) != 0 {
+					t.Error("issuance body must be empty")
+				}
+				w.WriteHeader(tc.status)
+				io.WriteString(w, tc.body)
+			}))
+			defer srv.Close()
+			got, err := viewAccessCode(serverInfo{Port: srv.Listener.Addr().(*net.TCPAddr).Port, Token: token})
+			if tc.valid {
+				if err != nil || got != code {
+					t.Fatal("valid code response rejected")
+				}
+				return
+			}
+			if err == nil || got != "" {
+				t.Fatal("invalid access response accepted")
+			}
+			if strings.Contains(err.Error(), token) || strings.Contains(err.Error(), code) {
+				t.Fatal("response error exposed credentials")
+			}
+		})
+	}
+}
+
+func TestViewAccessCodeNeverFollowsRedirect(t *testing.T) {
+	targetCalls := 0
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { targetCalls++ }))
+	defer target.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusTemporaryRedirect)
+	}))
+	defer srv.Close()
+	_, err := viewAccessCode(serverInfo{Port: srv.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token-0123456789"})
+	if err == nil || targetCalls != 0 {
+		t.Fatal("issuance must reject redirects without forwarding credentials")
 	}
 }

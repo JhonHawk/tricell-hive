@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -64,15 +65,18 @@ type ServerOptions struct {
 }
 
 // Server is the HTTP face of a Store: the viewer page, its assets and the
-// JSON API of design DS4. It is an http.Handler and holds no state of its own.
+// JSON API of design DS4. It holds pending one-use access codes in memory.
 // It must be served on a loopback listener (see Listen); the Host check
 // protects against DNS rebinding, not against another local user.
 type Server struct {
-	store   *Store
-	token   []byte
-	port    string
-	version string
-	pid     int
+	store       *Store
+	token       []byte
+	port        string
+	version     string
+	pid         int
+	accessMu    sync.Mutex
+	accessCodes map[string]time.Time
+	accessNow   func() time.Time
 }
 
 // NewServer validates the options and returns the handler.
@@ -86,11 +90,13 @@ func NewServer(o ServerOptions) (*Server, error) {
 		return nil, fmt.Errorf("viewer: invalid server port %d", o.Port)
 	}
 	return &Server{
-		store:   o.Store,
-		token:   []byte(o.Token),
-		port:    strconv.Itoa(o.Port),
-		version: o.Version,
-		pid:     os.Getpid(),
+		store:       o.Store,
+		token:       []byte(o.Token),
+		port:        strconv.Itoa(o.Port),
+		version:     o.Version,
+		pid:         os.Getpid(),
+		accessCodes: make(map[string]time.Time),
+		accessNow:   time.Now,
 	}, nil
 }
 
@@ -133,6 +139,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		httpError(w, http.StatusNotFound, "not found")
+	case p == "/api/access-codes":
+		s.issueAccessCode(w, r)
+	case p == "/api/access-codes/exchange":
+		s.exchangeAccessCode(w, r)
 	case p == "/api/health":
 		s.health(w, r)
 	case p == "/api/index":
