@@ -7,7 +7,7 @@ description: Create a visual HTML report, printable paper, comparison, explainer
 
 Before writing the support deliverable, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before the chat handoff or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md). Before asking a user decision, read [questions](../flow-plan/references/questions.md).
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record using the research procedure and established workspace location. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML, except the UI walkthrough page of `flow-walkthrough`, which uses the walkthrough asset below; the Communication rules of the global guidance shape chat replies.
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record using the research procedure and established workspace location. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML, except the UI walkthrough page and the first-view page of `flow-walkthrough`, which use the walkthrough asset below; the Communication rules of the global guidance shape chat replies.
 
 Choose the asset that matches what the reader receives:
 
@@ -19,7 +19,7 @@ Choose the asset that matches what the reader receives:
 | Code-review verdict | [template](assets/skeleton-review.html) |
 | Unresolved option comparison | [template](assets/skeleton-comparison.html) |
 | Guided presentation | [template](assets/skeleton-deck.html) |
-| UI walkthrough for human validation | [template](assets/skeleton-walkthrough.html) |
+| UI walkthrough for human validation, or first rendered view of a layout | [template](assets/skeleton-walkthrough.html) |
 
 Copy an asset and replace its placeholders with accurate, audience-appropriate content. Keep its responsive and print behavior unless the report needs a deliberate alternative. Write human-facing content in the session language. Put the report in the destination resolved by the workspace guidance; do not invent a destination or overwrite a retained record without authorization.
 

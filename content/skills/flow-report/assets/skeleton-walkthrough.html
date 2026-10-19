@@ -32,6 +32,16 @@
     self-check) and the account NAME only. Never a password, token or cookie
     value.
   - Run python3 <skill-dir>/scripts/self_check.py on the finished page.
+
+  FIRST-VIEW PAGE (partial fill, during a build, before the UI gate)
+  The first rendered view of a new or rearranged layout reuses this file as
+  walkthrough.html; the final page replaces it. Keep: the header, with the
+  candidate written as "working tree on <base>" because there is no commit
+  yet; one <section class="flow"> per changed view holding only its gallery
+  (no steps, no video), so the lightbox still finds .gallery button[data-full];
+  "Action required" with the composition question; the environment; the
+  provenance footer. Delete: the validation table, the steps and the
+  recording. Run the self-check, then open the page.
   ============================================================================
 -->
 <style>
