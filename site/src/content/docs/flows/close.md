@@ -5,7 +5,7 @@ description: Wrap up a finished, paused or abandoned piece of work and clean up 
 
 Close is the last step of a piece of work. It makes sure the records match reality, removes the leftovers the task made, and tells you where things stand.
 
-Its reporting reference applies before every chat reply, not only a final report.
+Its reporting reference applies before every report, relayed result and decision message, not only a final report; a greeting or a short direct answer needs no read.
 Questions and artifact cleanup have their own direct reference links. Those
 procedures retain their existing obligations; reading a reference does not
 invoke another complete flow.
@@ -60,7 +60,7 @@ It means the work reached its completion point, for example merged into the base
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal or timeout, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking; a question card opens its question with the stage and ticket. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal or timeout, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.

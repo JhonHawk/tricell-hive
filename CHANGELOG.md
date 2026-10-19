@@ -50,6 +50,23 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Waits, messages and the first rendered view follow one rule each (the
+  analysis of cam session `e2c8d39f`, 2026-10-18). Every progress or decision
+  message opens with a bold context line, stage · ticket · progress, and a
+  question card opens with the stage and ticket. A turn that a notification
+  starts without changing what you need is that line followed by the change,
+  without listing the work still running or repeating an open question. A
+  child that returns, or that the host reports as stopped, while it waits on
+  work of its own is treated as stopped and checked at once. A task brief
+  carries the skills and project documents that the project's rules direct for
+  that work. The first rendered view of a layout is delivered as
+  `walkthrough.html` and the page opens by itself before the question. A task
+  with a rendered UI effect is committed after its first rendered view and the
+  UI review, and the UI review, the full suite and, when the change crosses a
+  security boundary, the security review run before you are asked to validate; later fixes go in an additional commit per
+  task, never an amend. The Build, Close, Research and Plan pages describe
+  this, and the delivery notes record Claude Code's notice for a stopped child.
+
 - The language rule names URL paths and route segments, including those of
   public pages, among the identifiers written in English: a URL path is an
   identifier, not user-facing text. `hive-review-code` reports a new
