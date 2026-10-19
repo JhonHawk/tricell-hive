@@ -11,6 +11,7 @@ Reviewed: 2026-09-25. The shared guidance, activity skills, six host adapters, G
 | `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; Codex/Claude project scope; optional inactive OpenCode loader |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout or a complete package |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
+| `tooling/viewer/` | Local walkthrough viewer behind `hive view` | Standard library only; store, ingest, and loopback HTTP server with embedded pages |
 | `tooling/package/` | Offline package builder | Builds complete platform packages on demand |
 | `tests/{content,fixtures,pilot,skills}/` | Content, fixture, pilot, and skill verification | Integration and management tests live beside their Go packages |
 | `site/` | Documentation site for people | Starlight site published from `master`; not packaged or deployed by the manager |
