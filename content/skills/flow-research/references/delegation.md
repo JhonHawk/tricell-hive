@@ -32,7 +32,7 @@ A child works only in its assigned working tree and named paths, lists planned d
 
 **Condition:** preparing a child brief or reading a required skill resource.
 
-**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
+**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs, including the skills and project documents that the project's rules direct for this kind of work, evaluating each conditional rule against what this host exposes now, by identity or path. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 
@@ -58,17 +58,21 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Condition:** no independent work remains.
 
-**Actions:** wait on the completion signal instead of polling. When the host delivers that signal to a later turn, such as a child's result or a background command's completion notification, the main thread ends its turn with the in-progress item described in [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item). When the host drops results that arrive after you return, collect them before returning.
+**Actions:** wait on the completion signal instead of polling. When the host delivers that signal to a later turn, such as a child's result or a background command's completion notification, the main thread handles that turn as [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a turn a notification starts. When the host drops results that arrive after you return, collect them before returning.
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line naming what is still running and what its result decides. A delegated child still returns its final result, not interim status.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child still returns its final result, not interim status.
 
 ## Check returned work
 
 **Condition:** a child returns.
 
 **Actions:** children return findings or changes, evidence, unresolved limits, and any required instruction-access gaps. The main thread checks the result against the brief and source evidence, resolves disagreements, and owns integration and closure. An agent's assertion is not independent verification. Relay every defect a child reports, at any severity scale it uses, or propose it under the global incidental-findings rule; never drop it from your summary. Before relaying a child's result that touched credentials, cookies, or tokens, check whether it put a secret in a durable or shared place, and if so tell the user under the global Secrets rule.
+
+**Condition:** a child returns, or the host reports that it stopped, while it waits on work of its own, such as a watcher, a wait or a background command.
+
+**Actions:** treat that child as stopped, because its result may be provisional. Check at once whether the child and that work are still alive, then resume the same child or repeat the check. Never report it as in progress.
 
 ## Record consequential delegation
 
@@ -78,4 +82,4 @@ The child reads these sources before dependent work and reports any unavailable 
 
 ## Worked wait example
 
-A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
+A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "**Build · GH-12 · 2 of 3 tasks verified** The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
