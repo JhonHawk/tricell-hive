@@ -35,6 +35,8 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 ## Optional
 
+- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): source classification, separate tracked copies, unknown-origin warnings, hardlink rejection, and user-controlled retention
+
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
 - [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, agent-browser, and the Codex question card (`codex-question-card`)
 - [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard

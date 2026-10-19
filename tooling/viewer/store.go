@@ -30,6 +30,8 @@ var (
 	// ErrInvalidKey is returned for a session key that is not 64 lowercase
 	// hexadecimal characters. It is checked before any path is built.
 	ErrInvalidKey = errors.New("invalid session key")
+	// ErrExcluded denies normal document and file reads for a tracked source.
+	ErrExcluded = errors.New("session source is tracked")
 	// ErrNotFound is returned for a session or file that does not exist.
 	ErrNotFound = errors.New("not found")
 	// ErrInvalidPath is returned for a file path that breaks the rules of
@@ -499,9 +501,23 @@ func (s *Store) Purge() ([]string, error) {
 	return purged, firstErr
 }
 
-// Manifest returns the stored walkthrough.json bytes of a session.
+// normalReadAllowed checks the published classification without consulting Git.
+// Management operations intentionally retain access to excluded copies.
+func (s *Store) normalReadAllowed(key string) error {
+	d := s.current()
+	if i, ok := d.session(key); ok && d.Sessions[i].SourceStatus == "tracked" {
+		return ErrExcluded
+	}
+	return nil
+}
+
+// Manifest returns the stored walkthrough.json bytes of a session. Tracked
+// sources return ErrExcluded before any document bytes are read.
 func (s *Store) Manifest(key string) ([]byte, error) {
 	if err := validKey(key); err != nil {
+		return nil, err
+	}
+	if err := s.normalReadAllowed(key); err != nil {
 		return nil, err
 	}
 	data, err := readBounded(filepath.Join(s.sessionDir(key), manifestFile), maxManifest)
@@ -516,9 +532,12 @@ func (s *Store) Manifest(key string) ([]byte, error) {
 // walkthrough.json paths (safe segments, an allowed image or .mp4 extension,
 // no link anywhere on the way), so meta.json and walkthrough.json are not
 // reachable through it. The caller closes the file. Errors: ErrInvalidKey,
-// ErrInvalidPath, ErrNotFound.
+// ErrInvalidPath, ErrNotFound, ErrExcluded.
 func (s *Store) OpenFile(key, rel string) (*os.File, error) {
 	if err := validKey(key); err != nil {
+		return nil, err
+	}
+	if err := s.normalReadAllowed(key); err != nil {
 		return nil, err
 	}
 	segments := strings.Split(rel, "/")

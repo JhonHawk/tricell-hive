@@ -139,13 +139,14 @@ func (d *indexData) sorted() {
 }
 
 // View is the grouped read model behind GET /api/index: projects, their
-// tickets, their sessions, plus the ingest errors and the repositories.
+// tickets, their normal sessions, excluded copies, ingest errors and repositories.
 type View struct {
-	TTLSeconds   int64              `json:"ttl_seconds"`
-	Projects     []Project          `json:"projects"`
-	Repositories []RepositoryStatus `json:"repositories"`
-	Errors       []IngestError      `json:"errors"`
-	Tombstones   []Tombstone        `json:"tombstones"`
+	ExcludedSessions []Session          `json:"excluded_sessions"`
+	TTLSeconds       int64              `json:"ttl_seconds"`
+	Projects         []Project          `json:"projects"`
+	Repositories     []RepositoryStatus `json:"repositories"`
+	Errors           []IngestError      `json:"errors"`
+	Tombstones       []Tombstone        `json:"tombstones"`
 }
 
 // Project groups the sessions of one repository identity (the normalized Git
@@ -177,11 +178,12 @@ func (s *Store) View() View {
 
 func buildView(d *indexData, ttl time.Duration) View {
 	v := View{
-		TTLSeconds:   int64(ttl / time.Second),
-		Projects:     []Project{},
-		Repositories: append([]RepositoryStatus{}, d.Repositories...),
-		Errors:       append([]IngestError{}, d.Errors...),
-		Tombstones:   append([]Tombstone{}, d.Tombstones...),
+		ExcludedSessions: []Session{},
+		TTLSeconds:       int64(ttl / time.Second),
+		Projects:         []Project{},
+		Repositories:     append([]RepositoryStatus{}, d.Repositories...),
+		Errors:           append([]IngestError{}, d.Errors...),
+		Tombstones:       append([]Tombstone{}, d.Tombstones...),
 	}
 	present := map[string]bool{}
 	for _, r := range d.Repositories {
@@ -198,6 +200,10 @@ func buildView(d *indexData, ttl time.Duration) View {
 	tickets := map[string]map[string]*Ticket{}
 	var order []string
 	for _, sess := range sessions {
+		if sess.SourceStatus == "tracked" {
+			v.ExcludedSessions = append(v.ExcludedSessions, sess)
+			continue
+		}
 		p, ok := projects[sess.ProjectKey]
 		if !ok {
 			p = &Project{Key: sess.ProjectKey, Name: sess.ProjectName, Absent: true, Tickets: []Ticket{}}

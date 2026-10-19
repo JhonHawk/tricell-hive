@@ -60,6 +60,21 @@ const LABELS = {
     failed: (status) => `That did not work (HTTP ${status}). Try again.`,
     loadFailed: "Could not load this walkthrough.",
     retry: "Retry",
+    excluded: (n) => `Set-aside copies (${n})`,
+    excludedTitle: "Copy set aside",
+    excludedBody: "The source manifest is tracked in Git. This copy is kept outside the normal walkthrough list, and its document and files cannot be opened here.",
+    excludedReturn: "If the source is no longer tracked, it can return to the normal list on the next scan. Keeping or deleting this copy is still available.",
+    excludedOnly: "Only set-aside copies are available. Select one below to see why.",
+    sourcePath: "Source folder",
+    sourceLocal: "Local file; authorship not verified",
+    sourceUnknown: "Source undetermined",
+    sourceTracked: "Tracked in Git",
+    sourceReasons: {
+      git_query_failed: "Git could not check the source. This copy remains available, without verified authorship.",
+      git_output_incomplete: "Git returned an incomplete result. This copy remains available, without verified authorship.",
+      source_unavailable: "The source is unavailable, so its current tracking cannot be confirmed.",
+      tracking_unavailable: "Source tracking could not be checked. Authorship is not verified.",
+    },
     crumbNone: "",
   },
   es: {
@@ -109,6 +124,21 @@ const LABELS = {
     failed: (status) => `No funcionó (HTTP ${status}). Inténtalo de nuevo.`,
     loadFailed: "No se pudo cargar este recorrido.",
     retry: "Reintentar",
+    excluded: (n) => `Copias apartadas (${n})`,
+    excludedTitle: "Copia apartada",
+    excludedBody: "El manifiesto fuente está versionado en Git. Esta copia se conserva fuera de la lista normal de recorridos; su documento y sus archivos no se pueden abrir aquí.",
+    excludedReturn: "Si la fuente deja de estar versionada, puede volver a la lista normal en el siguiente barrido. Puedes seguir conservando o borrando esta copia.",
+    excludedOnly: "Solo hay copias apartadas. Selecciona una abajo para conocer el motivo.",
+    sourcePath: "Carpeta fuente",
+    sourceLocal: "Archivo local; autoría no verificada",
+    sourceUnknown: "Origen sin determinar",
+    sourceTracked: "Versionado en Git",
+    sourceReasons: {
+      git_query_failed: "Git no pudo comprobar la fuente. La copia sigue disponible, sin autoría verificada.",
+      git_output_incomplete: "Git devolvió un resultado incompleto. La copia sigue disponible, sin autoría verificada.",
+      source_unavailable: "La fuente no está disponible y no se puede confirmar si sigue versionada.",
+      tracking_unavailable: "No se pudo comprobar el tracking de la fuente. La autoría no está verificada.",
+    },
     crumbNone: "",
   },
 };
@@ -123,6 +153,7 @@ const state = {
   down: false,
   openKey: null,
   openHash: "",
+  openStatus: "",
   expanded: new Map(),
   roving: null,
   loadSeq: 0,
@@ -138,6 +169,7 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const dom = {
   shell: $("shell"), sidebar: $("sidebar"), scroll: $("side-scroll"), foot: $("side-foot"),
+  excludedToggle: $("excluded-toggle"), excludedList: $("excluded-list"), sourceNotice: $("source-notice"),
   errorsToggle: $("errors-toggle"), errorsList: $("errors-list"), ttl: $("ttl"),
   main: $("viewer-main"), topbar: $("topbar"), crumb: $("crumb"), actions: $("actions"),
   pin: $("pin-button"), del: $("delete-button"), notices: $("notices"), stage: $("stage"),
@@ -206,7 +238,19 @@ async function getJSON(url) {
 }
 
 function allSessions(index) {
-  return index.projects.flatMap((p) => p.tickets.flatMap((tk) => tk.sessions.map((s) => ({ project: p, ticket: tk, session: s }))));
+  return [
+    ...index.projects.flatMap((p) => p.tickets.flatMap((tk) => tk.sessions.map((s) => ({ project: p, ticket: tk, session: s })))),
+    ...(index.excluded_sessions || []).map((session) => ({ project: null, ticket: null, session })),
+  ];
+}
+
+function sourceLabel(session) {
+  if (session.source_status === "tracked") return t.sourceTracked;
+  return session.source_status === "local" ? t.sourceLocal : t.sourceUnknown;
+}
+
+function sourceReason(session) {
+  return t.sourceReasons[session.source_reason] || t.sourceReasons.tracking_unavailable;
 }
 
 function findSession(index, key) {
@@ -221,7 +265,9 @@ function recency(session) {
 
 function latest(index) {
   let best;
-  for (const entry of allSessions(index)) {
+  const entries = allSessions(index);
+  const normal = entries.filter((entry) => entry.project);
+  for (const entry of normal.length ? normal : entries) {
     const a = entry.session;
     const b = best && best.session;
     if (!best || recency(a) > recency(b) || (recency(a) === recency(b) && Date.parse(a.ingested_at) > Date.parse(b.ingested_at))) best = entry;
@@ -317,18 +363,20 @@ function buildGroup(id, labelText, extra, contained, isOpen, total) {
 function buildSessionRow(project, ticket, session) {
   const title = session.title || session.session_id || session.key.slice(0, 8);
   const open = session.key === state.openKey;
+  const tabIndex = project ? "-1" : "0";
   const button = el("button", {
-    type: "button", class: "session", "data-stop": `s:${session.key}`, "data-key": session.key, tabindex: "-1",
+    type: "button", class: "session", "data-stop": `s:${session.key}`, "data-key": session.key, tabindex: tabIndex,
     "aria-current": open ? "true" : false,
   },
     el("span", { class: "s-title", title }, title),
     el("span", { class: "s-meta" }, el("span", { class: "s-when", title: session.created_at || session.ingested_at }, sessionDate(session)),
       " ", session.host ? el("span", { class: "s-host" }, session.host) : null, " ",
-      session.pinned ? el("span", { class: "chip kept", title: t.keptTitle }, t.kept) : null)
+      session.pinned ? el("span", { class: "chip kept", title: t.keptTitle }, t.kept) : null),
+    el("span", { class: `s-source ${session.source_status === "unknown" ? "unknown" : ""}`, title: session.source_status === "unknown" ? sourceReason(session) : sourceLabel(session) }, sourceLabel(session))
   );
   button.addEventListener("click", () => { openSession(session.key, { fromSidebar: true }); });
   const menuButton = el("button", {
-    type: "button", class: "menu-btn", "data-menu": session.key, tabindex: "-1",
+    type: "button", class: "menu-btn", "data-menu": session.key, tabindex: tabIndex,
     "aria-label": t.actionsFor(title), "aria-haspopup": "menu", "aria-expanded": "false",
   }, el("span", { class: "dots", "aria-hidden": "true" }, "⋯"));
   menuButton.addEventListener("click", (event) => {
@@ -348,7 +396,7 @@ function renderSidebar() {
   closeMenu(false);
 
   const nodes = [];
-  const total = allSessions(index).length;
+  const total = index.projects.reduce((n, p) => n + p.tickets.reduce((count, tk) => count + tk.sessions.length, 0), 0);
   for (const project of index.projects) {
     const pid = `p:${project.key}`;
     const count = project.tickets.reduce((n, tk) => n + tk.sessions.length, 0);
@@ -366,11 +414,18 @@ function renderSidebar() {
     nodes.push(el("li", { class: "project-item" }, g.head, g.list));
   }
   if (!nodes.length) {
-    dom.scroll.replaceChildren(el("p", { class: "side-note" }, index.repositories.length ? t.emptyNoneTitle : t.emptyRepoTitle));
+    dom.scroll.replaceChildren(el("p", { class: "side-note" }, (index.excluded_sessions || []).length ? t.excludedOnly : index.repositories.length ? t.emptyNoneTitle : t.emptyRepoTitle));
   } else {
     dom.scroll.replaceChildren(el("nav", { "aria-label": t.treeLabel }, el("ul", { class: "list tree" }, ...nodes)));
   }
   dom.scroll.scrollTop = scrollTop;
+  const excluded = index.excluded_sessions || [];
+  dom.excludedToggle.hidden = !excluded.length;
+  dom.excludedToggle.textContent = t.excluded(excluded.length);
+  if (!excluded.length) dom.excludedToggle.setAttribute("aria-expanded", "false");
+  if (excluded.some((session) => session.key === state.openKey)) dom.excludedToggle.setAttribute("aria-expanded", "true");
+  dom.excludedList.hidden = !excluded.length || dom.excludedToggle.getAttribute("aria-expanded") !== "true";
+  dom.excludedList.replaceChildren(...excluded.map((session) => buildSessionRow(null, null, session)));
 
   // Roving tabindex: one stop for Tab, the arrows move among the rest.
   const stops = visibleStops();
@@ -381,9 +436,10 @@ function renderSidebar() {
 
   if (hadFocus) {
     let target = null;
-    if (focusMenu) target = dom.scroll.querySelector(`[data-menu="${CSS.escape(focusMenu)}"]`);
-    if (!target && focusStop) target = dom.scroll.querySelector(`[data-stop="${CSS.escape(focusStop)}"]`);
+    if (focusMenu) target = dom.sidebar.querySelector(`[data-menu="${CSS.escape(focusMenu)}"]`);
+    if (!target && focusStop) target = dom.sidebar.querySelector(`[data-stop="${CSS.escape(focusStop)}"]`);
     if (!target) target = dom.scroll.querySelector(`[data-stop="${CSS.escape(wanted || "")}"]`);
+    if (!target && focused === dom.excludedToggle && !dom.excludedToggle.hidden) target = dom.excludedToggle;
     if (target) target.focus({ preventScroll: true });
   }
 
@@ -437,6 +493,12 @@ dom.scroll.addEventListener("keydown", (event) => {
   else if (event.key === "ArrowRight" && target.hasAttribute("aria-expanded") && target.getAttribute("aria-expanded") === "false") { event.preventDefault(); target.click(); return; }
   else if (event.key === "ArrowLeft" && target.hasAttribute("aria-expanded") && target.getAttribute("aria-expanded") === "true") { event.preventDefault(); target.click(); return; }
   if (next) { event.preventDefault(); next.focus(); }
+});
+
+dom.excludedToggle.addEventListener("click", () => {
+  const open = dom.excludedToggle.getAttribute("aria-expanded") !== "true";
+  dom.excludedToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  dom.excludedList.hidden = !open;
 });
 
 dom.errorsToggle.addEventListener("click", () => {
@@ -496,8 +558,8 @@ function renderChrome() {
     dom.crumb.replaceChildren();
     return;
   }
-  const project = entry.project.name || entry.project.key;
-  const ticket = ticketName(entry.ticket.ticket);
+  const project = entry.project ? entry.project.name || entry.project.key : t.excludedTitle;
+  const ticket = entry.ticket ? ticketName(entry.ticket.ticket) : entry.session.title || entry.session.session_id;
   dom.crumb.replaceChildren(
     el("span", { class: "crumb-part", title: project }, project), el("span", { class: "crumb-sep", "aria-hidden": "true" }, "›"),
     el("span", { class: "crumb-part", title: ticket }, ticket)
@@ -525,9 +587,41 @@ function commandBlock(command) {
   return el("div", { class: "cmd" }, el("code", {}, command), copy);
 }
 
-function renderEmpty() {
+function clearWalkthrough() {
+  const hadFocus = dom.mount.contains(document.activeElement);
+  // Stop media before detaching it, and remove any native modal from the top layer.
+  for (const video of dom.mount.querySelectorAll("video")) { video.pause(); video.removeAttribute("src"); video.load(); }
+  for (const dialog of dom.mount.querySelectorAll("dialog[open]")) dialog.close();
   dom.mount.hidden = true;
   dom.mount.replaceChildren();
+  if (hadFocus) dom.main.focus({ preventScroll: true });
+}
+
+function renderSourceNotice(session) {
+  dom.sourceNotice.hidden = !session || session.source_status === "tracked";
+  dom.sourceNotice.classList.toggle("unknown", Boolean(session && session.source_status !== "local"));
+  dom.sourceNotice.replaceChildren();
+  if (dom.sourceNotice.hidden) return;
+  dom.sourceNotice.append(el("p", {}, sourceLabel(session)));
+  if (session.source_status !== "local") dom.sourceNotice.append(el("p", { class: "source-reason" }, sourceReason(session)));
+}
+
+function renderExcluded(session, { retry = false } = {}) {
+  clearWalkthrough();
+  renderSourceNotice(null);
+  const retryButton = retry ? el("button", { type: "button", class: "btn" }, t.retry) : null;
+  retryButton?.addEventListener("click", () => openSession(session.key, { remount: true }));
+  showStage(el("section", { class: "empty excluded-card", "aria-labelledby": "excluded-title" },
+    el("h1", { id: "excluded-title" }, session.title || session.session_id || t.excludedTitle),
+    el("p", { class: "source-heading" }, t.excludedTitle),
+    el("p", {}, t.excludedBody),
+    el("h2", {}, t.sourcePath), el("p", { class: "source-path", role: "region", "aria-label": t.sourcePath, tabindex: "0" }, el("code", {}, session.source || "")),
+    el("p", { class: "empty-note" }, t.excludedReturn), retryButton));
+}
+
+function renderEmpty() {
+  clearWalkthrough();
+  renderSourceNotice(null);
   const index = state.index;
   document.title = t.appTitle;
   if (!index.repositories.length) {
@@ -547,7 +641,7 @@ async function openSession(key, { fromSidebar = false, remount = false } = {}) {
   const entry = findSession(state.index, key);
   if (!entry) return;
   const sameSession = key === state.openKey;
-  if (sameSession && !remount && !dom.mount.hidden && fromSidebar) {
+  if (sameSession && !remount && (!dom.mount.hidden || entry.session.source_status === "tracked") && fromSidebar) {
     if (narrow.matches) closePanel(false, true);
     return;
   }
@@ -556,20 +650,26 @@ async function openSession(key, { fromSidebar = false, remount = false } = {}) {
   const scrollY = remount ? window.scrollY : 0;
   state.openKey = key;
   state.openHash = entry.session.content_hash;
+  state.openStatus = entry.session.source_status;
   storage("set", OPEN_KEY, key);
   // Make sure the open session is visible in the tree.
-  state.expanded.set(`t:${entry.project.key}|${entry.ticket.ticket}`, state.expanded.get(`t:${entry.project.key}|${entry.ticket.ticket}`) ?? true);
+  if (entry.project) state.expanded.set(`t:${entry.project.key}|${entry.ticket.ticket}`, state.expanded.get(`t:${entry.project.key}|${entry.ticket.ticket}`) ?? true);
   renderSidebar();
   renderChrome();
   document.title = `${entry.session.title || t.appTitle} · ${t.appTitle}`;
-  if (!remount) {
-    showStage(el("p", { class: "stage-note" }, t.loadingSession));
-    dom.mount.hidden = true;
-  }
+  clearWalkthrough();
+  renderSourceNotice(entry.session);
   if (fromSidebar && narrow.matches) closePanel(false, true);
+  if (entry.session.source_status === "tracked") {
+    renderExcluded(entry.session);
+    if (!remount) window.scrollTo(0, 0);
+    return;
+  }
+  showStage(el("p", { class: "stage-note" }, t.loadingSession));
   try {
     const manifest = await getJSON(`/api/sessions/${encodeURIComponent(key)}`);
     if (generation !== state.generation || seq !== state.loadSeq) return;
+    renderSourceNotice(findSession(state.index, key)?.session);
     dom.mount.hidden = false;
     renderWalkthrough(dom.mount, manifest, { fileBase: entry.session.fileBase });
     showStage(null);
@@ -579,6 +679,12 @@ async function openSession(key, { fromSidebar = false, remount = false } = {}) {
     dom.mount.hidden = true;
     if (error instanceof HttpError && error.status === 403) {
       rejectToken();
+      return;
+    }
+    if (error instanceof HttpError && error.status === 409) {
+      state.openStatus = "tracked";
+      renderExcluded(entry.session, { retry: true });
+      refresh();
       return;
     }
     if (error instanceof HttpError && error.status === 404) {
@@ -597,7 +703,7 @@ function withoutKeys(index, keys) {
   const projects = index.projects
     .map((p) => ({ ...p, tickets: p.tickets.map((tk) => ({ ...tk, sessions: tk.sessions.filter((s) => !keys.has(s.key)) })).filter((tk) => tk.sessions.length) }))
     .filter((p) => p.tickets.length);
-  return { ...index, projects };
+  return { ...index, projects, excluded_sessions: (index.excluded_sessions || []).filter((s) => !keys.has(s.key)) };
 }
 
 function applyIndex(received) {
@@ -627,7 +733,12 @@ function applyIndex(received) {
   if (current) {
     renderSidebar();
     renderChrome();
-    if (current.session.content_hash !== state.openHash) openSession(state.openKey, { remount: true });
+    renderSourceNotice(current.session);
+    if (current.session.content_hash !== state.openHash || current.session.source_status === "tracked" || state.openStatus === "tracked") {
+      openSession(state.openKey, { remount: true });
+    } else {
+      state.openStatus = current.session.source_status;
+    }
     return;
   }
   const wasOpen = Boolean(state.openKey);
@@ -711,8 +822,8 @@ function showAccessCard(rejected) {
   state.down = false;
   closeMenu(false);
   for (const key of ["down", "up", "gone", "write"]) clearNotice(key);
-  dom.mount.hidden = true;
-  dom.mount.replaceChildren();
+  clearWalkthrough();
+  renderSourceNotice(null);
   dom.actions.hidden = true;
   dom.crumb.replaceChildren();
   dom.foot.hidden = true;
@@ -758,7 +869,7 @@ async function setPinned(session, pinned, returnFocus) {
   await refresh();
   if (generation !== state.generation) return;
   setNotice("write", pinned ? t.kept1(name) : t.unkept1(name), { kind: "ok", timeout: 4000 });
-  const again = returnFocus && returnFocus.isConnected ? returnFocus : menuKey && dom.scroll.querySelector(`[data-menu="${CSS.escape(menuKey)}"]`);
+  const again = returnFocus && returnFocus.isConnected ? returnFocus : menuKey && dom.sidebar.querySelector(`[data-menu="${CSS.escape(menuKey)}"]`);
   if (again) again.focus();
 }
 
@@ -777,7 +888,7 @@ function refocus(node) {
   if (!node) return;
   if (node.isConnected) { node.focus(); return; }
   const key = node.getAttribute("data-menu");
-  const again = key && dom.scroll.querySelector(`[data-menu="${CSS.escape(key)}"]`);
+  const again = key && dom.sidebar.querySelector(`[data-menu="${CSS.escape(key)}"]`);
   if (again) again.focus();
 }
 
@@ -807,7 +918,7 @@ async function requestDelete(entry, returnFocus) {
   if (!(await askConfirm(name, returnFocus)) || generation !== state.generation) return;
 
   // Decide where focus goes before the row disappears.
-  const siblings = ticket.sessions.map((s) => s.key);
+  const siblings = (ticket ? ticket.sessions : state.index.excluded_sessions || []).map((s) => s.key);
   const at = siblings.indexOf(session.key);
   const before = visibleStops().map((b) => b.getAttribute("data-stop"));
   const wasOpen = session.key === state.openKey;
@@ -828,9 +939,9 @@ async function requestDelete(entry, returnFocus) {
     state.openKey = null;
   }
   applyIndex(state.index);
-  const exists = (id) => Boolean(dom.scroll.querySelector(`[data-stop="${CSS.escape(id)}"]`));
+  const exists = (id) => Boolean(dom.sidebar.querySelector(`[data-stop="${CSS.escape(id)}"]`));
   const neighbours = [siblings[at + 1], siblings[at - 1]].filter(Boolean).map((k) => `s:${k}`);
-  const ticketId = `t:${project.key}|${ticket.ticket}`;
+  const ticketId = project ? `t:${project.key}|${ticket.ticket}` : null;
   let target = neighbours.find(exists) || (exists(ticketId) ? ticketId : null);
   if (!target) {
     const gone = `s:${session.key}`;
@@ -839,7 +950,7 @@ async function requestDelete(entry, returnFocus) {
   if (!target) target = (visibleStops()[0] || {}).getAttribute?.("data-stop");
   clearNotice("gone");
   setNotice("write", t.deleted1(name), { kind: "ok", timeout: 5000 });
-  const button = target && dom.scroll.querySelector(`[data-stop="${CSS.escape(target)}"]`);
+  const button = target && dom.sidebar.querySelector(`[data-stop="${CSS.escape(target)}"]`);
   if (button && !(narrow.matches && !state.panelOpen)) {
     setRoving(target);
     button.focus();
