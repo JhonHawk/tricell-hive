@@ -1,10 +1,11 @@
 // Package providers describes optional third-party capabilities without
 // owning their configuration or lifecycle. Engram, Context7 and pi-subagents
 // resolve to a single Manual step naming the official source and the reason.
-// agent-browser is the one capability with an executable recipe: two steps
-// whose argv is fixed by this package and bound to the step ID. management
-// persists consent and receipts for the steps; this package only types them
-// and validates them, and never runs anything.
+// agent-browser and codex-question-card have executable recipes: agent-browser
+// has two steps and codex-question-card has one, each with an argv fixed by
+// this package and bound to the step ID. management persists consent and
+// receipts for the steps; this package only types them and validates them,
+// and never runs anything.
 package providers
 
 type ID string
@@ -14,6 +15,9 @@ const (
 	Context7     ID = "context7"
 	PiSubagents  ID = "pi-subagents"
 	AgentBrowser ID = "agent-browser"
+	// CodexQuestionCard turns on Codex's question card in Default mode through
+	// Codex's own `codex features enable`; Hive never edits Codex's config.
+	CodexQuestionCard ID = "codex-question-card"
 )
 
 // Status is kept distinct from management's own step-status strings so a
@@ -34,6 +38,7 @@ const (
 	MethodBrew         = "brew"
 	MethodNpm          = "npm"
 	MethodAgentBrowser = "agent-browser"
+	MethodCodex        = "codex"
 )
 
 // Step IDs of the agent-browser capability.
@@ -41,6 +46,14 @@ const (
 	AgentBrowserInstallStep = "agent-browser-install"
 	AgentBrowserChromeStep  = "agent-browser-chrome"
 	AgentBrowserManualStep  = "agent-browser-manual"
+)
+
+// Step IDs of the codex-question-card capability.
+const (
+	CodexQuestionCardEnableStep = "codex-question-card-enable"
+	CodexQuestionCardManualStep = "codex-question-card-manual"
+	// CodexQuestionCardFeature is the Codex feature flag the enable step turns on.
+	CodexQuestionCardFeature = "default_mode_request_user_input"
 )
 
 // Provider is the stable inventory entry the CLI renders in its capability

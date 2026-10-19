@@ -89,3 +89,37 @@ func TestValidateStepAgentBrowserRecipes(t *testing.T) {
 		t.Errorf("old manual payload rejected: %v", err)
 	}
 }
+
+func TestValidateStepCodexQuestionCard(t *testing.T) {
+	argv := []string{"codex", "features", "enable", "default_mode_request_user_input"}
+	accepted := []Step{
+		{ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: argv},
+		{ID: "codex-question-card-manual", Provider: CodexQuestionCard, Status: Manual, ManualReason: "codex was not found"},
+	}
+	for _, s := range accepted {
+		if err := ValidateStep(stepPayload(t, s)); err != nil {
+			t.Errorf("%s rejected: %v", s.ID, err)
+		}
+	}
+	rejected := map[string]Step{
+		"another feature":                 {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: []string{"codex", "features", "enable", "other"}},
+		"disable":                         {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: []string{"codex", "features", "disable", "default_mode_request_user_input"}},
+		"extra argument":                  {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: append(append([]string(nil), argv...), "--foo")},
+		"other method":                    {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "npm", Argv: argv},
+		"method differs from argv":        {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: []string{"sh", "-c", "codex"}},
+		"planned without argv":            {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex"},
+		"enable with a reason":            {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: argv, ManualReason: "r"},
+		"unknown step ID":                 {ID: "codex-question-card-other", Provider: CodexQuestionCard, Status: Planned, Method: "codex", Argv: argv},
+		"manual with another ID":          {ID: "codex-question-card-other", Provider: CodexQuestionCard, Status: Manual, ManualReason: "r"},
+		"manual with a command":           {ID: "codex-question-card-manual", Provider: CodexQuestionCard, Status: Manual, ManualReason: "r", Method: "codex", Argv: argv},
+		"enable ID under agent-browser":   {ID: "codex-question-card-enable", Provider: AgentBrowser, Status: Planned, Method: "codex", Argv: argv},
+		"enable ID under engram":          {ID: "codex-question-card-enable", Provider: Engram, Status: Planned, Method: "codex", Argv: argv},
+		"agent-browser argv under card":   {ID: "codex-question-card-enable", Provider: CodexQuestionCard, Status: Planned, Method: "brew", Argv: []string{"brew", "install", "agent-browser"}},
+		"card ID with agent-browser argv": {ID: "agent-browser-install", Provider: CodexQuestionCard, Status: Planned, Method: "brew", Argv: []string{"brew", "install", "agent-browser"}},
+	}
+	for name, s := range rejected {
+		if ValidateStep(stepPayload(t, s)) == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}
