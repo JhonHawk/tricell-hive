@@ -379,17 +379,63 @@ func repoRootOf(source string) string {
 	return source
 }
 
-// enrich fills Repository, ProjectKey and ProjectName of every session. The
-// readers run once per repository per call.
+// projectRefresh is how long a resolved project is trusted before the
+// readers run again.
+const projectRefresh = 60 * time.Second
+
+type cachedProject struct {
+	info projectInfo
+	at   time.Time
+}
+
+func (s *Store) clearProjects() {
+	s.projMu.Lock()
+	s.projects, s.projRepos = nil, ""
+	s.projMu.Unlock()
+}
+
+// noteRepositories drops the cached projects when the set of registered
+// roots changed since the last scan.
+func (s *Store) noteRepositories(reg Registry) {
+	roots := make([]string, 0, len(reg.Repositories))
+	for _, r := range reg.Repositories {
+		roots = append(roots, r.Root)
+	}
+	sort.Strings(roots)
+	joined := strings.Join(roots, "\x00")
+	s.projMu.Lock()
+	if joined != s.projRepos {
+		s.projects, s.projRepos = nil, joined
+	}
+	s.projMu.Unlock()
+}
+
+// projectFor returns the project of root, resolved at most once per
+// projectRefresh.
+func (s *Store) projectFor(root string) projectInfo {
+	now := s.now()
+	s.projMu.Lock()
+	if c, ok := s.projects[root]; ok && now.Sub(c.at) < projectRefresh && !now.Before(c.at) {
+		s.projMu.Unlock()
+		return c.info
+	}
+	s.projMu.Unlock()
+	info := s.resolveProject(root)
+	s.projMu.Lock()
+	if s.projects == nil {
+		s.projects = map[string]cachedProject{}
+	}
+	s.projects[root] = cachedProject{info: info, at: now}
+	s.projMu.Unlock()
+	return info
+}
+
+// enrich fills Repository, ProjectKey and ProjectName of every session from
+// the project cache.
 func (s *Store) enrich(d *indexData) {
-	cache := map[string]projectInfo{}
 	for i := range d.Sessions {
 		root := repoRootOf(d.Sessions[i].Source)
-		info, ok := cache[root]
-		if !ok {
-			info = s.resolveProject(root)
-			cache[root] = info
-		}
+		info := s.projectFor(root)
 		d.Sessions[i].Repository = root
 		d.Sessions[i].ProjectKey = info.key
 		d.Sessions[i].ProjectName = info.name

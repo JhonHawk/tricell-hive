@@ -54,7 +54,6 @@
 //	(*Store).View() View                 projects > tickets > sessions, never blocks
 //	(*Store).Manifest(key) ([]byte, error)
 //	(*Store).OpenFile(key, rel) (*os.File, error)
-//	(*Store).Register(dir) (RegisterResult, error)
 //
 // Keys are validated (ErrInvalidKey) before any path is built; a missing
 // session or file is ErrNotFound; a file path that breaks the manifest path
@@ -72,8 +71,10 @@
 //
 // # Concurrency
 //
-// A sync.Mutex serializes Sync, Purge, Delete, Pin, Register and Startup in a
-// process; View reads a published immutable snapshot and never waits for it.
+// A sync.Mutex serializes the apply phase of Sync, Purge, Delete, Pin and
+// Startup in a process. Sync inspects and hashes sources before taking it and
+// skips a source whose files keep their size, mtime and inode; View reads a
+// published immutable snapshot and never waits for either.
 // Only one server may own a state directory (the caller's server.lock).
 // Between processes, only the registry is shared (register versus the
 // server) and it is guarded by the blocking flock on viewer/lock.

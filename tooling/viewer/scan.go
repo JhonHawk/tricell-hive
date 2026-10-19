@@ -11,7 +11,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
+	"syscall"
 	"time"
 )
 
@@ -211,6 +213,140 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 	return sessionFrom(key, mt, sm), nil
 }
 
+// statKey is the cheap identity of a file between passes. ctime and dev are
+// part of it because an unprivileged user can set mtime, but not ctime: an
+// in-place rewrite that restores size and mtime still changes ctime.
+type statKey struct {
+	size  int64
+	mtime int64
+	ino   uint64
+	dev   uint64
+	ctime int64
+}
+
+func statOf(info os.FileInfo) statKey {
+	k := statKey{size: info.Size(), mtime: info.ModTime().UnixNano()}
+	if st, ok := info.Sys().(*syscall.Stat_t); ok { // unix only, like the flock
+		k.ino, k.dev, k.ctime = uint64(st.Ino), uint64(st.Dev), ctimeOf(st)
+	}
+	return k
+}
+
+// ctimeOf reads the status-change time from a Stat_t. The field is named
+// Ctimespec on darwin and Ctim on linux, so it is found by reflection rather
+// than by a build-tagged file.
+func ctimeOf(st *syscall.Stat_t) int64 {
+	v := reflect.ValueOf(st).Elem()
+	for _, name := range []string{"Ctimespec", "Ctim"} {
+		if f := v.FieldByName(name); f.IsValid() {
+			return f.FieldByName("Sec").Int()*1e9 + f.FieldByName("Nsec").Int()
+		}
+	}
+	return 0
+}
+
+// fingerprint is what the last hash of a source looked like.
+type fingerprint struct {
+	manifest statKey
+	files    map[string]statKey
+	key      string
+	hash     string
+}
+
+// unchanged reports whether folder's manifest and every file the last hash
+// covered still have the same (size, mtime, inode), and the current index
+// already reflects that hash (a copy with it, or a tombstone for it), so the
+// source needs no validation or hashing. It is a cheap heuristic: content
+// rewritten without changing size, mtime and inode goes unnoticed until one
+// of them changes.
+func (s *Store) unchanged(folder string, root *os.Root, manifest statKey, snap *indexData) bool {
+	s.fpMu.Lock()
+	fp := s.fps[folder]
+	s.fpMu.Unlock()
+	if fp == nil || fp.manifest != manifest {
+		return false
+	}
+	for rel, want := range fp.files {
+		info, err := root.Lstat(filepath.FromSlash(rel))
+		if err != nil || !info.Mode().IsRegular() || statOf(info) != want {
+			return false
+		}
+	}
+	if i, ok := snap.session(fp.key); ok && snap.Sessions[i].ContentHash == fp.hash {
+		return true
+	}
+	if i, ok := snap.tombstone(fp.key); ok && snap.Tombstones[i].ContentHash == fp.hash {
+		return true
+	}
+	return false
+}
+
+func (s *Store) remember(folder string, fp *fingerprint) {
+	s.fpMu.Lock()
+	if s.fps == nil {
+		s.fps = map[string]*fingerprint{}
+	}
+	s.fps[folder] = fp
+	s.fpMu.Unlock()
+}
+
+// pruneFingerprints drops the fingerprints of folders this pass did not list:
+// sources that disappeared, and repositories that are absent or no longer
+// registered.
+func (s *Store) pruneFingerprints(seen map[string]bool) {
+	s.fpMu.Lock()
+	for folder := range s.fps {
+		if !seen[folder] {
+			delete(s.fps, folder)
+		}
+	}
+	s.fpMu.Unlock()
+}
+
+func (s *Store) forget(folder string) {
+	s.fpMu.Lock()
+	delete(s.fps, folder)
+	s.fpMu.Unlock()
+}
+
+// candidate is a source found by the unlocked inspection phase of Sync. root
+// stays open (on the folder as it was validated) until the apply phase has
+// copied from it.
+type candidate struct {
+	repo        int
+	folder      string
+	problemPath string
+	err         error
+	root        *os.Root
+	m           *Manifest
+	key, hash   string
+}
+
+// Defaults for how many inspected candidates, and how many bytes of their raw
+// manifests, one batch of a scan retains before it is applied.
+const (
+	defaultBatchSize  = 32
+	defaultBatchBytes = 64 << 20
+)
+
+// problemLog collects ingest errors with the per-repository bounds of H4.
+type problemLog struct {
+	items   []IngestError
+	count   []int
+	omitted []int
+	errors  int
+}
+
+func (p *problemLog) add(repo int, path string, err error) {
+	p.errors++
+	if p.count[repo] >= maxIngestErrorsPerRepository {
+		p.omitted[repo]++
+		return
+	}
+	p.count[repo]++
+	p.items = append(p.items, IngestError{Path: cleanText(path, maxErrorPath), Reason: cleanText(err.Error(), maxErrorText)})
+}
+
 // Sync scans every registered repository once. For each
 // <root>/_support/workspace/<folder>/walkthrough.json it validates the
 // manifest, and copies the folder's manifest and referenced files into
@@ -221,37 +357,77 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 // missing from disk is flagged absent and its copies are kept. Links are
 // never followed. A cancelled ctx commits what was done and returns its
 // error.
+//
+// A pass has two phases. Inspection (validate, fingerprint, hash) runs
+// without the store mutex, so Delete, Pin and Purge never wait for it; a
+// source whose files keep their (size, mtime, inode) and whose copy is
+// current is skipped without being read. The apply phase then takes the
+// mutex, re-checks tombstones and the current index, and copies.
 func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	var res SyncResult
 	reg, err := s.readRegistryShared()
 	if err != nil {
 		return res, err
 	}
 	now := s.now()
-	d := s.current().clone()
-	d.Repositories = repositoryStatuses(reg)
-	var problems []IngestError
-	var perRepo, omitted int
-	addProblem := func(path string, err error) {
-		res.Errors++
-		if perRepo >= maxIngestErrorsPerRepository {
-			omitted++
-			return
-		}
-		perRepo++
-		problems = append(problems, IngestError{Path: cleanText(path, maxErrorPath), Reason: cleanText(err.Error(), maxErrorText)})
+	s.noteRepositories(reg)
+	snap := s.current()
+	repos := repositoryStatuses(reg)
+	log := &problemLog{count: make([]int, len(reg.Repositories)), omitted: make([]int, len(reg.Repositories))}
+
+	batchSize, batchBytes := s.batchSize, s.batchBytes
+	if batchSize <= 0 {
+		batchSize = defaultBatchSize
 	}
-	var cancelled error
+	if batchBytes <= 0 {
+		batchBytes = defaultBatchBytes
+	}
+	var cands []*candidate
+	var retained int64
+	closeBatch := func() {
+		for _, c := range cands {
+			if c.root != nil {
+				c.root.Close()
+			}
+		}
+		cands, retained = nil, 0
+	}
+	defer closeBatch()
+	// flush applies the batch under the mutex, then closes its roots, so a
+	// pass never keeps more than one bounded batch of open folders and raw
+	// manifests. Each batch is committed on its own.
+	flush := func() error {
+		if len(cands) == 0 {
+			return nil
+		}
+		if s.onBatch != nil {
+			s.onBatch(len(cands))
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		d := s.current().clone()
+		for _, c := range cands {
+			if c.err != nil {
+				log.add(c.repo, c.problemPath, c.err)
+				continue
+			}
+			if err := s.apply(c, now, d, &res); err != nil {
+				log.add(c.repo, filepath.Join(c.folder, manifestFile), err)
+			}
+		}
+		closeBatch()
+		s.enrich(d)
+		return s.commit(d)
+	}
+	seen := map[string]bool{}
+	var cancelled, flushErr error
 	for i, r := range reg.Repositories {
-		if d.Repositories[i].Absent {
+		if repos[i].Absent {
 			continue
 		}
-		perRepo, omitted = 0, 0
 		ws, names, errs := openWorkspace(r.Root)
 		for _, e := range errs {
-			addProblem(e.Path, errors.New(e.Reason))
+			log.add(i, e.Path, errors.New(e.Reason))
 		}
 		if ws != nil {
 			wsDir := filepath.Join(r.Root, "_support", "workspace")
@@ -259,25 +435,52 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 				if cancelled = ctx.Err(); cancelled != nil {
 					break
 				}
-				s.ingest(ws, name, wsDir, now, d, &res, addProblem)
+				seen[filepath.Join(wsDir, name)] = true
+				if c := s.inspect(ws, name, wsDir, now, snap); c != nil {
+					c.repo = i
+					cands = append(cands, c)
+					if c.m != nil {
+						retained += int64(len(c.m.Raw))
+					}
+					if len(cands) >= batchSize || retained >= batchBytes {
+						if err := flush(); err != nil && flushErr == nil {
+							flushErr = err
+						}
+					}
+				}
 			}
 			ws.Close()
-		}
-		if omitted > 0 {
-			problems = append(problems, IngestError{Path: r.Root, Reason: fmt.Sprintf("%d more ingest errors omitted", omitted)})
 		}
 		if cancelled != nil {
 			break
 		}
 	}
+	if err := flush(); err != nil && flushErr == nil {
+		flushErr = err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.current().clone()
+	d.Repositories = repos
+	for i, r := range reg.Repositories {
+		if log.omitted[i] > 0 {
+			log.items = append(log.items, IngestError{Path: r.Root, Reason: fmt.Sprintf("%d more ingest errors omitted", log.omitted[i])})
+		}
+	}
+	res.Errors = log.errors
 	if cancelled == nil {
 		s.pruneTombstones(d)
+		s.pruneFingerprints(seen)
 	}
-	d.Errors = append([]IngestError{}, problems...)
+	d.Errors = append([]IngestError{}, log.items...)
 	s.enrich(d)
 	err = s.commit(d)
 	if cancelled != nil {
 		return res, cancelled
+	}
+	if flushErr != nil {
+		return res, flushErr
 	}
 	return res, err
 }
@@ -339,69 +542,101 @@ func openWorkspace(repo string) (*os.Root, []string, []IngestError) {
 	return cur, names, nil
 }
 
-// ingest handles one workspace folder. It opens the folder once from the
-// workspace root and uses that descriptor to validate, hash and copy.
-func (s *Store) ingest(ws *os.Root, name, wsDir string, now time.Time, d *indexData, res *SyncResult, problem func(string, error)) {
+// inspect is the unlocked phase for one workspace folder. It returns nil
+// when there is nothing to do, a candidate with err set for a rejected
+// source, or a candidate ready to be applied. It opens the folder once from
+// the workspace root and uses that descriptor to validate and hash, and keeps
+// it for the copy.
+func (s *Store) inspect(ws *os.Root, name, wsDir string, now time.Time, snap *indexData) *candidate {
 	folder := filepath.Join(wsDir, name)
 	manifestPath := filepath.Join(folder, manifestFile)
 	if info, err := ws.Lstat(name); err != nil || !info.IsDir() {
-		return // removed or replaced by a link since it was listed
+		return nil // removed or replaced by a link since it was listed
 	}
 	root, err := ws.OpenRoot(name)
 	if err != nil {
-		problem(folder, err)
-		return
+		return &candidate{folder: folder, problemPath: folder, err: err}
 	}
-	defer root.Close()
+	fail := func(path string, err error) *candidate {
+		root.Close()
+		s.forget(folder)
+		return &candidate{folder: folder, problemPath: path, err: err}
+	}
 	info, err := root.Lstat(manifestFile)
 	if errors.Is(err, fs.ErrNotExist) {
-		return
+		root.Close()
+		return nil
 	}
 	if err != nil {
-		problem(manifestPath, err)
-		return
+		return fail(manifestPath, err)
 	}
 	if !info.Mode().IsRegular() {
-		problem(manifestPath, errors.New("walkthrough.json must be a regular file, not a link"))
-		return
+		return fail(manifestPath, errors.New("walkthrough.json must be a regular file, not a link"))
 	}
 	if now.Sub(info.ModTime()) > s.ttl {
-		return
+		root.Close()
+		return nil
+	}
+	manifest := statOf(info)
+	if s.unchanged(folder, root, manifest, snap) {
+		root.Close()
+		return nil
 	}
 	m, err := validateRoot(root)
 	if err != nil {
-		problem(manifestPath, err)
-		return
+		return fail(manifestPath, err)
 	}
 	if s.afterValidate != nil {
 		s.afterValidate(folder)
 	}
+	fp := &fingerprint{manifest: manifest, files: map[string]statKey{}}
+	for _, rel := range m.Files {
+		if fi, err := root.Lstat(filepath.FromSlash(rel)); err == nil && fi.Mode().IsRegular() {
+			fp.files[rel] = statOf(fi)
+		} else {
+			fp = nil
+			break
+		}
+	}
 	key := sessionKey(folder, m.SessionID)
+	if s.onHash != nil {
+		s.onHash(folder)
+	}
 	hash, err := hashFiles(root, m)
 	if err != nil {
-		problem(manifestPath, err)
-		return
+		return fail(manifestPath, err)
 	}
-	if ti, ok := d.tombstone(key); ok && d.Tombstones[ti].ContentHash == hash {
-		return
+	if fp != nil {
+		fp.key, fp.hash = key, hash
+		s.remember(folder, fp)
 	}
-	i, exists := d.session(key)
-	if exists && d.Sessions[i].ContentHash == hash {
-		return
+	return &candidate{folder: folder, root: root, m: m, key: key, hash: hash}
+}
+
+// apply is the locked phase for one inspected source: it re-checks the
+// tombstones and the current copy, then installs.
+func (s *Store) apply(c *candidate, now time.Time, d *indexData, res *SyncResult) error {
+	if ti, ok := d.tombstone(c.key); ok && d.Tombstones[ti].ContentHash == c.hash {
+		return nil
 	}
-	sess, err := s.install(key, folder, root, m, hash, now)
+	i, exists := d.session(c.key)
+	if exists && d.Sessions[i].ContentHash == c.hash {
+		return nil
+	}
+	sess, err := s.install(c.key, c.folder, c.root, c.m, c.hash, now)
 	if err != nil {
-		problem(manifestPath, err)
-		return
+		s.forget(c.folder)
+		return err
 	}
-	d.dropTombstone(key)
+	d.dropTombstone(c.key)
 	if exists {
 		d.Sessions[i] = sess
 		res.Replaced++
-		return
+		return nil
 	}
 	d.Sessions = append(d.Sessions, sess)
 	res.Added++
+	return nil
 }
 
 // pruneTombstones drops the tombstones whose source walkthrough.json no

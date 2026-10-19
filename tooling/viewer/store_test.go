@@ -20,23 +20,27 @@ import (
 // env is a throwaway viewer: a state directory, a controllable clock and
 // injected project readers.
 type env struct {
-	t       *testing.T
-	state   string
-	mu      sync.Mutex
-	now     time.Time
-	hive    map[string]string
-	remotes map[string]string
-	store   *Store
+	t           *testing.T
+	hiveCalls   map[string]int // reader invocations per root
+	remoteCalls map[string]int
+	state       string
+	mu          sync.Mutex
+	now         time.Time
+	hive        map[string]string
+	remotes     map[string]string
+	store       *Store
 }
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
 	e := &env{
-		t:       t,
-		state:   canon(t, t.TempDir()),
-		now:     time.Now().UTC().Truncate(time.Second),
-		hive:    map[string]string{},
-		remotes: map[string]string{},
+		t:           t,
+		state:       canon(t, t.TempDir()),
+		now:         time.Now().UTC().Truncate(time.Second),
+		hive:        map[string]string{},
+		remotes:     map[string]string{},
+		hiveCalls:   map[string]int{},
+		remoteCalls: map[string]int{},
 	}
 	e.store = e.open()
 	return e
@@ -63,12 +67,14 @@ func (e *env) open() *Store {
 		HiveProject: func(root string) (string, bool) {
 			e.mu.Lock()
 			defer e.mu.Unlock()
+			e.hiveCalls[root]++
 			n, ok := e.hive[root]
 			return n, ok
 		},
 		GitRemote: func(root string) (string, error) {
 			e.mu.Lock()
 			defer e.mu.Unlock()
+			e.remoteCalls[root]++
 			if r, ok := e.remotes[root]; ok {
 				return r, nil
 			}
@@ -90,7 +96,7 @@ func (e *env) start() {
 
 func (e *env) register(repo string) {
 	e.t.Helper()
-	if _, err := e.store.Register(repo); err != nil {
+	if _, err := RegisterRepository(e.state, repo); err != nil {
 		e.t.Fatal(err)
 	}
 }

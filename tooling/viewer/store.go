@@ -70,10 +70,37 @@ type Store struct {
 	// folder and reading it again to hash and copy it.
 	afterValidate func(folder string)
 
-	// mu serializes ingestion, purge, delete, pin, register and startup.
+	// mu serializes the apply phase of a scan, purge, delete, pin and startup.
 	// Lock order: mu, then the flock on viewer/lock (registry only).
 	mu            sync.Mutex
 	lastPersisted []byte
+
+	// onHash, when set by a test, is called each time a source's files are hashed.
+	onHash func(folder string)
+
+	// batchSize and batchBytes bound how many inspected candidates, and how
+	// many bytes of their manifests, Sync keeps open before it applies them
+	// (zero means the defaults). onBatch, when set by a test, receives the
+	// size of each batch.
+	batchSize  int
+	batchBytes int64
+	onBatch    func(n int)
+
+	// fps remembers, per source folder, the (size, mtime, inode) of its
+	// manifest and referenced files when they were last hashed, and the
+	// resulting key and content hash. A source whose files all still match,
+	// and whose copy is current, is not validated or hashed again. In memory
+	// only: a restart hashes once more.
+	fpMu sync.Mutex
+	fps  map[string]*fingerprint
+
+	// projects caches the resolved project of each repository root for
+	// projectRefresh, so a pass does not run the readers (two git
+	// processes, AGENTS.md, .engram) for every repository every poll.
+	// projRepos is the registry's roots when the cache was last valid.
+	projMu    sync.Mutex
+	projects  map[string]cachedProject
+	projRepos string
 
 	// viewMu guards idx, which is replaced, never modified in place.
 	viewMu sync.RWMutex
@@ -134,6 +161,7 @@ func (s *Store) Startup() error {
 	if err := s.cleanup(); err != nil {
 		return err
 	}
+	s.clearProjects()
 	return s.commit(s.load())
 }
 
@@ -342,25 +370,6 @@ func (s *Store) current() *indexData {
 	s.viewMu.RLock()
 	defer s.viewMu.RUnlock()
 	return s.idx
-}
-
-// Register adds the Git root of dir to the registry, like RegisterRepository,
-// and refreshes the repository list of the index.
-func (s *Store) Register(dir string) (RegisterResult, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	res, err := registerRepository(s.vdir, dir, s.now())
-	if err != nil {
-		return res, err
-	}
-	if res.Added {
-		d := s.current().clone()
-		if reg, err := readRegistry(s.vdir); err == nil {
-			d.Repositories = repositoryStatuses(reg)
-		}
-		return res, s.commit(d)
-	}
-	return res, nil
 }
 
 func validKey(key string) error {

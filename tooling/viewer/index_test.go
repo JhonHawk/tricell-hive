@@ -365,7 +365,7 @@ func TestIndexWorkspaceRootWithoutGitIsScannedAndGroupedByPath(t *testing.T) {
 	e := newEnv(t)
 	root, work := newWorkspace(t)
 	e.hive[root] = "demo-ws" // what the cli reader finds in <root>/AGENTS.md
-	if res, err := e.store.Register(work); err != nil || res.Root != root {
+	if res, err := RegisterRepository(e.state, work); err != nil || res.Root != root {
 		t.Fatalf("register = %+v, %v", res, err)
 	}
 	e.start()
@@ -411,5 +411,59 @@ func TestIndexWorkspaceInsideAnUnrelatedGitRepositoryHasNoRemote(t *testing.T) {
 	p := e.store.View().Projects[0]
 	if p.Key != root || p.Name != "ws-name" {
 		t.Fatalf("project = %+v; the key must be the root path %s, not the outer repository's remote", p, root)
+	}
+}
+
+func (e *env) calls(root string) (hive, remote int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.hiveCalls[root], e.remoteCalls[root]
+}
+
+func TestIndexProjectInfoIsCachedAndRefreshedOnAnInterval(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	e.remotes[repo] = "git@github.com:o/r.git"
+	e.hive[repo] = "Cached"
+	e.place(repo, "a", nil)
+	e.register(repo)
+	e.start()
+	for i := 0; i < 4; i++ {
+		e.sync()
+	}
+	if h, r := e.calls(repo); h != 1 || r != 1 {
+		t.Fatalf("readers ran %d/%d times over 5 passes, want 1/1", h, r)
+	}
+	// A change is picked up once the refresh interval passes.
+	e.hive[repo] = "Renamed"
+	e.advance(30 * time.Second)
+	e.sync()
+	if got := projectOf(t, e, repo).Name; got != "Cached" {
+		t.Fatalf("name changed before the refresh interval: %q", got)
+	}
+	e.advance(31 * time.Second)
+	e.touch(filepath.Join(repo, "_support", "workspace", "a"))
+	e.sync()
+	if got := projectOf(t, e, repo).Name; got != "Renamed" {
+		t.Fatalf("name = %q after the refresh interval", got)
+	}
+	if h, r := e.calls(repo); h != 2 || r != 2 {
+		t.Fatalf("readers ran %d/%d times, want 2/2", h, r)
+	}
+}
+
+func TestIndexProjectInfoIsRefreshedWhenTheRegistryChanges(t *testing.T) {
+	e := newEnv(t)
+	first, second := newRepo(t), newRepo(t)
+	e.hive[first] = "One"
+	e.place(first, "a", nil)
+	e.register(first)
+	e.start()
+	e.sync()
+	e.hive[first] = "One renamed"
+	e.register(second)
+	e.sync()
+	if got := projectOf(t, e, first).Name; got != "One renamed" {
+		t.Fatalf("registering a repository must refresh the cache, name = %q", got)
 	}
 }

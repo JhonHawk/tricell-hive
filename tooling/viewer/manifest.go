@@ -264,6 +264,9 @@ var isoLayouts = []string{
 }
 
 func isISODateTime(s string) bool {
+	if strings.HasSuffix(s, "z") { // Python accepts a lowercase UTC designator too
+		s = s[:len(s)-1] + "Z"
+	}
 	for _, layout := range isoLayouts {
 		if _, err := time.Parse(layout, s); err == nil {
 			return true

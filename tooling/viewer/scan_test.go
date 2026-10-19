@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -407,5 +409,238 @@ func TestScanBoundsIngestErrorTextAndCountPerRepository(t *testing.T) {
 	}
 	if omitted != 1 {
 		t.Fatalf("want one summary of omitted errors, got %d", omitted)
+	}
+}
+
+// hashCounter counts hashFiles calls through the store's test hook.
+func hashCounter(s *Store) *int64 {
+	var n int64
+	s.onHash = func(string) { atomic.AddInt64(&n, 1) }
+	return &n
+}
+
+func TestScanUnchangedSourceIsNotRehashed(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	folder := e.place(repo, "run1", nil)
+	e.register(repo)
+	e.start()
+	hashed := hashCounter(e.store)
+	e.sync()
+	if got := atomic.LoadInt64(hashed); got != 1 {
+		t.Fatalf("first pass hashed %d times, want 1", got)
+	}
+	for i := 0; i < 3; i++ {
+		e.advance(5 * time.Second)
+		if res := e.sync(); res.Added != 0 || res.Replaced != 0 {
+			t.Fatalf("pass %d: %+v", i, res)
+		}
+	}
+	if got := atomic.LoadInt64(hashed); got != 1 {
+		t.Fatalf("unchanged source re-hashed: %d hashes after 4 passes", got)
+	}
+
+	// A new mtime on a referenced file triggers a re-hash; identical bytes mean no replacement.
+	image := filepath.Join(folder, "images", "nav-1.png")
+	later := time.Now().Add(time.Hour)
+	os.Chtimes(image, later, later)
+	if res := e.sync(); res.Replaced != 0 {
+		t.Fatalf("touching a file replaced the copy: %+v", res)
+	}
+	if got := atomic.LoadInt64(hashed); got != 2 {
+		t.Fatalf("mtime change: %d hashes, want 2", got)
+	}
+	e.sync()
+	if got := atomic.LoadInt64(hashed); got != 2 {
+		t.Fatalf("settled source re-hashed: %d", got)
+	}
+	// A size change re-hashes and replaces (AC11).
+	os.WriteFile(image, []byte("a different size"), 0o644)
+	if res := e.sync(); res.Replaced != 1 {
+		t.Fatalf("size change: %+v", res)
+	}
+	if got := atomic.LoadInt64(hashed); got != 3 {
+		t.Fatalf("size change: %d hashes, want 3", got)
+	}
+	// A new manifest mtime re-hashes too.
+	e.advance(time.Minute)
+	e.touch(folder)
+	e.sync()
+	if got := atomic.LoadInt64(hashed); got != 4 {
+		t.Fatalf("manifest mtime change: %d hashes, want 4", got)
+	}
+}
+
+func TestScanSkipDoesNotHideADeletedOrReplacedFile(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	folder := e.place(repo, "run1", nil)
+	e.register(repo)
+	e.start()
+	e.sync()
+	// Replace an image with a link: the fingerprint no longer matches and the manifest is rejected.
+	image := filepath.Join(folder, "images", "nav-1.png")
+	os.Remove(image)
+	os.Symlink(filepath.Join(folder, "images", "nav-2.png"), image)
+	if res := e.sync(); res.Errors != 1 {
+		t.Fatalf("a file swapped for a link was not caught: %+v", res)
+	}
+}
+
+func TestScanDoesNotHoldTheMutexWhileHashing(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	e.place(repo, "run1", nil)
+	e.register(repo)
+	e.start()
+	e.sync()
+	key := e.onlySession().Key
+	folder2 := e.place(repo, "run2", nil)
+
+	entered, release := make(chan struct{}), make(chan struct{})
+	e.store.onHash = func(folder string) {
+		if folder == folder2 {
+			close(entered)
+			<-release
+		}
+	}
+	done := make(chan struct{})
+	go func() { defer close(done); e.store.Sync(context.Background()) }()
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("sync never reached the new source")
+	}
+	finished := make(chan error, 1)
+	go func() { finished <- e.store.Pin(key, true) }()
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Pin blocked while Sync was hashing")
+	}
+	close(release)
+	<-done
+	if len(e.sessions()) != 2 {
+		t.Fatalf("sessions = %d, want 2", len(e.sessions()))
+	}
+}
+
+func TestScanAppliesCandidatesInBoundedBatches(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	for i := 0; i < 7; i++ {
+		e.place(repo, fmt.Sprintf("run%d", i), nil)
+	}
+	e.register(repo)
+	e.start()
+	e.store.batchSize = 2
+	var sizes []int
+	e.store.onBatch = func(n int) { sizes = append(sizes, n) }
+	res := e.sync()
+	if res.Added != 7 || len(e.sessions()) != 7 {
+		t.Fatalf("result = %+v, sessions %d", res, len(e.sessions()))
+	}
+	total := 0
+	for _, n := range sizes {
+		if n > 2 {
+			t.Fatalf("a batch retained %d candidates, bound is 2 (%v)", n, sizes)
+		}
+		total += n
+	}
+	if total != 7 || len(sizes) < 4 {
+		t.Fatalf("batches = %v, want 7 candidates in at least 4 batches", sizes)
+	}
+}
+
+func TestScanBatchIsBoundedByRetainedManifestBytes(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	for i := 0; i < 4; i++ {
+		e.place(repo, fmt.Sprintf("run%d", i), nil)
+	}
+	e.register(repo)
+	e.start()
+	e.store.batchBytes = 1 // every manifest exceeds it: one candidate per batch
+	var sizes []int
+	e.store.onBatch = func(n int) { sizes = append(sizes, n) }
+	if res := e.sync(); res.Added != 4 {
+		t.Fatalf("result = %+v", res)
+	}
+	if len(sizes) != 4 {
+		t.Fatalf("batches = %v, want 4 single candidates", sizes)
+	}
+	for _, n := range sizes {
+		if n != 1 {
+			t.Fatalf("batches = %v, want single candidates", sizes)
+		}
+	}
+}
+
+func TestScanDetectsAnInPlaceRewriteThatKeepsSizeMtimeAndInode(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	folder := e.place(repo, "run1", nil)
+	e.register(repo)
+	e.start()
+	e.sync()
+	image := filepath.Join(folder, "images", "nav-1.png")
+	before, _ := os.Stat(image)
+	data := readFile(t, image)
+	data[len(data)-1] ^= 0xff // same size, same inode (rewritten in place)
+	f, err := os.OpenFile(image, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Write(data)
+	f.Close()
+	if err := os.Chtimes(image, before.ModTime(), before.ModTime()); err != nil { // mtime restored
+		t.Fatal(err)
+	}
+	after, _ := os.Stat(image)
+	if after.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) || !os.SameFile(before, after) {
+		t.Fatal("test bug: size, mtime or inode changed")
+	}
+	if res := e.sync(); res.Replaced != 1 {
+		t.Fatalf("in-place rewrite went unnoticed: %+v", res)
+	}
+}
+
+func TestScanPrunesFingerprintsOfVanishedSourcesAndRepositories(t *testing.T) {
+	e := newEnv(t)
+	repo, other := newRepo(t), newRepo(t)
+	gone := e.place(repo, "gone", nil)
+	e.place(repo, "kept", nil)
+	e.place(other, "far", nil)
+	e.register(repo)
+	e.register(other)
+	e.start()
+	count := func() int {
+		e.store.fpMu.Lock()
+		defer e.store.fpMu.Unlock()
+		return len(e.store.fps)
+	}
+	e.sync()
+	if count() != 3 {
+		t.Fatalf("fingerprints = %d, want 3", count())
+	}
+	os.RemoveAll(gone)
+	e.sync()
+	if count() != 2 {
+		t.Fatalf("fingerprint of a vanished source kept: %d", count())
+	}
+	// An absent repository.
+	os.Rename(other, other+"-moved")
+	e.sync()
+	if count() != 1 {
+		t.Fatalf("fingerprint of an absent repository kept: %d", count())
+	}
+	// An unregistered repository.
+	os.WriteFile(filepath.Join(e.state, "viewer", "registry.json"), []byte(`{"version":1,"repositories":[]}`), 0o600)
+	e.sync()
+	if count() != 0 {
+		t.Fatalf("fingerprint of an unregistered repository kept: %d", count())
 	}
 }

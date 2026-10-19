@@ -210,6 +210,15 @@ var mutations = []struct {
 	{"created-naive", false, func(m map[string]any) { m["created_at"] = "2026-10-18T22:00:00" }},
 	{"created-date-only", false, func(m map[string]any) { m["created_at"] = "2026-10-18" }},
 	{"created-fraction", false, func(m map[string]any) { m["created_at"] = "2026-10-18T22:00:00.123456-06:00" }},
+	{"created-lowercase-z", false, func(m map[string]any) { m["created_at"] = "2026-10-18T22:00:00z" }},
+	{"duration-overflows-float", true, func(m map[string]any) {
+		firstFlow(m)["recording"] = map[string]any{
+			"status": "recorded", "path": "images/clip.mp4", "duration_seconds": json.Number("1e999"), "candidate": "c"}
+	}},
+	{"duration-huge-integer", true, func(m map[string]any) {
+		firstFlow(m)["recording"] = map[string]any{
+			"status": "recorded", "path": "images/clip.mp4", "duration_seconds": json.Number("1" + strings.Repeat("0", 400)), "candidate": "c"}
+	}},
 	{"ticket-number", true, func(m map[string]any) { m["ticket"] = 5 }},
 	{"result-empty", true, func(m map[string]any) { m["result"] = "" }},
 	{"check-status-unknown", true, func(m map[string]any) {
