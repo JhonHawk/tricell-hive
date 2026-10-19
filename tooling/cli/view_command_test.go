@@ -147,6 +147,32 @@ func TestViewRequiresKnownSubcommand(t *testing.T) {
 	}
 }
 
+func TestViewGroupHelpHasNoEffects(t *testing.T) {
+	for _, alias := range []string{"--help", "-h", "help"} {
+		t.Run(alias, func(t *testing.T) {
+			var out bytes.Buffer
+			deps := viewDeps{
+				launch: func([]string, string) (int, error) {
+					t.Fatal("help launched a server")
+					return 0, nil
+				},
+				open: func(string) error {
+					t.Fatal("help opened a browser")
+					return nil
+				},
+			}
+			if err := runView([]string{alias}, &out, deps); err != nil {
+				t.Fatalf("help failed: %v", err)
+			}
+			for _, sub := range []string{"start", "stop", "status", "open", "register", "serve"} {
+				if !strings.Contains(out.String(), sub) {
+					t.Errorf("help does not list %s", sub)
+				}
+			}
+		})
+	}
+}
+
 func TestViewRegisterIsIdempotentAndRejectsNonGit(t *testing.T) {
 	f := newViewFixture(t)
 	repo := newViewRepo(t)

@@ -110,6 +110,10 @@ type viewFlags struct {
 }
 
 func runView(args []string, w io.Writer, deps viewDeps) error {
+	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help") {
+		printViewHelp(w)
+		return nil
+	}
 	if len(args) == 0 {
 		return errors.New("view requires start, stop, status, open, register or serve")
 	}
