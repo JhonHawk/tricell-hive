@@ -1,12 +1,14 @@
 // @ts-check
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
+import { ion } from "starlight-ion-theme";
 
 export default defineConfig({
   site: "https://hive.tricell.tech",
   integrations: [
     starlight({
       title: "Hive",
+      plugins: [ion({ icons: { iconDir: "./src/icons" } })],
       head: [
         {
           tag: "meta",
@@ -62,14 +64,36 @@ export default defineConfig({
       ],
       customCss: ["./src/styles/theme.css"],
       sidebar: [
-        { label: "Start", items: [{ slug: "index" }] },
+        { label: "[home] Home", slug: "index" },
+        { label: "[book] Getting started", slug: "getting-started" },
+        { label: "[history] Changelog", slug: "changelog" },
         {
-          label: "Flows",
+          label: "[layers] Skills",
+          collapsed: true,
           items: [
+            { label: "Overview", slug: "skills" },
             { slug: "flows/research" },
             { slug: "flows/plan" },
             { slug: "flows/build" },
             { slug: "flows/close" },
+          ],
+        },
+        {
+          label: "[spark] Inspiration",
+          collapsed: true,
+          items: [
+            {
+              label: "OpenSpec",
+              link: "https://github.com/Fission-AI/OpenSpec",
+            },
+            {
+              label: "gentle-ai",
+              link: "https://github.com/Gentleman-Programming/gentle-ai",
+            },
+            {
+              label: "Superpowers",
+              link: "https://github.com/obra/superpowers",
+            },
           ],
         },
       ],

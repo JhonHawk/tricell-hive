@@ -36,7 +36,9 @@ For large questions the agent hands reading work to helper agents. Each helper s
 
 The global core keeps essential boundaries; Research links directly to the
 canonical questions, reporting and delegation procedures when needed. Reporting
-applies before every chat reply. Optional context delivery covers only the
+applies to findings, explanations and messages with external links or IDs;
+greetings and short direct answers need no reference read. Optional context
+delivery covers only the
 explicit OpenCode plan-review and harness-review roles, not intent detection or
 automatic loading for every research task.
 
