@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -249,6 +250,18 @@ func (r providerRunner) run(step providers.Step) agentBrowserResult {
 		if strings.Contains(res.Output, "EACCES") && step.Method == providers.MethodNpm {
 			res.Message = "npm cannot write to its global prefix (EACCES). Fix the prefix permissions or install agent-browser by hand; Hive never uses sudo."
 		}
+	case step.ID == providers.CodexQuestionCardEnableStep:
+		on, err := false, errors.New("the Codex home is unknown")
+		if r.codexHome != "" {
+			on, err = codex.FeatureEnabled(r.codexHome, providers.CodexQuestionCardFeature)
+		}
+		if err != nil || !on {
+			res.Message = "Codex reported success but Hive could not confirm the setting in " + filepath.Join(r.codexHome, "config.toml")
+			if err != nil {
+				res.Message += ": " + err.Error()
+			}
+			res.Message += "; run `codex features list` to check it"
+		}
 	case step.ID == providers.AgentBrowserInstallStep:
 		if _, err := r.sys.lookPath(agentBrowserBinary); err != nil {
 			res.Message = "agent-browser was installed but is not on PATH; add the directory of its executable (npm's global bin or Homebrew's bin) to PATH"
@@ -257,6 +270,11 @@ func (r providerRunner) run(step providers.Step) agentBrowserResult {
 		if found, _ := r.sys.browserFound(); !found {
 			res.Message = "agent-browser install finished but no browser was found"
 		}
+	}
+	if step.ID == providers.CodexQuestionCardEnableStep {
+		// Codex's parse errors can echo a config.toml line from another table
+		// (which may hold a secret); only the Message is stored.
+		res.Output = ""
 	}
 	return res
 }

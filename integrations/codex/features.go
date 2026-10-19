@@ -35,8 +35,16 @@ func FeatureEnabled(home string, key string) (bool, error) {
 	var inTableSet, atRootSet bool
 
 	scanner := bufio.NewScanner(f)
+	// A line up to maxConfigLine bytes is read; a longer one is an error.
+	scanner.Buffer(make([]byte, 0, 64*1024), maxConfigLine+2)
+	firstLine := true
 	for scanner.Scan() {
-		trimmed := strings.TrimSpace(stripTOMLComment(scanner.Text()))
+		text := scanner.Text()
+		if firstLine {
+			text = strings.TrimPrefix(text, "\ufeff")
+			firstLine = false
+		}
+		trimmed := strings.TrimSpace(stripTOMLComment(text))
 		if trimmed == "" {
 			continue
 		}
@@ -48,7 +56,7 @@ func FeatureEnabled(home string, key string) (bool, error) {
 				section = "?"
 				continue
 			}
-			section = strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(trimmed, "["), "]"))
+			section = unquoteTOMLKey(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(trimmed, "["), "]")))
 			switch {
 			case section == "features":
 				if seenTable {
@@ -110,6 +118,19 @@ func FeatureEnabled(home string, key string) (bool, error) {
 		return atRoot, nil
 	}
 	return false, nil
+}
+
+// maxConfigLine is the longest config.toml line the scanner accepts.
+const maxConfigLine = 1 << 20
+
+// unquoteTOMLKey strips one pair of matching quotes from a whole table name,
+// because TOML treats `["features"]` and `['features']` as `[features]`. Any
+// other quoted or dotted form is returned unchanged and so is not recognized.
+func unquoteTOMLKey(name string) string {
+	if len(name) >= 2 && (name[0] == '"' || name[0] == '\'') && name[len(name)-1] == name[0] {
+		return name[1 : len(name)-1]
+	}
+	return name
 }
 
 func parseTOMLBool(raw string) (bool, error) {

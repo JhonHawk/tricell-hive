@@ -3,6 +3,7 @@ package codex
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -35,6 +36,13 @@ func TestFeatureEnabled(t *testing.T) {
 		{name: "array of tables", config: ptr("[[features]]\ndefault_mode_request_user_input = true\n"), wantErr: true},
 		{name: "duplicate key", config: ptr("[features]\ndefault_mode_request_user_input = true\ndefault_mode_request_user_input = false\n"), wantErr: true},
 		{name: "non boolean value", config: ptr("[features]\ndefault_mode_request_user_input = \"yes\"\n"), wantErr: true},
+		{name: "double quoted header", config: ptr("[\"features\"]\ndefault_mode_request_user_input = true\n"), want: true},
+		{name: "single quoted header", config: ptr("['features']\ndefault_mode_request_user_input = true\n"), want: true},
+		{name: "quoted header duplicates plain table", config: ptr("[features]\nfoo = true\n[\"features\"]\ndefault_mode_request_user_input = true\n"), wantErr: true},
+		{name: "mismatched quotes header", config: ptr("[\"features']\ndefault_mode_request_user_input = true\n"), want: false},
+		{name: "BOM before the table", config: ptr("\ufeff[features]\ndefault_mode_request_user_input = true\n"), want: true},
+		{name: "line of 512 KiB", config: ptr("# " + strings.Repeat("x", 512*1024) + "\n[features]\ndefault_mode_request_user_input = true\n"), want: true},
+		{name: "line over 1 MiB", config: ptr("# " + strings.Repeat("x", 1024*1024+16) + "\n[features]\ndefault_mode_request_user_input = true\n"), wantErr: true},
 		{name: "dotted subtable of features", config: ptr("[features.default_mode_request_user_input]\nx = 1\n"), wantErr: true},
 	}
 	for _, tc := range cases {

@@ -118,7 +118,9 @@ later install offers only the Chrome step when `agent-browser` is present
 without a browser. Elsewhere, or when a prerequisite is missing, it is manual
 with the reason. Non-interactive sessions, `--dry-run` and a synthetic `--home`
 run no program. The Codex question card is the other recipe: when the Codex host
-is selected and `codex` is on `PATH`, the capability is offered selected by
+is selected, `codex` is on `PATH` and, in an interactive install, one probe of
+`codex features list` (bounded, 30 s) reports `default_mode_request_user_input`,
+the capability is offered selected by
 default (the text installer says so on its line and accepts the default
 selection with Enter, or `none` to skip; the capabilities view starts it
 checked and it can be unchecked), the summary shows the command and its effect
@@ -127,11 +129,17 @@ default_mode_request_user_input` through the same bounded runner: Codex's own
 writer adds `default_mode_request_user_input = true` to `[features]` in
 `config.toml` under the Codex home (`CODEX_HOME`, by default `~/.codex`), which
 makes Codex show its question card in Default mode. The step is recorded as
-verified by reading that file, so an interruption after Codex wrote it is not a
-failure; a Codex without the `features` subcommand fails with a message that
-names the required version (0.163.0 or later); without `codex` on `PATH`, or
-under a synthetic `--home`, the capability is manual with the reason and is not
-selected by default. `hive update` never offers it; `codex features disable
+verified by reading that file (the `[features]` table, also quoted, or the
+root `features.<key>` form), so an interruption after Codex wrote it is not a
+failure; when Codex reports success but the file does not confirm the setting,
+the step fails with a message naming the checked path; the step's captured
+output is never stored, so a Codex parse error cannot copy a line of
+`config.toml` into the journal; a Codex without the `features` subcommand fails
+with a message that names the required version (0.163.0 or later); when the
+probe does not report the feature, without `codex` on `PATH`, or under a
+synthetic `--home`, the capability is manual with the reason and is not
+selected by default (a dry run or a non-interactive session runs no probe and
+lists the offer from the `PATH` lookup alone). `hive update` never offers it; `codex features disable
 default_mode_request_user_input` turns it off, and Hive never reverts it. A
 further case is Pi: when the Pi host is selected in a user-scope install and Pi's
 `settings.json` is missing or does not list pi-subagents, Hive itself runs

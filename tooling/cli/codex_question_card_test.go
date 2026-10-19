@@ -268,3 +268,151 @@ func TestStepResultDetailRecognizesCodexQuestionCardPrefix(t *testing.T) {
 		t.Fatalf("message = %q", msg)
 	}
 }
+
+func TestCodexQuestionCardOfferProbesCodexOnce(t *testing.T) {
+	f := &abFake{goos: "darwin", goarch: "arm64", path: map[string]bool{"codex": true}}
+	useAgentBrowserFake(t, f)
+	a := newTestAdapter(t, false, false, true)
+	cardOffer(t, a, "codex")
+	cardOffer(t, a, "codex")
+	planCard(t, a)
+	if f.codexProbes != 1 {
+		t.Fatalf("probes = %d, want 1", f.codexProbes)
+	}
+}
+
+func TestCodexQuestionCardUnsupportedCodexIsManual(t *testing.T) {
+	const reason = "update Codex to 0.163.0 or later (`codex features list` did not report `default_mode_request_user_input`) and run `codex features enable default_mode_request_user_input`"
+	cases := map[string]*abFake{
+		"feature missing from the list": {codexFeatures: "other_feature  stable  true\n"},
+		"non-zero exit":                 {codexExit: 2, codexFeatures: "default_mode_request_user_input  under development  false\n"},
+	}
+	for name, f := range cases {
+		f.goos, f.goarch, f.path = "darwin", "arm64", map[string]bool{"codex": true}
+		useAgentBrowserFake(t, f)
+		a := newTestAdapter(t, false, false, true)
+		offer, ok := cardOffer(t, a, "codex")
+		if !ok || !offer.ManualOnly || offer.DefaultOn || offer.Effect != "" {
+			t.Fatalf("%s: offer = %+v ok=%v, want manual without default", name, offer, ok)
+		}
+		preview := planCard(t, a)
+		var step providers.Step
+		if err := json.Unmarshal(preview.Steps[0].Payload, &step); err != nil {
+			t.Fatal(err)
+		}
+		if step.ID != providers.CodexQuestionCardManualStep || step.ManualReason != reason {
+			t.Fatalf("%s: step = %+v", name, step)
+		}
+		if err := providers.ValidateStep(preview.Steps[0].Payload); err != nil {
+			t.Fatal(err)
+		}
+		if f.codexProbes != 1 {
+			t.Fatalf("%s: probes = %d", name, f.codexProbes)
+		}
+	}
+}
+
+func TestCodexQuestionCardProbeDoesNotRunWithoutPrograms(t *testing.T) {
+	for name, a := range map[string]func(t *testing.T) *nativeProviderAdapter{
+		"synthetic":       func(t *testing.T) *nativeProviderAdapter { return newTestAdapter(t, true, false, true) },
+		"dry run":         func(t *testing.T) *nativeProviderAdapter { return newTestAdapter(t, false, true, true) },
+		"non-interactive": func(t *testing.T) *nativeProviderAdapter { return newTestAdapter(t, false, false, false) },
+	} {
+		f := &abFake{goos: "darwin", goarch: "arm64", path: map[string]bool{"codex": true}}
+		useAgentBrowserFake(t, f)
+		offer, ok := cardOffer(t, a(t), "codex")
+		if f.codexProbes != 0 {
+			t.Fatalf("%s: probe ran %d times", name, f.codexProbes)
+		}
+		wantManual := name == "synthetic"
+		if !ok || offer.ManualOnly != wantManual {
+			t.Fatalf("%s: offer = %+v ok=%v", name, offer, ok)
+		}
+	}
+}
+
+func executeCardEnable(t *testing.T, codexHome string, config string) agentBrowserResult {
+	t.Helper()
+	if config != "" {
+		if err := os.WriteFile(filepath.Join(codexHome, "config.toml"), []byte(config), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runner, step := cardRunner(t, codexHome)
+	raw, err := runner.Execute(step)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res agentBrowserResult
+	if err := json.Unmarshal(raw, &res); err != nil {
+		t.Fatal(err)
+	}
+	return res
+}
+
+func TestCodexQuestionCardExecuteUnconfirmedSettingFailsClosed(t *testing.T) {
+	home := t.TempDir()
+	res := executeCardEnable(t, home, "[features]\nother = true\n")
+	want := "Codex reported success but Hive could not confirm the setting in " + home + "/config.toml; run `codex features list` to check it"
+	if res.Message != want {
+		t.Fatalf("message = %q, want %q", res.Message, want)
+	}
+	runner, step := cardRunner(t, home)
+	if status, _ := runner.Reconcile(step, json.RawMessage(`{"exit_code":0,"message":"x"}`)); status != management.StepFailed {
+		t.Fatalf("status = %q, want failed", status)
+	}
+}
+
+func TestCodexQuestionCardExecuteUnreadableConfigNamesTheError(t *testing.T) {
+	home := t.TempDir()
+	res := executeCardEnable(t, home, "features = { default_mode_request_user_input = true }\n")
+	prefix := "Codex reported success but Hive could not confirm the setting in " + home + "/config.toml: "
+	if !strings.HasPrefix(res.Message, prefix) || !strings.HasSuffix(res.Message, "; run `codex features list` to check it") || !strings.Contains(res.Message, "unsupported") {
+		t.Fatalf("message = %q", res.Message)
+	}
+}
+
+func TestCodexQuestionCardExecuteConfirmedSettingHasNoMessage(t *testing.T) {
+	home := t.TempDir()
+	res := executeCardEnable(t, home, "[\"features\"]\ndefault_mode_request_user_input = true\n")
+	if res.Message != "" || res.failed() {
+		t.Fatalf("result = %+v", res)
+	}
+}
+
+func TestCodexQuestionCardStoredOutputIsEmpty(t *testing.T) {
+	secretLine := "token = \"s3cr3t-value\" at line 7"
+	for name, tc := range map[string]struct {
+		exit   int
+		output string
+	}{
+		"success":             {0, secretLine},
+		"failure":             {1, secretLine},
+		"missing subcommand":  {2, "error: unrecognized subcommand 'features'\n" + secretLine},
+		"unexpected argument": {2, "error: unexpected argument 'features' found\n" + secretLine},
+	} {
+		home := t.TempDir()
+		f := &abFake{goos: "darwin", goarch: "arm64", path: map[string]bool{"codex": true}}
+		f.onExec = func(*abFake, []string) agentBrowserResult {
+			return agentBrowserResult{ExitCode: tc.exit, Output: tc.output}
+		}
+		useAgentBrowserFake(t, f)
+		a := newTestAdapter(t, false, false, true)
+		a.codexHome = home
+		cardOffer(t, a, "codex")
+		raw, err := a.Runner().Execute(planCard(t, a).Steps[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		var res agentBrowserResult
+		if err := json.Unmarshal(raw, &res); err != nil {
+			t.Fatal(err)
+		}
+		if res.Output != "" || strings.Contains(string(raw), "s3cr3t") {
+			t.Fatalf("%s: stored result keeps output: %s", name, raw)
+		}
+		if res.Message == "" {
+			t.Fatalf("%s: no message stored", name)
+		}
+	}
+}

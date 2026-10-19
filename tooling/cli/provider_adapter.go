@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
+	"strings"
+	"time"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/providers"
 )
@@ -24,6 +27,29 @@ type nativeProviderAdapter struct {
 	// against; codexOnPath caches the one PATH lookup for `codex`.
 	codexHome   string
 	codexOnPath *bool
+	// codexSupport caches the one `codex features list` check made by Detect.
+	codexSupport *codexSupportDecision
+}
+
+// codexSupportDecision is Detect's cached verdict on the question-card offer.
+type codexSupportDecision struct {
+	// found is true when `codex` is on PATH; executable additionally means the
+	// installed Codex was confirmed to support the command, or nothing ran to
+	// check it (dry run and non-interactive, where no step is executed).
+	found, executable bool
+}
+
+// codexFeaturesTimeout bounds the `codex features list` check.
+const codexFeaturesTimeout = 30 * time.Second
+
+// codexUnsupportedReason is the manual reason for a Codex that is on PATH but
+// did not report the feature.
+const codexUnsupportedReason = "update Codex to 0.163.0 or later (`codex features list` did not report `" + providers.CodexQuestionCardFeature + "`) and run `codex features enable " + providers.CodexQuestionCardFeature + "`"
+
+// codexFeaturesProbe runs `codex features list` and returns its result and
+// standard output. Tests replace it.
+var codexFeaturesProbe = func() (agentBrowserResult, string) {
+	return runBoundedCommandContext(context.Background(), []string{codexBinary, "features", "list"}, codexFeaturesTimeout, time.Second, agentBrowserMaxOutput)
 }
 
 func nativeProviderAdapterFactory(in onboardingInput) (onboardingAdapter, error) {
@@ -83,12 +109,26 @@ func (a *nativeProviderAdapter) agentBrowserPlan(home string) agentBrowserPlan {
 // codexFound looks `codex` up once. A synthetic home detects nothing of the
 // real machine, so it never finds it.
 func (a *nativeProviderAdapter) codexFound(home string) bool {
-	if a.codexOnPath == nil {
+	return a.codexDecision(home).found
+}
+
+// codexDecision looks `codex` up and, in a real interactive install, checks
+// once that it supports the command: exit 0 and the feature in the stdout of
+// `codex features list`. A dry run and a non-interactive session run nothing,
+// so the PATH lookup alone makes the offer executable there; a synthetic home
+// finds nothing.
+func (a *nativeProviderAdapter) codexDecision(home string) codexSupportDecision {
+	if a.codexSupport == nil {
 		_, err := a.system(home).lookPath(codexBinary)
-		found := err == nil
-		a.codexOnPath = &found
+		d := codexSupportDecision{found: err == nil}
+		d.executable = d.found
+		if d.found && a.runsPrograms() {
+			res, stdout := codexFeaturesProbe()
+			d.executable = res.ExitCode == 0 && !res.TimedOut && !res.Interrupted && strings.Contains(stdout, providers.CodexQuestionCardFeature)
+		}
+		a.codexSupport = &d
 	}
-	return *a.codexOnPath
+	return *a.codexSupport
 }
 
 func (a *nativeProviderAdapter) Detect(o management.Options) ([]providerOffer, error) {
@@ -107,7 +147,7 @@ func (a *nativeProviderAdapter) Detect(o management.Options) ([]providerOffer, e
 			offer.Unversioned = !plan.manual()
 		}
 		if p.ID == providers.CodexQuestionCard {
-			offer.ManualOnly = !a.codexFound(o.Home)
+			offer.ManualOnly = !a.codexDecision(o.Home).executable
 			offer.DefaultOn = !offer.ManualOnly
 			if offer.DefaultOn {
 				offer.Effect = "enables Codex's question card in Default mode"
@@ -227,7 +267,8 @@ func (a *nativeProviderAdapter) planCodexQuestionCardSteps(preview *onboardingPr
 	undo := "codex features disable " + providers.CodexQuestionCardFeature
 	var step providers.Step
 	var effects []string
-	if a.codexFound("") {
+	decision := a.codexDecision("")
+	if decision.executable {
 		step = providers.Step{ID: providers.CodexQuestionCardEnableStep, Provider: providers.CodexQuestionCard, Status: providers.Planned, Method: providers.MethodCodex,
 			Argv: []string{codexBinary, "features", "enable", providers.CodexQuestionCardFeature}}
 		effects = []string{
@@ -236,6 +277,9 @@ func (a *nativeProviderAdapter) planCodexQuestionCardSteps(preview *onboardingPr
 		}
 	} else {
 		reason := "install Codex (the `codex` executable was not found in PATH) and run `" + command + "`"
+		if decision.found {
+			reason = codexUnsupportedReason
+		}
 		step = providers.Step{ID: providers.CodexQuestionCardManualStep, Provider: providers.CodexQuestionCard, Status: providers.Manual, ManualReason: reason}
 		effects = []string{string(step.Status) + " — " + reason}
 	}

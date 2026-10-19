@@ -159,8 +159,8 @@ with `pi install` when Pi does not already declare it; `agent-browser`, which
 an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 24+) and installs, at its latest version, only after you consent to the commands
 it shows; and the Codex question card (`codex-question-card`), which an
-interactive install with the Codex host offers selected by default when `codex`
-is on `PATH` and, after you consent, enables with `codex features enable
+interactive install with the Codex host offers selected by default when the
+installed Codex supports it (0.163.0 or later) and, after you consent, enables with `codex features enable
 default_mode_request_user_input`, Codex's own command, so Codex asks its
 decisions through a card that waits in Default mode (uncheck it, or type `none`,
 to skip it; `codex features disable default_mode_request_user_input` turns it

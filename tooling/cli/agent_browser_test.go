@@ -32,8 +32,13 @@ type abFake struct {
 	unwritable   bool
 
 	nodeCalls, npmCalls int
-	execs               [][]string
-	onExec              func(f *abFake, argv []string) agentBrowserResult
+	codexProbes         int
+	// codexFeatures is the stdout of the faked `codex features list`; the
+	// zero value reports the question-card feature.
+	codexFeatures string
+	codexExit     int
+	execs         [][]string
+	onExec        func(f *abFake, argv []string) agentBrowserResult
 }
 
 const macChrome = "/Applications/Google Chrome.app"
@@ -49,8 +54,16 @@ func useAgentBrowserFake(t *testing.T, f *abFake) {
 	if f.home == "" {
 		f.home = "/fake/home"
 	}
-	savedSys, savedExec := agentBrowserSys, agentBrowserExec
-	t.Cleanup(func() { agentBrowserSys, agentBrowserExec = savedSys, savedExec })
+	savedSys, savedExec, savedProbe := agentBrowserSys, agentBrowserExec, codexFeaturesProbe
+	t.Cleanup(func() { agentBrowserSys, agentBrowserExec, codexFeaturesProbe = savedSys, savedExec, savedProbe })
+	codexFeaturesProbe = func() (agentBrowserResult, string) {
+		f.codexProbes++
+		out := f.codexFeatures
+		if out == "" {
+			out = "default_mode_request_user_input  under development  false\n"
+		}
+		return agentBrowserResult{ExitCode: f.codexExit}, out
+	}
 	agentBrowserSys = agentBrowserSystem{
 		goos:   f.goos,
 		goarch: f.goarch,

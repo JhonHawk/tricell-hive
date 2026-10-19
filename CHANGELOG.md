@@ -13,9 +13,10 @@ raise the minor or the patch version.
 ### Added
 
 - `codex-question-card`, an optional capability that `hive install` offers
-  with the Codex host, selected by default in interactive installs when
-  `codex` is on `PATH` (uncheck it or type `none` to skip; non-interactive
-  installs never run it). After consent it runs `codex features enable
+  with the Codex host, selected by default in interactive installs when the
+  installed Codex reports the feature in `codex features list` (uncheck it or
+  type `none` to skip; non-interactive installs never run it; an older Codex
+  gets a manual step that says to update it). After consent it runs `codex features enable
   default_mode_request_user_input`, Codex's own configuration writer, so Codex
   shows its question card in Default mode instead of asking in text; the step
   is verified by reading the Codex `config.toml`, `hive doctor` shows a
