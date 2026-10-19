@@ -12,6 +12,22 @@ raise the minor or the patch version.
 
 ### Added
 
+- `codex-question-card`, an optional capability that `hive install` offers
+  with the Codex host, selected by default in interactive installs when
+  `codex` is on `PATH` (uncheck it or type `none` to skip; non-interactive
+  installs never run it). After consent it runs `codex features enable
+  default_mode_request_user_input`, Codex's own configuration writer, so Codex
+  shows its question card in Default mode instead of asking in text; the step
+  is verified by reading the Codex `config.toml`, `hive doctor` shows a
+  `Codex question card` row with the record and the enable, disable and list
+  commands, and `codex features disable …` turns it off. The text installer
+  gains a default selection ("Press Enter to accept the default selection, or
+  type none to skip."), an offer can show an effect instead of a version
+  phrase, and the installer's boundary is stated in the tool-dependencies
+  document: Hive edits no host configuration file itself and, with consent,
+  runs the host's own command that writes one. A capability selected by
+  default raises the minor version of the next release.
+
 - `flow-walkthrough`, a skill that owns the human validation of a user
   interface: the first rendered view of a new layout, the correction rounds,
   the captures, one short recorded pass per flow (`agent-browser record`,

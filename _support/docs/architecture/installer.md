@@ -95,15 +95,16 @@ then asks for one affirmative terminal confirmation. Cancellation, EOF and piped
 input cannot apply changes. `--dry-run` is read-only and works without a terminal
 when `--hosts` selects the hosts; choosing hosts interactively needs one.
 An already current installation exits without rewriting files or asking again.
-Hive installs no CLI executable except `agent-browser`, and only with consent (below). `--hosts` selects configuration consumers;
+Hive installs no CLI executable except `agent-browser`, and only with consent (below); it edits no host configuration file itself, and with consent it runs a host's own command that writes one (`pi install`, `codex features enable`), as [optional tool dependencies](tool-dependencies.md#boundaries) states. `--hosts` selects configuration consumers;
 shared legacy resources can require selecting additional consumers together.
 
 After the hosts, the installer offers optional capabilities for the selected
-hosts: Engram, Context7, `agent-browser` and, only with the Pi host, pi-subagents.
+hosts: Engram, Context7, `agent-browser`, only with the Pi host pi-subagents, and
+only with the Codex host the Codex question card (`codex-question-card`).
 Their inventory and limits are in [optional tool dependencies](tool-dependencies.md).
 Engram and Context7 have no provider recipes: a selected one is shown with its
 official source and the reason it is manual, and no provider process runs.
-`agent-browser` has the one recipe: in an interactive install on macOS arm64
+`agent-browser` has one of the two recipes: in an interactive install on macOS arm64
 with Homebrew, or on Linux amd64 with Node 24 or later and a writable global npm
 prefix, the summary shows the exact commands before consent (`brew install
 agent-browser` or `npm install -g agent-browser`, then `agent-browser install`
@@ -116,12 +117,28 @@ result detail, an interrupted one is recorded as failed, never unknown, and a
 later install offers only the Chrome step when `agent-browser` is present
 without a browser. Elsewhere, or when a prerequisite is missing, it is manual
 with the reason. Non-interactive sessions, `--dry-run` and a synthetic `--home`
-run no program. The other exception is Pi: when the Pi host is selected in a user-scope install and Pi's
+run no program. The Codex question card is the other recipe: when the Codex host
+is selected and `codex` is on `PATH`, the capability is offered selected by
+default (the text installer says so on its line and accepts the default
+selection with Enter, or `none` to skip; the capabilities view starts it
+checked and it can be unchecked), the summary shows the command and its effect
+before consent, and after consent Hive runs `codex features enable
+default_mode_request_user_input` through the same bounded runner: Codex's own
+writer adds `default_mode_request_user_input = true` to `[features]` in
+`config.toml` under the Codex home (`CODEX_HOME`, by default `~/.codex`), which
+makes Codex show its question card in Default mode. The step is recorded as
+verified by reading that file, so an interruption after Codex wrote it is not a
+failure; a Codex without the `features` subcommand fails with a message that
+names the required version (0.163.0 or later); without `codex` on `PATH`, or
+under a synthetic `--home`, the capability is manual with the reason and is not
+selected by default. `hive update` never offers it; `codex features disable
+default_mode_request_user_input` turns it off, and Hive never reverts it. A
+further case is Pi: when the Pi host is selected in a user-scope install and Pi's
 `settings.json` is missing or does not list pi-subagents, Hive itself runs
 `pi install npm:pi-subagents` (the `pi` executable must be on `PATH`),
 which downloads that package from npm. A settings file that already lists
 pi-subagents makes Hive skip the step, and a conflicting entry stops the plan.
-Package installation is therefore network-free except for this step and the consented `agent-browser` steps. The core is
+Package installation is therefore network-free except for this step and the consented `agent-browser` steps; the Codex question card step runs a local program only. The core is
 installed first; the installer then lists each selected capability with its
 reason and next action and exits non-zero, so a manual capability is never
 mistaken for an installed one, while the core remains installed.
