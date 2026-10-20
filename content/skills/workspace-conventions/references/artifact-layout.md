@@ -24,6 +24,8 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/` and the walkthrough manifest and page beside that folder as `workspace/YYYY-MM-DD-<work>/walkthrough.json` and `walkthrough.html`, and link them from the handoff for the user to validate or request changes. The manifest, the page, its recordings, and its images are one retention unit: keep them for the rest of the session, even after the work item closes; at session end, `flow-close` deletes them together unless the user selected the page, which keeps its manifest and every file it references, or selected single files, which keeps those files and deletes the manifest and page with the rest; paused work that continues in another session keeps them all. Keep them out of commits; retaining an image, a recording, or the page does not authorize publication.
 
+Before closing that work or deleting its source review unit or containing worktree, follow [Close the current walkthrough](../../flow-close/SKILL.md#close-the-current-walkthrough). Its unresolved confirmation preserves the still-needed unit in addition to the retention cases above.
+
 ## Name and date records
 
 - Name new records under `sessions/` `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic shared by related records and an English type: `research` for retained investigations (including findings called a report) and `report` for distinct execution, closure, or presentation deliverables. Use Markdown for ordinary research; honor an explicitly requested format. Tool-defined filenames keep their names.

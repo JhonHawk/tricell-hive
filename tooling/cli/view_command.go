@@ -127,7 +127,9 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 		fs.StringVar(&f.ttl, "ttl", "", "how long an unpinned copy lives, e.g. 72h (default 14 days)")
 	case "register":
 		fs.StringVar(&f.dir, "dir", "", "directory inside the repository to register (default: the current directory)")
-	case "stop", "status", "open":
+	case "status":
+		fs.StringVar(&f.dir, "dir", "", "walkthrough source folder to confirm against the running viewer")
+	case "stop", "open":
 	default:
 		return fmt.Errorf("unknown view subcommand %q", sub)
 	}
@@ -151,7 +153,7 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	case "stop":
 		return viewStop(p, w)
 	case "status":
-		return viewStatus(p, w)
+		return viewStatus(p, w, f.dir)
 	case "open":
 		return viewOpen(p, w, deps)
 	default:
@@ -496,8 +498,14 @@ func viewStop(p viewPaths, w io.Writer) error {
 	}
 }
 
-func viewStatus(p viewPaths, w io.Writer) error {
+func viewStatus(p viewPaths, w io.Writer, dir string) error {
 	out := map[string]any{"running": false}
+	var source viewer.SourceFingerprint
+	var sourceErr error
+	if dir != "" {
+		out["found"], out["session_status"] = false, "unknown"
+		source, sourceErr = viewer.FingerprintSource(dir)
+	}
 	info, running, err := viewRunning(p)
 	if err != nil {
 		return err
@@ -509,8 +517,20 @@ func viewStatus(p viewPaths, w io.Writer) error {
 		out["pid"] = info.PID
 		out["version"] = info.Version
 		out["ttl"] = info.TTL
-		if idx, err := viewIndexCounts(info); err == nil {
-			out["repositories"], out["walkthroughs"], out["ingest_errors"] = idx[0], idx[1], idx[2]
+		if idx, err := viewIndex(info); err == nil {
+			count := 0
+			for _, project := range idx.Projects {
+				for _, ticket := range project.Tickets {
+					count += len(ticket.Sessions)
+				}
+			}
+			out["repositories"], out["walkthroughs"], out["ingest_errors"] = len(idx.Repositories), count, len(idx.Errors)
+			if dir != "" && sourceErr == nil {
+				after, err := viewer.FingerprintSource(dir)
+				if err == nil && after == source && viewHasSource(idx, source) {
+					out["found"], out["session_status"] = true, source.SessionStatus
+				}
+			}
 		}
 	default:
 		if held, _ := viewLockHeld(p); held {
@@ -525,34 +545,53 @@ func viewStatus(p viewPaths, w io.Writer) error {
 	return enc.Encode(out)
 }
 
-// viewIndexCounts returns the repository, walkthrough and ingest error counts
-// of the running server's index.
-func viewIndexCounts(info serverInfo) ([3]int, error) {
-	var counts [3]int
+// viewHasSource matches every identity and revision field, including explicit
+// status. A legacy index without session_status cannot confirm a revision.
+func viewHasSource(v viewer.View, source viewer.SourceFingerprint) bool {
+	matches := func(s viewer.Session) bool {
+		return s.Source == source.Source && s.SessionID == source.SessionID && s.Key == source.Key &&
+			s.ContentHash == source.ContentHash && s.SessionStatus == source.SessionStatus
+	}
+	for _, s := range v.ExcludedSessions {
+		if matches(s) {
+			return true
+		}
+	}
+	for _, project := range v.Projects {
+		for _, ticket := range project.Tickets {
+			for _, s := range ticket.Sessions {
+				if matches(s) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// viewIndex reads the existing authenticated index without opening a Store.
+// Redirects must not forward the token to another listener.
+func viewIndex(info serverInfo) (viewer.View, error) {
+	var v viewer.View
 	req, err := http.NewRequest(http.MethodGet, info.url()+"/api/index", nil)
 	if err != nil {
-		return counts, err
+		return v, err
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	resp, err := viewClient.Do(req)
+	client := *viewClient
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	resp, err := client.Do(req)
 	if err != nil {
-		return counts, err
+		return v, errors.New("cannot read viewer index")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return counts, fmt.Errorf("index answered %d", resp.StatusCode)
+		return v, fmt.Errorf("index answered %d", resp.StatusCode)
 	}
-	var v viewer.View
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<20)).Decode(&v); err != nil {
-		return counts, err
+		return v, errors.New("invalid viewer index")
 	}
-	counts[0], counts[2] = len(v.Repositories), len(v.Errors)
-	for _, pr := range v.Projects {
-		for _, t := range pr.Tickets {
-			counts[1] += len(t.Sessions)
-		}
-	}
-	return counts, nil
+	return v, nil
 }
 
 func viewOpen(p viewPaths, w io.Writer, deps viewDeps) error {

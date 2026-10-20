@@ -43,12 +43,13 @@ type Session struct {
 	IngestedAt  time.Time `json:"ingested_at"`
 	Pinned      bool      `json:"pinned"`
 
-	SessionID string `json:"session_id"`
-	Host      string `json:"host"`
-	Ticket    string `json:"ticket"`
-	Title     string `json:"title"`
-	Kind      string `json:"kind"`
-	CreatedAt string `json:"created_at"`
+	SessionID     string `json:"session_id"`
+	SessionStatus string `json:"session_status"`
+	Host          string `json:"host"`
+	Ticket        string `json:"ticket"`
+	Title         string `json:"title"`
+	Kind          string `json:"kind"`
+	CreatedAt     string `json:"created_at"`
 
 	// ProjectKey and ProjectName are the grouping resolved for Repository.
 	ProjectKey  string `json:"project_key"`

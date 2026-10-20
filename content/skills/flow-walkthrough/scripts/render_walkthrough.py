@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Validate <folder>/walkthrough.json and write <folder>/walkthrough.html.
 
-    python3 render_walkthrough.py <folder>
+    python3 render_walkthrough.py <folder> [--session-status in_progress|closed]
+    python3 render_walkthrough.py <folder> --session-status closed --confirm-viewer
 
 The page is a fixed template (assets/walkthrough.html, .css, .mjs) with the
 manifest embedded as an inert JSON data block. Python 3 standard library only.
-Exit 0 and one line on stdout (the written path) on success; exit 1 and an
-error naming the field on stderr otherwise, and no page is written.
+Exit 0 and the written path on success; exit 1 on validation/publication error.
+Exit 2 means closed was written but the viewer did not confirm its current
+copy: retain the source evidence unit. No viewer is started or restarted.
 """
 
 from __future__ import annotations
@@ -16,8 +18,10 @@ import json
 import math
 import os
 import re
+import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -37,6 +41,8 @@ RECORDING_EXTENSIONS = {".mp4"}
 CHECK_STATUSES = {"pass", "fail", "warn", "info", "not_run"}
 VIEWPORTS = {"desktop", "mobile"}
 KINDS = {"first_view", "final"}
+SESSION_STATUSES = {"in_progress", "closed"}
+CONFIRM_TIMEOUT = 15
 
 RECORDING_FIELDS = {
     "none": ({"status"}, set()),
@@ -213,10 +219,12 @@ def validate(folder: Path, manifest: object) -> None:
     if not is_one_of(root["kind"], KINDS):
         raise fail("kind", "must be first_view or final")
     expect_string(root["title"], "title")
-    session = expect_object(root["session"], "session", {"id"}, {"host"})
+    session = expect_object(root["session"], "session", {"id"}, {"host", "status"})
     expect_string(session["id"], "session.id")
     if "host" in session:
         expect_string(session["host"], "session.host")
+    if "status" in session and not is_one_of(session["status"], SESSION_STATUSES):
+        raise fail("session.status", "must be in_progress or closed")
     candidate = expect_object(root["candidate"], "candidate", {"branch", "commit"}, {"base"})
     for key, value in candidate.items():
         expect_string(value, f"candidate.{key}")
@@ -266,7 +274,7 @@ def reject_constant(name: str) -> None:
     raise ValueError(f"{name} is not a valid JSON number")
 
 
-def load_manifest(folder: Path) -> object:
+def read_manifest(folder: Path) -> bytes:
     path = folder / "walkthrough.json"
     if not path.exists() and not path.is_symlink():
         raise fail("walkthrough.json", "file not found in the folder")
@@ -283,10 +291,18 @@ def load_manifest(folder: Path) -> object:
         raw = handle.read(MAX_MANIFEST + 1)
     if len(raw) > MAX_MANIFEST:
         raise fail("walkthrough.json", "exceeds 1 MiB")
+    return raw
+
+
+def parse_manifest(raw: bytes) -> object:
     try:
         return json.loads(raw.decode("utf-8"), parse_constant=reject_constant)
     except (ValueError, UnicodeError) as exc:
         raise fail("walkthrough.json", f"is not valid JSON: {exc}") from None
+
+
+def load_manifest(folder: Path) -> object:
+    return parse_manifest(read_manifest(folder))
 
 
 def inert_json(manifest: object) -> str:
@@ -320,40 +336,137 @@ def build_page(manifest: dict) -> str:
     return re.sub(r"__WT_([A-Z]+)__", lambda match: values[match.group(1)], shell)
 
 
-def write_atomic(path: Path, content: str) -> None:
+def stage_atomic(path: Path, content: bytes) -> Path:
     # mkstemp creates a fresh file (O_EXCL, mode 0600) under an unpredictable
     # name, so a link planted at a fixed temporary name is never followed.
     descriptor, name = tempfile.mkstemp(dir=path.parent, prefix=".walkthrough-", suffix=".tmp")
     temporary = Path(name)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        with os.fdopen(descriptor, "wb") as handle:
             handle.write(content)
-        os.chmod(temporary, 0o644)
+        mode = path.stat().st_mode & 0o777 if path.name == "walkthrough.json" else 0o644
+        os.chmod(temporary, mode)
+        return temporary
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def write_atomic(path: Path, content: bytes) -> None:
+    temporary = stage_atomic(path, content)
+    try:
         os.replace(temporary, path)
     finally:
-        if temporary.exists():
-            temporary.unlink()
+        temporary.unlink(missing_ok=True)
+
+
+def render(folder: Path, session_status: str | None = None) -> Path:
+    """Validate and prepare both outputs before publishing explicit status.
+
+    Each replacement is atomic. If publishing the page fails, restore the
+    original manifest rather than leaving it ahead of the page. This is not a
+    cross-file crash transaction; a retry renders from the authoritative JSON.
+    """
+    if not folder.is_dir():
+        raise fail("folder", "must be a directory")
+    original = read_manifest(folder)
+    manifest = parse_manifest(original)
+    validate(folder, manifest)
+    source = folder / "walkthrough.json"
+    if session_status is not None:
+        if not is_one_of(session_status, SESSION_STATUSES):
+            raise fail("session.status", "must be in_progress or closed")
+        manifest["session"]["status"] = session_status
+    validate(folder, manifest)
+    page = build_page(manifest)
+    serialized = json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+    if len(serialized.encode("utf-8")) > MAX_MANIFEST and session_status is not None:
+        raise fail("walkthrough.json", "updated manifest exceeds 1 MiB")
+    target = folder / "walkthrough.html"
+    changed = session_status is not None and parse_manifest(original) != manifest
+    staged_source = None
+    staged_page = None
+    try:
+        # Stage every write before replacing either public file.
+        if changed:
+            staged_source = stage_atomic(source, serialized.encode("utf-8"))
+        staged_page = stage_atomic(target, page.encode("utf-8"))
+        if read_manifest(folder) != original:
+            raise fail("walkthrough.json", "changed during rendering; retry from the current source")
+        if changed:
+            os.replace(staged_source, source)
+        try:
+            os.replace(staged_page, target)
+        except OSError:
+            # Do not restore over another writer's update.
+            if changed and read_manifest(folder) == serialized.encode("utf-8"):
+                write_atomic(source, original)
+            raise
+    finally:
+        for temporary in (staged_source, staged_page):
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+    return target
+
+
+def confirm_closed(folder: Path) -> bool:
+    """Ask the existing authenticated CLI for the exact current source copy.
+
+    The CLI owns identity/hash checks before and after its API query. Never
+    inspect its store or echo its output, which can include private fields in
+    an older runtime's diagnostics. Elapsed time alone never proves ingestion.
+    """
+    deadline = time.monotonic() + CONFIRM_TIMEOUT
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        try:
+            result = subprocess.run(
+                ["hive", "view", "status", "--dir", str(folder.resolve())],
+                stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                timeout=remaining, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired, UnicodeError):
+            return False
+        if result.returncode != 0:
+            return False
+        try:
+            status = json.loads(result.stdout)
+        except (ValueError, UnicodeError):
+            return False
+        if not isinstance(status, dict) or "found" not in status or "session_status" not in status:
+            return False
+        if status["found"] is True and status["session_status"] == "closed":
+            return True
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        time.sleep(min(0.25, remaining))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
+    parser.add_argument("--session-status", choices=sorted(SESSION_STATUSES),
+                        help="explicitly update only this work's lifecycle and render it")
+    parser.add_argument("--confirm-viewer", action="store_true",
+                        help="with closed, require the viewer's exact current copy before cleanup")
     args = parser.parse_args()
+    if args.confirm_viewer and args.session_status != "closed":
+        parser.error("--confirm-viewer requires --session-status closed")
     folder = args.folder
     try:
-        if not folder.is_dir():
-            raise fail("folder", f"not a directory: {folder}")
-        manifest = load_manifest(folder)
-        validate(folder, manifest)
-        page = build_page(manifest)
-        target = folder / "walkthrough.html"
-        write_atomic(target, page)
+        target = render(folder, args.session_status)
     except ManifestError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    except OSError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+    except OSError:
+        print("error: walkthrough files could not be read or published", file=sys.stderr)
         return 1
+    if args.confirm_viewer and not confirm_closed(folder):
+        print("error: current closed viewer copy not confirmed; retain the source evidence unit", file=sys.stderr)
+        return 2
     print(target)
     return 0
 

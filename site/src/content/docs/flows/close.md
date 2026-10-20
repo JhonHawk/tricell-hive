@@ -28,6 +28,16 @@ Clean up the session.
 
 The agent goes through these steps in order:
 
+For work with a walkthrough, it first marks only that work closed and regenerates
+its page before removing a working copy or review artifacts. Closed also covers
+abandoned or paused work; cleanup by itself does not close work. The existing
+viewer must confirm that it collected the exact current source and resources
+before their source unit can be removed. If the viewer is offline, too old, has
+no matching copy or does not confirm within 15 seconds, the agent keeps the
+still-needed unit and reports its folder. It never starts or restarts the viewer
+to force confirmation. The procedure lives in
+[Close the current walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md#close-the-current-walkthrough).
+
 1. When the work is complete, moves the ticket to its finished state, along with the sub-issues the same work covered. A paused or abandoned ticket does not move to finished.
 2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, and it archives the folder. An abandoned change is archived without touching the requirements.
 3. Deletes branches that are fully merged, and their clean working copies.
@@ -53,7 +63,7 @@ The agent goes through these steps in order:
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page with its JSON file that you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page with its JSON file that you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.

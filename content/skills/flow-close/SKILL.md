@@ -17,7 +17,7 @@ Before a report, read [reporting](references/reporting.md); before a user decisi
 
 ## Close a work item
 
-Run these steps in order; the last one ends the turn.
+Before these steps, follow [Close the current walkthrough](#close-the-current-walkthrough) when this work has one. Run these steps in order; the last one ends the turn.
 
 1. **Tracker.** Apply the global ticket-state rule to the ticket and to each sub-issue the same work covers.
 2. **Change record.** When the work has a change folder, close it as described in [Close the change record](#close-the-change-record).
@@ -51,6 +51,14 @@ Offer one option per route, each continue option naming the flow it starts:
 
 **Actions:** recommend the new session, but never for a plan still in progress or after the user chose to continue it in this session; never split a flow that is still in progress.
 
+## Close the current walkthrough
+
+**Condition:** completing, abandoning or pausing the current work with a `walkthrough.json`, or removing its source evidence unit after closure. Hygiene without closing that work does not change its status. Do not sweep other work folders or retrofit historical manifests from the same host session.
+
+**Actions:** before removing its worktree, manifest, page, images or recordings, resolve the installed [flow-walkthrough renderer](../flow-walkthrough/scripts/render_walkthrough.py) through the host's skill catalog or explicit path, and run `python3 <skill-dir>/scripts/render_walkthrough.py <work folder> --session-status closed --confirm-viewer`. Use only this work's folder. The operation validates and prepares the manifest and page, updates status explicitly with atomic file replacement, renders, then asks the existing viewer to confirm its current copy, with a total confirmation bound of 15 seconds. It does not delete anything. Exit `0` confirms the exact canonical source, session, key and current content hash (including referenced resources), checked before and after the authenticated query; an old closed copy is insufficient. Elapsed time alone is never confirmation. Before a later deletion, rerun this operation if the source or its resources changed.
+
+On any validation/publication error or unconfirmed copy (missing CLI, offline viewer, unsupported runtime, absent copy, ingestion failure or timeout), preserve the still-needed source unit and any worktree containing it, and report the pending confirmation and folder. Continue independent cleanup that cannot remove it. Never start or restart a viewer or open a parallel store to force confirmation; do not relay raw CLI output or logs. A successful confirmation permits only the cleanup already authorized under [artifact retention](../workspace-conventions/references/artifact-layout.md), including its pause and user-selected retention rules. Explicitly resuming this same work follows [walkthrough delivery](../flow-walkthrough/SKILL.md#deliver) to restore `in_progress`; merely rendering an old page does not reopen it.
+
 ## Close the change record
 
 Run this after the code is integrated and any required post-merge CI has passed. While the work runs, `tasks.md` and the status in `proposal.md` are updated on disk only; nobody versions the folder before this step.
@@ -75,6 +83,6 @@ After verifying a merge you performed, clean up its branches. The global guidanc
 
 ## End the session
 
-1. Delete the UI review images, recordings, and walkthrough manifest (`walkthrough.json`) and page this task created that the user did not explicitly select for retention, as one unit: a selected page keeps its manifest and every file it references, and a selected file keeps that file while the manifest and page go with the rest; remove or update their report links. When the work item is paused and continues in another session, keep its images, recordings, manifest, and page without asking and name their folder in the handoff. Apply [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
+1. Before deleting the UI review unit, follow [Close the current walkthrough](#close-the-current-walkthrough) when applicable. Delete the UI review images, recordings, and walkthrough manifest (`walkthrough.json`) and page this task created that the user did not explicitly select for retention, as one unit: a selected page keeps its manifest and every file it references, and a selected file keeps that file while the manifest and page go with the rest; remove or update their report links. When the work item is paused and continues in another session, keep its images, recordings, manifest, and page without asking and name their folder in the handoff. Apply [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
 2. Stop any task-started process that is still running.
 3. List the reminders the user still controls, and what stays open with its owner.

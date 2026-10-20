@@ -216,6 +216,7 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 	}
 	sm := summary{Title: m.Title, Kind: m.Kind, Ticket: m.Ticket, CreatedAt: m.CreatedAt}
 	sm.Session.ID, sm.Session.Host = m.SessionID, m.SessionHost
+	sm.Session.Status = storedSessionStatus(m.SessionStatus)
 	return sessionFrom(key, mt, sm), nil
 }
 

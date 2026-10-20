@@ -92,3 +92,5 @@ The [`engram-init-workspace` skill](../../../content/skills/engram-init-workspac
 ## Limits of this implementation
 
 These artifact conventions are authored instructions, not enforced filesystem behavior. No hook, artifact resolver, automatic workspace migration, archiver, or configuration database implements them. The separate [deployment manager](deployment-manager.md) installs guidance; it does not enforce task artifact placement. Host loading and behavioral outcomes are measured separately from filesystem installation.
+
+Before closing a walkthrough or deleting its source review unit or containing worktree, follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md#close-the-current-walkthrough). Its current-copy confirmation can require retaining the source unit beyond ordinary session-end cleanup.
