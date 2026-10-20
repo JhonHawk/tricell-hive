@@ -69,6 +69,19 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Gaps found in two sessions of 2026-10-19 (Grok `01a15706`, Codex `01a156af`;
+  issue #93). A notice that only reports the exit of a process the agent
+  stopped on purpose gets no message, also while a question waits. Close stops
+  the processes the task's children left running, which the agent records when
+  each child returns. The implementer of a UI change loads the changed view in
+  a real browser with no test doubles before reporting it. Each UI gate child
+  verifies a fixed candidate, named by commit or tree hash and served from its
+  own build and port; a fix during the gate makes a new candidate. The first
+  rendered view and the final validation offer to open the viewer or approve,
+  with corrections written in the answer's free text. When an answer leaves a
+  selection to the agent, it lists what goes in and what stays out and asks for
+  confirmation before acting.
+
 - The local walkthrough viewer replaces its vanilla shell with React and public
   MIT shadcn/ui and ReUI components in a custom project/ticket/session sidebar.
   Its versioned bundle runs inside the Go binary without Node, a ReUI license
@@ -89,9 +102,9 @@ raise the minor or the patch version.
   the user asks; it no longer records every flow at the validation handoff.
   The walkthrough skeleton leaves `flow-report`, and the walkthrough's
   retention unit now includes `walkthrough.json`.
-- `flow-walkthrough` never opens a browser, the page or the viewer by itself:
-  the message gives one line with the page's path, plus `hive view open` when
-  the walkthrough is registered.
+- `flow-walkthrough` opens nothing by itself: the message gives one line with
+  the page's path, and the agent runs `hive view open` only when the user
+  chooses that option in the validation question.
 
 - Inspiration opens one page containing OpenSpec, gentle-ai, and Superpowers
   instead of a collapsible sidebar group.
