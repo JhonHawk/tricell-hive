@@ -81,6 +81,9 @@ raise the minor or the patch version.
   with corrections written in the answer's free text. When an answer leaves a
   selection to the agent, it lists what goes in and what stays out and asks for
   confirmation before acting.
+- The pilot runner (`tests/pilot`, not installed) accepts a text-only close
+  question only on hosts whose headless mode has no question tool (Codex,
+  Claude, Pi); on Grok and OpenCode it now requires the native question (#66).
 
 - The local walkthrough viewer replaces its vanilla shell with React and public
   MIT shadcn/ui and ReUI components in a custom project/ticket/session sidebar.

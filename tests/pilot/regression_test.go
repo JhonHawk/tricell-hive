@@ -328,6 +328,7 @@ func TestNoSecretContentReadEvidenceNeverIncludesCommandOrResultText(t *testing.
 func TestCloseQuestionAfterReport(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
+		host      string
 		events    []traceEvent
 		completed bool
 		want      string
@@ -545,6 +546,37 @@ func TestCloseQuestionAfterReport(t *testing.T) {
 			want: "fail",
 		},
 		{
+			// #66: Grok and OpenCode register a native question tool in their
+			// headless pilot modes, so a close question asked only in text
+			// there skips the card the guidance requires.
+			name:      "grok-text-only-question-fails",
+			host:      "grok",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa. ¿Seguimos con el siguiente ticket o cerramos la sesión?"},
+			},
+			want: "fail",
+		},
+		{
+			name:      "opencode-text-only-question-fails",
+			host:      "opencode",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa. ¿Seguimos con el siguiente ticket o cerramos la sesión?"},
+			},
+			want: "fail",
+		},
+		{
+			// Pi's JSON mode has no question tool, so text stays the only way.
+			name:      "pi-text-only-question-passes",
+			host:      "pi",
+			completed: true,
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Text: "Reporte: entrega completa. ¿Seguimos con el siguiente ticket o cerramos la sesión?"},
+			},
+			want: "pass",
+		},
+		{
 			// An offer to continue with no question mark anywhere is still a
 			// fail: the fallback requires an actual "?", not just an
 			// invitation to keep going.
@@ -557,7 +589,7 @@ func TestCloseQuestionAfterReport(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			r := result{Trace: traceReport{Events: tc.events}}
+			r := result{Host: tc.host, Trace: traceReport{Events: tc.events}}
 			if got := closeQuestionAfterReport(r, tc.completed).Status; got != tc.want {
 				t.Fatalf("got %s want %s", got, tc.want)
 			}
@@ -701,9 +733,9 @@ func TestRegressionFixtures(t *testing.T) {
 		{"close_question_after_report", "codex", "codex-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
 		{"close_question_after_report", "grok", "grok-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
 		{"close_question_after_report", "grok", "grok-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
-		{"close_question_after_report", "grok", "grok-text-fallback-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-text-fallback-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
 		{"close_question_after_report", "grok", "grok-tool-then-text-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
-		{"close_question_after_report", "grok", "grok-text-midline-pass.jsonl", "pass", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
+		{"close_question_after_report", "grok", "grok-text-midline-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
 		{"close_question_after_report", "grok", "grok-offer-no-question-fail.jsonl", "fail", func(r result) criterionAssessment { return closeQuestionAfterReport(r, true) }},
 		{"merged_branch_deleted", "grok", "grok-fail.jsonl", "fail", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
 		{"merged_branch_deleted", "grok", "grok-pass.jsonl", "pass", func(r result) criterionAssessment { return mergedBranchDeleted(r, "main") }},
@@ -733,7 +765,7 @@ func TestRegressionFixtures(t *testing.T) {
 			}
 			defer f.Close()
 			trace := parseTrace(c.host, f)
-			r := result{Root: "/repo", Cwd: "/repo", Trace: trace}
+			r := result{Host: c.host, Root: "/repo", Cwd: "/repo", Trace: trace}
 			if got := c.check(r).Status; got != c.want {
 				t.Fatalf("%s: got %s want %s", path, got, c.want)
 			}
