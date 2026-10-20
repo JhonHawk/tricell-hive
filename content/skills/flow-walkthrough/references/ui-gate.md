@@ -12,7 +12,7 @@ For UI changes, local rendered and interactive inspection is part of completion,
 
 Compare changed UI with the selected application/area's accepted shell and screen pattern, including justified differences. Distinguish pattern conformity, functional behavior, and user suitability. A screenshot diff against a prior baseline does not establish that a new screen follows a different reference screen's pattern. When shared UI code changes, inspect affected consumers across applications according to impact.
 
-The implementer checks its own change only with bounded inline checks, such as a `read`, the console, or a one-off `eval`; the walk and any measurement suite belong to the children below.
+The implementer checks its own change only with bounded inline checks, such as a `read`, the console, or a one-off `eval`; the walk and any measurement suite belong to the children below. Before reporting the task, at least one of those checks loads the changed view in a real browser against the running application, on the dev server or a build, with no test doubles on the paths the change uses, such as the network, storage, or native browser APIs, and reads the console and the view: tests that mock these paths can pass while the running page fails. Seed data and prepared local accounts are fine, as [verification](../../flow-build/references/verification.md) allows. A change that only alters text or a style value, under [Scope](#scope), needs only its rendered check.
 
 ## The independent children
 
