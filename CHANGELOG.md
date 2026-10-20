@@ -81,6 +81,14 @@ raise the minor or the patch version.
   with corrections written in the answer's free text. When an answer leaves a
   selection to the agent, it lists what goes in and what stays out and asks for
   confirmation before acting.
+- Two costs seen in both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  `01a157db`; issue #94): after a context compaction the agent rereads only a
+  reference whose condition applies to its next action, plus the active
+  `SKILL.md` when its steps are not in the summary, instead of every reference
+  read earlier; and it writes to persistent memory only at a user decision, a
+  ready plan, a work-item close, a worktree's creation or removal, and a session
+  summary when the user ends the session, a cadence that holds over memory
+  tools' own save instructions. Close writes its memory records in one pass.
 - The pilot runner (`tests/pilot`, not installed) accepts a text-only close
   question only on hosts whose headless mode has no question tool (Codex,
   Claude, Pi); on Grok and OpenCode it now requires the native question (#66).
