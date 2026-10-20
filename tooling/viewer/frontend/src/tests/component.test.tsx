@@ -109,7 +109,7 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
       rows.find((row) => row.dataset.sessionKey === key(3))?.textContent ?? "",
       /Not reported/,
     );
-    assert.equal(container.querySelectorAll(".navigation-branch").length, 6);
+    assert.equal(container.querySelectorAll(".navigation-branch").length, 4);
     data = index([
       session(1, {
         session_status: "in_progress",
@@ -546,6 +546,161 @@ test("cold index loading replaces the full canvas without speculative session ch
     assert.equal(canvas.querySelector('[data-slot="frame"]'), frame);
     assert.equal(canvas.getAttribute("aria-busy"), "false");
     assert.equal(indexReads, 2);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("renderer loading shares in-flight work but does not keep a rejected attempt", async () => {
+  const { loadWalkthroughRenderer } = await import("../document");
+  const failed = loadWalkthroughRenderer();
+  assert.equal(loadWalkthroughRenderer(), failed);
+  await assert.rejects(failed);
+  const retry = loadWalkthroughRenderer();
+  assert.notEqual(retry, failed, "Retry must initiate another renderer load");
+  await assert.rejects(retry);
+});
+
+test("tracked copies stay outside the normal tree through polling and retain focus and actions", async () => {
+  let data = index([session(1)], {
+    excluded_sessions: [
+      session(2, {
+        source_status: "tracked",
+        project_key: "project-1",
+        project_name: "Hive",
+        ticket: "#89",
+        fileBase: undefined,
+      }),
+    ],
+  });
+  const writes: string[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (init?.method === "POST") {
+          writes.push(String(url));
+          return new Response(null, { status: 204 });
+        }
+        if (init?.method === "DELETE") {
+          writes.push(String(url));
+          data = index([], { excluded_sessions: [] });
+          return new Response(null, { status: 204 });
+        }
+        return String(url) === "/api/index"
+          ? response(data)
+          : new Promise<Response>(() => {});
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    const normal = container.querySelector('nav[aria-label="Walkthroughs"]');
+    const excluded = container.querySelector(
+      'section[aria-label="Set-aside copies"]',
+    );
+    assert(normal);
+    assert(excluded, "Tracked copies require a separate explanatory region");
+    assert(normal.querySelector(`[data-session-key="${key(1)}"]`));
+    assert.equal(normal.querySelector(`[data-session-key="${key(2)}"]`), null);
+    assert(excluded.querySelector(`[data-session-key="${key(2)}"]`));
+    const current = normal.querySelector<HTMLButtonElement>(
+      `[data-session-key="${key(1)}"]`,
+    );
+    assert(current);
+    current.focus();
+    data = index([], {
+      excluded_sessions: [
+        session(1, {
+          source_status: "tracked",
+          project_key: "project-1",
+          project_name: "Hive",
+          ticket: "#89",
+          fileBase: undefined,
+        }),
+      ],
+    });
+    await act(async () => {
+      await controller.refresh();
+      await settle();
+    });
+    assert.equal(controller.getSnapshot().documentState, "excluded");
+    assert.equal(
+      container.querySelector(
+        'nav[aria-label="Walkthroughs"] [data-session-key]',
+      ),
+      null,
+    );
+    assert.equal(
+      document.activeElement?.getAttribute("data-session-key"),
+      key(1),
+    );
+    assert(
+      container.textContent?.includes("Only set-aside copies are available"),
+    );
+    data = index([session(1)], { excluded_sessions: [] });
+    await act(async () => {
+      await controller.refresh();
+      await settle();
+    });
+    assert(
+      container.querySelector(
+        'nav[aria-label="Walkthroughs"] [data-session-key]',
+      ),
+    );
+    assert.equal(
+      container.querySelector('section[aria-label="Set-aside copies"]'),
+      null,
+    );
+    assert.equal(
+      document.activeElement?.getAttribute("data-session-key"),
+      key(1),
+    );
+    data = index([], {
+      excluded_sessions: [
+        session(1, { source_status: "tracked", fileBase: undefined }),
+      ],
+    });
+    await act(async () => {
+      await controller.refresh();
+      await settle();
+    });
+    assert.equal(controller.getSnapshot().documentState, "excluded");
+    assert.equal(
+      document.activeElement?.getAttribute("data-session-key"),
+      key(1),
+    );
+    const keep = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Keep");
+    assert(keep);
+    assert.equal(keep.disabled, false);
+    const remove = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Delete copy");
+    assert(remove);
+    assert.equal(remove.disabled, false);
+    await act(async () => {
+      await controller.pin();
+      await settle();
+    });
+    assert(writes.some((path) => path.endsWith("/pin")));
+    await act(async () => {
+      await controller.remove();
+      await settle();
+    });
+    assert(writes.includes(`/api/sessions/${key(1)}`));
+    assert.equal(container.querySelector("[data-session-key]"), null);
+    assert.equal(document.activeElement?.id, "document");
   } finally {
     await act(async () => root.unmount());
     container.remove();

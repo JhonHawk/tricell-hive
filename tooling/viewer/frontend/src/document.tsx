@@ -6,11 +6,21 @@ export type WalkthroughRenderer = (
   options: { fileBase: string },
 ) => void;
 let rendererPromise: Promise<WalkthroughRenderer> | undefined;
+let rendererAttempt = 0;
 export function loadWalkthroughRenderer() {
-  const path = "/assets/walkthrough.mjs";
-  rendererPromise ??= import(/* @vite-ignore */ path).then(
-    (module) => module.renderWalkthrough,
-  );
+  // Some browsers retain a failed module URL. Change only failed attempts;
+  // a successful import and concurrent callers keep one module instance.
+  const path =
+    rendererAttempt === 0
+      ? "/assets/walkthrough.mjs"
+      : `/assets/walkthrough.mjs?retry=${rendererAttempt}`;
+  rendererPromise ??= import(/* @vite-ignore */ path)
+    .then((module) => module.renderWalkthrough)
+    .catch((error) => {
+      rendererPromise = undefined;
+      rendererAttempt++;
+      throw error;
+    });
   return rendererPromise;
 }
 export function clearWalkthrough(root: HTMLElement) {

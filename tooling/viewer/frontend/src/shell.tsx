@@ -6,7 +6,7 @@ import {
   Ticket,
   Trash2,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 import {
   Alert,
   AlertAction,
@@ -57,6 +57,7 @@ export type ViewerSession = {
   createdAt: string;
   classification: "tracked" | "local" | "unknown";
   pinned?: boolean;
+  excluded?: boolean;
   status?: "in_progress" | "closed" | "unknown";
 };
 export type ViewerShellProps = {
@@ -82,6 +83,11 @@ const copy = spanish
       library: "Biblioteca de recorridos",
       description: "Evidencia y validación de los cambios de tu proyecto.",
       projects: "Proyectos",
+      excluded: "Copias apartadas",
+      excludedOnly:
+        "Solo hay copias apartadas. Selecciona una abajo para conocer el motivo.",
+      excludedDescription:
+        "El manifiesto fuente está versionado en Git. Estas copias se mantienen fuera del árbol de proyectos; su documento no se abre aquí.",
       empty: "Aún no hay recorridos",
       emptyDescription: "Registra un recorrido con hive view para verlo aquí.",
       retry: "Actualizar",
@@ -114,6 +120,11 @@ const copy = spanish
       library: "Walkthrough library",
       description: "Evidence and validation for your project changes.",
       projects: "Projects",
+      excluded: "Set-aside copies",
+      excludedOnly:
+        "Only set-aside copies are available. Select one below to see why.",
+      excludedDescription:
+        "The source manifest is tracked in Git. These copies stay outside the project tree; their documents cannot be opened here.",
       empty: "No walkthroughs yet",
       emptyDescription: "Register a walkthrough with hive view to see it here.",
       retry: "Refresh",
@@ -141,6 +152,61 @@ const copy = spanish
         unknown: "Not reported",
       },
     };
+function SessionNavigationButton({
+  session,
+  selectedId,
+  onSelect,
+}: {
+  session: ViewerSession;
+  selectedId?: string;
+  onSelect?: (id: string) => void;
+}) {
+  const { setOpenMobile, isMobile } = useSidebar();
+  return (
+    <button
+      type="button"
+      data-session-key={session.id}
+      className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
+      aria-current={selectedId === session.id ? "page" : undefined}
+      onClick={() => {
+        onSelect?.(session.id);
+        setOpenMobile(false);
+        if (isMobile)
+          requestAnimationFrame(() =>
+            document.getElementById("document")?.focus({
+              preventScroll: true,
+            }),
+          );
+      }}
+    >
+      <BookOpen aria-hidden className="size-4 shrink-0" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 items-start gap-2">
+          <span className="session-navigation-title min-w-min flex-1 font-normal">
+            {session.title}
+          </span>
+          {session.pinned && <Pin aria-hidden className="size-4 shrink-0" />}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {session.createdAt}
+          </span>
+          <Badge
+            variant={
+              session.status === "closed"
+                ? "success-light"
+                : session.status === "in_progress"
+                  ? "primary-light"
+                  : "outline"
+            }
+          >
+            {copy.sessionStatus[session.status ?? "unknown"]}
+          </Badge>
+        </div>
+      </div>
+    </button>
+  );
+}
 function Navigation({
   sessions,
   selectedId,
@@ -151,191 +217,207 @@ function Navigation({
   ViewerShellProps,
   "sessions" | "selectedId" | "state" | "onSelect" | "onRetry"
 >) {
-  const { setOpenMobile, isMobile } = useSidebar();
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const focusKey = useRef<string | undefined>(undefined);
+  const normal = sessions.filter(
+    (session) => !session.excluded && session.classification !== "tracked",
+  );
+  const excluded = sessions.filter(
+    (session) => session.excluded || session.classification === "tracked",
+  );
+  useLayoutEffect(() => {
+    if (
+      focusKey.current &&
+      sessions.some((session) => session.id === focusKey.current) &&
+      document.activeElement === document.body
+    ) {
+      const target = [
+        ...(navigationRef.current?.querySelectorAll<HTMLElement>(
+          "[data-session-key]",
+        ) ?? []),
+      ].find((node) => node.dataset.sessionKey === focusKey.current);
+      target?.focus({ preventScroll: true });
+    }
+  }, [sessions]);
   const projects = [
-    ...new Set(
-      sessions.map((session) => session.projectKey ?? session.project),
-    ),
+    ...new Set(normal.map((session) => session.projectKey ?? session.project)),
   ];
   return (
-    <nav aria-label={copy.walkthroughs}>
-      <SidebarGroup>
-        <SidebarGroupLabel>{copy.projects}</SidebarGroupLabel>
-        <SidebarGroupContent>
-          {state === "loading" ? (
-            <div
-              role="status"
-              aria-busy="true"
-              className="flex flex-col gap-3 p-2"
-            >
-              <span className="sr-only">{copy.loading}</span>
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : state === "error" || sessions.length === 0 ? (
-            <div role="status" className="flex flex-col items-start gap-3 p-2">
-              <p className="text-sm text-muted-foreground">
-                {state === "error" ? copy.error : copy.empty}
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={onRetry}
+    <div
+      ref={navigationRef}
+      onFocusCapture={(event) => {
+        focusKey.current = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-session-key]",
+        )?.dataset.sessionKey;
+      }}
+      onBlurCapture={(event) => {
+        if (
+          (event.relatedTarget instanceof Node &&
+            !event.currentTarget.contains(event.relatedTarget)) ||
+          (!event.relatedTarget && event.target.isConnected)
+        )
+          focusKey.current = undefined;
+      }}
+    >
+      <nav aria-label={copy.walkthroughs}>
+        <SidebarGroup>
+          <SidebarGroupLabel>{copy.projects}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            {state === "loading" ? (
+              <div
+                role="status"
+                aria-busy="true"
+                className="flex flex-col gap-3 p-2"
               >
-                {copy.retry}
-              </Button>
-            </div>
-          ) : (
-            <SidebarMenu>
-              {projects.map((projectKey) => {
-                const projectSessions = sessions.filter(
-                  (session) =>
-                    (session.projectKey ?? session.project) === projectKey,
-                );
-                const project = projectSessions[0].project;
-                const tickets = [
-                  ...new Set(projectSessions.map((session) => session.ticket)),
-                ];
-                return (
-                  <Collapsible
-                    key={projectKey}
-                    defaultOpen
-                    className="group/project font-semibold"
-                    render={<SidebarMenuItem />}
-                  >
-                    <CollapsibleTrigger
-                      render={
-                        <SidebarMenuButton type="button" title={project} />
-                      }
+                <span className="sr-only">{copy.loading}</span>
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : state === "error" || sessions.length === 0 ? (
+              <div
+                role="status"
+                className="flex flex-col items-start gap-3 p-2"
+              >
+                <p className="text-sm text-muted-foreground">
+                  {state === "error" ? copy.error : copy.empty}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={onRetry}
+                >
+                  {copy.retry}
+                </Button>
+              </div>
+            ) : normal.length === 0 ? (
+              <p className="p-2 text-sm text-muted-foreground">
+                {copy.excludedOnly}
+              </p>
+            ) : (
+              <SidebarMenu>
+                {projects.map((projectKey) => {
+                  const projectSessions = normal.filter(
+                    (session) =>
+                      (session.projectKey ?? session.project) === projectKey,
+                  );
+                  const project = projectSessions[0].project;
+                  const tickets = [
+                    ...new Set(
+                      projectSessions.map((session) => session.ticket),
+                    ),
+                  ];
+                  return (
+                    <Collapsible
+                      key={projectKey}
+                      defaultOpen
+                      className="group/project font-semibold"
+                      render={<SidebarMenuItem />}
                     >
-                      <Folder aria-hidden />
-                      <span className="min-w-0 flex-1 truncate">{project}</span>
-                      <ChevronRight
-                        aria-hidden
-                        className="group-data-open/project:rotate-90"
-                      />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub className="navigation-branch">
-                        {tickets.map((ticket) => {
-                          const ticketSessions = projectSessions.filter(
-                            (session) => session.ticket === ticket,
-                          );
-                          return (
-                            <Collapsible
-                              key={ticket}
-                              defaultOpen
-                              className="navigation-node group/ticket"
-                              render={<SidebarMenuSubItem />}
-                            >
-                              <CollapsibleTrigger
-                                render={
-                                  <SidebarMenuButton
-                                    type="button"
-                                    title={ticket}
-                                    className="font-medium"
-                                  />
-                                }
+                      <CollapsibleTrigger
+                        render={
+                          <SidebarMenuButton type="button" title={project} />
+                        }
+                      >
+                        <Folder aria-hidden />
+                        <span className="min-w-0 flex-1 truncate">
+                          {project}
+                        </span>
+                        <ChevronRight
+                          aria-hidden
+                          className="group-data-open/project:rotate-90"
+                        />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub className="navigation-branch">
+                          {tickets.map((ticket) => {
+                            const ticketSessions = projectSessions.filter(
+                              (session) => session.ticket === ticket,
+                            );
+                            return (
+                              <Collapsible
+                                key={ticket}
+                                defaultOpen
+                                className="navigation-node group/ticket"
+                                render={<SidebarMenuSubItem />}
                               >
-                                <Ticket
-                                  aria-hidden
-                                  className="text-muted-foreground"
-                                />
-                                <span className="min-w-0 flex-1 truncate">
-                                  {ticket}
-                                </span>
-                                <ChevronRight
-                                  aria-hidden
-                                  className="text-muted-foreground group-data-open/ticket:rotate-90"
-                                />
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <SidebarMenuSub className="navigation-branch">
-                                  {ticketSessions.map((session) => (
-                                    <SidebarMenuSubItem
-                                      key={session.id}
-                                      className="navigation-node navigation-session"
-                                    >
-                                      <button
-                                        type="button"
-                                        data-session-key={session.id}
-                                        className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
-                                        aria-current={
-                                          selectedId === session.id
-                                            ? "page"
-                                            : undefined
-                                        }
-                                        onClick={() => {
-                                          onSelect?.(session.id);
-                                          setOpenMobile(false);
-                                          if (isMobile)
-                                            requestAnimationFrame(() =>
-                                              document
-                                                .getElementById("document")
-                                                ?.focus({
-                                                  preventScroll: true,
-                                                }),
-                                            );
-                                        }}
+                                <CollapsibleTrigger
+                                  render={
+                                    <SidebarMenuButton
+                                      type="button"
+                                      title={ticket}
+                                      className="font-medium"
+                                    />
+                                  }
+                                >
+                                  <Ticket
+                                    aria-hidden
+                                    className="text-muted-foreground"
+                                  />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {ticket}
+                                  </span>
+                                  <ChevronRight
+                                    aria-hidden
+                                    className="text-muted-foreground group-data-open/ticket:rotate-90"
+                                  />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <SidebarMenuSub className="navigation-branch">
+                                    {ticketSessions.map((session) => (
+                                      <SidebarMenuSubItem
+                                        key={session.id}
+                                        className="navigation-node navigation-session"
                                       >
-                                        <BookOpen
-                                          aria-hidden
-                                          className="size-4 shrink-0"
+                                        <SessionNavigationButton
+                                          session={session}
+                                          selectedId={selectedId}
+                                          onSelect={onSelect}
                                         />
-                                        <div className="flex min-w-0 flex-1 flex-col gap-1">
-                                          <div className="flex min-w-0 items-start gap-2">
-                                            <span className="session-navigation-title min-w-min flex-1 font-normal">
-                                              {session.title}
-                                            </span>
-                                            {session.pinned && (
-                                              <Pin
-                                                aria-hidden
-                                                className="size-4 shrink-0"
-                                              />
-                                            )}
-                                          </div>
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-xs tabular-nums text-muted-foreground">
-                                              {session.createdAt}
-                                            </span>
-                                            <Badge
-                                              variant={
-                                                session.status === "closed"
-                                                  ? "success-light"
-                                                  : session.status ===
-                                                      "in_progress"
-                                                    ? "primary-light"
-                                                    : "outline"
-                                              }
-                                            >
-                                              {
-                                                copy.sessionStatus[
-                                                  session.status ?? "unknown"
-                                                ]
-                                              }
-                                            </Badge>
-                                          </div>
-                                        </div>
-                                      </button>
-                                    </SidebarMenuSubItem>
-                                  ))}
-                                </SidebarMenuSub>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          );
-                        })}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              })}
-            </SidebarMenu>
-          )}
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </nav>
+                                      </SidebarMenuSubItem>
+                                    ))}
+                                  </SidebarMenuSub>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })}
+              </SidebarMenu>
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </nav>
+      {excluded.length > 0 && (
+        <section aria-label={copy.excluded}>
+          <SidebarGroup>
+            <SidebarGroupLabel>
+              {copy.excluded} ({excluded.length})
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <p className="p-2 text-xs text-muted-foreground">
+                {copy.excludedDescription}
+              </p>
+              <SidebarMenu>
+                {excluded.map((session) => (
+                  <SidebarMenuItem key={session.id}>
+                    <SessionNavigationButton
+                      session={session}
+                      selectedId={selectedId}
+                      onSelect={onSelect}
+                    />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </section>
+      )}
+    </div>
   );
 }
 export function ViewerShell({
