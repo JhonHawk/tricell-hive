@@ -108,6 +108,6 @@ Before writing or cleaning a support artifact, read [artifact layout and retenti
 
 ### Retention and cleanup
 
-- Closing a work item or the session runs the `flow-close` skill before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it started, and restores local state the task changed. At close, this rule authorizes deleting merged work branches, from this work or earlier, and their clean worktrees; never delete a branch with unmerged commits or a worktree with uncommitted or untracked files. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain.
+- Closing a work item or the session runs the `flow-close` skill before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it or its children started, and restores local state the task changed. At close, this rule authorizes deleting merged work branches, from this work or earlier, and their clean worktrees; never delete a branch with unmerged commits or a worktree with uncommitted or untracked files. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain.
 - Local retention is not versioning; eligibility for Git is not authorization to commit or push.
 - For requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving, use the `workspace-conventions` skill.
