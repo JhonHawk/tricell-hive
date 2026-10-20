@@ -1,0 +1,13 @@
+# Keep the age policy for all other direct and transitive releases.
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - react@19.3.1
+  - react-dom@19.3.1
+  - cn@0.5.0
+overrides:
+  rolldown: 1.2.13
+  postcss: 8.5.30
+
+# tsx uses the locked optional platform binary; never run install fallback scripts.
+allowBuilds:
+  esbuild: false

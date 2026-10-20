@@ -2,6 +2,11 @@
 
 Hive is distributed under the MIT License (see `LICENSE`). Release binaries are built with the Go toolchain and statically include the Go standard library and code from the Go modules listed below (every module required by `go.mod`, whether or not a given platform links it). Their licenses follow, with the text taken from the Go installation (standard library) and from the Go module cache (modules), at the versions pinned in `go.mod`.
 
+The embedded React viewer also distributes public MIT shadcn/ui and ReUI source
+components and JavaScript runtime dependencies. Their full notices are in
+[the frontend notices](tooling/viewer/frontend/THIRD_PARTY_NOTICES.md) and are
+preserved in the shipped JavaScript comment banner. No premium block is included.
+
 | Component | Version | License | Relationship |
 | --- | --- | --- | --- |
 | Go standard library | go1.27.0 | BSD-3-Clause | linked into the binary |

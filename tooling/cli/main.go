@@ -371,5 +371,5 @@ func printVoiceSpan(label string, s *management.VoiceSpan) {
 }
 
 func printViewHelp(w io.Writer) {
-	fmt.Fprintln(w, "hive view start [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (start the local walkthrough viewer server)\nhive view stop|status|open [--home DIR] [--state-dir DIR]  (stop it, print its JSON status, open it in the browser)\nhive view register [--dir DIR] [--home DIR] [--state-dir DIR]  (add a Git repository, or the workspace that holds DIR's _support/workspace, to the viewer; needs no server)\nhive view serve [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (run the server in the foreground)")
+	fmt.Fprintln(w, "hive view start [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (start the local walkthrough viewer server)\nhive view stop|open [--home DIR] [--state-dir DIR]  (stop it, open it in the browser)\nhive view status [--dir DIR] [--home DIR] [--state-dir DIR]  (print JSON status; --dir confirms the current source revision and its session status)\nhive view register [--dir DIR] [--home DIR] [--state-dir DIR]  (add a Git repository, or the workspace that holds DIR's _support/workspace, to the viewer; needs no server)\nhive view serve [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (run the server in the foreground)")
 }

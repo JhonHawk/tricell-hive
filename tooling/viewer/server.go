@@ -35,8 +35,6 @@ const (
 var embeddedAssets = map[string]string{
 	"walkthrough.mjs": "text/javascript; charset=utf-8",
 	"walkthrough.css": "text/css; charset=utf-8",
-	"viewer.mjs":      "text/javascript; charset=utf-8",
-	"viewer.css":      "text/css; charset=utf-8",
 }
 
 // fileTypes maps the extensions OpenFile can return to a Content-Type. The
@@ -70,6 +68,7 @@ type ServerOptions struct {
 // protects against DNS rebinding, not against another local user.
 type Server struct {
 	store       *Store
+	frontend    *frontendBundle
 	token       []byte
 	port        string
 	version     string
@@ -89,8 +88,17 @@ func NewServer(o ServerOptions) (*Server, error) {
 	case o.Port < 1 || o.Port > 65535:
 		return nil, fmt.Errorf("viewer: invalid server port %d", o.Port)
 	}
+	frontendFiles, err := fs.Sub(staticFiles, "static/app")
+	if err != nil {
+		return nil, fmt.Errorf("viewer: frontend assets: %w", err)
+	}
+	frontend, err := loadFrontendBundle(frontendFiles)
+	if err != nil {
+		return nil, fmt.Errorf("viewer: %w", err)
+	}
 	return &Server{
 		store:       o.Store,
+		frontend:    frontend,
 		token:       []byte(o.Token),
 		port:        strconv.Itoa(o.Port),
 		version:     o.Version,
@@ -131,7 +139,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
 	switch {
 	case p == "/":
-		s.asset(w, r, "index.html", "text/html; charset=utf-8")
+		s.frontendAsset(w, r, s.frontend.entrypoint)
+	case strings.HasPrefix(p, "/assets/app/"):
+		s.frontendAsset(w, r, strings.TrimPrefix(p, "/assets/app/"))
 	case strings.HasPrefix(p, "/assets/"):
 		name := strings.TrimPrefix(p, "/assets/")
 		if ct, ok := embeddedAssets[name]; ok {

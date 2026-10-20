@@ -353,7 +353,7 @@ func TestServerFilesRejectTraversalAndServeMediaByExtension(t *testing.T) {
 func TestServerSendsSecurityHeadersAndTheRightContentTypes(t *testing.T) {
 	s := newSrvEnv(t)
 	wantCSP := "default-src 'self'; img-src 'self'; media-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-	for _, target := range []string{"/", "/assets/viewer.mjs", "/api/index", "/api/sessions/" + s.key, s.files() + "images/nav-1.png", "/nope"} {
+	for _, target := range []string{"/", "/assets/app/index.html", "/api/index", "/api/sessions/" + s.key, s.files() + "images/nav-1.png", "/nope"} {
 		w := s.do(http.MethodGet, target, reqOpts{token: testToken})
 		if got := w.Header().Get("Content-Security-Policy"); got != wantCSP {
 			t.Errorf("%s: CSP = %q", target, got)
@@ -368,9 +368,7 @@ func TestServerSendsSecurityHeadersAndTheRightContentTypes(t *testing.T) {
 	for target, prefix := range map[string]string{
 		"/":                       "text/html",
 		"/assets/walkthrough.mjs": "text/javascript",
-		"/assets/viewer.mjs":      "text/javascript",
 		"/assets/walkthrough.css": "text/css",
-		"/assets/viewer.css":      "text/css",
 		"/api/index":              "application/json",
 		"/api/sessions/" + s.key:  "application/json",
 	} {
@@ -399,15 +397,14 @@ func TestServerStaticPagesHaveNoInlineScriptOrStyle(t *testing.T) {
 			t.Errorf("inline <script%s>", tag)
 		}
 	}
-	shell := s.do(http.MethodGet, "/assets/viewer.mjs", reqOpts{}).Body.String()
-	for _, want := range []string{"X-Hive-Token", "fileBase", "hive view open"} {
-		if !strings.Contains(shell, want) {
-			t.Errorf("viewer.mjs does not mention %q", want)
-		}
-	}
-	for _, name := range []string{"walkthrough.mjs", "walkthrough.css", "viewer.mjs", "viewer.css"} {
+	for _, name := range []string{"walkthrough.mjs", "walkthrough.css"} {
 		if w := s.do(http.MethodGet, "/assets/"+name, reqOpts{}); w.Code != http.StatusOK || w.Body.Len() == 0 {
 			t.Errorf("/assets/%s = %d (%d bytes)", name, w.Code, w.Body.Len())
+		}
+	}
+	for _, name := range []string{"viewer.mjs", "viewer.css", "index.html"} {
+		if w := s.do(http.MethodGet, "/assets/"+name, reqOpts{}); w.Code != http.StatusNotFound {
+			t.Errorf("retired /assets/%s = %d", name, w.Code)
 		}
 	}
 }

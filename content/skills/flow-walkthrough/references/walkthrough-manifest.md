@@ -17,7 +17,7 @@ Keys are English and exactly as shown; unknown keys fail. Text values are in the
 | `kind` | yes | `first_view` or `final` |
 | `title` | yes | Ticket and one-line description, such as `gh-67 — sidebar navigation` |
 | `ticket` | no | The change ID without date, such as `gh-67-flow-walkthrough-skill`; omit when there is no ticket or change |
-| `session` | yes | `{"id": …, "host": …}`; see below |
+| `session` | yes | `{"id": …, "host": …, "status": …}`; see below |
 | `candidate` | yes | `{"branch": …, "commit": …, "base": …}`; write `"commit": "working tree"` before a commit exists |
 | `created_at` | yes | ISO 8601 time with offset |
 | `result` | no | One sentence: the verdict and what the person must still do |
@@ -28,6 +28,10 @@ Keys are English and exactly as shown; unknown keys fail. Text values are in the
 | `provenance` | no | List of lines: when and from what the page was produced |
 
 **`session.id`.** Use the host's session ID when the host documents one for the shell, such as `CLAUDE_CODE_SESSION_ID` or `PI_SESSION_ID`. Otherwise write `<host>-<UTC time of your first manifest in this session as YYYYMMDDThhmmssZ>` and reuse it for the rest of the session. `session.host` is the host's name, such as `claude-code` or `codex`.
+
+**`session.status`.** Optional; exactly `in_progress` or `closed`. Active producers write `in_progress`, including when explicitly resuming the same work. Existing manifests without it remain valid and the viewer reports `unknown`; do not retrofit historical records or infer status from `kind`, age, Git classification or the host process. `closed` means this work passed through flow-close (completed, abandoned or paused), not that the person approved the interface or the host conversation ended. Before closing or deleting this work's review artifacts, follow [Close the current walkthrough](../../flow-close/SKILL.md#close-the-current-walkthrough).
+
+The renderer's `--session-status in_progress|closed` explicitly updates only this manifest and renders its page. Without that option it renders without changing the manifest, including an absent status. `--confirm-viewer` requires `--session-status closed` and checks the existing viewer through `hive view status --dir <work folder>`. Exit `0` means rendering succeeded and, when requested, the current closed copy was confirmed; `1` means validation or publication failed; `2` means closed was written but confirmation failed and the source evidence unit must be retained. Each output is replaced atomically after validation and preparation; page publication failure restores the manifest. This is not a crash transaction across two files: rerun from the JSON after interruption. No raw CLI diagnostics are relayed.
 
 **Each flow** has:
 
@@ -55,7 +59,7 @@ Each capture needs `path` and `caption`; `alt` defaults to the caption. Limits: 
   "kind": "final",
   "title": "gh-67 — sidebar navigation",
   "ticket": "gh-67-flow-walkthrough-skill",
-  "session": {"id": "codex-20261018T223000Z", "host": "codex"},
+  "session": {"id": "codex-20261018T223000Z", "host": "codex", "status": "in_progress"},
   "candidate": {"branch": "feat/gh-67-sidebar", "commit": "1a2b3c4d", "base": "development"},
   "created_at": "2026-10-18T16:30:00-06:00",
   "result": "All checks pass; confirm the sidebar spacing matches the demo.",

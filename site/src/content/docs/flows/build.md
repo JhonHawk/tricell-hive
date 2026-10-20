@@ -80,6 +80,13 @@ pin and normal retention remain. When Git or the source is unavailable, the view
 warns that its origin is unknown, rather than claiming agent authorship. It also
 rejects hard-linked manifests and referenced files during ingestion.
 
+New walkthroughs explicitly mark the work as in progress. The viewer shows that
+state separately from Git provenance; a final report can still describe work in
+progress. [Close](/flows/close/) marks this work closed when it completes, is
+abandoned or is paused, and explicitly resuming it restores in progress. Older
+walkthroughs without a state remain valid and show that no state was reported.
+This does not detect whether your CLI process is alive.
+
 On screen, desktop capture previews use one strip width at a time. Additional
 captures remain accessible horizontally, narrow strips keep a peek of the next
 capture, and the carousel and print layout remain available. Previously generated

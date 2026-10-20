@@ -89,14 +89,15 @@ func cleanText(s string, max int) string {
 // store needs. Raw holds the exact bytes that were validated, so a copy and
 // its content hash never disagree with what was checked.
 type Manifest struct {
-	Raw         []byte
-	Lang        string
-	Kind        string
-	Title       string
-	Ticket      string
-	CreatedAt   string
-	SessionID   string
-	SessionHost string
+	Raw           []byte
+	Lang          string
+	Kind          string
+	Title         string
+	Ticket        string
+	CreatedAt     string
+	SessionID     string
+	SessionHost   string
+	SessionStatus string
 	// Files lists every capture and recording path, slash-separated,
 	// de-duplicated and sorted. All of them were checked to be regular files
 	// inside the folder, with no symbolic link on the way.
@@ -314,12 +315,19 @@ func (v *validator) manifest(doc any) (*Manifest, error) {
 	if m.Title, e = text(obj["title"], "title"); e != nil {
 		return nil, e
 	}
-	session, err := object(obj["session"], "session", []string{"id"}, []string{"host"})
+	session, err := object(obj["session"], "session", []string{"id"}, []string{"host", "status"})
 	if err != nil {
 		return nil, err
 	}
 	if m.SessionID, e = text(session["id"], "session.id"); e != nil {
 		return nil, e
+	}
+	m.SessionStatus = "unknown"
+	if status, ok := session["status"]; ok {
+		if !isOneOf(status, []string{"in_progress", "closed"}) {
+			return nil, fail("session.status", "must be in_progress or closed")
+		}
+		m.SessionStatus = status.(string)
 	}
 	if h, ok := session["host"]; ok {
 		if m.SessionHost, e = text(h, "session.host"); e != nil {

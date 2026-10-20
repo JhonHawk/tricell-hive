@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sourceDigest": "174fa71b59ab4dec77703b84416d02b074aa66a734ca6f171804ca020f56c34a",
+  "entrypoint": "index.html",
+  "files": [
+    {
+      "path": "assets/index-BgNY3nkB.css",
+      "sha256": "48f1a1f381890ef142bea4afa8ac91f1eed7523994a33a7b028380ea38c87ee7",
+      "mime": "text/css; charset=utf-8"
+    },
+    {
+      "path": "assets/index-BmVHWdjd.js",
+      "sha256": "c6d90670332e4ca4ad8cc62c173f21ffc8c32f881bc67b4c45725be549e27cdf",
+      "mime": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "index.html",
+      "sha256": "b8590d80e01b218120f1ebeb9cdc5ddbfbbce062720a1cd526a7e51ec48bebcd",
+      "mime": "text/html; charset=utf-8"
+    }
+  ]
+}

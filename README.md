@@ -360,6 +360,11 @@ hive view open       # open it in the browser
 hive view stop
 ```
 
+The viewer uses React with public MIT shadcn/ui and ReUI components in a custom
+shell; it needs no Node, ReUI license or third-party network connection to run.
+Frontend development and bundle checks are described in
+[Contributing](CONTRIBUTING.md#viewer-frontend).
+
 The viewer copies eligible walkthroughs into Hive's state directory, deletes copies
 older than 14 days unless you pin them (`--ttl` changes that), and lets you
 delete one from its sidebar; it never changes files in your repositories.
@@ -373,6 +378,19 @@ fragment. The page removes it before exchanging it for the server token and read
 no walkthroughs until access succeeds. If opening fails, run the command again. `register` takes the folder that contains `_support/workspace/` when
 `--dir` points inside it, even if that folder is not a Git repository (a
 multi-repository workspace), and the Git root otherwise. Agents never start it.
+
+Session badges show explicit work status: In progress, Closed, or Not reported
+(`unknown`) for historical manifests without it. This is independent of source
+classification. Closed means the work passed through `flow-close`, including a
+pause or abandonment; it does not mean UI approval or that the host conversation
+ended. The [walkthrough close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough)
+confirms the current closed copy before eligible source cleanup.
+
+When updating from a viewer that predates session status, update the binary and
+installed content together and coordinate stopping and starting the existing
+viewer before using the new producers. Rebuilding the binary does not update a
+running process. An older viewer rejects the new manifest field; an unconfirmed
+closure preserves its source evidence.
 
 ## For AI agents
 

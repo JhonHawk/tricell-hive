@@ -240,6 +240,19 @@ func readMeta(dir string) (meta, error) {
 	return m, nil
 }
 
+// storedSessionStatus distinguishes a missing field from invalid null or empty
+// values when rebuilding the index without validating all stored resources.
+type storedSessionStatus string
+
+func (s *storedSessionStatus) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil || (value != "in_progress" && value != "closed") {
+		return fail("session.status", "must be in_progress or closed")
+	}
+	*s = storedSessionStatus(value)
+	return nil
+}
+
 // summary is the part of a stored manifest the index shows.
 type summary struct {
 	Title     string `json:"title"`
@@ -247,8 +260,9 @@ type summary struct {
 	Ticket    string `json:"ticket"`
 	CreatedAt string `json:"created_at"`
 	Session   struct {
-		ID   string `json:"id"`
-		Host string `json:"host"`
+		ID     string              `json:"id"`
+		Host   string              `json:"host"`
+		Status storedSessionStatus `json:"status"`
 	} `json:"session"`
 }
 
@@ -262,6 +276,9 @@ func readSummary(dir string) (summary, error) {
 		return sm, fmt.Errorf("%s: %w", manifestFile, err)
 	}
 	sm.Ticket = strings.TrimSpace(sm.Ticket)
+	if sm.Session.Status == "" {
+		sm.Session.Status = "unknown"
+	}
 	return sm, nil
 }
 
@@ -284,7 +301,7 @@ func readBounded(path string, limit int64) ([]byte, error) {
 func sessionFrom(key string, m meta, sm summary) Session {
 	return Session{
 		Key: key, Source: m.Source, ContentHash: m.ContentHash, IngestedAt: m.IngestedAt.UTC(), Pinned: m.Pinned,
-		SessionID: sm.Session.ID, Host: sm.Session.Host, Ticket: sm.Ticket, Title: sm.Title,
+		SessionID: sm.Session.ID, SessionStatus: string(sm.Session.Status), Host: sm.Session.Host, Ticket: sm.Ticket, Title: sm.Title,
 		Kind: sm.Kind, CreatedAt: sm.CreatedAt,
 	}
 }

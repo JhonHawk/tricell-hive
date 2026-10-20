@@ -13,8 +13,8 @@ raise the minor or the patch version.
 ### Added
 
 - `hive view`, a local walkthrough viewer the user starts and stops
-  (`start`, `stop`, `status`, `open`, `serve`, `register`). Agents run only
-  `hive view register`; the server on 127.0.0.1 copies each repository's
+  (`start`, `stop`, `status`, `open`, `serve`, `register`). Agents register repositories and use
+  `hive view status --dir <work folder>` to confirm closure; the server on 127.0.0.1 copies each repository's
   `walkthrough.json` and its files into Hive's state directory, groups them by
   project, ticket and session in a sidebar, purges unpinned copies after 14
   days (`--ttl`), and deletes a copy on request without touching the
@@ -68,6 +68,21 @@ raise the minor or the patch version.
   asking, and `hive doctor` and the project form accept the new values.
 
 ### Changed
+
+- The local walkthrough viewer replaces its vanilla shell with React and public
+  MIT shadcn/ui and ReUI components in a custom project/ticket/session sidebar.
+  Its versioned bundle runs inside the Go binary without Node, a ReUI license
+  or third-party network access. Frontend development uses Node >=24 and pnpm
+  12.8.1, with frozen dependencies and read-only bundle freshness checks.
+- Walkthroughs carry optional explicit `session.status` (`in_progress` or
+  `closed`); historical manifests without it remain `unknown`. Badges are
+  independent of Git classification. `flow-close` publishes closure and confirms
+  the exact current viewer copy before eligible source cleanup; an unconfirmed
+  copy keeps its evidence. See the
+  [canonical close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough).
+  Update the viewer binary and installed content together, and coordinate a
+  restart of an existing older viewer before using the new producers: replacing
+  files does not update its running process.
 
 - `flow-walkthrough` takes captures by default and records a flow only when it
   validates an interaction or a transition that captures cannot show, or when

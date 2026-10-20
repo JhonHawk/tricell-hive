@@ -10,7 +10,7 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 - [README](README.md): overview, installation (one-line, release package, or source), hosts, update, recovery, and uninstall. One-line install: `curl -fsSL https://hive.tricell.tech/install.sh | sh`; append `-s -- --dry-run --hosts <hosts>` to preview without changing any host, which needs no terminal but still downloads and keeps the package in `~/.local/share/hive/packages/`; a real installation needs a terminal
 - [One-line installer script](get-hive.sh): what the one-line command downloads and runs
 - [Changelog](CHANGELOG.md): release history, starting with 0.1.0
-- [Contributing](CONTRIBUTING.md): local test suite, conventions, and language rules
+- [Contributing](CONTRIBUTING.md): local test suite, viewer frontend development (Node >=24 and pnpm 12.8.1), checked-in bundle freshness, conventions, and language rules
 - [Security](SECURITY.md): how to report a vulnerability privately
 - [Installer contract](_support/docs/architecture/installer.md): package checks, migration, and interrupted-install recovery
 - [Deployment manager](_support/docs/architecture/deployment-manager.md): manager commands, plans, scopes, ownership, and recovery
@@ -35,7 +35,9 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 ## Optional
 
-- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): source classification, separate tracked copies, unknown-origin warnings, hardlink rejection, and user-controlled retention
+- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, no Node at runtime, source classification, explicit work-status badges, confirmed closure, and user-controlled retention
+- [Viewer frontend](tooling/viewer/frontend/README.md): standalone development package, real API by default, explicit development preview, bundle contract and checks
+- [Third-party notices](THIRD_PARTY_NOTICES.md): Go and embedded frontend license notices
 
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
 - [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, agent-browser, and the Codex question card (`codex-question-card`)
