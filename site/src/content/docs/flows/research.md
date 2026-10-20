@@ -48,7 +48,7 @@ When the next steps would alternate investigating and fixing toward one measurab
 
 The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking, and a question card opens its question with the stage and ticket. If your tool shows a question card that waits for your answer, the message keeps the explanation plus one summary line per question with the recommended option, and the options are in the card. Without such a card, or after you dismiss it or it times out, the options are written in the message. A dismissed card is not an answer: the agent asks the question again in text.
 
-After each answer, the agent says in one line whether it settles the question, opens the next round, or returns the work to an earlier flow, and what that invalidates.
+After each answer, the agent says in one line whether it settles the question, opens the next round, or returns the work to an earlier flow, and what that invalidates. When your answer leaves the choice to the agent, such as which findings to fix now, it first lists what goes in and what stays out and asks you to confirm or correct it.
 
 ## What it does not do
 
