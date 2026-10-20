@@ -194,6 +194,11 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- A stalled local integration run is handed to the pull request's CI only after
+  confirming that CI runs that suite on pull requests; otherwise it is rerun
+  locally or reported as not run (Grok cam session `01a157db`, 2026-10-20:
+  a never-run test was committed on the assumption that PR CI would run it).
+
 - The walkthrough viewer distinguishes local and unknown sources, skips new
   manifests confirmed as tracked in Git, and sets existing tracked copies apart
   without rendering their instructions or changing their pins and retention.
