@@ -27,6 +27,38 @@ The suite takes under a minute on a typical laptop. The
 [deployment manager reference](_support/docs/architecture/deployment-manager.md)
 describes what the tests cover.
 
+## Viewer frontend
+
+The standalone React package in `tooling/viewer/frontend/` uses public MIT
+shadcn/ui and ReUI components, with no premium blocks. Development requires
+**Node 24 or later** and **pnpm 12.8.1**. From the repository root, run:
+
+```sh
+pnpm --dir tooling/viewer/frontend install --frozen-lockfile
+pnpm --dir tooling/viewer/frontend check
+pnpm --dir tooling/viewer/frontend lint
+pnpm --dir tooling/viewer/frontend test
+pnpm --dir tooling/viewer/frontend build
+pnpm --dir tooling/viewer/frontend verify:dist
+```
+
+Commit the generated `tooling/viewer/static/app/` bundle and manifest alongside
+frontend changes. Rebuild a second time with the frozen lockfile and check that
+the output has no diff. The source digest includes the frontend README, tests,
+configuration and lockfile, so changes to those files also require regeneration.
+`verify:dist` checks freshness without changing output; the Go viewer tests check
+the source digest without Node. This detects stale output, not authenticity.
+Ordinary `go build ./tooling/cli` and package building consume checked-in output
+and do not require Node or pnpm.
+
+`pnpm --dir tooling/viewer/frontend dev` uses the real same-origin API by default.
+The generated development composition requires `?preview`; it is absent from the
+production bundle. A development preview does not verify the Go server's API,
+authentication or CSP. Check the compiled bundle served by Go for those surfaces,
+and preserve the shared offline renderer byte for byte. See the
+[frontend README](tooling/viewer/frontend/README.md) for the bundle contract and
+[third-party notices](THIRD_PARTY_NOTICES.md) for the distributed license notices.
+
 ## Branches and commits
 
 - Branch from `development`, the base branch, and open pull requests against it.
