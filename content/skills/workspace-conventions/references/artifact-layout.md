@@ -40,7 +40,7 @@ Retain necessary evidence, including justified binaries; only curated, shareable
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it or its children started, and restores local state the task changed. The global guidance authorizes deleting merged work branches, from this work or earlier, and their clean worktrees at close; never delete a branch with unmerged commits or a worktree with uncommitted or untracked files. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
+**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it or its children started, and restores local state the task changed. The global guidance authorizes deleting merged work branches, from this work or earlier, and their clean worktrees at close; never delete a branch with unmerged commits, except a squash- or rebase-merged branch that [flow-close](../../flow-close/SKILL.md) confirms against its pull request, or a worktree with uncommitted or untracked files. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
 
 **Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
 

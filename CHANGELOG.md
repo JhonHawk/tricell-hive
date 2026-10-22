@@ -202,6 +202,11 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Close deletes a branch merged by squash or rebase, with its clean worktree,
+  once `gh` shows its pull request merged from the same head; `git branch -d`
+  refused them, so both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  `01a157db`) left orphan branches and worktrees.
+
 - A process the agent waits on gets a bounded watch besides its exit signal, so
   a hung run still wakes the agent, and a turn that ends with work running says
   what will wake it (Grok cam session `01a1579f`, 2026-10-20: a hung backend

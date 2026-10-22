@@ -48,7 +48,7 @@ to force confirmation. The procedure lives in
 
 ## What it does not do
 
-- It does not delete a branch that has unmerged commits. It shows you that work and asks.
+- It does not delete a branch that has unmerged commits. It shows you that work and asks. A branch merged by squash counts as merged when its pull request shows it merged from the same last commit, so it is deleted with its clean working copy instead of being left behind.
 - It does not delete a working copy that has uncommitted or untracked files.
 - It does not remove material whose owner or purpose is unclear.
 - It does not archive a paused change. The folder stays on disk and is reported as pending.
