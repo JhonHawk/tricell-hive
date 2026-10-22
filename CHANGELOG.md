@@ -202,6 +202,11 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- A pull request is merged with the method the repository declares or its base
+  branch's recent merges show, a merge commit by default (Grok cam session
+  `01a1579f`, 2026-10-20: PR #239 was squashed while the base branch's earlier
+  merges were merge commits, collapsing the per-task commits).
+
 - Close deletes a branch merged by squash or rebase, with its clean worktree,
   once `gh` shows its pull request merged from the same head; `git branch -d`
   refused them, so both Grok cam sessions of 2026-10-20 (`01a1579f`,
