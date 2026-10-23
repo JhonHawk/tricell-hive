@@ -69,6 +69,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- UI evidence is refreshed for affected views and journeys after any later fix,
+  including code-review fixes after approval. A changed visible result needs
+  approval again; unaffected evidence remains valid. Adopted after the Facti
+  Claude Code session `c574e5a1-ec3e-44da-995e-2a9a89ba2e6b` of 2026-10-23.
 - Gaps found in two sessions of 2026-10-19 (Grok `01a15706`, Codex `01a156af`;
   issue #93). A notice that only reports the exit of a process the agent
   stopped on purpose gets no message, also while a question waits. Close stops
