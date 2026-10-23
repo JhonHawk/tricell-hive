@@ -63,7 +63,7 @@ Greetings, a short direct answer with no work running, a child's return to its p
 
 **Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 2 above answers without a message or step 5 answers in one line.
 
-**Actions:** open with a labeled in-progress item stating what is running, what its result decides, what will wake you when it ends or stalls, and what happens next, before any findings.
+**Actions:** open with a labeled in-progress item stating what is running, what its result decides, what will wake you when it ends or stalls, the current wait's duration or deadline for your next wake, and what happens next, before any findings.
 
 **Condition:** a work item completes.
 

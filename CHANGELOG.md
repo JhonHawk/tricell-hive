@@ -214,7 +214,8 @@ raise the minor or the patch version.
 
 - A process the agent waits on gets a bounded watch besides its exit signal, so
   a hung run still wakes the agent, and a turn that ends with work running says
-  what will wake it (Grok cam session `01a1579f`, 2026-10-20: a hung backend
+  what will wake it and the duration or deadline of the current wait (Grok cam
+  session `01a1579f`, 2026-10-20: a hung backend
   integration suite left the session silent until the user asked; issue #95).
 
 - A stalled local integration run is handed to the pull request's CI only after
