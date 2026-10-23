@@ -166,8 +166,8 @@ func hashFiles(root *os.Root, m *Manifest) (string, error) {
 }
 
 // install writes the copy of one source as sessions/<key>, replacing any
-// previous copy and carrying its pinned flag over. The copy is assembled in
-// a temporary directory and swapped in with renames, so a reader sees the
+// previous copy and carrying its pinned and archived flags over. The copy is
+// assembled in a temporary directory and swapped in with renames, so a reader sees the
 // old or the new copy, never a mix; Startup repairs a crash in between.
 func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash string, now time.Time) (Session, error) {
 	tmp, err := os.MkdirTemp(s.sessionsDir(), tmpPrefix)
@@ -188,11 +188,11 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 		return Session{}, errors.New("source changed while it was being copied; it will be retried")
 	}
 	final := s.sessionDir(key)
-	pinned := false
+	pinned, archived := false, false
 	if old, err := readMeta(final); err == nil {
-		pinned = old.Pinned
+		pinned, archived = old.Pinned, old.Archived
 	}
-	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC(), Pinned: pinned}
+	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC(), Pinned: pinned, Archived: archived}
 	if err := writeJSONAtomic(filepath.Join(tmp, "meta.json"), mt); err != nil {
 		return Session{}, err
 	}

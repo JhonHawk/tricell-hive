@@ -1,12 +1,20 @@
 import {
+  Archive,
+  ArchiveRestore,
   BookOpen,
   ChevronRight,
   Folder,
   Pin,
-  Ticket,
+  Route,
   Trash2,
 } from "lucide-react";
-import { type ReactNode, useLayoutEffect, useRef } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   AlertAction,
@@ -23,6 +31,7 @@ import {
   FrameTitle,
 } from "@/components/reui/frame";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 import {
   Collapsible,
   CollapsibleContent,
@@ -40,14 +49,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { optionalStorage, save, stored } from "./api";
 export type ViewerSession = {
   id: string;
   project: string;
@@ -57,6 +70,7 @@ export type ViewerSession = {
   createdAt: string;
   classification: "tracked" | "local" | "unknown";
   pinned?: boolean;
+  archived?: boolean;
   excluded?: boolean;
   status?: "in_progress" | "closed" | "unknown";
 };
@@ -69,6 +83,9 @@ export type ViewerShellProps = {
   onRetry: () => void;
   onPin?: () => void;
   onDelete?: () => void;
+  onArchive?: () => void;
+  showArchived?: boolean;
+  onShowArchivedChange?: (show: boolean) => void;
   children?: ReactNode;
   panel?: ReactNode;
   libraryFooter?: ReactNode;
@@ -83,6 +100,13 @@ const copy = spanish
       library: "Biblioteca de recorridos",
       description: "Evidencia y validación de los cambios de tu proyecto.",
       projects: "Proyectos",
+      showArchived: "Mostrar archivados",
+      hideArchived: "Ocultar archivados",
+      archive: "Archivar copia",
+      unarchive: "Restaurar copia",
+      actions: "Acciones de la sesión",
+      statusDescription:
+        "Estado del trabajo declarado en el manifiesto del recorrido.",
       excluded: "Copias apartadas",
       excludedOnly:
         "Solo hay copias apartadas. Selecciona una abajo para conocer el motivo.",
@@ -102,7 +126,7 @@ const copy = spanish
       unpin: "Dejar de conservar",
       remove: "Borrar copia",
       navigation: "Alternar navegación",
-      navigationDescription: "Explora proyectos, tickets y sesiones.",
+      navigationDescription: "Explora proyectos y sesiones.",
       tracked: "Versionado",
       local: "Local",
       unknown: "Origen desconocido",
@@ -120,6 +144,12 @@ const copy = spanish
       library: "Walkthrough library",
       description: "Evidence and validation for your project changes.",
       projects: "Projects",
+      showArchived: "Show archived",
+      hideArchived: "Hide archived",
+      archive: "Archive copy",
+      unarchive: "Restore copy",
+      actions: "Session actions",
+      statusDescription: "Work status declared in the walkthrough manifest.",
       excluded: "Set-aside copies",
       excludedOnly:
         "Only set-aside copies are available. Select one below to see why.",
@@ -139,7 +169,7 @@ const copy = spanish
       unpin: "Stop keeping",
       remove: "Delete copy",
       navigation: "Toggle navigation",
-      navigationDescription: "Browse projects, tickets and sessions.",
+      navigationDescription: "Browse projects and sessions.",
       tracked: "Tracked",
       local: "Local",
       unknown: "Unknown origin",
@@ -152,6 +182,60 @@ const copy = spanish
         unknown: "Not reported",
       },
     };
+const NAVIGATION_KEY = "hive-view-navigation";
+type NavigationPreferences = {
+  sidebarOpen: boolean;
+  projects: Record<string, boolean>;
+};
+function readNavigationPreferences(): NavigationPreferences {
+  try {
+    const value = JSON.parse(stored(optionalStorage(), NAVIGATION_KEY));
+    return {
+      sidebarOpen: value.sidebarOpen !== false,
+      projects: Object.fromEntries(
+        Object.entries(value.projects ?? {}).filter(
+          ([, open]) => typeof open === "boolean",
+        ),
+      ) as Record<string, boolean>,
+    };
+  } catch {
+    return { sidebarOpen: true, projects: {} };
+  }
+}
+function ActionButton({
+  label,
+  children,
+  ...props
+}: React.ComponentProps<typeof Button> & { label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={label}
+            {...props}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+function sessionDisplayTitle(session: ViewerSession) {
+  if (!/^(?:#\d+|[a-z][a-z0-9]*-\d+)$/i.test(session.ticket))
+    return session.title;
+  const prefix = session.title.slice(0, session.ticket.length);
+  if (prefix.toLowerCase() !== session.ticket.toLowerCase())
+    return session.title;
+  const remainder = session.title.slice(session.ticket.length);
+  const match = remainder.match(/^\s*(?:[·:|–—]|-(?=\s))\s+(.+)$/);
+  return match?.[1].trim() || session.title;
+}
 function SessionNavigationButton({
   session,
   selectedId,
@@ -166,6 +250,7 @@ function SessionNavigationButton({
     <button
       type="button"
       data-session-key={session.id}
+      title={session.title}
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -179,29 +264,25 @@ function SessionNavigationButton({
           );
       }}
     >
-      <BookOpen aria-hidden className="size-4 shrink-0" />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <span
+        aria-hidden="true"
+        data-session-status={session.status ?? "unknown"}
+        className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="session-navigation-title min-w-min flex-1 font-normal">
-            {session.title}
+          <span className="session-navigation-title min-w-0 flex-1 font-normal">
+            {sessionDisplayTitle(session)}
           </span>
-          {session.pinned && <Pin aria-hidden className="size-4 shrink-0" />}
+          {session.pinned && <Pin aria-hidden className="size-3 shrink-0" />}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs tabular-nums text-muted-foreground">
-            {session.createdAt}
-          </span>
-          <Badge
-            variant={
-              session.status === "closed"
-                ? "success-light"
-                : session.status === "in_progress"
-                  ? "primary-light"
-                  : "outline"
-            }
-          >
+        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+          <span className="truncate">{session.ticket}</span>
+          <span aria-hidden="true">·</span>
+          <span className="shrink-0 tabular-nums">{session.createdAt}</span>
+          <span className="sr-only">
             {copy.sessionStatus[session.status ?? "unknown"]}
-          </Badge>
+          </span>
         </div>
       </div>
     </button>
@@ -213,10 +294,23 @@ function Navigation({
   state,
   onSelect,
   onRetry,
+  showArchived,
+  onShowArchivedChange,
+  preferences,
+  onProjectOpenChange,
 }: Pick<
   ViewerShellProps,
-  "sessions" | "selectedId" | "state" | "onSelect" | "onRetry"
->) {
+  | "sessions"
+  | "selectedId"
+  | "state"
+  | "onSelect"
+  | "onRetry"
+  | "showArchived"
+  | "onShowArchivedChange"
+> & {
+  preferences: NavigationPreferences;
+  onProjectOpenChange: (key: string, open: boolean) => void;
+}) {
   const navigationRef = useRef<HTMLDivElement>(null);
   const focusKey = useRef<string | undefined>(undefined);
   const normal = sessions.filter(
@@ -261,7 +355,18 @@ function Navigation({
     >
       <nav aria-label={copy.walkthroughs}>
         <SidebarGroup>
-          <SidebarGroupLabel>{copy.projects}</SidebarGroupLabel>
+          <div className="flex items-center justify-between gap-2">
+            <SidebarGroupLabel>{copy.projects}</SidebarGroupLabel>
+            <ActionButton
+              label={showArchived ? copy.hideArchived : copy.showArchived}
+              variant="ghost"
+              aria-pressed={Boolean(showArchived)}
+              disabled={!onShowArchivedChange}
+              onClick={() => onShowArchivedChange?.(!showArchived)}
+            >
+              <Archive aria-hidden />
+            </ActionButton>
+          </div>
           <SidebarGroupContent>
             {state === "loading" ? (
               <div
@@ -303,15 +408,18 @@ function Navigation({
                       (session.projectKey ?? session.project) === projectKey,
                   );
                   const project = projectSessions[0].project;
-                  const tickets = [
-                    ...new Set(
-                      projectSessions.map((session) => session.ticket),
-                    ),
-                  ];
                   return (
                     <Collapsible
                       key={projectKey}
-                      defaultOpen
+                      open={
+                        preferences.projects[projectKey] ??
+                        projectSessions.some(
+                          (session) => session.status === "in_progress",
+                        )
+                      }
+                      onOpenChange={(open) =>
+                        onProjectOpenChange(projectKey, open)
+                      }
                       className="group/project font-semibold"
                       render={<SidebarMenuItem />}
                     >
@@ -324,65 +432,26 @@ function Navigation({
                         <span className="min-w-0 flex-1 truncate">
                           {project}
                         </span>
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {projectSessions.length}
+                        </span>
                         <ChevronRight
                           aria-hidden
-                          className="group-data-open/project:rotate-90"
+                          className="text-muted-foreground group-data-open/project:rotate-90"
                         />
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <SidebarMenuSub className="navigation-branch">
-                          {tickets.map((ticket) => {
-                            const ticketSessions = projectSessions.filter(
-                              (session) => session.ticket === ticket,
-                            );
-                            return (
-                              <Collapsible
-                                key={ticket}
-                                defaultOpen
-                                className="navigation-node group/ticket"
-                                render={<SidebarMenuSubItem />}
-                              >
-                                <CollapsibleTrigger
-                                  render={
-                                    <SidebarMenuButton
-                                      type="button"
-                                      title={ticket}
-                                      className="font-medium"
-                                    />
-                                  }
-                                >
-                                  <Ticket
-                                    aria-hidden
-                                    className="text-muted-foreground"
-                                  />
-                                  <span className="min-w-0 flex-1 truncate">
-                                    {ticket}
-                                  </span>
-                                  <ChevronRight
-                                    aria-hidden
-                                    className="text-muted-foreground group-data-open/ticket:rotate-90"
-                                  />
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                  <SidebarMenuSub className="navigation-branch">
-                                    {ticketSessions.map((session) => (
-                                      <SidebarMenuSubItem
-                                        key={session.id}
-                                        className="navigation-node navigation-session"
-                                      >
-                                        <SessionNavigationButton
-                                          session={session}
-                                          selectedId={selectedId}
-                                          onSelect={onSelect}
-                                        />
-                                      </SidebarMenuSubItem>
-                                    ))}
-                                  </SidebarMenuSub>
-                                </CollapsibleContent>
-                              </Collapsible>
-                            );
-                          })}
-                        </SidebarMenuSub>
+                        <SidebarMenu>
+                          {projectSessions.map((session) => (
+                            <SidebarMenuItem key={session.id}>
+                              <SessionNavigationButton
+                                session={session}
+                                selectedId={selectedId}
+                                onSelect={onSelect}
+                              />
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
                       </CollapsibleContent>
                     </Collapsible>
                   );
@@ -429,6 +498,9 @@ export function ViewerShell({
   onRetry,
   onPin,
   onDelete,
+  onArchive,
+  showArchived = false,
+  onShowArchivedChange,
   children,
   panel,
   libraryFooter,
@@ -437,8 +509,16 @@ export function ViewerShell({
   coldLoading = false,
 }: ViewerShellProps) {
   const selected = sessions.find((session) => session.id === selectedId);
+  const [preferences, setPreferences] = useState(readNavigationPreferences);
+  useEffect(() => {
+    save(optionalStorage(), NAVIGATION_KEY, JSON.stringify(preferences));
+  }, [preferences]);
   return (
     <SidebarProvider
+      open={preferences.sidebarOpen}
+      onOpenChange={(sidebarOpen) =>
+        setPreferences((previous) => ({ ...previous, sidebarOpen }))
+      }
       className="viewer-shell min-h-0 text-sm text-foreground"
       style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
     >
@@ -448,7 +528,7 @@ export function ViewerShell({
       <Sidebar variant="floating">
         <SidebarHeader>
           <div className="flex items-center gap-3 px-2 py-3">
-            <BookOpen aria-hidden className="size-5 shrink-0" />
+            <Route aria-hidden className="size-5 shrink-0" />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="font-semibold tracking-tight">hive</span>
               <span className="text-xs text-muted-foreground">
@@ -470,6 +550,15 @@ export function ViewerShell({
             state={state}
             onSelect={onSelect}
             onRetry={onRetry}
+            showArchived={showArchived}
+            onShowArchivedChange={onShowArchivedChange}
+            preferences={preferences}
+            onProjectOpenChange={(key, open) =>
+              setPreferences((previous) => ({
+                ...previous,
+                projects: { ...previous.projects, [key]: open },
+              }))
+            }
           />
         </SidebarContent>
         <SidebarSeparator />
@@ -519,28 +608,54 @@ export function ViewerShell({
                   </div>
                 </div>
                 {selected && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
+                  <ButtonGroup aria-label={copy.actions}>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <ButtonGroupText
+                            className="border-border bg-transparent"
+                            tabIndex={0}
+                          />
+                        }
+                      >
+                        <span
+                          aria-hidden="true"
+                          data-session-status={selected.status ?? "unknown"}
+                          className="session-status-dot size-1.5 shrink-0 rounded-full"
+                        />
+                        <span>
+                          {copy.sessionStatus[selected.status ?? "unknown"]}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{copy.statusDescription}</TooltipContent>
+                    </Tooltip>
+                    <ActionButton
+                      label={selected.archived ? copy.unarchive : copy.archive}
+                      disabled={!onArchive || writing}
+                      onClick={onArchive}
+                    >
+                      {selected.archived ? (
+                        <ArchiveRestore aria-hidden />
+                      ) : (
+                        <Archive aria-hidden />
+                      )}
+                    </ActionButton>
+                    <ActionButton
+                      label={selected.pinned ? copy.unpin : copy.pin}
+                      aria-pressed={Boolean(selected.pinned)}
                       disabled={!onPin || writing}
                       onClick={onPin}
                     >
                       <Pin aria-hidden />
-                      {selected.pinned ? copy.unpin : copy.pin}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
+                    </ActionButton>
+                    <ActionButton
+                      label={copy.remove}
                       disabled={!onDelete || writing}
                       onClick={onDelete}
                     >
                       <Trash2 aria-hidden />
-                      {copy.remove}
-                    </Button>
-                  </div>
+                    </ActionButton>
+                  </ButtonGroup>
                 )}
               </div>
               {notice && (

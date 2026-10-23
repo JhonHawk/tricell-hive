@@ -135,7 +135,7 @@ and file capabilities never enter the output. `session.status` is optional
 independently of report kind or Git classification. Store load reconstructs the
 derived `session_status` from the manifest, without migrating historical
 metadata. Status changes use the existing content-replacement behavior, including
-pin preservation and refreshed ingestion time. For source closure and retention,
+pin and archive preservation and refreshed ingestion time. For source closure and retention,
 follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md#close-the-current-walkthrough).
 
 Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-origin `Origin` and an empty body. It returns `{code}` without caching: 32 random bytes encoded as 64 hex characters, valid for 60 seconds, held only in memory. At most 64 unconsumed codes may be pending; a full set returns 429 without evicting valid codes. `POST /api/access-codes/exchange` requires the allowed Host and explicit same-origin Origin, `application/json`, and only `{code}` within 1 KiB. It returns `{token}` without caching, consuming the code atomically; expired, missing, invalid or reused codes return 403. Invalid JSON returns 400, unsupported media type 415, and wrong method 405. Codes disappear on server restart. The page removes the fragment before awaiting exchange, stores only the token in sessionStorage for reloads, and ignores responses from superseded openings, including earlier authenticated reads and writes. An explicit failed opening asks for `hive view open` again. An old running server returning 404 to issuance requires `hive view stop`, `hive view start`, then `hive view open`; the CLI never falls back to a token URL or restarts it automatically. A stolen unconsumed code can still be used by a local process; Origin is not authentication for non-browser clients.
@@ -150,8 +150,27 @@ agent authorship or confirmed untracked status. Classification changes are appli
 even when content hashes do not change and are reconstructed without changing
 per-copy `meta.json`. Previously stored copies whose source is now tracked move
 to a separate explanatory section. Their normal document and file reads return
-409; pin, explicit deletion and normal TTL remain available. Unknown sources remain
+409; archive/restore, pin, explicit deletion and normal TTL remain available. Unknown sources remain
 accessible with a warning. A local file is not proof of agent authorship.
+
+Archive state belongs to each stored copy's `meta.json` as optional
+`archived` metadata (absent means false), independently of `pinned` and the
+manifest's session status. The authenticated index exposes `archived` for both
+normal sessions and excluded tracked-source entries. Token-authenticated,
+same-origin `POST /api/sessions/<key>/archive` archives the copy;
+`DELETE` on the same route restores it. Both return 204 on success, preserve
+pinning and ingestion time, and never edit source files. Archive state survives
+store reconstruction, restarts and replacement from a changed source. Archiving
+does not exempt an unpinned copy from normal TTL deletion.
+
+The React shell lists sessions directly under projects with counts, compact
+title/ticket/date rows and no ticket level or connector branches. Projects open
+initially only when they contain an explicitly in-progress session; manual
+expansion takes precedence. A tooltip-labeled, accessible icon beside Projects
+toggles archived copies, hidden by default. The sidebar brand header shows a
+route icon. The selected document has a separate toolbar with informational
+manifest status, archive/restore, pin/unpin and delete actions. Sidebar visibility, project expansion, archive
+filter and selection persist in sessionStorage for the same tab and origin.
 
 Manifest and resource ingestion rejects files with more than one hard link using
 metadata from each opened descriptor before reading, including hashing and copying.

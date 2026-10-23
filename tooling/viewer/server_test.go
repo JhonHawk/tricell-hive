@@ -103,13 +103,15 @@ func TestServerRejectsWritesWithoutTokenOrWithAForeignTokenOriginOrHost(t *testi
 			{http.MethodDelete, "/api/sessions/" + s.key},
 			{http.MethodPost, "/api/sessions/" + s.key + "/pin"},
 			{http.MethodDelete, "/api/sessions/" + s.key + "/pin"},
+			{http.MethodPost, "/api/sessions/" + s.key + "/archive"},
+			{http.MethodDelete, "/api/sessions/" + s.key + "/archive"},
 		} {
 			if w := s.do(req[0], req[1], o); w.Code != http.StatusForbidden {
 				t.Errorf("%s: %s %s = %d, want 403", name, req[0], req[1], w.Code)
 			}
 		}
 	}
-	if len(s.sessions()) != 1 || s.sessions()[0].Pinned {
+	if len(s.sessions()) != 1 || s.sessions()[0].Pinned || s.sessions()[0].Archived {
 		t.Fatal("a rejected write changed the store")
 	}
 }
@@ -283,6 +285,11 @@ func TestServerKeyAndMethodErrors(t *testing.T) {
 		{http.MethodDelete, "/api/sessions/..", http.StatusBadRequest},
 		{http.MethodGet, "/api/sessions/" + missing, http.StatusNotFound},
 		{http.MethodPost, "/api/sessions/" + missing + "/pin", http.StatusNotFound},
+		{http.MethodPost, "/api/sessions/" + missing + "/archive", http.StatusNotFound},
+		{http.MethodDelete, "/api/sessions/" + missing + "/archive", http.StatusNotFound},
+		{http.MethodPost, "/api/sessions/not-a-key/archive", http.StatusBadRequest},
+		{http.MethodDelete, "/api/sessions/not-a-key/archive", http.StatusBadRequest},
+		{http.MethodGet, "/api/sessions/" + s.key + "/archive", http.StatusMethodNotAllowed},
 		{http.MethodPost, "/api/sessions/" + s.key, http.StatusMethodNotAllowed},
 		{http.MethodPut, "/api/index", http.StatusMethodNotAllowed},
 		{http.MethodGet, "/nope", http.StatusNotFound},

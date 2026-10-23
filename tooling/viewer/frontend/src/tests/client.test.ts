@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AccessClient, mapIndex, takeCode } from "../api";
+import {
+  AccessClient,
+  ARCHIVED_KEY,
+  mapIndex,
+  OPEN_KEY,
+  TOKEN_KEY,
+  takeCode,
+} from "../api";
 import { ViewerController } from "../controller";
 
 const key = (n: number) => String(n).padStart(64, "0");
@@ -415,4 +422,117 @@ test("refreshing or losing the index connection retains the open document", asyn
   await refreshing;
   assert.equal(controller.getSnapshot().document, open);
   assert.equal(controller.getSnapshot().indexError, true);
+});
+
+test("archiving hides a copy, reconciles selection, and survives refresh without changing pin or status", async () => {
+  let data = index([
+    session(1, { pinned: true, session_status: "in_progress" }),
+    session(2),
+  ]);
+  const storage = new Map<string, string>([[TOKEN_KEY, "test-access"]]);
+  const methods: string[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, options) => {
+        if (String(url).endsWith("/archive")) {
+          methods.push(options?.method ?? "GET");
+          data = index([
+            session(1, {
+              pinned: true,
+              session_status: "in_progress",
+              archived: options?.method === "POST",
+            }),
+            session(2),
+          ]);
+          return new Response(null, { status: 204 });
+        }
+        return response(
+          String(url) === "/api/index" ? data : { title: "Walkthrough" },
+        );
+      },
+      {
+        getItem: (key) => storage.get(key) ?? null,
+        setItem: (key, value) => {
+          storage.set(key, value);
+        },
+        removeItem: (key) => {
+          storage.delete(key);
+        },
+      },
+    ),
+  );
+  await controller.open(null);
+  controller.select(key(1));
+  await settle();
+  await controller.archive();
+  await settle();
+  assert.deepEqual(
+    controller.getSnapshot().sessions.map((s) => s.id),
+    [key(2)],
+  );
+  assert.equal(controller.getSnapshot().selectedId, key(2));
+  assert.equal(controller.getSnapshot().notice, "archived");
+  await controller.refresh();
+  controller.setShowArchived(true);
+  assert.equal(storage.get(ARCHIVED_KEY), "true");
+  controller.select(key(1));
+  await settle();
+  const archived = controller
+    .getSnapshot()
+    .sessions.find((s) => s.id === key(1));
+  assert.equal(archived?.archived, true);
+  assert.equal(archived?.pinned, true);
+  assert.equal(archived?.status, "in_progress");
+  await controller.open(null);
+  await settle();
+  assert.equal(controller.getSnapshot().showArchived, true);
+  assert.equal(controller.getSnapshot().selectedId, key(1));
+  assert.equal(storage.get(OPEN_KEY), key(1));
+  await controller.archive();
+  await settle();
+  assert.equal(
+    controller.getSnapshot().sessions.find((s) => s.id === key(1))?.archived,
+    false,
+  );
+  assert.deepEqual(methods, ["POST", "DELETE"]);
+  controller.setShowArchived(false);
+  assert.equal(controller.getSnapshot().selectedId, key(1));
+});
+
+test("failed archive leaves selection and copy unchanged and invalidates stale polling on success", async () => {
+  const stale = deferred();
+  let reads = 0;
+  let fail = true;
+  let archived = false;
+  const controller = setup(async (url) => {
+    if (String(url).endsWith("/archive")) {
+      if (fail) return response({}, 500);
+      archived = true;
+      return new Response(null, { status: 204 });
+    }
+    if (String(url) === "/api/index") {
+      reads++;
+      if (reads === 2) return stale.promise;
+      return response(index([session(1, { archived })]));
+    }
+    return response({ title: "Walkthrough" });
+  });
+  await controller.open(null);
+  await settle();
+  await controller.archive();
+  assert.equal(controller.getSnapshot().selectedId, key(1));
+  assert.equal(controller.getSnapshot().sessions[0].archived, false);
+  assert.equal(controller.getSnapshot().notice, "writeError");
+  assert.equal(controller.getSnapshot().writing, false);
+  const poll = controller.refresh();
+  fail = false;
+  await controller.archive();
+  await settle();
+  assert.equal(controller.getSnapshot().sessions.length, 0);
+  assert.equal(controller.getSnapshot().document, null);
+  stale.resolve(response(index([session(1, { archived: false })])));
+  await poll;
+  assert.equal(controller.getSnapshot().sessions.length, 0);
+  controller.setShowArchived(true);
+  assert.equal(controller.getSnapshot().sessions[0].archived, true);
 });

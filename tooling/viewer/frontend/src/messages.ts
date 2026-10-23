@@ -14,6 +14,12 @@ export const messages =
         down: "No se puede conectar con Hive. Inicia el visor con hive view start y vuelve a abrirlo con hive view open. La página se reconectará si el servidor responde aquí.",
         reconnected: "Reconectado con el servidor.",
         gone: "El recorrido abierto ya no está disponible. Se muestra otro recorrido.",
+        archived: "Copia archivada. Puedes mostrarla desde Proyectos.",
+        unarchived: "Copia restaurada en la biblioteca.",
+        archivedOnly: "No hay recorridos sin archivar",
+        archivedOnlyBody:
+          "Muestra los archivados para revisar o restaurar una copia.",
+        showArchived: "Mostrar archivados",
         pinned: "Copia conservada; no caducará.",
         unpinned: "La copia caducará con el resto.",
         deleted:
@@ -68,6 +74,12 @@ export const messages =
         down: "Cannot reach Hive. Start the viewer with hive view start, then reopen it with hive view open. This page reconnects if the server answers here again.",
         reconnected: "Reconnected to the server.",
         gone: "The open walkthrough is no longer available. Showing another walkthrough.",
+        archived:
+          "Copy archived. Show archived copies from Projects to find it.",
+        unarchived: "Copy restored to the library.",
+        archivedOnly: "No unarchived walkthroughs",
+        archivedOnlyBody: "Show archived copies to review or restore one.",
+        showArchived: "Show archived",
         pinned: "Copy kept; it will not expire.",
         unpinned: "The copy will expire with the rest.",
         deleted:

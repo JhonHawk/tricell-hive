@@ -61,7 +61,10 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
     key: "project-2",
     name: "Hive",
     tickets: [
-      { ticket: "#89", sessions: [session(5, { session_status: "closed" })] },
+      {
+        ticket: "#89",
+        sessions: [session(5, { session_status: "closed" })],
+      },
     ],
   });
   const client = new AccessClient(
@@ -97,6 +100,11 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
       await settle();
     });
     assert.equal(exchanges, 1);
+    const closedProject = container.querySelectorAll<HTMLButtonElement>(
+      '[data-slot="collapsible-trigger"]',
+    )[1];
+    assert(closedProject);
+    await act(async () => closedProject.click());
     const rows = [
       ...container.querySelectorAll<HTMLElement>("[data-session-key]"),
     ];
@@ -109,7 +117,17 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
       rows.find((row) => row.dataset.sessionKey === key(3))?.textContent ?? "",
       /Not reported/,
     );
-    assert.equal(container.querySelectorAll(".navigation-branch").length, 4);
+    assert.equal(container.querySelectorAll(".navigation-branch").length, 0);
+    assert.equal(
+      container.querySelectorAll('[data-slot="collapsible"]').length,
+      2,
+    );
+    assert.equal(
+      rows[0]
+        .querySelector("[data-session-status]")
+        ?.getAttribute("data-session-status"),
+      "closed",
+    );
     data = index([
       session(1, {
         session_status: "in_progress",
@@ -129,6 +147,83 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
       controller.getSnapshot().sessions[0].classification,
       "unknown",
     );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("compact navigation preserves full titles and selects sessions within collapsible projects", async () => {
+  const { ViewerShell } = await import("../shell");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const titles = [
+    ["#89 · Review configuration", "#89", "Review configuration"],
+    ["COM-761 — Preserve browser focus", "COM-761", "Preserve browser focus"],
+    ["#90 · Different ticket remains", "#89", "#90 · Different ticket remains"],
+    ["Local: Semantic title remains", "Local", "Local: Semantic title remains"],
+    ["#89 without delimiter", "#89", "#89 without delimiter"],
+    ["#89: ", "#89", "#89: "],
+  ];
+  const sessions = titles.map(([title, ticket], i) => ({
+    id: key(i + 1),
+    project: "Hive",
+    projectKey: "hive",
+    ticket,
+    title,
+    createdAt: "23 Oct",
+    classification: "local" as const,
+    pinned: i === 0,
+  }));
+  let selected = "";
+  try {
+    await act(async () => {
+      root.render(
+        <ViewerShell
+          sessions={sessions}
+          selectedId={key(1)}
+          state="ready"
+          onSelect={(id) => {
+            selected = id;
+          }}
+          onRetry={() => {}}
+        />,
+      );
+    });
+    const projectToggle = container.querySelector<HTMLButtonElement>(
+      '[data-slot="collapsible-trigger"]',
+    );
+    assert(projectToggle);
+    await act(async () => projectToggle.click());
+    const rows = [
+      ...container.querySelectorAll<HTMLButtonElement>("[data-session-key]"),
+    ];
+    for (const [i, row] of rows.entries()) {
+      assert.equal(row.title, titles[i][0]);
+      assert.equal(
+        row.querySelector(".session-navigation-title")?.textContent,
+        titles[i][2],
+      );
+      assert(row.textContent?.includes(titles[i][1]));
+      assert(row.textContent?.includes("23 Oct"));
+    }
+    assert.equal(container.querySelectorAll('[aria-current="page"]').length, 1);
+    assert.equal(container.querySelector("h1")?.textContent, titles[0][0]);
+    assert(rows[0].querySelector(".lucide-pin"));
+    assert(container.querySelector('[data-sidebar="header"] .lucide-route'));
+    await act(async () => rows[1].click());
+    assert.equal(selected, key(2));
+    const project = container.querySelector<HTMLButtonElement>(
+      '[data-slot="collapsible-trigger"]',
+    );
+    assert(project);
+    assert(project.textContent?.includes("6"));
+    assert.equal(project.getAttribute("aria-expanded"), "true");
+    await act(async () => project.click());
+    assert.equal(project.getAttribute("aria-expanded"), "false");
+    await act(async () => project.click());
+    assert.equal(project.getAttribute("aria-expanded"), "true");
   } finally {
     await act(async () => root.unmount());
     container.remove();
@@ -609,6 +704,12 @@ test("tracked copies stay outside the normal tree through polling and retain foc
       'section[aria-label="Set-aside copies"]',
     );
     assert(normal);
+    const projectToggle = normal.querySelector<HTMLButtonElement>(
+      '[data-slot="collapsible-trigger"]',
+    );
+    assert(projectToggle);
+    if (projectToggle.getAttribute("aria-expanded") !== "true")
+      await act(async () => projectToggle.click());
     assert(excluded, "Tracked copies require a separate explanatory region");
     assert(normal.querySelector(`[data-session-key="${key(1)}"]`));
     assert.equal(normal.querySelector(`[data-session-key="${key(2)}"]`), null);
@@ -681,12 +782,12 @@ test("tracked copies stay outside the normal tree through polling and retain foc
     );
     const keep = [
       ...container.querySelectorAll<HTMLButtonElement>("button"),
-    ].find((button) => button.textContent === "Keep");
+    ].find((button) => button.getAttribute("aria-label") === "Keep");
     assert(keep);
     assert.equal(keep.disabled, false);
     const remove = [
       ...container.querySelectorAll<HTMLButtonElement>("button"),
-    ].find((button) => button.textContent === "Delete copy");
+    ].find((button) => button.getAttribute("aria-label") === "Delete copy");
     assert(remove);
     assert.equal(remove.disabled, false);
     await act(async () => {
@@ -701,6 +802,168 @@ test("tracked copies stay outside the normal tree through polling and retain foc
     assert(writes.includes(`/api/sessions/${key(1)}`));
     assert.equal(container.querySelector("[data-session-key]"), null);
     assert.equal(document.activeElement?.id, "document");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("project defaults follow lifecycle while manual project and sidebar choices survive remount", async () => {
+  const { ViewerShell } = await import("../shell");
+  const previous = sessionStorage.getItem("hive-view-navigation");
+  sessionStorage.removeItem("hive-view-navigation");
+  const container = document.createElement("div");
+  document.body.append(container);
+  let root = createRoot(container);
+  const sessions = [
+    {
+      id: key(1),
+      project: "Running",
+      projectKey: "running",
+      ticket: "#1",
+      title: "Active work",
+      createdAt: "23 Oct",
+      classification: "local" as const,
+      status: "in_progress" as const,
+    },
+    {
+      id: key(2),
+      project: "Closed",
+      projectKey: "closed",
+      ticket: "#2",
+      title: "Completed work",
+      createdAt: "22 Oct",
+      classification: "local" as const,
+      status: "closed" as const,
+    },
+    {
+      id: key(3),
+      project: "Unknown",
+      projectKey: "unknown",
+      ticket: "#3",
+      title: "Historical work",
+      createdAt: "21 Oct",
+      classification: "local" as const,
+    },
+  ];
+  const render = async (items = sessions) => {
+    await act(async () =>
+      root.render(
+        <ViewerShell sessions={items} state="ready" onRetry={() => {}} />,
+      ),
+    );
+  };
+  const group = (name: string) => {
+    const button = container.querySelector<HTMLButtonElement>(
+      `[data-slot="collapsible-trigger"][title="${name}"]`,
+    );
+    assert(button);
+    return button;
+  };
+  try {
+    await render();
+    assert.equal(group("Running").getAttribute("aria-expanded"), "true");
+    assert.equal(group("Closed").getAttribute("aria-expanded"), "false");
+    assert.equal(group("Unknown").getAttribute("aria-expanded"), "false");
+    await act(async () => {
+      group("Running").click();
+      group("Closed").click();
+    });
+    const toggle = container.querySelector<HTMLButtonElement>(
+      '[data-slot="sidebar-inset"] [data-sidebar="trigger"]',
+    );
+    assert(toggle);
+    await act(async () => toggle.click());
+    await render(
+      sessions.map((session) => ({
+        ...session,
+        title: `${session.title} refreshed`,
+      })),
+    );
+    assert.equal(group("Running").getAttribute("aria-expanded"), "false");
+    assert.equal(group("Closed").getAttribute("aria-expanded"), "true");
+    assert.equal(
+      container
+        .querySelector('[data-slot="sidebar"]')
+        ?.getAttribute("data-state"),
+      "collapsed",
+    );
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await render();
+    assert.equal(group("Running").getAttribute("aria-expanded"), "false");
+    assert.equal(group("Closed").getAttribute("aria-expanded"), "true");
+    assert.equal(
+      container
+        .querySelector('[data-slot="sidebar"]')
+        ?.getAttribute("data-state"),
+      "collapsed",
+    );
+    assert.deepEqual(
+      JSON.parse(sessionStorage.getItem("hive-view-navigation") || "{}")
+        .projects,
+      { running: false, closed: true },
+    );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+    if (previous === null) sessionStorage.removeItem("hive-view-navigation");
+    else sessionStorage.setItem("hive-view-navigation", previous);
+  }
+});
+
+test("archive filter is icon-only with an accessible toggle and grouped actions keep their names", async () => {
+  const { ViewerShell } = await import("../shell");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  let shown = false;
+  const item = {
+    id: key(1),
+    project: "Hive",
+    ticket: "#89",
+    title: "Archive action",
+    createdAt: "23 Oct",
+    classification: "local" as const,
+    status: "closed" as const,
+  };
+  try {
+    await act(async () =>
+      root.render(
+        <ViewerShell
+          sessions={[item]}
+          selectedId={item.id}
+          state="ready"
+          onRetry={() => {}}
+          onShowArchivedChange={(value) => {
+            shown = value;
+          }}
+          onArchive={() => {}}
+          onPin={() => {}}
+          onDelete={() => {}}
+        />,
+      ),
+    );
+    const filter = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Show archived"]',
+    );
+    assert(filter);
+    assert.equal(filter.textContent, "");
+    assert.equal(filter.getAttribute("aria-pressed"), "false");
+    await act(async () => filter.click());
+    assert.equal(shown, true);
+    const actions = container.querySelector(
+      '[role="group"][aria-label="Session actions"]',
+    );
+    assert(actions);
+    assert.deepEqual(
+      [...actions.querySelectorAll("button")].map((button) =>
+        button.getAttribute("aria-label"),
+      ),
+      ["Archive copy", "Keep", "Delete copy"],
+    );
+    assert(actions.textContent?.includes("Closed"));
+    assert.equal(actions.querySelector('[aria-haspopup="menu"]'), null);
   } finally {
     await act(async () => root.unmount());
     container.remove();

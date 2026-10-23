@@ -135,46 +135,19 @@ body {
   font-family: inherit;
   cursor: pointer;
 }
-/* Session anchors use content-driven height so long report titles and dates
-   remain readable; the installed menu controls retain their native sizing. */
-/* Each branch owns one level. End the parent trunk at the final child's
-   connector, so sessions remain visibly attached to their ticket. */
-.navigation-branch {
-  border-color: transparent;
-}
-.navigation-node {
-  --navigation-connector-y: 1rem;
-}
-.navigation-session {
-  --navigation-connector-y: 1.25rem;
-}
-.navigation-node::before,
-.navigation-node::after {
-  content: "";
-  position: absolute;
-  left: -0.6875rem;
-  border-color: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
-  pointer-events: none;
-}
-.navigation-node::before {
-  top: var(--navigation-connector-y);
-  width: 0.6875rem;
-  border-top-width: 1px;
-  border-top-style: solid;
-}
-.navigation-node::after {
-  top: -0.25rem;
-  bottom: -0.25rem;
-  border-left-width: 1px;
-  border-left-style: solid;
-}
-.navigation-node:last-child::after {
-  bottom: calc(100% - var(--navigation-connector-y));
-}
 .session-navigation-link {
-  padding: 0.625rem 0.5rem;
+  padding: 0.5rem;
   border-radius: var(--radius-md);
   font-weight: normal;
+}
+.session-status-dot {
+  background: var(--muted-foreground);
+}
+.session-status-dot[data-session-status="closed"] {
+  background: var(--success);
+}
+.session-status-dot[data-session-status="in_progress"] {
+  background: var(--primary);
 }
 .session-navigation-link[aria-current="page"] .session-navigation-title {
   color: var(--foreground);
