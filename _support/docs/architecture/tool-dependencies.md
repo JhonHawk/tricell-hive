@@ -27,6 +27,7 @@ memory stores and services are untouched.
 | Context7 | Current library documentation through its CLI and vendor skills | Codex, Claude, Cursor, OpenCode | Context7 CLI docs (`ctx7 setup --cli`, npm distribution; needs Node.js 18+) | Setup is interactive and may authenticate; Hive installs no runtime |
 | pi-subagents | Pi delegated children | Pi | pi-subagents docs (`pi install npm:pi-subagents`) | Upstream validation covers only Pi 0.86.1 on Linux x64; undoing only an added entry (#29) needs Pi's native gate |
 | `agent-browser` | Browser automation for UI review and in-vivo checks | All six | agent-browser README (`brew install agent-browser`, `npm install -g agent-browser`, `agent-browser install`) | Installable after consent on macOS arm64 (Homebrew) and Linux amd64 (Node 24+, writable npm prefix); manual elsewhere |
+| CodeGraph | A queryable code graph (symbols, callers, impact) through an MCP server and CLI; the global guidance says when to use it, when to run `codegraph sync -q`, and what to confirm | Claude, Codex, Cursor, OpenCode | CodeGraph README (`github.com/colbymchenry/codegraph`; `codegraph install` writes each host's MCP entry and its own instruction block) | Its installer writes several hosts' configuration, which Hive does not run; manual-only, with no recipe |
 | Codex question card (`codex-question-card`) | Codex's synchronous question card in Default mode, so decisions are asked through a card that waits instead of text | Codex | Codex CLI (`codex features enable default_mode_request_user_input`, `codex features disable …`, `codex features list`); feature at stage "under development" in `rust-v0.163.0`, not in the official configuration reference | Executable after consent when `codex` is on `PATH` and `codex features list` reports the feature, selected by default in interactive installs; manual when `codex` is missing, too old, or the home is synthetic |
 
 The Codex question card recipe runs one local command, Codex's own
@@ -57,7 +58,8 @@ names a file, or that folder already holds a browser. Hive never uninstalls
 
 ## Evidence and limits
 
-The catalog reflects provider documentation checked on 2026-09-25. It is
+The catalog reflects provider documentation checked on 2026-09-25, and
+CodeGraph 1.6.2 checked on 2026-10-23. It is
 documentary evidence, not a native provider-install test.
 
 ## Adding a recipe later

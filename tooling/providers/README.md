@@ -2,11 +2,11 @@
 
 `tooling/providers` owns the small typed catalog for Hive's optional
 capabilities (Engram, Context7, pi-subagents, agent-browser,
-codex-question-card). It does not
+codex-question-card, CodeGraph). It does not
 manage Hive content, run anything, or persist onboarding journals;
 `tooling/management` owns the parent journal and consent.
 
-Engram, Context7 and pi-subagents are manual-only: `providers.Catalog()` lists,
+Engram, Context7, pi-subagents and CodeGraph are manual-only: `providers.Catalog()` lists,
 for each capability, the hosts it is relevant to, the official documentation
 to follow, and the reason. agent-browser and codex-question-card have
 executable recipes. agent-browser has an install step
