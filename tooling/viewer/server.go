@@ -35,6 +35,7 @@ const (
 var embeddedAssets = map[string]string{
 	"walkthrough.mjs": "text/javascript; charset=utf-8",
 	"walkthrough.css": "text/css; charset=utf-8",
+	"hive-mark.svg":   "image/svg+xml",
 }
 
 // fileTypes maps the extensions OpenFile can return to a Content-Type. The
@@ -140,6 +141,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case p == "/":
 		s.frontendAsset(w, r, s.frontend.entrypoint)
+	case p == "/favicon.ico":
+		s.asset(w, r, "hive-mark.svg", embeddedAssets["hive-mark.svg"])
 	case strings.HasPrefix(p, "/assets/app/"):
 		s.frontendAsset(w, r, strings.TrimPrefix(p, "/assets/app/"))
 	case strings.HasPrefix(p, "/assets/"):
@@ -326,7 +329,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, out)
 }
 
-// session serves /api/sessions/<key>[/pin].
+// session serves /api/sessions/<key>[/pin|/archive].
 func (s *Server) session(w http.ResponseWriter, r *http.Request, rest string) {
 	key, sub, _ := strings.Cut(rest, "/")
 	switch sub {
@@ -356,6 +359,11 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, rest string) {
 			return
 		}
 		s.done(w, s.store.Pin(key, r.Method == http.MethodPost))
+	case "archive":
+		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorize(w, r, true) {
+			return
+		}
+		s.done(w, s.store.Archive(key, r.Method == http.MethodPost))
 	default:
 		httpError(w, http.StatusNotFound, "not found")
 	}

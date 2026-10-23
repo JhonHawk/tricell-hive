@@ -19,12 +19,17 @@ export default defineConfig({
             ?.replace("/assets/app/assets/", "/assets/");
           if (
             asset !== "/assets/walkthrough.mjs" &&
-            asset !== "/assets/walkthrough.css"
+            asset !== "/assets/walkthrough.css" &&
+            asset !== "/assets/hive-mark.svg"
           )
             return next();
           res.setHeader(
             "Content-Type",
-            asset.endsWith(".css") ? "text/css" : "text/javascript",
+            asset.endsWith(".svg")
+              ? "image/svg+xml"
+              : asset.endsWith(".css")
+                ? "text/css"
+                : "text/javascript",
           );
           res.end(
             await readFile(

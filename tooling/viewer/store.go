@@ -76,7 +76,7 @@ type Store struct {
 	// folder and reading it again to hash and copy it.
 	afterValidate func(folder string)
 
-	// mu serializes the apply phase of a scan, purge, delete, pin and startup.
+	// mu serializes the apply phase of a scan, purge, delete, pin, archive and startup.
 	// Lock order: mu, then the flock on viewer/lock (registry only).
 	mu            sync.Mutex
 	lastPersisted []byte
@@ -213,6 +213,7 @@ type meta struct {
 	ContentHash string    `json:"content_hash"`
 	IngestedAt  time.Time `json:"ingested_at"`
 	Pinned      bool      `json:"pinned"`
+	Archived    bool      `json:"archived,omitempty"`
 }
 
 func readMeta(dir string) (meta, error) {
@@ -300,15 +301,16 @@ func readBounded(path string, limit int64) ([]byte, error) {
 
 func sessionFrom(key string, m meta, sm summary) Session {
 	return Session{
-		Key: key, Source: m.Source, ContentHash: m.ContentHash, IngestedAt: m.IngestedAt.UTC(), Pinned: m.Pinned,
+		Key: key, Source: m.Source, ContentHash: m.ContentHash, IngestedAt: m.IngestedAt.UTC(), Pinned: m.Pinned, Archived: m.Archived,
 		SessionID: sm.Session.ID, SessionStatus: string(sm.Session.Status), Host: sm.Session.Host, Ticket: sm.Ticket, Title: sm.Title,
 		Kind: sm.Kind, CreatedAt: sm.CreatedAt,
 	}
 }
 
 // load builds the index from disk: sessions from sessions/*/meta.json (the
-// source of truth, including pins), tombstones and ingest errors from a
-// readable index.json. A missing or corrupt index.json only loses those two.
+// source of truth, including pins and archive flags), tombstones and ingest
+// errors from a readable index.json. A missing or corrupt index.json only
+// loses those two.
 func (s *Store) load() *indexData {
 	d := newIndexData()
 	if prev, ok := s.readIndexFile(); ok {
@@ -478,6 +480,34 @@ func (s *Store) Pin(key string, pinned bool) error {
 		}
 	}
 	d.Sessions[i].Pinned = pinned
+	return s.commit(d)
+}
+
+// Archive marks a stored copy as hidden (or visible) in the viewer. It does
+// not change pinning, retention, or the source manifest. The flag lives in
+// meta.json so it survives index loss and restarts.
+func (s *Store) Archive(key string, archived bool) error {
+	if err := validKey(key); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.current().clone()
+	i, ok := d.session(key)
+	if !ok {
+		return ErrNotFound
+	}
+	m, err := readMeta(s.sessionDir(key))
+	if err != nil {
+		return err
+	}
+	if m.Archived != archived {
+		m.Archived = archived
+		if err := writeJSONAtomic(filepath.Join(s.sessionDir(key), "meta.json"), m); err != nil {
+			return err
+		}
+	}
+	d.Sessions[i].Archived = archived
 	return s.commit(d)
 }
 

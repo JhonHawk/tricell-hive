@@ -1,6 +1,7 @@
 import type { ViewerSession } from "./shell";
 export const TOKEN_KEY = "hive-view-token";
 export const OPEN_KEY = "hive-view-open";
+export const ARCHIVED_KEY = "hive-view-show-archived";
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 export function optionalStorage(): StorageLike | undefined {
   try {
@@ -106,6 +107,7 @@ export type RawSession = {
   content_hash: string;
   ingested_at: string;
   pinned?: boolean;
+  archived?: boolean;
   session_id: string;
   session_status?: string;
   host?: string;
@@ -192,6 +194,8 @@ export function validateIndex(value: RawIndex): RawIndex {
       typeof session.source !== "string"
     )
       throw new Error("Invalid viewer session");
+    if (session.archived !== undefined && typeof session.archived !== "boolean")
+      throw new Error("Invalid session archive state");
     for (const field of [
       "project_key",
       "project_name",
@@ -244,6 +248,7 @@ export function mapIndex(
       createdAt: Number.isNaN(time) ? "" : format.format(time),
       classification,
       pinned: Boolean(raw.pinned),
+      archived: Boolean(raw.archived),
       status:
         raw.session_status === "in_progress" || raw.session_status === "closed"
           ? raw.session_status

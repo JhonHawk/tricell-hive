@@ -42,6 +42,7 @@ type Session struct {
 	ContentHash string    `json:"content_hash"`
 	IngestedAt  time.Time `json:"ingested_at"`
 	Pinned      bool      `json:"pinned"`
+	Archived    bool      `json:"archived"`
 
 	SessionID     string `json:"session_id"`
 	SessionStatus string `json:"session_status"`

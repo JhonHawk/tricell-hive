@@ -35,8 +35,8 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 ## Optional
 
-- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, no Node at runtime, source classification, explicit work-status badges, confirmed closure, and user-controlled retention
-- [Viewer frontend](tooling/viewer/frontend/README.md): standalone development package, real API by default, explicit development preview, bundle contract and checks
+- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, no Node at runtime, flat project/session navigation, informational work status, reversible copy archiving independent of pinning and retention, source classification and confirmed closure
+- [Viewer frontend](tooling/viewer/frontend/README.md): standalone development package, real API by default, explicit development preview, same-tab navigation persistence, bundle contract and checks
 - [Third-party notices](THIRD_PARTY_NOTICES.md): Go and embedded frontend license notices
 
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks

@@ -1,5 +1,6 @@
 import {
   type AccessClient,
+  ARCHIVED_KEY,
   HttpError,
   type LibrarySession,
   mapIndex,
@@ -31,8 +32,11 @@ export type ViewerState = {
     | "pinned"
     | "unpinned"
     | "deleted"
+    | "archived"
+    | "unarchived"
     | "writeError";
   writing: boolean;
+  showArchived: boolean;
 };
 const initial: ViewerState = {
   access: "pending",
@@ -43,6 +47,7 @@ const initial: ViewerState = {
   down: false,
   indexError: false,
   writing: false,
+  showArchived: false,
 };
 export class ViewerController {
   private state: ViewerState = { ...initial };
@@ -74,7 +79,10 @@ export class ViewerController {
     this.loadSeq++;
     this.hidden.clear();
     this.reading = false;
-    this.update({ ...initial });
+    this.update({
+      ...initial,
+      showArchived: stored(this.client.storage, ARCHIVED_KEY) === "true",
+    });
     try {
       await this.client.establish(code);
       if (epoch !== this.epoch) return;
@@ -130,11 +138,13 @@ export class ViewerController {
       this.schedule();
     }
   }
-  private apply(index: RawIndex) {
+  private apply(index: RawIndex, notifyMissing = true) {
     const mapped = mapIndex(index);
     for (const key of this.hidden)
       if (!mapped.some((s) => s.id === key)) this.hidden.delete(key);
-    const sessions = mapped.filter((s) => !this.hidden.has(s.id));
+    const sessions = mapped.filter(
+      (s) => !this.hidden.has(s.id) && (this.state.showArchived || !s.archived),
+    );
     const current = sessions.find((s) => s.id === this.state.selectedId);
     const previous = this.state.sessions.find(
       (s) => s.id === this.state.selectedId,
@@ -146,7 +156,7 @@ export class ViewerController {
         selectedId: undefined,
         document: null,
         documentState: "empty",
-        notice: previous ? "gone" : this.state.notice,
+        notice: previous && notifyMissing ? "gone" : this.state.notice,
       });
       return;
     }
@@ -183,7 +193,7 @@ export class ViewerController {
           (Date.parse(a.raw.ingested_at) || 0),
     )[0];
     this.select((preferred || latest).id);
-    if (previous) this.update({ notice: "gone" });
+    if (previous && notifyMissing) this.update({ notice: "gone" });
   }
   select = (id: string) => {
     const selected = this.state.sessions.find((s) => s.id === id);
@@ -245,6 +255,54 @@ export class ViewerController {
   };
   rendererFailed = () =>
     this.update({ document: null, documentState: "error" });
+  setShowArchived = (showArchived: boolean) => {
+    save(this.client.storage, ARCHIVED_KEY, String(showArchived));
+    this.update({ showArchived });
+    if (this.state.index) this.apply(this.state.index, false);
+  };
+  async archive() {
+    const selected = this.state.sessions.find(
+      (s) => s.id === this.state.selectedId,
+    );
+    if (!selected || this.state.writing) return;
+    const epoch = this.epoch;
+    const archived = !selected.archived;
+    this.update({ writing: true });
+    try {
+      await this.client.request(
+        `/api/sessions/${selected.id}/archive`,
+        archived ? "POST" : "DELETE",
+      );
+      if (epoch !== this.epoch) return;
+      this.readSeq++;
+      if (this.state.index) {
+        const update = (
+          session: RawIndex["projects"][number]["tickets"][number]["sessions"][number],
+        ) => (session.key === selected.id ? { ...session, archived } : session);
+        this.apply(
+          {
+            ...this.state.index,
+            projects: this.state.index.projects.map((project) => ({
+              ...project,
+              tickets: project.tickets.map((ticket) => ({
+                ...ticket,
+                sessions: ticket.sessions.map(update),
+              })),
+            })),
+            excluded_sessions: this.state.index.excluded_sessions?.map(update),
+          },
+          false,
+        );
+      }
+      this.update({ notice: archived ? "archived" : "unarchived" });
+      void this.refresh();
+    } catch (error) {
+      if (epoch === this.epoch && !this.failure(error))
+        this.update({ notice: "writeError" });
+    } finally {
+      if (epoch === this.epoch) this.update({ writing: false });
+    }
+  }
   async pin() {
     const selected = this.state.sessions.find(
       (s) => s.id === this.state.selectedId,

@@ -98,6 +98,31 @@ export function ViewerApplication({
         <Command command="hive view open" />
       </div>
     );
+  else if (
+    !state.sessions.length &&
+    state.index &&
+    !state.showArchived &&
+    (state.index.projects.some((project) =>
+      project.tickets.some((ticket) =>
+        ticket.sessions.some((session) => session.archived),
+      ),
+    ) ||
+      state.index.excluded_sessions?.some((session) => session.archived))
+  )
+    panel = (
+      <div role="status" className="flex flex-col items-start gap-3">
+        <h2 className="font-medium">{t.archivedOnly}</h2>
+        <p className="text-muted-foreground">{t.archivedOnlyBody}</p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => controller.setShowArchived(true)}
+        >
+          {t.showArchived}
+        </Button>
+      </div>
+    );
   else if (!state.sessions.length && state.index)
     panel = (
       <div role="status" className="flex flex-col items-start gap-3">
@@ -219,6 +244,9 @@ export function ViewerApplication({
             variant={
               selected.classification === "unknown" ? "warning" : "default"
             }
+            className={
+              selected.classification === "local" ? "border-border" : undefined
+            }
             role="status"
           >
             <AlertTitle>
@@ -248,6 +276,9 @@ export function ViewerApplication({
         }
         selectedId={state.selectedId}
         onSelect={controller.select}
+        showArchived={state.showArchived}
+        onShowArchivedChange={controller.setShowArchived}
+        onArchive={selected ? () => void controller.archive() : undefined}
         state={
           state.access === "pending" ||
           (state.access === "ready" && !state.index && !state.indexError)

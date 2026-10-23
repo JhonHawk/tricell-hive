@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A local server, `hive view`, that the user starts and stops to keep and browse the UI walkthroughs agents write, grouped by project, ticket and session.
+A local server, `hive view`, that the user starts and stops to keep and browse the UI walkthroughs agents write, grouped by project and session with ticket metadata.
 
 ## Requirements
 
@@ -70,7 +70,7 @@ The manager SHALL display the six viewer subcommands and exit successfully for `
 - **THEN** the command lists start, stop, status, open, register and serve and exits successfully without creating state.
 
 ### Requirement: Current source classification
-The server SHALL derive `tracked`, `local` or `unknown` source status for every stored copy before publishing its initial or reconstructed view and on each complete scan. It SHALL place tracked copies outside the normal project/ticket tree, preserve their files, keys, ingestion time, pins and existing retention behavior, and show an explanatory entry without rendering the document's instructions. Authenticated normal reads of a tracked copy's manifest or files SHALL return 409 without document bytes; existing authenticated pin and delete operations SHALL remain available. Missing sources without positive tracking evidence and failed classification SHALL be shown as unknown with a warning. Local status SHALL NOT claim verified agent authorship. The list and open document SHALL update source warnings when source status or reason changes, even when content hashes remain unchanged. Classification SHALL NOT require changes to stored per-copy metadata.
+The server SHALL derive `tracked`, `local` or `unknown` source status for every stored copy before publishing its initial or reconstructed view and on each complete scan. It SHALL place tracked copies outside the normal project/session list, preserve their files, keys, ingestion time, pins, archive state and existing retention behavior, and show an explanatory entry without rendering the document's instructions. Authenticated normal reads of a tracked copy's manifest or files SHALL return 409 without document bytes; authenticated archive/restore, pin and delete operations SHALL remain available. Missing sources without positive tracking evidence and failed classification SHALL be shown as unknown with a warning. Local status SHALL NOT claim verified agent authorship. The list and open document SHALL update source warnings when source status or reason changes, even when content hashes remain unchanged. Classification SHALL NOT require changes to stored per-copy metadata.
 
 #### Scenario: Tracking changes without content changes
 - **WHEN** an existing source becomes tracked or stops being tracked while its bytes remain unchanged and its file remains present
@@ -110,7 +110,7 @@ The walkthrough manifest SHALL accept an optional `session.status` with values `
 
 #### Scenario: Historical final report
 - **WHEN** an existing final report has no explicit session status
-- **THEN** it remains valid and its sidebar badge indicates that no status was reported.
+- **THEN** it remains valid and its status indicator states that no status was reported.
 
 #### Scenario: Closing the current work
 - **WHEN** flow-close completes, abandons or pauses a work item with a walkthrough
@@ -128,8 +128,23 @@ The manager SHALL support a directory-targeted viewer status query through its e
 - **THEN** the earlier closed copy does not count as confirmation of the current revision.
 
 ### Requirement: Hierarchical React viewer navigation
-The React shell SHALL distinguish project, ticket and session levels with visible nesting and connector branches, and SHALL display session lifecycle separately from source provenance. Explicit states SHALL be presented as in progress or closed; absent status SHALL be presented as unreported. The shell SHALL retain keyboard and mobile navigation, and SHALL consume the same Go server and shared walkthrough renderer.
+The React shell SHALL list sessions directly under projects, with project counts and compact session title, ticket and date presentation, without a ticket navigation level or connector branches. Projects SHALL initially open only when they contain an explicitly in-progress session, with manual expansion taking precedence. Sidebar visibility, project expansion, archive filter and selection SHALL survive refresh in sessionStorage within the same tab and origin. The sidebar brand header SHALL show a route icon. The selected document SHALL have a separate toolbar with an informational session lifecycle indicator, archive/restore, pin/unpin and delete actions. Lifecycle SHALL remain separate from source provenance and SHALL NOT be editable in the viewer. Explicit states SHALL be presented as in progress or closed; absent status SHALL be presented as unreported. The shell SHALL retain keyboard and mobile navigation, and SHALL consume the same Go server and shared walkthrough renderer.
 
 #### Scenario: Different lifecycle and provenance
 - **WHEN** a session is closed while its source classification is unknown
-- **THEN** the lifecycle badge remains closed and the source uncertainty remains independently visible.
+- **THEN** the lifecycle indicator remains closed and the source uncertainty remains independently visible.
+
+#### Scenario: Refresh after manual navigation
+- **WHEN** the user changes project expansion, sidebar visibility, archive filter or session selection and refreshes the same tab
+- **THEN** the shell restores those choices instead of replacing them with initial defaults.
+
+### Requirement: Reversible copy archiving
+The server SHALL support authenticated, same-origin POST and DELETE requests to `/api/sessions/<key>/archive` to archive and restore stored copies, including excluded tracked-source copies, with 204 on success. Archive state SHALL be optional per-copy `archived` metadata, defaulting to false, and SHALL appear in the index for normal and excluded entries. It SHALL survive restarts, index reconstruction and source-content replacement, independently of pinning, ingestion time, TTL and manifest session status. Archiving SHALL NOT edit source files or exempt an unpinned copy from normal TTL deletion. Archived copies SHALL be hidden by default; an icon-only toggle beside Projects SHALL show or hide them with a tooltip and accessible label.
+
+#### Scenario: Archive and restore a pinned copy
+- **WHEN** the user archives and later restores a pinned copy
+- **THEN** it disappears from and returns to the default list, remains pinned throughout, and its source manifest and work status remain unchanged.
+
+#### Scenario: Archived unpinned copy expires
+- **WHEN** an archived, unpinned copy exceeds the configured retention age
+- **THEN** normal TTL purging removes it.
