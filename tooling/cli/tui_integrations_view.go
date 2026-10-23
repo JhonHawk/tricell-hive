@@ -1,6 +1,7 @@
 // tui_integrations_view.go is the Integrations view (#46, design.md "Vistas"):
-// a list of the optional capabilities with a cursor (four or five rows: the
-// Pi codemode row shows only with Pi registered), and under it the selected
+// a list of the optional capabilities with a cursor (five to seven rows: the
+// Pi codemode row shows only with Pi registered and the Codex question card
+// row only with Codex), and under it the selected
 // row's detail (local evidence, last onboarding status, source and
 // next step) in a text box that wraps without cutting and scrolls. It only
 // reads. The load runs as a Cmd whose result is addressed to the view (owned)
@@ -16,10 +17,10 @@ import (
 )
 
 // integrationsFixedRows are the title, the list header and the most list rows
-// there can be (six); with fewer rows the view pads up to this number, and the
+// there can be (seven); with fewer rows the view pads up to this number, and the
 // detail gets the rest of the view's area. scrollBox.resize subtracts the
 // dialog rows, so the box's height is set directly.
-const integrationsFixedRows = 8
+const integrationsFixedRows = 9
 
 type integrationsLoadedMsg struct {
 	owned
