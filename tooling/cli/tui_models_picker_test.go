@@ -252,7 +252,7 @@ func TestModelsViewArrowOpensTheModelListInOrder(t *testing.T) {
 func TestModelsViewListDoesNotRepeatAnEffectiveModelTheCLIListsAndKeepsCatalogOrder(t *testing.T) {
 	f := standardFake()
 	f.out["codex"] = codexList(map[string][]string{"syn-codex-exec": {"low", "medium"}, "gpt-5.5": {"low"}}, "gpt-5.5", "syn-codex-exec")
-	e := pickerEnv(t, "claude,codex", f, 80, 24)
+	e := pickerEnv(t, "codex", f, 80, 24)
 	toHost(t, e.d, "codex")
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
@@ -387,7 +387,7 @@ func TestModelsViewTwoHundredNineModelsReachTheLastOneWithPageDown(t *testing.T)
 		lines = append(lines, fmt.Sprintf("p/m-%03d", i))
 	}
 	f.out["opencode"] = strings.Join(lines, "\n") + "\n"
-	e := pickerEnv(t, "claude,opencode", f, 80, 24)
+	e := pickerEnv(t, "opencode", f, 80, 24)
 	toHost(t, e.d, "opencode")
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")
@@ -1260,7 +1260,7 @@ func TestModelsViewFlatListsHaveNoSectionHeaders(t *testing.T) {
 		"cursor": "● Auto auto|Codex 5.3 Low gpt-5.3-codex-low|Codex 5.3 Low Fast gpt-5.3-codex-low-fast|Codex 5.3 gpt-5.3-codex|Codex 5.3 Fast gpt-5.3-codex-fast|Codex 5.3 High gpt-5.3-codex-high|Codex 5.3 High Fast gpt-5.3-codex-high-fast|release default|Other…",
 	} {
 		t.Run(host, func(t *testing.T) {
-			e := pickerEnv(t, "claude,codex,cursor,grok", f, 120, 40)
+			e := pickerEnv(t, host, f, 120, 40)
 			toHost(t, e.d, host)
 			selectRole(t, e.d, "plain-role")
 			// A host default (Grok, Cursor) has no model to mark; give the role one.
@@ -1281,7 +1281,7 @@ func TestModelsViewFlatListsHaveNoSectionHeaders(t *testing.T) {
 func TestModelsViewProviderHeadersAreReadableWithAFallback(t *testing.T) {
 	f := standardFake()
 	f.out["opencode"] = "github-copilot/claude-opus-4.7\nxai/grok-4.5\nopencode-go/deepseek-v4\nweird-prov/model-1\namazon-bedrock/titan\n"
-	e := pickerEnv(t, "claude,opencode", f, 120, 40)
+	e := pickerEnv(t, "opencode", f, 120, 40)
 	toHost(t, e.d, "opencode")
 	selectRole(t, e.d, "plain-role")
 	e.d.key("enter", "right")

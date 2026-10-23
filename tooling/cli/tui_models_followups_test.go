@@ -10,7 +10,7 @@ import (
 // Tests of the #91 follow-ups to the Models view (H1).
 
 func TestModelsViewCodexEffortResetSaysSoInThePanel(t *testing.T) {
-	e := pickerEnv(t, "claude,codex", standardFake(), 80, 24)
+	e := pickerEnv(t, "codex", standardFake(), 80, 24)
 	toHost(t, e.d, "codex")
 	store(t, e.home, e.stateDir, "codex", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
 	e.d.key("r")
@@ -45,7 +45,7 @@ func TestModelsViewXOnARoleWithoutOverrideSaysThereIsNothingToReset(t *testing.T
 }
 
 func TestModelsViewXOnAGroupWithoutOverrideSaysThereIsNothingToReset(t *testing.T) {
-	e := newModelsEditEnv(t, modelsTestSource(t), modelsEditHosts, 80, 24)
+	e := newModelsEditEnv(t, modelsTestSource(t), "claude", 80, 24)
 	e.d.key("r")
 	for range 60 {
 		if it, ok := e.v.selectedItem(); ok && it.header {
@@ -63,7 +63,7 @@ func TestModelsViewXOnAGroupWithoutOverrideSaysThereIsNothingToReset(t *testing.
 
 func TestModelsViewPickerShowsThePositionAmongTheModels(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
-		e := pickerEnv(t, "claude,codex", standardFake(), size[0], size[1])
+		e := pickerEnv(t, "codex", standardFake(), size[0], size[1])
 		toHost(t, e.d, "codex")
 		selectRole(t, e.d, "plain-role")
 		e.d.key("enter", "right")
