@@ -10,13 +10,24 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-23
+
 ### Added
+
+- The walkthrough viewer groups compact sessions directly under projects, with
+  session counts, full descriptive titles, ticket/date metadata and a route icon.
+  Its grouped toolbar shows work status and actions to archive, restore, pin and
+  delete a copy. Archived copies are hidden by default and can be shown with the
+  archive icon beside Projects. Archiving is independent of pinning, retention
+  and manifest status. Projects initially expand only when they contain work in
+  progress; manual expansion, sidebar visibility, archive filtering and selection
+  survive refresh within the same browser tab and origin.
 
 - `hive view`, a local walkthrough viewer the user starts and stops
   (`start`, `stop`, `status`, `open`, `serve`, `register`). Agents register repositories and use
   `hive view status --dir <work folder>` to confirm closure; the server on 127.0.0.1 copies each repository's
-  `walkthrough.json` and its files into Hive's state directory, groups them by
-  project, ticket and session in a sidebar, purges unpinned copies after 14
+  `walkthrough.json` and its files into Hive's state directory, indexes project, ticket and session metadata and presents sessions grouped by
+  project in a compact sidebar, purges unpinned copies after 14
   days (`--ttl`), and deletes a copy on request without touching the
   repository. A new manager command raises the minor version of the next
   release.
@@ -98,7 +109,7 @@ raise the minor or the patch version.
   Claude, Pi); on Grok and OpenCode it now requires the native question (#66).
 
 - The local walkthrough viewer replaces its vanilla shell with React and public
-  MIT shadcn/ui and ReUI components in a custom project/ticket/session sidebar.
+  MIT shadcn/ui and ReUI components in a custom compact project/session sidebar.
   Its versioned bundle runs inside the Go binary without Node, a ReUI license
   or third-party network access. Frontend development uses Node >=24 and pnpm
   12.8.1, with frozen dependencies and read-only bundle freshness checks.
@@ -205,6 +216,10 @@ raise the minor or the patch version.
   instead. Renaming a role raises the minor version of the next release.
 
 ### Fixed
+
+- The local viewer and documentation site serve the Hive favicon without
+  missing-resource requests. The viewer uses the correct image MIME type and
+  also supports the default `/favicon.ico` request, without third-party requests.
 
 - A pull request is merged with the method the repository declares or its base
   branch's recent merges show, a merge commit by default (Grok cam session
