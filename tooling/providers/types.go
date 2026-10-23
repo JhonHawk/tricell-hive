@@ -1,6 +1,7 @@
 // Package providers describes optional third-party capabilities without
-// owning their configuration or lifecycle. Engram, Context7 and pi-subagents
-// resolve to a single Manual step naming the official source and the reason.
+// owning their configuration or lifecycle. Engram, Context7, pi-subagents and
+// CodeGraph resolve to a single Manual step naming the official source and the
+// reason.
 // agent-browser and codex-question-card have executable recipes: agent-browser
 // has two steps and codex-question-card has one, each with an argv fixed by
 // this package and bound to the step ID. management persists consent and
@@ -18,6 +19,9 @@ const (
 	// CodexQuestionCard turns on Codex's question card in Default mode through
 	// Codex's own `codex features enable`; Hive never edits Codex's config.
 	CodexQuestionCard ID = "codex-question-card"
+	// CodeGraph is a manual-only capability: Hive lists its official source and
+	// never runs its installer or edits the host configuration it writes.
+	CodeGraph ID = "codegraph"
 )
 
 // Status is kept distinct from management's own step-status strings so a

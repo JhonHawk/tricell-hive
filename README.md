@@ -153,8 +153,9 @@ Go modules unless they are already cached.
 Maintainers can build packages locally with `go run ./tooling/package --out ./dist`.
 Building does not publish a release.
 
-Engram and Context7 are optional, separately managed capabilities with official
-manual instructions and no automated provider recipes or credential requests.
+Engram, Context7 and CodeGraph are optional, separately managed capabilities with official
+manual instructions and no automated provider recipes or credential requests;
+CodeGraph's own `codegraph install` wires its MCP server into your hosts.
 Three steps are automated: pi-subagents, which a user-scope Pi installation adds
 with `pi install` when Pi does not already declare it; `agent-browser`, which
 an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node

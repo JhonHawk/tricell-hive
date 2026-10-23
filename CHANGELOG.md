@@ -10,6 +10,15 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- CodeGraph is an optional, manual capability: the installer offers it for
+  Claude Code, Codex, Cursor and OpenCode with its official source, and
+  `hive doctor` shows whether `codegraph` is on `PATH` without running it. The
+  global guidance says when to use a CodeGraph index, when to run
+  `codegraph sync -q` so its relations are current, and which results to
+  confirm with text search (#104).
+
 ## [0.5.0] - 2026-10-23
 
 ### Added

@@ -133,7 +133,7 @@ func rowByID(t *testing.T, rows []integrationRow, id string) integrationRow {
 	return integrationRow{}
 }
 
-func TestIntegrationsSectionListsTheFiveRowsInOrderWithPi(t *testing.T) {
+func TestIntegrationsSectionListsTheSixRowsInOrderWithPi(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
 	sec := collectIntegrations(o, f.deps())
 	if sec.Title != "Integrations" || sec.Err != "" {
@@ -141,7 +141,7 @@ func TestIntegrationsSectionListsTheFiveRowsInOrderWithPi(t *testing.T) {
 	}
 	text := sectionText(sec)
 	last := -1
-	for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser"} {
+	for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser", "CodeGraph"} {
 		i := strings.Index(text, name)
 		if i < 0 || i < last {
 			t.Fatalf("%s missing or out of order in:\n%s", name, text)
@@ -150,7 +150,7 @@ func TestIntegrationsSectionListsTheFiveRowsInOrderWithPi(t *testing.T) {
 	}
 }
 
-func TestIntegrationsSectionListsFourRowsWithoutPi(t *testing.T) {
+func TestIntegrationsSectionListsFiveRowsWithoutPi(t *testing.T) {
 	o, f, _, _ := integrationsFixtureHosts(t, "claude")
 	rows, errText := collectIntegrationRows(o, f.deps())
 	if errText != "" {
@@ -160,7 +160,7 @@ func TestIntegrationsSectionListsFourRowsWithoutPi(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser"; got != want {
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codegraph"; got != want {
 		t.Fatalf("rows = %s, want %s", got, want)
 	}
 	if strings.Contains(integrationsText(o, f.deps()), "codemode") {
@@ -175,7 +175,7 @@ func TestPiCodemodeRowTexts(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,pi-codemode,agent-browser"; got != want {
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,pi-codemode,agent-browser,codegraph"; got != want {
 		t.Fatalf("rows = %s, want %s", got, want)
 	}
 	r := rowByID(t, rows, "pi-codemode")
@@ -217,7 +217,7 @@ func TestPiCodemodeRowIgnoresPiSettings(t *testing.T) {
 
 func TestIntegrationsDetectsProgramsWithoutRunningThem(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
-	pathDir, marker := fakePrograms(t, "engram", "agent-browser", "pi")
+	pathDir, marker := fakePrograms(t, "engram", "agent-browser", "codegraph", "pi")
 	deps := f.deps()
 	var looked []string
 	deps.lookPath = func(name string) (string, error) {
@@ -225,13 +225,13 @@ func TestIntegrationsDetectsProgramsWithoutRunningThem(t *testing.T) {
 		return exec.LookPath(name)
 	}
 	text := integrationsText(o, deps)
-	mustContain(t, text, filepath.Join(pathDir, "engram"), filepath.Join(pathDir, "agent-browser"))
+	mustContain(t, text, filepath.Join(pathDir, "engram"), filepath.Join(pathDir, "agent-browser"), filepath.Join(pathDir, "codegraph"))
 	mustNotExist(t, marker)
 	if len(f.ran) != 0 {
 		t.Fatalf("a program was run: %v", f.ran)
 	}
-	if fmt.Sprint(looked) != "[engram agent-browser]" {
-		t.Fatalf("looked up %v; only engram and agent-browser are detected (pi-subagents needs Pi's configuration)", looked)
+	if fmt.Sprint(looked) != "[engram agent-browser codegraph]" {
+		t.Fatalf("looked up %v; only engram, agent-browser and codegraph are detected (pi-subagents needs Pi's configuration)", looked)
 	}
 }
 
@@ -241,7 +241,7 @@ func TestIntegrationsReportsProgramsNotFound(t *testing.T) {
 	deps := f.deps()
 	deps.lookPath = exec.LookPath
 	rows, _ := collectIntegrationRows(o, deps)
-	for _, id := range []string{"engram", "agent-browser"} {
+	for _, id := range []string{"engram", "agent-browser", "codegraph"} {
 		if r := rowByID(t, rows, id); r.Found != "not detected" {
 			t.Fatalf("%s found = %q", id, r.Found)
 		}
@@ -251,7 +251,7 @@ func TestIntegrationsReportsProgramsNotFound(t *testing.T) {
 func TestIntegrationsUnderASyntheticHomeChecksNoProgram(t *testing.T) {
 	o, home, _ := doctorHome(t, "claude") // synthetic: Home is set
 	f := newDoctorFake(home)
-	_, marker := fakePrograms(t, "engram", "agent-browser")
+	_, marker := fakePrograms(t, "engram", "agent-browser", "codegraph")
 	deps := f.deps()
 	deps.lookPath = func(name string) (string, error) {
 		t.Fatalf("lookPath(%q) under a synthetic home", name)
@@ -259,7 +259,7 @@ func TestIntegrationsUnderASyntheticHomeChecksNoProgram(t *testing.T) {
 	}
 	rows, _ := collectIntegrationRows(o, deps)
 	mustNotExist(t, marker)
-	for _, id := range []string{"engram", "agent-browser"} {
+	for _, id := range []string{"engram", "agent-browser", "codegraph"} {
 		r := rowByID(t, rows, id)
 		if r.Found != "not checked" && !(id == "agent-browser" && r.Found == "not detected") {
 			t.Fatalf("%s found = %q under a synthetic home", id, r.Found)
@@ -337,7 +337,7 @@ func TestIntegrationsAgentBrowserSkillUsesTheSameRoots(t *testing.T) {
 
 func TestIntegrationsRecordStatusReachesTheMatchingRows(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
-	writeOnboardingRecord(t, o, "manual", "engram", "pi-subagents")
+	writeOnboardingRecord(t, o, "manual", "engram", "pi-subagents", "codegraph")
 	rows, _ := collectIntegrationRows(o, f.deps())
 	if r := rowByID(t, rows, "engram"); r.Record != "manual" {
 		t.Fatalf("engram record = %q", r.Record)
@@ -348,6 +348,9 @@ func TestIntegrationsRecordStatusReachesTheMatchingRows(t *testing.T) {
 	}
 	if pi.Found != "not checked" {
 		t.Fatalf("pi-subagents found = %q; Hive cannot detect it", pi.Found)
+	}
+	if r := rowByID(t, rows, "codegraph"); r.Record != "manual" {
+		t.Fatalf("codegraph record = %q", r.Record)
 	}
 	// A provider the last onboarding never offered says so, agent-browser included.
 	if r := rowByID(t, rows, "context7"); r.Record != "not in the last record" {
@@ -380,6 +383,7 @@ func TestIntegrationsEveryRowShowsItsSourceAndNextStep(t *testing.T) {
 		"context7":      "context7.com",
 		"pi-subagents":  "github.com/nicobailon/pi-subagents",
 		"agent-browser": agentBrowserSource,
+		"codegraph":     "github.com/colbymchenry/codegraph",
 	}
 	for id, source := range want {
 		r := rowByID(t, rows, id)
@@ -433,10 +437,12 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 			"engram":        {"Install it from the official source (see Source above)", "Hive does not install it"},
 			"pi-subagents":  {"cannot check it without reading Pi's configuration", "If you use Pi, install it with Pi's own package manager", "see Source above"},
 			"agent-browser": {"Optional", "hive install", "follow the official instructions (see Source above)"},
+			"codegraph":     {"Optional", "Install it from the official source (see Source above)", "its own codegraph install", "Hive does not install it"},
 		}},
 		{"everything found", func(t *testing.T, f *doctorFake, home string) {
 			f.install("engram", "")
 			f.install("agent-browser", "")
+			f.install("codegraph", "")
 			installSkill(t, home, ".agents", "find-docs")
 			installSkill(t, home, ".agents", "agent-browser")
 		}, map[string][]string{
@@ -444,6 +450,7 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 			"engram":        {"Hive does not configure Engram", "each CLI", "see Source above"},
 			"pi-subagents":  {"cannot check it"},
 			"agent-browser": {"Hive does not update it", "follow the official instructions (see Source above)"},
+			"codegraph":     {"Hive does not install, update or index it", "codegraph init", "only if you decide to"},
 		}},
 		{"agent-browser only as a program", func(t *testing.T, f *doctorFake, home string) {
 			f.install("agent-browser", "")
@@ -505,6 +512,7 @@ func TestIntegrationsNextStepWhenNothingCanBeChecked(t *testing.T) {
 	mustNotContain(t, engram, "Install it from")
 	browser := rowByID(t, rows, "agent-browser").Next
 	mustContain(t, browser, "could not look for the program here", "hive install", "follow the official instructions (see Source above)")
+	mustContain(t, rowByID(t, rows, "codegraph").Next, "could not look for it here", "its own codegraph install", "see Source above")
 	assertNoCatalogReasonOrInventedCommand(t, rows, "npx ctx7@latest setup --cli")
 }
 
@@ -520,9 +528,9 @@ func TestIntegrationsNextStepSaysWhatTheLastRecordLeftInPlainWords(t *testing.T)
 	} {
 		t.Run(status, func(t *testing.T) {
 			o, f, _, _ := integrationsFixture(t)
-			writeOnboardingRecord(t, o, status, "engram", "context7")
+			writeOnboardingRecord(t, o, status, "engram", "context7", "codegraph")
 			rows, _ := collectIntegrationRows(o, f.deps())
-			for _, id := range []string{"engram", "context7"} {
+			for _, id := range []string{"engram", "context7", "codegraph"} {
 				r := rowByID(t, rows, id)
 				if r.Record != status {
 					t.Fatalf("%s record = %q, want %q", id, r.Record, status)
@@ -535,7 +543,7 @@ func TestIntegrationsNextStepSaysWhatTheLastRecordLeftInPlainWords(t *testing.T)
 	o, f, _, _ := integrationsFixture(t)
 	writeOnboardingRecord(t, o, "manual", "engram")
 	rows, _ := collectIntegrationRows(o, f.deps())
-	for _, id := range []string{"context7", "pi-subagents", "agent-browser"} {
+	for _, id := range []string{"context7", "pi-subagents", "agent-browser", "codegraph"} {
 		mustNotContain(t, rowByID(t, rows, id).Next, "The last install")
 	}
 }
@@ -743,7 +751,7 @@ func TestCodexQuestionCardRowShownOnlyWithCodexRegistered(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codex-question-card"; got != want {
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codegraph,codex-question-card"; got != want {
 		t.Fatalf("rows = %s, want %s", got, want)
 	}
 	r := rowByID(t, rows, "codex-question-card")
@@ -820,4 +828,25 @@ func TestCodexQuestionCardRowIgnoresCodexConfig(t *testing.T) {
 		t.Fatalf("row = %+v", r)
 	}
 	mustNotExist(t, marker)
+}
+
+// TestCodeGraphRowReportsThePathWithoutRunningIt covers the detected case: the
+// row carries the path lookPath found, and the program is never executed.
+func TestCodeGraphRowReportsThePathWithoutRunningIt(t *testing.T) {
+	o, f, _, _ := integrationsFixtureHosts(t, "claude")
+	pathDir, marker := fakePrograms(t, "codegraph")
+	deps := f.deps()
+	deps.lookPath = exec.LookPath
+	rows, _ := collectIntegrationRows(o, deps)
+	r := rowByID(t, rows, "codegraph")
+	if r.Name != "CodeGraph" || r.Found != "detected" {
+		t.Fatalf("row = %+v", r)
+	}
+	if len(r.Evidence) != 1 || r.Evidence[0] != "Program: "+filepath.Join(pathDir, "codegraph") {
+		t.Fatalf("evidence = %q", r.Evidence)
+	}
+	mustNotExist(t, marker)
+	if len(f.ran) != 0 {
+		t.Fatalf("a program was run: %v", f.ran)
+	}
 }

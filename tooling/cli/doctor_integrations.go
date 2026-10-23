@@ -141,7 +141,11 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 	browser.Found, browser.Evidence = agentBrowserEvidence(deps, synthetic, skillRoots, homeErr)
 	browser.BrowserMissing = agentBrowserBrowserEvidence(deps, synthetic, browser.Found, &browser.Evidence)
 
-	for _, r := range []*integrationRow{&engram, &ctx7, &pi, &browser} {
+	// CodeGraph is detected like Engram: a PATH lookup only, never a run.
+	graph := integrationRow{ID: string(providers.CodeGraph), Name: "CodeGraph"}
+	graph.Found, graph.Evidence = programEvidence(deps, synthetic, "codegraph")
+
+	for _, r := range []*integrationRow{&engram, &ctx7, &pi, &browser, &graph} {
 		fillSourceFromCatalog(r)
 		rec.apply(r, recErr)
 	}
@@ -160,7 +164,7 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 			Source:       piCodemodeSource,
 		})
 	}
-	rows = append(rows, browser)
+	rows = append(rows, browser, graph)
 	// The Codex question card row is built like the Pi codemode row: constants
 	// and the onboarding record only. Finding the feature would mean reading
 	// Codex's configuration, so no program is looked up and no file is read.
@@ -235,6 +239,8 @@ func nextStep(r integrationRow) string {
 		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see Source above for the official instructions."
 	case "pi-codemode":
 		step = `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
+	case string(providers.CodeGraph):
+		step = codeGraphNextStep(r.Found)
 	case string(providers.CodexQuestionCard):
 		step = "Run `codex features enable " + providers.CodexQuestionCardFeature + "` to show Codex's question card in Default mode, or `codex features disable " + providers.CodexQuestionCardFeature + "` to turn it off; `codex features list` shows the current state."
 	default:
@@ -267,6 +273,19 @@ func engramNextStep(found string) string {
 		return "Install it from the official source (see Source above); Hive does not install it."
 	}
 	return "Hive could not look for it here. Hive does not install or configure it; see Source above for the official instructions."
+}
+
+// codeGraphNextStep never names a package-manager command: Hive does not install
+// CodeGraph, and its official source (printed above) holds the instructions.
+func codeGraphNextStep(found string) string {
+	const install = "Install it from the official source (see Source above) and run its own codegraph install for your CLIs; Hive does not install it."
+	switch found {
+	case "detected":
+		return "Found. Hive does not install, update or index it. To index a repository, run codegraph init there, only if you decide to (see Source above)."
+	case "not detected":
+		return "Not found. Optional. " + install
+	}
+	return "Hive could not look for it here. Optional. " + install
 }
 
 func agentBrowserNextStep(found string, browserMissing bool) string {

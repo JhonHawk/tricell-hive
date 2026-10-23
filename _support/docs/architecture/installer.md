@@ -99,10 +99,11 @@ Hive installs no CLI executable except `agent-browser`, and only with consent (b
 shared legacy resources can require selecting additional consumers together.
 
 After the hosts, the installer offers optional capabilities for the selected
-hosts: Engram, Context7, `agent-browser`, only with the Pi host pi-subagents, and
-only with the Codex host the Codex question card (`codex-question-card`).
+hosts: Engram, Context7, `agent-browser`, CodeGraph for Claude, Codex, Cursor or
+OpenCode, only with the Pi host pi-subagents, and only with the Codex host the
+Codex question card (`codex-question-card`).
 Their inventory and limits are in [optional tool dependencies](tool-dependencies.md).
-Engram and Context7 have no provider recipes: a selected one is shown with its
+Engram, Context7 and CodeGraph have no provider recipes: a selected one is shown with its
 official source and the reason it is manual, and no provider process runs.
 `agent-browser` has one of the two recipes: in an interactive install on macOS arm64
 with Homebrew, or on Linux amd64 with Node 24 or later and a writable global npm
