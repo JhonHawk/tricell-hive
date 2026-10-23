@@ -55,14 +55,15 @@ Greetings, a short direct answer with no work running, a child's return to its p
 **Actions, in order:**
 
 1. When the result or the notice says the child stopped while it still waits on work of its own, it has stopped: apply [Check returned work](../../flow-research/references/delegation.md#check-returned-work) before writing anything.
-2. While a question waits for the user, a result that does not change what it asks takes step 4, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../flow-plan/references/questions.md).
-3. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs.
-4. Otherwise the turn changes nothing the user needs: reply in one line, the [context line](#open-with-the-context-line) followed by the change, without listing the work still running or repeating an open question or its pause line. This line is not a second report.
-5. Continue with your next tool call when work of your own remains; otherwise end the turn.
+2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, apply step 5 instead.
+3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../flow-plan/references/questions.md).
+4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs.
+5. Otherwise the turn changes nothing the user needs: reply in one line, the [context line](#open-with-the-context-line) followed by the change, without listing the work still running or repeating an open question or its pause line. This line is not a second report.
+6. Continue with your next tool call when work of your own remains; otherwise end the turn.
 
-**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 4 above answers in one line.
+**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 2 above answers without a message or step 5 answers in one line.
 
-**Actions:** open with a labeled in-progress item stating what is running, what its result decides, and what happens next, before any findings.
+**Actions:** open with a labeled in-progress item stating what is running, what its result decides, what will wake you when it ends or stalls, the current wait's duration or deadline for your next wake, and what happens next, before any findings.
 
 **Condition:** a work item completes.
 

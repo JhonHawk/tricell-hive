@@ -69,6 +69,34 @@ raise the minor or the patch version.
 
 ### Changed
 
+- UI evidence is refreshed for affected views and journeys after any later fix,
+  including code-review fixes after approval. A changed visible result needs
+  approval again; unaffected evidence remains valid. Adopted after the Facti
+  Claude Code session `c574e5a1-ec3e-44da-995e-2a9a89ba2e6b` of 2026-10-23.
+- Gaps found in two sessions of 2026-10-19 (Grok `01a15706`, Codex `01a156af`;
+  issue #93). A notice that only reports the exit of a process the agent
+  stopped on purpose gets no message, also while a question waits. Close stops
+  the processes the task's children left running, which the agent records when
+  each child returns. The implementer of a UI change loads the changed view in
+  a real browser with no test doubles before reporting it. Each UI gate child
+  verifies a fixed candidate, named by commit or tree hash and served from its
+  own build and port; a fix during the gate makes a new candidate. The first
+  rendered view and the final validation offer to open the viewer or approve,
+  with corrections written in the answer's free text. When an answer leaves a
+  selection to the agent, it lists what goes in and what stays out and asks for
+  confirmation before acting.
+- Two costs seen in both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  `01a157db`; issue #94): after a context compaction the agent rereads only a
+  reference whose condition applies to its next action, plus the active
+  `SKILL.md` when its steps are not in the summary, instead of every reference
+  read earlier; and it writes to persistent memory only at a user decision, a
+  ready plan, a work-item close, a worktree's creation or removal, and a session
+  summary when the user ends the session, a cadence that holds over memory
+  tools' own save instructions. Close writes its memory records in one pass.
+- The pilot runner (`tests/pilot`, not installed) accepts a text-only close
+  question only on hosts whose headless mode has no question tool (Codex,
+  Claude, Pi); on Grok and OpenCode it now requires the native question (#66).
+
 - The local walkthrough viewer replaces its vanilla shell with React and public
   MIT shadcn/ui and ReUI components in a custom project/ticket/session sidebar.
   Its versioned bundle runs inside the Go binary without Node, a ReUI license
@@ -89,9 +117,9 @@ raise the minor or the patch version.
   the user asks; it no longer records every flow at the validation handoff.
   The walkthrough skeleton leaves `flow-report`, and the walkthrough's
   retention unit now includes `walkthrough.json`.
-- `flow-walkthrough` never opens a browser, the page or the viewer by itself:
-  the message gives one line with the page's path, plus `hive view open` when
-  the walkthrough is registered.
+- `flow-walkthrough` opens nothing by itself: the message gives one line with
+  the page's path, and the agent runs `hive view open` only when the user
+  chooses that option in the validation question.
 
 - Inspiration opens one page containing OpenSpec, gentle-ai, and Superpowers
   instead of a collapsible sidebar group.
@@ -177,6 +205,28 @@ raise the minor or the patch version.
   instead. Renaming a role raises the minor version of the next release.
 
 ### Fixed
+
+- A pull request is merged with the method the repository declares or its base
+  branch's recent merges show, a merge commit by default (Grok cam session
+  `01a1579f`, 2026-10-20: PR #239 was squashed while the base branch's earlier
+  merges were merge commits, collapsing the per-task commits).
+
+- Close deletes a branch merged by squash or rebase, with its clean worktree,
+  once `gh` shows its pull request merged from the same head; `git branch -d`
+  refused them, so both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  `01a157db`) left orphan branches and worktrees. The retained checkout leaves
+  the branch and eligible clean worktrees are removed before branch deletion.
+
+- A process the agent waits on gets a bounded watch besides its exit signal, so
+  a hung run still wakes the agent, and a turn that ends with work running says
+  what will wake it and the duration or deadline of the current wait (Grok cam
+  session `01a1579f`, 2026-10-20: a hung backend
+  integration suite left the session silent until the user asked; issue #95).
+
+- A stalled local integration run is handed to the pull request's CI only after
+  confirming that CI runs that suite on pull requests; otherwise it is rerun
+  locally or reported as not run (Grok cam session `01a157db`, 2026-10-20:
+  a never-run test was committed on the assumption that PR CI would run it).
 
 - The walkthrough viewer distinguishes local and unknown sources, skips new
   manifests confirmed as tracked in Git, and sets existing tracked copies apart

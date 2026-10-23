@@ -77,7 +77,7 @@ because the report itself has no question of its own. Before this change,
 the simplified fixture had no event between the question's tool result and
 the closing report, so it could not tell the two shapes apart.
 
-## grok-pass.jsonl (constructed) and grok-text-fallback-pass.jsonl (constructed)
+## grok-pass.jsonl (constructed) and grok-text-fallback-fail.jsonl (constructed)
 
 Not derived from a transcript: G3 is the only close-question finding on
 file for Grok, and it is a failure. Built directly from the criterion's own
@@ -85,10 +85,15 @@ contract (`design.md` → "Criterios deterministas" →
 `close_question_after_report`) to exercise its two pass paths:
 `grok-pass.jsonl` follows the report text with a native
 `ask_user_question` tool call in the same message (evidence kind
-`question`); `grok-text-fallback-pass.jsonl` has no question tool call at
+`question`); `grok-text-fallback-fail.jsonl` has no question tool call at
 all, with the report's own last line ending in "?" (evidence kind `text`,
 the fallback path a human should be able to spot and re-check by hand per
 `design.md`).
+
+Renamed from `grok-text-fallback-pass.jsonl` on 2026-10-19 (#66, maintainer
+decision D13-A): Grok's headless `-p` mode registers `ask_user_question`, so
+the text fallback no longer applies to Grok and this text-only close question
+now fails. The fixture's content is unchanged.
 
 ## D17-A: two false negatives found in the 2026-09-26 pilot (T4)
 
@@ -150,7 +155,12 @@ change to its bytes). This affects the T4 pilot table's Grok arm A count for
 this run when re-assessed with `--assess`; see `criterion-assessment-v3.json`
 and the change's tasks.md for the corrected reading.
 
-### grok-text-midline-pass.jsonl (grok-b-2)
+### grok-text-midline-fail.jsonl (grok-b-2)
+
+Renamed from `grok-text-midline-pass.jsonl` on 2026-10-19 (#66, D13-A), for
+the same reason as `grok-text-fallback-fail.jsonl`: the mid-paragraph "?"
+still proves the D17-A text reading, but on Grok a text-only close question
+now fails. The fixture's content is unchanged.
 
 Source: pilot run `grok-b-2` (`close-sequence`, arm B), 33-line
 `stdout.jsonl`. Verified via `jq`: the run's last `assistant` message

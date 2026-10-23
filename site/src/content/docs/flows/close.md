@@ -40,15 +40,15 @@ to force confirmation. The procedure lives in
 
 1. When the work is complete, moves the ticket to its finished state, along with the sub-issues the same work covered. A paused or abandoned ticket does not move to finished.
 2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, and it archives the folder. An abandoned change is archived without touching the requirements.
-3. Deletes branches that are fully merged, and their clean working copies.
-4. Removes temporary files the task made, stops processes it started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
+3. Checks merged branches and their working copies, returns to the base branch and removes eligible clean working copies before deleting their branches. The order and safety checks live in [Clean up after a merge](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md#clean-up-after-a-merge).
+4. Removes temporary files the task made, stops processes it or its helpers started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
 5. Lists side findings that the running system can actually trigger, marks which ones it recommends turning into tickets, and lets you open a ticket for each, decline it, or ask not to hear about it again. It asks about every finding it lists, over several question cards when they do not fit in one, and never declines one on your behalf. A suspicion it could not trace that far stays in the report as unconfirmed.
 6. Writes a completion report that says what was done, what was cleaned, what stays open, and which implementation decisions it took without asking, with how to revert each.
 7. Asks what to do next: continue with a suggested ticket or the rest of the plan, take it to a new session, or end. While a plan is still in progress, continuing covers all its remaining tasks and asks once for the permissions they still need; the agent does not suggest a new session then.
 
 ## What it does not do
 
-- It does not delete a branch that has unmerged commits. It shows you that work and asks.
+- It does not delete a branch that has unmerged commits. It shows you that work and asks. A branch merged by squash or rebase counts as merged when its pull request shows it merged from the same last commit, so it is deleted with its clean working copy instead of being left behind.
 - It does not delete a working copy that has uncommitted or untracked files.
 - It does not remove material whose owner or purpose is unclear.
 - It does not archive a paused change. The folder stays on disk and is reported as pending.
@@ -63,7 +63,7 @@ to force confirmation. The procedure lives in
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page with its JSON file that you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page with its JSON file that you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.
