@@ -53,7 +53,7 @@ func ValidateStep(payload json.RawMessage) error {
 		return fmt.Errorf("invalid provider payload")
 	}
 	switch s.Provider {
-	case Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard:
+	case Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard, CodeGraph:
 	default:
 		return fmt.Errorf("unknown provider")
 	}

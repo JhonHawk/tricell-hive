@@ -123,3 +123,21 @@ func TestValidateStepCodexQuestionCard(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateStepCodeGraphIsManualOnly(t *testing.T) {
+	manual := Step{ID: "codegraph-manual", Provider: CodeGraph, Status: Manual, ManualReason: "follow the official instructions"}
+	if err := ValidateStep(stepPayload(t, manual)); err != nil {
+		t.Errorf("codegraph-manual rejected: %v", err)
+	}
+	rejected := map[string]Step{
+		"planned with argv":       {ID: "codegraph-install", Provider: CodeGraph, Status: Planned, Method: "codegraph", Argv: []string{"codegraph", "install"}},
+		"planned without argv":    {ID: "codegraph-manual", Provider: CodeGraph, Status: Planned},
+		"manual with a command":   {ID: "codegraph-manual", Provider: CodeGraph, Status: Manual, ManualReason: "r", Method: "codegraph", Argv: []string{"codegraph", "install"}},
+		"manual without a reason": {ID: "codegraph-manual", Provider: CodeGraph, Status: Manual},
+	}
+	for name, s := range rejected {
+		if ValidateStep(stepPayload(t, s)) == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}
