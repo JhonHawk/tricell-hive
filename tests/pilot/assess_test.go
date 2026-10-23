@@ -35,7 +35,7 @@ func scratchResult(t *testing.T) (result, fixture) {
 	root := t.TempDir()
 	before := map[string]item{}
 	for p, s := range f.Files {
-		before[p] = item{digest([]byte(s)), int64(len(s))}
+		before[p] = item{Hash: digest([]byte(s)), Size: int64(len(s))}
 	}
 	after := map[string]item{}
 	for p, v := range before {

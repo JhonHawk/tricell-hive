@@ -26,13 +26,13 @@ Read before launching a child or starting a wait for external work, including re
 
 **Actions:** give it the objective, repository or declared root, authorized effects, the files or paths it may modify or delete, relevant contracts, expected output, and acceptance evidence. Delegation grants no additional authority. Label delegated premises as inspected facts, source claims, or assumptions, with the relevant evidence or missing check.
 
-A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. It may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
+A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. A Git command that rewrites working-tree files, such as `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean`, or `git switch`, changes paths outside the child's own: the child never runs one in a working tree shared with other writers, and neither does the main thread while a child works in that tree; both compare with the base through read-only Git commands or a separate worktree. The child may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
 
 ## Deliver and resolve instructions
 
 **Condition:** preparing a child brief or reading a required skill resource.
 
-**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
+**Actions:** pass accessible project-guidance paths, task decisions, existing project conventions, and the exact skill or resource identities or paths the child needs, including the skills and project documents that the project's rules direct for this kind of work, and those a conditional rule activates when this host lists the skill or tool it names, by identity or path. When the launch tool offers to pass the parent's history, launch the child without it, since the brief carries what it needs; whether or not it inherits history, it does not receive the skills the parent read, so pass their paths. Pass the smallest relevant set, not whole manuals or unrelated stacks.
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 
@@ -44,6 +44,10 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Actions:** continue useful independent work. Give each external process you start a completion signal, such as the host's monitor or watch tool, before your turn ends.
 
+**Condition:** giving an external process a completion signal.
+
+**Actions:** make the signal end on every outcome the process can reach: success, failure, a target that does not exist yet, and a process that hangs. When the host signals only when the process exits, also set a bounded watch, such as a monitor or timer that ends after one wait stretch, so a hung process still wakes you; on that wake, check whether it is making progress and apply the rule in [verification](../../flow-build/references/verification.md) for a run that makes no progress. Prefer the process's exit status, or a command that reports a final state, over matching its output; when you must match text, first check the pattern against the tool's actual success and failure output, including indentation. When the target may not exist yet, such as checks not yet registered on a pull request you just pushed, use one command that waits for the target to appear and then watches it to a final state, under the wait-stretch rule below. A watch that exits reporting no target, such as `no checks reported`, has not finished: rerun that same command, never a new short sleep-and-check cycle.
+
 **Condition:** a child is expected to outlast one wait stretch and the host supports background launch with a completion signal.
 
 **Actions:** launch it in the background.
@@ -54,17 +58,21 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Condition:** no independent work remains.
 
-**Actions:** wait on the completion signal instead of polling. When the host delivers that signal to a later turn, such as a child's result or a background command's completion notification, the main thread ends its turn with the in-progress item described in [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item). When the host drops results that arrive after you return, collect them before returning.
+**Actions:** wait on the completion signal instead of polling. When the host delivers that signal to a later turn, such as a child's result or a background command's completion notification, the main thread handles that turn as [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a turn a notification starts. When the host drops results that arrive after you return, collect them before returning.
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line naming what is still running and what its result decides. A delegated child still returns its final result, not interim status.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child still returns its final result, not interim status.
 
 ## Check returned work
 
 **Condition:** a child returns.
 
 **Actions:** children return findings or changes, evidence, unresolved limits, and any required instruction-access gaps. The main thread checks the result against the brief and source evidence, resolves disagreements, and owns integration and closure. An agent's assertion is not independent verification. Relay every defect a child reports, at any severity scale it uses, or propose it under the global incidental-findings rule; never drop it from your summary. Before relaying a child's result that touched credentials, cookies, or tokens, check whether it put a secret in a durable or shared place, and if so tell the user under the global Secrets rule.
+
+**Condition:** a child returns, or the host reports that it stopped, while it waits on work of its own, such as a watcher, a wait or a background command.
+
+**Actions:** treat that child as stopped, because its result may be provisional. Check at once whether the child and that work are still alive. When that work has finished, resume the same child so it returns its final result; when it is still running, give it a completion signal as [Launch and wait](#launch-and-wait) sets and resume the same child when it ends; when the work is gone or the host cannot resume the child, launch the same role again with the same brief, once. Never report it as in progress, and never wait on it in short check cycles.
 
 ## Record consequential delegation
 
@@ -74,4 +82,4 @@ The child reads these sources before dependent work and reports any unavailable 
 
 ## Worked wait example
 
-A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
+A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "**Build · GH-12 · 2 of 3 tasks verified** The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.

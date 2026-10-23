@@ -268,6 +268,11 @@ func nearestOffered(effort string, offered []string) string {
 	return best
 }
 
+// validateAccess accepts the access keys a host enforces on a child, plus the
+// legacy Codex sandbox_mode that releases frozen before 2026-10-16 embed, so
+// their profiles stay readable. Codex ignores that key because it restores the
+// parent's permissions after applying a role (issue #50, verified on 0.163.0),
+// and Render drops it.
 func validateAccess(host string, values map[string]json.RawMessage) error {
 	for key, raw := range values {
 		switch {
@@ -496,6 +501,10 @@ func Render(source string, data, profiles []byte, host, skillsDir string, overri
 	h := p.Hosts[host]
 	fields := map[string]any{"name": r.Name, "description": r.Description}
 	for key, raw := range h.Access[r.AccessProfile] {
+		if host == "codex" && key == "sandbox_mode" {
+			// Legacy key from frozen releases; Codex does not apply it to a child.
+			continue
+		}
 		var value any
 		if err := json.Unmarshal(raw, &value); err != nil {
 			return nil, err

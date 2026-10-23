@@ -270,11 +270,44 @@ func TestHiveSectionUnknownKeyAndOptionalValues(t *testing.T) {
 
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Hive guidance: optional\n- Specs:", 1))
 	text = projectText(t, root)
-	mustContain(t, text, `Delivery: expected "direct-base", found "pr"`, `Hive guidance: expected "required", found "optional"`)
+	mustContain(t, text, `Delivery: expected one of "direct-base", "automatic", "interactive", found "pr"`, `Hive guidance: expected "required", found "optional"`)
 	mustNotContain(t, text, "Valid")
 
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: direct-base\n- Hive guidance: required\n- Environments: a → b\n- Review: /code-review\n- Specs:", 1))
 	mustContain(t, projectText(t, root), "Valid", "Delivery: direct-base", "Hive guidance: required", "Review: /code-review")
+}
+
+func TestDoctorProjectAcceptsDeliveryModes(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	for _, mode := range []string{"direct-base", "automatic", "interactive"} {
+		writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: "+mode+"\n- Specs:", 1))
+		text := projectText(t, root)
+		mustContain(t, text, "Valid", "Delivery: "+mode)
+		mustNotContain(t, text, "Delivery: expected")
+	}
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
+	text := projectText(t, root)
+	mustContain(t, text, `Delivery: expected one of "direct-base", "automatic", "interactive", found "pr"`)
+	mustNotContain(t, text, "Valid")
+}
+
+func TestDoctorProjectChecksUIVerificationValues(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	cases := []struct {
+		value string
+		valid bool
+	}{{"full", true}, {"functional", true}, {"none", true}, {"partial", false}}
+	for _, c := range cases {
+		writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- UI verification: "+c.value+"\n- Specs:", 1))
+		text := projectText(t, root)
+		if c.valid {
+			mustContain(t, text, "Valid", "UI verification: "+c.value)
+			mustNotContain(t, text, "UI verification: expected")
+		} else {
+			mustContain(t, text, `UI verification: expected one of "full", "functional", "none", found "partial"`)
+			mustNotContain(t, text, "Valid")
+		}
+	}
 }
 
 func TestHiveSectionInheritedGitDirDoesNotChangeTheResult(t *testing.T) {
@@ -456,7 +489,7 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 	if got := strings.Join(required, ","); got != "Project,Base branch,Tracker,Specs" {
 		t.Fatalf("required keys: %s", got)
 	}
-	for _, name := range []string{"Environments", "Review", "Delivery", "Hive guidance"} {
+	for _, name := range []string{"Environments", "Review", "Delivery", "Hive guidance", "UI verification"} {
 		if !knownHiveKey(name) {
 			t.Errorf("optional key %q is missing", name)
 		}

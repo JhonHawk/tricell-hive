@@ -1,0 +1,210 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --destructive-foreground: var(--color-red-800);
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-900);
+  --info: var(--color-violet-500);
+  --info-foreground: var(--color-violet-900);
+  --warning: var(--color-yellow-500);
+  --warning-foreground: var(--color-yellow-900);
+  --invert: var(--color-zinc-900);
+  --invert-foreground: var(--color-zinc-50);
+}
+
+.dark {
+  --destructive-foreground: var(--color-red-600);
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-600);
+  --info: var(--color-violet-500);
+  --info-foreground: var(--color-violet-600);
+  --warning: var(--color-yellow-500);
+  --warning-foreground: var(--color-yellow-600);
+  --invert: var(--color-zinc-700);
+  --invert-foreground: var(--color-zinc-50);
+}
+
+@theme inline {
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-invert: var(--invert);
+  --color-invert-foreground: var(--invert-foreground);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-accent: var(--muted);
+  --color-sidebar-accent-foreground: var(--foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+:root {
+  --background: oklch(0.145 0 0);
+  --sidebar: oklch(0.17 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --ring: oklch(0.556 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --radius: 0.625rem;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--background);
+}
+#root {
+  isolation: isolate;
+}
+.viewer-shell {
+  height: 100dvh;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
+}
+.viewer-shell *,
+[data-slot="sheet-content"] *,
+[data-sidebar="sidebar"] * {
+  box-sizing: border-box;
+}
+.viewer-shell :is(h1, h2, p):not(.walkthrough *) {
+  margin: 0;
+}
+.viewer-shell button:not(.walkthrough *),
+[data-slot="sheet-content"] button {
+  font-family: inherit;
+  cursor: pointer;
+}
+/* Reset only the application shell and its portalled navigation. The report
+   renderer deliberately keeps its own styles instead of Tailwind preflight. */
+@layer base {
+  :is(.viewer-shell, [data-sidebar="sidebar"]) :where(ul):not(.walkthrough *) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :is(.viewer-shell, [data-sidebar="sidebar"])
+    :where(button, a):not(.walkthrough *) {
+    color: inherit;
+    font: inherit;
+    text-decoration: none;
+  }
+  :is(.viewer-shell, [data-sidebar="sidebar"])
+    :where(button):not(.walkthrough *) {
+    border: 0 solid;
+    background: transparent;
+  }
+}
+:is(.viewer-shell, [data-sidebar="sidebar"]) [data-sidebar="menu-button"] {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+.session-navigation-link {
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  font-weight: normal;
+}
+.session-status-dot {
+  background: var(--muted-foreground);
+}
+.session-status-dot[data-session-status="closed"] {
+  background: var(--success);
+}
+.session-status-dot[data-session-status="in_progress"] {
+  background: var(--primary);
+}
+.session-navigation-link[aria-current="page"] .session-navigation-title {
+  color: var(--foreground);
+}
+.session-navigation-link[aria-current="page"] {
+  background: var(--muted);
+  color: var(--foreground);
+}
+[data-sidebar="sidebar"][data-mobile="true"] {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+[data-sidebar="sidebar"],
+[data-slot="sidebar-container"] {
+  border-color: var(--border);
+}
+[data-sidebar="sidebar"] p {
+  margin: 0;
+}
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -5rem;
+  z-index: 100;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.5rem;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+.base-ui-disable-scrollbar {
+  scrollbar-width: none;
+}
+.base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.document-region:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+@media print {
+  .viewer-shell {
+    height: auto;
+    display: block;
+  }
+  .viewer-shell > header,
+  .viewer-shell aside,
+  [data-slot="sidebar"],
+  .viewer-shell main > header,
+  .viewer-shell main > div > div,
+  .viewer-shell main > div > [data-slot="frame"],
+  .viewer-shell main > div > [role="status"] {
+    display: none;
+  }
+  .viewer-shell main {
+    display: block;
+    overflow: visible;
+    padding: 0;
+  }
+}

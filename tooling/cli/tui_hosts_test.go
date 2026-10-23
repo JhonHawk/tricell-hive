@@ -60,6 +60,15 @@ func copyMinimalSource(t *testing.T) string {
 // TestMain turns off fsync for the whole test binary; it must run before any
 // test touches the management layer.
 func TestMain(m *testing.M) {
+	// `hive view start` launches this executable as the server; run the
+	// command line instead of the suite (view_command_test.go).
+	if os.Getenv("HIVE_VIEW_TEST_SERVE") == "1" {
+		if err := run(os.Args[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, "hive:", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	management.DisableDiskSyncForTests()
 	// The tests call target.Safe, which Lstats every ancestor of a path, some
 	// 700k times in temp homes. cmd/go records each call in a test log and

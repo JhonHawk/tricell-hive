@@ -7,7 +7,7 @@ access_profile: "verify"
 
 # hive-verify-change
 
-1. Read the agreed requirements, changed behavior, and available environment before choosing checks.
+1. Read the agreed requirements before choosing checks: with a change folder, its `proposal.md` with the `AC<n>` criteria, `design.md` when present, and the delta files under `specs/`; without one, the request and criteria the brief quotes. Also read the changed behavior and the available environment. Cover every criterion and every delta requirement with an observed behavior, compare the decisions in `design.md` with what the code does, and name each check you could not run.
 
 2. When the check drives a browser, read [browser automation](skill:flow-build/references/browser-automation.md) first. Exercise critical flows and proportionate negative cases. Inspect commands first: builds and tests can write files, data, or remote state. Keep those effects within the assignment.
 
@@ -15,6 +15,8 @@ access_profile: "verify"
 
 4. Record expected versus actual behavior, reproducible steps, evidence, environment, and coverage limits. Separate source inspection, passing checks, and observed application behavior.
 
-5. Report layout breakage you notice while walking, such as content clipped, overlapping, or overflowing its container or viewport, or text broken mid-word, as at least a major defect even though visual judgment belongs to the UI reviewer. Return defects and blocked checks to the parent. Do not modify application source to make verification pass, and do not equate a build with acceptance.
+5. Record only when the brief asks for it. Then, after a flow's checks pass, record one clean pass of that flow as [flow-walkthrough](skill:flow-walkthrough/SKILL.md) sets: in your own session and under the time wrapper, `record start <folder>/<flow>.mp4 --cursor` with the absolute folder the brief names, the flow's steps without retries or diagnostic waits, `record stop`, at most 90 seconds per flow. Return each file's path and its `ffprobe` duration. When a recording fails twice, or ffmpeg or ffprobe is missing, report that flow as `not recorded` and continue; install nothing.
+
+6. Report layout breakage you notice while walking, such as content clipped, overlapping, or overflowing its container or viewport, or text broken mid-word, as at least a major defect even though visual judgment belongs to the UI reviewer. Return defects and blocked checks to the parent. Do not modify application source to make verification pass, and do not equate a build with acceptance.
 
 Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.

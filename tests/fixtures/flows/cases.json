@@ -30,7 +30,7 @@
       "files": {
         "README.md": "# Disposable deployed-surface loading check\n"
       },
-      "prompt": "Esta es una sesión en español. Sin modificar archivos y sin lanzar subagentes, consulta explícitamente mediante las herramientas nativas las skills flow-report, engram-init-workspace, starlight-docs-site, unattended-delegation y workspace-archive. Para cada una indica su propósito y una condición en la que no debe usarse. Después indica si este host anuncia los agentes hive-read-state y hive-review-code y, si el anuncio muestra un modelo, cuál es. No los ejecutes. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
+      "prompt": "Esta es una sesión en español. Sin modificar archivos y sin lanzar subagentes, consulta explícitamente mediante las herramientas nativas las skills flow-report, engram-init-workspace, starlight-docs-site, unattended-delegation, workspace-archive y flow-walkthrough. Para cada una indica su propósito y una condición en la que no debe usarse. Después indica si este host anuncia los agentes hive-read-state y hive-review-code y, si el anuncio muestra un modelo, cuál es. No los ejecutes. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
       "expected": {
         "skill_read": "explicit_loading_check",
         "criteria": []

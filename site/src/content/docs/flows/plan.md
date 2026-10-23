@@ -65,7 +65,10 @@ No. When the plan is ready, the agent summarizes it in the conversation: the obj
 It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself.
 
 ### What happens when a decision changes the design?
-The agent does not save it for later. It shows the decision at once in a block labeled "Pause" (in Spanish sessions, «Pausa»), with an explanation and the recommended one, asked like any other question. The message ends with the "Waiting for your decision:" line, and work that depends on the decision waits for your answer: a consequential design question is asked before any task that depends on it is written. After your answer, the agent says in one line whether it settles the question, opens the next round, or sends the work back to research, and if tasks already written become invalid it updates the plan. Independent questions are still grouped.
+The agent does not save it for later. It shows the decision at once, under the context line (stage · ticket · progress) that opens every progress or decision message, in a block labeled "Pause" (in Spanish sessions, «Pausa»), with an explanation and the recommended one, asked like any other question. The message ends with the "Waiting for your decision:" line, and work that depends on the decision waits for your answer: a consequential design question is asked before any task that depends on it is written. After your answer, the agent says in one line whether it settles the question, opens the next round, or sends the work back to research, and if tasks already written become invalid it updates the plan. Independent questions are still grouped.
+
+### What if the plan has to change while the work is being built?
+The agent drafts the change in the conversation, names what it touches (your request, a criterion, a decision, a task or a requirement delta) and then edits the saved plan itself, keeping those parts consistent with each other. A change that alters a criterion, a decision or a contract goes back to the plan reviewers once; a smaller one the agent reconciles and records. If the change alters what you asked for, it becomes a new change rather than an edit of this one.
 
 ### Why are the criteria numbered?
 Each one is checked later, so every criterion must be testable and covered by at least one task.

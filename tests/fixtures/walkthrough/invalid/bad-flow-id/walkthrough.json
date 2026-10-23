@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "lang": "es",
+  "kind": "final",
+  "title": "gh-67 — recorrido de ejemplo",
+  "session": {
+    "id": "sess-0001",
+    "host": "claude-code"
+  },
+  "candidate": {
+    "branch": "feat/example",
+    "commit": "1a2b3c4d",
+    "base": "development"
+  },
+  "created_at": "2026-10-18T22:00:00-06:00",
+  "flows": [
+    {
+      "id": "Bad_ID",
+      "title": "A",
+      "captures": []
+    }
+  ]
+}

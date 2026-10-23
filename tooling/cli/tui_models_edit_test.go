@@ -270,7 +270,7 @@ func TestModelsViewPageKeysStillScrollAndTheCursorStaysInView(t *testing.T) {
 
 func TestModelsViewMarksAnOverriddenRoleAndKeepsTheMarkNextToTheCursor(t *testing.T) {
 	source := modelsTestSource(t)
-	e := newModelsEditEnv(t, source, modelsEditHosts, 80, 24)
+	e := newModelsEditEnv(t, source, "claude", 80, 24)
 	store(t, e.home, e.stateDir, "claude", map[string]management.ModelOverride{"plain-role": {Effort: "max"}})
 	e.d.key("r")
 	e.d.mustShow("plain-role *")

@@ -22,9 +22,10 @@ role definitions, and a manager that installs them in the host's native location
 Each CLI keeps its own model loop, authentication, tools, permissions, and history.
 
 The global core keeps essential boundaries and points to canonical skill
-references before the action that needs them. Reporting applies before every chat
-reply; questions, delegation, artifact details and project settings have explicit
-read conditions. Installing a reference makes it available, not necessarily read
+references before the action that needs them. Reporting applies to findings,
+explanations and messages with external links or IDs; greetings and short direct
+answers need no reference read. Questions, delegation, artifact details and project
+settings have explicit read conditions. Installing a reference makes it available, not necessarily read
 or followed. This organization does not establish reliability for any model family.
 
 OpenCode V2 also receives an **optional, inactive context loader** at user scope in
@@ -45,7 +46,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.4.0 · lighter guidance, optional browser, Grok reads whole references**
+> **Version 0.5.0 · walkthrough viewer, explicit UI verification, and refined delivery flows**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -86,7 +87,7 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded.
-- **Pick a release or hosts:** append `-s -- --version 0.4.0 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.5.0 --hosts claude,codex`.
 - **Afterwards:** `hive` is not added to your `PATH`. It lives at
   `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
 - **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
@@ -154,12 +155,19 @@ Building does not publish a release.
 
 Engram and Context7 are optional, separately managed capabilities with official
 manual instructions and no automated provider recipes or credential requests.
-Two steps are automated: pi-subagents, which a user-scope Pi installation adds
-with `pi install` when Pi does not already declare it, and `agent-browser`, which
+Three steps are automated: pi-subagents, which a user-scope Pi installation adds
+with `pi install` when Pi does not already declare it; `agent-browser`, which
 an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 24+) and installs, at its latest version, only after you consent to the commands
-it shows. Selecting a manual capability leaves the installed
-core intact but returns a non-zero exit status to signal unfinished setup.
+it shows; and the Codex question card (`codex-question-card`), which an
+interactive install with the Codex host offers selected by default when the
+installed Codex supports it (0.163.0 or later) and, after you consent, enables with `codex features enable
+default_mode_request_user_input`, Codex's own command, so Codex asks its
+decisions through a card that waits in Default mode (uncheck it, or type `none`,
+to skip it; `codex features disable default_mode_request_user_input` turns it
+off). Hive edits no host configuration file itself. Selecting a manual
+capability leaves the installed core intact but returns a non-zero exit status
+to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.
 
@@ -337,6 +345,60 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 Close this work item and clean up only the temporary resources it created.
 ```
 
+### Review UI walkthroughs in one place
+
+When an agent validates a user interface with you, it writes the walkthrough as
+`walkthrough.json` in the `_support/workspace/` of the repository, or of the
+multi-repository workspace folder that holds it, and renders a page
+beside it. To keep those walkthroughs after the session and browse them by
+project and session, with ticket details on each session, run the local viewer yourself:
+
+```sh
+hive view register --dir <folder>   # once per repository or workspace; agents run it too
+hive view start      # a server on 127.0.0.1 that keeps running until you stop it
+hive view open       # open it in the browser
+hive view stop
+```
+
+The viewer uses React with public MIT shadcn/ui and ReUI components in a custom
+shell; it needs no Node, ReUI license or third-party network connection to run.
+Frontend development and bundle checks are described in
+[Contributing](CONTRIBUTING.md#viewer-frontend).
+
+The viewer copies eligible walkthroughs into Hive's state directory, deletes copies
+older than 14 days unless you pin them (`--ttl` changes that), and lets you
+delete one from its toolbar; it never changes files in your repositories.
+Archive hides a stored copy from the default list, and Restore brings it back.
+The icon beside Projects shows or hides archived copies. Archiving is independent
+of pinning, the 14-day retention period and work status; pin a copy to keep it
+beyond that period. Projects show session counts and open initially only when
+they contain work in progress. Your project expansion, sidebar visibility,
+archive filter and selection survive refresh in the same browser tab.
+Manifests confirmed as tracked in Git are not imported. Previously imported copies
+whose source is now tracked appear separately with an explanation, without rendering
+the walkthrough; their pins and normal retention still apply. If the source cannot
+be classified, the viewer shows an unknown-origin warning. A local file does not
+prove agent authorship. Ingestion rejects hard-linked manifests and referenced files.
+`hive view open` passes a one-use opening code, valid for 60 seconds, in the URL
+fragment. The page removes it before exchanging it for the server token and reads
+no walkthroughs until access succeeds. If opening fails, run the command again. `register` takes the folder that contains `_support/workspace/` when
+`--dir` points inside it, even if that folder is not a Git repository (a
+multi-repository workspace), and the Git root otherwise. Agents never start it.
+
+The toolbar's informational status indicator shows explicit work status:
+In progress, Closed, or Not reported
+(`unknown`) for historical manifests without it. This is independent of source
+classification. Closed means the work passed through `flow-close`, including a
+pause or abandonment; it does not mean UI approval or that the host conversation
+ended. The [walkthrough close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough)
+confirms the current closed copy before eligible source cleanup.
+
+When updating from a viewer that predates session status, update the binary and
+installed content together and coordinate stopping and starting the existing
+viewer before using the new producers. Rebuilding the binary does not update a
+running process. An older viewer rejects the new manifest field; an unconfirmed
+closure preserves its source evidence.
+
 ## For AI agents
 
 Hive is a guidance layer plus a manager: shared rules, activity skills, and
@@ -359,8 +421,8 @@ native locations. The files an agent should read first are in
 
 ## Documentation
 
-- [Documentation site](https://hive.tricell.tech/) — one page per flow: when to
-  use it, what it produces, and what it does not do.
+- [Documentation site](https://hive.tricell.tech/) — getting started, skills and
+  flow guides, release history, and the projects that inspire Hive.
 - [Changelog](CHANGELOG.md), [contributing](CONTRIBUTING.md), and
   [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —

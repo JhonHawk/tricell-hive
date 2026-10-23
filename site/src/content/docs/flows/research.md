@@ -36,7 +36,9 @@ For large questions the agent hands reading work to helper agents. Each helper s
 
 The global core keeps essential boundaries; Research links directly to the
 canonical questions, reporting and delegation procedures when needed. Reporting
-applies before every chat reply. Optional context delivery covers only the
+applies to findings, relayed results, explanations and messages with external
+links or IDs; greetings and short direct answers need no reference read.
+Optional context delivery covers only the
 explicit OpenCode plan-review and harness-review roles, not intent detection or
 automatic loading for every research task.
 
@@ -44,9 +46,9 @@ When the findings concern work you could start, the same answer ends with the ro
 
 When the next steps would alternate investigating and fixing toward one measurable goal, such as measuring a tool, correcting it and measuring again, the route question can also offer an iterative route. Its option tells you the goal and how it is measured, how many rounds the agent proposes, and when it stops. If you choose it, the agent reports each round in one line and keeps going, as long as every step stays local to your project. It stops and asks when the goal is met, the rounds run out, a round brings no measurable improvement, a step needs something the route does not cover (such as a commit or an installation), a round grows into work that needs a plan, the scope changes, or a decision is yours. The exact conditions are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md).
 
-If your tool shows a question card that waits for your answer, the message keeps the explanation plus one summary line per question with the recommended option, and the options are in the card. Without such a card, or after you dismiss it or it times out, the options are written in the message. A dismissed card is not an answer: the agent asks the question again in text.
+The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking, and a question card opens its question with the stage and ticket. If your tool shows a question card that waits for your answer, the message keeps the explanation plus one summary line per question with the recommended option, and the options are in the card. Without such a card, or after you dismiss it or it times out, the options are written in the message. A dismissed card is not an answer: the agent asks the question again in text.
 
-After each answer, the agent says in one line whether it settles the question, opens the next round, or returns the work to an earlier flow, and what that invalidates.
+After each answer, the agent says in one line whether it settles the question, opens the next round, or returns the work to an earlier flow, and what that invalidates. When your answer leaves the choice to the agent, such as which findings to fix now, it first lists what goes in and what stays out and asks you to confirm or correct it.
 
 ## What it does not do
 

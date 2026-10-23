@@ -1,9 +1,17 @@
+/* Establish Starlight 0.42's canonical order before this file extends a sublayer. */
+@layer starlight.base,
+  starlight.reset,
+  starlight.core,
+  starlight.content,
+  starlight.components,
+  starlight.utils;
+
 /*
- * Hive brand accents. Only Starlight's three accent variables change; its grays stay.
- * Each value reaches at least 4.5:1, measured with the starlight-docs-site skill's
- * contrast-check.py, for: accent text on the page, header, and sidebar backgrounds;
- * the current sidebar entry; and the landing page's primary button. Re-measure these
- * pairs in both themes when changing a value.
+ * Hive brand accents over Ion's neutral palette. Accent links and the hero's
+ * primary action use --sl-color-text-accent; Ion uses --sl-color-black for the
+ * action's text. Measured with contrast-check.py: dark #ff6464 / #070707 = 6.96:1;
+ * light #c8102e / #ffffff = 5.88:1 (links and the reversed primary-action pair).
+ * Re-measure those concrete pairs in both themes after theme updates.
  */
 
 /* Dark theme: text-accent = accent-high, text-invert = accent-low. */
@@ -13,9 +21,95 @@
   --sl-color-accent-high: #ff6464;
 }
 
-/* Light theme: text-accent = accent, text-invert = white. */
+/* Light theme: text-accent = accent; Ion's primary action text is white. */
 :root[data-theme="light"] {
   --sl-color-accent-low: #fbe4e5;
   --sl-color-accent: #c8102e;
   --sl-color-accent-high: #8c2028;
+}
+
+/* Match the demo's unpadded sidebar rows; keep Ion's native margins and groups. */
+.sidebar a {
+  padding: 0;
+}
+
+.sidebar details a {
+  min-height: 24px;
+}
+
+.sl-markdown-content .release-date {
+  white-space: nowrap;
+}
+
+/* Ion renders native details, but disables pointer interaction on its summaries. */
+.sidebar .top-level > li > details > summary {
+  /* biome-ignore lint/complexity/noImportantStyles: Ion sets pointer-events:none inline. */
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.sidebar .top-level > li > details > summary::after {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-inline-end: 0.4rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.sidebar .top-level > li > details[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+/* Keep Ion's red-icon/bright-label pattern and identify active iconless children. */
+@layer starlight.core {
+  .sidebar a[aria-current="page"]:not(:has(svg)) > span {
+    /* biome-ignore lint/complexity/noImportantStyles: Override Ion's important active span color in the same layer. */
+    color: var(--sl-color-text-accent) !important;
+  }
+
+  .sidebar details:has(a[aria-current="page"]) > summary svg {
+    color: var(--sl-color-accent);
+  }
+
+  .sidebar details:has(a[aria-current="page"]) > summary .group-label > span {
+    color: var(--sl-color-white);
+    /* biome-ignore lint/complexity/noImportantStyles: Override Ion's important summary weight in the same layer. */
+    font-weight: 600 !important;
+  }
+}
+
+/* Keep the complete 3:2 artwork beside the copy, then stack it on small screens. */
+.hero:has(> .hero-html) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  text-align: start;
+}
+
+.hero:has(> .hero-html) > .copy {
+  min-width: 0;
+}
+
+.hero:has(> .hero-html) > .hero-html {
+  width: 100%;
+}
+
+.hero > .hero-html > img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
+}
+
+@media (max-width: 70rem) {
+  .hero:has(> .hero-html) {
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .hero:has(> .hero-html) > .hero-html {
+    max-width: 36rem;
+  }
 }

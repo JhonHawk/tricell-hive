@@ -166,12 +166,14 @@ func TestCodexTOMLIsFlatAndEscapesInstructionBody(t *testing.T) {
 	for _, prefix := range []string{
 		"description = ",
 		"name = ",
-		"sandbox_mode = \"read-only\"\n",
 		"developer_instructions = ",
 	} {
 		if !strings.Contains(got, prefix) {
 			t.Fatalf("Codex TOML missing %q:\n%s", prefix, got)
 		}
+	}
+	if strings.Contains(got, "sandbox_mode") {
+		t.Fatalf("Codex TOML must not declare sandbox_mode:\n%s", got)
 	}
 	if strings.Contains(got, "\n---\n") || strings.Contains(got, "\\x") {
 		t.Fatalf("Codex TOML contains unsupported frontmatter or escape:\n%s", got)
@@ -274,6 +276,37 @@ func TestProfilesRejectCursorUnsupportedAccessKey(t *testing.T) {
 	bad := replaceOnce(t, string(syntheticProfiles(t)), `"observe": {"readonly": true}`, `"observe": {"permissionMode": "plan"}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil {
 		t.Fatal("ReadProfiles accepted an unsupported Cursor access key")
+	}
+}
+
+// Releases frozen before 2026-10-16 embed sandbox_mode in the Codex observe
+// profile. They must stay readable, and the key must not reach the TOML.
+func TestCodexLegacySandboxModeIsReadableAndNotRendered(t *testing.T) {
+	profiles := string(syntheticProfiles(t))
+	codex := strings.Index(profiles, `"codex"`)
+	if codex < 0 {
+		t.Fatal("synthetic profiles lack a codex host")
+	}
+	for _, mode := range []string{"read-only", "workspace-write"} {
+		legacy := profiles[:codex] + strings.Replace(profiles[codex:], `"observe": {}`, `"observe": {"sandbox_mode": "`+mode+`"}`, 1)
+		if legacy == profiles {
+			t.Fatal("codex observe block not found")
+		}
+		if _, err := ReadProfiles([]byte(legacy)); err != nil {
+			t.Fatalf("ReadProfiles rejected legacy Codex sandbox_mode %q: %v", mode, err)
+		}
+		source, data := syntheticRole(t, "synthetic-observer")
+		out, err := Render(source, data, []byte(legacy), "codex", "/skills", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(out), "sandbox_mode") {
+			t.Fatalf("Codex TOML rendered the legacy sandbox_mode %q:\n%s", mode, out)
+		}
+	}
+	bad := profiles[:codex] + strings.Replace(profiles[codex:], `"observe": {}`, `"observe": {"sandbox_mode": "danger-full-access"}`, 1)
+	if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "Codex agent sandbox") {
+		t.Fatalf("ReadProfiles accepted an unknown Codex sandbox value: %v", err)
 	}
 }
 

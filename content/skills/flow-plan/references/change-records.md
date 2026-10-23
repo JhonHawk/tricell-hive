@@ -1,6 +1,6 @@
 # Change records
 
-Read when creating or updating a change folder, when closing one and you need the delta formats, or when locating the specs as the global guidance directs. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; resolve that setting under [project settings](project-settings.md). The layout follows OpenSpec conventions without requiring its CLI, so the project could adopt that tool later without migrating.
+Read when creating or updating a change folder, when closing one and you need the delta formats, or when locating the specs as the global guidance directs. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; resolve that setting under [project settings](project-settings.md). The layout follows OpenSpec file conventions without its CLI: the folder names, the archive naming, and the delta format match; `project.md` and the sections of `proposal.md` do not, so adopting that CLI later would need a migration.
 
 ## Location and lifecycle
 
@@ -12,7 +12,7 @@ Planned work and requirements live in the `openspec` directory that the `Specs` 
 
 The directory holds `project.md` (the project ledger), `specs/<capability>/spec.md` (current requirements per capability; a product map, `product/<module>/<view>.md` beside the `openspec` directory, replaces it as the current-requirements home), `changes/<change-id>/` (one active planned change with its requirement deltas), and `changes/archive/YYYY-MM-DD-<change-id>/` (closed changes).
 
-- Every retained plan is a change folder, with or without requirement deltas; small understood edits need none. Name `<change-id>` in English kebab-case, starting with the tracker key when one exists, such as `ark-642-portal-status-contrast`. Use [the plan format](plan-format.md).
+- Every retained plan is a change folder, with or without requirement deltas; small understood edits need none. Add a delta file when the change adds, alters, or removes a requirement that a capability spec or product-map page states, or one the project would state there: an observable behavior, a contract, a permission, or stored data. A change that alters only implementation, tooling, wording, or the plan's own steps needs no delta. Name `<change-id>` in English kebab-case, starting with the tracker key when one exists, such as `ark-642-portal-status-contrast`. Use [the plan format](plan-format.md).
 - [Flow-close](../../flow-close/SKILL.md#close-the-change-record) archives an integrated or abandoned change, first merging an integrated change's deltas into the current-requirements home.
 - Local or sensitive pointers stay in `_support/README.md`. Updating `project.md` or `openspec/` is a versioned change delivered under that repository's Git rules.
 - Existing `sessions/` and ledgers stay as history; continuing work keeps its established home, and migration needs explicit authorization.

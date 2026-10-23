@@ -264,15 +264,15 @@ func (v *projectView) canEdit() bool {
 // ---------------------------------------------------------------------------
 
 const (
-	projectLabelCol  = 16 // two for the cursor mark, thirteen for "Hive guidance", one space
+	projectLabelCol  = 18 // two for the cursor mark, fifteen for "UI verification", one space
 	projectTagText   = "  suggested"
 	projectFormFixed = 1 // the heading
 )
 
 // projectForm holds one field per setting of hiveSettingKeys. Text settings
-// are text inputs; Delivery and Hive guidance choose among ‹ none › and
-// their one valid value (plus the value the file holds now, when it is
-// neither, so opening the form never drops it silently).
+// are text inputs; Delivery, Hive guidance and UI verification choose among
+// ‹ none › and their valid values (plus the value the file holds now, when it is none of
+// them, so opening the form never drops it silently).
 type projectForm struct {
 	inputs    []textinput.Model
 	options   [][]string // for a choice field; nil for a text field
@@ -311,12 +311,18 @@ func newProjectForm(items []hiveItem, suggestions map[string]string) *projectFor
 		cur, present := f.current[k.Name]
 		switch k.Name {
 		case "Delivery", "Hive guidance":
-			want := hiveDeliveryWant
+			valid := hiveDeliveryValues
 			if k.Name == "Hive guidance" {
-				want = hiveGuidanceWant
+				valid = []string{hiveGuidanceWant}
 			}
-			f.options[i] = []string{"", want}
-			if present && cur != "" && cur != want {
+			f.options[i] = append([]string{""}, valid...)
+			if present && cur != "" && !slices.Contains(f.options[i], cur) {
+				f.options[i] = append(f.options[i], cur)
+			}
+			f.choice[i] = max(slices.Index(f.options[i], cur), 0)
+		case "UI verification":
+			f.options[i] = append([]string{""}, hiveUIVerificationValues...)
+			if present && cur != "" && !slices.Contains(f.options[i], cur) {
 				f.options[i] = append(f.options[i], cur)
 			}
 			f.choice[i] = max(slices.Index(f.options[i], cur), 0)
@@ -558,6 +564,9 @@ func (v *projectView) formView(c viewCtx) string {
 			text := f.options[i][f.choice[i]]
 			if text == "" {
 				text = "none"
+				if k.Name == "UI verification" {
+					text = "unset" // "none" is a value of this key, so the empty choice needs another word
+				}
 			}
 			lines = append(lines, style.Render(label+"‹ "+truncateRunes(sanitizeLine(text), max(c.Width-len(label)-4, 1))+" ›"))
 			continue

@@ -27,6 +27,38 @@ The suite takes under a minute on a typical laptop. The
 [deployment manager reference](_support/docs/architecture/deployment-manager.md)
 describes what the tests cover.
 
+## Viewer frontend
+
+The standalone React package in `tooling/viewer/frontend/` uses public MIT
+shadcn/ui and ReUI components, with no premium blocks. Development requires
+**Node 24 or later** and **pnpm 12.8.1**. From the repository root, run:
+
+```sh
+pnpm --dir tooling/viewer/frontend install --frozen-lockfile
+pnpm --dir tooling/viewer/frontend check
+pnpm --dir tooling/viewer/frontend lint
+pnpm --dir tooling/viewer/frontend test
+pnpm --dir tooling/viewer/frontend build
+pnpm --dir tooling/viewer/frontend verify:dist
+```
+
+Commit the generated `tooling/viewer/static/app/` bundle and manifest alongside
+frontend changes. Rebuild a second time with the frozen lockfile and check that
+the output has no diff. The source digest includes the frontend README, tests,
+configuration and lockfile, so changes to those files also require regeneration.
+`verify:dist` checks freshness without changing output; the Go viewer tests check
+the source digest without Node. This detects stale output, not authenticity.
+Ordinary `go build ./tooling/cli` and package building consume checked-in output
+and do not require Node or pnpm.
+
+`pnpm --dir tooling/viewer/frontend dev` uses the real same-origin API by default.
+The generated development composition requires `?preview`; it is absent from the
+production bundle. A development preview does not verify the Go server's API,
+authentication or CSP. Check the compiled bundle served by Go for those surfaces,
+and preserve the shared offline renderer byte for byte. See the
+[frontend README](tooling/viewer/frontend/README.md) for the bundle contract and
+[third-party notices](THIRD_PARTY_NOTICES.md) for the distributed license notices.
+
 ## Branches and commits
 
 - Branch from `development`, the base branch, and open pull requests against it.
@@ -38,6 +70,42 @@ describes what the tests cover.
   with your change, in the same pull request, as the
   [README and llms.txt](AGENTS.md#readme-and-llmstxt) section of `AGENTS.md`
   describes.
+
+## Documentation site
+
+The site in `site/` uses Astro Starlight with the Ion theme and Hive's brand
+accents. Its navigation is Home, Getting started, and Changelog, followed by a
+separator, a collapsible Skills group, and an Inspiration page. Skills links to its catalog
+and the four main flow guides. Inspiration lists OpenSpec, gentle-ai, and
+Superpowers, in that order. Keep its existing routes, logo assets, and
+metadata when updating its presentation. Flow pages explain the user experience and link to the canonical
+skill; they do not duplicate the procedural rules in `content/`.
+
+Update the affected flow page in the same pull request as its behavior changes.
+Check claims against the canonical skill and its references on `development`,
+and distinguish supported behavior from verified host behavior. Update
+`README.md` and `llms.txt` too when their claims change.
+
+`CHANGELOG.md` at the repository root is the only editorial source for the
+site's release history. Edit it rather than a second site copy. Keep
+`[Unreleased]` separate from published versions, preserve the recorded release
+dates, and verify historical additions against release tags and release notes.
+An entry under `[Unreleased]` is not a published release.
+
+Use the site's declared Node and pnpm versions. From `site/`, run:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check
+pnpm lint
+pnpm build
+pnpm preview --host 127.0.0.1
+```
+
+Check the affected pages, navigation, search, keyboard access, mobile layout,
+and both color themes in the preview. When changing colors or the theme,
+remeasure text, links, and button contrast against their actual backgrounds.
+Publishing follows the release process below.
 
 ## Releases and version numbers
 

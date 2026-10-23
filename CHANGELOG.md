@@ -10,6 +10,262 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-23
+
+### Added
+
+- The walkthrough viewer groups compact sessions directly under projects, with
+  session counts, full descriptive titles, ticket/date metadata and a route icon.
+  Its grouped toolbar shows work status and actions to archive, restore, pin and
+  delete a copy. Archived copies are hidden by default and can be shown with the
+  archive icon beside Projects. Archiving is independent of pinning, retention
+  and manifest status. Projects initially expand only when they contain work in
+  progress; manual expansion, sidebar visibility, archive filtering and selection
+  survive refresh within the same browser tab and origin.
+
+- `hive view`, a local walkthrough viewer the user starts and stops
+  (`start`, `stop`, `status`, `open`, `serve`, `register`). Agents register repositories and use
+  `hive view status --dir <work folder>` to confirm closure; the server on 127.0.0.1 copies each repository's
+  `walkthrough.json` and its files into Hive's state directory, indexes project, ticket and session metadata and presents sessions grouped by
+  project in a compact sidebar, purges unpinned copies after 14
+  days (`--ttl`), and deletes a copy on request without touching the
+  repository. A new manager command raises the minor version of the next
+  release.
+- `flow-walkthrough` renders its page from data: the agent writes
+  `walkthrough.json` as the new `references/walkthrough-manifest.md` sets and
+  runs `scripts/render_walkthrough.py`, which validates it and writes
+  `walkthrough.html` from a fixed template with a summary, a section index and
+  a capture carousel; the page's fixed labels follow the manifest's `lang`
+  (`es` or `en`). The agent no longer copies and fills an HTML skeleton.
+
+- `codex-question-card`, an optional capability that `hive install` offers
+  with the Codex host, selected by default in interactive installs when the
+  installed Codex reports the feature in `codex features list` (uncheck it or
+  type `none` to skip; non-interactive installs never run it; an older Codex
+  gets a manual step that says to update it). After consent it runs `codex features enable
+  default_mode_request_user_input`, Codex's own configuration writer, so Codex
+  shows its question card in Default mode instead of asking in text; the step
+  is verified by reading the Codex `config.toml`, `hive doctor` shows a
+  `Codex question card` row with the record and the enable, disable and list
+  commands, and `codex features disable …` turns it off. The text installer
+  gains a default selection ("Press Enter to accept the default selection, or
+  type none to skip."), an offer can show an effect instead of a version
+  phrase, and the installer's boundary is stated in the tool-dependencies
+  document: Hive edits no host configuration file itself and, with consent,
+  runs the host's own command that writes one. A capability selected by
+  default raises the minor version of the next release.
+
+- `flow-walkthrough`, a skill that owns the human validation of a user
+  interface: the first rendered view of a new layout, the correction rounds,
+  the captures, a short recorded pass when a flow needs one (`agent-browser
+  record`, checked with `ffprobe`) and the handoff as a message and a
+  dark-mode HTML page rendered from a JSON manifest (see below). Its reference
+  `ui-gate.md` is the one home of the UI gate: the implementer's rendered
+  inspection, the independent children with their briefs and stops, and the
+  accepted-candidate gate; `ui-review-criteria.md` moved beside it. Build's
+  verification reference now points to them instead of holding the handoff
+  and the gate.
+- `UI verification`, an optional `## Hive` key with `full`, `functional` or
+  `none`, selects which independent children run on a built UI change; without
+  it, Build asks once per repository and session in the review round.
+  `hive doctor` and the project form accept the key.
+- The documentation site adds Getting started, Skills, and Inspiration pages
+  alongside the complete release history from this changelog, with unreleased
+  work distinguished from published versions.
+
+- A code repository can declare `Delivery: automatic` or `Delivery: interactive`
+  and a `Review` mechanism (or `none`) in its `## Hive` section; the agent then
+  states the mode and the review in one line before the first edit instead of
+  asking, and `hive doctor` and the project form accept the new values.
+
+### Changed
+
+- UI evidence is refreshed for affected views and journeys after any later fix,
+  including code-review fixes after approval. A changed visible result needs
+  approval again; unaffected evidence remains valid. Adopted after the Facti
+  Claude Code session `c574e5a1-ec3e-44da-995e-2a9a89ba2e6b` of 2026-10-23.
+- Gaps found in two sessions of 2026-10-19 (Grok `01a15706`, Codex `01a156af`;
+  issue #93). A notice that only reports the exit of a process the agent
+  stopped on purpose gets no message, also while a question waits. Close stops
+  the processes the task's children left running, which the agent records when
+  each child returns. The implementer of a UI change loads the changed view in
+  a real browser with no test doubles before reporting it. Each UI gate child
+  verifies a fixed candidate, named by commit or tree hash and served from its
+  own build and port; a fix during the gate makes a new candidate. The first
+  rendered view and the final validation offer to open the viewer or approve,
+  with corrections written in the answer's free text. When an answer leaves a
+  selection to the agent, it lists what goes in and what stays out and asks for
+  confirmation before acting.
+- Two costs seen in both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  `01a157db`; issue #94): after a context compaction the agent rereads only a
+  reference whose condition applies to its next action, plus the active
+  `SKILL.md` when its steps are not in the summary, instead of every reference
+  read earlier; and it writes to persistent memory only at a user decision, a
+  ready plan, a work-item close, a worktree's creation or removal, and a session
+  summary when the user ends the session, a cadence that holds over memory
+  tools' own save instructions. Close writes its memory records in one pass.
+- The pilot runner (`tests/pilot`, not installed) accepts a text-only close
+  question only on hosts whose headless mode has no question tool (Codex,
+  Claude, Pi); on Grok and OpenCode it now requires the native question (#66).
+
+- The local walkthrough viewer replaces its vanilla shell with React and public
+  MIT shadcn/ui and ReUI components in a custom compact project/session sidebar.
+  Its versioned bundle runs inside the Go binary without Node, a ReUI license
+  or third-party network access. Frontend development uses Node >=24 and pnpm
+  12.8.1, with frozen dependencies and read-only bundle freshness checks.
+- Walkthroughs carry optional explicit `session.status` (`in_progress` or
+  `closed`); historical manifests without it remain `unknown`. Badges are
+  independent of Git classification. `flow-close` publishes closure and confirms
+  the exact current viewer copy before eligible source cleanup; an unconfirmed
+  copy keeps its evidence. See the
+  [canonical close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough).
+  Update the viewer binary and installed content together, and coordinate a
+  restart of an existing older viewer before using the new producers: replacing
+  files does not update its running process.
+
+- `flow-walkthrough` takes captures by default and records a flow only when it
+  validates an interaction or a transition that captures cannot show, or when
+  the user asks; it no longer records every flow at the validation handoff.
+  The walkthrough skeleton leaves `flow-report`, and the walkthrough's
+  retention unit now includes `walkthrough.json`.
+- `flow-walkthrough` opens nothing by itself: the message gives one line with
+  the page's path, and the agent runs `hive view open` only when the user
+  chooses that option in the validation question.
+
+- Inspiration opens one page containing OpenSpec, gentle-ai, and Superpowers
+  instead of a collapsible sidebar group.
+
+- Waits, messages and the first rendered view follow one rule each (the
+  analysis of cam session `e2c8d39f`, 2026-10-18). Every progress or decision
+  message opens with a bold context line, stage · ticket · progress, and a
+  question card opens with the stage and ticket. A turn that a notification
+  starts without changing what you need is that line followed by the change,
+  without listing the work still running or repeating an open question. A
+  child that returns, or that the host reports as stopped, while it waits on
+  work of its own is treated as stopped and checked at once. A task brief
+  carries the skills and project documents that the project's rules direct for
+  that work. The first rendered view of a layout is delivered as
+  `walkthrough.html`, and the message gives the command to open it before the question. A task
+  with a rendered UI effect is committed after its first rendered view and the
+  UI review, and the UI review, the full suite and, when the change crosses a
+  security boundary, the security review run before you are asked to validate; later fixes go in an additional commit per
+  task, never an amend. The Build, Close, Research and Plan pages describe
+  this, and the delivery notes record Claude Code's notice for a stopped child.
+
+- The language rule names URL paths and route segments, including those of
+  public pages, among the identifiers written in English: a URL path is an
+  identifier, not user-facing text. `hive-review-code` reports a new
+  identifier, file name, URL path or route segment in another language as a
+  finding, and `hive-verify-task` notes it beside its verdicts.
+- The global guidance points to the browser-automation reference before any
+  browser is driven, including recordings and demos outside a build.
+- Unattended delegation has a fourth source: the user's silence after they
+  answered the route, delivery and review questions of the running work
+  delegates that work up to the delivery point they chose. The skill names
+  the force-push with an exact lease and the pull-request text edits it
+  allows, each with its way back, and reports an inferred activation as
+  inferred.
+- The labels the host shows while the agent works, such as a command's
+  description, a task's subject and a child's label, follow the session
+  language; a contribution to an external or open-source repository first
+  checks that repository's language and uses it for what reaches it.
+- The documentation site uses the Ion theme with Hive branding and an original
+  hexagonal hero illustration; contributing guidance covers site content updates,
+  preview checks, and the single changelog source. Flow pages match the canonical reporting reference's applicability.
+
+- Before merging a pull request, the agent confirms that the passing checks ran
+  against the current base; when the base moved, it merges the base into the
+  branch, pushes, and waits for the new run.
+- `hive-review-code` reports a repeated defect once with every location and
+  says in its verdict whether the diff crosses a security boundary, which
+  triggers `hive-review-security`; the urgent-fix postmortem names the layer
+  that should have caught the failure and places the preventive action there.
+- At close, the agent may delete merged work branches from this work or
+  earlier, with their clean worktrees, as the close procedure already did;
+  the global grant now says so, and environment branches are never work
+  branches (observed: a repository with seven merged work branches left on
+  GitHub).
+- The global guidance no longer states how review-gate findings are fixed; the
+  severity rules in Build's verification reference are their only home, and
+  Build reads that reference for a code review too. A review requested on its
+  own still authorizes no fixes.
+- The global guidance keeps one home per rule: the `openspec` location is one
+  sentence plus the change-records reference, and two sentences that the
+  retention and reporting references already carry left the global text.
+- The `hive-write-docs` role (formerly `hive-write-spec`, see Removed) writes
+  documentation and site pages from sources the plan already verified and
+  reports what a source does not cover as not verified; the change record
+  stays with the main thread.
+- Plan has one home for revising a retained plan while the work runs
+  ("Revise a plan in progress"): who edits, how the request, criteria, tasks
+  and deltas stay coherent, when the revision returns to the plan reviewers,
+  and when a change of intent is a new change. The seven places that stated
+  parts of it now link there.
+- Plan review records each reviewer's duration and token usage when the host
+  reports them, so the gate's cost can be weighed against what it caught.
+- The pilot runner (`tests/pilot`, not installed) keeps shell text outside the
+  bounded-read grammar and glob/grep patterns in a private `0600` file beside
+  `run.json`, types every inventory entry, and compares reference coverage on
+  reads normalized of OpenCode's line prefixes, so a batch can be inspected
+  and arms A/B can be observed (issues #48, #49).
+
+### Removed
+
+- The `hive-write-spec` role name. `hive update` retires the installed file;
+  a retained plan or brief that names it should name `hive-write-docs`
+  instead. Renaming a role raises the minor version of the next release.
+
+### Fixed
+
+- The local viewer and documentation site serve the Hive favicon without
+  missing-resource requests. The viewer uses the correct image MIME type and
+  also supports the default `/favicon.ico` request, without third-party requests.
+
+- A pull request is merged with the method the repository declares or its base
+  branch's recent merges show, a merge commit by default (Grok cam session
+  `01a1579f`, 2026-10-20: PR #239 was squashed while the base branch's earlier
+  merges were merge commits, collapsing the per-task commits).
+
+- Close deletes a branch merged by squash or rebase, with its clean worktree,
+  once `gh` shows its pull request merged from the same head; `git branch -d`
+  refused them, so both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  `01a157db`) left orphan branches and worktrees. The retained checkout leaves
+  the branch and eligible clean worktrees are removed before branch deletion.
+
+- A process the agent waits on gets a bounded watch besides its exit signal, so
+  a hung run still wakes the agent, and a turn that ends with work running says
+  what will wake it and the duration or deadline of the current wait (Grok cam
+  session `01a1579f`, 2026-10-20: a hung backend
+  integration suite left the session silent until the user asked; issue #95).
+
+- A stalled local integration run is handed to the pull request's CI only after
+  confirming that CI runs that suite on pull requests; otherwise it is rerun
+  locally or reported as not run (Grok cam session `01a157db`, 2026-10-20:
+  a never-run test was committed on the assumption that PR CI would run it).
+
+- The walkthrough viewer distinguishes local and unknown sources, skips new
+  manifests confirmed as tracked in Git, and sets existing tracked copies apart
+  without rendering their instructions or changing their pins and retention.
+  Ingestion checks opened manifests and resources for hard links. Desktop capture
+  previews use the full strip width on screen while preserving narrow-screen
+  navigation and the print layout.
+- A yes-or-no question, such as an authorization, lists its two options with
+  IDs and effects like any other question, and a question tool that returns
+  before the answer, such as Codex's asynchronous card, never replaces the
+  options in the text. In a Codex Default-mode session on 2026-10-18 the
+  Bugbot authorization went out as a bare "do you authorize it?" and a
+  history-rewrite authorization put its options only in the asynchronous
+  card, which closed at the end of the turn, so the user had to answer twice
+  without options.
+- The Codex `observe` profile no longer declares `sandbox_mode = "read-only"`
+  in the installed role files: Codex restores the session's permissions after
+  applying a role (verified on 0.163.0; the 0.155.1 note is consistent with
+  this reading), so the key did not reach the child. Profiles frozen in
+  earlier releases stay readable, and the renderer drops the key for Codex. A child whose browser is blocked by
+  the host's sandbox, such as Codex's default `workspace-write` without network,
+  reports the UI gate as not passed naming the block, and the user lifts it in
+  the host's settings (issue #50).
+
 ## [0.4.0] - 2026-10-15
 
 ### Added

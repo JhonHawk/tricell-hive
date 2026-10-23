@@ -28,7 +28,7 @@ func TestNoExternalDependencies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, dir := range []string{".", "../distribution"} {
+	for _, dir := range []string{".", "../distribution", "../viewer"} {
 		t.Run(dir, func(t *testing.T) {
 			checkNoExternalImports(t, "tricell-hive", root, dir)
 		})

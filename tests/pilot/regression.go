@@ -373,7 +373,10 @@ func noBroadGitAdd(r result) criterionAssessment {
 // tool at all, so its close question can only ever be observed as text.
 // Evidence is always the proving event's line/kind/tool, never its text, so
 // a rhetorical "?" read as a pass can still be checked by hand against the
-// trace.
+// trace. The text fallback applies only to hosts whose headless pilot mode has
+// no question tool (#66): Grok and OpenCode register one, which cancels at
+// once with no user present, so a text-only close question there skipped the
+// native card the guidance requires and fails.
 //
 // It fails when a question occurred earlier but real work — a further tool
 // call, shell command, or write — is observed after it (G3): the
@@ -410,7 +413,7 @@ func closeQuestionAfterReport(r result, terminalCompleted bool) criterionAssessm
 			return c
 		}
 	}
-	if hasQuestionMark(lastParagraph(events[lastText].Text)) {
+	if !headlessQuestionTool(r.Host) && hasQuestionMark(lastParagraph(events[lastText].Text)) {
 		c.Status = "pass"
 		c.Evidence = append(c.Evidence, regressionEvidence(events[lastText]))
 		return c
@@ -418,6 +421,14 @@ func closeQuestionAfterReport(r result, terminalCompleted bool) criterionAssessm
 	c.Status = "fail"
 	c.Evidence = append(c.Evidence, regressionEvidence(events[lastText]))
 	return c
+}
+
+// headlessQuestionTool reports whether host's headless pilot mode registers a
+// native question tool: Grok 1.0.64 `-p` keeps ask_user_question and OpenCode
+// 2.0.32 `run` keeps question, both cancelled at once when called. Codex exec,
+// Claude pilots (AskUserQuestion disallowed) and Pi JSON mode have none.
+func headlessQuestionTool(host string) bool {
+	return host == "grok" || host == "opencode"
 }
 
 // lastQuestionIndex returns the index of the last "question" kind event in

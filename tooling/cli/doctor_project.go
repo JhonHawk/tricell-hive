@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +36,7 @@ var hiveSettingKeys = []hiveKey{
 	{"Review", false},
 	{"Delivery", false},
 	{"Hive guidance", false},
+	{"UI verification", false},
 }
 
 const (
@@ -46,7 +48,6 @@ const (
 	outsideGitLine    = "Not inside a Git repository; run hive from a repository."
 	outsideGitLineTwo = "Workspace-level ## Hive sections are not checked."
 	hiveHeading       = "## Hive"
-	hiveDeliveryWant  = "direct-base"
 	hiveGuidanceWant  = "required"
 )
 
@@ -352,8 +353,12 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 				add(problem != branchAbsent, k.Name, "%s %s", shown(branch), problem)
 			}
 		case "Delivery":
-			if present && v != hiveDeliveryWant {
-				add(true, k.Name, "expected %q, found %q", hiveDeliveryWant, shown(v))
+			if present && !slices.Contains(hiveDeliveryValues, v) {
+				add(true, k.Name, "expected one of %s, found %q", quotedList(hiveDeliveryValues), shown(v))
+			}
+		case "UI verification":
+			if present && !slices.Contains(hiveUIVerificationValues, v) {
+				add(true, k.Name, "expected one of %s, found %q", quotedList(hiveUIVerificationValues), shown(v))
 			}
 		case "Hive guidance":
 			if present && v != hiveGuidanceWant {
@@ -465,4 +470,21 @@ func checkBaseBranch(root, branch string, git gitRunner) string {
 		}
 	}
 	return branchAbsent
+}
+
+// hiveDeliveryValues are the Delivery values the section accepts, in the
+// order the project form cycles them.
+var hiveDeliveryValues = []string{"direct-base", "automatic", "interactive"}
+
+// hiveUIVerificationValues are the UI verification values the section
+// accepts, in the order the project form cycles them.
+var hiveUIVerificationValues = []string{"full", "functional", "none"}
+
+// quotedList renders values as "a", "b", "c" for a message.
+func quotedList(values []string) string {
+	quoted := make([]string, len(values))
+	for i, v := range values {
+		quoted[i] = fmt.Sprintf("%q", v)
+	}
+	return strings.Join(quoted, ", ")
 }

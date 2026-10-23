@@ -1,15 +1,21 @@
 # Provider API
 
 `tooling/providers` owns the small typed catalog for Hive's optional
-capabilities (Engram, Context7, pi-subagents, agent-browser). It does not
+capabilities (Engram, Context7, pi-subagents, agent-browser,
+codex-question-card). It does not
 manage Hive content, run anything, or persist onboarding journals;
 `tooling/management` owns the parent journal and consent.
 
 Engram, Context7 and pi-subagents are manual-only: `providers.Catalog()` lists,
 for each capability, the hosts it is relevant to, the official documentation
-to follow, and the reason. agent-browser is the one capability with an
-executable recipe: an install step (`brew install agent-browser` or
-`npm install -g agent-browser`) and a Chrome step (`agent-browser install`).
+to follow, and the reason. agent-browser and codex-question-card have
+executable recipes. agent-browser has an install step
+(`brew install agent-browser` or `npm install -g agent-browser`) and a Chrome
+step (`agent-browser install`). codex-question-card has one step,
+`codex features enable default_mode_request_user_input`, which uses Codex's own
+writer to show its question card in Default mode; Hive does not edit Codex's
+configuration, and the manual step `codex-question-card-manual` stands in when
+`codex` is not on `PATH`.
 
 ```go
 for _, p := range providers.Catalog() {
@@ -22,7 +28,7 @@ step := providers.Step{ID: "context7-manual", Provider: providers.Context7,
 payload, _ := json.Marshal(step)
 
 // ValidateStep admits a Manual step for a catalog provider and, for
-// agent-browser only, the Planned steps whose argv matches the recipe bound
+// agent-browser and codex-question-card only, the Planned steps whose argv matches the recipe bound
 // to their step ID. It rejects any other command, a command on a manual step,
 // and unknown fields.
 if err := providers.ValidateStep(payload); err != nil { return err }
@@ -33,8 +39,8 @@ onboarding journal's payload (`management.ExternalStep.Payload`). `Method` and
 `Argv` are `omitempty` and exist only on `Planned` steps, so manual payloads
 written earlier keep validating. The CLI's `providerRunner`
 (`tooling/cli/agent_browser_runner.go`) is the `management.ExternalRunner`:
-manual steps are confirmed back unchanged, and agent-browser's steps run
+manual steps are confirmed back unchanged, and the executable steps run
 without a shell, in their own process group, with an empty stdin, a 15-minute
-limit and stored output capped at 64 KiB. Reconcile settles each step from its
-stored result and the machine's state, and a step with no stored result
-(an interrupted run) is `failed`, never replayed.
+limit and stored output capped at 64 KiB. Reconcile settles each agent-browser
+step from its stored result and the machine's state, and a step with no stored
+result (an interrupted run) is `failed`, never replayed.

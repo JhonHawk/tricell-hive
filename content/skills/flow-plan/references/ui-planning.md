@@ -29,7 +29,7 @@ For each affected view or coherent family of views, record only the relevant det
 - Applicable guide and its observed currency; selected shell/pattern and inspected example, with source paths and a rendered/design reference when available.
 - Components/composition to reuse, justified differences, and affected consumers if shared code changes. Prefer composition using the existing architecture over copying a screen or introducing a universal CRUD engine.
 - Relevant loading, empty, error, permission, long-content and responsive states, including interaction and accessibility expectations.
-- Concrete acceptance observations and any unresolved decision that blocks dependent work. The shared [verification reference](../../flow-build/references/verification.md) owns test depth and runtime/UI gates.
+- Concrete acceptance observations and any unresolved decision that blocks dependent work. The shared [verification reference](../../flow-build/references/verification.md) owns test depth and runtime gates; [the UI gate](../../flow-walkthrough/references/ui-gate.md) owns the UI gates.
 
 A compact view table is sufficient when decisions are settled. The plan must explain the composition, not merely promise to follow a guide or defer all design to build.
 

@@ -8,6 +8,14 @@ Read the applicable conditions and actions before writing a report of work or fi
 
 Lead with the answer or outcome; when several openings apply, open with work still running, then a completed work item, then the answer. Match detail to the question and the decision it supports, not the effort spent. Explain necessary context without assuming prior knowledge or belaboring the obvious. Write plain, natural prose in the session language for a reader who did not see the work: complete sentences, everyday words, and concrete names instead of shorthand, metaphors, or internal labels; explain a technical term the first time the reader may not know it. The English terms these instructions use, such as gate, walk, in-vivo, fixture, or cutover, are not the user's vocabulary: say what they mean in everyday words of the session language. Report the evidence that affects the conclusion, not each tool call.
 
+## Open with the context line
+
+**Condition:** a message to the user reports progress, delivers a stage's result, or asks for a decision or a validation.
+
+**Actions:** make its first line the context line, in bold and in the session language: `<stage> · <ticket(s)> · <progress>`. The stage is the flow's, such as research, plan, build, UI validation, or close. Name the ticket by its ID, or the change by its name when there is no ticket. The progress is the stage's own counter when it has one, such as tasks verified of the total, children returned of those launched, or the round of those agreed; omit it when the stage has none. The context line is a heading, not the first sentence: the opening that [Lead with the result](#lead-with-the-result) sets, or a plan's pause block, comes after it, then the body, and the pause line stays last. A message that is only a one-line progress note, such as the line between tasks, an iterative round, a wait stretch, or what an answer settles, is the context line followed by the change on that same line, and a wait-stretch line, where no result arrived, names after it what is still running and what its result decides; a one-line statement inside a longer message gets no context line of its own. A native question card, which a host may show alone, opens its question with the stage and ticket.
+
+Greetings, a short direct answer with no work running, a child's return to its parent, and files take no context line.
+
 ## Citations and links
 
 **Condition:** a message includes a link, including tickets, issues and pull requests.
@@ -38,13 +46,24 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 **Condition:** the user will share or keep a comparison, explainer, or long report.
 
-**Actions:** offer a `flow-report` page in one line.
+**Actions:** offer a `flow-report` page as an option of the question the message ends with, such as a route or close question, or, when the message ends with none, ask it by following [questions](../../flow-plan/references/questions.md).
 
 ## Report a running or completed item
 
-**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments.
+**Condition:** a child's or a background process's notification starts the turn, not a message from the user.
 
-**Actions:** open with a labeled in-progress item stating what is running, what its result decides, and what happens next, before any findings.
+**Actions, in order:**
+
+1. When the result or the notice says the child stopped while it still waits on work of its own, it has stopped: apply [Check returned work](../../flow-research/references/delegation.md#check-returned-work) before writing anything.
+2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, apply step 5 instead.
+3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../flow-plan/references/questions.md).
+4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs.
+5. Otherwise the turn changes nothing the user needs: reply in one line, the [context line](#open-with-the-context-line) followed by the change, without listing the work still running or repeating an open question or its pause line. This line is not a second report.
+6. Continue with your next tool call when work of your own remains; otherwise end the turn.
+
+**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 2 above answers without a message or step 5 answers in one line.
+
+**Actions:** open with a labeled in-progress item stating what is running, what its result decides, what will wake you when it ends or stalls, the current wait's duration or deadline for your next wake, and what happens next, before any findings.
 
 **Condition:** a work item completes.
 
@@ -62,7 +81,7 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Condition:** an obligation of the current work in this project is unmet, such as a check, publication, or agreed manual action.
 
-**Actions:** list resulting user actions here. An open choice is not a Pending item: it goes in the pause line. The work is not complete while one remains; another project's items belong in its session. Start each item with its sole owner in the session language, user or you; make the user's request self-sufficient under [questions](../../flow-plan/references/questions.md#make-user-dependent-work-self-sufficient), and state what you will do and when for yours. Before giving an item to the user, verify its premise and whether this session's access and authorization already let you do it; if they do, do it instead. An item stays the user's only for their decision or authorization, access you checked and lack, or an action off this machine; say what you checked.
+**Actions:** list resulting user actions here. An open choice is not a Pending item: ask it by following [questions](../../flow-plan/references/questions.md). The work is not complete while one remains; another project's items belong in its session. Start each item with its sole owner in the session language, user or you; make the user's request self-sufficient under [questions](../../flow-plan/references/questions.md#make-user-dependent-work-self-sufficient), and state what you will do and when for yours. Before giving an item to the user, verify its premise and whether this session's access and authorization already let you do it; if they do, do it instead. An item stays the user's only for their decision or authorization, access you checked and lack, or an action off this machine; say what you checked.
 
 ### Next step
 
@@ -76,7 +95,7 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Actions:** number them, give each its reason, and mark one Recommended when it is clearly better. When the user asked for one or what to take next, ask the routes as a choice, each option naming the flow it starts: `flow-plan` when the route spans several tickets, repositories, or steps, `flow-build` only for a small understood change, and both when either fits, except the iterative route that [flow-research](../../flow-research/SKILL.md) defines. Start the chosen flow without a new command.
 
-The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option. The flow asks for them through its delivery question before its first edit, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
+The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option. The flow asks for them through its delivery question before its first edit, or takes them from the repository's declared settings, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
 
 ### Reminders
 
@@ -88,7 +107,7 @@ Distinguish work already completed, work you will continue under existing author
 
 ## Work-item boundary
 
-A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in a line and continue. While authorized work remains, send each progress line with your next tool call, since a response without one can end the turn; answer a question or notification that arrives meanwhile in one line and continue.
+A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in a line and continue. While authorized work remains, send each progress line with your next tool call, since a response without one can end the turn; answer a question that arrives meanwhile in one line and continue; a notification that arrives meanwhile follows [the notification turn](#report-a-running-or-completed-item).
 
 End a turn that completes a work item with a close question, after the report and its closing items; a turn that ends on the report is incomplete. Read [the close-question procedure](../SKILL.md#close-question) for its options, ticket selection and exceptions. Investigation-only findings and follow-ups use [flow-research](../../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
@@ -97,6 +116,7 @@ End a turn that completes a work item with a close question, after the report an
 Assume the local checks passed, publishing remains an agreed obligation, and the user already authorized the route. The link below is a fictional template, not a bundled dependency.
 
 ```text
+**Build · ARK-123 · 2 of 2 tasks verified**
 The local change is verified; publication is still pending.
 
 **Delivery:** Updated the retry handling; the targeted tests passed.
@@ -107,4 +127,4 @@ required reviewer returns a passing verdict.
 **Next step:** I will run the already authorized review on this candidate.
 ```
 
-This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, name it through the question procedure and end with its pause line; do not put that open choice under Pending or announce an unchosen next step.
+This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../flow-plan/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.

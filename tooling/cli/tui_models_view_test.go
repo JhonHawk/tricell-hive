@@ -427,7 +427,9 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 	first, last := roles[0], roles[len(roles)-1]
 	deps := hostsTestDeps(coreOnlyAdapterFactory)
 	home, stateDir := newHostsTestHome(t)
-	installViaText(t, home, stateDir, source, strings.Join(installerHosts, ","), "y\n", deps)
+	for _, host := range installerHosts {
+		installDirect(t, home, stateDir, source, []string{host})
+	}
 	cfg := hostsAppConfig(t, home, stateDir, source, deps)
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
@@ -437,11 +439,26 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 			if !ok {
 				t.Fatalf("top view is %T", m.top())
 			}
-			for i := range installerHosts {
+			if len(v.hosts) != len(installerHosts) {
+				t.Fatalf("loaded hosts = %v, want %v", v.hosts, installerHosts)
+			}
+			for i, wantHost := range installerHosts {
 				if i > 0 {
 					d.key("right")
 				}
 				host := selectedModelsHost(t, d)
+				if host != wantHost {
+					t.Fatalf("host at position %d = %s, want %s", i, host, wantHost)
+				}
+				rows := v.hostRows()
+				if len(rows) != len(roles) {
+					t.Fatalf("%s: loaded %d roles, want %d", host, len(rows), len(roles))
+				}
+				for j, role := range roles {
+					if rows[j].Role != role {
+						t.Fatalf("%s: role at position %d = %s, want %s", host, j, rows[j].Role, role)
+					}
+				}
 				assertFits(t, d, size[0], size[1])
 				modelsRowFor(t, d, first)
 				if size[0] == 80 && !v.box.scrollable() {

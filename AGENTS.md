@@ -20,7 +20,7 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 - In distributed content, name the capability rather than a host's tool, such as "the host's native question tool", and give the fallback when it may be absent: tool names change across releases and modes. Keep a proper name only where the behavior itself differs by host and a capability-first rule has been shown insufficient; issue #30 found delegation needs no per-host table, so the host dialects live in `_support/docs/architecture/agent-delivery.md`.
 - State a rule's criterion with its scope explicit, since current models apply instructions literally. Add the reason when it marks where the rule applies, and use examples only to disambiguate a boundary: a lone example reads as the rule's whole scope.
 - Write distributed content for the least capable model that runs it: the `execution` profile models in `integrations/agent-profiles.json`, which run delegated roles on every host that sets one, and on OpenCode the main thread and every role outside the `reasoning` profile. A frontier model's prompting guide or default behavior alone does not justify removing a rule; removal needs evidence that those models behave correctly without it.
-- Give each rule one canonical home. Avoid duplicate routers, fallback chains, generated copies, hooks, or adapters without a measured need.
+- Give each rule one canonical home, which alone states its full steps, their order, and its exceptions. Where the rule applies elsewhere, add only a pointer that names the rule and when to read it, such as "before asking the user, read and follow [questions](…)"; never restate some of its steps there, because a model follows the shorter version and skips the rest. Restate a rule in `content/guidance/global.md` only when it must act without its home being read, and then state its minimal invariant whole. An exception that applies at only one point of use stays there and names every element of the rule it changes. Correct an existing copy when a change edits that copy or the rule it restates. Avoid duplicate routers, fallback chains, generated copies, hooks, or adapters without a measured need.
 - Before changing a distributed rule or its wording, review the whole behavior it governs, not only the sentence you edit. Find every place that states or depends on that behavior: the global guidance, skills and their references, agent roles, `site/` pages, `_support/docs/architecture/`, and the detectors in `tests/pilot/`. Confirm that the change leaves no conflicting or duplicated instruction; drops no intent of the text it replaces, or moves it elsewhere, or states why it goes; keeps one clear order where several rules govern the same moment; and states the change in `content/guidance/global.md`'s size in the pull request. List the places checked in the pull request. A typo or formatting fix that changes no meaning needs only the search.
 - Before changing host-specific behavior, check current official documentation and the installed CLI version. Mark documentary claims, runtime observations, and inferences separately.
 
@@ -103,3 +103,18 @@ After tests finish, remove fictitious test records from Engram. Identify the exa
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.
 - `_support/openspec/` — current requirements and change records; `_support/workspace/` — ignored working material whose versioning is undecided.
+
+<!-- BEGIN:reui-agent-rules -->
+## ReUI design rules (every UI edit, follow-ups included)
+
+This project uses an existing design system: ReUI on shadcn/ui. Keep its look. Generic frontend advice (vary fonts or themes, gradients, page-load or staggered reveals, "2-3 intentional motions", Framer Motion) does not apply here, and other design skills lose where they disagree.
+
+1. Use installed components first (`components/ui`, `components/reui`): tables `data-grid`, filtering `filters`, boards `kanban`, modals `Dialog` or `AlertDialog`, toasts `sonner`. Never set height, radius, padding, shadow or motion on them; use `size`, `variant`, `spacing`.
+2. Color: semantic tokens. State: `<Badge variant="success-light">` from `@/components/reui/badge` at default size, or Alert variants. Raw palette only for categorical identity, with its `dark:` pair.
+3. Spacing: `gap-*` on the parent: `gap-1` to `gap-2` in a row, `gap-3` to `gap-4` between groups, `gap-6` to `gap-8` between sections. Type: `text-sm` body, `text-xs` meta, nothing smaller; never resize FrameTitle or CardTitle.
+4. Motion: installed parts already animate; never retime them. Yours: hover `transition-colors`; reveal `duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]`; transform and opacity only; never `transition-all`, bounce, or a stagger on table rows or lists of 20+; at most 1 entrance per view; `MotionConfig reducedMotion="user"` plus `motion-reduce:`.
+5. Every data region: empty state with an action, `Skeleton` loading, inline error with Retry.
+6. Before UI code, write the plan from `.agents/skills/reui/SKILL.md` in your reply. Before you finish, run its self-check on the files you changed and fix every hit (2 rounds at most). Full rules: `.agents/skills/reui/SKILL.md`. If that folder is missing, call the `reui` MCP tool `get_agent_skill`.
+
+Managed by the ReUI installer. Edits between the markers are replaced on the next run.
+<!-- END:reui-agent-rules -->

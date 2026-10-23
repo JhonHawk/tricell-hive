@@ -44,6 +44,10 @@ type traceEvent struct {
 	// never carry it, and --assess always reparses stdout.jsonl, so nothing
 	// depends on this surviving a round trip.
 	Input json.RawMessage `json:"-"`
+	// PrivateText is the full shell/execute text or glob/grep pattern of a
+	// native operation. It never reaches run.json or the native projection;
+	// writeFlashPrivateOperations moves it to the private evidence file.
+	PrivateText string `json:"-"`
 }
 type traceReport struct {
 	Model, ModelAtInit                        string

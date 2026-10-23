@@ -6,7 +6,7 @@ Read before resolving a project setting needed by the task, including the govern
 
 ## Declare settings
 
-Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory, followed by ` · <git-url>` when it lives in another repository. Optional: `Environments`, `Review`, `Delivery: direct-base` (a support repository, such as specs or mocks; see [delivery decisions](delivery-decisions.md)), and `Hive guidance: required` (every session there, CI included, runs with this guidance). A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above.
+Each repository's `AGENTS.md` holds a `## Hive` section with its own settings. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the project's `openspec` directory, followed by ` · <git-url>` when it lives in another repository. Optional: `Environments`; `Review`, the code-review mechanism for work there, or `none` for no dedicated review; `Delivery`, either `direct-base` for a support repository such as specs or mocks, or `automatic` or `interactive` as the delivery mode for a code repository, as [delivery decisions](delivery-decisions.md) sets; `UI verification`, which independent checks run on a built user-interface change before it is reported complete: `full` runs both `hive-review-ux` and `hive-verify-change`, `functional` runs only `hive-verify-change` on the flows of the acceptance criteria and leaves visual judgment to the human validation, and `none` runs neither, so the implementer's bounded checks are the only ones before that validation, and the walkthrough still launches a `hive-verify-change` child only to record its passes, without a verdict; when the key is absent, `flow-build` asks once per repository and session, in the same round as the review question, and reuses the answer (the question is in [delivery decisions](delivery-decisions.md)); under `Delivery: automatic`, `none` merges a UI change with only the implementer's checks and no person, so declare it knowingly; and `Hive guidance: required` (every session there, CI included, runs with this guidance). A workspace `AGENTS.md` may hold one for project-wide values and cross-repository work. Sections do not inherit across repositories, because a host started in a repository may not load the level above.
 
 Example for a code repository:
 
@@ -18,6 +18,8 @@ Example for a code repository:
 - Tracker: Linear · team sample · project ark · key ARK
 - Specs: ../ark-specs/openspec · https://github.com/<org>/ark-specs.git
 - Review: /code-review
+- Delivery: automatic
+- UI verification: functional
 ```
 
 ## Resolve the governing section

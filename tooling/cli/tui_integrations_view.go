@@ -16,10 +16,10 @@ import (
 )
 
 // integrationsFixedRows are the title, the list header and the most list rows
-// there can be (five); with fewer rows the view pads up to this number, and the
+// there can be (six); with fewer rows the view pads up to this number, and the
 // detail gets the rest of the view's area. scrollBox.resize subtracts the
 // dialog rows, so the box's height is set directly.
-const integrationsFixedRows = 7
+const integrationsFixedRows = 8
 
 type integrationsLoadedMsg struct {
 	owned

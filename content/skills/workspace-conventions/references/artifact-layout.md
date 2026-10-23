@@ -20,9 +20,11 @@ Create only the folders and records the work needs. One work item shares its ide
 - Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
 - `evidence/YYYY-MM-DD-<work>/`: the selected subset that substantiates results, linked from the report.
 
-**Condition:** producing UI review images.
+**Condition:** producing UI review images, recordings, or the walkthrough manifest and page.
 
-**Actions:** put them in `workspace/YYYY-MM-DD-<work>/images/` and link them from the handoff for the user to validate or request changes. Keep them for the rest of the session, even after the work item closes; at session end, `flow-close` deletes those the user did not select for retention, except for paused work that continues in another session. Keep them out of commits; retaining an image does not authorize publication.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/` and the walkthrough manifest and page beside that folder as `workspace/YYYY-MM-DD-<work>/walkthrough.json` and `walkthrough.html`, and link them from the handoff for the user to validate or request changes. The manifest, the page, its recordings, and its images are one retention unit: keep them for the rest of the session, even after the work item closes; at session end, `flow-close` deletes them together unless the user selected the page, which keeps its manifest and every file it references, or selected single files, which keeps those files and deletes the manifest and page with the rest; paused work that continues in another session keeps them all. Keep them out of commits; retaining an image, a recording, or the page does not authorize publication.
+
+Before closing that work or deleting its source review unit or containing worktree, follow [Close the current walkthrough](../../flow-close/SKILL.md#close-the-current-walkthrough). Its unresolved confirmation preserves the still-needed unit in addition to the retention cases above.
 
 ## Name and date records
 
@@ -38,7 +40,7 @@ Retain necessary evidence, including justified binaries; only curated, shareable
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it started, and restores local state the task changed. The global guidance authorizes deleting merged work branches and their clean worktrees at close; never delete a branch with unmerged commits or a worktree with uncommitted or untracked files. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
+**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it or its children started, and restores local state the task changed. The global guidance authorizes deleting merged work branches, from this work or earlier, and their clean worktrees at close; never delete a branch with unmerged commits, except a squash- or rebase-merged branch that [flow-close](../../flow-close/SKILL.md) confirms against its pull request, or a worktree with uncommitted or untracked files. Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
 
 **Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
 

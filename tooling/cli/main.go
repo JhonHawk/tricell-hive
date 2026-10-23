@@ -72,6 +72,8 @@ func run(args []string) error {
 		return runModels(rest, os.Stdout)
 	case "project":
 		return runProject(rest)
+	case "view":
+		return runView(rest, os.Stdout, realViewDeps())
 	case "tui":
 		return runInterfaceCommand(rest)
 	case "grok-hook":
@@ -91,6 +93,7 @@ func printHelp() {
 	fmt.Println("hive voice list [--source DIR]  (print each voice's ID and description)\nhive voice set ID [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]\nhive voice off [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]")
 	fmt.Println("hive doctor [--home DIR] [--state-dir DIR] [--project DIR]  (read-only diagnostics: CLIs, installation, sessions, integrations, project)\nhive models [--home DIR] [--state-dir DIR]  (read-only effective model and effort per role)")
 	fmt.Println("hive models set --host H (--role R | --group G) [--model M] [--effort E] [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]\nhive models reset --host H ((--role R | --group G) [--only model|effort] | --all) [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]  (override a role's or a group's model or effort; reset returns to the release's values)")
+	printViewHelp(os.Stdout)
 	fmt.Println("hive project set [--project DIR] --set 'Key: value'... [--unset Key...] [--dry-run]  (edit the ## Hive section of the repository's AGENTS.md after confirmation)")
 }
 
@@ -365,4 +368,8 @@ func printVoiceSpan(label string, s *management.VoiceSpan) {
 	for _, c := range s.Consumers {
 		fmt.Printf("consumer: %s (%s, %s)\n", c.Host, c.Scope, c.Context)
 	}
+}
+
+func printViewHelp(w io.Writer) {
+	fmt.Fprintln(w, "hive view start [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (start the local walkthrough viewer server)\nhive view stop|open [--home DIR] [--state-dir DIR]  (stop it, open it in the browser)\nhive view status [--dir DIR] [--home DIR] [--state-dir DIR]  (print JSON status; --dir confirms the current source revision and its session status)\nhive view register [--dir DIR] [--home DIR] [--state-dir DIR]  (add a Git repository, or the workspace that holds DIR's _support/workspace, to the viewer; needs no server)\nhive view serve [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (run the server in the foreground)")
 }

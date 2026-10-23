@@ -42,3 +42,11 @@ site/.astro
 site/.wrangler
 site/.dev.vars*
 site/.env*
+
+# Viewer frontend: keep source and generated embedded bundle, exclude local state
+tooling/viewer/frontend/node_modules/
+tooling/viewer/frontend/.env*
+tooling/viewer/frontend/*.local
+tooling/viewer/frontend/coverage/
+tooling/viewer/frontend/test-results/
+tooling/viewer/frontend/playwright-report/

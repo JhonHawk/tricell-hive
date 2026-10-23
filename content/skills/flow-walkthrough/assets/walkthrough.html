@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="__WT_LANG__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__WT_TITLE__</title>
+<style>
+  /* Shell only: the page background. Everything else is scoped to .walkthrough. */
+  :root{color-scheme:dark}
+  html,body{margin:0; background:#0b0b0c}
+  @media print{
+    :root{color-scheme:light}
+    html,body{background:#fff}
+  }
+</style>
+<style>
+__WT_CSS__
+</style>
+</head>
+<body>
+<main class="walkthrough"><noscript><p>This page needs JavaScript to show the walkthrough.</p></noscript></main>
+<script type="application/json" id="walkthrough-data">__WT_DATA__</script>
+<script type="module">
+__WT_MODULE__
+renderWalkthrough(
+  document.querySelector(".walkthrough"),
+  JSON.parse(document.getElementById("walkthrough-data").textContent),
+  {fileBase: ""}
+);
+</script>
+</body>
+</html>
