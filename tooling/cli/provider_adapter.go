@@ -10,8 +10,8 @@ import (
 	"tricell-hive/tooling/providers"
 )
 
-// nativeProviderAdapter offers Hive's optional capabilities. Engram, Context7
-// and pi-subagents are manual instructions only. agent-browser and codex-question-card have
+// nativeProviderAdapter offers Hive's optional capabilities. Engram, Context7,
+// pi-subagents and CodeGraph are manual instructions only. agent-browser and codex-question-card have
 // executable recipes (the latter only runs Codex's own `features enable`): it is offered without a version, its
 // steps run only after the operator's consent, and it runs no program at all
 // in a non-interactive session, a dry run or under a synthetic home (D-9).
