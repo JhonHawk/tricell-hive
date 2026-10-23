@@ -44,7 +44,7 @@ func changeTableLines(d *appDriver, prefix string, width int) (headers, rows, wi
 }
 
 func TestModelsConfirmationFitsEightyColumnsWithLongOpenCodeIDs(t *testing.T) {
-	e := newModelsEditEnvWith(t, modelsTestSource(t), "claude,opencode", 80, 24, longIDFake().run)
+	e := newModelsEditEnvWith(t, modelsTestSource(t), "opencode", 80, 24, longIDFake().run)
 	store(t, e.home, e.stateDir, "opencode", map[string]management.ModelOverride{longRoleName: {Model: longFrom}})
 	e.d.key("r")
 	toHost(t, e.d, "opencode")
@@ -65,7 +65,7 @@ func TestModelsConfirmationFitsEightyColumnsWithLongOpenCodeIDs(t *testing.T) {
 
 func TestModelsConfirmationOfASevenRoleGroupKeepsOneRowPerRole(t *testing.T) {
 	source, roles := bulkSource(t)
-	e := newModelsEditEnvWith(t, source, "claude,opencode", 80, 24, longIDFake().run)
+	e := newModelsEditEnvWith(t, source, "opencode", 80, 24, longIDFake().run)
 	prior := map[string]management.ModelOverride{}
 	for _, r := range roles {
 		prior[r] = management.ModelOverride{Model: longFrom}
