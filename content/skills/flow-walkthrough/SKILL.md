@@ -57,13 +57,15 @@ When `hive view open` prints that the viewer is not running, which it does with 
 
 ## Correction rounds and markers
 
-While the user requests corrections during a validation pause, whether to text, behavior, or layout, run one correction round per request: apply the correction; write its test in the same round when it alters behavior of a kind the build skill's test-first rule covers; run the affected tests; rebuild; capture the affected views; and ask again right away in the same way. Between rounds, run no `hive-review-ux`, `hive-verify-change`, `hive-verify-task`, or dedicated code review. When you offer alternatives, sketch them as [UI planning](../flow-plan/references/ui-planning.md) describes.
+While the user requests corrections during a validation pause, whether to text, behavior, or layout, run one correction round per request: apply the correction; write its test in the same round when it alters behavior of a kind [test-first development](../flow-build/references/tdd.md) covers; run the affected tests; rebuild; capture the affected views; and ask again right away in the same way. Between rounds, run no `hive-review-ux`, `hive-verify-change`, `hive-verify-task`, or dedicated code review. When you offer alternatives, sketch them as [UI planning](../flow-plan/references/ui-planning.md) describes.
 
-When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets, with the reruns [flow-build](../flow-build/SKILL.md) sets, before any further step.
+When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets before any further step; at that gate, rerun the full suite only when the corrections could affect what it covers, and the security review only when they touch a boundary. A local run that makes no progress stops as [verification](../flow-build/references/verification.md) sets, and the validation message names it as not run.
 
 Before delivering a later fix, including one from code review after approval, follow [changes after a gate or approval](references/ui-gate.md#changes-after-a-gate-or-approval).
 
 Markers: when a correction changes the files of a task marked `[x]`, set that task back to `[?]` with a line `reopened by correction round <n>`, and verify it at the accepted-candidate gate. Record a correction outside the plan's tasks in the progress section; `hive-verify-change` covers it at that gate when the value runs it. A correction that changes the retained plan follows [Revise a plan in progress](../flow-plan/references/plan-revision.md); the plan re-review it may make due runs with the accepted-candidate gate above, not between rounds.
+
+For UI work awaiting human validation, leave the verified built local stack available and deliver the walkthrough, captures, recordings, and page defined in this skill; do not ask again merely to keep this handoff available. Pending human review means these resources are still needed. Once no longer needed, stop only the temporary processes the task or its children started and apply the UI-image hygiene in [artifact layout and retention](../workspace-conventions/references/artifact-layout.md), preserving user-selected captures and pre-existing services, sessions and evidence. Report remaining resources and how to stop them, and respect an explicit shutdown request.
 
 ## Share
 

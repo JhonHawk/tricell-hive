@@ -37,7 +37,7 @@ Mark each task with one of these markers:
 | `[x]` | Verified. When the user accepted the task without verification, a line `accepted unverified by the user: <reason>` follows it. |
 | `[!]` | Rejected by verification. A line with the round, the `AC<n>`, and the reason follows it. |
 
-`flow-build` owns the transitions. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
+`flow-build` owns the transitions, as [plan execution](../../flow-build/references/plan-execution.md) sets. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
 
 ## Opening control sheet
 

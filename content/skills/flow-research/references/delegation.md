@@ -70,6 +70,10 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Actions:** children return findings or changes, evidence, unresolved limits, and any required instruction-access gaps. The main thread checks the result against the brief and source evidence, resolves disagreements, and owns integration and closure. An agent's assertion is not independent verification. Relay every defect a child reports, at any severity scale it uses, or propose it under the global incidental-findings rule; never drop it from your summary. Before relaying a child's result that touched credentials, cookies, or tokens, check whether it put a secret in a durable or shared place, and if so tell the user under the global Secrets rule.
 
+**Condition:** a child is silent longer than its expected duration, or a child returns.
+
+**Actions:** keep the processes it starts identifiable. Before telling the user that a child is still in progress after a silence longer than its expected duration, check its liveness through its tool activity or processes; when a child returns, confirm it left no running processes: record each one it left, on purpose or not, such as a verifier's server, with its PID or port in the plan's progress section, or in the report without a plan; stop at once those no longer needed, and leave the rest for [flow-close](../../flow-close/SKILL.md) to stop at close.
+
 **Condition:** a child returns, or the host reports that it stopped, while it waits on work of its own, such as a watcher, a wait or a background command.
 
 **Actions:** treat that child as stopped, because its result may be provisional. Check at once whether the child and that work are still alive. When that work has finished, resume the same child so it returns its final result; when it is still running, give it a completion signal as [Launch and wait](#launch-and-wait) sets and resume the same child when it ends; when the work is gone or the host cannot resume the child, launch the same role again with the same brief, once. Never report it as in progress, and never wait on it in short check cycles.
