@@ -15,7 +15,7 @@ Identify the question, the decision it informs, relevant constraints, and what e
 
 Inspect the relevant entry points, callers, tests, configuration, and project guidance before extending the search. When the question concerns project state or delivery, also reconcile the relevant backlog, documentation, code, pull requests, CI, and deployment evidence; for the project's status or a backlog listing, read [backlog report](references/backlog-report.md) before reporting. When collecting the state of named tickets, pull requests, CI runs, or deployments, or a tracker query with its project and states, would produce long output, delegate that collection to the `hive-read-state` role with those targets and the fields the report groups by. Follow references that bear on the question rather than inventorying the entire repository. Let uncertainty and consequences determine depth, not a fixed file or source count.
 
-Before recommending a change that removes, closes, disables, migrates, renames, or moves something that runs in production, or that changes untested production behavior, read [change impact](references/change-impact.md).
+Before recommending a change that removes, closes, disables, migrates, or renames something that runs in production, moves it to another host or process, or changes untested production behavior, read [change impact](references/change-impact.md).
 
 Treat search hits as entry points to inspect, and state the searched scope and vocabulary before claiming absence; no matches alone do not establish that a capability or behavior is missing. When investigating a failure, regression, or incident with an uncertain cause, read [diagnosis](references/diagnosis.md).
 
