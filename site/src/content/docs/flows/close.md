@@ -28,8 +28,10 @@ Clean up the session.
 
 The agent goes through these steps in order:
 
-For work with a walkthrough, it first marks only that work closed and regenerates
-its page before removing a working copy or review artifacts. Closed also covers
+For work with a walkthrough, it first records its known PR or commit delivery link
+when available, preserving the captured candidate and other works in the session.
+Then it marks only that work closed and publishes its JSON, or standalone HTML
+when the binary is absent, before removing a working copy or review artifacts. Closed also covers
 abandoned or paused work; cleanup by itself does not close work. The existing
 viewer must confirm that it collected the exact current source and resources
 before their source unit can be removed. If the viewer is offline, too old, has
@@ -63,7 +65,7 @@ to force confirmation. The procedure lives in
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough page with its JSON file that you did not ask to keep: keeping the page keeps every file it shows, and keeping single files drops the page with the rest. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough manifest and optional page that you did not ask to keep: keeping the manifest or page keeps its referenced images and recordings too; keeping only individual images or recordings drops the remaining unit. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.

@@ -1,10 +1,18 @@
 # Walkthrough manifest
 
-Read before writing `walkthrough.json` for a walkthrough or first-view page. The renderer validates every rule below and names the field that fails; fix the manifest and run it again rather than editing the generated page.
+Read before writing `walkthrough.json` for a walkthrough or first view. The publisher validates every rule below and names the field that fails; fix the manifest and run it again rather than editing generated output.
 
 ## Where it goes
 
-Write one `walkthrough.json` per work folder, beside its `images/` folder, as [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md) places them. The first-view manifest and the final one are the same file: the final one replaces it. Then run the renderer as the skill's Deliver section sets; it writes `walkthrough.html` beside the manifest.
+Write one `walkthrough.json` per work folder, beside its `images/` folder, as [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md) places them. The first-view manifest and the final one are the same file: the final one replaces it. Then run the publisher as the skill's Deliver section sets and use the output target below.
+
+## Publication target
+
+The publisher resolves whether the `hive` executable is available on PATH once per invocation. With the binary available, it validates the manifest and referenced resources, atomically applies an explicit status update when requested, and returns `walkthrough.json`. It does not read page assets, build HTML or create or replace `walkthrough.html`; an existing page stays unchanged and is not the current output. Register the work folder through the skill's delivery step so the viewer renders the JSON.
+
+Without the binary, it generates the standalone `walkthrough.html` fallback beside the JSON. Keep its existing preparation, concurrent-write checks and recovery: validation or preparation failure changes neither output, and a page publication failure restores the manifest when no other writer replaced it. Re-run from the authoritative JSON after interruption; this is not a cross-file crash transaction.
+
+Server state, an older runtime, registration failure or failed confirmation never enables HTML when the executable is present. Do not add an override to bypass that condition. Missing-binary fallback does not require installing or starting the viewer. Keep previous evidence; generating a different output does not authorize deleting it. Retention of either primary output and its resources follows [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md).
 
 ## Fields
 
@@ -32,13 +40,13 @@ Keys are English and exactly as shown; unknown keys fail. Text values are in the
 
 **`session.status`.** Optional; exactly `in_progress` or `closed`. Active producers write `in_progress`, including when explicitly resuming the same work. Existing manifests without it remain valid and the viewer reports `unknown`; do not retrofit historical records or infer status from `kind`, age, Git classification or the host process. `closed` means this work passed through flow-close (completed, abandoned or paused), not that the person approved the interface or the host conversation ended. Before closing or deleting this work's review artifacts, follow [Close the current walkthrough](../../flow-close/SKILL.md#close-the-current-walkthrough).
 
-The renderer's `--session-status in_progress|closed` explicitly updates only this manifest and renders its page. Without that option it renders without changing the manifest, including an absent status. `--confirm-viewer` requires `--session-status closed` and checks the existing viewer through `hive view status --dir <work folder>`. Exit `0` means rendering succeeded and, when requested, the current closed copy was confirmed; `1` means validation or publication failed; `2` means closed was written but confirmation failed and the source evidence unit must be retained. Each output is replaced atomically after validation and preparation; page publication failure restores the manifest. This is not a crash transaction across two files: rerun from the JSON after interruption. No raw CLI diagnostics are relayed.
+The publisher's `--session-status in_progress|closed` explicitly updates only this manifest and publishes the output selected above. Without that option it validates without changing the manifest, including an absent status. `--confirm-viewer` requires `--session-status closed` and checks the existing viewer through `hive view status --dir <work folder>`. Exit `0` means publication succeeded and, when requested, the current closed copy was confirmed; `1` means validation or publication failed; `2` means closed was written but confirmation failed and the source evidence unit must be retained. Replacements and fallback recovery follow the publication target above. No raw CLI diagnostics are relayed.
 
 **`delivery`.** Optional array; each object has exactly `kind`, `label` and `url`. `kind` is `pull_request` or `commit`; `label` is non-empty text (for example `tricell-hive #123` or `abc1234`), never HTML. `url` is an absolute HTTPS URL with an ASCII host (letters, digits, `.`, `-` or `_`, including punycode) or a valid IPv6 literal in brackets, valid percent escapes and an optional numeric port in `0..65535`. Scheme casing is immaterial. Credentials, control characters, literal whitespace, backslashes and empty ports are rejected. Unicode hosts are rejected without IDNA normalization; labels and URL paths may contain Unicode. There is no provider allowlist or remote status lookup; a linked PR can still be open and its label does not assert integration. Never put secrets in URLs or labels. Keep `candidate` unchanged; a local hash or `working tree` is not a delivery URL.
 
 Add already verified deliveries when producing the walkthrough. At close, update only the current work's manifest with its known PR/commit URL before rendering, closing and confirming it; preserve existing links that still describe that work. Without a known delivery, omit the field. Do not infer URLs, rewrite historical manifests, or scan other work folders in the session.
 
-The schema remains version `1`; manifests without `delivery` remain valid. Older strict readers reject the new optional field. Update the manager binary before deploying the content that writes it, and explicitly restart an already running viewer before expecting it to read the new contract. Grouping requires no migration or backfill. The standalone renderer embeds validated delivery metadata; link rendering uses the shared renderer's independent URL validation.
+The schema remains version `1`; manifests without `delivery` remain valid. Older strict readers reject the new optional field. Update the manager binary before deploying the content that writes it, and explicitly restart an already running viewer before expecting it to read the new contract. Grouping requires no migration or backfill. When produced, the standalone fallback embeds validated delivery metadata; link rendering uses the shared renderer's independent URL validation.
 
 **Each flow** has:
 
@@ -68,6 +76,7 @@ Each capture needs `path` and `caption`; `alt` defaults to the caption. Limits: 
   "ticket": "gh-67-flow-walkthrough-skill",
   "session": {"id": "codex-20261018T223000Z", "host": "codex", "status": "in_progress"},
   "candidate": {"branch": "feat/gh-67-sidebar", "commit": "1a2b3c4d", "base": "development"},
+  "delivery": [{"kind": "pull_request", "label": "example #123", "url": "https://example.com/repository/pull/123"}],
   "created_at": "2026-10-18T16:30:00-06:00",
   "result": "All checks pass; confirm the sidebar spacing matches the demo.",
   "checks": [

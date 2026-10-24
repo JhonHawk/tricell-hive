@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Validate <folder>/walkthrough.json and write <folder>/walkthrough.html.
+"""Validate walkthrough JSON; publish HTML only when Hive is unavailable.
 
     python3 render_walkthrough.py <folder> [--session-status in_progress|closed]
     python3 render_walkthrough.py <folder> --session-status closed --confirm-viewer
 
-The page is a fixed template (assets/walkthrough.html, .css, .mjs) with the
-manifest embedded as an inert JSON data block. Python 3 standard library only.
-Exit 0 and the written path on success; exit 1 on validation/publication error.
+Resolve the hive executable once from PATH. When available, validate resources
+and return walkthrough.json, atomically applying an explicit status change;
+never build or modify HTML. Daemon availability does not change this mode.
+Without hive, publish walkthrough.html from the fixed template with inert JSON.
+Python 3 standard library only. Exit 0 and the current output path on success;
+exit 1 on validation/publication error.
 Exit 2 means closed was written but the viewer did not confirm its current
 copy: retain the source evidence unit. No viewer is started or restarted.
 """
@@ -19,6 +22,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -412,14 +416,16 @@ def write_atomic(path: Path, content: bytes) -> None:
 
 
 def render(folder: Path, session_status: str | None = None) -> Path:
-    """Validate and prepare both outputs before publishing explicit status.
+    """Publish JSON with Hive, or prepare the standalone HTML fallback.
 
-    Each replacement is atomic. If publishing the page fails, restore the
-    original manifest rather than leaving it ahead of the page. This is not a
-    cross-file crash transaction; a retry renders from the authoritative JSON.
+    Resolve executable availability once; daemon/confirmation errors never
+    enable HTML. Each replacement is atomic. In fallback mode, a failed page
+    publication restores the manifest. This is not a cross-file crash
+    transaction; a retry publishes from the authoritative JSON.
     """
     if not folder.is_dir():
         raise fail("folder", "must be a directory")
+    has_hive = shutil.which("hive") is not None
     original = read_manifest(folder)
     manifest = parse_manifest(original)
     validate(folder, manifest)
@@ -429,23 +435,26 @@ def render(folder: Path, session_status: str | None = None) -> Path:
             raise fail("session.status", "must be in_progress or closed")
         manifest["session"]["status"] = session_status
     validate(folder, manifest)
-    page = build_page(manifest)
+    page = None if has_hive else build_page(manifest)
     serialized = json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     if len(serialized.encode("utf-8")) > MAX_MANIFEST and session_status is not None:
         raise fail("walkthrough.json", "updated manifest exceeds 1 MiB")
-    target = folder / "walkthrough.html"
+    target = source if has_hive else folder / "walkthrough.html"
     changed = session_status is not None and parse_manifest(original) != manifest
     staged_source = None
     staged_page = None
     try:
-        # Stage every write before replacing either public file.
+        # Stage every required write before replacing a public file.
         if changed:
             staged_source = stage_atomic(source, serialized.encode("utf-8"))
-        staged_page = stage_atomic(target, page.encode("utf-8"))
+        if page is not None:
+            staged_page = stage_atomic(target, page.encode("utf-8"))
         if read_manifest(folder) != original:
             raise fail("walkthrough.json", "changed during rendering; retry from the current source")
         if changed:
             os.replace(staged_source, source)
+        if has_hive:
+            return source
         try:
             os.replace(staged_page, target)
         except OSError:
@@ -500,7 +509,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
     parser.add_argument("--session-status", choices=sorted(SESSION_STATUSES),
-                        help="explicitly update only this work's lifecycle and render it")
+                        help="update only this work's lifecycle; publish JSON with Hive or HTML without it")
     parser.add_argument("--confirm-viewer", action="store_true",
                         help="with closed, require the viewer's exact current copy before cleanup")
     args = parser.parse_args()

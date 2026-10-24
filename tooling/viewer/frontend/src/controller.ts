@@ -10,20 +10,36 @@ import {
   stored,
   validateIndex,
 } from "./api";
-export type WalkthroughManifest = { title: string; [key: string]: unknown };
+import { groupSessions, type SessionGroup, sessionIdentity } from "./sessions";
+export type Delivery = {
+  kind: "pull_request" | "commit";
+  label: string;
+  url: string;
+};
+export type WalkthroughManifest = {
+  title: string;
+  delivery?: Delivery[];
+  [key: string]: unknown;
+};
 export type DocumentData = {
   key: string;
   hash: string;
   fileBase: string;
   manifest: WalkthroughManifest;
 };
+export type SegmentDocument = {
+  revision: string;
+  state: "loading" | "ready" | "error" | "excluded";
+  document: DocumentData | null;
+};
 export type ViewerState = {
   access: "pending" | "ready" | "missing" | "rejected";
   index: RawIndex | null;
   sessions: LibrarySession[];
   selectedId?: string;
-  document: DocumentData | null;
-  documentState: "empty" | "loading" | "ready" | "error" | "excluded";
+  groups: SessionGroup[];
+  documents: Record<string, SegmentDocument>;
+  writingId?: string;
   down: boolean;
   indexError: boolean;
   notice?:
@@ -42,8 +58,8 @@ const initial: ViewerState = {
   access: "pending",
   index: null,
   sessions: [],
-  document: null,
-  documentState: "empty",
+  groups: [],
+  documents: {},
   down: false,
   indexError: false,
   writing: false,
@@ -54,12 +70,13 @@ export class ViewerController {
   private listeners = new Set<() => void>();
   private epoch = 0;
   private readSeq = 0;
-  private loadSeq = 0;
+  private requests = new Map<string, object>();
+  private cache = new Map<string, SegmentDocument>();
+  private lastSelected = new Map<string, string>();
   private reading = false;
   private hidden = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | undefined;
   private active = false;
-  private preferred: string | undefined;
   constructor(
     public client: AccessClient,
     private isHidden = () => document.hidden,
@@ -76,7 +93,8 @@ export class ViewerController {
   async open(code: string | null) {
     const epoch = ++this.epoch;
     this.readSeq++;
-    this.loadSeq++;
+    this.requests.clear();
+    this.cache.clear();
     this.hidden.clear();
     this.reading = false;
     this.update({
@@ -101,7 +119,8 @@ export class ViewerController {
   private reject() {
     this.epoch++;
     this.readSeq++;
-    this.loadSeq++;
+    this.requests.clear();
+    this.cache.clear();
     this.reading = false;
     this.client.reject();
     this.update({ ...initial, access: "rejected" });
@@ -138,6 +157,32 @@ export class ViewerController {
       this.schedule();
     }
   }
+  private revision(segment: LibrarySession) {
+    return JSON.stringify([
+      segment.raw.content_hash,
+      segment.fileBase,
+      segment.classification,
+      segment.excluded,
+    ]);
+  }
+  private publishDocuments() {
+    const selected = this.state.sessions.find(
+      (s) => s.id === this.state.selectedId,
+    );
+    const group = this.state.groups.find((g) =>
+      g.segments.some((s) => s.id === selected?.id),
+    );
+    const segments = group?.segments ?? (selected ? [selected] : []);
+    const documents = Object.fromEntries(
+      segments.flatMap((s) => {
+        const entry = this.cache.get(s.id);
+        return entry ? [[s.id, entry]] : [];
+      }),
+    );
+    this.update({
+      documents,
+    });
+  }
   private apply(index: RawIndex, notifyMissing = true) {
     const mapped = mapIndex(index);
     for (const key of this.hidden)
@@ -145,101 +190,130 @@ export class ViewerController {
     const sessions = mapped.filter(
       (s) => !this.hidden.has(s.id) && (this.state.showArchived || !s.archived),
     );
-    const current = sessions.find((s) => s.id === this.state.selectedId);
     const previous = this.state.sessions.find(
       (s) => s.id === this.state.selectedId,
     );
-    this.update({ index, sessions });
+    const oldGroup = this.state.groups.find((g) =>
+      g.segments.some((s) => s.id === previous?.id),
+    );
+    for (const [key, entry] of this.cache) {
+      const segment = sessions.find((s) => s.id === key);
+      if (!segment || entry.revision !== this.revision(segment)) {
+        this.cache.delete(key);
+        this.requests.delete(key);
+      }
+    }
+    const groups = groupSessions(sessions);
+    this.update({ index, sessions, groups });
     if (!sessions.length) {
-      this.loadSeq++;
+      this.requests.clear();
       this.update({
         selectedId: undefined,
-        document: null,
-        documentState: "empty",
+        documents: {},
         notice: previous && notifyMissing ? "gone" : this.state.notice,
       });
       return;
     }
-    if (current) {
-      if (current.excluded || current.classification === "tracked") {
-        this.loadSeq++;
-        this.update({ document: null, documentState: "excluded" });
-        return;
-      }
-      if (
-        !previous ||
-        previous.raw.content_hash !== current.raw.content_hash ||
-        previous.classification === "tracked" ||
-        previous.fileBase !== current.fileBase ||
-        previous.excluded !== current.excluded
-      )
-        this.load(current);
-      return;
+    let selected = sessions.find((s) => s.id === this.state.selectedId);
+    if (!selected && oldGroup && previous) {
+      const at = oldGroup.segments.findIndex((s) => s.id === previous.id);
+      const adjacent = [
+        ...oldGroup.segments.slice(at + 1),
+        ...oldGroup.segments.slice(0, at).reverse(),
+      ];
+      selected = adjacent
+        .map((s) => sessions.find((current) => current.id === s.id))
+        .find(Boolean);
     }
-    const remembered = stored(this.client.storage, OPEN_KEY);
-    const preferred =
-      sessions.find((s) => s.id === this.preferred) ||
-      sessions.find((s) => s.id === remembered);
-    this.preferred = undefined;
-    const normal = sessions.filter((s) => !s.excluded);
-    const candidates = normal.length ? normal : sessions;
-    const latest = [...candidates].sort(
-      (a, b) =>
-        (Date.parse(b.raw.created_at) || Date.parse(b.raw.ingested_at) || 0) -
-          (Date.parse(a.raw.created_at) ||
-            Date.parse(a.raw.ingested_at) ||
-            0) ||
-        (Date.parse(b.raw.ingested_at) || 0) -
-          (Date.parse(a.raw.ingested_at) || 0),
-    )[0];
-    this.select((preferred || latest).id);
-    if (previous && notifyMissing) this.update({ notice: "gone" });
+    if (!selected) {
+      const remembered = stored(this.client.storage, OPEN_KEY);
+      selected =
+        sessions.find((s) => s.id === remembered) ??
+        groups[0]?.segments[0] ??
+        sessions[0];
+    }
+    this.select(selected.id);
+    if (previous && previous.id !== selected.id && notifyMissing)
+      this.update({ notice: "gone" });
   }
+  selectSession = (groupId: string) => {
+    const group = this.state.groups.find((g) => g.id === groupId);
+    if (!group) return;
+    const remembered = this.lastSelected.get(groupId);
+    this.select(
+      group.segments.find((s) => s.id === remembered)?.id ??
+        group.segments[0].id,
+    );
+  };
   select = (id: string) => {
     const selected = this.state.sessions.find((s) => s.id === id);
     if (!selected) return;
-    if (id === this.state.selectedId && this.state.documentState !== "error")
-      return;
     save(this.client.storage, OPEN_KEY, id);
+    this.lastSelected.set(sessionIdentity(selected), id);
     this.update({ selectedId: id });
-    this.load(selected);
+    const group = this.state.groups.find((g) =>
+      g.segments.some((s) => s.id === id),
+    );
+    const segments = group?.segments ?? [selected];
+    for (const key of this.requests.keys()) {
+      if (!segments.some((s) => s.id === key)) {
+        this.requests.delete(key);
+        this.cache.delete(key);
+      }
+    }
+    for (const segment of segments) {
+      if (!this.cache.has(segment.id)) void this.load(segment);
+    }
+    this.publishDocuments();
   };
   private async load(selected: LibrarySession) {
-    const seq = ++this.loadSeq;
+    const request = {};
     const epoch = this.epoch;
+    const revision = this.revision(selected);
     if (selected.excluded || selected.classification === "tracked") {
-      this.update({ document: null, documentState: "excluded" });
+      this.cache.set(selected.id, {
+        revision,
+        document: null,
+        state: "excluded",
+      });
+      this.publishDocuments();
       return;
     }
-    this.update({
-      document:
-        this.state.document?.key === selected.id ? this.state.document : null,
-      documentState: "loading",
-    });
+    this.requests.set(selected.id, request);
+    this.cache.set(selected.id, { revision, document: null, state: "loading" });
+    this.publishDocuments();
     try {
       const manifest = await this.client.request(
         `/api/sessions/${encodeURIComponent(selected.id)}`,
       );
-      if (epoch !== this.epoch || seq !== this.loadSeq) return;
-      this.update({
+      if (epoch !== this.epoch || this.requests.get(selected.id) !== request)
+        return;
+      this.requests.delete(selected.id);
+      this.cache.set(selected.id, {
+        revision,
+        state: "ready",
         document: {
           key: selected.id,
           hash: selected.raw.content_hash,
           fileBase: selected.fileBase,
           manifest,
         },
-        documentState: "ready",
       });
+      this.publishDocuments();
     } catch (error) {
-      if (epoch !== this.epoch || seq !== this.loadSeq) return;
+      if (epoch !== this.epoch || this.requests.get(selected.id) !== request)
+        return;
+      this.requests.delete(selected.id);
       if (this.failure(error)) return;
-      this.update({
+      this.cache.set(selected.id, {
+        revision,
         document: null,
-        documentState:
+        state:
           error instanceof HttpError && error.status === 409
             ? "excluded"
             : "error",
       });
+      this.publishDocuments();
       if (
         error instanceof HttpError &&
         (error.status === 409 || error.status === 404)
@@ -247,27 +321,28 @@ export class ViewerController {
         void this.refresh();
     }
   }
-  retryDocument = () => {
-    const selected = this.state.sessions.find(
-      (s) => s.id === this.state.selectedId,
-    );
-    if (selected) this.load(selected);
+  retryDocument = (id = this.state.selectedId) => {
+    const selected = this.state.sessions.find((s) => s.id === id);
+    if (selected) void this.load(selected);
   };
-  rendererFailed = () =>
-    this.update({ document: null, documentState: "error" });
+  rendererFailed = (id = this.state.selectedId) => {
+    const entry = id ? this.cache.get(id) : undefined;
+    if (id && entry) {
+      this.cache.set(id, { ...entry, document: null, state: "error" });
+      this.publishDocuments();
+    }
+  };
   setShowArchived = (showArchived: boolean) => {
     save(this.client.storage, ARCHIVED_KEY, String(showArchived));
     this.update({ showArchived });
     if (this.state.index) this.apply(this.state.index, false);
   };
-  async archive() {
-    const selected = this.state.sessions.find(
-      (s) => s.id === this.state.selectedId,
-    );
+  async archive(id = this.state.selectedId) {
+    const selected = this.state.sessions.find((s) => s.id === id);
     if (!selected || this.state.writing) return;
     const epoch = this.epoch;
     const archived = !selected.archived;
-    this.update({ writing: true });
+    this.update({ writing: true, writingId: selected.id });
     try {
       await this.client.request(
         `/api/sessions/${selected.id}/archive`,
@@ -300,16 +375,15 @@ export class ViewerController {
       if (epoch === this.epoch && !this.failure(error))
         this.update({ notice: "writeError" });
     } finally {
-      if (epoch === this.epoch) this.update({ writing: false });
+      if (epoch === this.epoch)
+        this.update({ writing: false, writingId: undefined });
     }
   }
-  async pin() {
-    const selected = this.state.sessions.find(
-      (s) => s.id === this.state.selectedId,
-    );
+  async pin(id = this.state.selectedId) {
+    const selected = this.state.sessions.find((s) => s.id === id);
     if (!selected || this.state.writing) return;
     const epoch = this.epoch;
-    this.update({ writing: true });
+    this.update({ writing: true, writingId: selected.id });
     try {
       try {
         await this.client.request(
@@ -321,27 +395,43 @@ export class ViewerController {
       }
       if (epoch !== this.epoch) return;
       this.readSeq++;
-      this.update({
-        sessions: this.state.sessions.map((s) =>
-          s.id === selected.id ? { ...s, pinned: !selected.pinned } : s,
-        ),
-        notice: selected.pinned ? "unpinned" : "pinned",
-      });
+      if (this.state.index) {
+        const update = (
+          session: RawIndex["projects"][number]["tickets"][number]["sessions"][number],
+        ) =>
+          session.key === selected.id
+            ? { ...session, pinned: !selected.pinned }
+            : session;
+        this.apply(
+          {
+            ...this.state.index,
+            projects: this.state.index.projects.map((project) => ({
+              ...project,
+              tickets: project.tickets.map((ticket) => ({
+                ...ticket,
+                sessions: ticket.sessions.map(update),
+              })),
+            })),
+            excluded_sessions: this.state.index.excluded_sessions?.map(update),
+          },
+          false,
+        );
+      }
+      this.update({ notice: selected.pinned ? "unpinned" : "pinned" });
       void this.refresh();
     } catch (error) {
       if (epoch === this.epoch && !this.failure(error))
         this.update({ notice: "writeError" });
     } finally {
-      if (epoch === this.epoch) this.update({ writing: false });
+      if (epoch === this.epoch)
+        this.update({ writing: false, writingId: undefined });
     }
   }
-  async remove() {
-    const selected = this.state.sessions.find(
-      (s) => s.id === this.state.selectedId,
-    );
+  async remove(id = this.state.selectedId) {
+    const selected = this.state.sessions.find((s) => s.id === id);
     if (!selected || this.state.writing) return;
     const epoch = this.epoch;
-    this.update({ writing: true });
+    this.update({ writing: true, writingId: selected.id });
     try {
       try {
         await this.client.request(`/api/sessions/${selected.id}`, "DELETE");
@@ -351,19 +441,8 @@ export class ViewerController {
       if (epoch !== this.epoch) return;
       this.readSeq++;
       this.hidden.add(selected.id);
-      if (this.state.selectedId === selected.id) {
-        const siblings = this.state.sessions.filter(
-          (s) =>
-            s.projectKey === selected.projectKey &&
-            s.ticket === selected.ticket &&
-            s.excluded === selected.excluded,
-        );
-        const at = siblings.findIndex((s) => s.id === selected.id);
-        this.preferred = siblings[at + 1]?.id || siblings[at - 1]?.id;
-        save(this.client.storage, OPEN_KEY);
-        // Only the deleted document's load is superseded by this response.
-        this.loadSeq++;
-      }
+      this.requests.delete(selected.id);
+      this.cache.delete(selected.id);
       if (this.state.index) this.apply(this.state.index);
       this.update({ notice: "deleted" });
       void this.refresh();
@@ -371,7 +450,8 @@ export class ViewerController {
       if (epoch === this.epoch && !this.failure(error))
         this.update({ notice: "writeError" });
     } finally {
-      if (epoch === this.epoch) this.update({ writing: false });
+      if (epoch === this.epoch)
+        this.update({ writing: false, writingId: undefined });
     }
   }
   dismiss = () => this.update({ notice: undefined });

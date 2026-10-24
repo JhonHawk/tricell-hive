@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import struct
@@ -60,9 +61,12 @@ def tiny_png() -> bytes:
 
 
 def run_generator(folder: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(GENERATOR), str(folder)], text=True, capture_output=True, check=False
-    )
+    # An empty PATH makes these standalone fallback tests independent of Hive.
+    with tempfile.TemporaryDirectory() as empty_path:
+        return subprocess.run(
+            [sys.executable, str(GENERATOR), str(folder)], text=True, capture_output=True, check=False,
+            env={**os.environ, "PATH": empty_path},
+        )
 
 
 def run_checker(page: Path) -> subprocess.CompletedProcess[str]:
