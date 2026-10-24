@@ -31,7 +31,7 @@ A plan that someone else could follow. It covers:
 - tasks grouped into results you can check separately, each with the command or observation that proves it and what you should see;
 - acceptance criteria that are numbered and can be tested.
 
-When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. It also asks how you want the work delivered through Git and how it should be reviewed, together with the last design questions that do not depend on those answers.
+When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. A plan with a screen where you enter or choose data also gets a reviewer that walks your task looking for data you would have to enter twice or steps you could skip. It also asks how you want the work delivered through Git and how it should be reviewed, together with the last design questions that do not depend on those answers.
 
 The skill links directly to the procedures for questions, project settings,
 change records and plan review. Reading one reference does not start its whole

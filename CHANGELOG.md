@@ -22,9 +22,18 @@ raise the minor or the patch version.
   global guidance says when to use a CodeGraph index, when to run
   `codegraph sync -q` so its relations are current, and which results to
   confirm with text search (#104).
+- Plan review adds a User experience area for plans that create or change a
+  screen, dialog or form where the end user enters or chooses data. Its
+  reviewer walks the end user's task looking for values the system already
+  holds or entries repeated per record, and UI planning records where each
+  value a view asks for comes from.
 
 ### Changed
 
+- Repository guidance: the two-session bar for new guidance rules applies only
+  to corrections of a rule that already covers the situation. New features or
+  requirements, including ideas from external references, and gaps no rule
+  addresses are adopted by the maintainer's decision.
 - Walkthrough publication keeps JSON only when the `hive` executable is on
   `PATH`; standalone HTML is generated only without that binary. A stopped
   viewer does not select HTML, and previous pages remain unchanged. Retaining
