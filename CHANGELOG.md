@@ -45,6 +45,9 @@ raise the minor or the patch version.
   `ticket-body` reference sets what a ticket Hive opens carries: current and
   expected behavior, dated evidence, criteria and what is out of scope.
   The Inspiration page credits Skills For Real Engineers.
+- Build's test-first cycle takes one behavior at a time, writing the next
+  test only after the previous one passes, and replaces with a test double
+  only what crosses the system boundary, never the project's own modules.
 
 ## [0.5.0] - 2026-10-23
 
