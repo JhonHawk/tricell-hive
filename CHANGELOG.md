@@ -27,6 +27,10 @@ raise the minor or the patch version.
   reviewer walks the end user's task looking for values the system already
   holds or entries repeated per record, and UI planning records where each
   value a view asks for comes from.
+- Before a production deployment of code or infrastructure, the build records
+  its rollback triggers: each signal to watch with its threshold and window,
+  and the recovery action it calls for. After the deployment, the health check
+  compares the signals against them and reports a trigger that fires.
 
 ### Changed
 
