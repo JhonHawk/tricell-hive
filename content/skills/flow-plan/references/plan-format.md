@@ -8,7 +8,7 @@ Write the actual human-facing plan in the session language, including headings a
 
 - The user's request that started the work, quoted verbatim in its original language: the messages that state the requested outcome, not the whole conversation, with links to the tickets they name and without any secret value. When a named ticket states acceptance criteria, quote them verbatim too, with the date you read the ticket, and derive the `AC<n>` from them; the implementer reads the change folder, not the tracker. Paraphrase loses requirements on the way to an implementer; the Objective explains the request, it does not replace it.
 - The outcome, boundaries, constraints, and acceptance criteria written as described in [Acceptance criteria and task markers](#acceptance-criteria-and-task-markers).
-- The inspected context and evidence behind consequential decisions, with relevant versions or dates. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
+- The inspected context and evidence behind consequential decisions, with relevant versions or dates. When [change impact](../../flow-research/references/change-impact.md) applies, this context holds its signals line and Impact list. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
 - The selected approach, affected contracts, meaningful assumptions, and unresolved blockers. Include migration or recovery behavior only when the work needs it. Record material scope clarifications and proposed expansions with their disposition. The essential decisions must be understandable without recovering the original conversation.
 - For UI work, the relevant view decisions from [UI planning](ui-planning.md): application/area, guide status, shell/pattern and inspected reference, reuse, justified differences, states, and acceptance. Group equivalent views; omit this for work without a UI change.
 - Delivery decisions from [the planning decision reference](delivery-decisions.md): Git mode or narrower instruction, repositories/base, authorized effects and stop conditions, implementation-review mechanism and pending consent.
@@ -78,7 +78,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 ## Verified context
 
-<Relevant current behavior and inspected sources, with revision/date where useful. Separate observed facts, assumptions and unverified conditions. Include only context that supports the proposed work.>
+<Relevant current behavior and inspected sources, with revision/date where useful. Separate observed facts, assumptions and unverified conditions. Include only context that supports the proposed work. When the change impact reference applies, put its signals line and Impact list here.>
 
 ## Proposed design
 
