@@ -2,16 +2,16 @@
 
 ## When to read
 
-Read before recommending, planning, or building either of these, unless it is a mechanical change as the global guidance defines it:
+Read before recommending, planning, or building either of these:
 
-- a change that removes, closes, disables, migrates, or renames something that runs in production, such as a dependency, a network rule or port, an endpoint, a scheduled job, or a table or collection, or that moves it to another host or process;
+- a change that removes, closes, disables, migrates, or renames something that runs in production, such as a dependency, a network rule or port, an endpoint, a scheduled job, an environment variable, or a table or collection, or that moves it to another host or process;
 - a behavior change in code that runs in production when no test or CI run covers that behavior.
 
-Reading it does not invoke planning or authorize any effect.
+A rename or move that nothing outside the code reads or sets, such as a local symbol or a source file, is neither. Reading this reference does not invoke planning or authorize any effect.
 
 ## Scale the check to its signals
 
-Always run step 1. Run each later step only when you observe its signal, and state in one line which signals you found. A change that shows none needs no further step.
+Run step 1 whenever the change touches a named value. Run each later step only when you observe its signal, and state in one line which signals you found. A change that shows none needs no further step.
 
 1. **Search for the value, not only the symbol.** Search for the literal value the change touches: the host name or IP address, port, connection-string key, table or collection name, environment variable, route, or job name. Include configuration, deployment scripts, container and process-manager files, crontabs, and infrastructure code. Search every repository of the declared workspace when the value is a resource reached over the network, such as a host, an IP address, a port, or a database; this repository is enough for a value only it uses, such as an internal route or a local key. Each hit is a consumer to account for.
 2. **Signal: a consumer runs outside this repository's release, or the system runs on several hosts or processes.** Map which host or process runs what, such as an API server and a separate cron server, and which of them read and which write the data the change touches. Use read-only sources: infrastructure state, process lists, configuration, and project guidance.
