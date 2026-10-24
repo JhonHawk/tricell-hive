@@ -25,7 +25,7 @@ For changes to untrusted inputs, permissions, process execution, public data exp
 
 When replacing or migrating an existing system, state which legacy paths are removed, retained temporarily for recovery, or remain operational alongside the replacement. Name the retirement condition for temporary retention and the maintenance and verification cost of coexistence. Reuse decisions already settled by the request; resolve only consequential ambiguity before dependent implementation. Do not introduce parallel implementations or fallback layers merely as an assumed precaution.
 
-For new or changed screens, shells, layouts, or reusable UI patterns, read [UI planning](references/ui-planning.md). Resolve the affected application and pattern, applicable project conventions, reuse, and intentional differences before calling the visual work ready.
+For new or changed screens, shells, layouts, reusable UI patterns, or a dialog or form where the end user enters or chooses data, read [UI planning](references/ui-planning.md). Resolve the affected application and pattern, applicable project conventions, reuse, and intentional differences before calling the visual work ready.
 
 When the plan chooses infrastructure resource names, or creates resources whose names existing infrastructure code generates, read [the infrastructure naming reference](references/infra-naming.md). Apply project and provider constraints before its defaults, and record any migration impact for an existing name.
 
