@@ -182,7 +182,7 @@ own links. The optional `delivery` contract lives in the manifest reference,
 separately from `candidate`; no provider lookup or historical backfill runs.
 Both readers validate it and link rendering checks its destination again.
 An old strict reader can reject that field, so update binary before content and
-obtain explicit permission to restart an already running viewer. Sidebar visibility, project expansion, archive
+follow the maintainer viewer restart rule in the repository `AGENTS.md` when refreshing this checkout; outside that case, obtain explicit permission to restart an already running viewer. Sidebar visibility, project expansion, archive
 filter and selection persist in sessionStorage for the same tab and origin.
 
 Manifest and resource ingestion rejects files with more than one hard link using
