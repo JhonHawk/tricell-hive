@@ -23,8 +23,7 @@ python3 -m unittest discover -s tests/skills -p '*_test.py'
 
 Also run `go test -race ./...` when a change touches concurrency: goroutines,
 locks, state shared across goroutines, or the manager's concurrent-write tests.
-The suite takes under a minute on a typical laptop. The
-[deployment manager reference](_support/docs/architecture/deployment-manager.md)
+The [deployment manager reference](_support/docs/architecture/deployment-manager.md)
 describes what the tests cover.
 
 ## Viewer frontend
