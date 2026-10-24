@@ -4,9 +4,10 @@
 
 | Version | Supported |
 | --- | --- |
-| 0.2.x | Yes |
-| 0.1.x | Yes |
-| Earlier | No |
+| Latest published minor release (fixes ship as a new patch release of it; upgrade to that patch) | Yes |
+| Earlier minor releases | No |
+
+The latest release is listed on [GitHub Releases](https://github.com/JhonHawk/tricell-hive/releases).
 
 ## Reporting a vulnerability
 

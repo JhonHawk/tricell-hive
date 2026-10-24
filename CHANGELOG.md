@@ -30,6 +30,8 @@ raise the minor or the patch version.
   asks to search for consumers first, and a bounded observation of real
   traffic only chooses the approach. `hive-review-code` reports a pre-existing
   defect that the change makes reachable as introduced by the change (#110).
+- The security policy supports only the latest published minor release,
+  instead of naming 0.1.x and 0.2.x (#108).
 
 ## [0.5.0] - 2026-10-23
 
