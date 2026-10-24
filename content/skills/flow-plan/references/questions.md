@@ -33,7 +33,7 @@ Read before formulating a decision for the user, with or without a native card, 
 **Actions, in order:**
 
 1. Complete memory, tracker and plan updates that apply before the message.
-2. Write the explanation, then one line per question with its ID, the question, and the Recommended option with its reason. Gloss that option's ID; omit the other options from this message.
+2. Write the message as visible text in the response, never only in your reasoning: a brief output style shortens it but does not remove it, because it is the result that style asks you to lead with. It may be short: the explanation, in one or two sentences when they suffice, then one line per question with its ID, the question, and the Recommended option with its reason. Gloss that option's ID; omit the other options from this message.
 3. End the message with the pause line below. Make no tool call between the message and the question call. A response holding only the call is the failure.
 4. Ask through the native tool. Write the card to stand alone, since a host may hide the message: the question opens with the stage and ticket that [reporting](../../flow-close/references/reporting.md#open-with-the-context-line) sets and carries the context to answer, each option its effect in its description, or in its label when the tool has no description field, and the Recommended option is marked.
 
