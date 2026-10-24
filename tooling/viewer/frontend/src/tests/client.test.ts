@@ -128,7 +128,14 @@ test("authenticated reads use headers and keep capability separate from token", 
   });
   await controller.open(null);
   await settle();
-  assert.equal(controller.getSnapshot().document?.fileBase, session().fileBase);
+  assert.equal(
+    (
+      controller.getSnapshot().documents[
+        controller.getSnapshot().selectedId ?? ""
+      ]?.document ?? null
+    )?.fileBase,
+    session().fileBase,
+  );
   assert.equal(
     new Headers(calls[0].init?.headers).get("X-Hive-Token"),
     "test-access",
@@ -172,7 +179,11 @@ test("out of order indices and manifests cannot replace newer selection", async 
   await settle();
   assert.equal(controller.getSnapshot().selectedId, key(1));
   assert.equal(
-    controller.getSnapshot().document?.manifest.title,
+    (
+      controller.getSnapshot().documents[
+        controller.getSnapshot().selectedId ?? ""
+      ]?.document ?? null
+    )?.manifest.title,
     "new selection",
   );
 });
@@ -221,8 +232,18 @@ test("classification changes without hash remove the document; status updates ar
   });
   await controller.refresh();
   await settle();
-  assert.equal(controller.getSnapshot().document, null);
-  assert.equal(controller.getSnapshot().documentState, "excluded");
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null,
+    null,
+  );
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.state ?? "empty",
+    "excluded",
+  );
 });
 
 test("403 blocks access, clears stored token and prevents further reads", async () => {
@@ -254,7 +275,10 @@ test("pin and unpin reconcile with fresh index while preserving the open documen
   });
   await controller.open(null);
   await settle();
-  const document = controller.getSnapshot().document;
+  const document =
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null;
   await controller.pin();
   await settle();
   assert.equal(controller.getSnapshot().sessions[0].pinned, true);
@@ -262,7 +286,12 @@ test("pin and unpin reconcile with fresh index while preserving the open documen
   await settle();
   assert.equal(controller.getSnapshot().sessions[0].pinned, false);
   assert.deepEqual(methods, ["POST", "DELETE"]);
-  assert.equal(controller.getSnapshot().document, document);
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null,
+    document,
+  );
   assert.equal(documents, 1);
 });
 
@@ -312,8 +341,18 @@ test("a tracked response cannot load files and access replacement invalidates ol
   });
   await controller.open(null);
   await settle();
-  assert.equal(controller.getSnapshot().documentState, "excluded");
-  assert.equal(controller.getSnapshot().document, null);
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.state ?? "empty",
+    "excluded",
+  );
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null,
+    null,
+  );
   assert.equal(docCalls, 1);
   const first = deferred();
   let calls = 0;
@@ -358,7 +397,12 @@ test("a late delete response preserves the replacement manifest already loading"
   await controller.refresh();
   await settle();
   assert.equal(controller.getSnapshot().selectedId, key(2));
-  assert.equal(controller.getSnapshot().documentState, "loading");
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.state ?? "empty",
+    "loading",
+  );
   deletion.resolve(new Response(null, { status: 204 }));
   await deleting;
   await settle();
@@ -366,9 +410,18 @@ test("a late delete response preserves the replacement manifest already loading"
   await settle();
   await controller.refresh();
   assert.equal(controller.getSnapshot().selectedId, key(2));
-  assert.equal(controller.getSnapshot().documentState, "ready");
   assert.equal(
-    controller.getSnapshot().document?.manifest.title,
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.state ?? "empty",
+    "ready",
+  );
+  assert.equal(
+    (
+      controller.getSnapshot().documents[
+        controller.getSnapshot().selectedId ?? ""
+      ]?.document ?? null
+    )?.manifest.title,
     "Replacement",
   );
   assert.equal(replacementRequests, 1);
@@ -412,15 +465,33 @@ test("refreshing or losing the index connection retains the open document", asyn
   );
   await controller.open(null);
   await settle();
-  const open = controller.getSnapshot().document;
+  const open =
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null;
   assert(open);
   const refreshing = controller.refresh();
   await settle();
-  assert.equal(controller.getSnapshot().document, open);
-  assert.equal(controller.getSnapshot().documentState, "ready");
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null,
+    open,
+  );
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.state ?? "empty",
+    "ready",
+  );
   poll.resolve(response({}, 500));
   await refreshing;
-  assert.equal(controller.getSnapshot().document, open);
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null,
+    open,
+  );
   assert.equal(controller.getSnapshot().indexError, true);
 });
 
@@ -529,10 +600,305 @@ test("failed archive leaves selection and copy unchanged and invalidates stale p
   await controller.archive();
   await settle();
   assert.equal(controller.getSnapshot().sessions.length, 0);
-  assert.equal(controller.getSnapshot().document, null);
+  assert.equal(
+    controller.getSnapshot().documents[
+      controller.getSnapshot().selectedId ?? ""
+    ]?.document ?? null,
+    null,
+  );
   stale.resolve(response(index([session(1, { archived: false })])));
   await poll;
   assert.equal(controller.getSnapshot().sessions.length, 0);
   controller.setShowArchived(true);
   assert.equal(controller.getSnapshot().sessions[0].archived, true);
+});
+
+test("groups preserve exact identity, order, tickets and search targets", async () => {
+  const { groupSessions, matchingSegments } = await import("../sessions");
+  const mapped = mapIndex(
+    index([], {
+      projects: [
+        {
+          key: "p",
+          name: "One",
+          tickets: [
+            {
+              ticket: "#1",
+              sessions: [
+                session(2, { host: "codex" }),
+                session(1, {
+                  host: "codex",
+                  created_at: "",
+                  ingested_at: "2026-10-18T00:00:00Z",
+                }),
+              ],
+            },
+            {
+              ticket: "#2",
+              sessions: [
+                session(3, { host: "codex" }),
+                session(4, { host: "claude" }),
+                session(5),
+                session(6, { session_id: "other" }),
+                session(7, { host: "" }),
+              ],
+            },
+          ],
+        },
+        {
+          key: "q",
+          name: "Two",
+          tickets: [
+            { ticket: "#1", sessions: [session(8, { host: "codex" })] },
+          ],
+        },
+      ],
+    }),
+  );
+  const groups = groupSessions(mapped);
+  assert.equal(groups.length, 6);
+  const shared = groups.find((group) => group.segments.length === 3);
+  assert(shared);
+  assert.deepEqual(
+    shared.segments.map((s) => s.id),
+    [key(1), key(2), key(3)],
+  );
+  assert.deepEqual(shared.tickets, ["#1", "#2"]);
+  assert.deepEqual(
+    matchingSegments(shared, "#2").map((s) => s.id),
+    [key(3)],
+  );
+  assert.equal(shared.title, "Review 1");
+});
+
+test("siblings load independently, retry by key, and pin preserves cache", async () => {
+  let fail = true;
+  const calls: string[] = [];
+  const controller = setup(async (url, options) => {
+    calls.push(`${options?.method ?? "GET"} ${url}`);
+    if (String(url) === "/api/index")
+      return response(index([session(1), session(2)]));
+    if (String(url).endsWith("/pin"))
+      return new Response(null, { status: 204 });
+    if (String(url).endsWith(key(2)) && fail) return response({}, 500);
+    return response({ title: String(url) });
+  });
+  await controller.open(null);
+  await settle();
+  assert.equal(controller.getSnapshot().groups.length, 1);
+  const first = controller.getSnapshot().documents[key(1)].document;
+  assert(first);
+  assert.equal(controller.getSnapshot().documents[key(2)].state, "error");
+  await controller.pin(key(2));
+  await settle();
+  assert.equal(controller.getSnapshot().documents[key(1)].document, first);
+  assert.equal(
+    calls.filter((call) => call === `GET /api/sessions/${key(1)}`).length,
+    1,
+  );
+  assert(calls.includes(`POST /api/sessions/${key(2)}/pin`));
+  fail = false;
+  controller.retryDocument(key(2));
+  await settle();
+  assert.equal(controller.getSnapshot().documents[key(2)].state, "ready");
+});
+
+test("archive and delete prefer adjacent session siblings across tickets", async () => {
+  let data = index([], {
+    projects: [
+      {
+        key: "p",
+        name: "Hive",
+        tickets: [
+          { ticket: "#1", sessions: [session(1), session(3)] },
+          { ticket: "#2", sessions: [session(2)] },
+          {
+            ticket: "#3",
+            sessions: [
+              session(4, {
+                session_id: "other",
+                created_at: "2026-10-20T00:00:00Z",
+              }),
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const writes: string[] = [];
+  const controller = setup(async (url, options) => {
+    if (options?.method !== "GET") {
+      writes.push(`${options?.method} ${url}`);
+      data = {
+        ...data,
+        projects: data.projects.map((p) => ({
+          ...p,
+          tickets: p.tickets.map((t) => ({
+            ...t,
+            sessions: t.sessions.flatMap((s) =>
+              String(url).includes(s.key)
+                ? String(url).endsWith("archive")
+                  ? [{ ...s, archived: true }]
+                  : []
+                : [s],
+            ),
+          })),
+        })),
+      };
+      return new Response(null, { status: 204 });
+    }
+    return response(
+      String(url) === "/api/index" ? data : { title: String(url) },
+    );
+  });
+  await controller.open(null);
+  controller.select(key(2));
+  await settle();
+  const first = controller.getSnapshot().documents[key(1)].document;
+  await controller.archive(key(2));
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, key(3));
+  assert.equal(controller.getSnapshot().documents[key(1)].document, first);
+  assert.equal(
+    controller
+      .getSnapshot()
+      .groups.find((g) => g.segments.some((s) => s.id === key(1)))?.segments
+      .length,
+    2,
+  );
+  await controller.remove(key(3));
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, key(1));
+  assert.equal(controller.getSnapshot().documents[key(1)].document, first);
+  controller.setShowArchived(true);
+  assert(controller.getSnapshot().sessions.some((s) => s.id === key(2)));
+  assert.deepEqual(writes, [
+    `POST /api/sessions/${key(2)}/archive`,
+    `DELETE /api/sessions/${key(3)}`,
+  ]);
+});
+
+test("revision and classification changes invalidate only affected reads; late archived responses stay discarded", async () => {
+  let data = index([session(1), session(2)]);
+  const stale = deferred();
+  const fresh = deferred();
+  let secondReads = 0;
+  const controller = setup(async (url) => {
+    if (String(url) === "/api/index") return response(data);
+    if (String(url).endsWith(key(2)))
+      return ++secondReads === 1 ? stale.promise : fresh.promise;
+    return response({ title: "stable" });
+  });
+  await controller.open(null);
+  await settle();
+  const stable = controller.getSnapshot().documents[key(1)].document;
+  data = index([session(1), session(2, { content_hash: "new" })]);
+  await controller.refresh();
+  fresh.resolve(response({ title: "fresh" }));
+  await settle();
+  stale.resolve(response({ title: "stale" }));
+  await settle();
+  assert.equal(
+    controller.getSnapshot().documents[key(2)].document?.manifest.title,
+    "fresh",
+  );
+  assert.equal(controller.getSnapshot().documents[key(1)].document, stable);
+  data = index([session(1), session(2, { archived: true })]);
+  await controller.refresh();
+  assert.equal(controller.getSnapshot().documents[key(2)], undefined);
+  data = index([session(1)], {
+    excluded_sessions: [session(2, { source_status: "tracked" })],
+  });
+  await controller.refresh();
+  assert.equal(controller.getSnapshot().groups[0].segments.length, 1);
+  controller.select(key(2));
+  assert.equal(controller.getSnapshot().documents[key(2)].state, "excluded");
+  assert.equal(secondReads, 2);
+});
+
+test("403 from one sibling clears every protected document and discards late siblings", async () => {
+  const denied = deferred();
+  const late = deferred();
+  const controller = setup(async (url) => {
+    if (String(url) === "/api/index")
+      return response(index([session(1), session(2), session(3)]));
+    if (String(url).endsWith(key(2))) return denied.promise;
+    if (String(url).endsWith(key(3))) return late.promise;
+    return response({ title: "protected" });
+  });
+  await controller.open(null);
+  await settle();
+  assert(controller.getSnapshot().documents[key(1)].document);
+  denied.resolve(response({}, 403));
+  await settle();
+  late.resolve(response({ title: "late protected" }));
+  await settle();
+  assert.equal(controller.getSnapshot().access, "rejected");
+  assert.deepEqual(controller.getSnapshot().documents, {});
+  assert.deepEqual(controller.getSnapshot().groups, []);
+});
+
+test("group opening remembers physical selection and cached siblings; all archived groups disappear", async () => {
+  let data = index([
+    session(1),
+    session(2),
+    session(3, { session_id: "other" }),
+  ]);
+  let reads = 0;
+  const controller = setup(async (url) => {
+    if (String(url) === "/api/index") return response(data);
+    reads++;
+    return response({ title: String(url) });
+  });
+  await controller.open(null);
+  await settle();
+  const groupId = controller
+    .getSnapshot()
+    .groups.find((g) => g.segments.length === 2)?.id;
+  assert(groupId);
+  controller.select(key(2));
+  await settle();
+  const cached = controller.getSnapshot().documents[key(1)].document;
+  controller.select(key(3));
+  await settle();
+  controller.selectSession(groupId);
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, key(2));
+  assert.equal(controller.getSnapshot().documents[key(1)].document, cached);
+  assert.equal(reads, 3);
+  data = index([
+    session(1, { archived: true }),
+    session(2, { archived: true }),
+  ]);
+  await controller.refresh();
+  assert.equal(controller.getSnapshot().groups.length, 0);
+  assert.equal(controller.getSnapshot().selectedId, undefined);
+  controller.setShowArchived(true);
+  await settle();
+  assert.equal(controller.getSnapshot().groups.length, 1);
+});
+
+test("deleting a pending sibling discards its response without replacing loaded resources", async () => {
+  let data = index([session(1), session(2)]);
+  const pending = deferred();
+  const controller = setup(async (url, options) => {
+    if (options?.method === "DELETE") {
+      data = index([session(1)]);
+      return new Response(null, { status: 204 });
+    }
+    if (String(url) === "/api/index") return response(data);
+    if (String(url).endsWith(key(2))) return pending.promise;
+    return response({ title: "stable" });
+  });
+  await controller.open(null);
+  await settle();
+  const stable = controller.getSnapshot().documents[key(1)].document;
+  controller.select(key(2));
+  await controller.remove(key(2));
+  await settle();
+  pending.resolve(response({ title: "deleted" }));
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, key(1));
+  assert.equal(controller.getSnapshot().documents[key(1)].document, stable);
+  assert.equal(controller.getSnapshot().documents[key(2)], undefined);
 });

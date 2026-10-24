@@ -16,7 +16,7 @@ const session = (n = 1, extra = {}) => ({
   content_hash: "hash",
   created_at: "2026-10-19",
   ingested_at: "2026-10-19",
-  session_id: "fixture",
+  session_id: `fixture-${n}`,
   title: `Review ${n}`,
   fileBase: `/files/${key(n)}/${"a".repeat(64)}/`,
   ...extra,
@@ -305,6 +305,7 @@ test("renderer ref owns its classes, mounting, cleanup, focus and same-session s
     });
     assert.equal(mount.querySelectorAll("button").length, 1);
     assert.equal(container.scrollTop, 173);
+    assert.equal(document.activeElement, mount.querySelector("button"));
     assert.equal(document.activeElement?.textContent, "Second");
   } finally {
     await act(async () => root.unmount());
@@ -517,7 +518,12 @@ test("alert recovery actions occupy the installed action region in every error s
       await controller.pin();
       await settle();
     });
-    assert.equal(controller.getSnapshot().documentState, "error");
+    assert.equal(
+      controller.getSnapshot().documents[
+        controller.getSnapshot().selectedId ?? ""
+      ]?.state ?? "empty",
+      "error",
+    );
     assert.equal(controller.getSnapshot().notice, "writeError");
     assertActions();
   } finally {
@@ -647,14 +653,21 @@ test("cold index loading replaces the full canvas without speculative session ch
   }
 });
 
-test("renderer loading shares in-flight work but does not keep a rejected attempt", async () => {
-  const { loadWalkthroughRenderer } = await import("../document");
+test("renderer and delivery helper share module loading and retry rejected attempts", async () => {
+  const { loadWalkthroughRenderer, loadWalkthroughModule } = await import(
+    "../document"
+  );
+  const firstModule = loadWalkthroughModule();
+  assert.equal(loadWalkthroughModule(), firstModule);
   const failed = loadWalkthroughRenderer();
   assert.equal(loadWalkthroughRenderer(), failed);
-  await assert.rejects(failed);
+  await Promise.all([assert.rejects(firstModule), assert.rejects(failed)]);
+  const nextModule = loadWalkthroughModule();
+  assert.notEqual(nextModule, firstModule);
+  assert.equal(loadWalkthroughModule(), nextModule);
   const retry = loadWalkthroughRenderer();
-  assert.notEqual(retry, failed, "Retry must initiate another renderer load");
-  await assert.rejects(retry);
+  assert.notEqual(retry, failed);
+  await Promise.all([assert.rejects(nextModule), assert.rejects(retry)]);
 });
 
 test("tracked copies stay outside the normal tree through polling and retain focus and actions", async () => {
@@ -734,7 +747,12 @@ test("tracked copies stay outside the normal tree through polling and retain foc
       await controller.refresh();
       await settle();
     });
-    assert.equal(controller.getSnapshot().documentState, "excluded");
+    assert.equal(
+      controller.getSnapshot().documents[
+        controller.getSnapshot().selectedId ?? ""
+      ]?.state ?? "empty",
+      "excluded",
+    );
     assert.equal(
       container.querySelector(
         'nav[aria-label="Walkthroughs"] [data-session-key]',
@@ -775,7 +793,12 @@ test("tracked copies stay outside the normal tree through polling and retain foc
       await controller.refresh();
       await settle();
     });
-    assert.equal(controller.getSnapshot().documentState, "excluded");
+    assert.equal(
+      controller.getSnapshot().documents[
+        controller.getSnapshot().selectedId ?? ""
+      ]?.state ?? "empty",
+      "excluded",
+    );
     assert.equal(
       document.activeElement?.getAttribute("data-session-key"),
       key(1),
@@ -964,6 +987,449 @@ test("archive filter is icon-only with an accessible toggle and grouped actions 
     );
     assert(actions.textContent?.includes("Closed"));
     assert.equal(actions.querySelector('[aria-haspopup="menu"]'), null);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("session composition groups tickets, stacks siblings, deduplicates deliveries and targets segment actions", async () => {
+  const canonical = await import(
+    new URL(
+      "../../../../../content/skills/flow-walkthrough/assets/walkthrough.mjs",
+      import.meta.url,
+    ).href
+  );
+  const loadModule = () => Promise.resolve(canonical);
+  const data = index([
+    session(1, {
+      session_id: "conversation",
+      session_status: "in_progress",
+      created_at: "2026-10-21",
+    }),
+    session(2, { session_id: "conversation", created_at: "2026-10-22" }),
+  ]);
+  data.projects[0].tickets = [
+    { ticket: "#89", sessions: [data.projects[0].tickets[0].sessions[0]] },
+    { ticket: "#90", sessions: [data.projects[0].tickets[0].sessions[1]] },
+  ];
+  const writes: string[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (init?.method === "POST") {
+          writes.push(String(url));
+          return new Response(null, { status: 204 });
+        }
+        if (String(url) === "/api/index") return response(data);
+        return response({
+          title: "Review",
+          candidate: { branch: "fixture", commit: "working tree" },
+          session: { id: "conversation", host: "Codex" },
+          created_at: "2026-10-21",
+          lang: "en",
+          kind: "first_view",
+          flows: [],
+          checks: [],
+          delivery: [1, 2, ...(String(url).endsWith(key(2)) ? [3] : [])].map(
+            (n) => ({
+              kind: "pull_request",
+              label: `Change ${n}`,
+              url: `https://example.com/pull/${n}`,
+            }),
+          ),
+        });
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(
+        <ViewerApplication controller={controller} loadModule={loadModule} />,
+      );
+      await settle();
+    });
+    assert.equal(
+      container.querySelectorAll(
+        'nav[aria-label="Walkthroughs"] [data-session-key]',
+      ).length,
+      1,
+    );
+    assert.equal(container.querySelectorAll("[data-segment-key]").length, 2);
+    assert.match(container.textContent ?? "", /Initial work/);
+    assert.match(container.textContent ?? "", /Continuation/);
+    const deliveries = container.querySelector(
+      'section[aria-label="Deliveries"]',
+    );
+    assert(deliveries);
+    assert.equal(deliveries.querySelectorAll("a").length, 2);
+    assert.match(deliveries.textContent ?? "", /View all \(3\)/);
+    const allButton = [
+      ...deliveries.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.includes("View all"));
+    assert(allButton);
+    allButton.focus();
+    await act(async () => {
+      allButton.click();
+      await settle();
+    });
+    const dialog = document.querySelector('[role="dialog"]');
+    assert(dialog);
+    assert.equal(dialog.querySelectorAll("a").length, 3);
+    const close = [
+      ...dialog.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Close");
+    assert(close);
+    await act(async () => {
+      close.click();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    assert.equal(document.activeElement, allButton);
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+    assert(search);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(search, "#90");
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    assert.equal(
+      container.querySelectorAll(
+        'nav[aria-label="Walkthroughs"] [data-session-key]',
+      ).length,
+      1,
+    );
+    const jump = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "#90 · Review 2");
+    assert(jump);
+    await act(async () => {
+      jump.click();
+      await settle();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    assert.equal(controller.getSnapshot().selectedId, key(2));
+    assert.equal(document.activeElement?.id, `heading-${key(2)}`);
+    assert.equal(container.querySelectorAll("[data-segment-key]").length, 2);
+    const keep = container.querySelector<HTMLButtonElement>(
+      `[data-segment-key="${key(1)}"] button[aria-label="Keep"]`,
+    );
+    assert(keep);
+    await act(async () => {
+      keep.click();
+      await settle();
+    });
+    assert(writes.includes(`/api/sessions/${key(1)}/pin`));
+    assert.equal(controller.getSnapshot().selectedId, key(2));
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("development preview passes the production index adapter and displays two session segments", async () => {
+  const { DevelopmentPreview } = await import("../dev/preview");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<DevelopmentPreview />);
+      await settle();
+    });
+    assert.equal(container.querySelectorAll("[data-segment-key]").length, 2);
+    assert.equal(
+      container.querySelectorAll(
+        'nav[aria-label="Walkthroughs"] [data-session-key]',
+      ).length,
+      2,
+    );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("delivery metadata waits for the canonical helper, reports failure and retries without replacing documents", async () => {
+  const { SessionDeliveries } = await import("../deliveries");
+  const { groupSessions } = await import("../sessions");
+  const { mapIndex } = await import("../api");
+  const canonical = await import(
+    new URL(
+      "../../../../../content/skills/flow-walkthrough/assets/walkthrough.mjs",
+      import.meta.url,
+    ).href
+  );
+  const group = groupSessions(mapIndex(index()))[0];
+  const documents = {
+    [key(1)]: {
+      revision: "one",
+      state: "ready" as const,
+      document: {
+        key: key(1),
+        hash: "hash",
+        fileBase: session().fileBase,
+        manifest: {
+          title: "Delivery",
+          delivery: [
+            {
+              kind: "pull_request" as const,
+              label: "Canonical link",
+              url: "https://example.com/pull/1",
+            },
+            {
+              kind: "pull_request" as const,
+              label: "Unsafe link",
+              url: "https://bücher.example/pull/1",
+            },
+          ],
+        },
+      },
+    },
+  };
+  let calls = 0;
+  let validations = 0;
+  const loaded = {
+    ...canonical,
+    validDeliveries(value: unknown) {
+      validations++;
+      return canonical.validDeliveries(value);
+    },
+  };
+  let reject!: (error: Error) => void;
+  const pending = new Promise<never>((_resolve, rejectPromise) => {
+    reject = rejectPromise;
+  });
+  const loadModule = () => {
+    calls++;
+    return calls === 1 ? pending : Promise.resolve(loaded);
+  };
+  const retried: string[] = [];
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(
+        <SessionDeliveries
+          group={group}
+          documents={documents}
+          onRetry={(key) => {
+            retried.push(key);
+          }}
+          loadModule={loadModule}
+        />,
+      );
+      await settle();
+    });
+    assert.equal(container.querySelectorAll("a").length, 0);
+    assert(container.querySelector('[aria-label="Loading deliveries"]'));
+    assert(!container.textContent?.includes("No delivery recorded"));
+    await act(async () => {
+      reject(Error("Module unavailable"));
+      await settle();
+    });
+    assert(container.textContent?.includes("Could not read all deliveries"));
+    assert(!container.textContent?.includes("No delivery recorded"));
+    const retry = container.querySelector<HTMLButtonElement>("button");
+    assert(retry);
+    await act(async () => {
+      retry.click();
+      await settle();
+    });
+    assert.equal(calls, 2);
+    assert(validations > 0);
+    assert.equal(container.querySelectorAll("a").length, 1);
+    assert.equal(container.querySelector("a")?.textContent, "Canonical link");
+    assert.deepEqual(retried, []);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("reloading a remembered continuation waits for preceding documents, restores its position and focus once, and leaves polling focus alone", async () => {
+  const { OPEN_KEY, TOKEN_KEY } = await import("../api");
+  let data = index([
+    session(1, { session_id: "remembered", created_at: "2026-10-20" }),
+    session(2, { session_id: "remembered", created_at: "2026-10-21" }),
+  ]);
+  let releaseFirst!: (value: Response) => void;
+  const first = new Promise<Response>((resolve) => {
+    releaseFirst = resolve;
+  });
+  let releaseModule!: (module: {
+    renderWalkthrough: WalkthroughRenderer;
+    validDeliveries: () => [];
+  }) => void;
+  const module = new Promise<{
+    renderWalkthrough: WalkthroughRenderer;
+    validDeliveries: () => [];
+  }>((resolve) => {
+    releaseModule = resolve;
+  });
+  const loadModule = () => module;
+  let firstRead = true;
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url) => {
+        if (String(url) === "/api/index") return response(data);
+        if (String(url).endsWith(key(1)) && firstRead) {
+          firstRead = false;
+          return first;
+        }
+        return response({
+          title: String(url).endsWith(key(1))
+            ? "Initial content"
+            : "Continuation content",
+        });
+      },
+      {
+        getItem: (name) =>
+          name === TOKEN_KEY
+            ? "test-access"
+            : name === OPEN_KEY
+              ? key(2)
+              : null,
+        setItem() {},
+        removeItem() {},
+      },
+    ),
+    () => false,
+  );
+  const render: WalkthroughRenderer = (root, manifest) => {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = manifest.title;
+    root.append(paragraph);
+  };
+  const scrolled: number[] = [];
+  let scrollOffset = 0;
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(
+        <ViewerApplication controller={controller} loadModule={loadModule} />,
+      );
+      await settle();
+    });
+    const canvas = container.querySelector<HTMLElement>(
+      '[data-slot="viewer-canvas"]',
+    );
+    assert(canvas);
+    const section = container.querySelector<HTMLElement>(
+      `[data-segment-key="${key(2)}"]`,
+    );
+    assert(section);
+    const actions = section.querySelector<HTMLElement>('[role="group"]');
+    assert(actions);
+    canvas.getBoundingClientRect = () => new window.DOMRect(0, 83, 400, 700);
+    section.getBoundingClientRect = () =>
+      new window.DOMRect(0, 83 + 3000 - scrollOffset, 400, 500);
+    actions.getBoundingClientRect = () =>
+      new window.DOMRect(0, section.getBoundingClientRect().top + 8, 200, 32);
+    Object.defineProperty(canvas, "scrollTop", {
+      configurable: true,
+      get: () => scrollOffset,
+      set: (value: number) => {
+        scrollOffset = value;
+        scrolled.push(value);
+        assert(
+          document.body.textContent?.includes("Initial content"),
+          "Restore must wait for the preceding document to render",
+        );
+      },
+    });
+    assert.equal(controller.getSnapshot().selectedId, key(2));
+    assert.equal(scrolled.length, 0);
+    await act(async () => {
+      releaseModule({ renderWalkthrough: render, validDeliveries: () => [] });
+      await settle();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    assert.equal(
+      scrolled.length,
+      0,
+      "A ready continuation must wait for its preceding segment",
+    );
+    await act(async () => {
+      releaseFirst(response({ title: "Initial content" }));
+      await settle();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    const heading = container.querySelector<HTMLElement>(`#heading-${key(2)}`);
+    assert(heading);
+    assert.equal(scrolled.length, 1);
+    assert.equal(canvas.scrollTop, 3000);
+    assert(
+      actions.getBoundingClientRect().top >= canvas.getBoundingClientRect().top,
+    );
+    assert(
+      actions.getBoundingClientRect().bottom <=
+        canvas.getBoundingClientRect().bottom,
+    );
+    assert.equal(document.activeElement, heading);
+    const search = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+    assert(search);
+    search.focus();
+    data = index([
+      session(1, {
+        session_id: "remembered",
+        created_at: "2026-10-20",
+        content_hash: "new-content",
+      }),
+      session(2, { session_id: "remembered", created_at: "2026-10-21" }),
+    ]);
+    await act(async () => {
+      await controller.refresh();
+      await settle();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    assert.equal(document.activeElement, search);
+    assert.equal(
+      scrolled.length,
+      1,
+      "Polling must not repeat the restored jump",
+    );
+    scrollOffset = 2500;
+    const jumps = container.querySelectorAll<HTMLButtonElement>(
+      'nav[aria-label="Jump to a segment"] button',
+    );
+    await act(async () => {
+      jumps[1].click();
+      await settle();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    assert.equal(canvas.scrollTop, 3000);
+    assert.equal(scrolled.length, 2);
+    assert.equal(document.activeElement, heading);
+    assert(
+      actions.getBoundingClientRect().top >= canvas.getBoundingClientRect().top,
+    );
   } finally {
     await act(async () => root.unmount());
     container.remove();

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Validate <folder>/walkthrough.json and write <folder>/walkthrough.html.
+"""Validate walkthrough JSON; publish HTML only when Hive is unavailable.
 
     python3 render_walkthrough.py <folder> [--session-status in_progress|closed]
     python3 render_walkthrough.py <folder> --session-status closed --confirm-viewer
 
-The page is a fixed template (assets/walkthrough.html, .css, .mjs) with the
-manifest embedded as an inert JSON data block. Python 3 standard library only.
-Exit 0 and the written path on success; exit 1 on validation/publication error.
+Resolve the hive executable once from PATH. When available, validate resources
+and return walkthrough.json, atomically applying an explicit status change;
+never build or modify HTML. Daemon availability does not change this mode.
+Without hive, publish walkthrough.html from the fixed template with inert JSON.
+Python 3 standard library only. Exit 0 and the current output path on success;
+exit 1 on validation/publication error.
 Exit 2 means closed was written but the viewer did not confirm its current
 copy: retain the source evidence unit. No viewer is started or restarted.
 """
@@ -14,14 +17,18 @@ copy: retain the source evidence unit. No viewer is started or restarted.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
+from urllib.parse import urlsplit
 from datetime import datetime
 from pathlib import Path
 
@@ -35,6 +42,7 @@ MAX_CAPTURES = 100
 
 FLOW_ID = re.compile(r"^[a-z0-9-]{1,64}$")
 SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
+DELIVERY_AUTHORITY = re.compile(r"^[Hh][Tt][Tt][Pp][Ss]://([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\])(:[0-9]+)?([/?#]|$)")
 LANG = re.compile(r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$")
 CAPTURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 RECORDING_EXTENSIONS = {".mp4"}
@@ -203,12 +211,57 @@ def validate_flow(folder: Path, flow: object, index: int, seen: set[str]) -> Non
         validate_recording(folder, flow["recording"], f"{field}.recording")
 
 
+def safe_delivery_url(raw: str) -> bool:
+    # Apply the same ASCII authority contract as Go, without IDNA conversion.
+    if not DELIVERY_AUTHORITY.match(raw):
+        return False
+    # Check before urlsplit, which otherwise removes tabs and newlines.
+    if any(ch == "\\" or ch.isspace() or unicodedata.category(ch) == "Cc" for ch in raw):
+        return False
+    if re.search(r"%(?![0-9a-fA-F]{2})", raw):
+        return False
+    try:
+        parsed = urlsplit(raw)
+        host = parsed.hostname
+        if parsed.scheme.lower() != "https" or not parsed.netloc or not host or parsed.username is not None:
+            return False
+        if "%" in parsed.netloc or "@" in parsed.netloc:
+            return False
+        if "[" in parsed.netloc or "]" in parsed.netloc:
+            if not parsed.netloc.startswith("["):
+                return False
+            ipaddress.IPv6Address(host)
+        elif ":" in host:
+            return False
+        # Access validates the numeric port and its 0..65535 range.
+        port = parsed.port
+        if port is None and parsed.netloc.endswith(":"):
+            return False
+        return True
+    except ValueError:
+        return False
+
+
+def validate_delivery(value: object) -> None:
+    if not isinstance(value, list):
+        raise fail("delivery", "must be an array")
+    for index, item in enumerate(value):
+        field = f"delivery[{index}]"
+        entry = expect_object(item, field, {"kind", "label", "url"}, set())
+        if not is_one_of(entry["kind"], {"pull_request", "commit"}):
+            raise fail(f"{field}.kind", "must be pull_request or commit")
+        expect_string(entry["label"], f"{field}.label")
+        raw = expect_string(entry["url"], f"{field}.url")
+        if not safe_delivery_url(raw):
+            raise fail(f"{field}.url", "must be an absolute HTTPS URL with a host and valid port, without credentials, controls, whitespace or backslashes")
+
+
 def validate(folder: Path, manifest: object) -> None:
     root = expect_object(
         manifest,
         "",
         {"schema_version", "lang", "kind", "title", "session", "candidate", "created_at", "flows"},
-        {"ticket", "result", "checks", "action_required", "environment", "provenance"},
+        {"ticket", "result", "checks", "action_required", "environment", "provenance", "delivery"},
     )
     version = root["schema_version"]
     if isinstance(version, bool) or version != 1:
@@ -260,6 +313,8 @@ def validate(folder: Path, manifest: object) -> None:
             entry = expect_object(entry, field, {"label", "value"}, set())
             expect_string(entry["label"], f"{field}.label")
             expect_string(entry["value"], f"{field}.value")
+    if "delivery" in root:
+        validate_delivery(root["delivery"])
     flows = root["flows"]
     if not isinstance(flows, list) or not flows:
         raise fail("flows", "must be a non-empty array")
@@ -361,14 +416,16 @@ def write_atomic(path: Path, content: bytes) -> None:
 
 
 def render(folder: Path, session_status: str | None = None) -> Path:
-    """Validate and prepare both outputs before publishing explicit status.
+    """Publish JSON with Hive, or prepare the standalone HTML fallback.
 
-    Each replacement is atomic. If publishing the page fails, restore the
-    original manifest rather than leaving it ahead of the page. This is not a
-    cross-file crash transaction; a retry renders from the authoritative JSON.
+    Resolve executable availability once; daemon/confirmation errors never
+    enable HTML. Each replacement is atomic. In fallback mode, a failed page
+    publication restores the manifest. This is not a cross-file crash
+    transaction; a retry publishes from the authoritative JSON.
     """
     if not folder.is_dir():
         raise fail("folder", "must be a directory")
+    has_hive = shutil.which("hive") is not None
     original = read_manifest(folder)
     manifest = parse_manifest(original)
     validate(folder, manifest)
@@ -378,23 +435,26 @@ def render(folder: Path, session_status: str | None = None) -> Path:
             raise fail("session.status", "must be in_progress or closed")
         manifest["session"]["status"] = session_status
     validate(folder, manifest)
-    page = build_page(manifest)
+    page = None if has_hive else build_page(manifest)
     serialized = json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     if len(serialized.encode("utf-8")) > MAX_MANIFEST and session_status is not None:
         raise fail("walkthrough.json", "updated manifest exceeds 1 MiB")
-    target = folder / "walkthrough.html"
+    target = source if has_hive else folder / "walkthrough.html"
     changed = session_status is not None and parse_manifest(original) != manifest
     staged_source = None
     staged_page = None
     try:
-        # Stage every write before replacing either public file.
+        # Stage every required write before replacing a public file.
         if changed:
             staged_source = stage_atomic(source, serialized.encode("utf-8"))
-        staged_page = stage_atomic(target, page.encode("utf-8"))
+        if page is not None:
+            staged_page = stage_atomic(target, page.encode("utf-8"))
         if read_manifest(folder) != original:
             raise fail("walkthrough.json", "changed during rendering; retry from the current source")
         if changed:
             os.replace(staged_source, source)
+        if has_hive:
+            return source
         try:
             os.replace(staged_page, target)
         except OSError:
@@ -449,7 +509,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
     parser.add_argument("--session-status", choices=sorted(SESSION_STATUSES),
-                        help="explicitly update only this work's lifecycle and render it")
+                        help="update only this work's lifecycle; publish JSON with Hive or HTML without it")
     parser.add_argument("--confirm-viewer", action="store_true",
                         help="with closed, require the viewer's exact current copy before cleanup")
     args = parser.parse_args()

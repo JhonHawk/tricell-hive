@@ -202,6 +202,9 @@ export function validateIndex(value: RawIndex): RawIndex {
       "repository",
       "ticket",
       "source_reason",
+      "host",
+      "created_at",
+      "ingested_at",
     ] as const) {
       if (session[field] !== undefined && typeof session[field] !== "string")
         throw new Error("Invalid viewer session metadata");
@@ -225,7 +228,8 @@ export function mapIndex(
     excluded: boolean,
     absent = false,
   ): LibrarySession => {
-    const time = Date.parse(raw.created_at) || Date.parse(raw.ingested_at);
+    const created = Date.parse(raw.created_at);
+    const time = Number.isNaN(created) ? Date.parse(raw.ingested_at) : created;
     const classification =
       raw.source_status === "tracked"
         ? "tracked"

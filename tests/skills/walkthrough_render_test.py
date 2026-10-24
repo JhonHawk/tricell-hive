@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import struct
@@ -60,9 +61,12 @@ def tiny_png() -> bytes:
 
 
 def run_generator(folder: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(GENERATOR), str(folder)], text=True, capture_output=True, check=False
-    )
+    # An empty PATH makes these standalone fallback tests independent of Hive.
+    with tempfile.TemporaryDirectory() as empty_path:
+        return subprocess.run(
+            [sys.executable, str(GENERATOR), str(folder)], text=True, capture_output=True, check=False,
+            env={**os.environ, "PATH": empty_path},
+        )
 
 
 def run_checker(page: Path) -> subprocess.CompletedProcess[str]:
@@ -115,6 +119,39 @@ class WalkthroughRenderTest(unittest.TestCase):
         self.assertIn(field, result.stderr)
         self.assertFalse((folder / "walkthrough.html").exists())
         self.assertEqual(sorted(p.name for p in folder.iterdir() if p.suffix == ".tmp"), [])
+
+    def test_delivery_contract_shared_with_go(self) -> None:
+        cases = json.loads((FIXTURES / "delivery-contract.json").read_text("utf-8"))
+        for case in cases:
+            with self.subTest(case=case["name"]):
+                manifest = self.minimal()
+                if not case.get("omit"):
+                    manifest["delivery"] = case["delivery"]
+                folder = self.make_folder(manifest)
+                if "field" in case:
+                    self.assert_rejected(folder, case["field"])
+                else:
+                    result = run_generator(folder)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    data = DATA_BLOCK.search((folder / "walkthrough.html").read_text("utf-8"))
+                    self.assertIsNotNone(data)
+                    self.assertEqual(json.loads(data.group(1)), manifest)
+
+    def test_invalid_delivery_preserves_previous_page_and_source(self) -> None:
+        folder = self.make_folder(self.minimal(delivery=[{
+            "kind": "commit", "label": "abc1234", "url": "https://example.com/commit/abc1234"
+        }]))
+        self.assertEqual(run_generator(folder).returncode, 0)
+        page = (folder / "walkthrough.html").read_bytes()
+        manifest = self.minimal(delivery=[{"kind": "commit", "label": "abc1234", "url": "javascript:alert(1)"}])
+        source = json.dumps(manifest).encode()
+        (folder / "walkthrough.json").write_bytes(source)
+        result = run_generator(folder)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("delivery[0].url", result.stderr)
+        self.assertEqual((folder / "walkthrough.html").read_bytes(), page)
+        self.assertEqual((folder / "walkthrough.json").read_bytes(), source)
+        self.assertFalse(list(folder.glob("*.tmp")))
 
     # AC1
     def test_valid_final_generates_page_that_passes_self_check(self) -> None:

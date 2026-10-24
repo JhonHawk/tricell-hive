@@ -644,3 +644,40 @@ func TestScanPrunesFingerprintsOfVanishedSourcesAndRepositories(t *testing.T) {
 		t.Fatalf("fingerprint of an unregistered repository kept: %d", count())
 	}
 }
+
+func TestScanDeliveryInvalidKeepsLastValidCopy(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	folder := e.place(repo, "delivery", func(m map[string]any) {
+		m["delivery"] = []any{map[string]any{"kind": "pull_request", "label": "repo #123", "url": "https://example.com/repo/pull/123"}}
+	})
+	e.register(repo)
+	e.start()
+	if res := e.sync(); res.Added != 1 || res.Errors != 0 {
+		t.Fatalf("valid ingestion: %+v", res)
+	}
+	before := e.onlySession()
+	dir := e.sessionDir(before.Key)
+	original := readFile(t, filepath.Join(dir, manifestFile))
+	meta := readFile(t, filepath.Join(dir, "meta.json"))
+	doc := readManifestMap(t, folder)
+	doc["delivery"].([]any)[0].(map[string]any)["url"] = "javascript:" + strings.Repeat("x", 1000)
+	writeManifestMap(t, folder, doc)
+	e.advance(time.Minute)
+	e.touch(folder)
+	if res := e.sync(); res.Errors != 1 || res.Added != 0 || res.Replaced != 0 {
+		t.Fatalf("invalid ingestion: %+v", res)
+	}
+	after := e.onlySession()
+	if after.ContentHash != before.ContentHash || !bytes.Equal(original, readFile(t, filepath.Join(dir, manifestFile))) || !bytes.Equal(meta, readFile(t, filepath.Join(dir, "meta.json"))) {
+		t.Fatal("invalid delivery replaced the last valid copy")
+	}
+	errs := e.store.View().Errors
+	if len(errs) != 1 || !strings.Contains(errs[0].Reason, "delivery[0].url") || len(errs[0].Reason) > 2*maxErrorText+10 {
+		t.Fatalf("unbounded or missing error: %+v", errs)
+	}
+	entries, err := os.ReadDir(filepath.Dir(dir))
+	if err != nil || len(entries) != 1 || entries[0].Name() != before.Key {
+		t.Fatalf("partial copies: %v, %v", entries, err)
+	}
+}
