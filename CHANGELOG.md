@@ -22,9 +22,9 @@ raise the minor or the patch version.
 ### Changed
 
 - Research, Plan and Build check what depends on a component before
-  recommending, planning or building a change that removes, closes, migrates
-  or moves something running in production, or that changes untested
-  production behavior. The new `change-impact` reference always searches for
+  recommending, planning or building a change that removes, closes,
+  disables, migrates, renames or moves something running in production, or
+  that changes untested production behavior. The new `change-impact` reference always searches for
   the literal value involved and runs its topology, reachable-path and
   observation steps only when their signal appears. The interface rule now
   asks to search for consumers first, and a bounded observation of real
