@@ -57,6 +57,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"flow-plan/references/project-settings.md",
 		skills+"flow-plan/references/change-records.md",
 		skills+"flow-plan/references/plan-format.md",
+		skills+"flow-build/references/plan-execution.md",
+		skills+"flow-build/references/tdd.md",
 		skills+"flow-plan/references/plan-review.md",
 		skills+"flow-plan/references/delivery-decisions.md",
 		skills+"flow-build/references/verification.md",
@@ -72,6 +74,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-close/references/reporting.md":                  true,
 		skills + "flow-plan/references/questions.md":                   true,
 		skills + "flow-plan/references/project-settings.md":            true,
+		skills + "flow-build/references/plan-execution.md":             true,
+		skills + "flow-build/references/tdd.md":                        true,
 		skills + "flow-research/references/delegation.md":              true,
 		skills + "workspace-conventions/references/artifact-layout.md": true,
 	}
