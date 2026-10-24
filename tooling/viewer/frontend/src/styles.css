@@ -86,6 +86,8 @@
   color-scheme: dark;
 }
 body {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
   margin: 0;
   background: var(--background);
 }
@@ -94,11 +96,6 @@ body {
 }
 .viewer-shell {
   height: 100dvh;
-}
-.viewer-shell,
-[data-slot="dialog-content"] {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  line-height: 1.5;
 }
 .viewer-shell *,
 [data-slot="dialog-content"],
@@ -118,12 +115,17 @@ body {
 .viewer-shell button:not(.walkthrough *),
 [data-slot="sheet-content"] button,
 [data-slot="dialog-content"] button {
-  font-family: inherit;
   cursor: pointer;
 }
 /* Reset only the application shell and its portalled navigation and Dialog. The report
    renderer deliberately keeps its own styles instead of Tailwind preflight. */
 @layer base {
+  :where(button, input, select, textarea):not(.walkthrough *) {
+    font: inherit;
+  }
+  :where(*, ::before, ::after):not(.walkthrough, .walkthrough *) {
+    border-color: var(--border);
+  }
   :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
     :where(ul):not(.walkthrough *) {
     margin: 0;
@@ -145,7 +147,6 @@ body {
 :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
   [data-sidebar="menu-button"] {
   border: 0;
-  font-family: inherit;
   cursor: pointer;
 }
 .session-navigation-link {
@@ -168,9 +169,6 @@ body {
 .session-navigation-link[aria-current="page"] {
   background: var(--muted);
   color: var(--foreground);
-}
-[data-sidebar="sidebar"][data-mobile="true"] {
-  font-family: ui-sans-serif, system-ui, sans-serif;
 }
 [data-sidebar="sidebar"],
 [data-slot="sidebar-container"] {
