@@ -307,9 +307,11 @@ copy stays under `hive/context-loader/`. This establishes loading only, not
 context injection before dispatch or model effectiveness.
 
 The implementation uses OpenCode V2 `Plugin.define({id, setup})`, a session
-`context` hook, `ctx.agent.get({agentID})` and `Agent.Info.name`, not a filename
-assumed equal to an ID. It maps only `hive-review-plan` to
-`flow-plan/references/plan-review.md` and `hive-review-harness` to
+`context` hook and `ctx.agent.get({agentID})`. It resolves the role from the
+native identifier, `data.id`, then `id`, then the hook event's agent value (also
+when the lookup fails), never from the display name. It maps only
+`hive-review-plan` to `flow-plan/references/plan-review.md` and
+`hive-review-harness` to
 `harness-audit/SKILL.md`. Each request receives the corresponding embedded
 snapshot again; deduplication touches only parts previously added by this plugin
 to that request. The callback performs zero reference-file or metadata reads and
