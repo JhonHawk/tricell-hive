@@ -63,7 +63,7 @@ When the user accepts, run the accepted-candidate gate as [the UI gate](referenc
 
 Before delivering a later fix, including one from code review after approval, follow [changes after a gate or approval](references/ui-gate.md#changes-after-a-gate-or-approval).
 
-Markers: when a correction changes the files of a task marked `[x]`, set that task back to `[?]` with a line `reopened by correction round <n>`, and verify it at the accepted-candidate gate. Record a correction outside the plan's tasks in the progress section; `hive-verify-change` covers it at that gate when the value runs it. A correction that changes the retained plan follows [Revise a plan in progress](../flow-plan/SKILL.md#revise-a-plan-in-progress); the plan re-review it may make due runs with the accepted-candidate gate above, not between rounds.
+Markers: when a correction changes the files of a task marked `[x]`, set that task back to `[?]` with a line `reopened by correction round <n>`, and verify it at the accepted-candidate gate. Record a correction outside the plan's tasks in the progress section; `hive-verify-change` covers it at that gate when the value runs it. A correction that changes the retained plan follows [Revise a plan in progress](../flow-plan/references/plan-revision.md); the plan re-review it may make due runs with the accepted-candidate gate above, not between rounds.
 
 ## Share
 
