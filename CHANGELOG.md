@@ -34,6 +34,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Closing a change record now checks, after applying its deltas, that every
+  added or modified requirement matches its delta and every removed one is
+  gone, and marks the change completed only after that check. An abandoned
+  change archives its never-applied deltas under an `unapplied-` folder (#117).
+
 - A ready plan's summary shows each acceptance criterion and changed
   requirement, and choosing to start Build at the route question approves
   them by ID; a free-text correction revises the plan and asks again. A
