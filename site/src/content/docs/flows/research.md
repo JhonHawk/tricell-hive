@@ -32,6 +32,8 @@ An answer in the conversation. It normally tells you:
 - what is still uncertain;
 - what decision or next step the answer makes possible.
 
+When the answer recommends removing, closing, disabling, migrating or renaming something that runs in production, moving it to another server or process, or changing untested production behavior, the agent first checks what depends on it, only as far as what it finds calls for. Anything it cannot see from the code it marks as unverified, with how to check it and how to undo the change. The steps are in the [change impact reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/change-impact.md).
+
 For large questions the agent hands reading work to helper agents. Each helper says where every key claim comes from and what it did not check; the agent opens the cited lines of the claims that decide the answer before reporting. Long ticket, CI or deployment status is collected by a helper too. If the findings point to work that no ticket covers, it asks whether you want a ticket. It opens one only after you agree.
 
 The global core keeps essential boundaries; Research links directly to the

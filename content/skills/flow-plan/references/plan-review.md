@@ -12,9 +12,9 @@ Resolve and read the canonical `hive-review-plan` contract through the native ro
 
 | Assigned domain | Questions to examine |
 | --- | --- |
-| Backend / data / integration | API and event contracts, producers/consumers, data ownership, authorization, migrations, compatibility and failure behavior; concrete tests and rollout dependencies. |
+| Backend / data / integration | API and event contracts, producers/consumers, data ownership, authorization, migrations, compatibility and failure behavior; concrete tests and rollout dependencies; the plan's Impact list against [change impact](../../flow-research/references/change-impact.md) when it applies. |
 | Frontend / UI | Application/area, accepted shell and patterns, reuse and justified differences, states, accessibility, local interaction/visual verification including the independent UI review and in-vivo children that the `UI verification` value selects, and matching backend contracts. Read the applicable project UI guide and [UI planning](ui-planning.md). |
-| Infrastructure / delivery | Environments, provider constraints, identities, secrets handling, deployment order, migrations, observability, recovery and the authorization boundaries of operational gates. |
+| Infrastructure / delivery | Environments, provider constraints, identities, secrets handling, deployment order, migrations, observability, recovery and the authorization boundaries of operational gates; hosts and processes that consume what the change closes or moves, and the plan's Impact list against [change impact](../../flow-research/references/change-impact.md) when it applies. |
 | Other affected surface | Assign the actual responsibility, such as mobile lifecycle, firmware/hardware or concurrency/performance; supply its relevant source and project guidance rather than forcing it into a web/backend checklist. |
 
 Every assignment, whatever its domain, also reports these as blocking findings for the tasks and criteria it covers: an orphan acceptance criterion that no task's `Closes:` line names; a task whose verification does not cover a criterion it closes; and a criterion already true at the change's base commit, which grades nothing. [The plan format](plan-format.md#acceptance-criteria-and-task-markers) defines these rules.
