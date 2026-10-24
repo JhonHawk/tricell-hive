@@ -84,6 +84,12 @@ raise the minor or the patch version.
   and dependency rules and other situational rules to references, and
   flow-plan moves its interface and plan-revision rules.
 
+### Fixed
+
+- The viewer uses subtle theme borders instead of inherited white outlines,
+  and all dialogs inherit its shared base font while walkthroughs retain
+  their own typography.
+
 ## [0.5.0] - 2026-10-23
 
 ### Added
