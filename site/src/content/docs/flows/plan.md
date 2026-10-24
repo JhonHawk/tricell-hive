@@ -25,6 +25,7 @@ A plan that someone else could follow. It covers:
 
 - the outcome you want and what is in and out of scope;
 - the decisions you made, with the alternatives that mattered;
+- in-scope questions that cannot be stated precisely yet, kept apart from the decisions and the exclusions, with no task built on them until they can;
 - what changes for the pieces that talk to each other, such as inputs, outputs and data;
 - when the work removes, closes, disables, migrates, renames or moves something that runs in production, or changes untested production behavior, what depends on it today and what is still unverified, checked only as far as the situation calls for, as the [change impact reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/change-impact.md) sets;
 - tasks grouped into results you can check separately, each with the command or observation that proves it and what you should see;

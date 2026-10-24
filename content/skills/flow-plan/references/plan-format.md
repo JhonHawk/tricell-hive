@@ -11,6 +11,7 @@ Write the actual human-facing plan in the session language, including headings a
 - The inspected context and evidence behind consequential decisions, with relevant versions or dates.
 - For a change that removes, closes, disables, migrates, or renames something that runs in production, moves it to another host or process, or changes untested production behavior, the result of [change impact](../../flow-research/references/change-impact.md), recorded as its "Report the impact" section sets. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
 - The selected approach, affected contracts, meaningful assumptions, and unresolved blockers. Include migration or recovery behavior only when the work needs it. Record material scope clarifications and proposed expansions with their disposition. The essential decisions must be understandable without recovering the original conversation.
+- In-scope work whose question cannot yet be stated precisely, listed under **Not yet specified**, each item with the suspected question and what would make it specifiable. An exclusion leaves the scope and an unresolved decision is already a sharp question, so neither goes in this list. No task depends on an item. When a decision or a finding lets you state an item's question, ask it as a decision or plan its task, and remove the item. Before the change closes, turn each remaining item into a task, a proposed follow-up ticket, or an exclusion with its rationale. Omit the list when nothing is unclear.
 - For UI work, the relevant view decisions from [UI planning](ui-planning.md): application/area, guide status, shell/pattern and inspected reference, reuse, justified differences, states, and acceptance. Group equivalent views; omit this for work without a UI change.
 - Delivery decisions from [the planning decision reference](delivery-decisions.md): Git mode or narrower instruction, repositories/base, authorized effects and stop conditions, implementation-review mechanism and pending consent.
 - Local in-vivo applicability and rationale; if deemed unnecessary, the offered walk and user response or pending choice. For UI, include proportional coverage, built local environment, accounts/data prerequisites and the human walkthrough; record remote exceptions explicitly.
@@ -74,6 +75,8 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 ## Scope and acceptance
 
 <Included work, relevant exclusions with their rationale, and constraints that must stay true.>
+
+**Not yet specified:** <in-scope areas whose question cannot yet be stated precisely, each with what would make it specifiable; omit when none.>
 
 - AC1. <Observable behavior>. *False at the base when* <observation>.
 
