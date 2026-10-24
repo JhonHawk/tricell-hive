@@ -80,14 +80,15 @@ Snapshot measured on 2026-10-23 at `2d89940e` (source files can change; rerun th
 
 | Scenario | A bytes | B/C bytes | Byte change |
 | --- | ---: | ---: | ---: |
-| Global alone, not a chat reply | 46,912 | 33,710 | -28.14% |
+| Global alone | 46,912 | 33,710 | -28.14% |
 | Simple query | 46,912 | 49,107 | +4.68% |
 | Question | 46,912 | 59,365 | +26.55% |
 | Plan/build cycle | 173,839 | 229,774 | +32.18% |
 
 The global decrease is not total-context savings: reporting, which the
 simple-query scenario counts, already makes that union larger than A's, and the
-declared cycle grows. C's plan-review injection
+declared cycle grows. Under the current rule a short direct answer with no
+citation or relay reads only the global file, the first row. C's plan-review injection
 adds no unique source to that cycle, but delivery wrappers, repetition and timing
 can change actual requests. The measurement includes raw source frontmatter;
 it excludes native skill/role discovery metadata and rendering, plugin metadata

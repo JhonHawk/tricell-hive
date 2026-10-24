@@ -45,7 +45,7 @@ The core remains in managed instruction channels. Authorization, preservation,
 secrets, evidence and basic artifact placement do not depend on selecting a
 procedure or activating a plugin. Canonical references carry reporting,
 questions, delegation, artifact details and settings with direct read conditions;
-reporting applies when its conditions do, not to greetings or short direct answers. Reading a reference does not invoke
+reporting is read under the conditions in `content/guidance/global.md`. Reading a reference does not invoke
 its owning flow. See [instruction resources](instruction-resources.md) for homes,
 runtime resolution, validation and declared reading-footprint scenarios.
 
