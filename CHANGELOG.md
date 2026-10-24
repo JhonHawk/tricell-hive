@@ -34,6 +34,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A ready plan's summary shows each acceptance criterion and changed
+  requirement, and choosing to start Build at the route question approves
+  them by ID; a free-text correction revises the plan and asks again. A
+  pull request now states what stayed unverified and the assumptions the
+  result relies on and, when the work has acceptance criteria, the recorded
+  evidence for each one (#134).
+
 - In a maintainer checkout, refreshing viewer runtime or embedded-asset changes
   now includes restarting an already running local viewer with its existing
   port, state directory and TTL, followed by health and runtime verification.
