@@ -19,8 +19,9 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 ## Guidance
 
 The global core retains essential boundaries and explicit read conditions for
-canonical procedures. Reporting is required before every chat reply; other
-procedures are selected by their stated conditions, not all preloaded. A packaged
+canonical procedures. Reporting and the other procedures are read when their
+stated conditions apply (greetings and short direct answers need none), not all
+preloaded. A packaged
 file, its discovery, its delivery into context and compliance are separate facts.
 Source-byte unions are not actual tokens or evidence of small-model reliability.
 

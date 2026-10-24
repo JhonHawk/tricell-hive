@@ -1,5 +1,7 @@
 # Portable harness engineering: research and design implications
 
+Historical record (2026-09-20): it covers five hosts; Cursor CLI was added later, and the current host matrix is in the [README](../../../README.md).
+
 Research checked 2026-09-20 (America/Mexico_City). This is a source-backed design basis, not a product specification or proof that a Hive candidate improves results. The five-host rebuild scope is Claude Code, Codex, Grok Build, Pi, and OpenCode V2. A same-day local inventory reported Claude Code 2.1.278, Codex 0.155.1, Grok 1.0.34 (`3736acbc8658`, stable), Pi 0.86.0, and OpenCode 2.0.9; documentation URLs below are rolling pages unless versioned, not proof that the installed builds behave as documented. This document reflects the five-host rebuild objective.
 
 ## Finding

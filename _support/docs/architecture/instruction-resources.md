@@ -64,7 +64,7 @@ required files fail measurement; there is no new size quota.
 The predicates and full file lists are in `TestGuidanceReadingFootprint`:
 
 - **Simple query:** factual reply without an activity, decision, delegation or
-  artifact. B reads global plus mandatory reporting; A has reporting in global.
+  artifact. B reads global plus reporting, which the scenario counts; A has reporting in global.
 - **Question:** standalone user decision, with a waiting card or text. Add
   questions to that common union; neither scenario invokes a whole activity.
 - **Plan/build cycle:** retained backend runtime plan, settings and hold/review
@@ -76,17 +76,18 @@ The predicates and full file lists are in `TestGuidanceReadingFootprint`:
   No UI, security/data migration, deployment, Git execution or incidental finding
   is assumed, so their conditional procedures are not added.
 
-Snapshot measured on 2026-10-12 (source files can change; rerun the test):
+Snapshot measured on 2026-10-23 at `2d89940e` (source files can change; rerun the test):
 
 | Scenario | A bytes | B/C bytes | Byte change |
 | --- | ---: | ---: | ---: |
-| Global alone, not a chat reply | 46,912 | 25,363 | -45.93% |
-| Simple query | 46,912 | 36,754 | -21.65% |
-| Question | 46,912 | 44,148 | -5.89% |
-| Plan/build cycle | 173,839 | 192,066 | +10.48% |
+| Global alone, not a chat reply | 46,912 | 33,710 | -28.14% |
+| Simple query | 46,912 | 49,107 | +4.68% |
+| Question | 46,912 | 59,365 | +26.55% |
+| Plan/build cycle | 173,839 | 229,774 | +32.18% |
 
-The global decrease is not total-context savings: mandatory reporting already
-changes the common union, and the declared cycle grows. C's plan-review injection
+The global decrease is not total-context savings: reporting, which the
+simple-query scenario counts, already makes that union larger than A's, and the
+declared cycle grows. C's plan-review injection
 adds no unique source to that cycle, but delivery wrappers, repetition and timing
 can change actual requests. The measurement includes raw source frontmatter;
 it excludes native skill/role discovery metadata and rendering, plugin metadata

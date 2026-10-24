@@ -7,7 +7,7 @@ Reviewed: 2026-09-25. The shared guidance, activity skills, six host adapters, G
 | Path | Responsibility | Current state |
 |---|---|---|
 | `content/guidance/global.md` | Canonical core, essential boundaries and linked read conditions | Packaged by the manager; installation is not proof of loading |
-| `content/skills/` | Activity procedures and their supporting resources | Eleven authored skills; availability and loading depend on each host installation |
+| `content/skills/` | Activity procedures and their supporting resources | The authored skills under `content/skills/`; availability and loading depend on each host installation |
 | `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; Codex/Claude project scope; optional inactive OpenCode loader |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout or a complete package |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
@@ -45,7 +45,7 @@ The core remains in managed instruction channels. Authorization, preservation,
 secrets, evidence and basic artifact placement do not depend on selecting a
 procedure or activating a plugin. Canonical references carry reporting,
 questions, delegation, artifact details and settings with direct read conditions;
-reporting applies before every chat reply. Reading a reference does not invoke
+reporting applies when its conditions do, not to greetings or short direct answers. Reading a reference does not invoke
 its owning flow. See [instruction resources](instruction-resources.md) for homes,
 runtime resolution, validation and declared reading-footprint scenarios.
 
@@ -82,7 +82,7 @@ delivery or better outcomes for Haiku/Flash. The bounded A/B/C model experiment
 is authorized for this change but has not yet run and remains blocked on verifying
 safe, exact memory cleanup. That limit does not invalidate the loader's separately
 checked generation and lifecycle contracts. A smaller global file is not
-lower total context: the simple-query union includes mandatory reporting, and
+lower total context: the simple-query union counts reporting, and
 the declared retained plan/build cycle grows in source bytes. No arbitrary quota
 or byte-to-token estimate establishes reliability.
 

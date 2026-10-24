@@ -1,5 +1,7 @@
 # Harness engineering research
 
+Historical record (2026-09-20): it covers five hosts; Cursor CLI was added later, and the current host matrix is in the [README](../../../README.md).
+
 This folder holds the research and measurement basis for rebuilding Hive as a small, portable guidance layer for Claude Code, Codex, Grok Build, Pi, and OpenCode V2. It is not a promise that the five hosts load instructions identically, nor an implementation plan.
 
 ## Start here
