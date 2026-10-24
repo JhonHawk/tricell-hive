@@ -32,6 +32,19 @@ raise the minor or the patch version.
   defect that the change makes reachable as introduced by the change (#110).
 - The security policy supports only the latest published minor release,
   instead of naming 0.1.x and 0.2.x (#108).
+- A child or the main thread no longer runs `git stash` while another agent
+  works in any worktree of the same repository, because every worktree
+  shares the stash list (#118).
+- A plan lists in-scope work whose question cannot be stated precisely yet
+  under "Not yet specified", apart from exclusions and open decisions; no
+  task depends on it until it can be stated (#120).
+- Diagnosis confirms a forced failure with a diff, shrinks the reproduction
+  and compares it with the closest case that works, raises the rate of an
+  intermittent failure before hypotheses, changes one variable per
+  experiment, and tags temporary instrumentation for removal. A new
+  `ticket-body` reference sets what a ticket Hive opens carries: current and
+  expected behavior, dated evidence, criteria and what is out of scope.
+  The Inspiration page credits Skills For Real Engineers.
 
 ## [0.5.0] - 2026-10-23
 
