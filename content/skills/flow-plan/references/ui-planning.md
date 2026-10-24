@@ -1,6 +1,6 @@
 # Plan interfaces within the product
 
-Read when creating or changing a screen, application shell, layout, or reusable UI pattern. Apply this procedure in a formal plan or a bounded implementation brief; it does not require a document or design approval for every small visual edit.
+Read when creating or changing a screen, application shell, layout, reusable UI pattern, or a dialog or form where the end user enters or chooses data. Apply this procedure in a formal plan or a bounded implementation brief; it does not require a document or design approval for every small visual edit.
 
 ## Establish the relevant scope
 
@@ -28,6 +28,7 @@ For each affected view or coherent family of views, record only the relevant det
 - Application/area, route or entry point, and user task.
 - Applicable guide and its observed currency; selected shell/pattern and inspected example, with source paths and a rendered/design reference when available.
 - Components/composition to reuse, justified differences, and affected consumers if shared code changes. Prefer composition using the existing architecture over copying a screen or introducing a universal CRUD engine.
+- For a view where the end user enters or chooses data, each value it asks for: where it already lives in the system or can be derived from, or why the end user must provide it, and how many times the end user provides it per record or repeated item. Prefer showing or confirming a value the system already holds over asking for it again, and record the reason when the view asks again.
 - Relevant loading, empty, error, permission, long-content and responsive states, including interaction and accessibility expectations.
 - Concrete acceptance observations and any unresolved decision that blocks dependent work. The shared [verification reference](../../flow-build/references/verification.md) owns test depth and runtime gates; [the UI gate](../../flow-walkthrough/references/ui-gate.md) owns the UI gates.
 
