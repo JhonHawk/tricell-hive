@@ -1,0 +1,511 @@
+[
+  {
+    "name": "legacy",
+    "omit": true
+  },
+  {
+    "name": "empty",
+    "delivery": []
+  },
+  {
+    "name": "pull-request",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com/repo/pull/123"
+      }
+    ]
+  },
+  {
+    "name": "commit",
+    "delivery": [
+      {
+        "kind": "commit",
+        "label": "abc1234",
+        "url": "https://git.example/repo/commit/abc1234"
+      }
+    ]
+  },
+  {
+    "name": "uppercase-scheme",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "HTTPS://example.com/pr/1"
+      }
+    ]
+  },
+  {
+    "name": "port-and-escaped-space",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com:8443/pr%20one?q=yes#section"
+      }
+    ]
+  },
+  {
+    "name": "ipv6",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://[::1]:443/pr/1"
+      }
+    ]
+  },
+  {
+    "name": "label-text",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "<script> & \"label\"",
+        "url": "https://example.com/repo/pull/123"
+      }
+    ]
+  },
+  {
+    "name": "null",
+    "delivery": null,
+    "field": "delivery"
+  },
+  {
+    "name": "object",
+    "delivery": {},
+    "field": "delivery"
+  },
+  {
+    "name": "item-type",
+    "delivery": [
+      null
+    ],
+    "field": "delivery[0]"
+  },
+  {
+    "name": "kind",
+    "delivery": [
+      {
+        "kind": "issue",
+        "label": "repo #123",
+        "url": "https://example.com/repo/pull/123"
+      }
+    ],
+    "field": "delivery[0].kind"
+  },
+  {
+    "name": "kind-type",
+    "delivery": [
+      {
+        "kind": [],
+        "label": "repo #123",
+        "url": "https://example.com/repo/pull/123"
+      }
+    ],
+    "field": "delivery[0].kind"
+  },
+  {
+    "name": "label-empty",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "  ",
+        "url": "https://example.com/repo/pull/123"
+      }
+    ],
+    "field": "delivery[0].label"
+  },
+  {
+    "name": "label-type",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": 1,
+        "url": "https://example.com/repo/pull/123"
+      }
+    ],
+    "field": "delivery[0].label"
+  },
+  {
+    "name": "missing-url",
+    "delivery": [
+      {
+        "kind": "commit",
+        "label": "abc"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "unknown-key",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com/repo/pull/123",
+        "state": "merged"
+      }
+    ],
+    "field": "delivery[0].state"
+  },
+  {
+    "name": "url-type",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": null
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "http",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "http://example.com"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "javascript",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "javascript:alert(1)"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "data",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "data:text/html,hello"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "relative",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "protocol-relative",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "//example.com/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "no-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https:///pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "credentials",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://user:password@example.com"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "username",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://user@example.com"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "space",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com/a b"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "newline",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com/\npath"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "control",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com/path"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "backslash",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com\\@evil.test"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "port-text",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com:abc"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "port-range",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com:65536"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "port-empty",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com:"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "bracket",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://[example.com]/"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "escape",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com/%xx"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "host-invalid-character",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "repo #123",
+        "url": "https://example.com|invalid/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "punycode-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://xn--bcher-kva.example/pull/1"
+      }
+    ]
+  },
+  {
+    "name": "ipv4-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://192.0.2.1:65535/pull/1"
+      }
+    ]
+  },
+  {
+    "name": "ipv6-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://[2001:db8::1]:0/pull/1"
+      }
+    ]
+  },
+  {
+    "name": "ascii-host-characters",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://git_host-1.example/pull/1"
+      }
+    ]
+  },
+  {
+    "name": "unicode-label-and-path",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://example.com/código/提交?q=é#確認"
+      }
+    ]
+  },
+  {
+    "name": "unicode-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://bücher.example/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "fullwidth-colon-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://example.com：443/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "fullwidth-at-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://user＠example.com/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "fullwidth-slash-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://example.com／invalid/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "fullwidth-hash-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://example.com＃invalid/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "fullwidth-question-host",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://example.com？invalid/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "ipv4-in-brackets",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://[192.0.2.1]/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "invalid-ipv6",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://[2001:::1]/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  },
+  {
+    "name": "host-subdelimiter",
+    "delivery": [
+      {
+        "kind": "pull_request",
+        "label": "Entrega — 提交 #123",
+        "url": "https://example!invalid/pull/1"
+      }
+    ],
+    "field": "delivery[0].url"
+  }
+]

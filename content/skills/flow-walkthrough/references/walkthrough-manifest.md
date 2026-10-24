@@ -19,6 +19,7 @@ Keys are English and exactly as shown; unknown keys fail. Text values are in the
 | `ticket` | no | The change ID without date, such as `gh-67-flow-walkthrough-skill`; omit when there is no ticket or change |
 | `session` | yes | `{"id": …, "host": …, "status": …}`; see below |
 | `candidate` | yes | `{"branch": …, "commit": …, "base": …}`; write `"commit": "working tree"` before a commit exists |
+| `delivery` | no | `[{"kind", "label", "url"}]`: verified PR or commit links; see below |
 | `created_at` | yes | ISO 8601 time with offset |
 | `result` | no | One sentence: the verdict and what the person must still do |
 | `checks` | no | `[{"name", "status", "evidence"}]`, one per verified criterion plus the UX verdict and the tests, build and lint that ran; `status` is `pass`, `fail`, `warn`, `info` or `not_run` |
@@ -32,6 +33,12 @@ Keys are English and exactly as shown; unknown keys fail. Text values are in the
 **`session.status`.** Optional; exactly `in_progress` or `closed`. Active producers write `in_progress`, including when explicitly resuming the same work. Existing manifests without it remain valid and the viewer reports `unknown`; do not retrofit historical records or infer status from `kind`, age, Git classification or the host process. `closed` means this work passed through flow-close (completed, abandoned or paused), not that the person approved the interface or the host conversation ended. Before closing or deleting this work's review artifacts, follow [Close the current walkthrough](../../flow-close/SKILL.md#close-the-current-walkthrough).
 
 The renderer's `--session-status in_progress|closed` explicitly updates only this manifest and renders its page. Without that option it renders without changing the manifest, including an absent status. `--confirm-viewer` requires `--session-status closed` and checks the existing viewer through `hive view status --dir <work folder>`. Exit `0` means rendering succeeded and, when requested, the current closed copy was confirmed; `1` means validation or publication failed; `2` means closed was written but confirmation failed and the source evidence unit must be retained. Each output is replaced atomically after validation and preparation; page publication failure restores the manifest. This is not a crash transaction across two files: rerun from the JSON after interruption. No raw CLI diagnostics are relayed.
+
+**`delivery`.** Optional array; each object has exactly `kind`, `label` and `url`. `kind` is `pull_request` or `commit`; `label` is non-empty text (for example `tricell-hive #123` or `abc1234`), never HTML. `url` is an absolute HTTPS URL with an ASCII host (letters, digits, `.`, `-` or `_`, including punycode) or a valid IPv6 literal in brackets, valid percent escapes and an optional numeric port in `0..65535`. Scheme casing is immaterial. Credentials, control characters, literal whitespace, backslashes and empty ports are rejected. Unicode hosts are rejected without IDNA normalization; labels and URL paths may contain Unicode. There is no provider allowlist or remote status lookup; a linked PR can still be open and its label does not assert integration. Never put secrets in URLs or labels. Keep `candidate` unchanged; a local hash or `working tree` is not a delivery URL.
+
+Add already verified deliveries when producing the walkthrough. At close, update only the current work's manifest with its known PR/commit URL before rendering, closing and confirming it; preserve existing links that still describe that work. Without a known delivery, omit the field. Do not infer URLs, rewrite historical manifests, or scan other work folders in the session.
+
+The schema remains version `1`; manifests without `delivery` remain valid. Older strict readers reject the new optional field. Update the manager binary before deploying the content that writes it, and explicitly restart an already running viewer before expecting it to read the new contract. Grouping requires no migration or backfill. The standalone renderer embeds validated delivery metadata; link rendering uses the shared renderer's independent URL validation.
 
 **Each flow** has:
 

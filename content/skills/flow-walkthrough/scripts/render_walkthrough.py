@@ -14,6 +14,7 @@ copy: retain the source evidence unit. No viewer is started or restarted.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import math
 import os
@@ -22,6 +23,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
+from urllib.parse import urlsplit
 from datetime import datetime
 from pathlib import Path
 
@@ -35,6 +38,7 @@ MAX_CAPTURES = 100
 
 FLOW_ID = re.compile(r"^[a-z0-9-]{1,64}$")
 SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
+DELIVERY_AUTHORITY = re.compile(r"^[Hh][Tt][Tt][Pp][Ss]://([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\])(:[0-9]+)?([/?#]|$)")
 LANG = re.compile(r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$")
 CAPTURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 RECORDING_EXTENSIONS = {".mp4"}
@@ -203,12 +207,57 @@ def validate_flow(folder: Path, flow: object, index: int, seen: set[str]) -> Non
         validate_recording(folder, flow["recording"], f"{field}.recording")
 
 
+def safe_delivery_url(raw: str) -> bool:
+    # Apply the same ASCII authority contract as Go, without IDNA conversion.
+    if not DELIVERY_AUTHORITY.match(raw):
+        return False
+    # Check before urlsplit, which otherwise removes tabs and newlines.
+    if any(ch == "\\" or ch.isspace() or unicodedata.category(ch) == "Cc" for ch in raw):
+        return False
+    if re.search(r"%(?![0-9a-fA-F]{2})", raw):
+        return False
+    try:
+        parsed = urlsplit(raw)
+        host = parsed.hostname
+        if parsed.scheme.lower() != "https" or not parsed.netloc or not host or parsed.username is not None:
+            return False
+        if "%" in parsed.netloc or "@" in parsed.netloc:
+            return False
+        if "[" in parsed.netloc or "]" in parsed.netloc:
+            if not parsed.netloc.startswith("["):
+                return False
+            ipaddress.IPv6Address(host)
+        elif ":" in host:
+            return False
+        # Access validates the numeric port and its 0..65535 range.
+        port = parsed.port
+        if port is None and parsed.netloc.endswith(":"):
+            return False
+        return True
+    except ValueError:
+        return False
+
+
+def validate_delivery(value: object) -> None:
+    if not isinstance(value, list):
+        raise fail("delivery", "must be an array")
+    for index, item in enumerate(value):
+        field = f"delivery[{index}]"
+        entry = expect_object(item, field, {"kind", "label", "url"}, set())
+        if not is_one_of(entry["kind"], {"pull_request", "commit"}):
+            raise fail(f"{field}.kind", "must be pull_request or commit")
+        expect_string(entry["label"], f"{field}.label")
+        raw = expect_string(entry["url"], f"{field}.url")
+        if not safe_delivery_url(raw):
+            raise fail(f"{field}.url", "must be an absolute HTTPS URL with a host and valid port, without credentials, controls, whitespace or backslashes")
+
+
 def validate(folder: Path, manifest: object) -> None:
     root = expect_object(
         manifest,
         "",
         {"schema_version", "lang", "kind", "title", "session", "candidate", "created_at", "flows"},
-        {"ticket", "result", "checks", "action_required", "environment", "provenance"},
+        {"ticket", "result", "checks", "action_required", "environment", "provenance", "delivery"},
     )
     version = root["schema_version"]
     if isinstance(version, bool) or version != 1:
@@ -260,6 +309,8 @@ def validate(folder: Path, manifest: object) -> None:
             entry = expect_object(entry, field, {"label", "value"}, set())
             expect_string(entry["label"], f"{field}.label")
             expect_string(entry["value"], f"{field}.value")
+    if "delivery" in root:
+        validate_delivery(root["delivery"])
     flows = root["flows"]
     if not isinstance(flows, list) or not flows:
         raise fail("flows", "must be a non-empty array")
