@@ -20,6 +20,11 @@ agents with curated skills, memory, and development workflows.
 [Superpowers](https://github.com/obra/superpowers) brings a library of agent skills
 and a software development methodology.
 
+## Skills For Real Engineers
+
+[Skills For Real Engineers](https://github.com/mattpocock/skills) offers agent
+skills for engineering work organized around an issue tracker.
+
 ## Site foundations
 
 The documentation site uses [Starlight](https://starlight.astro.build/) and the
