@@ -2,11 +2,11 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · alcance ampliado (D16-A) · delta fusionado en el spec en el PR #116 · esperando la validación del usuario |
+| Estado | Completado · integrado en [PR #116](https://github.com/JhonHawk/tricell-hive/pull/116) el 2026-10-23, validado por el usuario (D15-A, D18-A) |
 | Tracker · GitHub Issues | Sin incidencia: hallazgo H2 del cierre de #108, resuelto en el momento por decisión del usuario (D13) |
 | Git | Interactivo (D3-A de esta sesión) · PR → `/code-review` (D4-A) → merge a `development` |
 | Verificación | `rg` sobre el spec · suite local |
-| Siguiente paso | Validación del usuario; después `/code-review` ya hecho, merge |
+| Siguiente paso | Ninguno; la comprobación del cierre sigue en #117 |
 
 ## Solicitud
 
