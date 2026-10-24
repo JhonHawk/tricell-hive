@@ -59,7 +59,8 @@ its UTF-8 bytes and Unicode characters once per scenario. It compares editorial
 baseline A (`d5164f71`) to working-tree B; C uses the same canonical files with
 the optional loader active. This is a declared source union, not an observed
 request, cumulative session cost or proof that references were read. Missing
-required files fail measurement; there is no new size quota.
+required files fail measurement. The size quota of a `SKILL.md` is set by
+harness-audit HA-SK-02 and checked by `tests/content/skill_size_test.go`.
 
 The predicates and full file lists are in `TestGuidanceReadingFootprint`:
 

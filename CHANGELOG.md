@@ -60,6 +60,13 @@ raise the minor or the patch version.
 - Build's test-first cycle takes one behavior at a time, writing the next
   test only after the previous one passes, and replaces with a test double
   only what crosses the system boundary, never the project's own modules.
+- After a compaction, the active skill's `SKILL.md` is reread in full, since
+  a host may re-attach only its start; Claude Code keeps the first 5,000
+  tokens of each invoked skill. Each `SKILL.md` stays at or under 16,000
+  bytes, checked by a content test and by harness-audit's HA-SK-02:
+  flow-build moves its retained-plan procedure, test-first criterion, tool
+  and dependency rules and other situational rules to references, and
+  flow-plan moves its interface and plan-revision rules.
 
 ## [0.5.0] - 2026-10-23
 
