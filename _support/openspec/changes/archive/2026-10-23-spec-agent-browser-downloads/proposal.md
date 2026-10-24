@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | En validación · delta aplicado al spec vigente en la rama `docs/spec-agent-browser-downloads` · esperando la validación del usuario antes del push |
+| Estado | Validado por el usuario (D15-A) · en PR con `/code-review` |
 | Tracker · GitHub Issues | Sin incidencia: hallazgo H2 del cierre de #108, resuelto en el momento por decisión del usuario (D13) |
 | Git | Interactivo (D3-A de esta sesión) · PR → `/code-review` (D4-A) → merge a `development` |
 | Verificación | `rg` sobre el spec · suite local |
