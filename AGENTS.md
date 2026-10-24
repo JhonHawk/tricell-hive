@@ -70,6 +70,8 @@ The binary and the deployed content update separately:
 - **Both:** rebuild first, since an older binary can reject newer content.
 - **Offline-package installations:** `hive update` needs a Git checkout, so those users update by running the new package's `./install.sh`.
 
+**Maintainer viewer restart:** when the maintainer marker exists and the integrated changes affect the viewer runtime or its embedded assets, refreshing the local installation also authorizes restarting an already running local viewer after rebuilding the binary. Before stopping it, record its port, state directory and TTL; restart with those same settings, preserve its registry and stored copies, and verify health, ingestion and the changed runtime or assets. Report the active revision and resulting service state. If the viewer was stopped, leave it stopped. Outside this case, restarting an existing viewer still requires an explicit user request.
+
 `_support/docs/architecture/deployment-manager.md` holds the commands and their limits.
 
 Refreshing a local installation is not a release. Cut a release only when the user asks; propose one in the closing report when the criterion in [CONTRIBUTING.md](CONTRIBUTING.md#releases-and-version-numbers) is met.

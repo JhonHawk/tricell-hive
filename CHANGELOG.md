@@ -34,6 +34,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- In a maintainer checkout, refreshing viewer runtime or embedded-asset changes
+  now includes restarting an already running local viewer with its existing
+  port, state directory and TTL, followed by health and runtime verification.
+  A stopped viewer stays stopped.
+
 - The message before a question card must be visible text in the response,
   not only in the agent's reasoning; a brief output style shortens it but does
   not remove it (#70).
