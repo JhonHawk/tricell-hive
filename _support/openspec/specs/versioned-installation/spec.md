@@ -77,7 +77,7 @@ The installer SHALL persist optional steps in a parent onboarding journal before
 - **THEN** recovery keeps the committed core and does not run any optional step.
 
 ### Requirement: Verified release package installation
-A complete package published as a GitHub Release asset SHALL be installable after the user verifies it against its published `.sha256` file and runs the package's `install.sh`. The installer SHALL validate and safely extract the package. The core installation SHALL work without Go, Git, GitHub CLI, or network downloads; only the Pi host's pi-subagents step may download, from npm. Every package SHALL include `LICENSE` and `THIRD_PARTY_NOTICES.md`.
+A complete package published as a GitHub Release asset SHALL be installable after the user verifies it against its published `.sha256` file and runs the package's `install.sh`. The installer SHALL validate and safely extract the package. The core installation SHALL work without Go, Git, GitHub CLI, or network downloads. Only these optional steps may download: the Pi host's pi-subagents step, from npm, and, after the operator consents to the agent-browser capability in an interactive install, its fixed recipe, which installs agent-browser with Homebrew or npm and runs `agent-browser install` to download Chrome for Testing only when no browser is found. Every package SHALL include `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
 #### Scenario: Invalid archive
 - **WHEN** the package checksum, archive paths, entry types, or limits fail validation
@@ -90,6 +90,10 @@ A complete package published as a GitHub Release asset SHALL be installable afte
 #### Scenario: Pi host selected without pi-subagents
 - **WHEN** a user-scope package installation includes the Pi host and Pi's settings do not declare pi-subagents
 - **THEN** the plan runs `pi install npm:pi-subagents`, which downloads from npm; no other host step downloads.
+
+#### Scenario: agent-browser capability consented
+- **WHEN** the operator consents to the agent-browser capability in an interactive package installation
+- **THEN** the plan runs only that capability's fixed recipe commands, which download from Homebrew or npm and, when no browser is found, Chrome for Testing; without that consent no capability step downloads.
 
 ### Requirement: Update from a committed revision
 From a Git checkout of Hive, the manager SHALL build an install plan from the content of one resolved commit, excluding uncommitted changes, for every consumer already installed in user scope. It SHALL apply a plan that changes files only after interactive confirmation, and without a terminal SHALL only preview or save that plan for a separate `apply`. A plan that changes no file MAY be applied without confirmation, since its only write is the source-commit record; when a plan file is requested, the plan SHALL still be saved. It SHALL remove its temporary extraction on every return path. The offline package SHALL NOT require Git.
