@@ -34,6 +34,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The message before a question card must be visible text in the response,
+  not only in the agent's reasoning; a brief output style shortens it but does
+  not remove it (#70).
 - Repository guidance: the two-session bar for new guidance rules applies only
   to corrections of a rule that already covers the situation. New features or
   requirements, including ideas from external references, and gaps no rule
