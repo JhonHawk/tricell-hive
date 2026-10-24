@@ -37,6 +37,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import {
   Sidebar,
   SidebarContent,
@@ -61,8 +62,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { optionalStorage, save, stored } from "./api";
+import { messages as t } from "./messages";
 export type ViewerSession = {
   id: string;
+  segments?: { id: string; title: string; ticket: string }[];
   project: string;
   projectKey?: string;
   ticket: string;
@@ -80,6 +83,7 @@ export type ViewerShellProps = {
   state: "ready" | "loading" | "empty" | "error";
   notice?: string;
   onSelect?: (id: string) => void;
+  onJump?: (id: string) => void;
   onRetry: () => void;
   onPin?: () => void;
   onDelete?: () => void;
@@ -202,7 +206,7 @@ function readNavigationPreferences(): NavigationPreferences {
     return { sidebarOpen: true, projects: {} };
   }
 }
-function ActionButton({
+export function ActionButton({
   label,
   children,
   ...props
@@ -278,6 +282,12 @@ function SessionNavigationButton({
         </div>
         <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
           <span className="truncate">{session.ticket}</span>
+          {session.segments && (
+            <span className="shrink-0">
+              · {session.segments.length}{" "}
+              {session.segments.length === 1 ? t.segment : t.segments}
+            </span>
+          )}
           <span aria-hidden="true">·</span>
           <span className="shrink-0 tabular-nums">{session.createdAt}</span>
           <span className="sr-only">
@@ -293,6 +303,7 @@ function Navigation({
   selectedId,
   state,
   onSelect,
+  onJump,
   onRetry,
   showArchived,
   onShowArchivedChange,
@@ -304,6 +315,7 @@ function Navigation({
   | "selectedId"
   | "state"
   | "onSelect"
+  | "onJump"
   | "onRetry"
   | "showArchived"
   | "onShowArchivedChange"
@@ -311,10 +323,22 @@ function Navigation({
   preferences: NavigationPreferences;
   onProjectOpenChange: (key: string, open: boolean) => void;
 }) {
+  const { setOpenMobile } = useSidebar();
   const navigationRef = useRef<HTMLDivElement>(null);
   const focusKey = useRef<string | undefined>(undefined);
+  const [query, setQuery] = useState("");
+  const matches = (session: ViewerSession) =>
+    !query.trim() ||
+    (session.segments ?? [session]).some((segment) =>
+      `${segment.title} ${segment.ticket}`
+        .toLocaleLowerCase()
+        .includes(query.trim().toLocaleLowerCase()),
+    );
   const normal = sessions.filter(
-    (session) => !session.excluded && session.classification !== "tracked",
+    (session) =>
+      !session.excluded &&
+      session.classification !== "tracked" &&
+      matches(session),
   );
   const excluded = sessions.filter(
     (session) => session.excluded || session.classification === "tracked",
@@ -368,6 +392,28 @@ function Navigation({
             </ActionButton>
           </div>
           <SidebarGroupContent>
+            <div className="flex flex-col gap-2 p-2">
+              <Input
+                type="search"
+                aria-label={t.search}
+                placeholder={t.search}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              {query && !normal.length && (
+                <div role="status" className="flex flex-col items-start gap-2">
+                  <p className="text-sm text-muted-foreground">{t.noMatches}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setQuery("")}
+                  >
+                    {t.clearSearch}
+                  </Button>
+                </div>
+              )}
+            </div>
             {state === "loading" ? (
               <div
                 role="status"
@@ -412,7 +458,7 @@ function Navigation({
                     <Collapsible
                       key={projectKey}
                       open={
-                        preferences.projects[projectKey] ??
+                        (query ? true : preferences.projects[projectKey]) ??
                         projectSessions.some(
                           (session) => session.status === "in_progress",
                         )
@@ -449,6 +495,32 @@ function Navigation({
                                 selectedId={selectedId}
                                 onSelect={onSelect}
                               />
+                              {query &&
+                                session.segments
+                                  ?.filter((segment) =>
+                                    `${segment.title} ${segment.ticket}`
+                                      .toLocaleLowerCase()
+                                      .includes(
+                                        query.trim().toLocaleLowerCase(),
+                                      ),
+                                  )
+                                  .map((segment) => (
+                                    <Button
+                                      key={segment.id}
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="max-w-full justify-start"
+                                      onClick={() => {
+                                        onJump?.(segment.id);
+                                        setOpenMobile(false);
+                                      }}
+                                    >
+                                      <span className="truncate">
+                                        {segment.ticket} · {segment.title}
+                                      </span>
+                                    </Button>
+                                  ))}
                             </SidebarMenuItem>
                           ))}
                         </SidebarMenu>
@@ -495,6 +567,7 @@ export function ViewerShell({
   state,
   notice,
   onSelect,
+  onJump,
   onRetry,
   onPin,
   onDelete,
@@ -549,6 +622,7 @@ export function ViewerShell({
             selectedId={selectedId}
             state={state}
             onSelect={onSelect}
+            onJump={onJump}
             onRetry={onRetry}
             showArchived={showArchived}
             onShowArchivedChange={onShowArchivedChange}
@@ -607,7 +681,7 @@ export function ViewerShell({
                     </h1>
                   </div>
                 </div>
-                {selected && (
+                {selected && (onPin || onArchive || onDelete) && (
                   <ButtonGroup aria-label={copy.actions}>
                     <Tooltip>
                       <TooltipTrigger

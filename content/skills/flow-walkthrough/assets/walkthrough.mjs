@@ -6,7 +6,7 @@ const STATUS_ORDER = ["pass", "fail", "warn", "info", "not_run"];
 
 const LABELS = {
   es: {
-    kicker: "Recorrido de UI",
+    kicker: "Recorrido de UI", delivery: "Entregas", noDelivery: "Sin entrega registrada",
     summary: "Resumen",
     index: "Índice",
     checks: "Comprobaciones",
@@ -32,7 +32,7 @@ const LABELS = {
     videoFallback: "Tu navegador no puede reproducir esta grabación; abre el archivo directamente.",
   },
   en: {
-    kicker: "UI walkthrough",
+    kicker: "UI walkthrough", delivery: "Deliveries", noDelivery: "No delivery recorded",
     summary: "Summary",
     index: "Index",
     checks: "Checks",
@@ -70,6 +70,31 @@ function el(tag, attrs, ...children) {
     node.append(typeof child === "string" ? document.createTextNode(child) : child);
   }
   return node;
+}
+
+export function validDeliveries(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => {
+    if (!item || !["pull_request", "commit"].includes(item.kind) || typeof item.label !== "string" || !item.label.trim() || Object.keys(item).some((key) => !["kind", "label", "url"].includes(key))) return false;
+    const url = item.url;
+    if (typeof url !== "string" || /[\p{Cc}\p{White_Space}\\]/u.test(url) || /%(?![0-9a-f]{2})/i.test(url)) return false;
+    const authority = /^https:\/\/([^/?#]+)/i.exec(url)?.[1];
+    if (!authority) return false;
+    // Validate the original authority before URL can normalize an IDN host.
+    const parts = /^(\[[0-9a-f:.]+\]|[a-z0-9_.-]+)(?::([0-9]+))?$/i.exec(authority);
+    if (!parts || (parts[2] !== undefined && Number(parts[2]) > 65535)) return false;
+    if (parts[1].startsWith("[")) {
+      try { new URL(url); } catch { return false; }
+    }
+    return true;
+  });
+}
+
+function renderDelivery(ctx) {
+  const links = validDeliveries(ctx.manifest.delivery);
+  return ctx.el("section", { "data-delivery": true, "aria-label": ctx.t.delivery },
+    ctx.el("h2", {}, ctx.t.delivery),
+    links.length ? ctx.el("ul", {}, ...links.map((item) => ctx.el("li", {}, ctx.el("a", { href: item.url, target: "_blank", rel: "noopener noreferrer" }, item.label)))) : ctx.el("p", {}, ctx.t.noDelivery));
 }
 
 function fileUrl(base, path) {
@@ -123,7 +148,7 @@ function renderHeader(ctx) {
   const sessionId = manifest.session.id;
   addMeta(t.session, sessionId.length > 18 ? `${sessionId.slice(0, 10)}…${sessionId.slice(-6)}` : sessionId, sessionId);
   addMeta(t.host, manifest.session.host);
-  return ctx.el("header", {}, ctx.el("p", { class: "wt-kicker" }, t.kicker), ctx.el("h1", {}, manifest.title), meta);
+  return ctx.embedded ? ctx.el("header", {}, meta) : ctx.el("header", {}, ctx.el("p", { class: "wt-kicker" }, t.kicker), ctx.el("h1", {}, manifest.title), meta);
 }
 
 function renderSummary(ctx) {
@@ -152,7 +177,7 @@ function renderIndex(ctx) {
     const link = ctx.el("a", { href: `#${entry.id}` }, entry.label);
     link.addEventListener("click", (event) => {
       event.preventDefault();
-      const target = root.querySelector(`#${entry.id}`);
+      const target = [...root.querySelectorAll("[id]")].find((node) => node.id === entry.id);
       if (!target) return;
       target.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
       const heading = target.querySelector("h3");
@@ -191,25 +216,21 @@ function renderChecks(ctx) {
 }
 
 // Printing always shows the table: collapsed sections are opened for the print and restored after it.
-let printHooked = false;
-function hookPrint() {
-  if (printHooked || typeof window === "undefined") return;
-  printHooked = true;
+function hookPrint(root) {
+  if (typeof window === "undefined") return () => {};
   const opened = new Set();
   const expand = () => {
-    for (const node of document.querySelectorAll("details.wt-checks")) {
+    for (const node of root.querySelectorAll("details.wt-checks")) {
       if (!node.open) { node.open = true; opened.add(node); }
     }
   };
-  const restore = () => {
-    for (const node of opened) node.open = false;
-    opened.clear();
-  };
+  const restore = () => { for (const node of opened) node.open = false; opened.clear(); };
+  const media = typeof matchMedia === "function" ? matchMedia("print") : null;
+  const change = (event) => event.matches ? expand() : restore();
   window.addEventListener("beforeprint", expand);
   window.addEventListener("afterprint", restore);
-  if (typeof matchMedia === "function") {
-    matchMedia("print").addEventListener("change", (event) => (event.matches ? expand() : restore()));
-  }
+  media?.addEventListener("change", change);
+  return () => { restore(); window.removeEventListener("beforeprint", expand); window.removeEventListener("afterprint", restore); media?.removeEventListener("change", change); };
 }
 
 function renderFlows(ctx) {
@@ -226,7 +247,7 @@ function renderFlows(ctx) {
     if (flow.captures.length) {
       const tabbed = flow.captures.some((c) => c.viewport === "mobile") && flow.captures.some((c) => c.viewport !== "mobile");
       // With a view switch the tabs carry the counts; otherwise the label does.
-      section.append(ctx.el("p", { class: "wt-label" }, tabbed ? t.captures : `${t.captures} · ${flow.captures.length}`), buildGallery(flow, i, carousel, t, fileBase));
+      section.append(ctx.el("p", { class: "wt-label" }, tabbed ? t.captures : `${t.captures} · ${flow.captures.length}`), buildGallery(flow, i, carousel, t, fileBase, ctx.idPrefix));
     }
     const recording = flow.recording;
     if (!firstView && recording && recording.status !== "none") {
@@ -272,6 +293,7 @@ const hasItems = (list) => Boolean(list && list.length);
 
 const BLOCKS = [
   { id: "header", applies: () => true, render: renderHeader },
+  { id: "delivery", applies: () => true, render: renderDelivery },
   { id: "summary", applies: () => true, render: renderSummary },
   { id: "index", applies: (ctx) => ctx.indexEntries.length > 0, render: renderIndex },
   { id: "checks", applies: (ctx) => ctx.checks.length > 0 && !ctx.firstView, render: renderChecks },
@@ -286,25 +308,34 @@ const BLOCKS = [
   { id: "provenance", applies: (ctx) => hasItems(ctx.manifest.provenance), render: renderProvenance },
 ];
 
-export function renderWalkthrough(root, manifest, { fileBase = "" } = {}) {
+const mounted = new WeakMap();
+export function renderWalkthrough(root, manifest, { fileBase = "", idPrefix = "", embedded = false } = {}) {
+  mounted.get(root)?.();
   const flows = manifest.flows;
   const ctx = {
-    root, manifest, fileBase, flows, el,
+    root, manifest, fileBase, flows, idPrefix, embedded,
+    el: (tag, attrs, ...children) => {
+      const scoped = { ...attrs };
+      for (const key of ["id", "aria-labelledby", "aria-controls"]) if (scoped[key]) scoped[key] = idPrefix + scoped[key];
+      return el(tag, scoped, ...children);
+    },
     t: LABELS[manifest.lang] || LABELS.en,
     firstView: manifest.kind === "first_view",
     checks: manifest.checks || [],
     captureTotal: flows.reduce((sum, flow) => sum + flow.captures.length, 0),
     indexEntries: [],
   };
-  ctx.indexEntries = BLOCKS.filter((block) => block.index && block.applies(ctx)).flatMap((block) => block.index(ctx));
+  ctx.indexEntries = BLOCKS.filter((block) => block.index && block.applies(ctx)).flatMap((block) => block.index(ctx)).map((entry) => ({ ...entry, id: idPrefix + entry.id }));
 
-  hookPrint();
   root.replaceChildren();
   for (const block of BLOCKS) {
     if (!block.applies(ctx)) continue;
     const out = block.render(ctx);
     root.append(...(Array.isArray(out) ? out : [out]));
   }
+  const dispose = hookPrint(root);
+  mounted.set(root, dispose);
+  return () => { dispose(); if (mounted.get(root) === dispose) mounted.delete(root); };
 }
 
 
@@ -312,7 +343,7 @@ const VIEWS = ["desktop", "mobile"];
 
 // Capture strip of one flow. A flow with desktop and mobile captures gets a tablist above
 // the strip instead of two flows; the carousel only walks the active view.
-function buildGallery(flow, flowIndex, carousel, t, fileBase) {
+function buildGallery(flow, flowIndex, carousel, t, fileBase, idPrefix = "") {
   const groups = { desktop: [], mobile: [] };
   for (const capture of flow.captures) groups[capture.viewport === "mobile" ? "mobile" : "desktop"].push(capture);
   const views = VIEWS.filter((view) => groups[view].length);
@@ -341,7 +372,7 @@ function buildGallery(flow, flowIndex, carousel, t, fileBase) {
     panels[view] = el("div", {
       class: "wt-strip", role: "region", tabindex: "0",
       "aria-label": `${t.strip}: ${captures.length}`,
-      id: `wt-panel-${flowIndex}-${view}`,
+      id: `${idPrefix}wt-panel-${flowIndex}-${view}`,
     }, list);
   }
 
@@ -358,8 +389,8 @@ function buildGallery(flow, flowIndex, carousel, t, fileBase) {
     };
     for (const view of views) {
       const tab = el("button", {
-        type: "button", role: "tab", class: "wt-tab", id: `wt-tab-${flowIndex}-${view}`,
-        "aria-controls": `wt-panel-${flowIndex}-${view}`,
+        type: "button", role: "tab", class: "wt-tab", id: `${idPrefix}wt-tab-${flowIndex}-${view}`,
+        "aria-controls": `${idPrefix}wt-panel-${flowIndex}-${view}`,
       }, `${t[view]} · ${groups[view].length}`);
       tab.addEventListener("click", () => select(view, false));
       tab.addEventListener("keydown", (event) => {
@@ -374,7 +405,7 @@ function buildGallery(flow, flowIndex, carousel, t, fileBase) {
       tabs[view] = tab;
       tablist.append(tab);
     }
-    for (const view of views) panels[view].setAttribute("aria-labelledby", `wt-tab-${flowIndex}-${view}`);
+    for (const view of views) panels[view].setAttribute("aria-labelledby", `${idPrefix}wt-tab-${flowIndex}-${view}`);
     gallery.append(tablist);
     select(views[0], false);
   }

@@ -498,3 +498,37 @@ func TestManifestParityWithPythonStrictCases(t *testing.T) {
 		}
 	})
 }
+
+// Both readers execute the same data to detect URL-parser differences.
+func TestManifestDeliveryContract(t *testing.T) {
+	var cases []struct {
+		Name     string
+		Omit     bool
+		Delivery any
+		Field    string
+	}
+	if err := json.Unmarshal(readFile(t, filepath.Join(fixturesRoot, "delivery-contract.json")), &cases); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			folder := copyFixture(t, "valid/first-view")
+			doc := readManifestMap(t, folder)
+			if !tc.Omit {
+				doc["delivery"] = tc.Delivery
+			}
+			writeManifestMap(t, folder, doc)
+			_, err := ValidateManifest(folder)
+			if tc.Field == "" {
+				if err != nil {
+					t.Fatalf("valid delivery rejected: %v", err)
+				}
+				return
+			}
+			var me *ManifestError
+			if !errors.As(err, &me) || me.Field != tc.Field {
+				t.Fatalf("error = %v, want field %s", err, tc.Field)
+			}
+		})
+	}
+}

@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -30,10 +33,11 @@ const (
 )
 
 var (
-	flowIDPattern  = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
-	segmentPattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
-	langPattern    = regexp.MustCompile(`^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$`)
-	drivePattern   = regexp.MustCompile(`^[A-Za-z]:`)
+	flowIDPattern            = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
+	segmentPattern           = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+	langPattern              = regexp.MustCompile(`^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$`)
+	drivePattern             = regexp.MustCompile(`^[A-Za-z]:`)
+	deliveryAuthorityPattern = regexp.MustCompile(`^[Hh][Tt][Tt][Pp][Ss]://([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\])(:[0-9]+)?([/?#]|$)`)
 
 	captureExtensions   = []string{".jpeg", ".jpg", ".png", ".webp"}
 	recordingExtensions = []string{".mp4"}
@@ -292,7 +296,7 @@ func isISODateTime(s string) bool {
 func (v *validator) manifest(doc any) (*Manifest, error) {
 	obj, err := object(doc, "",
 		[]string{"schema_version", "lang", "kind", "title", "session", "candidate", "created_at", "flows"},
-		[]string{"ticket", "result", "checks", "action_required", "environment", "provenance"})
+		[]string{"ticket", "result", "checks", "action_required", "environment", "provenance", "delivery"})
 	if err != nil {
 		return nil, err
 	}
@@ -390,6 +394,12 @@ func (v *validator) manifest(doc any) (*Manifest, error) {
 			}
 		}
 	}
+	if val, ok := obj["delivery"]; ok {
+		if e := validateDelivery(val); e != nil {
+			return nil, e
+		}
+	}
+
 	flows, ok := obj["flows"].([]any)
 	if !ok || len(flows) == 0 {
 		return nil, fail("flows", "must be a non-empty array")
@@ -404,6 +414,82 @@ func (v *validator) manifest(doc any) (*Manifest, error) {
 		}
 	}
 	return m, nil
+}
+
+// safeDeliveryURL uses the same lexical checks as the Python producer before
+// parsing, so neither parser can normalize away a forbidden input character.
+func safeDeliveryURL(raw string) bool {
+	// Apply the ASCII authority contract before either parser can normalize it.
+	if !deliveryAuthorityPattern.MatchString(raw) {
+		return false
+	}
+	for _, r := range raw {
+		if r == '\\' || unicode.IsControl(r) || unicode.IsSpace(r) {
+			return false
+		}
+	}
+	for i := 0; i < len(raw); i++ {
+		if raw[i] == '%' {
+			if i+2 >= len(raw) || !isHex(raw[i+1]) || !isHex(raw[i+2]) {
+				return false
+			}
+			i += 2
+		}
+	}
+	u, err := url.Parse(raw)
+	if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Host == "" || u.User != nil || u.Opaque != "" {
+		return false
+	}
+	host := u.Hostname()
+	if host == "" || strings.ContainsAny(u.Host, "%@") {
+		return false
+	}
+	if strings.ContainsAny(u.Host, "[]") {
+		if !strings.HasPrefix(u.Host, "[") || !strings.Contains(host, ":") || net.ParseIP(host) == nil {
+			return false
+		}
+	} else if strings.Contains(host, ":") {
+		return false
+	}
+	if port := u.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 0 || n > 65535 {
+			return false
+		}
+	} else if strings.HasSuffix(u.Host, ":") {
+		return false
+	}
+	return true
+}
+
+func isHex(b byte) bool { return b >= '0' && b <= '9' || b >= 'a' && b <= 'f' || b >= 'A' && b <= 'F' }
+
+func validateDelivery(value any) *ManifestError {
+	list, ok := value.([]any)
+	if !ok {
+		return fail("delivery", "must be an array")
+	}
+	for i, item := range list {
+		field := fmt.Sprintf("delivery[%d]", i)
+		entry, err := object(item, field, []string{"kind", "label", "url"}, nil)
+		if err != nil {
+			return err
+		}
+		if !isOneOf(entry["kind"], []string{"pull_request", "commit"}) {
+			return fail(field+".kind", "must be pull_request or commit")
+		}
+		if _, err := text(entry["label"], field+".label"); err != nil {
+			return err
+		}
+		raw, err := text(entry["url"], field+".url")
+		if err != nil {
+			return err
+		}
+		if !safeDeliveryURL(raw) {
+			return fail(field+".url", "must be an absolute HTTPS URL with a host and valid port, without credentials, controls, whitespace or backslashes")
+		}
+	}
+	return nil
 }
 
 func (v *validator) checks(obj map[string]any) *ManifestError {

@@ -350,9 +350,10 @@ Close this work item and clean up only the temporary resources it created.
 
 When an agent validates a user interface with you, it writes the walkthrough as
 `walkthrough.json` in the `_support/workspace/` of the repository, or of the
-multi-repository workspace folder that holds it, and renders a page
-beside it. To keep those walkthroughs after the session and browse them by
-project and session, with ticket details on each session, run the local viewer yourself:
+multi-repository workspace folder that holds it. With the Hive binary installed,
+the viewer renders that JSON; a standalone HTML page is generated only without
+the binary. An already generated page is preserved when the mode changes. To keep those walkthroughs after the session and browse them by
+project and session, with ticket details on each segment, run the local viewer yourself:
 
 ```sh
 hive view register --dir <folder>   # once per repository or workspace; agents run it too
@@ -368,13 +369,18 @@ Frontend development and bundle checks are described in
 
 The viewer copies eligible walkthroughs into Hive's state directory, deletes copies
 older than 14 days unless you pin them (`--ttl` changes that), and lets you
-delete one from its toolbar; it never changes files in your repositories.
+delete one from its segment toolbar; it never changes files in your repositories.
 Archive hides a stored copy from the default list, and Restore brings it back.
 The icon beside Projects shows or hides archived copies. Archiving is independent
 of pinning, the 14-day retention period and work status; pin a copy to keep it
 beyond that period. Projects show session counts and open initially only when
 they contain work in progress. Your project expansion, sidebar visibility,
-archive filter and selection survive refresh in the same browser tab.
+archive filter and selection survive refresh in the same browser tab. Walkthroughs
+with the same project, host and declared session ID share one sidebar entry, even
+across tickets. Their segments appear chronologically with internal separators,
+individual controls and ticket search links. The session header collects explicit
+PR/commit delivery links, and each segment retains its own links; missing metadata
+is shown as unregistered delivery rather than inferred from the candidate commit.
 Manifests confirmed as tracked in Git are not imported. Previously imported copies
 whose source is now tracked appear separately with an explanation, without rendering
 the walkthrough; their pins and normal retention still apply. If the source cannot
@@ -386,7 +392,7 @@ no walkthroughs until access succeeds. If opening fails, run the command again. 
 `--dir` points inside it, even if that folder is not a Git repository (a
 multi-repository workspace), and the Git root otherwise. Agents never start it.
 
-The toolbar's informational status indicator shows explicit work status:
+Each segment's informational status indicator shows explicit work status:
 In progress, Closed, or Not reported
 (`unknown`) for historical manifests without it. This is independent of source
 classification. Closed means the work passed through `flow-close`, including a
@@ -394,10 +400,10 @@ pause or abandonment; it does not mean UI approval or that the host conversation
 ended. The [walkthrough close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough)
 confirms the current closed copy before eligible source cleanup.
 
-When updating from a viewer that predates session status, update the binary and
+When updating from a viewer that predates session status or delivery links, update the binary and
 installed content together and coordinate stopping and starting the existing
 viewer before using the new producers. Rebuilding the binary does not update a
-running process. An older viewer rejects the new manifest field; an unconfirmed
+running process. Older strict viewers reject the new manifest fields; an unconfirmed
 closure preserves its source evidence.
 
 ## For AI agents

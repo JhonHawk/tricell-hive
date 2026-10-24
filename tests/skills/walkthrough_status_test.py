@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,11 @@ class WalkthroughStatusTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
+        self.empty_path = self.root / "empty-path"
+        self.empty_path.mkdir()
+        unavailable = mock.patch.object(shutil, "which", return_value=None)
+        unavailable.start()
+        self.addCleanup(unavailable.stop)
         self.folder = self.root / "current work"
         self.folder.mkdir()
         self.manifest = {
@@ -35,7 +41,9 @@ class WalkthroughStatusTest(unittest.TestCase):
 
     def run_renderer(self, *flags, env=None):
         return subprocess.run([sys.executable, str(SCRIPT), str(self.folder), *flags],
-                              capture_output=True, text=True, env=env, timeout=20)
+                              capture_output=True, text=True,
+                              env=env if env is not None else {**os.environ, "PATH": str(self.empty_path)},
+                              timeout=20)
 
     def fake_cli(self, body):
         binary = self.root / "bin"
@@ -44,6 +52,83 @@ class WalkthroughStatusTest(unittest.TestCase):
         cli.write_text(f"#!{sys.executable}\nimport json, sys\nfrom pathlib import Path\n" + body)
         cli.chmod(0o700)
         return {**os.environ, "PATH": str(binary)}
+
+    def test_binary_present_uses_json_even_when_daemon_is_stopped(self):
+        marker = self.root / "cli-called"
+        environment = self.fake_cli(f"Path({str(marker)!r}).write_text('called')\nsys.exit(1)\n")
+        for previous_page in (None, b"historical HTML\x00\xff"):
+            with self.subTest(previous_page=previous_page):
+                page = self.folder / "walkthrough.html"
+                if previous_page is not None:
+                    page.write_bytes(previous_page)
+                before = self.manifest_path.read_bytes()
+                result = self.run_renderer(env=environment)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.manifest_path.read_bytes(), before)
+                self.assertEqual(result.stdout.strip(), str(self.manifest_path))
+                self.assertFalse(marker.exists(), "publication must not query daemon availability")
+                if previous_page is None:
+                    self.assertFalse(page.exists())
+                else:
+                    self.assertEqual(page.read_bytes(), previous_page)
+
+    def test_binary_present_never_builds_page_and_preserves_metadata(self):
+        delivery = [{"kind": "commit", "label": "abc1234", "url": "https://example.com/commit/abc1234"}]
+        original = {**self.manifest, "delivery": delivery}
+        self.manifest_path.write_text(json.dumps(original))
+        old_page = self.folder / "walkthrough.html"
+        old_page.write_bytes(b"prior evidence")
+        with mock.patch.object(shutil, "which", return_value="/fake/hive") as which, mock.patch.object(renderer, "build_page", side_effect=AssertionError("must not build")) as build, mock.patch.object(renderer, "ASSETS", self.root / "missing-assets"):
+            result = renderer.render(self.folder, "closed")
+        which.assert_called_once_with("hive")
+        build.assert_not_called()
+        self.assertEqual(result, self.manifest_path)
+        written = json.loads(self.manifest_path.read_text())
+        self.assertEqual(written["session"]["status"], "closed")
+        self.assertEqual(written["candidate"], original["candidate"])
+        self.assertEqual(written["delivery"], delivery)
+        self.assertEqual(old_page.read_bytes(), b"prior evidence")
+        self.assertFalse(list(self.folder.glob(".walkthrough-*.tmp")))
+
+    def test_binary_present_invalid_manifest_does_not_publish(self):
+        self.manifest["delivery"] = [{"kind": "commit", "label": "abc", "url": "javascript:alert(1)"}]
+        self.manifest_path.write_text(json.dumps(self.manifest))
+        before = self.manifest_path.read_bytes()
+        result = self.run_renderer("--session-status", "closed", env=self.fake_cli("sys.exit(1)\n"))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("delivery[0].url", result.stderr)
+        self.assertEqual(self.manifest_path.read_bytes(), before)
+        self.assertFalse((self.folder / "walkthrough.html").exists())
+        self.assertFalse(list(self.folder.glob(".walkthrough-*.tmp")))
+
+    def test_binary_present_concurrent_change_is_preserved(self):
+        stage = renderer.stage_atomic
+        def concurrent_update(path, content):
+            staged = stage(path, content)
+            self.manifest_path.write_text('{"concurrent":"work"}')
+            return staged
+        with mock.patch.object(shutil, "which", return_value="/fake/hive"), mock.patch.object(renderer, "stage_atomic", side_effect=concurrent_update), mock.patch.object(renderer, "build_page", side_effect=AssertionError("must not build")):
+            with self.assertRaises(renderer.ManifestError):
+                renderer.render(self.folder, "closed")
+        self.assertEqual(self.manifest_path.read_text(), '{"concurrent":"work"}')
+        self.assertFalse((self.folder / "walkthrough.html").exists())
+        self.assertFalse(list(self.folder.glob(".walkthrough-*.tmp")))
+
+    def test_binary_absent_returns_html_fallback(self):
+        before = self.manifest_path.read_bytes()
+        result = self.run_renderer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), str(self.folder / "walkthrough.html"))
+        self.assertTrue((self.folder / "walkthrough.html").is_file())
+        self.assertEqual(self.manifest_path.read_bytes(), before)
+
+    def test_absent_binary_confirmation_keeps_html_fallback_and_closed_source(self):
+        result = self.run_renderer("--session-status", "closed", "--confirm-viewer")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("retain", result.stderr)
+        self.assertEqual(json.loads(self.manifest_path.read_text())["session"]["status"], "closed")
+        self.assertTrue((self.folder / "walkthrough.html").is_file())
+        self.assertFalse(list(self.folder.glob(".walkthrough-*.tmp")))
 
     def test_optional_status_preserves_old_manifest(self):
         before = self.manifest_path.read_bytes()
@@ -72,13 +157,32 @@ class WalkthroughStatusTest(unittest.TestCase):
         self.assertEqual(other.read_bytes(), original_other)
         self.assertFalse(list(self.folder.glob(".walkthrough-*.tmp")))
 
+    def test_delivery_survives_closure_without_changing_candidate_or_other_work(self):
+        delivery = [{"kind": "pull_request", "label": "example #123", "url": "https://example.com/repository/pull/123"}]
+        current = {**self.manifest, "delivery": delivery}
+        self.manifest_path.write_text(json.dumps(current))
+        other = self.root / "other-work"
+        other.mkdir()
+        other_manifest = other / "walkthrough.json"
+        other_manifest.write_text(json.dumps({**self.manifest, "session": {"id": "other"}}))
+        previous_other = other_manifest.read_bytes()
+        for status in ("closed", "in_progress"):
+            result = self.run_renderer("--session-status", status)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            written = json.loads(self.manifest_path.read_text())
+            self.assertEqual(written["delivery"], delivery)
+            self.assertEqual(written["candidate"], self.manifest["candidate"])
+            self.assertEqual(written["session"]["status"], status)
+            self.assertIn('"delivery":', (self.folder / "walkthrough.html").read_text())
+            self.assertEqual(other_manifest.read_bytes(), previous_other)
+
     def test_confirmation_checks_current_closed_source_with_structured_arguments(self):
         environment = self.fake_cli(
             "assert sys.argv[1:4] == ['view', 'status', '--dir']\n"
             "folder = Path(sys.argv[4])\n"
             "assert folder.is_absolute()\n"
             "assert json.loads((folder / 'walkthrough.json').read_text())['session']['status'] == 'closed'\n"
-            "assert '\"status\":\"closed\"' in (folder / 'walkthrough.html').read_text()\n"
+            "assert not (folder / 'walkthrough.html').exists()\n"
             "print(json.dumps({'running': True, 'found': True, 'session_status': 'closed'}))\n")
         result = self.run_renderer("--session-status", "closed", "--confirm-viewer", env=environment)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -93,7 +197,7 @@ class WalkthroughStatusTest(unittest.TestCase):
         self.assertIn("retain", result.stderr)
         self.assertEqual(image.read_bytes(), b"evidence")
         self.assertEqual(json.loads(self.manifest_path.read_text())["session"]["status"], "closed")
-        self.assertTrue((self.folder / "walkthrough.html").is_file())
+        self.assertFalse((self.folder / "walkthrough.html").exists())
 
     def test_timeout_and_stale_copy_do_not_confirm(self):
         for payload in ({"found": False, "session_status": "unknown"},

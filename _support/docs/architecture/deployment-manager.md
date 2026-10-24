@@ -121,6 +121,8 @@ go run ./tooling/cli view open|stop [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view serve [--port N] [--ttl D] [--home DIR] [--state-dir DIR]
 ```
 
+`flow-walkthrough` publishes JSON for an installed Hive binary and creates standalone HTML only when that executable is absent; the [manifest publication contract](../../../content/skills/flow-walkthrough/references/walkthrough-manifest.md#publication-target) owns the choice. Ingestion needs only JSON and its referenced captures/recordings, not an HTML page. Server or registration failure does not select HTML.
+
 `view` is a local server for the walkthroughs that `flow-walkthrough` writes (`_support/workspace/*/walkthrough.json` and the files it references). The user starts and stops it; agents register sources through `hive view register`, query ingestion through `hive view status --dir`, and run `hive view open` only when the user chooses that option in a walkthrough question, as their skills set. `register` adds the root of `--dir`, or the current directory, to `viewer/registry.json` and writes nothing when it is already there; it needs no running server. That root is `<root>` when the directory, after resolving links, is inside `<root>/_support/workspace/` at any depth, whether or not `<root>` is a Git repository (a multi-repository workspace keeps its repositories as nested folders); otherwise it is the Git root; outside both it fails, naming both cases. A nested Git repository registered from its own folder keeps its own Git root. Projects group by the normalized `origin` remote only when the root is itself a Git toplevel (`git rev-parse --show-toplevel` equals the root); any other root, such as a non-Git workspace inside a versioned home, is keyed by its path and named from the `Project:` value of its own `AGENTS.md`. `start` launches `serve` detached (its own session, output to `viewer/server.log`), waits up to five seconds for its health check, and reports an already running server instead of starting a second one; `serve` runs in the foreground and holds an exclusive lock on `viewer/server.lock` for its whole life, so one state directory never has two servers. `status` prints JSON with the URL, PID, TTL and counts, never the access token; `open` requests a one-use code and opens `/#code=<code>` in the system's opener (`open` on macOS, `xdg-open` on Linux), never passing the server token or starting the server; `stop` signals the server only after its authenticated health check matches `viewer/server.json`.
 
 
@@ -136,7 +138,7 @@ independently of report kind or Git classification. Store load reconstructs the
 derived `session_status` from the manifest, without migrating historical
 metadata. Status changes use the existing content-replacement behavior, including
 pin and archive preservation and refreshed ingestion time. For source closure and retention,
-follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md#close-the-current-walkthrough).
+follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md#close-the-current-walkthrough). Publication can update JSON without creating HTML; confirmation checks JSON and resources in either output mode.
 
 Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-origin `Origin` and an empty body. It returns `{code}` without caching: 32 random bytes encoded as 64 hex characters, valid for 60 seconds, held only in memory. At most 64 unconsumed codes may be pending; a full set returns 429 without evicting valid codes. `POST /api/access-codes/exchange` requires the allowed Host and explicit same-origin Origin, `application/json`, and only `{code}` within 1 KiB. It returns `{token}` without caching, consuming the code atomically; expired, missing, invalid or reused codes return 403. Invalid JSON returns 400, unsupported media type 415, and wrong method 405. Codes disappear on server restart. The page removes the fragment before awaiting exchange, stores only the token in sessionStorage for reloads, and ignores responses from superseded openings, including earlier authenticated reads and writes. An explicit failed opening asks for `hive view open` again. An old running server returning 404 to issuance requires `hive view stop`, `hive view start`, then `hive view open`; the CLI never falls back to a token URL or restarts it automatically. A stolen unconsumed code can still be used by a local process; Origin is not authentication for non-browser clients.
 
@@ -163,13 +165,24 @@ pinning and ingestion time, and never edit source files. Archive state survives
 store reconstruction, restarts and replacement from a changed source. Archiving
 does not exempt an unpinned copy from normal TTL deletion.
 
-The React shell lists sessions directly under projects with counts, compact
-title/ticket/date rows and no ticket level or connector branches. Projects open
+The React shell groups normal visible copies by exact project, declared host and
+session ID, with visible-session counts, compact title/ticket/segment/date rows
+and no ticket level or connector branches. The selected session stacks its
+chronological segments with separators, ticket search jumps and per-copy controls.
+This is a derived client view: physical keys, capabilities, store metadata and API
+routes remain per copy. Filtering archived copies precedes visual grouping. Projects open
 initially only when they contain an explicitly in-progress session; manual
 expansion takes precedence. A tooltip-labeled, accessible icon beside Projects
 toggles archived copies, hidden by default. The sidebar brand header shows a
-route icon. The selected document has a separate toolbar with informational
-manifest status, archive/restore, pin/unpin and delete actions. Sidebar visibility, project expansion, archive
+route icon. Each segment has a toolbar with informational manifest status,
+archive/restore, pin/unpin and delete actions targeting only its own physical key.
+The session header aggregates explicit delivery links from its visible accessible
+segment manifests, deduplicated by URL; documents and standalone pages retain their
+own links. The optional `delivery` contract lives in the manifest reference,
+separately from `candidate`; no provider lookup or historical backfill runs.
+Both readers validate it and link rendering checks its destination again.
+An old strict reader can reject that field, so update binary before content and
+obtain explicit permission to restart an already running viewer. Sidebar visibility, project expansion, archive
 filter and selection persist in sessionStorage for the same tab and origin.
 
 Manifest and resource ingestion rejects files with more than one hard link using

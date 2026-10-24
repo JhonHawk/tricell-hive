@@ -12,6 +12,10 @@ raise the minor or the patch version.
 
 ### Added
 
+- The viewer combines walkthroughs with the same project, host and session ID
+  into one sidebar entry, with chronological ticket segments, internal jumps
+  and independent copy actions. The session header collects explicit PR or
+  commit delivery links while keeping each segment's association.
 - CodeGraph is an optional, manual capability: the installer offers it for
   Claude Code, Codex, Cursor and OpenCode with its official source, and
   `hive doctor` shows whether `codegraph` is on `PATH` without running it. The
@@ -21,6 +25,14 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Walkthrough publication keeps JSON only when the `hive` executable is on
+  `PATH`; standalone HTML is generated only without that binary. A stopped
+  viewer does not select HTML, and previous pages remain unchanged. Retaining
+  the manifest retains its referenced images and recordings.
+- Upgrade the binary before the content that produces `delivery` metadata and
+  explicitly restart an existing viewer to activate its new reader and UI.
+  Older strict readers reject the optional field; historical manifests without
+  it remain valid and are not rewritten automatically.
 - Research, Plan and Build check what depends on a component before
   recommending, planning or building a change that removes, closes,
   disables, migrates, renames or moves something running in production, or
