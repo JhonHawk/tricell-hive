@@ -1,11 +1,16 @@
 package management
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"tricell-hive/integrations/pi"
 )
@@ -14,6 +19,20 @@ import (
 // record calls. A nil value selects syntheticApplyPi on a synthetic home so
 // CLI tests never invoke the real pi binary.
 var applyPiCmd func(piHome, action, source string) error
+
+// piCommandTimeout bounds one `pi install` or `pi remove`, which runs npm;
+// it matches the agent-browser step limit. Tests shorten it.
+var piCommandTimeout = 15 * time.Minute
+
+const piCommandWaitDelay = 2 * time.Second
+
+// piCommandContext is cancelled by SIGINT, SIGTERM or SIGHUP. pi runs in its
+// own session, out of reach of the terminal's signals, so without this a
+// Ctrl-C would end Hive and leave pi and npm running with no deadline.
+// Tests replace it.
+var piCommandContext = func() (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+}
 
 func resolveApplyPi(synthetic bool) func(string, string, string) error {
 	if applyPiCmd != nil {
@@ -30,12 +49,30 @@ func execApplyPi(piHome, action, source string) error {
 	if err != nil {
 		return fmt.Errorf("pi executable: %w", err)
 	}
-	cmd := exec.Command(bin, action, source)
+	parent, stop := piCommandContext()
+	defer stop()
+	ctx, cancel := context.WithTimeout(parent, piCommandTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, action, source)
 	cmd.Env = append(os.Environ(), "PI_CODING_AGENT_DIR="+piHome)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("pi %s: %w", action, err)
+	// Run pi in its own session so the deadline, and the cleanup after every
+	// run, kill the whole process group: npm and its scripts never outlive it.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.WaitDelay = piCommandWaitDelay
+	runErr := cmd.Run()
+	if cmd.Process != nil {
+		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) // ESRCH when nothing is left
 	}
-	return nil
+	switch {
+	case runErr == nil || errors.Is(runErr, exec.ErrWaitDelay):
+		return nil
+	case errors.Is(ctx.Err(), context.DeadlineExceeded):
+		return fmt.Errorf("pi %s: timed out after %s", action, piCommandTimeout)
+	case errors.Is(ctx.Err(), context.Canceled):
+		return fmt.Errorf("pi %s: interrupted", action)
+	}
+	return fmt.Errorf("pi %s: %w", action, runErr)
 }
 
 func syntheticApplyPi(home, action, source string) error {
