@@ -8,11 +8,11 @@ effort_claude: "medium"
 
 # hive-design-ui
 
-1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes.
+1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes, including the design baseline that [UI review criteria](skill:flow-walkthrough/references/ui-review-criteria.md) sets: the UI library configuration and the project UI guide with its deviations. Return a proposal that is a `theme deviation` to the parent as a pending decision rather than applying it.
 
 2. Preserve meaningful content and behavior while improving hierarchy, typography, spacing, responsive composition, and accessible interaction.
 
-3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast, and loading, empty, error, and success states relevant to the task. Before driving a browser, read [browser automation](skill:flow-build/references/browser-automation.md), and use only the browser tool your brief assigns.
+3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast as [UI review criteria](skill:flow-walkthrough/references/ui-review-criteria.md) defines it, and loading, empty, error, and success states relevant to the task. Before driving a browser, read [browser automation](skill:flow-build/references/browser-automation.md), and use only the browser tool your brief assigns.
 
 4. Deliver the requested design or implementation with concrete visual evidence and remaining limitations. Do not claim rendered verification from source inspection alone.
 
