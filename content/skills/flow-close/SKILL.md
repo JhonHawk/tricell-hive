@@ -37,7 +37,7 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 For every applicable close question, name the next ticket and the reason, such as a blocker, a P0 or P1 defect found, or the next ticket of the same module. You choose it; an option that asks the user to name it does not count. Do not recommend as the next ticket a ticket opened from this work item's findings, during the build or this close, or a finding proposed in this close, unless it is P0 or P1 or blocks the next ticket or a pending item of the work.
 
-Offer one option per route, each continue option naming the flow it starts:
+Offer one option per route, each continue option naming the flow it starts and the recommended ticket's estimated size, which the size condition of [questions](../flow-plan/references/questions.md) sets, given once for the question instead of on every option; when the next work continues a plan in progress, that size is its remaining tasks with their time range:
 
 - Continue now with the recommended ticket when the loaded context helps it.
 - Take that ticket to a new session when the context no longer helps.
