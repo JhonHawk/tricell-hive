@@ -32,7 +32,7 @@ Every task that satisfies a criterion carries a `**Closes:** AC<n>, …` line, a
 1. two or more later tasks depend on it, directly or through other tasks, so a defect in it would spread; or
 2. it changes a public or persisted contract, stored data, permissions, a security boundary, or concurrency.
 
-Group every other task into the next checkpoint. A task depends only on earlier tasks of the plan. An older plan whose tasks omit the field is verified task by task: without the `Checkpoint` field, each task is its own checkpoint. This rule and the risk criterion live only here; other files point to them.
+Group every other task into the next checkpoint. A task depends only on earlier tasks of the plan that exist, never on itself. Number the checkpoints C1, C2 and so on without gaps, so that no task carries a lower number than an earlier task and the last `tdd` or `check` task carries the highest. An older plan whose tasks omit the field is verified task by task: without the `Checkpoint` field, each task is its own checkpoint. This rule and the risk criterion live only here; other files point to them.
 
 Mark each task with one of these markers:
 

@@ -225,6 +225,11 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Plan order: the plan format now states that a task depends only on earlier
+  tasks that exist and that checkpoints are numbered without gaps, the last
+  `tdd` or `check` task carrying the highest; plan review, the readiness check
+  and tasks added during the build block a plan with numbered criteria that
+  breaks this order, which the build's start rules could not handle (#176).
 - The viewer uses subtle theme borders instead of inherited white outlines,
   and all dialogs inherit its shared base font while walkthroughs retain
   their own typography.
