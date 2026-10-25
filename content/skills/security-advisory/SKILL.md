@@ -24,7 +24,7 @@ Before delegating, read [delegation and waits](../flow-research/references/deleg
    - Run no install, audit, networked scan, Git fetch or checkout; web lookups carry only advisory IDs and public package names; never print a file that may hold secrets.
    - Report what cannot be seen from the repository, such as deployed versions, images behind a digest or hosting settings.
 4. **Check the deciding claims.** Open the locators behind each affected or mitigated verdict, as [flow-research](../flow-research/SKILL.md) sets for checking a child's claims.
-5. **Assess reachability where it sets priority.** For an affected application whose exposure depends on how the code reaches the vulnerable path, launch a `hive-review-security` child with the application, the advisory and its conditions, asking it to trace untrusted input to that path without exploiting anything, under the same limits on commands and web lookups as step 3.
+5. **Assess reachability where it sets priority.** For an affected application whose exposure depends on how the code reaches the vulnerable path, mark that in the report and offer a reachability assessment by a `hive-review-security` child, which runs only if the user asks; it traces untrusted input to that path without exploiting anything, under the same limits on commands and web lookups as step 3, given the application, the advisory and its conditions. When the user asks for it, run that child and update the application's verdict and priority in a follow-up report.
 
 ## Report
 
@@ -33,7 +33,7 @@ Lead with the affected repositories. Report critical or actively exploited expos
 - the verdict: affected, mitigated (and by what), not affected, or unknown (and what would settle it);
 - the evidence locator;
 - the fixed version or mitigation it needs, and anything in the repository that blocks it, such as a version cap or override;
-- reachability, when step 5 assessed it.
+- reachability, when the user asked for the assessment that step 5 offers.
 
 State the coverage: repositories and branches read, sources consulted, and what was not checked.
 

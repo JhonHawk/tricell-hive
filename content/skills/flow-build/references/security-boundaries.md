@@ -1,6 +1,6 @@
 # Security boundaries and dependencies
 
-Read when changing untrusted inputs, permissions, process execution, public data exposure, or dependencies. Apply the affected boundaries using existing project controls; this is not a mandate for an unrelated security audit.
+Read when changing untrusted inputs, permissions, process execution, public data exposure, or dependencies, and before offering or running `hive-review-security`. Apply the affected boundaries using existing project controls; this is not a mandate for an unrelated security audit.
 
 - Identify the actor, resource, operation, and tenant or ownership boundary. Enforce authorization at the trusted execution boundary, including denied and cross-owner cases where applicable; authentication alone does not establish permission.
 - Validate external data at runtime. Keep data separate from executable syntax through parameterized queries, structured process arguments, and context-appropriate output encoding. Inspect downstream interpretation even when the first API accepts an argument array; avoid interpolating untrusted values into shell, query, template, or path expressions.
@@ -8,6 +8,14 @@ Read when changing untrusted inputs, permissions, process execution, public data
 - Before introducing, updating or installing a dependency, run [Check a dependency before installing](#check-a-dependency-before-installing). Also check its installation and build scripts and its runtime or build exposure, and use the project's existing lockfile, provenance and advisory controls. Review automated remediation before running it: it may execute project-controlled scripts or use configured registries.
 
 Select checks for the actual trust boundary and reachable failure mode. Report findings with preconditions, impact, and evidence rather than treating a severity label or tool exit as the conclusion. This procedure does not authorize exploitation, credential rotation, or unrelated remediation.
+
+## Offer the security review
+
+`hive-review-security` runs only when the user asks for it. A declared `Review` value, an earlier gate, a code reviewer's verdict, or unattended delegation never counts as asking, and an offer the user has not taken up is not a request.
+
+When the change crosses a boundary this reference covers (permissions, untrusted input, process execution, public data exposure, or a dependency), offer the review in one line, never as a question that waits for an answer: name the boundaries it crosses, recommend it when one of them is authentication, authorization, secrets, or untrusted input reaching a command, query, or file path, and say that the user can ask for it at any time. The work continues. Make the offer in the one-line delivery statement or the delivery round when the plan or the request shows the boundary before the first edit, and otherwise in the next message to the user once a boundary appears, such as in a code reviewer's verdict or a correction round. Offer it again only for a boundary that no earlier offer named.
+
+When the user asks for it, run it on the current candidate before asking the user to validate, or, when the delivery has no validation stop, before the push or merge. Once asked for, it also covers boundaries that appear later in the same change, at the same points; at the accepted-candidate gate of a walkthrough, rerun it only when the corrections touch a boundary. When the user asks after the change was merged, run it on the merged commit and deliver its fixes as a follow-up pull request of the same ticket. When a security fix touches UI files, run the UI gate again on that diff before asking the user to validate.
 
 ## Check a dependency before installing
 

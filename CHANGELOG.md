@@ -80,6 +80,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The security review (`hive-review-security`) runs only when you ask for it.
+  A declared `Review` value no longer authorizes it, and the accepted-candidate
+  gate, the role description and the `security-advisory` scope assessment no
+  longer launch it. When a change crosses a security boundary, the agent names
+  the boundaries and offers the review in one line, without a question that
+  waits and without stopping the work: in the delivery statement, also when
+  `Delivery` and `Review` are declared, or in the next message once a boundary
+  appears. A requested review runs before validation, or before the push or
+  merge when there is no validation stop (#167).
 - Incidental findings at a close: a P3 finding or a wording detail is no
   longer offered as a ticket, related P2 findings are proposed as one group, a
   UI finding is proposed only after it was seen rendered, and the close
