@@ -165,6 +165,10 @@ raise the minor or the patch version.
 - The viewer uses subtle theme borders instead of inherited white outlines,
   and all dialogs inherit its shared base font while walkthroughs retain
   their own typography.
+- Installing or removing pi-subagents no longer waits forever on a hung `pi`:
+  `pi install` and `pi remove` stop after 15 minutes or on Ctrl-C, a closed
+  terminal or SIGTERM, together with npm and every process they started, and
+  the operation fails with an error that `hive recover` can resume (#109).
 
 ## [0.5.0] - 2026-10-23
 
