@@ -20,6 +20,17 @@ raise the minor or the patch version.
 
 ### Added
 
+- Test guidance: `tdd.md` now sets which kind of test to write and a filter
+  before writing one (the test that already owns the behavior, low-value
+  patterns, no test-only entry points in production code), recommends
+  property-based tests where an independent oracle exists, and verification
+  compares the old and the new path on the same inputs when a change replaces
+  or migrates something (#157).
+- Options of a question carry their estimated size when one starts work on
+  another ticket, adds a component or dependency, or is about ten times
+  another, and plans that edit agent guidance get a guidance-consistency
+  reviewer. This repository declares `Delivery: automatic` and
+  `Review: /code-review` (#158).
 - Codex wait floor: an interactive `hive install` or `hive update` with the
   Codex host offers, selected by default while it is not applied and Codex is
   0.164 or later, to write `min_wait_timeout_ms = 300000` and
@@ -65,6 +76,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Incidental findings at a close: a P3 finding or a wording detail is no
+  longer offered as a ticket, related P2 findings are proposed as one group, a
+  UI finding is proposed only after it was seen rendered, and the close
+  question does not recommend a ticket opened from the work's own findings. UX
+  reviews report earlier problems only on the screens the change touches, and a
+  deployed review whose code matches the local one starts from the local
+  report (#159).
 - A task whose second verification still fails no longer stops to ask you
   when the remaining fix is small, inside the task and obvious: the
   implementer makes that one correction and a third verification checks it;

@@ -11,6 +11,8 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 - Environments: development → master
 - Tracker: GitHub Issues · JhonHawk/tricell-hive
 - Specs: _support/openspec
+- Review: /code-review
+- Delivery: automatic
 
 ## Guidance structure
 
@@ -54,7 +56,7 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 ## Scope and preservation
 
 - A question, research task, or recommendation does not authorize implementation or unrelated fixes. Keep incidental findings separate from the requested work.
-- Do not deploy or copy configuration into global tool directories, change global tool settings, commit, push, merge, or delete branches without the user's explicit instruction for that action. Research and recommendations are not that instruction.
+- Do not deploy or copy configuration into global tool directories, change global tool settings, commit, push, merge, or delete branches without the user's explicit instruction for that action. Research and recommendations are not that instruction; a `Delivery` or `Review` value declared in the `## Hive` section above counts as the user's explicit instruction for the effects [delivery decisions](content/skills/flow-plan/references/delivery-decisions.md) assigns to it.
 - Keep credentials out of tracked files, reports, and tool output; protect necessary local recovery copies and exclude them from Git.
 - Preserve user-owned authentication, preferences, native histories, third-party tools, backups, and Engram data. Keep `.engram/config.json` project identity unless the user explicitly asks to change it.
 - Do not add dependencies, a runtime, universal adapter, hook system, or build framework for configuration alone. Prefer the host's existing capability and document a verified limitation before introducing new machinery.
