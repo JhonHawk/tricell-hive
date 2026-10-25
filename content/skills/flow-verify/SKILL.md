@@ -28,7 +28,7 @@ The level combines values that already exist; no new setting selects it. Resolve
 | Local in-vivo run | the changed behavior calls for it; when it seems unnecessary, offer it | the rule in [review and gates](references/review-and-gates.md) |
 | UI gate | the change has a rendered UI effect | `UI verification` (`full`, `functional`, `none`) |
 | Dedicated code review | as the delivery mode sets | `Review`, or the answer to its question |
-| Security review | only when the user asked for it | [Offer the security review](../flow-build/references/security-boundaries.md#offer-the-security-review) |
+| Security review | only when the user asked for it | [flow-security](../flow-security/SKILL.md) |
 
 The user can raise or lower the level for the work with a request such as "full verify", "no UI review" or "skip verify"; the request holds for that work. Skipping verify or lowering its level at the user's request counts as accepting without verification each check it omits: name them one by one at entry and in the report, and treat a check accepted this way as no pending gate. Only the user's own message asks for it; unattended delegation can neither skip verify nor lower its level. This acceptance never waives CI, branch protection, or a review the project requires. A declared `Review` is the default mechanism and not a demand: when the user skips verify, the dedicated review counts as accepted without verification, unless the repository requires it through branch protection or a required review.
 
@@ -40,7 +40,7 @@ In any delivery mode that stops for validation, run these steps in order on the 
 
 1. The UI gate that the `UI verification` value selects.
 2. The full suite of each affected application, locally, even when CI will run it later, since under `interactive` CI runs after the push that follows validation.
-3. `hive-review-security` when the user asked for it; otherwise the validation message offers it for any boundary no earlier offer named. Both follow [Offer the security review](../flow-build/references/security-boundaries.md#offer-the-security-review), which also applies without a validation stop.
+3. The security review, run as [flow-security](../flow-security/SKILL.md) sets, when the user asked for it; otherwise the validation message offers it for any boundary no earlier offer named, as [Offer the security review](../flow-build/references/security-boundaries.md#offer-the-security-review) sets. Both also apply without a validation stop.
 4. The delivery of [flow-walkthrough](../flow-walkthrough/SKILL.md), which gives the page's path and asks the validation question it sets.
 
 These steps run before the first validation request. Before delivering any later fix with a UI effect, follow [changes after a gate or approval](references/ui-gate.md#changes-after-a-gate-or-approval). Run the dedicated code review at the point the delivery mode sets, as [review and gates](references/review-and-gates.md) sets.
@@ -53,7 +53,7 @@ For UI work awaiting human validation, keep the verified stack and the handoff a
 
 While the user requests corrections during a validation pause, whether to text, behavior, or layout, run one correction round per request: apply the correction; write its test in the same round when it alters behavior of a kind [test-first development](../flow-build/references/tdd.md) covers; run the affected tests; rebuild; capture the affected views; and ask again right away in the same way. Between rounds, run no `hive-review-ux`, `hive-verify-change`, `hive-verify-task`, or dedicated code review. When you offer alternatives, sketch them as [UI planning](../flow-plan/references/ui-planning.md) describes.
 
-When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets before any further step; at that gate, rerun the full suite only when the corrections could affect what it covers, and offer or run the security review as [Offer the security review](../flow-build/references/security-boundaries.md#offer-the-security-review) sets for the corrections. A local run that makes no progress stops as [verification](../flow-build/references/verification.md) sets, and the validation message names it as not run.
+When the user accepts, run the accepted-candidate gate as [the UI gate](references/ui-gate.md) sets before any further step; at that gate, rerun the full suite only when the corrections could affect what it covers, and offer the security review for the corrections as [Offer the security review](../flow-build/references/security-boundaries.md#offer-the-security-review) sets, or rerun it as [flow-security](../flow-security/SKILL.md) sets. A local run that makes no progress stops as [verification](../flow-build/references/verification.md) sets, and the validation message names it as not run.
 
 Markers: when a correction changes the files of a task marked `[x]`, set that task back to `[?]` with a line `reopened by correction round <n>`, and verify it at the accepted-candidate gate. Record a correction outside the plan's tasks in the progress section; `hive-verify-change` covers it at that gate when the value runs it. A correction that changes the retained plan follows [Revise a plan in progress](../flow-plan/references/plan-revision.md); the plan re-review it may make due runs with the accepted-candidate gate above, not between rounds.
 
