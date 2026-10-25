@@ -51,7 +51,7 @@ Findings from that review are fixed as part of the work, by severity, as [Verify
 
 ## What it does not do
 
-- It does not commit, push, open pull requests, merge or deploy unless you asked for that effect.
+- It does not commit, push, open pull requests or merge unless you asked for that effect.
 - It does not run the independent verification, the dedicated code review, the close or a deployment; [Verify](/flows/verify/), [Close](/flows/close/) and [Deploy](/flows/deploy/) do.
 - It does not mark a check as passed when it could not run it.
 - It does not edit a test you supplied as the acceptance check just to make it pass.

@@ -3,7 +3,7 @@ title: Deploy
 description: Promote an integrated change through your environments and check what is actually being served.
 ---
 
-Deploy is a stage of its own, after the change is integrated. It is not part of closing a ticket, and one run can cover several tickets.
+Deploy is a stage of its own, after the change is integrated. It is not part of closing a ticket unless your project declares deployment as the ticket's completion point, and one run can cover several tickets.
 
 ## When to use
 
