@@ -12,7 +12,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** about to ask a question.
 
-**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design choice recorded in the plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
+**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design decision the user made for this work item and recorded in its plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
 
 **Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
 
@@ -28,7 +28,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** one objective needs several authorizations or choices in sequence, such as the records of one test setup or the steps of an operation the user approved.
 
-**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. A critical effect, as [effect authorization](effect-authorization.md) defines it, and a production deployment keep their own question.
+**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect, and a production deployment keep their own question in that same round.
 
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
