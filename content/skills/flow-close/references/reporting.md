@@ -99,7 +99,7 @@ The choice authorizes that flow only, or that iterative route's rounds: never bu
 
 ### Reminders
 
-**Condition:** a user control does not block the current work, such as delivered work not yet promoted, even to a completion point the project declares after integration, since promotions batch several tickets and never hold the current work open, or a pull request awaiting the user's merge.
+**Condition:** a user control does not block the current work, such as delivered work not yet promoted, including to a later completion point as [project settings](../../flow-plan/references/project-settings.md#later-completion-point) sets, since promotions batch several tickets and never hold the current work open, or a pull request awaiting the user's merge.
 
 **Actions:** state it in one line without advice; repeat it only when the state changes or related work closes. Make it a recommendation only when waiting has a concrete cost the user may not see, such as a production defect or a security exposure, and name that cost.
 
