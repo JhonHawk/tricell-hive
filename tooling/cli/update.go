@@ -20,11 +20,23 @@ import (
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
+	"tricell-hive/tooling/providers"
 )
 
 type updateFlags struct {
 	Rev, Source, Home, StateDir, Out string
 	DryRun                           bool
+	// WaitFloor asks the plan to set the Codex wait floor. It is not a command
+	// flag: update sets it after the operator accepts the offer.
+	WaitFloor bool
+}
+
+// updateAdapterFactory builds the adapter that offers optional capabilities in
+// update, for the Codex home the plan resolved. Tests replace it.
+var updateAdapterFactory = func(f updateFlags, interactive bool, codexHome string) onboardingAdapter {
+	a := newNativeProviderAdapter(f.Home != "", f.DryRun, interactive)
+	a.codexHome = codexHome
+	return a
 }
 
 func parseUpdateFlags(args []string) (updateFlags, error) {
@@ -62,8 +74,29 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		return err
 	}
 
-	// 6. Summarize, reusing the install summary with no optional capabilities.
-	showInstallSummary(out, p, onboardingPreview{}, f.DryRun, unchanged, true)
+	// Offer the optional capabilities that change what update writes (the
+	// Codex wait floor), only to a person; the choice rebuilds the plan.
+	adapter, offers, err := detectUpdateOffers(p, f, interactive)
+	if err != nil {
+		return err
+	}
+	var preview onboardingPreview
+	if len(offers) > 0 {
+		requests, ok, err := terminal.SelectProviders(offers)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			fmt.Fprintln(out, "Cancelled. No changes applied.")
+			return nil
+		}
+		if p, unchanged, preview, err = finishUpdateChoice(f, p, unchanged, adapter, offers, requests); err != nil {
+			return err
+		}
+	}
+
+	// 6. Summarize, reusing the install summary with the chosen capabilities.
+	showInstallSummary(out, p, preview, f.DryRun, unchanged, true)
 	fmt.Fprintln(out, sourceLine)
 
 	// 7. Apply or save.
@@ -105,6 +138,46 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 	return nil
 }
 
+// detectUpdateOffers asks the adapter which optional capabilities update can
+// offer for p. Only an interactive session is offered anything, and only the Codex wait floor; the others
+// return no adapter and no offers.
+func detectUpdateOffers(p management.Plan, f updateFlags, interactive bool) (onboardingAdapter, []providerOffer, error) {
+	if !interactive {
+		return nil, nil, nil
+	}
+	adapter := updateAdapterFactory(f, interactive, p.Config.CodexHome)
+	all, err := adapter.Detect(management.Options{Scope: "user", Home: f.Home, Hosts: p.Hosts})
+	// The adapter lists every capability; update offers only the one that
+	// changes a file it applies itself, because it runs no onboarding steps.
+	var offers []providerOffer
+	for _, offer := range all {
+		if offer.ID == string(providers.CodexWaitFloor) {
+			offers = append(offers, offer)
+		}
+	}
+	return adapter, offers, err
+}
+
+// finishUpdateChoice applies the operator's choice among offers. When it
+// selects the Codex wait floor the plan is built again from the same commit
+// with the option set and unchanged is recomputed: the plan now writes Codex's
+// config, so update asks for confirmation even if Hive's files are current.
+// Update applies the plan alone, so the preview keeps the capability's details
+// and drops any step.
+func finishUpdateChoice(f updateFlags, p management.Plan, unchanged bool, adapter onboardingAdapter, offers []providerOffer, requests []providerRequest) (management.Plan, bool, onboardingPreview, error) {
+	if waitFloorChosen(offers, requests) {
+		f.WaitFloor, f.Rev = true, p.SourceCommit
+		rebuilt, _, same, err := planUpdate(f)
+		if err != nil {
+			return p, unchanged, onboardingPreview{}, err
+		}
+		p, unchanged = rebuilt, same
+	}
+	preview, err := adapter.Plan(p, requests)
+	preview.Steps = nil
+	return p, unchanged, preview, err
+}
+
 // planUpdate is update's planning half, shared with the Update view: it
 // chooses the registered CLIs, validates the revision, runs Git, resolves the
 // commit, extracts it and builds the install plan. It returns the plan, the
@@ -113,7 +186,7 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 func planUpdate(f updateFlags) (p management.Plan, sourceLine string, unchanged bool, err error) {
 	// 1. Choose the CLIs before running Git, so a host-less home fails
 	// without extracting anything.
-	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir}
+	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir, CodexWaitFloor: f.WaitFloor}
 	hosts, err := management.RegisteredHosts(o)
 	if err != nil {
 		return management.Plan{}, "", false, err

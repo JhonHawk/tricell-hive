@@ -11,12 +11,13 @@ import (
 // FeatureEnabled reports whether Codex's config.toml under home turns the
 // named feature flag on. It recognizes `key = true|false` inside the
 // [features] table and the dotted root form `features.<key> = true|false`. A
-// missing file or a missing key reports false. Hive never writes this file
-// (Codex's own `codex features enable` does), so any form this minimal line
-// scanner cannot read with certainty, such as an inline `features` table, a
-// duplicate or array-of-tables `features`, a repeated key, a non-boolean value
-// or the key set to different values in both forms, returns an error and the
-// caller must not treat the result as an answer.
+// missing file or a missing key reports false. Hive writes only the
+// wait-floor keys of this file (see WaitFloor), with a backup, and never the
+// feature flags (Codex's own `codex features enable` does), so any form this
+// minimal line scanner cannot read with certainty, such as an inline
+// `features` table, a duplicate or array-of-tables `features`, a repeated key,
+// a non-boolean value or the key set to different values in both forms,
+// returns an error and the caller must not treat the result as an answer.
 func FeatureEnabled(home string, key string) (bool, error) {
 	f, err := os.Open(filepath.Join(home, "config.toml"))
 	if os.IsNotExist(err) {

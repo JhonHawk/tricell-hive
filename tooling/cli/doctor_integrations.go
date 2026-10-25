@@ -3,12 +3,13 @@
 // can see locally, what the last onboarding record says, and where the
 // official instructions are. It only reads. It never runs an integration
 // program (a program is only looked up in PATH, and a browser is looked for
-// by file existence) and never reads a host's
-// configuration: whether Pi has pi-subagents, or a host loads a skill, is not
-// something Hive checks.
+// by file existence) and reads a host's configuration only for the Codex wait
+// floor, the one setting Hive writes there: whether Pi has pi-subagents, or a
+// host loads a skill, is not something Hive checks.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"tricell-hive/integrations/codex"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/providers"
 )
@@ -60,6 +62,9 @@ type integrationRow struct {
 	// BrowserMissing is set for agent-browser when the program is on PATH but
 	// none of the browsers it uses was found.
 	BrowserMissing bool
+	// HiveWrote is set for the Codex wait floor when Hive's state records the
+	// lines it wrote into config.toml.
+	HiveWrote bool
 }
 
 // detailLines is the text the view shows under the list for the selected row
@@ -176,6 +181,7 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 		fillSourceFromCatalog(&card)
 		rec.apply(&card, recErr)
 		rows = append(rows, card)
+		rows = append(rows, codexWaitFloorRow(o, deps))
 	}
 	for i := range rows {
 		rows[i].Next = nextStep(rows[i])
@@ -241,6 +247,8 @@ func nextStep(r integrationRow) string {
 		step = `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
 	case string(providers.CodeGraph):
 		step = codeGraphNextStep(r.Found)
+	case string(providers.CodexWaitFloor):
+		step = waitFloorNextStep(r.Found, r.HiveWrote)
 	case string(providers.CodexQuestionCard):
 		step = "Run `codex features enable " + providers.CodexQuestionCardFeature + "` to show Codex's question card in Default mode, or `codex features disable " + providers.CodexQuestionCardFeature + "` to turn it off; `codex features list` shows the current state."
 	default:
@@ -485,4 +493,126 @@ func agentBrowserBrowserEvidence(deps doctorDeps, synthetic bool, found string, 
 	}
 	*evidence = append(*evidence, "No browser found; checked "+sanitizeLine(sys.browserCheckedPlaces())+".")
 	return true
+}
+
+// codexWaitFloorRow reads Codex's config.toml and Hive's record of what it
+// wrote, and never repeats text from the file, which may hold secrets. It runs
+// no program but the doctor's own `codex --version`, to warn about a Codex too
+// old to load the table.
+func codexWaitFloorRow(o management.Options, deps doctorDeps) integrationRow {
+	row := integrationRow{
+		ID: string(providers.CodexWaitFloor), Name: "Codex wait floor",
+		Record:       recordNotTracked,
+		RecordDetail: "Not part of onboarding: Hive writes it with the install plan, at hive install or hive update.",
+	}
+	fillSourceFromCatalog(&row)
+	cfg, _, err := management.NormalizeOptions(o)
+	if err != nil {
+		row.Found = "not checked"
+		row.Evidence = []string{"Not checked: " + sanitizeLine(err.Error())}
+		return row
+	}
+	configPath := filepath.Join(cfg.CodexHome, "config.toml")
+	record, recordErr := management.StoredCodexWaitFloor(o)
+	if record != nil && record.Path != "" {
+		configPath = record.Path
+	}
+
+	state, readErr := readWaitFloorState(cfg.CodexHome)
+	tableExists := false
+	var refusal *codex.WaitFloorRefusal
+	switch {
+	case errors.As(readErr, &refusal):
+		row.Found = "cannot edit"
+		row.Evidence = append(row.Evidence, "Hive will not edit Codex's config.toml: "+sanitizeLine(refusal.Cause)+".")
+		tableExists = refusal.State == codex.WaitFloorConflict
+	case readErr != nil:
+		row.Found = "not checked"
+		row.Evidence = append(row.Evidence, "Not checked: Codex's config.toml could not be read.")
+	case state == codex.WaitFloorApplied:
+		row.Found, tableExists = "applied", true
+		row.Evidence = append(row.Evidence, "Codex config.toml: the wait floor is set.")
+	case state == codex.WaitFloorMissing:
+		row.Found, tableExists = "partial", true
+		row.Evidence = append(row.Evidence, "Codex config.toml: [features.multi_agent_v2] lacks min_wait_timeout_ms or default_wait_timeout_ms.")
+	default:
+		row.Found = "not applied"
+		row.Evidence = append(row.Evidence, "Codex config.toml: the wait floor is not set.")
+	}
+
+	switch {
+	case recordErr != nil:
+		row.Evidence = append(row.Evidence, "Written by Hive: unknown (Hive's state could not be read).")
+	case record != nil:
+		row.HiveWrote = true
+		row.Evidence = append(row.Evidence, fmt.Sprintf("Written by Hive: yes (%d lines in %s).", len(record.Lines), sanitizeLine(configPath)))
+	default:
+		row.Evidence = append(row.Evidence, "Written by Hive: no record; any wait floor lines in the file are not Hive's.")
+	}
+
+	backup := filepath.Base(configPath) + ".hive-backup"
+	if _, err := os.Lstat(configPath + ".hive-backup"); err == nil {
+		row.Evidence = append(row.Evidence, "Backup "+backup+": present.")
+	} else {
+		row.Evidence = append(row.Evidence, "Backup "+backup+": not present.")
+	}
+
+	if tableExists {
+		if version := installedCodexVersion(deps); version != "" && !codexSupportsWaitFloor(version) {
+			row.Evidence = append(row.Evidence, "Warning: Codex "+version+" is older than 0.164.0 and may not load [features.multi_agent_v2]; update Codex or remove the table.")
+		}
+	}
+	return row
+}
+
+// readWaitFloorState classifies Codex's config.toml. A refusal comes back as a
+// *codex.WaitFloorRefusal.
+func readWaitFloorState(codexHome string) (codex.WaitFloorState, error) {
+	exists, err := codex.CheckWaitFloorTarget(codexHome)
+	if err != nil {
+		var refusal *codex.WaitFloorRefusal
+		if errors.As(err, &refusal) {
+			return refusal.State, err
+		}
+		return 0, err
+	}
+	var content []byte
+	if exists {
+		if content, err = os.ReadFile(filepath.Join(codexHome, "config.toml")); err != nil {
+			return 0, err
+		}
+	}
+	state, _, err := codex.WaitFloor(content, exists)
+	return state, err
+}
+
+// installedCodexVersion returns the x.y.z of `codex --version`, or "" when
+// Codex is not found or reports no version.
+func installedCodexVersion(deps doctorDeps) string {
+	path, err := deps.lookPath(codexBinary)
+	if err != nil {
+		return ""
+	}
+	out, err := deps.runVersion(path)
+	if err != nil {
+		return ""
+	}
+	return codexVersionPattern.FindString(out)
+}
+
+func waitFloorNextStep(found string, hiveWrote bool) string {
+	switch found {
+	case "applied":
+		if !hiveWrote {
+			return "Nothing to do. This setting was not written by Hive, so hive plan remove leaves it. To remove it, delete the min_wait_timeout_ms and default_wait_timeout_ms keys under [features.multi_agent_v2] in Codex's config.toml by hand."
+		}
+		return "Nothing to do. To undo it, run hive plan remove for the codex host: it removes only the lines Hive wrote while they keep their values."
+	case "partial":
+		return "Add the missing key under [features.multi_agent_v2] by hand, or accept the offer at the next hive install or hive update."
+	case "cannot edit":
+		return "Hive will not edit this file. Fix the cause above, or add min_wait_timeout_ms and default_wait_timeout_ms under [features.multi_agent_v2] by hand; see Source above."
+	case "not checked":
+		return "Hive could not read Codex's configuration; check the folder and its permissions."
+	}
+	return "Optional, and needs Codex 0.164 or later. Run hive install or hive update and accept the Codex wait floor offer."
 }

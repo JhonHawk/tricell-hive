@@ -141,3 +141,24 @@ func TestValidateStepCodeGraphIsManualOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateStepCodexWaitFloorHasNoPlannedStep(t *testing.T) {
+	// The capability writes through management's plan, so it never has an
+	// executable step; a refusal is the only step it can carry, and it is manual.
+	manual := Step{ID: "codex-wait-floor-manual", Provider: CodexWaitFloor, Status: Manual, ManualReason: "config.toml has a different value"}
+	if err := ValidateStep(stepPayload(t, manual)); err != nil {
+		t.Errorf("manual step rejected: %v", err)
+	}
+	rejected := map[string]Step{
+		"planned with argv":       {ID: "codex-wait-floor-enable", Provider: CodexWaitFloor, Status: Planned, Method: "codex", Argv: []string{"codex", "features", "enable", "x"}},
+		"planned without argv":    {ID: "codex-wait-floor-manual", Provider: CodexWaitFloor, Status: Planned},
+		"manual with a command":   {ID: "codex-wait-floor-manual", Provider: CodexWaitFloor, Status: Manual, ManualReason: "r", Method: "codex", Argv: []string{"codex"}},
+		"manual without a reason": {ID: "codex-wait-floor-manual", Provider: CodexWaitFloor, Status: Manual},
+		"manual with another ID":  {ID: "codex-wait-floor-other", Provider: CodexWaitFloor, Status: Manual, ManualReason: "r"},
+	}
+	for name, s := range rejected {
+		if ValidateStep(stepPayload(t, s)) == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}

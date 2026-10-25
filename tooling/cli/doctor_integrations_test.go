@@ -751,7 +751,7 @@ func TestCodexQuestionCardRowShownOnlyWithCodexRegistered(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codegraph,codex-question-card"; got != want {
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codegraph,codex-question-card,codex-wait-floor"; got != want {
 		t.Fatalf("rows = %s, want %s", got, want)
 	}
 	r := rowByID(t, rows, "codex-question-card")

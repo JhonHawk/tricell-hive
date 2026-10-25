@@ -183,6 +183,7 @@ type (
 		owned
 		flow      int
 		hosts     []string
+		options   management.Options // the options the plan was built from
 		plan      management.Plan
 		unchanged bool
 		adapter   onboardingAdapter
@@ -679,7 +680,7 @@ func (v *hostsView) planInstall(hosts []string) tea.Cmd {
 	id, o, deps := v.flow.id, v.options(), v.cfg.Deps
 	o.Hosts = append([]string(nil), hosts...)
 	return func() tea.Msg {
-		msg := installPlannedMsg{owned: owned{v}, flow: id, hosts: o.Hosts}
+		msg := installPlannedMsg{owned: owned{v}, flow: id, hosts: o.Hosts, options: o}
 		var err error
 		if msg.plan, err = management.BuildPlan("install", o); err != nil {
 			msg.err = err
@@ -720,6 +721,15 @@ func (v *hostsView) previewInstall(planned installPlannedMsg, requests []provide
 	v.planning = "Preparing the summary…"
 	return func() tea.Msg {
 		msg := installPreviewMsg{owned: owned{v}, flow: planned.flow, planned: planned}
+		var err error
+		// The choice of the Codex wait floor changes what the core writes, so
+		// the plan is rebuilt with it and the rebuilt plan is what gets applied.
+		planned.plan, planned.unchanged, err = planWithWaitFloor(planned.options, planned.plan, planned.unchanged, planned.offers, requests)
+		if err != nil {
+			msg.err = err
+			return msg
+		}
+		msg.planned = planned
 		preview, err := planned.adapter.Plan(planned.plan, requests)
 		if err != nil {
 			msg.err = err

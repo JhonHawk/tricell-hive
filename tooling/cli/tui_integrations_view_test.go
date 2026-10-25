@@ -43,7 +43,7 @@ func mustShowUnwrapped(t *testing.T, d *appDriver, want string) {
 func listRows(d *appDriver) []string {
 	var rows []string
 	for _, line := range d.lines() {
-		for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser", "CodeGraph", "Codex question card"} {
+		for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser", "CodeGraph", "Codex question card", "Codex wait floor"} {
 			if strings.HasPrefix(line, "> "+name) || strings.HasPrefix(line, "  "+name) {
 				rows = append(rows, line)
 			}
@@ -85,16 +85,16 @@ func TestIntegrationsViewShowsTitleHeaderAndSixRowsWithPi(t *testing.T) {
 	assertFits(t, d, 80, 24)
 }
 
-func TestIntegrationsViewFitsSevenRowsWithPiAndCodex(t *testing.T) {
+func TestIntegrationsViewFitsEightRowsWithPiAndCodex(t *testing.T) {
 	o, f, _, _ := integrationsFixtureHosts(t, "claude,pi,codex")
 	_, d, _ := openIntegrationsView(t, o, f, 80, 24)
 	d.mustShow("Integrations", "Onboarding record", "Codex question card")
 	rows := listRows(d)
-	if len(rows) != 7 {
+	if len(rows) != 8 {
 		t.Fatalf("%d list rows:\n%s", len(rows), d.screen())
 	}
-	if !strings.Contains(rows[5], "CodeGraph") || !strings.Contains(rows[6], "Codex question card") {
-		t.Fatalf("last rows = %q, %q", rows[5], rows[6])
+	if !strings.Contains(rows[5], "CodeGraph") || !strings.Contains(rows[6], "Codex question card") || !strings.Contains(rows[7], "Codex wait floor") {
+		t.Fatalf("last rows = %q, %q, %q", rows[5], rows[6], rows[7])
 	}
 	assertFits(t, d, 80, 24)
 }

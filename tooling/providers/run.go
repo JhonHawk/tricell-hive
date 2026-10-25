@@ -39,12 +39,15 @@ var allowedPlannedSteps = map[string]plannedRecipe{
 var manualStepIDs = map[ID]string{
 	AgentBrowser:      AgentBrowserManualStep,
 	CodexQuestionCard: CodexQuestionCardManualStep,
+	CodexWaitFloor:    CodexWaitFloorManualStep,
 }
 
 // ValidateStep admits a manual step for any catalog provider and, for
 // agent-browser and codex-question-card only, the Planned steps whose argv
-// matches the recipe bound to their ID. Everything else is rejected, including
-// argv or method on a manual step and any unknown field.
+// matches the recipe bound to their ID. codex-wait-floor has no Planned step:
+// Hive writes its keys through management's plan, and only a refusal reaches
+// here, as a manual step. Everything else is rejected, including argv or method
+// on a manual step and any unknown field.
 func ValidateStep(payload json.RawMessage) error {
 	var s Step
 	d := json.NewDecoder(bytes.NewReader(payload))
@@ -53,7 +56,7 @@ func ValidateStep(payload json.RawMessage) error {
 		return fmt.Errorf("invalid provider payload")
 	}
 	switch s.Provider {
-	case Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard, CodeGraph:
+	case Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard, CodeGraph, CodexWaitFloor:
 	default:
 		return fmt.Errorf("unknown provider")
 	}

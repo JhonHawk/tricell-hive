@@ -11,10 +11,15 @@ import (
 )
 
 // nativeProviderAdapter offers Hive's optional capabilities. Engram, Context7,
-// pi-subagents and CodeGraph are manual instructions only. agent-browser and codex-question-card have
-// executable recipes (the latter only runs Codex's own `features enable`): it is offered without a version, its
-// steps run only after the operator's consent, and it runs no program at all
-// in a non-interactive session, a dry run or under a synthetic home (D-9).
+// pi-subagents and CodeGraph are manual instructions only. agent-browser and
+// codex-question-card have executable recipes (the latter only runs Codex's
+// own `features enable`): it is offered without a version, its steps run only
+// after the operator's consent, and it runs no program at all in a
+// non-interactive session, a dry run or under a synthetic home (D-9).
+// codex-wait-floor is the one capability where Hive writes a host
+// configuration file itself, only the keys it declares and with a backup; it
+// has no step: Detect decides the offer from the file and `codex --version`,
+// and the chosen capability reaches management as Options.CodexWaitFloor.
 // A fresh adapter is created for each invocation and keeps only Detect's
 // decision so Plan describes exactly what Detect offered.
 type nativeProviderAdapter struct {
@@ -29,6 +34,9 @@ type nativeProviderAdapter struct {
 	codexOnPath *bool
 	// codexSupport caches the one `codex features list` check made by Detect.
 	codexSupport *codexSupportDecision
+	// waitFloor is Detect's verdict on the codex-wait-floor offer, nil when
+	// nothing was offered.
+	waitFloor *waitFloorDecision
 }
 
 // codexSupportDecision is Detect's cached verdict on the question-card offer.
@@ -50,6 +58,12 @@ const codexUnsupportedReason = "update Codex to 0.163.0 or later (`codex feature
 // standard output. Tests replace it.
 var codexFeaturesProbe = func() (agentBrowserResult, string) {
 	return runBoundedCommandContext(context.Background(), []string{codexBinary, "features", "list"}, codexFeaturesTimeout, time.Second, agentBrowserMaxOutput)
+}
+
+// codexVersionProbe runs `codex --version` and returns its result and standard
+// output. Tests replace it.
+var codexVersionProbe = func() (agentBrowserResult, string) {
+	return runBoundedCommandContext(context.Background(), []string{codexBinary, "--version"}, codexFeaturesTimeout, time.Second, agentBrowserMaxOutput)
 }
 
 func nativeProviderAdapterFactory(in onboardingInput) (onboardingAdapter, error) {
@@ -137,6 +151,12 @@ func (a *nativeProviderAdapter) Detect(o management.Options) ([]providerOffer, e
 		if !hostsIntersect(o.Hosts, p.Hosts) {
 			continue
 		}
+		if p.ID == providers.CodexWaitFloor {
+			if offer, ok := a.waitFloorOffer(o); ok {
+				result = append(result, offer)
+			}
+			continue
+		}
 		offer := providerOffer{ID: string(p.ID), Name: string(p.ID), Source: p.Source, ManualOnly: true}
 		if p.ID == providers.AgentBrowser {
 			plan := a.agentBrowserPlan(o.Home)
@@ -201,6 +221,12 @@ func (a *nativeProviderAdapter) Plan(_ management.Plan, requests []providerReque
 		}
 		if id == providers.CodexQuestionCard {
 			if err := a.planCodexQuestionCardSteps(&preview); err != nil {
+				return preview, err
+			}
+			continue
+		}
+		if id == providers.CodexWaitFloor {
+			if err := a.planCodexWaitFloorSteps(&preview); err != nil {
 				return preview, err
 			}
 			continue

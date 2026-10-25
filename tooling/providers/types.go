@@ -7,6 +7,9 @@
 // this package and bound to the step ID. management persists consent and
 // receipts for the steps; this package only types them and validates them,
 // and never runs anything.
+// codex-wait-floor is not a recipe: Hive itself writes the keys it declares
+// into Codex's config.toml, with a backup, through management's plan, and
+// undoes them on removal. Hive edits no other key of that file.
 package providers
 
 type ID string
@@ -17,11 +20,16 @@ const (
 	PiSubagents  ID = "pi-subagents"
 	AgentBrowser ID = "agent-browser"
 	// CodexQuestionCard turns on Codex's question card in Default mode through
-	// Codex's own `codex features enable`; Hive never edits Codex's config.
+	// Codex's own `codex features enable`; Codex writes that key, not Hive.
 	CodexQuestionCard ID = "codex-question-card"
 	// CodeGraph is a manual-only capability: Hive lists its official source and
 	// never runs its installer or edits the host configuration it writes.
 	CodeGraph ID = "codegraph"
+	// CodexWaitFloor sets a minimum wait for a parent agent in Codex's
+	// config.toml. Hive writes the two keys itself, through management's plan,
+	// so the capability has no executable step; a file Hive will not edit
+	// becomes a manual step (CodexWaitFloorManualStep).
+	CodexWaitFloor ID = "codex-wait-floor"
 )
 
 // Status is kept distinct from management's own step-status strings so a
@@ -59,6 +67,10 @@ const (
 	// CodexQuestionCardFeature is the Codex feature flag the enable step turns on.
 	CodexQuestionCardFeature = "default_mode_request_user_input"
 )
+
+// CodexWaitFloorManualStep is the only step the codex-wait-floor capability can
+// carry: a refusal that names why Hive did not edit config.toml.
+const CodexWaitFloorManualStep = "codex-wait-floor-manual"
 
 // Provider is the stable inventory entry the CLI renders in its capability
 // list and summary.
