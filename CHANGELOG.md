@@ -10,6 +10,14 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Security
+
+- The documentation site and the `starlight-docs-site` templates move to
+  Astro 7.4.0, Starlight 0.42.6 and Biome 2.5.15, and enforce a 7-day release
+  cooldown. The site also overrides patched undici, source-map-js and zod and
+  drops an unused dependency that brought extract-zip, so its `pnpm audit`
+  goes from 11 high advisories to none.
+
 ### Added
 
 - Check a dependency before installing: before adding, updating or installing
