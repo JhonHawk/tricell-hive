@@ -55,7 +55,7 @@ Compare the final changes and observed behavior against the acceptance criteria 
 
 1. The UI gate that the `UI verification` value selects.
 2. The full suite of each affected application, locally, even when CI will run it later, since under `interactive` CI runs after the push that follows validation.
-3. `hive-review-security` when the change crosses a boundary in [security boundaries](references/security-boundaries.md), within the authorization that the [verification](references/verification.md) reference sets. A security review that a code reviewer's verdict names later stays at that reviewer's point. When a security fix touches UI files, run the UI gate again on that diff before asking.
+3. `hive-review-security` when the user asked for it; otherwise the validation message offers it for any boundary no earlier offer named. Both follow [Offer the security review](references/security-boundaries.md#offer-the-security-review), which also applies without a validation stop.
 4. The delivery of [flow-walkthrough](../flow-walkthrough/SKILL.md), which gives the page's path and asks the validation question it sets.
 
 These steps run before the first validation request. Correction rounds and the reruns of the accepted-candidate gate then follow [flow-walkthrough](../flow-walkthrough/SKILL.md). Before delivering any later fix with a UI effect, follow [changes after a gate or approval](../flow-walkthrough/references/ui-gate.md#changes-after-a-gate-or-approval). Apply the shared verification reference for domain-specific depth and timing.

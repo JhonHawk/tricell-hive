@@ -13,7 +13,7 @@ Before delegating or starting an external-work wait, read [delegation and waits]
 
 ## Decisions
 
-Decide every question that comes up yourself instead of asking or waiting, except an authorization the user was asked for and left unanswered, which stays unauthorized: take the option you would recommend, record the decision and its reason in the task record, and list them in the final report as [reporting](../flow-close/references/reporting.md#report-a-running-or-completed-item) sets.
+Decide every question that comes up yourself instead of asking or waiting, except an authorization the user was asked for and left unanswered, which stays unauthorized (an offered security review is not a request until the user asks for it): take the option you would recommend, record the decision and its reason in the task record, and list them in the final report as [reporting](../flow-close/references/reporting.md#report-a-running-or-completed-item) sets.
 
 ## Effects
 
