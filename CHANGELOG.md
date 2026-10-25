@@ -38,9 +38,10 @@ raise the minor or the patch version.
   to continue, acknowledge progress or ask how it is going; any other
   message ends it (#143).
 - A costly check now has a definition: it spends money or a third-party
-  service's quota, changes shared or remote resources or uses them beyond
-  ordinary reads, or is expected to run longer than 30 minutes. A local check
-  of minutes with no external cost is routine. The authorizations a plan
+  service's quota, changes shared or remote resources, or is expected to run
+  longer than 30 minutes; ordinary reads such as fetching dependencies do not
+  count. A local check of minutes with no external cost and no irreversible
+  effect is routine. The authorizations a plan
   foresees for later steps are asked in the delivery and review round, while
   you are present, and one left unanswered stays unauthorized (#144).
 - A task added to a retained plan during the build or after validation is
