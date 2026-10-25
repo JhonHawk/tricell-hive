@@ -12,7 +12,7 @@ Include only established decisions and material open questions; replace or omit 
 Applications/areas covered: <paths and user contexts>.
 Shared foundations: <links to applicable tokens/components/design sources>.
 UI library baseline: <library, configuration file, theme>.
-Accessibility requirement: <declared level and scope, or `undecided`, which keeps the library baseline governing until someone decides>.
+Accessibility requirement: <declared level and scope, or `undecided`>.
 Application-specific differences: <what intentionally varies and why>.
 Maintainer/review path: <existing owner or project process>.
 
