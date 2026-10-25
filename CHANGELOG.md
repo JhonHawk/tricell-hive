@@ -89,6 +89,14 @@ raise the minor or the patch version.
   `Delivery` and `Review` are declared, or in the next message once a boundary
   appears. A requested review runs before validation, or before the push or
   merge when there is no validation stop (#167).
+- Verification at checkpoints: a plan with numbered criteria groups its tasks
+  into checkpoints chosen by risk, and `flow-build` verifies the tasks of a
+  checkpoint together instead of after each task. A task that depends on a
+  task of its own checkpoint starts without waiting for a verdict, and tasks
+  that share a file never run at the same time. Each task is committed when it
+  is written, with fixes in additional commits that name it, and the work is
+  published for merge only when every task is verified or accepted by you. A
+  plan without checkpoints is still verified task by task (#168).
 - Incidental findings at a close: a P3 finding or a wording detail is no
   longer offered as a ticket, related P2 findings are proposed as one group, a
   UI finding is proposed only after it was seen rendered, and the close
@@ -122,7 +130,7 @@ raise the minor or the patch version.
   you are present, and one left unanswered stays unauthorized (#144).
 - A task added to a retained plan during the build or after validation is
   planned like any other and, when its test approach is `tdd` or `check`,
-  verified by `hive-verify-task` before its commit; one that arrives after
+  verified by `hive-verify-task` before the work is published for merge; one that arrives after
   the code review ran is reported and you are asked whether to review it.
 - Closing a change record now checks, after applying its deltas, that every
   added or modified requirement matches its delta and every removed one is
