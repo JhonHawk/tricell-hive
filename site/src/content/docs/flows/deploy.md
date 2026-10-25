@@ -29,14 +29,14 @@ The final report lists, per environment, the identity served, the health and the
 
 ## What it does not do
 
-- It does not commit, open pull requests or merge; that is Verify and [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md).
+- It does not commit, open pull requests or merge the work itself; that is Verify and [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md). It only opens and merges the promotion pull request when the environments are branches.
 - It does not run a recovery action on its own unless an authorization you gave covers it.
 - It does not reopen a ticket; the promotion is recorded separately.
 
 ## Related flows
 
 - [Verify](/flows/verify/) integrates the candidate that Deploy promotes.
-- [Close](/flows/close/) ends a ticket at integration; Deploy comes after.
+- [Close](/flows/close/) ends a ticket at integration, unless your project declares deployment as the completion point; Deploy comes after integration.
 
 ## FAQ
 

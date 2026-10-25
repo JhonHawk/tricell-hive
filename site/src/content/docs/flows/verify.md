@@ -39,12 +39,12 @@ You can raise or lower the level for the work with a request such as "full verif
 - It does not write the change; that is [Build](/flows/build/).
 - It does not mark a check as passed when it could not run it.
 - It does not run a security review you did not ask for. It offers one when the change crosses a security boundary.
-- It does not push, merge or deploy beyond the delivery you authorized.
+- It does not push or merge beyond the delivery you authorized, and it does not deploy; that is [Deploy](/flows/deploy/).
 
 ## Related flows
 
 - [Build](/flows/build/) comes first and hands over the candidate.
-- [Security](/flows/security/) runs inside Verify, on request.
+- [Security](/flows/security/) runs inside Verify, or on a merged commit, on request.
 - [Close](/flows/close/) follows once the candidate is integrated.
 - [Deploy](/flows/deploy/) is a separate step after integration.
 

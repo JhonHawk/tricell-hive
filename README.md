@@ -345,13 +345,14 @@ flowchart TD
   the project's settings and your request set: affected tests, runtime and UI
   checks, the full suite and the dedicated review. Integration follows it.
 - [Security](https://hive.tricell.tech/flows/security/) ([skill](content/skills/flow-security/SKILL.md)) runs an independent
-  security review only when you ask for it, inside Verify, and reports findings
-  without fixing them.
+  security review only when you ask for it, inside Verify or on a merged commit,
+  and reports findings without fixing them.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
   cleans up task-owned temporary resources while preserving unfinished work.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
-  served. It is not part of a ticket's close.
+  served. It is part of a ticket's close only when the project declares
+  deployment as the completion point.
 
 The [shared guidance](content/guidance/global.md) owns the detailed authorization,
 preservation, evidence, and artifact rules. Local edits, commits, publication,

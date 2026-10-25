@@ -22,8 +22,8 @@ raise the minor or the patch version.
 
 - Stage skills `flow-verify`, `flow-deploy` and `flow-security`, with an
   "Entry and exit" contract in every stage skill. `flow-verify` checks a built
-  candidate at a level the project settings and the request set, and a skipped
-  check counts as accepted without verification; `flow-security` runs the
+  candidate at a level the project settings and the request set, and a check
+  skipped at your request counts as accepted without verification; `flow-security` runs the
   security review only when you ask; `flow-deploy` is a separate stage after
   integration that promotes through the declared environments and checks what
   is served. The README, `llms.txt` and the documentation site describe them

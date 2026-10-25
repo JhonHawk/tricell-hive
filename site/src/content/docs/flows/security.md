@@ -32,7 +32,7 @@ The review runs on the current candidate before you are asked to validate it, or
 
 ## Related flows
 
-- [Verify](/flows/verify/) is the step it runs inside.
+- [Verify](/flows/verify/) is the step it usually runs inside; it can also run on a merged commit.
 - [Build](/flows/build/) offers the review when a change crosses a boundary.
 
 ## FAQ
