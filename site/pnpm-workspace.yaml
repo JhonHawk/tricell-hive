@@ -4,3 +4,13 @@ allowBuilds:
   # workerd (a wrangler dependency) ships its platform binary as an optional dependency;
   # its install script only validates it, so it is not needed for deploy or local dev.
   workerd: false
+# Refuse versions published less than 7 days ago (minutes), so a compromised release has time to be caught.
+minimumReleaseAge: 10080
+overrides:
+  # Patched releases for advisories in transitive tooling dependencies (pnpm audit, 2026-10-24).
+  undici@>=7.0.0 <7.30.1: 7.30.1
+  undici@>=8.0.0 <8.12.2: 8.12.2
+  source-map-js@>=1.0.0 <1.2.2: 1.2.2
+  zod@>=4.0.0 <4.6.6: 4.6.7
+  # starlight-ion-theme declares @iconify/tools but never imports it; dropping it removes extract-zip, which has no fix.
+  starlight-ion-theme@2.4.1>@iconify/tools: '-'
