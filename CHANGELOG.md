@@ -51,6 +51,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Fewer questions in the flows: effects beyond the local machine are
+  authorized by class (local, non-production, production, critical) instead of
+  one at a time. The test data of a non-production environment takes one
+  question for the whole set, while each critical effect keeps its own. The
+  steps of one objective are asked together and answers already in force are
+  reused. Minor findings from plan reviewers are applied and listed in the plan
+  summary, follow-up fix pull requests share the ticket's delivery, a condition
+  on a grant lasts only for its stated scope, and a research route option now
+  says whether it opens a ticket instead of a separate ticket question (#151).
 - Unattended delegation keeps running when you write only to tell the agent
   to continue, acknowledge progress or ask how it is going; any other
   message ends it (#143).

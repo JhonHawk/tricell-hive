@@ -16,6 +16,7 @@ Canonical procedural homes under `content/skills/`:
 
 - `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a progress or decision message opens with the context line the reference sets.
 - `flow-plan/references/questions.md`: before a user decision or manual validation request.
+- `flow-plan/references/effect-authorization.md`: before asking to authorize an effect beyond this machine, as `global.md` sets.
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
 - `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
 - `flow-plan/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
