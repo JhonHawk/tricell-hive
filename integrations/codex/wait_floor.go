@@ -172,6 +172,9 @@ func splitTOMLKey(name string) (segs []string, ok bool) {
 			quote = r
 		case r == '.':
 			flush()
+		case strings.ContainsRune(",={}[]", r):
+			// Unquoted, these cannot be part of a key: not a key path at all.
+			return nil, false
 		default:
 			cur.WriteRune(r)
 		}
@@ -220,26 +223,16 @@ func scanWaitFloor(content []byte, forUndo bool) (*waitFloorScan, *WaitFloorRefu
 		}
 		if strings.HasPrefix(trimmed, "[") {
 			atRoot = false
-			if section == secTarget {
+			prior := section
+			if prior == secTarget {
 				scan.bodyEnd = i
-				if !validHeaderLine(trimmed) {
-					return nil, refuse(WaitFloorUnsupported, "a line inside "+waitFloorTable+" looks like a header but is not one")
-				}
 			}
 			section = secOther
-			array := strings.HasPrefix(trimmed, "[[")
-			if !strings.HasSuffix(trimmed, "]") {
-				if strings.Contains(trimmed, "features") {
-					return nil, refuse(WaitFloorUnsupported, "a features table header is malformed")
-				}
-				continue
-			}
-			inner := strings.TrimSuffix(strings.TrimPrefix(trimmed, "["), "]")
-			if array {
-				inner = strings.TrimSuffix(strings.TrimPrefix(inner, "["), "]")
-			}
-			segs, ok := splitTOMLKey(inner)
+			segs, array, ok := parseTOMLHeader(trimmed)
 			if !ok {
+				if prior == secTarget {
+					return nil, refuse(WaitFloorUnsupported, "a line inside "+waitFloorTable+" looks like a header but is not one")
+				}
 				if strings.Contains(trimmed, "features") {
 					return nil, refuse(WaitFloorUnsupported, "a features table header is malformed")
 				}
@@ -365,6 +358,13 @@ func WaitFloor(content []byte, exists bool) (WaitFloorState, WaitFloorEdit, erro
 	return WaitFloorMissing, WaitFloorEdit{Offset: anchor.end, Insert: []byte(ins.String()), Record: WaitFloorRecord{Lines: want}}, nil
 }
 
+// The Skipped values of WaitFloorUndo: the table is not in the file, or the file
+// can no longer be read with certainty (Hive's lines may still be in it).
+const (
+	WaitFloorSkippedTableGone  = waitFloorTable + " is no longer present"
+	WaitFloorSkippedUnreadable = "the file can no longer be read with certainty"
+)
+
 // WaitFloorUndo is the result of removing what Hive wrote. Removed and Kept
 // name registered keys, never file text.
 type WaitFloorUndo struct {
@@ -414,10 +414,10 @@ func UndoWaitFloor(content []byte, rec WaitFloorRecord) WaitFloorUndo {
 	}
 	scan, refusal := scanWaitFloor(content, true)
 	if refusal != nil {
-		return keepAll("the file can no longer be read with certainty")
+		return keepAll(WaitFloorSkippedUnreadable)
 	}
 	if scan.tableIdx < 0 {
-		return keepAll(waitFloorTable + " is no longer present")
+		return keepAll(WaitFloorSkippedTableGone)
 	}
 	drop := map[int]bool{}
 	for _, r := range reg {
@@ -463,20 +463,18 @@ func UndoWaitFloor(content []byte, rec WaitFloorRecord) WaitFloorUndo {
 	return res
 }
 
-// validHeaderLine reports whether a line that starts with `[` is a table or
-// array-of-tables header: it closes its brackets and holds only a key path.
-func validHeaderLine(trimmed string) bool {
-	array := strings.HasPrefix(trimmed, "[[")
+// parseTOMLHeader reads a line that starts with `[` once: it returns the key
+// path of a table or array-of-tables header, with quotes honored, and whether
+// the line is one. A line such as an array element `[1, 2]` is not a header.
+func parseTOMLHeader(trimmed string) (segs []string, array, ok bool) {
+	array = strings.HasPrefix(trimmed, "[[")
 	open, closing := "[", "]"
 	if array {
 		open, closing = "[[", "]]"
 	}
-	if !strings.HasSuffix(trimmed, closing) {
-		return false
+	if !strings.HasSuffix(trimmed, closing) || len(trimmed) < len(open)+len(closing) {
+		return nil, array, false
 	}
-	inner := strings.TrimSuffix(strings.TrimPrefix(trimmed, open), closing)
-	if _, ok := splitTOMLKey(inner); !ok {
-		return false
-	}
-	return !strings.ContainsAny(inner, ",={}[]")
+	segs, ok = splitTOMLKey(strings.TrimSuffix(strings.TrimPrefix(trimmed, open), closing))
+	return segs, array, ok
 }

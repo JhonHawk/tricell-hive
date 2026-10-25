@@ -309,3 +309,39 @@ func TestWaitFloorRefusesAHeaderLikeLineInsideTheTable(t *testing.T) {
 		t.Fatalf("state = %v, err = %v", state, err)
 	}
 }
+
+func TestWaitFloorToleratesQuotedKeysWithTOMLPunctuation(t *testing.T) {
+	headers := []string{
+		`[mcp_servers."a=b"]`,
+		`[mcp_servers."a,b"]`,
+		`[x."{y}"]`,
+		`[x."[z]"]`,
+		`["a]b"]`,
+		`[[x."p,q"]]`,
+	}
+	for _, h := range headers {
+		t.Run(h, func(t *testing.T) {
+			after := hdr + "\nenabled = true\n" + h + "\nv = 1\n"
+			// Install, header after the table.
+			state, edit, err := WaitFloor([]byte(after), true)
+			if state != WaitFloorMissing || err != nil {
+				t.Fatalf("after the table: state = %v, err = %v", state, err)
+			}
+			if got := string(edit.Apply([]byte(after))); got != hdr+"\nenabled = true\n"+kMin+"\n"+kDef+"\n"+h+"\nv = 1\n" {
+				t.Fatalf("inserted in the wrong place: %q", got)
+			}
+			// Install, header before the table.
+			before := h + "\nv = 1\n\n" + hdr + "\nenabled = true\n"
+			if state, _, err := WaitFloor([]byte(before), true); state != WaitFloorMissing || err != nil {
+				t.Fatalf("before the table: state = %v, err = %v", state, err)
+			}
+			// Undo, header after the table.
+			rec := WaitFloorRecord{Lines: []string{kMin, kDef}}
+			applied := hdr + "\nenabled = true\n" + kMin + "\n" + kDef + "\n" + h + "\nv = 1\n"
+			res := UndoWaitFloor([]byte(applied), rec)
+			if res.Skipped != "" || len(res.Removed) != 2 || string(res.Content) != after {
+				t.Fatalf("undo: %+v", res)
+			}
+		})
+	}
+}
