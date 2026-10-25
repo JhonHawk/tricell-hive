@@ -606,6 +606,9 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 	if err := planPiPackage(&p); err != nil {
 		return p, err
 	}
+	if err := planCodexWaitFloor(&p, o); err != nil {
+		return p, err
+	}
 	p.ID = planID(p)
 	return p, nil
 }
@@ -883,6 +886,9 @@ func validatePlan(p Plan, state State) error {
 		}
 	}
 	if err := validateModelOverrides(p, state); err != nil {
+		return err
+	}
+	if err := validateCodexWaitFloor(p); err != nil {
 		return err
 	}
 	if p.Action != "voice" {

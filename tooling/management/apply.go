@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 	"tricell-hive/integrations/target"
 )
@@ -33,6 +34,9 @@ type journal struct {
 	Integrity               string
 	PackageDone             bool `json:",omitempty"`
 	PackagePending          bool `json:",omitempty"`
+	// CodexLines is the wait floor edit of Codex's config.toml, journaled by
+	// lines (fingerprints and owned lines), never by the file's bytes.
+	CodexLines *linesEntry `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -209,6 +213,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.Migrations = append([]MigrationReceipt(nil), state.Migrations...)
 	next.Voice = state.Voice
 	next.PiSubagentsSource = state.PiSubagentsSource
+	next.CodexWaitFloor = copyWaitFloorRecord(state.CodexWaitFloor)
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
 		for k, v := range state.VoiceSpans {
@@ -300,6 +305,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		changed = true
 	}
 	if p.Action == "remove" && hostsIncludePi(p.Hosts) && state.PiSubagentsSource != "" {
+		changed = true
+	}
+	if err := prepareCodexLines(p, state, &next, &j); err != nil {
+		return journal{}, State{}, nil, false, err
+	}
+	if j.CodexLines != nil && !j.CodexLines.Skip {
 		changed = true
 	}
 	if !changed {
@@ -417,6 +428,9 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 		return err
 	}
 	if err := applyPiPackage(p, next, j, jp, e.fail); err != nil {
+		return err
+	}
+	if err := applyCodexLines(j, jp, e.fail); err != nil {
 		return err
 	}
 	if p.Release != nil {
@@ -606,6 +620,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 		return j.ID, fmt.Errorf("transaction %s requires recover: %w", j.ID, err)
 	}
 	warning := recordSourceCommit(p)
+	if j.CodexLines != nil {
+		for _, n := range j.CodexLines.Notes {
+			warning = strings.TrimPrefix(warning+"; "+n, "; ")
+		}
+	}
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {
 		if warning != "" {
@@ -672,6 +691,9 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		if err := saveJournal(jp, j); err != nil {
 			return "", err
 		}
+	}
+	if err := undoCodexInstall(j); err != nil {
+		return "", err
 	}
 	stateNow, err := read(filepath.Join(dir, "state.json"))
 	if err != nil {
