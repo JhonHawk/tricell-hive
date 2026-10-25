@@ -1,8 +1,10 @@
 package management
 
 import (
+	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -34,13 +36,20 @@ func waitGone(t *testing.T, pid int) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		if err := syscall.Kill(pid, 0); errors.Is(err, syscall.ESRCH) {
+		// A killed child is reaped by init or lingers as a zombie; signal 0 on
+		// a zombie still succeeds, so also accept a dead process state.
+		if err := syscall.Kill(pid, 0); errors.Is(err, syscall.ESRCH) || isZombie(pid) {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
 	_ = syscall.Kill(pid, syscall.SIGKILL)
 	t.Fatalf("descendant %d of pi outlived the run", pid)
+}
+
+func isZombie(pid int) bool {
+	out, err := exec.Command("ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
+	return err != nil || strings.HasPrefix(strings.TrimSpace(string(out)), "Z")
 }
 
 func readPID(t *testing.T, path string) int {
@@ -68,6 +77,38 @@ func TestExecApplyPiTimesOutAndKillsDescendants(t *testing.T) {
 	}
 	if err == nil || !strings.Contains(err.Error(), "timed out") {
 		t.Fatalf("want a timeout error, got %v", err)
+	}
+	waitGone(t, readPID(t, pidFile))
+}
+
+func TestExecApplyPiInterruptKillsDescendants(t *testing.T) {
+	pidFile := fakeHangingPi(t)
+	piCommandTimeout = time.Minute
+	ctx, cancel := context.WithCancel(context.Background())
+	old := piCommandContext
+	piCommandContext = func() (context.Context, context.CancelFunc) { return ctx, cancel }
+	t.Cleanup(func() { piCommandContext = old })
+	done := make(chan error, 1)
+	go func() { done <- execApplyPi(t.TempDir(), "install", "npm:pi-subagents") }()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if _, err := os.Stat(pidFile); err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("fake pi did not start")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	cancel() // what SIGINT, SIGTERM or SIGHUP does to the production context
+	var err error
+	select {
+	case err = <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("execApplyPi did not return after an interrupt")
+	}
+	if err == nil || !strings.Contains(err.Error(), "interrupted") {
+		t.Fatalf("want an interrupted error, got %v", err)
 	}
 	waitGone(t, readPID(t, pidFile))
 }

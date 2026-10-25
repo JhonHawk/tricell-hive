@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -25,6 +26,14 @@ var piCommandTimeout = 15 * time.Minute
 
 const piCommandWaitDelay = 2 * time.Second
 
+// piCommandContext is cancelled by SIGINT, SIGTERM or SIGHUP. pi runs in its
+// own session, out of reach of the terminal's signals, so without this a
+// Ctrl-C would end Hive and leave pi and npm running with no deadline.
+// Tests replace it.
+var piCommandContext = func() (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+}
+
 func resolveApplyPi(synthetic bool) func(string, string, string) error {
 	if applyPiCmd != nil {
 		return applyPiCmd
@@ -40,7 +49,9 @@ func execApplyPi(piHome, action, source string) error {
 	if err != nil {
 		return fmt.Errorf("pi executable: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), piCommandTimeout)
+	parent, stop := piCommandContext()
+	defer stop()
+	ctx, cancel := context.WithTimeout(parent, piCommandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, bin, action, source)
 	cmd.Env = append(os.Environ(), "PI_CODING_AGENT_DIR="+piHome)
@@ -58,6 +69,8 @@ func execApplyPi(piHome, action, source string) error {
 		return nil
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
 		return fmt.Errorf("pi %s: timed out after %s", action, piCommandTimeout)
+	case errors.Is(ctx.Err(), context.Canceled):
+		return fmt.Errorf("pi %s: interrupted", action)
 	}
 	return fmt.Errorf("pi %s: %w", action, runErr)
 }
