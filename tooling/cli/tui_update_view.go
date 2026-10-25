@@ -226,10 +226,11 @@ func (v *updateView) onPlanned(msg updatePlannedMsg) (tea.Cmd, action) {
 				return v.choose(msg, requests), action{nav: navPop}
 			},
 			func() (tea.Cmd, action) {
-				// Closing the dialog skips the offer: the update goes on as
-				// if nothing had been offered, so an unchanged update still
-				// applies and records its source commit.
-				return v.choose(msg, nil), action{nav: navPop}
+				// Esc cancels the update, as dismissing the offer does in
+				// `hive update`. Unchecking the offer and continuing is the
+				// way to skip it and still apply.
+				v.message, v.messageErr = "Cancelled. No changes applied.", false
+				return nil, action{nav: navPop}
 			})
 		return nil, action{nav: navPush, push: caps}
 	}

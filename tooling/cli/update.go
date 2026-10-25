@@ -146,7 +146,7 @@ func detectUpdateOffers(p management.Plan, f updateFlags, interactive bool) (onb
 		return nil, nil, nil
 	}
 	adapter := updateAdapterFactory(f, interactive, p.Config.CodexHome)
-	o := management.Options{Scope: "user", Home: f.Home, Hosts: p.Hosts}
+	o := management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir, Hosts: p.Hosts}
 	// The native adapter detects the wait floor alone, so an update runs none
 	// of the other capabilities' probes. Any other adapter lists everything and
 	// update keeps the wait floor, the only capability that changes a file it

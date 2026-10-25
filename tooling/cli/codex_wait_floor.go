@@ -75,7 +75,14 @@ func planWithWaitFloor(o management.Options, p management.Plan, unchanged bool, 
 // Detect offered. cause is set when Hive will not edit the file.
 type waitFloorDecision struct {
 	cause string
+	// otherHome is set when Hive's record of the wait floor is for another
+	// Codex home than the one this run resolves: writing here would leave the
+	// old lines unreachable by hive plan remove, so Hive only explains.
+	otherHome bool
 }
+
+// otherHomeCause is the fixed phrase for a record kept for another Codex home.
+const otherHomeCause = "Hive's record of the wait floor is for another Codex home"
 
 // waitFloorCause reads Codex's config.toml and reports whether the wait floor
 // is already applied and, when Hive cannot edit the file, a fixed phrase that
@@ -112,12 +119,16 @@ func waitFloorCause(codexHome string) (applied bool, cause string) {
 // Codex, no Codex or no way to verify, it offers nothing, not even a manual step.
 func (a *nativeProviderAdapter) waitFloorOffer(o management.Options) (providerOffer, bool) {
 	a.waitFloor = nil
-	if o.Scope == "project" || a.codexHome == "" {
+	if o.Scope == "project" || a.codexHome == "" || !hostsIntersect(o.Hosts, []string{"codex"}) {
 		return providerOffer{}, false
 	}
 	applied, cause := waitFloorCause(a.codexHome)
 	if applied || !a.runsPrograms() {
 		return providerOffer{}, false
+	}
+	otherHome := false
+	if record, err := management.StoredCodexWaitFloor(o); err == nil && record != nil && record.Path != filepath.Join(a.codexHome, "config.toml") {
+		cause, otherHome = otherHomeCause, true
 	}
 	if _, err := a.system(o.Home).lookPath(codexBinary); err != nil {
 		return providerOffer{}, false
@@ -126,7 +137,7 @@ func (a *nativeProviderAdapter) waitFloorOffer(o management.Options) (providerOf
 	if res.ExitCode != 0 || res.TimedOut || res.Interrupted || !codexSupportsWaitFloor(stdout) {
 		return providerOffer{}, false
 	}
-	a.waitFloor = &waitFloorDecision{cause: cause}
+	a.waitFloor = &waitFloorDecision{cause: cause, otherHome: otherHome}
 	return providerOffer{
 		ID: string(providers.CodexWaitFloor), Name: string(providers.CodexWaitFloor), Source: providerSource(providers.CodexWaitFloor),
 		ManualOnly: cause != "", DefaultOn: cause == "",
@@ -144,7 +155,16 @@ func (a *nativeProviderAdapter) planCodexWaitFloorSteps(preview *onboardingPrevi
 	config := filepath.Join(a.codexHome, "config.toml")
 	keys := fmt.Sprintf("min_wait_timeout_ms = %d and default_wait_timeout_ms = %d under [features.multi_agent_v2]", codex.WaitFloorMinMS, codex.WaitFloorDefaultMS)
 	var effects []string
-	if a.waitFloor.cause != "" {
+	if a.waitFloor.otherHome {
+		reason := a.waitFloor.cause + ": restore that CODEX_HOME and run hive plan remove, or delete the min_wait_timeout_ms and default_wait_timeout_ms keys there by hand, then offer it again"
+		step := providers.Step{ID: providers.CodexWaitFloorManualStep, Provider: providers.CodexWaitFloor, Status: providers.Manual, ManualReason: reason}
+		payload, err := json.Marshal(step)
+		if err != nil {
+			return err
+		}
+		preview.Steps = append(preview.Steps, management.ExternalStep{ID: step.ID, Payload: payload})
+		effects = []string{string(step.Status) + " — " + reason}
+	} else if a.waitFloor.cause != "" {
 		reason := "Hive did not edit Codex's config.toml: " + a.waitFloor.cause + "; to set the wait floor, add " + keys + " by hand"
 		step := providers.Step{ID: providers.CodexWaitFloorManualStep, Provider: providers.CodexWaitFloor, Status: providers.Manual, ManualReason: reason}
 		payload, err := json.Marshal(step)

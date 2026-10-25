@@ -184,7 +184,7 @@ func TestUpdateRunsOnlyTheWaitFloorProbe(t *testing.T) {
 	}
 }
 
-func TestUpdateViewCancellingTheCapabilityDialogKeepsTheUnchangedApply(t *testing.T) {
+func TestUpdateViewEscOnTheCapabilityDialogCancelsTheUpdateLikeTheCommand(t *testing.T) {
 	env := newUpdateTwinEnv(t, true)
 	useFloorAdapterForUpdate(t, newFloorAdapter(false))
 	_, d := env.openApp(t, 100, 30)
@@ -192,12 +192,142 @@ func TestUpdateViewCancellingTheCapabilityDialogKeepsTheUnchangedApply(t *testin
 	d.key("enter")
 	d.mustShow("[x] codex-wait-floor")
 	d.key("esc")
-	d.mustShow("already up to date")
-	d.mustNotShow("Cancelled")
+	d.mustShow("Cancelled. No changes applied.")
+	d.mustNotShow("already up to date")
 	mustNotExist(t, filepath.Join(env.aHome, ".codex", "config.toml"))
-	// The source commit is still recorded, as the unchanged apply does.
+	entries, err := management.Releases(management.Options{Scope: "user", Home: env.aHome, StateDir: env.aState})
+	if err != nil || len(entries) == 0 || len(entries[0].Commits) != 0 {
+		t.Fatalf("a cancelled update recorded a commit: %+v err=%v", entries, err)
+	}
+}
+
+func TestUpdateViewUncheckingTheOfferAndConfirmingRecordsTheSourceCommit(t *testing.T) {
+	env := newUpdateTwinEnv(t, true)
+	useFloorAdapterForUpdate(t, newFloorAdapter(false))
+	_, d := env.openApp(t, 100, 30)
+	setSource(d, env.repo)
+	d.key("enter")
+	d.mustShow("[x] codex-wait-floor")
+	d.key("space")
+	d.key("enter")
+	d.mustShow("already up to date")
+	mustNotExist(t, filepath.Join(env.aHome, ".codex", "config.toml"))
 	entries, err := management.Releases(management.Options{Scope: "user", Home: env.aHome, StateDir: env.aState})
 	if err != nil || len(entries) == 0 || len(entries[0].Commits) < 1 {
-		t.Fatalf("commits not recorded: %+v err=%v", entries, err)
+		t.Fatalf("commit not recorded: %+v err=%v", entries, err)
+	}
+}
+
+// nativeFloorFactory makes update use the native adapter against codexHome, on
+// a fake machine where Codex 0.164.0 is installed.
+func nativeFloorFactory(t *testing.T, codexHome string) {
+	t.Helper()
+	useAgentBrowserFake(t, &abFake{goos: "darwin", goarch: "arm64", codexVersion: "codex-cli 0.164.0", path: map[string]bool{"codex": true}})
+	saved := updateAdapterFactory
+	t.Cleanup(func() { updateAdapterFactory = saved })
+	updateAdapterFactory = func(_ updateFlags, interactive bool, _ string) onboardingAdapter {
+		a := newNativeProviderAdapter(false, false, interactive)
+		a.codexHome = codexHome
+		return a
+	}
+}
+
+// recordWaitFloorFor writes the wait floor under home and leaves Hive's record
+// of it in stateDir.
+func recordWaitFloorFor(t *testing.T, home, stateDir string, hosts []string) {
+	t.Helper()
+	p, err := management.BuildPlan("install", management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: minimalTestSource(t), Hosts: hosts, CodexWaitFloor: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (management.Engine{}).Apply(p); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUpdateDoesNotOfferTheWaitFloorWhenTheRecordIsForAnotherCodexHome(t *testing.T) {
+	env := upToDateUpdateEnv(t)
+	recordWaitFloorFor(t, env.home, env.stateDir, []string{"claude", "codex"})
+	other := t.TempDir()
+	nativeFloorFactory(t, other)
+	p, _, _, err := planUpdate(updateFlags{Rev: "HEAD", Source: env.repo, Home: env.home, StateDir: env.stateDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, offers, err := detectUpdateOffers(p, updateFlags{Home: env.home, StateDir: env.stateDir}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(offers) != 1 || !offers[0].ManualOnly || offers[0].DefaultOn {
+		t.Fatalf("offers = %+v, want one manual offer", offers)
+	}
+	var out bytes.Buffer
+	if err := update(env.args(), strings.NewReader("1\ny\n"), &out, true); err != nil {
+		t.Fatalf("update aborted: %v\n%s", err, out.String())
+	}
+	if !strings.Contains(out.String(), "another Codex home") {
+		t.Fatalf("the summary does not explain the record:\n%s", out.String())
+	}
+	mustNotExist(t, filepath.Join(other, "config.toml"))
+}
+
+func TestInstallDoesNotOfferTheWaitFloorWhenTheRecordIsForAnotherCodexHome(t *testing.T) {
+	home := t.TempDir()
+	installWithFloor(t, newFloorAdapter(false), home, "\ny\n")
+	other := t.TempDir()
+	nativeFloorFactory(t, other)
+	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+	var offers []providerOffer
+	dependencies.AdapterFactory = func(onboardingInput) (onboardingAdapter, error) {
+		a := newNativeProviderAdapter(false, false, true)
+		a.codexHome = other
+		return &recordingDetect{onboardingAdapter: a, offers: &offers}, nil
+	}
+	var out strings.Builder
+	if err := installWithDependencies(installArgs(t, home), strings.NewReader("none\ny\n"), &out, true, dependencies); err != nil {
+		t.Fatalf("install aborted: %v\n%s", err, out.String())
+	}
+	var floor *providerOffer
+	for i := range offers {
+		if offers[i].ID == "codex-wait-floor" {
+			floor = &offers[i]
+		}
+	}
+	if floor == nil || !floor.ManualOnly || floor.DefaultOn {
+		t.Fatalf("offers = %+v", offers)
+	}
+	mustNotExist(t, filepath.Join(other, "config.toml"))
+}
+
+type recordingDetect struct {
+	onboardingAdapter
+	offers *[]providerOffer
+}
+
+func (r *recordingDetect) Detect(o management.Options) ([]providerOffer, error) {
+	offers, err := r.onboardingAdapter.Detect(o)
+	*r.offers = offers
+	return offers, err
+}
+
+func TestUpdateDoesNotOfferTheWaitFloorWithoutCodexRegistered(t *testing.T) {
+	requireGit(t)
+	env := newUpdateEnv(t)
+	writeUpdateCatalog(t, env.repo, skillBody("Preserve evidence.\n"))
+	gitInitLocal(t, env.repo)
+	commit := gitCommitAll(t, env.repo, "init")
+	installFromCommit(t, env.home, env.stateDir, env.repo, commit, []string{"claude", "pi"})
+	nativeFloorFactory(t, filepath.Join(env.home, ".codex"))
+	f := updateFlags{Rev: "HEAD", Source: env.repo, Home: env.home, StateDir: env.stateDir}
+	p, _, _, err := planUpdate(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, offers, err := detectUpdateOffers(p, f, true); err != nil || len(offers) != 0 {
+		t.Fatalf("offers = %+v err=%v", offers, err)
+	}
+	var out bytes.Buffer
+	if err := update(env.args(), strings.NewReader(""), &out, true); err != nil {
+		t.Fatalf("update: %v\n%s", err, out.String())
 	}
 }
