@@ -17,11 +17,11 @@ class StarlightAssetsTest(unittest.TestCase):
         for profile in ("user-manual", "spec-site"):
             folder = ASSETS / profile
             package = json.loads((folder / "package.json").read_text(encoding="utf-8"))
-            self.assertEqual(package["dependencies"]["astro"], "7.3.5")
-            self.assertEqual(package["dependencies"]["@astrojs/starlight"], "0.42.4")
+            self.assertEqual(package["dependencies"]["astro"], "7.4.0")
+            self.assertEqual(package["dependencies"]["@astrojs/starlight"], "0.42.6")
             self.assertEqual(package["dependencies"]["sharp"], "0.35.5")
             self.assertEqual(package["devDependencies"]["@astrojs/check"], "0.9.10")
-            self.assertEqual(package["devDependencies"]["@biomejs/biome"], "2.5.14")
+            self.assertEqual(package["devDependencies"]["@biomejs/biome"], "2.5.15")
             self.assertEqual(package["devDependencies"]["typescript"], "6.0.3")
             self.assertEqual(package["packageManager"], "pnpm@12.8.1")
             self.assertTrue((folder / "astro.config.mjs").is_file())
@@ -29,6 +29,7 @@ class StarlightAssetsTest(unittest.TestCase):
             self.assertTrue((folder / "src/content/docs/index.mdx").is_file())
             workspace = (folder / "pnpm-workspace.yaml").read_text(encoding="utf-8")
             self.assertIn("allowBuilds:\n  esbuild: false\n", workspace)
+            self.assertIn("\nminimumReleaseAge: 10080\n", workspace)
             biome = json.loads((folder / "biome.json").read_text(encoding="utf-8"))
             self.assertTrue(biome["vcs"]["useIgnoreFile"])
             self.assertEqual(biome["formatter"]["indentStyle"], "space")
