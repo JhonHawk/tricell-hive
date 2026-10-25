@@ -65,6 +65,8 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A task whose second verification still fails no longer stops to ask you when the remaining fix is small, local and obvious: the agent applies it and runs one more verification, and asks only when the fix needs your decision or that verification also fails.
+
 - Fewer questions in the flows: effects beyond the local machine are
   authorized by class (local, non-production, production, critical) instead of
   one at a time. The test data of a non-production environment takes one
