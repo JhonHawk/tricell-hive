@@ -66,7 +66,7 @@ Apply the checks relevant to the change at every assigned viewport and theme. Ea
 | Medium | Noticeable defect or inconsistency limited in reach that does not impede the task |
 | Nit | Polish that does not affect comprehension or use |
 
-Breakage introduced or worsened by the change is at least High. Classify each finding as `introduced`, `worsened` (present at the baseline and made worse), or `pre-existing` (baseline evidence shows it unchanged). Without baseline evidence, treat it as introduced; a baseline report the parent supplies under the UI gate's exception counts as baseline evidence. Report pre-existing findings separately with a suggested disposition; the parent applies the shared incidental-findings rule, listing them as [incidental findings](../../flow-close/references/incidental-findings.md#which-findings-are-listed-and-how) sets.
+Breakage introduced or worsened by the change is at least High. Classify each finding as `introduced`, `worsened` (present at the baseline and made worse), or `pre-existing` (baseline evidence shows it unchanged). Without baseline evidence, treat it as introduced; a baseline report the parent supplies under the UI gate's exception only means you do not report that report's findings again: they keep the classification the local review gave them, and the report is not evidence that turns an introduced finding into a pre-existing one. Report pre-existing findings separately with a suggested disposition; the parent applies the shared incidental-findings rule, listing them as [incidental findings](../../flow-close/references/incidental-findings.md#which-findings-are-listed-and-how) sets.
 
 ## Verdict
 
