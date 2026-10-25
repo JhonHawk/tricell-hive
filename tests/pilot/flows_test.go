@@ -218,10 +218,10 @@ func TestAllManagedSkillsProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
 	before := protectedFor("grok", home)
-	for _, name := range []string{"flow-research", "flow-plan", "flow-build", "git-workflow"} {
+	for _, name := range []string{"flow-research", "flow-plan", "flow-build", "flow-verify", "flow-deploy", "flow-security", "git-workflow"} {
 		fixtureFile(t, filepath.Join(home, ".agents/skills", name, "SKILL.md"), name)
 	}
-	if got := changedProtected(before, protectedFor("grok", home)); len(got) != 4 {
+	if got := changedProtected(before, protectedFor("grok", home)); len(got) != 7 {
 		t.Fatalf("missing shared skills: %v", got)
 	}
 }

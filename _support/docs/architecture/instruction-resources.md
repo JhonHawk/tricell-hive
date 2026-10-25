@@ -73,7 +73,8 @@ The predicates and full file lists are in `TestGuidanceReadingFootprint`:
 - **Plan/build cycle:** retained backend runtime plan, settings and hold/review
   decision, read-only plan reviewer, delegated backend implementer and task
   verifier, local tests, then pause through Close. Include the selected
-  Plan/Build/Close entrypoints, Research's planning exploration criterion,
+  Plan/Build/Close entrypoints, the Verify entrypoint and its review-and-gates
+  reference (stage handoff from Build), Research's planning exploration criterion,
   plan format/review, settings/change records, delivery decisions, verification,
   delegation, artifact layout, questions/reporting and the three role sources.
   No UI, security/data migration, deployment, Git execution or incidental finding
