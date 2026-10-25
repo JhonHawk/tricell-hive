@@ -89,6 +89,13 @@ raise the minor or the patch version.
   `Delivery` and `Review` are declared, or in the next message once a boundary
   appears. A requested review runs before validation, or before the push or
   merge when there is no validation stop (#167).
+- Verification at checkpoints: a plan with numbered criteria groups its tasks
+  into checkpoints chosen by risk, and `flow-build` verifies the tasks of a
+  checkpoint together instead of after each task. A task that depends on one
+  of its own checkpoint starts without waiting for a verdict, a task of the
+  same checkpoint that shares a file goes in one joint commit, and nothing is
+  committed without an independent verdict or your acceptance. A plan without
+  checkpoints is still verified task by task (#168).
 - Incidental findings at a close: a P3 finding or a wording detail is no
   longer offered as a ticket, related P2 findings are proposed as one group, a
   UI finding is proposed only after it was seen rendered, and the close
