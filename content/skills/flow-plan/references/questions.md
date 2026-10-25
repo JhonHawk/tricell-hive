@@ -20,13 +20,17 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
-**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Silence, preselection, and a dismissed or timed-out question grant nothing.
+**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Silence, preselection, and a dismissed or timed-out question grant nothing, except the silence after the route answer that activates [unattended delegation](../../unattended-delegation/SKILL.md) under its own rule.
 
 **Condition:** several open questions do not depend on one another.
 
 **Actions:** ask all of them in one round.
 
-**Condition:** one objective needs several authorizations or choices in sequence, such as the records of one test setup or the steps of an operation the user approved.
+**Condition:** a question's options, context, or relevance depend on the answer to another open question, such as one that changes the course of an investigation, opens a different set of questions, or assumes that an option of the other, typically the Recommended one, is chosen.
+
+**Actions:** ask the other question first and the dependent one in a later turn, after that answer, worded for the answer given. In one round, put only questions whose options hold with any answer to the others; when a question needs only its wording adjusted, write its options to hold with any answer instead, such as "with the review you choose in D2".
+
+**Condition:** an objective the user already decided needs several authorizations in sequence, such as the records of one test setup or the steps of an operation the user approved.
 
 **Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect, and a production deployment the user has not already named keep their own question in that same round.
 
