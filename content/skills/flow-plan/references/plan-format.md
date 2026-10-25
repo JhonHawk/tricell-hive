@@ -44,7 +44,7 @@ Mark each task with one of these markers:
 | `[x]` | Verified. When the user accepted the task without verification, a line `accepted unverified by the user: <reason>` follows it. |
 | `[!]` | Rejected by verification. A line with the round, the `AC<n>`, and the reason follows it. |
 
-`flow-build` owns the transitions, as [plan execution](../../flow-build/references/plan-execution.md) sets. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
+`flow-build` and `flow-verify` own the transitions, each in its own stage, as [plan execution](../../flow-build/references/plan-execution.md) and [flow-verify](../../flow-verify/SKILL.md) set. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
 
 ## Opening control sheet
 
@@ -133,7 +133,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 | --- | --- | --- | --- |
 | <applicable gate> | <when, candidate and target> | <command or walkthrough and pass criteria> | <covered by implementation, explicit agreement, or pending choice> |
 
-<For a rendered UI effect that [the UI gate](../../flow-walkthrough/references/ui-gate.md) does not exempt, include the independent children that the repository's `UI verification` value or answer selects, resolved as [delivery decisions](delivery-decisions.md) sets, with their candidate identity, base revision, viewports and themes, data and browser tool; the selected children are part of implementation. When no value is declared or answered yet, record the question as pending with the delivery decisions.>
+<For a rendered UI effect that [the UI gate](../../flow-verify/references/ui-gate.md) does not exempt, include the independent children that the repository's `UI verification` value or answer selects, resolved as [delivery decisions](delivery-decisions.md) sets, with their candidate identity, base revision, viewports and themes, data and browser tool; the selected children are part of implementation. When no value is declared or answered yet, record the question as pending with the delivery decisions.>
 
 <For human UI review, specify the built local stack, account/role and data prerequisites without secrets, relevant viewports/states, and short navigation/actions with expected results. State that the verified stack stays available and selected temporary session captures are linked at handoff. Fill actual clickable URLs when known. Record remote exceptions explicitly.>
 
@@ -141,7 +141,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Preserve user answers and their scope: repositories, base/work branches, Git mode, authorized effects, next human stop, code-review mechanism and agreed endpoint. Use a compact table when repositories or conditions differ. Do not infer merge, tracker writes or deployment authority from plan readiness.>
 
-<Describe the sequence before and after the human stop and the applicable CI/review gates, referencing verification above. Include deployment and recovery steps only within the selected scope; distinguish a future offered promotion from an authorized action.>
+<Describe the sequence before and after the human stop and the applicable CI/review gates, referencing verification above and, for deployment, [deployment checks](../../flow-deploy/references/deployment-checks.md). Include deployment and recovery steps only within the selected scope; distinguish a future offered promotion from an authorized action.>
 
 ## Review status and progress
 

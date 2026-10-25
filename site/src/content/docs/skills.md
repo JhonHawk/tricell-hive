@@ -11,8 +11,11 @@ hold the canonical rules.
 
 - [Research](/flows/research/): investigate an uncertain question and report evidence.
 - [Plan](/flows/plan/): settle consequential decisions and define verifiable work.
-- [Build](/flows/build/): implement authorized changes and check the result.
+- [Build](/flows/build/): implement authorized changes and hand over a built candidate.
+- [Verify](/flows/verify/): check the candidate at the level you set, then integrate it.
+- [Security](/flows/security/): review a change's security boundaries when you ask.
 - [Close](/flows/close/): record the outcome and clean up the work session.
+- [Deploy](/flows/deploy/): promote an integrated change and check what is served.
 
 ## Supporting skills
 

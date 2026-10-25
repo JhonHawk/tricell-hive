@@ -20,6 +20,14 @@ raise the minor or the patch version.
 
 ### Added
 
+- Stage skills `flow-verify`, `flow-deploy` and `flow-security`, with an
+  "Entry and exit" contract in every stage skill. `flow-verify` checks a built
+  candidate at a level the project settings and the request set, and a check
+  skipped at your request counts as accepted without verification; `flow-security` runs the
+  security review only when you ask; `flow-deploy` is a separate stage after
+  integration that promotes through the declared environments and checks what
+  is served. The README, `llms.txt` and the documentation site describe them
+  (#169).
 - Open topics: the agent keeps a list of the topics you add while work is open
   or closing, tells you in one line how it classifies each, closes none
   without a destination, and names them in its reports and route or close
@@ -80,6 +88,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `flow-build` ends at the built candidate and hands it to `flow-verify`; the
+  independent UI children, the full suite, the dedicated code review and the
+  walkthrough delivery move there, and promotion and deployment checks move to
+  `flow-deploy`. `flow-walkthrough/references/ui-gate.md` and
+  `ui-review-criteria.md` move to `flow-verify/references/`.
 - The security review (`hive-review-security`) runs only when you ask for it.
   A declared `Review` value no longer authorizes it, and the accepted-candidate
   gate, the role description and the `security-advisory` scope assessment no

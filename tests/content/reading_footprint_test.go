@@ -54,6 +54,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	cycle := append(append([]string{}, question...),
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"flow-research/SKILL.md", // planning's exploration/delegation criterion
+		skills+"flow-verify/SKILL.md", skills+"flow-verify/references/review-and-gates.md",
 		skills+"flow-plan/references/project-settings.md",
 		skills+"flow-plan/references/change-records.md",
 		skills+"flow-plan/references/plan-format.md",
@@ -76,6 +77,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-plan/references/project-settings.md":            true,
 		skills + "flow-build/references/plan-execution.md":             true,
 		skills + "flow-build/references/tdd.md":                        true,
+		skills + "flow-verify/SKILL.md":                                true,
+		skills + "flow-verify/references/review-and-gates.md":          true,
 		skills + "flow-research/references/delegation.md":              true,
 		skills + "workspace-conventions/references/artifact-layout.md": true,
 	}

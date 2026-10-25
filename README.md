@@ -318,28 +318,41 @@ flowchart TD
     Answer -->|User authorizes a small change| Build
     Plan --> Ready["Contracts, tasks, and acceptance criteria"]
     Ready -->|Implementation authorized| Build
-    Build --> Checks["Relevant checks and independent verification"]
-    Checks -->|Required review authorized| Review["Independent review"]
-    Review --> Result["Evidence and remaining work"]
-    Checks -->|No dedicated review needed| Result
+    Build --> Candidate["Built candidate"]
+    Candidate --> Verify["flow-verify"]
+    Verify -->|Security review requested| Security["flow-security"]
+    Security --> Verify
+    Verify --> Result["Evidence and integrated candidate"]
+    Candidate -->|Verify skipped| Result
     Result --> Close["flow-close"]
     Close --> Finish["Completion point and session hygiene"]
+    Result -->|Promotion requested| Deploy["flow-deploy"]
+    Deploy --> Served["Served identity and health per environment"]
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef outcome fill:#edf4ee,stroke:#52745c,color:#203a28
-    class Research,Plan,Build,Close activity
-    class Answer,Ready,Result,Finish outcome
+    class Research,Plan,Build,Verify,Security,Close,Deploy activity
+    class Answer,Ready,Candidate,Result,Finish,Served outcome
 ```
 
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
   answer. It can stand alone and does not authorize implementation.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) resolves consequential decisions and
   defines contracts, verifiable tasks, and acceptance criteria when needed.
-- [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state, implements
-  authorized work, and verifies affected behavior. Independent verification and
-  dedicated review follow the applicable task and risk rules.
+- [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
+  implements authorized work. It ends at a built candidate and hands it to Verify.
+- [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
+  the project's settings and your request set: affected tests, runtime and UI
+  checks, the full suite and the dedicated review, and then integrates it.
+- [Security](https://hive.tricell.tech/flows/security/) ([skill](content/skills/flow-security/SKILL.md)) runs an independent
+  security review only when you ask for it, inside Verify or on a merged commit,
+  and reports findings without fixing them.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
   cleans up task-owned temporary resources while preserving unfinished work.
+- [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
+  integration: it promotes through the declared environments and checks what is
+  served. It is part of a ticket's close only when the project declares
+  deployment as the completion point.
 
 The [shared guidance](content/guidance/global.md) owns the detailed authorization,
 preservation, evidence, and artifact rules. Local edits, commits, publication,
