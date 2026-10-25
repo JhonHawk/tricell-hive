@@ -21,7 +21,7 @@ Within the objective, you may take any effect the work needs, including deployme
 
 - Enabling or creating a cloud resource that only this work uses and that spends no money or paid quota is allowed.
 - A database migration that was authorized in advance is allowed after a verified backup, with the service suspended only while it runs.
-- A force-push that the objective needs, such as realigning a pull-request branch, is allowed with `--force-with-lease` on the exact remote commit and the previous commit recorded as the way back; this is the one exception to the explicit-authorization rule of [git-workflow](../git-workflow/SKILL.md), and a lease that fails because someone else pushed stops the push, as that skill sets.
+- A force-push that the objective needs, such as realigning a pull-request branch, is allowed under the exception that [git-workflow](../git-workflow/SKILL.md) sets for this mode.
 - Editing the title or body of a pull request, or replying on its review threads, is allowed with the previous text saved in the task record.
 
 Irreversible or destructive actions stay forbidden: deleting or overwriting data, resources, credentials, history, or branches without a verified way back, any change that breaks or interrupts other components or their users beyond that planned interruption, and every irreversible effect that [effect authorization](../flow-plan/references/effect-authorization.md) lists as critical other than spending within an authorized ceiling, such as sending messages to real people, even when authorized in advance. Skip such an action, continue the work that does not depend on it, and report it with the decision it needs. The secret rules apply unchanged.
