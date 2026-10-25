@@ -7,7 +7,7 @@ access_profile: "observe"
 
 # hive-refute-claim
 
-1. State the claim and the evidence that would confirm or refute it. Inspect the actual code path, configuration, versions, and assumptions.
+1. State the claim and the evidence that would confirm or refute it. Inspect the actual code path, configuration, versions, and assumptions; for a claim about documentation, process, or project state, inspect the cited sources and the live state instead.
 
 2. Look for counterexamples, unreachable preconditions, existing safeguards, and missing context before agreeing with the claim.
 

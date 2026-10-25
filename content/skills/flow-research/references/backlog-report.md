@@ -7,4 +7,4 @@ Read before answering a question about the project's status or a request to list
 - Keep an initiative's umbrella and its phases together and in order, list deferred tickets apart, and name those blocking the next promotion.
 - Give every ticket its ID.
 - Open with one line per non-terminal state and its count, in-progress first; after the backlog, list relevant workspace state outside the tracker.
-- Close by recommending which group or ticket to take first and why: production user-visible bugs, then security or data integrity, then promotion blockers, then debt and tooling; among equals, the smallest and most visible first.
+- Close by recommending which group or ticket to take first and why: production user-visible bugs, then security or data integrity, then promotion blockers, then debt and tooling; among equals, the smallest and most visible first. A status report ends with these recommendations; ask the route question only when the user asked what to take next.

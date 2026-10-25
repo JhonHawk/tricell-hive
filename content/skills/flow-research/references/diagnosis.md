@@ -1,6 +1,6 @@
 # Diagnose with discriminating evidence
 
-Read when investigating a failure, regression, or incident with an uncertain cause. Keep diagnostic experiments within the task's authorized effects.
+Read when investigating a failure, regression, or incident with an uncertain cause. Keep diagnostic experiments within the task's authorized effects. A delegated `hive-research` child gathers read-only evidence (logs, state, source, history); the main thread runs the experiments, because only it holds the task's authorized effects, and briefs the child with the evidence it needs next.
 
 1. Establish expected and observed behavior, affected scope, actual revision/configuration, and recent relevant changes. Reproduce when feasible; otherwise preserve logs, traces, state, or other evidence and state the limits of the reconstruction. Failure to reproduce is not proof that the event did not occur.
    While the failure can still occur, form no hypothesis and edit no code until you can name a command or observation you have already run that shows the exact reported symptom and would show its absence once fixed; one that merely completes without error does not count. When you cannot build one, say what you tried and either reconstruct from preserved evidence as above or ask the user for an environment that reproduces it, a captured artifact, or permission for temporary instrumentation. During an incident, mitigation (step 2) does not wait for this.

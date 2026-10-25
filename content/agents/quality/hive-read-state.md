@@ -1,6 +1,6 @@
 ---
 name: "hive-read-state"
-description: "Collect current tracker, Git, CI, or deployment state for explicitly identified targets. Use to gather the current state of named tickets, branches, pull requests, CI runs, or deployments without changing them."
+description: "Collect current tracker, Git, CI, or deployment state for explicitly identified targets or a tracker query by project and states. Use to gather the current state of named tickets, branches, pull requests, CI runs, or deployments, or the tickets a tracker query returns, without changing them."
 model_profile: "execution"
 access_profile: "observe"
 effort: "low"
@@ -8,7 +8,7 @@ effort: "low"
 
 # hive-read-state
 
-1. Use the declared repository, issue, pull request, pipeline, or deployment identifiers. Resolve ambiguity before querying unrelated projects.
+1. Use the declared repository, issue, pull request, pipeline, or deployment identifiers, or the tracker query by project and states that the brief gives (a tracker query returns the tickets in those states, with the fields the brief names). Resolve ambiguity before querying unrelated projects.
 
 2. Read current sources and report identifiers, observed state, observation time, and evidence links. Separate stale documents from live state.
 
