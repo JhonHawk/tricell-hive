@@ -17,7 +17,7 @@ Classify every effect the work and its verification need by where it lands and w
 
 ## Ask once for each set
 
-- **Non-production:** list the whole set the task or its verification needs in that environment: each record or resource with an identifiable name, what uses it, and how it is removed at the end or that it stays; for configuration or existing records it changes, the change and how to revert it. Offer, as options: create the set; first look for existing accounts or records that could serve as inputs, saying that the search takes time and that it comes back as a new question only when it changes the set; and skip what depends on the set, naming what stays unverified. Do not split the set into stages.
+- **Non-production:** list the whole set the task or its verification needs in that environment: each record or resource with an identifiable name, what uses it, and how it is removed at the end or that it stays, which the completion report then lists; for configuration it changes, the change and how to revert it. Offer, as options: create the set; first look for existing accounts or records that could serve as inputs, saying that the search takes time and that it comes back as a new question only when it changes the set; and skip what depends on the set, naming what stays unverified. Do not split the set into stages.
 - **Production:** for each kind of effect, name every target, the change, how to revert it and how long it lasts.
 - **Critical:** ask each in its own question, never folded into another question's option or into a set, naming the exact target, the estimated cost and a ceiling when it spends, and how to revert it, or saying it cannot be reverted. It holds even when the user's request names the effect.
 
