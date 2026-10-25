@@ -45,7 +45,7 @@ Offer one option per route, each continue option naming the flow it starts:
 
 **Condition:** the next work continues a plan still in progress.
 
-**Actions:** the continue option covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, such as cloud resources or DNS, so one answer authorizes them. A production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
+**Actions:** the continue option covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../flow-plan/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
 
 **Condition:** the next ticket reuses neither the closed item's files nor its decisions, or the session has used more than half of its context window.
 
