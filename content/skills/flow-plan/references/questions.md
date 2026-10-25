@@ -34,9 +34,9 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Actions:** also state the main tradeoff and uncertainty.
 
-**Condition:** an option of the question opens or chains another ticket, adds a component, a language or a dependency, or is at least ten times the size of another option of the same question.
+**Condition:** an option of the question starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option of the same question.
 
-**Actions:** give every option of that question its estimated size: the number of tasks and a time range, with the basis for it, such as the ticket's criteria or the files you read. When you did not read enough to estimate it, write "size not estimated: not investigated" for that option. Never give a number without a basis.
+**Actions:** give every option of that question that starts work, not one such as stop, its estimated size: the number of tasks and a time range, with the basis for it, such as the ticket's criteria or the files you read. When you did not read enough to estimate it, write "size not estimated: not investigated" for that option. Never give a number without a basis.
 
 ## Use a waiting native card
 
