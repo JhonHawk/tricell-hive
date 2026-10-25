@@ -93,8 +93,8 @@ raise the minor or the patch version.
   into checkpoints chosen by risk, and `flow-build` verifies the tasks of a
   checkpoint together instead of after each task. A task that depends on a
   task of its own checkpoint starts without waiting for a verdict, tasks of the
-  same checkpoint that share a file go in one joint commit, and nothing is
-  committed without an independent verdict or your acceptance. A plan without
+  same checkpoint that share a file go in one joint commit, and no `tdd` or
+  `check` task is committed without an independent verdict or your acceptance. A plan without
   checkpoints is still verified task by task (#168).
 - Incidental findings at a close: a P3 finding or a wording detail is no
   longer offered as a ticket, related P2 findings are proposed as one group, a
