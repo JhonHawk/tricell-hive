@@ -88,6 +88,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Plan review: every reviewer also blocks a task whose "Depends on" names a
+  later task, and a `tdd` or `check` task placed after the task that closes the
+  last checkpoint, since neither can be verified at a checkpoint (#176).
+
 - `flow-build` ends at the built candidate and hands it to `flow-verify`; the
   independent UI children, the full suite, the dedicated code review and the
   walkthrough delivery move there, and promotion and deployment checks move to
