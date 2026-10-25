@@ -10,17 +10,25 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Actions:** ask only at that decision point. Look up facts yourself. Make a minor call, one with a conventional default that is neither consequential nor an effect needing authorization, yourself and state it in one line.
 
+**Condition:** about to ask a question.
+
+**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design choice recorded in the plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
+
 **Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
 
-**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route, close or ticket question, ask it under this procedure, never as a closing sentence alone. Otherwise, such as further work the answer does not call for, leave the offer out.
+**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route or close question, ask it under this procedure, never as a closing sentence alone. Otherwise, such as further work the answer does not call for, leave the offer out.
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
-**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Reuse explicit decisions already in force; silence, preselection, and a dismissed or timed-out question grant nothing.
+**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Silence, preselection, and a dismissed or timed-out question grant nothing.
 
 **Condition:** several open questions do not depend on one another.
 
 **Actions:** ask all of them in one round.
+
+**Condition:** one objective needs several authorizations or choices in sequence, such as the records of one test setup or the steps of an operation the user approved.
+
+**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. A critical effect, as [effect authorization](effect-authorization.md) defines it, and a production deployment keep their own question.
 
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
