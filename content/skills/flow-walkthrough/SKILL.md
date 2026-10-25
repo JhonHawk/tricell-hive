@@ -10,7 +10,7 @@ This skill supports the user's validation of a user-interface change: what the u
 ## When it applies
 
 - At the human validation stop of `flow-verify` under `interactive` or `hold` delivery, after the children that [the UI gate](../flow-verify/references/ui-gate.md) selects have run; during a build, as soon as a new or rearranged layout exists, for the first rendered view below; and when the user asks for a walkthrough or a demo of a feature already built.
-- Under `automatic` delivery and `direct-base` chosen for a code repository, which never stop for human validation, and under [unattended delegation](../unattended-delegation/SKILL.md): the UI gate of [flow-verify](../flow-verify/SKILL.md) runs, the first rendered view below is captured and reported without a question, and the handoff and recordings below run only when the user asks.
+- Under `automatic` delivery and `direct-base` chosen for a code repository, which never stop for human validation, the UI gate of [flow-verify](../flow-verify/SKILL.md) runs, the first rendered view below is captured and reported without a question, and the handoff and recordings below run only when the user asks. Under [unattended delegation](../unattended-delegation/SKILL.md), the first rendered view is also reported without a question, and the handoff still runs at a validation stop.
 - A change that alters only text or a style value without changing layout, state, or flow is covered by the implementer's rendered check in [the UI gate](../flow-verify/references/ui-gate.md); its captures still go to the folder below.
 
 ## Prepare
