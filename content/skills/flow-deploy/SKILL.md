@@ -1,6 +1,6 @@
 ---
 name: flow-deploy
-description: Promote an integrated candidate through the declared environments and verify what is served: rollback triggers, served-identity and health checks, and urgent production fixes. Use when the user asks to promote or deploy, or for a production defect that cannot wait; not for commits, pull requests or merges.
+description: Promote an integrated candidate through the declared environments and verify what is served: rollback triggers, served-identity and health checks, and urgent production fixes. Use when the user asks to promote or deploy, or for a production defect that cannot wait; not for committing, opening pull requests for, or merging the work itself, though it opens and merges the promotion pull request.
 ---
 
 # Promote and verify what is served
