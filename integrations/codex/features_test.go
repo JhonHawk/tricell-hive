@@ -44,6 +44,9 @@ func TestFeatureEnabled(t *testing.T) {
 		{name: "line of 512 KiB", config: ptr("# " + strings.Repeat("x", 512*1024) + "\n[features]\ndefault_mode_request_user_input = true\n"), want: true},
 		{name: "line over 1 MiB", config: ptr("# " + strings.Repeat("x", 1024*1024+16) + "\n[features]\ndefault_mode_request_user_input = true\n"), wantErr: true},
 		{name: "dotted subtable of features", config: ptr("[features.default_mode_request_user_input]\nx = 1\n"), wantErr: true},
+		{name: "sibling multi_agent_v2 table ignored", config: ptr("[features.multi_agent_v2]\nmin_wait_timeout_ms = 300000\ndefault_wait_timeout_ms = 600000\n"), want: false},
+		{name: "sibling multi_agent_v2 table beside the table", config: ptr("[features]\ndefault_mode_request_user_input = true\n[features.multi_agent_v2]\nmin_wait_timeout_ms = 300000\n"), want: true},
+		{name: "sibling multi_agent_v2 table before the table", config: ptr("[features.multi_agent_v2]\nmin_wait_timeout_ms = 300000\n[features]\ndefault_mode_request_user_input = true\n"), want: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
