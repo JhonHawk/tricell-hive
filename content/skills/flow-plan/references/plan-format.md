@@ -141,7 +141,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Preserve user answers and their scope: repositories, base/work branches, Git mode, authorized effects, next human stop, code-review mechanism and agreed endpoint. Use a compact table when repositories or conditions differ. Do not infer merge, tracker writes or deployment authority from plan readiness.>
 
-<Describe the sequence before and after the human stop and the applicable CI/review gates, referencing verification above. Include deployment and recovery steps only within the selected scope; distinguish a future offered promotion from an authorized action.>
+<Describe the sequence before and after the human stop and the applicable CI/review gates, referencing verification above and, for deployment, [deployment checks](../../flow-deploy/references/deployment-checks.md). Include deployment and recovery steps only within the selected scope; distinguish a future offered promotion from an authorized action.>
 
 ## Review status and progress
 
