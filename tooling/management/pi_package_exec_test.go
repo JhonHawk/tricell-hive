@@ -49,7 +49,8 @@ func waitGone(t *testing.T, pid int) {
 
 func isZombie(pid int) bool {
 	out, err := exec.Command("ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
-	return err != nil || strings.HasPrefix(strings.TrimSpace(string(out)), "Z")
+	// A failed ps proves nothing, so only a reported Z state counts as dead.
+	return err == nil && strings.HasPrefix(strings.TrimSpace(string(out)), "Z")
 }
 
 func readPID(t *testing.T, path string) int {
