@@ -11,7 +11,7 @@ Before a report, read [reporting](references/reporting.md); before a user decisi
 
 ## Entry and exit
 
-Enter at the completion point (integrated by [flow-verify](../flow-verify/SKILL.md), or by flow-build when verify is skipped), on abandonment or a pause, or on a hygiene request; any of these enters directly. Deployment is a separate stage, [flow-deploy](../flow-deploy/SKILL.md), after integration and not part of a ticket's close. Exit with the record closed, the cleanup done and the report.
+Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL.md), or flow-build when verify is skipped, unless the project declares a later one), on abandonment, a pause, a hygiene request or the session's end; any of these enters directly. [flow-deploy](../flow-deploy/SKILL.md) is a separate stage after integration, part of a close only at a declared later completion point. Exit with the record closed, the cleanup done and the report.
 
 ## When to run it
 
