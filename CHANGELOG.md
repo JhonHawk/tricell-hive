@@ -34,6 +34,18 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Unattended delegation keeps running when you write only to tell the agent
+  to continue, acknowledge progress or ask how it is going; any other
+  message ends it (#143).
+- A costly check now has a definition: it spends money or a third-party
+  service's quota, uses or changes shared or remote resources, or is expected
+  to run longer than 30 minutes. A local check of minutes is routine. The
+  authorizations a plan foresees for later steps are asked in the delivery
+  and review round, while you are present (#144).
+- A task added to a retained plan during the build or after validation is
+  planned like any other and verified by `hive-verify-task` before its
+  commit; one that arrives after the code review ran is reported and you are
+  asked whether to review it.
 - Closing a change record now checks, after applying its deltas, that every
   added or modified requirement matches its delta and every removed one is
   gone, and marks the change completed only after that check. An abandoned
