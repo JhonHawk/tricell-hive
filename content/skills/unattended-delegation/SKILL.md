@@ -17,10 +17,10 @@ Decide every question that comes up yourself instead of asking or waiting, excep
 
 ## Effects
 
-Within the objective, you may take any effect the work needs, including deployments and writes to shared or production systems, when it is reversible or made reversible first and it disrupts no other component beyond a brief planned interruption. Before each such effect, record in the task record the exact target, the change, and how to revert it; this replaces asking for confirmation. For example:
+Within the objective, you may take any effect the work needs, including deployments and writes to shared or production systems, when it is reversible or made reversible first and it disrupts no other component beyond a brief planned interruption. Before each such effect, record in the task record the exact target, the change, and how to revert it; this replaces asking for confirmation. A critical effect, as [effect authorization](../flow-plan/references/effect-authorization.md) defines it, is taken only when it was authorized in advance for that exact target and ceiling; otherwise skip it, continue the work that does not depend on it, and report it with its target, cost and revert. For example:
 
-- Enabling or creating a cloud resource that only this work uses is allowed.
-- A database migration is allowed after a verified backup, with the service suspended only while it runs.
+- Enabling or creating a cloud resource that only this work uses and that spends no money or paid quota is allowed.
+- A database migration that was authorized in advance is allowed after a verified backup, with the service suspended only while it runs.
 - A force-push that the objective needs, such as realigning a pull-request branch, is allowed with `--force-with-lease` on the exact remote commit and the previous commit recorded as the way back; this is the one exception to the explicit-authorization rule of [git-workflow](../git-workflow/SKILL.md), and a lease that fails because someone else pushed stops the push, as that skill sets.
 - Editing the title or body of a pull request, or replying on its review threads, is allowed with the previous text saved in the task record.
 
