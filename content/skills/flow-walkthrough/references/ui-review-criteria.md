@@ -6,12 +6,12 @@ Read when reviewing a rendered UI change, or when briefing the reviewer. [The UI
 
 - Review independently of the implementer. The verdict starts as not passed and becomes a pass only when every applicable check has a recorded result.
 - An observed defect keeps its severity unless a written rule below lowers it; cite that rule when lowering. Do not talk a finding down because it looks minor, matches a sibling screen, or was not in the plan.
-- The parent supplies scope, data, and viewports but does not pre-rate findings or say what to ignore.
+- The parent supplies scope, data, and viewports but does not pre-rate findings or say what to ignore. The one exception, named in [the UI gate](ui-gate.md#the-independent-children), limits pre-existing findings to the touched views and may supply a baseline report; it does not limit introduced or worsened findings.
 - Judge from measurement and interaction. A capture locates a problem; computed geometry, styles, and behavior decide it. Vision judgments of wrapping, overlap, and alignment are unreliable on their own.
 
 ## Prepare the comparison
 
-1. Inventory each affected screen as a whole: regions, columns, rows, and components, including those the change only displaces.
+1. Inventory each affected screen as a whole: regions, columns, rows, and components, including those the change only displaces; for pre-existing findings, report only on the touched views that the UI gate's exception sets.
 2. For a change to an existing screen, capture and measure the base revision in the same environment, data, viewport, and theme. Without that baseline, the comparison is not verified, and a defect cannot be classified as pre-existing.
 3. Use realistic and extreme content: the longest real values, text 30–50% longer, empty and missing values, one row, and many rows.
 4. Set viewports explicitly: 1440 and 1280 desktop widths, a mobile width such as 390 when the application supports mobile, and further widths where the layout changes. For pages other than data tables, also check 320 CSS px for reflow. When the change contains dialogs or fixed or sticky regions, also check a short desktop height such as 1280×720. Check each supported theme.
@@ -66,7 +66,7 @@ Apply the checks relevant to the change at every assigned viewport and theme. Ea
 | Medium | Noticeable defect or inconsistency limited in reach that does not impede the task |
 | Nit | Polish that does not affect comprehension or use |
 
-Breakage introduced or worsened by the change is at least High. Classify each finding as `introduced`, `worsened` (present at the baseline and made worse), or `pre-existing` (baseline evidence shows it unchanged). Without baseline evidence, treat it as introduced. Report pre-existing findings separately with a suggested disposition; the parent applies the shared incidental-findings rule, listing them as [incidental findings](../../flow-close/references/incidental-findings.md#which-findings-are-listed-and-how) sets.
+Breakage introduced or worsened by the change is at least High. Classify each finding as `introduced`, `worsened` (present at the baseline and made worse), or `pre-existing` (baseline evidence shows it unchanged). Without baseline evidence, treat it as introduced; a baseline report the parent supplies under the UI gate's exception counts as baseline evidence. Report pre-existing findings separately with a suggested disposition; the parent applies the shared incidental-findings rule, listing them as [incidental findings](../../flow-close/references/incidental-findings.md#which-findings-are-listed-and-how) sets.
 
 ## Verdict
 
