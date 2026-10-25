@@ -156,7 +156,7 @@ Building does not publish a release.
 Engram, Context7 and CodeGraph are optional, separately managed capabilities with official
 manual instructions and no automated provider recipes or credential requests;
 CodeGraph's own `codegraph install` wires its MCP server into your hosts.
-Three steps are automated: pi-subagents, which a user-scope Pi installation adds
+Four steps are automated: pi-subagents, which a user-scope Pi installation adds
 with `pi install` when Pi does not already declare it; `agent-browser`, which
 an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 24+) and installs, at its latest version, only after you consent to the commands
@@ -166,8 +166,25 @@ installed Codex supports it (0.163.0 or later) and, after you consent, enables w
 default_mode_request_user_input`, Codex's own command, so Codex asks its
 decisions through a card that waits in Default mode (uncheck it, or type `none`,
 to skip it; `codex features disable default_mode_request_user_input` turns it
-off). Hive edits no host configuration file itself. Selecting a manual
-capability leaves the installed core intact but returns a non-zero exit status
+off). The Codex wait floor (`codex-wait-floor`) is the fourth: an interactive
+install or `hive update` with the Codex host offers it, selected by default, while
+the setting is not applied and Codex is 0.164 or later (a dry run offers
+nothing, an applied setting is not offered again, and nothing is offered at project scope). After you consent, Hive
+itself writes `min_wait_timeout_ms = 300000` and
+`default_wait_timeout_ms = 600000` under `[features.multi_agent_v2]` in Codex's
+`config.toml`, so a parent agent waiting for a delegated child does not wake
+every 60 seconds. When `config.toml` exists it saves `config.toml.hive-backup`
+(mode 0600) next to it before the first write, and a missing file is created
+with mode 0600; its journal keeps only fingerprints and the
+lines it added. `hive plan remove` for the codex host removes only the lines
+Hive wrote that still have their values, then the backup after a clean revert;
+if Codex's file is one Hive cannot edit safely, the offer becomes a manual step
+instead. The minimum applies to Codex's v2 multi-agent runtime; v1 is not
+verified. An older Hive binary that rewrites Hive's state loses the record of
+the write, and then `plan remove` leaves the lines in place. The wait floor is
+the only step where Hive writes a host configuration file itself; pi-subagents
+and the question card run the host's own command, and `agent-browser` runs
+Homebrew or npm. Selecting a manual capability leaves the installed core intact but returns a non-zero exit status
 to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.

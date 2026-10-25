@@ -27,8 +27,8 @@ func TestCatalogOrderIsStableAndAgentBrowserPrecedesCodexQuestionCard(t *testing
 	catalog := Catalog()
 	// The existing indexes stay valid: the three manual providers come first,
 	// then agent-browser, then the entries added later (codex-question-card,
-	// then codegraph).
-	wantOrder := []ID{Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard, CodeGraph}
+	// then codegraph, then codex-wait-floor).
+	wantOrder := []ID{Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard, CodeGraph, CodexWaitFloor}
 	if len(catalog) != len(wantOrder) {
 		t.Fatalf("catalog has %d entries, want %d", len(catalog), len(wantOrder))
 	}
@@ -73,4 +73,14 @@ func TestCatalogOrderIsStableAndAgentBrowserPrecedesCodexQuestionCard(t *testing
 		t.Fatalf("codegraph reason does not say Hive runs nothing: %q", graph.Reason)
 	}
 
+	floor := catalog[6]
+	if len(floor.Hosts) != 1 || floor.Hosts[0] != "codex" {
+		t.Fatalf("codex-wait-floor hosts = %v, want [codex]", floor.Hosts)
+	}
+	if floor.Source != "github.com/openai/codex" {
+		t.Fatalf("codex-wait-floor source = %q", floor.Source)
+	}
+	if !strings.Contains(floor.Reason, "multi_agent_v2") || !strings.Contains(floor.Reason, "config.toml") {
+		t.Fatalf("codex-wait-floor reason does not name what it writes: %q", floor.Reason)
+	}
 }

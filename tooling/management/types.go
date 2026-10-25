@@ -131,6 +131,9 @@ type State struct {
 	// PiSubagentsSource is the exact npm source Hive installed, or empty when
 	// Hive did not add the package. Schema stays 6 via omitempty.
 	PiSubagentsSource string `json:"pi_subagents_source,omitempty"`
+	// CodexWaitFloor records the lines Hive wrote into Codex's config.toml, or
+	// is nil when Hive wrote none. Schema stays 6 via omitempty.
+	CodexWaitFloor *CodexWaitFloorRecord `json:"codex_wait_floor,omitempty"`
 }
 type Fingerprint struct {
 	TreeHash   string `json:"tree_hash,omitempty"`
@@ -198,10 +201,41 @@ type Plan struct {
 	// PiPackage is the pi-subagents step for a user-scope install that includes
 	// Pi. It is not a file Change: Pi rewrites settings.json itself.
 	PiPackage *PiPackageStep `json:"pi_package,omitempty"`
+	// CodexWaitFloor is the wait floor step for a user-scope install that
+	// includes Codex. It never carries the bytes of config.toml, which may hold
+	// secrets: only the path, the keys and values Hive means to set, and the
+	// fingerprint of the file the plan was computed from.
+	CodexWaitFloor *CodexWaitFloorStep `json:"codex_wait_floor,omitempty"`
 	// Executable is the absolute path of the hive binary that a user-scope
 	// install of Grok writes into its read-whole hook. Apply regenerates the
 	// hook from it, so it is part of the plan ID. Other plans leave it empty.
 	Executable string `json:"executable,omitempty"`
+}
+
+// CodexWaitFloorStep is the planned write of the wait floor keys into
+// [features.multi_agent_v2] of Codex's config.toml.
+type CodexWaitFloorStep struct {
+	Path     string              `json:"path"`
+	Keys     []CodexWaitFloorKey `json:"keys"`
+	Expected Fingerprint         `json:"expected"`
+}
+
+// CodexWaitFloorKey is one key and the value the step sets.
+type CodexWaitFloorKey struct {
+	Name  string `json:"name"`
+	Value int    `json:"value"`
+}
+
+// CodexWaitFloorRecord is what Hive owns in config.toml after a write. Lines
+// are the lines it inserted (header first when it created the table), without
+// line endings; the file's own bytes are never stored.
+type CodexWaitFloorRecord struct {
+	Path          string   `json:"path"`
+	Lines         []string `json:"lines"`
+	CreatedTable  bool     `json:"created_table,omitempty"`
+	CreatedFile   bool     `json:"created_file,omitempty"`
+	Separator     bool     `json:"separator,omitempty"`
+	BackupCreated bool     `json:"backup_created,omitempty"`
 }
 
 // PackageAction is the planned pi-subagents operation.
@@ -243,6 +277,9 @@ type commitLogEntry struct {
 type Options struct {
 	Scope, Home, Root, StateDir, Source, ReleaseID string
 	Hosts                                          []string
+	// CodexWaitFloor asks an install plan to set the wait floor in Codex's
+	// config.toml. It is part of the plan, so the plan ID covers it.
+	CodexWaitFloor bool
 }
 type StatusEntry struct {
 	Path, Host, Kind, Status, Release string

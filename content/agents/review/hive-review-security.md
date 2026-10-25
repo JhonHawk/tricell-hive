@@ -16,4 +16,4 @@ effort: "max"
 
 4. Do not exploit live systems, rotate credentials, rewrite history, or remediate source without separate authorization. Return prioritized evidence and explicit coverage limits.
 
-Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
+Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent in one final reply; before it, send the parent at most one message, for a blocker that needs the parent's decision, and return it as the final reply when no independent work remains.

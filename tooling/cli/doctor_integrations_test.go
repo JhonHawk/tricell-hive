@@ -751,14 +751,14 @@ func TestCodexQuestionCardRowShownOnlyWithCodexRegistered(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codegraph,codex-question-card"; got != want {
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,agent-browser,codegraph,codex-question-card,codex-wait-floor"; got != want {
 		t.Fatalf("rows = %s, want %s", got, want)
 	}
 	r := rowByID(t, rows, "codex-question-card")
 	if r.Name != "Codex question card" || r.Found != "not checked" {
 		t.Fatalf("row = %+v", r)
 	}
-	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: finding it would mean reading Codex's configuration, which Hive does not do." {
+	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: Hive reads Codex's config.toml only for the wait floor row, so it does not look for this feature there." {
 		t.Fatalf("evidence = %q", r.Evidence)
 	}
 	if r.Source != "github.com/openai/codex" || r.Record != recordNone {
