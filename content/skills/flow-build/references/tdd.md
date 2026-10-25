@@ -2,11 +2,19 @@
 
 ## When to read
 
-Read before you change code or tests during a build, and when you choose a task's test approach while planning. It holds the test-first criterion of [flow-build](../SKILL.md).
+Read before you change code or tests during a build, and when you choose a task's test approach while planning. It holds the test-first criterion of [flow-build](../SKILL.md), the choice of test kind, and the filter to apply before writing each test.
 
 ## Choose and run the cycle
 
 Use red-green-refactor TDD for new or changed behavior whose failure would matter, when the repository's test infrastructure can exercise it: logic with branches, loops, parsing, or calculation; a public or persisted contract; permissions, security, money, or data integrity; or a fixed defect that could recur. Write the behavioral test, observe it fail for the intended reason, implement the change, observe it pass, then refactor while preserving passing checks. Take one behavior per cycle: write the next test only after the previous one passes, rather than writing every test first. Replace with a test double only what crosses the system boundary, such as an external service, time, or randomness, never the project's own modules, since the test then stops covering their behavior. A missing test for such behavior is a reason to write one, not to skip TDD. A mechanical change, as the global guidance defines it, adds no new test; verify it with the checks that already cover it. When a change alters behavior of a kind listed for TDD, TDD applies even if the change also looks mechanical; a change that preserves behavior follows the refactor rule. For behavior-preserving refactors, use existing tests or characterization. Verify any other behavior change with a direct check, or by extending the tests that already cover that area; it needs no failing test first. A plan's declared test approach for a task governs that task unless the work turns out to alter behavior listed for TDD; then use TDD and record the reclassification. If no usable test infrastructure exists, choose an available validator or direct check and report the limitation; do not introduce a framework without an authorized need.
+
+## Choose the kind of test
+
+Use a property-based test for pure logic that has an independent oracle, meaning a check the code under test does not compute itself: a round trip (decoding an encoding returns the input), idempotence, an invariant over generated inputs, an optimized version against the simple one, or a sanitizer against an independent predicate. Do not use one for a finite space that a table of examples already walks entirely. When the project has no property-testing library, the plan proposes one as a development dependency under "Check a dependency before installing" in [security boundaries](security-boundaries.md); a build without a plan, or one already under way, writes example tests, reports the limit, and proposes the library as follow-up work instead of installing it.
+
+Before writing each test, apply this filter. Name the realistic change to the code under test that would make the test fail; if no such change exists, do not write it. Search for a test that already owns that behavior at the strongest boundary, and extend it instead of duplicating it. Reject a test that calls the function under test to compute the expected value, that uses a double which returns the value the test asserts, that reads the source file as text, that makes an assertion that is always true, or that copies a list or inventory from the code.
+
+Do not add a test-only entry point to production code, such as an export, flag, or wrapper that exposes internal state to tests; test through the real boundary. An injection point at a system boundary (clock, randomness, external service) that production also uses with the real implementation is allowed.
 
 ## Keep the evidence honest
 
