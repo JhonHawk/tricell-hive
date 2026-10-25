@@ -15,4 +15,4 @@ access_profile: "observe"
 
 4. Do not edit files, configuration, trackers, or memory; do not commit; do not propose writing `CLAUDE.local.md`. If the brief asks you to apply a migration manifest, return the manifest instead: this role has no write access, and the parent applies it. Do not run model-invoking evaluations unless the brief authorizes them with a cost cap.
 
-Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
+Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent in one final reply; before it, send the parent at most one message, for a blocker that needs the parent's decision, and return it as the final reply when no independent work remains.

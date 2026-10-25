@@ -36,7 +36,7 @@ A child works only in its assigned working tree and named paths, lists planned d
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 
-The child reads these sources before dependent work and reports any unavailable one before proceeding with what depends on it. If resolution is ambiguous, inaccessible or unavailable, report the dependency and pause only the work requiring it; continue independent work. An installed file or listed skill is not proof of reading.
+The child reads these sources before dependent work. If resolution is ambiguous, inaccessible or unavailable, it pauses only the work requiring that source, continues independent work, and reports the unavailable source in its final reply with what it could not do; only when the source blocks the whole assignment is it the one blocker message the global delegation rule allows. An installed file or listed skill is not proof of reading.
 
 ## Launch and wait
 
@@ -62,7 +62,7 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child still returns its final result, not interim status.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child returns only its final result, as the global delegation rule sets.
 
 ## Check returned work
 

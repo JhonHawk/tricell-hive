@@ -16,4 +16,4 @@ effort: "low"
 
 4. Watch only when requested, with a bounded interval or terminal condition. Do not edit trackers, trigger jobs, change resources, or select the next work item on the parent’s behalf.
 
-Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
+Stay within the parent’s assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent in one final reply; before it, send the parent at most one message, for a blocker that needs the parent's decision, and return it as the final reply when no independent work remains.

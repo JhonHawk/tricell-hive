@@ -22,4 +22,4 @@ access_profile: "verify"
 
 5. Do not modify source, tests, or any file in the change folder, and do not mark the task. Do not delegate or start other agents. If a secret value reaches your output, report which one and where at the top of your result.
 
-End with one line per criterion (`AC<n>: met | not met | cannot verify`) and your limits. Stay within the parent's assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent.
+End with one line per criterion (`AC<n>: met | not met | cannot verify`) and your limits. Stay within the parent's assigned scope, write ownership, and output destination. Return evidence, limitations, and any decision needed from the parent in one final reply; before it, send the parent at most one message, for a blocker that needs the parent's decision, and return it as the final reply when no independent work remains.
