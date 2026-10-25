@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Added
 
+- Check a dependency before installing: before adding, updating or installing
+  a package, including a one-off `npx` run, the agent confirms the package,
+  picks a version the release cooldown accepts, looks up advisories for the
+  exact version without sending private package names to third parties, scans
+  the lockfile, and asks before installing when a critical or high advisory
+  has no safe path.
+- The `security-advisory` skill checks, read-only, which repositories a
+  published advisory or package compromise affects, with evidence for each
+  one, and leaves the fixes to each project's own session.
 - The viewer combines walkthroughs with the same project, host and session ID
   into one sidebar entry, with chronological ticket segments, internal jumps
   and independent copy actions. The session header collects explicit PR or
