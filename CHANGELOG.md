@@ -88,10 +88,6 @@ raise the minor or the patch version.
 
 ### Changed
 
-- Plan review: every reviewer also blocks a task whose "Depends on" names a
-  later task, and a `tdd` or `check` task placed after the task that closes the
-  last checkpoint, since neither can be verified at a checkpoint (#176).
-
 - `flow-build` ends at the built candidate and hands it to `flow-verify`; the
   independent UI children, the full suite, the dedicated code review and the
   walkthrough delivery move there, and promotion and deployment checks move to
@@ -229,6 +225,9 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Plan review and the readiness check block a dependency on a task that is not
+  earlier in the plan and checkpoints out of plan order, which the build's start
+  rules could not classify or verify (#176).
 - The viewer uses subtle theme borders instead of inherited white outlines,
   and all dialogs inherit its shared base font while walkthroughs retain
   their own typography.
