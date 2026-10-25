@@ -28,7 +28,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** one objective needs several authorizations or choices in sequence, such as the records of one test setup or the steps of an operation the user approved.
 
-**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect, and a production deployment keep their own question in that same round.
+**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect, and a production deployment the user has not already named keep their own question in that same round.
 
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
