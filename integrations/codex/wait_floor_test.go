@@ -290,3 +290,22 @@ func TestUndoWaitFloorKeepsWhatChanged(t *testing.T) {
 		})
 	}
 }
+
+func TestWaitFloorRefusesAHeaderLikeLineInsideTheTable(t *testing.T) {
+	for name, in := range map[string]string{
+		"array element":            hdr + "\nx = [\n[1, 2]\n]\n",
+		"array element with comma": hdr + "\nx = [\n[1, 2],\n]\n",
+		"unterminated":             hdr + "\n[oops\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			state, _, err := WaitFloor([]byte(in), true)
+			if state != WaitFloorUnsupported || err == nil {
+				t.Fatalf("state = %v, err = %v", state, err)
+			}
+		})
+	}
+	// A real header after the table still ends it.
+	if state, _, err := WaitFloor([]byte(hdr+"\nenabled = true\n[tui]\nx = 1\n"), true); state != WaitFloorMissing || err != nil {
+		t.Fatalf("state = %v, err = %v", state, err)
+	}
+}

@@ -222,6 +222,9 @@ func scanWaitFloor(content []byte, forUndo bool) (*waitFloorScan, *WaitFloorRefu
 			atRoot = false
 			if section == secTarget {
 				scan.bodyEnd = i
+				if !validHeaderLine(trimmed) {
+					return nil, refuse(WaitFloorUnsupported, "a line inside "+waitFloorTable+" looks like a header but is not one")
+				}
 			}
 			section = secOther
 			array := strings.HasPrefix(trimmed, "[[")
@@ -458,4 +461,22 @@ func UndoWaitFloor(content []byte, rec WaitFloorRecord) WaitFloorUndo {
 		res.Content = nil
 	}
 	return res
+}
+
+// validHeaderLine reports whether a line that starts with `[` is a table or
+// array-of-tables header: it closes its brackets and holds only a key path.
+func validHeaderLine(trimmed string) bool {
+	array := strings.HasPrefix(trimmed, "[[")
+	open, closing := "[", "]"
+	if array {
+		open, closing = "[[", "]]"
+	}
+	if !strings.HasSuffix(trimmed, closing) {
+		return false
+	}
+	inner := strings.TrimSuffix(strings.TrimPrefix(trimmed, open), closing)
+	if _, ok := splitTOMLKey(inner); !ok {
+		return false
+	}
+	return !strings.ContainsAny(inner, ",={}[]")
 }
