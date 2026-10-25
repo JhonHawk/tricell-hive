@@ -39,7 +39,7 @@ When choosing an infrastructure resource name, or creating resources whose names
 
 For a changed shared interface, read [interface changes](../flow-plan/references/interface-changes.md) before implementation.
 
-Before you change code or tests, read [test-first development](references/tdd.md): it sets when a change needs a failing test first, characterization, or a direct check, and what counts as red.
+Before you change code or tests, read [test-first development](references/tdd.md): it sets when a change needs a failing test first, characterization, or a direct check, what counts as red, which kind of test to write, and the filter to apply before writing one.
 
 Before writing a retained supporting artifact, resolve its destination through the applicable global artifact-placement instructions and existing work identifier. While you execute or resume a retained plan, a change folder or a `<topic>.plan.md`, read [plan execution](references/plan-execution.md) before you start, mark, verify, or commit any of its tasks: it holds the record, the task markers, the `hive-verify-task` procedure, and the per-task commits.
 
