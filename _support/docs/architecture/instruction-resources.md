@@ -15,7 +15,7 @@ The essential runtime boundaries and read conditions remain in `content/guidance
 Canonical procedural homes under `content/skills/`:
 
 - `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a progress or decision message opens with the context line the reference sets.
-- `flow-close/references/incidental-findings.md`: before listing, asking about or recording the incidental findings proposed at a work item's close; `flow-close/SKILL.md` step 5 points to it.
+- `flow-close/references/incidental-findings.md`: before listing, asking about or recording the incidental findings proposed at a work item's close; `flow-close/SKILL.md` step 5, `flow-walkthrough/references/ui-gate.md` and `flow-walkthrough/references/ui-review-criteria.md` point to it.
 - `flow-plan/references/questions.md`: before a user decision or manual validation request.
 - `flow-plan/references/effect-authorization.md`: before asking to authorize an effect beyond this machine, as `global.md` sets.
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
