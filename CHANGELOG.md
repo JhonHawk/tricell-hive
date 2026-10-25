@@ -20,6 +20,10 @@ raise the minor or the patch version.
 
 ### Added
 
+- Open topics: the agent keeps a list of the topics you add while work is open
+  or closing, tells you in one line how it classifies each, closes none
+  without a destination, and names them in its reports and route or close
+  questions (#160).
 - Test guidance: `tdd.md` now sets which kind of test to write and a filter
   before writing one (the test that already owns the behavior, low-value
   patterns, no test-only entry points in production code), recommends
