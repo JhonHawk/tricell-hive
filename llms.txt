@@ -41,7 +41,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [Third-party notices](THIRD_PARTY_NOTICES.md): Go and embedded frontend license notices
 
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
-- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, agent-browser, the Codex question card (`codex-question-card`), and CodeGraph
+- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, agent-browser, the Codex question card (`codex-question-card`), the Codex wait floor (`codex-wait-floor`, which writes `min_wait_timeout_ms` and `default_wait_timeout_ms` under `[features.multi_agent_v2]` in Codex's `config.toml`, with a backup and `hive plan remove`), and CodeGraph
 - [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard
 - [History and provenance](_support/docs/history/history-and-provenance.md): how the project evolved
 - [Requirements and change records](_support/openspec/): versioned requirements and planned changes

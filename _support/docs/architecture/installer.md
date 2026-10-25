@@ -95,13 +95,13 @@ then asks for one affirmative terminal confirmation. Cancellation, EOF and piped
 input cannot apply changes. `--dry-run` is read-only and works without a terminal
 when `--hosts` selects the hosts; choosing hosts interactively needs one.
 An already current installation exits without rewriting files or asking again.
-Hive installs no CLI executable except `agent-browser`, and only with consent (below); it edits no host configuration file itself, and with consent it runs a host's own command that writes one (`pi install`, `codex features enable`), as [optional tool dependencies](tool-dependencies.md#boundaries) states. `--hosts` selects configuration consumers;
+Hive installs no CLI executable except `agent-browser`, and only with consent (below); with consent it runs a host's own command that writes a host configuration file (`pi install`, `codex features enable`), and with consent it writes two keys of Codex's `config.toml` itself (the Codex wait floor, below), as [optional tool dependencies](tool-dependencies.md#boundaries) states. `--hosts` selects configuration consumers;
 shared legacy resources can require selecting additional consumers together.
 
 After the hosts, the installer offers optional capabilities for the selected
 hosts: Engram, Context7, `agent-browser`, CodeGraph for Claude, Codex, Cursor or
 OpenCode, only with the Pi host pi-subagents, and only with the Codex host the
-Codex question card (`codex-question-card`).
+Codex question card (`codex-question-card`) and the Codex wait floor (`codex-wait-floor`).
 Their inventory and limits are in [optional tool dependencies](tool-dependencies.md).
 Engram, Context7 and CodeGraph have no provider recipes: a selected one is shown with its
 official source and the reason it is manual, and no provider process runs.
@@ -141,13 +141,43 @@ probe does not report the feature, without `codex` on `PATH`, or under a
 synthetic `--home`, the capability is manual with the reason and is not
 selected by default (a dry run or a non-interactive session runs no probe and
 lists the offer from the `PATH` lookup alone). `hive update` never offers it; `codex features disable
-default_mode_request_user_input` turns it off, and Hive never reverts it. A
-further case is Pi: when the Pi host is selected in a user-scope install and Pi's
+default_mode_request_user_input` turns it off, and Hive never reverts it.
+
+The Codex wait floor (`codex-wait-floor`) is the one capability where Hive
+writes a host configuration file itself, with no external command. It is offered
+by `install` and by `hive update`, only in an interactive session and only while
+Codex's `config.toml` does not already hold the setting (an applied file skips
+the offer without a version probe, also in a dry run; a dry run with the setting not applied offers nothing, and neither does a project-scope install). Otherwise one probe of
+`codex --version` must report 0.164.0 or later, the first release with the
+`[features.multi_agent_v2]` table; with an older Codex, without `codex`, or under
+a synthetic `--home`, the capability is not offered. It is selected by default.
+After consent Hive inserts `min_wait_timeout_ms = 300000` and
+`default_wait_timeout_ms = 600000` under `[features.multi_agent_v2]` in
+`config.toml` under the Codex home, touching no other line (a missing file is created with mode 0600, and the `[features.multi_agent_v2]` header is added when Hive creates the table), so a parent agent
+waiting on a delegated child no longer wakes every 60 seconds. The minimum
+applies to Codex's v2 multi-agent runtime; v1 is not verified. When
+`config.toml` exists, Hive copies it to `config.toml.hive-backup` (mode 0600) in
+the same folder before the first write, keeps the oldest copy if one exists, and
+rereads the result. Its journal
+records only the file's fingerprints before and after and the lines it inserted,
+never the file's bytes, because `config.toml` can hold secrets. When Hive cannot
+edit the file safely (a conflicting value, an unreadable or oversized file, an
+unsupported layout) it writes nothing and the offer becomes a manual step that
+names the lines to add by hand. `hive plan remove` for the codex host removes
+only the recorded lines that still have their values, then deletes the backup
+Hive created after a clean revert. Lines that changed stay and are reported; a
+backup Hive created is kept, with a note, when the revert is not clean; a backup
+Hive did not create is kept without a note. An interrupted `plan remove` does not insert the
+lines again. `hive doctor` shows a `Codex wait floor` row with the file's state
+and whether the backup exists. Limitation: an older Hive binary that rewrites
+Hive's state drops the record, and then `plan remove` leaves the lines in place.
+
+A further case is Pi: when the Pi host is selected in a user-scope install and Pi's
 `settings.json` is missing or does not list pi-subagents, Hive itself runs
 `pi install npm:pi-subagents` (the `pi` executable must be on `PATH`),
 which downloads that package from npm. A settings file that already lists
 pi-subagents makes Hive skip the step, and a conflicting entry stops the plan.
-Package installation is therefore network-free except for this step and the consented `agent-browser` steps; the Codex question card step runs a local program only. The core is
+Package installation is therefore network-free except for this step and the consented `agent-browser` steps; the Codex question card step runs a local program only, and the Codex wait floor runs none. The core is
 installed first; the installer then lists each selected capability with its
 reason and next action and exits non-zero, so a manual capability is never
 mistaken for an installed one, while the core remains installed.

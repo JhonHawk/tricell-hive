@@ -20,6 +20,20 @@ raise the minor or the patch version.
 
 ### Added
 
+- Codex wait floor: an interactive `hive install` or `hive update` with the
+  Codex host offers, selected by default while it is not applied and Codex is
+  0.164 or later, to write `min_wait_timeout_ms = 300000` and
+  `default_wait_timeout_ms = 600000` under `[features.multi_agent_v2]` in
+  Codex's `config.toml`, so a parent agent waiting for a delegated child does
+  not wake every 60 seconds. Hive saves `config.toml.hive-backup` (0600) before
+  the first write and its journal keeps only fingerprints and the lines it
+  added; `hive plan remove` for the codex host removes only the unchanged lines
+  Hive wrote, then the backup, after a clean revert; a file Hive cannot edit safely becomes a manual
+  step; `hive doctor` adds a row for it. This replaces the rule
+  that Hive edits no host configuration file itself. The minimum applies to
+  Codex's v2 multi-agent runtime (v1 unverified), and an older Hive binary that
+  rewrites Hive's state loses the record, so `plan remove` would leave the
+  lines. A default-selected capability raises the minor version.
 - Check a dependency before installing: before adding, updating or installing
   a package, including a one-off `npx` run, the agent confirms the package,
   picks a version the release cooldown accepts, looks up advisories for the
