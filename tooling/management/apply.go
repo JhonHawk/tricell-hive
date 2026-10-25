@@ -696,7 +696,16 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !same(stateNow, j.BeforeState) && !same(stateNow, j.AfterState) {
+	// An interrupted removal that already took Hive's lines out may have had its
+	// state rewritten without the record by an earlier attempt of this recovery.
+	interruptedRemove := j.CodexLines != nil && j.CodexLines.Remove && !j.CodexLines.Skip && (j.CodexLines.Pending || j.CodexLines.Done)
+	droppedRecord := j.BeforeState
+	if interruptedRemove {
+		if droppedRecord, err = withoutCodexRecord(j.BeforeState); err != nil {
+			return "", err
+		}
+	}
+	if !same(stateNow, j.BeforeState) && !same(stateNow, j.AfterState) && !(interruptedRemove && same(stateNow, droppedRecord)) {
 		return "", fmt.Errorf("state changed after interruption; preserved")
 	}
 	// Preflight every inverse before touching any resource. Outside-block edits survive.
@@ -798,14 +807,19 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		}
 	}
 	restored := j.BeforeState
-	if le := j.CodexLines; le != nil && le.Remove && !le.Skip && (le.Pending || le.Done) {
-		// The removal already took the lines out of config.toml; the restored
-		// state must not keep a record for lines that are gone.
-		if restored, err = withoutCodexRecord(restored); err != nil {
+	if interruptedRemove {
+		gone, err := codexRemoveRecordGone(j.CodexLines)
+		if err != nil {
 			return "", err
+		}
+		if gone {
+			restored = droppedRecord
 		}
 	}
 	if err = write(filepath.Join(dir, "state.json"), restored); err != nil {
+		return "", err
+	}
+	if err = e.fail("recover-state"); err != nil {
 		return "", err
 	}
 	cleanupDirs(j.CreatedDirs)

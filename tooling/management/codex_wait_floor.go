@@ -317,6 +317,11 @@ func removeCodexLines(j *journal, jp string, fail func(string) error) error {
 	if err := saveJournal(jp, *j); err != nil {
 		return err
 	}
+	if fail != nil {
+		if err := fail("codex-lines-pending"); err != nil {
+			return err
+		}
+	}
 	res, err := undoCodexLinesOnFile(le.Path, le.Record)
 	if err != nil {
 		return err
@@ -369,7 +374,9 @@ func undoCodexInstall(j journal) error {
 		if err != nil {
 			return err
 		}
-		if !(len(res.Kept) == 0 || res.Skipped != "" || finger(now) == le.Before) {
+		// Delete only when Hive removed every line or the write never happened;
+		// never when the undo skipped, because the lines may still be there.
+		if !((len(res.Kept) == 0 && res.Skipped == "") || finger(now) == le.Before) {
 			return nil
 		}
 		bk := codexBackupPath(le.Path)
@@ -416,4 +423,31 @@ func withoutCodexRecord(s snapshot) (snapshot, error) {
 	st.CodexWaitFloor = nil
 	s.Data = encode(st)
 	return s, nil
+}
+
+// codexRemoveRecordGone reports whether the state may drop the record of an
+// interrupted removal: Hive's lines are no longer in config.toml (judged by the
+// editor's own preview, without writing) and no backup Hive created is left for
+// a later remove to own. When it cannot tell, it keeps the record.
+func codexRemoveRecordGone(le *linesEntry) (bool, error) {
+	cur, err := read(le.Path)
+	if err != nil {
+		return false, err
+	}
+	if cur.Exists {
+		preview := codex.UndoWaitFloor(cur.Data, le.Record.toEditor())
+		if len(preview.Removed) > 0 || preview.Skipped == codex.WaitFloorSkippedUnreadable {
+			return false, nil
+		}
+	}
+	if le.Record.BackupCreated {
+		bk, err := read(codexBackupPath(le.Path))
+		if err != nil {
+			return false, err
+		}
+		if bk.Exists {
+			return false, nil
+		}
+	}
+	return true, nil
 }

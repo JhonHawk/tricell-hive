@@ -407,6 +407,63 @@ func TestRecoverDeletesTheBackupWhenTheWriteNeverHappened(t *testing.T) {
 }
 
 func TestRecoverOfAnInterruptedRemoveDropsTheRecordOfLinesThatAreGone(t *testing.T) {
+	o := wfOptions(t) // Hive creates the file: no backup keeps the record alive
+	wfInstall(t, o)
+	if _, err := wfFail("codex-lines-write").Apply(plan(t, "remove", wfRemoveOptions(o))); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	absent(t, wfConfig(o))
+	if rec := wfState(t, o).CodexWaitFloor; rec != nil {
+		t.Fatalf("a record survives for lines that are gone: %#v", rec)
+	}
+	absent(t, filepath.Join(o.StateDir, "pending.json"))
+}
+
+func TestRecoverOfARemoveIsIdempotentAfterTheStateWrite(t *testing.T) {
+	o := wfOptions(t) // no config.toml: Hive creates the file, so no backup is involved
+	wfInstall(t, o)
+	if _, err := wfFail("codex-lines-write").Apply(plan(t, "remove", wfRemoveOptions(o))); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	if _, err := wfFail("recover-state").Recover(o.StateDir); err == nil {
+		t.Fatal("expected the recover failpoint")
+	}
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatalf("a second recover must finish the first: %v", err)
+	}
+	absent(t, filepath.Join(o.StateDir, "pending.json"))
+	if wfState(t, o).CodexWaitFloor != nil {
+		t.Fatal("the record survived")
+	}
+}
+
+func TestRecoverOfARemoveKeepsTheRecordWhileTheLinesAreStillThere(t *testing.T) {
+	o := wfOptions(t)
+	put(t, wfConfig(o), "model = \"x\"\n")
+	wfInstall(t, o)
+	if _, err := wfFail("codex-lines-pending").Apply(plan(t, "remove", wfRemoveOptions(o))); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(get(t, wfConfig(o)), wfDefault) {
+		t.Fatal("the removal never wrote, the lines must still be there")
+	}
+	if rec := wfState(t, o).CodexWaitFloor; rec == nil {
+		t.Fatal("the record was dropped while Hive's lines remain")
+	}
+	// The next remove owns and completes it.
+	apply(t, plan(t, "remove", wfRemoveOptions(o)))
+	if strings.Contains(get(t, wfConfig(o)), "multi_agent_v2") || wfState(t, o).CodexWaitFloor != nil {
+		t.Fatal("the later remove did not finish the job")
+	}
+}
+
+func TestRecoverOfARemoveKeepsTheRecordThatOwnsTheBackup(t *testing.T) {
 	o := wfOptions(t)
 	put(t, wfConfig(o), "model = \"x\"\n")
 	wfInstall(t, o)
@@ -417,10 +474,38 @@ func TestRecoverOfAnInterruptedRemoveDropsTheRecordOfLinesThatAreGone(t *testing
 		t.Fatal(err)
 	}
 	if strings.Contains(get(t, wfConfig(o)), "multi_agent_v2") {
-		t.Fatal("the failpoint fired before the lines were removed")
+		t.Fatal("the lines were not removed before the interruption")
 	}
-	if rec := wfState(t, o).CodexWaitFloor; rec != nil {
-		t.Fatalf("a record survives for lines that are gone: %#v", rec)
+	rec := wfState(t, o).CodexWaitFloor
+	if rec == nil || !rec.BackupCreated {
+		t.Fatalf("the record that owns the backup was dropped: %#v", rec)
 	}
-	absent(t, filepath.Join(o.StateDir, "pending.json"))
+	if get(t, wfConfig(o)+".hive-backup") != "model = \"x\"\n" {
+		t.Fatal("the backup must stay")
+	}
+	// A later remove reports the missing lines, keeps the backup and drops the record.
+	out := apply(t, plan(t, "remove", wfRemoveOptions(o)))
+	if !strings.Contains(out, "hive-backup") || wfState(t, o).CodexWaitFloor != nil {
+		t.Fatalf("later remove: %q", out)
+	}
+}
+
+func TestRecoverOfAnInstallKeepsTheBackupWhenTheUndoSkipped(t *testing.T) {
+	o := wfOptions(t)
+	original := "model = \"x\"\n"
+	put(t, wfConfig(o), original)
+	if _, err := wfFail("codex-lines-after").Apply(plan(t, "install", o)); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	// A duplicate table makes the file unreadable for the editor; Hive's lines stay.
+	put(t, wfConfig(o), get(t, wfConfig(o))+wfHeader+"\n")
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(get(t, wfConfig(o)), wfDefault) {
+		t.Fatal("the lines should still be there")
+	}
+	if get(t, wfConfig(o)+".hive-backup") != original {
+		t.Fatal("the backup was deleted although the lines stayed")
+	}
 }
