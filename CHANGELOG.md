@@ -100,8 +100,9 @@ raise the minor or the patch version.
 - The UI review keeps the UI library's design system as its baseline. The
   reviewer first reads the library configuration, theme and installed
   components, the project UI guide and any declared accessibility requirement.
-  A library default or a recorded project decision is not a finding, even
-  below a WCAG threshold, unless the project declares an accessibility
+  A library default or a recorded project decision is not a finding in the
+  checks that measure that value, such as contrast, even below a WCAG
+  threshold, unless the project declares an accessibility
   requirement or the ticket asks for one. Non-text contrast follows WCAG 2.2
   SC 1.4.11 precisely, a fix that customizes the theme or an installed
   component needs your decision or the project's, and a global finding is
