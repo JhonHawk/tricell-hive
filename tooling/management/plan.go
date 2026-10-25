@@ -606,7 +606,7 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 	if err := planPiPackage(&p); err != nil {
 		return p, err
 	}
-	if err := planCodexWaitFloor(&p, o); err != nil {
+	if err := planCodexWaitFloor(&p, o, state); err != nil {
 		return p, err
 	}
 	p.ID = planID(p)

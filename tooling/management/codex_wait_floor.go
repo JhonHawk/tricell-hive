@@ -2,6 +2,7 @@ package management
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,12 +41,17 @@ func codexWaitFloorKeys() []CodexWaitFloorKey {
 
 // planCodexWaitFloor adds the step when the option asks for it. It fails closed
 // with the editor's fixed cause when the file cannot be edited safely.
-func planCodexWaitFloor(p *Plan, o Options) error {
+func planCodexWaitFloor(p *Plan, o Options, state State) error {
 	if !o.CodexWaitFloor {
 		return nil
 	}
 	if p.Action != "install" || p.Config.Scope != "user" || !hostsIncludeCodex(p.Hosts) {
 		return fmt.Errorf("codex wait floor: needs a user-scope install that includes codex")
+	}
+	// A record for another path would be replaced by this install and its lines
+	// and backup orphaned; the remove side keeps such a record, so refuse here.
+	if rec := state.CodexWaitFloor; rec != nil && rec.Path != codexConfigPath(*p) {
+		return fmt.Errorf("codex wait floor: the state records lines at another config.toml; remove them there first")
 	}
 	cur, err := readCodexConfig(p.Config.CodexHome)
 	if err != nil {
@@ -356,7 +362,16 @@ func undoCodexInstall(j journal) error {
 	if err != nil {
 		return err
 	}
-	if le.BackupWanted && (len(res.Kept) == 0 || res.Skipped != "") {
+	if le.BackupWanted {
+		// The write never happened (or the file is back to what it was) when the
+		// file equals its journaled Before image; the lines are then not "kept".
+		now, err := read(le.Path)
+		if err != nil {
+			return err
+		}
+		if !(len(res.Kept) == 0 || res.Skipped != "" || finger(now) == le.Before) {
+			return nil
+		}
 		bk := codexBackupPath(le.Path)
 		b, err := read(bk)
 		if err != nil {
@@ -383,4 +398,22 @@ func StoredCodexWaitFloor(o Options) (*CodexWaitFloorRecord, error) {
 		return nil, err
 	}
 	return copyWaitFloorRecord(state.CodexWaitFloor), nil
+}
+
+// withoutCodexRecord returns the snapshot of a state file with its Codex wait
+// floor record dropped, or the snapshot itself when it has none.
+func withoutCodexRecord(s snapshot) (snapshot, error) {
+	var st State
+	if len(s.Data) == 0 {
+		return s, nil
+	}
+	if err := json.Unmarshal(s.Data, &st); err != nil {
+		return snapshot{}, err
+	}
+	if st.CodexWaitFloor == nil {
+		return s, nil
+	}
+	st.CodexWaitFloor = nil
+	s.Data = encode(st)
+	return s, nil
 }

@@ -692,9 +692,6 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			return "", err
 		}
 	}
-	if err := undoCodexInstall(j); err != nil {
-		return "", err
-	}
 	stateNow, err := read(filepath.Join(dir, "state.json"))
 	if err != nil {
 		return "", err
@@ -777,6 +774,11 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		}
 		inverses[i] = inv
 	}
+	// Only now, once Recover is going ahead: it must not undo the lines of an
+	// operation it then refuses to recover.
+	if err := undoCodexInstall(j); err != nil {
+		return "", err
+	}
 	for i := len(j.Entries) - 1; i >= 0; i-- {
 		en := j.Entries[i]
 		cur, err := readEntry(en)
@@ -795,7 +797,15 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			}
 		}
 	}
-	if err = write(filepath.Join(dir, "state.json"), j.BeforeState); err != nil {
+	restored := j.BeforeState
+	if le := j.CodexLines; le != nil && le.Remove && !le.Skip && (le.Pending || le.Done) {
+		// The removal already took the lines out of config.toml; the restored
+		// state must not keep a record for lines that are gone.
+		if restored, err = withoutCodexRecord(restored); err != nil {
+			return "", err
+		}
+	}
+	if err = write(filepath.Join(dir, "state.json"), restored); err != nil {
 		return "", err
 	}
 	cleanupDirs(j.CreatedDirs)

@@ -320,3 +320,107 @@ func TestRemoveCodexWaitFloorSkipsARecordForAnotherPath(t *testing.T) {
 		t.Fatalf("a second remove has nothing to do: unchanged = %v, err = %v", u, err)
 	}
 }
+
+func wfFail(stage string) Engine {
+	return Engine{failpoint: func(s string) error {
+		if s == stage {
+			return errors.New("injected")
+		}
+		return nil
+	}}
+}
+
+// wfRecordElsewhere points the stored record at another Codex folder, as if
+// CODEX_HOME had changed since Hive wrote the lines.
+func wfRecordElsewhere(t *testing.T, o Options) string {
+	t.Helper()
+	elsewhere := filepath.Join(filepath.Dir(o.Home), "other-codex", "config.toml")
+	st := wfState(t, o)
+	st.CodexWaitFloor.Path = elsewhere
+	if err := writeJSON(filepath.Join(o.StateDir, "state.json"), st); err != nil {
+		t.Fatal(err)
+	}
+	return elsewhere
+}
+
+func TestCodexWaitFloorRefusesToReplaceARecordForAnotherPath(t *testing.T) {
+	t.Run("at plan time", func(t *testing.T) {
+		o := wfOptions(t)
+		put(t, wfConfig(o), "model = \"x\"\n")
+		wfInstall(t, o)
+		elsewhere := wfRecordElsewhere(t, o)
+		_, err := BuildPlan("install", o)
+		if err == nil || !strings.Contains(err.Error(), "wait floor") || strings.Contains(err.Error(), "model") {
+			t.Fatalf("want a fixed-cause wait floor refusal, got %v", err)
+		}
+		if rec := wfState(t, o).CodexWaitFloor; rec == nil || rec.Path != elsewhere {
+			t.Fatalf("the record changed: %#v", rec)
+		}
+	})
+}
+
+func TestRecoverKeepsTheLinesWhenTheStateChangedAfterTheInterruption(t *testing.T) {
+	o := wfOptions(t)
+	put(t, wfConfig(o), "model = \"x\"\n")
+	if _, err := wfFail("codex-lines-after").Apply(plan(t, "install", o)); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	statePath := filepath.Join(o.StateDir, "state.json")
+	// The failed install never reached the state write, so the state is absent.
+	put(t, statePath, "{\"Version\":6,\"Records\":{}}\n")
+	if _, err := (Engine{}).Recover(o.StateDir); err == nil || !strings.Contains(err.Error(), "state changed") {
+		t.Fatalf("want the state refusal, got %v", err)
+	}
+	if !strings.Contains(get(t, wfConfig(o)), wfDefault) {
+		t.Fatal("recover undid the lines although it refused to recover")
+	}
+	if err := os.Remove(statePath); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	if get(t, wfConfig(o)) != "model = \"x\"\n" {
+		t.Fatalf("config = %q", get(t, wfConfig(o)))
+	}
+}
+
+func TestRecoverDeletesTheBackupWhenTheWriteNeverHappened(t *testing.T) {
+	o := wfOptions(t)
+	// The table exists, so the edit only adds keys and the undo finds none to remove.
+	original := "[features.multi_agent_v2]\nmax_wait_timeout_ms = 900000\n"
+	put(t, wfConfig(o), original)
+	if _, err := wfFail("codex-lines-backup").Apply(plan(t, "install", o)); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	absent(t, wfConfig(o)+".hive-backup")
+	if get(t, wfConfig(o)) != original {
+		t.Fatal("the config changed")
+	}
+	wfInstall(t, o)
+	if rec := wfState(t, o).CodexWaitFloor; rec == nil || !rec.BackupCreated {
+		t.Fatalf("a later install must own its backup: %#v", rec)
+	}
+}
+
+func TestRecoverOfAnInterruptedRemoveDropsTheRecordOfLinesThatAreGone(t *testing.T) {
+	o := wfOptions(t)
+	put(t, wfConfig(o), "model = \"x\"\n")
+	wfInstall(t, o)
+	if _, err := wfFail("codex-lines-write").Apply(plan(t, "remove", wfRemoveOptions(o))); err == nil {
+		t.Fatal("expected the failpoint")
+	}
+	if _, err := (Engine{}).Recover(o.StateDir); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(get(t, wfConfig(o)), "multi_agent_v2") {
+		t.Fatal("the failpoint fired before the lines were removed")
+	}
+	if rec := wfState(t, o).CodexWaitFloor; rec != nil {
+		t.Fatalf("a record survives for lines that are gone: %#v", rec)
+	}
+	absent(t, filepath.Join(o.StateDir, "pending.json"))
+}
