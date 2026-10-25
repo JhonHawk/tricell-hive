@@ -11,6 +11,8 @@ Include only established decisions and material open questions; replace or omit 
 
 Applications/areas covered: <paths and user contexts>.
 Shared foundations: <links to applicable tokens/components/design sources>.
+UI library baseline: <library, configuration file, theme>.
+Accessibility requirement: <declared level and scope, or `undecided`>.
 Application-specific differences: <what intentionally varies and why>.
 Maintainer/review path: <existing owner or project process>.
 
@@ -30,6 +32,10 @@ Responsive/accessibility expectations: <applicable behavior and references>.
 
 <Consequential departures, affected application/pattern, rationale,
 decision status and replacement when deprecated. Omit when none.>
+
+Theme deviations: <token or component, library value, project value, reason, origin>.
+Rules not adopted: <rule, reason, decision>.
+Global findings: <finding, source, measured value per theme, disposition, link>.
 
 ## Maintenance
 

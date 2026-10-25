@@ -97,6 +97,17 @@ raise the minor or the patch version.
   is written, with fixes in additional commits that name it, and the work is
   published for merge only when every task is verified or accepted by you. A
   plan without checkpoints is still verified task by task (#168).
+- The UI review keeps the UI library's design system as its baseline. The
+  reviewer first reads the library configuration, theme and installed
+  components, the project UI guide and any declared accessibility requirement.
+  A library default or a recorded project decision is not a finding in the
+  checks that measure that value, such as contrast, even below a WCAG
+  threshold, unless the project declares an accessibility
+  requirement or the ticket asks for one. Non-text contrast follows WCAG 2.2
+  SC 1.4.11 precisely, a fix that customizes the theme or an installed
+  component needs your decision or the project's, and a global finding is
+  reported once and recorded in the project UI guide so it does not reappear
+  for every view (#173).
 - Incidental findings at a close: a P3 finding or a wording detail is no
   longer offered as a ticket, related P2 findings are proposed as one group, a
   UI finding is proposed only after it was seen rendered, and the close

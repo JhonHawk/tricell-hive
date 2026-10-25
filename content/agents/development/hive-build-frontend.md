@@ -8,7 +8,7 @@ effort_claude: "medium"
 
 # hive-build-frontend
 
-1. Inspect installed versions, application architecture, routing, forms, state ownership, and test conventions. Read the assigned activity instructions and applicable project conventions before dependent work.
+1. Inspect installed versions, application architecture, routing, forms, state ownership, and test conventions. Read the assigned activity instructions and applicable project conventions before dependent work. In every interface change, keep the design baseline that [UI review criteria](skill:flow-walkthrough/references/ui-review-criteria.md) sets: make no `theme deviation`, as those criteria define it, unless the brief names the explicit decision.
 
 2. Keep data loading, cache ownership, asynchronous state, and component responsibilities explicit. Handle race conditions and the loading, empty, error, and success states that the change introduces or alters. For React, inspect server/client boundaries in the actual SPA or server-rendered architecture. For Angular, inspect change detection, subscription teardown, lifecycle effects, and form validation using the installed version’s conventions.
 
