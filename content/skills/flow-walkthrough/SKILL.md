@@ -17,7 +17,7 @@ This skill supports the user's validation of a user-interface change: what the u
 
 Before driving a browser, read [browser automation](../flow-build/references/browser-automation.md). Before the handoff message, read [questions](../flow-plan/references/questions.md) and [reporting](../flow-close/references/reporting.md). Before writing captures, recordings, or the page, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
 
-Serve the built candidate as [verification](../flow-build/references/verification.md) sets for the final handoff: the production-style start or preview command where the stack has a build step, local frontend, backend, database, and dependencies unless another target was explicitly specified, and the accounts, roles, and seed data prepared before the walk. Leave that same verified stack running, confirm its URLs are reachable, and name the candidate and the relevant local targets. Provide clickable application URLs and the required account or role without secrets.
+Serve the built candidate as [review and gates](../flow-verify/references/review-and-gates.md#runtime-and-ui-gates) sets for the final handoff: the production-style start or preview command where the stack has a build step, local frontend, backend, database, and dependencies unless another target was explicitly specified, and the accounts, roles, and seed data prepared before the walk. Leave that same verified stack running, confirm its URLs are reachable, and name the candidate and the relevant local targets. Provide clickable application URLs and the required account or role without secrets.
 
 ## First rendered view
 

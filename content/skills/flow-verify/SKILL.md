@@ -17,14 +17,14 @@ Before resolving needed project settings, read [project settings](../flow-plan/r
 
 At entry, say in one line whether verify runs or is skipped, and at which level.
 
-Verify is skipped only for a mechanical change, as the global guidance defines it, or when the user asks. Name what was skipped in the report. In a mechanical change, report the checks that already cover it. A dedicated code review is not needed there.
+Verify is skipped only for a mechanical change, as the global guidance defines it, or when the user asks; a skip asked for after this stage started runs it at no level, and this stage still integrates. Name what was skipped in the report. In a mechanical change, report the checks that already cover it. A dedicated code review is not needed there.
 
 The level combines values that already exist; no new setting selects it. Resolve the questions behind them where [delivery decisions](../flow-plan/references/delivery-decisions.md) sets: at the plan's close, or at the start of `flow-build` when there is no plan, and announce the values declared in `## Hive` without asking. This skill adds no question: it reads those answers, announces the level and runs it. Only when the work enters here directly, with no plan and no build before it, run that same round once, for the missing values.
 
 | Check | Runs when | Set by |
 | --- | --- | --- |
 | Affected tests and evidence | whenever verify runs | none |
-| Full local suite | the change is not mechanical | the full-suite rule below |
+| Full local suite | before a validation stop, or once on the final candidate when no CI gate runs it, in a change that is not mechanical | the full-suite rule below |
 | Local in-vivo run | the changed behavior calls for it; when it seems unnecessary, offer it | the rule in [review and gates](references/review-and-gates.md) |
 | UI gate | the change has a rendered UI effect | `UI verification` (`full`, `functional`, `none`) |
 | Dedicated code review | as the delivery mode sets | `Review`, or the answer to its question |
