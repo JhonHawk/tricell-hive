@@ -7,6 +7,10 @@ description: Prepare an implementation plan by resolving consequential decisions
 
 Produce enough shared understanding for an implementer to act without inventing product, scope, compatibility, or architectural decisions. Use the CLI's available planning capabilities and respect its active mode. A native task list is a working view, not proof of a complete or portable plan.
 
+## Entry and exit
+
+Enter with a goal that has a scope; when it does, enter directly, with no research before it. Exit with a ready plan in a change folder and the delivery decisions resolved or stated, for [flow-build](../flow-build/SKILL.md).
+
 ## Ground the decisions
 
 Before resolving needed project settings, read [project settings](references/project-settings.md). Before formulating a user decision, read [questions](references/questions.md). Before delegating or waiting for external work, read [delegation and waits](../flow-research/references/delegation.md).

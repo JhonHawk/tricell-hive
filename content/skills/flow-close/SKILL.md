@@ -9,6 +9,10 @@ This skill grants no effect of its own. The global guidance authorizes the delet
 
 Before a report, read [reporting](references/reporting.md); before a user decision or manual validation request, read [questions](../flow-plan/references/questions.md). Before cleaning support artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before resolving settings needed for closure, read [project settings](../flow-plan/references/project-settings.md).
 
+## Entry and exit
+
+Enter at the completion point (integrated by [flow-verify](../flow-verify/SKILL.md), or by flow-build when verify is skipped), on abandonment or a pause, or on a hygiene request; any of these enters directly. Deployment is a separate stage, [flow-deploy](../flow-deploy/SKILL.md), after integration and not part of a ticket's close. Exit with the record closed, the cleanup done and the report.
+
 ## When to run it
 
 1. **Work item close:** the item reached its completion point (merged into the base branch with any required post-merge CI passed, pushed to the base branch under `direct-base`, or the working tree verified under `hold`), or it is abandoned or paused.
