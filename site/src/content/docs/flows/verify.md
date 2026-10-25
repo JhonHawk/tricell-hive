@@ -24,7 +24,7 @@ At the start the agent says in one line whether verify runs and at which level. 
 - Affected tests and evidence for the changed behavior, always when verify runs.
 - A full local suite for a change that is not mechanical.
 - A local run of the changed behavior when it calls for one.
-- For a visible interface change, independent reviewers and a functional walk, as the `UI verification` value selects, followed by the human validation of the [walkthrough](/flows/build/#what-happens-to-a-user-interface-change).
+- For a visible interface change, independent reviewers and a functional walk, as the `UI verification` value selects, followed, in a delivery mode that stops for your validation, by the human validation of the [walkthrough](/flows/build/#what-happens-to-a-user-interface-change).
 - The dedicated code review, at the point your delivery mode sets.
 - The [security review](/flows/security/) only when you ask for it.
 

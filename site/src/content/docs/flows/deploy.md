@@ -29,7 +29,7 @@ The final report lists, per environment, the identity served, the health and the
 
 ## What it does not do
 
-- It does not commit, open pull requests or merge the work itself; that is Verify and [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md). It only opens and merges the promotion pull request when the environments are branches.
+- It does not commit, open pull requests or merge the work itself; Build commits it and the stage that integrates it, Verify or Build when verify is skipped, follows [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md). It only opens and merges the promotion pull request when the environments are branches.
 - It does not run a recovery action on its own unless an authorization you gave covers it.
 - It does not reopen a ticket; the promotion is recorded separately.
 
