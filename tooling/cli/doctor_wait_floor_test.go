@@ -169,3 +169,33 @@ func TestWaitFloorNextStepForAppliedWithoutAHiveRecordSaysPlanRemoveLeavesIt(t *
 		t.Fatalf("next promises a removal that would do nothing: %s", r.Next)
 	}
 }
+
+func TestWaitFloorRowSaysWhenTheRecordIsForAnotherPathAndDoesNotMixEvidence(t *testing.T) {
+	o, f, home, _ := integrationsFixtureHosts(t, "claude,codex")
+	p, err := management.BuildPlan("install", management.Options{Scope: "user", StateDir: o.StateDir, Source: copyMinimalSource(t), Hosts: []string{"claude", "codex"}, CodexWaitFloor: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (management.Engine{}).Apply(p); err != nil {
+		t.Fatal(err)
+	}
+	// The recorded file now has a backup; CODEX_HOME then moves elsewhere.
+	if err := os.WriteFile(filepath.Join(home, ".codex", "config.toml.hive-backup"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	other := t.TempDir()
+	t.Setenv("CODEX_HOME", other)
+	r := floorRow(t, o, f)
+	text := strings.Join(r.detailLines(), "\n")
+	for _, want := range []string{"record is for another path", "hive plan remove will skip it"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("detail lacks %q:\n%s", want, text)
+		}
+	}
+	if r.Found != "not applied" || r.HiveWrote {
+		t.Fatalf("found = %q hiveWrote = %v", r.Found, r.HiveWrote)
+	}
+	if strings.Contains(text, "lines in") || strings.Contains(text, "hive-backup: present") {
+		t.Fatalf("evidence from the recorded path leaked into the current one:\n%s", text)
+	}
+}

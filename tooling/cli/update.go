@@ -146,9 +146,19 @@ func detectUpdateOffers(p management.Plan, f updateFlags, interactive bool) (onb
 		return nil, nil, nil
 	}
 	adapter := updateAdapterFactory(f, interactive, p.Config.CodexHome)
-	all, err := adapter.Detect(management.Options{Scope: "user", Home: f.Home, Hosts: p.Hosts})
-	// The adapter lists every capability; update offers only the one that
-	// changes a file it applies itself, because it runs no onboarding steps.
+	o := management.Options{Scope: "user", Home: f.Home, Hosts: p.Hosts}
+	// The native adapter detects the wait floor alone, so an update runs none
+	// of the other capabilities' probes. Any other adapter lists everything and
+	// update keeps the wait floor, the only capability that changes a file it
+	// applies itself, because it runs no onboarding steps.
+	if native, ok := adapter.(*nativeProviderAdapter); ok {
+		var offers []providerOffer
+		if offer, ok := native.waitFloorOffer(o); ok {
+			offers = append(offers, offer)
+		}
+		return adapter, offers, nil
+	}
+	all, err := adapter.Detect(o)
 	var offers []providerOffer
 	for _, offer := range all {
 		if offer.ID == string(providers.CodexWaitFloor) {

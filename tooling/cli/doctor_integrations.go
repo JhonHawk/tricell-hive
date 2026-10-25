@@ -176,7 +176,7 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 	if hostsErr != nil || slices.Contains(hosts, "codex") {
 		card := integrationRow{
 			ID: string(providers.CodexQuestionCard), Name: "Codex question card", Found: "not checked",
-			Evidence: []string{"Not checked: finding it would mean reading Codex's configuration, which Hive does not do."},
+			Evidence: []string{"Not checked: Hive reads Codex's config.toml only for the wait floor row, so it does not look for this feature there."},
 		}
 		fillSourceFromCatalog(&card)
 		rec.apply(&card, recErr)
@@ -514,8 +514,11 @@ func codexWaitFloorRow(o management.Options, deps doctorDeps) integrationRow {
 	}
 	configPath := filepath.Join(cfg.CodexHome, "config.toml")
 	record, recordErr := management.StoredCodexWaitFloor(o)
-	if record != nil && record.Path != "" {
-		configPath = record.Path
+	// A record for another path (CODEX_HOME changed) is not evidence about the
+	// file read here: it is named apart and none of its facts are mixed in.
+	otherPath := record != nil && record.Path != "" && record.Path != configPath
+	if otherPath {
+		record = nil
 	}
 
 	state, readErr := readWaitFloorState(cfg.CodexHome)
@@ -541,6 +544,8 @@ func codexWaitFloorRow(o management.Options, deps doctorDeps) integrationRow {
 	}
 
 	switch {
+	case otherPath:
+		row.Evidence = append(row.Evidence, "Hive's record is for another path (Codex's home changed since it wrote there); hive plan remove will skip it. Written by Hive in this file: no.")
 	case recordErr != nil:
 		row.Evidence = append(row.Evidence, "Written by Hive: unknown (Hive's state could not be read).")
 	case record != nil:

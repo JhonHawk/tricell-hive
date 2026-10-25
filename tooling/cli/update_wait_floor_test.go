@@ -155,3 +155,49 @@ func TestUpdateViewWaitFloorSkippedLeavesTheDirectApply(t *testing.T) {
 	d.mustShow("already up to date")
 	mustNotExist(t, filepath.Join(env.aHome, ".codex", "config.toml"))
 }
+
+// Update detects the wait floor alone: no question-card or agent-browser probe
+// runs, only the Codex version check the wait floor needs.
+func TestUpdateRunsOnlyTheWaitFloorProbe(t *testing.T) {
+	env := upToDateUpdateEnv(t)
+	f := &abFake{goos: "darwin", goarch: "arm64", codexVersion: "codex-cli 0.164.0", path: map[string]bool{"codex": true, "node": true, "npm": true, "agent-browser": true}, node: "v24.1.0"}
+	useAgentBrowserFake(t, f)
+	saved := updateAdapterFactory
+	t.Cleanup(func() { updateAdapterFactory = saved })
+	updateAdapterFactory = func(_ updateFlags, interactive bool, codexHome string) onboardingAdapter {
+		a := newNativeProviderAdapter(false, false, interactive)
+		a.codexHome = codexHome
+		return a
+	}
+	var out bytes.Buffer
+	if err := update(env.args(), strings.NewReader("\ny\n"), &out, true); err != nil {
+		t.Fatalf("update: %v\n%s", err, out.String())
+	}
+	if f.codexProbes != 0 || f.nodeCalls != 0 || f.npmCalls != 0 || len(f.execs) != 0 {
+		t.Fatalf("unrelated probes ran: features=%d node=%d npm=%d execs=%v", f.codexProbes, f.nodeCalls, f.npmCalls, f.execs)
+	}
+	if f.versionProbes != 1 {
+		t.Fatalf("version probes = %d, want 1", f.versionProbes)
+	}
+	if _, err := os.Stat(env.configPath()); err != nil {
+		t.Fatalf("the offer did not reach the plan: %v", err)
+	}
+}
+
+func TestUpdateViewCancellingTheCapabilityDialogKeepsTheUnchangedApply(t *testing.T) {
+	env := newUpdateTwinEnv(t, true)
+	useFloorAdapterForUpdate(t, newFloorAdapter(false))
+	_, d := env.openApp(t, 100, 30)
+	setSource(d, env.repo)
+	d.key("enter")
+	d.mustShow("[x] codex-wait-floor")
+	d.key("esc")
+	d.mustShow("already up to date")
+	d.mustNotShow("Cancelled")
+	mustNotExist(t, filepath.Join(env.aHome, ".codex", "config.toml"))
+	// The source commit is still recorded, as the unchanged apply does.
+	entries, err := management.Releases(management.Options{Scope: "user", Home: env.aHome, StateDir: env.aState})
+	if err != nil || len(entries) == 0 || len(entries[0].Commits) < 1 {
+		t.Fatalf("commits not recorded: %+v err=%v", entries, err)
+	}
+}

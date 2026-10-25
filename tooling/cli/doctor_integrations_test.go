@@ -758,7 +758,7 @@ func TestCodexQuestionCardRowShownOnlyWithCodexRegistered(t *testing.T) {
 	if r.Name != "Codex question card" || r.Found != "not checked" {
 		t.Fatalf("row = %+v", r)
 	}
-	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: finding it would mean reading Codex's configuration, which Hive does not do." {
+	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: Hive reads Codex's config.toml only for the wait floor row, so it does not look for this feature there." {
 		t.Fatalf("evidence = %q", r.Evidence)
 	}
 	if r.Source != "github.com/openai/codex" || r.Record != recordNone {
