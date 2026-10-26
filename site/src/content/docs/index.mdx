@@ -45,7 +45,7 @@ On macOS Apple Silicon or Linux (arm64 or amd64), run this in a terminal:
 curl -fsSL https://hive.tricell.tech/install.sh | sh
 ```
 
-Run the same command again later to update. Other platforms and install routes, and the supported tools, are in the README's [Get started](https://github.com/JhonHawk/tricell-hive#get-started) section; recovery and removal are under [Update, verify, recover, and uninstall](https://github.com/JhonHawk/tricell-hive#update-verify-recover-and-uninstall).
+Run the same command again later to update. Other platforms and install routes are in the README's [Get started](https://github.com/JhonHawk/tricell-hive#get-started) section, the supported tools in its [Hosts](https://github.com/JhonHawk/tricell-hive#hosts) section; recovery and removal are under [Update, verify, recover, and uninstall](https://github.com/JhonHawk/tricell-hive#update-verify-recover-and-uninstall).
 
 ## Start with these
 
@@ -94,16 +94,14 @@ The agent picks these up when the task calls for them.
 - [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md): walks a built screen for you to validate, with captures, a video when a flow needs one, and a dark page of the results.
 - [workspace-conventions](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/workspace-conventions/SKILL.md): sort support files, keep the evidence worth keeping, and turn findings into lasting guidance.
 - [workspace-archive](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/workspace-archive/SKILL.md): archive finished work sessions you choose.
-- [unattended-delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md): let the agent keep working without you, within a goal and a deadline you set, on the work already running when you say you are leaving, or on the work you already routed and chose the delivery for when you go quiet. A message that only tells it to continue, acknowledges progress or asks how it is going does not end that; anything else hands control back to you. It decides on its own, never does anything irreversible or destructive except spending you authorized in advance within a ceiling, and reports every decision at the end.
+- [unattended-delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md): let the agent keep working without you, within a goal and a deadline you set, on the work already running when you say you are leaving, or on the work you already routed, once each delivery and review value it needs is declared in the repository's `## Hive` section or answered, when you go quiet. A message that only tells it to continue, acknowledges progress or asks how it is going does not end that; anything else hands control back to you. It decides on its own, never does anything irreversible or destructive except spending you authorized in advance within a ceiling, and reports every decision at the end.
 - [engram-init-workspace](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/engram-init-workspace/SKILL.md): give a workspace one Engram memory identity, only when you ask for it.
 
 ## Specialist roles
 
 For bounded pieces of work, the agent hands off to helper roles with a clear brief: design, building, documentation, quality checks and independent review. Each host runs them with the model and permissions Hive configures for it. The definitions are in [content/agents](https://github.com/JhonHawk/tricell-hive/tree/master/content/agents).
 
-## Learn more
-
-### Optional OpenCode V2 context loader
+## Optional OpenCode V2 context loader
 
 At user scope, Hive delivers `hive/context-loader/index.js` and
 `hive/context-loader/context-loader.json` inside your OpenCode home, with no `package.json`, outside the auto-discovered `plugins/` directory.
@@ -135,6 +133,8 @@ See the [loader contract](https://github.com/JhonHawk/tricell-hive/blob/master/_
 for configuration, ownership and verification limits. Source-level checks are
 not native runtime proof; the bounded model experiment has not yet run and remains
 blocked on verifying safe, exact memory cleanup.
+
+## Learn more
 
 - **Start here**: [Research](/flows/research/), the flow most sessions begin with.
 - **Principles**: [Why Hive](https://github.com/JhonHawk/tricell-hive#why-hive) explains the ideas behind it.

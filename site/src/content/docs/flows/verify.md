@@ -22,10 +22,10 @@ Skip verify for this one; I will check it myself.
 At the start the agent says in one line whether verify runs and at which level. The level combines settings that already exist: the project's `UI verification` and `Review` values, your answers to the delivery questions, and whether the change is mechanical. Verify adds no setting and no question of its own. The levels, and what each check covers, are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md).
 
 - Affected tests and evidence for the changed behavior, always when verify runs.
-- A full local suite for a change that is not mechanical.
-- A local run of the changed behavior when it calls for one.
+- The full local suite of each affected application, run before a validation stop, or once on the final candidate when no CI gate runs it. A mechanical change does not need it.
+- A local run of the changed behavior when it calls for one. When it does not, the report says why in one line; there is no question about it.
 - For a visible interface change, independent reviewers and a functional walk, as the `UI verification` value selects, followed, in a delivery mode that stops for your validation, by the human validation of the [walkthrough](/flows/build/#what-happens-to-a-user-interface-change).
-- The dedicated code review, at the point your delivery mode sets.
+- The dedicated code review on the local candidate, after the full suite and at the point your delivery mode sets: before the validation request under `interactive`, before the push under `automatic`, and on the working tree under `hold`, as [delivery decisions](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/delivery-decisions.md#dedicated-review-timing) sets. The corrections you ask for during validation get one more review, limited to what changed since the reviewed candidate. A mechanical change gets none.
 - The [security review](/flows/security/) only when you ask for it.
 
 When it finishes, the report names the level that ran and each check that failed, could not run or was accepted without verification. If the delivery mode lets it, the accepted candidate is integrated, and [Close](/flows/close/) follows.
@@ -54,7 +54,7 @@ You can raise or lower the level for the work with a request such as "full verif
 No. Verify needs a candidate and the criteria it must meet. When it is entered directly, it asks only for the delivery and review values that are still missing.
 
 ### Is the code review part of Verify?
-Yes. A declared `Review` value is the default mechanism, not a demand: if you skip verify, the dedicated review counts as accepted without verification, unless the repository requires it.
+Yes, except for a mechanical change. A declared `Review` value is the default mechanism, not a demand: if you skip verify, the dedicated review counts as accepted without verification, unless the repository requires it.
 
 ### Where is the exact rule?
 See the source linked below.

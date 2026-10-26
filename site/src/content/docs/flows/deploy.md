@@ -3,7 +3,7 @@ title: Deploy
 description: Promote an integrated change through your environments and check what is actually being served.
 ---
 
-Deploy is a stage of its own, after the change is integrated. It is not part of closing a ticket unless your project declares deployment as the ticket's completion point, and one run can cover several tickets.
+Deploy is a stage of its own, after the change is integrated. It never holds a close open, and one run can cover several tickets. When your project declares a later completion point, such as "Done = on `origin/qa`", the work closes at integration with the ticket in the intermediate state your guidance names, and Deploy moves it to the final state when that condition holds, as [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md#later-completion-point) sets. If someone else promoted, the next session that sees the condition met applies the move.
 
 ## When to use
 
@@ -23,6 +23,7 @@ Deploy the fix for the checkout error to production now.
 - One authorization question per environment the run reaches, with a production deployment kept apart. An answer you leave open stays unauthorized.
 - Promotion one environment at a time, in order, through the declared path.
 - After each deployment, a check that the served version is the one you promoted and that the targets are healthy. A deployment whose identity does not match, whose rollout is unfinished or that shows an error is reported as not verified, never as healthy.
+- A review of each promotion pull request limited to the commits not reviewed before their integration.
 - A functional walk only when the project declares one or you asked to validate the deployment.
 
 The final report lists, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. The exact steps and checks are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md).
@@ -36,7 +37,7 @@ The final report lists, per environment, the identity served, the health and the
 ## Related flows
 
 - [Verify](/flows/verify/) integrates the candidate that Deploy promotes.
-- [Close](/flows/close/) ends a ticket at integration, unless your project declares deployment as the completion point; Deploy comes after integration.
+- [Close](/flows/close/) closes the work at integration; Deploy comes after it and, after a promotion, only the branch and process cleanup of Close runs.
 
 ## FAQ
 
