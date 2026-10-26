@@ -14,11 +14,11 @@
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit", "write", "search_replace", "write_file", "apply_patch"]}, "implement": {}, "verify": {}}
     },
     "pi": {
-      "models": {"execution": {"model": "openai/gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "openai/gpt-6.1-sol", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "xai/grok-4.7", "effort": "high"}},
+      "models": {"execution": {"model": "inherit", "effort": "medium"}, "reasoning": {"model": "inherit", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "inherit", "effort": "high"}},
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
-      "models": {"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "high"}, "reasoning": {"model": "opencode-go/deepseek-v4-pro", "effort": "high"}, "inherit": {"model": "opencode-go/deepseek-v4.1-flash#max"}, "verifier": {"model": "opencode-go/glm-5.3", "effort": "high"}},
+      "models": {"execution": {}, "reasoning": {}, "inherit": {}, "verifier": {}},
       "variants": {"opencode-go/deepseek-v4.1-flash": ["low", "high", "max"], "opencode-go/deepseek-v4-pro": ["high", "max"], "opencode-go/glm-5.3": ["low", "high", "max"]},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
     },

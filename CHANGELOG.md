@@ -10,6 +10,14 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- Pi and OpenCode roles run on the session's model by default instead of
+  `openai/gpt-6.1-sol`, `xai/grok-4.7` and the OpenCode Go models, which need
+  subscriptions that are often inactive. Pi keeps each role's thinking level;
+  OpenCode roles also take the session's effort. Run `hive update` to apply it,
+  and `hive models set` to choose a model per role.
+
 ### Fixed
 
 - The walkthrough viewer preserves a project's resolved identity when a worktree
