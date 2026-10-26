@@ -269,11 +269,14 @@ const (
 	projectFormFixed = 1 // the heading
 )
 
-// projectForm holds one field per setting of hiveSettingKeys. Text settings
-// are text inputs; Delivery, Hive guidance and UI verification choose among
-// ‹ none › and their valid values (plus the value the file holds now, when it is none of
-// them, so opening the form never drops it silently).
+// projectForm holds one field per setting of hiveSettingKeys, then one row for
+// each retired key the section still holds. Text settings are text inputs;
+// Delivery and Hive guidance choose among ‹ none › and their valid values
+// (plus the value the file holds now, when it is none of them, so opening the
+// form never drops it silently). A retired key chooses between its current
+// value, marked (retired), and remove.
 type projectForm struct {
+	names     []string // the key of each row
 	inputs    []textinput.Model
 	options   [][]string // for a choice field; nil for a text field
 	choice    []int
@@ -286,6 +289,9 @@ type projectForm struct {
 
 func (f *projectForm) isText(i int) bool { return f.options[i] == nil }
 
+// retiredRow reports whether row i is the keep-or-remove row of a retired key.
+func (f *projectForm) retiredRow(i int) bool { return i >= len(hiveSettingKeys) }
+
 // value is the trimmed value of field i; "" for none.
 func (f *projectForm) value(i int) string {
 	if f.isText(i) {
@@ -294,20 +300,58 @@ func (f *projectForm) value(i int) string {
 	return f.options[i][f.choice[i]]
 }
 
+// choiceText is what a choice field shows for option v: a value the key no
+// longer reads is marked, and the empty choice is none (unset for a retired
+// key's remove row, which never holds one).
+func (f *projectForm) choiceText(i int, v string) string {
+	switch {
+	case f.retiredRow(i) && v == formRemove:
+		return formRemove
+	case f.retiredRow(i), f.names[i] == "Delivery" && slices.Contains(retiredDeliveryValues, v):
+		if v == "" {
+			return "(retired)"
+		}
+		return v + " (retired)"
+	case v == "":
+		return "none"
+	}
+	return v
+}
+
+// formRemove is the choice that removes a retired key.
+const formRemove = "remove"
+
+// completionPlaceholder shows the shape of Completion, with the refs the
+// Environments value implies when there is one.
+func completionPlaceholder(environments string) string {
+	var envs []string
+	for _, e := range strings.Split(environments, "→") {
+		if e = strings.TrimSpace(e); e != "" {
+			envs = append(envs, e)
+		}
+	}
+	if len(envs) < 2 {
+		return completionShape
+	}
+	return "<state> on origin/" + envs[0] + " · <state> on origin/" + envs[len(envs)-1]
+}
+
 // newProjectForm builds the form from the items the section holds now and the
 // suggestions. A suggestion fills only a text setting the section lacks.
 func newProjectForm(items []hiveItem, suggestions map[string]string) *projectForm {
-	n := len(hiveSettingKeys)
-	f := &projectForm{
-		inputs: make([]textinput.Model, n), options: make([][]string, n), choice: make([]int, n),
-		suggested: map[string]string{}, current: map[string]string{},
-	}
+	f := &projectForm{suggested: map[string]string{}, current: map[string]string{}}
 	for _, it := range items {
 		if _, dup := f.current[it.Key]; !dup {
 			f.current[it.Key] = it.Value
 		}
 	}
-	for i, k := range hiveSettingKeys {
+	addRow := func(name string, in textinput.Model, options []string, choice int) {
+		f.names = append(f.names, name)
+		f.inputs = append(f.inputs, in)
+		f.options = append(f.options, options)
+		f.choice = append(f.choice, choice)
+	}
+	for _, k := range hiveSettingKeys {
 		cur, present := f.current[k.Name]
 		switch k.Name {
 		case "Delivery", "Hive guidance":
@@ -315,17 +359,11 @@ func newProjectForm(items []hiveItem, suggestions map[string]string) *projectFor
 			if k.Name == "Hive guidance" {
 				valid = []string{hiveGuidanceWant}
 			}
-			f.options[i] = append([]string{""}, valid...)
-			if present && cur != "" && !slices.Contains(f.options[i], cur) {
-				f.options[i] = append(f.options[i], cur)
+			options := append([]string{""}, valid...)
+			if present && cur != "" && !slices.Contains(options, cur) {
+				options = append(options, cur)
 			}
-			f.choice[i] = max(slices.Index(f.options[i], cur), 0)
-		case "UI verification":
-			f.options[i] = append([]string{""}, hiveUIVerificationValues...)
-			if present && cur != "" && !slices.Contains(f.options[i], cur) {
-				f.options[i] = append(f.options[i], cur)
-			}
-			f.choice[i] = max(slices.Index(f.options[i], cur), 0)
+			addRow(k.Name, textinput.Model{}, options, max(slices.Index(options, cur), 0))
 		default:
 			in := textinput.New()
 			in.Prompt = ""
@@ -336,7 +374,12 @@ func newProjectForm(items []hiveItem, suggestions map[string]string) *projectFor
 			}
 			in.SetValue(value)
 			in.CursorEnd()
-			f.inputs[i] = in
+			addRow(k.Name, in, nil, 0)
+		}
+	}
+	for _, name := range retiredHiveKeys {
+		if cur, present := f.current[name]; present {
+			addRow(name, textinput.Model{}, []string{cur, formRemove}, 0)
 		}
 	}
 	return f
@@ -446,17 +489,33 @@ func (v *projectView) formKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 // request turns the form into what `hive project set` takes: the settings that
 // differ from the section now, and the optional ones the user emptied.
 func (f *projectForm) request() (set []hiveItem, unset []string) {
-	for i, k := range hiveSettingKeys {
+	for i, name := range f.names {
 		value := f.value(i)
-		cur, present := f.current[k.Name]
+		cur, present := f.current[name]
+		if f.retiredRow(i) {
+			if value == formRemove {
+				unset = append(unset, name)
+			}
+			continue
+		}
 		switch {
 		case value != "" && (!present || value != cur):
-			set = append(set, hiveItem{Key: k.Name, Value: value})
-		case value == "" && present && cur != "" && !k.Required:
-			unset = append(unset, k.Name)
+			set = append(set, hiveItem{Key: name, Value: value})
+		case value == "" && present && cur != "" && !hiveKeyRequired(name):
+			unset = append(unset, name)
 		}
 	}
 	return set, unset
+}
+
+// hiveKeyRequired reports whether name is a required key of hiveSettingKeys.
+func hiveKeyRequired(name string) bool {
+	for _, k := range hiveSettingKeys {
+		if k.Name == name {
+			return k.Required
+		}
+	}
+	return false
 }
 
 // review checks the required fields, then builds the same edit the command
@@ -549,30 +608,29 @@ func (v *projectView) formView(c viewCtx) string {
 		}
 	}
 	lines = append(lines, "")
-	for i, k := range hiveSettingKeys {
-		applyInputStyles(&f.inputs[i], th)
+	for i, name := range f.names {
+		if f.isText(i) {
+			applyInputStyles(&f.inputs[i], th)
+		}
+		if name == "Completion" {
+			f.inputs[i].Placeholder = completionPlaceholder(f.value(slices.Index(f.names, "Environments")))
+		}
 		prefix := "  "
 		if i == f.row {
 			prefix = "> "
 		}
-		label := prefix + padRight(k.Name, projectLabelCol-2)
+		label := prefix + padRight(name, projectLabelCol-2)
 		style := th.Text
 		if i == f.row {
 			style = th.Accent
 		}
 		if !f.isText(i) {
-			text := f.options[i][f.choice[i]]
-			if text == "" {
-				text = "none"
-				if k.Name == "UI verification" {
-					text = "unset" // "none" is a value of this key, so the empty choice needs another word
-				}
-			}
+			text := f.choiceText(i, f.options[i][f.choice[i]])
 			lines = append(lines, style.Render(label+"‹ "+truncateRunes(sanitizeLine(text), max(c.Width-len(label)-4, 1))+" ›"))
 			continue
 		}
 		row := style.Render(label) + inputView(f.inputs[i], th)
-		if s, ok := f.suggested[k.Name]; ok && f.value(i) == s {
+		if s, ok := f.suggested[name]; ok && f.value(i) == s {
 			row += th.Muted.Render(projectTagText)
 		}
 		lines = append(lines, row)

@@ -171,6 +171,10 @@ type doctorSection struct {
 	Title string
 	Lines []string
 	Err   string
+	// Blocking and Absent are set only by the Project section: a finding that
+	// makes hive doctor exit non-zero, and a repository with no AGENTS.md or no
+	// ## Hive section, which does so only for an explicit --project.
+	Blocking, Absent bool
 }
 
 // doctorReport holds the five sections in display order. Integrations and

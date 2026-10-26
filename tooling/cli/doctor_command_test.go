@@ -77,7 +77,9 @@ func TestDoctorCommandProjectFlagChecksThatRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if runErr != nil || !strings.Contains(out, "Project\n  "+filepath.Join(canonical, "AGENTS.md")+"\n  AGENTS.md: not found at the repository root\n") {
+	// An explicit --project that names a repository without AGENTS.md fails
+	// after printing the same report (D10-A).
+	if runErr == nil || runErr.Error() != projectBlockingMessage || !strings.Contains(out, "Project\n  "+filepath.Join(canonical, "AGENTS.md")+"\n  AGENTS.md: not found at the repository root\n") {
 		t.Errorf("doctor --project did not check %s (err %v):\n%s", repo, runErr, out)
 	}
 	outside := t.TempDir()
@@ -86,6 +88,80 @@ func TestDoctorCommandProjectFlagChecksThatRepository(t *testing.T) {
 	})
 	if runErr != nil || !strings.Contains(out, "Project\n  Directory: ") || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
 		t.Errorf("doctor outside a repository (err %v):\n%s", runErr, out)
+	}
+}
+
+// Exit status of `hive doctor` for the Project section (AC5): blocking findings
+// fail, warnings do not, and a missing AGENTS.md or section fails only for an
+// explicit --project.
+func TestDoctorCommandExitStatusFollowsTheProjectSection(t *testing.T) {
+	f := newCharacterizationFixture(t)
+	big := validHiveSection + strings.Repeat("x", hiveFileLimit)
+	cases := []struct {
+		name     string
+		repo     func(t *testing.T) string
+		explicit bool
+		fails    bool
+		report   string
+	}{
+		{"valid section", func(t *testing.T) string { return projectRepoWithSpecs(t, validHiveSection) }, true, false, "Valid"},
+		{"missing required value", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Tracker: GitHub Issues · org/demo\n", "", 1))
+		}, false, true, "Tracker: required value is missing"},
+		{"empty required value", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Project: demo", "- Project:", 1))
+		}, false, true, "Project: value is empty"},
+		{"invalid Delivery", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
+		}, false, true, "Delivery: expected"},
+		{"invalid Hive guidance", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Hive guidance: optional\n- Specs:", 1))
+		}, false, true, "Hive guidance: expected"},
+		{"duplicated section", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, validHiveSection+"\n## Hive\n\n- Project: again\n")
+		}, false, true, "section appears 2 times"},
+		{"AGENTS.md over 1 MiB", func(t *testing.T) string { return projectRepoWithSpecs(t, big) }, false, true, "larger than 1 MiB"},
+		{"AGENTS.md is not a regular file", func(t *testing.T) string {
+			root := projectRepoWithSpecs(t, "")
+			if err := os.Remove(filepath.Join(root, "AGENTS.md")); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir(filepath.Join(root, "AGENTS.md"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			return root
+		}, false, true, "not a regular file"},
+		{"only warnings", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Review: x\n- Delivery: automatic\n- Colour: blue\n- Completion: Done\n- Specs:", 1))
+		}, true, false, "Review: no longer read"},
+		{"no AGENTS.md without the flag", func(t *testing.T) string { return newProjectRepo(t) }, false, false, "not found at the repository root"},
+		{"no AGENTS.md with the flag", func(t *testing.T) string { return newProjectRepo(t) }, true, true, "not found at the repository root"},
+		{"no section without the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, false, false, "section not found"},
+		{"no section with the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, true, true, "section not found"},
+		{"outside a repository without the flag", func(t *testing.T) string { return t.TempDir() }, false, false, outsideGitLine},
+		{"outside a repository with the flag", func(t *testing.T) string { return t.TempDir() }, true, false, outsideGitLine},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			repo := c.repo(t)
+			args := []string{"doctor", "--home", f.home, "--state-dir", f.stateDir}
+			if c.explicit {
+				args = append(args, "--project", repo)
+			} else {
+				t.Chdir(repo)
+			}
+			var runErr error
+			out := captureStdout(t, func() { runErr = run(args) })
+			if !strings.Contains(out, c.report) {
+				t.Errorf("report lacks %q:\n%s", c.report, out)
+			}
+			switch {
+			case c.fails && (runErr == nil || runErr.Error() != projectBlockingMessage):
+				t.Errorf("want the error %q, got %v", projectBlockingMessage, runErr)
+			case !c.fails && runErr != nil:
+				t.Errorf("want exit 0, got %v", runErr)
+			}
+		})
 	}
 }
 

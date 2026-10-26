@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -446,11 +447,14 @@ type projectEdit struct {
 
 // validateHiveRequest checks what the user asked for before any text is
 // built: only known keys are set, values are safe to write, and a required
-// key is not removed.
+// key is not removed. A retired key, or a retired Delivery value, is refused
+// before the unknown ones so that the message says it is retired.
 func validateHiveRequest(set []hiveItem, unset []string) error {
 	var problems []string
 	for _, it := range set {
 		switch {
+		case retiredHiveKey(it.Key) || (it.Key == "Delivery" && slices.Contains(retiredDeliveryValues, it.Value)):
+			problems = append(problems, it.Key+": retired; Hive asks it each session — use --unset "+it.Key+" to remove it")
 		case !knownHiveKey(it.Key):
 			problems = append(problems, fmt.Sprintf("%s: unknown key; known keys are %s", shown(it.Key), strings.Join(hiveKeyNames(false), ", ")))
 		case sanitizeLine(it.Value) != it.Value:

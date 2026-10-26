@@ -111,7 +111,12 @@ func TestProjectCommandUsageErrors(t *testing.T) {
 		{"nothing to do", []string{"--project", root}, "at least one --set or --unset"},
 		{"set without a colon", []string{"--project", root, "--set", "Project demo"}, "--set expects 'Key: value'"},
 		{"set twice", []string{"--project", root, "--set", "Project: a", "--set", "Project: b"}, "set more than once"},
-		{"set and unset", []string{"--project", root, "--set", "Review: a", "--unset", "Review"}, "both set and unset"},
+		{"set and unset", []string{"--project", root, "--set", "Environments: a", "--unset", "Environments"}, "both set and unset"},
+		{"retired key", []string{"--project", root, "--set", "Review: /code-review"}, "Review: retired; Hive asks it each session — use --unset Review to remove it"},
+		{"retired key with a value of its own", []string{"--project", root, "--set", "UI verification: full"}, "UI verification: retired"},
+		{"retired Delivery mode", []string{"--project", root, "--set", "Delivery: automatic"}, "Delivery: retired; Hive asks it each session — use --unset Delivery to remove it"},
+		{"retired Delivery mode, interactive", []string{"--project", root, "--set", "Delivery: interactive"}, "Delivery: retired"},
+		{"retired before unknown", []string{"--project", root, "--set", "Review: x", "--set", "Mystery: a"}, "Review: retired"},
 		{"positional", []string{"--project", root, "--set", "Project: a", "extra"}, "unexpected positional"},
 		{"unknown key", []string{"--project", root, "--set", "Mystery: a"}, "Mystery: unknown key"},
 	}
@@ -123,6 +128,27 @@ func TestProjectCommandUsageErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestProjectCommandKeepsARetiredLineAndWarnsAboutIt(t *testing.T) {
+	root := projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Delivery: automatic\n- UI verification: full\n", 1))
+	out, err := runProjectSet(t, "y\n", true, "--project", root, "--set", "Project: renamed")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	mustContain(t, out, "Delivery: no longer read", "UI verification: no longer read")
+	got, _ := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	mustContain(t, string(got), "- Project: renamed", "- Delivery: automatic", "- UI verification: full")
+}
+
+func TestProjectCommandUnsetsEveryRetiredLine(t *testing.T) {
+	root := projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Delivery: interactive\n- UI verification: full\n", 1))
+	out, err := runProjectSet(t, "y\n", true, "--project", root, "--unset", "Delivery", "--unset", "UI verification")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	mustNotContain(t, string(got), "Delivery", "UI verification")
 }
 
 func TestProjectCommandUnsetOptionalKey(t *testing.T) {
