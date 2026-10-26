@@ -60,8 +60,9 @@ reproducible from the available evidence and is not an acceptance threshold.
 
 Grok gets one managed `PreToolUse` hook that drops `offset` and `limit` when a
 session reads a skill reference, because Grok models read references partially
-in about one session in three; it enforces on Grok the read-whole rule that the
-global guidance states for every host. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
+in about one session in three; for skill references read with Grok's read tool,
+it enforces part of the read-whole rule that the global guidance states for
+every host. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
 
 An optional OpenCode user-scope plugin supplies two fixed-role reference snapshots
 in the session context hook when explicitly activated. The manager generates
