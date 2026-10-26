@@ -11,7 +11,7 @@ Use Research when the next step depends on facts you do not have yet.
 
 - Something is failing and nobody knows why, or you report a bug without asking for the fix yet: the agent confirms the cause first, then asks in one round whether to track it and how to continue.
 - You want to compare two ways of solving a problem.
-- You need the real state of a project: what is done, what is open, and where the records disagree. The status report also counts how much of what was integrated since the last promotion had to be redone: reverts, reopened tickets, and bug tickets that point to that work. These are plain counts with their links, not rates or targets; the rule is in the [backlog report reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/backlog-report.md).
+- You need the real state of a project: what is done, what is open, and where the records disagree. The status report also counts how much of the work integrated since the last promotion, or in the last 30 days when there is none, had to be redone: reverts of that work, its tickets reopened since, and bug tickets that point to it. These are plain counts, each item listed with its link, not rates or targets; the rule is in the [backlog report reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/backlog-report.md).
 - You are asking whether something can be done, such as "can you fix this record?". That is a question, so the agent looks first and waits for your choice.
 
 Example requests:
