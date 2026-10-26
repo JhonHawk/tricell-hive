@@ -188,11 +188,11 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 		return Session{}, errors.New("source changed while it was being copied; it will be retried")
 	}
 	final := s.sessionDir(key)
-	pinned, archived := false, false
+	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC()}
 	if old, err := readMeta(final); err == nil {
-		pinned, archived = old.Pinned, old.Archived
+		mt.Pinned, mt.Archived = old.Pinned, old.Archived
+		mt.ProjectKey, mt.ProjectName = old.ProjectKey, old.ProjectName
 	}
-	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC(), Pinned: pinned, Archived: archived}
 	if err := writeJSONAtomic(filepath.Join(tmp, "meta.json"), mt); err != nil {
 		return Session{}, err
 	}
@@ -662,6 +662,8 @@ func (s *Store) apply(c *candidate, now time.Time, d *indexData, res *SyncResult
 	}
 	d.dropTombstone(c.key)
 	if exists {
+		previous := d.Sessions[i]
+		sess.Repository, sess.ProjectKey, sess.ProjectName = previous.Repository, previous.ProjectKey, previous.ProjectName
 		d.Sessions[i] = sess
 		res.Replaced++
 		return nil

@@ -19,8 +19,9 @@
 //	sessions/<key>/  walkthrough.json + referenced files + meta.json
 //
 // <key> is SHA-256("<source folder>\x00<session id>"). meta.json is
-// {source, content_hash, ingested_at, pinned}; it, not index.json, is the
-// source of truth for copies and for pins. content_hash covers the manifest
+// {source, content_hash, ingested_at, pinned, archived?, project_key?, project_name?};
+// it, not index.json, is the source of truth for copies and their project identity.
+// content_hash covers the manifest
 // bytes and each referenced file's path and SHA-256, so rewriting only an
 // image changes it and replaces the copy (keeping pinned).
 //
@@ -68,6 +69,8 @@
 // project_name (read here, at most 64 KiB, no links), else the last segment of
 // the remote, else the folder name. A manifest without a ticket lands in the
 // group with an empty ticket name. Worktrees of one remote share a project.
+// A previously resolved remote identity is retained in copy metadata when its
+// repository disappears or remote lookup fails, including across restarts.
 //
 // # Concurrency
 //

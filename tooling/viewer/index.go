@@ -440,12 +440,22 @@ func (s *Store) projectFor(root string) projectInfo {
 	return info
 }
 
-// enrich fills Repository, ProjectKey and ProjectName of every session from
-// the project cache.
+// enrich refreshes project information without replacing a previously resolved
+// remote identity with a path fallback when the repository cannot be read.
 func (s *Store) enrich(d *indexData) {
+	known := map[string]projectInfo{}
+	for _, sess := range d.Sessions {
+		root := repoRootOf(sess.Source)
+		if sess.Repository == root && sess.ProjectKey != "" && sess.ProjectKey != root && NormalizeRemote("https://"+sess.ProjectKey) == sess.ProjectKey {
+			known[root] = projectInfo{key: sess.ProjectKey, name: sess.ProjectName}
+		}
+	}
 	for i := range d.Sessions {
 		root := repoRootOf(d.Sessions[i].Source)
 		info := s.projectFor(root)
+		if previous, ok := known[root]; ok && info.key == root {
+			info = previous
+		}
 		d.Sessions[i].Repository = root
 		d.Sessions[i].ProjectKey = info.key
 		d.Sessions[i].ProjectName = info.name

@@ -10,6 +10,12 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Fixed
+
+- The walkthrough viewer preserves a project's resolved identity when a worktree
+  disappears or its remote cannot be read, including after a restart, instead of
+  splitting its saved copies into another project with the same name (#193).
+
 ## [0.6.0] - 2026-10-25
 
 ### Security
