@@ -57,7 +57,7 @@ Split questions or options beyond the tool's limit across consecutive calls, eac
 
 ## Use text when no waiting card carries the question
 
-**Condition:** no waiting card carries the question: no such tool exists; the only tool returns before the answer, such as an asynchronous card that closes when the turn ends; or a dismissed or timed-out question is asked once more in text; or the round that [unattended delegation](../../unattended-delegation/SKILL.md#pre-authorization-round) asks at activation, whose pause line adds that the work continues to a local candidate meanwhile.
+**Condition:** no waiting card carries the question: no such tool exists; the only tool returns before the answer, such as an asynchronous card that closes when the turn ends; or a dismissed or timed-out question is asked once more in text; or the round that [unattended delegation](../../unattended-delegation/SKILL.md#pre-authorization-round) asks at activation, whose pause line adds that the work continues meanwhile without commit or publication.
 
 **Actions:** write each option in the text, one line each with only what sets it apart. State once what several options share and any route project policy rules out. Add no "Other" option or reply example. A tool that returns before the answer may be called in addition, only while independent work continues in the turn, and never replaces the options in the text: the waiting-card procedure above, which omits them from the message, does not apply to it. Take the first answer that arrives.
 
