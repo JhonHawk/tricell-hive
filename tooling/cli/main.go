@@ -146,7 +146,7 @@ func runDoctor(args []string, w io.Writer, deps doctorDeps) error {
 	renderDoctorText(report, w)
 	// Only the Project section fails the command (D6-A): a blocking finding in
 	// a section that exists, and, for an explicit --project, a missing file or
-	// section (D10-A), so harness-audit can tell that its write did not land.
+	// section, or a path that cannot be checked (D10-A, D11-A), so harness-audit can tell that its write did not land.
 	if report.Project.Blocking || (explicit && report.Project.Absent) {
 		return errors.New(projectBlockingMessage)
 	}

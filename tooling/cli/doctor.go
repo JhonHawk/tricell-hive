@@ -172,8 +172,10 @@ type doctorSection struct {
 	Lines []string
 	Err   string
 	// Blocking and Absent are set only by the Project section: a finding that
-	// makes hive doctor exit non-zero, and a repository with no AGENTS.md or no
-	// ## Hive section, which does so only for an explicit --project.
+	// makes hive doctor exit non-zero, and a checked path with nothing to
+	// validate (no AGENTS.md, no ## Hive section, a missing or non-directory
+	// path, outside Git, or git unable to run), which does so only for an
+	// explicit --project (D10-A, D11-A).
 	Blocking, Absent bool
 }
 

@@ -180,11 +180,13 @@ func checkProject(project string, git gitRunner) projectCheck {
 	switch info, err := os.Stat(dir); {
 	case errors.Is(err, os.ErrNotExist):
 		res.Section.Lines = []string{"Directory not found: " + sanitizeLine(dir)}
+		res.Section.Absent = true
 		return res
 	case err != nil:
 		return fail("cannot read %s: %v", dir, err)
 	case !info.IsDir():
 		res.Section.Lines = []string{"Not a directory: " + sanitizeLine(dir)}
+		res.Section.Absent = true
 		return res
 	}
 	res.Dir = dir
@@ -193,9 +195,11 @@ func checkProject(project string, git gitRunner) projectCheck {
 	root := strings.TrimRight(out, "\r\n")
 	switch {
 	case err != nil && !gitAnswered(err):
+		res.Section.Absent = true
 		return fail("cannot run git: %v", err)
 	case err != nil || root == "":
 		res.Section.Lines = []string{outsideGitLine, outsideGitLineTwo}
+		res.Section.Absent = true
 		return res
 	}
 	res.Root = root
@@ -377,7 +381,7 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 		case "Base branch":
 			branch := strings.Fields(v)[0]
 			if problem := checkBaseBranch(root, branch, git); problem != "" {
-				add(problem != branchAbsent, k.Name, "%s %s", shown(branch), problem)
+				add(problem == branchInvalid, k.Name, "%s %s", shown(branch), problem)
 			}
 		case "Delivery":
 			if present && !slices.Contains(hiveDeliveryValues, v) && !slices.Contains(retiredDeliveryValues, v) {
@@ -394,16 +398,16 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 		}
 	}
 	reported := map[string]bool{}
-	retired := func(key string) {
-		add(false, key, "no longer read; Hive asks it each session — remove it with hive project set --unset %s or run harness-audit", key)
+	retired := func(key, what string) {
+		add(false, key, "%sno longer read; Hive asks it each session — remove it with hive project set --unset %s or run harness-audit", what, key)
 	}
 	for _, name := range retiredHiveKeys {
 		if _, present := values[name]; present {
-			retired(name)
+			retired(name, "")
 		}
 	}
 	if slices.Contains(retiredDeliveryValues, values["Delivery"]) {
-		retired("Delivery")
+		retired("Delivery", values["Delivery"]+" is ")
 	}
 	for _, it := range items {
 		if !knownHiveKey(it.Key) && !retiredHiveKey(it.Key) && !reported[it.Key] {
@@ -494,13 +498,17 @@ func shown(s string) string { return truncateRunes(sanitizeLine(s), hiveValueRun
 // neither a local branch nor on origin; a write only warns about it.
 const branchAbsent = "is not a local branch or on origin"
 
+// branchInvalid is the checkBaseBranch problem for a name Git rejects; it is
+// the only one that blocks. "could not be checked" (git failed to run) warns.
+const branchInvalid = "is not a valid branch name"
+
 // checkBaseBranch returns why branch is not usable as the base branch, or "".
 // A name that starts with "-" or holds "@{" is rejected without running git:
 // the first would be read as an option and the second expands through the
 // reflog. Otherwise git validates the name, then looks for it as a local
 // branch and as a branch of origin.
 func checkBaseBranch(root, branch string, git gitRunner) string {
-	const invalid = "is not a valid branch name"
+	const invalid = branchInvalid
 	if strings.HasPrefix(branch, "-") || strings.Contains(branch, "@{") || sanitizeLine(branch) != branch {
 		return invalid
 	}

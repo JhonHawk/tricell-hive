@@ -300,12 +300,15 @@ func (f *projectForm) value(i int) string {
 	return f.options[i][f.choice[i]]
 }
 
-// choiceText is what a choice field shows for option v: a value the key no
-// longer reads is marked, and the empty choice is none (unset for a retired
-// key's remove row, which never holds one).
-func (f *projectForm) choiceText(i int, v string) string {
+// choiceText is what a choice field shows for option j: a value the key no
+// longer reads is marked, and the empty choice is none. A retired key's row
+// holds its current value at index 0 and remove at retiredRemoveChoice; the
+// index, not the text, tells them apart, since the file may hold the value
+// "remove".
+func (f *projectForm) choiceText(i, j int) string {
+	v := f.options[i][j]
 	switch {
-	case f.retiredRow(i) && v == formRemove:
+	case f.retiredRow(i) && j == retiredRemoveChoice:
 		return formRemove
 	case f.retiredRow(i), f.names[i] == "Delivery" && slices.Contains(retiredDeliveryValues, v):
 		if v == "" {
@@ -320,6 +323,9 @@ func (f *projectForm) choiceText(i int, v string) string {
 
 // formRemove is the choice that removes a retired key.
 const formRemove = "remove"
+
+// retiredRemoveChoice is the index of formRemove in a retired key's options.
+const retiredRemoveChoice = 1
 
 // completionPlaceholder shows the shape of Completion, with the refs the
 // Environments value implies when there is one.
@@ -493,7 +499,7 @@ func (f *projectForm) request() (set []hiveItem, unset []string) {
 		value := f.value(i)
 		cur, present := f.current[name]
 		if f.retiredRow(i) {
-			if value == formRemove {
+			if f.choice[i] == retiredRemoveChoice {
 				unset = append(unset, name)
 			}
 			continue
@@ -501,21 +507,11 @@ func (f *projectForm) request() (set []hiveItem, unset []string) {
 		switch {
 		case value != "" && (!present || value != cur):
 			set = append(set, hiveItem{Key: name, Value: value})
-		case value == "" && present && cur != "" && !hiveKeyRequired(name):
+		case value == "" && present && cur != "" && !isRequiredHiveKey(name):
 			unset = append(unset, name)
 		}
 	}
 	return set, unset
-}
-
-// hiveKeyRequired reports whether name is a required key of hiveSettingKeys.
-func hiveKeyRequired(name string) bool {
-	for _, k := range hiveSettingKeys {
-		if k.Name == name {
-			return k.Required
-		}
-	}
-	return false
 }
 
 // review checks the required fields, then builds the same edit the command
@@ -625,7 +621,7 @@ func (v *projectView) formView(c viewCtx) string {
 			style = th.Accent
 		}
 		if !f.isText(i) {
-			text := f.choiceText(i, f.options[i][f.choice[i]])
+			text := f.choiceText(i, f.choice[i])
 			lines = append(lines, style.Render(label+"‹ "+truncateRunes(sanitizeLine(text), max(c.Width-len(label)-4, 1))+" ›"))
 			continue
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -208,6 +209,15 @@ func TestHiveSectionBaseBranch(t *testing.T) {
 	}
 }
 
+func TestHiveSectionBaseBranchThatCannotBeCheckedOnlyWarns(t *testing.T) {
+	timeout := func(string, ...string) (string, error) { return "", errors.New("git timed out") }
+	v := validateHiveSection(t.TempDir(), "## Hive\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: .\n", timeout)
+	mustContain(t, strings.Join(v.Lines, "\n"), "Base branch: main could not be checked")
+	if v.Blocking {
+		t.Errorf("a base branch that could not be checked blocks:\n%s", strings.Join(v.Lines, "\n"))
+	}
+}
+
 // recordingGit is a gitRunner that records its calls and answers by script.
 type recordingGit struct {
 	mu    sync.Mutex
@@ -292,19 +302,19 @@ func TestDoctorProjectDeliveryAcceptsOnlyDirectBase(t *testing.T) {
 // unknown key. The value of a retired key is never judged.
 func TestDoctorProjectWarnsOnEachRetiredKeyWithoutBlocking(t *testing.T) {
 	root := projectRepoWithSpecs(t, validHiveSection)
-	cases := []struct{ line, key string }{
-		{"Review: /code-review", "Review"},
-		{"UI verification: full", "UI verification"},
-		{"UI verification: partial", "UI verification"},
-		{"Delivery: automatic", "Delivery"},
-		{"Delivery: interactive", "Delivery"},
+	cases := []struct{ line, key, subject string }{
+		{"Review: /code-review", "Review", "Review:"},
+		{"UI verification: full", "UI verification", "UI verification:"},
+		{"UI verification: partial", "UI verification", "UI verification:"},
+		{"Delivery: automatic", "Delivery", "Delivery: automatic is"},
+		{"Delivery: interactive", "Delivery", "Delivery: interactive is"},
 	}
 	for _, c := range cases {
 		t.Run(c.line, func(t *testing.T) {
 			writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- "+c.line+"\n- Specs:", 1))
 			sec := collectProject(root, doctorDeps{})
 			text := projectText(t, root)
-			mustContain(t, text, c.key+": no longer read; Hive asks it each session — remove it with hive project set --unset "+c.key+" or run harness-audit")
+			mustContain(t, text, c.subject+" no longer read; Hive asks it each session — remove it with hive project set --unset "+c.key+" or run harness-audit")
 			mustNotContain(t, text, "unknown key", "Known keys:", "Valid")
 			if sec.Blocking {
 				t.Fatalf("a retired setting must not block:\n%s", text)

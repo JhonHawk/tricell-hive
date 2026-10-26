@@ -410,6 +410,23 @@ func TestProjectViewFormRemovesARetiredKeyAndKeepsTheRest(t *testing.T) {
 	}
 }
 
+// A retired line whose value is literally "remove" is kept until the user
+// moves to the remove choice; the two choices read differently.
+func TestProjectViewFormKeepsARetiredLineWhoseValueIsRemove(t *testing.T) {
+	root := formRepo(t)
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Review: remove\n", 1))
+	_, d, _ := openForm(t, root, 120, 40)
+	d.mustShow("Review          ‹ remove (retired) ›")
+	d.key("enter")
+	d.mustShow("Nothing to change")
+	d.key("down", "down", "down", "down", "down", "down", "down", "down") // Review
+	d.key("right")
+	d.mustShow("> Review          ‹ remove ›")
+	d.mustNotShow("(retired)")
+	d.key("enter")
+	d.mustShow("Write AGENTS.md")
+}
+
 func TestProjectViewFormLeavesRetiredKeysAloneUntilChosen(t *testing.T) {
 	root := formRepo(t)
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Review: /code-review\n", 1))

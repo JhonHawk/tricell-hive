@@ -379,9 +379,10 @@ func TestCatalogIsNeverQueriedByModelsOrDoctor(t *testing.T) {
 	if err := runModels(e.common(), &out); err != nil {
 		t.Fatal(err)
 	}
+	t.Chdir(t.TempDir())
 	for _, args := range [][]string{
 		{"models", "--home", e.home, "--state-dir", e.stateDir},
-		{"doctor", "--home", e.home, "--state-dir", e.stateDir, "--project", t.TempDir()},
+		{"doctor", "--home", e.home, "--state-dir", e.stateDir},
 	} {
 		if err := run(args); err != nil {
 			t.Fatalf("hive %s: %v", args[0], err)

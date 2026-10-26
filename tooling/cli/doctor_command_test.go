@@ -39,8 +39,9 @@ func TestDoctorCommandPrintsFindingsAndExitsZero(t *testing.T) {
 		t.Fatal(err)
 	}
 	var runErr error
+	t.Chdir(t.TempDir())
 	out := captureStdout(t, func() {
-		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", t.TempDir()})
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir})
 	})
 	if runErr != nil {
 		t.Fatalf("doctor failed on a finding: %v\n%s", runErr, out)
@@ -53,10 +54,13 @@ func TestDoctorCommandPrintsFindingsAndExitsZero(t *testing.T) {
 	// The command prints exactly what the shared renderer produces.
 	o := management.Options{Scope: "user", Home: f.home, StateDir: f.stateDir}
 	var want strings.Builder
-	project := t.TempDir()
+	project, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	renderDoctorText(collectDoctor(o, project, realDoctorDeps()), &want)
 	got := captureStdout(t, func() {
-		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", project})
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir})
 	})
 	if runErr != nil || got != want.String() {
 		t.Errorf("doctor output differs from renderDoctorText (err %v):\n%s\n---\n%s", runErr, got, want.String())
@@ -86,7 +90,7 @@ func TestDoctorCommandProjectFlagChecksThatRepository(t *testing.T) {
 	out = captureStdout(t, func() {
 		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", outside})
 	})
-	if runErr != nil || !strings.Contains(out, "Project\n  Directory: ") || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
+	if runErr == nil || runErr.Error() != projectBlockingMessage || !strings.Contains(out, "Project\n  Directory: ") || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
 		t.Errorf("doctor outside a repository (err %v):\n%s", runErr, out)
 	}
 }
@@ -139,7 +143,15 @@ func TestDoctorCommandExitStatusFollowsTheProjectSection(t *testing.T) {
 		{"no section without the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, false, false, "section not found"},
 		{"no section with the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, true, true, "section not found"},
 		{"outside a repository without the flag", func(t *testing.T) string { return t.TempDir() }, false, false, outsideGitLine},
-		{"outside a repository with the flag", func(t *testing.T) string { return t.TempDir() }, true, false, outsideGitLine},
+		{"outside a repository with the flag", func(t *testing.T) string { return t.TempDir() }, true, true, outsideGitLine},
+		{"missing directory with the flag", func(t *testing.T) string { return filepath.Join(t.TempDir(), "nope") }, true, true, "Directory not found"},
+		{"file instead of a directory with the flag", func(t *testing.T) string {
+			p := filepath.Join(t.TempDir(), "f")
+			if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			return p
+		}, true, true, "Not a directory"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
