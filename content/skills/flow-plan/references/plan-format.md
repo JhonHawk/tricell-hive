@@ -58,7 +58,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 ## Scope and acceptance
 
-<Included work, relevant exclusions with their rationale, and constraints that must stay true.>
+<Included work, relevant exclusions with their rationale, and constraints that must stay true. The spec search that decided the requirement deltas, as [change records](change-records.md) sets.>
 
 **Not yet specified:** <in-scope areas whose question cannot yet be stated precisely, each with what would make it specifiable; omit when none.>
 

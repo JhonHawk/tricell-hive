@@ -42,7 +42,7 @@ snapshot for the explicit reviewer role without runtime reference-file reads;
 refresh requires manager regeneration and plugin reload. It does not prepare the
 plan or choose its scope.
 
-A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
+A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. Before it decides which current requirements the change alters, it checks the specs for any requirement the change could contradict and notes that check in the folder. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
 
 ## What it does not do
 
