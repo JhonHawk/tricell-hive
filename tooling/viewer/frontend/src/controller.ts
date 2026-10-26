@@ -10,7 +10,7 @@ import {
   stored,
   validateIndex,
 } from "./api";
-import { groupSessions, type SessionGroup, sessionIdentity } from "./sessions";
+import { groupSessions, type SessionGroup } from "./sessions";
 export type Delivery = {
   kind: "pull_request" | "commit";
   label: string;
@@ -72,7 +72,6 @@ export class ViewerController {
   private readSeq = 0;
   private requests = new Map<string, object>();
   private cache = new Map<string, SegmentDocument>();
-  private lastSelected = new Map<string, string>();
   private reading = false;
   private hidden = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -239,17 +238,12 @@ export class ViewerController {
   selectSession = (groupId: string) => {
     const group = this.state.groups.find((g) => g.id === groupId);
     if (!group) return;
-    const remembered = this.lastSelected.get(groupId);
-    this.select(
-      group.segments.find((s) => s.id === remembered)?.id ??
-        group.segments[0].id,
-    );
+    this.select(group.segments[0].id);
   };
   select = (id: string) => {
     const selected = this.state.sessions.find((s) => s.id === id);
     if (!selected) return;
     save(this.client.storage, OPEN_KEY, id);
-    this.lastSelected.set(sessionIdentity(selected), id);
     this.update({ selectedId: id });
     const group = this.state.groups.find((g) =>
       g.segments.some((s) => s.id === id),
