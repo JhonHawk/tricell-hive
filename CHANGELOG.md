@@ -88,6 +88,20 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Workflow rules no longer contradict each other across plan, build, verify and
+  close: the dedicated review runs once on the local candidate before the
+  validation request or the push (a reviewer that only works on a pull request
+  runs right after it), and under `automatic` a review is always offered and
+  never recommended away; `automatic` stays automatic for UI changes and
+  reports the first rendered view without asking; `interactive` stops before
+  the push even when verify is skipped; a later completion point is defined
+  once and authorizes both ticket moves; a question that depends on another's
+  answer waits for a later turn; the findings question offers resolving them in
+  this work; unattended work starts on silence after the route answer when
+  delivery and review are declared; branch and worktree deletion wording is
+  safe; one delegation criterion; role briefs match role contracts. The site,
+  README, `llms.txt` and CONTRIBUTING describe the result (#180).
+
 - `flow-build` ends at the built candidate and hands it to `flow-verify`; the
   independent UI children, the full suite, the dedicated code review and the
   walkthrough delivery move there, and promotion and deployment checks move to
