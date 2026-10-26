@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-25
+
 ### Security
 
 - The documentation site and the `starlight-docs-site` templates move to
