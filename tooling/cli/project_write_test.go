@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -558,5 +559,26 @@ func TestClaudeMDWarningAcceptsAnImportAnywhereOutsideCode(t *testing.T) {
 				t.Fatalf("warns = %v, want %v for %q", got, tc.warns, tc.text)
 			}
 		})
+	}
+}
+
+// A Base branch that git could not be asked about is not written: the writer
+// stops where the doctor only warns.
+func TestProjectWriteRefusesABaseBranchThatCouldNotBeChecked(t *testing.T) {
+	root := projectRepoWithSpecs(t, "# T\n")
+	real := newGitRunner()
+	broken := func(dir string, args ...string) (string, error) {
+		if len(args) > 0 && args[0] == "check-ref-format" {
+			return "", errors.New("git timed out")
+		}
+		return real(dir, args...)
+	}
+	_, err := prepareProjectEdit(root, fullSet, nil, broken)
+	if err == nil || !strings.Contains(err.Error(), "Base branch: main could not be checked") {
+		t.Fatalf("want a refusal naming the unchecked branch, got %v", err)
+	}
+	blocking, warnings := checkHiveText(fullSet, root, broken)
+	if len(blocking) != 0 || !strings.Contains(strings.Join(warnings, "\n"), "could not be checked") {
+		t.Errorf("doctor view: blocking %q warnings %q, want only a warning", blocking, warnings)
 	}
 }

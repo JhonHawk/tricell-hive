@@ -180,13 +180,13 @@ func checkProject(project string, git gitRunner) projectCheck {
 	switch info, err := os.Stat(dir); {
 	case errors.Is(err, os.ErrNotExist):
 		res.Section.Lines = []string{"Directory not found: " + sanitizeLine(dir)}
-		res.Section.Absent = true
+		res.Section.Unchecked = true
 		return res
 	case err != nil:
 		return fail("cannot read %s: %v", dir, err)
 	case !info.IsDir():
 		res.Section.Lines = []string{"Not a directory: " + sanitizeLine(dir)}
-		res.Section.Absent = true
+		res.Section.Unchecked = true
 		return res
 	}
 	res.Dir = dir
@@ -195,11 +195,10 @@ func checkProject(project string, git gitRunner) projectCheck {
 	root := strings.TrimRight(out, "\r\n")
 	switch {
 	case err != nil && !gitAnswered(err):
-		res.Section.Absent = true
 		return fail("cannot run git: %v", err)
 	case err != nil || root == "":
 		res.Section.Lines = []string{outsideGitLine, outsideGitLineTwo}
-		res.Section.Absent = true
+		res.Section.Unchecked = true
 		return res
 	}
 	res.Root = root
@@ -327,6 +326,9 @@ func parseHiveSection(content string) (items []hiveItem, headings int) {
 type hiveFinding struct {
 	Text     string
 	Blocking bool // a write must not proceed; otherwise it only warns
+	// Unchecked: git could not judge the value. The doctor only warns; a write
+	// stops, as it would not know what it writes.
+	Unchecked bool
 }
 
 // checkHiveText validates a section's items without reading the file: it
@@ -335,8 +337,14 @@ type hiveFinding struct {
 // guidance, and a branch name git rejects block; a branch or Specs path that
 // does not exist, and an unknown key, warn.
 func checkHiveText(items []hiveItem, root string, git gitRunner) (blocking, warnings []string) {
-	for _, f := range hiveFindings(items, root, git) {
-		if f.Blocking {
+	return splitFindings(hiveFindings(items, root, git), false)
+}
+
+// splitFindings separates the findings that stop a write from the warnings;
+// blockUnchecked makes a value git could not judge stop it too.
+func splitFindings(findings []hiveFinding, blockUnchecked bool) (blocking, warnings []string) {
+	for _, f := range findings {
+		if f.Blocking || (blockUnchecked && f.Unchecked) {
 			blocking = append(blocking, f.Text)
 		} else {
 			warnings = append(warnings, f.Text)
@@ -382,6 +390,7 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 			branch := strings.Fields(v)[0]
 			if problem := checkBaseBranch(root, branch, git); problem != "" {
 				add(problem == branchInvalid, k.Name, "%s %s", shown(branch), problem)
+				findings[len(findings)-1].Unchecked = strings.HasPrefix(problem, branchUnchecked)
 			}
 		case "Delivery":
 			if present && !slices.Contains(hiveDeliveryValues, v) && !slices.Contains(retiredDeliveryValues, v) {
@@ -398,16 +407,16 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 		}
 	}
 	reported := map[string]bool{}
-	retired := func(key, what string) {
-		add(false, key, "%sno longer read; Hive asks it each session — remove it with hive project set --unset %s or run harness-audit", what, key)
+	retired := func(key string) {
+		findings = append(findings, hiveFinding{Text: retiredSubject(key, values[key], "no longer read") + "; Hive asks it each session — remove it with hive project set --unset " + key + " or run harness-audit"})
 	}
 	for _, name := range retiredHiveKeys {
 		if _, present := values[name]; present {
-			retired(name, "")
+			retired(name)
 		}
 	}
 	if slices.Contains(retiredDeliveryValues, values["Delivery"]) {
-		retired("Delivery", values["Delivery"]+" is ")
+		retired("Delivery")
 	}
 	for _, it := range items {
 		if !knownHiveKey(it.Key) && !retiredHiveKey(it.Key) && !reported[it.Key] {
@@ -416,6 +425,16 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 		}
 	}
 	return findings
+}
+
+// retiredSubject opens a message about a retired setting: the key, or for
+// Delivery the retired value, so it does not read as if the key were retired.
+// state is the verdict, such as "retired" or "no longer read".
+func retiredSubject(key, value, state string) string {
+	if key == "Delivery" {
+		return key + ": " + value + " is " + state
+	}
+	return key + ": " + state
 }
 
 // hiveVerdict is what validateHiveSection found: the lines to show, whether a
@@ -502,21 +521,23 @@ const branchAbsent = "is not a local branch or on origin"
 // the only one that blocks. "could not be checked" (git failed to run) warns.
 const branchInvalid = "is not a valid branch name"
 
+// branchUnchecked starts the checkBaseBranch problem when git failed to run.
+const branchUnchecked = "could not be checked: "
+
 // checkBaseBranch returns why branch is not usable as the base branch, or "".
 // A name that starts with "-" or holds "@{" is rejected without running git:
 // the first would be read as an option and the second expands through the
 // reflog. Otherwise git validates the name, then looks for it as a local
 // branch and as a branch of origin.
 func checkBaseBranch(root, branch string, git gitRunner) string {
-	const invalid = branchInvalid
 	if strings.HasPrefix(branch, "-") || strings.Contains(branch, "@{") || sanitizeLine(branch) != branch {
-		return invalid
+		return branchInvalid
 	}
 	if _, err := git(root, "check-ref-format", "--branch", branch); err != nil {
 		if gitAnswered(err) {
-			return invalid
+			return branchInvalid
 		}
-		return "could not be checked: " + shown(err.Error())
+		return branchUnchecked + shown(err.Error())
 	}
 	for _, ref := range []string{"refs/heads/" + branch, "refs/remotes/origin/" + branch} {
 		_, err := git(root, "show-ref", "--verify", "--quiet", ref)
@@ -524,7 +545,7 @@ func checkBaseBranch(root, branch string, git gitRunner) string {
 		case err == nil:
 			return ""
 		case !gitAnswered(err):
-			return "could not be checked: " + shown(err.Error())
+			return branchUnchecked + shown(err.Error())
 		}
 	}
 	return branchAbsent

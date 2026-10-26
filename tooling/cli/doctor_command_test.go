@@ -228,3 +228,44 @@ func TestDoctorAndModelsRejectPositionalArguments(t *testing.T) {
 		}
 	}
 }
+
+// With an explicit --project, a path that cannot be checked for any reason
+// fails the command; without the flag the same directory exits 0.
+func TestDoctorCommandExplicitProjectFailsWhenThePathCannotBeChecked(t *testing.T) {
+	f := newCharacterizationFixture(t)
+	doctor := func(args ...string) error {
+		var err error
+		captureStdout(t, func() {
+			err = run(append([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir}, args...))
+		})
+		return err
+	}
+	t.Run("git cannot run", func(t *testing.T) {
+		repo := newProjectRepo(t)
+		t.Setenv("PATH", t.TempDir())
+		if err := doctor("--project", repo); err == nil || err.Error() != projectBlockingMessage {
+			t.Errorf("explicit: want %q, got %v", projectBlockingMessage, err)
+		}
+		t.Chdir(repo)
+		if err := doctor(); err != nil {
+			t.Errorf("without the flag: want exit 0, got %v", err)
+		}
+	})
+	t.Run("directory behind an unreadable parent", func(t *testing.T) {
+		if os.Geteuid() == 0 {
+			t.Skip("root ignores directory permissions")
+		}
+		parent := t.TempDir()
+		if err := os.Mkdir(filepath.Join(parent, "p"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(parent, 0); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chmod(parent, 0o755) })
+		target := filepath.Join(parent, "p")
+		if err := doctor("--project", target); err == nil || err.Error() != projectBlockingMessage {
+			t.Errorf("explicit: want %q, got %v", projectBlockingMessage, err)
+		}
+	})
+}

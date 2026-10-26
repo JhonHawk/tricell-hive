@@ -324,8 +324,19 @@ func (f *projectForm) choiceText(i, j int) string {
 // formRemove is the choice that removes a retired key.
 const formRemove = "remove"
 
+// retiredKeepChoice is the index of the current value in a retired key's
+// options, and the default.
+const retiredKeepChoice = 0
+
 // retiredRemoveChoice is the index of formRemove in a retired key's options.
 const retiredRemoveChoice = 1
+
+// retiredOptions are a retired key's choices, each at its named index.
+func retiredOptions(cur string) []string {
+	options := make([]string, 2)
+	options[retiredKeepChoice], options[retiredRemoveChoice] = cur, formRemove
+	return options
+}
 
 // completionPlaceholder shows the shape of Completion, with the refs the
 // Environments value implies when there is one.
@@ -385,7 +396,7 @@ func newProjectForm(items []hiveItem, suggestions map[string]string) *projectFor
 	}
 	for _, name := range retiredHiveKeys {
 		if cur, present := f.current[name]; present {
-			addRow(name, textinput.Model{}, []string{cur, formRemove}, 0)
+			addRow(name, textinput.Model{}, retiredOptions(cur), retiredKeepChoice)
 		}
 	}
 	return f

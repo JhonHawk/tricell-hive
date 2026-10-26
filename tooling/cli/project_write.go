@@ -454,13 +454,7 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 	for _, it := range set {
 		switch {
 		case retiredHiveKey(it.Key) || (it.Key == "Delivery" && slices.Contains(retiredDeliveryValues, it.Value)):
-			// A retired Delivery value is named, so the message does not read as
-			// if the Delivery key itself were retired.
-			subject := it.Key + ": retired"
-			if it.Key == "Delivery" {
-				subject = "Delivery: " + it.Value + " is retired"
-			}
-			problems = append(problems, subject+"; Hive asks it each session — use --unset "+it.Key+" to remove it")
+			problems = append(problems, retiredSubject(it.Key, it.Value, "retired")+"; Hive asks it each session — use --unset "+it.Key+" to remove it")
 		case !knownHiveKey(it.Key):
 			problems = append(problems, fmt.Sprintf("%s: unknown key; known keys are %s", shown(it.Key), strings.Join(hiveKeyNames(false), ", ")))
 		case sanitizeLine(it.Value) != it.Value:
@@ -532,7 +526,7 @@ func prepareProjectEdit(project string, set []hiveItem, unset []string, git gitR
 		return e, err
 	}
 	w := walkHiveSection(string(e.After))
-	blocking, warnings := checkHiveText(w.Items, root, git)
+	blocking, warnings := splitFindings(hiveFindings(w.Items, root, git), true)
 	// The preview shows every value sanitized, so a value the file already
 	// holds that sanitizing would change must not be written along unseen. The
 	// doctor does not do this check: it only reads.
