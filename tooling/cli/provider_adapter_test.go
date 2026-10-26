@@ -81,6 +81,45 @@ func TestNativeAdapterManualOfferRunsNoProcess(t *testing.T) {
 	}
 }
 
+// TestNativeAdapterCodeGraphOfferIsManualAndRunsNoProcess covers the CodeGraph
+// offer: choosing it leaves the single manual step codegraph-manual, runs no
+// process and ends in a partial outcome (non-zero exit).
+func TestNativeAdapterCodeGraphOfferIsManualAndRunsNoProcess(t *testing.T) {
+	home := t.TempDir()
+	stateDir := filepath.Join(home, "state")
+	source := minimalTestSource(t)
+	dependencies := defaultInstallDependencies(nativeProviderAdapterFactory)
+	args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
+	var out bytes.Buffer
+	// "5" selects CodeGraph: the offers for host codex are engram, context7,
+	// agent-browser, codex-question-card and codegraph, in catalog order.
+	err := installWithDependencies(args, strings.NewReader("5\ny\n"), &out, true, dependencies)
+	if err == nil {
+		t.Fatal("expected a partial outcome; a manual step never verifies itself")
+	}
+	if !strings.Contains(out.String(), "5. codegraph (github.com/colbymchenry/codegraph; manual instructions only)") {
+		t.Fatalf("offer 5 is not codegraph: %s", out.String())
+	}
+	// The preview wraps long lines, so compare without whitespace differences.
+	if !strings.Contains(strings.Join(strings.Fields(out.String()), " "), "Hive does not run it or edit host configuration") {
+		t.Fatalf("preview did not disclose the manual reason: %s", out.String())
+	}
+	result := readOnboardingReceipt(t, stateDir)
+	if len(result.Steps) != 1 {
+		t.Fatalf("steps = %+v, want only codegraph-manual", result.Steps)
+	}
+	if status := stepStatus(t, result, "codegraph-manual"); status != "manual" {
+		t.Fatalf("manual step status = %q, want manual", status)
+	}
+	var step providers.Step
+	if err := json.Unmarshal(result.Steps[0].Step.Payload, &step); err != nil {
+		t.Fatal(err)
+	}
+	if step.Status != providers.Manual || step.Method != "" || len(step.Argv) != 0 {
+		t.Fatalf("step = %+v, want a manual step without a command", step)
+	}
+}
+
 // TestInstallPartialOnboardingListsPerStepDetail covers "partial result
 // lists each capability with reason and next action and exits non-zero".
 func TestInstallPartialOnboardingListsPerStepDetail(t *testing.T) {

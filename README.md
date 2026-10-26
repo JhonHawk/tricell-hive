@@ -46,7 +46,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.5.0 · walkthrough viewer, explicit UI verification, and refined delivery flows**
+> **Version 0.6.0 · verify, deploy and security stages, consistent workflow rules, and an up-to-date site**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -87,7 +87,7 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded.
-- **Pick a release or hosts:** append `-s -- --version 0.5.0 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.6.0 --hosts claude,codex`.
 - **Afterwards:** `hive` is not added to your `PATH`. It lives at
   `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
 - **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
@@ -153,9 +153,10 @@ Go modules unless they are already cached.
 Maintainers can build packages locally with `go run ./tooling/package --out ./dist`.
 Building does not publish a release.
 
-Engram and Context7 are optional, separately managed capabilities with official
-manual instructions and no automated provider recipes or credential requests.
-Three steps are automated: pi-subagents, which a user-scope Pi installation adds
+Engram, Context7 and CodeGraph are optional, separately managed capabilities with official
+manual instructions and no automated provider recipes or credential requests;
+CodeGraph's own `codegraph install` wires its MCP server into your hosts.
+Four steps are automated: pi-subagents, which a user-scope Pi installation adds
 with `pi install` when Pi does not already declare it; `agent-browser`, which
 an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 24+) and installs, at its latest version, only after you consent to the commands
@@ -165,8 +166,25 @@ installed Codex supports it (0.163.0 or later) and, after you consent, enables w
 default_mode_request_user_input`, Codex's own command, so Codex asks its
 decisions through a card that waits in Default mode (uncheck it, or type `none`,
 to skip it; `codex features disable default_mode_request_user_input` turns it
-off). Hive edits no host configuration file itself. Selecting a manual
-capability leaves the installed core intact but returns a non-zero exit status
+off). The Codex wait floor (`codex-wait-floor`) is the fourth: an interactive
+install or `hive update` with the Codex host offers it, selected by default, while
+the setting is not applied and Codex is 0.164 or later (a dry run offers
+nothing, an applied setting is not offered again, and nothing is offered at project scope). After you consent, Hive
+itself writes `min_wait_timeout_ms = 300000` and
+`default_wait_timeout_ms = 600000` under `[features.multi_agent_v2]` in Codex's
+`config.toml`, so a parent agent waiting for a delegated child does not wake
+every 60 seconds. When `config.toml` exists it saves `config.toml.hive-backup`
+(mode 0600) next to it before the first write, and a missing file is created
+with mode 0600; its journal keeps only fingerprints and the
+lines it added. `hive plan remove` for the codex host removes only the lines
+Hive wrote that still have their values, then the backup after a clean revert;
+if Codex's file is one Hive cannot edit safely, the offer becomes a manual step
+instead. The minimum applies to Codex's v2 multi-agent runtime; v1 is not
+verified. An older Hive binary that rewrites Hive's state loses the record of
+the write, and then `plan remove` leaves the lines in place. The wait floor is
+the only step where Hive writes a host configuration file itself; pi-subagents
+and the question card run the host's own command, and `agent-browser` runs
+Homebrew or npm. Selecting a manual capability leaves the installed core intact but returns a non-zero exit status
 to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.
@@ -261,6 +279,8 @@ hive doctor
 hive models
 ```
 
+**Releases.** `hive releases` lists the release snapshots Hive keeps.
+
 **Recover.** An interrupted operation blocks further plans until recovery runs:
 
 ```sh
@@ -300,28 +320,43 @@ flowchart TD
     Answer -->|User authorizes a small change| Build
     Plan --> Ready["Contracts, tasks, and acceptance criteria"]
     Ready -->|Implementation authorized| Build
-    Build --> Checks["Relevant checks and independent verification"]
-    Checks -->|Required review authorized| Review["Independent review"]
-    Review --> Result["Evidence and remaining work"]
-    Checks -->|No dedicated review needed| Result
+    Build --> Candidate["Built candidate"]
+    Candidate --> Verify["flow-verify"]
+    Verify -->|Security review requested| Security["flow-security"]
+    Security --> Verify
+    Verify --> Result["Evidence and integrated candidate"]
+    Candidate -->|Verify skipped| Result
     Result --> Close["flow-close"]
     Close --> Finish["Completion point and session hygiene"]
+    Result -->|Promotion requested| Deploy["flow-deploy"]
+    Deploy --> Served["Served identity and health per environment"]
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef outcome fill:#edf4ee,stroke:#52745c,color:#203a28
-    class Research,Plan,Build,Close activity
-    class Answer,Ready,Result,Finish outcome
+    class Research,Plan,Build,Verify,Security,Close,Deploy activity
+    class Answer,Ready,Candidate,Result,Finish,Served outcome
 ```
 
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
   answer. It can stand alone and does not authorize implementation.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) resolves consequential decisions and
   defines contracts, verifiable tasks, and acceptance criteria when needed.
-- [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state, implements
-  authorized work, and verifies affected behavior. Independent verification and
-  dedicated review follow the applicable task and risk rules.
+- [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
+  implements authorized work. It ends at a built candidate and hands it to Verify.
+- [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
+  the project's settings and your request set: affected tests, runtime and UI
+  checks, the full suite and the dedicated review, and then integrates it.
+- [Security](https://hive.tricell.tech/flows/security/) ([skill](content/skills/flow-security/SKILL.md)) runs an independent
+  security review only when you ask for it, inside Verify or on a merged commit,
+  and reports findings without fixing them.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
-  cleans up task-owned temporary resources while preserving unfinished work.
+  cleans up task-owned temporary resources while preserving unfinished work. It
+  runs at integration, also when a project declares a later completion point.
+- [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
+  integration: it promotes through the declared environments and checks what is
+  served. It never holds a close open: when a project declares a later
+  completion point, Deploy moves the ticket to its final state once the
+  condition holds.
 
 The [shared guidance](content/guidance/global.md) owns the detailed authorization,
 preservation, evidence, and artifact rules. Local edits, commits, publication,
@@ -336,6 +371,14 @@ native instruction and skill discovery mechanism.
 [Hive's repository guidance](AGENTS.md) is an example for this project, not a file
 to copy unchanged into another one.
 
+Two commands tune the setup from a terminal:
+
+- `hive project set` edits the `## Hive` section of the repository's `AGENTS.md`
+  after confirmation, with `--set 'Key: value'` and `--unset Key` (and
+  `--dry-run` to preview).
+- `hive voice` lists the voices (`hive voice list`), selects one with `hive voice set ID`,
+  and turns it off with `hive voice off`.
+
 Give the agent an outcome and clear boundaries:
 
 ```text
@@ -349,9 +392,10 @@ Close this work item and clean up only the temporary resources it created.
 
 When an agent validates a user interface with you, it writes the walkthrough as
 `walkthrough.json` in the `_support/workspace/` of the repository, or of the
-multi-repository workspace folder that holds it, and renders a page
-beside it. To keep those walkthroughs after the session and browse them by
-project and session, with ticket details on each session, run the local viewer yourself:
+multi-repository workspace folder that holds it. With the Hive binary installed,
+the viewer renders that JSON; a standalone HTML page is generated only without
+the binary. An already generated page is preserved when the mode changes. To keep those walkthroughs after the session and browse them by
+project and session, with ticket details on each segment, run the local viewer yourself:
 
 ```sh
 hive view register --dir <folder>   # once per repository or workspace; agents run it too
@@ -367,13 +411,18 @@ Frontend development and bundle checks are described in
 
 The viewer copies eligible walkthroughs into Hive's state directory, deletes copies
 older than 14 days unless you pin them (`--ttl` changes that), and lets you
-delete one from its toolbar; it never changes files in your repositories.
+delete one from its segment toolbar; it never changes files in your repositories.
 Archive hides a stored copy from the default list, and Restore brings it back.
 The icon beside Projects shows or hides archived copies. Archiving is independent
 of pinning, the 14-day retention period and work status; pin a copy to keep it
 beyond that period. Projects show session counts and open initially only when
 they contain work in progress. Your project expansion, sidebar visibility,
-archive filter and selection survive refresh in the same browser tab.
+archive filter and selection survive refresh in the same browser tab. Walkthroughs
+with the same project, host and declared session ID share one sidebar entry, even
+across tickets. Their segments appear chronologically with internal separators,
+individual controls and ticket search links. The session header collects explicit
+PR/commit delivery links, and each segment retains its own links; missing metadata
+is shown as unregistered delivery rather than inferred from the candidate commit.
 Manifests confirmed as tracked in Git are not imported. Previously imported copies
 whose source is now tracked appear separately with an explanation, without rendering
 the walkthrough; their pins and normal retention still apply. If the source cannot
@@ -385,18 +434,18 @@ no walkthroughs until access succeeds. If opening fails, run the command again. 
 `--dir` points inside it, even if that folder is not a Git repository (a
 multi-repository workspace), and the Git root otherwise. Agents never start it.
 
-The toolbar's informational status indicator shows explicit work status:
+Each segment's informational status indicator shows explicit work status:
 In progress, Closed, or Not reported
 (`unknown`) for historical manifests without it. This is independent of source
 classification. Closed means the work passed through `flow-close`, including a
 pause or abandonment; it does not mean UI approval or that the host conversation
-ended. The [walkthrough close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough)
+ended. The [walkthrough close procedure](content/skills/flow-close/references/walkthrough-close.md)
 confirms the current closed copy before eligible source cleanup.
 
-When updating from a viewer that predates session status, update the binary and
+When updating from a viewer that predates session status or delivery links, update the binary and
 installed content together and coordinate stopping and starting the existing
 viewer before using the new producers. Rebuilding the binary does not update a
-running process. An older viewer rejects the new manifest field; an unconfirmed
+running process. Older strict viewers reject the new manifest fields; an unconfirmed
 closure preserves its source evidence.
 
 ## For AI agents

@@ -1,98 +1,94 @@
-// Development-only fixture. Vite eliminates this module from production.
-import { useEffect, useRef, useState } from "react";
-import { type ViewerSession, ViewerShell } from "../shell";
+// Development-only generated fixture; no repository data or writes.
+import { useState } from "react";
+import { AccessClient } from "../api";
+import { ViewerApplication } from "../application";
+import { ViewerController } from "../controller";
 
-const sessions: ViewerSession[] = [
-  {
-    id: "preview-navigation-review",
-    project: "Hive",
-    ticket: "#89 · React viewer",
-    title: "Navigation and document reading",
-    createdAt: "19 Oct 2026 · 14:32",
-    classification: "local",
-    pinned: true,
-    status: "in_progress",
+const keys = ["1", "2", "3"].map((n) => n.repeat(64));
+const segment = (i: number) => ({
+  key: keys[i],
+  source: "/generated/preview",
+  source_status: "local",
+  content_hash: "preview",
+  created_at: `2026-10-${i === 2 ? 20 : 22 + i}T12:00:00Z`,
+  ingested_at: "2026-10-23T12:00:00Z",
+  session_id: i < 2 ? "preview-session" : "preview-other-session",
+  host: "Codex",
+  title:
+    i === 0
+      ? "Navigation and document reading"
+      : i === 1
+        ? "Delivery links and continuation reading"
+        : "Retention notices and copied evidence",
+  session_status: i === 1 ? "in_progress" : "closed",
+  fileBase: `/files/${keys[i]}/${"a".repeat(64)}/`,
+});
+const manifests = keys.map((_, i) => ({
+  kind: "first_view",
+  lang: "en",
+  title: segment(i).title,
+  created_at: segment(i).created_at,
+  ticket: i === 0 ? "#89" : "#90",
+  candidate: {
+    branch: "feat/viewer-session-segments",
+    commit: "development preview",
   },
-  {
-    id: "preview-mobile-review",
-    project: "Hive",
-    ticket: "#89 · React viewer",
-    title: "Mobile navigation and focus recovery",
-    createdAt: "19 Oct 2026 · 13:47",
-    classification: "tracked",
-    status: "closed",
-  },
-  {
-    id: "preview-retention-review",
-    project: "Hive",
-    ticket: "#82 · Session retention",
-    title: "Retention notices and copied evidence",
-    createdAt: "18 Oct 2026 · 17:16",
-    classification: "unknown",
-    status: "unknown",
-  },
-];
+  session: { id: segment(i).session_id, host: "Codex" },
+  result:
+    i === 0
+      ? "Review the navigation, reading space and provenance notices."
+      : "Read the continuation in this session and review its recorded delivery.",
+  delivery: (i === 0 ? [1, 2] : [2, 3, 4]).map((n) => ({
+    kind: n === 4 ? "commit" : "pull_request",
+    label: n === 4 ? "hive · abc1234" : `hive #${89 + n}`,
+    url: `https://example.com/hive/${n === 4 ? "commit/abc1234" : `pull/${89 + n}`}`,
+  })),
+  flows: [],
+  checks: [],
+  environment: [{ label: "Surface", value: "Development-only composition" }],
+  provenance: [
+    "Generated example; no registered repositories or stored session data.",
+  ],
+}));
 export function DevelopmentPreview() {
-  const [selectedId, setSelectedId] = useState(sessions[0].id);
-  const state = new URLSearchParams(location.search).get("state");
-  const ref = useRef<HTMLDivElement>(null);
-  const showDocument =
-    !state &&
-    sessions.find((s) => s.id === selectedId)?.classification !== "tracked";
-  useEffect(() => {
-    let cancelled = false;
-    const path = "/assets/walkthrough.mjs";
-    void import(/* @vite-ignore */ path).then(({ renderWalkthrough }) => {
-      if (cancelled || !ref.current || !showDocument) return;
-      renderWalkthrough(
-        ref.current,
-        {
-          kind: "first_view",
-          lang: "en",
-          title: sessions.find((s) => s.id === selectedId)?.title,
-          created_at: "2026-10-19",
-          ticket: "#89",
-          candidate: {
-            branch: "feat/gh-89-react-reui-viewer",
-            commit: "development preview",
-          },
-          session: { id: selectedId, host: "Local preview" },
-          result:
-            "Review the navigation, reading space and provenance notices before connecting the live library.",
-          flows: [],
-          checks: [],
-          environment: [
-            { label: "Surface", value: "Development-only composition" },
-          ],
-          provenance: [
-            "Generated example; no registered repositories or stored session data.",
-          ],
-        },
-        { fileBase: "/" },
-      );
-    });
-    return () => {
-      cancelled = true;
+  const [controller] = useState(() => {
+    const state = new URLSearchParams(location.search).get("state");
+    const fixture = {
+      projects:
+        state === "empty"
+          ? []
+          : [
+              {
+                key: "hive",
+                name: "Hive",
+                tickets: [
+                  { ticket: "#89", sessions: [segment(0)] },
+                  { ticket: "#90", sessions: [segment(1), segment(2)] },
+                ],
+              },
+            ],
+      excluded_sessions: [],
+      repositories: [],
+      errors: [],
+      ttl_seconds: 86400,
     };
-  }, [selectedId, showDocument]);
-  return (
-    <ViewerShell
-      sessions={state === "empty" ? [] : sessions}
-      selectedId={selectedId}
-      onSelect={setSelectedId}
-      state={
-        state === "error"
-          ? "error"
-          : state === "loading"
-            ? "loading"
-            : state === "empty"
-              ? "empty"
-              : "ready"
-      }
-      onRetry={() => location.reload()}
-      notice="Development preview · generated example data. The live library is not connected yet."
-    >
-      {showDocument && <div ref={ref} className="walkthrough" />}
-    </ViewerShell>
-  );
+    const client = new AccessClient(
+      async (url) => {
+        if (state === "loading") return new Promise<Response>(() => {});
+        if (state === "error") return new Response(null, { status: 500 });
+        return new Response(
+          JSON.stringify(
+            String(url) === "/api/index"
+              ? fixture
+              : manifests[keys.indexOf(String(url).split("/").at(-1) ?? "")],
+          ),
+        );
+      },
+      { getItem: () => "preview", setItem() {}, removeItem() {} },
+    );
+    const controller = new ViewerController(client, () => false);
+    void controller.open(null);
+    return controller;
+  });
+  return <ViewerApplication controller={controller} />;
 }

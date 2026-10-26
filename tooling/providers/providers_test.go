@@ -26,8 +26,9 @@ func TestCatalogEntriesCarrySourceAndReason(t *testing.T) {
 func TestCatalogOrderIsStableAndAgentBrowserPrecedesCodexQuestionCard(t *testing.T) {
 	catalog := Catalog()
 	// The existing indexes stay valid: the three manual providers come first,
-	// then agent-browser, then the entries added later.
-	wantOrder := []ID{Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard}
+	// then agent-browser, then the entries added later (codex-question-card,
+	// then codegraph, then codex-wait-floor).
+	wantOrder := []ID{Engram, Context7, PiSubagents, AgentBrowser, CodexQuestionCard, CodeGraph, CodexWaitFloor}
 	if len(catalog) != len(wantOrder) {
 		t.Fatalf("catalog has %d entries, want %d", len(catalog), len(wantOrder))
 	}
@@ -57,5 +58,29 @@ func TestCatalogOrderIsStableAndAgentBrowserPrecedesCodexQuestionCard(t *testing
 	}
 	if !strings.Contains(card.Reason, "codex features enable default_mode_request_user_input") {
 		t.Fatalf("codex-question-card reason does not name the command: %q", card.Reason)
+	}
+	graph := catalog[5]
+	wantGraphHosts := []string{"claude", "codex", "cursor", "opencode"}
+	gotGraphHosts := append([]string(nil), graph.Hosts...)
+	sort.Strings(gotGraphHosts)
+	if strings.Join(gotGraphHosts, ",") != strings.Join(wantGraphHosts, ",") {
+		t.Fatalf("codegraph hosts = %v, want %v", gotGraphHosts, wantGraphHosts)
+	}
+	if graph.Source != "github.com/colbymchenry/codegraph" {
+		t.Fatalf("codegraph source = %q", graph.Source)
+	}
+	if !strings.Contains(graph.Reason, "codegraph install") || !strings.Contains(graph.Reason, "Hive does not run it") {
+		t.Fatalf("codegraph reason does not say Hive runs nothing: %q", graph.Reason)
+	}
+
+	floor := catalog[6]
+	if len(floor.Hosts) != 1 || floor.Hosts[0] != "codex" {
+		t.Fatalf("codex-wait-floor hosts = %v, want [codex]", floor.Hosts)
+	}
+	if floor.Source != "github.com/openai/codex" {
+		t.Fatalf("codex-wait-floor source = %q", floor.Source)
+	}
+	if !strings.Contains(floor.Reason, "multi_agent_v2") || !strings.Contains(floor.Reason, "config.toml") {
+		t.Fatalf("codex-wait-floor reason does not name what it writes: %q", floor.Reason)
 	}
 }

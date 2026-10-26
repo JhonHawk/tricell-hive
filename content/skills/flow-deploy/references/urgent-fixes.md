@@ -1,0 +1,9 @@
+# Urgent production fixes
+
+Read by [flow-deploy](../SKILL.md) when a production defect cannot wait for the next scheduled promotion. The branch rule that keeps environment branches on the promotion path stays in [git-workflow](../../git-workflow/SKILL.md).
+
+Use this route when a production defect cannot wait for the next scheduled promotion and the repository has environment branches. The fix follows the chosen delivery mode into the base branch and is then promoted at once through each environment in the declared order, each promotion with its usual gates.
+
+Before each promotion, list the commits it would carry besides the fix, such as `git log --oneline production..qa`. When it carries other work, name that work and ask whether it may reach production now. When the user holds any of it back, stop and offer a hotfix branch cut from the production branch with a pull request into it, only where the project's branch policy accepts a pull request from that branch; otherwise name the policy that blocks it. That pull request is a deviation from the promotion path, which the user confirms for that push under [git-workflow](../../git-workflow/SKILL.md). After it merges, merge the same hotfix branch into the base branch, not a cherry-pick, so later promotions carry the same commits.
+
+Verify each environment as [deployment checks](deployment-checks.md) sets; mitigation while the incident lasts follows [diagnosis](../../flow-research/references/diagnosis.md). At the fix's close, offer a short postmortem: what failed, the impact window, the cause, the fix, which layer should have caught it (a check, a test, a standard, a review criterion, or a deployment check), and a preventive action in that layer with its owner. Write it only when the user accepts, in the change record when one exists, otherwise in the ticket.

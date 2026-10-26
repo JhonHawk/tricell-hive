@@ -8,34 +8,43 @@ Write the actual human-facing plan in the session language, including headings a
 
 - The user's request that started the work, quoted verbatim in its original language: the messages that state the requested outcome, not the whole conversation, with links to the tickets they name and without any secret value. When a named ticket states acceptance criteria, quote them verbatim too, with the date you read the ticket, and derive the `AC<n>` from them; the implementer reads the change folder, not the tracker. Paraphrase loses requirements on the way to an implementer; the Objective explains the request, it does not replace it.
 - The outcome, boundaries, constraints, and acceptance criteria written as described in [Acceptance criteria and task markers](#acceptance-criteria-and-task-markers).
-- The inspected context and evidence behind consequential decisions, with relevant versions or dates. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
+- The inspected context and evidence behind consequential decisions, with relevant versions or dates.
+- For a change that removes, closes, disables, migrates, or renames something that runs in production, moves it to another host or process, or changes untested production behavior, the result of [change impact](../../flow-research/references/change-impact.md), recorded as its "Report the impact" section sets. Use repository-relative links so another CLI can resolve sources in its own checkout. A path alone does not show what was learned there.
 - The selected approach, affected contracts, meaningful assumptions, and unresolved blockers. Include migration or recovery behavior only when the work needs it. Record material scope clarifications and proposed expansions with their disposition. The essential decisions must be understandable without recovering the original conversation.
+- In-scope work whose question cannot yet be stated precisely, listed under **Not yet specified**, each item with the suspected question and what would make it specifiable. An exclusion leaves the scope and an unresolved decision is already a sharp question, so neither goes in this list. No task depends on an item. When a decision or a finding lets you state an item's question, ask it as a decision or plan its task, and remove the item. Before the change closes, turn each remaining item into a task, a proposed follow-up ticket, or an exclusion with its rationale. Omit the list when nothing is unclear.
 - For UI work, the relevant view decisions from [UI planning](ui-planning.md): application/area, guide status, shell/pattern and inspected reference, reuse, justified differences, states, and acceptance. Group equivalent views; omit this for work without a UI change.
 - Delivery decisions from [the planning decision reference](delivery-decisions.md): Git mode or narrower instruction, repositories/base, authorized effects and stop conditions, implementation-review mechanism and pending consent.
-- Local in-vivo applicability and rationale; if deemed unnecessary, the offered walk and user response or pending choice. For UI, include proportional coverage, built local environment, accounts/data prerequisites and the human walkthrough; record remote exceptions explicitly.
+- Local in-vivo applicability and rationale; when deemed unnecessary, the reason, reported as a line rather than offered as a choice. For UI, include proportional coverage, built local environment, accounts/data prerequisites and the human walkthrough; record remote exceptions explicitly.
 - Checkbox tasks grouped by a coherent result, with the criteria each one closes, dependencies, source locations, and an actual verification command or observation and its expected outcome.
 - For a saved implementation plan, the reviewed revision, relevant domain coverage, reconciled findings and unresolved review limits from [plan review](plan-review.md).
 - Current progress, evidence, and the next actionable step. Distinguish work that is ready, work that is authorized, and work that has been verified; one does not imply the others.
 
-Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks, following [Revise a plan in progress](../SKILL.md#revise-a-plan-in-progress) for any revision of the record.
+Keep the task list in this document. Link already authorized retained research rather than duplicating it or creating a companion file, and retain the same work identifier and initial date across sessions. Reconcile the record with current sources on resume; preserve valid completed work and explain material changes or reopened tasks, following [Revise a plan in progress](plan-revision.md) for any revision of the record.
 
 ## Acceptance criteria and task markers
 
-Number acceptance criteria `AC1`, `AC2`, and so on, one observable behavior each. For each criterion, name the observation that would show it false, and make sure that observation is false at the change's base commit, the commit the build starts from. A criterion that is already true there, that only another change can satisfy, or that restates the request grades nothing: rewrite it or drop it. Conditions that must stay true, such as "the existing suite still passes", are constraints: list them apart from the criteria.
+Number acceptance criteria `AC1`, `AC2`, and so on, one observable behavior each. For each criterion, name the observation that would show it false, and make sure that observation is false at the change's base commit, the commit the build starts from; while planning, check it against the current head of the base branch. A criterion that is already true there, that only another change can satisfy, or that restates the request grades nothing: rewrite it or drop it, and tell the user when a dropped criterion came from their request or ticket. Conditions that must stay true, such as "the existing suite still passes", are constraints: list them apart from the criteria.
 
-Every task that satisfies a criterion carries a `**Closes:** AC<n>, …` line, and its **Verification** covers each criterion it closes. Name in a task's **Verification** only the tests that exercise those criteria, such as one package's tests or a test filter. A whole-repository suite, a slower variant of it such as a race-detector run, or a build of everything is a shared gate: list it once in the plan's verification section, to run on the final candidate, not in each task. Every task whose test approach is `tdd` or `check` carries `Closes:`; if such a task closes nothing, a criterion is missing or the task is unnecessary. Keep `AC<n>`, `T<n>` and the `Closes:` label untranslated in any session language, because the build and the task verifier search for them.
+Every criterion appears in the `Closes:` line of at least one task, and every task that satisfies a criterion carries a `**Closes:** AC<n>, …` line, and its **Verification** covers each criterion it closes. Name in a task's **Verification** only the tests that exercise those criteria, such as one package's tests or a test filter. A whole-repository suite, a slower variant of it such as a race-detector run, or a build of everything is a shared gate: list it once in the plan's verification section, to run on the final candidate, not in each task. Every task whose test approach is `tdd` or `check` carries `Closes:`; if such a task closes nothing, a criterion is missing or the task is unnecessary. Keep `AC<n>`, `T<n>`, the `Closes:` and `Checkpoint:` labels, and the status lines in the marker table below untranslated in any session language, because the build and the task verifier search for them.
+
+**Checkpoints.** In a plan with numbered criteria, every `tdd` or `check` task carries a `**Checkpoint:** C<n>` line. A checkpoint groups tasks that `flow-build` verifies together, as [plan execution](../../flow-build/references/plan-execution.md) sets. Number the checkpoints in plan order, and let the last `tdd` or `check` task close the last one. The plan's verification section lists the checkpoints in `tasks.md` with their tasks and the reason for each one's place. A task is the last of its group and closes the checkpoint when either condition holds:
+
+1. two or more later tasks depend on it, directly or through other tasks, so a defect in it would spread; or
+2. it changes a public or persisted contract, stored data, permissions, a security boundary, or concurrency.
+
+Group every other task into the next checkpoint. A task depends only on earlier tasks of the plan that exist, never on itself. Number the checkpoints C1, C2 and so on without gaps, so that no task carries a lower number than an earlier task and the last `tdd` or `check` task carries the highest. An older plan whose tasks omit the field is verified task by task: without the `Checkpoint` field, each task is its own checkpoint. This rule and the risk criterion live only here; other files point to them.
 
 Mark each task with one of these markers:
 
 | Marker | Meaning |
 | --- | --- |
 | `[ ]` | Pending. |
-| `[/]` | In progress. |
-| `[?]` | Done by the implementer, waiting for verification. When verification is blocked, a line `blocked: <prerequisite>` follows it. |
+| `[/]` | In progress. When the fix of an earlier task reopened it, a line `reopened by the fix of T<n>` follows it. When a prerequisite stops it before it reports, a line `blocked: <prerequisite>` follows it, and no verifier runs for it. |
+| `[?]` | Done by the implementer, waiting for verification. When verification is blocked, a line `blocked: <prerequisite>` follows it. When all its criteria are met but a dependency in the same checkpoint is not yet `[x]`, a line `waiting: T<n>` follows it. |
 | `[x]` | Verified. When the user accepted the task without verification, a line `accepted unverified by the user: <reason>` follows it. |
 | `[!]` | Rejected by verification. A line with the round, the `AC<n>`, and the reason follows it. |
 
-`flow-build` owns the transitions. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
+`flow-build` and `flow-verify` own the transitions, each in its own stage, as [plan execution](../../flow-build/references/plan-execution.md) and [flow-verify](../../flow-verify/SKILL.md) set. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
 
 ## Opening control sheet
 
@@ -74,6 +83,8 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Included work, relevant exclusions with their rationale, and constraints that must stay true.>
 
+**Not yet specified:** <in-scope areas whose question cannot yet be stated precisely, each with what would make it specifiable; omit when none.>
+
 - AC1. <Observable behavior>. *False at the base when* <observation>.
 
 ## Verified context
@@ -98,6 +109,8 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 **Closes:** <AC IDs; omit when the task satisfies no criterion and has no `tdd` or `check` approach>.
 
+**Checkpoint:** <C<n>; required for a `tdd` or `check` task in a plan with numbered criteria>.
+
 **Depends on:** <task IDs or none>.
 
 **Locations:** <relevant files and symbols>.
@@ -114,11 +127,13 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Define applicable tests, local in-vivo and UI coverage, prerequisites and expected outcomes. Keep task-specific checks in their tasks; collect shared gates here without duplicating commands.>
 
+<List the checkpoints, one line each: `C<n>` — its tasks — the reason for its place.>
+
 | Gate | Timing and environment | Mechanism and expected evidence | Authority / pending condition |
 | --- | --- | --- | --- |
 | <applicable gate> | <when, candidate and target> | <command or walkthrough and pass criteria> | <covered by implementation, explicit agreement, or pending choice> |
 
-<For a rendered UI effect that [the UI gate](../../flow-walkthrough/references/ui-gate.md) does not exempt, include the independent children that the repository's `UI verification` value or answer selects, resolved as [delivery decisions](delivery-decisions.md) sets, with their candidate identity, base revision, viewports and themes, data and browser tool; the selected children are part of implementation. When no value is declared or answered yet, record the question as pending with the delivery decisions.>
+<For a rendered UI effect that [the UI gate](../../flow-verify/references/ui-gate.md) does not exempt, include the independent children that the repository's `UI verification` value or answer selects, resolved as [delivery decisions](delivery-decisions.md) sets, with their candidate identity, base revision, viewports and themes, data and browser tool; the selected children run in [flow-verify](../../flow-verify/SKILL.md). When no value is declared or answered yet, record the question as pending with the delivery decisions.>
 
 <For human UI review, specify the built local stack, account/role and data prerequisites without secrets, relevant viewports/states, and short navigation/actions with expected results. State that the verified stack stays available and selected temporary session captures are linked at handoff. Fill actual clickable URLs when known. Record remote exceptions explicitly.>
 
@@ -126,7 +141,7 @@ Use these phases, translated for the reader: Draft (decisions or review still pe
 
 <Preserve user answers and their scope: repositories, base/work branches, Git mode, authorized effects, next human stop, code-review mechanism and agreed endpoint. Use a compact table when repositories or conditions differ. Do not infer merge, tracker writes or deployment authority from plan readiness.>
 
-<Describe the sequence before and after the human stop and the applicable CI/review gates, referencing verification above. Include deployment and recovery steps only within the selected scope; distinguish a future offered promotion from an authorized action.>
+<Describe the sequence before and after the human stop and the applicable CI/review gates, referencing verification above and, for deployment, [deployment checks](../../flow-deploy/references/deployment-checks.md). Include deployment and recovery steps only within the selected scope; distinguish a future offered promotion from an authorized action.>
 
 ## Review status and progress
 
@@ -142,3 +157,7 @@ Give each detailed decision, command and procedure one home within the plan. The
 If a material decision remains unresolved, identify its impact and affected tasks rather than labeling the plan ready. The skill's readiness check applies to the contents, not the presence of these headings.
 
 Before closing, read back the canonical saved plan and confirm that the latest user answers, delivery endpoint and conditions are present and consistent with its status and closing recommendation. If native planning restrictions require an internal draft, state which copy is current; do not claim the canonical path was updated until its write and readback succeed within the permitted scope. On resume, use the canonical decision record and current evidence; a native approval message alone does not replace the user's instructions.
+
+## Hand off a ready plan
+
+When returning a ready plan without implementing, summarize it in the conversation, because the saved plan holds the detail and the user may not open it: the objective in one or two sentences; the text of each acceptance criterion `AC<n>` and the name of each requirement the change folder adds, modifies or removes, since they are the contract the user approves; the decisions in force with their IDs, and the minor calls taken without asking with their reasons; each task on one line with what it delivers and who executes it; the verification gates; the delivery mode with the first execution scope, the human-validation stop, the agreed endpoint after validation and any excluded promotion; what remains unresolved or unauthorized; and the change folder or canonical plan path. Do not paste the whole plan. End with the build route question, asked by following [questions](questions.md), which is a route decision and not a request for leave to proceed, since a plan does not authorize implementation: start `flow-build` with that path now (or direct execution for a small change), Recommended when nothing blocks it, or stop with the plan ready. The `flow-build` option states that it approves the criteria shown, by their IDs, with a gloss of what they cover, such as "approves AC1–AC4 (export, permissions and audit)", because a host may show the card alone. A free-text correction to a criterion or requirement does not answer the route question: revise the plan as [plan revision](plan-revision.md) sets, then show the revised criteria and ask the route question again. Leave the saved change folder uncommitted: keep its status on disk while the work runs, and [flow-close](../../flow-close/SKILL.md) versions it once at close. When execution is already explicitly authorized, show the criteria the same way and continue as permitted instead of asking.

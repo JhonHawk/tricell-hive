@@ -10,21 +10,37 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Actions:** ask only at that decision point. Look up facts yourself. Make a minor call, one with a conventional default that is neither consequential nor an effect needing authorization, yourself and state it in one line.
 
+**Condition:** about to ask a question.
+
+**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design decision the user made for this work item and recorded in its plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
+
 **Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
 
-**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route, close or ticket question, ask it under this procedure, never as a closing sentence alone. Otherwise, such as further work the answer does not call for, leave the offer out.
+**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route or close question, ask it under this procedure, never as a closing sentence alone. Otherwise, such as further work the answer does not call for, leave the offer out.
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
-**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Reuse explicit decisions already in force; silence, preselection, and a dismissed or timed-out question grant nothing.
+**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Silence, preselection, and a dismissed or timed-out question grant nothing, except the silence after the route answer that activates [unattended delegation](../../unattended-delegation/SKILL.md) under its own rule.
 
 **Condition:** several open questions do not depend on one another.
 
 **Actions:** ask all of them in one round.
 
+**Condition:** a question's options, context, or relevance depend on the answer to another open question, such as one that changes the course of an investigation, opens a different set of questions, or assumes that an option of the other, typically the Recommended one, is chosen.
+
+**Actions:** ask the other question first and the dependent one in a later turn, after that answer, worded for the answer given. In one round, put only questions whose options hold with any answer to the others; when a question needs only its wording adjusted, write its options to hold with any answer instead, such as "with the review you choose in D2".
+
+**Condition:** an objective the user already decided needs several authorizations in sequence, such as the records of one test setup or the steps of an operation the user approved.
+
+**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect, and a production deployment the user has not already named keep their own question in that same round.
+
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
 **Actions:** also state the main tradeoff and uncertainty.
+
+**Condition:** an option of the question starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option of the same question.
+
+**Actions:** give every option of that question that starts work, not one such as stop, its estimated size: the number of tasks and a time range, with the basis for it, such as the ticket's criteria or the files you read. When you did not read enough to estimate it, write "size not estimated: not investigated" for that option. Never give a number without a basis.
 
 ## Use a waiting native card
 
@@ -33,7 +49,7 @@ Read before formulating a decision for the user, with or without a native card, 
 **Actions, in order:**
 
 1. Complete memory, tracker and plan updates that apply before the message.
-2. Write the explanation, then one line per question with its ID, the question, and the Recommended option with its reason. Gloss that option's ID; omit the other options from this message.
+2. Write the message as visible text in the response, never only in your reasoning: a brief output style shortens it but does not remove it, because it is the result that style asks you to lead with. It may be short: the explanation, in one or two sentences when they suffice, then one line per question with its ID, the question, and the Recommended option with its reason. Gloss that option's ID; omit the other options from this message.
 3. End the message with the pause line below. Make no tool call between the message and the question call. A response holding only the call is the failure.
 4. Ask through the native tool. Write the card to stand alone, since a host may hide the message: the question opens with the stage and ticket that [reporting](../../flow-close/references/reporting.md#open-with-the-context-line) sets and carries the context to answer, each option its effect in its description, or in its label when the tool has no description field, and the Recommended option is marked.
 
@@ -65,7 +81,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** an answer arrives, including free text.
 
-**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](../SKILL.md#revise-a-plan-in-progress). Re-ask an answered question only when the change needs effects not yet authorized.
+**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
 
 When the answer leaves a selection to your judgment, such as which findings to fix now and which to keep under observation, or which items to include, list the resulting selection before acting on it: what goes in and what stays out, each item with its gloss. Then ask whether the user agrees, recommending to continue as listed and taking corrections in free text. This confirmation is a new question with its own ID, not a re-ask of the answered one; when another question follows anyway, put the list and the confirmation in that round. An answer that picks one of the offered options leaves no selection to confirm. Two exceptions: a selection within the bounds of an iterative route the user chose goes in that round's progress line, and under [unattended delegation](../../unattended-delegation/SKILL.md) the selection is recorded with the decisions taken instead of asked.
 

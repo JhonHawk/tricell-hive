@@ -14,33 +14,50 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 - [Security](SECURITY.md): how to report a vulnerability privately
 - [Installer contract](_support/docs/architecture/installer.md): package checks, migration, and interrupted-install recovery
 - [Deployment manager](_support/docs/architecture/deployment-manager.md): manager commands, plans, scopes, ownership, and recovery
+- `hive voice list|set|off`: list the voices, select one, or turn it off (see the manager contract above)
+- `hive project set`: edit the `## Hive` section of a repository's `AGENTS.md` after confirmation
+- `hive releases`: list the retained release snapshots
 - [Agent delivery](_support/docs/architecture/agent-delivery.md): canonical roles, native profiles, and per-host delegation limits
 
 ## Guidance
 
 The global core retains essential boundaries and explicit read conditions for
-canonical procedures. Reporting is required before every chat reply; other
-procedures are selected by their stated conditions, not all preloaded. A packaged
+canonical procedures. Reporting is read under the conditions
+`content/guidance/global.md` states, not before every reply; other procedures
+are selected by their stated conditions, not all preloaded. A packaged
 file, its discovery, its delivery into context and compliance are separate facts.
 Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 - [Shared guidance](content/guidance/global.md): authorization, preservation, evidence, and artifact-placement rules installed into each host
 - [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
 - [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
-- [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and verify the result
+- [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and hand over a built candidate
+- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the settings and the request set, then integrate it
+- [flow-security](content/skills/flow-security/SKILL.md): run an independent security review when the user asks for it
 - [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources
+- [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served
+- [git-workflow](content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work
+- [flow-walkthrough](content/skills/flow-walkthrough/SKILL.md): walk a built user interface for the user to validate, with captures and a viewer manifest
+- [flow-report](content/skills/flow-report/SKILL.md): a designed HTML report, comparison, explainer or deck
+- [starlight-docs-site](content/skills/starlight-docs-site/SKILL.md): scaffold, extend or audit a documentation site
+- [harness-audit](content/skills/harness-audit/SKILL.md): audit agent instructions, skills and role definitions
+- [security-advisory](content/skills/security-advisory/SKILL.md): check whether a published advisory affects a set of repositories, without changing them
+- [workspace-conventions](content/skills/workspace-conventions/SKILL.md): organize support artifacts and retained evidence
+- [workspace-archive](content/skills/workspace-archive/SKILL.md): archive explicitly selected, closed support sessions
+- [unattended-delegation](content/skills/unattended-delegation/SKILL.md): coordinate delegated work with a bounded objective and expiry
+- [engram-init-workspace](content/skills/engram-init-workspace/SKILL.md): establish one Engram identity for a declared workspace, only when asked
 - [Role profiles](integrations/agent-profiles.json): default model and effort per role and host
 - [Instruction resources](_support/docs/architecture/instruction-resources.md): canonical procedure homes, resolution, payload validation and declared reading-footprint scenarios
 - [Optional OpenCode context loader](_support/docs/architecture/deployment-manager.md#optional-opencode-context-loader): delivered inactive at user scope as `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside `plugins/`, with no `package.json`; activate only the installed `hive/context-loader` directory, not the editorial template. It supplies two fixed-role snapshots without runtime reference/metadata reads; refresh requires manager regeneration and plugin reload, not a live Markdown edit. Metadata schema 2 records role/resource/digest provenance, not cryptographic authentication. Deactivation/removal preserves user configuration. Package manifest v2 is separate from metadata schema 2; v1 packages remain readable by the current manager
 
 ## Optional
 
-- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, no Node at runtime, flat project/session navigation, informational work status, reversible copy archiving independent of pinning and retention, source classification and confirmed closure
+- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, JSON-first walkthrough publication and HTML fallback only without the binary, no Node at runtime, project/session navigation with chronological ticket segments and explicit PR/commit delivery links, informational work status per segment, reversible copy archiving independent of pinning and retention, source classification and confirmed closure
 - [Viewer frontend](tooling/viewer/frontend/README.md): standalone development package, real API by default, explicit development preview, same-tab navigation persistence, bundle contract and checks
 - [Third-party notices](THIRD_PARTY_NOTICES.md): Go and embedded frontend license notices
 
 - [Repository structure](_support/docs/architecture/repository-and-distribution.md): layout, ownership, and managed instruction blocks
-- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, agent-browser, and the Codex question card (`codex-question-card`)
+- [Optional tool dependencies](_support/docs/architecture/tool-dependencies.md): Engram, Context7, pi-subagents, agent-browser, the Codex question card (`codex-question-card`), the Codex wait floor (`codex-wait-floor`, which writes `min_wait_timeout_ms` and `default_wait_timeout_ms` under `[features.multi_agent_v2]` in Codex's `config.toml`, with a backup and `hive plan remove`), and CodeGraph
 - [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard
 - [History and provenance](_support/docs/history/history-and-provenance.md): how the project evolved
 - [Requirements and change records](_support/openspec/): versioned requirements and planned changes

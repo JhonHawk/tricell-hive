@@ -67,7 +67,7 @@ Greetings, a short direct answer with no work running, a child's return to its p
 
 **Condition:** a work item completes.
 
-**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give what was delivered with its pull-request URLs, the cleanup, and any secret that reached a durable or shared place or other incident the user must know. List each implementation decision taken without asking that chose between behaviors or contracts the user could reasonably have chosen differently, with its reason and how to revert it; omit the list when none was taken.
+**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give what was delivered with its pull-request URLs, the cleanup, and any secret that reached a durable or shared place or other incident the user must know. List each implementation decision taken without asking that chose between behaviors or contracts the user could reasonably have chosen differently, with its reason and how to revert it; omit the list when none was taken. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
 
 **Condition:** a pending item remains.
 
@@ -95,15 +95,15 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Actions:** number them, give each its reason, and mark one Recommended when it is clearly better. When the user asked for one or what to take next, ask the routes as a choice, each option naming the flow it starts: `flow-plan` when the route spans several tickets, repositories, or steps, `flow-build` only for a small understood change, and both when either fits, except the iterative route that [flow-research](../../flow-research/SKILL.md) defines. Start the chosen flow without a new command.
 
-The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option. The flow asks for them through its delivery question before its first edit, or takes them from the repository's declared settings, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
+The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option, except opening the ticket that a research route option names, as [flow-research](../../flow-research/SKILL.md#deliver-the-finding) sets. The flow asks for them through its delivery question before its first edit, or takes them from the repository's declared settings, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
 
 ### Reminders
 
-**Condition:** a user control does not block the current work, such as delivered work not yet promoted, even to a completion point the project declares after integration, since promotions batch several tickets and never hold the current work open, or a pull request awaiting the user's merge.
+**Condition:** a user control does not block the current work, such as delivered work not yet promoted, including to a later completion point as [project settings](../../flow-plan/references/project-settings.md#later-completion-point) sets, since promotions batch several tickets and never hold the current work open, or a pull request awaiting the user's merge.
 
 **Actions:** state it in one line without advice; repeat it only when the state changes or related work closes. Make it a recommendation only when waiting has a concrete cost the user may not see, such as a production defect or a security exposure, and name that cost.
 
-Distinguish work already completed, work you will continue under existing authorization, and actions that need new authorization. Ask once for a set of actions when one answer can authorize them all, since each extra question adds a round-trip without a new decision; ask separately only for an action whose risk or target needs its own decision, such as a production deployment.
+Distinguish work already completed, work you will continue under existing authorization, and actions that need new authorization. Ask once for a set of actions when one answer can authorize them all, as [questions](../../flow-plan/references/questions.md) sets for the steps of one objective, since each extra question adds a round-trip without a new decision; ask separately only for an action whose risk or target needs its own decision, such as a production deployment.
 
 ## Work-item boundary
 

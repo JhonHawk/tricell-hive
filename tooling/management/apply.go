@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 	"tricell-hive/integrations/target"
 )
@@ -33,6 +34,9 @@ type journal struct {
 	Integrity               string
 	PackageDone             bool `json:",omitempty"`
 	PackagePending          bool `json:",omitempty"`
+	// CodexLines is the wait floor edit of Codex's config.toml, journaled by
+	// lines (fingerprints and owned lines), never by the file's bytes.
+	CodexLines *linesEntry `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -209,6 +213,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.Migrations = append([]MigrationReceipt(nil), state.Migrations...)
 	next.Voice = state.Voice
 	next.PiSubagentsSource = state.PiSubagentsSource
+	next.CodexWaitFloor = copyWaitFloorRecord(state.CodexWaitFloor)
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
 		for k, v := range state.VoiceSpans {
@@ -300,6 +305,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		changed = true
 	}
 	if p.Action == "remove" && hostsIncludePi(p.Hosts) && state.PiSubagentsSource != "" {
+		changed = true
+	}
+	if err := prepareCodexLines(p, state, &next, &j); err != nil {
+		return journal{}, State{}, nil, false, err
+	}
+	if j.CodexLines != nil && !j.CodexLines.Skip {
 		changed = true
 	}
 	if !changed {
@@ -417,6 +428,9 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 		return err
 	}
 	if err := applyPiPackage(p, next, j, jp, e.fail); err != nil {
+		return err
+	}
+	if err := applyCodexLines(j, jp, e.fail); err != nil {
 		return err
 	}
 	if p.Release != nil {
@@ -606,6 +620,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 		return j.ID, fmt.Errorf("transaction %s requires recover: %w", j.ID, err)
 	}
 	warning := recordSourceCommit(p)
+	if j.CodexLines != nil {
+		for _, n := range j.CodexLines.Notes {
+			warning = strings.TrimPrefix(warning+"; "+n, "; ")
+		}
+	}
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {
 		if warning != "" {
@@ -677,7 +696,16 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !same(stateNow, j.BeforeState) && !same(stateNow, j.AfterState) {
+	// An interrupted removal that already took Hive's lines out may have had its
+	// state rewritten without the record by an earlier attempt of this recovery.
+	interruptedRemove := j.CodexLines != nil && j.CodexLines.Remove && !j.CodexLines.Skip && (j.CodexLines.Pending || j.CodexLines.Done)
+	droppedRecord := j.BeforeState
+	if interruptedRemove {
+		if droppedRecord, err = withoutCodexRecord(j.BeforeState); err != nil {
+			return "", err
+		}
+	}
+	if !same(stateNow, j.BeforeState) && !same(stateNow, j.AfterState) && !(interruptedRemove && same(stateNow, droppedRecord)) {
 		return "", fmt.Errorf("state changed after interruption; preserved")
 	}
 	// Preflight every inverse before touching any resource. Outside-block edits survive.
@@ -755,6 +783,11 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		}
 		inverses[i] = inv
 	}
+	// Only now, once Recover is going ahead: it must not undo the lines of an
+	// operation it then refuses to recover.
+	if err := undoCodexInstall(j); err != nil {
+		return "", err
+	}
 	for i := len(j.Entries) - 1; i >= 0; i-- {
 		en := j.Entries[i]
 		cur, err := readEntry(en)
@@ -773,7 +806,20 @@ func (e Engine) Recover(stateDir string) (string, error) {
 			}
 		}
 	}
-	if err = write(filepath.Join(dir, "state.json"), j.BeforeState); err != nil {
+	restored := j.BeforeState
+	if interruptedRemove {
+		gone, err := codexRemoveRecordGone(j.CodexLines)
+		if err != nil {
+			return "", err
+		}
+		if gone {
+			restored = droppedRecord
+		}
+	}
+	if err = write(filepath.Join(dir, "state.json"), restored); err != nil {
+		return "", err
+	}
+	if err = e.fail("recover-state"); err != nil {
 		return "", err
 	}
 	cleanupDirs(j.CreatedDirs)

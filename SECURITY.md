@@ -4,9 +4,10 @@
 
 | Version | Supported |
 | --- | --- |
-| 0.2.x | Yes |
-| 0.1.x | Yes |
-| Earlier | No |
+| Latest published minor release (fixes ship as a new patch release of it; upgrade to that patch) | Yes |
+| Earlier minor releases | No |
+
+The latest release is listed on [GitHub Releases](https://github.com/JhonHawk/tricell-hive/releases).
 
 ## Reporting a vulnerability
 
@@ -38,7 +39,8 @@ impact you observed. Do not include real credentials or tokens in a report.
 - The only CLI executable Hive may install is `agent-browser`, and only after
   that consent: each command runs without a shell or `sudo`, with an empty
   standard input, in its own process group and with a time limit, and the step
-  validator accepts only the command lines bound to each step. Engram and
-  Context7 are separate, manually configured tools.
+  validator accepts only the command lines bound to each step. Engram,
+  Context7 and CodeGraph are separate, manually configured tools; Hive never
+  runs CodeGraph's installer.
 - The manager writes only to the destinations shown in its preview, after
   confirmation, and keeps private backups for recovery.

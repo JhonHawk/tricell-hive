@@ -37,6 +37,10 @@ type abFake struct {
 	// zero value reports the question-card feature.
 	codexFeatures string
 	codexExit     int
+	// codexVersion is the stdout of the faked `codex --version`; versionProbes
+	// counts the runs, so a test can show that none was made.
+	codexVersion  string
+	versionProbes int
 	execs         [][]string
 	onExec        func(f *abFake, argv []string) agentBrowserResult
 }
@@ -54,8 +58,14 @@ func useAgentBrowserFake(t *testing.T, f *abFake) {
 	if f.home == "" {
 		f.home = "/fake/home"
 	}
-	savedSys, savedExec, savedProbe := agentBrowserSys, agentBrowserExec, codexFeaturesProbe
-	t.Cleanup(func() { agentBrowserSys, agentBrowserExec, codexFeaturesProbe = savedSys, savedExec, savedProbe })
+	savedSys, savedExec, savedProbe, savedVersion := agentBrowserSys, agentBrowserExec, codexFeaturesProbe, codexVersionProbe
+	t.Cleanup(func() {
+		agentBrowserSys, agentBrowserExec, codexFeaturesProbe, codexVersionProbe = savedSys, savedExec, savedProbe, savedVersion
+	})
+	codexVersionProbe = func() (agentBrowserResult, string) {
+		f.versionProbes++
+		return agentBrowserResult{}, f.codexVersion
+	}
 	codexFeaturesProbe = func() (agentBrowserResult, string) {
 		f.codexProbes++
 		out := f.codexFeatures

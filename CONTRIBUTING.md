@@ -23,8 +23,7 @@ python3 -m unittest discover -s tests/skills -p '*_test.py'
 
 Also run `go test -race ./...` when a change touches concurrency: goroutines,
 locks, state shared across goroutines, or the manager's concurrent-write tests.
-The suite takes under a minute on a typical laptop. The
-[deployment manager reference](_support/docs/architecture/deployment-manager.md)
+The [deployment manager reference](_support/docs/architecture/deployment-manager.md)
 describes what the tests cover.
 
 ## Viewer frontend
@@ -76,8 +75,8 @@ and preserve the shared offline renderer byte for byte. See the
 The site in `site/` uses Astro Starlight with the Ion theme and Hive's brand
 accents. Its navigation is Home, Getting started, and Changelog, followed by a
 separator, a collapsible Skills group, and an Inspiration page. Skills links to its catalog
-and the four main flow guides. Inspiration lists OpenSpec, gentle-ai, and
-Superpowers, in that order. Keep its existing routes, logo assets, and
+and the guides of the main flows (research, plan, build, verify, security, close and deploy). Inspiration lists OpenSpec, gentle-ai,
+Superpowers, and Skills For Real Engineers, in that order. Keep its existing routes, logo assets, and
 metadata when updating its presentation. Flow pages explain the user experience and link to the canonical
 skill; they do not duplicate the procedural rules in `content/`.
 
@@ -135,7 +134,8 @@ release, without cutting it, when `[Unreleased]` holds an entry more than seven
 days old, or a fix for a defect in the latest published version.
 
 The documentation site is published from `master`: each release deploys `site/`
-from its tag with `pnpm exec wrangler deploy`, and nothing else deploys it. A
+from its tag, building it first with `pnpm --dir site build` and then running
+`pnpm exec wrangler deploy`; nothing else deploys it. A
 change that touches only the site therefore waits for the next release. The one exception: a site fix that cannot
 wait may go out as a patch release of its own.
 

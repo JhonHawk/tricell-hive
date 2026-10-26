@@ -33,6 +33,11 @@ type (
 		unchanged  bool
 		sourceLine string
 		err        error
+		// flags, adapter and offers carry the optional capabilities update
+		// can offer for plan; offers is empty once the choice is made.
+		flags   updateFlags
+		adapter onboardingAdapter
+		offers  []providerOffer
 	}
 	updateAppliedMsg struct {
 		owned
@@ -178,6 +183,28 @@ func (v *updateView) resolve() tea.Cmd {
 		showInstallSummary(&summary, plan, onboardingPreview{}, false, unchanged, false)
 		summary.WriteString(line + "\n")
 		msg.plan, msg.summary, msg.unchanged, msg.sourceLine = plan, summary.String(), unchanged, line
+		msg.flags = f
+		msg.adapter, msg.offers, msg.err = detectUpdateOffers(plan, f, true)
+		return msg
+	}
+}
+
+// choose applies the operator's choice among the offered capabilities: it
+// rebuilds the plan when the choice changes what update writes and renders the
+// summary of what will be applied, like `hive update` does.
+func (v *updateView) choose(planned updatePlannedMsg, requests []providerRequest) tea.Cmd {
+	v.planning = "Preparing the summary…"
+	return func() tea.Msg {
+		msg := updatePlannedMsg{owned: owned{v}, flow: planned.flow, sourceLine: planned.sourceLine, flags: planned.flags}
+		plan, unchanged, preview, err := finishUpdateChoice(planned.flags, planned.plan, planned.unchanged, planned.adapter, planned.offers, requests)
+		if err != nil {
+			msg.err = err
+			return msg
+		}
+		var summary bytes.Buffer
+		showInstallSummary(&summary, plan, preview, false, unchanged, false)
+		summary.WriteString(planned.sourceLine + "\n")
+		msg.plan, msg.summary, msg.unchanged = plan, summary.String(), unchanged
 		return msg
 	}
 }
@@ -192,6 +219,20 @@ func (v *updateView) onPlanned(msg updatePlannedMsg) (tea.Cmd, action) {
 	v.planning = ""
 	if msg.err != nil {
 		return v.fail(msg.err.Error())
+	}
+	if len(msg.offers) > 0 {
+		caps := newCapsView(msg.offers,
+			func(requests []providerRequest) (tea.Cmd, action) {
+				return v.choose(msg, requests), action{nav: navPop}
+			},
+			func() (tea.Cmd, action) {
+				// Esc cancels the update, as dismissing the offer does in
+				// `hive update`. Unchecking the offer and continuing is the
+				// way to skip it and still apply.
+				v.message, v.messageErr = "Cancelled. No changes applied.", false
+				return nil, action{nav: navPop}
+			})
+		return nil, action{nav: navPush, push: caps}
 	}
 	if msg.unchanged {
 		// Nothing changes: apply directly, as the command does, so the source

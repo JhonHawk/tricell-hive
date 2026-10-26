@@ -86,6 +86,8 @@
   color-scheme: dark;
 }
 body {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
   margin: 0;
   background: var(--background);
 }
@@ -94,45 +96,57 @@ body {
 }
 .viewer-shell {
   height: 100dvh;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  line-height: 1.5;
 }
 .viewer-shell *,
+[data-slot="dialog-content"],
+[data-slot="dialog-content"] *,
+[data-slot="dialog-content"]::before,
+[data-slot="dialog-content"]::after,
+[data-slot="dialog-content"] *::before,
+[data-slot="dialog-content"] *::after,
 [data-slot="sheet-content"] *,
 [data-sidebar="sidebar"] * {
   box-sizing: border-box;
 }
-.viewer-shell :is(h1, h2, p):not(.walkthrough *) {
+:is(.viewer-shell, [data-slot="dialog-content"])
+  :is(h1, h2, p):not(.walkthrough *) {
   margin: 0;
 }
 .viewer-shell button:not(.walkthrough *),
-[data-slot="sheet-content"] button {
-  font-family: inherit;
+[data-slot="sheet-content"] button,
+[data-slot="dialog-content"] button {
   cursor: pointer;
 }
-/* Reset only the application shell and its portalled navigation. The report
+/* Reset only the application shell and its portalled navigation and Dialog. The report
    renderer deliberately keeps its own styles instead of Tailwind preflight. */
 @layer base {
-  :is(.viewer-shell, [data-sidebar="sidebar"]) :where(ul):not(.walkthrough *) {
+  :where(button, input, select, textarea):not(.walkthrough *) {
+    font: inherit;
+  }
+  :where(*, ::before, ::after):not(.walkthrough, .walkthrough *) {
+    border-color: var(--border);
+  }
+  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+    :where(ul):not(.walkthrough *) {
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"])
+  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
     :where(button, a):not(.walkthrough *) {
     color: inherit;
     font: inherit;
     text-decoration: none;
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"])
+  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
     :where(button):not(.walkthrough *) {
     border: 0 solid;
     background: transparent;
   }
 }
-:is(.viewer-shell, [data-sidebar="sidebar"]) [data-sidebar="menu-button"] {
+:is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+  [data-sidebar="menu-button"] {
   border: 0;
-  font-family: inherit;
   cursor: pointer;
 }
 .session-navigation-link {
@@ -155,9 +169,6 @@ body {
 .session-navigation-link[aria-current="page"] {
   background: var(--muted);
   color: var(--foreground);
-}
-[data-sidebar="sidebar"][data-mobile="true"] {
-  font-family: ui-sans-serif, system-ui, sans-serif;
 }
 [data-sidebar="sidebar"],
 [data-slot="sidebar-container"] {
@@ -207,4 +218,19 @@ body {
     overflow: visible;
     padding: 0;
   }
+}
+
+/* Stacked session documents keep their report content and metadata without a
+   standalone page's viewport height, title or surrounding page gutters. */
+.walkthrough.walkthrough-embedded {
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 0.875rem;
+}
+.walkthrough-embedded h2 {
+  font-size: 1rem;
+  margin-top: 1.5rem;
 }

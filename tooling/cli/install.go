@@ -364,7 +364,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 		if err != nil {
 			return err
 		}
-		preview, ok, err := previewInstallOnboarding(terminal, o, p, adapter)
+		chosen, ok, err := previewInstallOnboarding(terminal, o, p, unchanged, adapter)
 		if err != nil {
 			return err
 		}
@@ -372,6 +372,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			fmt.Fprintln(out, "Cancelled. No changes applied.")
 			return nil
 		}
+		p, unchanged, preview := chosen.plan, chosen.unchanged, chosen.preview
 		showInstallSummary(out, p, preview, dry, unchanged, true)
 		if dry {
 			fmt.Fprintln(out, "Preview: installation was not changed.")
@@ -509,17 +510,32 @@ func newOnboardingInput(o management.Options, dryRun, interactive bool) onboardi
 // ok/cancel signal: false means the operator cancelled (including a genuine
 // EOF while entering a capability version), which the caller must report the
 // same way as any other cancellation — quietly, with no error and no writes.
-func previewInstallOnboarding(terminal installTerminal, o management.Options, p management.Plan, adapter onboardingAdapter) (onboardingPreview, bool, error) {
+//
+// The plan comes back rebuilt when the choice changes what the core writes
+// (the Codex wait floor): that choice enters the plan through an option, and a
+// plan's ID is a hash of its content, so it cannot be added afterwards.
+func previewInstallOnboarding(terminal installTerminal, o management.Options, p management.Plan, unchanged bool, adapter onboardingAdapter) (installChoice, bool, error) {
 	offers, err := adapter.Detect(o)
 	if err != nil {
-		return onboardingPreview{}, false, err
+		return installChoice{}, false, err
 	}
 	requests, ok, err := terminal.SelectProviders(offers)
 	if err != nil || !ok {
-		return onboardingPreview{}, ok, err
+		return installChoice{}, ok, err
+	}
+	p, unchanged, err = planWithWaitFloor(o, p, unchanged, offers, requests)
+	if err != nil {
+		return installChoice{}, false, err
 	}
 	preview, err := adapter.Plan(p, requests)
-	return preview, true, err
+	return installChoice{plan: p, unchanged: unchanged, preview: preview}, true, err
+}
+
+// installChoice is what the operator's capability choice leaves to apply.
+type installChoice struct {
+	plan      management.Plan
+	unchanged bool
+	preview   onboardingPreview
 }
 
 func applyInstallOnboarding(p management.Plan, preview onboardingPreview, adapter onboardingAdapter) (management.OnboardingResult, error) {

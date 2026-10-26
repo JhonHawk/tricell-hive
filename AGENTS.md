@@ -11,11 +11,13 @@ This repository is in a rebuild phase for a small, portable guidance layer targe
 - Environments: development → master
 - Tracker: GitHub Issues · JhonHawk/tricell-hive
 - Specs: _support/openspec
+- Review: /code-review
+- Delivery: automatic
 
 ## Guidance structure
 
 - Keep cross-task rules and essential navigation here. Do not make basic authorization or artifact placement depend on an activity skill being selected.
-- Put an activity's essential procedure in its `SKILL.md`. Link situational references directly from that file and state the condition that requires each read. A listed skill or reference is not proof it was selected, read, or followed.
+- Put an activity's essential procedure in its `SKILL.md`, which stays at or under 16,000 bytes because a host may keep only its start after compaction; `tests/content/skill_size_test.go` checks it. Link situational references directly from that file and state the condition that requires each read. A listed skill or reference is not proof it was selected, read, or followed.
 - When authoring, moving, or removing distributed skills, agents, or their resources, read `_support/docs/architecture/instruction-resources.md` for canonical references, dependency checks, and runtime resolution.
 - In distributed content, name the capability rather than a host's tool, such as "the host's native question tool", and give the fallback when it may be absent: tool names change across releases and modes. Keep a proper name only where the behavior itself differs by host and a capability-first rule has been shown insufficient; issue #30 found delegation needs no per-host table, so the host dialects live in `_support/docs/architecture/agent-delivery.md`.
 - State a rule's criterion with its scope explicit, since current models apply instructions literally. Add the reason when it marks where the rule applies, and use examples only to disambiguate a boundary: a lone example reads as the rule's whole scope.
@@ -54,7 +56,7 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 ## Scope and preservation
 
 - A question, research task, or recommendation does not authorize implementation or unrelated fixes. Keep incidental findings separate from the requested work.
-- Do not deploy or copy configuration into global tool directories, change global tool settings, commit, push, merge, or delete branches without the user's explicit instruction for that action. Research and recommendations are not that instruction.
+- Do not deploy or copy configuration into global tool directories, change global tool settings, commit, push, merge, or delete branches without the user's explicit instruction for that action. Research and recommendations are not that instruction; a `Delivery` or `Review` value declared in the `## Hive` section above counts as the user's explicit instruction for the effects [delivery decisions](content/skills/flow-plan/references/delivery-decisions.md) assigns to it.
 - Keep credentials out of tracked files, reports, and tool output; protect necessary local recovery copies and exclude them from Git.
 - Preserve user-owned authentication, preferences, native histories, third-party tools, backups, and Engram data. Keep `.engram/config.json` project identity unless the user explicitly asks to change it.
 - Do not add dependencies, a runtime, universal adapter, hook system, or build framework for configuration alone. Prefer the host's existing capability and document a verified limitation before introducing new machinery.
@@ -70,6 +72,8 @@ The binary and the deployed content update separately:
 - **Both:** rebuild first, since an older binary can reject newer content.
 - **Offline-package installations:** `hive update` needs a Git checkout, so those users update by running the new package's `./install.sh`.
 
+**Maintainer viewer restart:** when the maintainer marker exists and the integrated changes affect the viewer runtime or its embedded assets, refreshing the local installation also authorizes restarting an already running local viewer after rebuilding the binary. Before stopping it, record its port, state directory and TTL; restart with those same settings, preserve its registry and stored copies, and verify health, ingestion and the changed runtime or assets. Report the active revision and resulting service state. If the viewer was stopped, leave it stopped. Outside this case, restarting an existing viewer still requires an explicit user request.
+
 `_support/docs/architecture/deployment-manager.md` holds the commands and their limits.
 
 Refreshing a local installation is not a release. Cut a release only when the user asks; propose one in the closing report when the criterion in [CONTRIBUTING.md](CONTRIBUTING.md#releases-and-version-numbers) is met.
@@ -78,7 +82,7 @@ Refreshing a local installation is not a release. Cut a release only when the us
 
 CLI behavior pilots are paused by user instruction. Do not resume them without explicit authorization. Recommend a pilot only when it is necessary to resolve a consequential behavior uncertainty that inspection or ordinary tests cannot answer; explain the expected evidence and keep the proposed scope minimal. This pause does not prohibit ordinary non-model tests.
 
-A new or stricter rule in distributed guidance, skills, or roles needs a failure observed in two independent real sessions, or the user's explicit decision to adopt it without that evidence. An idea from an external reference meets the same bar; a plausible improvement alone does not. Record a single observed case as a watch item, in an issue or the maintainer's memory, with its count and the occurrence that would justify the rule. Fixing text that contradicts its own intent or the source it describes needs no recurrence.
+A correction in distributed guidance, skills, or roles, meaning a new or stricter rule for a situation an existing rule already addresses, written because that rule was not followed or falls short in a real session, needs that failure observed in two independent real sessions, or the user's approval to adopt it at once. Record a single observed case as a watch item, in an issue or the maintainer's memory, with its count and the occurrence that would justify the rule. A new feature or requirement, including one taken from an external reference, and a gap, a situation no rule addresses, need no recurrence, even when a real session revealed the gap: the user's decision adopts them, and a plausible improvement alone does not. Fixing text that contradicts its own intent or the source it describes needs no recurrence.
 
 A guidance change that fixes a failure observed in a real session names that session (host, session ID, date) and the observed failure in its commit message. Do not add a new regression case under `tests/fixtures/regression/` for it: those cases check a detector against synthetic traces, and no real session runs through them while pilots are paused. Keep the existing cases unchanged unless the user decides otherwise.
 

@@ -8,7 +8,7 @@ Read before launching a child or starting a wait for external work, including re
 
 **Condition:** selecting work to delegate or changing the split.
 
-**Actions:** the main thread coordinates work in proportion to the task. Tell the user in one sentence which work goes to which subagents and why; do not announce that work stays in the main thread. Keep small, understood tasks direct. Send probing likely to produce long output, such as binaries, installed dependencies, build artifacts, long documentation, or broad searches, to a child that returns only the relevant findings, because early context is re-read for the rest of the session. Reassess the split when a direct lookup grows into diagnosis. Delegate independent bounded work; sequence dependencies and avoid overlapping writers. Launch independent children in the same step, not in waves. When several children work on one question, give each a disjoint scope and name in each brief what the others cover, so none repeats another's reads. When your own bounded lookup has not found where the answer lives, launch one child to locate it first and split the rest by what it finds.
+**Actions:** the main thread coordinates work in proportion to the task. Tell the user in one sentence which work goes to which subagents and why; do not announce that work stays in the main thread. This is the one delegation criterion; skills point here. Keep small, understood tasks direct. Delegate a unit when its interface is settled, its writes do not overlap concurrent work, and its brief is shorter than the change itself; keep it in the main thread when it is coupled to work in progress. For a lookup, which changes nothing, the measure is its output: delegate the rest of a lookup that has not found its answer by the sixth search or read, the count the global guidance uses for a lookup outside a skill, and the probing the next sentence names. Send probing likely to produce long output, such as binaries, installed dependencies, build artifacts, long documentation, or broad searches, to a child that returns only the relevant findings, because early context is re-read for the rest of the session. Reassess the split when a direct lookup grows into diagnosis. Delegate independent bounded work; sequence dependencies and avoid overlapping writers. Launch independent children in the same step, not in waves. When several children work on one question, give each a disjoint scope and name in each brief what the others cover, so none repeats another's reads. When your own bounded lookup has not found where the answer lives, launch one child to locate it first and split the rest by what it finds.
 
 ## Select the role
 
@@ -26,7 +26,7 @@ Read before launching a child or starting a wait for external work, including re
 
 **Actions:** give it the objective, repository or declared root, authorized effects, the files or paths it may modify or delete, relevant contracts, expected output, and acceptance evidence. Delegation grants no additional authority. Label delegated premises as inspected facts, source claims, or assumptions, with the relevant evidence or missing check.
 
-A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. A Git command that rewrites working-tree files, such as `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean`, or `git switch`, changes paths outside the child's own: the child never runs one in a working tree shared with other writers, and neither does the main thread while a child works in that tree; both compare with the base through read-only Git commands or a separate worktree. The child may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
+A child works only in its assigned working tree and named paths, lists planned deletions before applying them, and stops and reports when it needs a change outside them. A Git command that rewrites working-tree files, such as `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean`, or `git switch`, changes paths outside the child's own: the child never runs one in a working tree shared with other writers, and neither does the main thread while a child works in that tree; both compare with the base through read-only Git commands or a separate worktree. `git stash` also writes the stash list that every worktree of the repository shares, so neither the child nor the main thread runs it while another writer works in any worktree of the same repository. The child may commit locally in its own working tree and branch only when the brief allows, and never pushes, opens or merges pull requests, writes to trackers, or launches children of its own, even when the delivery mode authorizes those effects; when it cannot finish alone, it reports what remains. The main thread reviews its diff before integrating it and owns those effects.
 
 ## Deliver and resolve instructions
 
@@ -36,9 +36,11 @@ A child works only in its assigned working tree and named paths, lists planned d
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 
-The child reads these sources before dependent work and reports any unavailable one before proceeding with what depends on it. If resolution is ambiguous, inaccessible or unavailable, report the dependency and pause only the work requiring it; continue independent work. An installed file or listed skill is not proof of reading.
+The child reads these sources before dependent work. If resolution is ambiguous, inaccessible or unavailable, it pauses only the work requiring that source, continues independent work, and reports the unavailable source in its final reply with what it could not do; only when the source blocks the whole assignment is it the one blocker message the global delegation rule allows. An installed file or listed skill is not proof of reading.
 
 ## Launch and wait
+
+This section applies to the main thread; a child runs its commands as its role sets.
 
 **Condition:** children or other external processes are running.
 
@@ -62,13 +64,17 @@ The child reads these sources before dependent work and reports any unavailable 
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child still returns its final result, not interim status.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child returns only its final result, as the global delegation rule sets.
 
 ## Check returned work
 
 **Condition:** a child returns.
 
 **Actions:** children return findings or changes, evidence, unresolved limits, and any required instruction-access gaps. The main thread checks the result against the brief and source evidence, resolves disagreements, and owns integration and closure. An agent's assertion is not independent verification. Relay every defect a child reports, at any severity scale it uses, or propose it under the global incidental-findings rule; never drop it from your summary. Before relaying a child's result that touched credentials, cookies, or tokens, check whether it put a secret in a durable or shared place, and if so tell the user under the global Secrets rule.
+
+**Condition:** a child is silent longer than its expected duration, or a child returns.
+
+**Actions:** keep the processes it starts identifiable. Before telling the user that a child is still in progress after a silence longer than its expected duration, check its liveness through its tool activity or processes; when a child returns, confirm it left no running processes: record each one it left, on purpose or not, such as a verifier's server, with its PID or port in the plan's progress section, or in the report without a plan; stop at once those no longer needed, and leave the rest for [flow-close](../../flow-close/SKILL.md) to stop at close.
 
 **Condition:** a child returns, or the host reports that it stopped, while it waits on work of its own, such as a watcher, a wait or a background command.
 

@@ -1,3 +1,5 @@
 # esbuild ships its platform binary as an optional dependency, so its install script is not needed.
 allowBuilds:
   esbuild: false
+# Refuse versions published less than 7 days ago (minutes), so a compromised release has time to be caught.
+minimumReleaseAge: 10080

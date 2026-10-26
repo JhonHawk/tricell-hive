@@ -15,7 +15,9 @@ The essential runtime boundaries and read conditions remain in `content/guidance
 Canonical procedural homes under `content/skills/`:
 
 - `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a progress or decision message opens with the context line the reference sets.
+- `flow-close/references/incidental-findings.md`: before listing, asking about or recording the incidental findings proposed at a work item's close; `flow-close/SKILL.md` step 5, `flow-verify/references/ui-gate.md` and `flow-verify/references/ui-review-criteria.md` point to it.
 - `flow-plan/references/questions.md`: before a user decision or manual validation request.
+- `flow-plan/references/effect-authorization.md`: before asking to authorize an effect beyond this machine, as `global.md` sets.
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
 - `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
 - `flow-plan/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
@@ -59,34 +61,38 @@ its UTF-8 bytes and Unicode characters once per scenario. It compares editorial
 baseline A (`d5164f71`) to working-tree B; C uses the same canonical files with
 the optional loader active. This is a declared source union, not an observed
 request, cumulative session cost or proof that references were read. Missing
-required files fail measurement; there is no new size quota.
+required files fail measurement. The size quota of a `SKILL.md` is set by
+harness-audit HA-SK-02 and checked by `tests/content/skill_size_test.go`.
 
 The predicates and full file lists are in `TestGuidanceReadingFootprint`:
 
 - **Simple query:** factual reply without an activity, decision, delegation or
-  artifact. B reads global plus mandatory reporting; A has reporting in global.
+  artifact. B reads global plus reporting, which the scenario counts; A has reporting in global.
 - **Question:** standalone user decision, with a waiting card or text. Add
   questions to that common union; neither scenario invokes a whole activity.
 - **Plan/build cycle:** retained backend runtime plan, settings and hold/review
   decision, read-only plan reviewer, delegated backend implementer and task
   verifier, local tests, then pause through Close. Include the selected
-  Plan/Build/Close entrypoints, Research's planning exploration criterion,
+  Plan/Build/Close entrypoints, the Verify entrypoint and its review-and-gates
+  reference (stage handoff from Build), Research's planning exploration criterion,
   plan format/review, settings/change records, delivery decisions, verification,
   delegation, artifact layout, questions/reporting and the three role sources.
   No UI, security/data migration, deployment, Git execution or incidental finding
   is assumed, so their conditional procedures are not added.
 
-Snapshot measured on 2026-10-12 (source files can change; rerun the test):
+Snapshot measured on 2026-10-23 at `2d89940e` (source files can change; rerun the test):
 
 | Scenario | A bytes | B/C bytes | Byte change |
 | --- | ---: | ---: | ---: |
-| Global alone, not a chat reply | 46,912 | 25,363 | -45.93% |
-| Simple query | 46,912 | 36,754 | -21.65% |
-| Question | 46,912 | 44,148 | -5.89% |
-| Plan/build cycle | 173,839 | 192,066 | +10.48% |
+| Global alone | 46,912 | 33,710 | -28.14% |
+| Simple query | 46,912 | 49,107 | +4.68% |
+| Question | 46,912 | 59,365 | +26.55% |
+| Plan/build cycle | 173,839 | 229,774 | +32.18% |
 
-The global decrease is not total-context savings: mandatory reporting already
-changes the common union, and the declared cycle grows. C's plan-review injection
+The global decrease is not total-context savings: reporting, which the
+simple-query scenario counts, already makes that union larger than A's, and the
+declared cycle grows. Under the current rule a short direct answer with no
+citation or relay reads only the global file, the first row. C's plan-review injection
 adds no unique source to that cycle, but delivery wrappers, repetition and timing
 can change actual requests. The measurement includes raw source frontmatter;
 it excludes native skill/role discovery metadata and rendering, plugin metadata

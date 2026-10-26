@@ -44,11 +44,11 @@ The system SHALL treat managed content that the user deleted by hand as absent: 
 - **THEN** install, update and remove refuse with a message naming the path, and preserve the edit.
 
 ### Requirement: Pi user-scope install declares pi-subagents
-When a user-scope plan includes the Pi host, the manager SHALL leave `pi-subagents` selectable by Pi's native package mechanism without rewriting unrelated `settings.json` entries. If the user settings do not declare the package by npm name, apply SHALL run `pi install npm:pi-subagents@0.74.0` with `PI_CODING_AGENT_DIR` set to the plan's Pi home. If the package is already declared and the extensions filter is omitted, the plan SHALL omit install and SHALL NOT change the existing pin. A declaration with `extensions: []`, or a non-empty filter that does not demonstrably include the extension, SHALL be a conflict or an unverified-availability report, not success, and SHALL NOT change settings. Missing files or a pin/version mismatch on a pre-existing declaration SHALL be reported without reinstalling. Recover SHALL remove the package only when this operation added the exact source string and that string is still present. Tests SHALL use a fake `pi` and a synthetic home and SHALL NOT call npm or write the real user settings.
+When a user-scope plan includes the Pi host, the manager SHALL leave `pi-subagents` selectable by Pi's native package mechanism without rewriting unrelated `settings.json` entries. If the user settings do not declare the package by npm name, apply SHALL run `pi install npm:pi-subagents` with `PI_CODING_AGENT_DIR` set to the plan's Pi home. If the package is already declared and the extensions filter is omitted, the plan SHALL omit install and SHALL NOT change the existing pin. A declaration with `extensions: []`, or a non-empty filter that does not demonstrably include the extension, SHALL be a conflict or an unverified-availability report, not success, and SHALL NOT change settings. Missing files or a pin/version mismatch on a pre-existing declaration SHALL be reported without reinstalling. Recover SHALL remove the package only when this operation added the exact source string and that string is still present. Tests SHALL use a fake `pi` and a synthetic home and SHALL NOT call npm or write the real user settings.
 
 #### Scenario: Package absent
 - **WHEN** a user-scope install or update plan includes `pi` and the planned Pi settings do not declare `pi-subagents`
-- **THEN** the plan shows install of `npm:pi-subagents@0.74.0`, apply adds that source, and other package entries remain.
+- **THEN** the plan shows install of `npm:pi-subagents`, apply adds that source, and other package entries remain.
 
 #### Scenario: Package already declared
 - **WHEN** the planned Pi settings already declare `pi-subagents` with a loadable extension
@@ -59,11 +59,31 @@ When a user-scope plan includes the Pi host, the manager SHALL leave `pi-subagen
 - **THEN** the plan reports a conflict and apply does not change settings.
 
 ### Requirement: Optional operation capabilities
-The optional capability catalog SHALL be limited to Engram, Context7, and pi-subagents. Engram and Context7 SHALL remain manual until each recipe passes a native gate for the host and platform; a selected capability without a verified recipe SHALL be reported as manual, with its official source and reason, and SHALL NOT be presented as installed or verified. pi-subagents on a user-scope Pi host follows the Pi user-scope install declares pi-subagents requirement instead of that manual path. Development-of-Hive requirements SHALL remain separate from installation and operation requirements. Hosts, runtimes and other tools SHALL NOT be installed implicitly.
+The optional capability catalog SHALL be limited to Engram, Context7, pi-subagents, agent-browser, the Codex question card (`codex-question-card`), and CodeGraph. Engram and Context7 SHALL remain manual until each recipe passes a native gate for the host and platform. CodeGraph SHALL remain manual-only: Hive SHALL NOT run CodeGraph's installer or edit the host configuration it writes. A selected capability without a verified recipe SHALL be reported as manual, with its official source and reason, and SHALL NOT be presented as installed or verified. pi-subagents on a user-scope Pi host follows the Pi user-scope install declares pi-subagents requirement instead of that manual path. `agent-browser` does not depend on the host, so its native gate is per platform: it SHALL be offered as installable only on macOS arm64 with Homebrew (`brew install agent-browser`) and on Linux amd64 with Node 24 or later and a writable global npm prefix (`npm install -g agent-browser`), and otherwise SHALL be reported as manual with the reason and the official command. Its gate passed on Linux amd64 for both steps and on macOS arm64 for the Chrome step only; the Homebrew step is covered by tests with doubles, a risk the user accepted. It installs the latest version, with no version prompt, and runs `agent-browser install` to download Chrome only when no browser exists in the locations agent-browser checks. Each step SHALL run only after interactive consent, without a shell or `sudo`, with an empty standard input, in its own process group, with a time limit, and with its saved output truncated; the step validator SHALL accept for it only the command lines bound to each step ID. Before consent, the summary SHALL show each exact command and SHALL state that Homebrew installs Node and its dependencies, so that runtime is declared rather than implicit. The Codex question card SHALL run only its fixed recipe, after the operator's consent. Development-of-Hive requirements SHALL remain separate from installation and operation requirements. Hosts, runtimes and other tools SHALL NOT be installed implicitly.
 
 #### Scenario: Capability without a verified recipe
-- **WHEN** the user selects Engram or Context7, whose recipes have not passed their native gate
+- **WHEN** the user selects Engram or Context7, whose recipes have not passed their native gate, or CodeGraph, which has no recipe
 - **THEN** the core installs, no provider process runs, and the result lists the capability as manual with its official instructions and a non-zero exit status.
+
+#### Scenario: Planned CodeGraph step rejected
+- **WHEN** an onboarding record holds a planned step with a command for CodeGraph
+- **THEN** step validation rejects it and nothing runs.
+
+#### Scenario: agent-browser on a supported platform
+- **WHEN** an interactive `hive install` runs on Linux amd64 with Node 24 and a writable npm prefix, `agent-browser` is not on `PATH`, no browser is found, and the user consents
+- **THEN** the installer runs `npm install -g agent-browser` and then `agent-browser install`, and each step is recorded as verified by its own check.
+
+#### Scenario: agent-browser step fails
+- **WHEN** the agent-browser install step fails, times out, or is interrupted
+- **THEN** the step is recorded as failed with its message shown in the result detail, the Chrome step is skipped, the core installation is kept, and the journal never records the outcome as unknown.
+
+#### Scenario: Unsupported platform or missing prerequisite
+- **WHEN** the platform is not macOS arm64 or Linux amd64, or Homebrew, Node 24, or a writable npm prefix is missing
+- **THEN** `agent-browser` is listed as manual with the reason and the official command, and no program runs.
+
+#### Scenario: Safe modes run nothing
+- **WHEN** the session is not interactive, or the user runs `--dry-run` or uses a synthetic `--home`
+- **THEN** detection runs no program and no installation step runs.
 
 ### Requirement: External operation recovery
 The installer SHALL persist optional steps in a parent onboarding journal before the core transaction and distinguish core commit from optional step completion. Unknown outcomes SHALL block further changes until reconciliation. Recovery SHALL preserve pre-existing tools, memory and unrelated configuration.
@@ -73,7 +93,7 @@ The installer SHALL persist optional steps in a parent onboarding journal before
 - **THEN** recovery keeps the committed core and does not run any optional step.
 
 ### Requirement: Verified release package installation
-A complete package published as a GitHub Release asset SHALL be installable after the user verifies it against its published `.sha256` file and runs the package's `install.sh`. The installer SHALL validate and safely extract the package. The core installation SHALL work without Go, Git, GitHub CLI, or network downloads; only the Pi host's pi-subagents step may download, from npm. Every package SHALL include `LICENSE` and `THIRD_PARTY_NOTICES.md`.
+A complete package published as a GitHub Release asset SHALL be installable after the user verifies it against its published `.sha256` file and runs the package's `install.sh`. The installer SHALL validate and safely extract the package. The core installation SHALL work without Go, Git, GitHub CLI, or network downloads. Only two optional steps may download: the Pi host's pi-subagents step, from npm, and, after the user's consent, the `agent-browser` capability, from Homebrew or npm (whose postinstall downloads a native binary from GitHub without a checksum) and, when no browser is found, Chrome for Testing. Every package SHALL include `LICENSE` and `THIRD_PARTY_NOTICES.md`.
 
 #### Scenario: Invalid archive
 - **WHEN** the package checksum, archive paths, entry types, or limits fail validation
@@ -85,7 +105,11 @@ A complete package published as a GitHub Release asset SHALL be installable afte
 
 #### Scenario: Pi host selected without pi-subagents
 - **WHEN** a user-scope package installation includes the Pi host and Pi's settings do not declare pi-subagents
-- **THEN** the plan runs `pi install` for the pinned pi-subagents source, which downloads from npm; no other host step downloads.
+- **THEN** the plan runs `pi install npm:pi-subagents`, which downloads from npm; no other host step downloads, and capability steps download only as the next scenario sets.
+
+#### Scenario: agent-browser capability consented
+- **WHEN** the operator consents to the agent-browser capability in an interactive package installation
+- **THEN** on a supported platform the plan runs only that capability's fixed recipe commands, which download from Homebrew or npm (whose postinstall downloads a native binary from GitHub) and, when no browser is found, Chrome for Testing; without that consent no agent-browser step runs.
 
 ### Requirement: Update from a committed revision
 From a Git checkout of Hive, the manager SHALL build an install plan from the content of one resolved commit, excluding uncommitted changes, for every consumer already installed in user scope. It SHALL apply a plan that changes files only after interactive confirmation, and without a terminal SHALL only preview or save that plan for a separate `apply`. A plan that changes no file MAY be applied without confirmation, since its only write is the source-commit record; when a plan file is requested, the plan SHALL still be saved. It SHALL remove its temporary extraction on every return path. The offline package SHALL NOT require Git.
@@ -152,7 +176,7 @@ Running the manager without arguments in a terminal, or `hive tui`, SHALL open a
 - **THEN** no file, state, or project content changes.
 
 ### Requirement: Read-only diagnostics
-The manager SHALL offer read-only diagnostics, both as the `hive doctor` and `hive models` text commands and as the Diagnostics, Models, Integrations, and Project views of the terminal interface, with the same content in both forms. They SHALL report each supported host's detection, version, release, and installation state; every resource whose status is other than `installed`, `retained_shared`, and `not_installed`, and any pending operation; open sessions that probably predate the installed release; the effective model and effort per role and host, marking roles with a model override and listing overrides that are not applied; the local evidence and last onboarding status of Engram, Context7, pi-subagents, and `agent-browser`; when Pi is a registered host, how to keep Pi's `codemode` tool enabled, without checking whether it is; and the validity of a repository's `## Hive` section. `hive doctor`, `hive models` without a subcommand, and the views while no edit is confirmed SHALL NOT write files or state and SHALL NOT read host or provider configuration. They SHALL execute no program other than `--version` of a detected host and read-only `git` queries, except that opening an edit panel in the Models view MAY run that host's model-listing command under the Per-role model overrides requirement. Detecting `agent-browser` SHALL NOT add it to the optional capability catalog. A session marked as predating the installed release SHALL be presented as an estimate, registered hosts whose sessions cannot be observed SHALL show a restart notice instead, except a host whose documentation states that it reloads its instructions, which SHALL say so. Text read from outside the manager SHALL be stripped of control characters before it is shown.
+The manager SHALL offer read-only diagnostics, both as the `hive doctor` and `hive models` text commands and as the Diagnostics, Models, Integrations, and Project views of the terminal interface, with the same content in both forms. They SHALL report each supported host's detection, version, release, and installation state; every resource whose status is other than `installed`, `retained_shared`, and `not_installed`, and any pending operation; open sessions that probably predate the installed release; the effective model and effort per role and host, marking roles with a model override and listing overrides that are not applied; the local evidence and last onboarding status of Engram, Context7, pi-subagents, `agent-browser`, and CodeGraph, and, when Codex is a registered host or its registration cannot be read, the Codex question card; when Pi is a registered host, how to keep Pi's `codemode` tool enabled, without checking whether it is; and the validity of a repository's `## Hive` section. `hive doctor`, `hive models` without a subcommand, and the views while no edit is confirmed SHALL NOT write files or state and SHALL NOT read host or provider configuration. They SHALL execute no program other than `--version` of a detected host and read-only `git` queries, except that opening an edit panel in the Models view MAY run that host's model-listing command under the Per-role model overrides requirement. CodeGraph's evidence SHALL come only from finding its program on the `PATH`, without running it. Diagnostics SHALL detect `agent-browser` and a browser for it by reading `PATH` and files only; when `agent-browser` is absent, or present without a browser, its next step SHALL name `hive install`, and its record SHALL show the worst status of its onboarding steps. A session marked as predating the installed release SHALL be presented as an estimate, registered hosts whose sessions cannot be observed SHALL show a restart notice instead, except a host whose documentation states that it reloads its instructions, which SHALL say so. Text read from outside the manager SHALL be stripped of control characters before it is shown.
 
 #### Scenario: Stale session
 - **WHEN** a Claude Code or Grok session whose process is alive started before the installed release was last written
@@ -177,6 +201,14 @@ The manager SHALL offer read-only diagnostics, both as the `hive doctor` and `hi
 #### Scenario: No Pi codemode row without Pi
 - **WHEN** `hive doctor` runs and Pi is not a registered host
 - **THEN** the Integrations section shows no `Pi codemode` row
+
+#### Scenario: CodeGraph detected without running it
+- **WHEN** `hive doctor` runs and a `codegraph` program is on the `PATH`
+- **THEN** the Integrations section shows a CodeGraph row as detected with the program's path, and the program is not executed.
+
+#### Scenario: agent-browser present without a browser
+- **WHEN** `hive doctor` runs with `agent-browser` on `PATH`, no browser in the locations the installer checks, and its last Chrome step failed
+- **THEN** the Integrations row names `hive install` as the next step, its record shows the failed step, and no program runs.
 
 ### Requirement: Deployed skill resource links resolve to installed paths
 The installer SHALL rewrite every inline `skill:owner/path` Markdown link outside code fences, in deployed role files and in the deployed global guidance block, to the resource's path in the skills directory for the install scope: the absolute path under `<home>/.agents/skills` for user scope, and the path relative to the project root of the host's project skills directory for project scope. Source content SHALL keep the `skill:` locator. A file shared by several hosts SHALL receive identical bytes for each of them, or the plan SHALL fail before any write.

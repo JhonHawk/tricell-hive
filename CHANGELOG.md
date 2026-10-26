@@ -10,6 +10,250 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-25
+
+### Security
+
+- The documentation site and the `starlight-docs-site` templates move to
+  Astro 7.4.0, Starlight 0.42.6 and Biome 2.5.15, and enforce a 7-day release
+  cooldown. The site also overrides patched undici, source-map-js and zod and
+  drops an unused dependency that brought extract-zip, so its `pnpm audit`
+  goes from 11 high advisories to none.
+
+### Added
+
+- Stage skills `flow-verify`, `flow-deploy` and `flow-security`, with an
+  "Entry and exit" contract in every stage skill. `flow-verify` checks a built
+  candidate at a level the project settings and the request set, and a check
+  skipped at your request counts as accepted without verification; `flow-security` runs the
+  security review only when you ask; `flow-deploy` is a separate stage after
+  integration that promotes through the declared environments and checks what
+  is served. The README, `llms.txt` and the documentation site describe them
+  (#169).
+- Open topics: the agent keeps a list of the topics you add while work is open
+  or closing, tells you in one line how it classifies each, closes none
+  without a destination, and names them in its reports and route or close
+  questions (#160).
+- Test guidance: `tdd.md` now sets which kind of test to write and a filter
+  before writing one (the test that already owns the behavior, low-value
+  patterns, no test-only entry points in production code), recommends
+  property-based tests where an independent oracle exists, and verification
+  compares the old and the new path on the same inputs when a change replaces
+  or migrates something (#157).
+- Options of a question carry their estimated size when one starts work on
+  another ticket, adds a component or dependency, or is about ten times
+  another, and plans that edit agent guidance get a guidance-consistency
+  reviewer. This repository declares `Delivery: automatic` and
+  `Review: /code-review` (#158).
+- Codex wait floor: an interactive `hive install` or `hive update` with the
+  Codex host offers, selected by default while it is not applied and Codex is
+  0.164 or later, to write `min_wait_timeout_ms = 300000` and
+  `default_wait_timeout_ms = 600000` under `[features.multi_agent_v2]` in
+  Codex's `config.toml`, so a parent agent waiting for a delegated child does
+  not wake every 60 seconds. Hive saves `config.toml.hive-backup` (0600) before
+  the first write and its journal keeps only fingerprints and the lines it
+  added; `hive plan remove` for the codex host removes only the unchanged lines
+  Hive wrote, then the backup, after a clean revert; a file Hive cannot edit safely becomes a manual
+  step; `hive doctor` adds a row for it. This replaces the rule
+  that Hive edits no host configuration file itself. The minimum applies to
+  Codex's v2 multi-agent runtime (v1 unverified), and an older Hive binary that
+  rewrites Hive's state loses the record, so `plan remove` would leave the
+  lines. A default-selected capability raises the minor version.
+- Check a dependency before installing: before adding, updating or installing
+  a package, including a one-off `npx` run, the agent confirms the package,
+  picks a version the release cooldown accepts, looks up advisories for the
+  exact version without sending private package names to third parties, scans
+  the lockfile, and asks before installing when a critical or high advisory
+  has no safe path.
+- The `security-advisory` skill checks, read-only, which repositories a
+  published advisory or package compromise affects, with evidence for each
+  one, and leaves the fixes to each project's own session.
+- The viewer combines walkthroughs with the same project, host and session ID
+  into one sidebar entry, with chronological ticket segments, internal jumps
+  and independent copy actions. The session header collects explicit PR or
+  commit delivery links while keeping each segment's association.
+- CodeGraph is an optional, manual capability: the installer offers it for
+  Claude Code, Codex, Cursor and OpenCode with its official source, and
+  `hive doctor` shows whether `codegraph` is on `PATH` without running it. The
+  global guidance says when to use a CodeGraph index, when to run
+  `codegraph sync -q` so its relations are current, and which results to
+  confirm with text search (#104).
+- Plan review adds a User experience area for plans that create or change a
+  screen, dialog or form where the end user enters or chooses data. Its
+  reviewer walks the end user's task looking for values the system already
+  holds or entries repeated per record, and UI planning records where each
+  value a view asks for comes from.
+- Before a production deployment of code or infrastructure, the build records
+  its rollback triggers: each signal to watch with its threshold and window,
+  and the recovery action it calls for. After the deployment, the health check
+  compares the signals against them and reports a trigger that fires.
+
+### Changed
+
+- Workflow rules no longer contradict each other across plan, build, verify and
+  close: the dedicated review runs once on the local candidate before the
+  validation request or the push (a reviewer that only works on a pull request
+  runs right after it), and under `automatic` a review is always offered and
+  never recommended away; `automatic` stays automatic for UI changes and
+  reports the first rendered view without asking; `interactive` stops before
+  the push even when verify is skipped; a later completion point is defined
+  once and authorizes both ticket moves; a question that depends on another's
+  answer waits for a later turn; the findings question offers resolving them in
+  this work; unattended work starts on silence after the route answer when
+  delivery and review are declared; branch and worktree deletion wording is
+  safe; one delegation criterion; role briefs match role contracts. The site,
+  README, `llms.txt` and CONTRIBUTING describe the result (#180).
+
+- `flow-build` ends at the built candidate and hands it to `flow-verify`; the
+  independent UI children, the full suite, the dedicated code review and the
+  walkthrough delivery move there, and promotion and deployment checks move to
+  `flow-deploy`. `flow-walkthrough/references/ui-gate.md` and
+  `ui-review-criteria.md` move to `flow-verify/references/`.
+- The security review (`hive-review-security`) runs only when you ask for it.
+  A declared `Review` value no longer authorizes it, and the accepted-candidate
+  gate, the role description and the `security-advisory` scope assessment no
+  longer launch it. When a change crosses a security boundary, the agent names
+  the boundaries and offers the review in one line, without a question that
+  waits and without stopping the work: in the delivery statement, also when
+  `Delivery` and `Review` are declared, or in the next message once a boundary
+  appears. A requested review runs before validation, or before the push or
+  merge when there is no validation stop (#167).
+- Verification at checkpoints: a plan with numbered criteria groups its tasks
+  into checkpoints chosen by risk, and `flow-build` verifies the tasks of a
+  checkpoint together instead of after each task. A task that depends on a
+  task of its own checkpoint starts without waiting for a verdict, and tasks
+  that share a file never run at the same time. Each task is committed when it
+  is written, with fixes in additional commits that name it, and the work is
+  published for merge only when every task is verified or accepted by you. A
+  plan without checkpoints is still verified task by task (#168).
+- The UI review keeps the UI library's design system as its baseline. The
+  reviewer first reads the library configuration, theme and installed
+  components, the project UI guide and any declared accessibility requirement.
+  A library default or a recorded project decision is not a finding in the
+  checks that measure that value, such as contrast, even below a WCAG
+  threshold, unless the project declares an accessibility
+  requirement or the ticket asks for one. Non-text contrast follows WCAG 2.2
+  SC 1.4.11 precisely, a fix that customizes the theme or an installed
+  component needs your decision or the project's, and a global finding is
+  reported once and recorded in the project UI guide so it does not reappear
+  for every view (#173).
+- Incidental findings at a close: a P3 finding or a wording detail is no
+  longer offered as a ticket, related P2 findings are proposed as one group, a
+  UI finding is proposed only after it was seen rendered, and the close
+  question does not recommend a ticket opened from the work's own findings. UX
+  reviews report earlier problems only on the screens the change touches, and a
+  deployed review whose code matches the local one starts from the local
+  report (#159).
+- A task whose second verification still fails no longer stops to ask you
+  when the remaining fix is small, inside the task and obvious: the
+  implementer makes that one correction and a third verification checks it;
+  you are asked when the fix needs your decision or that verification also
+  fails (#156).
+- Fewer questions in the flows: effects beyond the local machine are
+  authorized by class (local, non-production, production, critical) instead of
+  one at a time. The test data of a non-production environment takes one
+  question for the whole set, while each critical effect keeps its own. The
+  steps of one objective are asked together and answers already in force are
+  reused. Minor findings from plan reviewers are applied and listed in the plan
+  summary, follow-up fix pull requests share the ticket's delivery, a condition
+  on a grant lasts only for its stated scope, and a research route option now
+  says whether it opens a ticket instead of a separate ticket question (#151).
+- Unattended delegation keeps running when you write only to tell the agent
+  to continue, acknowledge progress or ask how it is going; any other
+  message ends it (#143).
+- A costly check now has a definition: it spends money or a third-party
+  service's quota, changes shared or remote resources, or is expected to run
+  longer than 30 minutes; ordinary reads such as fetching dependencies do not
+  count. A local check of minutes with no external cost and no irreversible
+  effect is routine. The authorizations a plan
+  foresees for later steps are asked in the delivery and review round, while
+  you are present, and one left unanswered stays unauthorized (#144).
+- A task added to a retained plan during the build or after validation is
+  planned like any other and, when its test approach is `tdd` or `check`,
+  verified by `hive-verify-task` before the work is published for merge; one that arrives after
+  the code review ran is reported and you are asked whether to review it.
+- Closing a change record now checks, after applying its deltas, that every
+  added or modified requirement matches its delta and every removed one is
+  gone, and marks the change completed only after that check. An abandoned
+  change archives its never-applied deltas under an `unapplied-` folder (#117).
+
+- A ready plan's summary shows each acceptance criterion and changed
+  requirement, and choosing to start Build at the route question approves
+  them by ID; a free-text correction revises the plan and asks again. A
+  pull request now states what stayed unverified and the assumptions the
+  result relies on and, when the work has acceptance criteria, the recorded
+  evidence for each one (#134).
+
+- In a maintainer checkout, refreshing viewer runtime or embedded-asset changes
+  now includes restarting an already running local viewer with its existing
+  port, state directory and TTL, followed by health and runtime verification.
+  A stopped viewer stays stopped.
+
+- The message before a question card must be visible text in the response,
+  not only in the agent's reasoning; a brief output style shortens it but does
+  not remove it (#70).
+- Repository guidance: the two-session bar for new guidance rules applies only
+  to corrections of a rule that already covers the situation. New features or
+  requirements, including ideas from external references, and gaps no rule
+  addresses are adopted by the maintainer's decision.
+- Walkthrough publication keeps JSON only when the `hive` executable is on
+  `PATH`; standalone HTML is generated only without that binary. A stopped
+  viewer does not select HTML, and previous pages remain unchanged. Retaining
+  the manifest retains its referenced images and recordings.
+- Upgrade the binary before the content that produces `delivery` metadata and
+  explicitly restart an existing viewer to activate its new reader and UI.
+  Older strict readers reject the optional field; historical manifests without
+  it remain valid and are not rewritten automatically.
+- Research, Plan and Build check what depends on a component before
+  recommending, planning or building a change that removes, closes,
+  disables, migrates, renames or moves something running in production, or
+  that changes untested production behavior. The new `change-impact` reference always searches for
+  the literal value involved and runs its topology, reachable-path and
+  observation steps only when their signal appears. The interface rule now
+  asks to search for consumers first, and a bounded observation of real
+  traffic only chooses the approach. `hive-review-code` reports a pre-existing
+  defect that the change makes reachable as introduced by the change (#110).
+- The security policy supports only the latest published minor release,
+  instead of naming 0.1.x and 0.2.x (#108).
+- A child or the main thread no longer runs `git stash` while another agent
+  works in any worktree of the same repository, because every worktree
+  shares the stash list (#118).
+- A plan lists in-scope work whose question cannot be stated precisely yet
+  under "Not yet specified", apart from exclusions and open decisions; no
+  task depends on it until it can be stated (#120).
+- Diagnosis confirms a forced failure with a diff, shrinks the reproduction
+  and compares it with the closest case that works, raises the rate of an
+  intermittent failure before hypotheses, changes one variable per
+  experiment, and tags temporary instrumentation for removal. A new
+  `ticket-body` reference sets what a ticket Hive opens carries: current and
+  expected behavior, dated evidence, criteria and what is out of scope.
+  The Inspiration page credits Skills For Real Engineers.
+- Build's test-first cycle takes one behavior at a time, writing the next
+  test only after the previous one passes, and replaces with a test double
+  only what crosses the system boundary, never the project's own modules.
+- After a compaction, the active skill's `SKILL.md` is reread in full, since
+  a host may re-attach only its start; Claude Code keeps the first 5,000
+  tokens of each invoked skill. Each `SKILL.md` stays at or under 16,000
+  bytes, checked by a content test and by harness-audit's HA-SK-02:
+  flow-build moves its retained-plan procedure, test-first criterion, tool
+  and dependency rules and other situational rules to references, and
+  flow-plan moves its interface and plan-revision rules.
+
+### Fixed
+
+- Plan order: the plan format now states that a task depends only on earlier
+  tasks that exist and that checkpoints are numbered without gaps, the last
+  `tdd` or `check` task carrying the highest; plan review, the readiness check
+  and tasks added during the build block a plan with numbered criteria that
+  breaks this order, which the build's start rules could not handle (#176).
+- The viewer uses subtle theme borders instead of inherited white outlines,
+  and all dialogs inherit its shared base font while walkthroughs retain
+  their own typography.
+- Installing or removing pi-subagents no longer waits forever on a hung `pi`:
+  `pi install` and `pi remove` stop after 15 minutes or on Ctrl-C, a closed
+  terminal or SIGTERM, together with npm and every process they started, and
+  the operation fails with an error that `hive recover` can resume (#109).
+
 ## [0.5.0] - 2026-10-23
 
 ### Added

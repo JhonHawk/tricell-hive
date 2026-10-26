@@ -10,7 +10,7 @@ Planned work and requirements live in the `openspec` directory that the `Specs` 
 
 **Actions:** resolve it from the root of the repository that declares it, not from the session's directory. When a task needs specs that are not at that path, or several repositories share a project without a specs repository, read [Locate the specs](#locate-the-specs) before acting; ask before cloning, and never create a specs repository to fill the gap. An unresolvable path without a URL is a missing value.
 
-The directory holds `project.md` (the project ledger), `specs/<capability>/spec.md` (current requirements per capability; a product map, `product/<module>/<view>.md` beside the `openspec` directory, replaces it as the current-requirements home), `changes/<change-id>/` (one active planned change with its requirement deltas), and `changes/archive/YYYY-MM-DD-<change-id>/` (closed changes).
+The directory holds `project.md` (the project ledger), `specs/<capability>/spec.md` (current requirements per capability; a product map, `product/<module>/<view>.md` beside the `openspec` directory, replaces it as the current-requirements home), `changes/<change-id>/` (one active planned change with its requirement deltas), and `changes/archive/YYYY-MM-DD-<change-id>/` (closed changes; an abandoned change keeps its never-applied deltas under `unapplied-specs/` or `unapplied-product/`, a Hive departure from OpenSpec).
 
 - Every retained plan is a change folder, with or without requirement deltas; small understood edits need none. Add a delta file when the change adds, alters, or removes a requirement that a capability spec or product-map page states, or one the project would state there: an observable behavior, a contract, a permission, or stored data. A change that alters only implementation, tooling, wording, or the plan's own steps needs no delta. Name `<change-id>` in English kebab-case, starting with the tracker key when one exists, such as `ark-642-portal-status-contrast`. Use [the plan format](plan-format.md).
 - [Flow-close](../../flow-close/SKILL.md#close-the-change-record) archives an integrated or abandoned change, first merging an integrated change's deltas into the current-requirements home.
@@ -21,7 +21,7 @@ The directory holds `project.md` (the project ledger), `specs/<capability>/spec.
 
 | File | Carries | From the [plan template](plan-format.md) |
 | --- | --- | --- |
-| `proposal.md` | The user's request and the named tickets' acceptance criteria verbatim, why the change exists, scope and exclusions, constraints, numbered acceptance criteria (`AC<n>`), tracker issues, delivery decisions, current status | Control sheet, Request, Objective, Scope and acceptance, Delivery |
+| `proposal.md` | The user's request and the named tickets' acceptance criteria verbatim, why the change exists, scope and exclusions, work not yet specified, constraints, numbered acceptance criteria (`AC<n>`), tracker issues, delivery decisions, current status | Control sheet, Request, Objective, Scope and acceptance, Delivery |
 | `design.md` | Verified context, selected approach, contracts, UI view decisions, migration constraints | Verified context, Proposed design |
 | `tasks.md` | The change's base commit once the build starts; tasks with their markers, `Closes:` lines, execution, locations, and verification; shared gates; review status, progress, and next step | Tasks, Verification and human review, Review status and progress |
 | `research.md` | Retained investigation for this change, only when retention is authorized | — |
@@ -33,7 +33,7 @@ Keep in `<specs>/project.md` only what no other source states: ticket state come
 
 ## Requirement deltas
 
-Write each delta file for one capability, using these sections as needed:
+Write each delta file for one capability, using these sections as needed. A delta that creates a capability's spec starts with a preamble, its `# <capability>` title and `## Purpose`, before the first section:
 
 ```markdown
 ## ADDED Requirements

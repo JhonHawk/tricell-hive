@@ -32,6 +32,12 @@ Add a `## Hive` section to your repository's `AGENTS.md` with the project name,
 base branch, tracker, and specs folder. The agent asks for missing settings when
 the work first needs them.
 
+Optional keys in the same section let you answer the recurring questions once:
+`Environments`, `Review`, `Delivery`, `UI verification`, and `Hive guidance`.
+Each key's meaning and accepted values are in
+[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md).
+`hive project set` edits the section for you after a confirmation.
+
 Then ask for an outcome and state its limits:
 
 ```text wrap
