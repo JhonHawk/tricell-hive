@@ -172,6 +172,7 @@ export function ViewerApplication({
     });
     if (!settled) return;
     const frame = requestAnimationFrame(() => {
+      if (pendingJump.current !== target) return;
       const heading = segmentRoots.current.get(target.key);
       if (!heading) return;
       pendingJump.current = null;
@@ -198,8 +199,8 @@ export function ViewerApplication({
       segments: group.segments,
       status: group.inProgress
         ? ("in_progress" as const)
-        : group.segments.length === 1
-          ? group.segments[0].status
+        : group.segments.every((segment) => segment.status === "closed")
+          ? ("closed" as const)
           : ("unknown" as const),
     })),
     ...state.sessions.filter(
@@ -436,9 +437,12 @@ export function ViewerApplication({
             (group) => group.segments[0].id === key,
           );
           if (target) {
+            pendingJump.current = null;
             controller.selectSession(target.id);
-            const selectedKey = controller.getSnapshot().selectedId;
-            if (selectedKey) jump(selectedKey);
+            const canvas = document.querySelector(
+              '[data-slot="viewer-canvas"]',
+            );
+            if (canvas) canvas.scrollTop = 0;
           } else controller.select(key);
         }}
         onJump={jump}

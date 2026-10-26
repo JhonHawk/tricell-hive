@@ -838,7 +838,7 @@ test("403 from one sibling clears every protected document and discards late sib
   assert.deepEqual(controller.getSnapshot().groups, []);
 });
 
-test("group opening remembers physical selection and cached siblings; all archived groups disappear", async () => {
+test("group opening selects initial work and retains cached siblings; all archived groups disappear", async () => {
   let data = index([
     session(1),
     session(2),
@@ -863,7 +863,7 @@ test("group opening remembers physical selection and cached siblings; all archiv
   await settle();
   controller.selectSession(groupId);
   await settle();
-  assert.equal(controller.getSnapshot().selectedId, key(2));
+  assert.equal(controller.getSnapshot().selectedId, key(1));
   assert.equal(controller.getSnapshot().documents[key(1)].document, cached);
   assert.equal(reads, 3);
   data = index([

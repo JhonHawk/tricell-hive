@@ -110,7 +110,7 @@ const copy = spanish
       unarchive: "Restaurar copia",
       actions: "Acciones de la sesión",
       statusDescription:
-        "Estado del trabajo declarado en el manifiesto del recorrido.",
+        "Estado declarado del trabajo. Cerrado no significa aprobado.",
       excluded: "Copias apartadas",
       excludedOnly:
         "Solo hay copias apartadas. Selecciona una abajo para conocer el motivo.",
@@ -153,7 +153,7 @@ const copy = spanish
       archive: "Archive copy",
       unarchive: "Restore copy",
       actions: "Session actions",
-      statusDescription: "Work status declared in the walkthrough manifest.",
+      statusDescription: "Declared work status. Closed does not mean approved.",
       excluded: "Set-aside copies",
       excludedOnly:
         "Only set-aside copies are available. Select one below to see why.",
@@ -254,7 +254,7 @@ function SessionNavigationButton({
     <button
       type="button"
       data-session-key={session.id}
-      title={session.title}
+      title={`${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`}
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -291,7 +291,8 @@ function SessionNavigationButton({
           <span aria-hidden="true">·</span>
           <span className="shrink-0 tabular-nums">{session.createdAt}</span>
           <span className="sr-only">
-            {copy.sessionStatus[session.status ?? "unknown"]}
+            {copy.sessionStatus[session.status ?? "unknown"]}.{" "}
+            {copy.statusDescription}
           </span>
         </div>
       </div>

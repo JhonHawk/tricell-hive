@@ -200,7 +200,7 @@ test("compact navigation preserves full titles and selects sessions within colla
       ...container.querySelectorAll<HTMLButtonElement>("[data-session-key]"),
     ];
     for (const [i, row] of rows.entries()) {
-      assert.equal(row.title, titles[i][0]);
+      assert(row.title.startsWith(`${titles[i][0]} — `));
       assert.equal(
         row.querySelector(".session-navigation-title")?.textContent,
         titles[i][2],
@@ -1429,6 +1429,165 @@ test("reloading a remembered continuation waits for preceding documents, restore
     assert.equal(document.activeElement, heading);
     assert(
       actions.getBoundingClientRect().top >= canvas.getBoundingClientRect().top,
+    );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("grouped session indicators preserve explicit closed, active and unknown states", async () => {
+  const data = index([
+    session(1, { session_id: "closed", session_status: "closed" }),
+    session(2, { session_id: "closed", session_status: "closed" }),
+    session(3, { session_id: "active", session_status: "closed" }),
+    session(4, { session_id: "active", session_status: "in_progress" }),
+    session(5, { session_id: "unknown", session_status: "closed" }),
+    session(6, { session_id: "unknown" }),
+  ]);
+  const controller = new ViewerController(
+    new AccessClient(async () => response(data), {
+      getItem: () => "test-access",
+      setItem() {},
+      removeItem() {},
+    }),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    for (const [n, expected] of [
+      [1, "closed"],
+      [3, "in_progress"],
+      [5, "unknown"],
+    ] as const) {
+      const row = container.querySelector(`[data-session-key="${key(n)}"]`);
+      assert(row);
+      assert.equal(
+        row
+          .querySelector("[data-session-status]")
+          ?.getAttribute("data-session-status"),
+        expected,
+      );
+      assert.match(
+        row.getAttribute("title") ?? "",
+        /Closed does not mean approved/,
+      );
+      assert.match(row.textContent ?? "", /Closed does not mean approved/);
+    }
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("sidebar opens session headers while explicit segment jumps still target their headings", async () => {
+  const data = index([
+    session(1, { session_id: "first", created_at: "2026-10-20" }),
+    session(2, { session_id: "first", created_at: "2026-10-21" }),
+    session(3, {
+      session_id: "other",
+      session_status: "in_progress",
+      created_at: "2026-10-22",
+    }),
+  ]);
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url) =>
+        String(url) === "/api/index"
+          ? response(data)
+          : response({ title: "Content" }),
+      {
+        getItem: () => "test-access",
+        setItem() {},
+        removeItem() {},
+      },
+    ),
+    () => false,
+  );
+  const loadModule = async () => ({
+    renderWalkthrough: ((root) => {
+      root.textContent = "Content";
+    }) as WalkthroughRenderer,
+    validDeliveries: () => [],
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+  try {
+    await act(async () => {
+      await controller.open(null);
+      controller.select(key(1));
+      root.render(
+        <ViewerApplication controller={controller} loadModule={loadModule} />,
+      );
+      await settle();
+    });
+    await act(tick);
+    const canvas = container.querySelector<HTMLElement>(
+      '[data-slot="viewer-canvas"]',
+    );
+    assert(canvas);
+    let offset = 800;
+    Object.defineProperty(canvas, "scrollTop", {
+      configurable: true,
+      get: () => offset,
+      set: (value: number) => {
+        offset = value;
+      },
+    });
+    canvas.getBoundingClientRect = () => new window.DOMRect(0, 80, 600, 700);
+    const measureSections = () => {
+      for (const section of container.querySelectorAll<HTMLElement>(
+        "[data-segment-key]",
+      )) {
+        const top = section.dataset.segmentKey === key(2) ? 1800 : 200;
+        section.getBoundingClientRect = () =>
+          new window.DOMRect(0, 80 + top - offset, 600, 500);
+      }
+    };
+    const click = async (selector: string) => {
+      const button = container.querySelector<HTMLButtonElement>(selector);
+      assert(button, selector);
+      await act(async () => {
+        button.click();
+        await settle();
+      });
+      measureSections();
+      await act(tick);
+    };
+    await click(`[data-session-key="${key(3)}"]`);
+    assert.equal(
+      canvas.scrollTop,
+      0,
+      "Changing session must retain the session header",
+    );
+    await click(`[data-session-key="${key(1)}"]`);
+    assert.equal(canvas.scrollTop, 0);
+    await click('nav[aria-label="Jump to a segment"] button:nth-child(2)');
+    assert.equal(canvas.scrollTop, 1800);
+    assert.equal(document.activeElement?.id, `heading-${key(2)}`);
+    await click(`[data-session-key="${key(3)}"]`);
+    await click(`[data-session-key="${key(1)}"]`);
+    assert.equal(
+      canvas.scrollTop,
+      0,
+      "A remembered continuation must not hide the session header",
+    );
+    assert.equal(controller.getSnapshot().selectedId, key(1));
+    await click('nav[aria-label="Jump to a segment"] button:nth-child(2)');
+    await click(`[data-session-key="${key(1)}"]`);
+    assert.equal(
+      canvas.scrollTop,
+      0,
+      "Reopening the current session must also return to its header",
     );
   } finally {
     await act(async () => root.unmount());
