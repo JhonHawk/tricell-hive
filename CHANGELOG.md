@@ -12,12 +12,10 @@ raise the minor or the patch version.
 
 ### Changed
 
-- Before a plan decides which current requirements a change alters, or that it
-  needs no requirement delta, the agent searches the specs, and any older
-  document that still states current rules, for what the change touches and
-  for the lists an added item joins, reads the lists meant to be complete and
-  the rules that forbid something, and records the search in `proposal.md`.
-  Run `hive update` to apply it.
+- Plans check the specs for any requirement a change could contradict before
+  deciding which requirements it alters, and record that check, so a new item
+  no longer slips past a list meant to be complete or a prohibition. Run
+  `hive update` to apply it.
 - Agents read Hive skills, references and role files whole: no output limit
   below the file's size, no cut lines and no filtering, also inside a script,
   and they continue when a tool stops early. The four references over 16,000
