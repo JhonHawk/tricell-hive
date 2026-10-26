@@ -113,7 +113,7 @@ func Parse(source string, data []byte) (Role, error) {
 	if r.Name != strings.TrimSuffix(path.Base(source), ".md") || strings.TrimSpace(r.Body) == "" {
 		return r, fmt.Errorf("agent name/body mismatch: %s", source)
 	}
-	if !oneOf(r.ModelProfile, "execution", "reasoning", "inherit", "verifier") || !oneOf(r.AccessProfile, "observe", "implement", "verify") {
+	if !oneOf(r.ModelProfile, "execution", "focused", "reasoning", "inherit", "verifier") || !oneOf(r.AccessProfile, "observe", "implement", "verify") {
 		return r, fmt.Errorf("unknown agent profile: %s", source)
 	}
 	return r, nil
@@ -163,6 +163,10 @@ func ReadProfiles(data []byte) (Profiles, error) {
 		models := []string{"execution", "reasoning", "inherit"}
 		if _, ok := h.Models["verifier"]; ok {
 			models = append(models, "verifier")
+		}
+		// Older frozen releases predate the focused profile.
+		if _, ok := h.Models["focused"]; ok {
+			models = append(models, "focused")
 		}
 		if !ok || len(h.Models) != len(models) || len(h.Access) != 3 {
 			return p, fmt.Errorf("incomplete profiles for %s", host)

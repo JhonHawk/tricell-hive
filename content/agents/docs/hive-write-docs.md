@@ -1,7 +1,7 @@
 ---
 name: "hive-write-docs"
 description: "Write documentation and site pages from sources the plan already verified. Use for a documentation task whose sources, destination, and scope the change record or the brief names; the change record itself stays with the main thread."
-model_profile: "execution"
+model_profile: "focused"
 access_profile: "implement"
 effort: "medium"
 ---
