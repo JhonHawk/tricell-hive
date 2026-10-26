@@ -17,6 +17,20 @@ raise the minor or the patch version.
   subscriptions that are often inactive. Pi keeps each role's thinking level;
   OpenCode roles also take the session's effort. Run `hive update` to apply it,
   and `hive models set` to choose a model per role.
+- The `## Hive` section of `AGENTS.md` now holds facts only: `Project`,
+  `Base branch`, `Tracker`, `Specs`, `Environments`, `Delivery: direct-base`,
+  `Completion` and `Hive guidance`. The delivery mode, the review mechanism and
+  the `UI verification` level are asked every session and reused within it;
+  `Review`, `UI verification` and `Delivery: automatic|interactive` no longer
+  answer or authorize anything. The later completion point is the new
+  `Completion` key, written `<state> on <ref> · <state> on <ref>`.
+- `hive doctor` warns about retired keys and a malformed `Completion`, and exits
+  non-zero, printing `hive: Project section has blocking findings`, when the
+  section has a blocking finding. `hive project set` and the Project view no
+  longer offer `Review` or `UI verification`.
+- `harness-audit` now audits, asks the decisions its findings need and applies
+  the accepted outcomes in the current project, including creating or updating
+  the `## Hive` section, and validates it with `hive doctor --project`.
 
 ### Fixed
 
@@ -28,6 +42,17 @@ raise the minor or the patch version.
   metadata automatically. Older binaries reject the new identity fields, so a
   rollback also needs compatible metadata restored from the backup, preserving
   any archive or pin changes made since that backup.
+
+### Migration
+
+- Remove `Review`, `UI verification` and `Delivery: automatic|interactive` from
+  each `## Hive` section with `hive project set --unset <Key>`, or run
+  `harness-audit`; sections that keep them still work, and `hive doctor` only
+  warns.
+- Move a later completion point written in prose into `Completion`.
+- Scripts that run `hive doctor` must expect a non-zero exit when the section
+  has a blocking finding, and, with `--project` given explicitly, when the
+  repository has no section or the path cannot be checked.
 
 ## [0.6.0] - 2026-10-25
 

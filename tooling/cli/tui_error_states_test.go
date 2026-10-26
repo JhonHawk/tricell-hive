@@ -407,8 +407,9 @@ func TestDoctorCommandExplainsAnUnreadableState(t *testing.T) {
 	home, stateDir := newHostsTestHome(t)
 	corruptState(t, stateDir)
 	var runErr error
+	t.Chdir(t.TempDir())
 	out := captureStdout(t, func() {
-		runErr = run([]string{"doctor", "--home", home, "--state-dir", stateDir, "--project", t.TempDir()})
+		runErr = run([]string{"doctor", "--home", home, "--state-dir", stateDir})
 	})
 	if runErr != nil {
 		t.Fatalf("doctor failed: %v\n%s", runErr, out)

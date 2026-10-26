@@ -12,11 +12,20 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 )
+
+// retiredHiveKeys are keys the section no longer reads: Hive asks them each
+// session. A test keeps them in step with «Retired keys:» in
+// project-settings.md.
+var retiredHiveKeys = []string{"Review", "UI verification"}
+
+// retiredDeliveryValues are the Delivery values no longer read.
+var retiredDeliveryValues = []string{"automatic", "interactive"}
 
 // hiveKey is one setting `## Hive` may hold.
 type hiveKey struct {
@@ -33,10 +42,9 @@ var hiveSettingKeys = []hiveKey{
 	{"Tracker", true},
 	{"Specs", true},
 	{"Environments", false},
-	{"Review", false},
 	{"Delivery", false},
+	{"Completion", false},
 	{"Hive guidance", false},
-	{"UI verification", false},
 }
 
 const (
@@ -49,7 +57,16 @@ const (
 	outsideGitLineTwo = "Workspace-level ## Hive sections are not checked."
 	hiveHeading       = "## Hive"
 	hiveGuidanceWant  = "required"
+	completionShape   = "<state> on <ref> · <state> on <ref>"
 )
+
+// completionPattern is the shape of a Completion value: a state and a ref for
+// the intermediate point, then the same for the final one.
+var completionPattern = regexp.MustCompile(`^.+ on \S+ · .+ on \S+$`)
+
+// projectBlockingMessage is the error hive doctor returns when the Project
+// section has a blocking finding; main prints it with the "hive:" prefix.
+const projectBlockingMessage = "Project section has blocking findings"
 
 // gitRunner runs `git -C dir args...` and returns its standard output. A
 // non-zero exit is an *exec.ExitError; any other error means git could not be
@@ -163,11 +180,13 @@ func checkProject(project string, git gitRunner) projectCheck {
 	switch info, err := os.Stat(dir); {
 	case errors.Is(err, os.ErrNotExist):
 		res.Section.Lines = []string{"Directory not found: " + sanitizeLine(dir)}
+		res.Section.Unchecked = true
 		return res
 	case err != nil:
 		return fail("cannot read %s: %v", dir, err)
 	case !info.IsDir():
 		res.Section.Lines = []string{"Not a directory: " + sanitizeLine(dir)}
+		res.Section.Unchecked = true
 		return res
 	}
 	res.Dir = dir
@@ -179,40 +198,51 @@ func checkProject(project string, git gitRunner) projectCheck {
 		return fail("cannot run git: %v", err)
 	case err != nil || root == "":
 		res.Section.Lines = []string{outsideGitLine, outsideGitLineTwo}
+		res.Section.Unchecked = true
 		return res
 	}
 	res.Root = root
 	res.File = filepath.Join(root, "AGENTS.md")
 
+	// From here the file exists, so a failure to read it blocks.
+	failFile := func(format string, a ...any) projectCheck {
+		res.Section.Blocking = true
+		return fail(format, a...)
+	}
 	info, err := os.Stat(res.File)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
 		res.Section.Lines = []string{"AGENTS.md: not found at the repository root", addHiveSectionLine()}
+		res.Section.Absent = true
 		return res
 	case err != nil:
-		return fail("cannot read AGENTS.md: %v", err)
+		return failFile("cannot read AGENTS.md: %v", err)
 	case !info.Mode().IsRegular():
 		res.Section.Lines = []string{"AGENTS.md: not a regular file"}
+		res.Section.Blocking = true
 		return res
 	}
 	f, err := os.Open(res.File)
 	if err != nil {
-		return fail("cannot read AGENTS.md: %v", err)
+		return failFile("cannot read AGENTS.md: %v", err)
 	}
 	defer f.Close()
 	data, err := io.ReadAll(io.LimitReader(f, hiveFileLimit+1))
 	if err != nil {
-		return fail("cannot read AGENTS.md: %v", err)
+		return failFile("cannot read AGENTS.md: %v", err)
 	}
 	truncated := len(data) > hiveFileLimit
 	if truncated {
 		data = data[:hiveFileLimit]
 	}
-	lines := validateHiveSection(root, string(data), git)
+	verdict := validateHiveSection(root, string(data), git)
+	lines := verdict.Lines
 	if truncated {
 		lines = append([]string{"AGENTS.md: larger than 1 MiB; only the first 1 MiB was read"}, dropValid(lines)...)
 	}
 	res.Section.Lines = lines
+	res.Section.Blocking = verdict.Blocking || truncated
+	res.Section.Absent = verdict.Absent && !truncated
 	return res
 }
 
@@ -296,6 +326,9 @@ func parseHiveSection(content string) (items []hiveItem, headings int) {
 type hiveFinding struct {
 	Text     string
 	Blocking bool // a write must not proceed; otherwise it only warns
+	// Unchecked: git could not judge the value. The doctor only warns; a write
+	// stops, as it would not know what it writes.
+	Unchecked bool
 }
 
 // checkHiveText validates a section's items without reading the file: it
@@ -304,8 +337,14 @@ type hiveFinding struct {
 // guidance, and a branch name git rejects block; a branch or Specs path that
 // does not exist, and an unknown key, warn.
 func checkHiveText(items []hiveItem, root string, git gitRunner) (blocking, warnings []string) {
-	for _, f := range hiveFindings(items, root, git) {
-		if f.Blocking {
+	return splitFindings(hiveFindings(items, root, git), false)
+}
+
+// splitFindings separates the findings that stop a write from the warnings;
+// blockUnchecked makes a value git could not judge stop it too.
+func splitFindings(findings []hiveFinding, blockUnchecked bool) (blocking, warnings []string) {
+	for _, f := range findings {
+		if f.Blocking || (blockUnchecked && f.Unchecked) {
 			blocking = append(blocking, f.Text)
 		} else {
 			warnings = append(warnings, f.Text)
@@ -350,15 +389,16 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 		case "Base branch":
 			branch := strings.Fields(v)[0]
 			if problem := checkBaseBranch(root, branch, git); problem != "" {
-				add(problem != branchAbsent, k.Name, "%s %s", shown(branch), problem)
+				add(problem == branchInvalid, k.Name, "%s %s", shown(branch), problem)
+				findings[len(findings)-1].Unchecked = strings.HasPrefix(problem, branchUnchecked)
 			}
 		case "Delivery":
-			if present && !slices.Contains(hiveDeliveryValues, v) {
-				add(true, k.Name, "expected one of %s, found %q", quotedList(hiveDeliveryValues), shown(v))
+			if present && !slices.Contains(hiveDeliveryValues, v) && !slices.Contains(retiredDeliveryValues, v) {
+				add(true, k.Name, "expected %s, found %q", quotedList(hiveDeliveryValues), shown(v))
 			}
-		case "UI verification":
-			if present && !slices.Contains(hiveUIVerificationValues, v) {
-				add(true, k.Name, "expected one of %s, found %q", quotedList(hiveUIVerificationValues), shown(v))
+		case "Completion":
+			if present && !completionPattern.MatchString(v) {
+				add(false, k.Name, "expected %q, found %q", completionShape, shown(v))
 			}
 		case "Hive guidance":
 			if present && v != hiveGuidanceWant {
@@ -367,8 +407,19 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 		}
 	}
 	reported := map[string]bool{}
+	retired := func(key string) {
+		findings = append(findings, hiveFinding{Text: retiredSubject(key, values[key], "no longer read") + "; Hive asks it each session — remove it with hive project set --unset " + key + " or run harness-audit"})
+	}
+	for _, name := range retiredHiveKeys {
+		if _, present := values[name]; present {
+			retired(name)
+		}
+	}
+	if slices.Contains(retiredDeliveryValues, values["Delivery"]) {
+		retired("Delivery")
+	}
 	for _, it := range items {
-		if !knownHiveKey(it.Key) && !reported[it.Key] {
+		if !knownHiveKey(it.Key) && !retiredHiveKey(it.Key) && !reported[it.Key] {
 			reported[it.Key] = true
 			add(false, truncateRunes(sanitizeLine(it.Key), 60), "unknown key")
 		}
@@ -376,24 +427,44 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 	return findings
 }
 
+// retiredSubject opens a message about a retired setting: the key, or for
+// Delivery the retired value, so it does not read as if the key were retired.
+// state is the verdict, such as "retired" or "no longer read".
+func retiredSubject(key, value, state string) string {
+	if key == "Delivery" {
+		return key + ": " + value + " is " + state
+	}
+	return key + ": " + state
+}
+
+// hiveVerdict is what validateHiveSection found: the lines to show, whether a
+// finding blocks (hive doctor then exits non-zero), and whether the document
+// has no section at all (it blocks only for an explicit --project).
+type hiveVerdict struct {
+	Lines    []string
+	Blocking bool
+	Absent   bool
+}
+
 // validateHiveSection checks the section in content, the text of the AGENTS.md
 // at root, and returns the lines to show: one finding per line, each naming
 // its key, or "Valid"; then the values read.
-func validateHiveSection(root, content string, git gitRunner) []string {
+func validateHiveSection(root, content string, git gitRunner) hiveVerdict {
 	items, headings := parseHiveSection(content)
 	switch {
 	case headings == 0:
-		return []string{hiveHeading + ": section not found in AGENTS.md", addHiveSectionLine()}
+		return hiveVerdict{Lines: []string{hiveHeading + ": section not found in AGENTS.md", addHiveSectionLine()}, Absent: true}
 	case headings > 1:
-		return []string{fmt.Sprintf("%s: section appears %d times; keep one", hiveHeading, headings)}
+		return hiveVerdict{Lines: []string{fmt.Sprintf("%s: section appears %d times; keep one", hiveHeading, headings)}, Blocking: true}
 	}
 	var findings []string
-	unknown := false
+	unknown, blocking := false, false
 	for _, f := range hiveFindings(items, root, git) {
 		findings = append(findings, f.Text)
+		blocking = blocking || f.Blocking
 	}
 	for _, it := range items {
-		unknown = unknown || !knownHiveKey(it.Key)
+		unknown = unknown || (!knownHiveKey(it.Key) && !retiredHiveKey(it.Key))
 	}
 	if unknown {
 		findings = append(findings, "Known keys: "+strings.Join(hiveKeyNames(false), ", "))
@@ -408,7 +479,7 @@ func validateHiveSection(root, content string, git gitRunner) []string {
 			lines = append(lines, "  "+truncateRunes(sanitizeLine(it.Key), 60)+": "+shown(it.Value))
 		}
 	}
-	return lines
+	return hiveVerdict{Lines: lines, Blocking: blocking}
 }
 
 // hiveKeyNames lists the names of hiveSettingKeys in display order: only the
@@ -437,6 +508,8 @@ func knownHiveKey(name string) bool {
 	return false
 }
 
+func retiredHiveKey(name string) bool { return slices.Contains(retiredHiveKeys, name) }
+
 // shown makes text from AGENTS.md safe and short enough to display.
 func shown(s string) string { return truncateRunes(sanitizeLine(s), hiveValueRunes) }
 
@@ -444,21 +517,27 @@ func shown(s string) string { return truncateRunes(sanitizeLine(s), hiveValueRun
 // neither a local branch nor on origin; a write only warns about it.
 const branchAbsent = "is not a local branch or on origin"
 
+// branchInvalid is the checkBaseBranch problem for a name Git rejects; it is
+// the only one that blocks. "could not be checked" (git failed to run) warns.
+const branchInvalid = "is not a valid branch name"
+
+// branchUnchecked starts the checkBaseBranch problem when git failed to run.
+const branchUnchecked = "could not be checked: "
+
 // checkBaseBranch returns why branch is not usable as the base branch, or "".
 // A name that starts with "-" or holds "@{" is rejected without running git:
 // the first would be read as an option and the second expands through the
 // reflog. Otherwise git validates the name, then looks for it as a local
 // branch and as a branch of origin.
 func checkBaseBranch(root, branch string, git gitRunner) string {
-	const invalid = "is not a valid branch name"
 	if strings.HasPrefix(branch, "-") || strings.Contains(branch, "@{") || sanitizeLine(branch) != branch {
-		return invalid
+		return branchInvalid
 	}
 	if _, err := git(root, "check-ref-format", "--branch", branch); err != nil {
 		if gitAnswered(err) {
-			return invalid
+			return branchInvalid
 		}
-		return "could not be checked: " + shown(err.Error())
+		return branchUnchecked + shown(err.Error())
 	}
 	for _, ref := range []string{"refs/heads/" + branch, "refs/remotes/origin/" + branch} {
 		_, err := git(root, "show-ref", "--verify", "--quiet", ref)
@@ -466,19 +545,15 @@ func checkBaseBranch(root, branch string, git gitRunner) string {
 		case err == nil:
 			return ""
 		case !gitAnswered(err):
-			return "could not be checked: " + shown(err.Error())
+			return branchUnchecked + shown(err.Error())
 		}
 	}
 	return branchAbsent
 }
 
-// hiveDeliveryValues are the Delivery values the section accepts, in the
-// order the project form cycles them.
-var hiveDeliveryValues = []string{"direct-base", "automatic", "interactive"}
-
-// hiveUIVerificationValues are the UI verification values the section
-// accepts, in the order the project form cycles them.
-var hiveUIVerificationValues = []string{"full", "functional", "none"}
+// hiveDeliveryValues are the Delivery values the section accepts; automatic
+// and interactive are retiredDeliveryValues.
+var hiveDeliveryValues = []string{"direct-base"}
 
 // quotedList renders values as "a", "b", "c" for a message.
 func quotedList(values []string) string {

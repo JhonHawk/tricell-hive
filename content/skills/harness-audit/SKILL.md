@@ -1,15 +1,15 @@
 ---
 name: harness-audit
-description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, and run native static validators. Use when asked to audit, review, prune, or check agent instructions, skills, or agents, to explain what a host loads from an entry directory, or to prepare a project's migration to the `openspec` change-record layout.
+description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, run native static validators, ask the decisions the findings need, and apply the accepted outcomes in the current project. Use when asked to audit, review, prune, fix, or check agent instructions, skills, or agents, to set up or update a repository's Hive settings section (onboarding a project to Hive), to explain what a host loads from an entry directory, or to prepare a project's migration to the `openspec` change-record layout.
 ---
 
 # Harness audit
 
-Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence; do not edit. The caller decides and applies changes, except an approved layout migration that the caller explicitly instructs the audit to apply.
+Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project, as [Apply accepted outcomes](#apply-accepted-outcomes) sets. A read-only role, such as `hive-review-harness`, only reports and returns those decisions to its parent, which asks and applies.
 
 ## Scope
 
-Before resolving project settings needed by the audit or migration, read [project settings](../flow-plan/references/project-settings.md). Only when the caller instructs you to apply a migration or write a record, also read [change records](../flow-plan/references/change-records.md) before creating or continuing a change record and [artifact layout and retention](../workspace-conventions/references/artifact-layout.md) before writing or cleaning supporting artifacts; a read-only audit needs neither. Before findings or messages with citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md); before a user decision, read [questions](../flow-plan/references/questions.md).
+Before resolving project settings needed by the audit or migration, read [project settings](../flow-plan/references/project-settings.md). Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change records](../flow-plan/references/change-records.md); before writing or cleaning supporting artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). An audit that applies nothing needs neither. Before findings or messages with citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md); before a user decision, read [questions](../flow-plan/references/questions.md).
 
 Establish before reading deeply:
 
@@ -26,6 +26,9 @@ Establish before reading deeply:
 4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
 5. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
 6. Report in the format below. Prefer fewer, consequential findings over exhaustive restatement.
+7. Ask the decisions and apply the accepted outcomes, as [Apply accepted outcomes](#apply-accepted-outcomes) sets.
+
+When the caller asks only to set up or update a repository's `## Hive` section, such as onboarding a project to Hive, limit the audit to HA-IF-17 and HA-PL-01 for each repository it names and for the workspace section when sessions start there, and to the prose those rules relocate; then continue at step 6.
 
 ## Outcomes
 
@@ -55,8 +58,17 @@ Report a file already at its floor as `already lean` (HA-IF-14).
 
 For each finding give severity, `file:line`, rule ID, outcome, evidence (quoted line, command output, or source), and whether it is confirmed or a hypothesis; for a hypothesis, name the exact check that would confirm it.
 
-Close with coverage: targets, entry points, hosts, native outputs used, what was not verified, and decisions needed from the caller. Ask those decisions, including each HA-IF-08 choice of which version to keep and each conflict with a global layer, by following [questions](../flow-plan/references/questions.md), and wait for the answers; a delegated auditor returns them to its parent, which asks. Report `no material findings` when that is the result; it does not certify uninspected areas.
+Close with coverage: targets, entry points, hosts, native outputs used, what was not verified, and decisions needed from the caller. Report `no material findings` when that is the result; it does not certify uninspected areas.
+
+## Apply accepted outcomes
+
+1. **Ask.** In one round, by following [questions](../flow-plan/references/questions.md), ask the decisions the findings need: each HA-IF-08 choice of which version to keep and each conflict with a global layer; each standing grant written in prose, to remove or keep as a stated exception; each `## Hive` value the repository's evidence does not settle; and which outcomes to apply, one option per group of findings with its files. When the applied edits will end in a Git delivery in a code repository, add to that round the delivery and review questions of [delivery decisions](../flow-plan/references/delivery-decisions.md), which must be answered before the first edit; `hold` keeps the edits uncommitted. Wait for the answers; a delegated auditor returns the decisions to its parent, which asks.
+2. **Apply.** After the answer, edit only the current project, with the host's file-editing tool, and only the outcomes the answer accepted: `delete`, `discoverable`, `stale`, `relocate`, `re-anchor`, `soften`, `demote` with its one-line pointer, `fix`, `insert`, and the `## Hive` section with the facts [project settings](../flow-plan/references/project-settings.md) defines. Leave `keep` and `manual` entries untouched and list the `manual` ones as remaining work. Never apply `propose-global`, never write `CLAUDE.local.md`, and never edit another project: report its findings for that project's own session.
+3. **Validate.** For each repository whose `## Hive` section you wrote, run `hive doctor --project <repository>`: exit status 0 and no line naming a retired key mean the section is valid; any other status means it is not, so fix it and run again. When `hive` is not on the `PATH`, and for a workspace section, which `hive doctor` does not check, reread the section against [project settings](../flow-plan/references/project-settings.md) and report that the command check did not run.
+4. **Deliver.** Commits, pushes and pull requests follow the mode chosen in step 1, through [flow-build](../flow-build/SKILL.md) and [git-workflow](../git-workflow/SKILL.md).
+
+Under [unattended delegation](../unattended-delegation/SKILL.md), leave unapplied and report the decisions that belong to the user: which version of a rule to keep, a conflict with a global layer, and each standing grant in prose.
 
 ## Boundaries
 
-Stay read-only: do not edit files, configuration, trackers, or memory, and do not commit. The one exception is an explicit instruction to apply an approved migration manifest: then run its mechanical entries through the `workspace-conventions` procedure for applying a layout migration, stop at `manual` and `ask` entries, and commit only under the repository's Git rules and an explicit commit instruction. A read-only role returns the manifest for its parent to apply. Never propose writing `CLAUDE.local.md`. Run only static tools your boundary allows, and request the rest from the caller; run a model-invoking evaluation only when the caller authorizes it with a cost cap (HA-ME-01).
+A role launched read-only, such as `hive-review-harness`, edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [Apply accepted outcomes](#apply-accepted-outcomes) allows after the user's answer, and an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project, trackers, or memory. Never propose writing `CLAUDE.local.md`. Run only static tools your boundary allows, and request the rest from the caller; run a model-invoking evaluation only when the caller authorizes it with a cost cap (HA-ME-01).

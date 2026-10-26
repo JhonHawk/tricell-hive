@@ -16,7 +16,7 @@ Run a security review on this branch before I validate it.
 Review the security of the commit we merged yesterday.
 ```
 
-A declared `Review` value does not count as asking.
+Your answer to the review question, or a `Review` line left in the `## Hive` section, does not count as asking.
 
 ## What it produces
 

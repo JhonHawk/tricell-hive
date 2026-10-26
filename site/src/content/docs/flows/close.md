@@ -14,7 +14,7 @@ invoke another complete flow.
 
 ## When to use
 
-Use Close when work reaches its completion point, when you abandon it, when you pause it, or when you end the session or ask for a cleanup. The completion point is usually the merge into the base branch, after any checks that must pass there; under `hold` it is the verified working tree, and when the delivery hands the open pull request to a human reviewer, it is opening that pull request. A project can declare a later completion point; the work still closes at integration, as [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md#later-completion-point) sets. After a promotion only the branch and process cleanup runs, with no completion report or closing question.
+Use Close when work reaches its completion point, when you abandon it, when you pause it, or when you end the session or ask for a cleanup. The completion point is usually the merge into the base branch, after any checks that must pass there; under `hold` it is the verified working tree, and when the delivery hands the open pull request to a human reviewer, it is opening that pull request. A project can declare a later completion point in the `Completion` key of its `## Hive` section; the work still closes at integration, as [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md#later-completion-point) sets. After a promotion only the branch and process cleanup runs, with no completion report or closing question.
 
 Example requests:
 
@@ -40,7 +40,7 @@ still-needed unit and reports its folder. It never starts or restarts the viewer
 to force confirmation. The procedure lives in
 [Close the current walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/walkthrough-close.md).
 
-1. When the work is complete, confirms the ticket is in the state the merge moved it to, along with the sub-issues the same work covered, or moves it now. When your project declares a later completion point, that state is the intermediate one its guidance names. Under `hold`, or while a pull request waits for a human reviewer, the ticket stays in progress and the report gives the missing delivery or merge as a reminder. A paused or abandoned ticket does not move to finished.
+1. When the work is complete, confirms the ticket is in the state the merge moved it to, along with the sub-issues the same work covered, or moves it now. When your project declares a later completion point in `Completion`, that state is the intermediate one the key names. Under `hold`, or while a pull request waits for a human reviewer, the ticket stays in progress and the report gives the missing delivery or merge as a reminder. A paused or abandoned ticket does not move to finished.
 2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, confirms that each one now matches what the plan said before marking the change completed, and it archives the folder. An abandoned change is archived without touching the requirements, with its unapplied changes kept apart so nothing reads them as applied.
 3. Checks merged branches and their working copies, returns to the base branch and removes eligible clean working copies before deleting their branches. The order and safety checks live in [Clean up after a merge](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md#clean-up-after-a-merge).
 4. Removes temporary files the task made, stops processes it or its helpers started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
@@ -59,7 +59,7 @@ to force confirmation. The procedure lives in
 ## Related flows
 
 - [Verify](/flows/verify/) usually comes right before Close, because it integrates the change; [Build](/flows/build/) does when verify is skipped.
-- [Deploy](/flows/deploy/) is a separate stage after integration. It never holds a close open: when your project declares a later completion point, Deploy moves the ticket to its final state once that condition holds.
+- [Deploy](/flows/deploy/) is a separate stage after integration. It never holds a close open: when your project declares a later completion point in `Completion`, Deploy moves the ticket to its final state once that condition holds.
 - [Plan](/flows/plan/) created the change record that Close archives.
 - [Research](/flows/research/) is separate. A research-only session ends with its route question instead.
 
@@ -69,7 +69,7 @@ to force confirmation. The procedure lives in
 Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough manifest and optional page that you did not ask to keep: keeping the manifest or page keeps its referenced images and recordings too; keeping only individual images or recordings drops the remaining unit. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. Branches are deleted only when their pull request is yours and merged, and a remote branch only when its head is the one that was merged or already in the base branch, so commits pushed afterwards are not lost. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
-It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately; if your project names a later point as done, the ticket sits in an intermediate state until it holds.
+It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately; if your project names a later point as done in `Completion`, the ticket sits in an intermediate state until it holds.
 
 ### What if I only want to stop for now?
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.

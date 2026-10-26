@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -99,7 +100,9 @@ func printHelp() {
 
 // readOnlyOptions parses the --home and --state-dir flags that the read-only
 // commands share, and fails when the state directory cannot be one: findings
-// never fail these commands, only their own errors do.
+// never fail these commands, only their own errors do. The one exception is
+// hive doctor's Project section, whose blocking findings runDoctor turns into
+// an error.
 func readOnlyOptions(fs *flag.FlagSet, args []string) (management.Options, bool, error) {
 	var o management.Options
 	fs.StringVar(&o.Home, "home", "", "explicit synthetic home; ignores host environment paths")
@@ -133,12 +136,20 @@ func runDoctor(args []string, w io.Writer, deps doctorDeps) error {
 	if !ok {
 		return err
 	}
-	if project == "" {
+	explicit := project != ""
+	if !explicit {
 		if project, err = os.Getwd(); err != nil {
 			return err
 		}
 	}
-	renderDoctorText(collectDoctor(o, project, deps), w)
+	report := collectDoctor(o, project, deps)
+	renderDoctorText(report, w)
+	// Only the Project section fails the command (D6-A): a blocking finding in
+	// a section that exists, and, for an explicit --project, a missing file or
+	// section, or a path that cannot be checked (D10-A, D11-A), so harness-audit can tell that its write did not land.
+	if report.Project.Blocking || (explicit && (report.Project.Absent || report.Project.Unchecked || report.Project.Err != "")) {
+		return errors.New(projectBlockingMessage)
+	}
 	return nil
 }
 

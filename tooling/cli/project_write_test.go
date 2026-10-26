@@ -2,8 +2,10 @@ package main
 
 import (
 	"crypto/sha256"
+	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -126,17 +128,20 @@ func TestHiveTextSeparatesBlockingFromWarnings(t *testing.T) {
 			t.Errorf("warnings %q lack %q", warnings, want)
 		}
 	}
-	blocking, _ = checkHiveText([]hiveItem{{"Project", "p"}, {"Base branch", "main"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}, {"Delivery", "automatic"}}, root, git)
-	if joined := strings.Join(blocking, "\n"); strings.Contains(joined, "Delivery") {
-		t.Errorf("Delivery: automatic must be accepted, blocking %q", blocking)
+	items = []hiveItem{{"Project", "p"}, {"Base branch", "main"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}}
+	for _, extra := range []hiveItem{{"Delivery", "automatic"}, {"Review", "x"}, {"UI verification", "partial"}} {
+		blocking, warnings = checkHiveText(append(slices.Clone(items), extra), root, git)
+		want := extra.Key + ": no longer read"
+		if extra.Key == "Delivery" {
+			want = "Delivery: " + extra.Value + " is no longer read"
+		}
+		if len(blocking) != 0 || !strings.Contains(strings.Join(warnings, "\n"), want) {
+			t.Errorf("%s: %s must only warn as retired, blocking %q warnings %q", extra.Key, extra.Value, blocking, warnings)
+		}
 	}
-	blocking, _ = checkHiveText([]hiveItem{{"Project", "p"}, {"Base branch", "main"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}, {"UI verification", "full"}}, root, git)
-	if joined := strings.Join(blocking, "\n"); strings.Contains(joined, "UI verification") {
-		t.Errorf("UI verification: full must be accepted, blocking %q", blocking)
-	}
-	blocking, _ = checkHiveText([]hiveItem{{"Project", "p"}, {"Base branch", "main"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}, {"UI verification", "partial"}}, root, git)
-	if joined := strings.Join(blocking, "\n"); !strings.Contains(joined, "UI verification: expected") {
-		t.Errorf("UI verification: partial must be blocking, blocking %q", blocking)
+	blocking, _ = checkHiveText(append(slices.Clone(items), hiveItem{"Delivery", "pr"}), root, git)
+	if joined := strings.Join(blocking, "\n"); !strings.Contains(joined, "Delivery: expected") {
+		t.Errorf("Delivery: pr must be blocking, blocking %q", blocking)
 	}
 	blocking, _ = checkHiveText([]hiveItem{{"Project", "p"}, {"Base branch", "-x"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}, {"Delivery", "pr"}, {"Hive guidance", "optional"}}, root, git)
 	joined = strings.Join(blocking, "\n")
@@ -250,7 +255,7 @@ func TestProjectWriteRefusesAnExistingValueThatSanitizingWouldChange(t *testing.
 	}
 	// The doctor still only reads and shows it cleaned.
 	root := projectRepoWithSpecs(t, "## Hive\n- Project: p\n- Tracker: t\x1b[31mred\n")
-	if out := strings.Join(validateHiveSection(root, "## Hive\n- Tracker: t\x1b[31mred\n", newGitRunner()), "\n"); strings.Contains(out, "hidden character") {
+	if out := strings.Join(validateHiveSection(root, "## Hive\n- Tracker: t\x1b[31mred\n", newGitRunner()).Lines, "\n"); strings.Contains(out, "hidden character") {
 		t.Fatalf("doctor output changed:\n%s", out)
 	}
 }
@@ -554,5 +559,26 @@ func TestClaudeMDWarningAcceptsAnImportAnywhereOutsideCode(t *testing.T) {
 				t.Fatalf("warns = %v, want %v for %q", got, tc.warns, tc.text)
 			}
 		})
+	}
+}
+
+// A Base branch that git could not be asked about is not written: the writer
+// stops where the doctor only warns.
+func TestProjectWriteRefusesABaseBranchThatCouldNotBeChecked(t *testing.T) {
+	root := projectRepoWithSpecs(t, "# T\n")
+	real := newGitRunner()
+	broken := func(dir string, args ...string) (string, error) {
+		if len(args) > 0 && args[0] == "check-ref-format" {
+			return "", errors.New("git timed out")
+		}
+		return real(dir, args...)
+	}
+	_, err := prepareProjectEdit(root, fullSet, nil, broken)
+	if err == nil || !strings.Contains(err.Error(), "Base branch: main could not be checked") {
+		t.Fatalf("want a refusal naming the unchecked branch, got %v", err)
+	}
+	blocking, warnings := checkHiveText(fullSet, root, broken)
+	if len(blocking) != 0 || !strings.Contains(strings.Join(warnings, "\n"), "could not be checked") {
+		t.Errorf("doctor view: blocking %q warnings %q, want only a warning", blocking, warnings)
 	}
 }

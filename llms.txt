@@ -15,7 +15,7 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 - [Installer contract](_support/docs/architecture/installer.md): package checks, migration, and interrupted-install recovery
 - [Deployment manager](_support/docs/architecture/deployment-manager.md): manager commands, plans, scopes, ownership, and recovery
 - `hive voice list|set|off`: list the voices, select one, or turn it off (see the manager contract above)
-- `hive project set`: edit the `## Hive` section of a repository's `AGENTS.md` after confirmation
+- `hive project set`: edit the `## Hive` section of a repository's `AGENTS.md` after confirmation; the section holds facts, and `hive doctor` exits non-zero on a blocking finding in it
 - `hive releases`: list the retained release snapshots
 - [Agent delivery](_support/docs/architecture/agent-delivery.md): canonical roles, native profiles, and per-host delegation limits
 
@@ -32,15 +32,15 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
 - [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
 - [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and hand over a built candidate
-- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the settings and the request set, then integrate it
+- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the session's answers and the request set, then integrate it
 - [flow-security](content/skills/flow-security/SKILL.md): run an independent security review when the user asks for it
-- [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources
-- [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served
+- [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources, honoring a `Completion` key's later completion point
+- [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served, moving tickets to the final state a `Completion` key names
 - [git-workflow](content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work
 - [flow-walkthrough](content/skills/flow-walkthrough/SKILL.md): walk a built user interface for the user to validate, with captures and a viewer manifest
 - [flow-report](content/skills/flow-report/SKILL.md): a designed HTML report, comparison, explainer or deck
 - [starlight-docs-site](content/skills/starlight-docs-site/SKILL.md): scaffold, extend or audit a documentation site
-- [harness-audit](content/skills/harness-audit/SKILL.md): audit agent instructions, skills and role definitions
+- [harness-audit](content/skills/harness-audit/SKILL.md): audit agent instructions, skills and role definitions, ask the decisions the findings need, and apply the accepted outcomes, including a repository's `## Hive` section
 - [security-advisory](content/skills/security-advisory/SKILL.md): check whether a published advisory affects a set of repositories, without changing them
 - [workspace-conventions](content/skills/workspace-conventions/SKILL.md): organize support artifacts and retained evidence
 - [workspace-archive](content/skills/workspace-archive/SKILL.md): archive explicitly selected, closed support sessions

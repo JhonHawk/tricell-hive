@@ -1,6 +1,6 @@
 # Project layout
 
-Read when the audit covers a project's repositories, or when the caller asks for migration preparation. It checks the global layer's `## Hive` settings and change-record layout, and produces a migration manifest. The audit applies it only when the caller explicitly instructs it for an approved manifest, following the `workspace-conventions` procedure; otherwise it moves nothing.
+Read when the audit covers a project's repositories, or when the caller asks for migration preparation. It checks the `## Hive` settings and change-record layout, and produces a migration manifest. The audit applies the manifest only when the caller explicitly instructs it for an approved manifest, following the `workspace-conventions` procedure; otherwise it moves nothing. Edits to the `## Hive` section itself follow [Apply accepted outcomes](../SKILL.md#apply-accepted-outcomes).
 
 ## Checks (HA-PL)
 

@@ -39,8 +39,9 @@ func TestDoctorCommandPrintsFindingsAndExitsZero(t *testing.T) {
 		t.Fatal(err)
 	}
 	var runErr error
+	t.Chdir(t.TempDir())
 	out := captureStdout(t, func() {
-		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", t.TempDir()})
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir})
 	})
 	if runErr != nil {
 		t.Fatalf("doctor failed on a finding: %v\n%s", runErr, out)
@@ -53,10 +54,13 @@ func TestDoctorCommandPrintsFindingsAndExitsZero(t *testing.T) {
 	// The command prints exactly what the shared renderer produces.
 	o := management.Options{Scope: "user", Home: f.home, StateDir: f.stateDir}
 	var want strings.Builder
-	project := t.TempDir()
+	project, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	renderDoctorText(collectDoctor(o, project, realDoctorDeps()), &want)
 	got := captureStdout(t, func() {
-		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", project})
+		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir})
 	})
 	if runErr != nil || got != want.String() {
 		t.Errorf("doctor output differs from renderDoctorText (err %v):\n%s\n---\n%s", runErr, got, want.String())
@@ -77,15 +81,99 @@ func TestDoctorCommandProjectFlagChecksThatRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if runErr != nil || !strings.Contains(out, "Project\n  "+filepath.Join(canonical, "AGENTS.md")+"\n  AGENTS.md: not found at the repository root\n") {
+	// An explicit --project that names a repository without AGENTS.md fails
+	// after printing the same report (D10-A).
+	if runErr == nil || runErr.Error() != projectBlockingMessage || !strings.Contains(out, "Project\n  "+filepath.Join(canonical, "AGENTS.md")+"\n  AGENTS.md: not found at the repository root\n") {
 		t.Errorf("doctor --project did not check %s (err %v):\n%s", repo, runErr, out)
 	}
 	outside := t.TempDir()
 	out = captureStdout(t, func() {
 		runErr = run([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir, "--project", outside})
 	})
-	if runErr != nil || !strings.Contains(out, "Project\n  Directory: ") || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
+	if runErr == nil || runErr.Error() != projectBlockingMessage || !strings.Contains(out, "Project\n  Directory: ") || !strings.Contains(out, outsideGitLine+"\n  "+outsideGitLineTwo+"\n") {
 		t.Errorf("doctor outside a repository (err %v):\n%s", runErr, out)
+	}
+}
+
+// Exit status of `hive doctor` for the Project section (AC5): blocking findings
+// fail, warnings do not, and a missing AGENTS.md or section fails only for an
+// explicit --project.
+func TestDoctorCommandExitStatusFollowsTheProjectSection(t *testing.T) {
+	f := newCharacterizationFixture(t)
+	big := validHiveSection + strings.Repeat("x", hiveFileLimit)
+	cases := []struct {
+		name     string
+		repo     func(t *testing.T) string
+		explicit bool
+		fails    bool
+		report   string
+	}{
+		{"valid section", func(t *testing.T) string { return projectRepoWithSpecs(t, validHiveSection) }, true, false, "Valid"},
+		{"missing required value", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Tracker: GitHub Issues · org/demo\n", "", 1))
+		}, false, true, "Tracker: required value is missing"},
+		{"empty required value", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Project: demo", "- Project:", 1))
+		}, false, true, "Project: value is empty"},
+		{"invalid Delivery", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
+		}, false, true, "Delivery: expected"},
+		{"invalid Hive guidance", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Hive guidance: optional\n- Specs:", 1))
+		}, false, true, "Hive guidance: expected"},
+		{"duplicated section", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, validHiveSection+"\n## Hive\n\n- Project: again\n")
+		}, false, true, "section appears 2 times"},
+		{"AGENTS.md over 1 MiB", func(t *testing.T) string { return projectRepoWithSpecs(t, big) }, false, true, "larger than 1 MiB"},
+		{"AGENTS.md is not a regular file", func(t *testing.T) string {
+			root := projectRepoWithSpecs(t, "")
+			if err := os.Remove(filepath.Join(root, "AGENTS.md")); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir(filepath.Join(root, "AGENTS.md"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			return root
+		}, false, true, "not a regular file"},
+		{"only warnings", func(t *testing.T) string {
+			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Review: x\n- Delivery: automatic\n- Colour: blue\n- Completion: Done\n- Specs:", 1))
+		}, true, false, "Review: no longer read"},
+		{"no AGENTS.md without the flag", func(t *testing.T) string { return newProjectRepo(t) }, false, false, "not found at the repository root"},
+		{"no AGENTS.md with the flag", func(t *testing.T) string { return newProjectRepo(t) }, true, true, "not found at the repository root"},
+		{"no section without the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, false, false, "section not found"},
+		{"no section with the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, true, true, "section not found"},
+		{"outside a repository without the flag", func(t *testing.T) string { return t.TempDir() }, false, false, outsideGitLine},
+		{"outside a repository with the flag", func(t *testing.T) string { return t.TempDir() }, true, true, outsideGitLine},
+		{"missing directory with the flag", func(t *testing.T) string { return filepath.Join(t.TempDir(), "nope") }, true, true, "Directory not found"},
+		{"file instead of a directory with the flag", func(t *testing.T) string {
+			p := filepath.Join(t.TempDir(), "f")
+			if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			return p
+		}, true, true, "Not a directory"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			repo := c.repo(t)
+			args := []string{"doctor", "--home", f.home, "--state-dir", f.stateDir}
+			if c.explicit {
+				args = append(args, "--project", repo)
+			} else {
+				t.Chdir(repo)
+			}
+			var runErr error
+			out := captureStdout(t, func() { runErr = run(args) })
+			if !strings.Contains(out, c.report) {
+				t.Errorf("report lacks %q:\n%s", c.report, out)
+			}
+			switch {
+			case c.fails && (runErr == nil || runErr.Error() != projectBlockingMessage):
+				t.Errorf("want the error %q, got %v", projectBlockingMessage, runErr)
+			case !c.fails && runErr != nil:
+				t.Errorf("want exit 0, got %v", runErr)
+			}
+		})
 	}
 }
 
@@ -139,4 +227,45 @@ func TestDoctorAndModelsRejectPositionalArguments(t *testing.T) {
 			t.Errorf("%s accepted a positional argument", cmd)
 		}
 	}
+}
+
+// With an explicit --project, a path that cannot be checked for any reason
+// fails the command; without the flag the same directory exits 0.
+func TestDoctorCommandExplicitProjectFailsWhenThePathCannotBeChecked(t *testing.T) {
+	f := newCharacterizationFixture(t)
+	doctor := func(args ...string) error {
+		var err error
+		captureStdout(t, func() {
+			err = run(append([]string{"doctor", "--home", f.home, "--state-dir", f.stateDir}, args...))
+		})
+		return err
+	}
+	t.Run("git cannot run", func(t *testing.T) {
+		repo := newProjectRepo(t)
+		t.Setenv("PATH", t.TempDir())
+		if err := doctor("--project", repo); err == nil || err.Error() != projectBlockingMessage {
+			t.Errorf("explicit: want %q, got %v", projectBlockingMessage, err)
+		}
+		t.Chdir(repo)
+		if err := doctor(); err != nil {
+			t.Errorf("without the flag: want exit 0, got %v", err)
+		}
+	})
+	t.Run("directory behind an unreadable parent", func(t *testing.T) {
+		if os.Geteuid() == 0 {
+			t.Skip("root ignores directory permissions")
+		}
+		parent := t.TempDir()
+		if err := os.Mkdir(filepath.Join(parent, "p"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(parent, 0); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chmod(parent, 0o755) })
+		target := filepath.Join(parent, "p")
+		if err := doctor("--project", target); err == nil || err.Error() != projectBlockingMessage {
+			t.Errorf("explicit: want %q, got %v", projectBlockingMessage, err)
+		}
+	})
 }

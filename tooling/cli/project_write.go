@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -446,11 +447,14 @@ type projectEdit struct {
 
 // validateHiveRequest checks what the user asked for before any text is
 // built: only known keys are set, values are safe to write, and a required
-// key is not removed.
+// key is not removed. A retired key, or a retired Delivery value, is refused
+// before the unknown ones so that the message says it is retired.
 func validateHiveRequest(set []hiveItem, unset []string) error {
 	var problems []string
 	for _, it := range set {
 		switch {
+		case retiredHiveKey(it.Key) || (it.Key == "Delivery" && slices.Contains(retiredDeliveryValues, it.Value)):
+			problems = append(problems, retiredSubject(it.Key, it.Value, "retired")+"; Hive asks it each session — use --unset "+it.Key+" to remove it")
 		case !knownHiveKey(it.Key):
 			problems = append(problems, fmt.Sprintf("%s: unknown key; known keys are %s", shown(it.Key), strings.Join(hiveKeyNames(false), ", ")))
 		case sanitizeLine(it.Value) != it.Value:
@@ -522,7 +526,7 @@ func prepareProjectEdit(project string, set []hiveItem, unset []string, git gitR
 		return e, err
 	}
 	w := walkHiveSection(string(e.After))
-	blocking, warnings := checkHiveText(w.Items, root, git)
+	blocking, warnings := splitFindings(hiveFindings(w.Items, root, git), true)
 	// The preview shows every value sanitized, so a value the file already
 	// holds that sanitizing would change must not be written along unseen. The
 	// doctor does not do this check: it only reads.

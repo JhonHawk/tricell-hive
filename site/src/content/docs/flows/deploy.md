@@ -3,7 +3,7 @@ title: Deploy
 description: Promote an integrated change through your environments and check what is actually being served.
 ---
 
-Deploy is a stage of its own, after the change is integrated. It never holds a close open, and one run can cover several tickets. When your project declares a later completion point, such as "Done = on `origin/qa`", the work closes at integration with the ticket in the intermediate state your guidance names, and Deploy moves it to the final state when that condition holds, as [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md#later-completion-point) sets. If someone else promoted, the next session that sees the condition met applies the move.
+Deploy is a stage of its own, after the change is integrated. It never holds a close open, and one run can cover several tickets. When your project declares a later completion point in the `Completion` key, such as `To Deploy on origin/development · Done on origin/qa`, the work closes at integration with the ticket in the intermediate state the key names, and Deploy moves it to the final state when that condition holds, as [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md#later-completion-point) sets. If someone else promoted, the next session that sees the condition met applies the move.
 
 ## When to use
 
