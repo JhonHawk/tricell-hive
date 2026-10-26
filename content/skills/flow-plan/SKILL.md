@@ -45,7 +45,7 @@ Before calling the plan ready, check:
 
 - Important claims are grounded in inspected sources; facts and assumptions are distinguishable.
 - Decisions that could change the outcome, contracts, or compatibility are resolved; remaining uncertainties are bounded.
-- Every acceptance criterion, task marker, dependency and checkpoint meets the rules in [the plan format](references/plan-format.md#acceptance-criteria-and-task-markers); a break of any of them blocks readiness.
+- Every acceptance criterion, task marker, dependency and checkpoint meets the rules in [plan criteria and markers](references/plan-criteria-and-markers.md#acceptance-criteria-and-task-markers); a break of any of them blocks readiness.
 - A change to stored data records the affected-record count per environment, or why one could not be taken, and its technique and recovery match that count, as [persistent data changes](../flow-build/references/data-changes.md) describes.
 - Task interfaces and dependencies agree; no task relies on an undefined contract.
 - When the plan lists work as **Not yet specified**, it follows that rule in [the plan format](references/plan-format.md#what-the-document-must-carry).
@@ -71,4 +71,4 @@ When creating or reviewing a retained plan, read [the plan format and adaptable 
 
 If the active CLI mode prohibits writing the artifact, present its contents and intended destination; do not bypass the mode. For a planning-only request, stop with the plan or unresolved decisions. When implementation is already authorized and the active mode permits it, follow that authorization without introducing another approval requirement.
 
-When returning a ready plan without implementing, follow [Hand off a ready plan](references/plan-format.md#hand-off-a-ready-plan).
+When returning a ready plan without implementing, follow [Hand off a ready plan](references/plan-handoff.md#hand-off-a-ready-plan).
