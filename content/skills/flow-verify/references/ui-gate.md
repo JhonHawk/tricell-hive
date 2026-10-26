@@ -1,6 +1,6 @@
 # UI gate
 
-Read before a change with a rendered UI effect reaches a verification gate: the implementer's own rendered inspection, the independent children that the repository's `UI verification` value or answer selects, and the gate on the candidate the user accepted. This reference applies in every delivery mode, including `automatic`: the gate is verification, not a human validation stop, and [flow-verify](../SKILL.md) is the stage that runs it. [Verification](../../flow-build/references/verification.md) owns test depth and the runtime and CI gates, and [flow-deploy](../../flow-deploy/SKILL.md) owns the deployment and deployed-environment gates; [flow-walkthrough](../../flow-walkthrough/SKILL.md) owns the human handoff; [browser automation](../../flow-build/references/browser-automation.md) governs how the browser is driven; [UI review criteria](ui-review-criteria.md) is the reviewer's brief.
+Read before a change with a rendered UI effect reaches a verification gate: the implementer's own rendered inspection, the independent children that the `UI verification` answer selects, and the gate on the candidate the user accepted. This reference applies in every delivery mode, including `automatic`: the gate is verification, not a human validation stop, and [flow-verify](../SKILL.md) is the stage that runs it. [Verification](../../flow-build/references/verification.md) owns test depth and the runtime and CI gates, and [flow-deploy](../../flow-deploy/SKILL.md) owns the deployment and deployed-environment gates; [flow-walkthrough](../../flow-walkthrough/SKILL.md) owns the human handoff; [browser automation](../../flow-build/references/browser-automation.md) governs how the browser is driven; [UI review criteria](ui-review-criteria.md) is the reviewer's brief.
 
 ## Scope
 
@@ -16,7 +16,7 @@ The implementer checks its own change only with bounded inline checks, such as a
 
 ## The independent children
 
-The repository's `UI verification` value or answer, resolved as [delivery decisions](../../flow-plan/references/delivery-decisions.md) sets, selects the independent children that run on the built local candidate before completion is reported: `full` runs `hive-review-ux` and `hive-verify-change`, `functional` only `hive-verify-change`, and `none` neither; [delivery decisions](../../flow-plan/references/delivery-decisions.md) defines each value and its effect under each delivery mode. The selected children are part of the authorized local verification and need no separate approval; the rest of this section applies to each child that runs.
+The `UI verification` answer, resolved as [delivery decisions](../../flow-plan/references/delivery-decisions.md) sets, selects the independent children that run on the built local candidate before completion is reported: `full` runs `hive-review-ux` and `hive-verify-change`, `functional` only `hive-verify-change`, and `none` neither; [delivery decisions](../../flow-plan/references/delivery-decisions.md) defines each value and its effect under each delivery mode. The selected children are part of the authorized local verification and need no separate approval; the rest of this section applies to each child that runs.
 
 Give each child a fixed candidate and its candidate identity, so a later edit cannot change what it verifies:
 

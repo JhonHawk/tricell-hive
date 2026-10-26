@@ -11,7 +11,7 @@ Select checks for the actual trust boundary and reachable failure mode. Report f
 
 ## Offer the security review
 
-`hive-review-security` runs only when the user asks for it. A declared `Review` value, an earlier gate, a code reviewer's verdict, or unattended delegation never counts as asking, and an offer the user has not taken up is not a request.
+`hive-review-security` runs only when the user asks for it. An answer to the code-review question, an earlier gate, a code reviewer's verdict, or unattended delegation never counts as asking, and an offer the user has not taken up is not a request.
 
 When the change crosses a boundary this reference covers (permissions, untrusted input, process execution, public data exposure, or a dependency), offer the review in one line, never as a question that waits for an answer: name the boundaries it crosses, recommend it when one of them is authentication, authorization, secrets, or untrusted input reaching a command, query, or file path, and say that the user can ask for it at any time. The work continues. Make the offer in the one-line delivery statement or the delivery round when the plan or the request shows the boundary before the first edit, and otherwise in the next message to the user once a boundary appears, such as in a code reviewer's verdict or a correction round. Offer it again only for a boundary that no earlier offer named.
 
