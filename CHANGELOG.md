@@ -14,12 +14,10 @@ raise the minor or the patch version.
 
 - Before a plan decides which current requirements a change alters, or that it
   needs no requirement delta, the agent searches the specs, and any older
-  document that still states current rules, for what the change touches,
-  including lists meant to be complete and rules that forbid something, and
-  records the search in `proposal.md`. Hive's own specs now describe the Codex
-  wait floor in the optional capabilities and diagnostics, Pi's refusal of the
-  `ultra` effort, and which flow skills have no site page. Run `hive update` to
-  apply it.
+  document that still states current rules, for what the change touches and
+  for the lists an added item joins, reads the lists meant to be complete and
+  the rules that forbid something, and records the search in `proposal.md`.
+  Run `hive update` to apply it.
 - Agents read Hive skills, references and role files whole: no output limit
   below the file's size, no cut lines and no filtering, also inside a script,
   and they continue when a tool stops early. The four references over 16,000
