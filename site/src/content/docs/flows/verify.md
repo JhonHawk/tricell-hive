@@ -1,6 +1,6 @@
 ---
 title: Verify
-description: Check a built candidate at a level you can see and change, then integrate it as your delivery settings allow.
+description: Check a built candidate at a level you can see and change, then integrate it as your delivery answer allows.
 ---
 
 Verify is the step between a built change and a finished one. Build hands over a candidate; Verify gathers the evidence that it meets what you asked for and says what was not checked.

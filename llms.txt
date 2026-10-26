@@ -32,7 +32,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
 - [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
 - [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and hand over a built candidate
-- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the settings and the request set, then integrate it
+- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the session's answers and the request set, then integrate it
 - [flow-security](content/skills/flow-security/SKILL.md): run an independent security review when the user asks for it
 - [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources, honoring a `Completion` key's later completion point
 - [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served, moving tickets to the final state a `Completion` key names

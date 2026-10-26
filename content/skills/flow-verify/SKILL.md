@@ -1,6 +1,6 @@
 ---
 name: flow-verify
-description: "Verify a built candidate before it is accepted: affected tests, runtime checks, the UI gate, the full suite and the dedicated review, at the level the project's settings and the request set. Use when a candidate exists and needs evidence; not for writing code, deploying, or checking a deployed environment."
+description: "Verify a built candidate before it is accepted: affected tests, runtime checks, the UI gate, the full suite and the dedicated review, at the level the delivery, review and UI answers and the request set. Use when a candidate exists and needs evidence; not for writing code, deploying, or checking a deployed environment."
 ---
 
 # Verify a built candidate
