@@ -351,12 +351,13 @@ flowchart TD
   and reports findings without fixing them.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
   cleans up task-owned temporary resources while preserving unfinished work. It
-  runs at integration, also when a project declares a later completion point.
+  runs at integration, also when a project declares a later completion point in
+  its `Completion` key.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
   served. It never holds a close open: when a project declares a later
-  completion point, Deploy moves the ticket to its final state once the
-  condition holds.
+  completion point in its `Completion` key, Deploy moves the ticket to its final
+  state once the condition holds.
 
 The [shared guidance](content/guidance/global.md) owns the detailed authorization,
 preservation, evidence, and artifact rules. Local edits, commits, publication,
@@ -375,7 +376,12 @@ Two commands tune the setup from a terminal:
 
 - `hive project set` edits the `## Hive` section of the repository's `AGENTS.md`
   after confirmation, with `--set 'Key: value'` and `--unset Key` (and
-  `--dry-run` to preview).
+  `--dry-run` to preview). The section holds facts only; the delivery mode, the
+  review mechanism and the `UI verification` level are asked each session, and
+  `hive doctor` warns about leftover `Review`, `UI verification` or
+  `Delivery: automatic|interactive` lines. `hive doctor` exits non-zero when the
+  `## Hive` section has a blocking finding, and `harness-audit` can create or
+  update the section for you.
 - `hive voice` lists the voices (`hive voice list`), selects one with `hive voice set ID`,
   and turns it off with `hive voice off`.
 

@@ -32,11 +32,21 @@ Add a `## Hive` section to your repository's `AGENTS.md` with the project name,
 base branch, tracker, and specs folder. The agent asks for missing settings when
 the work first needs them.
 
-Optional keys in the same section let you answer the recurring questions once:
-`Environments`, `Review`, `Delivery`, `UI verification`, and `Hive guidance`.
+The section holds facts about the repository, not decisions. Optional keys in it
+are `Environments`, `Delivery: direct-base` (marks a support repository),
+`Completion` (a later completion point for tickets), and `Hive guidance`.
+The delivery mode, the review mechanism and the `UI verification` level are not
+keys: the agent asks them each session and reuses your answers for that session.
+A section that still holds `Review`, `UI verification` or `Delivery: automatic`
+or `interactive` keeps working, but those lines are no longer read and
+`hive doctor` warns about them.
 Each key's meaning and accepted values are in
 [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md).
-`hive project set` edits the section for you after a confirmation.
+`hive project set` edits the section for you after a confirmation, and the
+[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
+can create or update it for you: ask it to set up your repository's Hive section,
+and it proposes the facts with their evidence, asks the decisions it cannot
+deduce, and writes only what you accept.
 
 Then ask for an outcome and state its limits:
 
