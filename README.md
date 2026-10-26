@@ -344,7 +344,7 @@ flowchart TD
 - [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
-  the project's settings and your request set: affected tests, runtime and UI
+  your delivery, review and UI answers and your request set: affected tests, runtime and UI
   checks, the full suite and the dedicated review, and then integrates it.
 - [Security](https://hive.tricell.tech/flows/security/) ([skill](content/skills/flow-security/SKILL.md)) runs an independent
   security review only when you ask for it, inside Verify or on a merged commit,
