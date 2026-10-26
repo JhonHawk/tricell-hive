@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read when resolving the implementation code-review mechanism in the delivery round that [delivery decisions](delivery-decisions.md) sets, or when placing the dedicated code review in time. Before presenting the review question, read [questions](questions.md). Reading this reference does not invoke the planning workflow.
+Read when resolving the implementation code-review mechanism, in the delivery round that [delivery decisions](delivery-decisions.md) sets or, for work that will not end in a Git delivery, before its first edit as [flow-build](../../flow-build/SKILL.md) sets, or when placing the dedicated code review in time. Before presenting the review question, read [questions](questions.md). Reading this reference does not invoke the planning workflow.
 
 ## Resolve the review mechanism
 
