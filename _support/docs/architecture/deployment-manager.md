@@ -124,7 +124,16 @@ go run ./tooling/cli view serve [--port N] [--ttl D] [--home DIR] [--state-dir D
 `flow-walkthrough` publishes JSON for an installed Hive binary and creates standalone HTML only when that executable is absent; the [manifest publication contract](../../../content/skills/flow-walkthrough/references/walkthrough-manifest.md#publication-target) owns the choice. Ingestion needs only JSON and its referenced captures/recordings, not an HTML page. Server or registration failure does not select HTML.
 
 `view` is a local server for the walkthroughs that `flow-walkthrough` writes (`_support/workspace/*/walkthrough.json` and the files it references). The user starts and stops it; agents register sources through `hive view register`, query ingestion through `hive view status --dir`, and run `hive view open` only when the user chooses that option in a walkthrough question, as their skills set. `register` adds the root of `--dir`, or the current directory, to `viewer/registry.json` and writes nothing when it is already there; it needs no running server. That root is `<root>` when the directory, after resolving links, is inside `<root>/_support/workspace/` at any depth, whether or not `<root>` is a Git repository (a multi-repository workspace keeps its repositories as nested folders); otherwise it is the Git root; outside both it fails, naming both cases. A nested Git repository registered from its own folder keeps its own Git root. Projects group by the normalized `origin` remote only when the root is itself a Git toplevel (`git rev-parse --show-toplevel` equals the root); any other root, such as a non-Git workspace inside a versioned home, is keyed by its path and named from the `Project:` value of its own `AGENTS.md`. `start` launches `serve` detached (its own session, output to `viewer/server.log`), waits up to five seconds for its health check, and reports an already running server instead of starting a second one; `serve` runs in the foreground and holds an exclusive lock on `viewer/server.lock` for its whole life, so one state directory never has two servers. `status` prints JSON with the URL, PID, TTL and counts, never the access token; `open` requests a one-use code and opens `/#code=<code>` in the system's opener (`open` on macOS, `xdg-open` on Linux), never passing the server token or starting the server; `stop` signals the server only after its authenticated health check matches `viewer/server.json`.
-
+Each stored copy retains its resolved project key and name in optional
+`project_key` and `project_name` fields in `meta.json`. When a previously resolved
+remote becomes unavailable, including after a worktree is removed, its copies
+keep that identity across scans and restarts. Projects with the same display name
+are not merged by name. Older copies can recover their identity from a matching
+cached index entry; an identity already lost before the update needs an explicit,
+verified association. Stop the viewer before a manual repair and preserve its
+copy contents, archive/pin state and ingestion time. Older binaries reject the
+new metadata fields: keep a metadata backup before upgrading, and coordinate any
+binary rollback with restoration of compatible metadata.
 
 `status --dir <work folder>` preserves the normal status fields and adds `found`
 and `session_status`. It queries the existing authenticated index, without opening
