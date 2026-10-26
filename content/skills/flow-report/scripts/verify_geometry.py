@@ -2,8 +2,8 @@
 # Adapted diagram-design resources: ../references/license-diagram-design.md
 """Verify no diagram label mask is clipped by a node painted after it.
 
-diagram-grammar.md §6 keeps an arrow label 6-10px clear of its connector, and
-§5 fixes the paint order as background -> zones -> arrows -> labels -> nodes.
+diagram-svg-construction.md §5 keeps an arrow label 6-10px clear of its connector, and
+§4 and §5 fix the paint order as background -> zones -> arrows -> labels -> nodes.
 Nothing keeps a label mask off a *node*, so a label whose mask lands partly
 inside a node rectangle that is painted later gets covered by the node fill:
 the text renders as a fragment sitting on the node border.
@@ -19,7 +19,7 @@ Shape heuristics follow the shipped templates:
 
 * A node is a `<rect>` at least 60x40 - large enough for a title and sublabel.
 * A label mask is a `<rect>` 20-120 wide and 8-14 tall - the masking plate that
-  diagram-grammar.md prescribes for arrow labels and zone eyebrows.
+  diagram-svg-construction.md §4 prescribes for arrow labels and zone eyebrows.
 * A mask fully contained in a node is a badge chip (`EXT`, `EDGE`, `ORIG`) and
   is legal.
 
