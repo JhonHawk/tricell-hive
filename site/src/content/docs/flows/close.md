@@ -14,7 +14,7 @@ invoke another complete flow.
 
 ## When to use
 
-Use Close when work reaches its completion point (usually merged into the base branch, after any checks that must pass there), when you abandon it, when you pause it, or when you end the session or ask for a cleanup.
+Use Close when work reaches its completion point, when you abandon it, when you pause it, or when you end the session or ask for a cleanup. The completion point is usually the merge into the base branch, after any checks that must pass there; under `hold` it is the verified working tree, and when the delivery hands the open pull request to a human reviewer, it is opening that pull request. A project can declare a later completion point; the work still closes at integration, as [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md#later-completion-point) sets. After a promotion only the branch and process cleanup runs, with no completion report or closing question.
 
 Example requests:
 
@@ -38,13 +38,13 @@ before their source unit can be removed. If the viewer is offline, too old, has
 no matching copy or does not confirm within 15 seconds, the agent keeps the
 still-needed unit and reports its folder. It never starts or restarts the viewer
 to force confirmation. The procedure lives in
-[Close the current walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md#close-the-current-walkthrough).
+[Close the current walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/walkthrough-close.md).
 
-1. When the work is complete, moves the ticket to its finished state, along with the sub-issues the same work covered. A paused or abandoned ticket does not move to finished.
+1. When the work is complete, confirms the ticket is in the state the merge moved it to, along with the sub-issues the same work covered, or moves it now. When your project declares a later completion point, that state is the intermediate one its guidance names. Under `hold`, or while a pull request waits for a human reviewer, the ticket stays in progress and the report gives the missing delivery or merge as a reminder. A paused or abandoned ticket does not move to finished.
 2. Closes the change record, if there is one: for completed work it folds the plan's requirement changes into the project's current requirements, confirms that each one now matches what the plan said before marking the change completed, and it archives the folder. An abandoned change is archived without touching the requirements, with its unapplied changes kept apart so nothing reads them as applied.
 3. Checks merged branches and their working copies, returns to the base branch and removes eligible clean working copies before deleting their branches. The order and safety checks live in [Clean up after a merge](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md#clean-up-after-a-merge).
 4. Removes temporary files the task made, stops processes it or its helpers started, and puts back local things the task changed that you rely on, such as your development containers or database schema, instead of leaving them to you.
-5. Lists side findings that the running system can actually trigger, marks which ones it recommends turning into tickets, and lets you open a ticket for each, decline it, or ask not to hear about it again. It asks about every finding it lists, over several question cards when they do not fit in one, and never declines one on your behalf. A suspicion it could not trace that far stays in the report as unconfirmed, and so does a finding about the interface that it saw only in the code. A minor finding of the lowest priority (P3) also stays in the report only, without a ticket. It groups P2 findings that share an area or a cause into one proposal with one answer, and it proposes a finding about the interface as a ticket only after it saw the problem rendered. The rules live in [Incidental findings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/incidental-findings.md).
+5. Lists side findings that the running system can actually trigger, marks which ones it recommends turning into tickets, and lets you resolve each one in this work (naming Build for a small, understood change or Plan otherwise), open a ticket for it, decline it, or ask not to hear about it again. It asks about every finding it lists, over several question cards when they do not fit in one, and never declines one on your behalf. A suspicion it could not trace that far stays in the report as unconfirmed, and so does a finding about the interface that it saw only in the code. A minor finding of the lowest priority (P3) also stays in the report only, without a ticket. It groups P2 findings that share an area or a cause into one proposal with one answer, and it proposes a finding about the interface as a ticket only after it saw the problem rendered. The rules live in [Incidental findings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/incidental-findings.md).
 6. Writes a completion report that says what was done, what was cleaned, what stays open, and which implementation decisions it took without asking, with how to revert each.
 7. Asks what to do next: continue with a suggested ticket or the rest of the plan (it does not suggest a ticket it has just opened from that work's findings, unless the finding is critical or blocks the next step), take it to a new session, or end. The continue options give the estimated size of the suggested ticket once, or the remaining tasks of the plan. While a plan is still in progress, continuing covers all its remaining tasks and asks once for the permissions they still need, grouped by effect class (a critical effect, such as spending money or deleting data, is asked on its own); the agent does not suggest a new session then.
 
@@ -59,23 +59,23 @@ to force confirmation. The procedure lives in
 ## Related flows
 
 - [Verify](/flows/verify/) usually comes right before Close, because it integrates the change; [Build](/flows/build/) does when verify is skipped.
-- [Deploy](/flows/deploy/) is a separate stage after integration, part of a close only when your project declares deployment as the completion point.
+- [Deploy](/flows/deploy/) is a separate stage after integration. It never holds a close open: when your project declares a later completion point, Deploy moves the ticket to its final state once that condition holds.
 - [Plan](/flows/plan/) created the change record that Close archives.
 - [Research](/flows/research/) is separate. A research-only session ends with its route question instead.
 
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough manifest and optional page that you did not ask to keep: keeping the manifest or page keeps its referenced images and recordings too; keeping only individual images or recordings drops the remaining unit. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough manifest and optional page that you did not ask to keep: keeping the manifest or page keeps its referenced images and recordings too; keeping only individual images or recordings drops the remaining unit. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. Branches are deleted only when their pull request is yours and merged, and a remote branch only when its head is the one that was merged or already in the base branch, so commits pushed afterwards are not lost. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
-It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately.
+It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately; if your project names a later point as done, the ticket sits in an intermediate state until it holds.
 
 ### What if I only want to stop for now?
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking; a question card opens its question with the stage and ticket. With a question card that waits for your answer, the message keeps a summary line with the recommended option and the options are in the card; otherwise, or after a dismissal or timeout, the options are written in the message, which ends with the "Waiting for your decision:" line. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking; a question card opens its question with the stage and ticket. The options are in a question card when your tool shows one that waits for your answer, and in the message otherwise, as the [questions reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/questions.md) sets. A question whose options depend on your answers to the findings is asked in a later turn, after them. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.

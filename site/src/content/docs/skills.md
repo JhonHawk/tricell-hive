@@ -24,7 +24,8 @@ hold the canonical rules.
 - [Starlight documentation sites](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/starlight-docs-site/SKILL.md): scaffold, extend, or audit maintained documentation sites.
 - [Harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md): inspect agent instructions, skills, and role definitions.
 - [Security advisories](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/security-advisory/SKILL.md): check whether a published advisory affects your repositories, without changing them.
+- [Flow walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md): walk a built screen for you to validate, with captures and the viewer page.
 - [Workspace conventions](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/workspace-conventions/SKILL.md): organize support material and retain useful evidence.
 - [Workspace archive](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/workspace-archive/SKILL.md): archive explicitly selected, closed support sessions.
-- [Unattended delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md): coordinate bounded work after explicit unattended delegation.
+- [Unattended delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md): keep bounded work going after you delegate it, say you are leaving, or go quiet once you have answered the route question and each delivery and review value is declared or answered.
 - [Engram workspace initialization](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/engram-init-workspace/SKILL.md): establish an explicit workspace memory identity when requested.

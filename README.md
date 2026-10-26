@@ -279,6 +279,8 @@ hive doctor
 hive models
 ```
 
+**Releases.** `hive releases` lists the release snapshots Hive keeps.
+
 **Recover.** An interrupted operation blocks further plans until recovery runs:
 
 ```sh
@@ -348,11 +350,13 @@ flowchart TD
   security review only when you ask for it, inside Verify or on a merged commit,
   and reports findings without fixing them.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
-  cleans up task-owned temporary resources while preserving unfinished work.
+  cleans up task-owned temporary resources while preserving unfinished work. It
+  runs at integration, also when a project declares a later completion point.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
-  served. It is part of a ticket's close only when the project declares
-  deployment as the completion point.
+  served. It never holds a close open: when a project declares a later
+  completion point, Deploy moves the ticket to its final state once the
+  condition holds.
 
 The [shared guidance](content/guidance/global.md) owns the detailed authorization,
 preservation, evidence, and artifact rules. Local edits, commits, publication,
@@ -366,6 +370,14 @@ base branch, tracker, and the versioned requirements directory. Follow your CLI'
 native instruction and skill discovery mechanism.
 [Hive's repository guidance](AGENTS.md) is an example for this project, not a file
 to copy unchanged into another one.
+
+Two commands tune the setup from a terminal:
+
+- `hive project set` edits the `## Hive` section of the repository's `AGENTS.md`
+  after confirmation, with `--set 'Key: value'` and `--unset Key` (and
+  `--dry-run` to preview).
+- `hive voice` lists the voices (`hive voice list`), selects one with `hive voice set ID`,
+  and turns it off with `hive voice off`.
 
 Give the agent an outcome and clear boundaries:
 
@@ -427,7 +439,7 @@ In progress, Closed, or Not reported
 (`unknown`) for historical manifests without it. This is independent of source
 classification. Closed means the work passed through `flow-close`, including a
 pause or abandonment; it does not mean UI approval or that the host conversation
-ended. The [walkthrough close procedure](content/skills/flow-close/SKILL.md#close-the-current-walkthrough)
+ended. The [walkthrough close procedure](content/skills/flow-close/references/walkthrough-close.md)
 confirms the current closed copy before eligible source cleanup.
 
 When updating from a viewer that predates session status or delivery links, update the binary and

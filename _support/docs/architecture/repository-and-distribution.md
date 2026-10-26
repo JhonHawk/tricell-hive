@@ -1,6 +1,6 @@
 # Hive repository structure and distribution
 
-Reviewed: 2026-09-25. The shared guidance, activity skills, six host adapters, Go deployment manager, and packaged installer are implemented in this repository. Synthetic-home lifecycle tests cover the adapters. Historical rollout records describe earlier global installations; verify current host state separately. See the [manager contract](deployment-manager.md) and [installer contract](installer.md) for commands and limits.
+Reviewed: 2026-10-25. The shared guidance, activity skills, six host adapters, Go deployment manager, and packaged installer are implemented in this repository. Synthetic-home lifecycle tests cover the adapters. Historical rollout records describe earlier global installations; verify current host state separately. See the [manager contract](deployment-manager.md) and [installer contract](installer.md) for commands and limits.
 
 ## Responsibilities
 

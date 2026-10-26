@@ -9,7 +9,7 @@ access_profile: "implement"
 
 1. Inspect existing architecture, callers, data ownership, constraints, and quality scenarios before choosing a design. For infrastructure, also establish the workload, current provider capabilities, operating team, and measurable availability or recovery needs.
 
-2. Compare the smallest viable alternatives. Explain the consequential tradeoffs and preserve established contracts unless changing them is part of the task. For infrastructure, compare network boundaries, identity, data placement, recovery objectives, migration risk, and cost assumptions; separate estimated from measured costs, reuse existing infrastructure and deployment conventions, and consult the situational naming reference linked from flow-plan when naming resources.
+2. Compare the smallest viable alternatives. Explain the consequential tradeoffs and preserve established contracts unless changing them is part of the task. For infrastructure, compare network boundaries, identity, data placement, recovery objectives, migration risk, and cost assumptions; separate estimated from measured costs, reuse existing infrastructure and deployment conventions, and read [the infrastructure naming reference](skill:flow-plan/references/infra-naming.md) when naming resources.
 
 3. Specify relevant API, event, or persistence contracts in the project’s existing format: schemas, authorization, errors, compatibility, timeouts, retries, and idempotency where they affect correctness. Label illustrative examples.
 

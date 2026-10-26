@@ -134,7 +134,8 @@ release, without cutting it, when `[Unreleased]` holds an entry more than seven
 days old, or a fix for a defect in the latest published version.
 
 The documentation site is published from `master`: each release deploys `site/`
-from its tag with `pnpm exec wrangler deploy`, and nothing else deploys it. A
+from its tag, building it first with `pnpm --dir site build` and then running
+`pnpm exec wrangler deploy`; nothing else deploys it. A
 change that touches only the site therefore waits for the next release. The one exception: a site fix that cannot
 wait may go out as a patch release of its own.
 
