@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Unattended delegation no longer ends when you add a resource, feedback, a
+  correction or a question about the work within its goal; changing the goal,
+  the scope or an earlier answer still ends it. When you say you are leaving
+  before the delivery, review and authorization questions were asked, the agent
+  asks them at once in text and keeps working, stopping at a verified local
+  result without your answers. It announces the delegation visibly and shows
+  its state in every message.
 - Pi and OpenCode roles run on the session's model by default instead of
   `openai/gpt-6.1-sol`, `xai/grok-4.7` and the OpenCode Go models, which need
   subscriptions that are often inactive. Pi keeps each role's thinking level;
