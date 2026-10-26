@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -23,6 +24,19 @@ var renderedOpenCodeModel = regexp.MustCompile(`(?m)^model: "?([^"\n#]+)(?:#([^"
 // "Variant unavailable for <model>: <variant>" before any provider call.
 func TestOpenCodeRolesRequestOfferedVariants(t *testing.T) {
 	profiles, err := os.ReadFile(openCodeGoProfiles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Current roles include focused work; preserve the historical variant
+	// mapping without modifying the frozen release fixture.
+	var current Profiles
+	if err := json.Unmarshal(profiles, &current); err != nil {
+		t.Fatal(err)
+	}
+	for _, host := range current.Hosts {
+		host.Models["focused"] = host.Models["execution"]
+	}
+	profiles, err = json.Marshal(current)
 	if err != nil {
 		t.Fatal(err)
 	}

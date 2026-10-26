@@ -12,6 +12,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Codex uses GPT-6.1 Terra for state collection, documentation and UX review
+  through the new `focused` profile, while routine task verification uses
+  GPT-6.1 Sol high instead of GPT-6 Astra high. Other hosts keep their existing
+  role models and effort levels. Rebuild the manager before `hive update` to
+  support the new profile.
 - Unattended delegation no longer ends when you add a resource, feedback, a
   correction or a question about the work within its goal; changing the goal,
   the scope or an earlier answer still ends it. When you delegate or say you

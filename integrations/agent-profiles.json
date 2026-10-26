@@ -2,28 +2,28 @@
   "version": 1,
   "hosts": {
     "claude": {
-      "models": {"execution": {"model": "sonnet", "effort": "high"}, "reasoning": {"model": "opus", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "opus", "effort": "high"}},
+      "models": {"execution": {"model": "sonnet", "effort": "high"}, "focused": {"model": "sonnet", "effort": "high"}, "reasoning": {"model": "opus", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "opus", "effort": "high"}},
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit"]}, "implement": {}, "verify": {}}
     },
     "codex": {
-      "models": {"execution": {"model": "gpt-6.1-sol", "effort": "medium"}, "reasoning": {"model": "gpt-6.1-sol", "effort": "high"}, "inherit": {"effort": "high"}, "verifier": {"model": "gpt-6-astra", "effort": "high"}},
+      "models": {"execution": {"model": "gpt-6.1-sol", "effort": "medium"}, "focused": {"model": "gpt-6.1-terra", "effort": "medium"}, "reasoning": {"model": "gpt-6.1-sol", "effort": "high"}, "inherit": {"effort": "high"}, "verifier": {"model": "gpt-6.1-sol", "effort": "high"}},
       "access": {"observe": {}, "implement": {}, "verify": {}}
     },
     "grok": {
-      "models": {"execution": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "grok-4.6"}},
+      "models": {"execution": {}, "focused": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "grok-4.6"}},
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit", "write", "search_replace", "write_file", "apply_patch"]}, "implement": {}, "verify": {}}
     },
     "pi": {
-      "models": {"execution": {"model": "inherit", "effort": "medium"}, "reasoning": {"model": "inherit", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "inherit", "effort": "high"}},
+      "models": {"execution": {"model": "inherit", "effort": "medium"}, "focused": {"model": "inherit", "effort": "medium"}, "reasoning": {"model": "inherit", "effort": "high"}, "inherit": {"model": "inherit", "effort": "high"}, "verifier": {"model": "inherit", "effort": "high"}},
       "access": {"observe": {"excludeTools": ["write", "edit"]}, "implement": {}, "verify": {}}
     },
     "opencode": {
-      "models": {"execution": {}, "reasoning": {}, "inherit": {}, "verifier": {}},
+      "models": {"execution": {}, "focused": {}, "reasoning": {}, "inherit": {}, "verifier": {}},
       "variants": {"opencode-go/deepseek-v4.1-flash": ["low", "high", "max"], "opencode-go/deepseek-v4-pro": ["high", "max"], "opencode-go/glm-5.3": ["low", "high", "max"]},
       "access": {"observe": {"permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]}, "implement": {}, "verify": {}}
     },
     "cursor": {
-      "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
+      "models": {"execution": {"model": "inherit"}, "focused": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
       "access": {"observe": {"readonly": true}, "implement": {}, "verify": {}}
     }
   }
