@@ -12,6 +12,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Pi and OpenCode roles run on the session's model by default instead of
+  `openai/gpt-6.1-sol`, `xai/grok-4.7` and the OpenCode Go models, which need
+  subscriptions that are often inactive. Pi keeps each role's thinking level;
+  OpenCode roles also take the session's effort. Run `hive update` to apply it,
+  and `hive models set` to choose a model per role.
 - The `## Hive` section of `AGENTS.md` now holds facts only: `Project`,
   `Base branch`, `Tracker`, `Specs`, `Environments`, `Delivery: direct-base`,
   `Completion` and `Hive guidance`. The delivery mode, the review mechanism and
@@ -27,6 +32,17 @@ raise the minor or the patch version.
   the accepted outcomes in the current project, including creating or updating
   the `## Hive` section, and validates it with `hive doctor --project`.
 
+### Fixed
+
+- The walkthrough viewer preserves a project's resolved identity when a worktree
+  disappears or its remote cannot be read, including after a restart, instead of
+  splitting its saved copies into another project with the same name (#193).
+  Migration: stop the viewer and back up its `index.json` and session `meta.json`
+  files before the first start with the updated binary. The new binary upgrades
+  metadata automatically. Older binaries reject the new identity fields, so a
+  rollback also needs compatible metadata restored from the backup, preserving
+  any archive or pin changes made since that backup.
+
 ### Migration
 
 - Remove `Review`, `UI verification` and `Delivery: automatic|interactive` from
@@ -36,7 +52,7 @@ raise the minor or the patch version.
 - Move a later completion point written in prose into `Completion`.
 - Scripts that run `hive doctor` must expect a non-zero exit when the section
   has a blocking finding, and, with `--project` given explicitly, when the
-  repository has no section.
+  repository has no section or the path cannot be checked.
 
 ## [0.6.0] - 2026-10-25
 

@@ -177,6 +177,163 @@ func TestIndexWorktreesOfOneRemoteShareTheProject(t *testing.T) {
 	}
 }
 
+func TestIndexRemovedWorktreeKeepsItsProjectAfterRefreshAndRestart(t *testing.T) {
+	e := newEnv(t)
+	main, worktree := newRepo(t), newRepo(t)
+	e.remotes[main] = "git@github.com:o/r.git"
+	e.remotes[worktree] = "https://github.com/o/r"
+	e.hive[worktree] = "Shared Name"
+	e.place(main, "a", nil)
+	e.place(worktree, "b", nil)
+	e.register(main)
+	e.register(worktree)
+	e.start()
+	e.sync()
+	if err := os.RemoveAll(worktree); err != nil {
+		t.Fatal(err)
+	}
+	delete(e.hive, worktree)
+	e.advance(projectRefresh + time.Second)
+	e.sync()
+	assertShared := func() {
+		t.Helper()
+		view := e.store.View()
+		if len(view.Projects) != 1 || view.Projects[0].Key != "github.com/o/r" || len(e.sessions()) != 2 {
+			t.Fatalf("removed worktree split the project: %+v", view.Projects)
+		}
+		for _, sess := range e.sessions() {
+			if sess.Repository == worktree && sess.ProjectName != "Shared Name" {
+				t.Fatalf("lost stored name: %+v", sess)
+			}
+		}
+	}
+	assertShared()
+	e.store = e.open()
+	e.start()
+	e.sync()
+	assertShared()
+}
+
+func TestIndexMissingWorktreeIdentitySurvivesIndexRebuild(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	e.remotes[repo] = "git@github.com:o/r.git"
+	e.place(repo, "a", nil)
+	e.register(repo)
+	e.start()
+	e.sync()
+	if err := os.RemoveAll(repo); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(e.store.indexPath()); err != nil {
+		t.Fatal(err)
+	}
+	e.store = e.open()
+	e.start()
+	if got := e.onlySession().ProjectKey; got != "github.com/o/r" {
+		t.Fatalf("rebuilt key = %q", got)
+	}
+}
+
+func TestIndexLegacyIdentityIsRecoveredAndSavedToMetadata(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	e.remotes[repo] = "git@github.com:o/r.git"
+	e.place(repo, "a", nil)
+	e.register(repo)
+	e.start()
+	e.sync()
+	key := e.onlySession().Key
+	path := filepath.Join(e.sessionDir(key), "meta.json")
+	var legacy map[string]any
+	if err := json.Unmarshal(readFile(t, path), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	delete(legacy, "project_key")
+	delete(legacy, "project_name")
+	if err := writeJSONAtomic(path, legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(repo); err != nil {
+		t.Fatal(err)
+	}
+	// Existing installations already saved the verified identity in index.json.
+	e.store = e.open()
+	e.start()
+	if got := e.onlySession().ProjectKey; got != "github.com/o/r" {
+		t.Fatalf("legacy key = %q", got)
+	}
+	if err := os.Remove(e.store.indexPath()); err != nil {
+		t.Fatal(err)
+	}
+	e.store = e.open()
+	e.start()
+	if got := e.onlySession().ProjectKey; got != "github.com/o/r" {
+		t.Fatalf("migrated key = %q", got)
+	}
+}
+
+func TestIndexRemoteFailureKeepsIdentityForUpdatedAndNewSessions(t *testing.T) {
+	e := newEnv(t)
+	repo := newRepo(t)
+	e.remotes[repo] = "git@github.com:o/r.git"
+	e.hive[repo] = "Shared Name"
+	e.place(repo, "a", nil)
+	e.register(repo)
+	e.start()
+	e.sync()
+	delete(e.remotes, repo)
+	delete(e.hive, repo)
+	e.advance(projectRefresh + time.Second)
+	e.place(repo, "a", func(m map[string]any) { m["title"] = "Updated walkthrough" })
+	e.place(repo, "b", nil)
+	if res := e.sync(); res.Replaced != 1 || res.Added != 1 {
+		t.Fatalf("sync = %+v", res)
+	}
+	e.store = e.open()
+	e.start()
+	view := e.store.View()
+	if len(view.Projects) != 1 || view.Projects[0].Key != "github.com/o/r" || view.Projects[0].Name != "Shared Name" || len(e.sessions()) != 2 {
+		t.Fatalf("remote failure lost project identity: %+v", view.Projects)
+	}
+	// A verified remote change still takes effect after a failed refresh.
+	e.remotes[repo] = "git@github.com:o/replacement.git"
+	e.advance(projectRefresh + time.Second)
+	e.sync()
+	if got := projectOf(t, e, repo).Key; got != "github.com/o/replacement" {
+		t.Fatalf("new remote key = %q", got)
+	}
+}
+
+func TestIndexSameNameDoesNotMergeDistinctOrUnknownRepositories(t *testing.T) {
+	e := newEnv(t)
+	first, second, local := newRepo(t), newRepo(t), newRepo(t)
+	e.remotes[first] = "git@github.com:one/repo.git"
+	e.remotes[second] = "git@github.com:two/repo.git"
+	for _, repo := range []string{first, second, local} {
+		e.hive[repo] = "Same Name"
+		e.place(repo, "a", nil)
+		e.register(repo)
+	}
+	e.start()
+	e.sync()
+	if err := os.RemoveAll(second); err != nil {
+		t.Fatal(err)
+	}
+	e.advance(projectRefresh + time.Second)
+	e.sync()
+	e.store = e.open()
+	e.start()
+	if len(e.store.View().Projects) != 3 {
+		t.Fatalf("same names merged: %+v", e.store.View().Projects)
+	}
+	for repo, want := range map[string]string{first: "github.com/one/repo", second: "github.com/two/repo", local: local} {
+		if got := projectOf(t, e, repo).Key; got != want {
+			t.Fatalf("key = %q, want %q", got, want)
+		}
+	}
+}
+
 func TestIndexGroupsByProjectThenTicketThenSessionNewestFirst(t *testing.T) {
 	e := newEnv(t)
 	repo := newRepo(t)

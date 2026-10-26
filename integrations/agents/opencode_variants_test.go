@@ -9,14 +9,20 @@ import (
 	"testing"
 )
 
+// openCodeGoProfiles is the release profiles as they stood when OpenCode roles
+// ran on OpenCode Go models with declared variants. The repository profiles now
+// inherit the session model on OpenCode, so the variant mapping, which still
+// applies to model overrides and to frozen releases, is tested against this copy.
+var openCodeGoProfiles = filepath.Join("testdata", "opencode-go-profiles.json")
+
 var renderedOpenCodeModel = regexp.MustCompile(`(?m)^model: "?([^"\n#]+)(?:#([^"\n]+))?"?$`)
 
 // TestOpenCodeRolesRequestOfferedVariants renders every shipped role for
-// OpenCode with the repository profiles and fails when the resulting variant is
+// OpenCode with the OpenCode Go profiles and fails when the resulting variant is
 // not one the model offers. OpenCode 2.0.27 rejects such a launch with
 // "Variant unavailable for <model>: <variant>" before any provider call.
 func TestOpenCodeRolesRequestOfferedVariants(t *testing.T) {
-	profiles, err := os.ReadFile(filepath.Join("..", "agent-profiles.json"))
+	profiles, err := os.ReadFile(openCodeGoProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +85,7 @@ func TestNearestOffered(t *testing.T) {
 }
 
 func TestReadProfilesOpenCodeVariants(t *testing.T) {
-	base, err := os.ReadFile(filepath.Join("..", "agent-profiles.json"))
+	base, err := os.ReadFile(openCodeGoProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +112,7 @@ func TestReadProfilesOpenCodeVariants(t *testing.T) {
 
 func resolveOpenCode(t *testing.T, profile, roleEffort string, o *ModelOverride) (Model, error) {
 	t.Helper()
-	profiles, err := os.ReadFile(filepath.Join("..", "agent-profiles.json"))
+	profiles, err := os.ReadFile(openCodeGoProfiles)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +151,7 @@ func TestOpenCodeModelOnlyOverrideMapsAgainstNewModel(t *testing.T) {
 }
 
 func TestReadProfilesRequiresEntryForEveryVariantModel(t *testing.T) {
-	base, _ := os.ReadFile(filepath.Join("..", "agent-profiles.json"))
+	base, _ := os.ReadFile(openCodeGoProfiles)
 	for name, c := range map[string]struct{ from, to string }{
 		"typo in effort model": {`"model": "opencode-go/glm-5.3", "effort": "high"`, `"model": "opencode-go/glm-5-3", "effort": "high"`},
 		"embedded variant":     {`"model": "opencode-go/deepseek-v4.1-flash#max"`, `"model": "opencode-go/other#max"`},

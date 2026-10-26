@@ -214,6 +214,8 @@ type meta struct {
 	IngestedAt  time.Time `json:"ingested_at"`
 	Pinned      bool      `json:"pinned"`
 	Archived    bool      `json:"archived,omitempty"`
+	ProjectKey  string    `json:"project_key,omitempty"`
+	ProjectName string    `json:"project_name,omitempty"`
 }
 
 func readMeta(dir string) (meta, error) {
@@ -304,16 +306,21 @@ func sessionFrom(key string, m meta, sm summary) Session {
 		Key: key, Source: m.Source, ContentHash: m.ContentHash, IngestedAt: m.IngestedAt.UTC(), Pinned: m.Pinned, Archived: m.Archived,
 		SessionID: sm.Session.ID, SessionStatus: string(sm.Session.Status), Host: sm.Session.Host, Ticket: sm.Ticket, Title: sm.Title,
 		Kind: sm.Kind, CreatedAt: sm.CreatedAt,
+		Repository: repoRootOf(m.Source), ProjectKey: m.ProjectKey, ProjectName: m.ProjectName,
 	}
 }
 
 // load builds the index from disk: sessions from sessions/*/meta.json (the
 // source of truth, including pins and archive flags), tombstones and ingest
-// errors from a readable index.json. A missing or corrupt index.json only
-// loses those two.
+// errors from a readable index.json. For older metadata without project identity,
+// a matching index entry supplies the previously resolved identity.
 func (s *Store) load() *indexData {
 	d := newIndexData()
+	previous := map[string]Session{}
 	if prev, ok := s.readIndexFile(); ok {
+		for _, sess := range prev.Sessions {
+			previous[sess.Key] = sess
+		}
 		d.Tombstones = append(d.Tombstones, prev.Tombstones...)
 		for _, e := range prev.Errors {
 			if !strings.HasPrefix(e.Path, s.sessionsDir()+string(filepath.Separator)) {
@@ -339,7 +346,11 @@ func (s *Store) load() *indexData {
 			d.Errors = append(d.Errors, IngestError{Path: dir, Reason: err.Error()})
 			continue
 		}
-		d.Sessions = append(d.Sessions, sessionFrom(e.Name(), m, sm))
+		sess := sessionFrom(e.Name(), m, sm)
+		if prev, ok := previous[sess.Key]; ok && sess.ProjectKey == "" && prev.Source == sess.Source && prev.Repository == repoRootOf(sess.Source) {
+			sess.Repository, sess.ProjectKey, sess.ProjectName = prev.Repository, prev.ProjectKey, prev.ProjectName
+		}
+		d.Sessions = append(d.Sessions, sess)
 	}
 	if reg, err := readRegistry(s.vdir); err == nil {
 		d.Repositories = repositoryStatuses(reg)
@@ -375,6 +386,28 @@ func repositoryStatuses(reg Registry) []RepositoryStatus {
 // caller holds s.mu (or is Open).
 func (s *Store) commit(d *indexData) error {
 	d.sorted()
+	previous := map[string]Session{}
+	if s.lastPersisted != nil {
+		for _, sess := range s.current().Sessions {
+			previous[sess.Key] = sess
+		}
+	}
+	for _, sess := range d.Sessions {
+		if prev, ok := previous[sess.Key]; ok && prev.ProjectKey == sess.ProjectKey && prev.ProjectName == sess.ProjectName {
+			continue
+		}
+		m, err := readMeta(s.sessionDir(sess.Key))
+		if err != nil {
+			return err
+		}
+		if m.ProjectKey == sess.ProjectKey && m.ProjectName == sess.ProjectName {
+			continue
+		}
+		m.ProjectKey, m.ProjectName = sess.ProjectKey, sess.ProjectName
+		if err := writeJSONAtomic(filepath.Join(s.sessionDir(sess.Key), "meta.json"), m); err != nil {
+			return err
+		}
+	}
 	s.viewMu.Lock()
 	s.idx = d
 	s.viewMu.Unlock()
