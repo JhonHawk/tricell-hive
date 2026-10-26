@@ -5,7 +5,7 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
-This skill grants no effect of its own. The global guidance authorizes the deletions it names (task temporaries, processes the task or its children started, merged work branches from this work or earlier and their clean worktrees) and the ticket state moves; everything else here follows the delivery answer already recorded for the work.
+This skill grants no effect of its own. The global guidance authorizes the deletions it names (task temporaries, processes the task or its children started, merged work branches from this work or the user's earlier work and their clean worktrees) and the ticket state moves; everything else here follows the delivery answer already recorded for the work.
 
 Before a report, read [reporting](references/reporting.md); before a user decision or manual validation request, read [questions](../flow-plan/references/questions.md). Before cleaning support artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before resolving settings needed for closure, read [project settings](../flow-plan/references/project-settings.md).
 
