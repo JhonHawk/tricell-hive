@@ -63,6 +63,11 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"flow-plan/references/plan-review.md",
 		skills+"flow-plan/references/delivery-decisions.md",
 		skills+"flow-build/references/verification.md",
+		// Split out of the three entries above (issue #204).
+		skills+"flow-plan/references/review-decisions.md",
+		skills+"flow-plan/references/plan-criteria-and-markers.md",
+		skills+"flow-plan/references/plan-handoff.md",
+		skills+"flow-build/references/foreseen-authorizations.md",
 		skills+"flow-research/references/delegation.md",
 		skills+"workspace-conventions/references/artifact-layout.md",
 		"content/agents/review/hive-review-plan.md",
@@ -81,6 +86,10 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-verify/references/review-and-gates.md":          true,
 		skills + "flow-research/references/delegation.md":              true,
 		skills + "workspace-conventions/references/artifact-layout.md": true,
+		skills + "flow-plan/references/review-decisions.md":            true,
+		skills + "flow-plan/references/plan-criteria-and-markers.md":   true,
+		skills + "flow-plan/references/plan-handoff.md":                true,
+		skills + "flow-build/references/foreseen-authorizations.md":    true,
 	}
 	scenarios := []struct {
 		name, predicate string
