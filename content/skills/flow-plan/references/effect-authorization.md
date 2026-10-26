@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before asking the user to authorize an effect beyond this machine, and before writing the foreseen authorizations of a plan or of the first build question. Reading it authorizes no effect and does not invoke the planning workflow. Format each question as [questions](questions.md) sets; when to ask is set in [verification](../../flow-build/references/verification.md#gate-selection-and-timing).
+Read before asking the user to authorize an effect beyond this machine, and before writing the foreseen authorizations of a plan or of the first build question. Reading it authorizes no effect and does not invoke the planning workflow. Format each question as [questions](questions.md) sets; when to ask is set in [foreseen authorizations](../../flow-build/references/foreseen-authorizations.md).
 
 ## Classify each effect
 
