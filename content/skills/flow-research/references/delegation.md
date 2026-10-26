@@ -36,7 +36,7 @@ A child works only in its assigned working tree and named paths, lists planned d
 
 Deployed roles and global guidance link installed paths, root-relative at project scope. Resolve any other skill through the host's catalog or loader or an explicit task path and read its resources, including a remaining `skill:owner/path` link, relative to that skill's directory, not the current directory or agent file. A `skill:` link is not a host command or auto-expanded URI, and reading a resource does not invoke the skill's whole workflow.
 
-The child reads these sources before dependent work. If resolution is ambiguous, inaccessible or unavailable, it pauses only the work requiring that source, continues independent work, and reports the unavailable source in its final reply with what it could not do; only when the source blocks the whole assignment is it the one blocker message the global delegation rule allows. An installed file or listed skill is not proof of reading.
+The child reads these sources before dependent work, and the skills, references and role files among these sources whole, as the global guidance sets. If resolution is ambiguous, inaccessible or unavailable, it pauses only the work requiring that source, continues independent work, and reports the unavailable source in its final reply with what it could not do; only when the source blocks the whole assignment is it the one blocker message the global delegation rule allows. An installed file or listed skill is not proof of reading.
 
 ## Launch and wait
 
