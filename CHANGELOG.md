@@ -15,6 +15,11 @@ raise the minor or the patch version.
 - The walkthrough viewer preserves a project's resolved identity when a worktree
   disappears or its remote cannot be read, including after a restart, instead of
   splitting its saved copies into another project with the same name (#193).
+  Migration: stop the viewer and back up its `index.json` and session `meta.json`
+  files before the first start with the updated binary. The new binary upgrades
+  metadata automatically. Older binaries reject the new identity fields, so a
+  rollback also needs compatible metadata restored from the backup, preserving
+  any archive or pin changes made since that backup.
 
 ## [0.6.0] - 2026-10-25
 
