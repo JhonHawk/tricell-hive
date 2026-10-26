@@ -7,7 +7,7 @@ A documentation site for people, published at https://hive.tricell.tech/, that d
 ## Requirements
 
 ### Requirement: Published documentation site
-The repository SHALL contain a static documentation site in `site/`, built with the pinned toolchain in `site/package.json`, and it SHALL be published from `master` at `https://hive.tricell.tech/`, as a Cloudflare Worker reached through the route `hive.tricell.tech/*`. The site SHALL have a landing page and one page per flow skill: `flows/research/`, `flows/plan/`, `flows/build/`, `flows/verify/`, `flows/deploy/`, `flows/close/`, and `flows/security/`. Its text SHALL be in English, the product language.
+The repository SHALL contain a static documentation site in `site/`, built with the pinned toolchain in `site/package.json`, and it SHALL be published from `master` at `https://hive.tricell.tech/`, as a Cloudflare Worker reached through the route `hive.tricell.tech/*`. The site SHALL have a landing page and one page for each of these flow skills: `flows/research/`, `flows/plan/`, `flows/build/`, `flows/verify/`, `flows/deploy/`, `flows/close/`, and `flows/security/`. The `flow-report` and `flow-walkthrough` skills have no flow page. Its text SHALL be in English, the product language.
 
 #### Scenario: Site served after a release
 - **WHEN** a release promotes a commit containing `site/` to `master`, builds `site/`, and deploys it from its tag
