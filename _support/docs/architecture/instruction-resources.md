@@ -10,7 +10,7 @@ Native agent renderers can flatten or relocate role files. In role instructions,
 
 ## Runtime resolution
 
-The essential runtime boundaries and read conditions remain in `content/guidance/global.md`; the delegation procedure has its canonical home in `content/skills/flow-research/references/delegation.md`. Resolve the named skill through the host's available catalog/loader or an explicit task path, then read the resource relative to that skill directory. Reading a reference does not invoke its owner's complete workflow. Native discovery, parent context inheritance, and automatic reference reading are different capabilities; do not assume one establishes another.
+The essential runtime boundaries and read conditions remain in `content/guidance/global.md`; the delegation procedure has its canonical home in `content/skills/flow-research/references/delegation.md`. Resolve the named skill through the host's available catalog/loader or an explicit task path, then read the resource relative to that skill directory. Reading a reference does not invoke its owner's complete workflow; a resource that is read is read whole, under the resource rule in `content/guidance/global.md`, and `tests/content/skill_size_test.go` keeps each reference at or under 16,000 bytes (issue #204). Native discovery, parent context inheritance, and automatic reference reading are different capabilities; do not assume one establishes another.
 
 Canonical procedural homes under `content/skills/`:
 
@@ -105,4 +105,4 @@ callback checks do not resolve that separate prerequisite.
 
 ## Vendored upstream material
 
-`content/skills/flow-report/references/diagram-grammar.md` adapts [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) v2.3.2 (MIT). To pull upstream updates, re-read that repository's `skills/diagram-design/SKILL.md` §4–§9 and `references/type-*.md`, then re-map them onto the reference. Deliberately not adopted: Mermaid/draw.io import pipelines, animation, PNG/SVG export, brand onboarding, and long-tail types (medallion, radar, venn, DP matrices, loop, org chart).
+`content/skills/flow-report/references/diagram-grammar.md` and `diagram-svg-construction.md` (one numbering, split at 16,000 bytes) adapt [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) v2.3.2 (MIT). To pull upstream updates, re-read that repository's `skills/diagram-design/SKILL.md` §4–§9 and `references/type-*.md`, then re-map them onto the two references. Deliberately not adopted: Mermaid/draw.io import pipelines, animation, PNG/SVG export, brand onboarding, and long-tail types (medallion, radar, venn, DP matrices, loop, org chart).

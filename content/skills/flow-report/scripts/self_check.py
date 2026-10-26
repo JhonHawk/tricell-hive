@@ -28,7 +28,7 @@ flow-report skill. Local changes:
     `ASCII_DECIMAL_RE`, `MOTION_TEMPLATE`/`SKILL_DIR`, every `data-motion-*`
     tracking field on the parser, and the now-orphaned `<style>` text
     capture (`styles`/`_in_style`) that only ever fed the reduced-motion CSS
-    check). Motion is deliberately un-adopted by diagram-grammar.md and
+    check). Motion is deliberately un-adopted by diagram-svg-construction.md (§3, Motion) and
     flow-report ships no `template-motion.html`, so upstream's "any
     `<script>` implies the canonical motion controller" assumption is wrong
     for us: a real report ships page-level `<script>` (the baseline

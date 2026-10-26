@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Agents read Hive skills, references and role files whole: no output limit
+  below the file's size, no cut lines and no filtering, also inside a script,
+  and they continue when a tool stops early. The four references over 16,000
+  bytes are split by responsibility into smaller files (review decisions, the
+  UI verification decision, plan criteria and markers, the plan handoff,
+  foreseen authorizations and SVG diagram construction), and a test keeps
+  every reference at or under that size. Run `hive update` to apply it.
 - Codex uses GPT-6.1 Terra for state collection, documentation and UX review
   through the new `focused` profile, while routine task verification uses
   GPT-6.1 Sol high instead of GPT-6 Astra high. Other hosts keep their existing
