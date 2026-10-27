@@ -807,7 +807,9 @@ export function ViewerApplication({
             <AlertDialogTitle>{t.confirm}</AlertDialogTitle>
             <AlertDialogDescription>{t.confirmBody}</AlertDialogDescription>
           </AlertDialogHeader>
-          <p className="break-words text-sm">{deleteTarget?.title}</p>
+          <p className="min-w-0 text-sm [overflow-wrap:anywhere]">
+            {deleteTarget?.title}
+          </p>
           <p className="text-sm">
             {t.storedCount}:{" "}
             {deleteMembers.length ||

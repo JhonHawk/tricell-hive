@@ -700,7 +700,7 @@ export function ViewerShell({
                 </p>
                 <h1
                   title={selected?.title}
-                  className="line-clamp-2 break-words text-lg font-semibold tracking-tight"
+                  className="min-w-0 text-lg font-semibold tracking-tight [overflow-wrap:anywhere]"
                 >
                   {selected?.title ?? copy.library}
                 </h1>
