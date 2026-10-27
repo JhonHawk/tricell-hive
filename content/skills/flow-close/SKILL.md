@@ -25,7 +25,7 @@ Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL
 Before these steps, follow [Close the current walkthrough](#close-the-current-walkthrough) when this work has one. Run these steps in order; the last one ends the turn.
 
 1. **Tracker.** When the work was integrated, confirm the move the global ticket-state rule made then, or apply it now, for the ticket and each sub-issue the same work covers; under `hold`, a human-review route or a pause, leave it in progress; when abandoned, report the move back as a reminder.
-2. **Change record.** When the work has a change folder, close it as described in [Close the change record](#close-the-change-record).
+2. **Change record.** When the work has a change folder, handle it by its state as [Close the change record](#close-the-change-record) sets.
 3. **Git cleanup.** Run [Clean up after a merge](#clean-up-after-a-merge) when you merged. When the change record goes to the base branch through a closing pull request, do this step after that publication, not before. Update the record of each worktree you removed, merged or abandoned, in the project's persistent memory, when one is available, to say it was removed, so no later session tries to resume it; write these records, with the recurrence counts of step 5, in one memory write after step 5 and before the report, also when no worktree was removed but counts changed; the answers to the findings question are saved later, when the user gives them, as [incidental findings](references/incidental-findings.md) sets.
 4. **Temporaries and processes.** Remove only reproducible temporary files this task created and no longer needs, and stop only the processes it or its children started, including those recorded when a child returned, as [check returned work](../flow-research/references/delegation.md#check-returned-work) sets; a recorded process is not of uncertain ownership. Keep prior material, unique evidence, and anything whose ownership or disposability is uncertain. Restore the local state the user relies on that this task changed, such as containers or services left pointing at a removed worktree, or a local development database behind migrations the work integrated: do it yourself rather than listing it for the user. First check that restoring loses none of the user's data; if it could, ask, stating what you checked.
 5. **Incidental findings.** Before listing, asking about or recording incidental findings, read and follow [incidental findings](references/incidental-findings.md); it holds how they are listed, asked about, answered and recorded.
@@ -64,7 +64,13 @@ When completing, abandoning or pausing the current work with a `walkthrough.json
 
 ## Close the change record
 
-Run this after the code is integrated and any required post-merge CI has passed. While the work runs, `tasks.md` and the status in `proposal.md` are updated on disk only; nobody versions the folder before this step.
+While the work runs, `tasks.md` and the status in `proposal.md` are updated on disk only; nobody versions the folder before this step. Select the case before applying any of the integrated-change steps below:
+
+- **Pause:** do not apply deltas or archive. Leave the folder on disk with its current status and report it as pending.
+- **Abandon:** do not apply deltas. Archive the folder with its delta folder renamed with an `unapplied-` prefix (`unapplied-specs/`, `unapplied-product/`) so no check reads it as applied, record the reason in `proposal.md`, and version it by the chosen closing route; under `hold` leave it unversioned.
+- **`hold`:** do not apply deltas or archive before integration. Keep the record unversioned and report it as a reminder, like the code.
+- **Human-review route:** do not apply deltas or archive before the reviewer merges and required post-merge CI passes. Until then, report the record as a reminder with the open pull request.
+- **Integrated:** after the code is integrated and any required post-merge CI has passed, apply the following steps in order.
 
 1. For each delta file, apply it to the current-requirements home. Use the delta formats in [change records](../flow-plan/references/change-records.md#requirement-deltas) and, for a product map, [product map projects](../flow-plan/references/change-records.md#product-map-projects). In `<specs>/specs/`: apply ADDED requirements to `<specs>/specs/<capability>/spec.md`, creating it when absent, with the delta's preamble as its title and Purpose; replace each MODIFIED requirement block by name; delete each REMOVED block. Edit only those blocks, leave the rest of the file untouched, and review the resulting diff. Then check every delta: each ADDED or MODIFIED requirement appears in the spec with the same text, apart from whitespace, and no `### Requirement:` heading of a REMOVED one remains; on a product-map page, the new text of each ADDED or MODIFIED rule, without its marker or quoted current rule, is present and each REMOVED rule is gone. Fix the spec where it does not match.
 2. Set the change's status in `proposal.md` to Completed only after that check passes, the final phase in [the plan format](../flow-plan/references/plan-format.md), citing the commit or pull request that integrated it.
@@ -76,10 +82,6 @@ Versioning cases:
 
 - **Specs repository with `Delivery: direct-base`:** one commit and one push with the deltas applied and the folder already in `archive/`, after the code is integrated and, when it applies, the post-merge CI has passed.
 - **Specs inside the code repository, or in a separate specs repository that does not declare `Delivery: direct-base`:** the commit goes to the base branch by the closing route the user chose in the delivery question: a direct push, or a small closing pull request without dedicated review, with the named merger. Act only on the recorded answer, as [delivery decisions](../flow-plan/references/delivery-decisions.md) sets; repository policy does not replace it. Order: return to the base branch and fast-forward it, make the record commit, publish it by the chosen route, then clean up as [Clean up after a merge](#clean-up-after-a-merge) sets, including the closing pull request's branch. If no closing route was recorded, ask for it before publishing.
-- **`hold`:** the record stays unversioned and is reported as a reminder, like the code.
-- **Human-review route:** close the record after the reviewer merges, by the same closing route; until then, report it as a reminder with the open pull request.
-- **Pause:** do not archive. Leave the folder on disk with its current status and report it as pending.
-- **Abandon:** archive without applying deltas, renaming its delta folder with an `unapplied-` prefix (`unapplied-specs/`, `unapplied-product/`) so no check reads it as applied, with the reason in `proposal.md`, and version it by the same closing route as a normal close.
 
 ## Clean up after a merge
 
