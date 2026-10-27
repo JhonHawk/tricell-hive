@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before listing, asking about or recording the incidental findings that the global guidance says to propose at a work item's close. Reading this reference does not invoke the closing workflow; [flow-close](../SKILL.md) runs it.
+Read before proposing an incidental finding, during the work or at a work item's close, and before listing, asking about or recording the incidental findings that the global guidance says to propose. Reading this reference does not invoke the closing workflow; [flow-close](../SKILL.md) runs it.
 
 ## Actions
 
@@ -10,13 +10,13 @@ Only findings that pass [Which findings are listed and how](#which-findings-are-
 
 ## Which findings are listed and how
 
-This section narrows the incidental-findings rule in the global guidance at the close, and names each element it changes; every other element of that rule stands. It applies to every finding listed above, whatever its source, including the pre-existing findings that the build, review and UI gates hand over.
+This section narrows the incidental-findings rule in the global guidance wherever a finding is proposed, during the work or at the close, and names each element it changes; every other element of that rule stands. It applies to every finding proposed or listed, whatever its source, including the pre-existing findings that the build, review and UI gates hand over.
 
 - **Remaining defect with a concrete failure scenario, proposed.** A finding is proposed only when its priority is P2 or higher. A P3 finding is not proposed; [the P3 rule](../../flow-verify/references/review-and-gates.md#dedicated-code-review) in the verification reference sets what happens to it. Style or wording nits stay in the report only, as the global guidance sets, except a global finding of the UI review, which [the UI gate](../../flow-verify/references/ui-gate.md#the-independent-children) records once in the project UI guide.
 - **Severity.** Give every proposed finding a priority from P0 to P3 by its observable impact, with the definitions of the `hive-review-code` role: P0 blocks the release, an operation or a core flow for every input; P1 must be fixed before merge; P2 should be fixed but does not block; P3 is minor. When the source reports its own severity scale, map each finding to P0-P3 by the same impact first.
 - **One proposal per finding.** Propose P2 findings that share an area or a cause as one grouped proposal that lists its members with their evidence, not one proposal per member. Findings of P1 or higher are proposed one by one.
 - **Listed and asked.** A group counts as one listed finding: ask about it once in the close question, and it takes the four answers as one. The user may answer a group as one or name members to treat apart. A workflow guidance finding is never grouped with project findings.
-- **Duplicate check.** Search the tracker for duplicates once per proposal, so once per group, not once per member.
+- **Duplicate check.** Before proposing, run both searches the global rule sets, in the tracker and in persistent memory: search the tracker once per proposal, so once per group, not once per member, and persistent memory once per member, because answers are saved per member.
 - **Answer and recurrence.** Record the answer to a group for each of its members, as a separate memory entry per member. When one member of a declined group reappears alone, count it as a recurrence of that member, not of the group.
 - **Global UI findings.** For a global finding of the UI review, which [the UI gate](../../flow-verify/references/ui-gate.md#the-independent-children) defines, also record the answer in the project UI guide's global findings, as [the UI gate](../../flow-verify/references/ui-gate.md#the-independent-children) sets, so later reviews skip it: an opened ticket with its link, or a decline or "don't mention again" answer, which also goes under its rules not adopted.
 - **UI findings.** Propose a finding about a rendered interface, as a fix or as a ticket, only after it was seen rendered, in a running screen, its capture, or its accessibility tree. A finding seen only in the code is confirmed by rendering it, or by inspecting the accessibility tree for an accessibility defect, only while the build's verified stack is still running; the close starts no new walk, and otherwise the finding stays in the report as unconfirmed.
