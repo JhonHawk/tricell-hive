@@ -15,7 +15,7 @@ Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL
 
 ## When to run it
 
-1. **Work item close:** the item reached its completion point (merged into the base branch with any required post-merge CI passed, pushed to the base branch under `direct-base`, or the working tree verified under `hold`), or it is abandoned or paused. Under `hold`, the ticket stays in progress and the delivery the user chose not to make is a reminder in the report, not a pending item. When the delivery hands the open pull request to a human reviewer, opening it is the completion point: the ticket stays in progress until the merge, and the report gives the merge as a reminder; the next session that sees the merge moves the ticket and closes the record.
+1. **Work item close:** the item reached its completion point (merged into the base branch with any required post-merge CI passed, pushed to the base branch under `direct-base`, or the working tree verified under `hold`), or it is abandoned or paused. Under `hold`, the ticket stays in progress and the delivery the user chose not to make is a reminder in the report, not a pending item. When the delivery hands the open pull request to a human reviewer, opening it is the completion point: the ticket stays in progress until the merge, and the report gives the merge as a reminder; the next session that sees the merge moves the ticket and closes the record. Classify a requirement that arrives after integration, or a close-question answer that adds to the work, as [scope changes](../flow-plan/references/scope-changes.md) sets.
 2. **Session end:** the user ends the session.
 3. **Explicit request:** the user asks for hygiene or cleanup. Run the parts of 1 and 2 that apply to the current state.
 4. **After a promotion:** run only [Clean up after a merge](#clean-up-after-a-merge) and step 4 of the work-item close, without a completion report or close question.
@@ -36,7 +36,7 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 **Condition:** the turn completes a work item, after its report and closing items.
 
-**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question. Classify a requirement that arrives after integration, or an answer that adds to the work, as [scope changes](../flow-plan/references/scope-changes.md) sets.
+**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question.
 
 **Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its cleanup label, delivery state, and reminders. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
