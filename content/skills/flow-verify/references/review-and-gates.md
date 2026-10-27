@@ -33,4 +33,4 @@ Before driving a browser, read [browser automation](../../flow-build/references/
 
 ## Human UI handoff
 
-Before showing a user interface to the user for validation, read and follow [flow-walkthrough](../../flow-walkthrough/SKILL.md): it owns the early composition check on the dev server, the captures and recordings, and the handoff message and page. [flow-verify](../SKILL.md) owns the validation loop: the correction rounds, their task markers and the accepted-candidate gate.
+Before showing a user interface to the user for validation, read and follow [flow-walkthrough](../../flow-walkthrough/SKILL.md): it owns the early composition check on the dev server, the captures of relevant states, and the handoff message and page. [flow-verify](../SKILL.md) owns the validation loop: the correction rounds, their task markers and the accepted-candidate gate.

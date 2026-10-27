@@ -12,6 +12,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Walkthroughs now use screenshots of relevant states, including open dialogs
+  and menus, instead of recording flows. Existing video manifests remain
+  compatible. Run `hive update` to install the changed guidance.
+
 - Tickets are offered where they help, not by default: a research route
   question offers opening a ticket and stopping only when the work will wait,
   because it is large or belongs to another person or project, or when the user
