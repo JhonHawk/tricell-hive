@@ -43,6 +43,6 @@ Stop at the authorization boundary. Do not infer permission to commit from permi
 
 Branches that follow the base branch in the repository's environment chain, such as `qa` and `production`, receive changes only through the declared promotion path, in order: never a direct commit or push, a cherry-pick, or a hotfix straight into them, and never a skipped environment. For a production defect that cannot wait, follow [urgent fixes](../flow-deploy/references/urgent-fixes.md), which [flow-deploy](../flow-deploy/SKILL.md) reads. A deviation, including an emergency fix, is its own decision: state the branch, the commits, and why the promotion path cannot serve, and ask the user for that push. Neither a delivery mode, an instruction not to ask per task, nor unattended delegation grants it; when the user cannot answer, keep the fix on the promotion path and report the deviation as pending.
 
-## Clean up after a merge
+## After a merge or a push to the base
 
-After verifying a merge you performed, read [flow-close](../flow-close/SKILL.md#clean-up-after-a-merge) for the branch cleanup.
+After verifying a merge you performed or a push to the base branch, read and run [flow-close](../flow-close/SKILL.md) as its [When to run it](../flow-close/SKILL.md#when-to-run-it) sets: whether the whole close runs, only its cleanup, or nothing yet. While flow-close is already running, as when it merges the change record's closing pull request, continue it instead.
