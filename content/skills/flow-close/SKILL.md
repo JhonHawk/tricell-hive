@@ -36,7 +36,7 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 **Condition:** the turn completes a work item, after its report and closing items.
 
-**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question.
+**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question. Classify a requirement that arrives after integration, or an answer that adds to the work, as [scope changes](../flow-plan/references/scope-changes.md) sets.
 
 **Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its cleanup label, delivery state, and reminders. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 

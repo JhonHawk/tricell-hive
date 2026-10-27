@@ -7,7 +7,7 @@ description: "Promote an integrated candidate through the declared environments 
 
 ## Entry and exit
 
-This is a stage of its own, after integration, and one run can cover several tickets. Enter with an integrated, identified candidate (the commits on the base branch), and the repository's declared `Environments`; the authorization for each environment is asked in step 4. When these exist, enter directly, with no plan or build before it, and a request to promote or deploy is such an entry. Exit with, per environment, the served identity, the health and the functional acceptance each stated as met, failed, blocked, or "not run". This skill does not grant effects beyond the user's instructions.
+This is a stage of its own, after integration, and one run can cover several tickets. Enter with an integrated, identified candidate (the commits on the base branch), and the repository's declared `Environments`; the authorization for each environment is asked in step 4. When these exist, enter directly, with no plan or build before it, and a request to promote or deploy is such an entry. The run's candidate and tickets are fixed when it starts; classify a request to change them as [scope changes](../flow-plan/references/scope-changes.md) sets. Exit with, per environment, the served identity, the health and the functional acceptance each stated as met, failed, blocked, or "not run". This skill does not grant effects beyond the user's instructions.
 
 ## Prepare
 
