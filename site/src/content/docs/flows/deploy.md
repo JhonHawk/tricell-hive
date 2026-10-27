@@ -22,7 +22,7 @@ Deploy the fix for the checkout error to production now.
 - A check of what the promotion carries, the migrations, the compatibility and the recovery path, and the triggers that would make the agent report a rollback before a production deployment.
 - One authorization question per environment the run reaches, with a production deployment kept apart. An answer you leave open stays unauthorized.
 - Promotion one environment at a time, in order, through the declared path.
-- When a deployment to a non-production environment fails because of a defect, the agent fixes it through [Build](/flows/build/) and promotes the fix again without asking, as long as what you already authorized covers every step of the fix. It asks only when the fix needs a new kind of effect, reaches production, changes scope, a contract or stored data, or has several reasonable options.
+- When a deployment to a non-production environment fails because of a defect, the agent fixes it through [Build](/flows/build/), checks the new promotion again and promotes it, without asking. It asks only when the fix needs something you have not authorized or a choice that is yours.
 - After each deployment, a check that the served version is the one you promoted and that the targets are healthy. A deployment whose identity does not match, whose rollout is unfinished or that shows an error is reported as not verified, never as healthy.
 - A review of each promotion pull request limited to the commits not reviewed before their integration.
 - A functional walk only when the project declares one or you asked to validate the deployment.
@@ -31,7 +31,7 @@ The final report lists, per environment, the identity served, the health and the
 
 ## What it does not do
 
-- It does not commit, open pull requests or merge the work itself, except the fix for a defect that blocks the run, which goes through Build; Build commits it and the stage that integrates it, Verify or Build when verify is skipped, follows [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md). It only opens and merges the promotion pull request when the environments are branches.
+- It does not commit, open pull requests or merge the work itself, nor the fix for a defect that blocks the run, which goes through Build; Build commits it and the stage that integrates it, Verify or Build when verify is skipped, follows [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md). It only opens and merges the promotion pull request when the environments are branches.
 - It does not run a recovery action on its own unless an authorization you gave covers it.
 - It does not reopen a ticket; the promotion is recorded separately.
 
