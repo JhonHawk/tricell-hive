@@ -76,7 +76,7 @@ It means the work reached its completion point, for example merged into the base
 Say you are pausing. The plan stays where it is, and the report lists what is pending and who owns it.
 
 ### Do I have to answer the closing question?
-It is how the agent offers the next route. The message opens with a bold context line, stage · ticket · progress, so you can tell which piece of work is asking; a question card opens its question with the stage and ticket. The options are in a question card when your tool shows one that waits for your answer, and in the message otherwise, as the [questions reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/questions.md) sets. A question whose options depend on your answers to the findings is asked in a later turn, after them. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
+It is how the agent offers the next route. The message opens with a bold context line, stage · ticket · progress, with the flow's English name as the stage, such as Close, so you can tell which piece of work is asking; a question card opens its question with the stage and ticket. The options are in a question card when your tool shows one that waits for your answer, and in the message otherwise, as the [questions reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/questions.md) sets. A question whose options depend on your answers to the findings is asked in a later turn, after them. A dismissed or timed-out card is not an answer, so the agent asks again in text. Choosing to end the session is a valid answer.
 
 ### Where is the exact rule?
 See the source linked below.
