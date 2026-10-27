@@ -375,6 +375,11 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 	if err != nil {
 		return res, err
 	}
+	s.mu.Lock()
+	recovery := s.current().clone()
+	s.recoverPendingGroups(recovery, true)
+	recoveryErr := s.commit(recovery)
+	s.mu.Unlock()
 	now := s.now()
 	s.noteRepositories(reg)
 	snap := s.current()
@@ -512,6 +517,9 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 	}
 	if flushErr != nil {
 		return res, flushErr
+	}
+	if err == nil && recoveryErr != nil {
+		err = recoveryErr
 	}
 	return res, err
 }
@@ -666,6 +674,12 @@ func (s *Store) apply(c *candidate, now time.Time, d *indexData, res *SyncResult
 	group, groupErr := s.readGroup(identityOf(identities.Sessions[0]))
 	if groupErr != nil && !errors.Is(groupErr, fs.ErrNotExist) {
 		return fmt.Errorf("session preferences: %w", groupErr)
+	}
+	if groupErr == nil && group.DeletePending && len(groupMembers(d, group.Identity)) == 0 {
+		if err := s.clearPendingGroup(d, group); err != nil {
+			return err
+		}
+		groupErr = fs.ErrNotExist
 	}
 	sess, err := s.install(c.key, c.folder, c.root, c.m, c.hash, now)
 	if err != nil {

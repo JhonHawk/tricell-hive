@@ -80,6 +80,11 @@ type Store struct {
 	// Lock order: mu, then the flock on viewer/lock (registry only).
 	mu            sync.Mutex
 	lastPersisted []byte
+	// Filesystem boundaries use the production implementations installed by Open.
+	writeAtomic func(string, []byte) error
+	removeFile  func(string) error
+	removeTree  func(string) error
+	renamePath  func(string, string) error
 
 	// onHash, when set by a test, is called each time a source's files are hashed.
 	onHash func(folder string)
@@ -121,12 +126,13 @@ func Open(o Options) (*Store, error) {
 		return nil, fmt.Errorf("viewer: state directory must be an absolute path, got %q", o.StateDir)
 	}
 	s := &Store{
-		vdir:     viewerDir(o.StateDir),
-		ttl:      o.TTL,
-		now:      o.Now,
-		hive:     o.HiveProject,
-		remote:   o.GitRemote,
-		tracking: o.SourceTracking,
+		vdir:        viewerDir(o.StateDir),
+		ttl:         o.TTL,
+		now:         o.Now,
+		hive:        o.HiveProject,
+		remote:      o.GitRemote,
+		tracking:    o.SourceTracking,
+		writeAtomic: writeFileAtomic, removeFile: os.Remove, removeTree: os.RemoveAll, renamePath: os.Rename,
 	}
 	if s.ttl <= 0 {
 		s.ttl = defaultTTL
@@ -169,7 +175,9 @@ func (s *Store) Startup() error {
 		return err
 	}
 	s.clearProjects()
-	return s.commit(s.load())
+	d := s.load()
+	s.recoverPendingGroups(d, true)
+	return s.commit(d)
 }
 
 // cleanup removes temporary copy directories and stray atomic-write files,
@@ -358,6 +366,7 @@ func (s *Store) load() *indexData {
 	s.classifySessions(d, s.classifySources(context.Background(), sessionSourcePaths(d)))
 	s.enrich(d)
 	_ = s.reconcileGroups(d, false)
+	s.recoverPendingGroups(d, false)
 	d.sorted()
 	return d
 }
@@ -392,6 +401,7 @@ func (s *Store) commit(d *indexData) error {
 		s.viewMu.Unlock()
 		return err
 	}
+	s.recoverPendingGroups(d, false)
 	d.sorted()
 	previous := map[string]Session{}
 	if s.lastPersisted != nil {
@@ -426,7 +436,7 @@ func (s *Store) commit(d *indexData) error {
 	if bytes.Equal(data, s.lastPersisted) {
 		return nil
 	}
-	if err := writeFileAtomic(s.indexPath(), data); err != nil {
+	if err := s.writeAtomic(s.indexPath(), data); err != nil {
 		return err
 	}
 	s.lastPersisted = data
@@ -452,41 +462,14 @@ func validKey(key string) error {
 func (s *Store) removeCopy(key string) error {
 	dir := s.sessionDir(key)
 	gone := filepath.Join(s.sessionsDir(), tmpPrefix+"del-"+key)
-	os.RemoveAll(gone)
-	if err := os.Rename(dir, gone); err != nil {
+	s.removeTree(gone)
+	if err := s.renamePath(dir, gone); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
 		return err
 	}
-	return os.RemoveAll(gone)
-}
-
-// Delete removes the stored copy of a session and records a tombstone so the
-// next scan does not bring the same content back. Repository files are never
-// touched. It returns ErrInvalidKey for a malformed key and ErrNotFound when
-// there is no such copy.
-func (s *Store) Delete(key string) error {
-	if err := validKey(key); err != nil {
-		return err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	d := s.current().clone()
-	i, indexed := d.session(key)
-	if !indexed {
-		if _, err := os.Lstat(s.sessionDir(key)); err != nil {
-			return ErrNotFound
-		}
-		return s.removeCopy(key)
-	}
-	sess := d.Sessions[i]
-	if err := s.removeCopy(key); err != nil {
-		return err
-	}
-	d.Sessions = append(d.Sessions[:i], d.Sessions[i+1:]...)
-	s.addTombstone(d, sess)
-	return s.commit(d)
+	return s.removeTree(gone)
 }
 
 func (s *Store) addTombstone(d *indexData, sess Session) {

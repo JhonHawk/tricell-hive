@@ -71,8 +71,10 @@ type Tombstone struct {
 // IngestError is a source that could not be ingested, or a stored copy that
 // could not be read.
 type IngestError struct {
-	Path   string `json:"path"`
-	Reason string `json:"reason"`
+	Code         string `json:"code,omitempty"`
+	SessionGroup string `json:"session_group,omitempty"`
+	Path         string `json:"path"`
+	Reason       string `json:"reason"`
 }
 
 // RepositoryStatus reports one registered repository.

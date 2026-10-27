@@ -111,7 +111,11 @@ func (s *Store) writeGroup(g sessionGroup) error {
 	if info, err := os.Lstat(s.groupsDir()); err != nil || !info.IsDir() {
 		return errors.New("session-groups must be a real directory")
 	}
-	return writeJSONAtomic(s.groupPath(g.Identity), g)
+	data, err := json.MarshalIndent(g, "", "  ")
+	if err != nil {
+		return err
+	}
+	return s.writeAtomic(s.groupPath(g.Identity), append(data, '\n'))
 }
 
 // writeMeta retires legacy preferences. They are accepted only as import input.
@@ -131,7 +135,7 @@ func (s *Store) reconcileGroups(d *indexData, persist bool) error {
 	// Re-evaluate preference errors so repaired records clear on the next pass.
 	kept := d.Errors[:0:0]
 	for _, problem := range d.Errors {
-		if !strings.HasPrefix(problem.Path, s.groupsDir()+string(filepath.Separator)) {
+		if problem.Path != s.groupsDir() && !strings.HasPrefix(problem.Path, s.groupsDir()+string(filepath.Separator)) {
 			kept = append(kept, problem)
 		}
 	}
