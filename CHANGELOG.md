@@ -24,7 +24,7 @@ raise the minor or the patch version.
   decision and the angles asked, so it stops when it has enough for that
   decision. A request to make a plan is no longer read as planning-only, and
   the build of a plan just made is never recommended for another session.
-  `content/guidance/global.md` grows from 40,942 to 41,113 bytes. Run `hive update`
+  `content/guidance/global.md` grows from 40,942 to 41,174 bytes. Run `hive update`
   to apply it.
 - A defect that blocks or breaks the outcome of authorized work, such as a
   failing check, a review finding, a failed verification round or a failed
