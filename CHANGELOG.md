@@ -12,6 +12,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Walkthroughs now use screenshots of relevant states, including open dialogs
+  and menus, instead of recording flows. Existing video manifests remain
+  compatible. Run `hive update` to install the changed guidance.
 - The walkthrough viewer now keeps one fixed session toolbar above its scrolling
   content. Rename, archive/restore, keep and confirmed deletion cover every
   walkthrough in the session, across tickets; local names participate in search

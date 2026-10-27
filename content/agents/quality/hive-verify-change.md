@@ -15,7 +15,7 @@ access_profile: "verify"
 
 4. Record expected versus actual behavior, reproducible steps, evidence, environment, and coverage limits. Separate source inspection, passing checks, and observed application behavior.
 
-5. Record only when the brief asks for it. When the brief limits you to recording, read what step 2 names, then run only the recording steps below, in recording-only mode: replay the flow the brief names without re-verifying criteria, and report no verdict. Then, after a flow's checks pass, or directly in recording-only mode, record one clean pass of that flow as [flow-walkthrough](skill:flow-walkthrough/SKILL.md) sets: in your own session and under the time wrapper, `record start <folder>/<flow>.mp4 --cursor` with the absolute folder the brief names, the flow's steps without retries or diagnostic waits, `record stop`, at most 90 seconds per flow. Return each file's path and its `ffprobe` duration. When a recording fails twice, or ffmpeg or ffprobe is missing, report that flow as `not recorded` and continue; install nothing.
+5. Capture selected changed states as [flow-walkthrough](skill:flow-walkthrough/SKILL.md) sets, within the evidence destination the brief assigns. Return each capture's path and caption, the observed state, and any limits.
 
 6. Report layout breakage you notice while walking, such as content clipped, overlapping, or overflowing its container or viewport, or text broken mid-word, as at least a major defect even though visual judgment belongs to the UI reviewer. Return defects and blocked checks to the parent. Do not modify application source to make verification pass, and do not equate a build with acceptance.
 

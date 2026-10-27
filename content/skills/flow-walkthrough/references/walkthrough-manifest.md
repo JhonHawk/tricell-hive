@@ -55,7 +55,7 @@ The schema remains version `1`; manifests without `delivery` remain valid. Older
 - `steps`: the steps from a named starting point; omit in `first_view`.
 - `captures`: `[{"path", "caption", "alt"}]`; `path` under `images/`, `.png`, `.jpg`, `.jpeg` or `.webp`.
   `viewport` is optional: `desktop` (default) or `mobile`. A flow with both shows a Desktop/Mobile switch above its capture strip instead of two flows; use it for the same point seen at both sizes.
-- `recording`: omit in `first_view`; otherwise one of
+- `recording`: optional compatibility field for older recordings; omit in new screenshot-only walkthroughs and in `first_view`. When present, one of
   - `{"status": "none"}` when the flow is not recorded;
   - `{"status": "recorded", "path": "images/<flow>.mp4", "duration_seconds": …, "candidate": …}`;
   - `{"status": "not_recorded", "reason": …}`;
@@ -90,8 +90,7 @@ Each capture needs `path` and `caption`; `alt` defaults to the caption. Limits: 
       "steps": ["Open /docs signed in as the test account.", "Select Skills > flow-plan.", "Expected: the page opens and the item shows as active."],
       "captures": [
         {"path": "images/sidebar-desktop.png", "caption": "Step 2 — active item", "alt": "Sidebar with flow-plan highlighted"}
-      ],
-      "recording": {"status": "none"}
+      ]
     }
   ],
   "action_required": ["Confirm the spacing or describe the change."],
