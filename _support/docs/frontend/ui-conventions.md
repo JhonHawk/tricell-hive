@@ -34,6 +34,19 @@ Source examples: `tooling/viewer/frontend/src/shell.tsx` and `application.tsx`.
   remeasured on later candidates. Disposition: recorded once, no implementation
   or ticket requested. Revisit if impact worsens or a distinct theme is added.
 
+- **Shared control contrast — P2, pending disposition.** Independent UX comparison
+  of `051d45d9` and base `82ccf111` on 2026-10-27 measured button focus rings at
+  1.88:1 against their background, and the sidebar search border/fill at
+  1.28:1 / 1.06:1. Both color preferences produced the same effective dark
+  theme and the same values. The reviewer identified these as SC 1.4.11 AA
+  failures, unchanged by the session-toolbar candidate. Source: shared
+  `components/ui/button.tsx` and `src/styles.css`; captures
+  `ux-matrix-focus-320.png` and `ux-matrix-search-1280.png` in the local change
+  walkthrough. Token/component changes are a proposed theme deviation, not
+  adopted in this work. No duplicate was found by the bounded tracker search.
+  The close question must settle the grouped finding before a final disposition
+  is recorded; its presence does not authorize changing shared theme tokens.
+
 ## Maintenance
 
 Update this guide when an accepted pattern or a recorded global finding changes.
