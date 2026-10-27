@@ -15,7 +15,7 @@ The session detail pattern uses the existing project sidebar and global header,
 a session toolbar outside the scrolling canvas, and stacked walkthroughs inside
 that canvas. Session actions operate on the native conversation identity across
 its tickets. Work status remains on each walkthrough. The session toolbar
-pattern is a candidate awaiting human acceptance in the session-toolbar change.
+pattern was accepted by the maintainer and integrated in [PR #227](https://github.com/JhonHawk/tricell-hive/pull/227).
 Source examples: `tooling/viewer/frontend/src/shell.tsx` and `application.tsx`.
 
 ## Global findings
@@ -34,18 +34,42 @@ Source examples: `tooling/viewer/frontend/src/shell.tsx` and `application.tsx`.
   remeasured on later candidates. Disposition: recorded once, no implementation
   or ticket requested. Revisit if impact worsens or a distinct theme is added.
 
-- **Shared control contrast — P2, pending disposition.** Independent UX comparison
-  of `051d45d9` and base `82ccf111` on 2026-10-27 measured button focus rings at
-  1.88:1 against their background, and the sidebar search border/fill at
-  1.28:1 / 1.06:1. Both color preferences produced the same effective dark
-  theme and the same values. The reviewer identified these as SC 1.4.11 AA
-  failures, unchanged by the session-toolbar candidate. Source: shared
-  `components/ui/button.tsx` and `src/styles.css`; captures
-  `ux-matrix-focus-320.png` and `ux-matrix-search-1280.png` in the local change
-  walkthrough. Token/component changes are a proposed theme deviation, not
-  adopted in this work. No duplicate was found by the bounded tracker search.
-  The close question must settle the grouped finding before a final disposition
-  is recorded; its presence does not authorize changing shared theme tokens.
+- **Button focus ring — published library baseline, not applicable.** The
+  1.88:1 ring measurement remains valid in the effective dark theme, with both
+  color preferences. An independent source/capture check on 2026-10-27 found
+  the same focus classes in the [official base-nova button registry](https://ui.shadcn.com/r/styles/base-nova/button.json)
+  and the same ring/background tokens in the [published neutral theme](https://github.com/shadcn-ui/ui/blob/main/apps/v4/content/docs/%28root%29/theming.mdx).
+  The outline variant's dark border wins over the opaque focus border; the
+  measured ring is still visible. Under the project's review baseline, this
+  published default is not a reportable theme finding while formal AA
+  conformance remains undecided. This is not a claim of general WCAG
+  conformance. Publication was checked current, not pinned to a historical
+  registry version. Revisit if an AA requirement is adopted or the component
+  is customized. Source capture: `ux-matrix-focus-320.png` in the local change
+  walkthrough.
+
+- **Search field boundary contrast — P2, declined for this delivery.** Independent UX
+  comparison of `051d45d9` and base `82ccf111` measured the sidebar search
+  border/fill at 1.28:1 / 1.06:1, unchanged by the toolbar. Both color preferences
+  produced the same effective dark theme and values. The project maps
+  `--color-input` to the 10%-white border token; the published neutral theme
+  uses a distinct 15%-white input token. This local alias prevents treating
+  the field values as an exact published-input baseline. Source:
+  `src/styles.css`; capture: `ux-matrix-search-1280.png` in the local change
+  walkthrough. Changing the shared input appearance requires a theme decision
+  and is not part of the session-toolbar or screenshot-only guidance change.
+  No duplicate was found by the bounded tracker search. On 2026-10-27, the
+  maintainer chose D13-A (close without correcting), preserving the accepted
+  theme and retaining the validation walkthrough. No issue was opened and no
+  theme token was changed. This is a decline for the current delivery, not a
+  suppression; recurrence count: 1.
+
+## Rules not adopted
+
+- Increasing the search field boundary contrast in this delivery was declined
+  by the maintainer under D13-A (close without correcting). Revisit if a later
+  change worsens the boundary, introduces another effective theme, or adopts
+  a different accessibility requirement. The current theme remains accepted.
 
 ## Maintenance
 
