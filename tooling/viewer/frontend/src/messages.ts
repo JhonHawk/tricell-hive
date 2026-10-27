@@ -15,6 +15,11 @@ export const messages =
         nameSaveTimeout:
           "No llegó la respuesta a tiempo. El nombre puede haberse guardado; comprueba el nombre actual antes de reintentar.",
         checkSavedName: "Comprobar nombre guardado",
+        lastLoadedSavedName: "Último nombre guardado consultado",
+        checkingSavedName: "Consultando nombre guardado…",
+        nameCheckFailed:
+          "No se pudo comprobar el nombre actual. Se muestra el último valor consultado. Reintenta la consulta.",
+        savedNameUnavailable: "La sesión ya no está disponible.",
         resetName: "Restablecer nombre automático",
         invalidName:
           "Usa como máximo 200 caracteres, sin caracteres de control.",
@@ -128,6 +133,11 @@ export const messages =
         nameSaveTimeout:
           "The response did not arrive in time. The name may have been saved; check the current name before retrying.",
         checkSavedName: "Check saved name",
+        lastLoadedSavedName: "Last loaded saved name",
+        checkingSavedName: "Checking saved name…",
+        nameCheckFailed:
+          "Could not check the current name. Showing the last loaded value. Try checking again.",
+        savedNameUnavailable: "The session is no longer available.",
         resetName: "Reset automatic name",
         invalidName: "Use at most 200 characters, without control characters.",
         undo: "Undo",

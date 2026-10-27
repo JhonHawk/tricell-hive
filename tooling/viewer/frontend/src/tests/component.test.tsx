@@ -2020,7 +2020,10 @@ test("full session names expose keyboard reading regions and delete starts on Ca
 });
 
 test("rename shows progress and recovers an unanswered save without losing the draft", async () => {
-  const data = index();
+  let data = index();
+  let checkRead: Promise<Response> | undefined;
+  let releaseCheck: ((response: Response) => void) | undefined;
+  let failCheck = false;
   let writes = 0;
   const controller = new ViewerController(
     new AccessClient(
@@ -2035,6 +2038,9 @@ test("rename shows progress and recovers an unanswered save without losing the d
             );
           });
         }
+        if (String(url) === "/api/index" && checkRead) return checkRead;
+        if (String(url) === "/api/index" && failCheck)
+          return new Response("{}", { status: 500 });
         return response(
           String(url) === "/api/index"
             ? data
@@ -2071,6 +2077,13 @@ test("rename shows progress and recovers an unanswered save without losing the d
       )?.set?.call(input, "Retained draft");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
+    const save = document.querySelector<HTMLButtonElement>(
+      '[role="dialog"] button[type="submit"]',
+    );
+    assert(save);
+    await act(async () => {
+      save.focus();
+    });
     await act(async () => {
       document
         .querySelector('[role="dialog"] form')
@@ -2083,23 +2096,67 @@ test("rename shows progress and recovers an unanswered save without losing the d
     const progress = document.querySelector('[role="dialog"] [role="status"]');
     assert.match(progress?.textContent ?? "", /Saving session name/);
     assert.equal(progress?.getAttribute("aria-live"), "polite");
+    assert(
+      document.activeElement === progress,
+      "Saving must keep visible focus inside the dialog",
+    );
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 15100));
       await settle();
     });
     assert.equal(input.disabled, false);
+    assert(
+      document.activeElement === input,
+      "A timed-out save must return focus to the retained draft",
+    );
     assert.equal(input.value, "Retained draft");
     const dialog = document.querySelector('[role="dialog"]');
     assert(dialog);
     assert.match(dialog.textContent ?? "", /may have been saved/);
+    const savedName = dialog.querySelector(
+      '[aria-label="Last loaded saved name"]',
+    );
+    assert(
+      savedName,
+      "The authoritative saved name must be readable inside the recovery dialog",
+    );
+    assert.equal(savedName.textContent, "Review 1");
     const check = [
       ...dialog.querySelectorAll<HTMLButtonElement>("button"),
     ].find((button) => button.textContent === "Check saved name");
     assert(check);
+    checkRead = new Promise<Response>((resolve) => {
+      releaseCheck = resolve;
+    });
+    await act(async () => {
+      check.focus();
+      check.click();
+      await settle();
+    });
+    assert.match(
+      dialog.querySelector('[role="status"]')?.textContent ?? "",
+      /Checking saved name/,
+    );
+    data = index([session(1, { session_title: "Authoritative saved value" })]);
+    await act(async () => {
+      releaseCheck?.(response(data));
+      await settle();
+    });
+    checkRead = undefined;
+    assert.equal(savedName.textContent, "Authoritative saved value");
+    assert.equal(input.value, "Retained draft");
+    assert(
+      document.activeElement === check,
+      "A read check must preserve the focused recovery action",
+    );
+    failCheck = true;
     await act(async () => {
       check.click();
       await settle();
     });
+    assert.match(dialog.textContent ?? "", /Could not check the current name/);
+    assert.equal(savedName.textContent, "Authoritative saved value");
+    assert.equal(input.value, "Retained draft");
     assert.equal(writes, 1);
     const cancel = [
       ...dialog.querySelectorAll<HTMLButtonElement>("button"),

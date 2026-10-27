@@ -125,13 +125,48 @@ export function ViewerApplication({
   }>();
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState(false);
+  const [checkingName, setCheckingName] = useState(false);
   const editButton = useRef<HTMLElement | null>(null);
   const deleteCancel = useRef<HTMLButtonElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const savingNameStatus = useRef<HTMLParagraphElement>(null);
+  const wasSavingName = useRef(false);
+  useLayoutEffect(() => {
+    const saving = Boolean(
+      renameTarget && state.writing && state.writingId === renameTarget.id,
+    );
+    if (saving) savingNameStatus.current?.focus();
+    else if (
+      wasSavingName.current &&
+      renameTarget &&
+      state.actionError?.operation === "title"
+    )
+      nameInput.current?.focus();
+    wasSavingName.current = saving;
+  }, [renameTarget, state.writing, state.writingId, state.actionError]);
   const undoButton = useRef<HTMLButtonElement>(null);
   const allSessions = state.index ? mapIndex(state.index) : [];
   const deleteMembers = deleteTarget
     ? allSessions.filter((s) => sessionIdentity(s) === deleteTarget.groupId)
     : [];
+  const savedNameSession = allSessions.find(
+    (session) => session.id === renameTarget?.id,
+  );
+  const currentSavedName =
+    state.groups.find((group) =>
+      group.segments.some((segment) => segment.id === renameTarget?.id),
+    )?.title ??
+    savedNameSession?.raw.session_title ??
+    savedNameSession?.title;
+  const checkSavedName = async () => {
+    if (checkingName) return;
+    setCheckingName(true);
+    try {
+      await controller.refresh();
+    } finally {
+      setCheckingName(false);
+    }
+  };
   const openDelete = () => {
     if (!selected) return;
     const groupId = sessionIdentity(selected);
@@ -921,6 +956,7 @@ export function ViewerApplication({
             </label>
             <Input
               id="session-name"
+              ref={nameInput}
               value={name}
               disabled={state.writing}
               aria-invalid={nameError}
@@ -931,7 +967,13 @@ export function ViewerApplication({
               }}
             />
             {state.writing && (
-              <p role="status" aria-live="polite" className="text-sm">
+              <p
+                role="status"
+                aria-live="polite"
+                tabIndex={-1}
+                ref={savingNameStatus}
+                className="text-sm focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+              >
                 {t.savingName}
               </p>
             )}
@@ -951,14 +993,52 @@ export function ViewerApplication({
             )}
             {state.actionError?.operation === "title" &&
               state.actionError.code === "rename_timeout" && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={retry}
-                >
-                  {t.checkSavedName}
-                </Button>
+                <div className="flex min-w-0 flex-col gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t.lastLoadedSavedName}
+                  </p>
+                  <section
+                    aria-label={t.lastLoadedSavedName}
+                    aria-describedby="saved-session-name-reading-hint"
+                    aria-live="polite"
+                    // biome-ignore lint/a11y/noNoninteractiveTabindex: The saved name is a deliberate keyboard-accessible horizontal reading region.
+                    tabIndex={0}
+                    style={{
+                      whiteSpace: /\s/u.test(currentSavedName ?? "")
+                        ? "normal"
+                        : "nowrap",
+                    }}
+                    className="min-w-0 overflow-x-auto text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    {currentSavedName ?? t.savedNameUnavailable}
+                  </section>
+                  <span
+                    id="saved-session-name-reading-hint"
+                    className="sr-only"
+                  >
+                    {t.nameReadingHint}
+                  </span>
+                  {checkingName && (
+                    <p role="status" aria-live="polite" className="text-sm">
+                      {t.checkingSavedName}
+                    </p>
+                  )}
+                  {state.indexError && !checkingName && (
+                    <p role="alert" className="text-sm">
+                      {t.nameCheckFailed}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-disabled={checkingName}
+                    aria-busy={checkingName}
+                    onClick={() => void checkSavedName()}
+                  >
+                    {t.checkSavedName}
+                  </Button>
+                </div>
               )}
             <Button
               type="button"
