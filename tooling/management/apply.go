@@ -533,6 +533,10 @@ func recoverBlockAndVoice(action string, cur snapshot, en entry) (snapshot, erro
 	return voice(s)
 }
 
+// retainedJournals is how many finished (committed or recovered) transaction
+// journals pruneJournals keeps.
+const retainedJournals = 10
+
 // finishApply prunes directories left empty by the committed transaction.
 // This bookkeeping runs after commit succeeds, never inside it: it is not
 // part of what Recover must undo.
@@ -542,6 +546,105 @@ func finishApply(p Plan, id string, next State) (string, error) {
 		return id, fmt.Errorf("installed; directory bookkeeping failed: %w", err)
 	}
 	return id, nil
+}
+
+// pruneJournals deletes transaction journals beyond the newest
+// retainedJournals, never own, the journal pending.json names (Recover's) or
+// the core a pending onboarding references (RecoverOnboarding's). Like
+// finishApply it runs after commit, under the manager lock, and is not part
+// of what Recover must undo; a failure is returned as a warning because the
+// operation it follows already committed.
+func pruneJournals(stateDir, own string) string {
+	protected := map[string]bool{}
+	var p pending
+	if err := decodeFile(filepath.Join(stateDir, "pending.json"), &p); err == nil {
+		protected[p.ID] = true
+	} else if !os.IsNotExist(err) {
+		return fmt.Sprintf("warning: pruning transaction journals skipped: %v", err)
+	}
+	var ob onboardingJournal
+	if err := decodeFile(onboardingPath(stateDir), &ob); err == nil {
+		protected[ob.CoreID] = true
+	} else if !os.IsNotExist(err) {
+		return fmt.Sprintf("warning: pruning transaction journals skipped: %v", err)
+	}
+	dir := filepath.Join(stateDir, "transactions")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Sprintf("warning: pruning transaction journals failed: %v", err)
+	}
+	type finished struct {
+		name string
+		mod  time.Time
+	}
+	var done []finished
+	for _, e := range entries {
+		id, ok := strings.CutSuffix(e.Name(), ".json")
+		if _, err := hex.DecodeString(id); !ok || err != nil || len(id) != 32 || !e.Type().IsRegular() || protected[id] {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if phase := journalPhase(filepath.Join(dir, e.Name()), id); phase != "committed" && phase != "recovered" {
+			continue
+		}
+		done = append(done, finished{e.Name(), info.ModTime()})
+	}
+	sort.Slice(done, func(i, k int) bool {
+		if !done[i].mod.Equal(done[k].mod) {
+			return done[i].mod.After(done[k].mod)
+		}
+		return done[i].name > done[k].name
+	})
+	failed := 0
+	for _, f := range done[min(len(done), retainedJournals):] {
+		if f.name == own+".json" {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, f.name)); err != nil {
+			failed++
+		}
+	}
+	if failed > 0 {
+		return fmt.Sprintf("warning: %d old transaction journals could not be pruned", failed)
+	}
+	return ""
+}
+
+// journalPhase returns the Phase of the journal at path when its first keys
+// are exactly Version, ID (equal to id) and Phase, the order saveJournal
+// writes, reading only those few bytes; otherwise it returns "".
+func journalPhase(path, id string) string {
+	if target.Safe(path) != nil {
+		return ""
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	dec := json.NewDecoder(f)
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		return ""
+	}
+	values := map[string]any{}
+	for _, key := range []string{"Version", "ID", "Phase"} {
+		if tok, err := dec.Token(); err != nil || tok != key {
+			return ""
+		}
+		tok, err := dec.Token()
+		if err != nil {
+			return ""
+		}
+		values[key] = tok
+	}
+	if _, ok := values["Version"].(float64); !ok || values["ID"] != id {
+		return ""
+	}
+	phase, _ := values["Phase"].(string)
+	return phase
 }
 
 // recordSourceCommit appends p.SourceCommit to releases/<id>.commits.json
@@ -631,6 +734,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 			err = fmt.Errorf("%w; %s", err, warning)
 		}
 		return id, err
+	}
+	if !e.nested {
+		if pruned := pruneJournals(p.StateDir, j.ID); pruned != "" {
+			warning = strings.TrimPrefix(warning+"; "+pruned, "; ")
+		}
 	}
 	if warning != "" {
 		id += "; " + warning
