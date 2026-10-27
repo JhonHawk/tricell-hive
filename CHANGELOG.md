@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Each option of the delivery question now says how the change record is
+  versioned at close and when it publishes each support repository, so the
+  delivery answer settles that route and the close does not ask it again; a
+  reused answer that settled no route asks only that before the first edit.
+  Every research route question, including
+  one asked again after new findings, offers at least one way to act on the
+  findings besides opening a ticket and stopping. Run `hive update` to apply it.
 - Plans check the specs for any requirement a change could contradict before
   deciding which requirements it alters, and record that check, so a new item
   no longer slips past a list meant to be complete or a prohibition. Run
