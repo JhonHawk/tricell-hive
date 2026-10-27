@@ -38,6 +38,7 @@ The final report lists, per environment, the identity served, the health and the
 ## Related flows
 
 - [Verify](/flows/verify/) integrates the candidate that Deploy promotes.
+- [Changes and loops](/flows/overview/) shows what happens when you ask to add or remove tickets during a run, and where a defect found while promoting returns the work.
 - [Close](/flows/close/) closes the work at integration; Deploy comes after it and, after a promotion, only the branch and process cleanup of Close runs.
 
 ## FAQ

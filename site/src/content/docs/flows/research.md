@@ -62,6 +62,7 @@ Every question follows the [questions reference](https://github.com/JhonHawk/tri
 
 - Continue to [Plan](/flows/plan/) when the answer shows a change that spans several steps or needs decisions.
 - Continue to [Build](/flows/build/) when the answer shows a small change you are ready to approve.
+- If a finding changes what you asked, the iterative route stops; see [changes and loops](/flows/overview/).
 - You can also stop here. Research does not require anything afterward.
 
 ## FAQ

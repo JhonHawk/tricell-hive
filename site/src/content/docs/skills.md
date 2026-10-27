@@ -9,6 +9,8 @@ hold the canonical rules.
 
 ## Main flows
 
+For where each flow loops and where a requested change returns the work, see the [changes and loops overview](/flows/overview/).
+
 - [Research](/flows/research/): investigate an uncertain question and report evidence.
 - [Plan](/flows/plan/): settle consequential decisions and define verifiable work.
 - [Build](/flows/build/): implement authorized changes and hand over a built candidate.

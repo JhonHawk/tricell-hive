@@ -30,6 +30,10 @@ At the start the agent says in one line whether verify runs and at which level. 
 
 When it finishes, the report names the level that ran and each check that failed, could not run or was accepted without verification. If the delivery mode lets it, the accepted candidate is integrated, and [Close](/flows/close/) follows.
 
+## Corrections during the validation pause
+
+Each correction you ask for is classified first and then run as its own round; a repeated correction on the same aspect can lead the agent to ask whether to go back to the plan. [Changes and loops](/flows/overview/) shows where each kind of request returns the work, and the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/scope-changes.md) holds the classification.
+
 ## Raising, lowering or skipping the level
 
 You can raise or lower the level for the work with a request such as "full verify", "no UI review" or "skip verify". Verify is skipped on its own only for a mechanical change, and the report then names the checks that already cover it. When you ask to skip a check, it counts as accepted without verification: the agent names each one at the start and in the report, and does not treat it as a pending gate. That acceptance never waives CI, branch protection or a review the project requires. Unattended delegation cannot skip verify or lower its level.
