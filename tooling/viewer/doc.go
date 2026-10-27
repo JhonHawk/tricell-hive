@@ -50,8 +50,10 @@
 //	(*Store).Run(ctx, RunOptions) error  Startup, then Purge + Sync on intervals
 //	(*Store).Sync(ctx) (SyncResult, error)
 //	(*Store).Purge() ([]string, error)
-//	(*Store).Delete(key) error           copy + tombstone; repo files untouched
-//	(*Store).Pin(key, pinned) error
+//	(*Store).Delete(key) error           logical session + tombstones; sources untouched
+//	(*Store).Pin(key, pinned) error       logical session retention
+//	(*Store).Archive(key, archived) error logical session visibility
+//	(*Store).SetTitle(key, title) error   local logical-session name
 //	(*Store).View() View                 projects > tickets > sessions, never blocks
 //	(*Store).Manifest(key) ([]byte, error)
 //	(*Store).OpenFile(key, rel) (*os.File, error)
@@ -72,9 +74,14 @@
 // A previously resolved remote identity is retained in copy metadata when its
 // repository disappears or remote lookup fails, including across restarts.
 //
+// Logical sessions use the exact project/host/session-ID tuple. Preferences live
+// in session-groups independently of the reconstructible physical-copy index.
+// Legacy flags are imported once per group: archive requires all copies, keep
+// requires any. Names do not change identity or source walkthrough titles.
+//
 // # Concurrency
 //
-// A sync.Mutex serializes the apply phase of Sync, Purge, Delete, Pin and
+// A sync.Mutex serializes the apply phase of Sync, Purge, session preferences and
 // Startup in a process. Sync inspects and hashes sources before taking it and
 // skips a source whose files keep their size, mtime and inode; View reads a
 // published immutable snapshot and never waits for either.
@@ -84,6 +91,10 @@
 //
 // # Deletion and tombstones
 //
+// Explicit Delete commits every current group member's tombstone before removing
+// its copy directory, then reconciles actual survivors. A pending logical-record
+// cleanup is retried by Startup/Sync and gates new ingestion of that identity.
+// Partial failures do not imply a complete deletion. Purge remains copy-based.
 // Delete and Purge leave a tombstone {key, content_hash, source, deleted_at}
 // in index.json; a scan skips a source whose key and content_hash match one,
 // so deleted content stays out until it changes. Losing index.json loses the

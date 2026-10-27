@@ -151,7 +151,7 @@ follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.
 
 Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-origin `Origin` and an empty body. It returns `{code}` without caching: 32 random bytes encoded as 64 hex characters, valid for 60 seconds, held only in memory. At most 64 unconsumed codes may be pending; a full set returns 429 without evicting valid codes. `POST /api/access-codes/exchange` requires the allowed Host and explicit same-origin Origin, `application/json`, and only `{code}` within 1 KiB. It returns `{token}` without caching, consuming the code atomically; expired, missing, invalid or reused codes return 403. Invalid JSON returns 400, unsupported media type 415, and wrong method 405. Codes disappear on server restart. The page removes the fragment before awaiting exchange, stores only the token in sessionStorage for reloads, and ignores responses from superseded openings, including earlier authenticated reads and writes. An explicit failed opening asks for `hive view open` again. An old running server returning 404 to issuance requires `hive view stop`, `hive view start`, then `hive view open`; the CLI never falls back to a token URL or restarts it automatically. A stolen unconsumed code can still be used by a local process; Origin is not authentication for non-browser clients.
 
-The server binds only to `127.0.0.1`, on port 4483 (HIVE on a phone keypad) by default. `--port N` names another port and `--port 0` takes a free one. A port counts as busy when binding it fails or when a connection to it already answers, since on macOS a `127.0.0.1` bind succeeds over a program listening on the wildcard address and would shadow it. When 4483 is busy and no `--port` was given, it takes a free port and `start` says so; an explicit port that is busy fails the start. It checks the `Host` header on every request, and requires the token from `viewer/server.json` (mode 0600) on API requests, reads included, except the access-code exchange below; every write requires an explicit same-origin `Origin`. The page and `/assets/*` carry no data and need no token; copied captures and recordings are served at `/files/<key>/<cap>/<path>`, where `<cap>` is the hex HMAC-SHA256 of the key under the token, handed out only by the authenticated index, because an `<img>` cannot send a header. Every five seconds it scans the registered repositories, validates each manifest with the same rules as the renderer, and copies a valid one with its files into `viewer/sessions/<key>/`, one copy per source folder and session, replaced when the manifest or a referenced file changes. Invalid manifests are listed as ingest errors and never stop the server. Copies older than the TTL (14 days by default, `--ttl`) by ingest time are purged at start and every hour unless pinned; a purged or deleted copy leaves a tombstone so the next scan does not bring it back while its content is unchanged. Deleting from the sidebar removes only the store copy, never a repository file. The package is `tooling/viewer`: no external modules (standard library and in-repository packages), checked by the dependency test. Each workspace folder is opened once as an `os.Root` and that same handle validates, hashes and copies it, and the text of ingest errors is bounded.
+The server binds only to `127.0.0.1`, on port 4483 (HIVE on a phone keypad) by default. `--port N` names another port and `--port 0` takes a free one. A port counts as busy when binding it fails or when a connection to it already answers, since on macOS a `127.0.0.1` bind succeeds over a program listening on the wildcard address and would shadow it. When 4483 is busy and no `--port` was given, it takes a free port and `start` says so; an explicit port that is busy fails the start. It checks the `Host` header on every request, and requires the token from `viewer/server.json` (mode 0600) on API requests, reads included, except the access-code exchange below; every write requires an explicit same-origin `Origin`. The page and `/assets/*` carry no data and need no token; copied captures and recordings are served at `/files/<key>/<cap>/<path>`, where `<cap>` is the hex HMAC-SHA256 of the key under the token, handed out only by the authenticated index, because an `<img>` cannot send a header. Every five seconds it scans the registered repositories, validates each manifest with the same rules as the renderer, and copies a valid one with its files into `viewer/sessions/<key>/`, one copy per source folder and session, replaced when the manifest or a referenced file changes. Invalid manifests are listed as ingest errors and never stop the server. Copies older than the TTL (14 days by default, `--ttl`) by ingest time are purged at start and every hour unless pinned; a purged or deleted copy leaves a tombstone so the next scan does not bring it back while its content is unchanged. Deleting from the session toolbar removes the session's store copies, never repository files. The package is `tooling/viewer`: no external modules (standard library and in-repository packages), checked by the dependency test. Each workspace folder is opened once as an `os.Root` and that same handle validates, hashes and copies it, and the text of ingest errors is bounded.
 
 Before scanning file content, the viewer checks current Git tracking through a
 bounded, NUL-delimited lookup for the owning repository, including worktrees and
@@ -164,27 +164,54 @@ to a separate explanatory section. Their normal document and file reads return
 409; archive/restore, pin, explicit deletion and normal TTL remain available. Unknown sources remain
 accessible with a warning. A local file is not proof of agent authorship.
 
-Archive state belongs to each stored copy's `meta.json` as optional
-`archived` metadata (absent means false), independently of `pinned` and the
-manifest's session status. The authenticated index exposes `archived` for both
-normal sessions and excluded tracked-source entries. Token-authenticated,
-same-origin `POST /api/sessions/<key>/archive` archives the copy;
-`DELETE` on the same route restores it. Both return 204 on success, preserve
-pinning and ingestion time, and never edit source files. Archive state survives
-store reconstruction, restarts and replacement from a changed source. Archiving
-does not exempt an unpinned copy from normal TTL deletion.
+Session preferences belong to versioned `viewer/session-groups/<digest>.json`
+records keyed by exact project, declared host (null when absent) and session ID.
+They contain the local title override, archive and keep state independently of
+the reconstructible index. The index retains physical copies and exposes their
+effective `archived`, `pinned` and optional `session_title` values. Continuations
+inherit those preferences; archive never changes source files, work status,
+ingestion time or normal TTL. Keeping protects every member from expiry.
 
-The React shell groups normal visible copies by exact project, declared host and
-session ID, with visible-session counts, compact title/ticket/segment/date rows
-and no ticket level or connector branches. The selected session stacks its
-chronological segments with separators, ticket search jumps and per-copy controls.
-This is a derived client view: physical keys, capabilities, store metadata and API
-routes remain per copy. Filtering archived copies precedes visual grouping. Projects open
-initially only when they contain an explicitly in-progress session; manual
-expansion takes precedence. A tooltip-labeled, accessible icon beside Projects
-toggles archived copies, hidden by default. The sidebar brand header shows a
-route icon. Each segment has a toolbar with informational manifest status,
-archive/restore, pin/unpin and delete actions targeting only its own physical key.
+The first startup imports legacy copy flags: archive only when every member was
+archived, keep when any was pinned. A mixed archive group becomes active. A valid
+group record is written before legacy fields are retired, and an interrupted
+import resumes without recalculating that record. Back up the old binary,
+metadata, index/tombstones and any existing group records before upgrading;
+do not copy `server.json` or tokens. Rollback to an older binary needs compatible
+copy flags restored and must preserve subsequent changes and local names.
+
+Token-authenticated same-origin writes use a member key to locate the entire
+logical session, including archived/excluded members. All require
+`X-Hive-Action-Scope: session`: missing or older scope returns
+`409 {"code":"reload_required"}` without mutation, protecting already open old
+tabs. POST/DELETE `/api/sessions/<key>/archive` archives/restores; POST/DELETE
+`/api/sessions/<key>/pin` keeps/unkeeps. PUT `/api/sessions/<key>/title` accepts
+only a JSON `title` string, within 2048 bytes and 200 Unicode code points after
+trimming, rejecting control characters; empty clears the local override.
+Successful preference writes return 204. Document and resource reads retain
+physical keys, capabilities and source-classification restrictions.
+
+DELETE `/api/sessions/<key>` removes all current members without modifying their
+sources. It commits their tombstones before removing folders and records
+`delete_pending` for recovery. `partial_delete` returns only safe counts
+(`deleted`, `remaining`, `cleanup_pending`) and failure, never false success.
+Survivors remain available for retry. Startup and Sync finish pending cleanup
+when no members remain, and new ingestion waits for cleanup before applying new
+preferences. Errors tagged `delete_cleanup_pending` remain queryable even with
+zero members; GET only reports them. Tombstones still describe physical content,
+so new or modified deliveries can return rather than permanently blocking a chat.
+
+The React shell groups copies by that exact logical identity, with compact
+name/ticket/walkthrough/date rows and no ticket level or connector branches.
+A fixed session toolbar owns naming and management; its document canvas alone
+scrolls chronological walkthroughs with separators, work-status indicators and
+ticket search jumps. The local name participates in search without modifying
+source titles. A prefilled single-field dialog edits it; confirmed deletion
+counts every stored member. Archive feedback offers Undo without a persistent
+copy banner. Actual source and connection warnings remain separate.
+Projects initially open for explicitly in-progress work; manual expansion takes
+precedence. The accessible icon beside Projects includes archived sessions,
+hidden by default. The sidebar brand header retains its route icon.
 The session header aggregates explicit delivery links from its visible accessible
 segment manifests, deduplicated by URL; documents and standalone pages retain their
 own links. The optional `delivery` contract lives in the manifest reference,

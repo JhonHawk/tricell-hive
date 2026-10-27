@@ -838,3 +838,28 @@ func TestViewAccessCodeNeverFollowsRedirect(t *testing.T) {
 		t.Fatal("issuance must reject redirects without forwarding credentials")
 	}
 }
+
+func TestViewIndexExtendedSessionPreferencesPreserveFingerprint(t *testing.T) {
+	source := viewer.SourceFingerprint{Source: "/fixture/session", SessionID: "session", Key: strings.Repeat("a", 64), ContentHash: strings.Repeat("b", 64), SessionStatus: "closed"}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Hive-Token") != "fixture-token" {
+			http.Error(w, "forbidden", 403)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"projects": []any{map[string]any{"key": "project", "tickets": []any{map[string]any{"ticket": "EX-1", "sessions": []any{map[string]any{
+			"key": source.Key, "source": source.Source, "session_id": source.SessionID, "content_hash": source.ContentHash, "session_status": source.SessionStatus, "session_title": "Local session name", "archived": true, "pinned": true,
+		}}}}}}})
+	}))
+	defer srv.Close()
+	index, err := viewIndex(serverInfo{Port: srv.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !viewHasSource(index, source) {
+		t.Fatal("extended index lost source confirmation")
+	}
+	source.ContentHash = strings.Repeat("c", 64)
+	if viewHasSource(index, source) {
+		t.Fatal("preferences bypassed content revision confirmation")
+	}
+}

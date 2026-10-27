@@ -415,18 +415,25 @@ shell; it needs no Node, ReUI license or third-party network connection to run.
 Frontend development and bundle checks are described in
 [Contributing](CONTRIBUTING.md#viewer-frontend).
 
-The viewer copies eligible walkthroughs into Hive's state directory, deletes copies
-older than 14 days unless you pin them (`--ttl` changes that), and lets you
-delete one from its segment toolbar; it never changes files in your repositories.
-Archive hides a stored copy from the default list, and Restore brings it back.
-The icon beside Projects shows or hides archived copies. Archiving is independent
-of pinning, the 14-day retention period and work status; pin a copy to keep it
-beyond that period. Projects show session counts and open initially only when
+The viewer copies eligible walkthroughs into Hive's state directory and deletes
+copies older than 14 days unless their session is kept (`--ttl` changes that).
+A fixed session toolbar lets you rename, archive or restore, keep or stop keeping,
+and delete the entire session, including walkthroughs from other tickets. Only
+the document area scrolls. Deletion asks for confirmation and never changes
+repository files or the host conversation; new or modified deliveries can appear
+again. The local name appears in navigation and search without renaming the
+individual walkthroughs.
+Archive hides the whole session from the default list, with brief Undo feedback.
+The icon beside Projects includes or hides archived sessions. New walkthroughs
+inherit their session's archive and keep preferences. Archiving does not change
+the 14-day retention period or work status; keeping protects the session's copies
+from expiry. Projects show session counts and open initially only when
 they contain work in progress. Your project expansion, sidebar visibility,
 archive filter and selection survive refresh in the same browser tab. Walkthroughs
 with the same project, host and declared session ID share one sidebar entry, even
-across tickets. Their segments appear chronologically with internal separators,
-individual controls and ticket search links. The session header collects explicit
+across tickets. Their walkthroughs appear chronologically with internal separators,
+individual work-status indicators and ticket search links; management controls
+appear once for the session. The session header collects explicit
 PR/commit delivery links, and each segment retains its own links; missing metadata
 is shown as unregistered delivery rather than inferred from the candidate commit.
 Manifests confirmed as tracked in Git are not imported. Previously imported copies
@@ -453,6 +460,16 @@ installed content together and coordinate stopping and starting the existing
 viewer before using the new producers. Rebuilding the binary does not update a
 running process. Older strict viewers reject the new manifest fields; an unconfirmed
 closure preserves its source evidence.
+
+When upgrading to session-wide controls, restart the viewer with the new binary
+and reload existing browser tabs: copy-oriented writes are rejected until reload.
+The first startup imports old preferences: a session stays archived only when
+all its copies were archived, while any kept copy keeps the session. Mixed
+archive groups become active. Names and preferences live in
+`viewer/session-groups/`, independently of the reconstructible index. Before the
+first upgrade, back up copy metadata, the index and session-group records without
+copying server credentials. Rolling back to an older binary requires restoring
+compatible preferences; do not overwrite changes made after that backup.
 
 ## For AI agents
 

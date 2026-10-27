@@ -15,6 +15,16 @@ raise the minor or the patch version.
 - Walkthroughs now use screenshots of relevant states, including open dialogs
   and menus, instead of recording flows. Existing video manifests remain
   compatible. Run `hive update` to install the changed guidance.
+- The walkthrough viewer now keeps one fixed session toolbar above its scrolling
+  content. Rename, archive/restore, keep and confirmed deletion cover every
+  walkthrough in the session, across tickets; local names participate in search
+  and archive feedback offers Undo. New deliveries inherit archive/keep state.
+  Migration: restart with the new binary and reload old browser tabs; copy-scope
+  writes are rejected. First startup imports old flags into `session-groups`
+  (mixed archive groups become active; any pin keeps the group). Back up copy
+  metadata, index and group records before upgrading; rolling back needs
+  compatible preferences restored without overwriting later changes. Deletion
+  persists tombstones before removing copies and retries incomplete cleanup.
 
 - Tickets are offered where they help, not by default: a research route
   question offers opening a ticket and stopping only when the work will wait,

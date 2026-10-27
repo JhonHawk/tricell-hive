@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 //go:embed static
@@ -197,6 +199,20 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request, write bool) b
 	return true
 }
 
+func (s *Server) authorizeSessionWrite(w http.ResponseWriter, r *http.Request) bool {
+	if !s.authorize(w, r, true) {
+		return false
+	}
+	if r.Header.Get("X-Hive-Action-Scope") != "session" {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{"code": "reload_required"})
+		return false
+	}
+	return true
+}
+
 func httpError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -218,6 +234,19 @@ func writeJSON(w http.ResponseWriter, v any) {
 // storeError maps the Store's sentinel errors to a status without echoing
 // internal detail.
 func storeError(w http.ResponseWriter, err error) {
+	var partial *PartialDeleteError
+	if errors.As(err, &partial) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(struct {
+			Code           string `json:"code"`
+			Deleted        int    `json:"deleted"`
+			Remaining      int    `json:"remaining"`
+			CleanupPending bool   `json:"cleanup_pending"`
+		}{"partial_delete", partial.Deleted, partial.Remaining, partial.CleanupPending})
+		return
+	}
 	switch {
 	case errors.Is(err, ErrInvalidKey), errors.Is(err, ErrInvalidPath):
 		httpError(w, http.StatusBadRequest, "bad request")
@@ -329,7 +358,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, out)
 }
 
-// session serves /api/sessions/<key>[/pin|/archive].
+// session serves /api/sessions/<key>[/pin|/archive|/title].
 func (s *Server) session(w http.ResponseWriter, r *http.Request, rest string) {
 	key, sub, _ := strings.Cut(rest, "/")
 	switch sub {
@@ -348,19 +377,47 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, rest string) {
 			w.Header().Set("Cache-Control", "no-store")
 			w.Write(data)
 		case http.MethodDelete:
-			if s.authorize(w, r, true) {
+			if s.authorizeSessionWrite(w, r) {
 				s.done(w, s.store.Delete(key))
 			}
 		default:
 			allow(w, r, http.MethodGet, http.MethodDelete)
 		}
 	case "pin":
-		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorize(w, r, true) {
+		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorizeSessionWrite(w, r) {
 			return
 		}
 		s.done(w, s.store.Pin(key, r.Method == http.MethodPost))
+	case "title":
+		if !allow(w, r, http.MethodPut) || !s.authorizeSessionWrite(w, r) {
+			return
+		}
+		raw, err := io.ReadAll(io.LimitReader(r.Body, 2049))
+		if err != nil || len(raw) > 2048 || !utf8.Valid(raw) {
+			httpError(w, http.StatusBadRequest, "invalid title request")
+			return
+		}
+		var body struct {
+			Title *string `json:"title"`
+		}
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&body); err != nil || body.Title == nil {
+			httpError(w, http.StatusBadRequest, "invalid title request")
+			return
+		}
+		if err := dec.Decode(new(any)); err != io.EOF {
+			httpError(w, http.StatusBadRequest, "invalid title request")
+			return
+		}
+		title, err := validateSessionTitle(*body.Title)
+		if err != nil {
+			httpError(w, http.StatusBadRequest, "invalid session title")
+			return
+		}
+		s.done(w, s.store.SetTitle(key, title))
 	case "archive":
-		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorize(w, r, true) {
+		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorizeSessionWrite(w, r) {
 			return
 		}
 		s.done(w, s.store.Archive(key, r.Method == http.MethodPost))
