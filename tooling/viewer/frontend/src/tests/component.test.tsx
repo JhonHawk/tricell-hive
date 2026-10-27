@@ -2172,3 +2172,106 @@ test("rename shows progress and recovers an unanswered save without losing the d
     container.remove();
   }
 });
+
+test("pending cleanup for one session does not replace another session's delete confirmation", async () => {
+  const pending = [
+    {
+      path: "groups/first",
+      reason: "cleanup pending",
+      code: "delete_cleanup_pending",
+      session_group: "first",
+    },
+  ];
+  let data = index([session(1), session(2)]);
+  const deletes: string[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (init?.method === "DELETE") {
+          deletes.push(String(url));
+          data = index(deletes.length === 1 ? [session(2)] : [], {
+            errors: pending,
+          });
+          if (deletes.length === 1)
+            return new Response(
+              JSON.stringify({
+                code: "partial_delete",
+                deleted: 1,
+                remaining: 0,
+                cleanup_pending: true,
+              }),
+              { status: 500 },
+            );
+          return new Response(null, { status: 204 });
+        }
+        return response(
+          String(url) === "/api/index"
+            ? data
+            : { title: "Document", flows: [] },
+        );
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const openDelete = async () =>
+    act(async () => {
+      const button = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Delete session"]',
+      );
+      assert(button);
+      button.click();
+      await settle();
+    });
+  const confirm = () =>
+    document.querySelector<HTMLButtonElement>(
+      '[role="alertdialog"] [data-slot="alert-dialog-action"]',
+    );
+  try {
+    await act(async () => {
+      await controller.open(null);
+      controller.select(key(1));
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    await openDelete();
+    await act(async () => {
+      confirm()?.click();
+      await settle();
+    });
+    assert.equal(confirm()?.textContent, "Check recovery");
+    const cancel = [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        '[role="alertdialog"] button',
+      ),
+    ].find((button) => button.textContent === "Cancel");
+    assert(cancel);
+    await act(async () => {
+      cancel.click();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await settle();
+    });
+    assert.equal(controller.getSnapshot().selectedId, key(2));
+    await openDelete();
+    assert.equal(confirm()?.textContent, "Delete session");
+    assert.doesNotMatch(
+      document.querySelector('[role="alertdialog"]')?.textContent ?? "",
+      /cleanup pending|Remaining: 0/,
+    );
+    await act(async () => {
+      confirm()?.click();
+      await settle();
+    });
+    assert.deepEqual(deletes, [
+      `/api/sessions/${key(1)}`,
+      `/api/sessions/${key(2)}`,
+    ]);
+    assert.equal(controller.getSnapshot().sessions.length, 0);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});

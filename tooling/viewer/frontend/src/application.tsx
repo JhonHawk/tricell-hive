@@ -149,6 +149,11 @@ export function ViewerApplication({
   const deleteMembers = deleteTarget
     ? allSessions.filter((s) => sessionIdentity(s) === deleteTarget.groupId)
     : [];
+  const deleteError =
+    state.actionError?.operation === "delete" &&
+    state.actionError.groupId === deleteTarget?.groupId
+      ? state.actionError
+      : undefined;
   const savedNameSession = allSessions.find(
     (session) => session.id === renameTarget?.id,
   );
@@ -204,11 +209,11 @@ export function ViewerApplication({
       deleting &&
       deleteTarget &&
       !state.writing &&
-      !state.actionError &&
+      !deleteError &&
       !allSessions.some((s) => sessionIdentity(s) === deleteTarget.groupId)
     )
       setDeleting(false);
-  }, [deleting, deleteTarget, state.writing, state.actionError, allSessions]);
+  }, [deleting, deleteTarget, state.writing, deleteError, allSessions]);
   const selected = state.sessions.find((s) => s.id === state.selectedId);
   const group = state.groups.find((group) =>
     group.segments.some((segment) => segment.id === state.selectedId),
@@ -868,18 +873,17 @@ export function ViewerApplication({
           <p className="text-sm">
             {t.storedCount}:{" "}
             {deleteMembers.length ||
-              (state.actionError?.remaining === 0 ? 0 : deleteTarget?.count)}
+              (deleteError?.remaining === 0 ? 0 : deleteTarget?.count)}
           </p>
-          {state.actionError?.operation === "delete" && (
+          {deleteError && (
             <p role="alert" className="text-sm">
-              {state.actionError.code === "reload_required"
+              {deleteError.code === "reload_required"
                 ? t.reloadRequired
-                : state.actionError.remaining === 0 &&
-                    state.actionError.cleanup_pending
+                : deleteError.remaining === 0 && deleteError.cleanup_pending
                   ? t.cleanupPending
                   : t.writeError}{" "}
-              {state.actionError.code === "partial_delete"
-                ? `${t.deletedCount}: ${state.actionError.deleted ?? 0} · ${t.remainingCount}: ${state.actionError.remaining ?? 0}`
+              {deleteError.code === "partial_delete"
+                ? `${t.deletedCount}: ${deleteError.deleted ?? 0} · ${t.remainingCount}: ${deleteError.remaining ?? 0}`
                 : ""}
             </p>
           )}
@@ -896,15 +900,14 @@ export function ViewerApplication({
               disabled={
                 state.writing ||
                 state.indexError ||
-                (deleteMembers.length === 0 &&
-                  state.actionError?.remaining !== 0)
+                (deleteMembers.length === 0 && deleteError?.remaining !== 0)
               }
               onClick={() => {
-                if (state.actionError?.code === "reload_required") {
+                if (deleteError?.code === "reload_required") {
                   window.location.reload();
                   return;
                 }
-                if (state.actionError?.remaining === 0) {
+                if (deleteError?.remaining === 0) {
                   void controller.refresh();
                   return;
                 }
@@ -915,11 +918,11 @@ export function ViewerApplication({
                   });
               }}
             >
-              {state.actionError?.code === "reload_required"
+              {deleteError?.code === "reload_required"
                 ? t.reload
-                : state.actionError?.remaining === 0
+                : deleteError?.remaining === 0
                   ? t.checkRecovery
-                  : state.actionError
+                  : deleteError
                     ? t.retry
                     : t.remove}
             </AlertDialogAction>
