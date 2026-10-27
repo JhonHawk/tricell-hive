@@ -128,6 +128,8 @@ export function ViewerApplication({
   const [checkingName, setCheckingName] = useState(false);
   const editButton = useRef<HTMLElement | null>(null);
   const deleteCancel = useRef<HTMLButtonElement>(null);
+  const deleteProgress = useRef<HTMLParagraphElement>(null);
+  const wasDeleting = useRef(false);
   const nameInput = useRef<HTMLInputElement>(null);
   const savingNameStatus = useRef<HTMLParagraphElement>(null);
   const wasSavingName = useRef(false);
@@ -154,6 +156,13 @@ export function ViewerApplication({
     state.actionError.groupId === deleteTarget?.groupId
       ? state.actionError
       : undefined;
+  useLayoutEffect(() => {
+    const pending = deleting && state.writing;
+    if (pending) deleteProgress.current?.focus();
+    else if (wasDeleting.current && deleting && deleteError)
+      deleteCancel.current?.focus();
+    wasDeleting.current = pending;
+  }, [deleting, state.writing, deleteError]);
   const savedNameSession = allSessions.find(
     (session) => session.id === renameTarget?.id,
   );
@@ -870,7 +879,11 @@ export function ViewerApplication({
           <span id="delete-session-name-reading-hint" className="sr-only">
             {t.nameReadingHint}
           </span>
-          <p className="text-sm">
+          <p
+            ref={deleteProgress}
+            tabIndex={-1}
+            className="text-sm focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+          >
             {t.storedCount}:{" "}
             {deleteMembers.length ||
               (deleteError?.remaining === 0 ? 0 : deleteTarget?.count)}

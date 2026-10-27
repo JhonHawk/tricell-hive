@@ -2184,6 +2184,7 @@ test("pending cleanup for one session does not replace another session's delete 
   ];
   let data = index([session(1), session(2)]);
   const deletes: string[] = [];
+  let releaseDelete: ((response: Response) => void) | undefined;
   const controller = new ViewerController(
     new AccessClient(
       async (url, init) => {
@@ -2193,15 +2194,9 @@ test("pending cleanup for one session does not replace another session's delete 
             errors: pending,
           });
           if (deletes.length === 1)
-            return new Response(
-              JSON.stringify({
-                code: "partial_delete",
-                deleted: 1,
-                remaining: 0,
-                cleanup_pending: true,
-              }),
-              { status: 500 },
-            );
+            return new Promise<Response>((resolve) => {
+              releaseDelete = resolve;
+            });
           return new Response(null, { status: 204 });
         }
         return response(
@@ -2224,6 +2219,7 @@ test("pending cleanup for one session does not replace another session's delete 
       );
       assert(button);
       button.click();
+      await new Promise((resolve) => setTimeout(resolve, 20));
       await settle();
     });
   const confirm = () =>
@@ -2239,7 +2235,30 @@ test("pending cleanup for one session does not replace another session's delete 
     });
     await openDelete();
     await act(async () => {
+      confirm()?.focus();
       confirm()?.click();
+      await settle();
+    });
+    const activeWhileDeleting = document.activeElement;
+    assert(
+      document
+        .querySelector('[role="alertdialog"]')
+        ?.contains(activeWhileDeleting) &&
+        !activeWhileDeleting?.matches(":disabled"),
+      "Pending deletion must retain focus on an enabled element in its dialog",
+    );
+    await act(async () => {
+      releaseDelete?.(
+        new Response(
+          JSON.stringify({
+            code: "partial_delete",
+            deleted: 1,
+            remaining: 0,
+            cleanup_pending: true,
+          }),
+          { status: 500 },
+        ),
+      );
       await settle();
     });
     assert.equal(confirm()?.textContent, "Check recovery");
@@ -2249,6 +2268,10 @@ test("pending cleanup for one session does not replace another session's delete 
       ),
     ].find((button) => button.textContent === "Cancel");
     assert(cancel);
+    assert(
+      document.activeElement === cancel || document.activeElement === confirm(),
+      "Failed deletion must restore focus to a recovery action or Cancel",
+    );
     await act(async () => {
       cancel.click();
       await new Promise((resolve) => setTimeout(resolve, 20));
