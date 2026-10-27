@@ -12,6 +12,26 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Tickets are offered where they help, not by default: a research route
+  question offers opening a ticket and stopping only when the work will wait,
+  because it is large or belongs to another person or project, or when the user
+  asks; incidental findings at close recommend resolving in the work a fix that
+  is small and sits in the area the work already touches; and an open topic
+  lists the ticket last among its destinations. Research recommends a route
+  only when its findings answer every part of the question and suffice to
+  choose, checks its own deciding inferences with a cheap local check or
+  recommends investigating further, and briefs each research child with the
+  decision and the angles asked, so it stops when it has enough for that
+  decision. A request to make a plan is no longer read as planning-only, and
+  the build of a plan just made is never recommended for another session.
+  `content/guidance/global.md` grows from 40,942 to 41,174 bytes. Run `hive update`
+  to apply it.
+- A defect that blocks or breaks the outcome of authorized work, such as a
+  failing check, a review finding, a failed verification round or a failed
+  non-production deployment, is fixed within that work without asking and
+  reported in one line, unless the fix is applied directly in production or
+  needs an uncovered or critical effect or a choice the user could make
+  differently. Run `hive update` to apply it.
 - Each option of the delivery question now says how the change record is
   versioned at close and when it publishes each support repository, so the
   delivery answer settles that route and the close does not ask it again; a
