@@ -106,6 +106,11 @@ raise the minor or the patch version.
   metadata automatically. Older binaries reject the new identity fields, so a
   rollback also needs compatible metadata restored from the backup, preserving
   any archive or pin changes made since that backup.
+- Before proposing an incidental finding, during the work or at the close,
+  agents now search persistent memory as well as the tracker, since the
+  incidental-findings reference named only the tracker. A command or tool
+  failure that an agent works around is now reported as an incidental finding
+  with its workaround (#206). Run `hive update` to install the changed guidance.
 
 ### Migration
 
