@@ -24,9 +24,9 @@ Examples that mark the boundaries:
 
 ## Say it, ask only when it matters
 
-Before acting, state the class and where the work goes in one line. Until an added task or a new change is resolved, hold the work that depends on it. Ask only when two classes are both reasonable and lead to different deliveries, typically an added task against a new change; ask by following [questions](questions.md), with the recommended class first and its reason.
+Before acting, state the class and where the work goes in one line. Until an added task or a new change is resolved, hold the work that depends on it: an added task is resolved once it has its criteria in the plan or, without one, in the build's stated scope; a new change once the user chose whether the current work continues or pauses. Ask only when two classes are both reasonable and lead to different deliveries, typically an added task against a new change; ask by following [questions](questions.md), with the recommended class first and its reason.
 
-Under unattended delegation, whether the message keeps or ends the delegation is decided as [unattended delegation](../../unattended-delegation/SKILL.md) sets, not by this classification.
+Under [unattended delegation](../../unattended-delegation/SKILL.md), only a correction can be a message that keeps it; an added task or a new change changes its scope, which ends it as that skill sets for such a message.
 
 ## Where the work returns
 
@@ -36,9 +36,9 @@ Apply the stage's own rule at each point; this list only names it:
 - **Plan:** a correction or added task revises the plan, as [plan revision](plan-revision.md) sets.
 - **Build:** an added task follows class 2 above, including the route to `flow-plan`.
 - **Validation pause:** a correction runs as a correction round of [flow-verify](../../flow-verify/SKILL.md); an added task follows class 2 and is verified as [plan revision](plan-revision.md) sets.
-- **After integration, before close:** a correction or defect fix of the same change goes as the follow-up pull request that [delivery decisions](delivery-decisions.md) covers. An added task or a new change is delivered as its own work: the integrated change's record closes normally, and the new work goes to `flow-build` when it is a small understood change, otherwise to `flow-plan`.
+- **After integration, before close:** a correction or defect fix of the same change is a follow-up under the same delivery answer, as the follow-up rule of [delivery decisions](delivery-decisions.md) covers. The integrated change's record closes normally; an added task then goes to `flow-build` when it is a small understood change and otherwise to `flow-plan`, and a new change follows class 3.
 - **Close question:** an answer that adds to the work is classified here before the close continues.
-- **Promotion:** the run's candidate and tickets are fixed when it starts. A request to add a ticket integrated after the start goes to the next run. A request to remove a ticket whose commits are already on the base branch cannot be met by restarting, since promotion carries the whole branch: stop the run at a safe point, a step boundary where nothing is half-applied, and ask whether to revert that ticket on the base branch as its own change or to keep it in the promotion. The next run starts from the first step of [flow-deploy](../../flow-deploy/SKILL.md).
+- **Promotion:** the run's candidate and tickets are fixed when it starts. Promotion carries the whole base branch, so a ticket already on it when the run started is already in the candidate, and one integrated after the start goes to the next run. A request to remove a ticket whose commits are on the base branch cannot be met by restarting: ask whether to keep it in the promotion, and the run continues, or to revert it on the base branch as its own change, and then stop the run at a safe point, a step boundary where nothing is half-applied, and start the next run from the first step of [flow-deploy](../../flow-deploy/SKILL.md).
 
 ## Repeated corrections
 
