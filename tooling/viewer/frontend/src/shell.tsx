@@ -418,6 +418,7 @@ function Navigation({
             <div className="flex flex-col gap-2 p-2">
               <Input
                 type="search"
+                className="border-ring"
                 aria-label={t.search}
                 placeholder={t.search}
                 value={query}

@@ -48,28 +48,13 @@ Source examples: `tooling/viewer/frontend/src/shell.tsx` and `application.tsx`.
   is customized. Source capture: `ux-matrix-focus-320.png` in the local change
   walkthrough.
 
-- **Search field boundary contrast — P2, declined for this delivery.** Independent UX
-  comparison of `051d45d9` and base `82ccf111` measured the sidebar search
-  border/fill at 1.28:1 / 1.06:1, unchanged by the toolbar. Both color preferences
-  produced the same effective dark theme and values. The project maps
-  `--color-input` to the 10%-white border token; the published neutral theme
-  uses a distinct 15%-white input token. This local alias prevents treating
-  the field values as an exact published-input baseline. Source:
-  `src/styles.css`; capture: `ux-matrix-search-1280.png` in the local change
-  walkthrough. Changing the shared input appearance requires a theme decision
-  and is not part of the session-toolbar or screenshot-only guidance change.
-  No duplicate was found by the bounded tracker search. On 2026-10-27, the
-  maintainer chose D13-A (close without correcting), preserving the accepted
-  theme and retaining the validation walkthrough. No issue was opened and no
-  theme token was changed. This is a decline for the current delivery, not a
-  suppression; recurrence count: 1.
-
-## Rules not adopted
-
-- Increasing the search field boundary contrast in this delivery was declined
-  by the maintainer under D13-A (close without correcting). Revisit if a later
-  change worsens the boundary, introduces another effective theme, or adopts
-  a different accessibility requirement. The current theme remains accepted.
+- **Search field boundary contrast — correction in validation.** Earlier UX
+  comparison measured the sidebar search border/fill at 1.28:1 / 1.06:1.
+  On 2026-10-27, the maintainer selected D13-B (correct now), superseding
+  D13-A (close without correcting). The search field now uses the existing
+  opaque `ring` semantic token for its resting border; shared input, button,
+  surface and focus tokens remain unchanged. Rendered contrast and filtering
+  are checked before acceptance. The validation walkthrough is retained.
 
 ## Maintenance
 
