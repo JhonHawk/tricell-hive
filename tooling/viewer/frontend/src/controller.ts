@@ -10,7 +10,7 @@ import {
   stored,
   validateIndex,
 } from "./api";
-import { groupSessions, type SessionGroup } from "./sessions";
+import { groupSessions, type SessionGroup, sessionIdentity } from "./sessions";
 export type Delivery = {
   kind: "pull_request" | "commit";
   label: string;
@@ -51,6 +51,18 @@ export type ViewerState = {
     | "archived"
     | "unarchived"
     | "writeError";
+  actionError?: {
+    id: string;
+    groupId: string;
+    operation: "archive" | "pin" | "title" | "delete";
+    value?: string | boolean;
+    code?: string;
+    deleted?: number;
+    remaining?: number;
+    cleanup_pending?: boolean;
+    cleanupGroups?: string[];
+  };
+  undoArchive?: { id: string; groupId: string; archived: boolean };
   writing: boolean;
   showArchived: boolean;
 };
@@ -73,7 +85,6 @@ export class ViewerController {
   private requests = new Map<string, object>();
   private cache = new Map<string, SegmentDocument>();
   private reading = false;
-  private hidden = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | undefined;
   private active = false;
   constructor(
@@ -94,7 +105,6 @@ export class ViewerController {
     this.readSeq++;
     this.requests.clear();
     this.cache.clear();
-    this.hidden.clear();
     this.reading = false;
     this.update({
       ...initial,
@@ -147,6 +157,21 @@ export class ViewerController {
         notice: wasDown ? "reconnected" : this.state.notice,
       });
       this.apply(received);
+      const actionError = this.state.actionError;
+      if (
+        actionError?.code === "refresh_required" ||
+        (actionError?.remaining === 0 &&
+          !received.errors.some(
+            (error) =>
+              error.code === "delete_cleanup_pending" &&
+              (!actionError.cleanupGroups?.length ||
+                actionError.cleanupGroups.includes(
+                  error.session_group ?? error.path,
+                )),
+          ))
+      )
+        this.update({ actionError: undefined, notice: undefined });
+      return true;
     } catch (error) {
       if (epoch !== this.epoch || seq !== this.readSeq) return;
       if (!this.failure(error))
@@ -184,10 +209,8 @@ export class ViewerController {
   }
   private apply(index: RawIndex, notifyMissing = true) {
     const mapped = mapIndex(index);
-    for (const key of this.hidden)
-      if (!mapped.some((s) => s.id === key)) this.hidden.delete(key);
     const sessions = mapped.filter(
-      (s) => !this.hidden.has(s.id) && (this.state.showArchived || !s.archived),
+      (s) => this.state.showArchived || !s.archived,
     );
     const previous = this.state.sessions.find(
       (s) => s.id === this.state.selectedId,
@@ -331,123 +354,145 @@ export class ViewerController {
     this.update({ showArchived });
     if (this.state.index) this.apply(this.state.index, false);
   };
-  async archive(id = this.state.selectedId) {
-    const selected = this.state.sessions.find((s) => s.id === id);
-    if (!selected || this.state.writing) return;
+  private allSessions() {
+    return this.state.index ? mapIndex(this.state.index) : [];
+  }
+  private async write(
+    id: string,
+    operation: "archive" | "pin" | "title" | "delete",
+    value?: string | boolean,
+  ) {
+    const selected = this.allSessions().find((s) => s.id === id);
+    if (!selected || this.state.writing || this.state.indexError) return false;
     const epoch = this.epoch;
-    const archived = !selected.archived;
-    this.update({ writing: true, writingId: selected.id });
+    const groupId = sessionIdentity(selected);
+    this.readSeq++;
+    this.update({
+      writing: true,
+      writingId: id,
+      actionError: undefined,
+      notice: undefined,
+    });
     try {
       await this.client.request(
-        `/api/sessions/${selected.id}/archive`,
-        archived ? "POST" : "DELETE",
+        `/api/sessions/${id}${operation === "delete" ? "" : `/${operation}`}`,
+        operation === "title"
+          ? "PUT"
+          : operation === "delete" || value === false
+            ? "DELETE"
+            : "POST",
+        operation === "title" ? { title: value } : undefined,
       );
-      if (epoch !== this.epoch) return;
+      if (epoch !== this.epoch) return false;
       this.readSeq++;
-      if (this.state.index) {
-        const update = (
-          session: RawIndex["projects"][number]["tickets"][number]["sessions"][number],
-        ) => (session.key === selected.id ? { ...session, archived } : session);
-        this.apply(
-          {
-            ...this.state.index,
-            projects: this.state.index.projects.map((project) => ({
-              ...project,
-              tickets: project.tickets.map((ticket) => ({
-                ...ticket,
-                sessions: ticket.sessions.map(update),
-              })),
-            })),
-            excluded_sessions: this.state.index.excluded_sessions?.map(update),
-          },
-          false,
-        );
+      if (!(await this.refresh())) {
+        if (epoch === this.epoch)
+          this.update({
+            actionError: {
+              id,
+              groupId,
+              operation,
+              value,
+              code: "refresh_required",
+            },
+          });
+        return false;
       }
-      this.update({ notice: archived ? "archived" : "unarchived" });
-      void this.refresh();
+      if (epoch !== this.epoch) return false;
+      this.update({
+        notice:
+          operation === "delete"
+            ? "deleted"
+            : operation === "archive"
+              ? value
+                ? "archived"
+                : "unarchived"
+              : operation === "pin"
+                ? value
+                  ? "pinned"
+                  : "unpinned"
+                : undefined,
+      });
+      return true;
     } catch (error) {
-      if (epoch === this.epoch && !this.failure(error))
-        this.update({ notice: "writeError" });
+      if (epoch !== this.epoch || this.failure(error)) return false;
+      const details = error instanceof HttpError ? error.details : {};
+      if (operation === "delete") await this.refresh();
+      if (epoch === this.epoch)
+        this.update({
+          notice: "writeError",
+          actionError: {
+            id,
+            groupId,
+            operation,
+            value,
+            ...details,
+            cleanupGroups: this.state.index?.errors
+              .filter((error) => error.code === "delete_cleanup_pending")
+              .map((error) => error.session_group ?? error.path),
+          },
+        });
+      return false;
     } finally {
       if (epoch === this.epoch)
         this.update({ writing: false, writingId: undefined });
     }
   }
+  async archive(id = this.state.selectedId) {
+    const selected = this.allSessions().find((s) => s.id === id);
+    if (!selected) return false;
+    const archived = !selected.archived;
+    const ok = await this.write(selected.id, "archive", archived);
+    if (ok)
+      this.update({
+        undoArchive: {
+          id: selected.id,
+          groupId: sessionIdentity(selected),
+          archived: !archived,
+        },
+      });
+    return ok;
+  }
+  async undoArchive() {
+    const undo = this.state.undoArchive;
+    if (!undo) return;
+    const member = this.allSessions().find(
+      (s) => sessionIdentity(s) === undo.groupId,
+    );
+    if (!member) return;
+    if (await this.write(member.id, "archive", undo.archived)) {
+      this.update({ undoArchive: undefined });
+      if (!undo.archived) this.select(member.id);
+    }
+  }
+  clearUndo = () =>
+    this.update({
+      undoArchive: undefined,
+      notice: this.state.actionError ? this.state.notice : undefined,
+    });
   async pin(id = this.state.selectedId) {
-    const selected = this.state.sessions.find((s) => s.id === id);
-    if (!selected || this.state.writing) return;
-    const epoch = this.epoch;
-    this.update({ writing: true, writingId: selected.id });
-    try {
-      try {
-        await this.client.request(
-          `/api/sessions/${selected.id}/pin`,
-          selected.pinned ? "DELETE" : "POST",
-        );
-      } catch (error) {
-        if (!(error instanceof HttpError && error.status === 404)) throw error;
-      }
-      if (epoch !== this.epoch) return;
-      this.readSeq++;
-      if (this.state.index) {
-        const update = (
-          session: RawIndex["projects"][number]["tickets"][number]["sessions"][number],
-        ) =>
-          session.key === selected.id
-            ? { ...session, pinned: !selected.pinned }
-            : session;
-        this.apply(
-          {
-            ...this.state.index,
-            projects: this.state.index.projects.map((project) => ({
-              ...project,
-              tickets: project.tickets.map((ticket) => ({
-                ...ticket,
-                sessions: ticket.sessions.map(update),
-              })),
-            })),
-            excluded_sessions: this.state.index.excluded_sessions?.map(update),
-          },
-          false,
-        );
-      }
-      this.update({ notice: selected.pinned ? "unpinned" : "pinned" });
-      void this.refresh();
-    } catch (error) {
-      if (epoch === this.epoch && !this.failure(error))
-        this.update({ notice: "writeError" });
-    } finally {
-      if (epoch === this.epoch)
-        this.update({ writing: false, writingId: undefined });
-    }
+    const selected = this.allSessions().find((s) => s.id === id);
+    return selected ? this.write(selected.id, "pin", !selected.pinned) : false;
   }
-  async remove(id = this.state.selectedId) {
-    const selected = this.state.sessions.find((s) => s.id === id);
-    if (!selected || this.state.writing) return;
-    const epoch = this.epoch;
-    this.update({ writing: true, writingId: selected.id });
-    try {
-      try {
-        await this.client.request(`/api/sessions/${selected.id}`, "DELETE");
-      } catch (error) {
-        if (!(error instanceof HttpError && error.status === 404)) throw error;
-      }
-      if (epoch !== this.epoch) return;
-      this.readSeq++;
-      this.hidden.add(selected.id);
-      this.requests.delete(selected.id);
-      this.cache.delete(selected.id);
-      if (this.state.index) this.apply(this.state.index);
-      this.update({ notice: "deleted" });
-      void this.refresh();
-    } catch (error) {
-      if (epoch === this.epoch && !this.failure(error))
-        this.update({ notice: "writeError" });
-    } finally {
-      if (epoch === this.epoch)
-        this.update({ writing: false, writingId: undefined });
-    }
+  rename(title: string, id = this.state.selectedId) {
+    return id ? this.write(id, "title", title) : Promise.resolve(false);
   }
+  remove(id = this.state.selectedId) {
+    return id ? this.write(id, "delete") : Promise.resolve(false);
+  }
+  retryAction = () => {
+    const error = this.state.actionError;
+    if (!error) return;
+    if (error.code === "reload_required") return;
+    if (error.code === "refresh_required" || error.remaining === 0) {
+      void this.refresh();
+      return;
+    }
+    const member = this.allSessions().find(
+      (s) => sessionIdentity(s) === error.groupId,
+    );
+    if (member) void this.write(member.id, error.operation, error.value);
+  };
   dismiss = () => this.update({ notice: undefined });
   private schedule() {
     clearTimeout(this.timer);

@@ -4,6 +4,7 @@ import {
   BookOpen,
   ChevronRight,
   Folder,
+  Pencil,
   Pin,
   Route,
   Trash2,
@@ -31,7 +32,7 @@ import {
   FrameTitle,
 } from "@/components/reui/frame";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
   Collapsible,
   CollapsibleContent,
@@ -70,6 +71,7 @@ export type ViewerSession = {
   projectKey?: string;
   ticket: string;
   title: string;
+  localTitle?: boolean;
   createdAt: string;
   classification: "tracked" | "local" | "unknown";
   pinned?: boolean;
@@ -88,6 +90,8 @@ export type ViewerShellProps = {
   onPin?: () => void;
   onDelete?: () => void;
   onArchive?: () => void;
+  onRename?: () => void;
+  feedback?: ReactNode;
   showArchived?: boolean;
   onShowArchivedChange?: (show: boolean) => void;
   children?: ReactNode;
@@ -106,8 +110,8 @@ const copy = spanish
       projects: "Proyectos",
       showArchived: "Mostrar archivados",
       hideArchived: "Ocultar archivados",
-      archive: "Archivar copia",
-      unarchive: "Restaurar copia",
+      archive: "Archivar sesión",
+      unarchive: "Restaurar sesión",
       actions: "Acciones de la sesión",
       statusDescription:
         "Estado declarado del trabajo. Cerrado no significa aprobado.",
@@ -126,9 +130,9 @@ const copy = spanish
       select: "Selecciona un recorrido",
       selectDescription:
         "Abre una sesión en la navegación para revisar su evidencia.",
-      pin: "Conservar",
-      unpin: "Dejar de conservar",
-      remove: "Borrar copia",
+      pin: "Conservar sesión",
+      unpin: "Dejar de conservar sesión",
+      remove: "Eliminar sesión",
       navigation: "Alternar navegación",
       navigationDescription: "Explora proyectos y sesiones.",
       tracked: "Versionado",
@@ -150,8 +154,8 @@ const copy = spanish
       projects: "Projects",
       showArchived: "Show archived",
       hideArchived: "Hide archived",
-      archive: "Archive copy",
-      unarchive: "Restore copy",
+      archive: "Archive session",
+      unarchive: "Restore session",
       actions: "Session actions",
       statusDescription: "Declared work status. Closed does not mean approved.",
       excluded: "Set-aside copies",
@@ -169,9 +173,9 @@ const copy = spanish
       select: "Select a walkthrough",
       selectDescription:
         "Open a session in the navigation to review its evidence.",
-      pin: "Keep",
-      unpin: "Stop keeping",
-      remove: "Delete copy",
+      pin: "Keep session",
+      unpin: "Stop keeping session",
+      remove: "Delete session",
       navigation: "Toggle navigation",
       navigationDescription: "Browse projects and sessions.",
       tracked: "Tracked",
@@ -209,8 +213,12 @@ function readNavigationPreferences(): NavigationPreferences {
 export function ActionButton({
   label,
   children,
+  description,
   ...props
-}: React.ComponentProps<typeof Button> & { label: string }) {
+}: React.ComponentProps<typeof Button> & {
+  label: string;
+  description?: string;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -226,11 +234,15 @@ export function ActionButton({
       >
         {children}
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>
+        {label}
+        {description ? `. ${description}` : ""}
+      </TooltipContent>
     </Tooltip>
   );
 }
 function sessionDisplayTitle(session: ViewerSession) {
+  if (session.localTitle) return session.title;
   if (!/^(?:#\d+|[a-z][a-z0-9]*-\d+)$/i.test(session.ticket))
     return session.title;
   const prefix = session.title.slice(0, session.ticket.length);
@@ -254,7 +266,11 @@ function SessionNavigationButton({
     <button
       type="button"
       data-session-key={session.id}
-      title={`${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`}
+      title={
+        session.segments
+          ? session.title
+          : `${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`
+      }
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -268,11 +284,13 @@ function SessionNavigationButton({
           );
       }}
     >
-      <span
-        aria-hidden="true"
-        data-session-status={session.status ?? "unknown"}
-        className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
-      />
+      {!session.segments && (
+        <span
+          aria-hidden="true"
+          data-session-status={session.status ?? "unknown"}
+          className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
+        />
+      )}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-start gap-2">
           <span className="session-navigation-title min-w-0 flex-1 font-normal">
@@ -291,8 +309,9 @@ function SessionNavigationButton({
           <span aria-hidden="true">·</span>
           <span className="shrink-0 tabular-nums">{session.createdAt}</span>
           <span className="sr-only">
-            {copy.sessionStatus[session.status ?? "unknown"]}.{" "}
-            {copy.statusDescription}
+            {!session.segments &&
+              copy.sessionStatus[session.status ?? "unknown"]}
+            . {!session.segments && copy.statusDescription}
           </span>
         </div>
       </div>
@@ -330,6 +349,9 @@ function Navigation({
   const [query, setQuery] = useState("");
   const matches = (session: ViewerSession) =>
     !query.trim() ||
+    session.title
+      .toLocaleLowerCase()
+      .includes(query.trim().toLocaleLowerCase()) ||
     (session.segments ?? [session]).some((segment) =>
       `${segment.title} ${segment.ticket}`
         .toLocaleLowerCase()
@@ -573,6 +595,8 @@ export function ViewerShell({
   onPin,
   onDelete,
   onArchive,
+  onRename,
+  feedback,
   showArchived = false,
   onShowArchivedChange,
   children,
@@ -653,6 +677,91 @@ export function ViewerShell({
           </div>
           <Badge variant="outline">{copy.readOnly}</Badge>
         </header>
+        {coldLoading ? (
+          <div
+            data-slot="session-toolbar"
+            role="status"
+            className="shrink-0 border-b border-border p-4"
+          >
+            <span className="sr-only">{copy.loading}</span>
+            <Skeleton className="h-8 w-2/3" />
+          </div>
+        ) : (
+          <div
+            data-slot="session-toolbar"
+            className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="text-xs text-muted-foreground">
+                  {selected
+                    ? `${selected.project} / ${selected.ticket}`
+                    : copy.readOnly}
+                </p>
+                <h1
+                  title={selected?.title}
+                  className="line-clamp-2 break-words text-lg font-semibold tracking-tight"
+                >
+                  {selected?.title ?? copy.library}
+                </h1>
+                {selected && (
+                  <p className="text-xs text-muted-foreground">
+                    {selected.createdAt} · {selected.segments?.length ?? 1}{" "}
+                    {t.segments}
+                  </p>
+                )}
+              </div>
+            </div>
+            {selected && (onPin || onArchive || onDelete) && (
+              <ButtonGroup aria-label={copy.actions} aria-busy={writing}>
+                {onRename && (
+                  <ActionButton
+                    label={t.rename}
+                    disabled={writing}
+                    onClick={onRename}
+                  >
+                    <Pencil aria-hidden />
+                  </ActionButton>
+                )}
+                <ActionButton
+                  label={selected.archived ? copy.unarchive : copy.archive}
+                  disabled={!onArchive || writing}
+                  onClick={onArchive}
+                >
+                  {selected.archived ? (
+                    <ArchiveRestore aria-hidden />
+                  ) : (
+                    <Archive aria-hidden />
+                  )}
+                </ActionButton>
+                <ActionButton
+                  label={selected.pinned ? copy.unpin : copy.pin}
+                  description={t.keepHelp}
+                  aria-pressed={Boolean(selected.pinned)}
+                  disabled={!onPin || writing}
+                  onClick={onPin}
+                >
+                  <Pin aria-hidden />
+                </ActionButton>
+                <ActionButton
+                  label={copy.remove}
+                  disabled={!onDelete || writing}
+                  onClick={onDelete}
+                >
+                  <Trash2 aria-hidden />
+                </ActionButton>
+              </ButtonGroup>
+            )}
+          </div>
+        )}
+        {feedback && (
+          <div
+            data-slot="session-feedback"
+            className="shrink-0 px-4 py-2 md:px-6"
+          >
+            {feedback}
+          </div>
+        )}
         <div
           data-slot="viewer-canvas"
           aria-busy={coldLoading}
@@ -669,70 +778,6 @@ export function ViewerShell({
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <p className="text-xs text-muted-foreground">
-                      {selected
-                        ? `${selected.project} / ${selected.ticket}`
-                        : copy.readOnly}
-                    </p>
-                    <h1 className="break-words text-lg font-semibold tracking-tight">
-                      {selected?.title ?? copy.library}
-                    </h1>
-                  </div>
-                </div>
-                {selected && (onPin || onArchive || onDelete) && (
-                  <ButtonGroup aria-label={copy.actions}>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <ButtonGroupText
-                            className="border-border bg-transparent"
-                            tabIndex={0}
-                          />
-                        }
-                      >
-                        <span
-                          aria-hidden="true"
-                          data-session-status={selected.status ?? "unknown"}
-                          className="session-status-dot size-1.5 shrink-0 rounded-full"
-                        />
-                        <span>
-                          {copy.sessionStatus[selected.status ?? "unknown"]}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>{copy.statusDescription}</TooltipContent>
-                    </Tooltip>
-                    <ActionButton
-                      label={selected.archived ? copy.unarchive : copy.archive}
-                      disabled={!onArchive || writing}
-                      onClick={onArchive}
-                    >
-                      {selected.archived ? (
-                        <ArchiveRestore aria-hidden />
-                      ) : (
-                        <Archive aria-hidden />
-                      )}
-                    </ActionButton>
-                    <ActionButton
-                      label={selected.pinned ? copy.unpin : copy.pin}
-                      aria-pressed={Boolean(selected.pinned)}
-                      disabled={!onPin || writing}
-                      onClick={onPin}
-                    >
-                      <Pin aria-hidden />
-                    </ActionButton>
-                    <ActionButton
-                      label={copy.remove}
-                      disabled={!onDelete || writing}
-                      onClick={onDelete}
-                    >
-                      <Trash2 aria-hidden />
-                    </ActionButton>
-                  </ButtonGroup>
-                )}
-              </div>
               {notice && (
                 <Alert variant="warning" role="status">
                   <AlertTitle>{copy.readOnly}</AlertTitle>

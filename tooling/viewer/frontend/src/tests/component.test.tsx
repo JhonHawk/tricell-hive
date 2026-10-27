@@ -111,11 +111,11 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
     assert.equal(rows.length, 5);
     assert.match(
       rows.find((row) => row.dataset.sessionKey === key(1))?.textContent ?? "",
-      /Closed/,
+      /Review 1/,
     );
     assert.match(
       rows.find((row) => row.dataset.sessionKey === key(3))?.textContent ?? "",
-      /Not reported/,
+      /Review 3/,
     );
     assert.equal(container.querySelectorAll(".navigation-branch").length, 0);
     assert.equal(
@@ -126,7 +126,7 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
       rows[0]
         .querySelector("[data-session-status]")
         ?.getAttribute("data-session-status"),
-      "closed",
+      undefined,
     );
     data = index([
       session(1, {
@@ -141,6 +141,10 @@ test("StrictMode mounts exchange once, renders grouped explicit statuses and upd
     });
     assert.match(
       container.querySelector("[data-session-key]")?.textContent ?? "",
+      /Review 1/,
+    );
+    assert.match(
+      container.querySelector("[data-segment-key]")?.textContent ?? "",
       /In progress/,
     );
     assert.equal(
@@ -638,7 +642,11 @@ test("cold index loading replaces the full canvas without speculative session ch
     );
     assert.equal(canvas.getAttribute("aria-busy"), "false");
     assert(canvas.querySelector('[data-slot="frame"]'));
-    assert.equal(canvas.querySelector("h1")?.textContent, title);
+    assert.equal(
+      container.querySelector('[data-slot="session-toolbar"] h1')?.textContent,
+      title,
+    );
+    assert.equal(canvas.querySelector("h1"), null);
     const frame = canvas.querySelector('[data-slot="frame"]');
     await act(async () => {
       await controller.refresh();
@@ -805,12 +813,12 @@ test("tracked copies stay outside the normal tree through polling and retain foc
     );
     const keep = [
       ...container.querySelectorAll<HTMLButtonElement>("button"),
-    ].find((button) => button.getAttribute("aria-label") === "Keep");
+    ].find((button) => button.getAttribute("aria-label") === "Keep session");
     assert(keep);
     assert.equal(keep.disabled, false);
     const remove = [
       ...container.querySelectorAll<HTMLButtonElement>("button"),
-    ].find((button) => button.getAttribute("aria-label") === "Delete copy");
+    ].find((button) => button.getAttribute("aria-label") === "Delete session");
     assert(remove);
     assert.equal(remove.disabled, false);
     await act(async () => {
@@ -983,9 +991,9 @@ test("archive filter is icon-only with an accessible toggle and grouped actions 
       [...actions.querySelectorAll("button")].map((button) =>
         button.getAttribute("aria-label"),
       ),
-      ["Archive copy", "Keep", "Delete copy"],
+      ["Archive session", "Keep session", "Delete session"],
     );
-    assert(actions.textContent?.includes("Closed"));
+    assert(!actions.textContent?.includes("Closed"));
     assert.equal(actions.querySelector('[aria-haspopup="menu"]'), null);
   } finally {
     await act(async () => root.unmount());
@@ -993,7 +1001,7 @@ test("archive filter is icon-only with an accessible toggle and grouped actions 
   }
 });
 
-test("session composition groups tickets, stacks siblings, deduplicates deliveries and targets segment actions", async () => {
+test("session composition groups tickets, stacks siblings, deduplicates deliveries and targets session actions", async () => {
   const canonical = await import(
     new URL(
       "../../../../../content/skills/flow-walkthrough/assets/walkthrough.mjs",
@@ -1124,14 +1132,14 @@ test("session composition groups tickets, stacks siblings, deduplicates deliveri
     assert.equal(document.activeElement?.id, `heading-${key(2)}`);
     assert.equal(container.querySelectorAll("[data-segment-key]").length, 2);
     const keep = container.querySelector<HTMLButtonElement>(
-      `[data-segment-key="${key(1)}"] button[aria-label="Keep"]`,
+      '[data-slot="session-toolbar"] button[aria-label="Keep session"]',
     );
     assert(keep);
     await act(async () => {
       keep.click();
       await settle();
     });
-    assert(writes.includes(`/api/sessions/${key(1)}/pin`));
+    assert(writes.includes(`/api/sessions/${key(2)}/pin`));
     assert.equal(controller.getSnapshot().selectedId, key(2));
   } finally {
     await act(async () => root.unmount());
@@ -1335,7 +1343,7 @@ test("reloading a remembered continuation waits for preceding documents, restore
       `[data-segment-key="${key(2)}"]`,
     );
     assert(section);
-    const actions = section.querySelector<HTMLElement>('[role="group"]');
+    const actions = section.querySelector<HTMLElement>("h2");
     assert(actions);
     canvas.getBoundingClientRect = () => new window.DOMRect(0, 83, 400, 700);
     section.getBoundingClientRect = () =>
@@ -1415,7 +1423,7 @@ test("reloading a remembered continuation waits for preceding documents, restore
     );
     scrollOffset = 2500;
     const jumps = container.querySelectorAll<HTMLButtonElement>(
-      'nav[aria-label="Jump to a segment"] button',
+      'nav[aria-label="Jump to a walkthrough"] button',
     );
     await act(async () => {
       jumps[1].click();
@@ -1436,7 +1444,7 @@ test("reloading a remembered continuation waits for preceding documents, restore
   }
 });
 
-test("grouped session indicators preserve explicit closed, active and unknown states", async () => {
+test("session navigation does not infer conversation status from walkthrough work states", async () => {
   const data = index([
     session(1, { session_id: "closed", session_status: "closed" }),
     session(2, { session_id: "closed", session_status: "closed" }),
@@ -1462,7 +1470,7 @@ test("grouped session indicators preserve explicit closed, active and unknown st
       root.render(<ViewerApplication controller={controller} />);
       await settle();
     });
-    for (const [n, expected] of [
+    for (const [n] of [
       [1, "closed"],
       [3, "in_progress"],
       [5, "unknown"],
@@ -1473,13 +1481,16 @@ test("grouped session indicators preserve explicit closed, active and unknown st
         row
           .querySelector("[data-session-status]")
           ?.getAttribute("data-session-status"),
-        expected,
+        undefined,
       );
-      assert.match(
+      assert.doesNotMatch(
         row.getAttribute("title") ?? "",
         /Closed does not mean approved/,
       );
-      assert.match(row.textContent ?? "", /Closed does not mean approved/);
+      assert.doesNotMatch(
+        row.textContent ?? "",
+        /Closed does not mean approved/,
+      );
     }
   } finally {
     await act(async () => root.unmount());
@@ -1571,7 +1582,7 @@ test("sidebar opens session headers while explicit segment jumps still target th
     );
     await click(`[data-session-key="${key(1)}"]`);
     assert.equal(canvas.scrollTop, 0);
-    await click('nav[aria-label="Jump to a segment"] button:nth-child(2)');
+    await click('nav[aria-label="Jump to a walkthrough"] button:nth-child(2)');
     assert.equal(canvas.scrollTop, 1800);
     assert.equal(document.activeElement?.id, `heading-${key(2)}`);
     await click(`[data-session-key="${key(3)}"]`);
@@ -1582,13 +1593,336 @@ test("sidebar opens session headers while explicit segment jumps still target th
       "A remembered continuation must not hide the session header",
     );
     assert.equal(controller.getSnapshot().selectedId, key(1));
-    await click('nav[aria-label="Jump to a segment"] button:nth-child(2)');
+    await click('nav[aria-label="Jump to a walkthrough"] button:nth-child(2)');
     await click(`[data-session-key="${key(1)}"]`);
     assert.equal(
       canvas.scrollTop,
       0,
       "Reopening the current session must also return to its header",
     );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("session naming validates Unicode, preserves failed input, restores focus and searches all siblings", async () => {
+  const data = index([
+    session(1, { session_id: "same" }),
+    session(2, { session_id: "same" }),
+  ]);
+  const titles: string[] = [];
+  let fail = true;
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (String(url).endsWith("/title")) {
+          const title = JSON.parse(String(init?.body)).title;
+          titles.push(title);
+          if (fail) return new Response("{}", { status: 500 });
+          for (const item of data.projects[0].tickets[0].sessions)
+            Object.assign(item, { session_title: title });
+          return new Response(null, { status: 204 });
+        }
+        return response(
+          String(url) === "/api/index"
+            ? data
+            : { title: "Walkthrough", flows: [] },
+        );
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const enter = async (input: HTMLInputElement, value: string) =>
+    act(async () => {
+      Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  const submit = async () =>
+    act(async () => {
+      document
+        .querySelector("[role=dialog] form")
+        ?.dispatchEvent(
+          new Event("submit", { bubbles: true, cancelable: true }),
+        );
+      await settle();
+    });
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    const edit = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Edit session name"]',
+    );
+    assert(edit);
+    await act(async () => {
+      edit.focus();
+      edit.click();
+      await settle();
+    });
+    const input = document.querySelector<HTMLInputElement>("#session-name");
+    assert(input);
+    assert.equal(input.value, "Review 1");
+    await enter(input, "😀".repeat(201));
+    await submit();
+    assert.equal(titles.length, 0);
+    assert.equal(input.getAttribute("aria-invalid"), "true");
+    const name = "😀".repeat(200);
+    await enter(input, name);
+    await submit();
+    assert.equal(titles.length, 1);
+    assert.equal(input.value, name);
+    assert(document.querySelector('[role="dialog"] [role="alert"]'));
+    fail = false;
+    await submit();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    assert.equal(
+      container.querySelector('[data-slot="session-toolbar"] h1')?.textContent,
+      name,
+    );
+    assert.equal(document.activeElement, edit);
+    assert.deepEqual(
+      [...container.querySelectorAll("[data-segment-key] h2")].map(
+        (node) => node.textContent,
+      ),
+      ["Review 1", "Review 2"],
+    );
+    const search = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+    assert(search);
+    await enter(search, name);
+    assert.equal(container.querySelectorAll("[data-session-key]").length, 1);
+    assert.equal(container.querySelectorAll("[data-segment-key]").length, 2);
+    await act(async () => {
+      edit.click();
+      await settle();
+    });
+    const reset = [
+      ...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'),
+    ].find((button) => button.textContent === "Reset automatic name");
+    assert(reset);
+    await act(async () => {
+      reset.click();
+      await settle();
+    });
+    assert.equal(titles.at(-1), "");
+    assert.equal(
+      container.querySelector('[data-slot="session-toolbar"] h1')?.textContent,
+      "Review 1",
+    );
+    await act(async () => {
+      edit.click();
+      await settle();
+    });
+    const cancel = [
+      ...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'),
+    ].find((button) => button.textContent === "Cancel");
+    assert(cancel);
+    await act(async () => {
+      cancel.click();
+      await settle();
+    });
+    assert.equal(titles.length, 3);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("a rejected session delete keeps confirmation open with a reachable reload action and no replay", async () => {
+  const data = index([session(1), session(2, { session_id: "fixture-1" })], {
+    excluded_sessions: [
+      session(3, {
+        session_id: "fixture-1",
+        source_status: "tracked",
+        project_key: "project-1",
+      }),
+    ],
+  });
+  let writes = 0;
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (init?.method === "DELETE") {
+          writes++;
+          return new Response(JSON.stringify({ code: "reload_required" }), {
+            status: 409,
+          });
+        }
+        return response(
+          String(url) === "/api/index"
+            ? data
+            : { title: "Document", flows: [] },
+        );
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    const remove = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Delete session"]',
+    );
+    assert(remove);
+    await act(async () => {
+      remove.click();
+      await settle();
+    });
+    let dialog = document.querySelector('[role="alertdialog"]');
+    assert(dialog);
+    assert.match(dialog.textContent ?? "", /Stored walkthroughs: 3/);
+    const confirm = dialog.querySelector<HTMLButtonElement>(
+      '[data-slot="alert-dialog-action"]',
+    );
+    assert(confirm);
+    await act(async () => {
+      confirm.click();
+      await settle();
+    });
+    dialog = document.querySelector('[role="alertdialog"]');
+    assert(dialog);
+    assert.match(dialog.textContent ?? "", /Reload the viewer to continue/);
+    const reload = [...dialog.querySelectorAll("button")].find(
+      (button) => button.textContent === "Reload viewer",
+    );
+    assert(reload, "Reload must be reachable inside the modal focus trap");
+    await act(async () => {
+      await controller.refresh();
+      await settle();
+    });
+    assert.equal(writes, 1);
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("partial delete keeps survivors confirmable and zero-member cleanup is checked with reads only", async () => {
+  let data = index([session(1), session(2, { session_id: "fixture-1" })]);
+  let deletes = 0;
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (init?.method === "DELETE") {
+          deletes++;
+          if (deletes === 1) {
+            data = index([session(2, { session_id: "fixture-1" })]);
+            return new Response(
+              JSON.stringify({
+                code: "partial_delete",
+                deleted: 1,
+                remaining: 1,
+                cleanup_pending: true,
+              }),
+              { status: 500 },
+            );
+          }
+          data = index([], {
+            errors: [
+              {
+                path: "groups/fixture",
+                reason: "cleanup",
+                code: "delete_cleanup_pending",
+                session_group: "fixture",
+              },
+            ],
+          });
+          return new Response(
+            JSON.stringify({
+              code: "partial_delete",
+              deleted: 1,
+              remaining: 0,
+              cleanup_pending: true,
+            }),
+            { status: 500 },
+          );
+        }
+        return response(
+          String(url) === "/api/index"
+            ? data
+            : { title: "Document", flows: [] },
+        );
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    const remove = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Delete session"]',
+    );
+    assert(remove);
+    await act(async () => {
+      remove.click();
+      await settle();
+    });
+    const confirm = () =>
+      document.querySelector<HTMLButtonElement>(
+        '[role="alertdialog"] [data-slot="alert-dialog-action"]',
+      );
+    await act(async () => {
+      confirm()?.click();
+      await settle();
+    });
+    assert.match(
+      document.querySelector('[role="alertdialog"]')?.textContent ?? "",
+      /Deleted: 1 · Remaining: 1/,
+    );
+    assert.equal(confirm()?.textContent, "Retry");
+    assert.equal(controller.getSnapshot().selectedId, key(2));
+    await act(async () => {
+      confirm()?.click();
+      await settle();
+    });
+    assert.equal(confirm()?.textContent, "Check recovery");
+    assert.match(
+      document.querySelector('[role="alertdialog"]')?.textContent ?? "",
+      /The viewer will retry automatically/,
+    );
+    await act(async () => {
+      confirm()?.click();
+      await settle();
+    });
+    assert.equal(deletes, 2);
+    assert(document.querySelector('[role="alertdialog"]'));
+    data = index([]);
+    await act(async () => {
+      confirm()?.click();
+      await settle();
+    });
+    assert.equal(controller.getSnapshot().actionError, undefined);
+    assert.equal(controller.getSnapshot().index?.errors.length, 0);
+    assert.equal(document.querySelector('[role="alertdialog"]'), null);
+    assert.equal(deletes, 2);
+    assert.doesNotMatch(container.textContent ?? "", /cleanup pending/);
   } finally {
     await act(async () => root.unmount());
     container.remove();
