@@ -573,14 +573,16 @@ export function ViewerApplication({
               {state.actionError && (
                 <Alert variant="destructive" role="alert">
                   <AlertTitle>
-                    {state.actionError.code === "reload_required"
-                      ? t.reloadRequired
-                      : state.actionError.remaining === 0 &&
-                          state.actionError.cleanup_pending
-                        ? t.cleanupPending
-                        : state.actionError.code === "partial_delete"
-                          ? t.partialDelete
-                          : t.writeError}
+                    {state.actionError.code === "rename_timeout"
+                      ? t.nameSaveTimeout
+                      : state.actionError.code === "reload_required"
+                        ? t.reloadRequired
+                        : state.actionError.remaining === 0 &&
+                            state.actionError.cleanup_pending
+                          ? t.cleanupPending
+                          : state.actionError.code === "partial_delete"
+                            ? t.partialDelete
+                            : t.writeError}
                   </AlertTitle>
                   {state.actionError.code === "partial_delete" && (
                     <AlertDescription>
@@ -605,11 +607,13 @@ export function ViewerApplication({
                         else controller.retryAction();
                       }}
                     >
-                      {state.actionError.code === "reload_required"
-                        ? t.reload
-                        : state.actionError.remaining === 0
-                          ? t.checkRecovery
-                          : t.retry}
+                      {state.actionError.code === "rename_timeout"
+                        ? t.checkSavedName
+                        : state.actionError.code === "reload_required"
+                          ? t.reload
+                          : state.actionError.remaining === 0
+                            ? t.checkRecovery
+                            : t.retry}
                     </Button>
                   </AlertAction>
                 </Alert>
@@ -906,6 +910,7 @@ export function ViewerApplication({
           </DialogHeader>
           <form
             className="flex flex-col gap-4"
+            aria-busy={state.writing}
             onSubmit={(event) => {
               event.preventDefault();
               void saveName(name);
@@ -925,6 +930,11 @@ export function ViewerApplication({
                 setNameError(false);
               }}
             />
+            {state.writing && (
+              <p role="status" aria-live="polite" className="text-sm">
+                {t.savingName}
+              </p>
+            )}
             {nameError && (
               <p id="session-name-error" role="alert" className="text-sm">
                 {t.invalidName}
@@ -932,11 +942,24 @@ export function ViewerApplication({
             )}
             {state.actionError?.operation === "title" && (
               <p role="alert" className="text-sm">
-                {state.actionError.code === "reload_required"
-                  ? t.reloadRequired
-                  : t.writeError}
+                {state.actionError.code === "rename_timeout"
+                  ? t.nameSaveTimeout
+                  : state.actionError.code === "reload_required"
+                    ? t.reloadRequired
+                    : t.writeError}
               </p>
             )}
+            {state.actionError?.operation === "title" &&
+              state.actionError.code === "rename_timeout" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={retry}
+                >
+                  {t.checkSavedName}
+                </Button>
+              )}
             <Button
               type="button"
               size="sm"

@@ -96,9 +96,15 @@ export class AccessClient {
     this.token = "";
     save(this.storage, TOKEN_KEY);
   }
-  async request(path: string, method = "GET", body?: unknown) {
+  async request(
+    path: string,
+    method = "GET",
+    body?: unknown,
+    signal?: AbortSignal,
+  ) {
     const response = await this.fetcher(path, {
       method,
+      ...(signal ? { signal } : {}),
       headers: {
         "X-Hive-Token": this.token,
         ...(method !== "GET" ? { "X-Hive-Action-Scope": "session" } : {}),

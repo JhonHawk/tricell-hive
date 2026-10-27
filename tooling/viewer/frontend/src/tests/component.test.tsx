@@ -2018,3 +2018,100 @@ test("full session names expose keyboard reading regions and delete starts on Ca
     container.remove();
   }
 });
+
+test("rename shows progress and recovers an unanswered save without losing the draft", async () => {
+  const data = index();
+  let writes = 0;
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url, init) => {
+        if (init?.method === "PUT") {
+          writes++;
+          return new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener(
+              "abort",
+              () => reject(new DOMException("Aborted", "AbortError")),
+              { once: true },
+            );
+          });
+        }
+        return response(
+          String(url) === "/api/index"
+            ? data
+            : { title: "Document", flows: [] },
+        );
+      },
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    const edit = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Edit session name"]',
+    );
+    assert(edit);
+    await act(async () => {
+      edit.click();
+      await settle();
+    });
+    const input = document.querySelector<HTMLInputElement>("#session-name");
+    assert(input);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(input, "Retained draft");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      document
+        .querySelector('[role="dialog"] form')
+        ?.dispatchEvent(
+          new Event("submit", { bubbles: true, cancelable: true }),
+        );
+      await settle();
+    });
+    assert.equal(input.disabled, true);
+    const progress = document.querySelector('[role="dialog"] [role="status"]');
+    assert.match(progress?.textContent ?? "", /Saving session name/);
+    assert.equal(progress?.getAttribute("aria-live"), "polite");
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 15100));
+      await settle();
+    });
+    assert.equal(input.disabled, false);
+    assert.equal(input.value, "Retained draft");
+    const dialog = document.querySelector('[role="dialog"]');
+    assert(dialog);
+    assert.match(dialog.textContent ?? "", /may have been saved/);
+    const check = [
+      ...dialog.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Check saved name");
+    assert(check);
+    await act(async () => {
+      check.click();
+      await settle();
+    });
+    assert.equal(writes, 1);
+    const cancel = [
+      ...dialog.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Cancel");
+    assert(cancel);
+    assert.equal(cancel.disabled, false);
+    await act(async () => {
+      cancel.click();
+      await settle();
+    });
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});

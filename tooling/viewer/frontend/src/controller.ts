@@ -373,6 +373,14 @@ export class ViewerController {
       actionError: undefined,
       notice: undefined,
     });
+    const abort = operation === "title" ? new AbortController() : undefined;
+    let timedOut = false;
+    const deadline = abort
+      ? setTimeout(() => {
+          timedOut = true;
+          abort.abort();
+        }, 15000)
+      : undefined;
     try {
       await this.client.request(
         `/api/sessions/${id}${operation === "delete" ? "" : `/${operation}`}`,
@@ -382,7 +390,9 @@ export class ViewerController {
             ? "DELETE"
             : "POST",
         operation === "title" ? { title: value } : undefined,
+        abort?.signal,
       );
+      clearTimeout(deadline);
       if (epoch !== this.epoch) return false;
       this.readSeq++;
       if (!(await this.refresh())) {
@@ -416,6 +426,20 @@ export class ViewerController {
       return true;
     } catch (error) {
       if (epoch !== this.epoch || this.failure(error)) return false;
+      if (timedOut) {
+        this.update({
+          notice: "writeError",
+          actionError: {
+            id,
+            groupId,
+            operation,
+            value,
+            code: "rename_timeout",
+          },
+        });
+        void this.refresh();
+        return false;
+      }
       const details = error instanceof HttpError ? error.details : {};
       if (operation === "delete") await this.refresh();
       if (epoch === this.epoch)
@@ -434,6 +458,7 @@ export class ViewerController {
         });
       return false;
     } finally {
+      clearTimeout(deadline);
       if (epoch === this.epoch)
         this.update({ writing: false, writingId: undefined });
     }
@@ -484,7 +509,11 @@ export class ViewerController {
     const error = this.state.actionError;
     if (!error) return;
     if (error.code === "reload_required") return;
-    if (error.code === "refresh_required" || error.remaining === 0) {
+    if (
+      error.code === "refresh_required" ||
+      error.code === "rename_timeout" ||
+      error.remaining === 0
+    ) {
       void this.refresh();
       return;
     }

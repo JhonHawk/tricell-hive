@@ -955,3 +955,61 @@ test("partial deletion keeps structured recovery state and read-only checks clea
   assert.equal(controller.getSnapshot().actionError, undefined);
   assert.equal(deletes, 1);
 });
+
+test("an unanswered rename aborts within fifteen seconds and refreshes without replay", async () => {
+  let data = index();
+  let writes = 0;
+  let reads = 0;
+  let signal: AbortSignal | null | undefined;
+  const controller = setup(async (url, init) => {
+    if (init?.method === "PUT") {
+      writes++;
+      signal = init.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        signal?.addEventListener(
+          "abort",
+          () => {
+            data = index([
+              session(1, { session_title: "Saved before connection ended" }),
+            ]);
+            reject(new DOMException("The request was aborted", "AbortError"));
+          },
+          { once: true },
+        );
+      });
+    }
+    if (String(url) === "/api/index") reads++;
+    return response(
+      String(url) === "/api/index" ? data : { title: "Document" },
+    );
+  });
+  await controller.open(null);
+  const saving = controller.rename("Saved before connection ended");
+  assert.equal(controller.getSnapshot().writing, true);
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([
+      saving,
+      new Promise<string>((resolve) => {
+        deadline = setTimeout(() => resolve("unresolved"), 16000);
+      }),
+    ]);
+    assert.equal(
+      result,
+      false,
+      "An unanswered rename must leave the pending state after its deadline",
+    );
+    await settle();
+    assert.equal(signal?.aborted, true);
+    assert.equal(controller.getSnapshot().writing, false);
+    assert.equal(controller.getSnapshot().actionError?.code, "rename_timeout");
+    assert.equal(
+      controller.getSnapshot().groups[0].title,
+      "Saved before connection ended",
+    );
+    assert.equal(writes, 1);
+    assert.equal(reads, 2);
+  } finally {
+    clearTimeout(deadline);
+  }
+});

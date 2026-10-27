@@ -11,6 +11,10 @@ export const messages =
         nameHelp:
           "Solo cambia el nombre en este visor. Los títulos de los recorridos se conservan.",
         saveName: "Guardar",
+        savingName: "Guardando nombre de la sesión…",
+        nameSaveTimeout:
+          "No llegó la respuesta a tiempo. El nombre puede haberse guardado; comprueba el nombre actual antes de reintentar.",
+        checkSavedName: "Comprobar nombre guardado",
         resetName: "Restablecer nombre automático",
         invalidName:
           "Usa como máximo 200 caracteres, sin caracteres de control.",
@@ -120,6 +124,10 @@ export const messages =
         nameHelp:
           "Changes the name in this viewer only. Walkthrough titles are preserved.",
         saveName: "Save",
+        savingName: "Saving session name…",
+        nameSaveTimeout:
+          "The response did not arrive in time. The name may have been saved; check the current name before retrying.",
+        checkSavedName: "Check saved name",
         resetName: "Reset automatic name",
         invalidName: "Use at most 200 characters, without control characters.",
         undo: "Undo",
