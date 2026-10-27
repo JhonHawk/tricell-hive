@@ -1928,3 +1928,93 @@ test("partial delete keeps survivors confirmable and zero-member cleanup is chec
     container.remove();
   }
 });
+
+test("full session names expose keyboard reading regions and delete starts on Cancel", async () => {
+  const name = "x".repeat(200);
+  const data = index([session(1, { session_title: name })]);
+  const controller = new ViewerController(
+    new AccessClient(
+      async (url) =>
+        response(
+          String(url) === "/api/index"
+            ? data
+            : { title: "Document", flows: [] },
+        ),
+      { getItem: () => "test-access", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      await controller.open(null);
+      root.render(<ViewerApplication controller={controller} />);
+      await settle();
+    });
+    const heading = container.querySelector<HTMLElement>(
+      '[data-slot="session-toolbar"] h1',
+    );
+    assert(heading);
+    await act(async () => heading.focus());
+    assert(
+      document.activeElement === heading,
+      "The heading must accept keyboard focus",
+    );
+    assert.equal(heading.textContent, name);
+    const hint = document.getElementById(
+      heading.getAttribute("aria-describedby") ?? "",
+    );
+    assert.match(hint?.textContent ?? "", /Left and Right arrow keys/);
+    const remove = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Delete session"]',
+    );
+    assert(remove);
+    await act(async () => {
+      remove.click();
+      await settle();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    const dialog = document.querySelector('[role="alertdialog"]');
+    assert(dialog);
+    const cancel = [
+      ...dialog.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Cancel");
+    assert(cancel);
+    assert(
+      document.activeElement === cancel,
+      "Cancel must receive initial and restored focus",
+    );
+    const reader = dialog.querySelector<HTMLElement>(
+      'section[aria-label="Session name"]',
+    );
+    assert(reader);
+    await act(async () => reader.focus());
+    assert(
+      document.activeElement === reader,
+      "The name reading region must accept keyboard focus",
+    );
+    assert.equal(reader.textContent, name);
+    assert.match(
+      document.getElementById(reader.getAttribute("aria-describedby") ?? "")
+        ?.textContent ?? "",
+      /Left and Right arrow keys/,
+    );
+    await act(async () => cancel.focus());
+    assert(
+      document.activeElement === cancel,
+      "Cancel must receive initial and restored focus",
+    );
+    await act(async () => {
+      cancel.click();
+      await settle();
+    });
+    assert.equal(controller.getSnapshot().selectedId, key(1));
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});

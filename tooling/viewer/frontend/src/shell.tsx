@@ -700,10 +700,21 @@ export function ViewerShell({
                 </p>
                 <h1
                   title={selected?.title}
-                  className="min-w-0 text-lg font-semibold tracking-tight [overflow-wrap:anywhere]"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: The name is a deliberate keyboard-accessible horizontal reading region.
+                  tabIndex={0}
+                  aria-describedby="session-name-reading-hint"
+                  style={{
+                    whiteSpace: /\s/u.test(selected?.title ?? copy.library)
+                      ? "normal"
+                      : "nowrap",
+                  }}
+                  className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   {selected?.title ?? copy.library}
                 </h1>
+                <span id="session-name-reading-hint" className="sr-only">
+                  {t.nameReadingHint}
+                </span>
                 {selected && (
                   <p className="text-xs text-muted-foreground">
                     {selected.createdAt} · {selected.segments?.length ?? 1}{" "}

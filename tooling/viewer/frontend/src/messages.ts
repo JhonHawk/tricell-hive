@@ -6,6 +6,8 @@ export const messages =
     ? {
         rename: "Editar nombre de la sesión",
         sessionName: "Nombre de la sesión",
+        nameReadingHint:
+          "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo.",
         nameHelp:
           "Solo cambia el nombre en este visor. Los títulos de los recorridos se conservan.",
         saveName: "Guardar",
@@ -113,6 +115,8 @@ export const messages =
     : {
         rename: "Edit session name",
         sessionName: "Session name",
+        nameReadingHint:
+          "If the name overflows, use the Left and Right arrow keys to read it in full.",
         nameHelp:
           "Changes the name in this viewer only. Walkthrough titles are preserved.",
         saveName: "Save",

@@ -126,6 +126,7 @@ export function ViewerApplication({
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState(false);
   const editButton = useRef<HTMLElement | null>(null);
+  const deleteCancel = useRef<HTMLButtonElement>(null);
   const undoButton = useRef<HTMLButtonElement>(null);
   const allSessions = state.index ? mapIndex(state.index) : [];
   const deleteMembers = deleteTarget
@@ -790,6 +791,7 @@ export function ViewerApplication({
         }}
       >
         <AlertDialogContent
+          initialFocus={() => deleteCancel.current}
           finalFocus={() => {
             if (controller.getSnapshot().notice !== "deleted") return true;
             const key = controller.getSnapshot().selectedId;
@@ -807,9 +809,23 @@ export function ViewerApplication({
             <AlertDialogTitle>{t.confirm}</AlertDialogTitle>
             <AlertDialogDescription>{t.confirmBody}</AlertDialogDescription>
           </AlertDialogHeader>
-          <p className="min-w-0 text-sm [overflow-wrap:anywhere]">
+          <section
+            aria-label={t.sessionName}
+            aria-describedby="delete-session-name-reading-hint"
+            style={{
+              whiteSpace: /\s/u.test(deleteTarget?.title ?? "")
+                ? "normal"
+                : "nowrap",
+            }}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: The name is a deliberate keyboard-accessible horizontal reading region.
+            tabIndex={0}
+            className="min-w-0 overflow-x-auto whitespace-normal break-normal text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
             {deleteTarget?.title}
-          </p>
+          </section>
+          <span id="delete-session-name-reading-hint" className="sr-only">
+            {t.nameReadingHint}
+          </span>
           <p className="text-sm">
             {t.storedCount}:{" "}
             {deleteMembers.length ||
@@ -829,7 +845,11 @@ export function ViewerApplication({
             </p>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel type="button" disabled={state.writing}>
+            <AlertDialogCancel
+              ref={deleteCancel}
+              type="button"
+              disabled={state.writing}
+            >
               {t.cancel}
             </AlertDialogCancel>
             <AlertDialogAction
