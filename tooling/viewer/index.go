@@ -44,9 +44,10 @@ type Session struct {
 	Pinned      bool      `json:"pinned"`
 	Archived    bool      `json:"archived"`
 
+	SessionTitle  string `json:"session_title,omitempty"`
 	SessionID     string `json:"session_id"`
 	SessionStatus string `json:"session_status"`
-	Host          string `json:"host"`
+	Host          string `json:"host,omitempty"`
 	Ticket        string `json:"ticket"`
 	Title         string `json:"title"`
 	Kind          string `json:"kind"`
@@ -70,8 +71,10 @@ type Tombstone struct {
 // IngestError is a source that could not be ingested, or a stored copy that
 // could not be read.
 type IngestError struct {
-	Path   string `json:"path"`
-	Reason string `json:"reason"`
+	Code         string `json:"code,omitempty"`
+	SessionGroup string `json:"session_group,omitempty"`
+	Path         string `json:"path"`
+	Reason       string `json:"reason"`
 }
 
 // RepositoryStatus reports one registered repository.

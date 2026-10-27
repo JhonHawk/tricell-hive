@@ -49,6 +49,7 @@ func newSrvEnv(t *testing.T) *srvEnv {
 }
 
 type reqOpts struct {
+	scope  string
 	host   string
 	token  string
 	origin string
@@ -67,6 +68,9 @@ func (s *srvEnv) do(method, target string, o reqOpts) *httptest.ResponseRecorder
 	if o.origin != "" {
 		r.Header.Set("Origin", o.origin)
 	}
+	if o.scope != "" {
+		r.Header.Set("X-Hive-Action-Scope", o.scope)
+	}
 	w := httptest.NewRecorder()
 	s.srv.ServeHTTP(w, r)
 	return w
@@ -84,7 +88,7 @@ func (s *srvEnv) cap() string {
 func (s *srvEnv) files() string { return "/files/" + s.key + "/" + s.cap() + "/" }
 
 func (s *srvEnv) write(method, target string) *httptest.ResponseRecorder {
-	return s.do(method, target, reqOpts{token: testToken, origin: "http://" + testHost})
+	return s.do(method, target, reqOpts{token: testToken, origin: "http://" + testHost, scope: "session"})
 }
 
 func TestServerRejectsWritesWithoutTokenOrWithAForeignTokenOriginOrHost(t *testing.T) {
@@ -105,6 +109,7 @@ func TestServerRejectsWritesWithoutTokenOrWithAForeignTokenOriginOrHost(t *testi
 			{http.MethodDelete, "/api/sessions/" + s.key + "/pin"},
 			{http.MethodPost, "/api/sessions/" + s.key + "/archive"},
 			{http.MethodDelete, "/api/sessions/" + s.key + "/archive"},
+			{http.MethodPut, "/api/sessions/" + s.key + "/title"},
 		} {
 			if w := s.do(req[0], req[1], o); w.Code != http.StatusForbidden {
 				t.Errorf("%s: %s %s = %d, want 403", name, req[0], req[1], w.Code)

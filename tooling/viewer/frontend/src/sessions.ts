@@ -42,7 +42,9 @@ export function groupSessions(segments: LibrarySession[]): SessionGroup[] {
         id,
         projectKey: first.projectKey ?? "",
         project: first.project,
-        title: first.title,
+        title:
+          segments.find((segment) => segment.raw.session_title)?.raw
+            .session_title || first.title,
         tickets: [...new Set(segments.map((segment) => segment.ticket))],
         segments,
         activity: Math.max(...segments.map(segmentTime)),
@@ -58,6 +60,7 @@ export function matchingSegments(
   query: string,
 ): LibrarySession[] {
   const search = query.trim().toLocaleLowerCase();
+  if (group.title.toLocaleLowerCase().includes(search)) return group.segments;
   return group.segments.filter((segment) =>
     `${segment.title} ${segment.ticket}`.toLocaleLowerCase().includes(search),
   );

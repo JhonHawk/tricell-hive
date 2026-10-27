@@ -99,6 +99,7 @@ body {
 }
 .viewer-shell *,
 [data-slot="dialog-content"],
+[data-slot="alert-dialog-content"],
 [data-slot="dialog-content"] *,
 [data-slot="dialog-content"]::before,
 [data-slot="dialog-content"]::after,
@@ -233,4 +234,18 @@ body {
 .walkthrough-embedded h2 {
   font-size: 1rem;
   margin-top: 1.5rem;
+}
+
+[data-slot="alert-dialog-content"],
+[data-slot="alert-dialog-content"] * {
+  box-sizing: border-box;
+}
+[data-slot="alert-dialog-content"] :is(h2, p) {
+  margin: 0;
+}
+@media print {
+  [data-slot="session-toolbar"],
+  [data-slot="session-feedback"] {
+    display: none;
+  }
 }

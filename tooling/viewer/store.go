@@ -80,6 +80,11 @@ type Store struct {
 	// Lock order: mu, then the flock on viewer/lock (registry only).
 	mu            sync.Mutex
 	lastPersisted []byte
+	// Filesystem boundaries use the production implementations installed by Open.
+	writeAtomic func(string, []byte) error
+	removeFile  func(string) error
+	removeTree  func(string) error
+	renamePath  func(string, string) error
 
 	// onHash, when set by a test, is called each time a source's files are hashed.
 	onHash func(folder string)
@@ -121,12 +126,13 @@ func Open(o Options) (*Store, error) {
 		return nil, fmt.Errorf("viewer: state directory must be an absolute path, got %q", o.StateDir)
 	}
 	s := &Store{
-		vdir:     viewerDir(o.StateDir),
-		ttl:      o.TTL,
-		now:      o.Now,
-		hive:     o.HiveProject,
-		remote:   o.GitRemote,
-		tracking: o.SourceTracking,
+		vdir:        viewerDir(o.StateDir),
+		ttl:         o.TTL,
+		now:         o.Now,
+		hive:        o.HiveProject,
+		remote:      o.GitRemote,
+		tracking:    o.SourceTracking,
+		writeAtomic: writeFileAtomic, removeFile: os.Remove, removeTree: os.RemoveAll, renamePath: os.Rename,
 	}
 	if s.ttl <= 0 {
 		s.ttl = defaultTTL
@@ -169,7 +175,9 @@ func (s *Store) Startup() error {
 		return err
 	}
 	s.clearProjects()
-	return s.commit(s.load())
+	d := s.load()
+	s.recoverPendingGroups(d, true)
+	return s.commit(d)
 }
 
 // cleanup removes temporary copy directories and stray atomic-write files,
@@ -311,7 +319,7 @@ func sessionFrom(key string, m meta, sm summary) Session {
 }
 
 // load builds the index from disk: sessions from sessions/*/meta.json (the
-// source of truth, including pins and archive flags), tombstones and ingest
+// physical source of truth), tombstones and ingest
 // errors from a readable index.json. For older metadata without project identity,
 // a matching index entry supplies the previously resolved identity.
 func (s *Store) load() *indexData {
@@ -357,6 +365,8 @@ func (s *Store) load() *indexData {
 	}
 	s.classifySessions(d, s.classifySources(context.Background(), sessionSourcePaths(d)))
 	s.enrich(d)
+	_ = s.reconcileGroups(d, false)
+	s.recoverPendingGroups(d, false)
 	d.sorted()
 	return d
 }
@@ -385,6 +395,13 @@ func repositoryStatuses(reg Registry) []RepositoryStatus {
 // commit publishes d and persists it to index.json when it changed. The
 // caller holds s.mu (or is Open).
 func (s *Store) commit(d *indexData) error {
+	if err := s.reconcileGroups(d, true); err != nil {
+		s.viewMu.Lock()
+		s.idx = d
+		s.viewMu.Unlock()
+		return err
+	}
+	s.recoverPendingGroups(d, false)
 	d.sorted()
 	previous := map[string]Session{}
 	if s.lastPersisted != nil {
@@ -404,7 +421,7 @@ func (s *Store) commit(d *indexData) error {
 			continue
 		}
 		m.ProjectKey, m.ProjectName = sess.ProjectKey, sess.ProjectName
-		if err := writeJSONAtomic(filepath.Join(s.sessionDir(sess.Key), "meta.json"), m); err != nil {
+		if err := writeMeta(s.sessionDir(sess.Key), m); err != nil {
 			return err
 		}
 	}
@@ -419,7 +436,7 @@ func (s *Store) commit(d *indexData) error {
 	if bytes.Equal(data, s.lastPersisted) {
 		return nil
 	}
-	if err := writeFileAtomic(s.indexPath(), data); err != nil {
+	if err := s.writeAtomic(s.indexPath(), data); err != nil {
 		return err
 	}
 	s.lastPersisted = data
@@ -445,41 +462,14 @@ func validKey(key string) error {
 func (s *Store) removeCopy(key string) error {
 	dir := s.sessionDir(key)
 	gone := filepath.Join(s.sessionsDir(), tmpPrefix+"del-"+key)
-	os.RemoveAll(gone)
-	if err := os.Rename(dir, gone); err != nil {
+	s.removeTree(gone)
+	if err := s.renamePath(dir, gone); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
 		return err
 	}
-	return os.RemoveAll(gone)
-}
-
-// Delete removes the stored copy of a session and records a tombstone so the
-// next scan does not bring the same content back. Repository files are never
-// touched. It returns ErrInvalidKey for a malformed key and ErrNotFound when
-// there is no such copy.
-func (s *Store) Delete(key string) error {
-	if err := validKey(key); err != nil {
-		return err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	d := s.current().clone()
-	i, indexed := d.session(key)
-	if !indexed {
-		if _, err := os.Lstat(s.sessionDir(key)); err != nil {
-			return ErrNotFound
-		}
-		return s.removeCopy(key)
-	}
-	sess := d.Sessions[i]
-	if err := s.removeCopy(key); err != nil {
-		return err
-	}
-	d.Sessions = append(d.Sessions[:i], d.Sessions[i+1:]...)
-	s.addTombstone(d, sess)
-	return s.commit(d)
+	return s.removeTree(gone)
 }
 
 func (s *Store) addTombstone(d *indexData, sess Session) {
@@ -489,59 +479,14 @@ func (s *Store) addTombstone(d *indexData, sess Session) {
 	})
 }
 
-// Pin marks a copy as kept (or not): a pinned copy is never purged. The flag
-// lives in meta.json, so it survives index loss and restarts.
+// Pin changes retention for the logical session containing key.
 func (s *Store) Pin(key string, pinned bool) error {
-	if err := validKey(key); err != nil {
-		return err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	d := s.current().clone()
-	i, ok := d.session(key)
-	if !ok {
-		return ErrNotFound
-	}
-	m, err := readMeta(s.sessionDir(key))
-	if err != nil {
-		return err
-	}
-	if m.Pinned != pinned {
-		m.Pinned = pinned
-		if err := writeJSONAtomic(filepath.Join(s.sessionDir(key), "meta.json"), m); err != nil {
-			return err
-		}
-	}
-	d.Sessions[i].Pinned = pinned
-	return s.commit(d)
+	return s.updateGroup(key, func(g *sessionGroup) { g.Pinned = pinned })
 }
 
-// Archive marks a stored copy as hidden (or visible) in the viewer. It does
-// not change pinning, retention, or the source manifest. The flag lives in
-// meta.json so it survives index loss and restarts.
+// Archive changes visibility for the logical session containing key.
 func (s *Store) Archive(key string, archived bool) error {
-	if err := validKey(key); err != nil {
-		return err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	d := s.current().clone()
-	i, ok := d.session(key)
-	if !ok {
-		return ErrNotFound
-	}
-	m, err := readMeta(s.sessionDir(key))
-	if err != nil {
-		return err
-	}
-	if m.Archived != archived {
-		m.Archived = archived
-		if err := writeJSONAtomic(filepath.Join(s.sessionDir(key), "meta.json"), m); err != nil {
-			return err
-		}
-	}
-	d.Sessions[i].Archived = archived
-	return s.commit(d)
+	return s.updateGroup(key, func(g *sessionGroup) { g.Archived = archived })
 }
 
 // Purge deletes every unpinned copy whose ingested_at is strictly older than
@@ -552,6 +497,9 @@ func (s *Store) Purge() ([]string, error) {
 	defer s.mu.Unlock()
 	cutoff := s.now().Add(-s.ttl)
 	d := s.current().clone()
+	if err := s.reconcileGroups(d, true); err != nil {
+		return nil, err
+	}
 	var purged []string
 	kept := d.Sessions[:0:0]
 	var firstErr error

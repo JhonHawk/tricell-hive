@@ -1,4 +1,3 @@
-import { Archive, ArchiveRestore, Pin, Trash2 } from "lucide-react";
 import {
   type ReactNode,
   useCallback,
@@ -26,9 +25,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import {
+  Dialog,
+  DialogCancel,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { mapIndex } from "./api";
 import type { DocumentData, ViewerController } from "./controller";
 import { SessionDeliveries } from "./deliveries";
 import {
@@ -37,7 +46,8 @@ import {
   type WalkthroughModule,
 } from "./document";
 import { messages as t } from "./messages";
-import { ActionButton, ViewerShell } from "./shell";
+import { sessionIdentity } from "./sessions";
+import { ViewerShell } from "./shell";
 
 function SegmentDocument({
   data,
@@ -103,7 +113,116 @@ export function ViewerApplication({
     controller.getSnapshot,
   );
   const [deleting, setDeleting] = useState(false);
-  const deleteKey = useRef<string | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    groupId: string;
+    title: string;
+    count: number;
+  }>();
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string;
+    title: string;
+  }>();
+  const [name, setName] = useState("");
+  const [nameError, setNameError] = useState(false);
+  const [checkingName, setCheckingName] = useState(false);
+  const editButton = useRef<HTMLElement | null>(null);
+  const deleteCancel = useRef<HTMLButtonElement>(null);
+  const deleteProgress = useRef<HTMLParagraphElement>(null);
+  const wasDeleting = useRef(false);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const savingNameStatus = useRef<HTMLParagraphElement>(null);
+  const wasSavingName = useRef(false);
+  useLayoutEffect(() => {
+    const saving = Boolean(
+      renameTarget && state.writing && state.writingId === renameTarget.id,
+    );
+    if (saving) savingNameStatus.current?.focus();
+    else if (
+      wasSavingName.current &&
+      renameTarget &&
+      state.actionError?.operation === "title"
+    )
+      nameInput.current?.focus();
+    wasSavingName.current = saving;
+  }, [renameTarget, state.writing, state.writingId, state.actionError]);
+  const undoButton = useRef<HTMLButtonElement>(null);
+  const allSessions = state.index ? mapIndex(state.index) : [];
+  const deleteMembers = deleteTarget
+    ? allSessions.filter((s) => sessionIdentity(s) === deleteTarget.groupId)
+    : [];
+  const deleteError =
+    state.actionError?.operation === "delete" &&
+    state.actionError.groupId === deleteTarget?.groupId
+      ? state.actionError
+      : undefined;
+  useLayoutEffect(() => {
+    const pending = deleting && state.writing;
+    if (pending) deleteProgress.current?.focus();
+    else if (wasDeleting.current && deleting && deleteError)
+      deleteCancel.current?.focus();
+    wasDeleting.current = pending;
+  }, [deleting, state.writing, deleteError]);
+  const savedNameSession = allSessions.find(
+    (session) => session.id === renameTarget?.id,
+  );
+  const currentSavedName =
+    state.groups.find((group) =>
+      group.segments.some((segment) => segment.id === renameTarget?.id),
+    )?.title ??
+    savedNameSession?.raw.session_title ??
+    savedNameSession?.title;
+  const checkSavedName = async () => {
+    if (checkingName) return;
+    setCheckingName(true);
+    try {
+      await controller.refresh();
+    } finally {
+      setCheckingName(false);
+    }
+  };
+  const openDelete = () => {
+    if (!selected) return;
+    const groupId = sessionIdentity(selected);
+    setDeleteTarget({
+      id: selected.id,
+      groupId,
+      title: group?.title ?? selected.raw.session_title ?? selected.title,
+      count: allSessions.filter((s) => sessionIdentity(s) === groupId).length,
+    });
+    setDeleting(true);
+  };
+  useEffect(() => {
+    if (!state.undoArchive) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const expire = () => {
+      if (document.activeElement === undoButton.current)
+        timer = setTimeout(expire, 1000);
+      else controller.clearUndo();
+    };
+    timer = setTimeout(expire, 10000);
+    return () => clearTimeout(timer);
+  }, [state.undoArchive, controller]);
+  const saveName = async (value: string) => {
+    if (/\p{Cc}/u.test(value) || [...value.trim()].length > 200) {
+      setNameError(true);
+      return;
+    }
+    setNameError(false);
+    if (state.actionError?.code === "reload_required") return;
+    if (await controller.rename(value.trim(), renameTarget?.id))
+      setRenameTarget(undefined);
+  };
+  useEffect(() => {
+    if (
+      deleting &&
+      deleteTarget &&
+      !state.writing &&
+      !deleteError &&
+      !allSessions.some((s) => sessionIdentity(s) === deleteTarget.groupId)
+    )
+      setDeleting(false);
+  }, [deleting, deleteTarget, state.writing, deleteError, allSessions]);
   const selected = state.sessions.find((s) => s.id === state.selectedId);
   const group = state.groups.find((group) =>
     group.segments.some((segment) => segment.id === state.selectedId),
@@ -192,6 +311,7 @@ export function ViewerApplication({
     ...state.groups.map((group) => ({
       ...group.segments[0],
       title: group.title,
+      localTitle: Boolean(group.segments[0].raw.session_title),
       ticket:
         group.tickets.length === 1
           ? group.tickets[0]
@@ -199,20 +319,24 @@ export function ViewerApplication({
       segments: group.segments,
       status: group.inProgress
         ? ("in_progress" as const)
-        : group.segments.every((segment) => segment.status === "closed")
-          ? ("closed" as const)
-          : ("unknown" as const),
+        : ("unknown" as const),
     })),
-    ...state.sessions.filter(
-      (segment) => segment.excluded || segment.classification === "tracked",
-    ),
+    ...state.sessions
+      .filter(
+        (segment) => segment.excluded || segment.classification === "tracked",
+      )
+      .map((segment) => ({
+        ...segment,
+        title: segment.raw.session_title || segment.title,
+        localTitle: Boolean(segment.raw.session_title),
+      })),
   ];
   useEffect(() => controller.start(), [controller]);
   useEffect(() => {
     document.title = selected
-      ? `${selected.title} · Hive`
+      ? `${group?.title ?? selected.raw.session_title ?? selected.title} · Hive`
       : "Hive · Walkthroughs";
-  }, [selected]);
+  }, [selected, group?.title]);
   useEffect(() => {
     if (
       state.notice === "deleted" ||
@@ -375,24 +499,28 @@ export function ViewerApplication({
           </AlertAction>
         </Alert>
       )}
-      {state.notice && (
-        <Alert
-          variant={state.notice === "writeError" ? "destructive" : "default"}
-          role="status"
-        >
-          <AlertTitle>{t[state.notice]}</AlertTitle>
-          <AlertAction>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={controller.dismiss}
-            >
-              {t.dismiss}
-            </Button>
-          </AlertAction>
-        </Alert>
-      )}
+      {state.notice &&
+        !state.actionError &&
+        !state.undoArchive &&
+        state.notice !== "archived" &&
+        state.notice !== "unarchived" && (
+          <Alert
+            variant={state.notice === "writeError" ? "destructive" : "default"}
+            role="status"
+          >
+            <AlertTitle>{t[state.notice]}</AlertTitle>
+            <AlertAction>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={controller.dismiss}
+              >
+                {t.dismiss}
+              </Button>
+            </AlertAction>
+          </Alert>
+        )}
       {!group &&
         selected &&
         !selected.excluded &&
@@ -448,8 +576,126 @@ export function ViewerApplication({
         onJump={jump}
         showArchived={state.showArchived}
         onShowArchivedChange={controller.setShowArchived}
-        onArchive={
-          !group && selected ? () => void controller.archive() : undefined
+        onArchive={selected ? () => void controller.archive() : undefined}
+        onRename={
+          selected
+            ? () => {
+                editButton.current = document.activeElement as HTMLElement;
+                setName(
+                  group?.title ?? selected.raw.session_title ?? selected.title,
+                );
+                setNameError(false);
+                setRenameTarget({
+                  id: selected.id,
+                  title: group?.title ?? selected.title,
+                });
+              }
+            : undefined
+        }
+        feedback={
+          (state.undoArchive ||
+            state.actionError ||
+            state.index?.errors.some(
+              (error) => error.code === "delete_cleanup_pending",
+            )) && (
+            <>
+              {state.undoArchive && (
+                <div
+                  role="status"
+                  className="flex flex-wrap items-center gap-2"
+                >
+                  <span>
+                    {state.undoArchive.archived ? t.unarchived : t.archived}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={state.writing}
+                    ref={undoButton}
+                    onClick={() => void controller.undoArchive()}
+                  >
+                    {t.undo}
+                  </Button>
+                </div>
+              )}
+              {state.actionError && (
+                <Alert variant="destructive" role="alert">
+                  <AlertTitle>
+                    {state.actionError.code === "rename_timeout"
+                      ? t.nameSaveTimeout
+                      : state.actionError.code === "reload_required"
+                        ? t.reloadRequired
+                        : state.actionError.remaining === 0 &&
+                            state.actionError.cleanup_pending
+                          ? t.cleanupPending
+                          : state.actionError.code === "partial_delete"
+                            ? t.partialDelete
+                            : t.writeError}
+                  </AlertTitle>
+                  {state.actionError.code === "partial_delete" && (
+                    <AlertDescription>
+                      {t.deletedCount}: {state.actionError.deleted ?? 0} ·{" "}
+                      {t.remainingCount}: {state.actionError.remaining ?? 0}
+                    </AlertDescription>
+                  )}
+                  <AlertAction>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={state.writing}
+                      onClick={() => {
+                        if (state.actionError?.code === "reload_required")
+                          window.location.reload();
+                        else if (
+                          state.actionError?.operation === "delete" &&
+                          state.actionError.remaining !== 0
+                        )
+                          setDeleting(true);
+                        else controller.retryAction();
+                      }}
+                    >
+                      {state.actionError.code === "rename_timeout"
+                        ? t.checkSavedName
+                        : state.actionError.code === "reload_required"
+                          ? t.reload
+                          : state.actionError.remaining === 0
+                            ? t.checkRecovery
+                            : t.retry}
+                    </Button>
+                  </AlertAction>
+                </Alert>
+              )}
+              {state.index?.errors
+                .filter(
+                  (error) =>
+                    error.code === "delete_cleanup_pending" &&
+                    !state.actionError?.cleanupGroups?.includes(
+                      error.session_group ?? error.path,
+                    ),
+                )
+                .map((error) => (
+                  <Alert
+                    key={error.session_group ?? error.path}
+                    variant="destructive"
+                    role="status"
+                  >
+                    <AlertTitle>{t.cleanupPending}</AlertTitle>
+                    <AlertAction>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={retry}
+                      >
+                        {t.checkRecovery}
+                      </Button>
+                    </AlertAction>
+                  </Alert>
+                ))}
+            </>
+          )
         }
         state={
           state.access === "pending" ||
@@ -496,16 +742,9 @@ export function ViewerApplication({
         }
         notices={notices}
         libraryFooter={libraryFooter}
-        writing={state.writing}
-        onPin={!group && selected ? () => void controller.pin() : undefined}
-        onDelete={
-          !group && selected
-            ? () => {
-                deleteKey.current = selected.id;
-                setDeleting(true);
-              }
-            : undefined
-        }
+        writing={state.writing || state.indexError}
+        onPin={selected ? () => void controller.pin() : undefined}
+        onDelete={selected ? openDelete : undefined}
       >
         {group && (
           <div className="flex flex-col gap-8">
@@ -537,45 +776,17 @@ export function ViewerApplication({
                         {segment.title}
                       </h2>
                     </div>
-                    <ButtonGroup
-                      aria-label={`${segment.title} · ${t.segmentActions}`}
-                      aria-busy={state.writingId === segment.id}
+                    <Badge
+                      variant={
+                        segment.status === "in_progress"
+                          ? "info-light"
+                          : segment.status === "closed"
+                            ? "success-light"
+                            : "outline"
+                      }
                     >
-                      <ButtonGroupText>
-                        <span className="text-xs">
-                          {t.status[segment.status ?? "unknown"]}
-                        </span>
-                      </ButtonGroupText>
-                      <ActionButton
-                        label={segment.archived ? t.unarchive : t.archive}
-                        disabled={state.writing}
-                        onClick={() => void controller.archive(segment.id)}
-                      >
-                        {segment.archived ? (
-                          <ArchiveRestore aria-hidden />
-                        ) : (
-                          <Archive aria-hidden />
-                        )}
-                      </ActionButton>
-                      <ActionButton
-                        label={segment.pinned ? t.unpin : t.pin}
-                        aria-pressed={Boolean(segment.pinned)}
-                        disabled={state.writing}
-                        onClick={() => void controller.pin(segment.id)}
-                      >
-                        <Pin aria-hidden />
-                      </ActionButton>
-                      <ActionButton
-                        label={t.remove}
-                        disabled={state.writing}
-                        onClick={() => {
-                          deleteKey.current = segment.id;
-                          setDeleting(true);
-                        }}
-                      >
-                        <Trash2 aria-hidden />
-                      </ActionButton>
-                    </ButtonGroup>
+                      {t.status[segment.status ?? "unknown"]}
+                    </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {segment.classification === "local"
@@ -633,6 +844,7 @@ export function ViewerApplication({
         }}
       >
         <AlertDialogContent
+          initialFocus={() => deleteCancel.current}
           finalFocus={() => {
             if (controller.getSnapshot().notice !== "deleted") return true;
             const key = controller.getSnapshot().selectedId;
@@ -650,32 +862,242 @@ export function ViewerApplication({
             <AlertDialogTitle>{t.confirm}</AlertDialogTitle>
             <AlertDialogDescription>{t.confirmBody}</AlertDialogDescription>
           </AlertDialogHeader>
-          <p className="break-words text-sm">
-            {state.sessions.find((s) => s.id === deleteKey.current)?.title}
+          <section
+            aria-label={t.sessionName}
+            aria-describedby="delete-session-name-reading-hint"
+            style={{
+              whiteSpace: /\s/u.test(deleteTarget?.title ?? "")
+                ? "normal"
+                : "nowrap",
+            }}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: The name is a deliberate keyboard-accessible horizontal reading region.
+            tabIndex={0}
+            className="min-w-0 overflow-x-auto whitespace-normal break-normal text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {deleteTarget?.title}
+          </section>
+          <span id="delete-session-name-reading-hint" className="sr-only">
+            {t.nameReadingHint}
+          </span>
+          <p
+            ref={deleteProgress}
+            tabIndex={-1}
+            className="text-sm focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+          >
+            {t.storedCount}:{" "}
+            {deleteMembers.length ||
+              (deleteError?.remaining === 0 ? 0 : deleteTarget?.count)}
           </p>
+          {deleteError && (
+            <p role="alert" className="text-sm">
+              {deleteError.code === "reload_required"
+                ? t.reloadRequired
+                : deleteError.remaining === 0 && deleteError.cleanup_pending
+                  ? t.cleanupPending
+                  : t.writeError}{" "}
+              {deleteError.code === "partial_delete"
+                ? `${t.deletedCount}: ${deleteError.deleted ?? 0} · ${t.remainingCount}: ${deleteError.remaining ?? 0}`
+                : ""}
+            </p>
+          )}
           <AlertDialogFooter>
-            <AlertDialogCancel type="button" disabled={state.writing}>
+            <AlertDialogCancel
+              ref={deleteCancel}
+              type="button"
+              disabled={state.writing}
+            >
               {t.cancel}
             </AlertDialogCancel>
             <AlertDialogAction
               type="button"
               disabled={
                 state.writing ||
-                !state.sessions.some(
-                  (segment) => segment.id === deleteKey.current,
-                )
+                state.indexError ||
+                (deleteMembers.length === 0 && deleteError?.remaining !== 0)
               }
               onClick={() => {
-                void controller
-                  .remove(deleteKey.current)
-                  .then(() => setDeleting(false));
+                if (deleteError?.code === "reload_required") {
+                  window.location.reload();
+                  return;
+                }
+                if (deleteError?.remaining === 0) {
+                  void controller.refresh();
+                  return;
+                }
+                const member = deleteMembers[0];
+                if (member)
+                  void controller.remove(member.id).then((ok) => {
+                    if (ok) setDeleting(false);
+                  });
               }}
             >
-              {t.remove}
+              {deleteError?.code === "reload_required"
+                ? t.reload
+                : deleteError?.remaining === 0
+                  ? t.checkRecovery
+                  : deleteError
+                    ? t.retry
+                    : t.remove}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog
+        open={Boolean(renameTarget) && state.access === "ready"}
+        onOpenChange={(open) => {
+          if (!open && !state.writing) setRenameTarget(undefined);
+        }}
+      >
+        <DialogContent
+          finalFocus={() =>
+            editButton.current?.isConnected
+              ? editButton.current
+              : document.getElementById("document")
+          }
+        >
+          <DialogHeader>
+            <DialogTitle>{t.sessionName}</DialogTitle>
+            <DialogDescription>{t.nameHelp}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="flex flex-col gap-4"
+            aria-busy={state.writing}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveName(name);
+            }}
+          >
+            <label htmlFor="session-name" className="text-sm">
+              {t.sessionName}
+            </label>
+            <Input
+              id="session-name"
+              ref={nameInput}
+              value={name}
+              disabled={state.writing}
+              aria-invalid={nameError}
+              aria-describedby={nameError ? "session-name-error" : undefined}
+              onChange={(event) => {
+                setName(event.target.value);
+                setNameError(false);
+              }}
+            />
+            {state.writing && (
+              <p
+                role="status"
+                aria-live="polite"
+                tabIndex={-1}
+                ref={savingNameStatus}
+                className="text-sm focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+              >
+                {t.savingName}
+              </p>
+            )}
+            {nameError && (
+              <p id="session-name-error" role="alert" className="text-sm">
+                {t.invalidName}
+              </p>
+            )}
+            {state.actionError?.operation === "title" && (
+              <p role="alert" className="text-sm">
+                {state.actionError.code === "rename_timeout"
+                  ? t.nameSaveTimeout
+                  : state.actionError.code === "reload_required"
+                    ? t.reloadRequired
+                    : t.writeError}
+              </p>
+            )}
+            {state.actionError?.operation === "title" &&
+              state.actionError.code === "rename_timeout" && (
+                <div className="flex min-w-0 flex-col gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t.lastLoadedSavedName}
+                  </p>
+                  <section
+                    aria-label={t.lastLoadedSavedName}
+                    aria-describedby="saved-session-name-reading-hint"
+                    aria-live="polite"
+                    // biome-ignore lint/a11y/noNoninteractiveTabindex: The saved name is a deliberate keyboard-accessible horizontal reading region.
+                    tabIndex={0}
+                    style={{
+                      whiteSpace: /\s/u.test(currentSavedName ?? "")
+                        ? "normal"
+                        : "nowrap",
+                    }}
+                    className="min-w-0 overflow-x-auto text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    {currentSavedName ?? t.savedNameUnavailable}
+                  </section>
+                  <span
+                    id="saved-session-name-reading-hint"
+                    className="sr-only"
+                  >
+                    {t.nameReadingHint}
+                  </span>
+                  {checkingName && (
+                    <p role="status" aria-live="polite" className="text-sm">
+                      {t.checkingSavedName}
+                    </p>
+                  )}
+                  {state.indexError && !checkingName && (
+                    <p role="alert" className="text-sm">
+                      {t.nameCheckFailed}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-disabled={checkingName}
+                    aria-busy={checkingName}
+                    onClick={() => void checkSavedName()}
+                  >
+                    {t.checkSavedName}
+                  </Button>
+                </div>
+              )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={
+                state.writing ||
+                state.indexError ||
+                state.actionError?.code === "reload_required"
+              }
+              onClick={() => void saveName("")}
+            >
+              {t.resetName}
+            </Button>
+            <DialogFooter>
+              <DialogCancel type="button" disabled={state.writing}>
+                {t.cancel}
+              </DialogCancel>
+              {state.actionError?.code === "reload_required" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                >
+                  {t.reload}
+                </Button>
+              )}
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  state.writing ||
+                  state.indexError ||
+                  state.actionError?.code === "reload_required"
+                }
+              >
+                {t.saveName}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

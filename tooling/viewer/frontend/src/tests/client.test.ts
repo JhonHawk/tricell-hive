@@ -188,28 +188,28 @@ test("out of order indices and manifests cannot replace newer selection", async 
   );
 });
 
-test("delete invalidates an in-flight poll and retains a local tombstone", async () => {
-  let polling = false;
+test("delete invalidates an in-flight poll and trusts the reloaded session inventory", async () => {
   const stale = deferred();
-  const controller = setup(async (url, init) =>
-    init?.method === "DELETE"
-      ? new Response(null, { status: 204 })
-      : String(url) === "/api/index"
-        ? polling
-          ? stale.promise
-          : response(index([session(1), session(2)]))
-        : response({ title: "Review", flows: [] }),
-  );
+  let reads = 0;
+  let deleted = false;
+  const controller = setup(async (url, init) => {
+    if (init?.method === "DELETE") {
+      deleted = true;
+      return new Response(null, { status: 204 });
+    }
+    if (String(url) === "/api/index") {
+      if (++reads === 2) return stale.promise;
+      return response(index(deleted ? [] : [session(1), session(2)]));
+    }
+    return response({ title: "Review", flows: [] });
+  });
   await controller.open(null);
-  await settle();
-  polling = true;
   const poll = controller.refresh();
   await controller.remove();
   stale.resolve(response(index([session(1), session(2)])));
   await poll;
-  await settle();
-  assert(!controller.getSnapshot().sessions.some((s) => s.id === key(1)));
-  assert.equal(controller.getSnapshot().selectedId, key(2));
+  assert.equal(controller.getSnapshot().sessions.length, 0);
+  assert.equal(controller.getSnapshot().selectedId, undefined);
 });
 
 test("classification changes without hash remove the document; status updates arrive by polling", async () => {
@@ -703,79 +703,40 @@ test("siblings load independently, retry by key, and pin preserves cache", async
   assert.equal(controller.getSnapshot().documents[key(2)].state, "ready");
 });
 
-test("archive and delete prefer adjacent session siblings across tickets", async () => {
-  let data = index([], {
-    projects: [
-      {
-        key: "p",
-        name: "Hive",
-        tickets: [
-          { ticket: "#1", sessions: [session(1), session(3)] },
-          { ticket: "#2", sessions: [session(2)] },
-          {
-            ticket: "#3",
-            sessions: [
-              session(4, {
-                session_id: "other",
-                created_at: "2026-10-20T00:00:00Z",
-              }),
-            ],
-          },
-        ],
-      },
-    ],
-  });
-  const writes: string[] = [];
+test("archive and delete select the next visible session across ticket groups", async () => {
+  let data = index([
+    session(1),
+    session(2),
+    session(3, { session_id: "other" }),
+  ]);
   const controller = setup(async (url, options) => {
-    if (options?.method !== "GET") {
-      writes.push(`${options?.method} ${url}`);
-      data = {
-        ...data,
-        projects: data.projects.map((p) => ({
-          ...p,
-          tickets: p.tickets.map((t) => ({
-            ...t,
-            sessions: t.sessions.flatMap((s) =>
-              String(url).includes(s.key)
-                ? String(url).endsWith("archive")
-                  ? [{ ...s, archived: true }]
-                  : []
-                : [s],
-            ),
-          })),
-        })),
-      };
+    if (String(url).endsWith("/archive")) {
+      data = index([
+        session(1, { archived: true }),
+        session(2, { archived: true }),
+        session(3, { session_id: "other" }),
+      ]);
+      return new Response(null, { status: 204 });
+    }
+    if (options?.method === "DELETE") {
+      data = index([
+        session(1, { archived: true }),
+        session(2, { archived: true }),
+      ]);
       return new Response(null, { status: 204 });
     }
     return response(
-      String(url) === "/api/index" ? data : { title: String(url) },
+      String(url) === "/api/index" ? data : { title: "Document" },
     );
   });
   await controller.open(null);
   controller.select(key(2));
-  await settle();
-  const first = controller.getSnapshot().documents[key(1)].document;
-  await controller.archive(key(2));
-  await settle();
+  await controller.archive();
   assert.equal(controller.getSnapshot().selectedId, key(3));
-  assert.equal(controller.getSnapshot().documents[key(1)].document, first);
-  assert.equal(
-    controller
-      .getSnapshot()
-      .groups.find((g) => g.segments.some((s) => s.id === key(1)))?.segments
-      .length,
-    2,
-  );
-  await controller.remove(key(3));
-  await settle();
-  assert.equal(controller.getSnapshot().selectedId, key(1));
-  assert.equal(controller.getSnapshot().documents[key(1)].document, first);
+  await controller.remove();
+  assert.equal(controller.getSnapshot().selectedId, undefined);
   controller.setShowArchived(true);
-  assert(controller.getSnapshot().sessions.some((s) => s.id === key(2)));
-  assert.deepEqual(writes, [
-    `POST /api/sessions/${key(2)}/archive`,
-    `DELETE /api/sessions/${key(3)}`,
-  ]);
+  assert.equal(controller.getSnapshot().groups[0].segments.length, 2);
 });
 
 test("revision and classification changes invalidate only affected reads; late archived responses stay discarded", async () => {
@@ -901,4 +862,154 @@ test("deleting a pending sibling discards its response without replacing loaded 
   assert.equal(controller.getSnapshot().selectedId, key(1));
   assert.equal(controller.getSnapshot().documents[key(1)].document, stable);
   assert.equal(controller.getSnapshot().documents[key(2)], undefined);
+});
+
+test("session names are searchable across every sibling and writes declare group scope", async () => {
+  const { groupSessions, matchingSegments } = await import("../sessions");
+  const group = groupSessions(
+    mapIndex(
+      index([session(1, { session_title: "Release review" }), session(2)]),
+    ),
+  )[0];
+  assert.equal(group.title, "Release review");
+  assert.equal(matchingSegments(group, "release review").length, 2);
+  let headers: Headers | undefined;
+  const client = new AccessClient(async (_url, init) => {
+    headers = new Headers(init?.headers);
+    return new Response(null, { status: 204 });
+  });
+  client.token = "test-access";
+  await client.request(`/api/sessions/${key(1)}/archive`, "POST");
+  assert.equal(headers?.get("X-Hive-Action-Scope"), "session");
+  assert.equal(headers?.get("X-Hive-Token"), "test-access");
+});
+
+test("group archive reloads authority before selection and undo retains its original destination", async () => {
+  let data = index([
+    session(1),
+    session(2),
+    session(3, { session_id: "other" }),
+  ]);
+  const controller = setup(async (url, init) => {
+    if (String(url).endsWith("/archive")) {
+      data = index([
+        session(1, { archived: init?.method === "POST" }),
+        session(2, { archived: init?.method === "POST" }),
+        session(3, { session_id: "other" }),
+      ]);
+      return new Response(null, { status: 204 });
+    }
+    return response(
+      String(url) === "/api/index" ? data : { title: "Document" },
+    );
+  });
+  await controller.open(null);
+  controller.select(key(1));
+  await controller.archive();
+  assert.deepEqual(
+    controller.getSnapshot().sessions.map((s) => s.id),
+    [key(3)],
+  );
+  assert.equal(controller.getSnapshot().undoArchive?.id, key(1));
+  await controller.undoArchive();
+  assert.equal(controller.getSnapshot().sessions.length, 3);
+  assert.equal(controller.getSnapshot().selectedId, key(1));
+});
+
+test("partial deletion keeps structured recovery state and read-only checks clear completed cleanup", async () => {
+  let data = index([session(1), session(2)]);
+  let deletes = 0;
+  const controller = setup(async (url, init) => {
+    if (init?.method === "DELETE") {
+      deletes++;
+      data = index([], {
+        errors: [
+          {
+            path: "groups/pending",
+            reason: "cleanup",
+            code: "delete_cleanup_pending",
+            session_group: "group",
+          },
+        ],
+      });
+      return response(
+        {
+          code: "partial_delete",
+          deleted: 2,
+          remaining: 0,
+          cleanup_pending: true,
+        },
+        500,
+      );
+    }
+    return response(
+      String(url) === "/api/index" ? data : { title: "Document" },
+    );
+  });
+  await controller.open(null);
+  assert.equal(await controller.remove(), false);
+  assert.equal(controller.getSnapshot().actionError?.remaining, 0);
+  assert.equal(controller.getSnapshot().sessions.length, 0);
+  data = index([]);
+  await controller.refresh();
+  assert.equal(controller.getSnapshot().actionError, undefined);
+  assert.equal(deletes, 1);
+});
+
+test("an unanswered rename aborts within fifteen seconds and refreshes without replay", async () => {
+  let data = index();
+  let writes = 0;
+  let reads = 0;
+  let signal: AbortSignal | null | undefined;
+  const controller = setup(async (url, init) => {
+    if (init?.method === "PUT") {
+      writes++;
+      signal = init.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        signal?.addEventListener(
+          "abort",
+          () => {
+            data = index([
+              session(1, { session_title: "Saved before connection ended" }),
+            ]);
+            reject(new DOMException("The request was aborted", "AbortError"));
+          },
+          { once: true },
+        );
+      });
+    }
+    if (String(url) === "/api/index") reads++;
+    return response(
+      String(url) === "/api/index" ? data : { title: "Document" },
+    );
+  });
+  await controller.open(null);
+  const saving = controller.rename("Saved before connection ended");
+  assert.equal(controller.getSnapshot().writing, true);
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([
+      saving,
+      new Promise<string>((resolve) => {
+        deadline = setTimeout(() => resolve("unresolved"), 16000);
+      }),
+    ]);
+    assert.equal(
+      result,
+      false,
+      "An unanswered rename must leave the pending state after its deadline",
+    );
+    await settle();
+    assert.equal(signal?.aborted, true);
+    assert.equal(controller.getSnapshot().writing, false);
+    assert.equal(controller.getSnapshot().actionError?.code, "rename_timeout");
+    assert.equal(
+      controller.getSnapshot().groups[0].title,
+      "Saved before connection ended",
+    );
+    assert.equal(writes, 1);
+    assert.equal(reads, 2);
+  } finally {
+    clearTimeout(deadline);
+  }
 });

@@ -40,7 +40,15 @@ export function takeCode(
   return code;
 }
 export class HttpError extends Error {
-  constructor(public status: number) {
+  constructor(
+    public status: number,
+    public details: {
+      code?: string;
+      deleted?: number;
+      remaining?: number;
+      cleanup_pending?: boolean;
+    } = {},
+  ) {
     super(`Viewer request failed (HTTP ${status})`);
   }
 }
@@ -88,14 +96,55 @@ export class AccessClient {
     this.token = "";
     save(this.storage, TOKEN_KEY);
   }
-  async request(path: string, method = "GET") {
+  async request(
+    path: string,
+    method = "GET",
+    body?: unknown,
+    signal?: AbortSignal,
+  ) {
     const response = await this.fetcher(path, {
       method,
-      headers: { "X-Hive-Token": this.token },
+      ...(signal ? { signal } : {}),
+      headers: {
+        "X-Hive-Token": this.token,
+        ...(method !== "GET" ? { "X-Hive-Action-Scope": "session" } : {}),
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
       credentials: "same-origin",
     });
-    if (!response.ok) throw new HttpError(response.status);
+    if (!response.ok) {
+      let details = {};
+      try {
+        details = await response.json();
+      } catch {
+        /* Older errors may be plain text. */
+      }
+      const fields =
+        details && typeof details === "object"
+          ? (details as Record<string, unknown>)
+          : {};
+      throw new HttpError(response.status, {
+        code: typeof fields.code === "string" ? fields.code : undefined,
+        deleted:
+          typeof fields.deleted === "number" &&
+          Number.isInteger(fields.deleted) &&
+          fields.deleted >= 0
+            ? fields.deleted
+            : undefined,
+        remaining:
+          typeof fields.remaining === "number" &&
+          Number.isInteger(fields.remaining) &&
+          fields.remaining >= 0
+            ? fields.remaining
+            : undefined,
+        cleanup_pending:
+          typeof fields.cleanup_pending === "boolean"
+            ? fields.cleanup_pending
+            : undefined,
+      });
+    }
     return method === "GET" ? response.json() : undefined;
   }
 }
@@ -109,6 +158,7 @@ export type RawSession = {
   pinned?: boolean;
   archived?: boolean;
   session_id: string;
+  session_title?: string;
   session_status?: string;
   host?: string;
   ticket?: string;
@@ -129,7 +179,12 @@ export type RawIndex = {
   }[];
   excluded_sessions?: RawSession[];
   repositories: { root: string; absent: boolean }[];
-  errors: { path: string; reason: string }[];
+  errors: {
+    path: string;
+    reason: string;
+    code?: string;
+    session_group?: string;
+  }[];
   ttl_seconds: number;
 };
 export type LibrarySession = ViewerSession & {
@@ -160,7 +215,10 @@ export function validateIndex(value: RawIndex): RawIndex {
     if (
       !error ||
       typeof error.path !== "string" ||
-      typeof error.reason !== "string"
+      typeof error.reason !== "string" ||
+      (error.code !== undefined && typeof error.code !== "string") ||
+      (error.session_group !== undefined &&
+        typeof error.session_group !== "string")
     )
       throw new Error("Invalid viewer ingest error");
   }
@@ -197,6 +255,7 @@ export function validateIndex(value: RawIndex): RawIndex {
     if (session.archived !== undefined && typeof session.archived !== "boolean")
       throw new Error("Invalid session archive state");
     for (const field of [
+      "session_title",
       "project_key",
       "project_name",
       "repository",

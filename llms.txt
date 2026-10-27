@@ -52,7 +52,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 ## Optional
 
-- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, JSON-first walkthrough publication and HTML fallback only without the binary, no Node at runtime, project/session navigation with chronological ticket segments and explicit PR/commit delivery links, informational work status per segment, reversible copy archiving independent of pinning and retention, source classification and confirmed closure
+- [Local walkthrough viewer](README.md#review-ui-walkthroughs-in-one-place): React shell with public MIT components, JSON-first walkthrough publication and HTML fallback only without the binary, no Node at runtime, project/session navigation with chronological ticket segments and explicit PR/commit delivery links, informational work status per segment, fixed session toolbar, local session names, reversible session archiving and session-wide keep/delete controls independent of work status, source classification and confirmed closure
 - [Viewer frontend](tooling/viewer/frontend/README.md): standalone development package, real API by default, explicit development preview, same-tab navigation persistence, bundle contract and checks
 - [Third-party notices](THIRD_PARTY_NOTICES.md): Go and embedded frontend license notices
 
