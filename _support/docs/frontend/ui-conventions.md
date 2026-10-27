@@ -48,13 +48,16 @@ Source examples: `tooling/viewer/frontend/src/shell.tsx` and `application.tsx`.
   is customized. Source capture: `ux-matrix-focus-320.png` in the local change
   walkthrough.
 
-- **Search field boundary contrast — correction in validation.** Earlier UX
+- **Search field boundary contrast — corrected and accepted.** Earlier UX
   comparison measured the sidebar search border/fill at 1.28:1 / 1.06:1.
   On 2026-10-27, the maintainer selected D13-B (correct now), superseding
   D13-A (close without correcting). The search field now uses the existing
   opaque `ring` semantic token for its resting border; shared input, button,
-  surface and focus tokens remain unchanged. Rendered contrast and filtering
-  are checked before acceptance. The validation walkthrough is retained.
+  surface and focus tokens remain unchanged. Rendered boundary contrast is 4.04:1 against the outer background and
+  3.82:1 against the inner background. Focus, filtering and clearing passed
+  at 1280 and 320 CSS pixels in both color preferences (effective dark theme).
+  The maintainer accepted the correction on 2026-10-27. The validation
+  walkthrough is retained.
 
 ## Maintenance
 
