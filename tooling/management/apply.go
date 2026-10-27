@@ -533,9 +533,9 @@ func recoverBlockAndVoice(action string, cur snapshot, en entry) (snapshot, erro
 	return voice(s)
 }
 
-// retainedJournals is how many finished (committed or recovered) transaction
+// RetainedJournals is how many finished (committed or recovered) transaction
 // journals pruneJournals keeps.
-const retainedJournals = 10
+const RetainedJournals = 10
 
 // finishApply prunes directories left empty by the committed transaction.
 // This bookkeeping runs after commit succeeds, never inside it: it is not
@@ -549,7 +549,7 @@ func finishApply(p Plan, id string, next State) (string, error) {
 }
 
 // pruneJournals deletes transaction journals beyond the newest
-// retainedJournals, never own, the journal pending.json names (Recover's) or
+// RetainedJournals, never own, the journal pending.json names (Recover's) or
 // the core a pending onboarding references (RecoverOnboarding's). Like
 // finishApply it runs after commit, under the manager lock, and is not part
 // of what Recover must undo; a failure is returned as a warning because the
@@ -599,16 +599,20 @@ func pruneJournals(stateDir, own string) string {
 		return done[i].name > done[k].name
 	})
 	failed := 0
-	for _, f := range done[min(len(done), retainedJournals):] {
+	var first error
+	for _, f := range done[min(len(done), RetainedJournals):] {
 		if f.name == own+".json" {
 			continue
 		}
 		if err := os.Remove(filepath.Join(dir, f.name)); err != nil {
 			failed++
+			if first == nil {
+				first = err
+			}
 		}
 	}
 	if failed > 0 {
-		return fmt.Sprintf("warning: %d old transaction journals could not be pruned", failed)
+		return fmt.Sprintf("warning: %d old transaction journals could not be pruned: %v", failed, first)
 	}
 	return ""
 }

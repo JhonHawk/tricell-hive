@@ -60,13 +60,13 @@ func seedJournals(t *testing.T, stateDir, phase string, n int) []string {
 
 func TestPruneJournalsKeepsThePendingJournal(t *testing.T) {
 	o := setup(t)
-	ids := seedJournals(t, o.StateDir, "committed", retainedJournals+2)
+	ids := seedJournals(t, o.StateDir, "committed", RetainedJournals+2)
 	put(t, filepath.Join(o.StateDir, "pending.json"), fmt.Sprintf("{\"ID\": %q}", ids[0]))
 	if w := pruneJournals(o.StateDir, ""); w != "" {
 		t.Fatal(w)
 	}
 	kept := journalIDs(t, o)
-	if !kept[ids[0]] || len(kept) != retainedJournals+1 {
+	if !kept[ids[0]] || len(kept) != RetainedJournals+1 {
 		t.Fatalf("pending journal kept: %v, journals left: %d", kept[ids[0]], len(kept))
 	}
 }
@@ -82,16 +82,16 @@ func TestJournalRetentionAfterOnboardingWithSteps(t *testing.T) {
 	o := setup(t)
 	steps := []ExternalStep{{ID: "fixture", Payload: json.RawMessage(`{}`)}}
 	var last OnboardingResult
-	for i := 0; i < retainedJournals+2; i++ {
+	for i := 0; i < RetainedJournals+2; i++ {
 		action, runner := "install", ExternalRunner(&fakeExternal{})
 		if i%2 == 1 {
 			action = "remove"
 		}
-		if i == retainedJournals+1 {
+		if i == RetainedJournals+1 {
 			runner = &failedExternal{}
 		}
 		result, err := (Engine{}).Onboard(plan(t, action, o), steps, runner)
-		if i < retainedJournals+1 && err != nil {
+		if i < RetainedJournals+1 && err != nil {
 			t.Fatal(err)
 		}
 		last = result
@@ -99,8 +99,8 @@ func TestJournalRetentionAfterOnboardingWithSteps(t *testing.T) {
 	if last.Phase != "partial" {
 		t.Fatalf("last onboarding phase %q, want partial", last.Phase)
 	}
-	if ids := journalIDs(t, o); len(ids) != retainedJournals {
-		t.Fatalf("kept %d journals after onboarding, want %d", len(ids), retainedJournals)
+	if ids := journalIDs(t, o); len(ids) != RetainedJournals {
+		t.Fatalf("kept %d journals after onboarding, want %d", len(ids), RetainedJournals)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestJournalPruneFailureKeepsTheOperationSuccessful(t *testing.T) {
 		t.Skip("root ignores directory permissions")
 	}
 	o := setup(t)
-	cycleApplies(t, o, retainedJournals+1)
+	cycleApplies(t, o, RetainedJournals+1)
 	dir := filepath.Join(o.StateDir, "transactions")
 	t.Cleanup(func() { os.Chmod(dir, 0700) })
 	steps := []ExternalStep{{ID: "fixture", Payload: json.RawMessage(`{}`)}}
@@ -138,25 +138,25 @@ func TestJournalPruneFailureKeepsTheOperationSuccessful(t *testing.T) {
 
 func TestPruneJournalsSkipsWhenPendingIsUnreadable(t *testing.T) {
 	o := setup(t)
-	seedJournals(t, o.StateDir, "committed", retainedJournals+2)
+	seedJournals(t, o.StateDir, "committed", RetainedJournals+2)
 	put(t, filepath.Join(o.StateDir, "pending.json"), "{")
 	if w := pruneJournals(o.StateDir, ""); !strings.Contains(w, "skipped") {
 		t.Fatalf("warning %q", w)
 	}
-	if ids := journalIDs(t, o); len(ids) != retainedJournals+2 {
+	if ids := journalIDs(t, o); len(ids) != RetainedJournals+2 {
 		t.Fatalf("deleted journals with an unreadable pending.json: %d left", len(ids))
 	}
 }
 
 func TestPruneJournalsKeepsThePendingOnboardingCore(t *testing.T) {
 	o := setup(t)
-	ids := seedJournals(t, o.StateDir, "committed", retainedJournals+2)
+	ids := seedJournals(t, o.StateDir, "committed", RetainedJournals+2)
 	put(t, onboardingPath(o.StateDir), fmt.Sprintf("{\"version\": 1, \"id\": %q, \"phase\": \"core_pending\", \"core_id\": %q}", ids[0], ids[0]))
 	if w := pruneJournals(o.StateDir, ""); w != "" {
 		t.Fatal(w)
 	}
 	kept := journalIDs(t, o)
-	if !kept[ids[0]] || len(kept) != retainedJournals+1 {
+	if !kept[ids[0]] || len(kept) != RetainedJournals+1 {
 		t.Fatalf("onboarding core kept: %v, journals left: %d", kept[ids[0]], len(kept))
 	}
 }
@@ -171,21 +171,21 @@ func TestPruneJournalsKeepsUnfinishedAndUnrecognizedJournals(t *testing.T) {
 	if err := os.Chtimes(oddPath, old, old); err != nil {
 		t.Fatal(err)
 	}
-	seedJournals(t, o.StateDir, "committed", retainedJournals+2)
+	seedJournals(t, o.StateDir, "committed", RetainedJournals+2)
 	if w := pruneJournals(o.StateDir, ""); w != "" {
 		t.Fatal(w)
 	}
 	kept := journalIDs(t, o)
-	if !kept[prepared] || !kept[odd] || len(kept) != retainedJournals+2 {
+	if !kept[prepared] || !kept[odd] || len(kept) != RetainedJournals+2 {
 		t.Fatalf("prepared kept: %v, unrecognized kept: %v, journals left: %d", kept[prepared], kept[odd], len(kept))
 	}
 }
 
 func TestJournalRetentionKeepsNewestCommittedJournals(t *testing.T) {
 	o := setup(t)
-	last := cycleApplies(t, o, retainedJournals+2)
+	last := cycleApplies(t, o, RetainedJournals+2)
 	ids := journalIDs(t, o)
-	if len(ids) != retainedJournals || !ids[last] {
-		t.Fatalf("kept %d journals (last kept: %v), want %d including the last", len(ids), ids[last], retainedJournals)
+	if len(ids) != RetainedJournals || !ids[last] {
+		t.Fatalf("kept %d journals (last kept: %v), want %d including the last", len(ids), ids[last], RetainedJournals)
 	}
 }
