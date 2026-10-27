@@ -29,6 +29,7 @@ type viewFixture struct {
 	stateDir string
 	launched []int
 	opened   []string
+	hivePort bool // start and serve keep the default port instead of --port 0
 }
 
 func newViewFixture(t *testing.T) *viewFixture {
@@ -70,11 +71,26 @@ func (f *viewFixture) deps() viewDeps {
 	}
 }
 
+// args appends --state-dir and, so that tests never hold the user's viewer
+// port, --port 0 to a start or serve that names no port.
+func (f *viewFixture) args(args ...string) []string {
+	args = append(args, "--state-dir", f.stateDir)
+	if f.hivePort || len(args) == 0 || (args[0] != "start" && args[0] != "serve") {
+		return args
+	}
+	for _, a := range args {
+		if a == "--port" || strings.HasPrefix(a, "--port=") {
+			return args
+		}
+	}
+	return append(args, "--port", "0")
+}
+
 // view runs `hive view <args> --state-dir <dir>` and returns its output.
 func (f *viewFixture) view(args ...string) (string, error) {
 	f.t.Helper()
 	var buf bytes.Buffer
-	err := runView(append(args, "--state-dir", f.stateDir), &buf, f.deps())
+	err := runView(f.args(args...), &buf, f.deps())
 	return buf.String(), err
 }
 
@@ -228,7 +244,7 @@ func TestViewStartStatusStopLifecycle(t *testing.T) {
 	}
 	run := func(args ...string) (string, error) {
 		var buf bytes.Buffer
-		err := runView(append(args, "--state-dir", f.stateDir), &buf, deps)
+		err := runView(f.args(args...), &buf, deps)
 		return buf.String(), err
 	}
 
@@ -337,7 +353,12 @@ func TestViewStartDefaultsToTheHivePort(t *testing.T) {
 	}
 	probe.Close()
 	f := newViewFixture(t)
+	f.hivePort = true
 	out := f.mustView("start")
+	if strings.Contains(out, "busy") && f.info().Port != viewDefaultPort {
+		f.mustView("stop")
+		t.Skipf("another process took port %d during the test", viewDefaultPort)
+	}
 	if got := f.info().Port; got != viewDefaultPort {
 		t.Fatalf("default port = %d, want %d\n%s", got, viewDefaultPort, out)
 	}
@@ -355,11 +376,13 @@ func TestViewStartDefaultsToTheHivePort(t *testing.T) {
 }
 
 func TestViewStartFallsBackWhenTheHivePortIsBusy(t *testing.T) {
-	// Hold the default port; when another process holds it, it is busy anyway.
-	if ln, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", viewDefaultPort)); err == nil {
+	// Hold the default port on the wildcard address, which a 127.0.0.1 bind
+	// would shadow on macOS; when another process holds it, it is busy anyway.
+	if ln, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", viewDefaultPort)); err == nil {
 		t.Cleanup(func() { ln.Close() })
 	}
 	f := newViewFixture(t)
+	f.hivePort = true
 	out := f.mustView("start")
 	if got := f.info().Port; got == viewDefaultPort || got <= 0 {
 		t.Fatalf("start with %d busy took port %d\n%s", viewDefaultPort, got, out)
@@ -666,7 +689,7 @@ func TestViewServeRetriesALockHeldMomentarily(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pid, err := defaultViewLauncher([]string{"view", "serve", "--state-dir", f.stateDir}, p.log)
+	pid, err := defaultViewLauncher([]string{"view", "serve", "--state-dir", f.stateDir, "--port", "0"}, p.log)
 	if err != nil {
 		t.Fatal(err)
 	}

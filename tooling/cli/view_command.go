@@ -138,7 +138,11 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	if !ok {
 		return err
 	}
-	fs.Visit(func(fl *flag.Flag) { f.portSet = f.portSet || fl.Name == "port" })
+	fs.Visit(func(fl *flag.Flag) {
+		if fl.Name == "port" {
+			f.portSet = true
+		}
+	})
 	_, state, err := management.NormalizeOptions(o)
 	if err != nil {
 		return err
@@ -176,6 +180,26 @@ func parseViewTTL(raw string) (time.Duration, error) {
 
 // viewDefaultPort spells HIVE on a phone keypad.
 const viewDefaultPort = 4483
+
+// listenView binds the port. A port is busy when the bind fails with
+// EADDRINUSE or when a connection to it answers: on macOS a 127.0.0.1 bind
+// succeeds over another program listening on the wildcard address and would
+// shadow it. A busy --port fails; a busy default falls back to a free port.
+func listenView(f viewFlags, w io.Writer) (net.Listener, error) {
+	if f.port != 0 {
+		addr := net.JoinHostPort("127.0.0.1", fmt.Sprint(f.port))
+		if conn, err := net.DialTimeout("tcp4", addr, viewHealthLimit); err == nil {
+			conn.Close()
+		} else if ln, err := viewer.Listen(f.port); !errors.Is(err, syscall.EADDRINUSE) {
+			return ln, err
+		}
+		if f.portSet {
+			return nil, fmt.Errorf("port %d is busy", f.port)
+		}
+		fmt.Fprintf(w, "port %d is busy; listening on a free port\n", f.port)
+	}
+	return viewer.Listen(0)
+}
 
 func checkViewPort(port int) error {
 	if port < 0 || port > 65535 {
@@ -375,11 +399,7 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	ln, err := viewer.Listen(f.port)
-	if err != nil && !f.portSet && errors.Is(err, syscall.EADDRINUSE) {
-		fmt.Fprintf(w, "port %d is busy; listening on a free port\n", f.port)
-		ln, err = viewer.Listen(0)
-	}
+	ln, err := listenView(f, w)
 	if err != nil {
 		return err
 	}

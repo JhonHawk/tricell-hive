@@ -405,7 +405,7 @@ project and session, with ticket details on each segment, run the local viewer y
 
 ```sh
 hive view register --dir <folder>   # once per repository or workspace; agents run it too
-hive view start      # a server on 127.0.0.1 that keeps running until you stop it
+hive view start      # a server on 127.0.0.1:4483 (HIVE on a phone keypad), or a free port if that one is busy; it keeps running until you stop it
 hive view open       # open it in the browser
 hive view stop
 ```
