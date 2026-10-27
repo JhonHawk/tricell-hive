@@ -12,6 +12,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A command or tool failure that an agent works around without being blocked is
+  now an incidental finding: the agent keeps its error output and reports the
+  failure with the workaround, and proposes a fix or ticket only when it lies
+  in the current project (#206). Run `hive update` to install the changed
+  guidance.
 - Walkthroughs now use screenshots of relevant states, including open dialogs
   and menus, instead of recording flows. Existing video manifests remain
   compatible. Run `hive update` to install the changed guidance.
@@ -108,9 +113,8 @@ raise the minor or the patch version.
   any archive or pin changes made since that backup.
 - Before proposing an incidental finding, during the work or at the close,
   agents now search persistent memory as well as the tracker, since the
-  incidental-findings reference named only the tracker. A command or tool
-  failure that an agent works around is now reported as an incidental finding
-  with its workaround (#206). Run `hive update` to install the changed guidance.
+  incidental-findings reference named only the tracker (#206). Run
+  `hive update` to install the changed guidance.
 
 ### Migration
 
