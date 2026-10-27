@@ -105,9 +105,10 @@ func newViewPaths(state string) viewPaths {
 // viewFlags are the flags beyond --home and --state-dir; each subcommand
 // registers the ones it accepts.
 type viewFlags struct {
-	port int
-	ttl  string
-	dir  string
+	port    int
+	portSet bool // --port was given, so a busy port is an error
+	ttl     string
+	dir     string
 }
 
 func runView(args []string, w io.Writer, deps viewDeps) error {
@@ -123,7 +124,7 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	var f viewFlags
 	switch sub {
 	case "start", "serve":
-		fs.IntVar(&f.port, "port", 0, "TCP port on 127.0.0.1 (default: a free port)")
+		fs.IntVar(&f.port, "port", viewDefaultPort, "TCP port on 127.0.0.1; 0 picks a free port")
 		fs.StringVar(&f.ttl, "ttl", "", "how long an unpinned copy lives, e.g. 72h (default 14 days)")
 	case "register":
 		fs.StringVar(&f.dir, "dir", "", "directory inside the repository to register (default: the current directory)")
@@ -137,6 +138,7 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	if !ok {
 		return err
 	}
+	fs.Visit(func(fl *flag.Flag) { f.portSet = f.portSet || fl.Name == "port" })
 	_, state, err := management.NormalizeOptions(o)
 	if err != nil {
 		return err
@@ -171,6 +173,9 @@ func parseViewTTL(raw string) (time.Duration, error) {
 	}
 	return d, nil
 }
+
+// viewDefaultPort spells HIVE on a phone keypad.
+const viewDefaultPort = 4483
 
 func checkViewPort(port int) error {
 	if port < 0 || port > 65535 {
@@ -299,7 +304,7 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 		return err
 	}
 	args := []string{"view", "serve", "--state-dir", p.state}
-	if f.port != 0 {
+	if f.portSet {
 		args = append(args, "--port", fmt.Sprint(f.port))
 	}
 	if f.ttl != "" {
@@ -312,6 +317,9 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	deadline := time.Now().Add(viewStartTimeout)
 	for {
 		if info, err := readServerInfo(p.info); err == nil && (pid <= 0 || info.PID == pid) && viewHealth(info, p) == nil {
+			if !f.portSet && info.Port != viewDefaultPort {
+				fmt.Fprintf(w, "The default port %d is busy, so the viewer took a free port.\n", viewDefaultPort)
+			}
 			fmt.Fprintf(w, "The viewer is running at %s (pid %d). Run `hive view open` to open it.\n", info.url(), info.PID)
 			return nil
 		}
@@ -368,6 +376,10 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		return err
 	}
 	ln, err := viewer.Listen(f.port)
+	if err != nil && !f.portSet && errors.Is(err, syscall.EADDRINUSE) {
+		fmt.Fprintf(w, "port %d is busy; listening on a free port\n", f.port)
+		ln, err = viewer.Listen(0)
+	}
 	if err != nil {
 		return err
 	}

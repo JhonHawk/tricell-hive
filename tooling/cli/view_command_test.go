@@ -330,6 +330,51 @@ func TestViewStartStatusStopLifecycle(t *testing.T) {
 	}
 }
 
+func TestViewStartDefaultsToTheHivePort(t *testing.T) {
+	probe, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", viewDefaultPort))
+	if err != nil {
+		t.Skipf("port %d is in use on this machine: %v", viewDefaultPort, err)
+	}
+	probe.Close()
+	f := newViewFixture(t)
+	out := f.mustView("start")
+	if got := f.info().Port; got != viewDefaultPort {
+		t.Fatalf("default port = %d, want %d\n%s", got, viewDefaultPort, out)
+	}
+	if strings.Contains(out, "busy") {
+		t.Fatalf("start reported a busy port: %s", out)
+	}
+	f.mustView("stop")
+
+	// --port 0 still asks for a free port.
+	out = f.mustView("start", "--port", "0")
+	if got := f.info().Port; got == viewDefaultPort || got <= 0 {
+		t.Fatalf("--port 0 took port %d\n%s", got, out)
+	}
+	f.mustView("stop")
+}
+
+func TestViewStartFallsBackWhenTheHivePortIsBusy(t *testing.T) {
+	// Hold the default port; when another process holds it, it is busy anyway.
+	if ln, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", viewDefaultPort)); err == nil {
+		t.Cleanup(func() { ln.Close() })
+	}
+	f := newViewFixture(t)
+	out := f.mustView("start")
+	if got := f.info().Port; got == viewDefaultPort || got <= 0 {
+		t.Fatalf("start with %d busy took port %d\n%s", viewDefaultPort, got, out)
+	}
+	if !strings.Contains(out, fmt.Sprintf("port %d is busy", viewDefaultPort)) {
+		t.Fatalf("start did not say the default port was busy: %s", out)
+	}
+	f.mustView("stop")
+
+	// An explicit port never falls back.
+	if out, err := f.view("start", "--port", fmt.Sprint(viewDefaultPort)); err == nil {
+		t.Fatalf("start --port %d succeeded on a busy port: %s", viewDefaultPort, out)
+	}
+}
+
 func TestViewStartTTLReachesHealthAndStore(t *testing.T) {
 	f := newViewFixture(t)
 	f.mustView("start", "--ttl", "1h")
