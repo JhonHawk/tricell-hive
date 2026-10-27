@@ -9,7 +9,7 @@ Read when, while work is open in any flow, the user asks for something that woul
 The work's intent is the outcome its quoted request names, and, in a retained plan, its `AC<n>`. Classify each change against that intent into exactly one class:
 
 1. **Correction:** it changes how the result does what the request or its criteria already ask. The global guidance calls this a topic that clarifies. It stays in the current stage.
-2. **Added task:** it asks for new behavior that serves the same outcome. In a retained plan it becomes an added task, as [plan revision](plan-revision.md) sets. Without a retained plan, the work stays in [flow-build](../../flow-build/SKILL.md) only while it remains a small understood change; when the change adds another ticket, another repository, a contract, or stored data, stop dependent edits and route the work to [flow-plan](../SKILL.md).
+2. **Added task:** it asks for new behavior that serves the same outcome. In a retained plan it becomes an added task, as [plan revision](plan-revision.md) sets. In a build without a retained plan, the work stays in [flow-build](../../flow-build/SKILL.md) only while it remains a small understood change; when the change adds another ticket, another repository, a contract, or stored data, stop dependent edits and route the work to [flow-plan](../SKILL.md). Before any build, such as during research, the added task joins what that flow's route question offers; a classification never authorizes implementation.
 3. **New change:** it changes the outcome the request named. Ask whether the current work continues to its own completion point or pauses as [flow-close](../../flow-close/SKILL.md) sets, and plan the new outcome as a separate change.
 4. **Separate topic:** the current outcome does not need it, or it belongs to other work. Give it a destination under the open-topics rule in the global guidance, such as a ticket, a plan, watched, or dropped, and continue the work.
 
@@ -24,9 +24,9 @@ Examples that mark the boundaries:
 
 ## Say it, ask only when it matters
 
-Before acting, state the class and where the work goes in one line. Ask only when two classes are both reasonable and lead to different deliveries, typically an added task against a new change; ask by following [questions](questions.md), with the recommended class first and its reason.
+Before acting, state the class and where the work goes in one line. Until an added task or a new change is resolved, hold the work that depends on it. Ask only when two classes are both reasonable and lead to different deliveries, typically an added task against a new change; ask by following [questions](questions.md), with the recommended class first and its reason.
 
-Under [unattended delegation](../../unattended-delegation/SKILL.md), a correction within its objective and scope keeps the delegation; an added task or a new change is a scope change that ends it, as that skill sets.
+Under unattended delegation, whether the message keeps or ends the delegation is decided as [unattended delegation](../../unattended-delegation/SKILL.md) sets, not by this classification.
 
 ## Where the work returns
 
@@ -36,10 +36,10 @@ Apply the stage's own rule at each point; this list only names it:
 - **Plan:** a correction or added task revises the plan, as [plan revision](plan-revision.md) sets.
 - **Build:** an added task follows class 2 above, including the route to `flow-plan`.
 - **Validation pause:** a correction runs as a correction round of [flow-verify](../../flow-verify/SKILL.md); an added task follows class 2 and is verified as [plan revision](plan-revision.md) sets.
-- **After integration, before close:** a defect fix of the same change goes as the follow-up pull request that [delivery decisions](delivery-decisions.md) covers. A new requirement is a new change: the integrated change's record closes normally and the new outcome is planned apart.
+- **After integration, before close:** a correction or defect fix of the same change goes as the follow-up pull request that [delivery decisions](delivery-decisions.md) covers. An added task or a new change is delivered as its own work: the integrated change's record closes normally, and the new work goes to `flow-build` when it is a small understood change, otherwise to `flow-plan`.
 - **Close question:** an answer that adds to the work is classified here before the close continues.
-- **Promotion:** the run's candidate and tickets are fixed when it starts. A request to add or remove tickets ends the current run at a safe point, a step boundary where nothing is half-applied, and the next run starts with the new set from the first step of [flow-deploy](../../flow-deploy/SKILL.md).
+- **Promotion:** the run's candidate and tickets are fixed when it starts. A request to add a ticket integrated after the start goes to the next run. A request to remove a ticket whose commits are already on the base branch cannot be met by restarting, since promotion carries the whole branch: stop the run at a safe point, a step boundary where nothing is half-applied, and ask whether to revert that ticket on the base branch as its own change or to keep it in the promotion. The next run starts from the first step of [flow-deploy](../../flow-deploy/SKILL.md).
 
 ## Repeated corrections
 
-Correction rounds have no fixed limit, since each one is the user's request. When a third correction round, during a validation pause or after the first rendered view, touches the same aspect as the two before it, ask by following [questions](questions.md) whether to return to the plan, revising it or opening a new change, before running that round; recommend returning when the corrections keep changing what the result should do rather than how it does it.
+Correction rounds have no fixed limit, since each one is the user's request. When a third correction round touches the same aspect as the two before it in the same stage, counting the rounds after the first rendered view and those of a validation pause separately, ask by following [questions](questions.md) whether to return to the plan, revising it or opening a new change, before running that round; recommend returning when the corrections keep changing what the result should do rather than how it does it.
