@@ -331,7 +331,7 @@ flowchart TD
     Result -->|Promotion requested| Deploy["flow-deploy"]
     Deploy --> Served["Served identity and health per environment"]
 
-    Verify -.->|corrections| Build
+    Verify -.->|added task| Build
     Build -.->|scope grows| Plan
     Close -.->|close question| Build
     Close -.-> Plan
@@ -340,26 +340,14 @@ flowchart TD
     Change["Change requested"] -.-> Plan
     Change -.-> Build
 
-    subgraph Rules["General rules"]
-        direction LR
-        G1["Language"]
-        G2["Communication"]
-        G3["Scope and authorization"]
-        G4["Preservation"]
-        G5["Secrets"]
-        G6["Evidence"]
-        G7["Verification gates"]
-        G8["Proportionality"]
-        G9["Project settings"]
-        G10["Continuity"]
-        G11["Specs and change records"]
-        G12["Support folder"]
-    end
+    Rules["General rules, in every flow:<br/>Language · Communication · Scope and authorization<br/>Preservation · Secrets · Evidence · Verification gates<br/>Proportionality · Project settings · Continuity<br/>Specs and change records · Support folder"]
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef outcome fill:#edf4ee,stroke:#52745c,color:#203a28
+    classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
     class Research,Plan,Build,Verify,Security,Close,Deploy activity
     class Answer,Ready,Candidate,Result,Finish,Served outcome
+    class Rules rules
 ```
 
 Dotted arrows are the loops back. A change asked for while work is open returns to
