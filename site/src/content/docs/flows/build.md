@@ -66,7 +66,7 @@ The dedicated code review runs once on the local candidate, after the full suite
 - [Close](/flows/close/) follows when the work is finished, abandoned or paused.
 - [Deploy](/flows/deploy/) promotes an integrated change through your environments.
 
-In the viewer, opening a session from the sidebar shows its header and deliveries. Selecting a segment or searching for its ticket jumps to that segment; refreshing the tab restores the selected segment. The session dot means in progress if any visible segment is in progress, closed if all visible segments are explicitly closed, and unreported otherwise. Closed describes the work's lifecycle, not approval of its content.
+In the viewer, opening a session shows its fixed toolbar above scrolling deliveries and walkthroughs. Rename, archive/restore, keep and confirmed deletion act on the entire session, across tickets; work status remains on each walkthrough. The local name is searchable, and archiving offers Undo. New deliveries inherit archive and keep preferences. Selecting a walkthrough or searching its ticket jumps to it; refreshing the tab restores that selection. The session dot means in progress if any visible segment is in progress, closed if all visible segments are explicitly closed, and unreported otherwise. Closed describes the work's lifecycle, not approval of its content.
 
 ## FAQ
 

@@ -164,27 +164,54 @@ to a separate explanatory section. Their normal document and file reads return
 409; archive/restore, pin, explicit deletion and normal TTL remain available. Unknown sources remain
 accessible with a warning. A local file is not proof of agent authorship.
 
-Archive state belongs to each stored copy's `meta.json` as optional
-`archived` metadata (absent means false), independently of `pinned` and the
-manifest's session status. The authenticated index exposes `archived` for both
-normal sessions and excluded tracked-source entries. Token-authenticated,
-same-origin `POST /api/sessions/<key>/archive` archives the copy;
-`DELETE` on the same route restores it. Both return 204 on success, preserve
-pinning and ingestion time, and never edit source files. Archive state survives
-store reconstruction, restarts and replacement from a changed source. Archiving
-does not exempt an unpinned copy from normal TTL deletion.
+Session preferences belong to versioned `viewer/session-groups/<digest>.json`
+records keyed by exact project, declared host (null when absent) and session ID.
+They contain the local title override, archive and keep state independently of
+the reconstructible index. The index retains physical copies and exposes their
+effective `archived`, `pinned` and optional `session_title` values. Continuations
+inherit those preferences; archive never changes source files, work status,
+ingestion time or normal TTL. Keeping protects every member from expiry.
 
-The React shell groups normal visible copies by exact project, declared host and
-session ID, with visible-session counts, compact title/ticket/segment/date rows
-and no ticket level or connector branches. The selected session stacks its
-chronological segments with separators, ticket search jumps and per-copy controls.
-This is a derived client view: physical keys, capabilities, store metadata and API
-routes remain per copy. Filtering archived copies precedes visual grouping. Projects open
-initially only when they contain an explicitly in-progress session; manual
-expansion takes precedence. A tooltip-labeled, accessible icon beside Projects
-toggles archived copies, hidden by default. The sidebar brand header shows a
-route icon. Each segment has a toolbar with informational manifest status,
-archive/restore, pin/unpin and delete actions targeting only its own physical key.
+The first startup imports legacy copy flags: archive only when every member was
+archived, keep when any was pinned. A mixed archive group becomes active. A valid
+group record is written before legacy fields are retired, and an interrupted
+import resumes without recalculating that record. Back up the old binary,
+metadata, index/tombstones and any existing group records before upgrading;
+do not copy `server.json` or tokens. Rollback to an older binary needs compatible
+copy flags restored and must preserve subsequent changes and local names.
+
+Token-authenticated same-origin writes use a member key to locate the entire
+logical session, including archived/excluded members. All require
+`X-Hive-Action-Scope: session`: missing or older scope returns
+`409 {"code":"reload_required"}` without mutation, protecting already open old
+tabs. POST/DELETE `/api/sessions/<key>/archive` archives/restores; POST/DELETE
+`/api/sessions/<key>/pin` keeps/unkeeps. PUT `/api/sessions/<key>/title` accepts
+only a JSON `title` string, within 2048 bytes and 200 Unicode code points after
+trimming, rejecting control characters; empty clears the local override.
+Successful preference writes return 204. Document and resource reads retain
+physical keys, capabilities and source-classification restrictions.
+
+DELETE `/api/sessions/<key>` removes all current members without modifying their
+sources. It commits their tombstones before removing folders and records
+`delete_pending` for recovery. `partial_delete` returns only safe counts
+(`deleted`, `remaining`, `cleanup_pending`) and failure, never false success.
+Survivors remain available for retry. Startup and Sync finish pending cleanup
+when no members remain, and new ingestion waits for cleanup before applying new
+preferences. Errors tagged `delete_cleanup_pending` remain queryable even with
+zero members; GET only reports them. Tombstones still describe physical content,
+so new or modified deliveries can return rather than permanently blocking a chat.
+
+The React shell groups copies by that exact logical identity, with compact
+name/ticket/walkthrough/date rows and no ticket level or connector branches.
+A fixed session toolbar owns naming and management; its document canvas alone
+scrolls chronological walkthroughs with separators, work-status indicators and
+ticket search jumps. The local name participates in search without modifying
+source titles. A prefilled single-field dialog edits it; confirmed deletion
+counts every stored member. Archive feedback offers Undo without a persistent
+copy banner. Actual source and connection warnings remain separate.
+Projects initially open for explicitly in-progress work; manual expansion takes
+precedence. The accessible icon beside Projects includes archived sessions,
+hidden by default. The sidebar brand header retains its route icon.
 The session header aggregates explicit delivery links from its visible accessible
 segment manifests, deduplicated by URL; documents and standalone pages retain their
 own links. The optional `delivery` contract lives in the manifest reference,

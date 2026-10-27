@@ -12,6 +12,17 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The walkthrough viewer now keeps one fixed session toolbar above its scrolling
+  content. Rename, archive/restore, keep and confirmed deletion cover every
+  walkthrough in the session, across tickets; local names participate in search
+  and archive feedback offers Undo. New deliveries inherit archive/keep state.
+  Migration: restart with the new binary and reload old browser tabs; copy-scope
+  writes are rejected. First startup imports old flags into `session-groups`
+  (mixed archive groups become active; any pin keeps the group). Back up copy
+  metadata, index and group records before upgrading; rolling back needs
+  compatible preferences restored without overwriting later changes. Deletion
+  persists tombstones before removing copies and retries incomplete cleanup.
+
 - Each option of the delivery question now says how the change record is
   versioned at close and when it publishes each support repository, so the
   delivery answer settles that route and the close does not ask it again; a
