@@ -351,7 +351,8 @@ flowchart TD
 ```
 
 Dotted arrows are the loops back. A change asked for while work is open stays in the
-current stage when it is a correction, and otherwise returns to Plan or Build; the [scope changes reference](content/skills/flow-plan/references/scope-changes.md)
+current stage when it is a correction, returns to Plan or Build when it adds to the
+work, and gets its own destination when it is a separate topic; the [scope changes reference](content/skills/flow-plan/references/scope-changes.md)
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
