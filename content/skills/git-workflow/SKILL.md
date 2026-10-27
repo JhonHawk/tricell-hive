@@ -45,4 +45,4 @@ Branches that follow the base branch in the repository's environment chain, such
 
 ## After a merge
 
-After verifying a merge you performed, read and run [flow-close](../flow-close/SKILL.md) as its [When to run it](../flow-close/SKILL.md#when-to-run-it) sets. A merge into the base branch that integrates the work item is its completion point, also when the user asked for that merge outside any flow: the whole close runs, and the branch cleanup is one of its steps. After a promotion merge, only that cleanup runs.
+After verifying a merge you performed, read [When to run it](../flow-close/SKILL.md#when-to-run-it) in flow-close: it sets whether that merge completes a work item, which runs the whole [flow-close](../flow-close/SKILL.md), or calls for less. When flow-close is already running, such as when it merges the change record's closing pull request, continue it. When that section covers none of these cases, such as a stacked pull request merged into another work branch, run [Clean up after a merge](../flow-close/SKILL.md#clean-up-after-a-merge).
