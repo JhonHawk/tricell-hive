@@ -412,6 +412,9 @@ func (e Engine) Onboard(p Plan, steps []ExternalStep, runner ExternalRunner) (On
 	if err = finishOnboarding(j); err != nil {
 		return j.OnboardingResult, err
 	}
+	if warning := pruneJournals(p.StateDir, j.CoreID); warning != "" {
+		j.ID += "; " + warning
+	}
 	if partial {
 		return j.OnboardingResult, fmt.Errorf("core installed; optional capabilities incomplete")
 	}

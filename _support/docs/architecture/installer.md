@@ -90,7 +90,7 @@ An interrupted installation is finished with `./install.sh` or `hive recover`.
 ## Interaction
 
 `install` detects CLI executables, registered consumers, and recognized legacy
-resources. It displays selected hosts, destinations and private backup location,
+resources. It displays selected hosts, destinations and recovery journal location,
 then asks for one affirmative terminal confirmation. Cancellation, EOF and piped
 input cannot apply changes. `--dry-run` is read-only and works without a terminal
 when `--hosts` selects the hosts; choosing hosts interactively needs one.
