@@ -314,7 +314,7 @@ func TestStoreReplaceKeepsPinned(t *testing.T) {
 	os.WriteFile(filepath.Join(folder, "images", "nav-2.png"), []byte("changed"), 0o644)
 	e.advance(time.Minute)
 	e.sync()
-	if !e.meta(key).Pinned || !e.onlySession().Pinned {
+	if e.meta(key).Pinned || !e.onlySession().Pinned {
 		t.Fatal("pinned lost on replacement")
 	}
 }

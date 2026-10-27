@@ -166,7 +166,7 @@ func hashFiles(root *os.Root, m *Manifest) (string, error) {
 }
 
 // install writes the copy of one source as sessions/<key>, replacing any
-// previous copy and carrying its pinned and archived flags over. The copy is
+// previous copy. Logical preferences are applied separately. The copy is
 // assembled in a temporary directory and swapped in with renames, so a reader sees the
 // old or the new copy, never a mix; Startup repairs a crash in between.
 func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash string, now time.Time) (Session, error) {
@@ -190,10 +190,9 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 	final := s.sessionDir(key)
 	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC()}
 	if old, err := readMeta(final); err == nil {
-		mt.Pinned, mt.Archived = old.Pinned, old.Archived
 		mt.ProjectKey, mt.ProjectName = old.ProjectKey, old.ProjectName
 	}
-	if err := writeJSONAtomic(filepath.Join(tmp, "meta.json"), mt); err != nil {
+	if err := writeMeta(tmp, mt); err != nil {
 		return Session{}, err
 	}
 	old := filepath.Join(s.sessionsDir(), oldPrefix+key)
@@ -655,10 +654,26 @@ func (s *Store) apply(c *candidate, now time.Time, d *indexData, res *SyncResult
 	if exists && d.Sessions[i].ContentHash == c.hash {
 		return nil
 	}
+	// Resolve the same project identity used by publication before touching disk.
+	probe := Session{Key: c.key, Source: c.folder, SessionID: c.m.SessionID, Host: c.m.SessionHost}
+	if exists {
+		probe = d.Sessions[i]
+		probe.SessionID, probe.Host = c.m.SessionID, c.m.SessionHost
+	}
+	identities := newIndexData()
+	identities.Sessions = []Session{probe}
+	s.enrich(identities)
+	group, groupErr := s.readGroup(identityOf(identities.Sessions[0]))
+	if groupErr != nil && !errors.Is(groupErr, fs.ErrNotExist) {
+		return fmt.Errorf("session preferences: %w", groupErr)
+	}
 	sess, err := s.install(c.key, c.folder, c.root, c.m, c.hash, now)
 	if err != nil {
 		s.forget(c.folder)
 		return err
+	}
+	if groupErr == nil {
+		sess.Pinned, sess.Archived, sess.SessionTitle = group.Pinned, group.Archived, group.TitleOverride
 	}
 	d.dropTombstone(c.key)
 	if exists {

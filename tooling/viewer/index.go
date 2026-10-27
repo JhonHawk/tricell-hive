@@ -44,9 +44,10 @@ type Session struct {
 	Pinned      bool      `json:"pinned"`
 	Archived    bool      `json:"archived"`
 
+	SessionTitle  string `json:"session_title,omitempty"`
 	SessionID     string `json:"session_id"`
 	SessionStatus string `json:"session_status"`
-	Host          string `json:"host"`
+	Host          string `json:"host,omitempty"`
 	Ticket        string `json:"ticket"`
 	Title         string `json:"title"`
 	Kind          string `json:"kind"`
