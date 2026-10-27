@@ -60,6 +60,7 @@ to force confirmation. The procedure lives in
 
 - [Verify](/flows/verify/) usually comes right before Close, because it integrates the change; [Build](/flows/build/) does when verify is skipped.
 - [Deploy](/flows/deploy/) is a separate stage after integration. It never holds a close open: when your project declares a later completion point in `Completion`, Deploy moves the ticket to its final state once that condition holds.
+- [Changes and loops](/flows/overview/) shows where the work goes when your answer to the close question, or a requirement after integration, adds to it.
 - [Plan](/flows/plan/) created the change record that Close archives.
 - [Research](/flows/research/) is separate. A research-only session ends with its route question instead.
 

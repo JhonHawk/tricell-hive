@@ -72,6 +72,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { label: "Overview", slug: "skills" },
+            { label: "Changes and loops", slug: "flows/overview" },
             { slug: "flows/research" },
             { slug: "flows/plan" },
             { slug: "flows/build" },

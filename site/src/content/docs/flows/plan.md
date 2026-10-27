@@ -76,6 +76,9 @@ The agent does not save it for later. It shows the decision at once, under the c
 ### What if the plan has to change while the work is being built?
 The agent drafts the change in the conversation, names what it touches (your request, a criterion, a decision, a task or a requirement delta) and then edits the saved plan itself, keeping those parts consistent with each other. A change that alters a criterion, a decision or a contract goes back to the plan reviewers once; a smaller one the agent reconciles and records. If the change alters what you asked for, it becomes a new change rather than an edit of this one.
 
+### What if I ask for something new while the plan is open?
+The agent first classifies the request as a correction, an added task, a new change or a separate topic, and says where the work goes. [Changes and loops](/flows/overview/) lists where each flow returns the work, and the classification lives in the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/scope-changes.md).
+
 ### Why are the criteria numbered?
 Each one is checked later, so every criterion must be testable and covered by at least one task.
 

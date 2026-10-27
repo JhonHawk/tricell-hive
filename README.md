@@ -331,11 +331,30 @@ flowchart TD
     Result -->|Promotion requested| Deploy["flow-deploy"]
     Deploy --> Served["Served identity and health per environment"]
 
+    Verify -.->|added task| Build
+    Build -.->|scope grows| Plan
+    Close -.->|close question| Build
+    Close -.-> Plan
+    Deploy -.->|defect| Build
+
+    Change["Change requested"] -.-> Plan
+    Change -.-> Build
+
+    Rules["General rules, in every flow:<br/>Language · Communication · Scope and authorization<br/>Preservation · Secrets · Evidence · Verification gates<br/>Proportionality · Project settings · Continuity<br/>Specs and change records · Support folder"]
+
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef outcome fill:#edf4ee,stroke:#52745c,color:#203a28
+    classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
     class Research,Plan,Build,Verify,Security,Close,Deploy activity
     class Answer,Ready,Candidate,Result,Finish,Served outcome
+    class Rules rules
 ```
+
+Dotted arrows are the loops back. A change asked for while work is open stays in the
+current stage when it is a correction, returns to Plan or Build when it adds to the
+work, and gets its own destination when it is a separate topic; the [scope changes reference](content/skills/flow-plan/references/scope-changes.md)
+classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
+lists where each flow loops.
 
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
   answer. It can stand alone and does not authorize implementation.
