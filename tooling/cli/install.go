@@ -822,7 +822,7 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	} else {
 		fmt.Fprintln(out, "Install / update")
 	}
-	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))
+	fmt.Fprintf(out, "Recovery journals (newest 10 kept): %s\n", filepath.Join(p.StateDir, "transactions"))
 	if !hiveChanged {
 		fmt.Fprintf(out, "Hive files checked: %d; none change.\n", len(p.Changes))
 	} else {

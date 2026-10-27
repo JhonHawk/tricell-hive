@@ -48,7 +48,7 @@ func buildRemovePlan(o management.Options, hosts []string) (management.Plan, err
 // for install/update.
 func showRemoveSummary(out io.Writer, p management.Plan) {
 	fmt.Fprintf(out, "Remove %s\n", strings.Join(p.Hosts, ", "))
-	fmt.Fprintf(out, "Private backups: %s\n", filepath.Join(p.StateDir, "transactions"))
+	fmt.Fprintf(out, "Recovery journals (newest 10 kept): %s\n", filepath.Join(p.StateDir, "transactions"))
 	var removed, kept, released []string
 	for _, ch := range p.Changes {
 		if ch.Before == nil {

@@ -143,8 +143,8 @@ go run ./tooling/cli install --hosts codex
 ```
 
 Replace `codex` with your host, or a comma-separated selection such as
-`codex,claude`. The installer shows destinations and private backup locations
-before requiring affirmative confirmation. The first build needs access to the
+`codex,claude`. The installer shows destinations and where it keeps recovery
+journals before requiring affirmative confirmation. The first build needs access to the
 Go modules unless they are already cached.
 
 <details>
