@@ -16,4 +16,4 @@ This skill holds the procedures that every flow and the global guidance use. It 
 - Before retrieving or documenting a secret, reading output that may hold one, or when one is exposed, read [secrets](references/secrets.md).
 - Before writing persistent memory, or when memories or sources disagree, read [memory](references/memory.md).
 - Before looking up external documentation, or locating code in a repository with a `.codegraph/` directory, read [evidence tools](references/evidence-tools.md).
-- Before writing a script that calls other tools, or three or more read-only calls the host could batch in one, read [tool scripts](references/tool-scripts.md).
+- When the host offers a tool that runs a script able to call other tools, before writing such a script, or three or more read-only calls it could batch, read [tool scripts](references/tool-scripts.md).
