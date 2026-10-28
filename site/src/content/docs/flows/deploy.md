@@ -27,7 +27,7 @@ Deploy the fix for the checkout error to production now.
 - A review of each promotion pull request limited to the commits not reviewed before their integration.
 - A functional walk only when the project declares one, in its `AGENTS.md` or in the plan, or you asked to validate the deployment. The effects the walk needs in that environment are asked before it runs.
 
-The final report lists, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. A CI failure the target environment's branch already had before this promotion, and that does not block it, does not leave the promotion unverified; the report lists it as a side finding. The exact steps and checks are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md).
+The final report lists, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. A CI failure the target environment already had, with the same error, before this promotion, and that does not block it, does not leave the promotion unverified; the report lists it as a side finding. The exact steps and checks are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md).
 
 ## What it does not do
 

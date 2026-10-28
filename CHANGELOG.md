@@ -28,8 +28,8 @@ raise the minor or the patch version.
   end (#249). A CI failure the change causes is fixed without asking, in the
   same pull request or a follow-up one, and a failure the base branch already
   had that does not block the integration no longer holds the ticket or the
-  change record, and a promotion likewise tolerates a failure its target
-  branch already had. A plan names, for each criterion checked outside the
+  change record, and a promotion likewise tolerates a non-blocking failure
+  its target environment already had. A plan names, for each criterion checked outside the
   local machine, the environment and the data, access and other effects its
   check needs, and the plan review blocks a plan that does not; work without
   a plan lists them from the request, so the delivery round asks them up
