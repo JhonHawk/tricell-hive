@@ -10,6 +10,18 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- `harness-audit` now compares the memory each host loads at every entry
+  point, not only the instruction files: Claude Code, Grok Build and Codex key
+  their own memory by where the session starts, so a project whose memory
+  lives at the workspace behaves differently from one started in a
+  repository. It proposes a home for each fact that only one entry point
+  loads, flags an Engram project that sessions split across two names, and
+  flags an entry point where Grok Build loads no project instructions because
+  that folder, such as a repository nested in a trusted workspace, has no
+  trust grant of its own. Run `hive update` to install it.
+
 ### Changed
 
 - Fewer questions while a build runs, since the user reviews a build at its

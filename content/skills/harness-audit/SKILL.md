@@ -1,6 +1,6 @@
 ---
 name: harness-audit
-description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, run native static validators, ask the decisions the findings need, and apply the accepted outcomes in the current project. Use when asked to audit, review, prune, fix, or check agent instructions, skills, or agents, to set up or update a repository's Hive settings section (onboarding a project to Hive), to explain what a host loads from an entry directory, or to prepare a project's migration to the `openspec` change-record layout.
+description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, run native static validators, ask the decisions the findings need, and apply the accepted outcomes in the current project. Use when asked to audit, review, prune, fix, or check agent instructions, skills, or agents, to set up or update a repository's Hive settings section (onboarding a project to Hive), to explain what a host loads from an entry directory, including its memory, or why sessions behave differently by where they start, or to prepare a project's migration to the `openspec` change-record layout.
 ---
 
 # Harness audit
@@ -20,7 +20,7 @@ Establish before reading deeply:
 
 ## Procedure
 
-1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
+1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. When the project's sessions start at more than one entry point, or the caller asks why sessions behave differently by where they start, add the memory and folder trust of each entry point for the hosts in use (HA-HI-08 to HA-HI-10). Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md).
 4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
