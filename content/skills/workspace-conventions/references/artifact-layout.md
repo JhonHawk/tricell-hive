@@ -41,7 +41,7 @@ Retain necessary evidence, including justified binaries; only curated, shareable
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. It removes only this task's reproducible temporary files it no longer needs, stops the processes it or its children started, and restores local state the task changed. Branch and worktree deletion at close follows [Clean up after a merge](../../flow-close/SKILL.md#clean-up-after-a-merge). Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
+**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. What it removes, stops and restores, and what it keeps, is set in its Temporaries and processes step. Branch and worktree deletion at close follows [Clean up after a merge](../../flow-close/SKILL.md#clean-up-after-a-merge). Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
 
 **Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
 
