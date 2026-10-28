@@ -6,7 +6,7 @@ Read before formulating a question in which two or more options start work on th
 
 ## Offer the smallest sufficient option
 
-**Condition:** two or more of a question's options start work on the same request and build different amounts. A question whose only option that starts work carries an amount already settled, such as the build route of [plan handoff](../../flow-plan/references/plan-handoff.md), which approves the criteria shown, or the close question, is not one: the questions that settled that amount offered the smallest option.
+**Condition:** two or more of a question's options start work on the same request and build different amounts. Options that run the same work in different ways build the same amount, such as `flow-build` or direct execution in the build route of [plan handoff](../../flow-plan/references/plan-handoff.md), or continuing now or in a new session in the close question: the questions that settled that work offered the smallest option.
 
 **Actions:** include among them the smallest option that solves the problem the request, its ticket or an approved acceptance criterion states, even when you do not recommend it. When the Recommended option builds more, its reason names what the smaller option leaves unsolved, in the terms of that request, ticket or criterion; robustness or completeness for a case none of them states is not such a reason.
 

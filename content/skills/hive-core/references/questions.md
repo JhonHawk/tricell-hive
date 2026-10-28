@@ -42,7 +42,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Actions:** also state the main reason, tradeoff and uncertainty. Challenge an unsupported premise without flattery or automatic agreement, and when a premise changes, reassess the recommendation instead of silently substituting a new justification.
 
-**Condition:** two or more of a question's options start work on the same request and build different amounts, or one of them starts work on another ticket, adds a component, a language or a dependency, or is at least ten times the size of another option.
+**Condition:** two or more of a question's options start work on the same request and build different amounts, or one of them starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option.
 
 **Actions:** read [option scope and size](option-scope.md), which sets the smallest option to offer and the estimated size to give.
 
