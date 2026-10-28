@@ -24,12 +24,12 @@ Stop when the objective is met, the cap is reached, the no-progress rule says so
 
 ## State
 
-Keep the loop's state on disk and update it after every cycle, so a compaction, a stopped host or a new session can resume it. With a retained plan, it is the progress section of its `tasks.md`; for a declared job, the place its file names; otherwise, the saved-state destination that [artifact layout](../../workspace-conventions/references/artifact-layout.md) sets. A job whose runs start from a fresh checkout keeps it as a committed file on its work branch, which its delivery answer must authorize; a job that cannot keep state between runs does not run. Record:
+Keep the loop's state on disk and update it after every cycle, so a compaction, a stopped host or a new session can resume it. With a retained plan, it is the progress section of its `tasks.md`; for a declared job, the place its file names; otherwise, the saved-state destination that [artifact layout](../../workspace-conventions/references/artifact-layout.md) sets. A job whose runs start from a fresh checkout keeps it as a committed file on its work branch, never under `jobs/`, which its delivery answer must authorize; a job that cannot keep state between runs does not run. Record:
 
 - the objective, its measure and the cap;
 - each cycle with its measure, and when the last cycle started;
 - the decisions taken and each effect applied with how to revert it;
-- the run that wrote it, such as its session ID, the ticket, the next step, and the status: `running`, `done: <reason>` when the objective is met or the cap is reached, or `waiting for the user: <what>` when the loop stops for any other reason;
+- the run that wrote it, such as its session ID, the ticket, the next step, and the status: `running`, `done` when the objective is met, or `waiting for the user: <what>` when the loop stops for any other reason, the cap included;
 - for a declared job, across its runs: the runs done and the spending so far.
 
 Commits serve as checkpoints only when the delivery answer authorizes commits. The state is a working record: it is not a ledger, not a retained research document, and not persistent memory, which keeps its own write cadence. It authorizes nothing: answers and authorizations come only from where their own rules set, such as a plan or a declared job.
