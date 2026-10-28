@@ -19,13 +19,29 @@ raise the minor or the patch version.
   references that every flow uses, live in a new `hive-core` skill (#240). Run
   `hive update` to install it, then restart open sessions: they still point to
   the references' old `flow-plan` paths.
+- Less friction with the user (#240): a critical effect the user asks for on
+  a named target, or approves from a proposal that named its target,
+  reversibility and cost, needs no further question; an answer that names a
+  delivery also covers what the project's documented procedure for it
+  prescribes, such as an administrator merge its release guide requires; a
+  plain yes-or-no confirmation can be the pause line itself; the questions
+  reference is no longer reread on every answer; and memory hooks' reminders
+  do not change when memory is written.
+- Flow boundaries (#240): `flow-deploy` asks each rollback trigger's recovery
+  action inside the production authorization and asks once about commits a
+  re-entry would carry besides the fix; security findings on an unintegrated
+  candidate follow the code-review fix rules and the two reviews run in
+  parallel; `flow-close` has triggers for deferred closes and memory as its
+  own step; a ticket reaches its final state only with no functional walk
+  pending; a retired `## Hive` key only informs the Recommended option of the
+  question it used to answer, and `hive doctor` says so; the tool-scripts
+  read applies only on hosts whose tools run scripts that call other tools.
 - `_support/docs/architecture/compaction-survival.md` records, per host, what
   survives context compaction, from documentation and an observed probe (#240).
-- Every progress, delivery, closing or decision message now opens with the
-  context line however short it is, including one-line notes between tool
-  calls, and its stage is the running flow's untranslated name, such as Build,
-  never an invented one (#209). Run `hive update` to install the changed
-  guidance.
+- Every progress report, delivery, close or decision message now opens with
+  the context line, and its stage is the running flow's untranslated name,
+  such as Build, never an invented one (#209); one-line progress notes carry
+  none (#240). Run `hive update` to install the changed guidance.
 - After a merge or a push to the base branch, including one the user asks for
   in conversation, the agent runs the whole `flow-close` as its When to run it
   sets instead of only the branch cleanup (#208). Run `hive update` to install
