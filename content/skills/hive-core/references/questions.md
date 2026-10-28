@@ -42,9 +42,9 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Actions:** also state the main reason, tradeoff and uncertainty. Challenge an unsupported premise without flattery or automatic agreement, and when a premise changes, reassess the recommendation instead of silently substituting a new justification.
 
-**Condition:** an option of the question starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option of the same question.
+**Condition:** two or more of a question's options start work on the same request and build different amounts, or one of them starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option.
 
-**Actions:** give every option of that question that starts work, not one such as stop, its estimated size: the number of tasks and a time range, with the basis for it, such as the ticket's criteria or the files you read. When you did not read enough to estimate it, write "size not estimated: not investigated" for that option. Never give a number without a basis.
+**Actions:** read [option scope and size](option-scope.md), which sets the smallest option to offer and the estimated size to give.
 
 ## Use a waiting native card
 
