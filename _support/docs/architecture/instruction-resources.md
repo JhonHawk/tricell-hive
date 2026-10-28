@@ -26,7 +26,9 @@ Canonical procedural homes under `content/skills/`:
 - `flow-plan/references/review-decisions.md`: before resolving the code-review mechanism or placing the dedicated review in time.
 - `flow-plan/references/ui-verification-decision.md`: before resolving the `UI verification` level for a rendered UI effect.
 
-The four `hive-core` references are shared by every flow and the global guidance; `hive-core/SKILL.md` lists their read conditions and is not loaded for a workflow of its own. A consumer reaches each reference by its path and condition, never by selecting `hive-core` from its description.
+- `hive-core/references/{language,third-party-requests,secrets,memory,evidence-tools,tool-scripts}.md`: the procedures that left `global.md` when it was split into layers (change `gh-240`); `global.md` keeps each rule's invariant and the read condition that points to its reference.
+
+The `hive-core` references are shared by every flow and the global guidance; `hive-core/SKILL.md` lists their read conditions and is not loaded for a workflow of its own. A consumer reaches each reference by its path and condition, never by selecting `hive-core` from its description.
 
 Activity and role consumers link directly to required resources. The global core
 does not delegate authorization, preservation or secrets to a selector. The

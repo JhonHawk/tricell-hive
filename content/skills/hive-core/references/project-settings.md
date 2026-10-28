@@ -22,6 +22,10 @@ Example for a code repository:
 - Completion: To Deploy on origin/development · Done on origin/qa
 ```
 
+## Ticket moves
+
+The global guidance authorizes moving a tracked ticket to its in-progress state before implementing it and to done at integration. Whenever you change a ticket's state, change each of its sub-issues that the same work covers to the same state in the same step, and name in the report any sub-issue you left and why. The base branch is the one work branches are cut from and merged back into, as the `Base branch` setting declares; with environment branches it is the first of them, such as `development`, and later ones receive changes only by promotion.
+
 ## Later completion point
 
 **Condition:** the repository's section declares `Completion`.

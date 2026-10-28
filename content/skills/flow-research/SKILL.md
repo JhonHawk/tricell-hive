@@ -9,7 +9,7 @@ Turn uncertainty into a supported answer that the next decision can use. This pr
 
 ## Entry and exit
 
-Enter with a question, a reported failure or a proposal; when one exists, enter directly, with no plan or build before it. Exit with findings and the evidence behind them, and the route question when work remains that the user could run next, for [flow-plan](../flow-plan/SKILL.md) or [flow-build](../flow-build/SKILL.md).
+Enter with a question, a reported failure or a proposal; when one exists, enter directly, with no plan or build before it. Exit with findings and the evidence behind them, and the route question when work remains that the user could run next, for [flow-plan](../flow-plan/SKILL.md) or [flow-build](../flow-build/SKILL.md); for a reported failure, once its cause is confirmed, leave the delivery and review questions to `flow-build`.
 
 ## Frame the investigation
 

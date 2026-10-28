@@ -13,7 +13,7 @@ The work's intent is the outcome its quoted request names, and, in a retained pl
 3. **New change:** it changes the outcome the request named. Ask whether the current work continues to its own completion point or pauses as [flow-close](../../flow-close/SKILL.md) sets, and plan the new outcome as a separate change.
 4. **Separate topic:** the current outcome does not need it, or it belongs to other work. Give it a destination under the open-topics rule in the global guidance, such as a ticket, a plan, watched, or dropped, and continue the work.
 
-The global guidance's labels map to these classes without overlap: a topic that clarifies is a correction; a related topic is an added task or a new change; a separate topic is a separate topic.
+The global guidance's labels map to these classes without overlap: a topic that clarifies is a correction; a related topic is an added task or a new change, resolved as scope before the work that depends on it; a separate topic is a separate topic, which waits for its destination. An answer to a pending question is not a topic, and a child does not apply the open-topics rule.
 
 Examples that mark the boundaries:
 

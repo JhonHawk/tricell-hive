@@ -140,7 +140,7 @@ Documentation establishes intended formats. Parser tests establish serialization
 
 ## Native selection and evidence
 
-The shared delegation contract lives in `content/guidance/global.md` as a capability-first rule: select the installed role through the child-launch tool's own selector, and when the tool does not list the role, give a bounded generic child the contract read from the installed role file and disclose the fallback. The per-host table that used to follow it was removed from the always-loaded block after [issue #30](https://github.com/JhonHawk/tricell-hive-private/issues/30): on 2026-09-25, all six hosts delegated the same way with and without it, one run per cell. The dialects below are maintainer reference, not distributed guidance; follow the session's actual tool schema.
+The shared delegation contract lives in `content/skills/flow-research/references/delegation.md`, with its boundaries in `content/guidance/global.md`, as a capability-first rule: select the installed role through the child-launch tool's own selector, and when the tool does not list the role, give a bounded generic child the contract read from the installed role file and disclose the fallback. The per-host table that used to follow it was removed from the always-loaded block after [issue #30](https://github.com/JhonHawk/tricell-hive-private/issues/30): on 2026-09-25, all six hosts delegated the same way with and without it, one run per cell. The dialects below are maintainer reference, not distributed guidance; follow the session's actual tool schema.
 
 | Host | Child selection observed |
 | --- | --- |
@@ -151,7 +151,7 @@ The shared delegation contract lives in `content/guidance/global.md` as a capabi
 | OpenCode V2 | `subagent` with `agent` set to the configured agent ID; V1 used `Task`/`subagent_type`. |
 | Cursor CLI | `Task` with `subagent_type`; 2026.09.18 and 2026.09.23 list only project-level and built-in types, so sessions fall back to a generic child with the role contract. |
 
-`global.md` asks for a background launch of a child expected to outlast one stretch of the wait, because a foreground launch blocks the parent's turn and the stretch status line cannot be written ([issue #44](https://github.com/JhonHawk/tricell-hive-private/issues/44): a 27.8-minute foreground child on OpenCode, sample-project session `ses_f1e800deeffe`, 2026-09-27). Every host offers one; inspected 2026-09-30 from documentation and installed binaries, without model runs:
+`delegation.md` asks for a background launch of a child expected to outlast one stretch of the wait, because a foreground launch blocks the parent's turn and the stretch status line cannot be written ([issue #44](https://github.com/JhonHawk/tricell-hive-private/issues/44): a 27.8-minute foreground child on OpenCode, sample-project session `ses_f1e800deeffe`, 2026-09-27). Every host offers one; inspected 2026-09-30 from documentation and installed binaries, without model runs:
 
 | Host | Background launch | Completion reaches the parent as |
 | --- | --- | --- |

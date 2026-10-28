@@ -12,7 +12,7 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Condition:** supporting material is not a change record.
 
-**Actions:** use the established support home and select by purpose:
+**Actions:** use the established support home, or an existing documented destination such as a documentation repository, resolving an ambiguous scope before writing shared artifacts, and select by purpose:
 
 - `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date.
 - `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root.

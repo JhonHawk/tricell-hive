@@ -12,7 +12,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** about to ask a question.
 
-**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design decision the user made for this work item and recorded in its plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
+**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design decision the user made for this work item and recorded in its plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. A workflow choice the user made in this session, such as the Git delivery mode, the review mechanism, the UI verification level, or which tool to use, holds for later work in the same repository, including other tickets, for the rest of the session; ask again only when the repository, target branch or environment, or effects differ, or the user changes it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
 
 **Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
 

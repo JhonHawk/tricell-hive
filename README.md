@@ -378,8 +378,9 @@ lists where each flow loops.
   completion point in its `Completion` key, Deploy moves the ticket to its final
   state once the condition holds.
 
-The [shared guidance](content/guidance/global.md) owns the detailed authorization,
-preservation, evidence, and artifact rules. Local edits, commits, publication,
+The [shared guidance](content/guidance/global.md) keeps the authorization,
+preservation, secrets, evidence, and artifact-placement invariants; the procedures
+it points to live in the shared `hive-core` skill and in each flow. Local edits, commits, publication,
 merges, and deployments are distinct effects; a plan or skill selection does not
 provide authorization for them.
 

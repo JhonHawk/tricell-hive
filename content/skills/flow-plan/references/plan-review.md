@@ -1,6 +1,6 @@
 # Review a saved plan
 
-After the orchestrator saves an implementation plan, review it before declaring it ready, under the shared plan-review gate rule.
+After the orchestrator saves an implementation plan, review it before declaring it ready. Bounded read-only subagent feedback on a saved plan is part of planning and needs no separate gate approval; the orchestrator selects the relevant domains and alone edits the plan, and this exception does not authorize implementation code review, hosted review services, or execution of plan steps.
 
 Before dispatching a reviewer or waiting for the round, read [delegation and waits](../../flow-research/references/delegation.md). Before reporting findings with citations, links or externally defined IDs, read [reporting](../../flow-close/references/reporting.md). Before offering a user decision about unavailable review, read [questions](../../hive-core/references/questions.md).
 
