@@ -134,6 +134,21 @@ What each host keeps after context compaction, and the surface that can inject c
 
 Documentation establishes intended formats. Parser tests establish serialization and selected native loading properties. Filesystem status establishes installation only. CLI behavior pilots remain paused; none of those checks establish role selection, instruction adherence, or model quality.
 
+## Loop and scheduling capabilities
+
+[Loops](../../../content/skills/hive-core/references/loops.md) names each capability by what it does. These are the host features that provide them, as checked on 2026-10-28 (change `gh-256`). "doc" is the host's official documentation, "help" is the installed CLI's `--help`, and "none verified" means no official source was found, not that the feature is absent.
+
+| Host (installed) | Goal evaluator with a limit | Interval or schedule | Stop hook that continues | Unattended permissions | Resume |
+| --- | --- | --- | --- | --- | --- |
+| Claude Code 2.1.312 | `/goal`, evaluator per turn, limit inside the condition (doc) | `/loop` local, 7-day expiry; `/schedule` cloud, research preview (doc) | `Stop`/`SubagentStop` hooks (doc) | auto mode, `dontAsk` (doc) | `--resume`; goal and cron tasks restored, self-paced `/loop` not (doc) |
+| Codex 0.165.0 | `/goal`, one objective and one stopping condition (doc) | none verified | none verified | `exec --sandbox workspace-write` (doc) | `codex exec resume` (doc) |
+| Grok Build 1.0.72 | none verified | none verified | none verified | `--permission-mode` (help) | `-r`, `-c` (help) |
+| Pi 1.4.0 | none verified | none verified | none verified | sandbox recommended (doc) | `-c`, `-r` (doc) |
+| OpenCode 2.2.0 | none verified | none verified | none verified | `--auto` (doc) | `--continue`, `--session` (doc) |
+| Cursor CLI 2026.10.22 | none verified | cloud agents (doc) | `stop` hook `followup_message`, `loop_limit` 5; CLI support not stated (doc) | `-p` full write access (doc) | `--resume`, `--continue` (doc) |
+
+Sources: https://claude.com/blog/getting-started-with-loops (2026-06-30); https://code.claude.com/docs/en/goal, /scheduled-tasks, /routines, /hooks; https://learn.chatgpt.com/use-cases/follow-goals and /docs/non-interactive-mode.md; https://cursor.com/docs/hooks and /docs/cli/using; https://opencode.ai/docs/cli/; https://pi.dev/docs/latest/usage. The quotes came through a summarizing fetch; recheck a page before relying on an exact limit.
+
 ## Saved-plan review
 
 `hive-review-plan` uses the existing observe profile and returns feedback without edits or gate execution. `flow-plan` owns its domain selection and reconciliation procedure; one canonical role can serve multiple bounded backend, frontend/UI, infrastructure or other domain assignments. Native observe controls vary by host and do not establish universal read-only isolation. The orchestrator remains the sole plan writer.

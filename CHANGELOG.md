@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Added
 
+- Long-running work (#256). A loop contract in `hive-core` gives work that
+  repeats cycles, such as the research iterative route or unattended work, a
+  measured objective, a cap, a check every cycle, a no-progress rule (two flat
+  cycles, one change of approach, then stop), a state file on disk that a new
+  session resumes from, and an escalation report. A loop that a scheduled or
+  background turn runs with nobody present only measures, investigates and
+  edits locally. Run `hive update` to install it.
 - `harness-audit` now compares the memory each host loads at every entry
   point, not only the instruction files: Claude Code, Grok Build and Codex key
   their own memory by where the session starts, so a project whose memory
@@ -170,6 +177,13 @@ raise the minor or the patch version.
 - `harness-audit` now audits, asks the decisions its findings need and applies
   the accepted outcomes in the current project, including creating or updating
   the `## Hive` section, and validates it with `hive doctor --project`.
+
+### Removed
+
+- The "matching declared job" source of unattended delegation, which no rule
+  defined (#256): a scheduled or background turn activates no unattended
+  delegation. Work that a scheduler should run with authority to integrate is
+  under observation until a real case needs it.
 
 ### Fixed
 

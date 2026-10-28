@@ -29,7 +29,7 @@ file, its discovery, its delivery into context and compliance are separate facts
 Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 - [Shared guidance](content/guidance/global.md): authorization, preservation, evidence, and artifact-placement rules installed into each host
-- [hive-core](content/skills/hive-core/SKILL.md): shared procedures every flow reads by path: user questions, scope changes, effect authorization and project settings
+- [hive-core](content/skills/hive-core/SKILL.md): shared procedures every flow reads by path: user questions, scope changes, effect authorization, project settings and long-running loops
 - [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
 - [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
 - [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and hand over a built candidate
