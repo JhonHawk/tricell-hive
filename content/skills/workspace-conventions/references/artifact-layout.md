@@ -16,8 +16,9 @@ Create only the folders and records the work needs. One work item shares its ide
 
 - `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date.
 - `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root.
-- `workspace/YYYY-MM-DD-<work>/`: ignored by Git, for material the user may open or whose versioning is undecided: working documents, images, temporary information, and files a tool or later session must find again, such as saved state.
+- `workspace/YYYY-MM-DD-<work>/`: ignored by Git, for material the user may open or whose versioning is undecided: working documents, images, temporary information, and files a tool or later session must find again, such as saved state, including a loop's `loop-state.md`.
 - Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
+- `jobs/<job>.job.md`: declared jobs, versioned, as [unattended delegation](../../unattended-delegation/SKILL.md#declared-jobs) sets; never in a support home outside Git.
 - `evidence/YYYY-MM-DD-<work>/`: the selected subset that substantiates results, linked from the report.
 
 **Condition:** producing UI review images, recordings, or the walkthrough manifest and optional fallback page.

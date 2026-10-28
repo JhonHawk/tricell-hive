@@ -10,6 +10,10 @@ Before resolving repository settings needed here, read [project settings](../../
 
 **Actions:** reuse it under the shared workflow-choice rule. A remembered preference, a default stated in project guidance, or a retired `Delivery`, `Review` or `UI verification` value still written in the repository's `## Hive` section only informs the recommendation and never answers the question, as [project settings](../../hive-core/references/project-settings.md) sets. A narrower instruction in the request, such as `hold` or commit only, overrides a reused choice. Before the first edit, state the reused answers in one line, inside the round's message when the round asks anything else: the mode and where the work stops; the review mechanism that will apply; any deployment the destination triggers; and the change record's closing route the reused answer chose. The user can change any of them in reply. When the work has a change folder that the change-folder paragraph below covers and the reused answer chose no closing route for it, ask only that route in this round, before the first edit, so the close does not ask it. The rule below that marks `automatic` unavailable for a change that needs human validation still applies: the work then runs under `interactive`, and the line names that rule and the stop.
 
+**Condition:** work resumes in a new session, or a declared job runs.
+
+**Actions:** reuse the delivery, review and `UI verification` answers only from the work's retained plan, as the record paragraph below sets, or from a declared job read as [unattended delegation](../../unattended-delegation/SKILL.md#declared-jobs) sets, whose answers hold for each of its runs. This extends, for those two sources, the session scope that [questions](../../hive-core/references/questions.md) sets for workflow choices. A loop's state never supplies them; without a plan or a job, ask again.
+
 **Condition:** the user asks to promote or deploy to a named environment, such as "promote to QA".
 
 **Actions:** that request is itself the delivery choice, as step 4 of [flow-deploy](../../flow-deploy/SKILL.md#procedure) sets, so do not ask the delivery mode.
