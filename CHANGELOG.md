@@ -29,13 +29,6 @@ raise the minor or the patch version.
   that folder, such as a repository nested in a trusted workspace, has no
   trust grant of its own. Run `hive update` to install it.
 
-### Removed
-
-- The "matching declared job" source of unattended delegation, which no rule
-  defined (#256): a scheduled or background turn activates no unattended
-  delegation. Work that a scheduler should run with authority to integrate is
-  under observation until a real case needs it.
-
 ### Changed
 
 - An Engram call that takes a project now passes the name Engram resolves,
@@ -184,6 +177,13 @@ raise the minor or the patch version.
 - `harness-audit` now audits, asks the decisions its findings need and applies
   the accepted outcomes in the current project, including creating or updating
   the `## Hive` section, and validates it with `hive doctor --project`.
+
+### Removed
+
+- The "matching declared job" source of unattended delegation, which no rule
+  defined (#256): a scheduled or background turn activates no unattended
+  delegation. Work that a scheduler should run with authority to integrate is
+  under observation until a real case needs it.
 
 ### Fixed
 
