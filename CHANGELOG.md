@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The global guidance now holds only the rules that must act without anything
+  else being read, each pointer naming the act or event before which to read
+  its target (42 KB to 17 KB). The shared procedures it points to, and the
+  questions, scope-change, effect-authorization and project-settings
+  references that every flow uses, live in a new `hive-core` skill (#240). Run
+  `hive update` to install it, then restart open sessions: they still point to
+  the references' old `flow-plan` paths.
+- `_support/docs/architecture/compaction-survival.md` records, per host, what
+  survives context compaction, from documentation and an observed probe (#240).
 - Every progress, delivery, closing or decision message now opens with the
   context line however short it is, including one-line notes between tool
   calls, and its stage is the running flow's untranslated name, such as Build,
