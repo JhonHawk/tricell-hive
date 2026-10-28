@@ -130,6 +130,8 @@ Native contract sources:
 - Installed pi-subagents `docs/agents.md`, `docs/models.md`, and parser source.
 - [Cursor subagents](https://cursor.com/docs/subagents), consulted 2026-09-25 for `cursor-agent` 2026.09.18-9a7762b; its installed bundle names the delegation tool `Task`.
 
+What each host keeps after context compaction, and the surface that can inject context again, is recorded per host in [compaction survival](compaction-survival.md).
+
 Documentation establishes intended formats. Parser tests establish serialization and selected native loading properties. Filesystem status establishes installation only. CLI behavior pilots remain paused; none of those checks establish role selection, instruction adherence, or model quality.
 
 ## Saved-plan review
