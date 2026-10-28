@@ -19,6 +19,12 @@ raise the minor or the patch version.
   references that every flow uses, live in a new `hive-core` skill (#240). Run
   `hive update` to install it, then restart open sessions: they still point to
   the references' old `flow-plan` paths.
+- A review of a pull request outside the current work, such as a colleague's,
+  now goes through `flow-research`: it reads the pull request at its head
+  commit, ranks and checks findings like the dedicated code review, fixes
+  nothing, and posts nothing until asked; comments are one question for the
+  set, and an approval keeps its own question unless the user names the pull
+  request (#210). Run `hive update` to install the changed guidance.
 - Less friction with the user (#240): a critical effect the user asks for on
   a named target, or approves from a proposal that named its target,
   reversibility and cost, needs no further question; an answer that names a
