@@ -27,10 +27,11 @@ raise the minor or the patch version.
 - Fewer questions while a build runs, since the user reviews a build at its
   end (#249). A CI failure the change causes is fixed without asking, in the
   same pull request or a follow-up one, and a failure the base branch already
-  had that does not block the work no longer holds the ticket. A plan names, for each criterion
-  checked outside the local machine, the environment and the data, access and
-  other effects its check needs, and the plan review blocks a plan that does
-  not; work without a plan lists them from the request, so the delivery round
+  had that does not block the integration no longer holds the ticket or the
+  change record. A plan names, for each criterion checked outside the local
+  machine, the environment and the data, access and other effects its check
+  needs, and the plan review blocks a plan that does not; work without a plan
+  lists them from the request, so the delivery round
   asks them up front. A choice that comes up during the build and only touches
   the change's unpublished work is applied as a recorded assumption and
   confirmed at the validation stop or with the close question. Run
