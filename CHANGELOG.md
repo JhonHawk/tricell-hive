@@ -16,9 +16,9 @@ raise the minor or the patch version.
   repeats cycles, such as the research iterative route or unattended work, a
   measured objective, a cap, a check every cycle, a no-progress rule (two flat
   cycles, one change of approach, then stop), a state file on disk that a new
-  session resumes from, and an escalation report. A scheduled or background
-  turn still activates no unattended delegation. Run `hive update` to install
-  it.
+  session resumes from, and an escalation report. A loop that a scheduled or
+  background turn runs with nobody present only measures, investigates and
+  edits locally. Run `hive update` to install it.
 - `harness-audit` now compares the memory each host loads at every entry
   point, not only the instruction files: Claude Code, Grok Build and Codex key
   their own memory by where the session starts, so a project whose memory
@@ -28,6 +28,13 @@ raise the minor or the patch version.
   flags an entry point where Grok Build loads no project instructions because
   that folder, such as a repository nested in a trusted workspace, has no
   trust grant of its own. Run `hive update` to install it.
+
+### Removed
+
+- The "matching declared job" source of unattended delegation, which no rule
+  defined (#256): a scheduled or background turn activates no unattended
+  delegation. Work that a scheduler should run with authority to integrate is
+  under observation until a real case needs it.
 
 ### Changed
 
