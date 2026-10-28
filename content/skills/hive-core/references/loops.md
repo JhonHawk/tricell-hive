@@ -33,7 +33,7 @@ Keep the loop's state on disk and update it after every cycle, so a compaction, 
 
 Commits serve as checkpoints only when the delivery answer authorizes commits. The state is a working record: it is not a ledger, not a retained research document, and not persistent memory, which keeps its own write cadence. It authorizes nothing: answers and authorizations come only from where their own rules set, such as a plan or a declared job.
 
-**Resume.** Before any cycle, read the state. A `stopped` or `waiting` status is terminal: run no cycle, report it again, and clear it only by the user's edit of the state or, with the user present, their message choosing to resume. A `running` status whose last cycle started more than the loop's time cap ago records `waiting for the user: interrupted run` and is reported; a `running` status with a run still active stops this one.
+**Resume.** Before any cycle, read the state. A `stopped` or `waiting` status is terminal: run no cycle, report it again, and clear it only by the user's edit of the state or, with the user present, their message choosing to resume. A `running` status whose last cycle started longer ago than the loop's time cap, or a day when the cap is not a time, records `waiting for the user: interrupted run` and is reported; a `running` status with a run still active stops this one.
 
 ## Escalate and end
 
