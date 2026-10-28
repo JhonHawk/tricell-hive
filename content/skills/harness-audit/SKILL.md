@@ -20,7 +20,7 @@ Establish before reading deeply:
 
 ## Procedure
 
-1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point, before judging any single file. When the project's sessions start at more than one entry point, or the caller asks why sessions behave differently by where they start, add the memory and folder trust of each entry point for the hosts in use (HA-HI-08 to HA-HI-10). Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
+1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. When the project's sessions start at more than one entry point, or the caller asks why sessions behave differently by where they start, add the memory and folder trust of each entry point for the hosts in use (HA-HI-08 to HA-HI-10). Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md).
 4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
