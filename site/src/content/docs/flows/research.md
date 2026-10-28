@@ -37,6 +37,8 @@ When the answer recommends removing, closing, disabling, migrating or renaming s
 
 For large questions the agent hands reading work to helper agents. Each helper says where every key claim comes from and what it did not check; the agent opens the cited lines of the claims that decide the answer before reporting. Each helper is told which decision its findings feed and every angle you asked about, and it stops when it has enough for that decision. Before recommending a way forward, the agent checks that the findings answer every part of your question, and it confirms its own guesses that decide the recommendation with a quick local check when one exists; when it cannot, it recommends investigating further instead. Long ticket, CI or deployment status is collected by a helper too. It opens a ticket only after you choose an option that names one.
 
+When you ask it to review a pull request outside the current work, such as a colleague's, Research reads it without changing it, reports its findings by priority with their evidence and a recommended verdict for each pull request, and posts nothing on it until you answer. The steps are in the [pull request review reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/pr-review.md).
+
 The global core keeps essential boundaries; Research links directly to the
 canonical questions, reporting and delegation procedures when needed. Reporting
 applies to findings, relayed results, explanations and messages with external
