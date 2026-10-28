@@ -33,14 +33,15 @@ raise the minor or the patch version.
   end (#249). A CI failure the change causes is fixed without asking, in the
   same pull request or a follow-up one, and a failure the base branch already
   had that does not block the integration no longer holds the ticket or the
-  change record. A plan names, for each criterion checked outside the local
-  machine, the environment and the data, access and other effects its check
-  needs, and the plan review blocks a plan that does not; work without a plan
-  lists them from the request, so the delivery round asks them up front. A
-  choice that comes up during the build and only touches the change's
-  unpublished work is applied as a recorded assumption and confirmed at the
-  validation stop or with the close question. Run `hive update` to install the
-  changed guidance.
+  change record, and a promotion likewise tolerates a non-blocking failure
+  its target environment already had. A plan names, for each criterion checked outside the
+  local machine, the environment and the data, access and other effects its
+  check needs, and the plan review blocks a plan that does not; work without
+  a plan lists them from the request, so the delivery round asks them up
+  front. A choice that comes up during the build and only touches the
+  change's unpublished work is applied as a recorded assumption and confirmed
+  at the validation stop or with the close question. Run `hive update` to
+  install the changed guidance.
 - The global guidance now holds only the rules that must act without anything
   else being read, each pointer naming the act or event before which to read
   its target (42 KB to 17 KB). The shared procedures it points to, and the
