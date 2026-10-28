@@ -295,7 +295,7 @@ func TestDoctorProjectDeliveryAcceptsOnlyDirectBase(t *testing.T) {
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
 	text = projectText(t, root)
 	mustContain(t, text, `Delivery: expected "direct-base", found "pr"`)
-	mustNotContain(t, text, "Valid", "no longer read")
+	mustNotContain(t, text, "Valid", "retired")
 }
 
 // A retired key or Delivery value warns, names how to remove it, and is not an
@@ -314,7 +314,7 @@ func TestDoctorProjectWarnsOnEachRetiredKeyWithoutBlocking(t *testing.T) {
 			writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- "+c.line+"\n- Specs:", 1))
 			sec := collectProject(root, doctorDeps{})
 			text := projectText(t, root)
-			mustContain(t, text, c.subject+" no longer read; Hive asks it each session — remove it with hive project set --unset "+c.key+" or run harness-audit")
+			mustContain(t, text, c.subject+" retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset "+c.key+" or run harness-audit")
 			mustNotContain(t, text, "unknown key", "Known keys:", "Valid")
 			if sec.Blocking {
 				t.Fatalf("a retired setting must not block:\n%s", text)

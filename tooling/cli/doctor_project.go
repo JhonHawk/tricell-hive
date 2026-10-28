@@ -19,12 +19,13 @@ import (
 	"time"
 )
 
-// retiredHiveKeys are keys the section no longer reads: Hive asks them each
-// session. A test keeps them in step with «Retired keys:» in
+// retiredHiveKeys are keys the section no longer reads as settings: Hive asks
+// them each session and the old value only informs the recommended option. A
+// test keeps them in step with «Retired keys:» in
 // project-settings.md.
 var retiredHiveKeys = []string{"Review", "UI verification"}
 
-// retiredDeliveryValues are the Delivery values no longer read.
+// retiredDeliveryValues are the retired Delivery values.
 var retiredDeliveryValues = []string{"automatic", "interactive"}
 
 // hiveKey is one setting `## Hive` may hold.
@@ -408,7 +409,7 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 	}
 	reported := map[string]bool{}
 	retired := func(key string) {
-		findings = append(findings, hiveFinding{Text: retiredSubject(key, values[key], "no longer read") + "; Hive asks it each session — remove it with hive project set --unset " + key + " or run harness-audit"})
+		findings = append(findings, hiveFinding{Text: retiredSubject(key, values[key], "retired") + "; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset " + key + " or run harness-audit"})
 	}
 	for _, name := range retiredHiveKeys {
 		if _, present := values[name]; present {
@@ -429,7 +430,7 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 
 // retiredSubject opens a message about a retired setting: the key, or for
 // Delivery the retired value, so it does not read as if the key were retired.
-// state is the verdict, such as "retired" or "no longer read".
+// state is the verdict, such as "retired".
 func retiredSubject(key, value, state string) string {
 	if key == "Delivery" {
 		return key + ": " + value + " is " + state

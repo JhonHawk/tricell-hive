@@ -454,7 +454,7 @@ func validateHiveRequest(set []hiveItem, unset []string) error {
 	for _, it := range set {
 		switch {
 		case retiredHiveKey(it.Key) || (it.Key == "Delivery" && slices.Contains(retiredDeliveryValues, it.Value)):
-			problems = append(problems, retiredSubject(it.Key, it.Value, "retired")+"; Hive asks it each session — use --unset "+it.Key+" to remove it")
+			problems = append(problems, retiredSubject(it.Key, it.Value, "retired")+"; Hive asks it each session, and the old value only informs the recommended option — use --unset "+it.Key+" to remove it")
 		case !knownHiveKey(it.Key):
 			problems = append(problems, fmt.Sprintf("%s: unknown key; known keys are %s", shown(it.Key), strings.Join(hiveKeyNames(false), ", ")))
 		case sanitizeLine(it.Value) != it.Value:

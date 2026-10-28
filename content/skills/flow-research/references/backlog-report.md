@@ -2,7 +2,7 @@
 
 Read before answering a question about the project's status or a request to list its backlog.
 
-Give the delivery state and, when the project declares a tracker, a backlog report that groups five or more tickets by product module in the first answer, queried across all non-terminal states rather than by recent activity, never as a flat list or per-state dump, and never grouped by tracker state, application, repository, or layer. When the user asks for another cut of the tickets, such as those that fit one session, those blocking a release, or a single module's tickets, structure the answer by that cut instead, and include state counts or delivery state only when they change the answer.
+Give the delivery state and, when the project declares a tracker, a backlog report that groups five or more tickets by product module in the first answer, queried across all non-terminal states rather than by recent activity, never as a flat list or per-state dump, and never grouped by tracker state, application, repository, or layer. When the user asks for another cut of the tickets, such as those that fit one session, those blocking a release, or a single module's tickets, structure the answer by that cut instead, and include state counts or delivery state only when they change the answer. The bullets below set the default report; a requested cut replaces its grouping, state-count line and rework counts, while the ticket IDs and the read-only collection still apply.
 
 - Take modules from tracker labels or projects, otherwise from titles; a tracker state, application, repository, or layer may appear only as a suffix.
 - After the modules, group cross-cutting work such as infrastructure, CI, tests, tooling, and technical debt by type.
