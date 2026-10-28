@@ -56,6 +56,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"flow-research/SKILL.md", // planning's exploration/delegation criterion
 		skills+"flow-verify/SKILL.md", skills+"flow-verify/references/review-and-gates.md",
 		skills+"hive-core/references/project-settings.md",
+		skills+"hive-core/references/language.md",
+		skills+"hive-core/references/memory.md",
 		skills+"flow-plan/references/change-records.md",
 		skills+"flow-plan/references/plan-format.md",
 		skills+"flow-build/references/plan-execution.md",
@@ -80,6 +82,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-close/references/reporting.md":                  true,
 		skills + "hive-core/references/questions.md":                   true,
 		skills + "hive-core/references/project-settings.md":            true,
+		skills + "hive-core/references/language.md":                    true,
+		skills + "hive-core/references/memory.md":                      true,
 		skills + "flow-build/references/plan-execution.md":             true,
 		skills + "flow-build/references/tdd.md":                        true,
 		skills + "flow-verify/SKILL.md":                                true,

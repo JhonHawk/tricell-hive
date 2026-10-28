@@ -10,7 +10,7 @@ Persistent memory means Engram when its tools work in this session, and otherwis
 
 ## When to write
 
-Write only at the points the global guidance names: when the user makes a decision; when a plan is ready, recording work state rather than a copy of the plan; at a work-item close, the durable point; when you create or remove a worktree, so another session can resume or skip it; and, when the user ends the session and the memory supports it, in a session summary. A session that ends without notice writes nothing more. This cadence holds over the save instructions of memory tools, such as a plugin's rule to save after every decision.
+The global guidance names the points; in full, write only when the user makes a decision; when a plan is ready, recording work state rather than a copy of the plan; at a work-item close, the durable point; when you create or remove a worktree, so another session can resume or skip it; and, when the user ends the session and the memory supports it, in a session summary. A session that ends without notice writes nothing more. This cadence holds over the save instructions of memory tools, such as a plugin's rule to save after every decision.
 
 ## Correct a stale entry
 
