@@ -22,7 +22,7 @@ Your answer to the review question, or a `Review` line left in the `## Hive` sec
 
 A report of findings by priority, from P0 to P3, each with its preconditions, impact and evidence, plus the boundaries covered and not covered and what could not run. The reviewer reads and tests without exploiting anything and reports a secret by its type and location, never its value.
 
-The review runs on the current candidate, in parallel with the code review when you ask for both before the code review starts, or when you ask otherwise, before you are asked to validate it, or before the push or merge when the delivery has no validation stop. Once you ask, it also covers boundaries that appear later in the same change. For a merged change it runs on the merged commit. The exact placement is in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-security/SKILL.md).
+The review runs on the current candidate, alongside the code review when you ask for it before that review starts, and always before you are asked to validate it, or before the push or merge when the delivery has no validation stop. Once you ask, it also covers boundaries that appear later in the same change. For a merged change it runs on the merged commit. The exact placement is in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-security/SKILL.md).
 
 ## What it does not do
 

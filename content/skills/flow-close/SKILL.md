@@ -19,7 +19,7 @@ Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL
 2. **Session end:** the user ends the session. A work item still open closes as a pause.
 3. **Explicit request:** the user asks for hygiene or cleanup. Run the parts of 1 and 2 that apply to the current state.
 4. **After a promotion:** run only [Clean up after a merge](#clean-up-after-a-merge) and the Temporaries and processes step of the work-item close, without a completion report or close question.
-5. **Later trigger:** a session that finds merged the pull request of an item closed under human review runs only the Tracker and Git cleanup steps for it and names them in its next report; one that observes the condition of the final `Completion` move applies the move as [project settings](../hive-core/references/project-settings.md#later-completion-point) sets, and only that.
+5. **Later trigger:** a session that finds merged the pull request of an item closed under human review runs the work-item close for it at its next stopping point, as if you had merged it; one that observes the condition of the final `Completion` move applies the move as [project settings](../hive-core/references/project-settings.md#later-completion-point) sets, and only that.
 
 ## Close a work item
 
@@ -40,7 +40,7 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 **Actions:** ask the close question by reading and following [questions](../hive-core/references/questions.md). This question replaces the Recommendations route question. Classify an answer that adds to the work as [scope changes](../hive-core/references/scope-changes.md) sets.
 
-**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. Under unattended delegation, skip it without ending the turn: the report names the next ticket, what stays open and pending findings, and the delegation continues or ends as [unattended delegation](../unattended-delegation/SKILL.md) sets. That report still carries its cleanup label, delivery state, and reminders. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
+**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its cleanup label, delivery state, and reminders. Under unattended delegation, skip it without ending the turn: the report names the next ticket, what stays open and pending findings, and the delegation continues or ends as [unattended delegation](../unattended-delegation/SKILL.md) sets. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
 For every applicable close question, name the next ticket and the reason, such as a blocker, a P0 or P1 defect found, or the next ticket of the same module. You choose it; an option that asks the user to name it does not count. Do not recommend as the next ticket a ticket opened from this work item's findings, during the build or this close, or a finding proposed in this close, unless it is P0 or P1 or blocks the next ticket or a pending item of the work.
 
