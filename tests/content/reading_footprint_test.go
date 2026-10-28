@@ -50,12 +50,14 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	const skills = "content/skills/"
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global, skills + "flow-close/references/reporting.md"}
-	question := append(append([]string{}, common...), skills+"flow-plan/references/questions.md")
+	question := append(append([]string{}, common...), skills+"hive-core/references/questions.md")
 	cycle := append(append([]string{}, question...),
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"flow-research/SKILL.md", // planning's exploration/delegation criterion
 		skills+"flow-verify/SKILL.md", skills+"flow-verify/references/review-and-gates.md",
-		skills+"flow-plan/references/project-settings.md",
+		skills+"hive-core/references/project-settings.md",
+		skills+"hive-core/references/language.md",
+		skills+"hive-core/references/memory.md",
 		skills+"flow-plan/references/change-records.md",
 		skills+"flow-plan/references/plan-format.md",
 		skills+"flow-build/references/plan-execution.md",
@@ -78,8 +80,10 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	)
 	moved := map[string]bool{
 		skills + "flow-close/references/reporting.md":                  true,
-		skills + "flow-plan/references/questions.md":                   true,
-		skills + "flow-plan/references/project-settings.md":            true,
+		skills + "hive-core/references/questions.md":                   true,
+		skills + "hive-core/references/project-settings.md":            true,
+		skills + "hive-core/references/language.md":                    true,
+		skills + "hive-core/references/memory.md":                      true,
 		skills + "flow-build/references/plan-execution.md":             true,
 		skills + "flow-build/references/tdd.md":                        true,
 		skills + "flow-verify/SKILL.md":                                true,

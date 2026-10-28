@@ -5,7 +5,7 @@ description: Where each flow iterates, where you can ask for a change, and where
 
 Hive's flows are not a one-way line. Work loops back when a check fails, when a request changes, or when a promotion finds a defect. This page shows, per flow, where that happens. It does not repeat the rules; each row links to the file that holds them.
 
-When you ask for something that would change work already open, the agent first says what kind of change it is and where the work goes. The classification (correction, added task, new change or separate topic) lives in the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/scope-changes.md).
+When you ask for something that would change work already open, the agent first says what kind of change it is and where the work goes. The classification (correction, added task, new change or separate topic) lives in the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/scope-changes.md).
 
 | Flow | Where it iterates | Where you can ask for a change | Where the work returns |
 | --- | --- | --- | --- |

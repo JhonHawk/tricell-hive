@@ -21,6 +21,7 @@ For where each flow loops and where a requested change returns the work, see the
 
 ## Supporting skills
 
+- [Shared procedures (hive-core)](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/SKILL.md): how the agent asks you a decision, handles a change you request mid-work, asks before an effect beyond your machine, and reads the repository's `## Hive` settings; every flow uses them.
 - [Git workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work.
 - [Visual reports](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/SKILL.md): present a report, comparison, or explainer as a designed page.
 - [Starlight documentation sites](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/starlight-docs-site/SKILL.md): scaffold, extend, or audit maintained documentation sites.

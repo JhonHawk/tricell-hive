@@ -448,7 +448,7 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // this reference rather than repeating the keys and example.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "flow-plan", "references", "project-settings.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-core", "references", "project-settings.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

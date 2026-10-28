@@ -5,7 +5,7 @@ description: Establish one explicit Engram identity for a declared workspace or 
 
 # Initialize an explicit Engram workspace identity
 
-Engram identity is local state under the shared Engram identity rule; an ambiguous detection result does not declare a root. This skill does not rewrite an existing identity: report a blocked configuration for the user to resolve.
+Engram identity is local state under the shared Engram identity rule; an ambiguous detection result does not declare a root. This skill does not rewrite an existing identity: report a blocked configuration for the user to resolve. An identity is created only for a declared root, an explicit identity, and explicit repository targets; do not infer sibling scope, modify global Git ignores, or migrate memory.
 
 Use [the helper](scripts/init_workspace.py), run as `python3 <skill-dir>/scripts/init_workspace.py --root <root> --name <project_name> [--target <path>]... [--apply]`, only after the user has declared the workspace root, identity, and target repositories. It is dry-run by default. Run `--apply` only for targets already covered by that authorization.
 

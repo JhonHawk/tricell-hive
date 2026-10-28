@@ -9,11 +9,11 @@ Read when, while work is open in any flow, the user asks for something that woul
 The work's intent is the outcome its quoted request names, and, in a retained plan, its `AC<n>`. Classify each change against that intent into exactly one class:
 
 1. **Correction:** it changes how the result does what the request or its criteria already ask. The global guidance calls this a topic that clarifies. It stays in the current stage.
-2. **Added task:** it asks for new behavior that serves the same outcome. In a retained plan it becomes an added task, as [plan revision](plan-revision.md) sets. In a build without a retained plan, the work stays in [flow-build](../../flow-build/SKILL.md) only while it remains a small understood change; when the change adds another ticket, another repository, a contract, or stored data, stop dependent edits and route the work to [flow-plan](../SKILL.md). Before any build, such as during research, the added task joins what that flow's route question offers; a classification never authorizes implementation.
+2. **Added task:** it asks for new behavior that serves the same outcome. In a retained plan it becomes an added task, as [plan revision](../../flow-plan/references/plan-revision.md) sets. In a build without a retained plan, the work stays in [flow-build](../../flow-build/SKILL.md) only while it remains a small understood change; when the change adds another ticket, another repository, a contract, or stored data, stop dependent edits and route the work to [flow-plan](../../flow-plan/SKILL.md). Before any build, such as during research, the added task joins what that flow's route question offers; a classification never authorizes implementation.
 3. **New change:** it changes the outcome the request named. Ask whether the current work continues to its own completion point or pauses as [flow-close](../../flow-close/SKILL.md) sets, and plan the new outcome as a separate change.
 4. **Separate topic:** the current outcome does not need it, or it belongs to other work. Give it a destination under the open-topics rule in the global guidance, such as a ticket, a plan, watched, or dropped, and continue the work.
 
-The global guidance's labels map to these classes without overlap: a topic that clarifies is a correction; a related topic is an added task or a new change; a separate topic is a separate topic.
+The global guidance's labels map to these classes without overlap: a topic that clarifies is a correction; a related topic is an added task or a new change, resolved as scope before the work that depends on it; a separate topic is a separate topic, which waits for its destination. An answer to a pending question is not a topic, and a child does not apply the open-topics rule.
 
 Examples that mark the boundaries:
 
@@ -33,10 +33,10 @@ Under [unattended delegation](../../unattended-delegation/SKILL.md), only a corr
 Apply the stage's own rule at each point; this list only names it:
 
 - **Research:** a finding that changes the objective or scope stops the iterative route, as [flow-research](../../flow-research/SKILL.md) sets.
-- **Plan:** a correction or added task revises the plan, as [plan revision](plan-revision.md) sets.
+- **Plan:** a correction or added task revises the plan, as [plan revision](../../flow-plan/references/plan-revision.md) sets.
 - **Build:** an added task follows class 2 above, including the route to `flow-plan`.
-- **Validation pause:** a correction runs as a correction round of [flow-verify](../../flow-verify/SKILL.md); an added task follows class 2 and is verified as [plan revision](plan-revision.md) sets.
-- **After integration, before close:** a correction or defect fix of the same change is a follow-up under the same delivery answer, as the follow-up rule of [delivery decisions](delivery-decisions.md) covers. The integrated change's record closes normally; an added task then goes to `flow-build` when it is a small understood change and otherwise to `flow-plan`, and a new change follows class 3.
+- **Validation pause:** a correction runs as a correction round of [flow-verify](../../flow-verify/SKILL.md); an added task follows class 2 and is verified as [plan revision](../../flow-plan/references/plan-revision.md) sets.
+- **After integration, before close:** a correction or defect fix of the same change is a follow-up under the same delivery answer, as the follow-up rule of [delivery decisions](../../flow-plan/references/delivery-decisions.md) covers. The integrated change's record closes normally; an added task then goes to `flow-build` when it is a small understood change and otherwise to `flow-plan`, and a new change follows class 3.
 - **Close question:** an answer that adds to the work is classified here before the close continues.
 - **Promotion:** the run's candidate and tickets are fixed when it starts. Promotion carries the whole base branch, so a ticket already on it when the run started is already in the candidate, and one integrated after the start goes to the next run. A request to remove a ticket whose commits are on the base branch cannot be met by restarting: hold the run before its next effect, such as merging the promotion pull request or deploying, and ask whether to keep it in the promotion, and the run continues, or to revert it on the base branch as its own change, and then stop the run at a safe point, a step boundary where nothing is half-applied, and start the next run from the first step of [flow-deploy](../../flow-deploy/SKILL.md).
 

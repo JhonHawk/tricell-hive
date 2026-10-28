@@ -1,6 +1,6 @@
 # Shared global instructions
 
-[`global.md`](global.md) is the canonical source for Hive's shared global rules: scope and authorization, preservation, evidence, proportionality, continuity, and artifact placement. The manager packages this source, and historical rollout records document installation on five CLIs. Installation and behavioral validation are separate; verify the current installation and loading on each host before claiming either.
+[`global.md`](global.md) is the canonical source for Hive's shared global rules: scope and authorization, preservation, secrets, evidence, proportionality, continuity, and artifact placement. It holds only the invariants that must act without anything else being read, each pointer naming the act or event before which to read its target; the procedures live in the shared [`hive-core`](../skills/hive-core/SKILL.md) skill and in each activity's skill. The manager packages this source, and historical rollout records document installation on five CLIs. Installation and behavioral validation are separate; verify the current installation and loading on each host before claiming either.
 
 The manager inserts the content as a managed block into the global instruction file selected for each CLI. It does not replace the entire file or contain the markers; the integration adds them during installation. See the [architecture contract](../../_support/docs/architecture/repository-and-distribution.md).
 

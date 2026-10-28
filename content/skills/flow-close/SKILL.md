@@ -7,15 +7,15 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 This skill grants no effect of its own. The global guidance authorizes the deletions it names (task temporaries, processes the task or its children started, merged work branches from this work or the user's earlier work and their clean worktrees) and the ticket state moves; everything else here follows the delivery answer already recorded for the work.
 
-Before a report, read [reporting](references/reporting.md); before a user decision or manual validation request, read [questions](../flow-plan/references/questions.md). Before cleaning support artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before resolving settings needed for closure, read [project settings](../flow-plan/references/project-settings.md).
+Before a report, read [reporting](references/reporting.md); before a user decision or manual validation request, read [questions](../hive-core/references/questions.md). Before cleaning support artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before resolving settings needed for closure, read [project settings](../hive-core/references/project-settings.md).
 
 ## Entry and exit
 
-Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL.md), or flow-build when verify is skipped; a later completion point the repository's `Completion` declares follows [project settings](../flow-plan/references/project-settings.md#later-completion-point)), on abandonment, a pause, a hygiene request or the session's end; any of these enters directly. [flow-deploy](../flow-deploy/SKILL.md) is a separate stage after integration; after a promotion, only the cleanup below runs. Exit with the record closed, the cleanup done and the report.
+Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL.md), or flow-build when verify is skipped; a later completion point the repository's `Completion` declares follows [project settings](../hive-core/references/project-settings.md#later-completion-point)), on abandonment, a pause, a hygiene request or the session's end; any of these enters directly. [flow-deploy](../flow-deploy/SKILL.md) is a separate stage after integration; after a promotion, only the cleanup below runs. Exit with the record closed, the cleanup done and the report.
 
 ## When to run it
 
-1. **Work item close:** the item reached its completion point (merged into the base branch, by a flow or at the user's request outside one, with any required post-merge CI passed; pushed to the base branch under `direct-base`; or the working tree verified under `hold`), or it is abandoned or paused. Under `hold`, the ticket stays in progress and the delivery the user chose not to make is a reminder in the report, not a pending item. When the delivery hands the open pull request to a human reviewer, opening it is the completion point: the ticket stays in progress until the merge, and the report gives the merge as a reminder; the next session that sees the merge moves the ticket and closes the record. Classify a requirement that arrives after integration as [scope changes](../flow-plan/references/scope-changes.md) sets.
+1. **Work item close:** the item reached its completion point (merged into the base branch, by a flow or at the user's request outside one, with any required post-merge CI passed; pushed to the base branch under `direct-base`; or the working tree verified under `hold`), or it is abandoned or paused. Under `hold`, the ticket stays in progress and the delivery the user chose not to make is a reminder in the report, not a pending item. When the delivery hands the open pull request to a human reviewer, opening it is the completion point: the ticket stays in progress until the merge, and the report gives the merge as a reminder; the next session that sees the merge moves the ticket and closes the record. Classify a requirement that arrives after integration as [scope changes](../hive-core/references/scope-changes.md) sets.
 2. **Session end:** the user ends the session.
 3. **Explicit request:** the user asks for hygiene or cleanup. Run the parts of 1 and 2 that apply to the current state.
 4. **After a promotion:** run only [Clean up after a merge](#clean-up-after-a-merge) and step 4 of the work-item close, without a completion report or close question.
@@ -36,13 +36,13 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 **Condition:** the turn completes a work item, after its report and closing items.
 
-**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question. Classify an answer that adds to the work as [scope changes](../flow-plan/references/scope-changes.md) sets.
+**Actions:** ask the close question by reading and following [questions](../hive-core/references/questions.md). This question replaces the Recommendations route question. Classify an answer that adds to the work as [scope changes](../hive-core/references/scope-changes.md) sets.
 
 **Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its cleanup label, delivery state, and reminders. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
 For every applicable close question, name the next ticket and the reason, such as a blocker, a P0 or P1 defect found, or the next ticket of the same module. You choose it; an option that asks the user to name it does not count. Do not recommend as the next ticket a ticket opened from this work item's findings, during the build or this close, or a finding proposed in this close, unless it is P0 or P1 or blocks the next ticket or a pending item of the work.
 
-Offer one option per route, each continue option naming the flow it starts and the recommended ticket's estimated size, which the size condition of [questions](../flow-plan/references/questions.md) sets, given once for the question instead of on every option; when the next work continues a plan in progress, that size is its remaining tasks with their time range:
+Offer one option per route, each continue option naming the flow it starts and the recommended ticket's estimated size, which the size condition of [questions](../hive-core/references/questions.md) sets, given once for the question instead of on every option; when the next work continues a plan in progress, that size is its remaining tasks with their time range:
 
 - Continue now with the recommended ticket when the loaded context helps it.
 - Take that ticket to a new session when the context no longer helps.
@@ -52,7 +52,7 @@ When the round also asks about incidental findings, [incidental findings](refere
 
 **Condition:** the next work continues a plan still in progress.
 
-**Actions:** the continue option covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../flow-plan/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
+**Actions:** the continue option covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../hive-core/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
 
 **Condition:** the next ticket reuses neither the closed item's files nor its decisions, or the session has used more than half of its context window.
 
@@ -85,13 +85,7 @@ Versioning cases:
 
 ## Clean up after a merge
 
-After verifying a merge you performed, clean up its branches in this order. The global guidance grants the deletion of merged work branches, from this work or the user's earlier work, and their clean worktrees.
-
-1. **Check eligibility.** Exclude the base and environment branches. Confirm that no open pull request uses the work branch as its base; if one does, keep the branch and report it. `gh pr merge --delete-branch` skips that check, so delete separately. Inspect the branch's local head and every worktree that checks it out. Preserve worktrees with uncommitted or untracked files, or still-needed material; if one must remain on the work branch, keep that branch too. A branch merged by squash or rebase counts as merged only when `gh pr view <branch> --json state,headRefOid` reports `MERGED` and its `headRefOid` equals the branch's local head. Delete a remote branch only when its remote head equals that pull request's `headRefOid` or is an ancestor of the base, so commits pushed after the merge are not lost. Otherwise, a branch with unmerged commits is a decision, not noise: report its work (`git log <base>..<branch>`) and recommend integrating it or ask; never delete it.
-2. **Leave the work branch.** Return the retained checkout to the base branch without overwriting changes. If the work branch is checked out in a separate eligible clean worktree, leave that directory and remove that worktree before attempting to delete the branch. Do not force worktree removal. If a checkout or retained worktree still uses the branch, keep the branch and report why.
-3. **Refresh the base.** Run `git fetch --prune` and fast-forward the base. After a promotion, also fast-forward each local environment branch it moved, such as `qa`, when it is behind its remote and has no commits of its own.
-4. **Delete eligible branches.** Delete the merged remote branch unless the host already removed it, then the local branch with `git branch -d`, which refuses unmerged work. Use `git branch -D` only for a squash- or rebase-merged branch whose pull request and unchanged local head passed step 1; never rewrite history to make a branch eligible.
-5. **Check the remaining branches.** Apply the same checks and order to merged preview or temporary branches the work created and this repository's other local and remote branches whose pull requests the authenticated user authored (`gh api user`) and are merged into the base. Report the branches checked, the worktrees and branches removed, the fast-forwards, and the branches left with their reasons.
+After verifying a merge you performed, or after a promotion, read and follow [branch cleanup](references/branch-cleanup.md) before deleting any branch or worktree.
 
 ## End the session
 

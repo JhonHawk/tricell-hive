@@ -12,7 +12,7 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Condition:** supporting material is not a change record.
 
-**Actions:** use the established support home and select by purpose:
+**Actions:** use the established support home, or an existing documented destination such as a documentation repository, resolving an ambiguous scope before writing shared artifacts, and select by purpose:
 
 - `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date.
 - `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root.
@@ -28,6 +28,7 @@ Before closing that work or deleting its source review unit or containing worktr
 
 ## Name and date records
 
+- On resume of any retained record, a change record or a session record, reconcile it with current sources and state. Keep current status and next steps consistent; retain superseded statements only as clearly labeled history. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
 - Name new records under `sessions/` `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic shared by related records and an English type: `research` for retained investigations (including findings called a report) and `report` for distinct execution, closure, or presentation deliverables. Use Markdown for ordinary research; honor an explicitly requested format. Tool-defined filenames keep their names.
 - Dated folders use the work's initial ISO date, except archived changes, which use the closing date; internal filenames do not repeat it. Continuing work keeps its initial date, scope, and location. Do not automatically rename or migrate existing material to this layout.
 - Date human-authored records and folders with the user's local calendar date, checking the clock and timezone when uncertain. Preserve original evidence timestamps, with explicit offsets when time affects interpretation.

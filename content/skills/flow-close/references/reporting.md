@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read the applicable conditions and actions before writing a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it; format rules still apply to an explanation with no citation, and a greeting or a short direct answer needs no read. Reading this reference does not invoke the closing workflow. For a decision or manual validation request, also read [questions](../../flow-plan/references/questions.md).
+Read the applicable conditions and actions before writing a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it; format rules still apply to an explanation with no citation, and a greeting or a short direct answer needs no read. Reading this reference does not invoke the closing workflow. For a decision or manual validation request, also read [questions](../../hive-core/references/questions.md).
 
 ## Lead with the result
 
@@ -46,7 +46,7 @@ Greetings, a short answer outside that Condition, a child's return to its parent
 
 **Condition:** the user will share or keep a comparison, explainer, or long report.
 
-**Actions:** offer a `flow-report` page as an option of the question the message ends with, such as a route or close question, or, when the message ends with none, ask it by following [questions](../../flow-plan/references/questions.md).
+**Actions:** offer a `flow-report` page as an option of the question the message ends with, such as a route or close question, or, when the message ends with none, ask it by following [questions](../../hive-core/references/questions.md).
 
 ## Report a running or completed item
 
@@ -56,7 +56,7 @@ Greetings, a short answer outside that Condition, a child's return to its parent
 
 1. When the result or the notice says the child stopped while it still waits on work of its own, it has stopped: apply [Check returned work](../../flow-research/references/delegation.md#check-returned-work) before writing anything.
 2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, apply step 5 instead.
-3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../flow-plan/references/questions.md).
+3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../hive-core/references/questions.md).
 4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs.
 5. Otherwise the turn changes nothing the user needs: reply in one line, the [context line](#open-with-the-context-line) followed by the change, without listing the work still running or repeating an open question or its pause line. This line is not a second report.
 6. Continue with your next tool call when work of your own remains; otherwise end the turn.
@@ -81,7 +81,7 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Condition:** an obligation of the current work in this project is unmet, such as a check, publication, or agreed manual action.
 
-**Actions:** list resulting user actions here. An open choice is not a Pending item: ask it by following [questions](../../flow-plan/references/questions.md). The work is not complete while one remains; another project's items belong in its session. Start each item with its sole owner in the session language, user or you; make the user's request self-sufficient under [questions](../../flow-plan/references/questions.md#make-user-dependent-work-self-sufficient), and state what you will do and when for yours. Before giving an item to the user, verify its premise and whether this session's access and authorization already let you do it; if they do, do it instead. An item stays the user's only for their decision or authorization, access you checked and lack, or an action off this machine; say what you checked.
+**Actions:** list resulting user actions here. An open choice is not a Pending item: ask it by following [questions](../../hive-core/references/questions.md). The work is not complete while one remains; another project's items belong in its session. Start each item with its sole owner in the session language, user or you; make the user's request self-sufficient under [questions](../../hive-core/references/questions.md#make-user-dependent-work-self-sufficient), and state what you will do and when for yours. Before giving an item to the user, verify its premise and whether this session's access and authorization already let you do it; if they do, do it instead. An item stays the user's only for their decision or authorization, access you checked and lack, or an action off this machine; say what you checked.
 
 ### Next step
 
@@ -93,17 +93,17 @@ Close findings, progress, and completion reports with the closing items that act
 
 **Condition:** several reasonable routes exist and your judgment helps choose, such as the next ticket, a scope change, or a fresh session with a concise handoff when little active context remains useful.
 
-**Actions:** number them, give each its reason, and mark one Recommended when it is clearly better. When the user asked for one or what to take next, ask the routes as a choice, each option naming the flow it starts: `flow-plan` when the route spans several tickets, repositories, or steps, `flow-build` only for a small understood change, and both when either fits, except the iterative route that [flow-research](../../flow-research/SKILL.md) defines. Start the chosen flow without a new command.
+**Actions:** number them, give each its reason, and mark one Recommended when it is clearly better. When the user asked for one or what to take next, ask the routes as a choice, each option naming the flow it starts as [flow-research](../../flow-research/SKILL.md#deliver-the-finding) sets, iterative route included. Start the chosen flow without a new command.
 
-The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option, except opening the ticket that a research route option names, as [flow-research](../../flow-research/SKILL.md#deliver-the-finding) sets. The flow asks for them through its delivery question before its first edit, or reuses an answer given earlier in the session, unless the user already requested them, such as a promotion to a named environment. Investigation findings use `flow-research`'s route question.
+The choice authorizes that flow only, or that iterative route's rounds: never bundle commits, pushes, pull requests, deployments, tracker writes, or secret reads into a route option, except opening the ticket that a research route option names, as [flow-research](../../flow-research/SKILL.md#deliver-the-finding) sets. The flow asks for them through its delivery question before its first edit, or reuses an answer given earlier in the session, unless the user already requested them, such as a promotion to a named environment.
 
 ### Reminders
 
-**Condition:** a user control does not block the current work, such as delivered work not yet promoted, including to a later completion point as [project settings](../../flow-plan/references/project-settings.md#later-completion-point) sets, since promotions batch several tickets and never hold the current work open, or a pull request awaiting the user's merge.
+**Condition:** a user control does not block the current work, such as delivered work not yet promoted, including to a later completion point as [project settings](../../hive-core/references/project-settings.md#later-completion-point) sets, since promotions batch several tickets and never hold the current work open, or a pull request awaiting the user's merge.
 
 **Actions:** state it in one line without advice; repeat it only when the state changes or related work closes. Make it a recommendation only when waiting has a concrete cost the user may not see, such as a production defect or a security exposure, and name that cost.
 
-Distinguish work already completed, work you will continue under existing authorization, and actions that need new authorization. Ask once for a set of actions when one answer can authorize them all, as [questions](../../flow-plan/references/questions.md) sets for the steps of one objective, since each extra question adds a round-trip without a new decision; ask separately only for an action whose risk or target needs its own decision, such as a production deployment.
+Distinguish work already completed, work you will continue under existing authorization, and actions that need new authorization. Ask once for a set of actions when one answer can authorize them all, as [questions](../../hive-core/references/questions.md) sets for the steps of one objective, since each extra question adds a round-trip without a new decision; ask separately only for an action whose risk or target needs its own decision, such as a production deployment.
 
 ## Work-item boundary
 
@@ -127,4 +127,4 @@ required reviewer returns a passing verdict.
 **Next step:** I will run the already authorized review on this candidate.
 ```
 
-This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../flow-plan/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.
+This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../hive-core/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.

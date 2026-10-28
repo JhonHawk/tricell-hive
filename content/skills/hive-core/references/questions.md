@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, and before ending a message with an offer or request that waits on the user's answer. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
+Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, before ending a message with an offer or request that waits on the user's answer, and when an answer arrives. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
 
 ## Decide whether a question is needed
 
@@ -12,7 +12,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** about to ask a question.
 
-**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design decision the user made for this work item and recorded in its plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
+**Actions:** first check whether an answer in force already settles it: an earlier answer in this session, the effects an authorization already covers, or a route, scope or design decision the user made for this work item and recorded in its plan or in persistent memory from an earlier session. When one does, act on it and say in one line which answer covers it. A workflow choice the user made in this session, such as the Git delivery mode, the review mechanism, the UI verification level, or which tool to use, holds for later work in the same repository, including other tickets, for the rest of the session; ask again only when the repository, target branch or environment, or effects differ, or the user changes it. An authorization of an effect carries over from an earlier session only as [effect authorization](effect-authorization.md#what-an-answer-covers) sets.
 
 **Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
 
@@ -36,7 +36,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
-**Actions:** also state the main tradeoff and uncertainty.
+**Actions:** also state the main reason, tradeoff and uncertainty. Challenge an unsupported premise without flattery or automatic agreement, and when a premise changes, reassess the recommendation instead of silently substituting a new justification.
 
 **Condition:** an option of the question starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option of the same question.
 
@@ -53,7 +53,7 @@ Read before formulating a decision for the user, with or without a native card, 
 3. End the message with the pause line below. Make no tool call between the message and the question call. A response holding only the call is the failure.
 4. Ask through the native tool. Write the card to stand alone, since a host may hide the message: the question opens with the stage and ticket that [reporting](../../flow-close/references/reporting.md#open-with-the-context-line) sets and carries the context to answer, each option its effect in its description, or in its label when the tool has no description field, and the Recommended option is marked.
 
-Split questions or options beyond the tool's limit across consecutive calls, each after a line of text. For a delivery choice with more modes than one card supports, use [delivery decisions](delivery-decisions.md)'s provisional-shortlist procedure: the first subset is not delivery authorization; show every mode and its effects before recording the final choice.
+Split questions or options beyond the tool's limit across consecutive calls, each after a line of text. For a delivery choice with more modes than one card supports, use [delivery decisions](../../flow-plan/references/delivery-decisions.md)'s provisional-shortlist procedure: the first subset is not delivery authorization; show every mode and its effects before recording the final choice.
 
 ## Use text when no waiting card carries the question
 
@@ -81,7 +81,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** an answer arrives, including free text.
 
-**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
+**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](../../flow-plan/references/plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
 
 When the answer leaves a selection to your judgment, such as which findings to fix now and which to keep under observation, or which items to include, list the resulting selection before acting on it: what goes in and what stays out, each item with its gloss. Then ask whether the user agrees, recommending to continue as listed and taking corrections in free text. This confirmation is a new question with its own ID, not a re-ask of the answered one; when another question follows anyway, put the list and the confirmation in that round. An answer that picks one of the offered options leaves no selection to confirm. Two exceptions: a selection within the bounds of an iterative route the user chose goes in that round's progress line, and under [unattended delegation](../../unattended-delegation/SKILL.md) the selection is recorded with the decisions taken instead of asked.
 
