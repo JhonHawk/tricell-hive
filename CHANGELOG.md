@@ -31,11 +31,11 @@ raise the minor or the patch version.
   change record. A plan names, for each criterion checked outside the local
   machine, the environment and the data, access and other effects its check
   needs, and the plan review blocks a plan that does not; work without a plan
-  lists them from the request, so the delivery round
-  asks them up front. A choice that comes up during the build and only touches
-  the change's unpublished work is applied as a recorded assumption and
-  confirmed at the validation stop or with the close question. Run
-  `hive update` to install the changed guidance.
+  lists them from the request, so the delivery round asks them up front. A
+  choice that comes up during the build and only touches the change's
+  unpublished work is applied as a recorded assumption and confirmed at the
+  validation stop or with the close question. Run `hive update` to install the
+  changed guidance.
 - The global guidance now holds only the rules that must act without anything
   else being read, each pointer naming the act or event before which to read
   its target (42 KB to 17 KB). The shared procedures it points to, and the
