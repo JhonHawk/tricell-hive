@@ -32,7 +32,7 @@ When it finishes, the report names the level that ran and each check that failed
 
 ## Corrections during the validation pause
 
-Each correction you ask for is classified first and then run as its own round; a repeated correction on the same aspect can lead the agent to ask whether to go back to the plan. [Changes and loops](/flows/overview/) shows where each kind of request returns the work, and the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/scope-changes.md) holds the classification.
+Each correction you ask for is classified first and then run as its own round; a repeated correction on the same aspect can lead the agent to ask whether to go back to the plan. [Changes and loops](/flows/overview/) shows where each kind of request returns the work, and the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/scope-changes.md) holds the classification.
 
 ## Raising, lowering or skipping the level
 

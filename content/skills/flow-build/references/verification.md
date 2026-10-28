@@ -2,7 +2,7 @@
 
 Read when planning or executing integration, runtime, UI, performance, hardware, test replacement/removal, or costly checks; promotion and deployment checks are in [flow-deploy](../../flow-deploy/SKILL.md). The build skill owns the build procedure, [flow-verify](../../flow-verify/SKILL.md) the verification stage that follows it, and [test-first development](tdd.md) the test-first criterion; this reference selects depth and timing. Follow the project's established commands, environments, and delivery policy. Verification does not grant deployment, publication, destructive effects, or external access.
 
-Before dispatching children or starting an external-work wait, read [delegation and waits](../../flow-research/references/delegation.md). Before a user decision or manual validation request, read [questions](../../flow-plan/references/questions.md). Before writing or cleaning support evidence and UI images, read [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md). Before verification reports or messages with citations, links or externally defined IDs, read [reporting](../../flow-close/references/reporting.md).
+Before dispatching children or starting an external-work wait, read [delegation and waits](../../flow-research/references/delegation.md). Before a user decision or manual validation request, read [questions](../../hive-core/references/questions.md). Before writing or cleaning support evidence and UI images, read [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md). Before verification reports or messages with citations, links or externally defined IDs, read [reporting](../../flow-close/references/reporting.md).
 
 ## Select evidence for the change
 

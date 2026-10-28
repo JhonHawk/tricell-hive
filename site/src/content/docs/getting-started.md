@@ -41,7 +41,7 @@ A section that still holds `Review`, `UI verification` or `Delivery: automatic`
 or `interactive` keeps working, but those lines are no longer read and
 `hive doctor` warns about them.
 Each key's meaning and accepted values are in
-[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/project-settings.md).
+[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/project-settings.md).
 `hive project set` edits the section for you after a confirmation, and the
 [harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
 can create or update it for you: ask it to set up your repository's Hive section,

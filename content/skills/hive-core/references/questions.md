@@ -53,7 +53,7 @@ Read before formulating a decision for the user, with or without a native card, 
 3. End the message with the pause line below. Make no tool call between the message and the question call. A response holding only the call is the failure.
 4. Ask through the native tool. Write the card to stand alone, since a host may hide the message: the question opens with the stage and ticket that [reporting](../../flow-close/references/reporting.md#open-with-the-context-line) sets and carries the context to answer, each option its effect in its description, or in its label when the tool has no description field, and the Recommended option is marked.
 
-Split questions or options beyond the tool's limit across consecutive calls, each after a line of text. For a delivery choice with more modes than one card supports, use [delivery decisions](delivery-decisions.md)'s provisional-shortlist procedure: the first subset is not delivery authorization; show every mode and its effects before recording the final choice.
+Split questions or options beyond the tool's limit across consecutive calls, each after a line of text. For a delivery choice with more modes than one card supports, use [delivery decisions](../../flow-plan/references/delivery-decisions.md)'s provisional-shortlist procedure: the first subset is not delivery authorization; show every mode and its effects before recording the final choice.
 
 ## Use text when no waiting card carries the question
 
@@ -81,7 +81,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** an answer arrives, including free text.
 
-**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
+**Actions:** say in one line before acting whether it settles the question, opens the next round, or returns the work to an earlier flow, such as from plan to research or from build to plan, and what it invalidates; a retained plan the answer changes follows [Revise a plan in progress](../../flow-plan/references/plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
 
 When the answer leaves a selection to your judgment, such as which findings to fix now and which to keep under observation, or which items to include, list the resulting selection before acting on it: what goes in and what stays out, each item with its gloss. Then ask whether the user agrees, recommending to continue as listed and taking corrections in free text. This confirmation is a new question with its own ID, not a re-ask of the answered one; when another question follows anyway, put the list and the confirmation in that round. An answer that picks one of the offered options leaves no selection to confirm. Two exceptions: a selection within the bounds of an iterative route the user chose goes in that round's progress line, and under [unattended delegation](../../unattended-delegation/SKILL.md) the selection is recorded with the decisions taken instead of asked.
 

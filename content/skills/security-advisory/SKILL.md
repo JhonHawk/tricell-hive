@@ -9,7 +9,7 @@ Answer "does this advisory affect us, and where?" with evidence for each reposit
 
 ## Frame the sweep
 
-Before delegating, read [delegation and waits](../flow-research/references/delegation.md). Before the report, read [reporting](../flow-close/references/reporting.md); before a user decision, read [questions](../flow-plan/references/questions.md). Requests to advisory databases, registries and search engines follow the global rule on requests to third-party services: send advisory IDs and public package names, never the name of a repository, client or private package.
+Before delegating, read [delegation and waits](../flow-research/references/delegation.md). Before the report, read [reporting](../flow-close/references/reporting.md); before a user decision, read [questions](../hive-core/references/questions.md). Requests to advisory databases, registries and search engines follow the global rule on requests to third-party services: send advisory IDs and public package names, never the name of a repository, client or private package.
 
 1. **Read each advisory from a primary source**: the vendor's or project's advisory, GHSA, OSV, NVD, or the CISA KEV catalog for exploitation in the wild. Record its ID, product and ecosystem, affected and fixed versions, any mitigation, the conditions it needs (platform, feature, configuration), its severity, and whether it is exploited. Mark a fact you found only in secondary reporting, and say so in any verdict that rests on it.
 2. **Resolve the scope**: the repositories or folders the user names. When the user names none, ask. Reading other projects for this sweep is allowed, as the global rule on changing only the current project sets.

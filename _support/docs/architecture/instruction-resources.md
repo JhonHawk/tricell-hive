@@ -16,12 +16,17 @@ Canonical procedural homes under `content/skills/`:
 
 - `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a progress or decision message opens with the context line the reference sets.
 - `flow-close/references/incidental-findings.md`: before proposing an incidental finding, during the work or at a work item's close, and before listing, asking about or recording them; `content/guidance/global.md` (incidental findings), `flow-close/SKILL.md` step 5, `flow-verify/references/ui-gate.md` and `flow-verify/references/ui-review-criteria.md` point to it.
-- `flow-plan/references/questions.md`: before a user decision or manual validation request.
-- `flow-plan/references/scope-changes.md`: before acting on a change the user asks for, or the work finds it needs, while work is open in any flow; the open-topics rule in `content/guidance/global.md`, `flow-research`, `flow-plan` and its plan revision, `flow-build`, `flow-verify`, `flow-walkthrough`, `flow-close` and `flow-deploy` point to it.
-- `flow-plan/references/effect-authorization.md`: before asking to authorize an effect beyond this machine, as `global.md` sets.
+- `hive-core/references/questions.md`: before a user decision or manual validation request.
+- `hive-core/references/scope-changes.md`: before acting on a change the user asks for, or the work finds it needs, while work is open in any flow; the open-topics rule in `content/guidance/global.md`, `flow-research`, `flow-plan` and its plan revision, `flow-build`, `flow-verify`, `flow-walkthrough`, `flow-close` and `flow-deploy` point to it.
+- `hive-core/references/effect-authorization.md`: before asking to authorize an effect beyond this machine, as `global.md` sets.
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
 - `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
-- `flow-plan/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
+- `hive-core/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
+- `flow-plan/references/delivery-decisions.md`: before resolving the Git delivery mode, at the planning handoff or before the first edit of work without a plan; `flow-build`, `flow-verify`, `flow-deploy`, `flow-close`, `git-workflow` and `harness-audit` point to it.
+- `flow-plan/references/review-decisions.md`: before resolving the code-review mechanism or placing the dedicated review in time.
+- `flow-plan/references/ui-verification-decision.md`: before resolving the `UI verification` level for a rendered UI effect.
+
+The four `hive-core` references are shared by every flow and the global guidance; `hive-core/SKILL.md` lists their read conditions and is not loaded for a workflow of its own. A consumer reaches each reference by its path and condition, never by selecting `hive-core` from its description.
 
 Activity and role consumers link directly to required resources. The global core
 does not delegate authorization, preservation or secrets to a selector. The

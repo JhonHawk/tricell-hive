@@ -1,6 +1,6 @@
 # Change records
 
-Read when creating or updating a change folder, when closing one and you need the delta formats, or when locating the specs as the global guidance directs. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; resolve that setting under [project settings](project-settings.md). The layout follows OpenSpec file conventions without its CLI: the folder names, the archive naming, and the delta format match; `project.md` and the sections of `proposal.md` do not, so adopting that CLI later would need a migration.
+Read when creating or updating a change folder, when closing one and you need the delta formats, or when locating the specs as the global guidance directs. `<specs>` below is the `openspec` directory named by the repository's `Specs` setting; resolve that setting under [project settings](../../hive-core/references/project-settings.md). The layout follows OpenSpec file conventions without its CLI: the folder names, the archive naming, and the delta format match; `project.md` and the sections of `proposal.md` do not, so adopting that CLI later would need a migration.
 
 ## Location and lifecycle
 
