@@ -376,7 +376,7 @@ lists where each flow loops.
   integration: it promotes through the declared environments and checks what is
   served. It never holds a close open: when a project declares a later
   completion point in its `Completion` key, Deploy moves the ticket to its final
-  state once the condition holds.
+  state once the condition holds and no functional walk is pending in that environment.
 
 The [shared guidance](content/guidance/global.md) keeps the authorization,
 preservation, secrets, evidence, and artifact-placement invariants; the procedures

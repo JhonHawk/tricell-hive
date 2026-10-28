@@ -53,6 +53,7 @@ A short plan can live in the conversation. When work will span sessions, or you 
 
 ## Related flows
 
+- Work that [Build](/flows/build/) sends back to plan keeps its commits on the work branch and the ticket in progress; the plan records that work as done.
 - Start from [Research](/flows/research/) when you still need facts before planning. The agent reuses sound findings and rechecks the ones that may have changed.
 - Hand the finished plan to [Build](/flows/build/), pointing it at the change folder or plan path.
 - [Close](/flows/close/) archives the change folder when the work is integrated.

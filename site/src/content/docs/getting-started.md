@@ -38,8 +38,9 @@ are `Environments`, `Delivery: direct-base` (marks a support repository),
 The delivery mode, the review mechanism and the `UI verification` level are not
 keys: the agent asks them each session and reuses your answers for that session.
 A section that still holds `Review`, `UI verification` or `Delivery: automatic`
-or `interactive` keeps working, but those lines are no longer read and
-`hive doctor` warns about them.
+or `interactive` is retired: it answers no question, the agent asks it each session,
+and the old value only informs the recommended option. `hive doctor` warns
+about those lines.
 Each key's meaning and accepted values are in
 [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/project-settings.md).
 `hive project set` edits the section for you after a confirmation, and the

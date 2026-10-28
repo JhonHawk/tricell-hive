@@ -64,7 +64,7 @@ This section applies to the main thread; a child runs its commands as its role s
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one line that opens with the [context line](../../flow-close/references/reporting.md#open-with-the-context-line) and then names what is still running and what its result decides. A delegated child returns only its final result, as the global delegation rule sets.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one progress line naming what is still running and what its result decides. A delegated child returns only its final result, as the global delegation rule sets.
 
 ## Check returned work
 
@@ -88,4 +88,4 @@ This section applies to the main thread; a child runs its commands as its role s
 
 ## Worked wait example
 
-A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "**Build · GH-12 · 2 of 3 tasks verified** The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
+A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.

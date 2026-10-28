@@ -112,9 +112,9 @@ func TestProjectCommandUsageErrors(t *testing.T) {
 		{"set without a colon", []string{"--project", root, "--set", "Project demo"}, "--set expects 'Key: value'"},
 		{"set twice", []string{"--project", root, "--set", "Project: a", "--set", "Project: b"}, "set more than once"},
 		{"set and unset", []string{"--project", root, "--set", "Environments: a", "--unset", "Environments"}, "both set and unset"},
-		{"retired key", []string{"--project", root, "--set", "Review: /code-review"}, "Review: retired; Hive asks it each session — use --unset Review to remove it"},
+		{"retired key", []string{"--project", root, "--set", "Review: /code-review"}, "Review: retired; Hive asks it each session, and the old value only informs the recommended option — use --unset Review to remove it"},
 		{"retired key with a value of its own", []string{"--project", root, "--set", "UI verification: full"}, "UI verification: retired"},
-		{"retired Delivery mode", []string{"--project", root, "--set", "Delivery: automatic"}, "Delivery: automatic is retired; Hive asks it each session — use --unset Delivery to remove it"},
+		{"retired Delivery mode", []string{"--project", root, "--set", "Delivery: automatic"}, "Delivery: automatic is retired; Hive asks it each session, and the old value only informs the recommended option — use --unset Delivery to remove it"},
 		{"retired Delivery mode, interactive", []string{"--project", root, "--set", "Delivery: interactive"}, "Delivery: interactive is retired"},
 		{"retired before unknown", []string{"--project", root, "--set", "Review: x", "--set", "Mystery: a"}, "Review: retired"},
 		{"positional", []string{"--project", root, "--set", "Project: a", "extra"}, "unexpected positional"},
@@ -136,7 +136,7 @@ func TestProjectCommandKeepsARetiredLineAndWarnsAboutIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	mustContain(t, out, "Delivery: automatic is no longer read", "UI verification: no longer read")
+	mustContain(t, out, "Delivery: automatic is retired", "UI verification: retired")
 	got, _ := os.ReadFile(filepath.Join(root, "AGENTS.md"))
 	mustContain(t, string(got), "- Project: renamed", "- Delivery: automatic", "- UI verification: full")
 }

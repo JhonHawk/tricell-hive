@@ -137,7 +137,7 @@ func TestDoctorCommandExitStatusFollowsTheProjectSection(t *testing.T) {
 		}, false, true, "not a regular file"},
 		{"only warnings", func(t *testing.T) string {
 			return projectRepoWithSpecs(t, strings.Replace(validHiveSection, "- Specs:", "- Review: x\n- Delivery: automatic\n- Colour: blue\n- Completion: Done\n- Specs:", 1))
-		}, true, false, "Review: no longer read"},
+		}, true, false, "Review: retired"},
 		{"no AGENTS.md without the flag", func(t *testing.T) string { return newProjectRepo(t) }, false, false, "not found at the repository root"},
 		{"no AGENTS.md with the flag", func(t *testing.T) string { return newProjectRepo(t) }, true, true, "not found at the repository root"},
 		{"no section without the flag", func(t *testing.T) string { return projectRepoWithSpecs(t, "# T\n") }, false, false, "section not found"},

@@ -131,9 +131,9 @@ func TestHiveTextSeparatesBlockingFromWarnings(t *testing.T) {
 	items = []hiveItem{{"Project", "p"}, {"Base branch", "main"}, {"Tracker", "t"}, {"Specs", "_support/openspec"}}
 	for _, extra := range []hiveItem{{"Delivery", "automatic"}, {"Review", "x"}, {"UI verification", "partial"}} {
 		blocking, warnings = checkHiveText(append(slices.Clone(items), extra), root, git)
-		want := extra.Key + ": no longer read"
+		want := extra.Key + ": retired"
 		if extra.Key == "Delivery" {
-			want = "Delivery: " + extra.Value + " is no longer read"
+			want = "Delivery: " + extra.Value + " is retired"
 		}
 		if len(blocking) != 0 || !strings.Contains(strings.Join(warnings, "\n"), want) {
 			t.Errorf("%s: %s must only warn as retired, blocking %q warnings %q", extra.Key, extra.Value, blocking, warnings)
