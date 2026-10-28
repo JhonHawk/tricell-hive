@@ -8,7 +8,11 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** a choice genuinely belongs to the user and changes what you do next, such as scope, design, delivery, a route, a validation, or the close.
 
-**Actions:** ask only at that decision point. Look up facts yourself. Make a minor call, one with a conventional default that is neither consequential nor an effect needing authorization, yourself and state it in one line.
+**Actions:** ask only at that decision point, except during a build, as the next condition sets. Look up facts yourself. Make a minor call, one with a conventional default that is neither consequential nor an effect needing authorization, yourself and state it in one line.
+
+**Condition:** during a build, outside a validation stop, such a choice comes up that needs no effect authorization and is not a task or change that [scope changes](scope-changes.md) classifies. The user reviews a build at its end.
+
+**Actions:** when undoing it changes only this task's unpublished work on this machine, a contract internal to the change included, apply its Recommended option as a recorded assumption, in the plan's progress or the conversation, and continue. Otherwise continue the independent work and ask it, with the other deferred choices, once none remains; ask at once only when it blocks all remaining work. Confirm assumptions at the validation stop under `interactive`, otherwise in the close question's round, the completion report listing them among decisions taken without asking. They are not pending items; one rejected there is a correction delivered as the follow-up [delivery decisions](../../flow-plan/references/delivery-decisions.md) covers; a later rejection is new work. This condition does not apply to a theme deviation in [the UI gate](../../flow-verify/references/ui-gate.md), a task still not met after its fix rounds in [plan execution](../../flow-build/references/plan-execution.md), skipping a check or accepting it unverified in [flow-verify](../../flow-verify/SKILL.md), skipping a hook in [git-workflow](../../git-workflow/SKILL.md), the install stops of [security boundaries](../../flow-build/references/security-boundaries.md), or under [unattended delegation](../../unattended-delegation/SKILL.md).
 
 **Condition:** about to ask a question.
 
