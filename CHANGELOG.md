@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Every progress, delivery, closing or decision message now opens with the
+  context line however short it is, including one-line notes between tool
+  calls, and its stage is the running flow's untranslated name, such as Build,
+  never an invented one (#209). Run `hive update` to install the changed
+  guidance.
+- After a merge or a push to the base branch, including one the user asks for
+  in conversation, the agent runs the whole `flow-close` as its When to run it
+  sets instead of only the branch cleanup (#208). Run `hive update` to install
+  the changed guidance.
 - A command or tool failure that an agent works around without being blocked is
   now an incidental finding: the agent keeps its error output and reports the
   failure with the workaround, and proposes a fix or ticket only when it lies
