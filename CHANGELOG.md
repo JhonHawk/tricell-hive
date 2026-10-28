@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Added
 
+- Long-running work (#256). A loop contract in `hive-core` gives work that
+  repeats cycles, such as the research iterative route or unattended work, a
+  measured objective, a cap, a check every cycle, a no-progress rule (two flat
+  cycles, one change of approach, then stop), a state file on disk that a new
+  session resumes from, and an escalation report. A declared job, a
+  `jobs/<job>.job.md` file you write, lets a host scheduler run work with
+  nobody present: it carries its own answers and advance authorizations,
+  counts only as read from the base branch, and delivers at most to the merge
+  into that branch. Run `hive update` to install it.
 - `harness-audit` now compares the memory each host loads at every entry
   point, not only the instruction files: Claude Code, Grok Build and Codex key
   their own memory by where the session starts, so a project whose memory
