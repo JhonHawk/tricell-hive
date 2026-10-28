@@ -20,7 +20,7 @@ Canonical procedural homes under `content/skills/`:
 - `hive-core/references/scope-changes.md`: before acting on a change the user asks for, or the work finds it needs, while work is open in any flow; the open-topics rule in `content/guidance/global.md`, `flow-research`, `flow-plan` and its plan revision, `flow-build`, `flow-verify`, `flow-walkthrough`, `flow-close` and `flow-deploy` point to it.
 - `hive-core/references/effect-authorization.md`: before asking to authorize an effect beyond this machine or acting on an earlier grant, as `global.md` sets.
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
-- `flow-research/references/pr-review.md`: before reviewing a pull request that is not the current work's own candidate; `flow-research/SKILL.md` points to it and `content/guidance/global.md` routes the request to `flow-research`.
+- `flow-research/references/pr-review.md`: before reviewing a pull request outside the current work; `flow-research/SKILL.md` points to it and `content/guidance/global.md` routes the request to `flow-research`.
 - `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
 - `hive-core/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
 - `flow-plan/references/delivery-decisions.md`: before resolving the Git delivery mode, at the planning handoff or before the first edit of work without a plan; `flow-build`, `flow-verify`, `flow-deploy`, `flow-close`, `git-workflow` and `harness-audit` point to it.

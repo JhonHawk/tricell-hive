@@ -1,12 +1,14 @@
-# Review another person's pull request
+# Review a pull request outside the current work
 
 ## When to read
 
-Read when the user asks you to review a pull request that is not the candidate of the current work, such as "review these PRs" or a link to a colleague's pull request, before reading its diff. The review is read-only: reading this reference authorizes no fix, comment, approval or other effect on the pull request.
+Read when the user asks you to review a pull request outside the current work, such as "review these PRs", a link to a colleague's pull request or one of the user's earlier ones, before reading its diff. The review is read-only: reading this reference authorizes no fix, comment, approval or other effect on the pull request.
 
 ## Choose the mechanism
 
-Reuse the review mechanism the user chose earlier in the session for this repository. Otherwise ask it once for all the pull requests the request names, offering the mechanisms [review decisions](../../flow-plan/references/review-decisions.md) lists that can read a pull request, such as the installed `hive-review-code` role or a native review command of the host, the Recommended one first with its reason. Review independent pull requests in parallel children, as [delegation and waits](delegation.md) sets, each with the pull request's number, repository, base branch and the repository's `CODING_STANDARDS.md` when it has one.
+Reuse a review mechanism the user chose earlier in the session for the pull request's repository; an earlier answer of no dedicated review is not one. Otherwise ask it once for all the pull requests the request names, offering the installed `hive-review-code` role and the host's native review commands that can read a pull request; recommend the one the user chose earlier in the session for another repository, otherwise `hive-review-code`, because it runs in children and its findings get refuted.
+
+Read each pull request at its head, never from the current checkout: its diff, and the surrounding code from the fetched head, such as `git fetch origin pull/<n>/head` read with `git show`, without switching the user's branch; when the repository is not checked out, review the diff and say what that leaves unread. Run `hive-review-code` for independent pull requests in parallel children, as [delegation and waits](delegation.md) sets, each with the pull request's number, repository, base branch, fetched head and the repository's `CODING_STANDARDS.md` when it has one. A native review command runs in the main thread, one pull request at a time.
 
 ## Handle the findings
 
@@ -16,4 +18,4 @@ Report each pull request on its own: the verdict you recommend (approve, request
 
 ## Publish the review
 
-Posting anything on the pull request is an effect beyond this machine. Ask it as the item for another person's pull request in [effect authorization](../../hive-core/references/effect-authorization.md#ask-once-for-each-set) sets, naming for each pull request the account that will post, which you check before asking, the action and the text to post or its summary. Post only what the answer covers, then report each posted item with its link.
+Posting anything on the pull request is an effect beyond this machine: before asking, check which account will post, then ask as the pull-request item of [effect authorization](../../hive-core/references/effect-authorization.md#ask-once-for-each-set) sets, with the text to post or its summary. Post only what the answer covers, then report each posted item with its link.
