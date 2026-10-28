@@ -36,7 +36,7 @@ A declared job is a file the user writes, `jobs/<job>.job.md` in the support hom
 
 - **Provenance.** The file grants what it states only as read from its base branch with `git show <base>:<path>`, unchanged by the current work, in a repository under Git. A run never edits a job file, and no change under `jobs/` is merged during a run. Outside a run, create or edit a job file only when the user asks for that job by name, and deliver that change under `automatic` or `direct-base` only after the user validated its content.
 - **Activation.** A turn the host starts that names the job's file activates this mode only when the job has not expired, has runs left, and its scope matches the work the turn asks for; otherwise report the mismatch and do nothing. Read its state first, as [loops](../hive-core/references/loops.md) sets; its answers hold for each of its runs, as [delivery decisions](../flow-plan/references/delivery-decisions.md) sets.
-- **Reach.** A job's delivery ends at most at the merge into its base branch. For a job, this narrows the Effects section above, which otherwise allows deployments and writes to shared or production systems, to the deployment its merge triggers when the job names it; promoting to another environment needs the user's request, as [flow-deploy](../flow-deploy/SKILL.md) sets.
+- **Reach.** A job's delivery ends at most at the merge into its base branch. For a job, this narrows the deployments that the Effects section above allows to the one its merge triggers when the job names it; its other effects stay as that section and the job's authorizations set, and promoting to another environment needs the user's request, as [flow-deploy](../flow-deploy/SKILL.md) sets.
 
 ## End
 
