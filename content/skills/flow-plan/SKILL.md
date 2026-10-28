@@ -47,6 +47,7 @@ Before calling the plan ready, check:
 - Decisions that could change the outcome, contracts, or compatibility are resolved; remaining uncertainties are bounded.
 - Every acceptance criterion, task marker, dependency and checkpoint meets the rules in [plan criteria and markers](references/plan-criteria-and-markers.md#acceptance-criteria-and-task-markers); a break of any of them blocks readiness.
 - A change to stored data records the affected-record count per environment, or why one could not be taken, and its technique and recovery match that count, as [persistent data changes](../flow-build/references/data-changes.md) describes.
+- Each acceptance criterion verified outside this machine, other than by CI jobs with no effect in a shared environment, names its environment and the effects, data and access its verification needs there, classified as [effect authorization](../hive-core/references/effect-authorization.md) sets, so the delivery round asks them as [foreseen authorizations](../flow-build/references/foreseen-authorizations.md) sets.
 - Task interfaces and dependencies agree; no task relies on an undefined contract.
 - When the plan lists work as **Not yet specified**, it follows that rule in [the plan format](references/plan-format.md#what-the-document-must-carry).
 - Each task states its execution, consistent with its dependencies and write ownership.
