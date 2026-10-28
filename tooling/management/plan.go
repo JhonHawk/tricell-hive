@@ -775,19 +775,36 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 	}
 	return &r, nil
 }
+
+// resolvePlanPath resolves a caller-chosen plan file. Safe rejects a symlink
+// ancestor, and on macOS the default temporary directory is under /var, which
+// is one. Opening the resolved path keeps a later swap of the original link
+// from redirecting the file. Managed install paths do not use this helper.
+func resolvePlanPath(path string) (string, error) {
+	resolved, err := target.Canonical(path)
+	if err != nil {
+		return "", err
+	}
+	if err := target.Safe(resolved); err != nil {
+		return "", err
+	}
+	return resolved, nil
+}
+
 func SavePlan(path string, p Plan) error {
 	if len(p.Legacy) > 0 {
 		return fmt.Errorf("legacy migration plans contain private configuration; use hive install to preview and apply in one session")
 	}
-	if err := target.Safe(path); err != nil {
+	resolved, err := resolvePlanPath(path)
+	if err != nil {
 		return err
 	}
-	if _, err := os.Lstat(path); err == nil {
+	if _, err := os.Lstat(resolved); err == nil {
 		return fmt.Errorf("plan output already exists")
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(resolved, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
@@ -800,7 +817,11 @@ func SavePlan(path string, p Plan) error {
 }
 func LoadPlan(path string) (Plan, error) {
 	var p Plan
-	err := decodeFile(path, &p)
+	path, err := resolvePlanPath(path)
+	if err != nil {
+		return p, err
+	}
+	err = decodeFile(path, &p)
 	if err != nil {
 		return p, err
 	}

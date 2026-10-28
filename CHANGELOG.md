@@ -112,6 +112,7 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- `hive update --out`, `hive plan --out`, `hive voice --out`, `hive models --out` and `hive apply --plan` accept a plan path whose ancestor is a symlink, such as macOS `/var` for `mktemp -d`. The file is written and read at the resolved path. A symlink that remains after resolution is still rejected (#211).
 - The walkthrough viewer preserves a project's resolved identity when a worktree
   disappears or its remote cannot be read, including after a restart, instead of
   splitting its saved copies into another project with the same name (#193).
