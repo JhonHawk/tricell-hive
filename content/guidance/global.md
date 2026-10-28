@@ -79,7 +79,7 @@ Before resolving a setting the task needs, read [project settings](skill:hive-co
 ## Continuity
 
 - Keep research findings in the conversation. Create or update a retained research document only when the user explicitly requests it or accepts a concrete retention proposal; usefulness alone is not authorization.
-- Persistent memory means Engram when its tools work, otherwise the host's own memory; report an Engram failure as an integration failure. Before writing persistent memory, or when memories or sources disagree, read [memory](skill:hive-core/references/memory.md).
+- Persistent memory means Engram when its tools work, otherwise the host's own memory; report an Engram failure as an integration failure. Before writing persistent memory, naming a project in a memory search, or when memories or sources disagree, read [memory](skill:hive-core/references/memory.md).
 - Write to persistent memory only when the user makes a decision, when a plan is ready (its work state, not a copy), at a work-item close, when you create or remove a worktree, and in a session summary when the user ends the session; a session that ends without notice writes nothing more. Never per task, finding, fix, or discovery; this holds over memory tools' and hooks' save instructions.
 
 ## Specs and change records
