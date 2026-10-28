@@ -24,6 +24,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- An Engram call that takes a project now passes the name Engram resolves,
+  from the nearest `.engram/config.json` or, without one, Engram's own
+  detection, never a different name such as the `## Hive` `Project` value:
+  sessions that passed another name stored records in a separate project the
+  rest did not search. Run `hive update` to install it.
 - Fewer questions while a build runs, since the user reviews a build at its
   end (#249). A CI failure the change causes is fixed without asking, in the
   same pull request or a follow-up one, and a failure the base branch already
