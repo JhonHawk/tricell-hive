@@ -7,7 +7,7 @@ description: "Shared procedures every Hive flow and the global guidance use: use
 
 This skill holds the procedures that every flow and the global guidance use. It has no workflow of its own: read only the reference whose condition applies, whole, when the condition applies. Reading one grants no effect.
 
-- Before formulating a decision for the user, with or without a native card, or before ending a message with an offer or request that waits on the user's answer, read [questions](references/questions.md).
+- Before formulating a decision for the user, with or without a native card, before ending a message with an offer or request that waits on the user's answer, and when an answer arrives, read [questions](references/questions.md).
 - When the user asks for something that would change open work, an answer adds to it, or the work finds it needs more than the request asked, read [scope changes](references/scope-changes.md) before acting on it.
 - Before asking the user to authorize an effect beyond this machine, or writing the foreseen authorizations of a plan or of the first build question, read [effect authorization](references/effect-authorization.md).
 - Before resolving a project setting the task needs, such as the base branch, tracker, specs location, environments or completion point, or moving a ticket's state, read [project settings](references/project-settings.md).
@@ -16,4 +16,4 @@ This skill holds the procedures that every flow and the global guidance use. It 
 - Before retrieving, documenting or committing a secret, reading output that may hold one, or when one is exposed, read [secrets](references/secrets.md).
 - Before writing persistent memory, or when memories or sources disagree, read [memory](references/memory.md).
 - Before looking up external documentation, or locating code in a repository with a `.codegraph/` directory, read [evidence tools](references/evidence-tools.md).
-- Before three or more read-only calls when the host offers a tool whose scripts can call other tools, read [tool scripts](references/tool-scripts.md).
+- Before writing a script that calls other tools, or three or more read-only calls the host could batch in one, read [tool scripts](references/tool-scripts.md).

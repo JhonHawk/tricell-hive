@@ -36,7 +36,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
-**Actions:** also state the main tradeoff and uncertainty.
+**Actions:** also state the main reason, tradeoff and uncertainty. Challenge an unsupported premise without flattery or automatic agreement, and when a premise changes, reassess the recommendation instead of silently substituting a new justification.
 
 **Condition:** an option of the question starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another option of the same question.
 
