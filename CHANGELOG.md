@@ -24,6 +24,12 @@ raise the minor or the patch version.
 
 ### Changed
 
+- An Engram call that takes a project now passes the name Engram resolves
+  for the repository, from `.engram/config.json`, never the `## Hive`
+  `Project` value or a directory name: sessions that passed another name
+  stored records in a separate project the rest did not search. `harness-audit`
+  flags such a split and names the host that wrote it. Run `hive update` to
+  install it.
 - Fewer questions while a build runs, since the user reviews a build at its
   end (#249). A CI failure the change causes is fixed without asking, in the
   same pull request or a follow-up one, and a failure the base branch already
