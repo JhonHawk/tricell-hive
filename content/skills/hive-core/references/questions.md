@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, and before ending a message with an offer or request that waits on the user's answer. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
+Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, before ending a message with an offer or request that waits on the user's answer, and when an answer arrives. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
 
 ## Decide whether a question is needed
 

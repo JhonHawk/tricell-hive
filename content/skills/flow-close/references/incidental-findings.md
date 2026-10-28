@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before proposing an incidental finding, during the work or at a work item's close, and before listing, asking about or recording incidental findings. The global guidance keeps the invariant: triage them, never absorb or drop them silently, and escalate security or critical issues at once. Reading this reference does not invoke the closing workflow; [flow-close](../SKILL.md) runs it.
+Read before rerunning a failure that does not block the work, before proposing an incidental finding, during the work or at a work item's close, and before listing, asking about or recording incidental findings. The global guidance keeps the invariant: triage them, never absorb or drop them silently, and escalate security or critical issues at once. Reading this reference does not invoke the closing workflow; [flow-close](../SKILL.md) runs it.
 
 ## Triage during the work
 

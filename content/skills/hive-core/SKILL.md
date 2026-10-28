@@ -13,7 +13,7 @@ This skill holds the procedures that every flow and the global guidance use. It 
 - Before resolving a project setting the task needs, such as the base branch, tracker, specs location, environments or completion point, or moving a ticket's state, read [project settings](references/project-settings.md).
 - Before naming an identifier, an i18n key or a route, writing an example or template, contributing to an external repository, or resuming or relaying text in another language, read [language](references/language.md).
 - Before sending a request to a third-party service, read [third-party requests](references/third-party-requests.md).
-- Before retrieving, documenting or committing a secret, reading output that may hold one, or when one is exposed, read [secrets](references/secrets.md).
+- Before retrieving or documenting a secret, reading output that may hold one, or when one is exposed, read [secrets](references/secrets.md).
 - Before writing persistent memory, or when memories or sources disagree, read [memory](references/memory.md).
 - Before looking up external documentation, or locating code in a repository with a `.codegraph/` directory, read [evidence tools](references/evidence-tools.md).
 - Before writing a script that calls other tools, or three or more read-only calls the host could batch in one, read [tool scripts](references/tool-scripts.md).

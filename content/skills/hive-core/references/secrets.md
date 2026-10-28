@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before retrieving a secret, documenting one by reference, writing a full value at the user's request, committing files that could hold one, or reading output that may contain one, and when a secret value is exposed. The global guidance keeps the invariants, which hold in every mode, including unattended delegation. Reading this reference does not invoke a workflow.
+Read before retrieving a secret, documenting one by reference, writing a full value at the user's request, or reading output that may contain one, and when a secret value is exposed. The global guidance keeps the invariants, which hold in every mode, including unattended delegation. Reading this reference does not invoke a workflow.
 
 ## Handle a secret
 
