@@ -7,7 +7,7 @@ Deploy is a stage of its own, after the change is integrated. It never holds a c
 
 ## When to use
 
-Use Deploy when you ask to promote or deploy, or for a production defect that cannot wait. It starts from commits already on the base branch and the environments your repository declares in its `## Hive` section.
+Use Deploy when you ask to promote or deploy, or to promote the fix of a production defect that cannot wait. It starts from commits already on the base branch and the environments your repository declares in its `## Hive` section. A defect whose fix is not integrated yet goes first to [Research](/flows/research/) while its cause is unknown, or to [Build](/flows/build/) once it is known.
 
 Example requests:
 
@@ -20,19 +20,19 @@ Deploy the fix for the checkout error to production now.
 
 - A one-line statement of the candidate, the environments in order and the tickets the run carries.
 - A check of what the promotion carries, the migrations, the compatibility and the recovery path, and the triggers that would make the agent report a rollback before a production deployment.
-- One authorization question per environment the run reaches, with a production deployment kept apart. An answer you leave open stays unauthorized.
-- Promotion one environment at a time, in order, through the declared path.
-- When a deployment to a non-production environment fails because of a defect, the agent fixes it through [Build](/flows/build/), checks the new promotion again and promotes it, without asking. It asks only when the fix needs something you have not authorized or a choice that is yours.
+- One authorization question per environment the run reaches, with a production deployment kept apart. Asking to promote to a named environment is itself the delivery choice; it covers production only when you name production. For production, the question also names the recovery action of each rollback trigger, with its target and how to revert it. A release that publishes is a critical effect with its own question. An answer you leave open stays unauthorized.
+- Promotion one environment at a time, in order, through the declared path: a pull request between environment branches, or, when the environments are not branches, the mechanism your project documents.
+- When a deployment to a non-production environment fails because of a defect, the agent fixes it through [Build](/flows/build/), lists the commits that were not in the candidate, checks the new promotion again and promotes it, without asking. A commit other than the fix is a scope change of the promotion class. It asks only when the fix needs something you have not authorized or a choice that is yours.
 - After each deployment, a check that the served version is the one you promoted and that the targets are healthy. A deployment whose identity does not match, whose rollout is unfinished or that shows an error is reported as not verified, never as healthy.
 - A review of each promotion pull request limited to the commits not reviewed before their integration.
-- A functional walk only when the project declares one or you asked to validate the deployment.
+- A functional walk only when the project declares one, in its `AGENTS.md` or in the plan, or you asked to validate the deployment. The effects the walk needs in that environment are asked before it runs.
 
 The final report lists, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. The exact steps and checks are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md).
 
 ## What it does not do
 
 - It does not commit, open pull requests or merge the work itself, nor the fix for a defect that blocks the run, which goes through Build; Build commits it and the stage that integrates it, Verify or Build when verify is skipped, follows [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md). It only opens and merges the promotion pull request when the environments are branches.
-- It does not run a recovery action on its own unless an authorization you gave covers it.
+- It does not run a recovery action unless the answer you gave to the production question covers it; when a trigger fires and no answer covers it, it reports the trigger and asks.
 - It does not reopen a ticket; the promotion is recorded separately.
 
 ## Related flows
