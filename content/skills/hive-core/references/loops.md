@@ -18,26 +18,29 @@ A loop without a measure or a cap does not start: ask for the missing part when 
 
 Each cycle gathers context, acts and runs the measure, then records the result in the state before the next cycle. When a result decides something consequential, such as marking the objective met, prefer a check by a child with fresh context, such as `hive-verify-task` or `hive-verify-change`, over your own reading.
 
-**No progress.** When two cycles in a row bring no measurable improvement, change the approach once, recording what changes and why. When the next cycle brings none either, stop. A count of attempts alone does not show progress; only the measure does.
+**No progress.** When two cycles in a row bring no measurable improvement, change the approach, recording what changes and why; this happens once per loop. After that change, the first cycle without improvement stops the loop. A count of attempts alone does not show progress; only the measure does.
 
 Stop when the objective is met, the cap is reached, the no-progress rule says so, a step needs an effect no answer or authorization covers, or a decision is genuinely the user's and the user is present. The rules that set the loop's authority, such as [unattended delegation](../../unattended-delegation/SKILL.md), say which decisions you take yourself.
 
 ## State
 
-Keep the loop's state on disk and update it after every cycle, so a compaction, a stopped host or a new session can resume it. With a retained plan, it is the progress section of its `tasks.md`; otherwise, the saved-state destination that [artifact layout](../../workspace-conventions/references/artifact-layout.md) sets. Record:
+Keep the loop's state on disk and update it after every cycle, so a compaction, a stopped host or a new session can resume it. With a retained plan, it is the progress section of its `tasks.md`; for a declared job, the place its file names; otherwise, the saved-state destination that [artifact layout](../../workspace-conventions/references/artifact-layout.md) sets. A job whose runs start from a fresh checkout keeps it as a committed file on its work branch, which its delivery answer must authorize; a job that cannot keep state between runs does not run. Record:
 
 - the objective, its measure and the cap;
 - each cycle with its measure, and when the last cycle started;
 - the decisions taken and each effect applied with how to revert it;
-- the ticket, the next step, and the status: `running`, `stopped: <reason>` or `waiting for the user: <what>`.
+- the run that wrote it, such as its session ID, the ticket, the next step, and the status: `running`, `done: <reason>` when the objective is met or the cap is reached, or `waiting for the user: <what>` when the loop stops for any other reason;
+- for a declared job, across its runs: the runs done and the spending so far.
 
 Commits serve as checkpoints only when the delivery answer authorizes commits. The state is a working record: it is not a ledger, not a retained research document, and not persistent memory, which keeps its own write cadence. It authorizes nothing: answers and authorizations come only from where their own rules set, such as a plan or a declared job.
 
-**Resume.** Before any cycle, read the state. A `stopped` or `waiting` status is terminal: run no cycle, report it again, and clear it only by the user's edit of the state or, with the user present, their message choosing to resume. A `running` status whose last cycle started longer ago than the loop's time cap, or a day when the cap is not a time, records `waiting for the user: interrupted run` and is reported; a `running` status with a run still active stops this one.
+**Resume.** Before any cycle, read the state. A `running` status your own run wrote, such as after a compaction, continues. A `running` status another run wrote stops this one while its last cycle started within the loop's time cap, or within a day when the cap is not a time; past that, record `waiting for the user: interrupted run` and report it. A `waiting` status is terminal: run no cycle, report it again, and clear it only by the user's edit of the state or, with the user present, their message choosing to resume. A `done` status ends that loop; the next run of a declared job starts a new loop under the same job counters.
 
 ## Escalate and end
 
-When the loop stops without meeting the objective, report what was tried, what failed, the current measure and what is needed to continue, to the conversation, or, for a declared job, to the destination the job names; post a terminal status to an external destination once, and leave later repeats in the transcript only. Then run [flow-close](../../flow-close/SKILL.md): as the completion point when the objective is met, as a pause otherwise.
+Whenever the loop stops, record its final status. When it stops without meeting the objective, report what was tried, what failed, the current measure and what is needed to continue, to the conversation, or, for a declared job, to the destination the job names; post a `waiting` status to an external destination once, and leave later repeats in the transcript only.
+
+Then run [flow-close](../../flow-close/SKILL.md): as the completion point when the objective is met, as a pause otherwise.
 
 ## Host capabilities
 
