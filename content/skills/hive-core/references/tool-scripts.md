@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read only when the host offers a tool that runs a script able to call other tools: before writing such a script, and before making three or more read-only tool calls it could batch in one. Reading this reference does not invoke a workflow.
+Read only when the host offers a tool, not a shell, that runs a script able to call other host tools: before writing such a script, and before making three or more read-only tool calls it could batch in one. Reading this reference does not invoke a workflow.
 
 ## Batch calls into one script
 

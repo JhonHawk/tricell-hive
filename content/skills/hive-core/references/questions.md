@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, before ending a message with an offer or request that waits on the user's answer, and when an answer arrives. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
+Read before formulating a decision for the user, with or without a native card, including route, delivery, review, validation and close questions, and before ending a message with an offer or request that waits on the user's answer. This reference does not invoke planning or grant any effects. For any question or accompanying message containing citations, links or IDs defined outside it, also read [reporting and citations](../../flow-close/references/reporting.md#citations-and-links).
 
 ## Decide whether a question is needed
 
@@ -16,11 +16,11 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** a message would end with an offer or request that waits on the user's answer, in any form, such as "should I review it?", "if you want, I'll close it", or "let me know if you want the report".
 
-**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route or close question, ask it under this procedure, never as a closing sentence alone. Otherwise, such as further work the answer does not call for, leave the offer out.
+**Actions:** when the action is already authorized, including the checks the global guidance says not to ask about separately, such as reading or showing a pull request's diff or running the affected tests, do it instead of offering it. When it is a choice that belongs to the user under this section's first condition, or a question another rule requires, such as the route or close question, ask it under this procedure, never as a closing sentence alone, except the yes-or-no confirmation the next condition allows as the pause line. Otherwise, such as further work the answer does not call for, leave the offer out.
 
 **Condition:** formulating any question for the user, whether it stands alone or belongs to a round.
 
-**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no question, such as an authorization, is formulated the same way: its two options carry IDs and effects, such as `D5-A — run Bugbot on the pull request` and `D5-B — no dedicated review`, never a bare "do you authorize it?". Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Silence, preselection, and a dismissed or timed-out question grant nothing, except the silence after the route answer that activates [unattended delegation](../../unattended-delegation/SKILL.md) under its own rule.
+**Actions:** give each question an ID such as `D1`, the context needed to answer, and options with IDs such as `D1-A`, each with its effect, the Recommended option first with its reason. A yes-or-no confirmation of an action the message describes, with no alternative but doing it or not, such as running a script whose effects you just listed, may instead be the pause line itself: the fixed label followed by the question, with no IDs, options or card, even when the host offers a native card. A choice with real alternatives, such as which review to run, keeps IDs and options. Never leave a choice's options only in a ticket, a document, or a question tool that returns before the answer. State as fact in a question and its options only what you verified in this session; mark the rest as an assumption to confirm. Silence, preselection, and a dismissed or timed-out question grant nothing, except the silence after the route answer that activates [unattended delegation](../../unattended-delegation/SKILL.md) under its own rule.
 
 **Condition:** several open questions do not depend on one another.
 
@@ -32,7 +32,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 **Condition:** an objective the user already decided needs several authorizations in sequence, such as the records of one test setup or the steps of an operation the user approved.
 
-**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect, and a production deployment the user has not already named keep their own question in that same round.
+**Actions:** ask them as one question that lists the whole set, even when a later step depends on an earlier one's result; ask again only when a result changes the set, naming what changed. Effects that [effect authorization](effect-authorization.md) asks apart, such as each kind of production effect or a critical effect the user has not asked for as that reference sets, and a production deployment the user has not already named keep their own question in that same round.
 
 **Condition:** a consequential choice changes scope, contracts, data, or cost, or is hard to reverse.
 
@@ -44,7 +44,7 @@ Read before formulating a decision for the user, with or without a native card, 
 
 ## Use a waiting native card
 
-**Condition:** the host offers a native question tool that waits for the answer, and the question is not the round that [unattended delegation](../../unattended-delegation/SKILL.md#pre-authorization-round) asks at activation.
+**Condition:** the host offers a native question tool that waits for the answer, and the question is neither the round that [unattended delegation](../../unattended-delegation/SKILL.md#pre-authorization-round) asks at activation nor a yes-or-no confirmation asked as the pause line.
 
 **Actions, in order:**
 
@@ -73,7 +73,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** a message waits on the user's choice.
 
-**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. A notification turn that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) answers in one line while the question waits is not a second report and carries no pause line.
+**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one, or the yes-or-no question itself. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. A notification turn that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) answers in one line while the question waits is not a second report and carries no pause line.
 
 **Condition:** an open choice has already been asked.
 
