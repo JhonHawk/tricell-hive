@@ -22,19 +22,30 @@ Collected on 2026-10-27 from documentation and published source, without running
 - OpenCode: https://opencode.ai/docs/plugins; Context7 `/anomalyco/opencode` (`compaction.mdx`, `instructions.mdx`, `compaction.ts`, branch `dev`; installed v2.2.0 not confirmed against it).
 - Cursor CLI: https://cursor.com/docs/hooks, https://cursor.com/docs/context/rules; Context7 `/websites/cursor_cli`.
 
+## Observed probe (2026-10-27)
+
+One short session per host in a disposable fixture, with Engram isolated per process. The global marker was an existing sentence of the deployed Hive block ("Write placeholders in examples and templates in English"); the skill marker was a project skill invoked in the first turn. After a forced compaction, the agent was asked, without tools, to quote both.
+
+| Host | Version | Compaction | Global sentence after | Skill marker after | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Claude Code | 2.1.312 | `compact_boundary`, manual | quoted | quoted | `claude -p --resume <id> "/compact"`; the summary held the skill body text. Settles the user-level `~/.claude/CLAUDE.md` cell: it survives. |
+| Codex CLI | 0.165.0 | `compacted` rollout entry | quoted | quoted | `codex app-server` `thread/compact/start`; the summary held the marker, not the skill body. |
+| Grok Build | 1.0.72 | `auto_compact_completed` | quoted | quoted | `grok -p "/compact" -r <id>`; Grok re-injects the rules and the skill body as synthetic `compaction_meta` messages. |
+| Pi | 1.4.0 | `compaction` entry, manual | quoted | quoted | RPC `{"type":"compact"}` with `keepRecentTokens: 1`; the marker survived in the kept last assistant message, the skill tool result was summarized. |
+| OpenCode | v2.2.0 | `compaction` message, completed | quoted | quoted | `session.compact` through a private `opencode serve`; the summary held the marker, not the body. |
+| Cursor CLI | 2026.10.18 | not run | not run | not run | `cursor-agent -p` reported "Authentication required"; the probe needs `cursor-agent login` first. |
+
+Limit: the agent repeated the skill marker in its first answer, so a quoted marker shows the fact survived, not that the skill body was re-injected. Only Claude Code and Grok showed the body itself after compaction. Telling re-injection from summary needs a probe where the marker is never repeated before compaction.
+
 ## Open cells
 
-No behavior was observed. These cells rest on no documentation and stay open until a compaction probe is authorized and run:
+These cells rest on no documentation or observation and stay open:
 
-- Claude Code: the user-level `~/.claude/CLAUDE.md`.
-- Codex: the invoked skill body; the global file rests on unpinned source.
-- Grok Build: all three columns.
-- Pi: explicit survival of the global file and of a skill body.
-- OpenCode: the skill body rests on source only.
-- Cursor CLI: all three columns.
+- Codex, Pi and OpenCode: whether the skill body itself is re-injected, or only summarized.
+- Cursor CLI: all three columns; the probe did not run.
 
 ## What it means for re-injection
 
-- A host whose global file survives needs no re-injection of the always-loaded layer; the loss to cover is the `hive-core` skill body.
+- A host whose global file survives needs no re-injection of the always-loaded layer. In the probe it survived on all five hosts tested, so no host showed a loss of the always-loaded layer; the only possible loss is a `hive-core` skill body that is summarized rather than kept.
 - Claude Code truncates a re-injected skill body to its first 5,000 tokens: what must survive goes at the start of `SKILL.md`, and a `compact` hook is the only documented way to restore more.
 - Codex and Claude Code offer a post-compaction event; OpenCode and Pi only per-request or per-turn surfaces; Grok and Cursor none.
