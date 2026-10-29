@@ -74,6 +74,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"hive-core/references/option-scope.md",
 		// Split out of reporting; read between build tasks (issue #265).
 		skills+"flow-close/references/work-item-boundary.md",
+		// Split out of flow-build at its size limit (follow-up of #269).
+		skills+"flow-build/references/iterate-and-integrate.md",
 		skills+"flow-research/references/delegation.md",
 		skills+"workspace-conventions/references/artifact-layout.md",
 		"content/agents/review/hive-review-plan.md",
@@ -100,6 +102,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-build/references/foreseen-authorizations.md":    true,
 		skills + "hive-core/references/option-scope.md":                true,
 		skills + "flow-close/references/work-item-boundary.md":         true,
+		skills + "flow-build/references/iterate-and-integrate.md":      true,
 	}
 	scenarios := []struct {
 		name, predicate string
