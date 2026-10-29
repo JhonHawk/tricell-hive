@@ -23,7 +23,7 @@ The level combines values that already exist; no new setting selects it. Resolve
 | --- | --- | --- |
 | Affected tests and evidence | whenever verify runs | none |
 | Full local suite | before a validation stop, or once on the final candidate when no CI gate runs it, in a change that is not mechanical | the full-suite rule below |
-| Local checks before publication | before each push of a change that is not mechanical | [review and gates](references/review-and-gates.md#local-checks-before-publication) |
+| Local checks before publication | before a push, as its condition sets | [review and gates](references/review-and-gates.md#local-checks-before-publication) |
 | Local in-vivo run | the changed behavior calls for it; when it does not, the report says why | the rule in [review and gates](references/review-and-gates.md) |
 | UI gate | the change has a rendered UI effect | the `UI verification` answer (`full`, `functional`, `none`) |
 | Dedicated code review | on the local candidate, as [Dedicated review timing](references/review-and-gates.md#dedicated-review-timing) sets | the answer to the review question |
@@ -38,7 +38,7 @@ Compare the final changes and observed behavior against the acceptance criteria 
 In any delivery mode that stops for validation, run these steps on the built candidate, in the order listed except that step 4 runs in parallel with step 3, before asking the user to validate a result; they do not run before the first rendered view that [flow-walkthrough](../flow-walkthrough/SKILL.md) shows:
 
 1. The UI gate that the `UI verification` answer selects.
-2. The full suite of each affected application, locally, even when CI will run it later, since under `interactive` CI runs after the push that follows validation, with the rest of the [local checks before publication](references/review-and-gates.md#local-checks-before-publication).
+2. The full suite of each affected application, locally, even when CI will run it later, since under `interactive` CI runs after the push that follows validation. When a push follows the validation, also run the rest of the [local checks before publication](references/review-and-gates.md#local-checks-before-publication).
 3. The dedicated code review, as [Dedicated review timing](references/review-and-gates.md#dedicated-review-timing) sets, including when a mechanism that only works on a pull request runs instead and what the validation message says about it.
 4. In parallel with step 3, the security review, run as [flow-security](../flow-security/SKILL.md) sets, when the user asked for it; otherwise the validation message offers it for any boundary no earlier offer named, as [Offer the security review](../flow-build/references/security-boundaries.md#offer-the-security-review) sets. Both also apply without a validation stop.
 5. The delivery of [flow-walkthrough](../flow-walkthrough/SKILL.md), which gives the page's path and asks the validation question it sets.
