@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read by [flow-verify](../SKILL.md) before the local runtime checks or the human UI handoff on a candidate, and wherever another procedure points to its runtime and UI gates, such as a reported prerequisite. [Verification by risk and surface](../../flow-build/references/verification.md) keeps the evidence selection, the gate authorization rule and the frequency rules; the dedicated code review and the checks before a push stay in [review and gates](review-and-gates.md). Verification does not grant deployment, publication, destructive effects, or external access.
+Read by [flow-verify](../SKILL.md) before the local runtime checks or the human UI handoff on a candidate, and wherever another procedure points to its runtime and UI gates, such as a reported prerequisite. The dedicated code review and the checks before a push are in [review and gates](review-and-gates.md), whose opening sets what verification does and does not grant.
 
 ## Runtime and UI gates
 
