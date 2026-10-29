@@ -6,15 +6,15 @@ Read the applicable conditions and actions before writing a report of work or fi
 
 ## Lead with the result
 
-Lead with the answer or outcome; when several openings apply, open with work still running, then a completed work item, then the answer. Match detail to the question and the decision it supports, not the effort spent. Explain necessary context without assuming prior knowledge or belaboring the obvious. Write plain, natural prose in the session language for a reader who did not see the work: complete sentences, everyday words, and concrete names instead of shorthand, metaphors, or internal labels; explain a technical term the first time the reader may not know it. The English terms these instructions use, such as gate, walk, in-vivo, fixture, or cutover, are not the user's vocabulary: say what they mean in everyday words of the session language. Report the evidence that affects the conclusion, not each tool call.
+Lead with the answer or outcome; when several openings apply, open with work still running, then a completed work item, then the answer. Match detail to the question and the decision it supports, not the effort spent. Explain necessary context without assuming prior knowledge or belaboring the obvious. Write in the session language. Report the evidence that affects the conclusion, not each tool call.
 
 ## Open with the context line
 
-**Condition:** a message to the user reports progress, delivers a stage's result or closes work, or asks for a decision or a validation, except a single-sentence progress note.
+**Condition:** a message to the user asks for a decision or a validation, delivers a stage's result or a blocker, or closes work.
 
-**Actions:** make its first line the context line, in bold: `<stage> · <ticket(s)> · <progress>`. The stage, untranslated despite the Language rule, is the outermost running flow's name without `flow-`, such as Build, or another skill's, such as harness-audit; outside one, Research for an investigation and Build for a change; never invent one. The rest is in the session language. Name the ticket by its ID, or the change by its name when there is no ticket. The progress is the stage's own counter when it has one, such as tasks verified of the total or children returned; omit it when the stage has none. The context line is a heading, not the first sentence: the opening that [Lead with the result](#lead-with-the-result) sets, or a plan's pause block, comes after it, then the body, and the pause line stays last. A message that is only a progress note of one sentence, such as the line between tasks or tool calls, an iterative round, a wait stretch, or what an answer settles, takes no context line: it states the change, and a wait-stretch line, where no result arrived, names what is still running and what its result decides; a message of two or more sentences is not one; a one-line statement inside a longer message gets none either. A native question card, which a host may show alone, opens its question with the stage and ticket.
+**Actions:** make its first line the context line, in bold: `<stage> · <ticket(s)> · <progress>`. The stage, untranslated despite the Language rule, is the outermost running flow's name without `flow-`, such as Build, or another skill's, such as harness-audit; outside one, Research for an investigation and Build for a change; never invent one. The rest is in the session language. Name the ticket by its ID, or the change by its name when there is no ticket. The progress is the stage's own counter when it has one, such as tasks verified of the total or children returned; omit it when the stage has none. The context line is a heading, not the first sentence: the opening that [Lead with the result](#lead-with-the-result) sets, or a plan's pause block, comes after it, then the body, and the pause line stays last. A native question card, which a host may show alone, opens its question with the stage and ticket.
 
-Greetings, a short answer outside that Condition, a child's return to its parent, and files take no context line.
+Greetings, a short answer outside that Condition, a message sent mid-work, such as the sentence that [a turn that ends to wait](#report-a-running-or-completed-item) carries, a child's return to its parent, and files take no context line.
 
 ## Citations and links
 
@@ -33,7 +33,7 @@ Greetings, a short answer outside that Condition, a child's return to its parent
 ## Shape the message by its content
 
 - Make multi-topic findings easy to scan: distinguish the outcome, material findings, pending decisions, and next action with short labeled sections.
-- In progress and completion reports, give each area a short bold label that reads on its own, in the session language, such as delivery, tickets, specs, cleanup, pending items, and recommendations, followed by its detail.
+- In reports, give each area a short bold label that reads on its own, in the session language, such as delivery, tickets, specs, cleanup, pending items, and recommendations, followed by its detail.
 - Link the retained document for technical detail instead of reproducing it; alternatives, recommendations, and any finding the user must weigh stay in the message.
 - When reporting a newly opened PR or one awaiting CI or review, include its link, and relevant run links when useful.
 - In chat replies, use a table only to compare three or more items across two or more attributes, with at most four short columns; a list for parallel items; prose for causes and reasoning.
@@ -57,17 +57,21 @@ Greetings, a short answer outside that Condition, a child's return to its parent
 1. When the result or the notice says the child stopped while it still waits on work of its own, it has stopped: apply [Check returned work](../../flow-research/references/delegation.md#check-returned-work) before writing anything.
 2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, apply step 5 instead.
 3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../hive-core/references/questions.md).
-4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs; while work of your own remains, send that report with your next tool call, as step 6 sets, and ask a decision it needs when [questions](../../hive-core/references/questions.md) says to ask it.
-5. Otherwise the turn changes nothing the user needs: reply in one progress sentence stating the change, without listing the work still running or repeating an open question or its pause line. This note is not a second report.
+4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets; while work of your own remains, send that report with your next tool call, as step 6 sets, and ask a decision it needs when [questions](../../hive-core/references/questions.md) says to ask it.
+5. Otherwise the turn changes nothing the user needs: send no report and do not repeat an open question or its pause line; a turn that then ends to wait carries only the sentence the next condition sets, which is not a second report.
 6. Continue with your next tool call when work of your own remains; otherwise end the turn.
 
-**Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 2 above answers without a message or step 5 answers in one line.
+**Condition:** a turn ends to wait on work still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 2 above answers without a message.
 
-**Actions:** open with a labeled in-progress item stating what is running, what its result decides, what will wake you when it ends or stalls, the current wait's duration or deadline for your next wake, and what happens next, before any findings.
+**Actions:** say in one sentence what is still running and what its result decides; a report the turn carries opens with it.
+
+**Condition:** a message delivers a stage's result: a validation request, a completion report, or a stop at a blocker.
+
+**Actions:** state what changed; each check not met, accepted without verification or skipped, and the verification level when it is below the agreed one; any unresolved failure or uncertainty; and the next step when there is one. Never list the checks that passed.
 
 **Condition:** a work item completes.
 
-**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give what was delivered with its pull-request URLs, the verification level that ran with each check not met or accepted without verification and any unresolved failure or uncertainty, the cleanup, and any secret that reached a durable or shared place or other incident the user must know. List each implementation decision taken without asking that chose between behaviors or contracts the user could reasonably have chosen differently, with its reason and how to revert it; omit the list when none was taken. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
+**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give the pull-request URLs and what the previous condition lists. Add, only when there is one: each decision taken without asking that the user could reasonably have made differently, such as a behavior or contract chosen, a blocking defect fixed, or the ticket you chose when the user left it to you, with its reason and how to revert it; cleanup that left something running or failed; and any secret that reached a durable or shared place or other incident the user must know. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
 
 **Condition:** a pending item remains.
 
@@ -75,7 +79,7 @@ Greetings, a short answer outside that Condition, a child's return to its parent
 
 ## Closing categories
 
-Close findings, progress, and completion reports with the closing items that actually apply. No category is required: a report may have no pending item, next step, recommendation, or reminder, and none is invented to fill one. A follow-up that ends a piece of work still closes with the items that apply. Put each item in exactly one category, in this order. Translate labels to the session language.
+Close findings and completion reports with the closing items that actually apply. No category is required: a report may have no pending item, next step, recommendation, or reminder, and none is invented to fill one. A follow-up that ends a piece of work still closes with the items that apply. Put each item in exactly one category, in this order. Translate labels to the session language.
 
 ### Pending
 
@@ -115,14 +119,11 @@ Assume the local checks passed, publishing remains an agreed obligation, the use
 
 ```text
 **Build · ARK-123 · 2 of 2 tasks verified**
-**In progress:** the required review is running; its verdict decides
-publication, and its completion notice wakes me, at the latest in ten
-minutes.
+The required review is still running; its verdict decides publication.
 The local change is verified; publication is still pending.
 
-**Delivery:** Updated the retry handling; the targeted tests passed.
+**Delivery:** Updated the retry handling.
 The [change record](<change-folder>/proposal.md) holds the technical detail.
-**Cleanup:** Stopped the test process; kept the uncommitted source changes.
 **Pending:** Me — I will publish by the already agreed route after the
 required reviewer returns a passing verdict.
 ```

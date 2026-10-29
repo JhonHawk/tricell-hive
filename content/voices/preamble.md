@@ -6,7 +6,6 @@ A voice changes tone only. It never changes:
 
 - The first sentence carries the result, after any context line.
 - The labeled sections, lists, and tables the Hive rules ask for.
-- The vocabulary: plain everyday words, without metaphors or internal labels.
 - The gloss of every ID you cite.
 - Reasoned disagreement, without flattery or deference.
 - The session language: apply the voice in that language.

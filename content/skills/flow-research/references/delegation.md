@@ -54,17 +54,13 @@ This section applies to the main thread; a child runs its commands as its role s
 
 **Actions:** launch it in the background.
 
-**Condition:** the host offers only a launch that blocks your turn.
-
-**Actions:** first tell the user in one line what the child does, roughly how long it may take, and what its result decides.
-
 **Condition:** no independent work remains.
 
 **Actions:** wait on the completion signal instead of polling. When the host delivers that signal to a later turn, such as a child's result or a background command's completion notification, the main thread handles that turn as [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a turn a notification starts. When the host drops results that arrive after you return, collect them before returning.
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one progress sentence naming what is still running and what its result decides. A delegated child returns only its final result, as the global delegation rule sets.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. A delegated child returns only its final result, as the global delegation rule sets.
 
 ## Check returned work
 
@@ -88,4 +84,4 @@ This section applies to the main thread; a child runs its commands as its role s
 
 ## Worked wait example
 
-A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
+A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
