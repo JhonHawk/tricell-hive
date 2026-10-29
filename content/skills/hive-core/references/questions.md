@@ -71,7 +71,7 @@ Split questions or options beyond the tool's limit across consecutive calls, eac
 
 **Actions:** state what is needed and what it unblocks; how to do or check it, with concrete targets (clickable URL, command, commit or diff, file path, account without secrets) and what to compare against; what you already verified; and the possible answers with what each triggers, in the card when one carries the question.
 
-When the user must check several things, give each flow its own block, headed by the ticket and a short description, with bullet steps from the start to what they should see. A manual validation request, such as the walkthrough for the user to validate a result, correction rounds, or the interactive mode's stop before push, goes complete in the message and ends with the pause line.
+When the user must check several things, give each flow its own block, headed by the ticket and a short description, with bullet steps from the start to what they should see. A manual validation request, such as the walkthrough for the user to validate a result, correction rounds, or the interactive mode's stop before push, goes complete in the message and ends with the pause line. Ask a mode's validation stop as that validation: what the user validates, the mode, and what their acceptance lets you do next, not as a bare request to publish.
 
 ## Pause and handle the answer
 

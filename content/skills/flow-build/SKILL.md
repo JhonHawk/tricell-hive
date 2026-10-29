@@ -5,11 +5,11 @@ description: Implement or resume authorized code or configuration work; reconcil
 
 # Implement authorized work
 
-Use the requested outcome or supplied plan as the execution brief. A failure reported without a fix request enters through `flow-research` first, as the global guidance sets; requested work needs no formal plan or prior research.
+Use the requested outcome or supplied plan as the execution brief.
 
 ## Entry and exit
 
-Enter with authorized work: a ready plan, or a request the user made; a small understood change needs no plan. Leave with a built candidate: its tasks committed, or the working tree under `hold`, and verified at their checkpoints, the affected tests passing, and the first rendered view accepted, or reported where the delivery mode has no validation stop or under unattended delegation, when one applies; hand it to [flow-verify](../flow-verify/SKILL.md) naming the checks it still owes; verify, not this skill, runs the UI children, the full suite, the dedicated code review and the human validation. When verify is skipped, integrate as [Check and hand off](#check-and-hand-off) sets.
+Enter with authorized work: a ready plan, or the user's request for a small understood change: one coherent result whose approach the request, ticket or code settles, in one repository unless it is mechanical, as the global guidance defines it. Send a request for other work, such as one spanning several tickets, repositories or steps, to [flow-plan](../flow-plan/SKILL.md) when its goal has a scope, else to [flow-research](../flow-research/SKILL.md) first; build it here only when the user explicitly chose to skip the plan. At entry, say in one line which stages run or are skipped and why, research and plan included, whether verify will run, with its level when earlier answers already set it, and, when the user left the ticket to you, which one you chose and why; when the delivery and review round below is asked, that line goes in its message. Leave with a built candidate: its tasks committed, or the working tree under `hold`, and verified at their checkpoints, the affected tests passing, and the first rendered view accepted, or reported where the delivery mode has no validation stop or under unattended delegation, when one applies; hand it to [flow-verify](../flow-verify/SKILL.md) naming the checks it still owes; verify, not this skill, runs the UI children, the full suite, the dedicated code review and the human validation. When verify is skipped, integrate as [Check and hand off](#check-and-hand-off) sets.
 
 ## Reconcile before execution
 

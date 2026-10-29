@@ -31,6 +31,19 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A request to do work no longer skips research and plan silently (#267).
+  Without a ready plan it goes straight to build only for a small understood
+  change (one result in one repository whose approach is settled, or a
+  mechanical change) or when you explicitly choose to skip the plan;
+  anything bigger goes to plan, or to research first when what to change is
+  not yet clear. At entry the agent says in one line which stages run or are
+  skipped and why, whether verify will run, with its level when earlier
+  answers set it, and the ticket it chose when you let it choose. A ticket
+  another session has in progress is listed apart, resumable if it is yours,
+  and never recommended or chosen as the next one. Before a validation stop
+  the agent opens every target it names and fixes a broken local setup
+  first, and it asks as the validation the delivery mode set, never as a
+  request to publish. Run `hive update` to install it.
 - A build no longer stops halfway when a task finishes (#265). While work of
   its own remains, every message goes with the next tool call: a finished or
   verified task gets one progress sentence, not a report, and a question such
