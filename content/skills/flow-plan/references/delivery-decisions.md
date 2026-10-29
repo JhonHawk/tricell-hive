@@ -16,7 +16,7 @@ Before resolving repository settings needed here, read [project settings](../../
 
 **Condition:** commits integrated earlier are to be reviewed, such as in a promotion pull request.
 
-**Actions:** review only the commits that were not reviewed before their integration, as the change record or each pull request's body records; when all were, apply no new review and say so.
+**Actions:** review only the commits that were not reviewed before their integration: those that neither the change record nor their pull request's body records as reviewed, and those whose commit message marks them unreviewed; when all were, apply no new review and say so.
 
 | Mode | Delivery contract to present |
 | --- | --- |
