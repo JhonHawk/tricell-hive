@@ -31,6 +31,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `flow-build` moves its rules for iterating on checks and for integrating and
+  reporting when verify is skipped to the new reference
+  `flow-build/references/iterate-and-integrate.md`, read before those steps,
+  so the skill has room again under the 16,000-byte limit. Run
+  `hive update` to install it.
 - Three hand-offs no longer ask for a report while work continues (#269).
   Build hands its candidate to verify in one sentence with the next tool
   call, naming the checks verify still owes, and reports only when verify
