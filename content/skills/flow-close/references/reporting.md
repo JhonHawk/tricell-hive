@@ -107,16 +107,17 @@ Distinguish work already completed, work you will continue under existing author
 
 ## Work-item boundary
 
-A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in one sentence and continue. While authorized work remains, send each progress note with your next tool call, since a response without one can end the turn; answer a question that arrives meanwhile in one line and continue; a notification that arrives meanwhile follows [the notification turn](#report-a-running-or-completed-item).
-
-End a turn that completes a work item with a close question, after the report and its closing items; a turn that ends on the report is incomplete. Read [the close-question procedure](../SKILL.md#close-question) for its options, ticket selection and exceptions. Investigation-only findings and follow-ups use [flow-research](../../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
+For readers who reach this reference from any flow: before the first message of authorized work while work of your own remains, before ending a turn while it remains, and before ending a turn that completes a work item, read [work-item boundary](work-item-boundary.md): it sets when the turn may end.
 
 ## Worked example: report with pending work
 
-Assume the local checks passed, publishing remains an agreed obligation, and the user already authorized the route. The link below is a fictional template, not a bundled dependency.
+Assume the local checks passed, publishing remains an agreed obligation, the user already authorized the route, and the required review runs in the background with no independent work left, so the turn ends on this report. The link below is a fictional template, not a bundled dependency.
 
 ```text
 **Build · ARK-123 · 2 of 2 tasks verified**
+**In progress:** the required review is running; its verdict decides
+publication, and its completion notice wakes me, at the latest in ten
+minutes.
 The local change is verified; publication is still pending.
 
 **Delivery:** Updated the retry handling; the targeted tests passed.
@@ -124,7 +125,6 @@ The [change record](<change-folder>/proposal.md) holds the technical detail.
 **Cleanup:** Stopped the test process; kept the uncommitted source changes.
 **Pending:** Me — I will publish by the already agreed route after the
 required reviewer returns a passing verdict.
-**Next step:** I will run the already authorized review on this candidate.
 ```
 
 This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../hive-core/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.
