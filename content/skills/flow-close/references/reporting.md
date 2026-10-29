@@ -67,11 +67,11 @@ Greetings, a short answer outside that Condition, a message sent mid-work, such 
 
 **Condition:** a message delivers a stage's result: a validation request, a completion report, or a stop at a blocker.
 
-**Actions:** state what changed; each check not met, accepted without verification or skipped, and the verification level when it is below the agreed one; any unresolved failure or uncertainty; and the next step when there is one. Never list the checks that passed.
+**Actions:** state what changed; each check not met, accepted without verification or skipped, and the verification level when it is below the agreed one; any unresolved failure or uncertainty; each decision taken without asking that the user could reasonably have made differently, such as a behavior or contract chosen, a blocking defect fixed, or the ticket you chose when the user left it to you, with its reason and how to revert it; the first rendered view's artifact path when no validation stop showed it; and the next step when there is one. Never list the checks that passed, except those a mechanical change relies on and the per-environment results a deployment report sets.
 
 **Condition:** a work item completes.
 
-**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give the pull-request URLs and what the previous condition lists. Add, only when there is one: each decision taken without asking that the user could reasonably have made differently, such as a behavior or contract chosen, a blocking defect fixed, or the ticket you chose when the user left it to you, with its reason and how to revert it; cleanup that left something running or failed; and any secret that reached a durable or shared place or other incident the user must know. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
+**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give the pull-request URLs and what the previous condition lists. Add, only when there is one: cleanup that failed or left something behind, such as a running process or a kept branch or worktree, with why; and any secret that reached a durable or shared place or other incident the user must know. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
 
 **Condition:** a pending item remains.
 
@@ -115,17 +115,17 @@ For readers who reach this reference from any flow: before the first message of 
 
 ## Worked example: report with pending work
 
-Assume the local checks passed, publishing remains an agreed obligation, the user already authorized the route, and the required review runs in the background with no independent work left, so the turn ends on this report. The link below is a fictional template, not a bundled dependency.
+Assume the local checks and the required review passed, publishing remains an agreed obligation the user already authorized, and the push fails because the remote rejects this machine's credentials, a blocker that stops all remaining work, so the turn ends on this report. The link below is a fictional template, not a bundled dependency.
 
 ```text
 **Build · ARK-123 · 2 of 2 tasks verified**
-The required review is still running; its verdict decides publication.
-The local change is verified; publication is still pending.
+The local change is verified and reviewed; publication is blocked.
 
 **Delivery:** Updated the retry handling.
 The [change record](<change-folder>/proposal.md) holds the technical detail.
-**Pending:** Me — I will publish by the already agreed route after the
-required reviewer returns a passing verdict.
+**Pending:** You — restore push access to the remote for this machine;
+I checked that the stored credential is rejected. Me — I will publish by
+the already agreed route once the push succeeds.
 ```
 
 This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../hive-core/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.

@@ -77,7 +77,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** a message waits on the user's choice.
 
-**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one, or the yes-or-no question itself. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. A notification turn that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) answers in one line while the question waits is not a second report and carries no pause line.
+**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one, or the yes-or-no question itself. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. The one sentence that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a later turn that ends to wait while the question waits is not a second report and carries no pause line.
 
 **Condition:** an open choice has already been asked.
 
@@ -85,7 +85,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** an answer arrives, including free text.
 
-**Actions:** when it is free text, invalidates something, or returns the work to an earlier flow, such as from plan to research or from build to plan, say in one line before acting what it changes; one that picks an offered option needs no line. A retained plan the answer changes follows [Revise a plan in progress](../../flow-plan/references/plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
+**Actions:** when it is free text, invalidates something, or returns the work to an earlier flow, such as from plan to research or from build to plan, say in one line before acting what it changes; one that only picks an offered option needs no line. A retained plan the answer changes follows [Revise a plan in progress](../../flow-plan/references/plan-revision.md). Re-ask an answered question only when the change needs effects not yet authorized.
 
 When the answer leaves a selection to your judgment, such as which findings to fix now and which to keep under observation, or which items to include, list the resulting selection before acting on it: what goes in and what stays out, each item with its gloss. Then ask whether the user agrees, recommending to continue as listed and taking corrections in free text. This confirmation is a new question with its own ID, not a re-ask of the answered one; when another question follows anyway, put the list and the confirmation in that round. An answer that picks one of the offered options leaves no selection to confirm. Two exceptions: a selection within the bounds of an iterative route the user chose is recorded in that round's loop state, and under [unattended delegation](../../unattended-delegation/SKILL.md) the selection is recorded with the decisions taken instead of asked.
 
