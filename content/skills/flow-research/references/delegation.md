@@ -4,11 +4,11 @@
 
 Read before launching a child or starting a wait for external work, including reviews, CI, builds and deployments. Children read this resource before dependent work when their assignment consumes this procedure. It does not invoke the research workflow or grant effects beyond the task brief.
 
-## Split and announce work
+## Split work
 
 **Condition:** selecting work to delegate or changing the split.
 
-**Actions:** the main thread coordinates work in proportion to the task. Tell the user in one sentence which work goes to which subagents and why; do not announce that work stays in the main thread. This is the one delegation criterion; skills point here. Keep small, understood tasks direct. Delegate a unit when its interface is settled, its writes do not overlap concurrent work, and its brief is shorter than the change itself; keep it in the main thread when it is coupled to work in progress. For a lookup, which changes nothing, the measure is its output: delegate the rest of a lookup that has not found its answer by the sixth search or read, the count the global guidance uses for a lookup outside a skill, and the probing the next sentence names. Send probing likely to produce long output, such as binaries, installed dependencies, build artifacts, long documentation, or broad searches, to a child that returns only the relevant findings, because early context is re-read for the rest of the session. Reassess the split when a direct lookup grows into diagnosis. Delegate independent bounded work; sequence dependencies and avoid overlapping writers. Launch independent children in the same step, not in waves. When several children work on one question, give each a disjoint scope and name in each brief what the others cover, so none repeats another's reads. When your own bounded lookup has not found where the answer lives, launch one child to locate it first and split the rest by what it finds.
+**Actions:** the main thread coordinates work in proportion to the task. This is the one delegation criterion; skills point here. Keep small, understood tasks direct. Delegate a unit when its interface is settled, its writes do not overlap concurrent work, and its brief is shorter than the change itself; keep it in the main thread when it is coupled to work in progress. For a lookup, which changes nothing, the measure is its output: delegate the rest of a lookup that has not found its answer by the sixth search or read, the count the global guidance uses for a lookup outside a skill, and the probing the next sentence names. Send probing likely to produce long output, such as binaries, installed dependencies, build artifacts, long documentation, or broad searches, to a child that returns only the relevant findings, because early context is re-read for the rest of the session. Reassess the split when a direct lookup grows into diagnosis. Delegate independent bounded work; sequence dependencies and avoid overlapping writers. Launch independent children in the same step, not in waves. When several children work on one question, give each a disjoint scope and name in each brief what the others cover, so none repeats another's reads. When your own bounded lookup has not found where the answer lives, launch one child to locate it first and split the rest by what it finds.
 
 ## Select the role
 
@@ -54,17 +54,13 @@ This section applies to the main thread; a child runs its commands as its role s
 
 **Actions:** launch it in the background.
 
-**Condition:** the host offers only a launch that blocks your turn.
-
-**Actions:** first tell the user in one line what the child does, roughly how long it may take, and what its result decides.
-
 **Condition:** no independent work remains.
 
 **Actions:** wait on the completion signal instead of polling. When the host delivers that signal to a later turn, such as a child's result or a background command's completion notification, the main thread handles that turn as [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a turn a notification starts. When the host drops results that arrive after you return, collect them before returning.
 
 **Condition:** the host needs an explicit blocking wait rather than delivering the signal.
 
-**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. After each stretch that ends without the result, the main thread gives the user one progress sentence naming what is still running and what its result decides. A delegated child returns only its final result, as the global delegation rule sets.
+**Actions:** keep one blocking wait, such as a subagent wait call or `gh run watch`, with its timeout set to a whole stretch of about five to ten minutes, or the host's maximum when lower, never a 30- or 60-second slice. Re-await the same process or rerun the same watch, never starting new short sleep-and-check cycles. A delegated child returns only its final result, as the global delegation rule sets.
 
 ## Check returned work
 
@@ -88,4 +84,4 @@ This section applies to the main thread; a child runs its commands as its role s
 
 ## Worked wait example
 
-A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, report: "The review is still running; its verdict determines whether this candidate may be published. I will continue waiting for the same review." Re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.
+A background review has a host completion signal and an independent file can be inspected. Inspect that file rather than polling. Once no independent work remains, wait for the signal. If an explicit wait is required and its five-minute stretch expires, re-await that review, not a new reviewer. When it returns, check the cited evidence and include every reported defect before integration.

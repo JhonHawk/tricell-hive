@@ -8,7 +8,7 @@ Read before the first message of a build, a verify stage or other authorized wor
 
 A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one.
 
-While authorized work of your own remains, send each message with your next tool call, since a response without one can end the turn. A finished or verified task gets one progress sentence, not a report. A question that arrives meanwhile gets a short direct answer, one line when it asks about progress, such as how it is going or what comes next. A message that another rule shapes, such as a failed integration, an exposed secret or an explanation the user asked for, takes the form that rule or [reporting](reporting.md) sets; it still goes with that call. A notification that arrives meanwhile follows [the notification turn](reporting.md#report-a-running-or-completed-item).
+While authorized work of your own remains, no rule requires a message between tasks; send any message with your next tool call, since a response without one can end the turn. A question that arrives meanwhile gets a short direct answer, one line when it asks about progress, such as how it is going or what comes next. A message that another rule shapes, such as a failed integration, an exposed secret or an explanation the user asked for, takes the form that rule or [reporting](reporting.md) sets; it still goes with that call. A notification that arrives meanwhile follows [the notification turn](reporting.md#report-a-running-or-completed-item).
 
 Until that work is done, end the turn only:
 

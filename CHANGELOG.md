@@ -31,19 +31,34 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The agent no longer owes you messages while work continues (#272). It
+  drops the progress sentence after each task, the line at the start of
+  build and verify, the announcement of how it splits work among helpers,
+  the line per iterative round and per wait stretch, and the "in progress"
+  block. Anything it writes mid-work still goes with its next action, and
+  when its turn ends to wait it says in one sentence what is still running
+  and what that result decides. The context line now opens only decisions,
+  validations, results, blockers and closing messages. A stage's result,
+  such as a validation request or the completion report, adds unmet or
+  skipped checks, decisions taken without asking and the first view's path
+  only when there are any, and lists passing checks only for a mechanical
+  change or a deployment; the completion report also says what was done,
+  what it excludes, the pull request and where open topics go, and names
+  cleanup only when it failed or left something behind. Reports follow only
+  the session language, with no rule on vocabulary. An answer that only
+  picks an offered option gets no confirming line. Run `hive update` to install it.
 - `flow-build` moves its rules for iterating on checks and for integrating and
   reporting when verify is skipped to the new reference
   `flow-build/references/iterate-and-integrate.md`, read before those steps,
   so the skill has room again under the 16,000-byte limit. Run
   `hive update` to install it.
 - Three hand-offs no longer ask for a report while work continues (#269).
-  Build hands its candidate to verify in one sentence with the next tool
-  call, naming the checks verify still owes, and reports only when verify
+  Build hands its candidate to verify with the next tool call, and reports only when verify
   is skipped, inside the completion report. A child's or background result
   that decides something is reported together with the next tool call while
   work remains, unless it needs your decision. Verify puts its findings in
   the validation request or in the close's completion report, which now
-  lists the verification level and the checks not met or accepted without
+  lists the checks not met or accepted without
   verification; only a verify that stops at a blocker reports on its own.
   Run `hive update` to install it.
 - A request to do work no longer skips research and plan silently (#267).
@@ -51,17 +66,15 @@ raise the minor or the patch version.
   change (one result in one repository whose approach is settled, or a
   mechanical change) or when you explicitly choose to skip the plan;
   anything bigger goes to plan, or to research first when what to change is
-  not yet clear. At entry the agent says in one line which stages run or are
-  skipped and why, whether verify will run, with its level when earlier
-  answers set it, and the ticket it chose when you let it choose. A ticket
+  not yet clear. The ticket it chose when you let it choose goes in the
+  completion report. A ticket
   another session has in progress is listed apart, resumable if it is yours,
   and never recommended or chosen as the next one. Before a validation stop
   the agent opens every target it names and fixes a broken local setup
   first, and it asks as the validation the delivery mode set, never as a
   request to publish. Run `hive update` to install it.
 - A build no longer stops halfway when a task finishes (#265). While work of
-  its own remains, every message goes with the next tool call: a finished or
-  verified task gets one progress sentence, not a report, and a question such
+  its own remains, every message goes with the next tool call, and a question such
   as "what's next?" gets a one-line answer before the work continues. The turn
   ends only to ask the user, at a validation stop, to wait for a result with
   no other work left, at a blocker, or when the user or another rule stops
