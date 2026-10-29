@@ -31,6 +31,16 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Three hand-offs no longer ask for a report while work continues (#269).
+  Build hands its candidate to verify in one sentence with the next tool
+  call, naming the checks verify still owes, and reports only when verify
+  is skipped, inside the completion report. A child's or background result
+  that decides something is reported together with the next tool call while
+  work remains, unless it needs your decision. Verify puts its findings in
+  the validation request or in the close's completion report, which now
+  lists the verification level and the checks not met or accepted without
+  verification; only a verify that stops at a blocker reports on its own.
+  Run `hive update` to install it.
 - A request to do work no longer skips research and plan silently (#267).
   Without a ready plan it goes straight to build only for a small understood
   change (one result in one repository whose approach is settled, or a
