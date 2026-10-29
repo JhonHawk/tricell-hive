@@ -82,7 +82,7 @@ While the work runs, `tasks.md` and the status in `proposal.md` are updated on d
 
 Versioning cases:
 
-- **Specs repository with `Delivery: direct-base`:** one commit and one push with the deltas applied and the folder already in `archive/`, after the code is integrated and, when it applies, the post-merge CI has passed.
+- **Specs repository with `Delivery: direct-base`:** one commit and one push with the deltas applied and the folder already in `archive/`, after the code is integrated and, when it applies, the post-merge CI has passed; when that push triggers a deployment that no answer for this change named, ask before it, as [delivery decisions](../flow-plan/references/delivery-decisions.md) sets.
 - **Specs inside the code repository, or in a separate specs repository that does not declare `Delivery: direct-base`:** the commit goes to the base branch by the closing route the user chose in the delivery question: a direct push, or a small closing pull request without dedicated review, with the named merger. Act only on the recorded answer, as [delivery decisions](../flow-plan/references/delivery-decisions.md) sets; repository policy does not replace it. Order: return to the base branch and fast-forward it, make the record commit, publish it by the chosen route, then clean up as [Clean up after a merge](#clean-up-after-a-merge) sets, including the closing pull request's branch. If no closing route was recorded, ask for it before publishing.
 
 ## Clean up after a merge
