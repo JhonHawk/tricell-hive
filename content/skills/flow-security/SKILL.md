@@ -11,7 +11,7 @@ This stage runs only on an explicit user request; what counts as one, and the ru
 
 ## Prepare
 
-Before resolving needed project settings, read [project settings](../hive-core/references/project-settings.md). Before a user decision, read [questions](../hive-core/references/questions.md). Before delegating or starting an external-work wait, read [delegation and waits](../flow-research/references/delegation.md). Before progress reports, completion reports or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md). To brief the reviewer and check its result, read [security boundaries](../flow-build/references/security-boundaries.md), which names the boundaries and the dependency check.
+Before resolving needed project settings, read [project settings](../hive-core/references/project-settings.md). Before a user decision, read [questions](../hive-core/references/questions.md). Before delegating or starting an external-work wait, read [delegation and waits](../flow-research/references/delegation.md). Before reports or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md). To brief the reviewer and check its result, read [security boundaries](../flow-build/references/security-boundaries.md), which names the boundaries and the dependency check.
 
 ## Procedure
 

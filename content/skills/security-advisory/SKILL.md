@@ -16,7 +16,7 @@ Before delegating, read [delegation and waits](../flow-research/references/deleg
 
 ## Collect the evidence
 
-3. **Inventory each repository.** Delegate the sweep to `hive-research` children by the criterion and split that [delegation and waits](../flow-research/references/delegation.md#split-and-announce-work) sets. Give the inventory, yours or each child's, these instructions together with the advisory facts from step 1:
+3. **Inventory each repository.** Delegate the sweep to `hive-research` children by the criterion and split that [delegation and waits](../flow-research/references/delegation.md#split-work) sets. Give the inventory, yours or each child's, these instructions together with the advisory facts from step 1:
    - For each repository and application, record the current branch, because only the working tree is read.
    - Record the version the lockfile resolves, not the manifest range, with its `path:line`.
    - When the advisory affects a runtime, record its pins: `.nvmrc`, `.node-version`, `engines`, Dockerfile base images, CI and hosting build settings.
