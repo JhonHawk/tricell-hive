@@ -30,6 +30,8 @@ At the start the agent says in one line whether verify runs and at which level. 
 
 When it finishes, the report names the level that ran and each check that failed, could not run or was accepted without verification. If the delivery mode lets it, the accepted candidate is integrated, and [Close](/flows/close/) follows.
 
+When the delivery mode stops for your validation, the agent first opens every link or service it is about to give you, as you would, and fixes a broken local setup before asking. It asks as that validation: which mode stopped, what to check and where, and what follows once you accept, which under `interactive` is the push, pull request and merge your delivery answer already covers, and under `hold` nothing is published. It never words the stop as a request to publish. The target check is in [review and gates](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/references/review-and-gates.md#runtime-and-ui-gates) and the wording in [questions](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/questions.md).
+
 ## Corrections during the validation pause
 
 Each correction you ask for is classified first and then run as its own round; a repeated correction on the same aspect can lead the agent to ask whether to go back to the plan. [Changes and loops](/flows/overview/) shows where each kind of request returns the work, and the [scope changes reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/scope-changes.md) holds the classification.
