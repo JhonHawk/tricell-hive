@@ -38,14 +38,15 @@ raise the minor or the patch version.
   block. Anything it writes mid-work still goes with its next action, and
   when its turn ends to wait it says in one sentence what is still running
   and what that result decides. The context line now opens only decisions,
-  validations, results, blockers and closing messages. The completion
-  report always says what was done, what it excludes, the pull request and
-  where open topics go, and adds unmet or skipped checks, decisions taken
-  without asking, cleanup that failed or left something behind, and
-  incidents only when there are any; it never lists checks that passed.
-  Reports follow only the session language, with no rule on vocabulary.
-  After you pick an offered option the agent no longer confirms it in a
-  line. Run `hive update` to install it.
+  validations, results, blockers and closing messages. A stage's result,
+  such as a validation request or the completion report, adds unmet or
+  skipped checks, decisions taken without asking and the first view's path
+  only when there are any, and lists passing checks only for a mechanical
+  change or a deployment; the completion report also says what was done,
+  what it excludes, the pull request and where open topics go, and names
+  cleanup only when it failed or left something behind. Reports follow only
+  the session language, with no rule on vocabulary. An answer that only
+  picks an offered option gets no confirming line. Run `hive update` to install it.
 - `flow-build` moves its rules for iterating on checks and for integrating and
   reporting when verify is skipped to the new reference
   `flow-build/references/iterate-and-integrate.md`, read before those steps,

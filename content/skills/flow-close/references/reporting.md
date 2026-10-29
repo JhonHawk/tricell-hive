@@ -14,7 +14,7 @@ Lead with the answer or outcome; when several openings apply, open with work sti
 
 **Actions:** make its first line the context line, in bold: `<stage> · <ticket(s)> · <progress>`. The stage, untranslated despite the Language rule, is the outermost running flow's name without `flow-`, such as Build, or another skill's, such as harness-audit; outside one, Research for an investigation and Build for a change; never invent one. The rest is in the session language. Name the ticket by its ID, or the change by its name when there is no ticket. The progress is the stage's own counter when it has one, such as tasks verified of the total or children returned; omit it when the stage has none. The context line is a heading, not the first sentence: the opening that [Lead with the result](#lead-with-the-result) sets, or a plan's pause block, comes after it, then the body, and the pause line stays last. A native question card, which a host may show alone, opens its question with the stage and ticket.
 
-Greetings, a short answer outside that Condition, a message sent mid-work, such as the sentence that [a turn that ends to wait](#report-a-running-or-completed-item) carries, a child's return to its parent, and files take no context line.
+Greetings, a short answer outside that Condition, a mid-work message outside it, such as the sentence that [a turn that ends to wait](#report-a-running-or-completed-item) carries, a child's return to its parent, and files take no context line.
 
 ## Citations and links
 
@@ -55,7 +55,7 @@ Greetings, a short answer outside that Condition, a message sent mid-work, such 
 **Actions, in order:**
 
 1. When the result or the notice says the child stopped while it still waits on work of its own, it has stopped: apply [Check returned work](../../flow-research/references/delegation.md#check-returned-work) before writing anything.
-2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, apply step 5 instead.
+2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, say in one sentence that the process exited as intended.
 3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../hive-core/references/questions.md).
 4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets; while work of your own remains, send that report with your next tool call, as step 6 sets, and ask a decision it needs when [questions](../../hive-core/references/questions.md) says to ask it.
 5. Otherwise the turn changes nothing the user needs: send no report and do not repeat an open question or its pause line; a turn that then ends to wait carries only the sentence the next condition sets, which is not a second report.
@@ -65,13 +65,13 @@ Greetings, a short answer outside that Condition, a message sent mid-work, such 
 
 **Actions:** say in one sentence what is still running and what its result decides; a report the turn carries opens with it.
 
-**Condition:** a message delivers a stage's result: a validation request, a completion report, or a stop at a blocker.
+**Condition:** a message delivers a stage's result: a validation request, a completion report, a deployment report, or a stop at a blocker or at the authorized result.
 
 **Actions:** state what changed; each check not met, accepted without verification or skipped, and the verification level when it is below the agreed one; any unresolved failure or uncertainty; each decision taken without asking that the user could reasonably have made differently, such as a behavior or contract chosen, a blocking defect fixed, or the ticket you chose when the user left it to you, with its reason and how to revert it; the first rendered view's artifact path when no validation stop showed it; and the next step when there is one. Never list the checks that passed, except those a mechanical change relies on and the per-environment results a deployment report sets.
 
 **Condition:** a work item completes.
 
-**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give the pull-request URLs and what the previous condition lists. Add, only when there is one: cleanup that failed or left something behind, such as a running process or a kept branch or worktree, with why; and any secret that reached a durable or shared place or other incident the user must know. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
+**Actions:** write its completion report as a chat message before calling the question tool. Open it by saying it is complete and what that means: the completion point reached, such as merged into the base branch at a named commit or pull request with the ticket moved to a named state, and what it does not include, such as promotion to later environments. Then give the pull-request URLs and what the previous condition lists. Add, only when there is one: cleanup that failed or left something behind, such as a running process or a kept branch or worktree, with why; the records the work created or kept outside this machine, as [effect authorization](../../hive-core/references/effect-authorization.md) sets; and any secret that reached a durable or shared place or other incident the user must know. Name each open topic with its proposed destination, as the open-topics rule in the global guidance sets.
 
 **Condition:** a pending item remains.
 
@@ -123,9 +123,9 @@ The local change is verified and reviewed; publication is blocked.
 
 **Delivery:** Updated the retry handling.
 The [change record](<change-folder>/proposal.md) holds the technical detail.
-**Pending:** You — restore push access to the remote for this machine;
-I checked that the stored credential is rejected. Me — I will publish by
-the already agreed route once the push succeeds.
+**Pending:** You — restore push access to `origin`: `ssh -T git@github.com`
+should greet your account; I checked that the stored key is rejected.
+Reply when it works. Me — I will then publish by the already agreed route.
 ```
 
 This is not a completion claim and does not invent a choice or a reminder. If a new user decision were needed instead, ask it by following [questions](../../hive-core/references/questions.md); do not put that open choice under Pending or announce an unchosen next step.

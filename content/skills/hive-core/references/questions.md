@@ -77,7 +77,7 @@ When the user must check several things, give each flow its own block, headed by
 
 **Condition:** a message waits on the user's choice.
 
-**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one, or the yes-or-no question itself. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. The one sentence that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a later turn that ends to wait while the question waits is not a second report and carries no pause line.
+**Actions:** end it with one pause line, its last line, after any closing items: a fixed bold label in the session language meaning "waiting for your decision", such as `**Waiting for your decision:**`, then what is asked, by ID with a short gloss when it has one, or the yes-or-no question itself. Use the same label every time. When a native question follows, the pause line ends the message before it. If the turn ends with a question unanswered, never append a second report. The sentence that [reporting](../../flow-close/references/reporting.md#report-a-running-or-completed-item) sets for a turn that ends to wait on running work while the question waits is not a second report and carries no pause line.
 
 **Condition:** an open choice has already been asked.
 
