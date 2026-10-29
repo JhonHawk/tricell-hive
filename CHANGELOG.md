@@ -34,12 +34,14 @@ raise the minor or the patch version.
 - Four rules from a review of real sessions after hive-core (#262). A push
   that deploys from a `Delivery: direct-base` repository now always names the
   deployment and asks first, unless an answer given for that same change named
-  it; in work that only changes such repositories, the question shows the
-  first rendered view of a new or rearranged layout, and documentation that
+  it; in work that only changes such repositories, a new or rearranged
+  layout is shown as its first rendered view and asked about before that
+  push even when the deployment was named, and documentation that
   alters a layout is no longer mechanical unless it is part of a change to
   code or configuration. Local accounts, roles, seed data and services are
-  created before a criterion is left unverified; only what the user alone can
-  supply blocks a task. Only a single-sentence progress note skips the
+  created before a criterion is left unverified, and a failure while setting
+  them up is fixed as part of the work; only what the user alone can supply,
+  or local setup still failing after those fixes, blocks a task. Only a single-sentence progress note skips the
   context line. Running `ctx7 library` or `ctx7 docs` through `npx`, as the
   documentation skill does, is exempt from the dependency check; `login` and
   installing it are not. Run `hive update` to install the changed guidance.
