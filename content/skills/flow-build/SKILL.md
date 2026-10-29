@@ -35,7 +35,7 @@ Before you install a missing tool or add a dependency, read [tools and dependenc
 
 ## Execute in verifiable increments
 
-Before writing or cleaning a support artifact, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before progress reports, completion reports or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md).
+Before writing or cleaning a support artifact, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before the first message of the build and before ending a turn while work of your own remains, read [work-item boundary](../flow-close/references/work-item-boundary.md): it sets what a message between tasks carries and when the turn may end. Before progress or completion reports or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md).
 
 Choose a coherent next result and implement it in the existing source layout. Look for an existing solution or pattern before adding a mechanism or abstraction, and justify a new one by the need it serves. Keep dependent edits ordered. Confirm that reused tools or patterns meet this project's requirements. Use the project's declared dependency manager and preserve its lockfile conventions. Select technical references from the project stack and affected behavior.
 

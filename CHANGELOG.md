@@ -31,6 +31,17 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A build no longer stops halfway when a task finishes (#265). While work of
+  its own remains, every message goes with the next tool call: a finished or
+  verified task gets one progress sentence, not a report, and a question such
+  as "what's next?" gets a one-line answer before the work continues. The turn
+  ends only to ask the user, at a validation stop, to wait for a result with
+  no other work left, at a blocker, or when the user or another rule stops
+  the work. Hosts such as Grok Build end the turn on a reply with no tool
+  call, so two sessions stopped there until the user wrote. The rule moved
+  from `reporting` to its own small reference, `work-item-boundary`, which
+  `flow-build` and the global guidance point to. Run `hive update` to install
+  it.
 - Four rules from a review of real sessions after hive-core (#262). A push
   that deploys from a `Delivery: direct-base` repository now always names the
   deployment and asks first, unless an answer given for that same change named

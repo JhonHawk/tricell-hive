@@ -72,6 +72,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"flow-build/references/foreseen-authorizations.md",
 		// The build route of plan-handoff gives the plan's size (issue #259).
 		skills+"hive-core/references/option-scope.md",
+		// Split out of reporting; read between build tasks (issue #265).
+		skills+"flow-close/references/work-item-boundary.md",
 		skills+"flow-research/references/delegation.md",
 		skills+"workspace-conventions/references/artifact-layout.md",
 		"content/agents/review/hive-review-plan.md",
@@ -97,6 +99,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-plan/references/plan-handoff.md":                true,
 		skills + "flow-build/references/foreseen-authorizations.md":    true,
 		skills + "hive-core/references/option-scope.md":                true,
+		skills + "flow-close/references/work-item-boundary.md":         true,
 	}
 	scenarios := []struct {
 		name, predicate string
