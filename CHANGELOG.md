@@ -113,12 +113,10 @@ raise the minor or the patch version.
   installing it are not. Run `hive update` to install the changed guidance.
 - Questions that decide how much gets built now offer the smallest option
   that solves the stated problem, and a larger recommended option says what
-  that one leaves unsolved (#259). Size estimates count the agent's own
-  working time, children and checks included, instead of a person's effort,
-  only from evidence already at hand, and drop the time range rather than
-  investigate to get one; a plan's Build option always gives the plan's
-  size. The rules live in the new `hive-core` reference
-  `option-scope.md`. Run `hive update` to install it.
+  that one leaves unsolved (#259). Size estimates give the number of tasks
+  and what that count rests on, with no time estimate; a plan's Build
+  option always gives the plan's size. The rules live in the new
+  `hive-core` reference `option-scope.md`. Run `hive update` to install it.
 - An Engram call that takes a project now passes the name Engram resolves,
   from the nearest `.engram/config.json` or, without one, Engram's own
   detection, never a different name such as the `## Hive` `Project` value:
