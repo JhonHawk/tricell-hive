@@ -58,7 +58,7 @@ Greetings, a short answer outside that Condition, a child's return to its parent
 2. When the notice reports the exit of a process you stopped on purpose, such as a server you stopped at cleanup or to restart it, send no message, also while a question waits, and go to step 6. The exit status that your stop caused, such as 143, is not a failure. If the host requires a reply, apply step 5 instead.
 3. While a question waits for the user, a result that does not change what it asks takes step 5, even when it decides something else; a result that changes what it asks is a new question with a new ID that replaces the open one, asked by following [questions](../../hive-core/references/questions.md).
 4. Otherwise, when the result decides something, brings a new blocker, or needs a new decision from the user, report it as the rest of this reference sets, opening with the in-progress item that the next condition defines while other work still runs.
-5. Otherwise the turn changes nothing the user needs: reply in one progress sentence stating the change, without listing the work still running or repeating an open question or its pause line. This line is not a second report.
+5. Otherwise the turn changes nothing the user needs: reply in one progress sentence stating the change, without listing the work still running or repeating an open question or its pause line. This note is not a second report.
 6. Continue with your next tool call when work of your own remains; otherwise end the turn.
 
 **Condition:** a turn ends while work is still running, such as subagents, reviews, CI, or deployments, except a notification turn that step 2 above answers without a message or step 5 answers in one line.
@@ -107,7 +107,7 @@ Distinguish work already completed, work you will continue under existing author
 
 ## Work-item boundary
 
-A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in one sentence and continue. While authorized work remains, send each progress line with your next tool call, since a response without one can end the turn; answer a question that arrives meanwhile in one line and continue; a notification that arrives meanwhile follows [the notification turn](#report-a-running-or-completed-item).
+A work item is a ticket or the scope the user authorized, such as a plan, one of its phases, or an iterative route; a task inside it is not one. Between tasks, report progress in one sentence and continue. While authorized work remains, send each progress note with your next tool call, since a response without one can end the turn; answer a question that arrives meanwhile in one line and continue; a notification that arrives meanwhile follows [the notification turn](#report-a-running-or-completed-item).
 
 End a turn that completes a work item with a close question, after the report and its closing items; a turn that ends on the report is incomplete. Read [the close-question procedure](../SKILL.md#close-question) for its options, ticket selection and exceptions. Investigation-only findings and follow-ups use [flow-research](../../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
