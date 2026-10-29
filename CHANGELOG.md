@@ -36,6 +36,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Before each push of a change that is not mechanical, in a repository whose
+  CI runs on that push or its pull request, the agent now runs locally what
+  CI would reject (#277): the lint, typecheck and unit tests of the packages
+  it touches and of the packages that depend on them, and the CI jobs that
+  push triggers for the changed paths that are deterministic and need no
+  service, secret or deployment, read from the workflow files. Integration suites against services, end-to-end jobs and
+  deployments stay in CI and the report names them as CI-only; a skip you ask
+  for still holds. In one monorepo, 11 of 14 failing CI jobs over two weeks
+  were of this kind. Run `hive update` to install it.
 - The agent no longer owes you messages while work continues (#272). It
   drops the progress sentence after each task, the line at the start of
   build and verify, the announcement of how it splits work among helpers,
