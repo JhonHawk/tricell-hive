@@ -12,6 +12,14 @@ raise the minor or the patch version.
 
 ### Added
 
+- Before each push of a change that is not mechanical, the agent now runs
+  locally what CI would reject (#277): the lint, typecheck and unit tests of
+  the packages it touches and of the packages that depend on them, and the CI
+  jobs that push triggers that need no service, secret or deployment, read
+  from the workflow files. Integration suites against services, end-to-end
+  jobs and deployments stay in CI and the report names them as CI-only; a
+  skip you ask for still holds. In one monorepo, 11 of 14 failing CI jobs
+  over two weeks were of this kind. Run `hive update` to install it.
 - A repository test now checks that every heading an instruction link in
   `content/` points to exists, with the same link grammar and fence rule as
   release validation, so renaming a heading can no longer break the skills
