@@ -19,7 +19,7 @@ A review the user asks for runs as [flow-security](../../flow-security/SKILL.md)
 
 ## Check a dependency before installing
 
-Run this before you add, update or install a package or tool from a language package registry, such as npm, PyPI, Maven Central, the Go module proxy, crates.io, NuGet, RubyGems or pub.dev, inside or outside a build, including a one-off run such as `npx`, `uvx` or `pnpm dlx`. An install can run the scripts of the package and of its dependencies on this machine, so the check comes first, wherever the project will run. A system package manager such as Homebrew, apt or winget is outside this section: for it, confirm the package name and its source as step 1 sets.
+Run this before you add, update or install a package or tool from a language package registry, such as npm, PyPI, Maven Central, the Go module proxy, crates.io, NuGet, RubyGems or pub.dev, inside or outside a build, including a one-off run such as `npx`, `uvx` or `pnpm dlx`. An install can run the scripts of the package and of its dependencies on this machine, so the check comes first, wherever the project will run. A system package manager such as Homebrew, apt or winget is outside this section: for it, confirm the package name and its source as step 1 sets. Running the npm package `ctx7` with its `library` or `docs` subcommand to look up documentation, as the installed documentation skill instructs, such as `npx ctx7@latest docs <id> "<query>"`, is exempt from this section; any other package name or subcommand, `login` included, and installing it, such as `npm install -g ctx7`, are not. Its queries still follow the global rule on third-party requests.
 
 Which steps apply:
 
