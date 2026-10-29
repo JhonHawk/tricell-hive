@@ -12,11 +12,11 @@ raise the minor or the patch version.
 
 ### Added
 
-- A content test now checks that every heading a link in `content/` points to
-  exists, so renaming a heading can no longer break the skills and references
-  that link to it without a failing test. Release link validation still checks
-  only that the linked file exists.
-
+- A repository test now checks that every heading an instruction link in
+  `content/` points to exists, with the same link grammar and fence rule as
+  release validation, so renaming a heading can no longer break the skills
+  and references that link to it without a failing test. Release validation
+  itself still checks only that the linked file exists.
 - Long-running work (#256). A loop contract in `hive-core` gives work that
   repeats cycles, such as the research iterative route or unattended work, a
   measured objective, a cap, a check every cycle, a no-progress rule (two flat
