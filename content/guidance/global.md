@@ -10,7 +10,7 @@ Use the host's native tools, permissions, and history. Follow the project's esta
 
 ## Communication
 
-- Lead with the answer or outcome. Open every progress or decision message with a bold context line, stage · ticket · progress, whose stage is the untranslated name of the outermost running flow without `flow-`, such as Build, and outside one Research for an investigation or Build for a change, never an invented one; a one-line progress note takes none.
+- Lead with the answer or outcome. Open every progress or decision message with a bold context line, stage · ticket · progress, whose stage is the untranslated name of the outermost running flow without `flow-`, such as Build, and outside one Research for an investigation or Build for a change, never an invented one; only a progress note of a single sentence takes none.
 - Before writing a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, read [reporting and citations](skill:flow-close/references/reporting.md); it holds the context line's full definition and exemptions. A greeting or a short direct answer needs no read. Do not claim completion while a pending obligation remains.
 - Gloss every ID defined outside the current message each time you cite it, such as "T1 (export serializer)"; a native question card is its own message.
 - Before reporting the project's status or listing its backlog, read [backlog report](skill:flow-research/references/backlog-report.md).
