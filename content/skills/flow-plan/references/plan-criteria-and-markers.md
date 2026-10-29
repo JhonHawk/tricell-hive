@@ -27,6 +27,6 @@ Mark each task with one of these markers:
 | `[x]` | Verified. When the user accepted the task without verification, a line `accepted unverified by the user: <reason>` follows it. |
 | `[!]` | Rejected by verification. A line with the round, the `AC<n>`, and the reason follows it. |
 
-The `<prerequisite>` of a `blocked:` line is one that [runtime and UI gates](../../flow-verify/references/review-and-gates.md#runtime-and-ui-gates) leaves to the user; the local ones it lists are created first and block a task only when creating them failed, with the failure named.
+The `<prerequisite>` of a `blocked:` line is one that [runtime and UI gates](../../flow-verify/references/review-and-gates.md#runtime-and-ui-gates) leaves as a reported prerequisite, named with its cause; the local setup it lists is resolved first.
 
 `flow-build` and `flow-verify` own the transitions, each in its own stage, as [plan execution](../../flow-build/references/plan-execution.md) and [flow-verify](../../flow-verify/SKILL.md) set. A plan without `AC<n>` criteria, such as an older `<topic>.plan.md`, uses only `[ ]` and `[x]`.
