@@ -41,7 +41,7 @@ The dedicated code review (refutation of high-severity findings, severity mappin
 
 ## Runtime and UI gates
 
-Local in-vivo applicability, the final-handoff stack, the UI gate and the human UI handoff are in [review and gates](../../flow-verify/references/review-and-gates.md#runtime-and-ui-gates), which [flow-verify](../../flow-verify/SKILL.md) reads.
+Local in-vivo applicability, the final-handoff stack, the UI gate and the human UI handoff are in [runtime and UI gates](../../flow-verify/references/runtime-gates.md#runtime-and-ui-gates), which [flow-verify](../../flow-verify/SKILL.md) reads.
 
 In deployed environments, the shared gate authorization boundary and the functional walk follow [deployment checks](../../flow-deploy/references/deployment-checks.md#functional-walk).
 

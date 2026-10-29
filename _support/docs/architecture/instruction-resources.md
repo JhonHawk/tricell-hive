@@ -86,7 +86,7 @@ The predicates and full file lists are in `TestGuidanceReadingFootprint`:
   decision, read-only plan reviewer, delegated backend implementer and task
   verifier, local tests, then pause through Close. Include the selected
   Plan/Build/Close entrypoints, the Verify entrypoint and its review-and-gates
-  reference (stage handoff from Build), Research's planning exploration criterion,
+  and runtime-gates references (stage handoff from Build), Research's planning exploration criterion,
   plan format/review, settings/change records, delivery decisions, verification,
   delegation, artifact layout, questions/option scope/reporting and the three
   role sources.

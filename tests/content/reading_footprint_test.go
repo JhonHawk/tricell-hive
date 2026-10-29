@@ -55,6 +55,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"flow-research/SKILL.md", // planning's exploration/delegation criterion
 		skills+"flow-verify/SKILL.md", skills+"flow-verify/references/review-and-gates.md",
+		// Split out of review-and-gates at its size limit (issue #288).
+		skills+"flow-verify/references/runtime-gates.md",
 		skills+"hive-core/references/project-settings.md",
 		skills+"hive-core/references/language.md",
 		skills+"hive-core/references/memory.md",
@@ -94,6 +96,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "flow-build/references/tdd.md":                        true,
 		skills + "flow-verify/SKILL.md":                                true,
 		skills + "flow-verify/references/review-and-gates.md":          true,
+		skills + "flow-verify/references/runtime-gates.md":             true,
 		skills + "flow-research/references/delegation.md":              true,
 		skills + "workspace-conventions/references/artifact-layout.md": true,
 		skills + "flow-plan/references/review-decisions.md":            true,

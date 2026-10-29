@@ -12,7 +12,7 @@ Review each pull request as it stands on its host, never against the current che
 
 ## Handle the findings
 
-Map each finding to P0–P3 and refute it as [Dedicated code review](../../flow-verify/references/review-and-gates.md#dedicated-code-review) sets for a review that does not verify its own findings. Fix nothing: the pull request belongs to its author, and a change to its branch is a separate request.
+Map each finding to P0–P3 and refute it as [Dedicated code review](../../flow-verify/references/review-and-gates.md#dedicated-code-review) sets. Fix nothing: the pull request belongs to its author, and a change to its branch is a separate request.
 
 Report each pull request on its own: the verdict you recommend (approve, request changes, or comment only), each finding with its priority, its `path:line` evidence and the refutation verdict when one ran, and what the review did not cover.
 
