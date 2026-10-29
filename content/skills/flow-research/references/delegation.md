@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before launching a child or starting a wait for external work, including reviews, CI, builds and deployments. Children read this resource before dependent work when their assignment consumes this procedure. It does not invoke the research workflow or grant effects beyond the task brief.
+Read before launching a child, before a tracker query that lists tickets, or before starting a wait for external work, including reviews, CI, builds and deployments. Children read this resource before dependent work when their assignment consumes this procedure. It does not invoke the research workflow or grant effects beyond the task brief.
 
 ## Split work
 
