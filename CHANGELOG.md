@@ -36,12 +36,12 @@ raise the minor or the patch version.
 
 ### Changed
 
-- Before each push of a change that is not mechanical, in a repository with
-  CI, the agent now runs locally what CI would reject (#277): the lint,
-  typecheck and unit tests of the packages it touches and of the packages
-  that depend on them, and the CI jobs for the changed paths that are
-  deterministic and need no service, secret or deployment, read from the
-  workflow files. Integration suites against services, end-to-end jobs and
+- Before each push of a change that is not mechanical, in a repository whose
+  CI runs on that push or its pull request, the agent now runs locally what
+  CI would reject (#277): the lint, typecheck and unit tests of the packages
+  it touches and of the packages that depend on them, and the CI jobs that
+  push triggers for the changed paths that are deterministic and need no
+  service, secret or deployment, read from the workflow files. Integration suites against services, end-to-end jobs and
   deployments stay in CI and the report names them as CI-only; a skip you ask
   for still holds. In one monorepo, 11 of 14 failing CI jobs over two weeks
   were of this kind. Run `hive update` to install it.
