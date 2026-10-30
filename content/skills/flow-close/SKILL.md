@@ -40,15 +40,13 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 **Actions:** ask the close question by reading and following [questions](../hive-core/references/questions.md). This question replaces the Recommendations route question. Classify an answer that adds to the work as [scope changes](../hive-core/references/scope-changes.md) sets.
 
-**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its delivery state and reminders. Under unattended delegation, skip it without ending the turn: the report names the next ticket, what stays open and pending findings, and the delegation continues or ends as [unattended delegation](../unattended-delegation/SKILL.md) sets. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
+**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its delivery state and reminders. Under unattended delegation, skip it without ending the turn: run the [fast research](#fast-research) yourself; the report names what stays open, pending findings, and the ticket it found, if any; the delegation continues with that ticket only when it falls within the delegation's objective, and otherwise ends as [unattended delegation](../unattended-delegation/SKILL.md) sets. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
-For every applicable close question, name the next ticket and the reason, such as a blocker, a P0 or P1 defect found, or the next ticket of the same module. You choose it; an option that asks the user to name it does not count. When choosing it needs a tracker query that lists tickets, run it as [Split work](../flow-research/references/delegation.md#split-work) sets. Do not recommend as the next ticket a ticket opened from this work item's findings, during the build or this close, or a finding proposed in this close, unless it is P0 or P1 or blocks the next ticket or a pending item of the work. Never recommend a ticket another session has in progress, whatever its priority, as the global ticket rule sets.
+Do not name or recommend a next ticket in the close question. Offer these routes:
 
-Offer one option per route, each continue option naming the flow it starts and the recommended ticket's estimated size, which [option scope and size](../hive-core/references/option-scope.md#give-the-estimated-size) sets, given once for the question instead of on every option; when the next work continues a plan in progress, that size covers its remaining tasks:
-
-- Continue now with the recommended ticket when the loaded context helps it.
-- Take that ticket to a new session when the context no longer helps.
-- End the session, stating what stays open if it ends: pending items with their owner, and reminders.
+- End the session, Recommended, stating what stays open if it ends: pending items with their owner, and reminders.
+- Run the [fast research](#fast-research) for an open ticket that can use the context this session has loaded.
+- Continue a plan still in progress, when there is one, as the condition below sets, with its remaining tasks' estimated size, which [option scope and size](../hive-core/references/option-scope.md#give-the-estimated-size) sets.
 
 When the round also asks about incidental findings, [incidental findings](references/incidental-findings.md) sets their option to resolve them in this work and when a route that depends on those answers waits for a later turn.
 
@@ -56,9 +54,9 @@ When the round also asks about incidental findings, [incidental findings](refere
 
 **Actions:** the continue option covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../hive-core/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
 
-**Condition:** the next ticket reuses neither the closed item's files nor its decisions, or the session has used more than half of its context window.
+## Fast research
 
-**Actions:** recommend the new session, but never for a plan still in progress or after the user chose to continue it in this session; never split a flow that is still in progress.
+When the user chooses it, or under unattended delegation, list the open tickets through `hive-read-state`, as [Split work](../flow-research/references/delegation.md#split-work) sets, with each one's title, description, labels and state. Compare them with what this session loaded: the files and modules the closed work touched and the decisions it took. A ticket uses that context when it changes those files or modules or depends on those decisions; one that only shares a topic does not. Leave out a ticket another session has in progress, as the global ticket rule sets, and one opened from this work item's findings, during the build or this close, unless it is P0 or P1 or blocks a pending item of the work. Report the ticket that uses the context most, with what it reuses and its estimated size, which [option scope and size](../hive-core/references/option-scope.md#give-the-estimated-size) sets, or that none does. When one does, ask once: continue now with it, naming the flow it starts, or end the session; when none does, end the session.
 
 ## Close the current walkthrough
 
