@@ -40,12 +40,12 @@ Before these steps, follow [Close the current walkthrough](#close-the-current-wa
 
 **Actions:** ask the close question by reading and following [questions](../hive-core/references/questions.md). This question replaces the Recommendations route question. Classify an answer that adds to the work as [scope changes](../hive-core/references/scope-changes.md) sets.
 
-**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its delivery state and reminders. Under unattended delegation, skip it: run no fast research and start no ticket the delegation's objective does not already name; the report names what stays open and pending findings, and the delegation continues with its named work or ends as [unattended delegation](../unattended-delegation/SKILL.md) sets. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
+**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its delivery state and reminders. Under unattended delegation, skip it without ending the turn: run no fast research and start no ticket the delegation's objective does not already name; the report names what stays open and pending findings, and the delegation continues with its named work or ends as [unattended delegation](../unattended-delegation/SKILL.md) sets. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
 
 Do not name or recommend a next ticket in the close question. Offer these routes:
 
 - End the session, Recommended unless a plan is still in progress, stating what stays open if it ends: pending items with their owner, and reminders.
-- Run the [fast research](#fast-research) for an open ticket that can use the context this session has loaded, when the governing `## Hive` section declares a `Tracker`, as [project settings](../hive-core/references/project-settings.md) resolves it.
+- Run the [fast research](#fast-research) for an open ticket that can use the context this session has loaded, when the governing `## Hive` section declares a `Tracker`; a missing one only leaves this route out.
 - Continue a plan still in progress, when there is one, as the condition below sets, with its remaining tasks' estimated size, which [option scope and size](../hive-core/references/option-scope.md#give-the-estimated-size) sets.
 
 When the round also asks about incidental findings, [incidental findings](references/incidental-findings.md) sets their option to resolve them in this work and when a route that depends on those answers waits for a later turn.
