@@ -1,13 +1,9 @@
 # Interface changes
 
-## When to read
+> Shell: content removed for the rebuild (branch `refactor/flow-ceremony`). The previous text is in the local baseline `_support/workspace/2026-10-30-skills-rebuild/baseline/content/skills/flow-plan/references/interface-changes.md`.
 
-Read when a change alters an interface that other code, services, or data depend on, while planning it or building it. Reading it does not invoke the planning workflow.
+## When to read
 
 ## Plan the change
 
-When an interface changes, identify its actual producers and consumers, the versions that may coexist, and the delivery order. Default to one coordinated change that updates every producer and consumer and migrates the data they share. Recommend a compatible or phased transition only for a need the evidence shows: a consumer outside the change's release control, loss of data or in-flight work, or an availability requirement the project declares. A consumer that no evidence shows exists, a deployment gap of minutes on a surface without such a requirement, or avoiding a migration is not that need. Neither is a gate that can only pass by proving an absence, such as a period with no traffic from clients nobody has identified: no observation settles it, so the transition never retires. When [change impact](../../flow-research/references/change-impact.md) applies to the change, search for consumers as it sets before applying this rule, since a consumer nobody looked for is not yet one that no evidence shows exists. When a consumer outside the change's release control stays unverified, the read-only observation that reference names, when it can run, informs the choice between one coordinated change and a transition; it never becomes the condition that retires a transition. When it cannot run, choose with the evidence at hand and keep that consumer listed as unverified. When it shows no consumer, plan the coordinated change. Whenever you offer a transition, state what would run in parallel, what retires it, and the maintenance cost until then. Use the project’s existing contract and distribution mechanism; a separate specs repository, published package, or prerelease channel is not required by this workflow. Define evidence for the affected integration and any partial rollout.
-
 ## Build the change
-
-For a changed shared interface, reconcile the actual producers, consumers, coexisting versions, and delivery order from the plan or current project evidence before implementation. When a plan keeps a compatible transition, such as an old version left running or a retirement gated on usage, recheck its justification against the rule in [Plan the change](#plan-the-change) before dependent work, even when the plan predates that rule. If it rests only on a consumer no evidence shows exists, or on a gate that can pass only by proving an absence, which the rule in [Plan the change](#plan-the-change) distinguishes from an observation that only chose the approach, stop and ask the user whether to replace it with one coordinated change. When the transition stands, verify it, including partial rollout, using the existing integration or contract checks.

@@ -753,7 +753,7 @@ func TestFlowAssessmentDetectsParentWriteOutsideInventory(t *testing.T) {
 }
 
 func TestDeployedSmokeForbidsFixtureWritesAndNamesNewSkills(t *testing.T) {
-	want := []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-archive", "flow-walkthrough"}
+	want := []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-conventions", "flow-walkthrough"}
 	if !slices.Equal(flowLoadingSkills("deployed-smoke"), want) {
 		t.Fatalf("skills %v", flowLoadingSkills("deployed-smoke"))
 	}

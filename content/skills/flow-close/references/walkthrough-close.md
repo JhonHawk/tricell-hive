@@ -1,13 +1,7 @@
 # Close the current walkthrough
 
+> Shell: content removed for the rebuild (branch `refactor/flow-ceremony`). The previous text is in the local baseline `_support/workspace/2026-10-30-skills-rebuild/baseline/content/skills/flow-close/references/walkthrough-close.md`.
+
 ## When to read
 
-Read when [flow-close](../SKILL.md) completes, abandons or pauses work that has a `walkthrough.json`, or before removing its source evidence unit after closure. Reading it does not invoke the closing workflow.
-
 ## Procedure
-
-**Condition:** completing, abandoning or pausing the current work with a `walkthrough.json`, or removing its source evidence unit after closure. Hygiene without closing that work does not change its status. Do not sweep other work folders or retrofit historical manifests from the same host session.
-
-**Actions:** before rendering, follow the [manifest delivery metadata procedure](../../flow-walkthrough/references/walkthrough-manifest.md) when a PR or commit is known for this work. Before removing its worktree, manifest, page, images or recordings, resolve the installed [flow-walkthrough renderer](../../flow-walkthrough/scripts/render_walkthrough.py) through the host's skill catalog or explicit path, and run `python3 <skill-dir>/scripts/render_walkthrough.py <work folder> --session-status closed --confirm-viewer`. Use only this work's folder. The operation validates and prepares the current output under the [publication target](../../flow-walkthrough/references/walkthrough-manifest.md#publication-target) rule, updates status explicitly with atomic file replacement, then asks the existing viewer to confirm its current JSON and resources, with a total confirmation bound of 15 seconds. It does not delete anything. Exit `0` confirms the exact canonical source, session, key and current content hash (including referenced resources), checked before and after the authenticated query; an old closed copy is insufficient. Elapsed time alone is never confirmation. Before a later deletion, rerun this operation if the source or its resources changed.
-
-On any validation/publication error or unconfirmed copy (missing CLI, offline viewer, unsupported runtime, absent copy, ingestion failure or timeout), preserve the still-needed source unit and any worktree containing it, and report the pending confirmation and folder. Continue independent cleanup that cannot remove it. Never start or restart a viewer or open a parallel store to force confirmation; do not relay raw CLI output or logs. A successful confirmation permits only the cleanup already authorized under [artifact retention](../../workspace-conventions/references/artifact-layout.md), including its pause and user-selected retention rules. Explicitly resuming this same work follows [walkthrough delivery](../../flow-walkthrough/SKILL.md#deliver) to restore `in_progress`; merely rendering an old page does not reopen it.
