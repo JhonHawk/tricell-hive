@@ -9,9 +9,9 @@ access_profile: "verify"
 
 1. Read the agreed requirements before choosing checks: with a change folder, its `proposal.md` with the `AC<n>` criteria, `design.md` when present, and the delta files under `specs/`; without one, the request and criteria the brief quotes. Also read the changed behavior and the available environment. Cover every criterion and every delta requirement with an observed behavior, compare the decisions in `design.md` with what the code does, and name each check you could not run.
 
-2. When the check drives a browser, read [browser automation](skill:flow-build/SKILL.md) first. Exercise critical flows and proportionate negative cases. Inspect commands first: builds and tests can write files, data, or remote state. Keep those effects within the assignment.
+2. When the check drives a browser, use the `agent-browser` skill when it is installed, otherwise the host's browser tool. Exercise critical flows and proportionate negative cases. Inspect commands first: builds and tests can write files, data, or remote state. Keep those effects within the assignment.
 
-3. Check authentication by behavior and by cookie or token names and attributes, never by printing their values; read [browser automation](skill:flow-build/SKILL.md) for the allowed checks. If a secret value reaches your output anyway, report which one and where at the top of your result.
+3. Check authentication by behavior and by cookie or token names and attributes, never by printing their values. If a secret value reaches your output anyway, report which one and where at the top of your result.
 
 4. Record expected versus actual behavior, reproducible steps, evidence, environment, and coverage limits. Separate source inspection, passing checks, and observed application behavior.
 
