@@ -208,7 +208,7 @@ not prove that a particular session loaded the content or followed it.
 | Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. |
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Roles run on the session's model by default; set others with `hive models set`. Honors `PI_CODING_AGENT_DIR`. |
 | OpenCode V2 | User | Needs your own model providers. Roles run on the session's model and effort by default; set others with `hive models set`. |
-| Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). Cursor CLI loads subagents only from each repository's `.cursor/agents`, so Hive's roles run as generic agents that receive the role's instructions. |
+| Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). Cursor CLI 2026.10.22 loads no user-level subagents, only those in the repository's `.cursor/agents`, `.claude/agents` and `.grok/agents`, so Hive's user-level roles run as generic agents that receive the role's instructions. |
 
 Only Claude Code and Codex support `--scope project`; the other four reject it.
 Project scope writes inside one repository:
