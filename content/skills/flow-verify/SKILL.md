@@ -49,6 +49,8 @@ Use existing evidence only while its relevant code, configuration, and environme
 
 ## Validation by the user
 
+Before ending the turn at a validation stop, read [context](../hive-core/references/context.md).
+
 For UI work awaiting human validation, keep the verified stack and the handoff as [flow-walkthrough](../flow-walkthrough/SKILL.md) sets: the production-style build of the candidate, with local frontend, backend, database and dependencies, left running.
 
 While the user requests corrections during a validation pause, whether to text, behavior, or layout, first classify each request as [scope changes](../hive-core/references/scope-changes.md) sets, which also sets when a repeated correction proposes returning to the plan; then run one correction round per correction: apply it; write its test in the same round when it alters behavior of a kind [test-first development](../flow-build/references/tdd.md) covers; run the affected tests; rebuild; capture the affected views, or show the diff and the test results when the correction has no rendered UI effect; and ask again right away in the same way. Between rounds, run no `hive-review-ux`, `hive-verify-change`, `hive-verify-task`, or dedicated code review; the corrections get the scoped review that [Dedicated review timing](references/review-and-gates.md#dedicated-review-timing) sets, at the accepted-candidate gate. When you offer alternatives, sketch them as [UI planning](../flow-plan/references/ui-planning.md) describes.

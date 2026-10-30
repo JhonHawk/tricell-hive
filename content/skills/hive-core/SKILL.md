@@ -1,6 +1,6 @@
 ---
 name: hive-core
-description: "Shared procedures every Hive flow and the global guidance use: user questions and decision pauses, option scope and size, scope changes, effect authorization, repository settings, language, third-party requests, secrets, persistent memory, evidence tools, tool scripts and long-running loops. Read the reference whose condition below applies; the global guidance and each flow point to them by path."
+description: "Shared procedures every Hive flow and the global guidance use: user questions and decision pauses, option scope and size, scope changes, effect authorization, repository settings, language, third-party requests, secrets, persistent memory, evidence tools, tool scripts, long-running loops and context at phase boundaries. Read the reference whose condition below applies; the global guidance and each flow point to them by path."
 ---
 
 # Shared procedures
@@ -18,4 +18,5 @@ This skill holds the procedures that every flow and the global guidance use. It 
 - Before writing persistent memory, or when memories or sources disagree, read [memory](references/memory.md).
 - Before looking up external documentation, or locating code in a repository with a `.codegraph/` directory, read [evidence tools](references/evidence-tools.md).
 - Before starting or resuming work that repeats cycles until a condition is met, such as an iterative route or unattended work that repeats cycles, read [loops](references/loops.md).
+- Before ending the turn at a plan handoff, at verify's user validation stop, or at a close question while a flow is still in progress, read [context](references/context.md).
 - When the host offers a tool, not a shell, that runs a script able to call other host tools, before writing such a script, or three or more read-only calls it could batch, read [tool scripts](references/tool-scripts.md).
