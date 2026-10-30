@@ -5,12 +5,12 @@ description: Investigate a technical question or project and delivery state by i
 
 # Research a question
 
-> Shell: content removed for the rebuild (branch `refactor/flow-ceremony`). The previous text is in the local baseline `_support/workspace/2026-10-30-skills-rebuild/baseline/content/skills/flow-research/SKILL.md`.
+Research is read-only: nothing changes until the user chooses a route.
 
-## Entry and exit
+1. Name the question and the decision it informs. Ask the user only for intent that changes the conclusion.
+2. Investigate. Keep short lookups in the main thread; give larger ones to `hive-research` children, each briefed with the decision, the aspects to cover, what is settled, and when to stop.
+3. Check each claim that decides the answer by opening its cited source.
+4. Report the answer, its evidence, and what remains uncertain.
+5. When the findings leave work the user could run next, end with the route question, asked as [hive-core](../hive-core/SKILL.md) sets: the ways to act on the findings, each naming the flow it starts (`flow-build` for a small understood change, `flow-plan` for larger work), plus keep investigating and stop here, the recommended one first with its reason.
 
-## Frame the investigation
-
-## Establish evidence
-
-## Deliver the finding
+Choosing an option authorizes only the flow it names.

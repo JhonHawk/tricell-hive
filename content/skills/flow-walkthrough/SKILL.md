@@ -5,20 +5,7 @@ description: Walk a built user interface for a person to validate it. Show the f
 
 # Walk a user interface for human validation
 
-> Shell: content removed for the rebuild (branch `refactor/flow-ceremony`). The previous text is in the local baseline `_support/workspace/2026-10-30-skills-rebuild/baseline/content/skills/flow-walkthrough/SKILL.md`.
-
-## When it applies
-
-## Prepare
-
-## First rendered view
-
-## Capture relevant states
-
-## Deliver
-
-### Give the opening command
-
-## Corrections and the accepted candidate
-
-## Share
+1. Serve the candidate locally with realistic data and an account that can reach the changed screens.
+2. Capture each changed screen at desktop width and at 390 and 320 pixels, in light and dark when the project has both themes. Save the images in `_support/workspace/<date>-<work>/images/`.
+3. Send the user one message with the URL to open, the steps to try on each screen, what they should see, and the captures.
+4. Ask whether they accept the result or want corrections. For each correction: apply it, recapture the affected screens, and ask again.

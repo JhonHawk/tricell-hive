@@ -14,7 +14,7 @@ const contextSnapshotMarker = "__HIVE_CONTEXT_SNAPSHOT_DATA__"
 
 var contextReferences = [...]struct{ role, resource string }{
 	{"hive-review-harness", "harness-audit/SKILL.md"},
-	{"hive-review-plan", "flow-plan/references/plan-review.md"},
+	{"hive-review-plan", "flow-plan/SKILL.md"},
 }
 
 // RenderContextLoader derives both inactive resources solely from the release

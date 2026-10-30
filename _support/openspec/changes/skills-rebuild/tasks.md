@@ -42,7 +42,18 @@ Una referencia compartida se rehace en la primera fase que la necesita y las sig
 
 ### F2 — research
 
-- [ ] `flow-research` y sus referencias: `backlog-report`, `delegation`, `diagnosis`, `change-impact`, `pr-review`, `ticket-body`.
+- [x] Inventario de reglas: 141 reglas clasificadas con su procedencia (`_support/workspace/2026-10-30-skills-rebuild/f2-rule-inventory.md`, sin seguimiento).
+- [x] Decisiones del usuario (2026-10-30):
+  - Las reglas de categoría 4 (sin incidente detrás) se quitan del camino principal y de la guía global; solo se quedan en las referencias raras.
+  - La revisión de un PR ajeno sigue D3: sin `hive-refute-claim` de rutina.
+  - Se quita la línea de retrabajo del reporte de estado.
+  - La guía global recibe ~1.3 KB netos de `reporting`, sin pasar de 19 KB.
+- [x] **Cambio de enfoque (2026-10-30, decisión del usuario): skills en su mínima expresión, para evaluar de poco a más.**
+  - Los seis flujos y `hive-core` quedan con su entrada, los pasos en orden y sus preguntas (~1.1–1.7 KB cada uno), sin referencias.
+  - La guía global queda solo con los invariantes de seguridad: idioma, alcance y autorización, preservación y secretos (6.1 KB).
+  - Una regla vuelve solo cuando una sesión real muestre que hace falta. El inventario F2 y `baseline/` son el catálogo de donde sale.
+  - Este enfoque reemplaza el método de reconstrucción por fase de F2–F7.
+  - Reporte: `_support/sessions/2026-10-30-skills-rebuild/skills-minimal.report.html`.
 - [ ] Referencias compartidas que estrena: `flow-close/references/reporting.md` y `work-item-boundary.md` (research ya reporta y cierra turnos).
 - [ ] Mantener los arreglos de #303: opciones por ticket en la ruta del backlog y listados acotados en el hilo principal.
 - [ ] `site/.../flows/research.md`.

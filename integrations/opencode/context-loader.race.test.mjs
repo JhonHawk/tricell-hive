@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url"
 
 const root = await realpath(process.argv[2])
 const skills = path.join(root, "skills")
-const resource = "flow-plan/references/plan-review.md"
+const resource = "flow-plan/SKILL.md"
 const requested = path.join(skills, resource)
 const expected = JSON.parse(await readFile(path.join(root, "fixture.json"), "utf8"))["hive-review-plan"]
 const plugin = (await import(pathToFileURL(path.join(root, "context-loader.js")))).default

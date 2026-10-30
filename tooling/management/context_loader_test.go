@@ -45,7 +45,7 @@ func TestOpenCodeContextLoaderDeterministicReadbackAndRegeneration(t *testing.T)
 	if unchanged, err := PlanUnchanged(plan(t, "install", o)); err != nil || !unchanged {
 		t.Fatalf("stable snapshot: %t %v", unchanged, err)
 	}
-	put(t, filepath.Join(o.Source, "content/skills/flow-plan/references/plan-review.md"), "Regenerated canonical instruction\n")
+	put(t, filepath.Join(o.Source, "content/skills/flow-plan/SKILL.md"), "Regenerated canonical instruction\n")
 	updated := plan(t, "install", o)
 	for i, ch := range loaderPair(t, updated) {
 		if bytes.Equal(ch.After.Managed, pair[i].After.Managed) {
@@ -71,7 +71,7 @@ func TestOpenCodeContextLoaderRejectsCoherentlyRehashedSavedPlan(t *testing.T) {
 			for _, f := range p.Release.Files {
 				files[f.Path] = append([]byte(nil), f.Data...)
 			}
-			files["content/skills/flow-plan/references/plan-review.md"] = []byte("False snapshot\n")
+			files["content/skills/flow-plan/SKILL.md"] = []byte("False snapshot\n")
 			fakeJS, fakeMetadata, err := opencode.RenderContextLoader(files[loaderSourceTest], files)
 			if err != nil {
 				t.Fatal(err)
@@ -88,12 +88,12 @@ func TestOpenCodeContextLoaderRejectsCoherentlyRehashedSavedPlan(t *testing.T) {
 				}
 			} else if mutation == "stale snapshot" {
 				for i := range p.Release.Files {
-					if p.Release.Files[i].Path == "content/skills/flow-plan/references/plan-review.md" {
+					if p.Release.Files[i].Path == "content/skills/flow-plan/SKILL.md" {
 						p.Release.Files[i].Data = []byte("Updated canonical reference\n")
 					}
 				}
 				for i := range p.Changes {
-					if p.Changes[i].Target.Source == "content/skills/flow-plan/references/plan-review.md" {
+					if p.Changes[i].Target.Source == "content/skills/flow-plan/SKILL.md" {
 						p.Changes[i].After.Managed = []byte("Updated canonical reference\n")
 					}
 				}
@@ -102,7 +102,7 @@ func TestOpenCodeContextLoaderRejectsCoherentlyRehashedSavedPlan(t *testing.T) {
 					if mutation == "invalid marker" && f.Path == loaderSourceTest {
 						p.Release.Files[i].Data = []byte("export default {};")
 					}
-					if f.Path == "content/skills/flow-plan/references/plan-review.md" {
+					if f.Path == "content/skills/flow-plan/SKILL.md" {
 						if mutation == "missing source" {
 							p.Release.Files = append(p.Release.Files[:i], p.Release.Files[i+1:]...)
 							break
@@ -284,7 +284,7 @@ func putLoaderSources(t *testing.T, o Options) {
 	t.Helper()
 	put(t, filepath.Join(o.Source, loaderSourceTest), loaderTemplateTest)
 	put(t, filepath.Join(o.Source, "content/skills/flow-plan/SKILL.md"), "# Plan\n")
-	put(t, filepath.Join(o.Source, "content/skills/flow-plan/references/plan-review.md"), "\ufeffPlan \"quoted\" \\ Unicode 雪\r\n__HIVE_CONTEXT_SNAPSHOT_DATA__\n")
+	put(t, filepath.Join(o.Source, "content/skills/flow-plan/SKILL.md"), "\ufeffPlan \"quoted\" \\ Unicode 雪\r\n__HIVE_CONTEXT_SNAPSHOT_DATA__\n")
 	put(t, filepath.Join(o.Source, "content/skills/harness-audit/SKILL.md"), "# Harness\n")
 }
 
@@ -296,8 +296,8 @@ func TestOpenCodeContextLoaderRejectsInvalidSnapshotSources(t *testing.T) {
 		{"no marker", loaderSourceTest, "export default {};", false},
 		{"two markers", loaderSourceTest, loaderTemplateTest + "// __HIVE_CONTEXT_SNAPSHOT_DATA__", false},
 		{"invalid template UTF8", loaderSourceTest, loaderTemplateTest + string([]byte{0xff}), false},
-		{"missing reference", "content/skills/flow-plan/references/plan-review.md", "", true},
-		{"invalid reference UTF8", "content/skills/flow-plan/references/plan-review.md", string([]byte{0xff}), false},
+		{"missing reference", "content/skills/flow-plan/SKILL.md", "", true},
+		{"invalid reference UTF8", "content/skills/flow-plan/SKILL.md", string([]byte{0xff}), false},
 		{"missing owner", "content/skills/flow-plan/SKILL.md", "", true},
 		{"missing harness", "content/skills/harness-audit/SKILL.md", "", true},
 	} {

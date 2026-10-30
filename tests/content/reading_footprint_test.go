@@ -49,66 +49,19 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	const global = "content/guidance/global.md"
 	const skills = "content/skills/"
 	// Predicates are explicit scenarios, not a transitive inventory of links.
-	common := []string{global, skills + "flow-close/references/reporting.md"}
-	question := append(append([]string{}, common...), skills+"hive-core/references/questions.md")
+	common := []string{global}
+	question := append(append([]string{}, common...), skills+"hive-core/SKILL.md")
 	cycle := append(append([]string{}, question...),
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
-		skills+"flow-research/SKILL.md", // planning's exploration/delegation criterion
-		skills+"flow-verify/SKILL.md", skills+"flow-verify/references/review-and-gates.md",
-		// Split out of review-and-gates at its size limit (issue #288).
-		skills+"flow-verify/references/runtime-gates.md",
-		skills+"hive-core/references/project-settings.md",
-		skills+"hive-core/references/language.md",
-		skills+"hive-core/references/memory.md",
-		skills+"flow-plan/references/change-records.md",
-		skills+"flow-plan/references/plan-format.md",
-		skills+"flow-build/references/plan-execution.md",
-		skills+"flow-build/references/tdd.md",
-		skills+"flow-plan/references/plan-review.md",
-		skills+"flow-plan/references/delivery-decisions.md",
-		skills+"flow-build/references/verification.md",
-		// Split out of the three entries above (issue #204).
-		skills+"flow-plan/references/review-decisions.md",
-		skills+"flow-plan/references/plan-criteria-and-markers.md",
-		skills+"flow-plan/references/plan-handoff.md",
-		skills+"flow-build/references/foreseen-authorizations.md",
-		// The build route of plan-handoff gives the plan's size (issue #259).
-		skills+"hive-core/references/option-scope.md",
-		// Split out of reporting; read between build tasks (issue #265).
-		skills+"flow-close/references/work-item-boundary.md",
-		// Split out of flow-build at its size limit (follow-up of #269).
-		skills+"flow-build/references/iterate-and-integrate.md",
-		// Read at the plan handoff and at a close with a flow in progress (issue #300).
-		skills+"hive-core/references/context.md",
-		skills+"flow-research/references/delegation.md",
-		skills+"workspace-conventions/references/artifact-layout.md",
+		skills+"flow-research/SKILL.md", skills+"flow-verify/SKILL.md",
 		"content/agents/review/hive-review-plan.md",
 		"content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md",
-		// Several readers require these resources; union excludes repeats.
-		skills+"flow-close/references/reporting.md", skills+"flow-plan/references/plan-review.md",
 	)
+	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "flow-close/references/reporting.md":                  true,
-		skills + "hive-core/references/questions.md":                   true,
-		skills + "hive-core/references/project-settings.md":            true,
-		skills + "hive-core/references/language.md":                    true,
-		skills + "hive-core/references/memory.md":                      true,
-		skills + "flow-build/references/plan-execution.md":             true,
-		skills + "flow-build/references/tdd.md":                        true,
-		skills + "flow-verify/SKILL.md":                                true,
-		skills + "flow-verify/references/review-and-gates.md":          true,
-		skills + "flow-verify/references/runtime-gates.md":             true,
-		skills + "flow-research/references/delegation.md":              true,
-		skills + "workspace-conventions/references/artifact-layout.md": true,
-		skills + "flow-plan/references/review-decisions.md":            true,
-		skills + "flow-plan/references/plan-criteria-and-markers.md":   true,
-		skills + "flow-plan/references/plan-handoff.md":                true,
-		skills + "flow-build/references/foreseen-authorizations.md":    true,
-		skills + "hive-core/references/option-scope.md":                true,
-		skills + "flow-close/references/work-item-boundary.md":         true,
-		skills + "flow-build/references/iterate-and-integrate.md":      true,
-		skills + "hive-core/references/context.md":                     true,
+		skills + "hive-core/SKILL.md":   true,
+		skills + "flow-verify/SKILL.md": true,
 	}
 	scenarios := []struct {
 		name, predicate string

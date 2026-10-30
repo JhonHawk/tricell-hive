@@ -5,22 +5,9 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
-> Shell: content removed for the rebuild (branch `refactor/flow-ceremony`). The previous text is in the local baseline `_support/workspace/2026-10-30-skills-rebuild/baseline/content/skills/flow-close/SKILL.md`.
-
-## Entry and exit
-
-## When to run it
-
-## Close a work item
-
-## Close question
-
-## Fast research
-
-## Close the current walkthrough
-
-## Close the change record
-
-## Clean up after a merge
-
-## End the session
+1. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
+2. Move an integrated change folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
+3. Clean up: delete the merged work branches and their clean worktrees, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
+4. Report what was integrated and where, the ticket's state, and anything still pending with who owns it.
+5. Write the outcome to persistent memory.
+6. Ask the user whether to continue with other work or end the session.

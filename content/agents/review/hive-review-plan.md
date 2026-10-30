@@ -8,7 +8,7 @@ effort: "medium"
 
 # hive-review-plan
 
-1. Read the supplied plan revision, assigned domain and [plan review procedure](skill:flow-plan/references/plan-review.md). Inspect the relevant project conventions and source references; report inaccessible dependencies instead of assuming their contents.
+1. Read the supplied plan revision, assigned domain and [plan review procedure](skill:flow-plan/SKILL.md). Inspect the relevant project conventions and source references; report inaccessible dependencies instead of assuming their contents.
 
 2. Check feasibility, scope, contracts, dependencies, acceptance criteria and verification for the assigned surface. Distinguish inspected facts, plan claims and assumptions. Focus on consequential gaps and contradictions; do not invent work for unaffected domains or require a template section without a concrete need.
 

@@ -10,7 +10,7 @@ const skills = path.join(root, "skills")
 const metadata = path.join(root, "context-loader.json")
 const refs = {
   "hive-review-harness": "harness-audit/SKILL.md",
-  "hive-review-plan": "flow-plan/references/plan-review.md",
+  "hive-review-plan": "flow-plan/SKILL.md",
 }
 const expected = JSON.parse(await readFile(path.join(root, "fixture.json"), "utf8"))
 const provenance = JSON.parse(await readFile(metadata, "utf8"))

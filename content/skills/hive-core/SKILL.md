@@ -1,22 +1,29 @@
 ---
 name: hive-core
-description: "Shared procedures every Hive flow and the global guidance use: user questions and decision pauses, option scope and size, scope changes, effect authorization, repository settings, language, third-party requests, secrets, persistent memory, evidence tools, tool scripts, long-running loops and context at phase boundaries. Read the reference whose condition below applies; the global guidance and each flow point to them by path."
+description: "Shared procedures every Hive flow uses: how to ask the user a question and pause for the answer, and how to read the repository's Hive settings. Read before asking the user to decide something, and before resolving a project setting such as the base branch, tracker or specs location."
 ---
 
 # Shared procedures
 
-This skill holds the procedures that every flow and the global guidance use. It has no workflow of its own: read only the reference whose condition applies, whole, when the condition applies. Reading one grants no effect.
+## Ask the user
 
-- Before formulating a decision for the user, with or without a native card, and before ending a message with an offer or request that waits on the user's answer, read [questions](references/questions.md).
-- Before formulating a question in which two or more options start work on the same request and build different amounts, or one with an option that starts work on another ticket, adds a component, a language or a dependency, or is, as far as you can tell without estimating, at least ten times the size of another, read [option scope and size](references/option-scope.md).
-- When the user asks for something that would change open work, an answer adds to it, or the work finds it needs more than the request asked, read [scope changes](references/scope-changes.md) before acting on it.
-- Before asking the user to authorize an effect beyond this machine, acting on an earlier grant, or writing the foreseen authorizations of a plan or of the first build question, read [effect authorization](references/effect-authorization.md).
-- Before resolving a project setting the task needs, such as the base branch, tracker, specs location, environments or completion point, or moving a ticket's state, read [project settings](references/project-settings.md).
-- Before naming an identifier, an i18n key or a route, writing an example or template, contributing to an external repository, or resuming or relaying text in another language, read [language](references/language.md).
-- Before sending a request to a third-party service, read [third-party requests](references/third-party-requests.md).
-- Before retrieving or documenting a secret, reading output that may hold one, or when one is exposed, read [secrets](references/secrets.md).
-- Before writing persistent memory, or when memories or sources disagree, read [memory](references/memory.md).
-- Before looking up external documentation, or locating code in a repository with a `.codegraph/` directory, read [evidence tools](references/evidence-tools.md).
-- Before starting or resuming work that repeats cycles until a condition is met, such as an iterative route or unattended work that repeats cycles, read [loops](references/loops.md).
-- Before ending the turn at a plan handoff, at verify's user validation stop, or at a close question while a flow is still in progress, read [context](references/context.md).
-- When the host offers a tool, not a shell, that runs a script able to call other host tools, before writing such a script, or three or more read-only calls it could batch, read [tool scripts](references/tool-scripts.md).
+- Ask only for a choice that is the user's and changes what happens next; reuse decisions already given.
+- Use the host's native question tool when it has one; otherwise list the options in the message, each with a short label.
+- Put the recommended option first, with its reason. Ask related choices in one round.
+- End the message with one line that says what you are waiting for, and wait for the answer.
+
+## Declare settings
+
+Each repository's `AGENTS.md` holds a `## Hive` section; read it from the repository that holds the changed file, and ask the user when a key the task needs is missing. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the `openspec` directory. Optional: `Environments`, the ordered environments from the base branch to production; `Delivery: direct-base`, the only value that authorizes effects, for a support repository; `Completion`, a later completion point as `<state> on <ref> · <state> on <ref>`; and `Hive guidance: required`.
+
+Retired keys: `Review`, `UI verification`, and `Delivery` with `automatic` or `interactive`. They authorize nothing; propose removing them.
+
+```markdown
+## Hive
+
+- Project: my-project
+- Base branch: development
+- Environments: development → qa → production
+- Tracker: GitHub Issues · owner/repo
+- Specs: _support/openspec
+```
