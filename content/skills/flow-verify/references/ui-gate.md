@@ -4,7 +4,7 @@ Read before a change with a rendered UI effect reaches a verification gate: the 
 
 ## Scope
 
-This gate applies to any change with a rendered UI effect other than one that changes only text or a style value without altering layout, state, or flow. The implementer checks such a text or style change in the rendered page at the affected viewports, with the longest realistic text and in each theme; if the check shows it alters layout, the gate applies. Backend or infrastructure work without a UI effect needs neither the inspection nor the children below; add other specialists by actual risk rather than by default.
+This gate applies to any change with a rendered UI effect other than one that changes only text or a style value without altering layout, state, or flow; the text of a message, toast, or notification counts as such a text change. The implementer checks such a text or style change in the rendered page at the affected viewports, with the longest realistic text and in each theme; if the check shows it alters layout, the gate applies. Backend or infrastructure work without a UI effect needs neither the inspection nor the children below; add other specialists by actual risk rather than by default.
 
 ## The implementer's inspection
 

@@ -52,7 +52,7 @@ When the round also asks about incidental findings, [incidental findings](refere
 
 **Condition:** the next work continues a plan still in progress.
 
-**Actions:** the continue option is Recommended, since a flow still in progress is never split, and covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../hive-core/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
+**Actions:** the continue option is Recommended, since a flow still in progress is never split, and covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../hive-core/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision. Before ending that turn, read [context](../hive-core/references/context.md).
 
 ## Fast research
 

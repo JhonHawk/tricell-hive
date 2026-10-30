@@ -22,6 +22,7 @@ Canonical procedural homes under `content/skills/`:
 - `hive-core/references/scope-changes.md`: before acting on a change the user asks for, or the work finds it needs, while work is open in any flow; the open-topics rule in `content/guidance/global.md`, `flow-research`, `flow-plan` and its plan revision, `flow-build`, `flow-verify`, `flow-walkthrough`, `flow-close` and `flow-deploy` point to it.
 - `hive-core/references/effect-authorization.md`: before asking to authorize an effect beyond this machine or acting on an earlier grant, as `global.md` sets.
 - `hive-core/references/loops.md`: before starting or resuming work that repeats cycles until a condition is met; `content/guidance/global.md`, the iterative route of `flow-research` and `unattended-delegation` point to it (change `gh-256`).
+- `hive-core/references/context.md`: before ending the turn at a plan handoff, at verify's user validation stop, or at a close question while a flow is still in progress; `hive-core/SKILL.md`, `flow-plan/references/plan-handoff.md`, `flow-verify/SKILL.md` and `flow-close/SKILL.md` point to it (issue #300).
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
 - `flow-research/references/pr-review.md`: before reviewing a pull request outside the current work; `flow-research/SKILL.md` points to it and `content/guidance/global.md` routes the request to `flow-research`.
 - `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
