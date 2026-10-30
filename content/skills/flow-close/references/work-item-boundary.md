@@ -20,4 +20,4 @@ Until that work is done, end the turn only:
 
 ## When a work item completes
 
-End a turn that completes a work item with a close question, after the report and its closing items; a turn that ends on the report is incomplete. Read [the close-question procedure](../SKILL.md#close-question) for its options, ticket selection and exceptions. Investigation-only findings and follow-ups use [flow-research](../../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
+End a turn that completes a work item with a close question, after the report and its closing items; a turn that ends on the report is incomplete. Read [the close-question procedure](../SKILL.md#close-question) for its options, the fast research and exceptions. Investigation-only findings and follow-ups use [flow-research](../../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
