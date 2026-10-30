@@ -48,6 +48,7 @@ Delegate the three fronts to independent subagents in parallel when capacity per
 Sessions in this repository require the deployed Hive global guidance, whose support-folder rules govern artifact placement here for every task, even when no skill is active. When a session does not show that guidance (for example, a host where Hive is not installed), read `content/guidance/global.md` before writing any artifact.
 
 - Repo-scoped work uses this repository's `_support/`; `_support/workspace/` is git-ignored.
+- Worktrees go in the host's native path (`.claude/worktrees/`, `.grok/worktrees/`), which `.git/info/exclude` ignores; never create a `../tricell-hive-worktrees` sibling folder, which the user removed.
 - For requested organization of existing material, evidence curation, promotion, or archiving, read `content/skills/workspace-conventions/SKILL.md`.
 - See `_support/docs/architecture/workspace-and-artifacts.md` for explanations and examples.
 

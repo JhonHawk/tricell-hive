@@ -21,6 +21,9 @@ go test ./...
 python3 -m unittest discover -s tests/skills -p '*_test.py'
 ```
 
+Run the suite with the default `umask 022`: under a stricter mask such as `077`,
+`tooling/management` and `tooling/package` fail on file modes.
+
 Also run `go test -race ./...` when a change touches concurrency: goroutines,
 locks, state shared across goroutines, or the manager's concurrent-write tests.
 The [deployment manager reference](_support/docs/architecture/deployment-manager.md)
@@ -135,7 +138,9 @@ days old, or a fix for a defect in the latest published version.
 
 The documentation site is published from `master`: each release deploys `site/`
 from its tag, building it first with `pnpm --dir site build` and then running
-`pnpm exec wrangler deploy`; nothing else deploys it. A
+`pnpm exec wrangler deploy`; nothing else deploys it. An exported
+`CLOUDFLARE_API_TOKEN` makes `wrangler` fail to find the account; unset it for
+that command only so `wrangler` uses its OAuth login. A
 change that touches only the site therefore waits for the next release. The one exception: a site fix that cannot
 wait may go out as a patch release of its own.
 
