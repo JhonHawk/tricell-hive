@@ -46,3 +46,10 @@ Ask once, as [hive-core](../hive-core/SKILL.md) sets, with these options:
 Recommend fixing now when the fix is small, in the area the work touched and has no new effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. The user answers in free text by ID, such as "H1 ticket, H2 ignore", all at once or a few at a time. A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
 
 **Find the next ticket** runs `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its estimated size; choosing it starts `flow-research` to assess it.
+
+## Branch cleanup
+
+1. Exclude the base and environment branches, and keep a branch that an open pull request uses as its base.
+2. A branch merged by squash or rebase counts as merged only when `gh pr view <branch> --json state,headRefOid` reports `MERGED` and its `headRefOid` equals the local head. A branch with unmerged commits is never deleted: report it with `git log <base>..<branch>`.
+3. Return the checkout to the base branch, and remove the branch's clean worktree before deleting the branch; never force the removal. Keep a worktree with uncommitted or untracked files, and its branch.
+4. Delete the merged remote branch, then the local one with `git branch -d`; use `git branch -D` only for a squash- or rebase-merged branch that passed step 2.
