@@ -311,63 +311,51 @@ sequence for every task. Authorization and preservation apply throughout.
 
 ```mermaid
 flowchart TD
-    Request["Request and project context"] --> Entry{"What is needed?"}
-    Entry -->|Investigate a question| Research["flow-research"]
-    Entry -->|Resolve a multi-step change| Plan["flow-plan"]
-    Entry -->|Implement an authorized change| Build["flow-build"]
-    Research --> Answer["Supported answer and open decisions"]
-    Answer -->|User chooses to plan| Plan
-    Answer -->|User authorizes a small change| Build
-    Plan --> Ready["Contracts, tasks, and acceptance criteria"]
-    Ready -->|Implementation authorized| Build
-    Build --> Candidate["Built candidate"]
-    Candidate --> Verify["flow-verify"]
-    Verify -->|Security review requested| Security["flow-security"]
-    Security --> Verify
-    Verify --> Result["Evidence and integrated candidate"]
-    Candidate -->|Verify skipped| Result
-    Result --> Close["flow-close"]
-    Close --> Finish["Completion point and session hygiene"]
-    Result -->|Promotion requested| Deploy["flow-deploy"]
-    Deploy --> Served["Served identity and health per environment"]
+    Entry{"What is needed?"}
+    Entry -->|Status or what's next| Status["flow-status"]
+    Entry -->|A question or a ticket| Research["flow-research"]
+    Entry -->|A multi-step change| Plan["flow-plan"]
+    Entry -->|A small authorized change| Build
 
-    Verify -.->|added task| Build
+    Status -->|User picks a ticket| Research
+    Research -->|Larger work| Plan
+    Research -->|Small change| Build
+    Plan --> Build["flow-build<br/><small>tasks · first rendered view (flow-walkthrough)</small>"]
+    Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (flow-walkthrough)</small>"]
+    Build -->|Mechanical change| Close
+    Verify --> Close["flow-close"]
+    Verify -->|Promotion requested| Deploy["flow-deploy"]
+
     Build -.->|scope grows| Plan
-    Close -.->|close question| Build
-    Close -.-> Plan
     Deploy -.->|defect| Build
 
-    Change["Change requested"] -.-> Plan
-    Change -.-> Build
-
-    Rules["General rules, in every flow:<br/>Language · Communication · Scope and authorization<br/>Preservation · Secrets · Evidence · Verification gates<br/>Proportionality · Project settings · Continuity<br/>Specs and change records · Support folder"]
+    Rules["Every flow: Language · Scope and authorization · Preservation<br/>Secrets · Evidence · Proportionality · Support folder"]
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
-    classDef outcome fill:#edf4ee,stroke:#52745c,color:#203a28
     classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
-    class Research,Plan,Build,Verify,Security,Close,Deploy activity
-    class Answer,Ready,Candidate,Result,Finish,Served outcome
+    class Status,Research,Plan,Build,Verify,Close,Deploy activity
     class Rules rules
 ```
 
 Dotted arrows are the loops back. A change asked for while work is open stays in the
 current stage when it is a correction, returns to Plan or Build when it adds to the
-work, and gets its own destination when it is a separate topic; the [scope changes reference](content/skills/hive-core/references/scope-changes.md)
+work, and gets its own destination when it is a separate topic; [hive-core](content/skills/hive-core/SKILL.md)
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
+- Status ([skill](content/skills/flow-status/SKILL.md)) reports the backlog grouped by
+  module and the unfinished local work, and recommends what to take next. It is read-only.
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
-  answer. It can stand alone and does not authorize implementation.
+  answer, and assesses a ticket you pick before work starts: impact, complexity,
+  readiness and dependencies. It does not authorize implementation.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) resolves consequential decisions and
   defines contracts, verifiable tasks, and acceptance criteria when needed.
 - [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
-  checks, the full suite and the dedicated review, and then integrates it.
-- [Security](https://hive.tricell.tech/flows/security/) ([skill](content/skills/flow-security/SKILL.md)) runs an independent
-  security review only when you ask for it, inside Verify or on a merged commit,
-  and reports findings without fixing them.
+  checks, the full suite and the dedicated review, a security review only when you
+  ask for it, and your validation through a walkthrough, and then integrates it.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
   cleans up task-owned temporary resources while preserving unfinished work. It
   runs at integration, also when a project declares a later completion point in

@@ -9,11 +9,11 @@ access_profile: "implement"
 
 1. Inspect existing architecture, callers, data ownership, constraints, and quality scenarios before choosing a design. For infrastructure, also establish the workload, current provider capabilities, operating team, and measurable availability or recovery needs.
 
-2. Compare the smallest viable alternatives. Explain the consequential tradeoffs and preserve established contracts unless changing them is part of the task. For infrastructure, compare network boundaries, identity, data placement, recovery objectives, migration risk, and cost assumptions; separate estimated from measured costs, reuse existing infrastructure and deployment conventions, and read [the infrastructure naming reference](skill:flow-plan/SKILL.md) when naming resources.
+2. Compare the smallest viable alternatives. Explain the consequential tradeoffs and preserve established contracts unless changing them is part of the task. For infrastructure, compare network boundaries, identity, data placement, recovery objectives, migration risk, and cost assumptions; separate estimated from measured costs, reuse existing infrastructure and deployment conventions, and follow the project's existing naming convention when naming resources.
 
 3. Specify relevant API, event, or persistence contracts in the project’s existing format: schemas, authorization, errors, compatibility, timeouts, retries, and idempotency where they affect correctness. Label illustrative examples.
 
-4. Make assumptions, migration, observability, verification, ownership, failure modes, and rollout and recovery criteria explicit where necessary. For stored data, size the migration and recovery to a read-only count of the affected records, as [persistent data changes](skill:flow-build/SKILL.md) describes. Keep unresolved decisions visible; do not turn a proposal into an implementation claim. Infrastructure changes and live deployments require their own authorized scope.
+4. Make assumptions, migration, observability, verification, ownership, failure modes, and rollout and recovery criteria explicit where necessary. For stored data, size the migration and recovery to a read-only count of the affected records, as [Stored data](skill:flow-build/SKILL.md#stored-data) describes. Keep unresolved decisions visible; do not turn a proposal into an implementation claim. Infrastructure changes and live deployments require their own authorized scope.
 
 5. Use flow-plan when preparing an implementation plan; a design assignment alone authorizes only the requested design artifacts.
 

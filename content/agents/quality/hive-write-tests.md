@@ -10,7 +10,7 @@ effort_claude: "medium"
 
 1. Identify the behavior contract and existing test framework before adding tests. Reproduce a reported defect when feasible.
 
-2. Test meaningful boundaries, negative cases, asynchronous ordering, and transactions where they affect the change. Before writing each test, choose its kind and apply the filter in [test-first development](skill:flow-build/SKILL.md); do not write a test that the filter rejects.
+2. Test meaningful boundaries, negative cases, asynchronous ordering, and transactions where they affect the change. Before writing each test, choose its kind and name the realistic change that would make it fail; do not write a test that no such change would fail.
 
 3. Use representative fixtures and isolate external side effects. Keep test data and cleanup within the authorized environment.
 

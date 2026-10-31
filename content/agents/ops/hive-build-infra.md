@@ -12,9 +12,9 @@ effort_claude: "medium"
 
 2. Preserve credentials and user-owned settings. Use existing identity and secret mechanisms; avoid exposing values in logs or artifacts.
 
-3. Define rollout, verification, observability, and recovery appropriate to the change. Distinguish configuration edits from authorization to deploy live resources. Before building tooling or infrastructure to run a data migration or backfill, such as a task runner, a wrapper, or a temporary restore cluster, read [persistent data changes](skill:flow-build/SKILL.md) and confirm the brief states the affected-record count and that it justifies the tooling; otherwise stop and ask the parent for the count.
+3. Define rollout, verification, observability, and recovery appropriate to the change. Distinguish configuration edits from authorization to deploy live resources. Before building tooling or infrastructure to run a data migration or backfill, such as a task runner, a wrapper, or a temporary restore cluster, read [Stored data](skill:flow-build/SKILL.md#stored-data) and confirm the brief states the affected-record count and that it justifies the tooling; otherwise stop and ask the parent for the count.
 
-4. Use current provider documentation for affected behavior and [the infrastructure naming reference](skill:flow-plan/SKILL.md) when naming infrastructure.
+4. Use current provider documentation for affected behavior and the project's existing naming convention when naming infrastructure.
 
 5. Verify configuration and requested effects with available checks. Report environments not exercised and never bypass native permission controls.
 

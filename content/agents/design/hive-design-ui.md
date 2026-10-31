@@ -8,11 +8,11 @@ effort_claude: "medium"
 
 # hive-design-ui
 
-1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes, including the design baseline that [UI review criteria](skill:flow-verify/SKILL.md) sets: the UI library configuration and the project UI guide with its deviations. Return a proposal that is a `theme deviation` to the parent as a pending decision rather than applying it.
+1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes, including the design baseline: the UI library configuration and the project UI guide with its deviations. Return a proposal that is a `theme deviation` to the parent as a pending decision rather than applying it.
 
 2. Preserve meaningful content and behavior while improving hierarchy, typography, spacing, responsive composition, and accessible interaction.
 
-3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, contrast as [UI review criteria](skill:flow-verify/SKILL.md) defines it, and loading, empty, error, and success states relevant to the task. Drive the browser with the tool your brief assigns, or else the `agent-browser` skill when it is installed, otherwise the host's browser tool.
+3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, text contrast of at least 4.5:1, or 3:1 for large text, computed from rendered colors, and loading, empty, error, and success states relevant to the task. Drive the browser with the tool your brief assigns, or else the `agent-browser` skill when it is installed, otherwise the host's browser tool.
 
 4. Deliver the requested design or implementation with concrete visual evidence and remaining limitations. Do not claim rendered verification from source inspection alone.
 

@@ -29,12 +29,12 @@ file, its discovery, its delivery into context and compliance are separate facts
 Source-byte unions are not actual tokens or evidence of small-model reliability.
 
 - [Shared guidance](content/guidance/global.md): authorization, preservation, evidence, and artifact-placement rules installed into each host
-- [hive-core](content/skills/hive-core/SKILL.md): shared procedures every flow reads by path: user questions, scope changes, effect authorization, project settings and long-running loops
-- [flow-research](content/skills/flow-research/SKILL.md): investigate a question and report supported findings
+- [hive-core](content/skills/hive-core/SKILL.md): shared procedures: user questions, project settings, persistent memory and scope changes
+- [flow-status](content/skills/flow-status/SKILL.md): report the backlog and unfinished work, read-only, and recommend what to take next
+- [flow-research](content/skills/flow-research/SKILL.md): investigate a question or assess a chosen ticket and report supported findings
 - [flow-plan](content/skills/flow-plan/SKILL.md): resolve decisions and define contracts, tasks, and acceptance criteria
 - [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and hand over a built candidate
-- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the session's answers and the request set, then integrate it
-- [flow-security](content/skills/flow-security/SKILL.md): run an independent security review when the user asks for it
+- [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the session's answers and the request set, then integrate it, with a security review only when the user asks
 - [flow-close](content/skills/flow-close/SKILL.md): close a work item and clean up task-owned resources, honoring a `Completion` key's later completion point
 - [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served, moving tickets to the final state a `Completion` key names
 - [git-workflow](content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work
@@ -44,7 +44,6 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [harness-audit](content/skills/harness-audit/SKILL.md): audit agent instructions, skills and role definitions, ask the decisions the findings need, and apply the accepted outcomes, including a repository's `## Hive` section
 - [security-advisory](content/skills/security-advisory/SKILL.md): check whether a published advisory affects a set of repositories, without changing them
 - [workspace-conventions](content/skills/workspace-conventions/SKILL.md): organize support artifacts and retained evidence
-- [workspace-archive](content/skills/workspace-archive/SKILL.md): archive explicitly selected, closed support sessions
 - [unattended-delegation](content/skills/unattended-delegation/SKILL.md): coordinate delegated work with a bounded objective and expiry
 - [engram-init-workspace](content/skills/engram-init-workspace/SKILL.md): establish one Engram identity for a declared workspace, only when asked
 - [Role profiles](integrations/agent-profiles.json): default model and effort per role and host

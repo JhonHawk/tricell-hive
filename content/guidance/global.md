@@ -38,3 +38,16 @@ These rules hold in every mode, including unattended delegation.
 - Use a secret without displaying it: pass it through stdin, a file, or a variable scoped to one command; keep it out of arguments, URLs, subagent prompts, and external messages. Never print a value or a fragment. Never read a secret file with a tool that returns its content or matching lines; report only key names, counts and field names.
 - Before committing files that could hold a secret, run the project's secret scanner when it has one. Use 1Password only when the user explicitly asks.
 - When a secret reaches a durable or shared place, such as a commit, pushed branch, pull request, tracker, or third-party service, tell the user at once which secret and where, stop what would spread it, and recommend revoking and rotating it; rotation needs the user's authorization. Never repeat an exposed value.
+
+## Evidence
+
+- Recalled memory and prior summaries are claims about past state: verify current state before presenting it, or say it is unverified.
+
+## Proportionality
+
+- Choose the smallest sufficient investigation, plan, implementation, and verification. A mechanical change is a rename, a move, configuration that changes no permission, security setting or dependency, formatting, wiring existing checks exercise, or user-facing text, documentation or style that alters no rendered layout, state or flow; a documentation update that is part of a change to code or configuration stays mechanical even when it alters a layout; a change to logic, a contract, permissions, security, money, stored data, concurrency, a dependency, something read outside the code, or code serving behavior the request did not name is not. A simple question needs no formal workflow. A request to do work without a ready plan goes straight to `flow-build` only when it is a small understood change or the user explicitly chose to skip the plan, and otherwise to `flow-plan`, or to `flow-research` first when its goal has no scope yet; before routing it, read the entry of [flow-build](skill:flow-build/SKILL.md). A mechanical change needs no plan or delegation and skips verify and the dedicated review, unless project guidance requires one, but not the delivery question of `flow-plan` step 4, and is verified with the checks that already cover it.
+- For substantive investigation, a failure the user reports without asking for the fix, or assessing a ticket before working on it, read and use `flow-research`; for the project's status or backlog, `flow-status`.
+
+## Support folder (`_support`)
+
+Application code, scripts, and configuration stay in their source locations, even when an agent wrote them. Supporting artifacts that are not change records go in one support home: `<repo>/_support/` for one repository, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git. Before writing or cleaning a support artifact, read [artifact layout and retention](skill:workspace-conventions/references/artifact-layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch. Local retention is not versioning; eligibility for Git is not authorization to commit or push.

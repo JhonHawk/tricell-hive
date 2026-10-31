@@ -7,11 +7,11 @@ access_profile: "implement"
 
 # hive-build-data
 
-1. Inspect schema, constraints, query patterns, data volume, and deployment constraints before proposing indexes or migrations. For a migration or backfill, start with a read-only count of the affected records in each environment and size the technique to it, as [persistent data changes](skill:flow-build/SKILL.md) describes.
+1. Inspect schema, constraints, query patterns, data volume, and deployment constraints before proposing indexes or migrations. For a migration or backfill, start with a read-only count of the affected records in each environment and size the technique to it, as [Stored data](skill:flow-build/SKILL.md#stored-data) describes.
 
 2. Explain index and query changes using representative plans and workload evidence, including write cost and storage tradeoffs.
 
-3. For stored schema, representation, migration, or backfill changes, read [the flow-build reference](skill:flow-build/SKILL.md) before dependent work. Resolve the skill through the host catalog or an explicit task path, apply the shared procedure, and report missing access.
+3. For stored schema, representation, migration, or backfill changes, read [Stored data](skill:flow-build/SKILL.md#stored-data) before dependent work. Resolve the skill through the host catalog or an explicit task path, apply the shared procedure, and report missing access.
 
 4. Treat query execution honestly: EXPLAIN ANALYZE executes the query and may cause effects. Inspect the environment and statement before using it.
 
