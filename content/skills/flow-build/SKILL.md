@@ -11,7 +11,7 @@ Enter with a ready plan, or with a small understood change the user asked for. W
 2. For each task: implement it, run the affected tests, lint and typecheck, and commit it when the delivery makes commits. Mark the task in `tasks.md` with one line: done, its commit, and anything left unverified.
 3. When a task changes stored data, a migration, security, money, concurrency or a public contract, have one `hive-verify-task` child check it against its criteria.
 4. When the change adds or rearranges a screen, show the user its first rendered view with `flow-walkthrough` as soon as it exists, and adjust before continuing.
-5. Before finishing, check each acceptance criterion against the result, then hand the candidate to `flow-verify`. A mechanical change skips verify: run the local checks of `flow-verify` step 6, integrate as the delivery says, and run `flow-close`.
+5. When every task is done, run the checks CI runs that can run locally: lint, typecheck, build and the tests of each package the change touches and of the packages that depend on them. Then hand the candidate to `flow-verify`, which checks the acceptance criteria in its walk. A mechanical change skips verify: check its criteria, if it has any, integrate as the delivery says, and run `flow-close`.
 
 When the host has a native task list, list the tasks in it at the start, and again with the remaining ones when you resume, such as after a compaction; mark each one in progress when it starts and completed when it is done. `tasks.md` still governs.
 
