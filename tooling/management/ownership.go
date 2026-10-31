@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"tricell-hive/integrations/cursor"
 	"tricell-hive/integrations/grok"
 	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/target"
@@ -179,6 +180,11 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 					continue
 				}
 				if !hasConsumer(g.Consumers, oldConsumer) || r.Target.Kind != g.Target.Kind || r.Target.Source != g.Target.Source || r.Target.Path == g.Target.Path {
+					continue
+				}
+				// Cursor's guidance moved from ~/.cursor/AGENTS.md, which Cursor CLI
+				// never loads, to an always-applied rule; the old block retires below.
+				if oldConsumer.Host == "cursor" && r.Target.Kind == "block" && g.Target.Path == cursor.RulePath(filepath.Dir(r.Target.Path)) {
 					continue
 				}
 				migrating := false

@@ -378,6 +378,20 @@ func releaseSources(r *Release) []string {
 	}
 	return sources
 }
+
+// initialLeading is what goes before a block written into a file Hive does
+// not own yet: a newline after text that lacks one, or, for the Cursor rule
+// file Hive creates, the frontmatter that makes Cursor apply it always.
+func initialLeading(t target.Target, current []byte) string {
+	if len(current) == 0 && t.Path != "" && filepath.Ext(t.Path) == ".mdc" {
+		return cursor.RuleFrontmatter
+	}
+	if len(current) > 0 && !bytes.HasSuffix(current, []byte("\n")) {
+		return "\n"
+	}
+	return ""
+}
+
 func payload(r *Release, source string) []byte {
 	for _, f := range r.Files {
 		if f.Path == source {
@@ -705,8 +719,8 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			text = rewritten
 		}
 		r.Managed = managedBlock(text, s.Data, hiveMarkers)
-		if (old == nil || gone) && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
-			r.Leading = "\n"
+		if old == nil || gone {
+			r.Leading = initialLeading(g.Target, s.Data)
 		}
 	case "skill":
 		r.Managed = payload(p.Release, g.Target.Source)
@@ -949,7 +963,7 @@ func validatePlan(p Plan, state State) error {
 				if old == nil || freshGone {
 					expected.Leading = ch.After.Leading
 				}
-				if expected.Leading != "" && expected.Leading != "\n" {
+				if expected.Leading != "" && expected.Leading != "\n" && expected.Leading != cursor.RuleFrontmatter {
 					return fmt.Errorf("invalid separator")
 				}
 			}
@@ -963,11 +977,7 @@ func validatePlan(p Plan, state State) error {
 				return err
 			}
 			if finger(current) == ch.Expected && ch.After != nil && (old == nil || freshGone) && g.Target.Kind == "block" {
-				leading := ""
-				if len(current.Data) > 0 && !bytes.HasSuffix(current.Data, []byte("\n")) {
-					leading = "\n"
-				}
-				if ch.After.Leading != leading {
+				if ch.After.Leading != initialLeading(g.Target, current.Data) {
 					return fmt.Errorf("invalid initial ownership")
 				}
 			}
