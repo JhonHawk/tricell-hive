@@ -135,6 +135,8 @@ Base: investigación en los 6 hosts (documentación, código de Codex, OpenCode 
 
 - [x] **L. Tarjetas por ronda.** Una ronda de decisiones o hallazgos se escribe en texto y luego va en una sola llamada a la herramienta nativa (hasta su límite), con `A - (★)` en la etiqueta y la explicación en la descripción; previews para artefactos; entrevista por rondas en research y plan; línea de avance `✓ T3 · 3/5` en build y «Next» en el reporte final; respaldo en texto donde la herramienta falta o falla (research completo del 2026-10-31).
 
+- [x] **M. Bloqueos con solución y validación autosuficiente.** Un bloqueo termina con la solución más chica y se pregunta como decisión cuando necesita autorización; la validación dice qué revisar y cómo y ofrece la prueba por el camino real; vuelve la regla de defectos que `flow-deploy` cita (Codex `01a1916d`, cam, 2026-10-31).
+
 Orden: A, B y G primero (contenido, sin manager); D con su sonda; E; F skill por skill; el `site/` al final, todo junto.
 
 ## Review status and progress
