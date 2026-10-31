@@ -309,6 +309,11 @@ covers exact revision selection.
 Start where the request belongs. These are available routes, not a mandatory
 sequence for every task. Authorization and preservation apply throughout.
 
+Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM-833`
+(`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
+command loads the skill whole for that flow, which the host's automatic selection does
+not guarantee; each flow ends by naming the command for the next one.
+
 ```mermaid
 flowchart TD
     Entry{"What is needed?"}

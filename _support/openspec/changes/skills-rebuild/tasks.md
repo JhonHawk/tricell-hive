@@ -116,6 +116,21 @@ Una referencia compartida se rehace en la primera fase que la necesita y las sig
 - [ ] Contrastar los scripts propios con las herramientas de telemetría de sesiones listadas en `reference-sources.local.md`, pasando antes el chequeo de dependencias. Ninguna cubre los seis hosts por sí sola.
 - [ ] PR a `development` con los lugares revisados, el tamaño de `global.md` y el resultado de la medición.
 
+### F9 — Carga de skills por host (research del 2026-10-31)
+
+Base: investigación en los 6 hosts (documentación, código de Codex, OpenCode y Pi, transcripciones locales y X). La guía es la única capa que sobrevive a la compactación en todos; el cuerpo de una skill es contexto de un turno; las referencias son resultados de herramienta que se pierden o se leen a medias; la autoinvocación falla seguido y el comando explícito garantiza la carga, no la obediencia.
+
+- [x] **A. Paradas en prosa con el comando del host.** El bloque «▶ Siguiente paso» de «Questions and routes» trae el comando listo para escribir: `/flow-x` en Claude Code, Grok y Cursor; `$flow-x` en Codex; `/skill:flow-x` en Pi; `@flow-x` en OpenCode. La tarjeta de build desaparece: `plan-handoff.md` termina con `/flow-build`, o con el comando de compactación y luego `/flow-build` por encima del 40 %. Las decisiones dentro de una fase siguen en tarjeta. El README recomienda arrancar cada flujo con su comando.
+- [x] **B. Autoridad de la guía global.** Abrir `global.md` con una línea que diga que sus reglas aplican en toda sesión y no son preferencias opcionales, porque Grok la encuadra como `user_rules` «follow if appropriate».
+- [ ] **C. Tamaño y orden de las skills.** Skills de flujo por debajo de 8 KB (Codex recorta `$skill` a 8 KB) y lo obligatorio en las primeras ~60 líneas (Cursor lee 60–120). Las referencias solo para lecturas en un momento fijo.
+- [ ] **D. Instalación en Cursor.** La sesión de Cursor del 2026-10-31 (`97f259a4`) confirmó que el bloque de Hive en `~/.cursor/AGENTS.md` no se inyecta. Probar `~/.cursor/rules/hive.mdc` con `alwaysApply` u otra ruta que el CLI cargue; cambiar `integrations/cursor`, sus pruebas y `agent-delivery.md`.
+- [ ] **E. Documentación de arquitectura.** Corregir `compaction-survival.md` (Claude: la sonda no reinyectó la skill; Grok: nunca reinyecta skills; Codex: el fragmento explícito se descarta; OpenCode: se quitan las skills; Pi: resultados recortados a 2000 caracteres al resumir) y añadir a `agent-delivery.md` la tabla de carga de skills por host.
+- [ ] **F. Skills sin revisar.** `git-workflow` (12.9 KB), `harness-audit` (10.9 KB), `unattended-delegation` (9.4 KB) y `flow-deploy` (8.1 KB) pasan de 8 KB; además `security-advisory`, `workspace-conventions`, `flow-report`, `starlight-docs-site`, `engram-init-workspace` y los 20 roles.
+- [x] **G. La plantilla manda sobre el historial.** En `flow-plan`: las carpetas de cambio previas son contexto, no modelo; un solo `hive-review-plan` aunque el historial registre varios (`watch/plan-reviewers-copied-from-archive`, conteo 2).
+- [ ] **H. Medición.** Una sesión por host con comandos explícitos; anotar carga, adherencia y relecturas en la rúbrica.
+
+Orden: A, B y G primero (contenido, sin manager); D con su sonda; E; F skill por skill; el `site/` al final, todo junto.
+
 ## Review status and progress
 
 2026-10-30: F0 hecha en el checkout principal, sin commits. `go test ./...` pasa. `tests/skills` pasa 63 de 64: falla `walkthrough_render_test.test_reference_example_passes_the_validator` porque su ejemplo vivía en un cascarón; se resuelve en F5.

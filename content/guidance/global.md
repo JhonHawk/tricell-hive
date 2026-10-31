@@ -1,6 +1,6 @@
 # Tricell Hive guidance
 
-Use the host's native tools, permissions, and history. Follow the project's established conventions within the user's authorized scope.
+These rules apply in every session, whatever skill runs: they are requirements, not optional preferences. Use the host's native tools, permissions, and history. Follow the project's established conventions within the user's authorized scope.
 
 ## Language
 
@@ -58,7 +58,7 @@ Application code, scripts, and configuration stay in their source locations, eve
 - A message that asks for a decision or validation, delivers a result or a blocker, or closes work opens with a bold context line, stage · ticket · progress, such as **Plan · COM-833 · ready**, and ends with one line that says what you are waiting for.
 - Write the message as visible text first, then ask: make no tool call between that text and the question, since a response holding only the question is the failure. Use the host's native question tool when it has one, otherwise list the options in the message, each with a short label in the session language.
 - Write a question card to stand alone, since a host may show it without the message: its question opens with the stage and ticket and carries the context to answer, such as the plan path and what each option approves.
-- Moving from one flow to the next (status to research, research to plan or build) is never asked with the question tool, because a card hides the report it closes. End the report with a separate next-step block: a `---` rule, a bold heading such as **▶ Next step: flow-plan (recommended)**, the reason in one line, and the replies the user can give as a short list. Only the user's reply moves the work to the next flow. The plan's build route is the exception: `flow-plan` asks it with the question tool after its summary.
+- Moving from one flow to the next (status to research, research to plan or build, plan to build) is never asked with the question tool, because a card hides the report it closes. End the report with a separate next-step block: a `---` rule, a bold heading such as **▶ Next step: plan (recommended)**, the reason in one line, and the command the user types to start that flow, with its argument, in the host's syntax: `/flow-plan COM-833` in Claude Code, Grok and Cursor, `$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode; when you cannot tell the host, give them all. Add the other replies the user can give, such as keep investigating or what to change, as a short list. Only the user's reply starts the next flow; typing its command loads that skill whole for that flow. Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation, findings and the close.
 
 ## Project settings
 

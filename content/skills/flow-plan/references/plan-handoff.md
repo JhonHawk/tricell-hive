@@ -4,7 +4,7 @@ Read right before returning a ready plan, at `flow-plan` step 6. Reading this re
 
 ## Write the summary first
 
-The saved change folder holds the detail and the user may not open it, so summarize the plan in the message text, in the session language, before any question. The question card never carries the summary: a card whose options are the only place the plan appears is a failure of this step. Do not paste the whole plan. The summary has, in this order:
+The saved change folder holds the detail and the user may not open it, so summarize the plan in the message text, in the session language. A message that only points at the change folder, or a question card in place of the summary, is a failure of this step. Do not paste the whole plan. The summary has, in this order:
 
 1. The objective in one or two sentences.
 2. The text of each acceptance criterion `AC<n>`, and the name of each requirement the delta adds, modifies or removes: they are the contract the user approves.
@@ -16,16 +16,16 @@ The saved change folder holds the detail and the user may not open it, so summar
 8. The delivery mode, with the validation stop and the endpoint after it.
 9. What remains open or unauthorized, and the change folder path.
 
-## Then ask the build route question
+## Then end with the build route
 
-After the summary, ask with the host's question tool, its labels in the session language; this question is the exception to the text routes of the global guidance's «Questions and routes» section. It is a route decision, not a request for leave to proceed: a plan does not authorize implementation, and only the user's choice starts `flow-build`. Its options:
+End the summary with the next-step block that the global guidance's «Questions and routes» section sets, never with a question card. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
 
-- **Build**, recommended unless something blocks it. It states that it approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)", because a host may show the card alone, and it starts `flow-build` with the change folder.
-- **Compact and build**, only when the context used exceeds 40% of the model's window, as the host shows it or as you estimate it. No host lets the agent compact its own session, so choosing it shows two lines to copy, in order: the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers); then `build`, which starts `flow-build` after the compaction.
-- **Stop with the plan ready.** Recommend it only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
+- Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax.
+- When the context used exceeds 40% of the model's window, as the host shows it or as you estimate it, recommend compacting first: give the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers), and then the build command. No host lets the agent compact its own session.
+- Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
 
-A correction to a criterion or a sketch written in the free-text answer does not answer the question: revise the plan, show the revised criteria or sketch, and ask again.
+A correction to a criterion or a sketch is not approval: revise the plan, show the revised criteria or sketch, and end with the build route again.
 
-When execution is already explicitly authorized, show the summary the same way and continue to `flow-build` instead of asking.
+When execution is already explicitly authorized, show the summary the same way and continue to `flow-build`.
 
 Leave the change folder uncommitted: `flow-close` versions it once at close.

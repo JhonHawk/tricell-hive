@@ -10,7 +10,7 @@ description: Prepare an implementation plan by resolving consequential decisions
 3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
 4. Ask once, in one round: the delivery mode below and the code review mechanism. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, and apply what holds.
-6. Read and follow [plan handoff](references/plan-handoff.md): write the plan summary in the message, then ask the build route question. A plan does not authorize implementation: only the user's choice starts `flow-build`.
+6. Read and follow [plan handoff](references/plan-handoff.md): write the plan summary in the message and end it with the build route. A plan does not authorize implementation: only the user's reply starts `flow-build`.
 
 ## UI decisions
 
@@ -30,7 +30,7 @@ Number them `AC1`, `AC2`…, one observable behavior each. Name for each the obs
 
 ## Change folder
 
-Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key. Copy each template from [assets/change-folder/](assets/change-folder/), fill it, and delete its comments and the sections that do not apply:
+Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key. Earlier change folders in the repository are context, not a model: the templates and this skill set the shape and the ceremony, such as one `hive-review-plan` child, even when earlier folders record more. Copy each template from [assets/change-folder/](assets/change-folder/), fill it, and delete its comments and the sections that do not apply:
 
 - `proposal.md`: the request and the ticket's criteria quoted, the scope, the numbered criteria, the prerequisites, and the delivery decisions;
 - `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and how it is checked, and the verification of the whole change;

@@ -11,7 +11,7 @@ This skill is read-only and assesses no ticket in depth; `flow-research` does th
    - the tracker's tickets in every non-terminal state, in the main thread, with queries that cap their output at 50 tickets and return only short fields (identifier, title, state, labels, priority, assignee, parent). Use `hive-read-state` children only to run several independent collections at once, such as more than one tracker or project;
    - unfinished local work: the current branch, uncommitted changes, local branches not merged into the base branch, worktrees, and open pull requests.
 2. Write the report as [Report](#report) sets. Never replace it with a question card.
-3. When the user asked what to take next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended ticket or group and one line asking which one to take. The ticket the user names starts `flow-research` to assess it. A plain status request ends with the recommendations.
+3. When the user asked what to take next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended ticket or group and the command that assesses it, such as `/flow-research COM-833` in the host's syntax. The ticket the user names starts `flow-research`. A plain status request ends with the recommendations.
 
 ## Report
 
