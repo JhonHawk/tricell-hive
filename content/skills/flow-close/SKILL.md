@@ -27,24 +27,22 @@ Report the whole work item in one message, each part only when it has content:
 
 ## Findings
 
-A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way.
-
-- Propose each finding of P2 or higher that has a concrete failure scenario, with its evidence and severity, after searching the tracker for an existing ticket. Group P2 findings that share an area or a cause; propose each P1 or higher on its own.
-- List lower findings, nits and suspicions without a scenario in one line each, without proposing them.
-- Never open a ticket without the user's answer.
+A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. A finding of P2 or higher with a concrete failure scenario is proposed; the rest are listed in one line each in the final report. Never open a ticket without the user's answer.
 
 ## Close question
 
-Ask once, as [hive-core](../hive-core/SKILL.md) sets:
+Ask once, as [hive-core](../hive-core/SKILL.md) sets, with these options:
 
-- for each proposed finding: fix it in this work, open a ticket, or drop it; recommend fixing it now when the fix is small, in the area the work touched and has no new effect, and a ticket otherwise;
-- then: end the session, recommended unless a plan is in progress, or find the next ticket.
+- **End the session**: recommended when no proposed finding is P1 or higher and no plan is in progress.
+- **See the findings**, with their count and highest severity in the label, such as "See the 3 findings (1 P1)", and only when there are proposed findings: recommended when one is P1 or higher.
+- **Find the next ticket.**
 
-When the user chooses to find the next ticket, run `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its estimated size; choosing it starts `flow-research` to assess it.
+**See the findings** shows one table, after searching the tracker for an existing ticket for each finding:
 
-## Branch cleanup
+| ID | Finding | Detail and impact | Recommendation |
+| --- | --- | --- | --- |
+| H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <open a ticket, ignore, or fix now, with its reason> |
 
-1. Exclude the base and environment branches, and keep a branch that an open pull request uses as its base.
-2. A branch merged by squash or rebase counts as merged only when `gh pr view <branch> --json state,headRefOid` reports `MERGED` and its `headRefOid` equals the local head. A branch with unmerged commits is never deleted: report it with `git log <base>..<branch>`.
-3. Return the checkout to the base branch, and remove the branch's clean worktree before deleting the branch; never force the removal. Keep a worktree with uncommitted or untracked files, and its branch.
-4. Delete the merged remote branch, then the local one with `git branch -d`; use `git branch -D` only for a squash- or rebase-merged branch that passed step 2.
+Recommend fixing now when the fix is small, in the area the work touched and has no new effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. The user answers in free text by ID, such as "H1 ticket, H2 ignore", all at once or a few at a time. A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
+
+**Find the next ticket** runs `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its estimated size; choosing it starts `flow-research` to assess it.
