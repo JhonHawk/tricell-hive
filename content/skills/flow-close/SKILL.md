@@ -10,9 +10,37 @@ The completion point is the merge into the base branch. When a human reviewer is
 1. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
 2. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
 3. When the work folder holds a `walkthrough.json`, mark it closed first with `python3 <flow-walkthrough dir>/scripts/render_walkthrough.py <work folder> --session-status closed --confirm-viewer`; when it exits 2, keep that folder. Clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
-4. Report what was integrated and where, the ticket's state, and anything still pending with who owns it.
+4. Write the final report as [Final report](#final-report) sets.
 5. Write the outcome to persistent memory.
-6. Ask the user whether to continue with other work or end the session.
+6. Ask the close question as [Close question](#close-question) sets.
+
+## Final report
+
+Report the whole work item in one message, each part only when it has content:
+
+- **Integrated:** what changed and where: the pull request, the commits, the ticket's state.
+- **Resolved:** each acceptance criterion with how it was shown, and the corrections the user asked for.
+- **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
+- **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
+- **Findings:** the defects not fixed, as [Findings](#findings) sets.
+- **Pending:** what remains, with who owns it.
+
+## Findings
+
+A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way.
+
+- Propose each finding of P2 or higher that has a concrete failure scenario, with its evidence and severity, after searching the tracker for an existing ticket. Group P2 findings that share an area or a cause; propose each P1 or higher on its own.
+- List lower findings, nits and suspicions without a scenario in one line each, without proposing them.
+- Never open a ticket without the user's answer.
+
+## Close question
+
+Ask once, as [hive-core](../hive-core/SKILL.md) sets:
+
+- for each proposed finding: fix it in this work, open a ticket, or drop it; recommend fixing it now when the fix is small, in the area the work touched and has no new effect, and a ticket otherwise;
+- then: end the session, recommended unless a plan is in progress, or find the next ticket.
+
+When the user chooses to find the next ticket, run `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its estimated size; choosing it starts `flow-research` to assess it.
 
 ## Branch cleanup
 
