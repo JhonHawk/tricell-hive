@@ -13,6 +13,8 @@ Enter with a ready plan, or with a small understood change the user asked for. W
 4. When the change adds or rearranges a screen, show the user its first rendered view with `flow-walkthrough` as soon as it exists, and adjust before continuing.
 5. Before finishing, check each acceptance criterion against the result, then hand the candidate to `flow-verify`. A mechanical change skips verify: run the local checks of `flow-verify` step 6, integrate as the delivery says, and run `flow-close`.
 
+Between tasks, continue with the next tool call instead of ending the turn with a progress report. End the turn only to ask a question that must be asked now, at a validation stop, at a blocker that stops all remaining work, or when the user stops the work.
+
 ## Stored data
 
 - Before choosing a technique, take a read-only count of the affected records in each environment the change reaches, and record it. Scale the technique to that count: a few records need one targeted update in an authorized window; a count of zero needs no migration.
