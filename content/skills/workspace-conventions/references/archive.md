@@ -6,7 +6,7 @@ Read before archiving `sessions/` folders the user selected. Use for a requested
 
 ## Procedure
 
-Before writing or cleaning support records, read [artifact layout and retention](artifact-layout.md). Before reporting mappings or findings, read [reporting](../../flow-close/SKILL.md). Before a user decision about selected sessions, read [questions](../../hive-core/SKILL.md).
+Before writing or cleaning support records, read [artifact layout and retention](artifact-layout.md). Before reporting mappings or findings, read [reporting](../../flow-close/SKILL.md). Before a user decision about selected sessions, read the global guidance's «Questions and routes» section.
 
 Archive only sessions the user selected and whose closure is explicit in their retained record. The helper reads only the first status field in each record (the control-sheet row in `flow-plan` plans). Its value must be `closed`, `completed`, or `cancelled` (Spanish: `cerrado`, `completado`, `cancelado`), case-insensitive, either alone or followed by `·`, `.`, `;`, or a table border: `Status: closed`, `**Estado:** cerrado. …`, or `| Status | Completed · … |`. `Completed` is the closed phase of [plan format](../../flow-plan/SKILL.md), and a record that a user dropped reads `cancelled`; `Blocked`, `Paused`, and the other phases count as open. A qualified value such as `completado parcialmente` counts as open. It does not normalize those files. A closed research record may be archived without a plan. If a session has plans, every plan must carry one of those closed states. Do not classify work by age, normalize names or status values, stage files, commit, or push.
 

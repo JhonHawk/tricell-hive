@@ -33,7 +33,7 @@ A finding is a defect the work found but did not fix: a review finding below P1,
 
 ## Close question
 
-Ask once, as [hive-core](../hive-core/SKILL.md) sets, with these options:
+Ask once, as the global guidance sets, with these options:
 
 - **End the session**: recommended when no proposed finding is P1 or higher and no plan is in progress.
 - **See the findings**, with their count and highest severity in the label, such as "See the 3 findings (1 P1)", and only when there are proposed findings: recommended when one is P1 or higher.

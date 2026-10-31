@@ -18,7 +18,7 @@ The saved change folder holds the detail and the user may not open it, so summar
 
 ## Then ask the build route question
 
-After the summary, ask with the host's question tool, its labels in the session language; this question is the exception to the text routes of [hive-core](../../hive-core/SKILL.md#route-between-flows). It is a route decision, not a request for leave to proceed: a plan does not authorize implementation, and only the user's choice starts `flow-build`. Its options:
+After the summary, ask with the host's question tool, its labels in the session language; this question is the exception to the text routes of the global guidance's «Questions and routes» section. It is a route decision, not a request for leave to proceed: a plan does not authorize implementation, and only the user's choice starts `flow-build`. Its options:
 
 - **Build**, recommended unless something blocks it. It states that it approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)", because a host may show the card alone, and it starts `flow-build` with the change folder.
 - **Compact and build**, only when the context used exceeds 40% of the model's window, as the host shows it or as you estimate it. No host lets the agent compact its own session, so choosing it shows two lines to copy, in order: the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers); then `build`, which starts `flow-build` after the compaction.

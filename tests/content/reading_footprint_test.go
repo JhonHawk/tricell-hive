@@ -50,7 +50,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	const skills = "content/skills/"
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global}
-	question := append(append([]string{}, common...), skills+"hive-core/SKILL.md")
+	question := common
 	cycle := append(append([]string{}, question...),
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"flow-research/SKILL.md", skills+"flow-verify/SKILL.md",
@@ -60,7 +60,6 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	)
 	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "hive-core/SKILL.md":   true,
 		skills + "flow-verify/SKILL.md": true,
 	}
 	scenarios := []struct {

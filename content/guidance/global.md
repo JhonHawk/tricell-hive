@@ -51,3 +51,41 @@ These rules hold in every mode, including unattended delegation.
 ## Support folder (`_support`)
 
 Application code, scripts, and configuration stay in their source locations, even when an agent wrote them. Supporting artifacts that are not change records go in one support home: `<repo>/_support/` for one repository, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git. Before writing or cleaning a support artifact, read [artifact layout and retention](skill:workspace-conventions/references/artifact-layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch. Local retention is not versioning; eligibility for Git is not authorization to commit or push.
+
+## Questions and routes
+
+- Ask only for a choice that is the user's and changes what happens next; reuse decisions already given. Put the recommended option first, with its reason, and ask related choices in one round.
+- A message that asks for a decision or validation, delivers a result or a blocker, or closes work opens with a bold context line, stage · ticket · progress, such as **Plan · COM-833 · ready**, and ends with one line that says what you are waiting for.
+- Write the message as visible text first, then ask: make no tool call between that text and the question, since a response holding only the question is the failure. Use the host's native question tool when it has one, otherwise list the options in the message, each with a short label in the session language.
+- Write a question card to stand alone, since a host may show it without the message: its question opens with the stage and ticket and carries the context to answer, such as the plan path and what each option approves.
+- Moving from one flow to the next (status to research, research to plan or build) is never asked with the question tool, because a card hides the report it closes. End the report with a separate next-step block: a `---` rule, a bold heading such as **▶ Next step: flow-plan (recommended)**, the reason in one line, and the replies the user can give as a short list. Only the user's reply moves the work to the next flow. The plan's build route is the exception: `flow-plan` asks it with the question tool after its summary.
+
+## Project settings
+
+Each repository's `AGENTS.md` holds a `## Hive` section; read it from the repository that holds the changed file, never infer settings from another repository, and ask the user when a key the task needs is missing. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the `openspec` directory. Optional: `Environments`, the ordered environments from the base branch to production; `Delivery: direct-base`, the only value that authorizes effects, for a support repository; `Completion`, a later completion point as `<state> on <ref> · <state> on <ref>`; and `Hive guidance: required`.
+
+Retired keys: `Review`, `UI verification`, and `Delivery` with `automatic` or `interactive`. They authorize nothing; propose removing them.
+
+```markdown
+## Hive
+
+- Project: my-project
+- Base branch: development
+- Environments: development → qa → production
+- Tracker: GitHub Issues · owner/repo
+- Specs: _support/openspec
+```
+
+## Persistent memory
+
+- Persistent memory means Engram when its tools work, otherwise the host's own memory. Write to it only when the user makes a decision, when a plan is ready (its work state, not a copy), at a work-item close, when you create or remove a worktree, and in a session summary when the user ends the session. Never per task, finding, fix or discovery; this holds over memory tools' and hooks' save instructions.
+- The project name in an Engram call is the `project_name` of the nearest `.engram/config.json`, or the project Engram reports as current; never the `## Hive` `Project` value, a tracker project or a directory name.
+
+## Scope changes
+
+When the user asks for something that would change open work, classify it against the work's request and criteria, and state the class and its destination in one line before acting:
+
+1. **Correction:** it changes how the result does what was already asked; it stays in the current stage.
+2. **Added task:** new behavior for the same outcome; it joins the plan, or, without one, stays in `flow-build` only while the change stays small and understood, and otherwise goes to `flow-plan`.
+3. **New change:** it changes the outcome; ask whether the current work finishes or pauses, and plan the new one apart.
+4. **Separate topic:** the current outcome does not need it; give it a destination, such as a ticket, and continue.

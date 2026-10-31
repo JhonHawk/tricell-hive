@@ -339,7 +339,7 @@ flowchart TD
 
 Dotted arrows are the loops back. A change asked for while work is open stays in the
 current stage when it is a correction, returns to Plan or Build when it adds to the
-work, and gets its own destination when it is a separate topic; [hive-core](content/skills/hive-core/SKILL.md)
+work, and gets its own destination when it is a separate topic; the [shared guidance](content/guidance/global.md)
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
@@ -367,8 +367,8 @@ lists where each flow loops.
   state once the condition holds and no functional walk is pending in that environment.
 
 The [shared guidance](content/guidance/global.md) keeps the authorization,
-preservation, secrets, evidence, and artifact-placement invariants; the procedures
-it points to live in the shared `hive-core` skill and in each flow. Local edits, commits, publication,
+preservation, secrets, evidence, questions and routes, project settings, memory
+and artifact-placement rules every session needs; each flow's procedure lives in its skill. Local edits, commits, publication,
 merges, and deployments are distinct effects; a plan or skill selection does not
 provide authorization for them.
 
