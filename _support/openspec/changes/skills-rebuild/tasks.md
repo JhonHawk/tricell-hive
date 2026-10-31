@@ -130,7 +130,7 @@ Base: investigación en los 6 hosts (documentación, código de Codex, OpenCode 
 - [ ] **H. Medición.** Una sesión por host con comandos explícitos; anotar carga, adherencia y relecturas en la rúbrica.
 
 - [x] **I. Entrega en la guía global.** Los modos de entrega y la pregunta de entrega y revisión pasan de `flow-plan` a la sección `## Delivery` de `global.md`; el trabajo que no deja nada que commitear no lleva ninguna de las dos (Grok `01a1913d`, cam, 2026-10-31).
-- [x] **J. Índices y atajo `R`.** `D<n>`/`D<n>-A`, `H<n>`, `T<n>` y `AC<n>`, con la marca de recomendada después del ID; una ronda con dos o más decisiones o hallazgos va en texto con `R` (todas las recomendadas).
+- [x] **J. Índices y respuesta «ok».** `D<n>` con su línea de título y una línea por opción, `A - (★) <descripción>` con la recomendada primero; `H<n>`, `T<n>` y `AC<n>`; una ronda con dos o más decisiones o hallazgos va en texto, «ok» aplica las ★ y «D2 B» cambia una.
 - [x] **K. Un solo comando en la ruta.** El bloque «▶ Siguiente paso» escribe el comando una vez, en la sintaxis del host, con un argumento real; si el ticket no existe, recomienda crearlo primero (OpenCode `ses_e6ea0f80`, carvento, 2026-10-31).
 
 Orden: A, B y G primero (contenido, sin manager); D con su sonda; E; F skill por skill; el `site/` al final, todo junto.
