@@ -5,7 +5,7 @@ description: Implement or resume authorized code or configuration work; reconcil
 
 # Implement authorized work
 
-Enter with a ready plan, or with a small understood change the user asked for. Without a plan, ask the delivery question of `flow-plan` step 4 before the first edit.
+Enter with a ready plan, or with a small understood change the user asked for. Without a plan, ask the delivery and review questions as the global guidance's «Delivery» section sets, before the first edit.
 
 1. Check the plan's prerequisites. For each unmet one, ask the user for it and start the tasks that do not need it; mark it done once confirmed, without writing a secret's value. Move the tracked ticket to in progress. When the delivery makes commits, work on a branch named by the repository's convention.
 2. For each task: implement it, or delegate it as [Delegation](#delegation) sets; run the checks that cover it, and commit it when the delivery makes commits. Mark the task in `tasks.md` with one line: done, its commit, and anything left unverified.

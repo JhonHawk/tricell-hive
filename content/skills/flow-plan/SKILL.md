@@ -8,7 +8,7 @@ description: Prepare an implementation plan by resolving consequential decisions
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
 2. Resolve with the user the decisions that are theirs, asked as the global guidance sets. A change to what a consumer of a public interface sends or receives is a contract change: decide in the plan whether it stays compatible. For a change to a screen, settle the UI decisions below.
 3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
-4. Ask once, in one round: the delivery mode below and the code review mechanism. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
+4. Ask the delivery mode and the code review mechanism as the global guidance's «Delivery» section sets. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, and apply what holds.
 6. Read and follow [plan handoff](references/plan-handoff.md): write the plan summary in the message and end it with the build route. A plan does not authorize implementation: only the user's reply starts `flow-build`.
 
@@ -38,10 +38,3 @@ Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case s
 - `specs/<capability>/spec.md`: a delta, with `ADDED`, `MODIFIED` or `REMOVED Requirements`, when the change adds, alters or removes an observable behavior, a contract, a permission or stored data.
 
 **Prerequisites** are what the build needs from outside the repository, usually from a third party or a person: an API key, an account or user in a platform, an access grant, test data. List each with a checkbox, who provides it and the task that needs it, or state that there are none. Never write a secret's value; name where it is stored.
-
-## Delivery modes
-
-- `interactive`: stop before the push for the user to validate, then push, open the pull request and merge.
-- `automatic`: review, push, open the pull request and merge without stopping.
-- `direct-base`: push straight to the base branch; the default for a repository whose `## Hive` declares `Delivery: direct-base`, which gets no delivery or review question.
-- `hold`: no commit and no publication; the verified working tree is the result.
