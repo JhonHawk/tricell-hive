@@ -12,6 +12,10 @@ description: "Shared procedures every Hive flow uses: how to ask the user a ques
 - Put the recommended option first, with its reason. Ask related choices in one round.
 - End the message with one line that says what you are waiting for, and wait for the answer.
 
+## Route between flows
+
+Moving from one flow to the next (status to research, research to plan or build, plan to build) is never asked with the question tool, because a question card hides the report it closes. End the report in the message with the recommended route and its reason, then one line saying how to continue, such as "tell me which ticket to take" or "say build to start, or what to change". Only the user's reply moves the work to the next flow. Keep the question tool for decisions that change the work: scope, design, delivery and review, validation and the close.
+
 ## Declare settings
 
 Each repository's `AGENTS.md` holds a `## Hive` section; read it from the repository that holds the changed file, and ask the user when a key the task needs is missing. Required: `Project`, `Base branch`, `Tracker`, and `Specs`, the path to the `openspec` directory. Optional: `Environments`, the ordered environments from the base branch to production; `Delivery: direct-base`, the only value that authorizes effects, for a support repository; `Completion`, a later completion point as `<state> on <ref> · <state> on <ref>`; and `Hive guidance: required`.

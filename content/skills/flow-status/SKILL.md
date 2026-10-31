@@ -11,7 +11,7 @@ This skill is read-only and assesses no ticket in depth; `flow-research` does th
    - the tracker's tickets in every non-terminal state. Run the listing in the main thread only when the query caps its output at 50 tickets and short fields (identifier, title, state, labels, priority, assignee); give any other to a `hive-read-state` child;
    - unfinished local work: the current branch, uncommitted changes, local branches not merged into the base branch, worktrees, and open pull requests.
 2. Write the report as prose in the message, as [Report](#report) sets. Never replace it with a question card or a table.
-3. When the user asked what to take next, end with the route question after the report, asked as [hive-core](../hive-core/SKILL.md) sets: each option a ticket or group to take, the recommended one first. Choosing one starts `flow-research` to assess that ticket. A plain status request ends with the recommendations, without a question.
+3. When the user asked what to take next, end the report with the route as [hive-core](../hive-core/SKILL.md#route-between-flows) sets: the recommended ticket or group and one line asking which one to take. The ticket the user names starts `flow-research` to assess it. A plain status request ends with the recommendations.
 
 ## Report
 
