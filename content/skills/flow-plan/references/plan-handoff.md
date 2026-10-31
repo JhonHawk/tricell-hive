@@ -1,0 +1,31 @@
+# Plan handoff
+
+Read right before returning a ready plan, at `flow-plan` step 6. Reading this reference does not invoke the planning workflow.
+
+## Write the summary first
+
+The saved change folder holds the detail and the user may not open it, so summarize the plan in the message text, in the session language, before any question. The question card never carries the summary: a card whose options are the only place the plan appears is a failure of this step. Do not paste the whole plan. The summary has, in this order:
+
+1. The objective in one or two sentences.
+2. The text of each acceptance criterion `AC<n>`, and the name of each requirement the delta adds, modifies or removes: they are the contract the user approves.
+3. The decisions in force, and the minor calls taken without asking with their reasons.
+4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
+5. Each task on one line, with what it delivers and who executes it.
+6. The prerequisites still unmet, with who provides each.
+7. The verification: the tests, the UI walk and review, and the code review.
+8. The delivery mode, with the validation stop and the endpoint after it.
+9. What remains open or unauthorized, and the change folder path.
+
+## Then ask the build route question
+
+After the summary, ask with the host's question tool, its labels in the session language; this question is the exception to the text routes of [hive-core](../../hive-core/SKILL.md#route-between-flows). It is a route decision, not a request for leave to proceed: a plan does not authorize implementation, and only the user's choice starts `flow-build`. Its options:
+
+- **Build**, recommended unless something blocks it. It states that it approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)", because a host may show the card alone, and it starts `flow-build` with the change folder.
+- **Compact and build**, only when the context used exceeds 40% of the model's window, as the host shows it or as you estimate it. No host lets the agent compact its own session, so choosing it shows two lines to copy, in order: the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers); then `build`, which starts `flow-build` after the compaction.
+- **Stop with the plan ready.** Recommend it only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
+
+A correction to a criterion or a sketch written in the free-text answer does not answer the question: revise the plan, show the revised criteria or sketch, and ask again.
+
+When execution is already explicitly authorized, show the summary the same way and continue to `flow-build` instead of asking.
+
+Leave the change folder uncommitted: `flow-close` versions it once at close.
