@@ -14,6 +14,8 @@ The completion point is the merge into the base branch. When a human reviewer is
 5. Write the outcome to persistent memory.
 6. Ask the close question as [Close question](#close-question) sets.
 
+Close a work item once. After the close question is answered, act on the answer; do not run the close or repeat the final report again.
+
 ## Final report
 
 Report the whole work item in one message, each part only when it has content:
