@@ -25,6 +25,8 @@ Report the whole work item in one message, each part only when it has content:
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Pending:** what remains, with who owns it.
 
+When the user will share or keep this report, offer a `flow-report` page as one option of the close question.
+
 ## Findings
 
 A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. A finding of P2 or higher with a concrete failure scenario is proposed; the rest are listed in one line each in the final report. Never open a ticket without the user's answer.

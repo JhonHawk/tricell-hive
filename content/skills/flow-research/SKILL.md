@@ -16,7 +16,7 @@ Enter with a question, a reported failure or a proposal, including a question wh
 1. Name the question and the decision it informs. Ask the user only for intent that changes the conclusion.
 2. Investigate. Keep short lookups in the main thread; give larger ones to `hive-research` children, each briefed with the decision, the aspects to cover, what is settled, and when to stop. Run a tracker query that lists tickets in the main thread only when the query caps its output at 50 tickets and short fields (identifier, title, state, labels, priority, assignee); give any other to a `hive-read-state` child.
 3. Check each claim that decides the answer by opening its cited source. Resolve conflicting sources by their dates, versions, scope and direct observation; neither the backlog nor the documentation takes precedence, and missing delivery evidence means delivery is not verified, not that it did not happen.
-4. Report the answer, its evidence, and what remains uncertain.
+4. Report the answer, its evidence, and what remains uncertain. When the user will share or keep the result, such as a comparison, an explainer or a long report, offer a `flow-report` page as one option of the question the message ends with.
 5. When the findings leave work the user could run next, end with the route question, asked as [hive-core](../hive-core/SKILL.md) sets: the ways to act on the findings, each naming the flow it starts (`flow-build` for a small understood change, `flow-plan` for larger work), plus keep investigating and stop here, the recommended one first with its reason.
 
 Choosing an option authorizes only the flow it names.
