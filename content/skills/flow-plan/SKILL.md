@@ -19,6 +19,7 @@ Summarize the plan in the conversation, because the user may not open the change
 - the objective in one or two sentences;
 - the text of each `AC<n>`, and each requirement the delta adds, modifies or removes: they are the contract the user approves;
 - the decisions taken, and the minor calls made without asking with their reasons;
+- for a change to a screen, the sketch of each changed region before and after, with its components and states;
 - each task on one line with what it delivers;
 - the prerequisites still unmet, with who provides each;
 - the verification: tests, the UI walk and review, and the code review;
@@ -29,8 +30,15 @@ Then ask the build route question, asked as [hive-core](../hive-core/SKILL.md) s
 
 ## UI decisions
 
-- Decide the screen pattern the change follows, where each new action goes (the page header, a toolbar, a row menu or a dialog), and its visual weight: one primary action per region, the rest secondary.
-- When the user chooses between compositions, show each option as an ASCII sketch of the affected screen or region, at most 60 characters wide, with its real labels and item count, in the option preview of the host's question tool when it offers one, otherwise in a code block before the question.
+For a change to a screen, settle the UI before the plan is approved:
+
+1. Load the project's design system first: the UI skills, guide and component library the project guidance names, and the real component catalog, through the library's MCP server or its installed components folder.
+2. Fix the data contract each changed screen consumes: the response shape, its states and its errors.
+3. For each region that changes, decide the existing screen it follows (with its path), each component by its library name with its variant and size, where each action goes (the page header, a toolbar, a row menu or a dialog) with one primary action per region, the loading, empty, error and permission states, and the copy.
+4. Draw each region before and after as an ASCII sketch, at most 60 characters wide, with the real labels, item counts and component names, and write the decisions and sketches in the `UI` section of `design.md`. When the user chooses between compositions, show each option as such a sketch, in the option preview of the host's question tool when it offers one, otherwise in a code block before the question.
+5. When no existing pattern fits, settle the composition with one `hive-design-ui` child before the plan is approved.
+
+For a new or rearranged screen, order the tasks: the contract in code (types, schema or client), then the UI against it with stub data typed by that contract and of realistic volume and text length, then the backend that fulfils the same contract.
 
 ## Acceptance criteria
 
