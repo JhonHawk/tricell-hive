@@ -14,7 +14,21 @@ description: "Shared procedures every Hive flow uses: how to ask the user a ques
 
 ## Route between flows
 
-Moving from one flow to the next (status to research, research to plan or build) is never asked with the question tool, because a question card hides the report it closes. End the report in the message with the recommended route and its reason, then one line saying how to continue, such as "tell me which ticket to take" or "say build to start, or what to change". Only the user's reply moves the work to the next flow. Keep the question tool for decisions that change the work: scope, design, delivery and review, the plan's build route, validation and the close.
+Moving from one flow to the next (status to research, research to plan or build) is never asked with the question tool, because a question card hides the report it closes. End the report in the message with a separate next-step block, so it does not read as one more paragraph:
+
+```markdown
+---
+
+**▶ Next step: flow-plan (recommended)**
+The scope is settled and the change touches two specs and the portal.
+
+Reply:
+- `plan`: start the plan
+- `keep investigating`: what is still to check
+- or tell me what to change
+```
+
+Write it in the session language, with the recommended route and its reason in one line and the replies the user can give as a short list. Only the user's reply moves the work to the next flow. Keep the question tool for decisions that change the work: scope, design, delivery and review, the plan's build route, validation and the close.
 
 ## Declare settings
 
