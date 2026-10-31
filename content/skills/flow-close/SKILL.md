@@ -25,7 +25,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
-- **Pending:** what remains, with who owns it.
+- **Next:** what remains, with who owns it, and what comes next.
 
 When the user will share or keep this report, offer a `flow-report` page as one option of the close question.
 
@@ -47,7 +47,7 @@ Ask once, as the global guidance sets, with these options:
 | --- | --- | --- | --- |
 | H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <open a ticket, ignore, or fix now, with its reason> |
 
-Recommend fixing now when the fix is small, in the area the work touched and has no new effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. The user answers by ID as the global guidance's «Questions and routes» section sets, such as "ok" for every recommendation or "H1 ticket, H2 ignore", all at once or a few at a time. A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
+Recommend fixing now when the fix is small, in the area the work touched and has no new effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. After the table, ask the findings as a round, as the global guidance's «Questions and routes» section sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
 
 **Find the next ticket** runs `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its estimated size; choosing it starts `flow-research` to assess it.
 

@@ -133,6 +133,8 @@ Base: investigación en los 6 hosts (documentación, código de Codex, OpenCode 
 - [x] **J. Índices y respuesta «ok».** `D<n>` con su línea de título y una línea por opción, `A - (★) <descripción>` con la recomendada primero; `H<n>`, `T<n>` y `AC<n>`; una ronda con dos o más decisiones o hallazgos va en texto, «ok» aplica las ★ y «D2 B» cambia una.
 - [x] **K. Un solo comando en la ruta.** El bloque «▶ Siguiente paso» escribe el comando una vez, en la sintaxis del host, con un argumento real; si el ticket no existe, recomienda crearlo primero (OpenCode `ses_e6ea0f80`, carvento, 2026-10-31).
 
+- [x] **L. Tarjetas por ronda.** Una ronda de decisiones o hallazgos se escribe en texto y luego va en una sola llamada a la herramienta nativa (hasta su límite), con `A - (★)` en la etiqueta y la explicación en la descripción; previews para artefactos; entrevista por rondas en research y plan; línea de avance `✓ T3 · 3/5` en build y «Next» en el reporte final; respaldo en texto donde la herramienta falta o falla (research completo del 2026-10-31).
+
 Orden: A, B y G primero (contenido, sin manager); D con su sonda; E; F skill por skill; el `site/` al final, todo junto.
 
 ## Review status and progress
