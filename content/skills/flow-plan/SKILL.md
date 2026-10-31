@@ -10,7 +10,7 @@ description: Prepare an implementation plan by resolving consequential decisions
 3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
 4. Ask once, in one round: the delivery mode below and the code review mechanism. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, and apply what holds.
-6. Show the plan summary below and end with the build route. A plan does not authorize implementation: only the user's reply starts `flow-build`.
+6. Show the plan summary below, then ask the build route question. A plan does not authorize implementation: only the user's choice starts `flow-build`.
 
 ## Plan summary and build route
 
@@ -26,7 +26,13 @@ Summarize the plan in the conversation, because the user may not open the change
 - the delivery mode, with its validation stop and endpoint;
 - what remains open, and the change folder path.
 
-Then end with the build route as [hive-core](../hive-core/SKILL.md#route-between-flows) sets: recommend starting `flow-build` with the change folder unless something blocks it, and say in one line that replying "build" approves the criteria by their IDs with a gloss, such as "AC1–AC4 (export, permissions and audit)", and starts the build, or to say what to change. A correction to a criterion is not approval: revise the plan, show the revised criteria and end with the build route again.
+Then ask the build route question with the host's question tool, after the summary is written in the message; this question is the exception to the text routes of [hive-core](../hive-core/SKILL.md#route-between-flows). Its options:
+
+- **Build**, recommended unless something blocks it: it approves the criteria by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)", and starts `flow-build` with the change folder.
+- **Compact and build**, only when the context used exceeds about half of the model's window: no host lets the agent compact its own session, so choosing it shows two lines to copy, in order: the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers), and then `build`, which starts `flow-build` after the compaction.
+- **Stop with the plan ready.**
+
+A correction to a criterion written in the free-text answer is not approval: revise the plan, show the revised criteria and ask again.
 
 ## UI decisions
 
