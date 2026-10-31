@@ -29,7 +29,7 @@ Summarize the plan in the conversation, because the user may not open the change
 Then ask the build route question with the host's question tool, after the summary is written in the message; this question is the exception to the text routes of [hive-core](../hive-core/SKILL.md#route-between-flows). Its options:
 
 - **Build**, recommended unless something blocks it: it approves the criteria by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)", and starts `flow-build` with the change folder.
-- **Compact and build**, only when the context used exceeds about half of the model's window: no host lets the agent compact its own session, so choosing it shows two lines to copy, in order: the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers), and then `build`, which starts `flow-build` after the compaction.
+- **Compact and build**, only when the context used exceeds 40% of the model's window, as the host shows it or as you estimate it, and only at this question: no host lets the agent compact its own session, so choosing it shows two lines to copy, in order: the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers), and then `build`, which starts `flow-build` after the compaction.
 - **Stop with the plan ready.**
 
 A correction to a criterion written in the free-text answer is not approval: revise the plan, show the revised criteria and ask again.
