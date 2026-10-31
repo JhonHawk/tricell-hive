@@ -8,7 +8,7 @@ description: Prepare an implementation plan by resolving consequential decisions
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
 2. Resolve with the user the decisions that are theirs, asked as [hive-core](../hive-core/SKILL.md) sets. For a change to a screen, settle the UI decisions below.
 3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
-4. Ask once, in one round: the delivery mode below, the code review mechanism, and how a UI change is verified.
+4. Ask once, in one round: the delivery mode below and the code review mechanism. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, and apply what holds.
 6. Show the plan summary below and ask the build route question. A plan does not authorize implementation: only the user's choice starts `flow-build`.
 
@@ -21,7 +21,7 @@ Summarize the plan in the conversation, because the user may not open the change
 - the decisions taken, and the minor calls made without asking with their reasons;
 - each task on one line with what it delivers;
 - the prerequisites still unmet, with who provides each;
-- the verification: tests, UI check and code review;
+- the verification: tests, the UI walk and review, and the code review;
 - the delivery mode, with its validation stop and endpoint;
 - what remains open, and the change folder path.
 

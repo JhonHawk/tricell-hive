@@ -38,7 +38,7 @@ None: the build needs nothing from outside the repository.
 
 ## Delivery
 
-<The delivery mode, its validation stop and its endpoint. The code review mechanism. How a UI change is verified. What this choice does not authorize.>
+<The delivery mode, its validation stop and its endpoint. The code review mechanism. What this choice does not authorize.>
 
 ## Review status and progress
 
