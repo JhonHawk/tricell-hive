@@ -224,18 +224,14 @@ requires selecting every registered consumer, so installing one host may require
 selecting others. Removing one host keeps a shared file until its last consumer
 is removed.
 
-**Grok and Cursor together.** Grok loads Hive's guidance from
-`~/.claude/CLAUDE.md` and again from `~/.cursor/AGENTS.md`, about 10,700 tokens
-per session. The installer warns about it; setting `agents = false` under
-`[compat.cursor]` in Grok's `config.toml` removes the copy, at the cost that your
-own text in `~/.cursor/AGENTS.md` stops loading in Grok.
-
-**Cursor pointer.** Cursor CLI does not read `~/.cursor/AGENTS.md` on its own. Add
-this line to each repository's `AGENTS.md` where you use Cursor, near the top and
-outside its `## Hive` section:
+**Cursor.** Cursor CLI never reads `~/.cursor/AGENTS.md`, so Hive installs its
+guidance as the always-applied rule `~/.cursor/rules/hive.mdc`. Cursor loads rules
+from every folder between the workspace and the filesystem root, so the rule
+reaches every repository under your home folder. For a repository outside it, add
+this line to its `AGENTS.md`, near the top and outside its `## Hive` section:
 
 ```markdown
-Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/AGENTS.md` before any other action and follow it. If that file is missing, say so and continue.
+Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/rules/hive.mdc` before any other action and follow it. If that file is missing, say so and continue.
 ```
 
 See [native destinations](_support/docs/architecture/deployment-manager.md#content-and-native-destinations)
