@@ -7,7 +7,7 @@ description: Prepare an implementation plan by resolving consequential decisions
 
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
 2. Resolve with the user the decisions that are theirs, asked as [hive-core](../hive-core/SKILL.md) sets. For a change to a screen, settle the UI decisions below.
-3. Write the change folder as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
+3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
 4. Ask once, in one round: the delivery mode below, the code review mechanism, and how a UI change is verified.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, and apply what holds.
 6. Show the plan summary below and ask the build route question. A plan does not authorize implementation: only the user's choice starts `flow-build`.
@@ -20,6 +20,7 @@ Summarize the plan in the conversation, because the user may not open the change
 - the text of each `AC<n>`, and each requirement the delta adds, modifies or removes: they are the contract the user approves;
 - the decisions taken, and the minor calls made without asking with their reasons;
 - each task on one line with what it delivers;
+- the prerequisites still unmet, with who provides each;
 - the verification: tests, UI check and code review;
 - the delivery mode, with its validation stop and endpoint;
 - what remains open, and the change folder path.
@@ -37,12 +38,14 @@ Number them `AC1`, `AC2`…, one observable behavior each. Name for each the obs
 
 ## Change folder
 
-Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key:
+Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key. Copy each template from [assets/change-folder/](assets/change-folder/), fill it, and delete its comments and the sections that do not apply:
 
-- `proposal.md`: the request and the ticket's criteria quoted, the scope and exclusions, the numbered criteria, and the delivery decisions;
-- `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and how it is checked;
+- `proposal.md`: the request and the ticket's criteria quoted, the scope, the numbered criteria, the prerequisites, and the delivery decisions;
+- `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and how it is checked, and the verification of the whole change;
 - `design.md`: only when there are design decisions to record;
 - `specs/<capability>/spec.md`: a delta, with `ADDED`, `MODIFIED` or `REMOVED Requirements`, when the change adds, alters or removes an observable behavior, a contract, a permission or stored data.
+
+**Prerequisites** are what the build needs from outside the repository, usually from a third party or a person: an API key, an account or user in a platform, an access grant, test data. List each with a checkbox, who provides it and the task that needs it, or state that there are none. Never write a secret's value; name where it is stored.
 
 ## Delivery modes
 
