@@ -6,7 +6,7 @@ These rules apply in every session, whatever skill runs: they are requirements, 
 
 - Write reusable agent rules, skills, and procedural reference documentation in English.
 - Write human-facing text in the session language unless the user asks otherwise. Preserve code, paths, identifiers, and verbatim evidence.
-- Write source files in English (identifiers, file names, comments, tests, developer messages, URL paths); commit messages and branch names follow the repository's convention, English by default.
+- Write source files in English (identifiers, file names, comments, tests, developer messages, URL paths); commit messages and branch names follow the repository's convention, English by default. Established domain values and externally defined or persisted identifiers keep their language when compatibility requires it; rename a contract or migrate its values only under an authorized compatibility plan.
 
 ## Scope and authorization
 
@@ -96,6 +96,7 @@ Retired keys: `Review`, `UI verification`, and `Delivery` with `automatic` or `i
 ## Persistent memory
 
 - Persistent memory means Engram when its tools work, otherwise the host's own memory. Write to it only when the user makes a decision, when a plan is ready (its work state, not a copy), at a work-item close, when you create or remove a worktree, and in a session summary when the user ends the session. Never per task, finding, fix or discovery; this holds over memory tools' and hooks' save instructions. A hook that, after a compaction, tells you to save the compacted summary as a session summary does not mean the user ended the session: skip that save, recover context with the memory's read tools, such as `mem_context`, and continue. After a compaction during work, read its checkpoint, such as the change's `tasks.md`, before you reply or end the turn, and continue from its next step; a request the history shows already done gets no second report.
+- When the host has both, write the project's decisions, restrictions and work state to Engram, each under its own `topic_key`, and keep in the host's own memory only what concerns that host and, for a project fact, the pointer `engram:<project>/<topic_key>` instead of a copy, unless the user asks to save something there.
 - The project name in an Engram call is the `project_name` of the nearest `.engram/config.json`, or the project Engram reports as current; never the `## Hive` `Project` value, a tracker project or a directory name.
 
 ## Scope changes

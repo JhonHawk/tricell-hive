@@ -10,7 +10,7 @@ import shutil
 import sys
 
 
-# The first status field decides: `Status: closed`, `**Estado:** cerrado. ...`, or a flow-plan control-sheet row such as `| Estado | Completado · ... |`.
+# The first status field decides: `Status: closed`, `**Estado:** cerrado. ...`, or a table row such as `| Status | Completed · ... |`, the form of the Status row in a flow-plan proposal.
 STATUS = re.compile(
     r"^[ \t]*(?:\|[ \t]*)?(?:\*\*)?(?:Status|Estado)(?:\*\*)?[ \t]*(?::(?:\*\*)?|\|)[ \t]*(?:\*\*)?(?P<value>[^\n]*)$",
     re.I | re.M,

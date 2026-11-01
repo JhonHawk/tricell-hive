@@ -147,6 +147,19 @@ Base: investigación en los 6 hosts (documentación, código de Codex, OpenCode 
   - corrige 4 punteros rotos (flow-research step 2, dos secciones de flow-verify que ya no existen y la frase hacia flow-close);
   - suma el análisis de la situación: la rama comparada con su base, no tocar el checkout de otra sesión y preguntar con propuestas cuando el estado no resuelve una elección de Git.
   Quedan staging por archivo, `commit --only`, hooks, método de merge, base al día, ramas de entorno, cuerpo del PR y revisores humanos (decisión D36 y corrección del usuario del 2026-11-01).
+- [x] **V. Skills que no se rehicieron.** Se rehacen como `git-workflow`: `unattended-delegation`, `flow-deploy` con sus referencias, `security-advisory`, `harness-audit` (sus pasos de aplicar pasan a `references/apply.md` y la memoria a `references/memory.md`), `workspace-conventions`, `engram-init-workspace`, `starlight-docs-site` y `flow-report`. Se corrigen unos 30 punteros que apuntaban a reglas que ya no existen y se quita lo que repetía la guía global. El modo desatendido deja de pedir el ajuste retirado «UI verification» y corre el revisor de UX. 8 KB queda como meta y no como tope (decisión D42 y aclaración del usuario).
+- [x] **W. Reglas perdidas en el recorte, recuperadas en versión mínima donde se usan** (D43):
+  - en la guía global, qué guarda la memoria de cada host y la excepción de idioma para valores de dominio;
+  - en el modo desatendido, el contrato de ciclos;
+  - en `flow-deploy`, la revisión del PR de promoción, incluidos los commits con `Unreviewed:`, y el paso a `Completion`;
+  - en `urgent-fixes`, la mitigación de incidentes;
+  - en `flow-build`, las condiciones para abortar un cambio de datos.
+- [x] **X. Roles.**
+  - Se retira `hive-refute-claim` (D44).
+  - Todos los revisores usan P0–P3, definido en «Findings» de `flow-close` (D45).
+  - Los hijos nunca hacen commit (D46).
+  - La comprobación de producción pasa a `hive-read-state` (D47).
+  - Se corrigen frontend (los datos de ejemplo del plan quedan exentos), plan (un revisor para todo el plan), UX (no vuelve a capturar), verificación (solo a pedido) y otros textos de referencias borradas.
 - [x] **S. Retomar tras compactar.** «Persistent memory» pide leer el checkpoint del trabajo antes de responder o terminar el turno después de una compactación, y seguir desde su siguiente paso sin volver a reportar lo ya hecho; la regla de `flow-build` y `flow-verify` no sobrevive a la compactación porque el texto de la skill no queda en el historial. Codex `01a19479`, hive, 2026-10-31: la compactación de las 23:27 dejó como último mensaje un ajuste ya resuelto; el agente lo reportó otra vez y cerró el turno a mitad de la verificación (decisión D30; watch `watch/stop-after-midturn-compaction`).
 
 Orden: A, B y G primero (contenido, sin manager); D con su sonda; E; F skill por skill; el `site/` al final, todo junto.

@@ -22,9 +22,9 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Condition:** producing UI review images, recordings, or a legacy walkthrough.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish API evidence using [flow-walkthrough](../../flow-walkthrough/SKILL.md); its readback and cleanup procedure governs the disposable upload inputs. Only the standalone fallback or an existing legacy walkthrough uses `walkthrough.json` beside that folder and an optional `walkthrough.html` beside it; read [the legacy manifest](../../flow-walkthrough/references/walkthrough-manifest.md) for that case. Link current output and selected evidence from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish API evidence using [flow-walkthrough](../../flow-walkthrough/SKILL.md); its [readback checks](../../flow-walkthrough/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Only the standalone fallback or an existing legacy walkthrough uses `walkthrough.json` and an optional `walkthrough.html` beside that folder; read [the legacy manifest](../../flow-walkthrough/references/walkthrough-manifest.md) for that case. Link current output and selected evidence from the handoff.
 
-Keep source plans, user-selected output, unique evidence, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. For a legacy walkthrough, the manifest, referenced recordings and images and any fallback page form one retention unit: keep it for the rest of the session and when paused. At session end, selecting the manifest or page keeps the unit; selecting individual images or recordings keeps those files and removes the remainder; without a selection, remove the legacy unit after its confirmation succeeds. Follow the legacy confirmation in [flow-walkthrough](../../flow-walkthrough/SKILL.md) before removing its source unit. Retention does not authorize publication; there is no automatic age-based expiry.
+Keep source plans, user-selected output, unique evidence, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. For a legacy walkthrough, the manifest, referenced recordings and images and any fallback page form one retention unit: keep it for the rest of the session and when paused. At session end, remove the legacy unit after its confirmation succeeds, following the legacy close protocol in [viewer-publication](../../flow-walkthrough/references/viewer-publication.md#close-and-input-hygiene); a failed confirmation keeps it. Retention does not authorize publication, and nothing expires by age.
 
 ## Name and date records
 
@@ -35,13 +35,13 @@ Keep source plans, user-selected output, unique evidence, uncommitted work and a
 
 ## Retain evidence
 
-Retain necessary evidence, including justified binaries; only curated, shareable material is eligible for Git. Keep secrets, raw dumps, and unnecessary reproducible output out of Git. State availability limits for private evidence. Local retention is not versioning, and eligibility for Git is not authorization to commit or push.
+Retain necessary evidence, including justified binaries; only curated, shareable material is eligible for Git. Keep secrets, raw dumps, and unnecessary reproducible output out of Git. State availability limits for private evidence.
 
 ## Close or maintain material
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md) before the completion report, without being asked. What it removes, stops and restores, and what it keeps, is set in its Temporaries and processes step. Branch and worktree deletion at close follows [branch cleanup](../../flow-close/SKILL.md#branch-cleanup). Preserve prior material, unique evidence, and anything whose ownership or disposability is uncertain. Repeating a test may not reproduce the same evidence.
+**Actions:** run [flow-close](../../flow-close/SKILL.md), which sets what it removes, stops and keeps.
 
 **Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
 
