@@ -28,17 +28,15 @@ Clean up the session.
 
 The agent goes through these steps in order:
 
-For work with a walkthrough, it first records its known PR or commit delivery link
-when available, preserving the captured candidate and other works in the session.
-Then it marks only that work closed and publishes its JSON, or standalone HTML
-when the binary is absent, before removing a working copy or review artifacts. Closed also covers
-abandoned or paused work; cleanup by itself does not close work. The existing
-viewer must confirm that it collected the exact current source and resources
-before their source unit can be removed. If the viewer is offline, too old, has
-no matching copy or does not confirm within 15 seconds, the agent keeps the
-still-needed unit and reports its folder. It never starts or restarts the viewer
-to force confirmation. The procedure lives in
-[Close the current walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/walkthrough-close.md).
+For work published to the viewer, Close records the known delivery and
+lifecycle outcome, then confirms the committed session and the referenced
+resources before removing any disposable publication inputs. An unavailable
+viewer, uncertain publication or incomplete readback leaves those inputs in
+place. A paused work item retains what its continuation needs. Legacy
+walkthroughs use their existing exact-copy confirmation. Close does not start
+or restart the viewer to force confirmation. The procedure lives in
+[flow-close](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md)
+and [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md).
 
 1. When the work is complete, confirms the ticket is in the state the merge moved it to, along with the sub-issues the same work covered, or moves it now. When your project declares a later completion point in `Completion`, that state is the intermediate one the key names. Under `hold`, or while a pull request waits for a human reviewer, the ticket stays in progress and the report gives the missing delivery or merge as a reminder. A paused or abandoned ticket does not move to finished.
 2. Handles the change record, if there is one: after integration and required post-merge checks it folds the plan's requirement changes into the project's current requirements, confirms that each one matches what the plan said, marks the change completed and archives the folder. Under `hold` or while a pull request waits for a human reviewer, the record stays on disk without applying its requirements or archiving it. An abandoned change is archived without touching the requirements, with its unapplied changes kept apart so nothing reads them as applied.
@@ -68,7 +66,7 @@ to force confirmation. The procedure lives in
 ## FAQ
 
 ### What does Close delete?
-Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough manifest and optional page that you did not ask to keep: keeping the manifest or page keeps its referenced images and recordings too; keeping only individual images or recordings drops the remaining unit. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current closed copy. Branches are deleted only when their pull request is yours and merged, and a remote branch only when its head is the one that was merged or already in the base branch, so commits pushed afterwards are not lost. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
+Temporary files and processes the task or its helpers created, merged branches, including ones from earlier work, with their clean working copies, and, at the end of the session, the interface screenshots, flow recordings and walkthrough manifest and optional page that you did not ask to keep: keeping the manifest or page keeps its referenced images and recordings too; keeping only individual images or recordings drops the remaining unit. Paused work that continues in another session keeps them all, as does an unresolved confirmation of the viewer's current stored evidence. Branches are deleted only when their pull request is yours and merged, and a remote branch only when its head is the one that was merged or already in the base branch, so commits pushed afterwards are not lost. A branch with unmerged commits is never deleted, and anything whose owner is unclear is kept.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Later promotion to other environments is tracked separately; if your project names a later point as done in `Completion`, the ticket sits in an intermediate state until it holds and no functional walk is pending there.

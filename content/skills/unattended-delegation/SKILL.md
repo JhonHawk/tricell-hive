@@ -17,7 +17,7 @@ When an explicit delegation or a message that the user is leaving activates this
 
 ## Decisions
 
-Decide every question that comes up yourself instead of asking or waiting, except an authorization the user was asked for and left unanswered, which stays unauthorized, and the questions of the pre-authorization round above, which only the user answers (an offered security review is not a request until the user asks for it, and only the user's own message can skip [flow-verify](../flow-verify/SKILL.md) or lower its level): take the option you would recommend, record the decision and its reason in the task record, and list them in the final report as [final report](../flow-close/SKILL.md#final-report) sets. The first rendered view of a layout is captured and reported without a question, as [flow-walkthrough](../flow-walkthrough/SKILL.md) sets.
+Decide every question that comes up yourself instead of asking or waiting, except an authorization the user was asked for and left unanswered, which stays unauthorized, and the questions of the pre-authorization round above, which only the user answers (an offered security review is not a request until the user asks for it, and only the user's own message can skip [flow-verify](../flow-verify/SKILL.md) or lower its level): take the option you would recommend, record the decision and its reason in the task record, and list them in the final report as [final report](../flow-close/SKILL.md#final-report) sets. While this delegation is active, capture and publish the first rendered view through [flow-walkthrough](../flow-walkthrough/SKILL.md) without waiting for human validation; this exception replaces only flow-build’s first-view question, not its evidence or review requirements.
 
 ## Effects
 

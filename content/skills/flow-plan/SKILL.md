@@ -5,6 +5,8 @@ description: Prepare an implementation plan by resolving consequential decisions
 
 # Prepare an executable plan
 
+At substantive plan entry, the primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md) for the viewer stage and immutable draft, complete and later revision snapshots.
+
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
 2. Resolve with the user the decisions that are theirs, asked as the global guidance sets. A change to what a consumer of a public interface sends or receives is a contract change: decide in the plan whether it stays compatible. For a change to a screen, settle the UI decisions below.
 3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.

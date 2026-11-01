@@ -5,7 +5,9 @@ description: Investigate a technical question, a reported failure, or a ticket t
 
 # Research a question
 
-Research is read-only: nothing changes until the user chooses a route.
+For substantive research, the primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md) to start or resume the viewer stage and publish meaningful updates; publication failure does not stop independent research.
+
+Research does not change the project, tracker or shared data until the user chooses a route; the local viewer publication above records its progress.
 
 ## Entry and exit
 

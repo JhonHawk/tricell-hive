@@ -1,14 +1,14 @@
 # Walkthrough manifest
 
-Read before writing `walkthrough.json` for a walkthrough or first view. The publisher validates every rule below and names the field that fails; fix the manifest and run it again rather than editing generated output.
+Read only for the standalone fallback when the binary is absent, or for an existing legacy walkthrough and its closure. New API publication follows [viewer publication](viewer-publication.md), not this schema. The publisher validates every rule below and names the field that fails; fix the manifest and run it again rather than editing generated output.
 
 ## Where it goes
 
-Write one `walkthrough.json` per work folder, beside its `images/` folder, as [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md) places them. The first-view manifest and the final one are the same file: the final one replaces it. Then run the publisher as step 3 of the skill sets and use the output target below.
+Write one `walkthrough.json` per work folder, beside its `images/` folder, as [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md) places them. The first-view manifest and the final one are the same file: the final one replaces it. Then run `python3 <flow-walkthrough dir>/scripts/render_walkthrough.py <work folder> --session-status in_progress` and use the output target below.
 
 ## Publication target
 
-The publisher resolves whether the `hive` executable is available on PATH once per invocation. With the binary available, it validates the manifest and referenced resources, atomically applies an explicit status update when requested, and returns `walkthrough.json`. It does not read page assets, build HTML or create or replace `walkthrough.html`; an existing page stays unchanged and is not the current output. Register the work folder as step 3 of the skill sets so the viewer renders the JSON.
+The publisher resolves whether the `hive` executable is available on PATH once per invocation. With the binary available, it validates the manifest and referenced resources, atomically applies an explicit status update when requested, and returns `walkthrough.json`. It does not read page assets, build HTML or create or replace `walkthrough.html`; an existing page stays unchanged and is not the current output. For an existing legacy walkthrough, register its work folder so the legacy scanner can render the JSON.
 
 Without the binary, it generates the standalone `walkthrough.html` fallback beside the JSON. Keep its existing preparation, concurrent-write checks and recovery: validation or preparation failure changes neither output, and a page publication failure restores the manifest when no other writer replaced it. Re-run from the authoritative JSON after interruption; this is not a cross-file crash transaction.
 
@@ -36,7 +36,7 @@ Keys are English and exactly as shown; unknown keys fail. Text values are in the
 | `environment` | no | `[{"label", "value"}]`: URLs and account names; never a password, token or cookie |
 | `provenance` | no | List of lines: when and from what the page was produced |
 
-**`session.id`.** Use the host's session ID when the host documents one for the shell, such as `CLAUDE_CODE_SESSION_ID` or `PI_SESSION_ID`. Otherwise write `<host>-<UTC time of your first manifest in this session as YYYYMMDDThhmmssZ>` and reuse it for the rest of the session. `session.host` is the host's name, such as `claude-code` or `codex`.
+**`session.id`.** Use the actual native session ID when verified. For a standalone legacy document only, if it is unavailable, use a stable document ID such as `<host>-<UTC first-manifest timestamp>` and reuse it for that document. A synthesized document ID is not a native session ID and must never be used as an API identity. `session.host` identifies the host.
 
 **`session.status`.** Optional; exactly `in_progress` or `closed`. Active producers write `in_progress`, including when explicitly resuming the same work. Existing manifests without it remain valid and the viewer reports `unknown`; do not retrofit historical records or infer status from `kind`, age, Git classification or the host process. `closed` means this work passed through flow-close (completed, abandoned or paused), not that the person approved the interface or the host conversation ended. Before closing or deleting this work's review artifacts, mark it closed as [flow-close](../../flow-close/SKILL.md) step 3 sets.
 
@@ -74,7 +74,7 @@ Each capture needs `path` and `caption`; `alt` defaults to the caption. Limits: 
   "kind": "final",
   "title": "gh-67 — sidebar navigation",
   "ticket": "gh-67-flow-walkthrough-skill",
-  "session": {"id": "codex-20261018T223000Z", "host": "codex", "status": "in_progress"},
+  "session": {"id": "standalone-document-20261018T223000Z", "host": "example-host", "status": "in_progress"},
   "candidate": {"branch": "feat/gh-67-sidebar", "commit": "1a2b3c4d", "base": "development"},
   "delivery": [{"kind": "pull_request", "label": "example #123", "url": "https://example.com/repository/pull/123"}],
   "created_at": "2026-10-18T16:30:00-06:00",

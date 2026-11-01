@@ -14,6 +14,9 @@ The essential runtime boundaries and read conditions remain in `content/guidance
 
 Canonical procedural homes under `content/skills/`:
 
+- `flow-walkthrough/SKILL.md`: publish a substantive flow's declared session stages, documents and evidence to the viewer, or deliver a UI walkthrough through the supported fallback. Its consumers link to it instead of repeating publication steps; `hive view contract` owns the machine-readable protocol.
+- `flow-verify/SKILL.md` and its linked conditional UI reference: verification, review and proportional capture coverage. Publication consumers point here for those checks instead of restating a second capture policy.
+
 - `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a decision, validation, result, blocker or closing message opens with the context line the reference sets.
 - `flow-close/references/work-item-boundary.md`: before the first message of authorized work while work of your own remains, before ending a turn while it remains, and before ending a turn that completes a work item; it sets when the turn may end. `content/guidance/global.md` (Communication), which keeps the rule's invariant, `flow-build/SKILL.md`, `flow-verify/SKILL.md` and a pointer section in `reporting.md` for the other flows that read it point to it (issue #265).
 - `flow-close/references/incidental-findings.md`: before proposing an incidental finding, during the work or at a work item's close, and before listing, asking about or recording them; `content/guidance/global.md` (incidental findings), the Incidental findings and Memory steps of `flow-close/SKILL.md`, `flow-verify/references/ui-gate.md` and `flow-verify/references/ui-review-criteria.md` point to it.

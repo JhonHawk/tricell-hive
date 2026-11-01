@@ -385,8 +385,8 @@ Two commands tune the setup from a terminal:
 
 - `hive project set` edits the `## Hive` section of the repository's `AGENTS.md`
   after confirmation, with `--set 'Key: value'` and `--unset Key` (and
-  `--dry-run` to preview). The section holds facts only; the delivery mode, the
-  review mechanism and the `UI verification` level are asked each session, and
+  `--dry-run` to preview). The section holds facts only; delivery and code-review
+  decisions are asked once per work item when still open, and
   `hive doctor` warns about leftover `Review`, `UI verification` or
   `Delivery: automatic|interactive` lines. `hive doctor` exits non-zero when the
   `## Hive` section has a blocking finding, and `harness-audit` can create or
@@ -405,80 +405,72 @@ Close this work item and clean up only the temporary resources it created.
 
 ### Review UI walkthroughs in one place
 
-When an agent validates a user interface with you, it writes the walkthrough as
-`walkthrough.json` in the `_support/workspace/` of the repository, or of the
-multi-repository workspace folder that holds it. With the Hive binary installed,
-the viewer renders that JSON; a standalone HTML page is generated only without
-the binary. An already generated page is preserved when the mode changes. To keep those walkthroughs after the session and browse them by
-project and session, with ticket details on each segment, run the local viewer yourself:
+The viewer brings an agent session's research, plan, build and verification
+milestones together in a timeline. When the viewer is running and the host can
+provide its native session identity, the agent can publish progress before it
+takes screenshots. Start and stop the local viewer yourself:
 
 ```sh
-hive view register --dir <folder>   # once per repository or workspace; agents run it too
-hive view start      # a server on 127.0.0.1:4483 (HIVE on a phone keypad), or a free port if that one is busy; it keeps running until you stop it
-hive view open       # open it in the browser
+hive view start      # 127.0.0.1:4483, or a free port if that port is busy
+hive view open       # open the library in a browser
+hive view status     # show the service status without its access token
 hive view stop
 ```
 
-The viewer uses React with public MIT shadcn/ui and ReUI components in a custom
-shell; it needs no Node, ReUI license or third-party network connection to run.
-Frontend development and bundle checks are described in
-[Contributing](CONTRIBUTING.md#viewer-frontend).
+The server keeps running until you stop it. The agent registers the repository
+or workspace when publishing; `hive view register --dir <folder>` can also do
+this without a running server. `hive view contract` prints the versioned CLI
+commands, input/output schemas, limits and examples without starting the server;
+`--operation NAME` narrows the output. Producers send JSON with `--json FILE`
+or `--json -` for standard input. The [publication skill](content/skills/flow-walkthrough/SKILL.md)
+sets when and how agents use these commands.
 
-The viewer copies eligible walkthroughs into Hive's state directory and deletes
-copies older than 14 days unless their session is kept (`--ttl` changes that).
-A fixed session toolbar lets you rename, archive or restore, keep or stop keeping,
-and delete the entire session, including walkthroughs from other tickets. Only
-the document area scrolls. Deletion asks for confirmation and never changes
-repository files or the host conversation; new or modified deliveries can appear
-again. The local name appears in navigation and search without renaming the
-individual walkthroughs.
-Archive hides the whole session from the default list, with brief Undo feedback.
-The icon beside Projects includes or hides archived sessions. New walkthroughs
-inherit their session's archive and keep preferences. Archiving does not change
-the 14-day retention period or work status; keeping protects the session's copies
-from expiry. Projects show session counts and open initially only when
-they contain work in progress. Your project expansion, sidebar visibility,
-archive filter and selection survive refresh in the same browser tab. Walkthroughs
-with the same project, host and declared session ID share one sidebar entry, even
-across tickets. Their walkthroughs appear chronologically with internal separators,
-individual work-status indicators and ticket search links; management controls
-appear once for the session. The session header collects explicit
-PR/commit delivery links, and each segment retains its own links; missing metadata
-is shown as unregistered delivery rather than inferred from the candidate commit.
-Manifests confirmed as tracked in Git are not imported. Previously imported copies
-whose source is now tracked appear separately with an explanation, without rendering
-the walkthrough; their pins and normal retention still apply. If the source cannot
-be classified, the viewer shows an unknown-origin warning. A local file does not
-prove agent authorship. Ingestion rejects hard-linked manifests and referenced files.
-`hive view open` passes a one-use opening code, valid for 60 seconds, in the URL
-fragment. The page removes it before exchanging it for the server token and reads
-no walkthroughs until access succeeds. If opening fails, run the command again. `register` takes the folder that contains `_support/workspace/` when
-`--dir` points inside it, even if that folder is not a Git repository (a
-multi-repository workspace), and the Git root otherwise. Agents never start it.
+Each API session is keyed by a resolved project, host and the native session
+ID supplied by the agent; the server returns a separate viewer ID. The identity
+is metadata for grouping, not server attestation of the agent process. Its newest milestones appear first,
+with declared stage progress, ticket and Git links, and a short scope summary.
+Stage documents open as read-only Markdown tabs with their saved revisions;
+visual evidence is grouped by view and ticket, with thumbnails opening a
+carousel and instructions available on demand. Later iterations retain prior
+views and identify the evidence they supersede. Status and approvals reported
+from the chat are agent-reported context, not proof that a process is alive or
+that the person acted in the viewer. Review decisions still happen through the
+host conversation.
 
-Each segment's informational status indicator shows explicit work status:
-In progress, Closed, or Not reported
-(`unknown`) for historical manifests without it. This is independent of source
-classification. Closed means the work passed through `flow-close`, including a
-pause or abandonment; it does not mean UI approval or that the host conversation
-ended. The [walkthrough close procedure](content/skills/flow-close/references/walkthrough-close.md)
-confirms the current closed copy before eligible source cleanup.
+Rename, archive/restore, keep and confirmed deletion act on a session. Archive
+changes the default list's visibility; it does not close the work. The viewer
+does not expire sessions, archived copies, documents or images because of age.
+The old `--ttl` flag is accepted for compatibility but ignored with a warning.
+Explicit deletion removes the viewer's stored session, not repository source
+files or the host conversation. A modified legacy source may be ingested again
+after its stored copy is deleted. The agent confirms the stored session and its
+resources before removing disposable publication inputs; it keeps inputs when a
+publication fails or its result cannot be confirmed.
 
-When updating from a viewer that predates session status or delivery links, update the binary and
-installed content together and coordinate stopping and starting the existing
-viewer before using the new producers. Rebuilding the binary does not update a
-running process. Older strict viewers reject the new manifest fields; an unconfirmed
-closure preserves its source evidence.
+The legacy scanner still reads eligible `walkthrough.json` files and referenced
+resources under registered workspaces, preserving their historical presentation
+instead of inventing timeline events. Tracked manifests are not imported;
+previously copied sources now tracked are listed separately without rendering,
+and unknown source classification is shown as a warning. API-owned sessions
+and their tombstones suppress a matching legacy projection without deleting the
+source. If the binary is absent, a UI walkthrough can still use standalone HTML;
+a stopped or unreachable installed viewer does not select another publication
+authority. A local source file does not prove who authored it.
 
-When upgrading to session-wide controls, restart the viewer with the new binary
-and reload existing browser tabs: copy-oriented writes are rejected until reload.
-The first startup imports old preferences: a session stays archived only when
-all its copies were archived, while any kept copy keeps the session. Mixed
-archive groups become active. Names and preferences live in
-`viewer/session-groups/`, independently of the reconstructible index. Before the
-first upgrade, back up copy metadata, the index and session-group records without
-copying server credentials. Rolling back to an older binary requires restoring
-compatible preferences; do not overwrite changes made after that backup.
+`hive view open` uses a short-lived, one-use code in the URL fragment. The page
+removes the fragment before exchange and does not load session data until access
+succeeds. Optional `--session-id ID --event-id ID` opens a specific API event;
+the IDs are not the server token. Publication does not start or restart the viewer.
+Rebuilding the binary does not update a running process: update the binary before
+the installed content and coordinate a restart before expecting new server
+features. Before upgrading, back up the old binary, copy metadata, index and
+session-group records without copying `server.json` or access tokens. Older
+binaries do not understand API-owned records: retain those files for recovery,
+and avoid overwriting preferences changed after a backup when rolling back.
+
+The viewer uses React with public MIT shadcn/ui and ReUI components. It needs no
+Node, ReUI license or third-party network connection at runtime. Frontend
+contribution and bundle checks are in [Contributing](CONTRIBUTING.md#viewer-frontend).
 
 ## For AI agents
 

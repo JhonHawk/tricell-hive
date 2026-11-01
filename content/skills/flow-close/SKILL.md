@@ -5,11 +5,13 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
+When this work has a viewer session or a legacy walkthrough, follow [flow-walkthrough](../flow-walkthrough/SKILL.md) for its conditional stage, session and evidence close before cleanup.
+
 The completion point is the merge into the base branch. When a human reviewer is assigned to the pull request, opening it is the completion point: the ticket stays in progress, and a later session that finds it merged runs this close.
 
 1. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
 2. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
-3. When the work folder holds a `walkthrough.json`, mark it closed first with `python3 <flow-walkthrough dir>/scripts/render_walkthrough.py <work folder> --session-status closed --confirm-viewer`; when it exits 2, keep that folder. Clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
+3. After the viewer close above, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
 4. Write the final report as [Final report](#final-report) sets.
 5. Write the outcome to persistent memory.
 6. Ask the close question as [Close question](#close-question) sets.

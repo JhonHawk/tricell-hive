@@ -15,7 +15,7 @@ access_profile: "verify"
 
 4. Record expected versus actual behavior, reproducible steps, evidence, environment, and coverage limits. Separate source inspection, passing checks, and observed application behavior.
 
-5. Capture selected changed states as [flow-walkthrough](skill:flow-walkthrough/SKILL.md) sets, within the evidence destination the brief assigns. Return each capture's path and caption, the observed state, and any limits.
+5. Capture selected changed states as [UI verification](skill:flow-verify/references/ui-verification.md) sets, within the evidence destination the brief assigns. Return evidence to the primary producer for publication, including each capture's path and caption, the observed state, and any limits.
 
 6. Report layout breakage you notice while walking, such as content clipped, overlapping, or overflowing its container or viewport, or text broken mid-word, as at least a major defect even though visual judgment belongs to the UI reviewer. Return defects and blocked checks to the parent. Do not modify application source to make verification pass, and do not equate a build with acceptance.
 

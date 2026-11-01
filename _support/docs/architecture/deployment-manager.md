@@ -114,15 +114,56 @@ The write is atomic: a temporary file in the same directory renamed over the old
 
 ```sh
 go run ./tooling/cli view register [--dir DIR] [--home DIR] [--state-dir DIR]
-go run ./tooling/cli view start [--port N] [--ttl D] [--home DIR] [--state-dir DIR]
+go run ./tooling/cli view start [--port N] [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view status [--dir DIR] [--home DIR] [--state-dir DIR]
-go run ./tooling/cli view open|stop [--home DIR] [--state-dir DIR]
-go run ./tooling/cli view serve [--port N] [--ttl D] [--home DIR] [--state-dir DIR]
+go run ./tooling/cli view open [--session-id ID [--event-id ID]] [--home DIR] [--state-dir DIR]
+go run ./tooling/cli view stop [--home DIR] [--state-dir DIR]
+go run ./tooling/cli view serve [--port N] [--home DIR] [--state-dir DIR]
+go run ./tooling/cli view contract [--operation NAME]
 ```
 
-`flow-walkthrough` publishes JSON for an installed Hive binary and creates standalone HTML only when that executable is absent; the [manifest publication contract](../../../content/skills/flow-walkthrough/references/walkthrough-manifest.md#publication-target) owns the choice. Ingestion needs only JSON and its referenced captures/recordings, not an HTML page. Server or registration failure does not select HTML.
+The user starts and stops the local viewer; agents publish through
+[flow-walkthrough](../../../content/skills/flow-walkthrough/SKILL.md). The
+machine-readable `hive view contract [--operation NAME]` runs offline and is
+the source for exact commands, schemas, limits and examples. API mutations use
+`--json FILE` or `--json -`; image and Markdown uploads use a local `--file`.
+With an installed binary, an unavailable or outdated server is reported without
+starting it or selecting a different publishing authority. Only an absent binary
+selects the standalone HTML fallback for a UI walkthrough.
 
-`view` is a local server for the walkthroughs that `flow-walkthrough` writes (`_support/workspace/*/walkthrough.json` and the files it references). The user starts and stops it; agents register sources through `hive view register`, query ingestion through `hive view status --dir`, and run `hive view open` only when the user chooses that option in a walkthrough question, as their skills set. `register` adds the root of `--dir`, or the current directory, to `viewer/registry.json` and writes nothing when it is already there; it needs no running server. That root is `<root>` when the directory, after resolving links, is inside `<root>/_support/workspace/` at any depth, whether or not `<root>` is a Git repository (a multi-repository workspace keeps its repositories as nested folders); otherwise it is the Git root; outside both it fails, naming both cases. A nested Git repository registered from its own folder keeps its own Git root. Projects group by the normalized `origin` remote only when the root is itself a Git toplevel (`git rev-parse --show-toplevel` equals the root); any other root, such as a non-Git workspace inside a versioned home, is keyed by its path and named from the `Project:` value of its own `AGENTS.md`. `start` launches `serve` detached (its own session, output to `viewer/server.log`), waits up to five seconds for its health check, and reports an already running server instead of starting a second one; `serve` runs in the foreground and holds an exclusive lock on `viewer/server.lock` for its whole life, so one state directory never has two servers. `status` prints JSON with the URL, PID, TTL and counts, never the access token; `open` requests a one-use code and opens `/#code=<code>` in the system's opener (`open` on macOS, `xdg-open` on Linux), never passing the server token or starting the server; `stop` signals the server only after its authenticated health check matches `viewer/server.json`.
+`register` adds the root of `--dir`, or the current directory, to
+`viewer/registry.json`; an existing registration needs no write. A directory
+under `<root>/_support/workspace/` registers `<root>`, even for a non-Git
+workspace; otherwise registration uses its Git root. A nested Git repository
+registered from its own folder keeps its own root. A Git toplevel with a verified
+`origin` uses its normalized remote as project key; a registered workspace without
+its own `.git`, or a Git root with a verified missing origin, uses its path. A
+transient metadata failure must not silently create a new identity.
+
+`start` launches `serve` detached and waits for health; `serve` holds the one
+server lock for that state directory. `status` reports URL, PID, manual retention
+and counts without the token. Its `--dir` confirmation applies to a legacy source,
+not API readback. `open` uses the existing one-use opening code; optional validated
+session/event IDs select an API target. `stop` checks the server identity before
+signalling it. Rebuilding the binary does not alter a running server.
+
+API-owned records live separately in `viewer/timeline-api-v1/`. Their session ID
+is derived from the bound project key, canonical host and native session ID; root
+aliases and operation receipts persist with the record. Conditional mutations
+check versions and committed operation IDs replay after retry; a different body
+under the same operation ID conflicts. Stage updates preserve event order;
+Markdown document revisions and image artifacts are immutable and session-scoped.
+Document reads are authenticated, and image capabilities are delivered only to
+an authenticated browser. The CLI checks the server protocol and validates its
+responses without printing the server token or browser image capabilities.
+
+Blob publication syncs and commits the bytes before committing the session
+reference; the session record and parent directory are synced before success.
+An uncertain commit must be reconciled with its receipt and the original
+operation ID. Deletion preserves tombstones and can resume partial cleanup.
+Legacy scanning cannot replace an API-owned record, and a matching tuple is
+suppressed in the legacy projection without removing its source.
+
 Each stored copy retains its resolved project key and name in optional
 `project_key` and `project_name` fields in `meta.json`. When a previously resolved
 remote becomes unavailable, including after a worktree is removed, its copies
@@ -146,11 +187,11 @@ independently of report kind or Git classification. Store load reconstructs the
 derived `session_status` from the manifest, without migrating historical
 metadata. Status changes use the existing content-replacement behavior, including
 pin and archive preservation and refreshed ingestion time. For source closure and retention,
-follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md#close-the-current-walkthrough). Publication can update JSON without creating HTML; confirmation checks JSON and resources in either output mode.
+follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md). Publication can update JSON without creating HTML; confirmation checks JSON and resources in either output mode.
 
 Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-origin `Origin` and an empty body. It returns `{code}` without caching: 32 random bytes encoded as 64 hex characters, valid for 60 seconds, held only in memory. At most 64 unconsumed codes may be pending; a full set returns 429 without evicting valid codes. `POST /api/access-codes/exchange` requires the allowed Host and explicit same-origin Origin, `application/json`, and only `{code}` within 1 KiB. It returns `{token}` without caching, consuming the code atomically; expired, missing, invalid or reused codes return 403. Invalid JSON returns 400, unsupported media type 415, and wrong method 405. Codes disappear on server restart. The page removes the fragment before awaiting exchange, stores only the token in sessionStorage for reloads, and ignores responses from superseded openings, including earlier authenticated reads and writes. An explicit failed opening asks for `hive view open` again. An old running server returning 404 to issuance requires `hive view stop`, `hive view start`, then `hive view open`; the CLI never falls back to a token URL or restarts it automatically. A stolen unconsumed code can still be used by a local process; Origin is not authentication for non-browser clients.
 
-The server binds only to `127.0.0.1`, on port 4483 (HIVE on a phone keypad) by default. `--port N` names another port and `--port 0` takes a free one. A port counts as busy when binding it fails or when a connection to it already answers, since on macOS a `127.0.0.1` bind succeeds over a program listening on the wildcard address and would shadow it. When 4483 is busy and no `--port` was given, it takes a free port and `start` says so; an explicit port that is busy fails the start. It checks the `Host` header on every request, and requires the token from `viewer/server.json` (mode 0600) on API requests, reads included, except the access-code exchange below; every write requires an explicit same-origin `Origin`. The page and `/assets/*` carry no data and need no token; copied captures and recordings are served at `/files/<key>/<cap>/<path>`, where `<cap>` is the hex HMAC-SHA256 of the key under the token, handed out only by the authenticated index, because an `<img>` cannot send a header. Every five seconds it scans the registered repositories, validates each manifest with the same rules as the renderer, and copies a valid one with its files into `viewer/sessions/<key>/`, one copy per source folder and session, replaced when the manifest or a referenced file changes. Invalid manifests are listed as ingest errors and never stop the server. Copies older than the TTL (14 days by default, `--ttl`) by ingest time are purged at start and every hour unless pinned; a purged or deleted copy leaves a tombstone so the next scan does not bring it back while its content is unchanged. Deleting from the session toolbar removes the session's store copies, never repository files. The package is `tooling/viewer`: no external modules (standard library and in-repository packages), checked by the dependency test. Each workspace folder is opened once as an `os.Root` and that same handle validates, hashes and copies it, and the text of ingest errors is bounded.
+The server binds only to `127.0.0.1`, on port 4483 (HIVE on a phone keypad) by default. `--port N` names another port and `--port 0` takes a free one. A port counts as busy when binding it fails or when a connection to it already answers, since on macOS a `127.0.0.1` bind succeeds over a program listening on the wildcard address and would shadow it. When 4483 is busy and no `--port` was given, it takes a free port and `start` says so; an explicit port that is busy fails the start. It checks the `Host` header on every request, and requires the token from `viewer/server.json` (mode 0600) on API requests, reads included, except the access-code exchange below; every write requires an explicit same-origin `Origin`. The page and `/assets/*` carry no data and need no token; copied captures and recordings are served at `/files/<key>/<cap>/<path>`, where `<cap>` is the hex HMAC-SHA256 of the key under the token, handed out only by the authenticated index, because an `<img>` cannot send a header. Every five seconds it scans the registered repositories, validates each manifest with the same rules as the renderer, and copies a valid one with its files into `viewer/sessions/<key>/`, one copy per source folder and session, replaced when the manifest or a referenced file changes. Invalid manifests are listed as ingest errors and never stop the server. Neither legacy copies nor API content are purged or excluded from ingestion because of age. The old `--ttl` flag is accepted as a deprecated no-op; status and health report manual retention. Explicitly deleted legacy copies leave tombstones so unchanged sources do not reappear on the next scan. Deleting from the session toolbar removes the session's store copies, never repository files. The package is `tooling/viewer`: no external modules (standard library and in-repository packages), checked by the dependency test. Each workspace folder is opened once as an `os.Root` and that same handle validates, hashes and copies it, and the text of ingest errors is bounded.
 
 Before scanning file content, the viewer checks current Git tracking through a
 bounded, NUL-delimited lookup for the owning repository, including worktrees and
@@ -160,7 +201,7 @@ agent authorship or confirmed untracked status. Classification changes are appli
 even when content hashes do not change and are reconstructed without changing
 per-copy `meta.json`. Previously stored copies whose source is now tracked move
 to a separate explanatory section. Their normal document and file reads return
-409; archive/restore, pin, explicit deletion and normal TTL remain available. Unknown sources remain
+409; archive/restore, pin and explicit deletion remain available. Unknown sources remain
 accessible with a warning. A local file is not proof of agent authorship.
 
 Session preferences belong to versioned `viewer/session-groups/<digest>.json`
@@ -168,8 +209,7 @@ records keyed by exact project, declared host (null when absent) and session ID.
 They contain the local title override, archive and keep state independently of
 the reconstructible index. The index retains physical copies and exposes their
 effective `archived`, `pinned` and optional `session_title` values. Continuations
-inherit those preferences; archive never changes source files, work status,
-ingestion time or normal TTL. Keeping protects every member from expiry.
+inherit those preferences; archive changes visibility and does not change source files or work status. Keeping is a preference, not a prerequisite for preservation.
 
 The first startup imports legacy copy flags: archive only when every member was
 archived, keep when any was pinned. A mixed archive group becomes active. A valid
@@ -200,7 +240,7 @@ preferences. Errors tagged `delete_cleanup_pending` remain queryable even with
 zero members; GET only reports them. Tombstones still describe physical content,
 so new or modified deliveries can return rather than permanently blocking a chat.
 
-The React shell groups copies by that exact logical identity, with compact
+For legacy records, the React shell groups copies by that exact logical identity, with compact
 name/ticket/walkthrough/date rows and no ticket level or connector branches.
 A fixed session toolbar owns naming and management; its document canvas alone
 scrolls chronological walkthroughs with separators, work-status indicators and
@@ -477,7 +517,7 @@ require explicit selection. The state home contains:
 - `transactions/<id>.json`: recovery journals with private before/after images and the transaction phase; only the 10 most recent finished ones are kept.
 - `pending.json`: an unfinished operation requiring recovery.
 - `lock`: process lock, released by the operating system on exit.
-- `viewer/`: the walkthrough viewer's registry, server record and log, lock files, index, and copied walkthroughs (`sessions/<key>/`); it is outside `state.json` and its transactions, and `hive view` alone writes and purges it.
+- `viewer/`: the local viewer registry, server record and log, locks, index, legacy copies (`sessions/<key>/`), and API-owned session records and blobs (`timeline-api-v1/`); it is outside `state.json` and its transactions.
 
 New state directories use mode 0700; state files, plans, transaction journals, and backup copies such as `config.toml.hive-backup` use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Release history is retained and never pruned, and the manager stores no credentials. After each operation commits, the manager keeps the 10 most recent transaction journals in the `committed` or `recovered` phase and deletes older ones; it never deletes the journal `pending.json` names, the core journal a pending onboarding references, a journal in another phase, or one whose leading `Version`, `ID` and `Phase` keys it does not recognize, and it deletes none when it cannot read those pending files. A pruning failure is a warning on the result, never a failed operation. No command restores a finished transaction; `recover` only completes or undoes the pending one. State, operation plans, and new core transaction journals use schema v6. The product-version receipts and version index are separate from historical content release IDs; v6 preserves their hashing. Optional onboarding uses a separate versioned parent journal and does not roll back a committed core on provider failure. It adds verified legacy retirement and scoped migration receipts to v4's source payload modes, renderer/profile identity, and shared consumer ownership. Existing v1-v5 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v5 transactions remain recoverable with their original checksum semantics. Saved plans before v6 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
 
@@ -527,3 +567,5 @@ inspects that outcome without rerunning an installer or authentication. A commit
 core remains installed if an optional provider fails. Status is still readable
 while reconciliation is pending. Existing tools, credentials and memory are not
 owned merely because the onboarding catalog detected them.
+
+The running viewer reports the executable’s stamped VCS revision and modified flag in authenticated health and CLI status when available; archive builds without VCS metadata report unknown rather than inferring a checkout revision at request time. Status keeps legacy walkthrough counts and reports timeline_sessions separately. These build fields are not the host’s native session identity.
