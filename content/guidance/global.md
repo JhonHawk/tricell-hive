@@ -75,6 +75,7 @@ Application code, scripts, and configuration stay in their source locations, eve
   - `automatic`: review, push, open the pull request and merge without stopping.
   - `direct-base`: push straight to the base branch.
   - `hold`: no commit and no publication; the verified working tree is the result.
+- Before the validation, or before the push when the mode does not stop for one, compare the branch with its base: when it carries commits that are not this work item's, such as another session's work on the same branch, name them with their count and the work they belong to, and ask whether they go in the same publication; the delivery answer does not cover them.
 
 ## Project settings
 
