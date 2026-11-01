@@ -7,7 +7,7 @@ import { HttpError } from "../api";
 import { workFixture } from "../dev/timeline-work-fixture";
 import { TimelineContent } from "../timeline-content";
 import { TimelineHeader } from "../timeline-header";
-import type { TimelineDetailTarget } from "../timeline-tasks";
+import { type TimelineDetailTarget, taskContent } from "../timeline-tasks";
 
 const settle = async () => {
   for (let i = 0; i < 50; i++) await Promise.resolve();
@@ -233,4 +233,64 @@ test("failed opening reread blocks lead recovery until a successful manual reloa
   assert.equal(button("Reassign", dialog).disabled, false);
   await click("Reassign", dialog);
   assert.equal(calls, 1);
+});
+
+test("simple task descriptions expand inline while content counts expose evidence and real history directly", async (t) => {
+  const { root, container } = mount(t);
+  const { completeFixture } = await import("../dev/timeline-complete-fixture");
+  const data = completeFixture();
+  await act(async () =>
+    root.render(<TimelineContent data={data} lang="es" onRetry={() => {}} />),
+  );
+  const simple = region('[data-task-id="task-1"]', container);
+  const title = button(
+    "T1 — Contrato de consultas y permisos del dashboard: Finalizada",
+    simple,
+  );
+  await act(async () => {
+    title.click();
+    await settle();
+  });
+  assert.equal(document.querySelector('[data-slot="sheet-content"]'), null);
+  assert.equal(title.getAttribute("aria-expanded"), "true");
+  assert.ok(simple.textContent?.includes("Contrato terminado y disponible"));
+  const attached = region('[data-task-id="task-2"]', container);
+  assert.ok(button("2 imágenes", attached));
+  assert.ok(button("1 documento", attached));
+  assert.ok(button("Desbloqueo", attached));
+  assert.equal(
+    button("Expandir T2", attached).getAttribute("aria-expanded"),
+    "false",
+  );
+  await click("2 imágenes", attached);
+  let sheet = region('[data-slot="sheet-content"]');
+  assert.equal(
+    sheet.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
+    "Evidencia",
+  );
+  await click("Cerrar", sheet);
+  await click("1 cambio registrado", attached);
+  sheet = region('[data-slot="sheet-content"]');
+  assert.equal(
+    sheet.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
+    "Historial",
+  );
+  assert.ok(sheet.textContent?.includes("Acceso de T2 bloqueado"));
+});
+
+test("content affordances stay scoped to the task segment while the reader can retain global content", async () => {
+  const { completeFixture } = await import("../dev/timeline-complete-fixture");
+  const data = completeFixture();
+  assert.equal(taskContent(data, "task-7", "verify-7").waits, 0);
+  assert.equal(taskContent(data, "task-7", "delivery-7").waits, 1);
+  assert.equal(taskContent(data, "task-7").substantive, true);
+  const task = data.session.tasks.find((t) => t.task_id === "task-1");
+  assert.ok(task);
+  task.segments.push({
+    ...task.segments[0],
+    segment_id: "delivery-1",
+    planned_stage: "delivery",
+    display_stage_event_id: "delivery-stage",
+  });
+  assert.equal(taskContent(data, "task-1").substantive, false);
 });

@@ -5,6 +5,17 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
   return lang === "es"
     ? {
         locale: "es-MX",
+        waitCount: (n: number) =>
+          `${n} ${n === 1 ? "espera de CI" : "esperas de CI"}`,
+        imageCount: (n: number) => `${n} ${n === 1 ? "imagen" : "imágenes"}`,
+        documentCount: (n: number) =>
+          `${n} ${n === 1 ? "documento" : "documentos"}`,
+        reviewCount: (n: number) =>
+          `${n} ${n === 1 ? "revisión publicada" : "revisiones publicadas"}`,
+        changeCount: (n: number) =>
+          `${n} ${n === 1 ? "cambio registrado" : "cambios registrados"}`,
+        unavailableCount: (n: number) =>
+          `${n} ${n === 1 ? "captura sin acceso" : "capturas sin acceso"}`,
         document: "Documento",
         published: "Publicado",
         initialRevision: "Revisión inicial",
@@ -201,6 +212,16 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
       }
     : {
         locale: "en-US",
+        waitCount: (n: number) => `${n} CI ${n === 1 ? "wait" : "waits"}`,
+        imageCount: (n: number) => `${n} ${n === 1 ? "image" : "images"}`,
+        documentCount: (n: number) =>
+          `${n} ${n === 1 ? "document" : "documents"}`,
+        reviewCount: (n: number) =>
+          `${n} ${n === 1 ? "published review" : "published reviews"}`,
+        changeCount: (n: number) =>
+          `${n} ${n === 1 ? "recorded change" : "recorded changes"}`,
+        unavailableCount: (n: number) =>
+          `${n} ${n === 1 ? "unavailable capture" : "unavailable captures"}`,
         document: "Document",
         published: "Published",
         initialRevision: "Initial revision",

@@ -2,11 +2,16 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import {
   Check,
   ChevronDown,
+  Circle,
   CircleAlert,
   CircleHelp,
+  FileText,
+  History,
+  Images,
+  MessageSquare,
   Pause,
 } from "lucide-react";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, useId, useState } from "react";
 import {
   Timeline,
   TimelineContent,
@@ -28,13 +33,23 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { TimelineEvent } from "./timeline-contract";
+import {
+  isSafeTimelineArtifactURL,
+  type TimelineEvent,
+  type TimelineSessionResponse,
+} from "./timeline-contract";
 import type { TimelineCIWait, TimelineTaskState } from "./timeline-contract-v2";
 import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
 import type { TimelineTaskProjection } from "./timeline-grouping";
 import { TimelineSummary } from "./timeline-summary";
 export type TimelineDetailTarget =
-  | { kind: "task"; taskID: string; segmentID: string; unblock?: boolean }
+  | {
+      kind: "task";
+      taskID: string;
+      segmentID: string;
+      unblock?: boolean;
+      tab?: "summary" | "evidence" | "history";
+    }
   | { kind: "wait"; waitID: string };
 export type TimelineDetailOpener = (
   target: TimelineDetailTarget,
@@ -51,6 +66,92 @@ function TimelineTextAction(props: ComponentProps<typeof ButtonPrimitive>) {
       {...props}
     />
   );
+}
+// State color is carried by the point itself, as requested; row copy stays neutral.
+export function timelineStateColor(state: string | undefined): string {
+  if (state === "completed" || state === "succeeded" || state === "closed")
+    return "text-success-foreground";
+  if (state === "failed" || state === "cancelled")
+    return "text-destructive-foreground";
+  if (
+    state === "blocked" ||
+    state === "paused" ||
+    state === "awaiting_validation" ||
+    state === "waiting"
+  )
+    return "text-warning-foreground";
+  if (state === "in_review") return "text-info-foreground";
+  if (state === "in_progress" || state === "active") return "text-primary";
+  return "text-muted-foreground";
+}
+export function taskContent(
+  data: TimelineSessionResponse,
+  taskID: string,
+  segmentID?: string,
+) {
+  const task = data.session.tasks.find((task) => task.task_id === taskID);
+  const events = data.session.events.filter(
+    (event) =>
+      !event.withdrawn &&
+      event.task_id === taskID &&
+      (!segmentID || event.segment_id === segmentID),
+  );
+  const documents = new Set(
+    data.session.events.flatMap((event) =>
+      (event.document_snapshots ?? [])
+        // The reader retains immutable document chains from withdrawn occurrences.
+        .filter(
+          (revision) =>
+            revision.task_id === taskID &&
+            (!segmentID || revision.segment_id === segmentID),
+        )
+        .map((revision) => revision.document_key),
+    ),
+  );
+  const refs = events.flatMap(
+    (event) => event.views?.flatMap((view) => view.image_refs) ?? [],
+  );
+  const images = refs.filter(
+    (ref) =>
+      data.session.artifacts.some((a) => a.artifact_id === ref.artifact_id) &&
+      isSafeTimelineArtifactURL(
+        data.artifact_urls?.[ref.artifact_id],
+        data.session.viewer_session_id,
+      ),
+  ).length;
+  const history = events.filter(
+    (event) => event.kind === "task_state_transition",
+  ).length;
+  const reviews = events.filter((event) => event.kind === "review").length;
+  const blocked =
+    task?.segments.some(
+      (segment) =>
+        Boolean(segment.block) &&
+        (!segmentID || segment.segment_id === segmentID),
+    ) ?? false;
+  const waits = data.session.waits.filter(
+    (wait) =>
+      wait.task_id === taskID && (!segmentID || wait.segment_id === segmentID),
+  ).length;
+  const substantive =
+    blocked ||
+    images > 0 ||
+    refs.length > 0 ||
+    documents.size > 0 ||
+    history > 0 ||
+    reviews > 0 ||
+    waits > 0 ||
+    events.some((e) => Boolean(e.deliveries?.length) || Boolean(e.target));
+  return {
+    images,
+    unavailable: refs.length - images,
+    documents: documents.size,
+    history,
+    reviews,
+    blocked,
+    waits,
+    substantive,
+  };
 }
 export function TaskIndicator({
   state,
@@ -70,7 +171,7 @@ export function TaskIndicator({
             ? CircleAlert
             : state === "unknown"
               ? CircleHelp
-              : undefined;
+              : Circle;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -80,7 +181,7 @@ export function TaskIndicator({
             role="img"
             aria-label={label}
             tabIndex={0}
-            className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-top-0.5"
+            className={`flex size-6 items-center justify-center border-0 bg-background group-data-[orientation=vertical]/timeline:-top-0.5 ${timelineStateColor(state)}`}
           />
         }
       >
@@ -193,6 +294,8 @@ export function TimelineWaitRow({
 }
 export function TimelineTaskRow({
   projection,
+  data,
+  initiallyExpanded = false,
   index,
   last = false,
   lang,
@@ -201,6 +304,8 @@ export function TimelineTaskRow({
   targetEventID,
 }: {
   projection: TimelineTaskProjection;
+  data: TimelineSessionResponse;
+  initiallyExpanded?: boolean;
   targetEventID?: string;
   index: number;
   last?: boolean;
@@ -209,8 +314,13 @@ export function TimelineTaskRow({
   renderActivity: (event: TimelineEvent) => ReactNode;
 }) {
   const { task, segment, events, waits } = projection;
-  const [expanded, setExpanded] = useState(() =>
-    projection.events.some((e) => e.event_id === targetEventID),
+  const details = taskContent(data, task.task_id, segment.segment_id);
+  const hasDetail = taskContent(data, task.task_id).substantive;
+  const disclosureID = useId();
+  const [expanded, setExpanded] = useState(
+    () =>
+      initiallyExpanded ||
+      projection.events.some((e) => e.event_id === targetEventID),
   );
   const t = timelineCopy(lang);
   return (
@@ -235,15 +345,19 @@ export function TimelineTaskRow({
           <TimelineTitle className="min-w-0 flex-1">
             <TimelineTextAction
               aria-label={`${task.task_key} — ${task.title}: ${t.taskStates[segment.state]}`}
+              aria-expanded={hasDetail ? undefined : expanded}
+              aria-controls={hasDetail ? undefined : disclosureID}
               onClick={(e) =>
-                onOpen?.(
-                  {
-                    kind: "task",
-                    taskID: task.task_id,
-                    segmentID: segment.segment_id,
-                  },
-                  e.currentTarget,
-                )
+                hasDetail
+                  ? onOpen?.(
+                      {
+                        kind: "task",
+                        taskID: task.task_id,
+                        segmentID: segment.segment_id,
+                      },
+                      e.currentTarget,
+                    )
+                  : setExpanded((value) => !value)
               }
             >
               {task.task_key} — {task.title}
@@ -265,7 +379,163 @@ export function TimelineTaskRow({
             />
           </CollapsibleTrigger>
         </TimelineHeader>
-        <CollapsibleContent>
+        <div
+          className="flex flex-wrap items-center gap-1"
+          data-slot="task-content-affordance"
+        >
+          {details.images > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) =>
+                onOpen?.(
+                  {
+                    kind: "task",
+                    taskID: task.task_id,
+                    segmentID: segment.segment_id,
+                    tab: "evidence",
+                  },
+                  e.currentTarget,
+                )
+              }
+            >
+              <Images aria-hidden />
+              {t.imageCount(details.images)}
+            </Button>
+          )}
+          {details.unavailable > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) =>
+                onOpen?.(
+                  {
+                    kind: "task",
+                    taskID: task.task_id,
+                    segmentID: segment.segment_id,
+                    tab: "evidence",
+                  },
+                  e.currentTarget,
+                )
+              }
+            >
+              <Images aria-hidden />
+              {t.unavailableCount(details.unavailable)}
+            </Button>
+          )}
+          {details.documents > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) =>
+                onOpen?.(
+                  {
+                    kind: "task",
+                    taskID: task.task_id,
+                    segmentID: segment.segment_id,
+                    tab: "evidence",
+                  },
+                  e.currentTarget,
+                )
+              }
+            >
+              <FileText aria-hidden />
+              {t.documentCount(details.documents)}
+            </Button>
+          )}
+          {details.reviews > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) =>
+                onOpen?.(
+                  {
+                    kind: "task",
+                    taskID: task.task_id,
+                    segmentID: segment.segment_id,
+                    tab: "evidence",
+                  },
+                  e.currentTarget,
+                )
+              }
+            >
+              <MessageSquare aria-hidden />
+              {t.reviewCount(details.reviews)}
+            </Button>
+          )}
+          {details.blocked && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) =>
+                onOpen?.(
+                  {
+                    kind: "task",
+                    taskID: task.task_id,
+                    segmentID: segment.segment_id,
+                    unblock: true,
+                  },
+                  e.currentTarget,
+                )
+              }
+            >
+              {t.unblocking}
+            </Button>
+          )}
+          {details.waits > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) => {
+                const localWaits = data.session.waits.filter(
+                  (wait) =>
+                    wait.task_id === task.task_id &&
+                    wait.segment_id === segment.segment_id,
+                );
+                onOpen?.(
+                  localWaits.length === 1
+                    ? { kind: "wait", waitID: localWaits[0].wait_id }
+                    : {
+                        kind: "task",
+                        taskID: task.task_id,
+                        segmentID: segment.segment_id,
+                      },
+                  e.currentTarget,
+                );
+              }}
+            >
+              {t.waitCount(details.waits)}
+            </Button>
+          )}
+          {details.history > 0 && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              onClick={(e) =>
+                onOpen?.(
+                  {
+                    kind: "task",
+                    taskID: task.task_id,
+                    segmentID: segment.segment_id,
+                    tab: "history",
+                  },
+                  e.currentTarget,
+                )
+              }
+            >
+              <History aria-hidden />
+              {t.changeCount(details.history)}
+            </Button>
+          )}
+        </div>
+        <CollapsibleContent id={disclosureID}>
           <TimelineContent className="flex min-w-0 flex-col items-start gap-3">
             {(segment.block?.reason || task.summary) && (
               <TimelineSummary

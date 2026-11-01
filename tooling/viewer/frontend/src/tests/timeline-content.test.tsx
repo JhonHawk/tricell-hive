@@ -351,3 +351,45 @@ test("empty, loading and error regions expose reload/retry instead of fabricated
   await act(async () => root.unmount());
   container.remove();
 });
+
+test("state audit and validation icons follow their declared state without an extra node ring", async (t) => {
+  const { completeFixture } = await import("../dev/timeline-complete-fixture");
+  const data = completeFixture();
+  const stage = data.session.events.find((e) => e.stage === "delivery");
+  assert.ok(stage);
+  stage.stage_state = "awaiting_validation";
+  data.session.state = "awaiting_validation";
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  await act(async () =>
+    root.render(
+      <TimelineContent
+        data={data}
+        defaultExpandedTaskIDs={["task-2"]}
+        onRetry={() => {}}
+      />,
+    ),
+  );
+  const blocked = container.querySelector(
+    '#timeline-event-task-block-audit [data-slot="timeline-indicator"]',
+  );
+  assert.ok(blocked);
+  assert.match(
+    blocked.querySelector("svg")?.getAttribute("class") ?? "",
+    /circle-alert/,
+  );
+  assert.ok(blocked.classList.contains("border-0"));
+  const validation = container.querySelector(
+    '#timeline-event-delivery-stage [data-slot="timeline-indicator"]',
+  );
+  assert.ok(validation);
+  assert.match(
+    validation.querySelector("svg")?.getAttribute("class") ?? "",
+    /circle-pause/,
+  );
+});

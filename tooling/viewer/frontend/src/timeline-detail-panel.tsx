@@ -63,7 +63,10 @@ import {
 } from "./timeline-documents";
 import { CaptureImage, CaptureThumbnail } from "./timeline-images";
 import { TimelineMarkdown } from "./timeline-markdown";
-import type { TimelineDetailOpener } from "./timeline-tasks";
+import {
+  type TimelineDetailOpener,
+  timelineStateColor,
+} from "./timeline-tasks";
 
 type BasePanel = { data: TimelineSessionResponse; back?: Panel };
 type DocumentPanel = BasePanel & {
@@ -157,7 +160,11 @@ function StateSymbol({
               ? CircleHelp
               : Circle;
   return (
-    <span role="img" aria-label={label} className="inline-flex shrink-0">
+    <span
+      role="img"
+      aria-label={label}
+      className={`inline-flex shrink-0 ${timelineStateColor(state)}`}
+    >
       <Icon aria-hidden className="size-4 motion-reduce:animate-none" />
     </span>
   );
@@ -274,7 +281,7 @@ export function useTimelinePanel({
             data: snap,
             taskID: target.taskID,
             segmentID: target.segmentID,
-            tab: "summary",
+            tab: target.tab ?? "summary",
             unblock: target.unblock,
           }
         : { kind: "wait", data: snap, waitID: target.waitID, tab: "summary" },

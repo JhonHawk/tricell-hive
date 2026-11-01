@@ -158,6 +158,11 @@ export function TimelineDevelopmentPreview() {
     >
       <TimelineContent
         data={data}
+        defaultExpandedTaskIDs={
+          scenario === "complete"
+            ? ["task-2", "task-3", "task-4", "task-7"]
+            : undefined
+        }
         lang="es"
         loadDocument={async (documentID) => {
           if (scenario === "document-error")

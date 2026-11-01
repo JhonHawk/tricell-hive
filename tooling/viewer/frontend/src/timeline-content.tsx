@@ -87,6 +87,7 @@ import {
   type TimelineDetailTarget,
   TimelineTaskRow,
   TimelineWaitRow,
+  timelineStateColor,
 } from "./timeline-tasks";
 
 const icons: Record<
@@ -127,6 +128,7 @@ export type TimelineContentProps = {
   loadDocument?: TimelineDocumentLoader;
   onOpenDetail?: (target: TimelineDetailTarget, trigger: HTMLElement) => void;
   targetEventID?: string;
+  defaultExpandedTaskIDs?: string[];
 };
 
 function TicketLinks({ refs }: { refs: TimelineTicketRef[] }) {
@@ -171,6 +173,7 @@ export function TimelineContent({
   loadDocument,
   onOpenDetail,
   targetEventID,
+  defaultExpandedTaskIDs = [],
 }: TimelineContentProps) {
   const { session } = data;
   const panel = useTimelinePanel({ data, lang, loadDocument, onRetry });
@@ -267,18 +270,39 @@ export function TimelineContent({
         ? (groups.find((g) => g.stage?.event_id === event.event_id)?.tasks ??
           [])
         : [];
-    const Icon =
+    const nodeState =
       event.kind === "stage"
-        ? event.stage_state === "in_progress"
-          ? Spinner
-          : event.stage_state === "completed"
-            ? CheckCircle2
-            : event.stage_state === "paused"
-              ? PauseCircle
-              : event.stage_state === "failed"
-                ? CircleAlert
-                : FileText
-        : icons[event.kind];
+        ? event.stage_state
+        : event.kind === "review"
+          ? event.review_status === "completed"
+            ? "completed"
+            : event.review_status === "failed"
+              ? "failed"
+              : "in_review"
+          : (event.audit?.next_state ??
+            (event.kind === "closure"
+              ? event.closure?.reason === "completed"
+                ? "completed"
+                : "paused"
+              : undefined));
+    const stateDriven =
+      event.kind === "stage" ||
+      event.kind === "state_transition" ||
+      event.kind === "task_state_transition" ||
+      event.kind === "review";
+    const Icon = stateDriven
+      ? nodeState === "blocked" || nodeState === "failed"
+        ? CircleAlert
+        : ["in_review", "awaiting_validation", "paused", "waiting"].includes(
+              nodeState ?? "",
+            )
+          ? PauseCircle
+          : nodeState === "in_progress" || nodeState === "active"
+            ? Spinner
+            : ["completed", "closed", "succeeded"].includes(nodeState ?? "")
+              ? CheckCircle2
+              : FileText
+      : icons[event.kind];
     return (
       <TimelineItem
         key={event.event_id}
@@ -289,7 +313,9 @@ export function TimelineContent({
         className="scroll-mt-4 group-data-[orientation=vertical]/timeline:ms-9"
       >
         <TimelineSeparator className="bg-border group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
-        <TimelineIndicator className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5">
+        <TimelineIndicator
+          className={`flex size-6 items-center justify-center border-0 bg-background group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5 ${timelineStateColor(nodeState)}`}
+        >
           <Icon className="size-4 motion-reduce:animate-none" aria-hidden />
         </TimelineIndicator>
         <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
@@ -685,6 +711,10 @@ export function TimelineContent({
                             <TimelineTaskRow
                               key={projection.segment.segment_id}
                               projection={projection}
+                              data={data}
+                              initiallyExpanded={defaultExpandedTaskIDs.includes(
+                                projection.task.task_id,
+                              )}
                               targetEventID={targetEventID}
                               index={i}
                               last={i === group.tasks.length - 1}
