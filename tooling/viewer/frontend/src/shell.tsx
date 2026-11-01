@@ -96,6 +96,7 @@ export type ViewerShellProps = {
   onShowArchivedChange?: (show: boolean) => void;
   children?: ReactNode;
   panel?: ReactNode;
+  sessionHeader?: ReactNode;
   libraryFooter?: ReactNode;
   notices?: ReactNode;
   writing?: boolean;
@@ -602,6 +603,7 @@ export function ViewerShell({
   onShowArchivedChange,
   children,
   panel,
+  sessionHeader,
   libraryFooter,
   notices,
   writing,
@@ -687,6 +689,8 @@ export function ViewerShell({
             <span className="sr-only">{copy.loading}</span>
             <Skeleton className="h-8 w-2/3" />
           </div>
+        ) : sessionHeader ? (
+          sessionHeader
         ) : (
           <div
             data-slot="session-toolbar"
@@ -799,109 +803,111 @@ export function ViewerShell({
                 </Alert>
               )}
               {notices}
-              <Frame spacing="default">
-                <FrameHeader>
-                  <FrameTitle>
-                    {selected ? copy.session : copy.walkthroughs}
-                  </FrameTitle>
-                  <FrameDescription>
-                    {selected?.createdAt ?? copy.description}
-                  </FrameDescription>
-                </FrameHeader>
-                <FramePanel>
-                  {panel ??
-                    (state === "loading" ? (
-                      <div
-                        role="status"
-                        aria-busy="true"
-                        className="flex flex-col gap-4"
-                      >
-                        <span className="sr-only">{copy.loading}</span>
-                        <Skeleton className="h-5 w-2/3" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-24 w-full" />
-                      </div>
-                    ) : state === "error" ? (
-                      <Alert variant="destructive">
-                        <AlertTitle>{copy.error}</AlertTitle>
-                        <AlertDescription>
-                          {copy.errorDescription}
-                        </AlertDescription>
-                        <AlertAction>
+              {!sessionHeader && (
+                <Frame spacing="default">
+                  <FrameHeader>
+                    <FrameTitle>
+                      {selected ? copy.session : copy.walkthroughs}
+                    </FrameTitle>
+                    <FrameDescription>
+                      {selected?.createdAt ?? copy.description}
+                    </FrameDescription>
+                  </FrameHeader>
+                  <FramePanel>
+                    {panel ??
+                      (state === "loading" ? (
+                        <div
+                          role="status"
+                          aria-busy="true"
+                          className="flex flex-col gap-4"
+                        >
+                          <span className="sr-only">{copy.loading}</span>
+                          <Skeleton className="h-5 w-2/3" />
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-24 w-full" />
+                        </div>
+                      ) : state === "error" ? (
+                        <Alert variant="destructive">
+                          <AlertTitle>{copy.error}</AlertTitle>
+                          <AlertDescription>
+                            {copy.errorDescription}
+                          </AlertDescription>
+                          <AlertAction>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={onRetry}
+                            >
+                              {copy.retry}
+                            </Button>
+                          </AlertAction>
+                        </Alert>
+                      ) : state === "empty" ? (
+                        <div
+                          role="status"
+                          className="flex flex-col items-start gap-3"
+                        >
+                          <BookOpen
+                            aria-hidden
+                            className="size-5 text-muted-foreground"
+                          />
+                          <h2 className="font-medium">{copy.empty}</h2>
+                          <p className="text-muted-foreground">
+                            {copy.emptyDescription}
+                          </p>
                           <Button
                             type="button"
-                            size="sm"
                             variant="outline"
+                            size="sm"
                             onClick={onRetry}
                           >
                             {copy.retry}
                           </Button>
-                        </AlertAction>
-                      </Alert>
-                    ) : state === "empty" ? (
-                      <div
-                        role="status"
-                        className="flex flex-col items-start gap-3"
-                      >
-                        <BookOpen
-                          aria-hidden
-                          className="size-5 text-muted-foreground"
-                        />
-                        <h2 className="font-medium">{copy.empty}</h2>
-                        <p className="text-muted-foreground">
-                          {copy.emptyDescription}
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={onRetry}
-                        >
-                          {copy.retry}
-                        </Button>
-                      </div>
-                    ) : selected ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={
-                            selected.classification === "unknown"
-                              ? "warning-light"
-                              : "outline"
-                          }
-                        >
-                          {copy[selected.classification]}
-                        </Badge>
-                        <section
-                          aria-label={copy.sessionIdentifier}
-                          // biome-ignore lint/a11y/noNoninteractiveTabindex: This scroll region exposes the complete identifier to keyboard users.
-                          tabIndex={0}
-                          className="min-w-0 w-full overflow-x-auto whitespace-nowrap text-xs text-muted-foreground"
-                        >
-                          <code>{selected.id}</code>
-                        </section>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        <p>{copy.selectDescription}</p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={onRetry}
-                        >
-                          {copy.retry}
-                        </Button>
-                      </div>
-                    ))}
-                </FramePanel>
-                {!selected && (
-                  <FrameFooter>
-                    <p className="text-xs text-muted-foreground">
-                      {copy.selectDescription}
-                    </p>
-                  </FrameFooter>
-                )}
-              </Frame>
+                        </div>
+                      ) : selected ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant={
+                              selected.classification === "unknown"
+                                ? "warning-light"
+                                : "outline"
+                            }
+                          >
+                            {copy[selected.classification]}
+                          </Badge>
+                          <section
+                            aria-label={copy.sessionIdentifier}
+                            // biome-ignore lint/a11y/noNoninteractiveTabindex: This scroll region exposes the complete identifier to keyboard users.
+                            tabIndex={0}
+                            className="min-w-0 w-full overflow-x-auto whitespace-nowrap text-xs text-muted-foreground"
+                          >
+                            <code>{selected.id}</code>
+                          </section>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <p>{copy.selectDescription}</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onRetry}
+                          >
+                            {copy.retry}
+                          </Button>
+                        </div>
+                      ))}
+                  </FramePanel>
+                  {!selected && (
+                    <FrameFooter>
+                      <p className="text-xs text-muted-foreground">
+                        {copy.selectDescription}
+                      </p>
+                    </FrameFooter>
+                  )}
+                </Frame>
+              )}
               <section
                 id="document"
                 tabIndex={-1}

@@ -18,7 +18,13 @@ if (
   import.meta.env.DEV &&
   new URLSearchParams(location.search).has("preview")
 ) {
-  void import("./dev/preview").then(({ DevelopmentPreview }) =>
+  const preview =
+    new URLSearchParams(location.search).get("preview") === "timeline"
+      ? import("./dev/timeline-preview").then(
+          (module) => module.TimelineDevelopmentPreview,
+        )
+      : import("./dev/preview").then((module) => module.DevelopmentPreview);
+  void preview.then((DevelopmentPreview) =>
     root.render(
       <StrictMode>
         <CSPProvider disableStyleElements>
