@@ -24,7 +24,7 @@ For a change to a screen, settle the UI before the plan is approved:
 4. Draw each region before and after as an ASCII sketch, at most 60 characters wide, with the real labels, item counts and component names, and write the decisions and sketches in the `UI` section of `design.md`. When the user chooses between compositions, show each option as such a sketch, in its preview as the global guidance's «Questions and routes» section sets.
 5. When no existing pattern fits, settle the composition with one `hive-design-ui` child before the plan is approved.
 
-For a new or rearranged screen, order the tasks: the contract in code (types, schema or client), then the UI against it with stub data typed by that contract and of realistic volume and text length, then the backend that fulfils the same contract.
+For a new or rearranged screen, order the tasks by what each one needs in order to start. The contract in code (types, schema or client) usually comes first because both sides consume it; the UI against stub data typed by that contract, with realistic volume and text length, and the backend that fulfils it then need only the contract, so they can run side by side. A task's `Depends on` names only what it needs to start, such as a file, data or an answer; an ordering preference or a validation stop the task does not use, such as the first-view acceptance for a backend task, is not a dependency, because declaring it makes independent work wait.
 
 ## Acceptance criteria
 
