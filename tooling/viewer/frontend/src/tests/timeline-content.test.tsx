@@ -51,6 +51,8 @@ function fixture(): TimelineSessionResponse {
     mode: "timeline_api",
     session: {
       schema_version: 1,
+      documents: [],
+      current_stage_event_id: null,
       viewer_session_id: sid,
       project_key: "example/project",
       project_name: "Example",

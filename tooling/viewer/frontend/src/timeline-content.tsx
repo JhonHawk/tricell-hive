@@ -2,6 +2,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
   FileText,
   Flag,
   GitBranch,
@@ -10,6 +11,7 @@ import {
   MessageCircle,
   MessageSquare,
   Monitor,
+  PauseCircle,
   RefreshCw,
   Smartphone,
   X,
@@ -44,6 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   isSafeTimelineArtifactURL,
   isSafeTimelineURL,
@@ -61,6 +64,10 @@ import {
   timelineCopy,
   timelineDate,
 } from "./timeline-copy";
+import {
+  type TimelineDocumentLoader,
+  TimelineDocuments,
+} from "./timeline-documents";
 
 const icons: Record<
   TimelineEventKind,
@@ -74,6 +81,7 @@ const icons: Record<
   approval_reported: CheckCircle2,
   delivery: GitPullRequest,
   closure: Flag,
+  stage: FileText,
 };
 type Snapshot = {
   sessionID: string;
@@ -90,6 +98,7 @@ export type TimelineContentProps = {
   loading?: boolean;
   error?: boolean;
   lang?: TimelineLanguage;
+  loadDocument?: TimelineDocumentLoader;
 };
 
 function TicketLinks({ refs }: { refs: TimelineTicketRef[] }) {
@@ -234,6 +243,7 @@ export function TimelineContent({
   loading = false,
   error = false,
   lang = "en",
+  loadDocument,
 }: TimelineContentProps) {
   const { session } = data;
   const t = timelineCopy(lang);
@@ -328,7 +338,18 @@ export function TimelineContent({
           <h2 className="sr-only">{t.timeline}</h2>
           <Timeline value={0} role="region" aria-label={t.timeline}>
             {events.map((event, index) => {
-              const Icon = icons[event.kind];
+              const Icon =
+                event.kind === "stage"
+                  ? event.stage_state === "in_progress"
+                    ? Spinner
+                    : event.stage_state === "completed"
+                      ? CheckCircle2
+                      : event.stage_state === "paused"
+                        ? PauseCircle
+                        : event.stage_state === "failed"
+                          ? CircleAlert
+                          : FileText
+                  : icons[event.kind];
               return (
                 <TimelineItem
                   key={event.event_id}
@@ -338,7 +359,10 @@ export function TimelineContent({
                 >
                   <TimelineSeparator className="bg-border group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
                   <TimelineIndicator className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5">
-                    <Icon className="size-4" />
+                    <Icon
+                      className="size-4 motion-reduce:animate-none"
+                      aria-hidden
+                    />
                   </TimelineIndicator>
                   <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -497,6 +521,14 @@ export function TimelineContent({
                           </section>
                         );
                       })}
+                    {event.kind === "stage" && (
+                      <TimelineDocuments
+                        data={data}
+                        event={event}
+                        lang={lang}
+                        loadDocument={loadDocument}
+                      />
+                    )}
                     {!event.withdrawn && event.closure && (
                       <p className="text-sm">{event.closure.result}</p>
                     )}
@@ -510,6 +542,13 @@ export function TimelineContent({
                       >
                         {timelineDate(event.created_at, lang)}
                       </TimelineDate>
+                      {!event.withdrawn &&
+                        event.kind === "stage" &&
+                        event.stage_state && (
+                          <Badge variant="outline">
+                            {t.stageStates[event.stage_state]}
+                          </Badge>
+                        )}
                       {(event.kind === "changes_reported" ||
                         event.kind === "approval_reported") && (
                         <span>{t.reported}</span>

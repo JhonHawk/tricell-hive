@@ -4,6 +4,7 @@ import { ViewerShell } from "../shell";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
 import { TimelineHeader } from "../timeline-header";
+import { loadPreviewDocument } from "./timeline-documents-fixture";
 import { timelineFixture } from "./timeline-fixture";
 
 export function TimelineDevelopmentPreview() {
@@ -14,6 +15,7 @@ export function TimelineDevelopmentPreview() {
     const fixture = structuredClone(timelineFixture);
     if (scenario === "empty") {
       fixture.session.events = [];
+      fixture.session.current_stage_event_id = null;
       fixture.session.validation_count = 0;
     }
     if (scenario === "no-links") {
@@ -26,6 +28,21 @@ export function TimelineDevelopmentPreview() {
     if (scenario === "long") {
       fixture.session.title =
         "Actualización de perfil e invitaciones y organización de los filtros en conversaciones con nombres extensos";
+    }
+    if (
+      scenario === "paused" ||
+      scenario === "failed" ||
+      scenario === "completed"
+    ) {
+      const stage = fixture.session.events.find(
+        (e) => e.event_id === "event_plan_r3",
+      );
+      if (stage) {
+        stage.stage_state = scenario;
+        if (scenario !== "paused") stage.finished_at = stage.updated_at;
+      }
+      fixture.session.current_stage_event_id = null;
+      fixture.session.state = scenario === "paused" ? "paused" : "active";
     }
     return fixture;
   });
@@ -83,6 +100,15 @@ export function TimelineDevelopmentPreview() {
       <TimelineContent
         data={data}
         lang="es"
+        loadDocument={async (documentID) => {
+          if (scenario === "document-error")
+            throw new Error("preview_document_failure");
+          if (scenario === "document-loading") return new Promise(() => {});
+          const response = await loadPreviewDocument(documentID);
+          return scenario === "document-empty"
+            ? { ...response, content: "" }
+            : response;
+        }}
         loading={scenario === "loading"}
         error={scenario === "error"}
         onRetry={() => {}}

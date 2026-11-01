@@ -5,6 +5,29 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
   return lang === "es"
     ? {
         locale: "es-MX",
+        documents: "Documentos",
+        revision: "Revisión",
+        draft: "Borrador",
+        complete: "Completo",
+        documentLoading: "Cargando documento",
+        documentFailed: "No se pudo cargar el documento",
+        documentEmpty: "El documento está vacío",
+        documentUnavailable:
+          "El documento no está disponible en esta conexión.",
+        documentUpdated:
+          "Hay una actualización. Se conserva la revisión que abriste; cierra y vuelve a abrir para ver la última.",
+        viewStage: {
+          research: "Ver investigación",
+          plan: "Ver plan",
+          build: "Ver implementación",
+          verify: "Ver verificación",
+        },
+        stageStates: {
+          in_progress: "En curso",
+          completed: "Completada",
+          paused: "Pausada",
+          failed: "Fallida",
+        },
         edit: "Editar título",
         title: "Título de la sesión",
         save: "Guardar título",
@@ -76,10 +99,33 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
           approval_reported: "Aprobación comunicada desde el chat",
           delivery: "Entrega",
           closure: "Cierre",
+          stage: "Etapa",
         } satisfies Record<TimelineEventKind, string>,
       }
     : {
         locale: "en-US",
+        documents: "Documents",
+        revision: "Revision",
+        draft: "Draft",
+        complete: "Complete",
+        documentLoading: "Loading document",
+        documentFailed: "Could not load document",
+        documentEmpty: "The document is empty",
+        documentUnavailable: "The document is unavailable on this connection.",
+        documentUpdated:
+          "An update is available. The revision you opened is preserved; close and reopen to see the latest.",
+        viewStage: {
+          research: "View research",
+          plan: "View plan",
+          build: "View implementation",
+          verify: "View verification",
+        },
+        stageStates: {
+          in_progress: "In progress",
+          completed: "Completed",
+          paused: "Paused",
+          failed: "Failed",
+        },
         edit: "Edit title",
         title: "Session title",
         save: "Save title",
@@ -151,6 +197,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
           approval_reported: "Approval reported from chat",
           delivery: "Delivery",
           closure: "Closure",
+          stage: "Stage",
         } satisfies Record<TimelineEventKind, string>,
       };
 }

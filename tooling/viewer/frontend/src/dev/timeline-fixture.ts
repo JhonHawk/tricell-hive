@@ -1,11 +1,14 @@
 // Synthetic development-only data. No tracker or project account is contacted.
 import type { TimelineSessionResponse } from "../timeline-contract";
+import { previewDocumentMetadata } from "./timeline-documents-fixture";
 
 export const timelineFixture: TimelineSessionResponse = {
   schema_version: 1,
   mode: "timeline_api",
   session: {
     schema_version: 1,
+    documents: previewDocumentMetadata,
+    current_stage_event_id: "event_plan_r3",
     viewer_session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     project_key: "example.test/demo",
@@ -15,15 +18,15 @@ export const timelineFixture: TimelineSessionResponse = {
       host: "codex",
       native_session_id: "preview-native-session",
     },
-    version: 8,
-    title: "Perfil y filtros de conversaciones",
+    version: 12,
+    title: "Etapas y documentos del visor",
     summary:
-      "Mejorar el espacio del perfil y la lectura de los filtros, conservando una navegación cómoda en móvil.",
-    state: "awaiting_validation",
+      "Previsualización con extractos locales del plan R3 y evidencia sintética de perfil y chat.",
+    state: "active",
     archived: false,
     pinned: false,
     created_at: "2026-10-31T17:20:00-06:00",
-    updated_at: "2026-10-31T19:10:00-06:00",
+    updated_at: "2026-10-31T21:40:00-06:00",
     validation_count: 2,
     tickets: [
       {
@@ -214,6 +217,7 @@ export const timelineFixture: TimelineSessionResponse = {
           },
         ],
         target: {
+          kind: "evidence",
           event_id: "event_validation",
           evidence_id: "evidence_initial",
           view_ids: ["view_chat"],
@@ -406,3 +410,109 @@ export const timelineFixture: TimelineSessionResponse = {
       "/files/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/chat-mobile-dark.png",
   },
 };
+
+// R3 adds document publication to the approved R2 evidence fixture.
+const stageTime = "2026-10-31T21:30:00-06:00";
+timelineFixture.session.events.push(
+  {
+    event_id: "event_research",
+    sequence: 7,
+    version: 2,
+    kind: "stage",
+    stage: "research",
+    stage_state: "completed",
+    title: "Investigación",
+    summary: "Composición nativa y documentos de solo lectura.",
+    origin: "agent_reported",
+    ticket_refs: [],
+    created_at: "2026-10-31T20:00:00-06:00",
+    updated_at: "2026-10-31T20:15:00-06:00",
+    started_at: "2026-10-31T20:00:00-06:00",
+    finished_at: "2026-10-31T20:15:00-06:00",
+    document_snapshots: [
+      {
+        document_revision_id: "revision_research",
+        status: "complete",
+        created_at: "2026-10-31T20:15:00-06:00",
+        tabs: [{ label: "Investigación", document_id: "document_research" }],
+      },
+    ],
+  },
+  {
+    event_id: "event_plan_r2",
+    sequence: 8,
+    version: 2,
+    kind: "stage",
+    stage: "plan",
+    stage_state: "completed",
+    title: "Plan anterior",
+    summary: "Primera revisión del plan, conservada como documento completo.",
+    origin: "agent_reported",
+    ticket_refs: [],
+    created_at: "2026-10-31T20:18:00-06:00",
+    updated_at: "2026-10-31T20:30:00-06:00",
+    started_at: "2026-10-31T20:18:00-06:00",
+    finished_at: "2026-10-31T20:30:00-06:00",
+    document_snapshots: [
+      {
+        document_revision_id: "revision_plan_r2",
+        status: "complete",
+        created_at: "2026-10-31T20:30:00-06:00",
+        tabs: [{ label: "Propuesta", document_id: "document_earlier" }],
+      },
+    ],
+  },
+  {
+    event_id: "event_build_r2",
+    sequence: 9,
+    version: 2,
+    kind: "stage",
+    stage: "build",
+    stage_state: "completed",
+    title: "Implementación de la composición",
+    summary:
+      "La evidencia visual de perfil y chat permanece en los nodos anteriores.",
+    origin: "agent_reported",
+    ticket_refs: [],
+    created_at: "2026-10-31T20:35:00-06:00",
+    updated_at: "2026-10-31T21:00:00-06:00",
+    started_at: "2026-10-31T20:35:00-06:00",
+    finished_at: "2026-10-31T21:00:00-06:00",
+  },
+  {
+    event_id: "event_plan_r3",
+    sequence: 10,
+    version: 3,
+    kind: "stage",
+    stage: "plan",
+    stage_state: "in_progress",
+    title: "Plan · revisión R3",
+    summary:
+      "Etapas declaradas, revisiones de documentos y conservación manual. Extractos locales del plan; datos de previsualización.",
+    origin: "agent_reported",
+    ticket_refs: [],
+    created_at: stageTime,
+    updated_at: "2026-10-31T21:40:00-06:00",
+    started_at: stageTime,
+    related_event_id: "event_plan_r2",
+    document_snapshots: [
+      {
+        document_revision_id: "revision_plan_r3_initial",
+        status: "draft",
+        created_at: "2026-10-31T21:35:00-06:00",
+        tabs: [{ label: "Propuesta", document_id: "document_earlier" }],
+      },
+      {
+        document_revision_id: "revision_plan_r3_current",
+        status: "draft",
+        created_at: "2026-10-31T21:40:00-06:00",
+        tabs: [
+          { label: "Propuesta", document_id: "document_proposal" },
+          { label: "Diseño", document_id: "document_design" },
+          { label: "Tareas", document_id: "document_tasks" },
+          { label: "Criterios", document_id: "document_criteria" },
+        ],
+      },
+    ],
+  },
+);
