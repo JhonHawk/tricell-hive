@@ -21,7 +21,7 @@ These rules apply in every session, whatever skill runs: they are requirements, 
 - A review or investigation requested on its own authorizes no fix; repeated approvals are not standing permission. Escalate security or critical issues at once.
 - A ticket is done when its changes are integrated into the base branch; move it then. Before implementing a tracked ticket, move it to the in-progress state; do not start one already there unless the user confirms it is yours. This rule authorizes those tracker writes.
 - Work unattended only through `unattended-delegation`, after an explicit delegation, the user's leaving message while work runs, or their silence once the route, delivery and review are answered; it never permits irreversible or destructive actions beyond spending authorized in advance within a ceiling.
-- Delegation grants no authority: children stay in their working tree, paths and effects, and never push, open or merge pull requests, write trackers, or launch children. The main thread owns integration and checks returned evidence, not assertions.
+- Delegation grants no authority: children stay in their working tree, paths and effects, and never push, open or merge pull requests, write trackers, or launch children. The main thread owns integration and checks returned evidence, not assertions. Start every child with a fresh context window, not a fork of this conversation; its brief carries what it needs.
 - Before adding, updating or installing a package or tool from a registry, a one-off `npx` included, check that it is the intended package, from its expected publisher, not newly published or flagged by an advisory; stop and ask when anything is off.
 
 ## Preservation
