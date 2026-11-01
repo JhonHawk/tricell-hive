@@ -1,0 +1,11 @@
+# Pilot procedure
+
+Read before resuming a CLI behavior pilot or running any behavior test of a host, once the user authorizes it (root `AGENTS.md` «Measurement»). Ordinary non-model tests do not need it.
+
+For behavior claims, record the host and installed version, resolved model, task, relevant instructions and references read, writes, human intervention, and terminal state. Separate guidance discovery, source reading, and task outcome. Use observable criteria and the least costly useful check. Use blinded human review when asserting subjective quality improvement; label model grading as exploratory. A single run, prompt-size estimate, or cached request does not establish reliability or improvement.
+
+Pilots may use the deployed global Hive installation; use this delivery for new flow pilots and record the installed release and content hashes. Do not inject duplicate Hive instructions into their fixture projects. Keep test inputs and writes in disposable fixtures, record process-local overrides, and preserve unrelated global configuration. An isolated project-delivery experiment remains possible when its purpose and different conditions are explicit. Pilot authorization does not imply unrelated global deployment.
+
+Before behavior tests, declare whether they use everyday or isolated memory. Use a fresh, verified-empty Engram data directory per run when prior fixture memories must be excluded, and disable cloud synchronization for that test process. Record the requested environment separately from observed memory routing; check for fixture leakage into the everyday store. Do not describe process-local memory isolation as isolation of all host history or filesystem access.
+
+After tests finish, remove fictitious test records from Engram. Identify the exact fixture projects, sessions, and observation IDs from the run evidence before deletion; do not delete by a broad topic match or ambiguous project name. Preserve real Hive decisions, findings, and evaluation summaries. Wait for all test writers to finish, use Engram's supported deletion mechanism, verify the scoped records are gone, and record the cleanup outcome in the session report. If provenance is uncertain or scoped deletion is unavailable, report the unresolved records instead of deleting unrelated memory.
