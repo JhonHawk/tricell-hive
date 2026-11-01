@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"tricell-hive/tooling/viewer"
 )
@@ -23,7 +24,7 @@ func TestTimelineCLIContractIsOfflineAndNarrowed(t *testing.T) {
 		t.Fatal(err)
 	}
 	var full viewer.TimelineProtocolDescription
-	if err := json.Unmarshal(out.Bytes(), &full); err != nil || len(full.Commands) != 13 || full.Retention != "manual" {
+	if err := json.Unmarshal(out.Bytes(), &full); err != nil || len(full.Commands) != 23 || full.ProtocolVersion != 2 || full.Retention != "manual" {
 		t.Fatalf("invalid full contract: %v", err)
 	}
 	for _, operation := range full.Commands {
@@ -134,13 +135,15 @@ func timelineCLIInfo(t *testing.T, server *httptest.Server) serverInfo {
 }
 
 func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
+	var protocolVersion atomic.Int32
+	protocolVersion.Store(2)
 	var info serverInfo
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-Hive-Token") != info.Token {
 			t.Error("missing access header")
 		}
 		if r.URL.Path == "/api/health" {
-			fmt.Fprintf(w, `{"pid":123,"state_dir":"/fixture-state","timeline_protocol_version":1}`)
+			fmt.Fprintf(w, `{"pid":123,"state_dir":"/fixture-state","timeline_protocol_version":%d}`, protocolVersion.Load())
 			return
 		}
 		if r.Method == "PATCH" && (r.Header.Get("Origin") != info.url() || r.Header.Get("X-Hive-Action-Scope") != "session") {
@@ -153,6 +156,11 @@ func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	if err := viewTimelineProtocolReady(info, "/fixture-state"); err != nil {
 		t.Fatal(err)
 	}
+	protocolVersion.Store(1)
+	if err := viewTimelineProtocolReady(info, "/fixture-state"); err == nil {
+		t.Fatal("accepted obsolete v1 server")
+	}
+	protocolVersion.Store(2)
 	if err := viewTimelineProtocolReady(info, "/different-state"); err == nil {
 		t.Fatal("accepted wrong server identity")
 	}

@@ -6,11 +6,15 @@
       "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
       "size": 29,
       "media_type": "text/markdown",
-      "received_at": "2026-10-31T20:00:00Z"
+      "received_at": "2026-10-31T20:00:00Z",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     }
   ],
   "current_stage_event_id": "plan-2",
-  "schema_version": 1,
+  "schema_version": 2,
   "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
   "project_key": "example.com/fixture/project",
   "project_name": "CAM fixture",
@@ -67,9 +71,19 @@
               "label": "Proposal",
               "document_id": "doc-plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "document_key": "plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Declared lifecycle change"
     },
     {
       "event_id": "build-1",
@@ -86,7 +100,12 @@
       "stage_state": "completed",
       "started_at": "2026-10-31T20:02:00Z",
       "occurred_at": "2026-10-01T00:00:00Z",
-      "finished_at": "2026-10-31T20:02:30Z"
+      "finished_at": "2026-10-31T20:02:30Z",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Declared lifecycle change"
     },
     {
       "event_id": "plan-2",
@@ -114,10 +133,36 @@
               "label": "Proposal",
               "document_id": "doc-plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "document_key": "plan",
+          "predecessor_revision_id": "rev-1"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Declared lifecycle change"
     }
   ],
-  "artifacts": []
+  "artifacts": [],
+  "producers": [
+    {
+      "producer_id": "producer-original",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "joined_at": "2026-10-31T18:20:00-06:00"
+    }
+  ],
+  "foreground_producer_id": "producer-original",
+  "pending_join_requests": [],
+  "tasks": [],
+  "waits": []
 }

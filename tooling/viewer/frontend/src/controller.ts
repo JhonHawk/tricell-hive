@@ -803,7 +803,8 @@ export class ViewerController {
           : {
               key,
               body: {
-                schema_version: 1,
+                schema_version: 2,
+                actor: { kind: "local_viewer" },
                 operation_id: crypto.randomUUID(),
                 expected_version: expectedVersion,
                 ...patch,

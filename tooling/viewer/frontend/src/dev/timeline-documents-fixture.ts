@@ -5,6 +5,7 @@ import type {
 } from "../timeline-contract";
 export const previewDocumentMetadata: TimelineDocument[] = [
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     document_id: "document_proposal",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -14,6 +15,7 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     document_id: "document_design",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -23,6 +25,7 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     document_id: "document_tasks",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -32,6 +35,7 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     document_id: "document_criteria",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -41,6 +45,7 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     document_id: "document_earlier",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -50,6 +55,7 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     document_id: "document_research",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -80,5 +86,5 @@ export async function loadPreviewDocument(
     (d) => d.document_id === documentID,
   );
   if (!document) throw new Error("preview_document_missing");
-  return { schema_version: 1, document, content: content[documentID] };
+  return { schema_version: 2, document, content: content[documentID] };
 }

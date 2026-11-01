@@ -1,4 +1,5 @@
-{"current_stage_event_id":null,
+{
+  "current_stage_event_id": null,
   "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
   "project_key": "example.com/fixture/project",
   "project_name": "CAM fixture",

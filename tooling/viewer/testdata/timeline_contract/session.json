@@ -1,5 +1,7 @@
-{"documents":[],"current_stage_event_id":null,
-  "schema_version": 1,
+{
+  "documents": [],
+  "current_stage_event_id": null,
+  "schema_version": 2,
   "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
   "project_key": "example.com/fixture/project",
   "project_name": "CAM fixture",
@@ -49,7 +51,11 @@
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     {
       "event_id": "event_started",
@@ -75,6 +81,10 @@
         "branch": "fix/profile-chat",
         "commit": "working tree",
         "base": "development"
+      },
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
       }
     },
     {
@@ -151,7 +161,11 @@
           ],
           "view_id": "view_chat"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     {
       "event_id": "event_iteration",
@@ -210,7 +224,11 @@
             "view_id": "view_chat"
           }
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     {
       "event_id": "event_approval",
@@ -232,14 +250,19 @@
           "url": "https://example.com/issues/COM-2"
         }
       ],
-      "target": {"kind":"evidence",
+      "target": {
+        "kind": "evidence",
         "event_id": "event_iteration",
         "evidence_id": "evidence_refined",
         "view_ids": [
           "view_chat"
         ]
       },
-      "source_reference": "User accepted D2 A"
+      "source_reference": "User accepted D2 A",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     {
       "event_id": "event_delivery",
@@ -268,7 +291,11 @@
           "url": "https://example.com/pull/321",
           "status": "open"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     }
   ],
   "artifacts": [
@@ -286,7 +313,11 @@
         "base": "development"
       },
       "viewport": "desktop",
-      "theme": "light"
+      "theme": "light",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     {
       "artifact_id": "artifact_chat",
@@ -302,7 +333,11 @@
         "base": "development"
       },
       "viewport": "mobile",
-      "theme": "dark"
+      "theme": "dark",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     {
       "artifact_id": "artifact_chat_refined",
@@ -318,7 +353,26 @@
         "base": "development"
       },
       "viewport": "mobile",
-      "theme": "dark"
+      "theme": "dark",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     }
-  ]
+  ],
+  "producers": [
+    {
+      "producer_id": "producer-original",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "joined_at": "2026-10-31T18:20:00-06:00"
+    }
+  ],
+  "foreground_producer_id": "producer-original",
+  "pending_join_requests": [],
+  "tasks": [],
+  "waits": []
 }

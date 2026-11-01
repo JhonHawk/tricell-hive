@@ -28,10 +28,25 @@ async function settle() {
 }
 function fixture(id = sid): TimelineSessionResponse {
   return {
-    schema_version: 1,
+    schema_version: 2,
     mode: "timeline_api",
     session: {
-      schema_version: 1,
+      schema_version: 2,
+      producers: [
+        {
+          producer_id: "producer-original",
+          source: {
+            project_root: "/fixture/project",
+            host: "codex",
+            native_session_id: `native-${id}`,
+          },
+          joined_at: stamp,
+        },
+      ],
+      foreground_producer_id: "producer-original",
+      pending_join_requests: [],
+      tasks: [],
+      waits: [],
       viewer_session_id: id,
       project_key: "example.test/project",
       project_name: "Example",
@@ -52,6 +67,7 @@ function fixture(id = sid): TimelineSessionResponse {
       tickets: [],
       events: [
         {
+          actor: { kind: "native_producer", producer_id: "producer-original" },
           event_id: "request_one",
           sequence: 1,
           version: 1,
@@ -76,6 +92,11 @@ function entry(data: TimelineSessionResponse): TimelineAPIIndexEntry {
     events: _events,
     artifacts: _artifacts,
     documents: _documents,
+    producers: _producers,
+    foreground_producer_id: _lead,
+    pending_join_requests: _joins,
+    tasks: _tasks,
+    waits: _waits,
     ...rest
   } = data.session;
   return { mode: "timeline_api", ...rest };
@@ -265,7 +286,7 @@ test("conditional API mutations read JSON receipts, refresh authority and reuse 
         a.session.version++;
         a.session.title = body.title;
         receipt = {
-          schema_version: 1,
+          schema_version: 2,
           kind: "session_patch",
           operation_id: body.operation_id,
           viewer_session_id: sid,
@@ -378,7 +399,7 @@ test("API pin, archive, restore and delete use versioned session mutations and p
         if (body.archived !== undefined) a.session.archived = body.archived;
       }
       return response({
-        schema_version: 1,
+        schema_version: 2,
         kind: options.method === "DELETE" ? "session_delete" : "session_patch",
         operation_id: body.operation_id,
         viewer_session_id: sid,
@@ -519,7 +540,7 @@ test("pending deletion remains retryable with its original operation after tombs
           attempts === 1 ? 503 : 409,
         );
       return response({
-        schema_version: 1,
+        schema_version: 2,
         kind: "session_delete",
         operation_id: body.operation_id,
         viewer_session_id: sid,
@@ -602,7 +623,7 @@ test("definitive delete rejection clears recovery and permits deleting another s
           bGone = true;
           const body = JSON.parse(String(options.body));
           return response({
-            schema_version: 1,
+            schema_version: 2,
             kind: "session_delete",
             operation_id: body.operation_id,
             viewer_session_id: other,

@@ -20,6 +20,7 @@ const stamp = "2026-10-31T18:00:00-06:00";
 const ticket = { key: "COM-1", url: "https://example.com/tickets/COM-1" };
 function fixture(): TimelineSessionResponse {
   const event: TimelineEvent = {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event-first",
     sequence: 1,
     version: 1,
@@ -47,10 +48,25 @@ function fixture(): TimelineSessionResponse {
     ],
   };
   return {
-    schema_version: 1,
+    schema_version: 2,
     mode: "timeline_api",
     session: {
-      schema_version: 1,
+      schema_version: 2,
+      producers: [
+        {
+          producer_id: "producer-original",
+          source: {
+            project_root: "/fixture",
+            host: "codex",
+            native_session_id: "native-example",
+          },
+          joined_at: stamp,
+        },
+      ],
+      foreground_producer_id: "producer-original",
+      pending_join_requests: [],
+      tasks: [],
+      waits: [],
       documents: [],
       current_stage_event_id: null,
       viewer_session_id: sid,
@@ -74,6 +90,7 @@ function fixture(): TimelineSessionResponse {
       events: [event],
       artifacts: ["image-one", "image-two"].map((artifact_id) => ({
         artifact_id,
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         session_id: sid,
         sha256: "b".repeat(64),
         size: 100,
@@ -118,6 +135,7 @@ test("timeline is newest-first, shared tickets do not duplicate a view, and step
   const data = fixture();
   data.session.events.push({
     ...data.session.events[0],
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event-later",
     evidence_id: "evidence-later",
     sequence: 2,

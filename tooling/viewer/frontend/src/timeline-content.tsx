@@ -73,6 +73,12 @@ const icons: Record<
   TimelineEventKind,
   ComponentType<{ className?: string }>
 > = {
+  review: CheckCircle2,
+  state_transition: CheckCircle2,
+  producer_joined: CheckCircle2,
+  foreground_transferred: CheckCircle2,
+  task_state_transition: CheckCircle2,
+  local_action: CheckCircle2,
   request: MessageSquare,
   work_started: GitBranch,
   validation: Images,
@@ -549,6 +555,8 @@ export function TimelineContent({
                             variant={
                               (
                                 {
+                                  in_review: "info-light",
+                                  awaiting_validation: "warning-light",
                                   in_progress: "warning-light",
                                   completed: "success-light",
                                   paused: "outline",

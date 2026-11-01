@@ -28,7 +28,7 @@ type viewTimelineCommand struct {
 
 func isTimelineViewCommand(name string) bool {
 	switch name {
-	case "contract", "session", "event", "stage", "artifact", "document":
+	case "contract", "session", "event", "stage", "artifact", "document", "producer", "task", "wait":
 		return true
 	}
 	return false
@@ -186,6 +186,24 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 		c.operation, c.method, positionals = "stage_update", http.MethodPatch, 2
 	case "stage/snapshot":
 		c.operation, c.method, positionals = "document_snapshot", http.MethodPost, 2
+	case "producer/request":
+		c.operation, c.method = "join_request", http.MethodPost
+	case "producer/accept":
+		c.operation, c.method = "producer_accept", http.MethodPost
+	case "producer/transfer":
+		c.operation, c.method = "foreground_transfer", http.MethodPost
+	case "task/create":
+		c.operation, c.method = "task_create", http.MethodPost
+	case "task/update":
+		c.operation, c.method, positionals = "task_patch", http.MethodPatch, 2
+	case "task/transition":
+		c.operation, c.method, positionals = "task_transition", http.MethodPost, 2
+	case "wait/create":
+		c.operation, c.method = "wait_create", http.MethodPost
+	case "wait/attempt":
+		c.operation, c.method, positionals = "wait_attempt_start", http.MethodPost, 2
+	case "wait/observe":
+		c.operation, c.method, positionals = "wait_observe", http.MethodPost, 2
 	default:
 		return c, nil, bad
 	}
@@ -207,6 +225,24 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 		}
 	}
 	switch c.operation {
+	case "join_request":
+		c.path += "/join-requests"
+	case "producer_accept":
+		c.path += "/producers/accept"
+	case "foreground_transfer":
+		c.path += "/producers/transfer"
+	case "task_create":
+		c.path += "/tasks"
+	case "task_patch":
+		c.path += "/tasks/" + c.objectID
+	case "task_transition":
+		c.path += "/tasks/" + c.objectID + "/transitions"
+	case "wait_create":
+		c.path += "/waits"
+	case "wait_attempt_start":
+		c.path += "/waits/" + c.objectID + "/attempts"
+	case "wait_observe":
+		c.path += "/waits/" + c.objectID + "/observations"
 	case "append_event", "stage_start":
 		c.path += "/events"
 	case "event_patch", "event_withdraw", "stage_update", "document_snapshot":
@@ -225,6 +261,18 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 }
 
 func validateViewTimelineInput(operation string, raw []byte) error {
+	var identity struct {
+		Actor viewer.TimelineActor `json:"actor"`
+	}
+	if json.Unmarshal(raw, &identity) == nil && identity.Actor.Kind == "local_viewer" {
+		return errors.New("local_viewer_actor_forbidden_in_native_cli")
+	}
+	switch operation {
+	case "join_request", "producer_accept", "foreground_transfer", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":
+		_, err := viewer.DecodeTimelineV2Operation(operation, raw)
+		return err
+	}
+
 	switch operation {
 	case "create_session":
 		_, err := viewer.DecodeTimelineCreateSession(raw)
@@ -381,7 +429,14 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 		if kind == "stage_update" {
 			kind = "event_patch"
 		}
-		if string(result.Kind) != kind || (command.objectID != "" && result.EventID != command.objectID) {
+		resultObjectID := result.EventID
+		if strings.HasPrefix(kind, "task_") {
+			resultObjectID = result.TaskID
+		}
+		if strings.HasPrefix(kind, "wait_") {
+			resultObjectID = result.WaitID
+		}
+		if string(result.Kind) != kind || (command.objectID != "" && resultObjectID != command.objectID) {
 			return invalid
 		}
 		return viewTimelineOutput(w, result)

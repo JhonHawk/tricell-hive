@@ -220,7 +220,7 @@ test("artifact URLs are transport-only, bound to known session artifacts", () =>
   );
   assert.doesNotThrow(() =>
     parseTimelineSessionResponse({
-      schema_version: 1,
+      schema_version: 2,
       mode: "timeline_api",
       session: s,
       artifact_urls: { artifact_profile: url },
@@ -228,7 +228,7 @@ test("artifact URLs are transport-only, bound to known session artifacts", () =>
   );
   assert.throws(() =>
     parseTimelineSessionResponse({
-      schema_version: 1,
+      schema_version: 2,
       mode: "timeline_api",
       session: s,
       artifact_urls: { foreign: url },
@@ -300,14 +300,12 @@ test("receipt retry contracts recover committed IDs and reject changed request d
   );
   assert.equal(Object.hasOwn(session(), "operation_receipts"), false);
 });
-test("index entry union preserves the existing legacy source record without creating native identity", () => {
-  const raw = JSON.parse(fixture("legacy-index-entry.json"));
-  const legacy = parseTimelineIndexEntry(raw);
-  assert.equal(legacy.mode, "legacy");
-  if (legacy.mode !== "legacy") assert.fail("Expected legacy index variant");
-  assert.deepEqual(legacy.session, raw.session);
-  assert.equal(legacy.session.session_id, "codex-20261019T150000Z");
-  assert.equal(Object.hasOwn(legacy.session, "viewer_session_id"), false);
+test("v2 index rejects legacy input", () => {
+  assert.throws(
+    () =>
+      parseTimelineIndexEntry(JSON.parse(fixture("legacy-index-entry.json"))),
+    TimelineContractError,
+  );
   const api = parseTimelineIndexEntry(
     JSON.parse(fixture("api-index-entry.json")),
   );
@@ -389,7 +387,7 @@ test("document route map accepts only scoped known immutable IDs", () => {
   const path = `/api/timeline/sessions/${s.viewer_session_id}/documents/doc-plan`;
   assert.ok(isSafeTimelineDocumentURL(path, s.viewer_session_id, "doc-plan"));
   const response = {
-    schema_version: 1,
+    schema_version: 2,
     mode: "timeline_api",
     session: s,
     document_urls: { "doc-plan": path },

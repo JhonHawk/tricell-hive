@@ -10,11 +10,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -71,9 +75,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -90,7 +104,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -118,20 +137,51 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -146,11 +196,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -207,9 +261,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -226,7 +290,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -254,20 +323,51 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 999,
       "expected_session_version": 7,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -282,11 +382,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -343,9 +447,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -362,7 +476,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -390,20 +509,51 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 999,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -418,11 +568,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -479,9 +633,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -498,7 +662,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -526,20 +695,51 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-1",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "in_progress"
+      "stage_state": "in_progress",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -554,11 +754,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -615,9 +819,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -634,7 +848,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -648,7 +867,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -662,20 +881,51 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "in_progress"
+      "stage_state": "in_progress",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -690,11 +940,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -751,9 +1005,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -770,7 +1034,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -784,7 +1053,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -798,25 +1067,56 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
   {
-    "name": "repeat paused rejected",
+    "name": "repeated paused state is a no-op",
     "action": "event_patch",
     "session": {
       "documents": [
@@ -826,11 +1126,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -887,9 +1191,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -906,7 +1220,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -920,7 +1239,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -934,22 +1253,53 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "paused"
+      "stage_state": "paused",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
-    "valid": false
+    "valid": true
   },
   {
     "name": "foreground withdrawal rejected",
@@ -962,11 +1312,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1023,9 +1377,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1042,7 +1406,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1070,18 +1439,48 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "withdraw",
-      "expected_version": 2
+      "expected_version": 2,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     "valid": false
   },
@@ -1096,11 +1495,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1157,9 +1560,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1176,7 +1589,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1190,7 +1608,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -1204,18 +1622,48 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "withdraw",
-      "expected_version": 2
+      "expected_version": 2,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     "valid": true
   },
@@ -1230,11 +1678,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1291,9 +1743,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1310,7 +1772,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1338,19 +1805,50 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "state",
       "expected_version": 7,
-      "state": "awaiting_validation"
+      "state": "awaiting_validation",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -1365,11 +1863,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1426,9 +1928,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1445,7 +1957,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1473,19 +1990,50 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "state",
       "expected_version": 7,
-      "state": "closed"
+      "state": "closed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -1500,11 +2048,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1516,7 +2068,7 @@
       "version": 7,
       "title": "Profile and chat",
       "summary": "Improve profile spacing and chat filters.",
-      "state": "awaiting_validation",
+      "state": "paused",
       "archived": false,
       "pinned": false,
       "created_at": "2026-10-31T18:20:00-06:00",
@@ -1561,9 +2113,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1580,7 +2142,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1608,19 +2175,50 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "state",
       "expected_version": 7,
-      "state": "closed"
+      "state": "closed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -1635,11 +2233,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1696,9 +2298,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1715,7 +2327,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1743,16 +2360,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
@@ -1760,7 +2403,12 @@
       "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -1775,11 +2423,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1836,9 +2488,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1855,7 +2517,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1883,16 +2550,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
@@ -1900,7 +2593,12 @@
       "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
-      "expected_session_version": 999
+      "expected_session_version": 999,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -1915,11 +2613,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1976,9 +2678,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1995,7 +2707,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2023,16 +2740,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
@@ -2040,7 +2783,12 @@
       "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -2055,11 +2803,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2116,9 +2868,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2135,7 +2897,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2163,17 +2930,43 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
@@ -2182,7 +2975,12 @@
       "stage": "plan",
       "stage_state": "in_progress",
       "expected_session_version": 7,
-      "related_event_id": "plan-2"
+      "related_event_id": "plan-2",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -2197,11 +2995,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2258,9 +3060,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2277,7 +3089,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2305,17 +3122,43 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
@@ -2323,7 +3166,12 @@
       "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -2338,11 +3186,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2399,9 +3251,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2418,7 +3280,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2446,16 +3313,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "close",
       "kind": "closure",
       "title": "Closed",
@@ -2464,7 +3357,12 @@
       "closure": {
         "reason": "completed",
         "result": "Verified"
-      }
+      },
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -2479,11 +3377,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2495,7 +3397,7 @@
       "version": 7,
       "title": "Profile and chat",
       "summary": "Improve profile spacing and chat filters.",
-      "state": "awaiting_validation",
+      "state": "paused",
       "archived": false,
       "pinned": false,
       "created_at": "2026-10-31T18:20:00-06:00",
@@ -2540,9 +3442,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2559,7 +3471,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2587,16 +3504,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "close",
       "kind": "closure",
       "title": "Closed",
@@ -2605,7 +3548,12 @@
       "closure": {
         "reason": "completed",
         "result": "Verified"
-      }
+      },
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -2620,11 +3568,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2681,9 +3633,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2700,7 +3662,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2728,16 +3695,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -2746,12 +3739,19 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": true
   },
   {
-    "name": "snapshot no replacement even terminal state",
+    "name": "stale document chain on prior occurrence rejected",
     "action": "snapshot",
     "session": {
       "documents": [
@@ -2761,11 +3761,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2822,9 +3826,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2841,7 +3855,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2869,16 +3888,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-1",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -2887,9 +3932,16 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
-    "valid": true
+    "valid": false
   },
   {
     "name": "snapshot stale event",
@@ -2902,11 +3954,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2963,9 +4019,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2982,7 +4048,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3010,16 +4081,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "snapshot",
       "expected_version": 999,
       "status": "complete",
@@ -3028,7 +4125,14 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": false
   },
@@ -3043,11 +4147,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3104,9 +4212,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -3123,7 +4241,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3151,16 +4274,42 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -3169,7 +4318,14 @@
           "label": "Other",
           "document_id": "foreign"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": false
   },
@@ -3184,11 +4340,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3245,9 +4405,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -3264,7 +4434,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3292,17 +4467,43 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
@@ -3310,7 +4511,12 @@
       "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -3325,11 +4531,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 2,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3386,9 +4596,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -3405,7 +4625,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3433,17 +4658,43 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 2,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -3452,7 +4703,14 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": false
   }

@@ -50,6 +50,11 @@ test("real application wires API timeline, documents, conditional title and mixe
           events: _e,
           artifacts: _a,
           documents: _d,
+          producers: _producers,
+          foreground_producer_id: _lead,
+          pending_join_requests: _joins,
+          tasks: _tasks,
+          waits: _waits,
           ...entry
         } = data.session;
         return new Response(
@@ -100,7 +105,7 @@ test("real application wires API timeline, documents, conditional title and mixe
         data.session.version++;
         return new Response(
           JSON.stringify({
-            schema_version: 1,
+            schema_version: 2,
             kind: "session_patch",
             viewer_session_id: sid,
             operation_id: body.operation_id,
@@ -221,6 +226,11 @@ test("pending API deletion exposes recovery outside the removed session header",
           events: _e,
           artifacts: _a,
           documents: _d,
+          producers: _producers,
+          foreground_producer_id: _lead,
+          pending_join_requests: _joins,
+          tasks: _tasks,
+          waits: _waits,
           ...entry
         } = data.session;
         return new Response(
@@ -245,7 +255,7 @@ test("pending API deletion exposes recovery outside the removed session header",
             attempts === 1
               ? { code: "delete_pending", cleanup_pending: true }
               : {
-                  schema_version: 1,
+                  schema_version: 2,
                   kind: "session_delete",
                   viewer_session_id: sid,
                   operation_id: body.operation_id,

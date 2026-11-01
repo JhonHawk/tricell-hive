@@ -3,10 +3,25 @@ import type { TimelineSessionResponse } from "../timeline-contract";
 import { previewDocumentMetadata } from "./timeline-documents-fixture";
 
 export const timelineFixture: TimelineSessionResponse = {
-  schema_version: 1,
+  schema_version: 2,
   mode: "timeline_api",
   session: {
-    schema_version: 1,
+    schema_version: 2,
+    producers: [
+      {
+        producer_id: "producer-original",
+        source: {
+          project_root: "/fixture/demo",
+          host: "codex",
+          native_session_id: "preview-native-session",
+        },
+        joined_at: "2026-10-31T17:20:00-06:00",
+      },
+    ],
+    foreground_producer_id: "producer-original",
+    pending_join_requests: [],
+    tasks: [],
+    waits: [],
     documents: previewDocumentMetadata,
     current_stage_event_id: "event_plan_r3",
     viewer_session_id:
@@ -42,6 +57,7 @@ export const timelineFixture: TimelineSessionResponse = {
     ],
     events: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_request",
         sequence: 1,
         version: 1,
@@ -63,6 +79,7 @@ export const timelineFixture: TimelineSessionResponse = {
         ],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_started",
         sequence: 2,
         version: 1,
@@ -89,6 +106,7 @@ export const timelineFixture: TimelineSessionResponse = {
         },
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_pr",
         sequence: 3,
         version: 1,
@@ -119,6 +137,7 @@ export const timelineFixture: TimelineSessionResponse = {
         ],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_validation",
         sequence: 4,
         version: 1,
@@ -200,6 +219,7 @@ export const timelineFixture: TimelineSessionResponse = {
         ],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_changes",
         sequence: 5,
         version: 1,
@@ -225,6 +245,7 @@ export const timelineFixture: TimelineSessionResponse = {
         source_reference: "Solicitud de ejemplo en el chat",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_iteration",
         sequence: 6,
         version: 1,
@@ -286,6 +307,7 @@ export const timelineFixture: TimelineSessionResponse = {
     ],
     artifacts: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_profile-light",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -304,6 +326,7 @@ export const timelineFixture: TimelineSessionResponse = {
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_profile-mobile",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -322,6 +345,7 @@ export const timelineFixture: TimelineSessionResponse = {
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-light",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -340,6 +364,7 @@ export const timelineFixture: TimelineSessionResponse = {
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-mobile-before",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -358,6 +383,7 @@ export const timelineFixture: TimelineSessionResponse = {
         theme: "dark",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-mobile-after",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -376,6 +402,7 @@ export const timelineFixture: TimelineSessionResponse = {
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-mobile-dark",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -415,6 +442,7 @@ export const timelineFixture: TimelineSessionResponse = {
 const stageTime = "2026-10-31T21:30:00-06:00";
 timelineFixture.session.events.push(
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_research",
     sequence: 7,
     version: 2,
@@ -431,6 +459,8 @@ timelineFixture.session.events.push(
     finished_at: "2026-10-31T20:15:00-06:00",
     document_snapshots: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "research",
         document_revision_id: "revision_research",
         status: "complete",
         created_at: "2026-10-31T20:15:00-06:00",
@@ -439,6 +469,7 @@ timelineFixture.session.events.push(
     ],
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_plan_r2",
     sequence: 8,
     version: 2,
@@ -455,6 +486,8 @@ timelineFixture.session.events.push(
     finished_at: "2026-10-31T20:30:00-06:00",
     document_snapshots: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "plan",
         document_revision_id: "revision_plan_r2",
         status: "complete",
         created_at: "2026-10-31T20:30:00-06:00",
@@ -463,6 +496,7 @@ timelineFixture.session.events.push(
     ],
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_build_r2",
     sequence: 9,
     version: 2,
@@ -480,6 +514,7 @@ timelineFixture.session.events.push(
     finished_at: "2026-10-31T21:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_plan_r3",
     sequence: 10,
     version: 3,
@@ -497,12 +532,18 @@ timelineFixture.session.events.push(
     related_event_id: "event_plan_r2",
     document_snapshots: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "plan",
+        predecessor_revision_id: "revision_plan_r2",
         document_revision_id: "revision_plan_r3_initial",
         status: "draft",
         created_at: "2026-10-31T21:35:00-06:00",
         tabs: [{ label: "Propuesta", document_id: "document_earlier" }],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "plan",
+        predecessor_revision_id: "revision_plan_r3_initial",
         document_revision_id: "revision_plan_r3_current",
         status: "draft",
         created_at: "2026-10-31T21:40:00-06:00",

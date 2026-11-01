@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "operation_id": "validation:1",
   "kind": "validation",
   "title": "First validation",
@@ -36,5 +36,9 @@
         }
       ]
     }
-  ]
+  ],
+  "actor": {
+    "kind": "native_producer",
+    "producer_id": "producer-original"
+  }
 }

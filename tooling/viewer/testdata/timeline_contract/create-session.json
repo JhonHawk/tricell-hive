@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "operation_id": "session:create",
   "source": {
     "project_root": "/fixture/project",
