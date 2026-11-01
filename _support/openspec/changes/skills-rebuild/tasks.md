@@ -164,6 +164,9 @@ Base: investigación en los 6 hosts (documentación, código de Codex, OpenCode 
   - `flow-build`: ante una prueba que falla, decidir primero si está mal el código, el criterio o la prueba, y cambiar o quitar una prueba solo cuando es ella la que está mal;
   - `hive-review-code`: revisa si el diff es mínimo y coherente con las convenciones de los archivos que toca, con P2 para lo que la tarea no pidió;
   - `flow-close`: los P2 que comparten zona o causa se proponen como un solo grupo, una regla que se había perdido en el recorte.
+- [x] **Z. Ideas de los posts de Thorsten Ball («How I work with Agents», 2026-10-25) y Addy Osmani («You're probably overprompting Claude», 2026-10-29)** (decisión D55):
+  - `flow-research`: ante un fallo sin causa demostrada, listar las causas posibles y comprobarlas todas, en paralelo si son independientes, e informar las descartadas con su evidencia;
+  - `flow-verify` paso 1: no cuentan como evidencia afirmar que las pruebas pasaron sin mostrar su salida, una captura anterior al último cambio, ni el reporte de un hijo que el hilo principal no comprobó.
 - [x] **S. Retomar tras compactar.** «Persistent memory» pide leer el checkpoint del trabajo antes de responder o terminar el turno después de una compactación, y seguir desde su siguiente paso sin volver a reportar lo ya hecho; la regla de `flow-build` y `flow-verify` no sobrevive a la compactación porque el texto de la skill no queda en el historial. Codex `01a19479`, hive, 2026-10-31: la compactación de las 23:27 dejó como último mensaje un ajuste ya resuelto; el agente lo reportó otra vez y cerró el turno a mitad de la verificación (decisión D30; watch `watch/stop-after-midturn-compaction`).
 
 Orden: A, B y G primero (contenido, sin manager); D con su sonda; E; F skill por skill; el `site/` al final, todo junto.
