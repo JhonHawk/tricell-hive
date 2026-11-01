@@ -80,7 +80,7 @@ Each capture needs `path` and `caption`; `alt` defaults to the caption. Limits: 
   "created_at": "2026-10-18T16:30:00-06:00",
   "result": "All checks pass; confirm the sidebar spacing matches the demo.",
   "checks": [
-    {"name": "AC1 — the sidebar lists every section", "status": "pass", "evidence": "rendered at 1440 and 390 px"},
+    {"name": "AC1 — the sidebar lists every section", "status": "pass", "evidence": "rendered at 1440 and 440 px"},
     {"name": "Unit tests", "status": "pass", "evidence": "pnpm test, 42 passed"}
   ],
   "flows": [
