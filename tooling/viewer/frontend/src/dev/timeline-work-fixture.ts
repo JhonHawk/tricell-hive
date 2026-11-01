@@ -141,6 +141,36 @@ export function workFixture(scenario = "cam"): TimelineSessionResponse {
     s.events[1].finished_at = undefined;
     s.events = s.events.slice(0, 2);
     s.current_stage_event_id = "build-stage";
+    const evidence = timelineFixture.session.events.find(
+      (e) => e.views?.length,
+    );
+    const revision = timelineFixture.session.events
+      .find((e) => e.event_id === "event_plan_r3")
+      ?.document_snapshots?.at(-1);
+    if (evidence) {
+      s.events.push({
+        ...structuredClone(evidence),
+        event_id: "task-review-evidence",
+        task_id: "task-2",
+        segment_id: "build-2",
+        stage_event_id: "build-stage",
+        sequence: 3,
+        title: "Revisión de perfil y conversaciones",
+        summary: "Capturas pertinentes al acceso y navegación de esta tarea.",
+      });
+      s.validation_count = 1;
+    }
+    if (revision)
+      s.events[1].document_snapshots = [
+        {
+          ...structuredClone(revision),
+          document_key: "implementation-notes",
+          document_revision_id: "revision-task-notes",
+          predecessor_revision_id: undefined,
+          task_id: "task-2",
+          segment_id: "build-2",
+        },
+      ];
   } else if (scenario !== "future")
     s.waits = [
       {

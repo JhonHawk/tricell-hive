@@ -19,6 +19,23 @@ export function TimelineDevelopmentPreview() {
     )
       ? workFixture(scenario ?? "cam")
       : structuredClone(timelineFixture);
+    if (scenario === "chains") {
+      const stage = fixture.session.events.find(
+        (e) => e.event_id === "event_plan_r3",
+      );
+      const revision = stage?.document_snapshots?.at(-1);
+      if (stage && revision)
+        stage.document_snapshots?.push({
+          ...structuredClone(revision),
+          document_key: "review-notes",
+          document_revision_id: "revision-review-notes",
+          predecessor_revision_id: undefined,
+          tabs: [
+            { label: "Diseño", document_id: "document_research" },
+            { label: "Riesgos", document_id: "document_criteria" },
+          ],
+        });
+    }
     if (scenario === "empty") {
       fixture.session.events = [];
       fixture.session.current_stage_event_id = null;

@@ -1,4 +1,11 @@
-import { Check, ChevronDown, Circle, CircleAlert, Pause } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Circle,
+  CircleAlert,
+  CircleHelp,
+  Pause,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import {
   Timeline,
@@ -49,7 +56,9 @@ export function TaskIndicator({
           ? Pause
           : state === "blocked" || state === "failed" || state === "cancelled"
             ? CircleAlert
-            : Circle;
+            : state === "unknown"
+              ? CircleHelp
+              : Circle;
   return (
     <Tooltip>
       <TooltipTrigger

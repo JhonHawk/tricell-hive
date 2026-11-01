@@ -564,7 +564,11 @@ export function ViewerShell({
           </div>
         </SidebarHeader>
         <SidebarSeparator />
-        <SidebarContent tabIndex={0} aria-label={copy.walkthroughs}>
+        <SidebarContent
+          tabIndex={0}
+          role="region"
+          aria-label={copy.walkthroughs}
+        >
           <Navigation
             sessions={sessions}
             selectedId={selectedId}
