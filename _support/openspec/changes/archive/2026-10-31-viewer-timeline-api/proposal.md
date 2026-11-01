@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Plan revision R3 — stage tracking, documents and retention |
+| Status | Completed — PR #304 integrated into development at0b6f2380; final candidate accepted D10 A |
 | Tracker | User-requested, untracked; no ticket creation authorized. Issue #281 remains a separate base/candidate comparator. |
 | Git | tricell-hive; current execution branch refactor/flow-ceremony, HEAD b5e8ad704159057d0f332ec053cec24076db15b7; integration base development, observed bb9604c56faadf60b92f7510d1b7206635ee1491 |
 | Decisions | D2 A interactive delivery; D3 native Codex /review; D4 A historical viewer-copy cleanup only; current branch explicitly chosen. User accepted the timeline/API proposal by invoking flow-plan and required host/native session identity at creation. |

@@ -124,7 +124,7 @@ Execute on refactor/flow-ceremony, planning HEAD b5e8ad704159057d0f332ec053cec24
 
 ### T12 — Verify and validate the full candidate
 
-- [ ] Complete acceptance evidence, full existing suites, native Codex /review, own browser walk, independent UX review and interactive user validation.
+- [x] Complete acceptance evidence, full existing suites, native Codex /review, own browser walk, independent UX review and interactive user validation.
 
 **Closes:** AC9–AC18, AC20–AC24
 
@@ -140,7 +140,7 @@ Execute on refactor/flow-ceremony, planning HEAD b5e8ad704159057d0f332ec053cec24
 
 ### T13 — Integrate, refresh and perform the authorized cleanup
 
-- [ ] After user validation, deliver through the selected branch PR, refresh the maintainer installation and clear only the fixed historical inventory through guarded supported deletion.
+- [x] After user validation, deliver through the selected branch PR, refresh the maintainer installation and clear only the fixed historical inventory through guarded supported deletion.
 
 **Closes:** AC19
 
@@ -233,3 +233,5 @@ T11 main consumer reconciliation: flow-report routes viewer/fallback output to t
 D9 A and R5 width accepted by user. T12 in progress: native review of b5e8ad70..9f8db1df found P2 deletion recovery and carousel failure-state reset; both confirmed and assigned to one fix round. Main found missing artifact enums in offline schema; fixing schema/validator shared values with regression. Full race suite running. Real candidate9f8db1df at60643 preserves session identity through restart; actual plan/artifacts read back and exact hashes/sizes match. Independent final UX confirms new interactions and672px centered/nooverflow390/320; pre-existing sidebar landmark issue outside changed layout remains nonblocking, partial contrast inconclusive. No push/default-runtime refresh/cleanup.
 
 T12 final checkpoint5af2416f: full Go race PASS (CLI336s), native review9f8db1df findings fixed ina378cb9e; bounded second review found terminal deletion recovery, fixed5af2416f with regression and required Unreviewed line.233frontend+3bundle,TS/Biome/build/dist and focused Go bundle/protocol/race/vet pass. Main actual-browser image404→valid recovery and abortedDELETE→Reintentar visible; no session deleted. Final real API evidence stored/readback; state awaiting_validation. D10 final acceptance pending beforepush; no third review. T13 pending. Concurrent externalcommitbc3fdcc7 preserved: global.md now19634bytes (+217frombaseline), viewerchange itself0; includes separatecheckpoint-guidance change not authored here. Everydayruntime44408/4483 unchanged; candidate39210/60643 active.
+
+Completed2026-10-31: D10 A accepted5af2416f; PR304 mergeddevelopment0b6f2380. Manager rebuilt/content deployed to6registeredhosts; doctor has noinstallationproblems. Existing viewer restarted49211/4483 with same statedirectory/registry,retentionmanual ttl0; servedassets hashmatch. Actual native session republished through supported CLI with explicit later-import provenance;6events/4documents/7images verified,imagesload in installedbrowser. Fixedinventory cleanup22copies/17groupsdeleted;10copies retained because source_statusunknown; noinventoryexpansion,sourcefiles/registry/APIsessions unchanged,1preexistingingesterror preserved. Plan/spec close delivered separately; no release/masterpromotion.

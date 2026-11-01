@@ -24,6 +24,7 @@ raise the minor or the patch version.
   themes and neighboring regions affected by each change. Rebuild the manager,
   run `hive update`, and restart an existing viewer to use the new runtime;
   legacy walkthroughs remain readable without automatic history conversion.
+  The accepted implementation record is archived with its consolidated viewer specification.
 - A repository test now checks that every heading an instruction link in
   `content/` points to exists, with the same link grammar and fence rule as
   release validation, so renaming a heading can no longer break the skills
