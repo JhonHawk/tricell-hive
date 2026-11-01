@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "sourceDigest": "0d8f1eb2975ab306f4b30a02510e3d4954ca36b7b90ec750625396c29866e0e5",
+  "sourceDigest": "8226b502b0167a545ac4d1dc93eba66a272233b12f5b8bec4b292ca81e197fc8",
   "entrypoint": "index.html",
   "files": [
     {
-      "path": "assets/index-9HJFAvfx.js",
-      "sha256": "c4381de18601425ced790f570ea4fb095b94091b287a40a4d8354264df6365ad",
+      "path": "assets/index-Buf0tY3J.js",
+      "sha256": "c36aafa9a420a5ebfa1f4228475674f1d7845b0528fb578bf9ee7015537e371a",
       "mime": "text/javascript; charset=utf-8"
     },
     {
@@ -15,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "f005f714a105aa16c660e7fb0020d11fd4754374b12ec83b13bcef5615085c37",
+      "sha256": "ffa592fa00c4cd98a2ce101e3d52b14f46e9199c9261ec9e7dc61a594c1d91aa",
       "mime": "text/html; charset=utf-8"
     }
   ]

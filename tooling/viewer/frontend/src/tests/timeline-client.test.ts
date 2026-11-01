@@ -572,3 +572,62 @@ test("pending deletion recovery is cleared when access changes", async () => {
   await controller.retryTimelineDelete();
   assert.equal(deletes, 1);
 });
+
+test("definitive delete rejection clears recovery and permits deleting another session", async (t) => {
+  for (const status of [400, 404, 410]) {
+    await t.test(`HTTP ${status}`, async () => {
+      const a = fixture(),
+        b = fixture(other);
+      let aGone = false,
+        bGone = false,
+        firstDelete = true;
+      const deletedIDs: string[] = [];
+      const { controller } = setup(async (path, options) => {
+        if (path === "/api/index")
+          return response(index(...(aGone ? [] : [a]), ...(bGone ? [] : [b])));
+        if (options?.method === "DELETE") {
+          const id = String(path).split("/").at(-1) as string;
+          deletedIDs.push(id);
+          if (id === sid) {
+            if (firstDelete) {
+              firstDelete = false;
+              return response({ code: "delete_pending" }, 503);
+            }
+            aGone = true;
+            return response(
+              { code: status === 410 ? "session_deleted" : "invalid_request" },
+              status,
+            );
+          }
+          bGone = true;
+          const body = JSON.parse(String(options.body));
+          return response({
+            schema_version: 1,
+            kind: "session_delete",
+            operation_id: body.operation_id,
+            viewer_session_id: other,
+            session_version: 2,
+            current_stage_event_id: null,
+            deleted: true,
+          });
+        }
+        return response(String(path).endsWith(sid) ? a : b);
+      });
+      await controller.open(null);
+      await settle();
+      await assert.rejects(controller.deleteTimelineSession(sid, 1));
+      assert.ok(controller.getSnapshot().pendingTimelineDelete);
+      await assert.rejects(controller.retryTimelineDelete());
+      assert.equal(controller.getSnapshot().pendingTimelineDelete, undefined);
+      assert.equal(
+        controller
+          .getSnapshot()
+          .index?.timeline_sessions?.some((s) => s.viewer_session_id === sid),
+        false,
+      );
+      await controller.deleteTimelineSession(other, 1);
+      assert.deepEqual(deletedIDs, [sid, sid, other]);
+      assert.equal(controller.getSnapshot().notice, "deleted");
+    });
+  }
+});
