@@ -231,7 +231,7 @@ function CaptureThumbnail({
         alt={alt}
         loading="lazy"
         onError={() => setFailed(true)}
-        className="aspect-[4/3] w-full object-cover object-top"
+        className="block aspect-[4/3] w-full object-cover object-top"
       />
     </button>
   );
@@ -545,7 +545,18 @@ export function TimelineContent({
                       {!event.withdrawn &&
                         event.kind === "stage" &&
                         event.stage_state && (
-                          <Badge variant="outline">
+                          <Badge
+                            variant={
+                              (
+                                {
+                                  in_progress: "warning-light",
+                                  completed: "success-light",
+                                  paused: "outline",
+                                  failed: "destructive-light",
+                                } as const
+                              )[event.stage_state]
+                            }
+                          >
                             {t.stageStates[event.stage_state]}
                           </Badge>
                         )}
