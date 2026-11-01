@@ -1,12 +1,12 @@
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import {
   Check,
   ChevronDown,
-  Circle,
   CircleAlert,
   CircleHelp,
   Pause,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import {
   Timeline,
   TimelineContent,
@@ -40,6 +40,18 @@ export type TimelineDetailOpener = (
   target: TimelineDetailTarget,
   trigger: HTMLElement,
 ) => void;
+// The styled Button has a fixed control height. Text titles use the same installed
+// primitive so each line participates in normal layout without overriding its sizes.
+function TimelineTextAction(props: ComponentProps<typeof ButtonPrimitive>) {
+  return (
+    <ButtonPrimitive
+      type="button"
+      data-slot="timeline-text-action"
+      className="block w-full whitespace-normal break-words text-left text-sm font-medium transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      {...props}
+    />
+  );
+}
 export function TaskIndicator({
   state,
   label,
@@ -58,7 +70,7 @@ export function TaskIndicator({
             ? CircleAlert
             : state === "unknown"
               ? CircleHelp
-              : Circle;
+              : undefined;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -68,10 +80,13 @@ export function TaskIndicator({
             role="img"
             aria-label={label}
             tabIndex={0}
+            className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-top-0.5"
           />
         }
       >
-        <Icon aria-hidden className="size-3 motion-reduce:animate-none" />
+        {Icon && (
+          <Icon aria-hidden className="size-4 motion-reduce:animate-none" />
+        )}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -80,11 +95,13 @@ export function TaskIndicator({
 export function TimelineWaitRow({
   wait,
   index,
+  last = false,
   lang,
   onOpen,
 }: {
   wait: TimelineCIWait;
   index: number;
+  last?: boolean;
   lang: TimelineLanguage;
   onOpen?: TimelineDetailOpener;
 }) {
@@ -107,18 +124,20 @@ export function TimelineWaitRow({
         step={index + 1}
         data-wait-id={wait.wait_id}
         data-completed={wait.state === "succeeded" || undefined}
+        className={
+          last ? undefined : "group-data-[orientation=vertical]/timeline:pb-6"
+        }
       >
-        <TimelineSeparator />
+        {!last && (
+          <TimelineSeparator className="bg-border group-last/timeline-item:block group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
+        )}
         <TaskIndicator
           state={wait.state}
           label={`CI: ${t.waitStates[wait.state]}`}
         />
         <TimelineHeader className="flex min-w-0 items-start gap-2">
           <TimelineTitle className="min-w-0 flex-1">
-            <Button
-              type="button"
-              variant="ghost"
-              className="max-w-full whitespace-normal text-left"
+            <TimelineTextAction
               onClick={(e) =>
                 onOpen?.(
                   { kind: "wait", waitID: wait.wait_id },
@@ -127,7 +146,7 @@ export function TimelineWaitRow({
               }
             >
               {t.ciTitle}
-            </Button>
+            </TimelineTextAction>
           </TimelineTitle>
           <CollapsibleTrigger
             render={
@@ -175,6 +194,7 @@ export function TimelineWaitRow({
 export function TimelineTaskRow({
   projection,
   index,
+  last = false,
   lang,
   onOpen,
   renderActivity,
@@ -183,6 +203,7 @@ export function TimelineTaskRow({
   projection: TimelineTaskProjection;
   targetEventID?: string;
   index: number;
+  last?: boolean;
   lang: TimelineLanguage;
   onOpen?: TimelineDetailOpener;
   renderActivity: (event: TimelineEvent) => ReactNode;
@@ -199,18 +220,20 @@ export function TimelineTaskRow({
         data-task-id={task.task_id}
         data-segment-id={segment.segment_id}
         data-completed={segment.state === "completed" || undefined}
+        className={
+          last ? undefined : "group-data-[orientation=vertical]/timeline:pb-6"
+        }
       >
-        <TimelineSeparator />
+        {!last && (
+          <TimelineSeparator className="bg-border group-last/timeline-item:block group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
+        )}
         <TaskIndicator
           state={segment.state}
           label={`${task.task_key}: ${t.taskStates[segment.state]}`}
         />
         <TimelineHeader className="flex min-w-0 items-start gap-2">
           <TimelineTitle className="min-w-0 flex-1">
-            <Button
-              type="button"
-              variant="ghost"
-              className="max-w-full whitespace-normal break-words text-left"
+            <TimelineTextAction
               aria-label={`${task.task_key} — ${task.title}: ${t.taskStates[segment.state]}`}
               onClick={(e) =>
                 onOpen?.(
@@ -224,7 +247,7 @@ export function TimelineTaskRow({
               }
             >
               {task.task_key} — {task.title}
-            </Button>
+            </TimelineTextAction>
           </TimelineTitle>
           <CollapsibleTrigger
             render={
@@ -278,6 +301,7 @@ export function TimelineTaskRow({
                     key={wait.wait_id}
                     wait={wait}
                     index={i}
+                    last={i === waits.length - 1}
                     lang={lang}
                     onOpen={onOpen}
                   />

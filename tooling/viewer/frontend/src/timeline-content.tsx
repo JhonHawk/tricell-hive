@@ -687,6 +687,7 @@ export function TimelineContent({
                               projection={projection}
                               targetEventID={targetEventID}
                               index={i}
+                              last={i === group.tasks.length - 1}
                               lang={lang}
                               onOpen={openDetail}
                               renderActivity={(e) => renderEvent(e, i)}
@@ -701,6 +702,7 @@ export function TimelineContent({
                               key={wait.wait_id}
                               wait={wait}
                               index={i}
+                              last={i === group.waits.length - 1}
                               lang={lang}
                               onOpen={openDetail}
                             />

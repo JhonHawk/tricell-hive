@@ -121,7 +121,8 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	s, request := newTimelineFixture(t)
 	v := createTimeline(t, s, request)
 	id := v.ViewerSessionID
-	stage, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "plan", Kind: "stage", Title: "Plan", Summary: "Prepare", TicketRefs: []TimelineTicketRef{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: timelineInt(v.Version)})
+	actor := timelineTestActor(s, id)
+	stage, err := s.TimelineAppend(id, TimelineAppendEventRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "plan", Kind: "stage", Title: "Plan", Summary: "Prepare", TicketRefs: []TimelineTicketRef{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: timelineInt(v.Version)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +138,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	}
 	_, err = s.TimelineAddDocument(id, metadata, []byte("changed"))
 	requireTimelineCode(t, err, "operation_conflict")
-	snapshot, err := s.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
+	snapshot, err := s.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{Actor: actor, DocumentKey: "plan", ExpectedSessionVersion: doc.SessionVersion, SchemaVersion: 2, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,25 +148,25 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	}
 	current, _ := s.TimelineGet(id)
 	wait := TimelineAwaitingValidation
-	result, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "wait", ExpectedVersion: current.Version, State: &wait})
+	result, err := s.TimelinePatch(id, TimelineSessionPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "wait", ExpectedVersion: current.Version, State: &wait})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.CurrentStageEventID != nil {
-		t.Fatal("foreground remained active")
+	if result.CurrentStageEventID == nil {
+		t.Fatal("validation lost foreground")
 	}
 	current, _ = s.TimelineGet(id)
-	if current.Events[0].StageState != "paused" {
-		t.Fatal("stage not paused atomically")
+	if current.Events[0].StageState != "awaiting_validation" {
+		t.Fatal("stage not awaiting validation atomically")
 	}
-	resumed, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "resume-stage", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("in_progress")})
+	resumed, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "resume-stage", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("in_progress")})
 	if err != nil || resumed.CurrentStageEventID == nil {
 		t.Fatal("resume", err)
 	}
 	current, _ = s.TimelineGet(id)
-	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "stale", ExpectedVersion: 1, Title: timelineString("stale")})
+	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "stale", ExpectedVersion: 1, Title: timelineString("stale")})
 	requireTimelineCode(t, err, "version_conflict")
-	done, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "done", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("completed")})
+	done, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "done", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("completed")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +174,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	if current.Events[0].Sequence != stage.Sequence || current.Events[0].DocumentSnapshots[0].DocumentRevisionID != snapshot.DocumentRevisionID {
 		t.Fatal("status changed evidence/order")
 	}
-	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "terminal", ExpectedVersion: done.EventVersion, ExpectedSessionVersion: timelineInt(done.SessionVersion), StageState: timelineState("in_progress")})
+	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "terminal", ExpectedVersion: done.EventVersion, ExpectedSessionVersion: timelineInt(done.SessionVersion), StageState: timelineState("in_progress")})
 	requireTimelineCode(t, err, "stage_terminal")
 	restarted, err := Open(Options{StateDir: filepath.Dir(s.Dir())})
 	if err != nil {
@@ -183,7 +184,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	if err != nil || read.Content != string(content) {
 		t.Fatal("restart lost immutable data", err)
 	}
-	replay, err := restarted.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
+	replay, err := restarted.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{Actor: actor, DocumentKey: "plan", ExpectedSessionVersion: doc.SessionVersion, SchemaVersion: 2, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
 	if err != nil || replay.DocumentRevisionID != snapshot.DocumentRevisionID {
 		t.Fatal("snapshot replay before stale validation", err)
 	}
@@ -349,6 +350,7 @@ func TestTimelineRuntimeCapacityKeepsLifecycleAndDeletionAvailable(t *testing.T)
 	s, request := newTimelineFixture(t)
 	v := createTimeline(t, s, request)
 	id := v.ViewerSessionID
+	actor := timelineTestActor(s, id)
 	// Distinct valid receipts fill only content capacity, preserving terminal space.
 	s.mu.Lock()
 	r := timelineClone(s.timeline[id])
@@ -364,9 +366,9 @@ func TestTimelineRuntimeCapacityKeepsLifecycleAndDeletionAvailable(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "content-full", Kind: "request", Title: "Too much", Summary: "Bounded", TicketRefs: []TimelineTicketRef{}})
+	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "content-full", Kind: "request", Title: "Too much", Summary: "Bounded", TicketRefs: []TimelineTicketRef{}})
 	requireTimelineCode(t, err, "capacity")
-	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "close-full", Kind: "closure", Title: "Finished", Summary: "Done", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Complete"}})
+	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "close-full", Kind: "closure", Title: "Finished", Summary: "Done", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Complete"}})
 	if err != nil {
 		t.Fatal("reserved closure capacity", err)
 	}
@@ -686,7 +688,8 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 	s, request := newTimelineFixture(t)
 	initial := createTimeline(t, s, request)
 	id := initial.ViewerSessionID
-	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "finish-first-work", Kind: "closure", Title: "First work completed", Summary: "Delivered", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "First delivery complete"}})
+	actor := timelineTestActor(s, id)
+	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "finish-first-work", Kind: "closure", Title: "First work completed", Summary: "Delivered", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "First delivery complete"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -704,19 +707,19 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 	if resumed.Session.ViewerSessionID != id || resumed.Session.State != TimelineClosed || *resumed.Created || resumed.Session.Title != initial.Title {
 		t.Fatal("get/create silently reopened or replaced conversation")
 	}
-	next := TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "new-work-before-reopen", Kind: "request", Title: "Next work", Summary: "Explicit new user request", TicketRefs: []TimelineTicketRef{}}
+	next := TimelineAppendEventRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "new-work-before-reopen", Kind: "request", Title: "Next work", Summary: "Explicit new user request", TicketRefs: []TimelineTicketRef{}}
 	if _, err = s.TimelineAppend(id, next); err == nil {
 		t.Fatal("append silently reopened closed session")
 	} else {
 		requireTimelineCode(t, err, "session_closed")
 	}
 	active := TimelineActive
-	if _, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "stale-reopen", ExpectedVersion: initial.Version, State: &active}); err == nil {
+	if _, err = s.TimelinePatch(id, TimelineSessionPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "stale-reopen", ExpectedVersion: initial.Version, State: &active}); err == nil {
 		t.Fatal("stale reopen accepted")
 	} else {
 		requireTimelineCode(t, err, "version_conflict")
 	}
-	reopened, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "explicit-reopen", ExpectedVersion: closure.SessionVersion, State: &active})
+	reopened, err := s.TimelinePatch(id, TimelineSessionPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "explicit-reopen", ExpectedVersion: closure.SessionVersion, State: &active})
 	if err != nil {
 		t.Fatal("explicit versioned reopen rejected", err)
 	}
@@ -728,7 +731,7 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 		t.Fatal("reopen did not survive restart", err)
 	}
 	current, err := s.TimelineGet(id)
-	if err != nil || current.State != TimelineActive || len(current.Events) != 1 {
+	if err != nil || current.State != TimelineActive || len(current.Events) != 3 {
 		t.Fatal("reopened conversation lost history", err)
 	}
 	if current.Events[0].EventID != history.EventID || current.Events[0].Sequence != history.Sequence || current.Events[0].CreatedAt != history.CreatedAt || current.Events[0].Closure.Result != history.Closure.Result {
@@ -736,14 +739,14 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 	}
 	next.OperationID = "new-work-after-reopen"
 	appended, err := s.TimelineAppend(id, next)
-	if err != nil || appended.Sequence != history.Sequence+1 {
+	if err != nil || appended.Sequence != int64(len(current.Events)+1) {
 		t.Fatal("new work did not extend existing timeline", err)
 	}
 	_, err = s.TimelineDelete(id, TimelineMutationRequest{Actor: TimelineActor{Kind: "local_viewer"}, SchemaVersion: 2, OperationID: "delete-conversation", ExpectedVersion: appended.SessionVersion})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "reopen-deleted", ExpectedVersion: appended.SessionVersion, State: &active})
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{Actor: actor, Reason: "Explicit test action", SchemaVersion: 2, OperationID: "reopen-deleted", ExpectedVersion: appended.SessionVersion, State: &active})
 	requireTimelineCode(t, err, "session_deleted")
 	request.OperationID = "recreate-deleted"
 	_, err = s.TimelineCreate(request)

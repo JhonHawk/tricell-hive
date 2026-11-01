@@ -488,9 +488,18 @@ export function useTimelinePanel({
               </figcaption>
             </figure>
           ) : (
-            <p key={ref.artifact_id} className="text-sm">
-              {ref.caption} · {t.unavailable}
-            </p>
+            <div
+              key={ref.artifact_id}
+              role="status"
+              className="flex flex-col gap-2"
+            >
+              <p className="text-sm">
+                {ref.caption} · {t.unavailable}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t.assetUnavailableSnapshot}
+              </p>
+            </div>
           );
         })}
       </div>

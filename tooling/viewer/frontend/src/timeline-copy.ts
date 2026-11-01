@@ -149,6 +149,8 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         close: "Cerrar",
         captures: "Capturas",
         unavailable: "Captura no disponible",
+        assetUnavailableSnapshot:
+          "Esta lectura no incluye acceso a la imagen. Cierra el detalle y actualiza el trabajo para comprobar si ya está disponible.",
         imageFailed: "No se pudo cargar la captura",
         previous: "Captura anterior",
         next: "Captura siguiente",
@@ -342,6 +344,8 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         close: "Close",
         captures: "Captures",
         unavailable: "Capture unavailable",
+        assetUnavailableSnapshot:
+          "This snapshot does not include image access. Close the detail and refresh the work to check whether it is available.",
         imageFailed: "Could not load capture",
         previous: "Previous capture",
         next: "Next capture",

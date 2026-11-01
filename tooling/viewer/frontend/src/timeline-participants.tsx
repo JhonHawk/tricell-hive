@@ -89,6 +89,8 @@ export function TimelineParticipants({
           render={
             <Button
               ref={trigger as React.Ref<HTMLButtonElement>}
+              aria-label={`${t.sessions}: ${session.producers.length}`}
+              title={`${t.sessions}: ${session.producers.length}`}
               type="button"
               variant="outline"
               size="sm"
@@ -96,7 +98,7 @@ export function TimelineParticipants({
           }
         >
           <Users aria-hidden />
-          {t.sessions}: {session.producers.length}
+          {session.producers.length}
         </PopoverTrigger>
         <PopoverContent align="end">
           <PopoverTitle>{t.sessions}</PopoverTitle>

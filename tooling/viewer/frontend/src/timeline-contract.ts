@@ -1835,10 +1835,7 @@ export function validateTimelineSessionPatch(
   );
   if (s.version !== r.expected_version)
     fail("expected_version", "version_conflict");
-  if (
-    (r.state === "closed" || r.state === "paused") &&
-    s.current_stage_event_id !== null
-  )
+  if (r.state === "closed" && s.current_stage_event_id !== null)
     fail("current_stage_event_id", "stage_active");
 }
 export function validateTimelineEventWithdrawal(

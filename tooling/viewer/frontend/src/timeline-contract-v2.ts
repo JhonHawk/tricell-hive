@@ -1110,6 +1110,30 @@ export function validateTimelineTaskReference(
   )
     fail("task_id", "unknown_task_segment");
 }
+// Stored evidence keeps its original occurrence after rebinding or retirement.
+// New mutation inputs still require the current binding above.
+function validateTimelineHistoricalTaskReference(
+  s: TimelineSession,
+  taskID: string | undefined,
+  segmentID: string | undefined,
+  stageID: string | undefined,
+): void {
+  if (!taskID && !segmentID) return;
+  const task = s.tasks.find((t) => t.task_id === taskID);
+  const segment = task?.segments.find((seg) => seg.segment_id === segmentID);
+  if (
+    segment &&
+    s.events.some(
+      (e) =>
+        e.event_id === stageID &&
+        e.kind === "stage" &&
+        e.stage === segment.planned_stage,
+    )
+  )
+    return;
+  fail("task_id", "unknown_task_segment");
+}
+
 export function aggregateTimelineCIWait(
   policy: TimelineCheckPolicy,
   applicable: Record<string, string>,
@@ -1142,6 +1166,13 @@ export function aggregateTimelineCIWait(
         ? "waiting"
         : "succeeded";
 }
+export function sameTimelineExternalRunIdentity(
+  a: TimelineCIExternalRun,
+  b: TimelineCIExternalRun,
+): boolean {
+  return a.commit === b.commit && a.run_id === b.run_id;
+}
+
 export function validateTimelineCIWait(w: TimelineCIWait): void {
   if (w.next_action !== undefined)
     text(w.next_action, "next_action", TIMELINE_V2_LIMITS.waitText);
@@ -1172,6 +1203,12 @@ export function validateTimelineCIWait(w: TimelineCIWait): void {
         fail("check_key", "unknown_or_duplicate");
       seen.add(k);
     }
+    if (
+      [...attempts.values()].some((old) =>
+        sameTimelineExternalRunIdentity(old.external_run, a.external_run),
+      )
+    )
+      fail("external_run", "attempt_already_known");
     run(a.external_run);
     url(a.source_url, "source_url");
     time(a.observed_at, "observed_at");
@@ -1390,11 +1427,21 @@ export function validateTimelineV2Graph(s: TimelineSession): void {
       )
         fail("stage_event_id", "invalid_stage_reference");
     }
-    validateTimelineTaskReference(s, e.task_id, e.segment_id, e.stage_event_id);
+    validateTimelineHistoricalTaskReference(
+      s,
+      e.task_id,
+      e.segment_id,
+      e.stage_event_id,
+    );
   }
   for (const e of s.events)
     for (const r of e.document_snapshots ?? [])
-      validateTimelineTaskReference(s, r.task_id, r.segment_id, e.event_id);
+      validateTimelineHistoricalTaskReference(
+        s,
+        r.task_id,
+        r.segment_id,
+        e.event_id,
+      );
   const waits = new Set<string>();
   for (const w of s.waits) {
     id(w.wait_id, "wait_id");
@@ -1405,7 +1452,12 @@ export function validateTimelineV2Graph(s: TimelineSession): void {
     number(w.wait_version, "wait_version");
     if (stagesMap.get(w.stage_event_id)?.stage !== "delivery")
       fail("stage_event_id", "delivery_required");
-    validateTimelineTaskReference(s, w.task_id, w.segment_id, w.stage_event_id);
+    validateTimelineHistoricalTaskReference(
+      s,
+      w.task_id,
+      w.segment_id,
+      w.stage_event_id,
+    );
     for (const a of w.attempts) acceptedActor(a.actor);
     for (const o of w.observations) acceptedActor(o.actor);
     validateTimelineCIWait(w);
@@ -1599,11 +1651,8 @@ export function validateTimelineV2OperationReferences(
       if (!w.policy.required_checks.some((c) => c.check_key === k))
         fail("check_key", "unknown_check");
     if (
-      w.attempts.some(
-        (a) =>
-          a.external_run.commit === req.external_run.commit &&
-          a.external_run.run_id === req.external_run.run_id &&
-          a.external_run.url === req.external_run.url,
+      w.attempts.some((a) =>
+        sameTimelineExternalRunIdentity(a.external_run, req.external_run),
       )
     )
       fail("external_run", "attempt_already_known");
@@ -1635,6 +1684,14 @@ export function validateTimelineEventCapacity(
   )
     fail("events", "limit");
 }
+// The final candidate must retain room for closure and its immutable audit.
+export function validateTimelineClosureReserve(s: TimelineSession): void {
+  if (s.state === "closed") return;
+  const required =
+    2 + (s.current_stage_event_id !== null || s.state === "failed" ? 1 : 0);
+  if (s.events.length + required > 508) fail("events", "limit");
+}
+
 export function resolveTimelineStageEventID(
   s: TimelineSession,
   r: TimelineAppendEventRequest,

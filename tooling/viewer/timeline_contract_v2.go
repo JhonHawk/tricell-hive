@@ -757,6 +757,31 @@ func ValidateTimelineTaskReference(s TimelineSession, taskID, segmentID, stageID
 	return timelineError("task_id", "unknown_task_segment")
 }
 
+// Historical evidence remains attributed to its actual occurrence when a
+// segment is explicitly rebound or withdrawn. Input validation stays strict
+// against the segment's current binding through ValidateTimelineTaskReference.
+func validateTimelineHistoricalTaskReference(s TimelineSession, taskID, segmentID, stageID string) error {
+	if taskID == "" && segmentID == "" {
+		return nil
+	}
+	for _, task := range s.Tasks {
+		if task.TaskID != taskID {
+			continue
+		}
+		for _, segment := range task.Segments {
+			if segment.SegmentID != segmentID {
+				continue
+			}
+			for _, stage := range s.Events {
+				if stage.EventID == stageID && stage.Kind == "stage" && stage.Stage == segment.PlannedStage {
+					return nil
+				}
+			}
+		}
+	}
+	return timelineError("task_id", "unknown_task_segment")
+}
+
 // ValidateTimelineV2Graph checks structure and server-owned membership. Before
 // trusting restored authority, follow ValidateTimelineResolvedProject load rules.
 func ValidateTimelineV2Graph(s TimelineSession) error {
@@ -950,13 +975,13 @@ func ValidateTimelineV2Graph(s TimelineSession) error {
 				return timelineError("stage_event_id", "invalid_stage_reference")
 			}
 		}
-		if err := ValidateTimelineTaskReference(s, e.TaskID, e.SegmentID, e.StageEventID); err != nil {
+		if err := validateTimelineHistoricalTaskReference(s, e.TaskID, e.SegmentID, e.StageEventID); err != nil {
 			return err
 		}
 	}
 	for _, e := range s.Events {
 		for _, r := range e.DocumentSnapshots {
-			if err := ValidateTimelineTaskReference(s, r.TaskID, r.SegmentID, e.EventID); err != nil {
+			if err := validateTimelineHistoricalTaskReference(s, r.TaskID, r.SegmentID, e.EventID); err != nil {
 				return err
 			}
 		}
@@ -979,7 +1004,7 @@ func ValidateTimelineV2Graph(s TimelineSession) error {
 		if e, ok := stages[w.StageEventID]; !ok || e.Stage != "delivery" {
 			return timelineError("stage_event_id", "delivery_required")
 		}
-		if err := ValidateTimelineTaskReference(s, w.TaskID, w.SegmentID, w.StageEventID); err != nil {
+		if err := validateTimelineHistoricalTaskReference(s, w.TaskID, w.SegmentID, w.StageEventID); err != nil {
 			return err
 		}
 		for _, a := range w.Attempts {
@@ -1019,11 +1044,17 @@ func ValidateTimelineCIWait(w TimelineCIWait) error {
 		required[c.CheckKey] = true
 	}
 	attempts := map[string]TimelineCIAttempt{}
+	knownRuns := map[timelineExternalRunIdentity]bool{}
 	var gen int64
 	for _, a := range w.Attempts {
 		if a.ExternalRun.Commit != w.Candidate.Commit {
 			return timelineError("commit", "candidate_mismatch")
 		}
+		identity := timelineExternalRunIdentity{Commit: a.ExternalRun.Commit, RunID: a.ExternalRun.RunID}
+		if knownRuns[identity] {
+			return timelineError("external_run", "attempt_already_known")
+		}
+		knownRuns[identity] = true
 		if err := timelineID(a.AttemptID, "attempt_id"); err != nil {
 			return err
 		}
@@ -1599,7 +1630,7 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 			}
 		}
 		for _, a := range w.Attempts {
-			if a.ExternalRun == r.ExternalRun {
+			if SameTimelineExternalRunIdentity(a.ExternalRun, r.ExternalRun) {
 				return timelineError("external_run", "attempt_already_known")
 			}
 		}
@@ -1648,6 +1679,34 @@ func timelineFindWait(s TimelineSession, id string) (TimelineCIWait, bool) {
 		}
 	}
 	return TimelineCIWait{}, false
+}
+
+type timelineExternalRunIdentity struct {
+	Commit string
+	RunID  string
+}
+
+// SameTimelineExternalRunIdentity uses immutable wait candidate/policy context.
+// The URL records display/provenance; changing it never allocates a new run.
+func SameTimelineExternalRunIdentity(a, b TimelineCIExternalRun) bool {
+	return a.Commit == b.Commit && a.RunID == b.RunID
+}
+
+// ValidateTimelineClosureReserve keeps two slots for closure plus its audit.
+// A foreground first needs one audited completion/pause; failed work first
+// needs an explicit audited reopen. Already closed work needs no future close.
+func ValidateTimelineClosureReserve(s TimelineSession) error {
+	if s.State == TimelineClosed {
+		return nil
+	}
+	required := 2
+	if s.CurrentStageEventID != nil || s.State == TimelineFailed {
+		required++
+	}
+	if len(s.Events)+required > TimelineMaxEvents {
+		return timelineError("events", "limit")
+	}
+	return nil
 }
 
 // Content mutations use the first 500 event slots; eight remaining slots are

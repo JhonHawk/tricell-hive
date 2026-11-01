@@ -2056,7 +2056,7 @@ func ValidateTimelineSessionPatch(s TimelineSession, r TimelineSessionPatchReque
 	if r.ExpectedVersion != s.Version {
 		return timelineError("expected_version", "version_conflict")
 	}
-	if r.State != nil && (*r.State == TimelineClosed || *r.State == TimelinePaused) && s.CurrentStageEventID != nil {
+	if r.State != nil && *r.State == TimelineClosed && s.CurrentStageEventID != nil {
 		return timelineError("current_stage_event_id", "stage_active")
 	}
 	return nil

@@ -5,6 +5,7 @@ import { ViewerShell } from "../shell";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
 import { TimelineHeader } from "../timeline-header";
+import { completeFixture } from "./timeline-complete-fixture";
 import { loadPreviewDocument } from "./timeline-documents-fixture";
 import { timelineFixture } from "./timeline-fixture";
 import { workFixture } from "./timeline-work-fixture";
@@ -14,11 +15,14 @@ export function TimelineDevelopmentPreview() {
   const scenario = query.get("state");
   const dark = query.get("theme") !== "light";
   const [data, setData] = useState<TimelineSessionResponse>(() => {
-    const fixture = ["cam", "volume", "future", "recovery-conflict"].includes(
-      scenario ?? "",
-    )
-      ? workFixture(scenario ?? "cam")
-      : structuredClone(timelineFixture);
+    const fixture =
+      scenario === "complete"
+        ? completeFixture()
+        : ["cam", "volume", "future", "recovery-conflict"].includes(
+              scenario ?? "",
+            )
+          ? workFixture(scenario ?? "cam")
+          : structuredClone(timelineFixture);
     if (scenario === "chains") {
       const stage = fixture.session.events.find(
         (e) => e.event_id === "event_plan_r3",

@@ -82,6 +82,58 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_access",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "c6578f8ea793266b5ca937441c500217f604f27bcc663b61cc7c02069e3501b0",
+    size: 458,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_build",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "56d615fc8d57ae7d27a8794dd7b4b2dd0f8931560afc1a1401aff1c3fb1e7cc7",
+    size: 698,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_verify",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "e45c4ba377c46a71d0e510e8772adabf2cea2e273e6394ac6def39f52e8c6cf4",
+    size: 459,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_delivery",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "188ce705c53f4af9bafed25e1c394664baeb4b7c97d257bd79f48f0b54e83a19",
+    size: 467,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
 ];
 const content: Record<string, string> = {
   document_proposal:
@@ -96,6 +148,14 @@ const content: Record<string, string> = {
     "# Plan · revisión R2\n\nRevisión anterior retenida para comparar las pestañas. Esta versión todavía no incluía el detalle completo de tareas y CI.\n",
   document_research:
     "# Investigación\n\n## Hallazgos\n\n- Los eventos asociados a etapas necesitan una jerarquía explícita.\n- Las lecturas largas requieren espacio y pestañas desplazables.\n- Cada productor conserva su identidad real.\n",
+  document_access:
+    "# Acceso al entorno de validación\n\nLa tarea T2 espera una cuenta de prueba del entorno compartido.\n\n## Desbloqueo\n\n1. Solicitar acceso al equipo del entorno.\n2. Guardar la credencial en la ubicación segura declarada por el proyecto.\n3. Ejecutar la prueba de conexión y registrar el resultado.\n\n**Responsable:** equipo del entorno.\n\n**Reanudar cuando:** la conexión termine correctamente con permisos de lectura.\n\nNo se publican credenciales en el visor.\n",
+  document_build:
+    "# Implementación de perfil y conversaciones\n\n## Trabajo realizado\n\n- Contrato de consultas y permisos preparado.\n- Perfil con campos separados y navegación accesible.\n- Filtro de conversaciones corregido en móvil.\n\n| Tarea | Resultado | Evidencia |\n| --- | --- | --- |\n| T1 | Contrato finalizado | Documento tipado |\n| T2 | Bloqueada por acceso | Pasos de desbloqueo y capturas |\n| T3 | Espera revisión de la corrección | Galería anterior y actual |\n| T4 | Validación local en curso | Captura aún inaccesible |\n| T5 | No iniciada | Sin adjuntos todavía |\n| T6 | Pruebas finalizadas | Resultado de verificación |\n\n```text\nprofile → fields → permissions\nchat → search → filters\n```\n",
+  document_verify:
+    "# Resultado de verificación\n\n## Evidencia revisada\n\n| Comprobación | Resultado | Alcance |\n| --- | --- | --- |\n| Contratos | Correcto | Datos y referencias de este candidato |\n| Teclado | Correcto | Navegación y retorno desde el lector |\n| Capturas | Revisadas | Escritorio y móvil, claro y oscuro |\n\nEl tramo de Verificación de T7 está finalizado. Su tramo de Entrega permanece en curso. Las tareas de seguimiento conservan sus estados independientes.\n",
+  document_delivery:
+    "# Entrega del candidato\n\n## Candidato actual\n\n- Rama: fix/profile-chat\n- Commit: preview-r2\n- [Pull request de demostración](https://example.test/pull/42)\n\n## CI\n\nLos checks requeridos están confirmados para este candidato. El intento actual terminó Contratos y sigue esperando Pruebas y Build. Los fallos, cancelaciones y resultados atrasados anteriores se conservan en Intentos.\n\nChecks verdes no equivalen a integración, aceptación ni autorización de merge.\n",
 };
 export async function loadPreviewDocument(
   documentID: string,

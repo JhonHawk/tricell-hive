@@ -287,11 +287,12 @@ export function TimelineHeader({
                     variant="outline"
                     size="sm"
                     aria-label={`${t.tickets}: ${session.tickets.length}`}
+                    title={`${t.tickets}: ${session.tickets.length}`}
                   />
                 }
               >
                 <Tickets aria-hidden />
-                {session.tickets.length} {t.tickets}
+                {session.tickets.length}
               </PopoverTrigger>
               <PopoverContent align="end">
                 <PopoverTitle>{t.tickets}</PopoverTitle>
@@ -337,11 +338,12 @@ export function TimelineHeader({
                     variant="outline"
                     size="sm"
                     aria-label={`${t.git}: ${deliveries.length}`}
+                    title={`${t.git}: ${deliveries.length}`}
                   />
                 }
               >
                 <GitPullRequest aria-hidden />
-                {deliveries.length} {t.git}
+                {deliveries.length}
               </PopoverTrigger>
               <PopoverContent align="end">
                 <PopoverTitle>{t.git}</PopoverTitle>

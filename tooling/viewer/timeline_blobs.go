@@ -56,7 +56,7 @@ func (s *Store) TimelineAddArtifact(id string, request TimelineArtifactMetadata,
 	if len(old.Receipts) >= TimelineContentReceipts {
 		return TimelineOperationResult{}, timelineFailure("capacity", 413)
 	}
-	if old.Session.State == TimelineClosed {
+	if old.Session.State == TimelineClosed || old.Session.State == "failed" {
 		return TimelineOperationResult{}, timelineFailure("session_closed", 409)
 	}
 	if err := ValidateTimelineAuthority(*old.Session, "artifact_add", request.Actor, ""); err != nil {
@@ -88,6 +88,9 @@ func (s *Store) TimelineAddArtifact(id string, request TimelineArtifactMetadata,
 		if err = s.timelineWriteBlob(id, "artifacts", aid+timelineImageExtension(request.MediaType), content); err != nil {
 			return TimelineOperationResult{}, err
 		}
+	}
+	if err = s.timelineAudit(r, "artifact_add", request.OperationID, aid, &request.Actor, nil, "Immutable content upload"); err != nil {
+		return TimelineOperationResult{}, err
 	}
 	if err = timelineBump(r.Session, s.timelineTime()); err != nil {
 		return TimelineOperationResult{}, err
@@ -146,6 +149,9 @@ func (s *Store) TimelineAddDocument(id string, request TimelineDocumentMetadata,
 		if err = s.timelineWriteBlob(id, "documents", did+".md", content); err != nil {
 			return TimelineOperationResult{}, err
 		}
+	}
+	if err = s.timelineAudit(r, "document_add", request.OperationID, did, &request.Actor, nil, "Immutable content upload"); err != nil {
+		return TimelineOperationResult{}, err
 	}
 	if err = timelineBump(r.Session, s.timelineTime()); err != nil {
 		return TimelineOperationResult{}, err
@@ -265,6 +271,9 @@ func (s *Store) TimelineDelete(id string, request TimelineMutationRequest) (Time
 	if old.Session == nil {
 		return TimelineOperationResult{}, timelineFailure("session_deleted", 410)
 	}
+	if err = ValidateTimelineAuthority(*old.Session, "session_delete", request.Actor, ""); err != nil {
+		return TimelineOperationResult{}, err
+	}
 	if old.Session.Version != request.ExpectedVersion {
 		return TimelineOperationResult{}, timelineFailure("version_conflict", 409)
 	}
@@ -276,10 +285,17 @@ func (s *Store) TimelineDelete(id string, request TimelineMutationRequest) (Time
 	if result.SessionVersion < TimelineMaxNumber {
 		result.SessionVersion++
 	}
+	if err = s.timelineAudit(r, "session_delete", request.OperationID, id, &request.Actor, nil, "Confirmed local viewer deletion"); err != nil {
+		return TimelineOperationResult{}, err
+	}
 	r.DeletePending = true
 	r.DeleteOperation = request.OperationID
 	r.DeleteDigest = digest
 	r.DeleteResult = &result
+	// The durable pending marker needs no content to identify its blob namespace.
+	// Drop the public payload before persistence so deletion remains available
+	// at content capacity and interrupted cleanup cannot expose deleted content.
+	r.Session = nil
 	if err = s.timelineSave(r); err != nil {
 		return TimelineOperationResult{}, err
 	}

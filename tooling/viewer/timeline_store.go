@@ -32,6 +32,7 @@ func timelineFailure(code string, status int) error {
 }
 
 type timelineRecord struct {
+	Audit           []timelinePrivateAudit     `json:"audit,omitempty"`
 	StorageVersion  int                        `json:"storage_version"`
 	ID              string                     `json:"id"`
 	Source          TimelineSource             `json:"source"`
@@ -257,6 +258,9 @@ func (s *Store) timelineLoad() error {
 		if r.Session == nil && r.DeleteResult == nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
+		if err = validateTimelinePrivateAudit(&r); err != nil {
+			return err
+		}
 		s.timeline[id] = &r
 	}
 	// Resolve against the complete set, so durable aliases remain available
@@ -445,6 +449,9 @@ func (s *Store) timelineGetLocked(id string) (*timelineRecord, error) {
 	return r, nil
 }
 func (s *Store) timelineSave(r *timelineRecord) error {
+	if err := validateTimelinePrivateAudit(r); err != nil {
+		return err
+	}
 	if r.Session != nil {
 		if err := ValidateTimelineSession(*r.Session); err != nil {
 			return err
@@ -468,9 +475,29 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	return nil
 }
 func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op, digest string, result TimelineOperationResult, terminal bool) (TimelineOperationResult, error) {
-	lifecycle := terminal || kind == "session_patch" || kind == "event_patch" || kind == "event_withdraw"
-	if kind == "append_event" && r.Session != nil && len(r.Session.Events) > 0 && r.Session.Events[len(r.Session.Events)-1].Kind == "closure" {
-		lifecycle = true
+	if r.Session != nil {
+		if err := ValidateTimelineClosureReserve(*r.Session); err != nil {
+			return result, err
+		}
+	}
+	lifecycle := terminal || contains([]string{"session_patch", "event_patch", "event_withdraw", "producer_accept", "foreground_transfer", "recover_lead", "task_transition"}, string(kind))
+	if kind == "append_event" && r.Session != nil {
+		for _, event := range r.Session.Events {
+			if event.EventID == result.EventID && (event.Kind == "closure" || event.Kind == "stage") {
+				lifecycle = true
+			}
+		}
+	}
+	if !terminal && r.Session != nil && r.Session.State != TimelineClosed {
+		// Preserve the operation receipts needed to release foreground/reopen,
+		// then close. Exact retries replay their existing receipt before this path.
+		required := 1
+		if r.Session.CurrentStageEventID != nil || r.Session.State == TimelineFailed {
+			required++
+		}
+		if len(r.Receipts)+1+required > TimelineMaxReceipts {
+			return result, timelineFailure("capacity", 413)
+		}
 	}
 	if !terminal {
 		limit := TimelineContentReceipts
@@ -495,6 +522,18 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 		return result, err
 	}
 	r.Receipts = append(r.Receipts, TimelineOperationReceipt{OperationID: op, RequestSHA256: digest, CompletedAt: s.timelineTime(), Result: result})
+	if !lifecycle {
+		raw, err := json.Marshal(r)
+		if err != nil {
+			return result, err
+		}
+		if len(raw) > timelineMaxRecordBytes-(TimelineMaxBody-TimelineContentBudget) {
+			return result, timelineFailure("capacity", 413)
+		}
+	}
+	if err := validateTimelineSerializedClosureReserve(r); err != nil {
+		return result, err
+	}
 	return result, s.timelineSave(r)
 }
 func timelineResult(r *timelineRecord, kind TimelineOperationKind, op string) TimelineOperationResult {
@@ -598,6 +637,16 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 			}
 			r.Roots = append(r.Roots, root)
 		}
+		actor := TimelineActor{Kind: "native_producer", ProducerID: r.Session.ForegroundProducerID}
+		for _, producer := range r.Session.Producers {
+			if timelineNativeSourceIdentity(producer.Source) == timelineNativeSourceIdentity(request.Source) {
+				actor.ProducerID = producer.ProducerID
+				break
+			}
+		}
+		if err = s.timelineAudit(r, "create_session", request.OperationID, id, &actor, nil, "Resolved original work tuple"); err != nil {
+			return TimelineSessionResponse{}, err
+		}
 		created := false
 		result = timelineResult(r, "create_session", request.OperationID)
 		result.Created = &created
@@ -621,6 +670,9 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 		return TimelineSessionResponse{}, err
 	}
 	r := &timelineRecord{StorageVersion: 2, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: timelineSourceRoots(root, request.Source.ProjectRoot), Session: &v, Receipts: []TimelineOperationReceipt{}}
+	if err = s.timelineAudit(r, "create_session", request.OperationID, id, &TimelineActor{Kind: "native_producer", ProducerID: producer}, nil, "Created work from actual source"); err != nil {
+		return TimelineSessionResponse{}, err
+	}
 	yes := true
 	result := timelineResult(r, "create_session", request.OperationID)
 	result.Created = &yes
@@ -685,11 +737,18 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 	if err = ValidateTimelineSessionPatch(*old.Session, request); err != nil {
 		return TimelineOperationResult{}, err
 	}
+	if request.Actor.Kind == "native_producer" && (old.Session.State == TimelineClosed || old.Session.State == "failed") && (request.State == nil || *request.State != TimelineActive) {
+		return TimelineOperationResult{}, timelineFailure("session_closed", 409)
+	}
 	r := timelineClone(old)
 	v := r.Session
 	now := s.timelineTime()
 	if request.Title != nil {
-		v.Title = *request.Title
+		title, titleErr := validateSessionTitle(*request.Title)
+		if titleErr != nil || title == "" {
+			return TimelineOperationResult{}, timelineFailure("invalid_title", 400)
+		}
+		v.Title = title
 	}
 	if request.Summary != nil {
 		v.Summary = *request.Summary
@@ -714,10 +773,16 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 		}
 		v.Tickets = *request.Tickets
 	}
-	if request.State != nil {
-		v.State = *request.State
-		if v.State == TimelineAwaitingValidation {
-			timelinePauseForeground(v, "", now)
+	if err = s.timelinePatchState(v, request); err != nil {
+		return TimelineOperationResult{}, err
+	}
+	if request.Actor.Kind == "local_viewer" {
+		if err = s.timelineLocalAudit(v, request, *old.Session); err != nil {
+			return TimelineOperationResult{}, err
+		}
+	} else if request.State == nil {
+		if err = s.timelineAudit(r, "session_patch", request.OperationID, id, &request.Actor, nil, request.Reason); err != nil {
+			return TimelineOperationResult{}, err
 		}
 	}
 	if err = timelineBump(v, now); err != nil {
@@ -745,18 +810,28 @@ func (s *Store) TimelineAppend(id string, request TimelineAppendEventRequest) (T
 	}
 	r := timelineClone(old)
 	v := r.Session
-	if len(v.Events) >= TimelineMaxEvents {
-		return TimelineOperationResult{}, timelineFailure("capacity", 413)
+	associated, err := ResolveTimelineStageEventID(*v, request)
+	if err != nil {
+		return TimelineOperationResult{}, err
+	}
+	lifecycle := request.Kind == "stage" || request.Kind == "closure"
+	if err = ValidateTimelineEventCapacity(len(v.Events), 1, lifecycle); err != nil {
+		return TimelineOperationResult{}, err
+	}
+	if request.Kind == "stage" {
+		if err = s.timelineSuspendOther(v, "", request.Actor, request.Reason); err != nil {
+			return TimelineOperationResult{}, err
+		}
 	}
 	eid, err := timelineRandomID("event-")
 	if err != nil {
 		return TimelineOperationResult{}, err
 	}
 	now := s.timelineTime()
-	event := TimelineEvent{EventID: eid, Sequence: int64(len(v.Events) + 1), Version: 1, Kind: request.Kind, Title: request.Title, Summary: request.Summary, CreatedAt: now, UpdatedAt: now, Origin: "agent_reported", TicketRefs: request.TicketRefs, Candidate: request.Candidate, RelatedEventID: request.RelatedEventID, Target: request.Target, SourceReference: request.SourceReference, Deliveries: request.Deliveries, Closure: request.Closure, Stage: request.Stage, StageState: request.StageState, OccurredAt: request.OccurredAt}
+	event := TimelineEvent{Actor: request.Actor, StageEventID: associated, TaskID: request.TaskID, SegmentID: request.SegmentID, Reason: request.Reason, ReviewStatus: request.ReviewStatus, EventID: eid, Sequence: int64(len(v.Events) + 1), Version: 1, Kind: request.Kind, Title: request.Title, Summary: request.Summary, CreatedAt: now, UpdatedAt: now, Origin: "agent_reported", TicketRefs: request.TicketRefs, Candidate: request.Candidate, RelatedEventID: request.RelatedEventID, Target: request.Target, SourceReference: request.SourceReference, Deliveries: request.Deliveries, Closure: request.Closure, Stage: request.Stage, StageState: request.StageState, OccurredAt: request.OccurredAt}
 	if event.Kind == "stage" {
-		timelinePauseForeground(v, eid, now)
 		v.State = TimelineActive
+		v.Reason = request.Reason
 		event.StartedAt = now
 		v.CurrentStageEventID = &event.EventID
 	}
@@ -789,8 +864,17 @@ func (s *Store) TimelineAppend(id string, request TimelineAppendEventRequest) (T
 	}
 	if event.Kind == "closure" {
 		v.State = TimelineClosed
+		v.Reason = request.Reason
 	}
 	v.Events = append(v.Events, event)
+	if request.Kind == "closure" {
+		if err = s.timelineAuditEvent(v, "state_transition", request.Actor, "", "", "", TimelineAudit{Operation: "closure", Reason: request.Reason, PreviousState: string(old.Session.State), NextState: string(v.State)}, true); err != nil {
+			return TimelineOperationResult{}, err
+		}
+	}
+	if err = timelineBumpTask(v, event.TaskID); err != nil {
+		return TimelineOperationResult{}, err
+	}
 	if err = timelineBump(v, now); err != nil {
 		return TimelineOperationResult{}, err
 	}
@@ -824,13 +908,18 @@ func (s *Store) TimelinePatchEvent(id, eid string, request TimelineEventPatchReq
 	if err = ValidateTimelineEventPatch(*old.Session, eid, request); err != nil {
 		return TimelineOperationResult{}, err
 	}
+	if request.StageState != nil && old.Session.State == TimelineFailed {
+		return TimelineOperationResult{}, timelineFailure("session_terminal", 409)
+	}
 	r := timelineClone(old)
 	v := r.Session
-	now := s.timelineTime()
 	for i := range v.Events {
 		e := &v.Events[i]
 		if e.EventID != eid {
 			continue
+		}
+		if e.Version >= TimelineMaxNumber {
+			return TimelineOperationResult{}, timelineFailure("capacity", 413)
 		}
 		if request.Title != nil {
 			e.Title = *request.Title
@@ -838,25 +927,41 @@ func (s *Store) TimelinePatchEvent(id, eid string, request TimelineEventPatchReq
 		if request.Summary != nil {
 			e.Summary = *request.Summary
 		}
-		if request.StageState != nil {
-			if *request.StageState == "in_progress" {
-				timelinePauseForeground(v, eid, now)
-				v.State = TimelineActive
-				v.CurrentStageEventID = &e.EventID
-				e.FinishedAt = ""
-			} else {
-				if v.CurrentStageEventID != nil && *v.CurrentStageEventID == eid {
-					v.CurrentStageEventID = nil
-				}
-				if *request.StageState == "completed" || *request.StageState == "failed" {
-					e.FinishedAt = now
+		before := old.Session.Events[i]
+		if request.StageState != nil && *request.StageState != before.StageState {
+			// Auditing may reallocate Events; preserve the copy edits before transitions.
+			if contains([]string{"in_progress", "in_review", "awaiting_validation"}, string(*request.StageState)) {
+				if err = s.timelineSuspendOther(v, eid, request.Actor, request.Reason); err != nil {
+					return TimelineOperationResult{}, err
 				}
 			}
-			e.StageState = *request.StageState
+			if err = s.timelineSetStage(v, eid, *request.StageState, request.Actor, request.Reason); err != nil {
+				return TimelineOperationResult{}, err
+			}
+			for j := range v.Events {
+				if v.Events[j].EventID == eid {
+					e = &v.Events[j]
+					break
+				}
+			}
 		}
-		e.Version++
-		e.UpdatedAt = now
-		if err = timelineBump(v, now); err != nil {
+		if !timelineSameEventCopy(before, *e) {
+			if err = timelineBumpTask(v, timelineRelatedTasks(*v, eid)...); err != nil {
+				return TimelineOperationResult{}, err
+			}
+			if request.StageState == nil {
+				if err = s.timelineAudit(r, "event_patch", request.OperationID, eid, &request.Actor, nil, request.Reason); err != nil {
+					return TimelineOperationResult{}, err
+				}
+			}
+		}
+		if !timelineSameEventCopy(before, *e) {
+			if request.StageState == nil || before.StageState == *request.StageState {
+				e.Version++
+			}
+			e.UpdatedAt = s.timelineTime()
+		}
+		if err = timelineBump(v, s.timelineTime()); err != nil {
 			return TimelineOperationResult{}, err
 		}
 		result := timelineResult(r, "event_patch", request.OperationID)
@@ -884,6 +989,9 @@ func (s *Store) TimelineWithdraw(id, eid string, request TimelineMutationRequest
 	if err = ValidateTimelineEventWithdrawal(*old.Session, eid, request); err != nil {
 		return TimelineOperationResult{}, err
 	}
+	if old.Session.CurrentStageEventID != nil && *old.Session.CurrentStageEventID == eid {
+		return TimelineOperationResult{}, timelineFailure("stage_active", 409)
+	}
 	r := timelineClone(old)
 	v := r.Session
 	now := s.timelineTime()
@@ -896,6 +1004,14 @@ func (s *Store) TimelineWithdraw(id, eid string, request TimelineMutationRequest
 			v.ValidationCount--
 		}
 		e.Withdrawn = true
+		if !old.Session.Events[i].Withdrawn {
+			if err = timelineBumpTask(v, timelineRelatedTasks(*v, eid)...); err != nil {
+				return TimelineOperationResult{}, err
+			}
+			if err = s.timelineAudit(r, "event_withdraw", request.OperationID, eid, &request.Actor, nil, "Explicit content withdrawal"); err != nil {
+				return TimelineOperationResult{}, err
+			}
+		}
 		e.Version++
 		e.UpdatedAt = now
 		if err = timelineBump(v, now); err != nil {
@@ -928,6 +1044,22 @@ func (s *Store) TimelineSnapshot(id, eid string, request TimelineDocumentSnapsho
 	if err = ValidateTimelineDocumentSnapshot(*old.Session, eid, request); err != nil {
 		return TimelineOperationResult{}, err
 	}
+	for _, event := range old.Session.Events {
+		if event.EventID != eid {
+			continue
+		}
+		for _, previous := range event.DocumentSnapshots {
+			if previous.DocumentRevisionID == request.PredecessorRevisionID && previous.DocumentKey == request.DocumentKey && previous.Status == request.Status && timelineEqual(previous.Tabs, request.Tabs) && previous.TaskID == request.TaskID && previous.SegmentID == request.SegmentID {
+				r := timelineClone(old)
+				result := timelineResult(r, "document_snapshot", request.OperationID)
+				result.EventID = eid
+				result.EventVersion = event.Version
+				result.Sequence = event.Sequence
+				result.DocumentRevisionID = previous.DocumentRevisionID
+				return s.timelineCommit(r, "document_snapshot", request.OperationID, digest, result, false)
+			}
+		}
+	}
 	r := timelineClone(old)
 	v := r.Session
 	rid, err := timelineRandomID("revision-")
@@ -940,7 +1072,13 @@ func (s *Store) TimelineSnapshot(id, eid string, request TimelineDocumentSnapsho
 		if e.EventID != eid {
 			continue
 		}
-		e.DocumentSnapshots = append(e.DocumentSnapshots, TimelineDocumentSnapshot{DocumentRevisionID: rid, Status: request.Status, CreatedAt: now, Tabs: request.Tabs})
+		if e.Version >= TimelineMaxNumber {
+			return TimelineOperationResult{}, timelineFailure("capacity", 413)
+		}
+		e.DocumentSnapshots = append(e.DocumentSnapshots, TimelineDocumentSnapshot{Actor: request.Actor, DocumentKey: request.DocumentKey, PredecessorRevisionID: request.PredecessorRevisionID, TaskID: request.TaskID, SegmentID: request.SegmentID, DocumentRevisionID: rid, Status: request.Status, CreatedAt: now, Tabs: request.Tabs})
+		if err = timelineBumpTask(v, append(timelineDocumentChainTasks(*v, request.DocumentKey), request.TaskID)...); err != nil {
+			return TimelineOperationResult{}, err
+		}
 		e.Version++
 		e.UpdatedAt = now
 		if err = timelineBump(v, now); err != nil {
