@@ -3,7 +3,7 @@ import { Plugin } from "@opencode/plugin"
 const snapshot = __HIVE_CONTEXT_SNAPSHOT_DATA__
 
 const resources = new Map([
-  ["hive-review-plan", "flow-plan/references/plan-review.md"],
+  ["hive-review-plan", "flow-plan/SKILL.md"],
   ["hive-review-harness", "harness-audit/SKILL.md"],
 ])
 

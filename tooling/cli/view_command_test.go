@@ -398,9 +398,12 @@ func TestViewStartFallsBackWhenTheHivePortIsBusy(t *testing.T) {
 	}
 }
 
-func TestViewStartTTLReachesHealthAndStore(t *testing.T) {
+func TestViewLegacyTTLIsIgnoredWithManualRetention(t *testing.T) {
 	f := newViewFixture(t)
-	f.mustView("start", "--ttl", "1h")
+	out := f.mustView("start", "--ttl", "1h")
+	if !strings.Contains(out, "deprecated and ignored") {
+		t.Fatal("missing TTL compatibility warning")
+	}
 	code, body := f.get("/api/health", true)
 	if code != http.StatusOK {
 		t.Fatalf("health = %d", code)
@@ -409,17 +412,17 @@ func TestViewStartTTLReachesHealthAndStore(t *testing.T) {
 	if err := json.Unmarshal(body, &h); err != nil {
 		t.Fatal(err)
 	}
-	if h["ttl"] != "1h0m0s" {
+	if h["ttl"] != "0s" {
 		t.Fatalf("health ttl = %v", h["ttl"])
 	}
-	if f.info().TTL != "1h0m0s" {
+	if f.info().TTL != "0s" {
 		t.Fatalf("server.json ttl = %q", f.info().TTL)
 	}
 	_, body = f.get("/api/index", true)
 	var v struct {
 		TTLSeconds int64 `json:"ttl_seconds"`
 	}
-	if err := json.Unmarshal(body, &v); err != nil || v.TTLSeconds != 3600 {
+	if err := json.Unmarshal(body, &v); err != nil || v.TTLSeconds != 0 {
 		t.Fatalf("index ttl_seconds = %d (%v)", v.TTLSeconds, err)
 	}
 	if _, err := f.view("start", "--ttl", "soon"); err == nil {
@@ -855,11 +858,11 @@ func TestViewIndexExtendedSessionPreferencesPreserveFingerprint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !viewHasSource(index, source) {
+	if !viewHasSource(index.View, source) {
 		t.Fatal("extended index lost source confirmation")
 	}
 	source.ContentHash = strings.Repeat("c", 64)
-	if viewHasSource(index, source) {
+	if viewHasSource(index.View, source) {
 		t.Fatal("preferences bypassed content revision confirmation")
 	}
 }

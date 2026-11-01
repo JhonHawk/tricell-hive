@@ -25,6 +25,12 @@ What is the real delivery state of the billing work? Check tickets, code and pul
 
 ## What it produces
 
+A substantive Research flow can publish its declared stage to a running local
+viewer before screenshots exist. If the viewer or native session identity is
+unavailable, the investigation continues and the agent reports the publication
+gap. The [publication skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md)
+owns the procedure.
+
 An answer in the conversation. It normally tells you:
 
 - what the agent concluded, and where it looked (file paths or links);

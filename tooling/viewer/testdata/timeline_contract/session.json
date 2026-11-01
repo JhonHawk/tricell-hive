@@ -1,0 +1,324 @@
+{"documents":[],"current_stage_event_id":null,
+  "schema_version": 1,
+  "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+  "project_key": "example.com/fixture/project",
+  "project_name": "CAM fixture",
+  "source": {
+    "project_root": "/fixture/project",
+    "host": "codex",
+    "native_session_id": "native-session-alpha"
+  },
+  "version": 7,
+  "title": "Profile and chat",
+  "summary": "Improve profile spacing and chat filters.",
+  "state": "active",
+  "archived": false,
+  "pinned": false,
+  "created_at": "2026-10-31T18:20:00-06:00",
+  "updated_at": "2026-10-31T18:26:00-06:00",
+  "validation_count": 2,
+  "tickets": [
+    {
+      "key": "COM-1",
+      "url": "https://example.com/issues/COM-1",
+      "title": "Profile spacing"
+    },
+    {
+      "key": "COM-2",
+      "url": "https://example.com/issues/COM-2",
+      "title": "Chat filters"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event_request",
+      "sequence": 1,
+      "version": 1,
+      "kind": "request",
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "created_at": "2026-10-31T18:21:00-06:00",
+      "updated_at": "2026-10-31T18:21:00-06:00",
+      "origin": "agent_reported",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ]
+    },
+    {
+      "event_id": "event_started",
+      "sequence": 2,
+      "version": 1,
+      "kind": "work_started",
+      "title": "Work started",
+      "summary": "Implement the approved scope.",
+      "created_at": "2026-10-31T18:22:00-06:00",
+      "updated_at": "2026-10-31T18:22:00-06:00",
+      "origin": "agent_reported",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ],
+      "candidate": {
+        "branch": "fix/profile-chat",
+        "commit": "working tree",
+        "base": "development"
+      }
+    },
+    {
+      "event_id": "event_validation",
+      "sequence": 3,
+      "version": 1,
+      "kind": "validation",
+      "title": "First validation",
+      "summary": "Profile and Chat can be reviewed.",
+      "created_at": "2026-10-31T18:23:00-06:00",
+      "updated_at": "2026-10-31T18:23:00-06:00",
+      "origin": "agent_reported",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ],
+      "candidate": {
+        "branch": "fix/profile-chat",
+        "commit": "working tree",
+        "base": "development"
+      },
+      "evidence_id": "evidence_initial",
+      "views": [
+        {
+          "title": "Profile",
+          "ticket_refs": [
+            {
+              "key": "COM-1",
+              "url": "https://example.com/issues/COM-1"
+            }
+          ],
+          "steps": [
+            "Open Conversations at 390px.",
+            "Activate a filter and close the panel."
+          ],
+          "expected_result": "The filter icon remains beside search.",
+          "image_refs": [
+            {
+              "artifact_id": "artifact_profile",
+              "caption": "1280px · light"
+            }
+          ],
+          "view_id": "view_profile"
+        },
+        {
+          "title": "Chat mobile",
+          "ticket_refs": [
+            {
+              "key": "COM-1",
+              "url": "https://example.com/issues/COM-1"
+            },
+            {
+              "key": "COM-2",
+              "url": "https://example.com/issues/COM-2"
+            }
+          ],
+          "steps": [
+            "Open Conversations at 390px.",
+            "Activate a filter and close the panel."
+          ],
+          "expected_result": "The filter icon remains beside search.",
+          "image_refs": [
+            {
+              "artifact_id": "artifact_chat",
+              "caption": "390px · dark",
+              "alt": "Chat search with compact filter"
+            }
+          ],
+          "view_id": "view_chat"
+        }
+      ]
+    },
+    {
+      "event_id": "event_iteration",
+      "sequence": 4,
+      "version": 1,
+      "kind": "iteration",
+      "title": "Compact mobile filter",
+      "summary": "Only Chat changed.",
+      "created_at": "2026-10-31T18:24:00-06:00",
+      "updated_at": "2026-10-31T18:24:00-06:00",
+      "origin": "agent_reported",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ],
+      "candidate": {
+        "branch": "fix/profile-chat",
+        "commit": "working tree",
+        "base": "development"
+      },
+      "evidence_id": "evidence_refined",
+      "views": [
+        {
+          "title": "Chat mobile",
+          "ticket_refs": [
+            {
+              "key": "COM-1",
+              "url": "https://example.com/issues/COM-1"
+            },
+            {
+              "key": "COM-2",
+              "url": "https://example.com/issues/COM-2"
+            }
+          ],
+          "steps": [
+            "Open Conversations at 390px.",
+            "Activate a filter and close the panel."
+          ],
+          "expected_result": "The filter icon remains beside search.",
+          "image_refs": [
+            {
+              "artifact_id": "artifact_chat_refined",
+              "caption": "390px · dark · refined"
+            }
+          ],
+          "view_id": "view_chat",
+          "supersedes": {
+            "event_id": "event_validation",
+            "evidence_id": "evidence_initial",
+            "view_id": "view_chat"
+          }
+        }
+      ]
+    },
+    {
+      "event_id": "event_approval",
+      "sequence": 5,
+      "version": 1,
+      "kind": "approval_reported",
+      "title": "Approval reported from chat",
+      "summary": "The user accepted the current Chat evidence.",
+      "created_at": "2026-10-31T18:25:00-06:00",
+      "updated_at": "2026-10-31T18:25:00-06:00",
+      "origin": "agent_reported",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ],
+      "target": {"kind":"evidence",
+        "event_id": "event_iteration",
+        "evidence_id": "evidence_refined",
+        "view_ids": [
+          "view_chat"
+        ]
+      },
+      "source_reference": "User accepted D2 A"
+    },
+    {
+      "event_id": "event_delivery",
+      "sequence": 6,
+      "version": 1,
+      "kind": "delivery",
+      "title": "PR opened",
+      "summary": "Integration is pending.",
+      "created_at": "2026-10-31T18:26:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "origin": "agent_reported",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ],
+      "deliveries": [
+        {
+          "kind": "pull_request",
+          "label": "PR 321",
+          "url": "https://example.com/pull/321",
+          "status": "open"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "artifact_profile",
+      "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "size": 1024,
+      "media_type": "image/png",
+      "received_at": "2026-10-31T18:29:30-06:00",
+      "captured_at": "2026-10-31T18:29:00-06:00",
+      "candidate": {
+        "branch": "fix/profile-chat",
+        "commit": "working tree",
+        "base": "development"
+      },
+      "viewport": "desktop",
+      "theme": "light"
+    },
+    {
+      "artifact_id": "artifact_chat",
+      "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "size": 1024,
+      "media_type": "image/png",
+      "received_at": "2026-10-31T18:29:30-06:00",
+      "captured_at": "2026-10-31T18:29:00-06:00",
+      "candidate": {
+        "branch": "fix/profile-chat",
+        "commit": "working tree",
+        "base": "development"
+      },
+      "viewport": "mobile",
+      "theme": "dark"
+    },
+    {
+      "artifact_id": "artifact_chat_refined",
+      "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "size": 1024,
+      "media_type": "image/png",
+      "received_at": "2026-10-31T18:29:30-06:00",
+      "captured_at": "2026-10-31T18:29:00-06:00",
+      "candidate": {
+        "branch": "fix/profile-chat",
+        "commit": "working tree",
+        "base": "development"
+      },
+      "viewport": "mobile",
+      "theme": "dark"
+    }
+  ]
+}

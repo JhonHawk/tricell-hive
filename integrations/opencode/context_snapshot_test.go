@@ -11,10 +11,9 @@ import (
 func TestContextLoaderSnapshotRendering(t *testing.T) {
 	template := []byte("const data = " + contextSnapshotMarker + ";\n")
 	files := map[string][]byte{
-		"content/skills/flow-plan/SKILL.md":                  []byte("# Owner\n"),
-		"content/skills/flow-plan/references/plan-review.md": []byte("\ufeff\"'` \\ 雪😀\r\n" + contextSnapshotMarker + "\n\u2028\x00"),
-		"content/skills/harness-audit/SKILL.md":              []byte("# Harness\n"),
-		"content/skills/unused/SKILL.md":                     []byte("Not a selected role"),
+		"content/skills/flow-plan/SKILL.md":     []byte("\ufeff\"'` \\ 雪😀\r\n" + contextSnapshotMarker + "\n\u2028\x00"),
+		"content/skills/harness-audit/SKILL.md": []byte("# Harness\n"),
+		"content/skills/unused/SKILL.md":        []byte("Not a selected role"),
 	}
 	script, metadata, err := RenderContextLoader(template, files)
 	if err != nil {
@@ -42,7 +41,7 @@ func TestContextLoaderSnapshotRendering(t *testing.T) {
 	}
 	wantReferences := []struct{ role, resource string }{
 		{"hive-review-harness", "harness-audit/SKILL.md"},
-		{"hive-review-plan", "flow-plan/references/plan-review.md"},
+		{"hive-review-plan", "flow-plan/SKILL.md"},
 	}
 	for i, mapping := range wantReferences {
 		ref := data.References[i]

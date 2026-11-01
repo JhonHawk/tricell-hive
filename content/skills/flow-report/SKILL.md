@@ -5,9 +5,9 @@ description: Create a visual HTML report, printable paper, comparison, explainer
 
 # Durable reports
 
-Before writing the support deliverable, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before the chat handoff or messages containing citations, links or externally defined IDs, read [reporting](../flow-close/references/reporting.md). Before asking a user decision, read [questions](../hive-core/references/questions.md).
+Before writing the support deliverable, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before the chat handoff or messages containing citations, links or externally defined IDs, read [final report](../flow-close/SKILL.md#final-report). Before asking a user decision, read the global guidance's «Questions and routes» section.
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record, created at the established workspace location when none exists yet, using the research procedure. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; the UI walkthrough page of `flow-walkthrough` is rendered by that skill, not from these assets. The Communication rules of the global guidance shape chat replies.
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in its Markdown work record, created at the established workspace location when none exists yet, using the research procedure. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication and the missing-binary standalone fallback belong to [flow-walkthrough](../flow-walkthrough/SKILL.md), not these report assets. The global guidance's «Questions and routes» section shapes chat replies.
 
 Choose the asset that matches what the reader receives:
 

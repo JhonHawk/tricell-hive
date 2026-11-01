@@ -106,8 +106,8 @@ func TestArchiveDoesNotChangeRetentionOrCopyDeletion(t *testing.T) {
 	}
 	s.advance(defaultTTL + time.Second)
 	purged, err := s.store.Purge()
-	if err != nil || len(purged) != 1 || purged[0] != s.key {
-		t.Fatalf("archived unpinned copy not purged: %v %v", purged, err)
+	if err != nil || len(purged) != 0 {
+		t.Fatalf("archived copy expired: %v %v", purged, err)
 	}
 	if !bytes.Equal(source, readFile(t, filepath.Join(s.folder, manifestFile))) {
 		t.Fatal("purge changed source")

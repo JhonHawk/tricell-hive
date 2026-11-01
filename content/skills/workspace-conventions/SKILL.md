@@ -9,7 +9,7 @@ Maintain existing work records without losing their provenance or creating compe
 
 ## Inspect the requested material
 
-Before writing or cleaning a support artifact, read [artifact layout and retention](references/artifact-layout.md). Before reporting the operation, read [reporting](../flow-close/references/reporting.md). Before resolving needed project settings or formulating a user decision, read [project settings](../hive-core/references/project-settings.md) or [questions](../hive-core/references/questions.md), respectively.
+Before writing or cleaning a support artifact, read [artifact layout and retention](references/artifact-layout.md). Before reporting the operation, read [final report](../flow-close/SKILL.md#final-report). Before resolving needed project settings or formulating a user decision, read the global guidance's «Project settings» section or the global guidance's «Questions and routes» section, respectively.
 
 Resolve the established support home and current work identifier. Read the relevant records and inspect candidate destinations and links before proposing a reorganization. Limit inventory to the requested scope; do not bulk-read unrelated logs or sensitive files.
 
@@ -21,7 +21,7 @@ Distinguish current knowledge, execution history, reproducible scratch, and uniq
 - **Curate evidence:** retain the smallest useful subset that substantiates the finding. Keep interpretation in Markdown with links to actual evidence. Record observation date and relevant provenance; distinguish a historical snapshot from current state. Preserve unique evidence until the curated replacement is checked. Sensitive evidence stays in an appropriate private location; describe access limits without copying secrets into the report.
 - **Promote a finding:** reconcile it with current sources and the existing durable document, then update that canonical home. Link the originating session and mark historical conclusions as historical or superseded where needed. Keep execution history without leaving two live policies.
 - **Apply a layout migration:** execute an approved migration manifest from the `harness-audit` skill, one repository at a time. Run only its mechanical `git mv`, `mkdir`, and `insert` entries, adding an `insert` line exactly as written after its stated line and skipping it when the file already contains it; stop at `manual` and `ask` entries, update affected links, and verify with `git status`, `git diff -M --stat`, and the manifest's checks. Commit only under the repository's Git rules and an explicit commit instruction.
-- **Archive closed work:** a closed change folder is archived by [flow-close](../flow-close/SKILL.md). For existing `sessions/` folders the user selects for archival, use [workspace-archive](../workspace-archive/SKILL.md), which defines the closure criteria and the file operation under `sessions/archived/<original-folder>/`.
+- **Archive closed work:** a closed change folder is archived by [flow-close](../flow-close/SKILL.md). For existing `sessions/` folders the user selects for archival, read and follow [archive](references/archive.md), which defines the closure criteria and the file operation under `sessions/archived/<original-folder>/`.
 
 ## Apply and verify
 

@@ -1,4 +1,8 @@
 import type { ViewerSession } from "./shell";
+import {
+  parseTimelineIndexEntry,
+  type TimelineAPIIndexEntry,
+} from "./timeline-contract";
 export const TOKEN_KEY = "hive-view-token";
 export const OPEN_KEY = "hive-view-open";
 export const ARCHIVED_KEY = "hive-view-show-archived";
@@ -101,6 +105,7 @@ export class AccessClient {
     method = "GET",
     body?: unknown,
     signal?: AbortSignal,
+    responseJSON = method === "GET",
   ) {
     const response = await this.fetcher(path, {
       method,
@@ -145,7 +150,7 @@ export class AccessClient {
             : undefined,
       });
     }
-    return method === "GET" ? response.json() : undefined;
+    return responseJSON ? response.json() : undefined;
   }
 }
 export type RawSession = {
@@ -171,6 +176,7 @@ export type RawSession = {
   fileBase?: string;
 };
 export type RawIndex = {
+  timeline_sessions?: TimelineAPIIndexEntry[];
   projects: {
     key: string;
     name: string;
@@ -269,6 +275,21 @@ export function validateIndex(value: RawIndex): RawIndex {
         throw new Error("Invalid viewer session metadata");
     }
   }
+  if (value.timeline_sessions !== undefined) {
+    if (!Array.isArray(value.timeline_sessions))
+      throw new Error("Invalid timeline index");
+    const ids = new Set(
+      value.projects
+        .flatMap((p) => p.tickets.flatMap((t) => t.sessions.map((s) => s.key)))
+        .concat((value.excluded_sessions ?? []).map((s) => s.key)),
+    );
+    for (const entry of value.timeline_sessions) {
+      const parsed = parseTimelineIndexEntry(entry);
+      if (parsed.mode !== "timeline_api" || ids.has(parsed.viewer_session_id))
+        throw new Error("Invalid timeline index entry");
+      ids.add(parsed.viewer_session_id);
+    }
+  }
   return value;
 }
 export function mapIndex(
@@ -340,4 +361,54 @@ export function mapIndex(
       ),
     ),
   ];
+}
+
+export type ViewerOpenTarget =
+  | { sessionID: string; eventID?: string }
+  | { invalid: true };
+export function takeTarget(
+  search = window.location.search,
+): ViewerOpenTarget | undefined {
+  const query = new URLSearchParams(search);
+  if (!query.has("session_id") && !query.has("event_id")) return;
+  const sessionID = query.get("session_id");
+  const eventID = query.get("event_id");
+  if (
+    query.getAll("session_id").length !== 1 ||
+    query.getAll("event_id").length > 1 ||
+    !sessionID ||
+    !/^[a-f0-9]{64}$/.test(sessionID) ||
+    (eventID !== null && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(eventID))
+  )
+    return { invalid: true };
+  return { sessionID, ...(eventID ? { eventID } : {}) };
+}
+export function mapTimelineIndex(
+  entry: TimelineAPIIndexEntry,
+  language = typeof navigator === "undefined" ? "en" : navigator.language,
+): ViewerSession {
+  const date = new Date(entry.created_at);
+  return {
+    id: entry.viewer_session_id,
+    project: entry.project_name,
+    projectKey: entry.project_key,
+    title: entry.title,
+    localTitle: true,
+    ticket:
+      entry.tickets.map((t) => t.key).join(" · ") ||
+      (language.startsWith("es") ? "Sin ticket" : "No ticket"),
+    createdAt: new Intl.DateTimeFormat(
+      language.startsWith("es") ? "es" : "en",
+      { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
+    ).format(date),
+    classification: "unknown",
+    pinned: entry.pinned,
+    archived: entry.archived,
+    status:
+      entry.state === "active"
+        ? "in_progress"
+        : entry.state === "closed"
+          ? "closed"
+          : "unknown",
+  };
 }

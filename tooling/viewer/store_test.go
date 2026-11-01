@@ -530,9 +530,12 @@ func TestStoreOpenCreatesPrivateDirectories(t *testing.T) {
 	}
 }
 
-// ---- Purge ----
+// Historical age used to prove that legacy expiry thresholds no longer apply.
+const defaultTTL = 14 * 24 * time.Hour
 
-func TestPurgeRemovesExpiredCopiesAndTheyDoNotReturn(t *testing.T) {
+// ---- Manual retention ----
+
+func TestManualRetentionPreservesAgedCopiesAndAcceptsChangedSources(t *testing.T) {
 	e := newEnv(t)
 	repo := newRepo(t)
 	folder := e.place(repo, "run1", nil)
@@ -540,31 +543,19 @@ func TestPurgeRemovesExpiredCopiesAndTheyDoNotReturn(t *testing.T) {
 	e.start()
 	e.sync()
 	key := e.onlySession().Key
-
-	e.advance(15 * 24 * time.Hour)
-	e.touch(folder) // the source is "fresh" for the advanced clock: only the tombstone can keep it out
-	purged, err := e.store.Purge()
-	if err != nil || len(purged) != 1 || purged[0] != key {
-		t.Fatalf("Purge = %v, %v", purged, err)
+	e.advance(365 * 24 * time.Hour)
+	if purged, err := e.store.Purge(); err != nil || len(purged) != 0 {
+		t.Fatalf("manual retention: %v %v", purged, err)
 	}
-	if _, err := os.Stat(e.sessionDir(key)); !errors.Is(err, fs.ErrNotExist) {
-		t.Fatal("expired copy not removed")
+	if _, err := os.Stat(e.sessionDir(key)); err != nil {
+		t.Fatal(err)
 	}
-	if len(e.sessions()) != 0 {
-		t.Fatal("expired session still listed")
+	if res := e.sync(); res.Added != 0 || len(e.sessions()) != 1 {
+		t.Fatalf("aged source lost: %+v", res)
 	}
-	e.advance(time.Minute)
-	e.touch(folder)
-	if res := e.sync(); res.Added != 0 || len(e.sessions()) != 0 {
-		t.Fatalf("purged copy came back: %+v", res)
-	}
-	if _, err := os.Stat(e.sessionDir(key)); !errors.Is(err, fs.ErrNotExist) {
-		t.Fatal("purged copy re-created")
-	}
-	// Changed content is a new fact: it is ingested again.
 	os.WriteFile(filepath.Join(folder, "images", "nav-1.png"), []byte("changed"), 0o644)
-	if res := e.sync(); res.Added != 1 || len(e.sessions()) != 1 {
-		t.Fatalf("changed source not re-ingested: %+v", res)
+	if res := e.sync(); res.Replaced != 1 || len(e.sessions()) != 1 {
+		t.Fatalf("changed source not replaced: %+v", res)
 	}
 }
 
@@ -618,66 +609,62 @@ func TestPurgeUsesIngestionTimeNotTheManifestCreatedAt(t *testing.T) {
 	}
 }
 
-func TestPurgeBoundaryIsStrictlyOlderThanTheTTL(t *testing.T) {
+func TestManualRetentionHasNoAgeBoundary(t *testing.T) {
 	e := newEnv(t)
 	repo := newRepo(t)
 	e.place(repo, "run1", nil)
 	e.register(repo)
 	e.start()
 	e.sync()
-	e.advance(14 * 24 * time.Hour)
-	if purged, _ := e.store.Purge(); len(purged) != 0 {
-		t.Fatalf("a copy exactly TTL old was purged: %v", purged)
-	}
-	e.advance(time.Second)
-	if purged, _ := e.store.Purge(); len(purged) != 1 {
-		t.Fatalf("a copy older than the TTL survived: %v", purged)
+	for _, age := range []time.Duration{14 * 24 * time.Hour, time.Second, 365 * 24 * time.Hour} {
+		e.advance(age)
+		if purged, err := e.store.Purge(); err != nil || len(purged) != 0 || len(e.sessions()) != 1 {
+			t.Fatalf("age affected retention: %v %v", purged, err)
+		}
 	}
 }
 
-func TestPurgeHonoursAConfiguredTTLAndDefaultsToFourteenDays(t *testing.T) {
+func TestManualRetentionIgnoresLegacyConfiguredTTL(t *testing.T) {
 	e := newEnv(t)
-	if got := e.store.View().TTLSeconds; got != 14*24*3600 {
-		t.Fatalf("default ttl = %d", got)
+	if e.store.View().TTLSeconds != 0 {
+		t.Fatal("default expiry remains")
 	}
 	s, err := Open(Options{StateDir: t.TempDir(), TTL: time.Hour})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := s.View().TTLSeconds; got != 3600 {
-		t.Fatalf("configured ttl = %d", got)
+	if s.TTL() != 0 || s.View().TTLSeconds != 0 {
+		t.Fatal("legacy TTL reactivated expiry")
 	}
 }
 
-func TestPurgeRunsAtStartAndOnTheInterval(t *testing.T) {
+func TestRunScansWithoutExpiringOldCopies(t *testing.T) {
 	e := newEnv(t)
 	repo := newRepo(t)
 	e.place(repo, "run1", nil)
 	e.register(repo)
 	e.start()
 	e.sync()
-	e.advance(15 * 24 * time.Hour)
-
+	e.advance(365 * 24 * time.Hour)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		done <- e.store.Run(ctx, RunOptions{PollInterval: 10 * time.Millisecond, PurgeInterval: 10 * time.Millisecond})
+		done <- e.store.Run(ctx, RunOptions{PollInterval: 10 * time.Millisecond, PurgeInterval: time.Millisecond})
 	}()
-	waitFor(t, "the expired copy to be purged by Run", func() bool { return len(e.sessions()) == 0 })
-
-	// A copy that expires later is purged by the periodic pass.
 	e.place(repo, "run2", nil)
-	waitFor(t, "run2 to be ingested", func() bool { return len(e.sessions()) == 1 })
-	e.advance(15 * 24 * time.Hour)
-	waitFor(t, "run2 to be purged on the interval", func() bool { return len(e.sessions()) == 0 })
+	waitFor(t, "old and new copies to remain", func() bool { return len(e.sessions()) == 2 })
 	cancel()
 	select {
 	case err := <-done:
 		if err != nil {
-			t.Fatalf("Run returned %v", err)
+			t.Fatal(err)
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("Run did not stop on cancel")
+		t.Fatal("Run did not stop")
+	}
+	if len(e.sessions()) != 2 {
+		t.Fatal("background loop expired content")
 	}
 }
 
@@ -734,31 +721,18 @@ func TestStoreContentHashChangesWhenOnlyTheManifestChanges(t *testing.T) {
 
 // Gap from the T3 verification: with a purge interval that cannot fire during
 // the wait, only the purge Run performs at startup can remove the copy.
-func TestPurgeRunsAtStartupEvenWhenTheIntervalIsLong(t *testing.T) {
+func TestStartupPreservesOldUnpinnedCopies(t *testing.T) {
 	e := newEnv(t)
 	repo := newRepo(t)
 	e.place(repo, "run1", nil)
 	e.register(repo)
 	e.start()
 	e.sync()
-	e.advance(15 * 24 * time.Hour)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() {
-		done <- e.store.Run(ctx, RunOptions{PollInterval: time.Hour, PurgeInterval: time.Hour})
-	}()
-	waitFor(t, "the startup purge to remove the expired copy", func() bool { return len(e.sessions()) == 0 })
-	if len(e.store.View().Tombstones) != 1 {
-		t.Fatalf("tombstones = %d, want 1", len(e.store.View().Tombstones))
-	}
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("Run returned %v", err)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("Run did not stop on cancel")
+	e.advance(365 * 24 * time.Hour)
+	e.store = e.open()
+	e.start()
+	e.sync()
+	if len(e.sessions()) != 1 || len(e.store.View().Tombstones) != 0 {
+		t.Fatal("restart expired retained content")
 	}
 }

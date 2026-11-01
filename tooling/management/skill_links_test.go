@@ -77,7 +77,7 @@ func TestUserScopeRolesAndBlocksLinkInstalledSkillPaths(t *testing.T) {
 		filepath.Join(o.Home, ".claude", "CLAUDE.md"),
 		filepath.Join(o.Home, ".pi", "agent", "AGENTS.md"),
 		filepath.Join(o.Home, ".config", "opencode", "AGENTS.md"),
-		filepath.Join(o.Home, ".cursor", "AGENTS.md"),
+		filepath.Join(o.Home, ".cursor", "rules", "hive.mdc"),
 	} {
 		text := get(t, block)
 		if !strings.Contains(text, "]("+want+")") || strings.Count(text, "](skill:") != 1 {

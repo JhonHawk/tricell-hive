@@ -1,51 +1,61 @@
-# What survives context compaction, per host
+# Skill loading and compaction, per host
 
-This page records, for each supported host, whether the global instruction file and the body of an invoked skill survive context compaction, and which surface can inject context again after it. It informs the re-injection layer of the layered global guidance (change `gh-240`): a host gets a re-injection mechanism only where a loss is verified.
+This page records, for each supported host, how a skill reaches the model, how the global instruction file is framed, and what survives context compaction. It decides where a Hive rule must live to be followed: the instruction file is the only layer every host keeps after compaction, a skill body is context for the turn that loaded it, and a reference file is a tool result that is lost or read in part.
 
-Collected on 2026-10-27 from documentation and published source, without running a compaction. Labels: **doc** (official or installed documentation), **source** (published source code, not pinned to the installed version), **inferred** (reasoned from how the prompt is built), **undocumented** (no source settles it).
+Collected on 2026-10-31 from documentation, published source (Codex, OpenCode, Pi), local transcripts of each host, and practitioner reports; it replaces the 2026-10-27 snapshot, whose Claude, Grok, Codex, OpenCode and Pi cells were wrong. Labels: **doc**, **source**, **obs** (local transcripts or probes), **forum**, **inf** (inferred).
 
-| Host | Installed | Global instruction file after compaction | Invoked skill body after compaction | Re-injection surface after compaction |
+## How a skill reaches the model
+
+| Host (version) | Before invocation | Automatic invocation | Explicit invocation | Reference files |
 | --- | --- | --- | --- | --- |
-| Claude Code | 2.1.312 | Project-root `CLAUDE.md` is re-injected from disk (doc). The user-level `~/.claude/CLAUDE.md` is undocumented; inferred to reload through `InstructionsLoaded` with `load_reason "compact"`. | Re-injected, first 5,000 tokens per skill, 25,000 in total, oldest dropped first (doc). | `SessionStart` with matcher `compact`; output over 10,000 characters is saved to a file and replaced by its path and a 2,000-character preview (doc). `PostCompact` does not inject. |
-| Codex CLI | 0.165.0 | Re-injected: compaction rebuilds the initial context, including user instructions (source, `compact.rs`, `agents_md.rs` on `main`). Docs only say the chain is rebuilt on every run. | Undocumented. | `SessionStart` with `source: "compact"` runs before the next model request, for root sessions only, with `additionalContext` (about 2,500 tokens by default); unmanaged hooks need trust before they run (doc). `PreCompact` and `PostCompact` do not inject. |
-| Grok Build | 1.0.72 | Undocumented. Rules reach the model as user rules; with `--rules`, the text goes to the system prompt (doc); its survival is inferred. | Undocumented. | None. `SessionStart` never fires on compaction; `PreCompact` and `PostCompact` drop their `systemMessage` (doc). |
-| Pi | 1.4.0 | Survives by construction (inferred): the system prompt is built from base instructions and discovered context files, and compaction replaces only history messages (doc). | Undocumented. The body enters when the model reads `SKILL.md`; it stays in the kept recent tokens or is summarized (inferred). | Extension events `before_agent_start`, `context` and `context_with_system` run per turn; `session_before_compact` can replace the summary (doc). No post-compaction event found. |
-| OpenCode | v2.2.0 | Survives: "After compaction, the current versions of your instruction files become the session's baseline"; the system prompt is not summarized (doc). | Not re-injected (source, dev branch): a `skill` tool result is treated like any tool result. | A plugin `context` hook runs on every request and can edit the system parts (doc); the `compaction` hook only summarizes. |
-| Cursor CLI | 2026.10.18 | Undocumented. Rules go at the start of the model context; a user-level global file is not documented for the CLI. | Undocumented. | None after compaction: `sessionStart` fires when a conversation is created and `preCompact` is observational only (doc). |
+| Claude Code 2.1.316 | Name and description, 1,536 characters per skill, about 1% of the window for the whole list (doc) | `Skill` tool; the body follows in the same user turn as plain text that starts "Base directory for this skill" (obs) | `/name`, the same body (doc) | Read with the file tool; 7.5% of reads partial (obs) |
+| Codex CLI 0.165.0 | Name, description and path in a developer message, 2% of the window (source) | The model reads `SKILL.md` through the shell; a tool result (source, obs) | `$name` or `/skills`; the body as a user-role fragment, **cut at 8,000 bytes** (source `MAX_SKILL_PROMPT_BYTES`) | Shell output cut in the middle when long; 100 of about 400 reads truncated, few re-read (obs) |
+| Grok Build 1.0.73 | Name, description, "Use when" and path, in a synthetic user message (obs) | `read_file`; a tool result. `SKILL.md`, `AGENTS.md` and `CLAUDE.md` are always read whole (obs, tool definition) | `/name`; the body inlined in the user message after `<user_query>` as `<skill_information>` (obs) | `read_file`; models often pass `limit`, the host usually returns the whole file (obs) |
+| Pi 1.4.0 | Name, description and location in the system prompt (source) | `read`; a tool result (doc, obs). The docs admit the model may fail to load a relevant skill | `/skill:name`; the body expanded in the user message (source) | `read` or bash (obs) |
+| OpenCode v2.2.4 | Name and description in the system instructions (source) | `skill` tool; a tool result wrapped as `<skill_content>` (source) | `@name`; the same content in the user message (source) | Read tool, up to 2,000 lines or 50 KB (source) |
+| Cursor CLI 2026.10.22 | Name, path and description sent as `agent_skills`; descriptions trimmed silently (src, forum) | `Read`; 55% of `SKILL.md` reads partial, usually 60–120 lines (obs, 64 sessions) | `/name`; the full body inlined in the user message as `<manually_attached_skills>` (obs) | `Read`; 59% partial (obs) |
+
+Automatic selection often fails: in Vercel's Next.js evals the skill was not invoked in 56% of cases, and an explicit "use the skill" reached 79% (forum, 2026-01). Cursor staff call `/skill-name` "the only guaranteed trigger today" (forum 163761); Pi's docs say to use `/skill:name` to force it. An explicit invocation guarantees the load, not adherence (Codex issue #48877) or persistence.
+
+## How the instruction file is framed
+
+| Host | Global instruction file |
+| --- | --- |
+| Claude Code | A user message after the system prompt, as a reminder that these instructions override defaults (doc, obs) |
+| Codex CLI | A user message, `# AGENTS.md instructions for <dir>`, below base instructions that say the user's instruction takes precedence over skills and to proceed unless a skill explicitly requires approval (source, obs) |
+| Grok Build | `~/.claude/CLAUDE.md` arrives as `<user_rules>` "rules … you should follow **if appropriate**"; the project `AGENTS.md` as `<always_applied_workspace_rules>` "the agent **must always follow**" (obs, 85 sessions) |
+| Pi | Global and project `AGENTS.md` in the same system-prompt section (source) |
+| OpenCode | System instructions, combined with the agent prompt (doc) |
+| Cursor CLI | Rules at the start of the context. `~/.cursor/AGENTS.md` is never loaded; `<dir>/.cursor/rules/*.mdc` loads for each folder from the workspace up to `/`, so `~/.cursor/rules/hive.mdc` with `alwaysApply` reaches workspaces under the home folder only (src, two probes 2026-10-31) |
+
+No host documents that skill or reference text is treated as untrusted data; Meta's SkillInject study found the opposite, skills loaded as a trusted channel.
+
+## What survives compaction
+
+| Host | Instruction file | Invoked skill body | References |
+| --- | --- | --- | --- |
+| Claude Code | Re-read from disk (doc, obs) | Re-injected as `invoked_skills`, first 5,000 tokens per skill, 25,000 in total (doc, obs within one process) | Summarized; up to five recent files re-read (doc) |
+| Codex CLI | Initial context rebuilt (source) | An explicit fragment is dropped from kept messages; a tool-result body is summarized (source) | Summarized |
+| Grok Build | Rules message and skill list re-injected (obs, 71 compacted sessions) | **Never re-injected**; it survives only if the summary copies it (obs) | Summarized |
+| Pi | System prompt rebuilt (doc) | Tool results cut to 2,000 characters for the summarizer, so a read-loaded body is mostly lost; a `/skill:name` body reaches the summarizer whole (doc, inf) | Same cut |
+| OpenCode | Baseline rebuilt from current files (doc) | Skills stripped from kept messages; survives only in the ~15k-token verbatim tail (source) | Summarized |
+| Cursor CLI | Rules sent with every request (inf) | Probably summarized (inf) | Probably summarized (inf) |
+
+Corrections to the 2026-10-27 probe: on Claude the probe's skill survived only inside the summary, because `/compact` ran in a separate `--resume` process; inside one process the body is re-injected. On Grok the probe's tiny skill was copied by the summarizer, not re-injected by the host.
+
+## What it means for Hive
+
+- A rule that must hold every turn and after compaction lives in the global guidance. On Grok, the guidance states its own authority because the host frames it as optional.
+- Each flow skill keeps its binding steps in the first ~60 lines and stays under 8 KB, for Cursor's partial reads and Codex's explicit cut.
+- References are read at a fixed moment, such as `plan-handoff.md` before the build route; a rule that only lives in a reference holds only while that read is in context.
+- A flow boundary names the command for the next flow in the host's syntax (`/flow-x`, `$flow-x`, `/skill:flow-x`, `@flow-x`), so each flow starts with its skill loaded whole.
 
 ## Sources
 
-- Claude Code: https://code.claude.com/docs/en/context-window, https://code.claude.com/docs/en/memory, https://code.claude.com/docs/en/hooks, https://code.claude.com/docs/en/skills (read 2026-10-27).
-- Codex: https://developers.openai.com/codex/hooks, https://developers.openai.com/codex/guides/agents-md; source through Context7 `/openai/codex` (`codex-rs/core/src/compact.rs`, `agents_md.rs`, branch `main`).
-- Grok Build: installed guide `~/.grok/docs/user-guide/10-hooks.md` and `12-project-rules.md` (version 1.0.72).
-- Pi: installed docs `compaction.md`, `how-pi-works.md`, `skills.md`, `extensions.md`, `configuration.md` (version 1.4.0).
-- OpenCode: https://opencode.ai/docs/plugins; Context7 `/anomalyco/opencode` (`compaction.mdx`, `instructions.mdx`, `compaction.ts`, branch `dev`; installed v2.2.0 not confirmed against it).
-- Cursor CLI: https://cursor.com/docs/hooks, https://cursor.com/docs/context/rules; Context7 `/websites/cursor_cli`.
-
-## Observed probe (2026-10-27)
-
-One short session per host in a disposable fixture, with Engram isolated per process. The global marker was an existing sentence of the deployed Hive block ("Write placeholders in examples and templates in English"); the skill marker was a project skill invoked in the first turn. After a forced compaction, the agent was asked, without tools, to quote both.
-
-| Host | Version | Compaction | Global sentence after | Skill marker after | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Claude Code | 2.1.312 | `compact_boundary`, manual | quoted | quoted | `claude -p --resume <id> "/compact"`; the summary held the skill body text. Settles the user-level `~/.claude/CLAUDE.md` cell: it survives. |
-| Codex CLI | 0.165.0 | `compacted` rollout entry | quoted | quoted | `codex app-server` `thread/compact/start`; the summary held the marker, not the skill body. |
-| Grok Build | 1.0.72 | `auto_compact_completed` | quoted | quoted | `grok -p "/compact" -r <id>`; Grok re-injects the rules and the skill body as synthetic `compaction_meta` messages. |
-| Pi | 1.4.0 | `compaction` entry, manual | quoted | quoted | RPC `{"type":"compact"}` with `keepRecentTokens: 1`; the marker survived in the kept last assistant message, the skill tool result was summarized. |
-| OpenCode | v2.2.0 | `compaction` message, completed | quoted | quoted | `session.compact` through a private `opencode serve`; the summary held the marker, not the body. |
-| Cursor CLI | 2026.10.18 | not run | not run | not run | `cursor-agent -p` reported "Authentication required"; the probe needs `cursor-agent login` first. |
-
-Limit: the agent repeated the skill marker in its first answer, so a quoted marker shows the fact survived, not that the skill body was re-injected. Only Claude Code and Grok showed the body itself after compaction. Telling re-injection from summary needs a probe where the marker is never repeated before compaction.
-
-## Open cells
-
-These cells rest on no documentation or observation and stay open:
-
-- Codex, Pi and OpenCode: whether the skill body itself is re-injected, or only summarized.
-- Cursor CLI: all three columns; the probe did not run.
-
-## What it means for re-injection
-
-- A host whose global file survives needs no re-injection of the always-loaded layer. In the probe it survived on all five hosts tested, so no host showed a loss of the always-loaded layer; the only possible loss is a `hive-core` skill body that is summarized rather than kept.
-- Claude Code truncates a re-injected skill body to its first 5,000 tokens: what must survive goes at the start of `SKILL.md`, and a `compact` hook is the only documented way to restore more.
-- Codex and Claude Code offer a post-compaction event; OpenCode and Pi only per-request or per-turn surfaces; Grok and Cursor none.
+- Claude Code: code.claude.com/docs/en/skills, /memory, /context-window; issues #82017, #85207, #83306, #95745.
+- Codex: developers.openai.com/codex/skills; source at tag `rust-v0.165.0` (`ext/skills`, `user_instructions.rs`, `compact.rs`, `contextual_user_message.rs`); issues #56807, #48877, #34712, #34885.
+- Grok Build: installed user guide 1.0.73 (`08-skills.md`, `12-project-rules.md`, `10-hooks.md`); docs.x.ai/build/features/skills-plugins-marketplaces; 188 local session folders.
+- Pi: installed docs and `dist` 1.4.0 (`skills.md`, `compaction.md`, `core/skills.js`, `agent-session.js`); issues #11019, #9874.
+- OpenCode: source at tag `v2.2.4` (`skill.ts`, `session/prompt.ts`, `compaction.ts`); docs `skills.mdx`, `instructions.mdx`; issues #10744, #46815.
+- Cursor CLI: cursor.com/docs/context/skills, /context/rules, /cli/using; forum threads 163761, 161142, 163768; local transcripts and the installed bundle.
+- Evals and reports: vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals; Meta SkillInject summary; X posts by Codex, Claude Code and OpenCode staff (2026).

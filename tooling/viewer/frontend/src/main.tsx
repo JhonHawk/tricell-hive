@@ -1,7 +1,7 @@
 import { CSPProvider } from "@base-ui/react/csp-provider";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { AccessClient, takeCode } from "./api";
+import { AccessClient, takeCode, takeTarget } from "./api";
 import { ViewerApplication } from "./application";
 import { ViewerController } from "./controller";
 import "./styles.css";
@@ -9,6 +9,7 @@ import "./styles.css";
 const container = document.getElementById("root");
 if (!container) throw new Error("Missing application root");
 const root = createRoot(container);
+const target = takeTarget();
 const code = takeCode();
 const controller = new ViewerController(new AccessClient());
 document.documentElement.lang = navigator.language.startsWith("es")
@@ -18,7 +19,13 @@ if (
   import.meta.env.DEV &&
   new URLSearchParams(location.search).has("preview")
 ) {
-  void import("./dev/preview").then(({ DevelopmentPreview }) =>
+  const preview =
+    new URLSearchParams(location.search).get("preview") === "timeline"
+      ? import("./dev/timeline-preview").then(
+          (module) => module.TimelineDevelopmentPreview,
+        )
+      : import("./dev/preview").then((module) => module.DevelopmentPreview);
+  void preview.then((DevelopmentPreview) =>
     root.render(
       <StrictMode>
         <CSPProvider disableStyleElements>
@@ -28,7 +35,7 @@ if (
     ),
   );
 } else {
-  void controller.open(code);
+  void controller.open(code, target);
   root.render(
     <StrictMode>
       <CSPProvider disableStyleElements>

@@ -444,11 +444,11 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // projectSettingsSection returns the canonical settings declaration, split into
-// prose lines and lines inside fenced code blocks. The global kernel links to
-// this reference rather than repeating the keys and example.
+// prose lines and lines inside fenced code blocks. It lives in the global
+// guidance, which every session loads.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-core", "references", "project-settings.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "guidance", "global.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -457,7 +457,7 @@ func projectSettingsSection(t *testing.T) (prose, code []string) {
 		trimmed := strings.TrimSpace(line)
 		switch {
 		case !fenced && strings.HasPrefix(line, "## "):
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Declare settings"
+			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Project settings"
 			continue
 		case !in:
 			continue

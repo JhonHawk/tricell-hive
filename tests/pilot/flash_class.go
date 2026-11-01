@@ -22,7 +22,7 @@ var flashModels = []string{"opencode-go/claude-haiku-5-5#high", "opencode-go/dee
 func flashRole(caseID string) (string, string) {
 	switch caseID {
 	case "plan-reference":
-		return "hive-review-plan", "flow-plan/references/plan-review.md"
+		return "hive-review-plan", "flow-plan/SKILL.md"
 	case "harness-reference":
 		return "hive-review-harness", "harness-audit/SKILL.md"
 	}

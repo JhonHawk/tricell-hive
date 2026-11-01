@@ -12,6 +12,18 @@ raise the minor or the patch version.
 
 ### Added
 
+- A session timeline viewer with a compact ReUI header, view-scoped image
+  collections and instructions, declared research/plan/build/verify stages,
+  and immutable Markdown documents. The authenticated local publishing API
+  requires the actual project/host/native-session identity, returns durable
+  operation receipts, and supports conditional edits and recovery. Agents can
+  discover commands and schemas offline with `hive view contract`.
+- Viewer content now has manual retention: existing and new content no longer
+  expires with age, and the old `--ttl` option is accepted but ignored.
+  `flow-walkthrough` owns publication; UI verification checks only the widths,
+  themes and neighboring regions affected by each change. Rebuild the manager,
+  run `hive update`, and restart an existing viewer to use the new runtime;
+  legacy walkthroughs remain readable without automatic history conversion.
 - A repository test now checks that every heading an instruction link in
   `content/` points to exists, with the same link grammar and fence rule as
   release validation, so renaming a heading can no longer break the skills

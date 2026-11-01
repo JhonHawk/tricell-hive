@@ -11,14 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	defaultTTL    = 14 * 24 * time.Hour
 	tmpPrefix     = ".tmp-"
 	oldPrefix     = ".old-"
 	writePrefix   = ".write-"
@@ -46,8 +44,7 @@ type Options struct {
 	// StateDir is the manager's state directory (absolute). Everything lives
 	// under <StateDir>/viewer/.
 	StateDir string
-	// TTL is how long an unpinned copy lives after ingestion. Zero means 14
-	// days.
+	// TTL is deprecated and ignored. Retention is manual for every copy.
 	TTL time.Duration
 	// Now is the clock; nil means time.Now. Tests inject their own.
 	Now func() time.Time
@@ -114,8 +111,13 @@ type Store struct {
 	projRepos string
 
 	// viewMu guards idx, which is replaced, never modified in place.
-	viewMu sync.RWMutex
-	idx    *indexData
+	viewMu            sync.RWMutex
+	idx               *indexData
+	timeline          map[string]*timelineRecord
+	timelineIndex     []TimelineAPIIndexEntry
+	timelineOwned     map[string]bool
+	timelineUncertain bool
+	timelineFault     func(phase, path string) error
 }
 
 // Open prepares <StateDir>/viewer/ (mode 0700) and loads the index read-only:
@@ -127,16 +129,14 @@ func Open(o Options) (*Store, error) {
 	}
 	s := &Store{
 		vdir:        viewerDir(o.StateDir),
-		ttl:         o.TTL,
+		ttl:         0,
 		now:         o.Now,
 		hive:        o.HiveProject,
 		remote:      o.GitRemote,
 		tracking:    o.SourceTracking,
 		writeAtomic: writeFileAtomic, removeFile: os.Remove, removeTree: os.RemoveAll, renamePath: os.Rename,
 	}
-	if s.ttl <= 0 {
-		s.ttl = defaultTTL
-	}
+
 	if s.now == nil {
 		s.now = time.Now
 	}
@@ -149,13 +149,16 @@ func Open(o Options) (*Store, error) {
 		}
 	}
 	s.idx = s.load()
+	if err := s.timelineLoad(); err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
 // Dir returns <StateDir>/viewer.
 func (s *Store) Dir() string { return s.vdir }
 
-// TTL returns the effective time to live.
+// TTL returns zero: content has no age-based expiry.
 func (s *Store) TTL() time.Duration { return s.ttl }
 
 func (s *Store) sessionsDir() string { return filepath.Join(s.vdir, "sessions") }
@@ -172,6 +175,12 @@ func (s *Store) Startup() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.cleanup(); err != nil {
+		return err
+	}
+	if err := s.timelineLoad(); err != nil {
+		return err
+	}
+	if err := s.timelineCleanup(); err != nil {
 		return err
 	}
 	s.clearProjects()
@@ -479,7 +488,7 @@ func (s *Store) addTombstone(d *indexData, sess Session) {
 	})
 }
 
-// Pin changes retention for the logical session containing key.
+// Pin changes the keep preference of the logical session containing key.
 func (s *Store) Pin(key string, pinned bool) error {
 	return s.updateGroup(key, func(g *sessionGroup) { g.Pinned = pinned })
 }
@@ -489,45 +498,8 @@ func (s *Store) Archive(key string, archived bool) error {
 	return s.updateGroup(key, func(g *sessionGroup) { g.Archived = archived })
 }
 
-// Purge deletes every unpinned copy whose ingested_at is strictly older than
-// the TTL (never the manifest's created_at, which the agent writes) and
-// leaves a tombstone for each. It returns the purged keys, sorted.
-func (s *Store) Purge() ([]string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	cutoff := s.now().Add(-s.ttl)
-	d := s.current().clone()
-	if err := s.reconcileGroups(d, true); err != nil {
-		return nil, err
-	}
-	var purged []string
-	kept := d.Sessions[:0:0]
-	var firstErr error
-	for _, sess := range d.Sessions {
-		if sess.Pinned || !sess.IngestedAt.Before(cutoff) {
-			kept = append(kept, sess)
-			continue
-		}
-		if err := s.removeCopy(sess.Key); err != nil {
-			if firstErr == nil {
-				firstErr = err
-			}
-			kept = append(kept, sess)
-			continue
-		}
-		s.addTombstone(d, sess)
-		purged = append(purged, sess.Key)
-	}
-	d.Sessions = kept
-	sort.Strings(purged)
-	if len(purged) == 0 && firstErr == nil {
-		return nil, nil
-	}
-	if err := s.commit(d); err != nil && firstErr == nil {
-		firstErr = err
-	}
-	return purged, firstErr
-}
+// Purge is a compatibility no-op: retained content is removed only explicitly.
+func (s *Store) Purge() ([]string, error) { return nil, nil }
 
 // normalReadAllowed checks the published classification without consulting Git.
 // Management operations intentionally retain access to excluded copies.

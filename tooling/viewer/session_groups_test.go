@@ -127,8 +127,8 @@ func TestSessionGroupRecoveryCorruptBlocksIngestion(t *testing.T) {
 		t.Fatalf("installed a copy with corrupt preferences: %+v", res)
 	}
 	e.advance(defaultTTL + time.Second)
-	if keys, err := e.store.Purge(); err == nil || len(keys) != 0 {
-		t.Fatalf("unsafe purge: %v %v", keys, err)
+	if keys, err := e.store.Purge(); err != nil || len(keys) != 0 {
+		t.Fatalf("manual retention mutated corrupt group: %v %v", keys, err)
 	}
 	if len(e.store.View().Errors) == 0 {
 		t.Fatal("corruption is not visible")
@@ -150,8 +150,8 @@ func TestSessionGroupRetention(t *testing.T) {
 	if err := e.store.Pin(key, false); err != nil {
 		t.Fatal(err)
 	}
-	if keys, err := e.store.Purge(); err != nil || len(keys) != 3 {
-		t.Fatalf("unpin did not restore retention: %v %v", keys, err)
+	if keys, err := e.store.Purge(); err != nil || len(keys) != 0 {
+		t.Fatalf("unpin enabled expiration: %v %v", keys, err)
 	}
 	if _, err := os.Stat(e.store.groupPath(identityOf(Session{ProjectKey: repo, SessionID: "shared", Host: "codex"}))); err != nil {
 		t.Fatal("TTL removed logical preferences", err)
@@ -308,8 +308,8 @@ func TestSessionGroupRecoveryRejectsIncompleteAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.advance(defaultTTL + time.Second)
-	if keys, err := e.store.Purge(); err == nil || len(keys) > 0 {
-		t.Fatalf("missing pin accepted: %v %v", keys, err)
+	if err := e.store.Pin(sess.Key, false); err == nil {
+		t.Fatal("missing pin authority accepted")
 	}
 }
 

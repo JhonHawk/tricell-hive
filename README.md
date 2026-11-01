@@ -224,18 +224,14 @@ requires selecting every registered consumer, so installing one host may require
 selecting others. Removing one host keeps a shared file until its last consumer
 is removed.
 
-**Grok and Cursor together.** Grok loads Hive's guidance from
-`~/.claude/CLAUDE.md` and again from `~/.cursor/AGENTS.md`, about 10,700 tokens
-per session. The installer warns about it; setting `agents = false` under
-`[compat.cursor]` in Grok's `config.toml` removes the copy, at the cost that your
-own text in `~/.cursor/AGENTS.md` stops loading in Grok.
-
-**Cursor pointer.** Cursor CLI does not read `~/.cursor/AGENTS.md` on its own. Add
-this line to each repository's `AGENTS.md` where you use Cursor, near the top and
-outside its `## Hive` section:
+**Cursor.** Cursor CLI never reads `~/.cursor/AGENTS.md`, so Hive installs its
+guidance as the always-applied rule `~/.cursor/rules/hive.mdc`. Cursor loads rules
+from every folder between the workspace and the filesystem root, so the rule
+reaches every repository under your home folder. For a repository outside it, add
+this line to its `AGENTS.md`, near the top and outside its `## Hive` section:
 
 ```markdown
-Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/AGENTS.md` before any other action and follow it. If that file is missing, say so and continue.
+Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/rules/hive.mdc` before any other action and follow it. If that file is missing, say so and continue.
 ```
 
 See [native destinations](_support/docs/architecture/deployment-manager.md#content-and-native-destinations)
@@ -309,65 +305,58 @@ covers exact revision selection.
 Start where the request belongs. These are available routes, not a mandatory
 sequence for every task. Authorization and preservation apply throughout.
 
+Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM-833`
+(`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
+command loads the skill whole for that flow, which the host's automatic selection does
+not guarantee; each flow ends by naming the command for the next one.
+
 ```mermaid
 flowchart TD
-    Request["Request and project context"] --> Entry{"What is needed?"}
-    Entry -->|Investigate a question| Research["flow-research"]
-    Entry -->|Resolve a multi-step change| Plan["flow-plan"]
-    Entry -->|Implement an authorized change| Build["flow-build"]
-    Research --> Answer["Supported answer and open decisions"]
-    Answer -->|User chooses to plan| Plan
-    Answer -->|User authorizes a small change| Build
-    Plan --> Ready["Contracts, tasks, and acceptance criteria"]
-    Ready -->|Implementation authorized| Build
-    Build --> Candidate["Built candidate"]
-    Candidate --> Verify["flow-verify"]
-    Verify -->|Security review requested| Security["flow-security"]
-    Security --> Verify
-    Verify --> Result["Evidence and integrated candidate"]
-    Candidate -->|Verify skipped| Result
-    Result --> Close["flow-close"]
-    Close --> Finish["Completion point and session hygiene"]
-    Result -->|Promotion requested| Deploy["flow-deploy"]
-    Deploy --> Served["Served identity and health per environment"]
+    Entry{"What is needed?"}
+    Entry -->|Status or what's next| Status["flow-status"]
+    Entry -->|A question or a ticket| Research["flow-research"]
+    Entry -->|A multi-step change| Plan["flow-plan"]
+    Entry -->|A small authorized change| Build
 
-    Verify -.->|added task| Build
+    Status -->|User picks a ticket| Research
+    Research -->|Larger work| Plan
+    Research -->|Small change| Build
+    Plan --> Build["flow-build<br/><small>tasks · first rendered view (flow-walkthrough)</small>"]
+    Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (flow-walkthrough)</small>"]
+    Build -->|Mechanical change| Close
+    Verify --> Close["flow-close"]
+    Verify -->|Promotion requested| Deploy["flow-deploy"]
+
     Build -.->|scope grows| Plan
-    Close -.->|close question| Build
-    Close -.-> Plan
     Deploy -.->|defect| Build
 
-    Change["Change requested"] -.-> Plan
-    Change -.-> Build
-
-    Rules["General rules, in every flow:<br/>Language · Communication · Scope and authorization<br/>Preservation · Secrets · Evidence · Verification gates<br/>Proportionality · Project settings · Continuity<br/>Specs and change records · Support folder"]
+    Rules["Every flow: Language · Scope and authorization · Preservation<br/>Secrets · Evidence · Proportionality · Support folder"]
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
-    classDef outcome fill:#edf4ee,stroke:#52745c,color:#203a28
     classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
-    class Research,Plan,Build,Verify,Security,Close,Deploy activity
-    class Answer,Ready,Candidate,Result,Finish,Served outcome
+    class Status,Research,Plan,Build,Verify,Close,Deploy activity
     class Rules rules
 ```
 
 Dotted arrows are the loops back. A change asked for while work is open stays in the
 current stage when it is a correction, returns to Plan or Build when it adds to the
-work, and gets its own destination when it is a separate topic; the [scope changes reference](content/skills/hive-core/references/scope-changes.md)
+work, and gets its own destination when it is a separate topic; the [shared guidance](content/guidance/global.md)
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
+- Status ([skill](content/skills/flow-status/SKILL.md)) reports the backlog grouped by
+  module and the unfinished local work, and recommends what to take next. It is read-only.
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
-  answer. It can stand alone and does not authorize implementation.
+  answer, and assesses a ticket you pick before work starts: impact, complexity,
+  readiness and dependencies. It does not authorize implementation.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) resolves consequential decisions and
   defines contracts, verifiable tasks, and acceptance criteria when needed.
 - [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
-  checks, the full suite and the dedicated review, and then integrates it.
-- [Security](https://hive.tricell.tech/flows/security/) ([skill](content/skills/flow-security/SKILL.md)) runs an independent
-  security review only when you ask for it, inside Verify or on a merged commit,
-  and reports findings without fixing them.
+  checks, the full suite and the dedicated review, a security review only when you
+  ask for it, and your validation through a walkthrough, and then integrates it.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
   cleans up task-owned temporary resources while preserving unfinished work. It
   runs at integration, also when a project declares a later completion point in
@@ -379,8 +368,8 @@ lists where each flow loops.
   state once the condition holds and no functional walk is pending in that environment.
 
 The [shared guidance](content/guidance/global.md) keeps the authorization,
-preservation, secrets, evidence, and artifact-placement invariants; the procedures
-it points to live in the shared `hive-core` skill and in each flow. Local edits, commits, publication,
+preservation, secrets, evidence, questions and routes, project settings, memory
+and artifact-placement rules every session needs; each flow's procedure lives in its skill. Local edits, commits, publication,
 merges, and deployments are distinct effects; a plan or skill selection does not
 provide authorization for them.
 
@@ -396,8 +385,8 @@ Two commands tune the setup from a terminal:
 
 - `hive project set` edits the `## Hive` section of the repository's `AGENTS.md`
   after confirmation, with `--set 'Key: value'` and `--unset Key` (and
-  `--dry-run` to preview). The section holds facts only; the delivery mode, the
-  review mechanism and the `UI verification` level are asked each session, and
+  `--dry-run` to preview). The section holds facts only; delivery and code-review
+  decisions are asked once per work item when still open, and
   `hive doctor` warns about leftover `Review`, `UI verification` or
   `Delivery: automatic|interactive` lines. `hive doctor` exits non-zero when the
   `## Hive` section has a blocking finding, and `harness-audit` can create or
@@ -416,80 +405,72 @@ Close this work item and clean up only the temporary resources it created.
 
 ### Review UI walkthroughs in one place
 
-When an agent validates a user interface with you, it writes the walkthrough as
-`walkthrough.json` in the `_support/workspace/` of the repository, or of the
-multi-repository workspace folder that holds it. With the Hive binary installed,
-the viewer renders that JSON; a standalone HTML page is generated only without
-the binary. An already generated page is preserved when the mode changes. To keep those walkthroughs after the session and browse them by
-project and session, with ticket details on each segment, run the local viewer yourself:
+The viewer brings an agent session's research, plan, build and verification
+milestones together in a timeline. When the viewer is running and the host can
+provide its native session identity, the agent can publish progress before it
+takes screenshots. Start and stop the local viewer yourself:
 
 ```sh
-hive view register --dir <folder>   # once per repository or workspace; agents run it too
-hive view start      # a server on 127.0.0.1:4483 (HIVE on a phone keypad), or a free port if that one is busy; it keeps running until you stop it
-hive view open       # open it in the browser
+hive view start      # 127.0.0.1:4483, or a free port if that port is busy
+hive view open       # open the library in a browser
+hive view status     # show the service status without its access token
 hive view stop
 ```
 
-The viewer uses React with public MIT shadcn/ui and ReUI components in a custom
-shell; it needs no Node, ReUI license or third-party network connection to run.
-Frontend development and bundle checks are described in
-[Contributing](CONTRIBUTING.md#viewer-frontend).
+The server keeps running until you stop it. The agent registers the repository
+or workspace when publishing; `hive view register --dir <folder>` can also do
+this without a running server. `hive view contract` prints the versioned CLI
+commands, input/output schemas, limits and examples without starting the server;
+`--operation NAME` narrows the output. Producers send JSON with `--json FILE`
+or `--json -` for standard input. The [publication skill](content/skills/flow-walkthrough/SKILL.md)
+sets when and how agents use these commands.
 
-The viewer copies eligible walkthroughs into Hive's state directory and deletes
-copies older than 14 days unless their session is kept (`--ttl` changes that).
-A fixed session toolbar lets you rename, archive or restore, keep or stop keeping,
-and delete the entire session, including walkthroughs from other tickets. Only
-the document area scrolls. Deletion asks for confirmation and never changes
-repository files or the host conversation; new or modified deliveries can appear
-again. The local name appears in navigation and search without renaming the
-individual walkthroughs.
-Archive hides the whole session from the default list, with brief Undo feedback.
-The icon beside Projects includes or hides archived sessions. New walkthroughs
-inherit their session's archive and keep preferences. Archiving does not change
-the 14-day retention period or work status; keeping protects the session's copies
-from expiry. Projects show session counts and open initially only when
-they contain work in progress. Your project expansion, sidebar visibility,
-archive filter and selection survive refresh in the same browser tab. Walkthroughs
-with the same project, host and declared session ID share one sidebar entry, even
-across tickets. Their walkthroughs appear chronologically with internal separators,
-individual work-status indicators and ticket search links; management controls
-appear once for the session. The session header collects explicit
-PR/commit delivery links, and each segment retains its own links; missing metadata
-is shown as unregistered delivery rather than inferred from the candidate commit.
-Manifests confirmed as tracked in Git are not imported. Previously imported copies
-whose source is now tracked appear separately with an explanation, without rendering
-the walkthrough; their pins and normal retention still apply. If the source cannot
-be classified, the viewer shows an unknown-origin warning. A local file does not
-prove agent authorship. Ingestion rejects hard-linked manifests and referenced files.
-`hive view open` passes a one-use opening code, valid for 60 seconds, in the URL
-fragment. The page removes it before exchanging it for the server token and reads
-no walkthroughs until access succeeds. If opening fails, run the command again. `register` takes the folder that contains `_support/workspace/` when
-`--dir` points inside it, even if that folder is not a Git repository (a
-multi-repository workspace), and the Git root otherwise. Agents never start it.
+Each API session is keyed by a resolved project, host and the native session
+ID supplied by the agent; the server returns a separate viewer ID. The identity
+is metadata for grouping, not server attestation of the agent process. Its newest milestones appear first,
+with declared stage progress, ticket and Git links, and a short scope summary.
+Stage documents open as read-only Markdown tabs with their saved revisions;
+visual evidence is grouped by view and ticket, with thumbnails opening a
+carousel and instructions available on demand. Later iterations retain prior
+views and identify the evidence they supersede. Status and approvals reported
+from the chat are agent-reported context, not proof that a process is alive or
+that the person acted in the viewer. Review decisions still happen through the
+host conversation.
 
-Each segment's informational status indicator shows explicit work status:
-In progress, Closed, or Not reported
-(`unknown`) for historical manifests without it. This is independent of source
-classification. Closed means the work passed through `flow-close`, including a
-pause or abandonment; it does not mean UI approval or that the host conversation
-ended. The [walkthrough close procedure](content/skills/flow-close/references/walkthrough-close.md)
-confirms the current closed copy before eligible source cleanup.
+Rename, archive/restore, keep and confirmed deletion act on a session. Archive
+changes the default list's visibility; it does not close the work. The viewer
+does not expire sessions, archived copies, documents or images because of age.
+The old `--ttl` flag is accepted for compatibility but ignored with a warning.
+Explicit deletion removes the viewer's stored session, not repository source
+files or the host conversation. A modified legacy source may be ingested again
+after its stored copy is deleted. The agent confirms the stored session and its
+resources before removing disposable publication inputs; it keeps inputs when a
+publication fails or its result cannot be confirmed.
 
-When updating from a viewer that predates session status or delivery links, update the binary and
-installed content together and coordinate stopping and starting the existing
-viewer before using the new producers. Rebuilding the binary does not update a
-running process. Older strict viewers reject the new manifest fields; an unconfirmed
-closure preserves its source evidence.
+The legacy scanner still reads eligible `walkthrough.json` files and referenced
+resources under registered workspaces, preserving their historical presentation
+instead of inventing timeline events. Tracked manifests are not imported;
+previously copied sources now tracked are listed separately without rendering,
+and unknown source classification is shown as a warning. API-owned sessions
+and their tombstones suppress a matching legacy projection without deleting the
+source. If the binary is absent, a UI walkthrough can still use standalone HTML;
+a stopped or unreachable installed viewer does not select another publication
+authority. A local source file does not prove who authored it.
 
-When upgrading to session-wide controls, restart the viewer with the new binary
-and reload existing browser tabs: copy-oriented writes are rejected until reload.
-The first startup imports old preferences: a session stays archived only when
-all its copies were archived, while any kept copy keeps the session. Mixed
-archive groups become active. Names and preferences live in
-`viewer/session-groups/`, independently of the reconstructible index. Before the
-first upgrade, back up copy metadata, the index and session-group records without
-copying server credentials. Rolling back to an older binary requires restoring
-compatible preferences; do not overwrite changes made after that backup.
+`hive view open` uses a short-lived, one-use code in the URL fragment. The page
+removes the fragment before exchange and does not load session data until access
+succeeds. Optional `--session-id ID --event-id ID` opens a specific API event;
+the IDs are not the server token. Publication does not start or restart the viewer.
+Rebuilding the binary does not update a running process: update the binary before
+the installed content and coordinate a restart before expecting new server
+features. Before upgrading, back up the old binary, copy metadata, index and
+session-group records without copying `server.json` or access tokens. Older
+binaries do not understand API-owned records: retain those files for recovery,
+and avoid overwriting preferences changed after a backup when rolling back.
+
+The viewer uses React with public MIT shadcn/ui and ReUI components. It needs no
+Node, ReUI license or third-party network connection at runtime. Frontend
+contribution and bundle checks are in [Contributing](CONTRIBUTING.md#viewer-frontend).
 
 ## For AI agents
 

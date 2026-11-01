@@ -1,0 +1,3 @@
+# Resolve native session identity
+
+Read only when the current runtime does not directly expose a verified native session ID. Identify the installed host and version, then consult that host's current official documentation for its native in-session identity capability. Confirm that the value belongs to the current session through the documented capability. Do not guess environment variable names, dump the environment, or synthesize an ID. Keep host-specific behavior conditional; do not build a universal mapping or adapter. If the actual identity cannot be established, report viewer publication unavailable and continue independent work. A legacy standalone document ID is not a native session identity.

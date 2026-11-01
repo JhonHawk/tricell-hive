@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "operation_id": "session:create",
+  "source": {
+    "project_root": "/fixture/project",
+    "host": "codex",
+    "native_session_id": "native-session-alpha"
+  },
+  "title": "Profile and chat",
+  "summary": "Improve profile spacing and chat filters.",
+  "tickets": [
+    {
+      "key": "COM-1",
+      "url": "https://example.com/issues/COM-1",
+      "title": "Profile spacing"
+    },
+    {
+      "key": "COM-2",
+      "url": "https://example.com/issues/COM-2",
+      "title": "Chat filters"
+    }
+  ]
+}

@@ -141,11 +141,11 @@ func TestExcludedSessionPinDeleteAndRetention(t *testing.T) {
 	if w := s.write(http.MethodDelete, "/api/sessions/"+s.key+"/pin"); w.Code != http.StatusNoContent {
 		t.Fatalf("unpin = %d", w.Code)
 	}
-	if purged, err := s.store.Purge(); err != nil || len(purged) != 1 || purged[0] != s.key {
-		t.Fatalf("expired excluded copy not purged: %v %v", purged, err)
+	if purged, err := s.store.Purge(); err != nil || len(purged) != 0 {
+		t.Fatalf("excluded copy expired: %v %v", purged, err)
 	}
-	if len(s.store.current().Tombstones) != 1 {
-		t.Fatal("purge lost tombstone")
+	if len(s.store.current().Tombstones) != 0 {
+		t.Fatal("manual retention wrote tombstone")
 	}
 	other := newSrvEnv(t)
 	setExcludedSourceStatus(other.env, "tracked")

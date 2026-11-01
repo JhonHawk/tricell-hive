@@ -62,7 +62,9 @@ type ServerOptions struct {
 	// the port that was assigned).
 	Port int
 	// Version is reported by /api/health.
-	Version string
+	Version  string
+	Revision string
+	Modified bool
 }
 
 // Server is the HTTP face of a Store: the viewer page, its assets and the
@@ -75,6 +77,8 @@ type Server struct {
 	token       []byte
 	port        string
 	version     string
+	revision    string
+	modified    bool
 	pid         int
 	accessMu    sync.Mutex
 	accessCodes map[string]time.Time
@@ -105,6 +109,8 @@ func NewServer(o ServerOptions) (*Server, error) {
 		token:       []byte(o.Token),
 		port:        strconv.Itoa(o.Port),
 		version:     o.Version,
+		revision:    o.Revision,
+		modified:    o.Modified,
 		pid:         os.Getpid(),
 		accessCodes: make(map[string]time.Time),
 		accessNow:   time.Now,
@@ -162,6 +168,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.health(w, r)
 	case p == "/api/index":
 		s.index(w, r)
+	case p == "/api/timeline/sessions" || strings.HasPrefix(p, "/api/timeline/sessions/"):
+		s.timeline(w, r)
 	case strings.HasPrefix(p, "/api/sessions/"):
 		s.session(w, r, strings.TrimPrefix(p, "/api/sessions/"))
 	case strings.HasPrefix(p, "/files/"):
@@ -289,11 +297,15 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, struct {
-		PID      int    `json:"pid"`
-		StateDir string `json:"state_dir"`
-		Version  string `json:"version"`
-		TTL      string `json:"ttl"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String()})
+		PID             int    `json:"pid"`
+		StateDir        string `json:"state_dir"`
+		Version         string `json:"version"`
+		TTL             string `json:"ttl"`
+		Retention       string `json:"retention"`
+		ProtocolVersion int    `json:"timeline_protocol_version"`
+		Revision        string `json:"revision"`
+		Modified        bool   `json:"modified"`
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", 1, s.revision, s.modified})
 }
 
 // indexSession adds the base of the session's file URLs to a Session. It is
@@ -316,12 +328,15 @@ type indexProject struct {
 }
 
 type indexView struct {
-	ExcludedSessions []Session          `json:"excluded_sessions"`
-	TTLSeconds       int64              `json:"ttl_seconds"`
-	Projects         []indexProject     `json:"projects"`
-	Repositories     []RepositoryStatus `json:"repositories"`
-	Errors           []IngestError      `json:"errors"`
-	Tombstones       []Tombstone        `json:"tombstones"`
+	TimelineSessions []TimelineAPIIndexEntry `json:"timeline_sessions"`
+	ProtocolVersion  int                     `json:"protocol_version"`
+	Retention        string                  `json:"retention"`
+	ExcludedSessions []Session               `json:"excluded_sessions"`
+	TTLSeconds       int64                   `json:"ttl_seconds"`
+	Projects         []indexProject          `json:"projects"`
+	Repositories     []RepositoryStatus      `json:"repositories"`
+	Errors           []IngestError           `json:"errors"`
+	Tombstones       []Tombstone             `json:"tombstones"`
 }
 
 // fileCap is the capability for the files of one session: the hex
@@ -340,6 +355,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	}
 	v := s.store.View()
 	out := indexView{
+		TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 1, Retention: "manual",
 		TTLSeconds: v.TTLSeconds, Repositories: v.Repositories, Errors: v.Errors, Tombstones: v.Tombstones,
 		ExcludedSessions: v.ExcludedSessions,
 		Projects:         make([]indexProject, 0, len(v.Projects)),
@@ -349,6 +365,9 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		for _, t := range p.Tickets {
 			it := indexTicket{Name: t.Name, Sessions: make([]indexSession, 0, len(t.Sessions))}
 			for _, sess := range t.Sessions {
+				if s.store.timelineLegacyHidden(sess) {
+					continue
+				}
 				it.Sessions = append(it.Sessions, indexSession{Session: sess, FileBase: "/files/" + sess.Key + "/" + s.fileCap(sess.Key) + "/"})
 			}
 			ip.Tickets = append(ip.Tickets, it)
@@ -378,7 +397,31 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, rest string) {
 			w.Write(data)
 		case http.MethodDelete:
 			if s.authorizeSessionWrite(w, r) {
-				s.done(w, s.store.Delete(key))
+				var expected []ExpectedSessionMember
+				raw, err := io.ReadAll(io.LimitReader(r.Body, TimelineMaxBody+1))
+				if err != nil || len(raw) > TimelineMaxBody {
+					timelineHTTPError(w, timelineFailure("body_too_large", 413))
+					return
+				}
+				if len(raw) > 0 {
+					var body struct {
+						ExpectedMembers *[]ExpectedSessionMember `json:"expected_members,omitempty"`
+					}
+					if err = DecodeTimelineJSON(raw, &body); err != nil {
+						timelineHTTPError(w, err)
+						return
+					}
+					if body.ExpectedMembers != nil {
+						expected = *body.ExpectedMembers
+					}
+				}
+				err = s.store.DeleteExpected(key, expected)
+				var failure *TimelineError
+				if errors.As(err, &failure) {
+					timelineHTTPError(w, err)
+					return
+				}
+				s.done(w, err)
 			}
 		default:
 			allow(w, r, http.MethodGet, http.MethodDelete)
@@ -446,6 +489,17 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request, rest string) {
 	capability, rel, found := strings.Cut(tail, "/")
 	if !found || subtle.ConstantTimeCompare([]byte(capability), []byte(s.fileCap(key))) != 1 {
 		httpError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.store.timelineHasID(key) {
+		content, media, err := s.store.TimelineArtifact(key, rel)
+		if err != nil {
+			timelineHTTPError(w, err)
+			return
+		}
+		w.Header().Set("Content-Type", media)
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(content))
 		return
 	}
 	f, err := s.store.OpenFile(key, rel)

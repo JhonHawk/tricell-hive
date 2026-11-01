@@ -156,7 +156,15 @@ func (s *Store) clearPendingGroup(d *indexData, g sessionGroup) error {
 
 // Delete removes every current member of the logical session located by key.
 // All tombstones and the recovery marker are committed before any copy is removed.
-func (s *Store) Delete(key string) error {
+type ExpectedSessionMember struct {
+	Key         string `json:"key"`
+	ContentHash string `json:"content_hash"`
+}
+
+func (s *Store) Delete(key string) error { return s.DeleteExpected(key, nil) }
+
+// DeleteExpected compares the complete inventory under the deletion lock.
+func (s *Store) DeleteExpected(key string, expected []ExpectedSessionMember) error {
 	if err := validKey(key); err != nil {
 		return err
 	}
@@ -175,6 +183,23 @@ func (s *Store) Delete(key string) error {
 	}
 	id := identityOf(d.Sessions[i])
 	members := groupMembers(d, id)
+	if expected != nil {
+		if len(expected) == 0 || len(expected) != len(members) {
+			return timelineFailure("members_changed", 409)
+		}
+		want := map[string]string{}
+		for _, m := range expected {
+			if !keyPattern.MatchString(m.Key) || !timelineSHA256.MatchString(m.ContentHash) || want[m.Key] != "" {
+				return timelineFailure("invalid_expected_members", 400)
+			}
+			want[m.Key] = m.ContentHash
+		}
+		for _, m := range members {
+			if want[m.Key] != m.ContentHash {
+				return timelineFailure("members_changed", 409)
+			}
+		}
+	}
 	g, err := s.readGroup(id)
 	if err != nil {
 		return err

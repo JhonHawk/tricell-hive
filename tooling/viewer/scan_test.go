@@ -181,7 +181,7 @@ func TestScanMarksAnAbsentRepositoryAndKeepsItsCopies(t *testing.T) {
 	}
 }
 
-func TestScanSkipsSourcesOlderThanTheTTL(t *testing.T) {
+func TestScanIncludesSourcesRegardlessOfAge(t *testing.T) {
 	e := newEnv(t)
 	repo := newRepo(t)
 	folder := e.place(repo, "run1", nil)
@@ -190,8 +190,8 @@ func TestScanSkipsSourcesOlderThanTheTTL(t *testing.T) {
 	e.register(repo)
 	e.start()
 	res := e.sync()
-	if res.Added != 0 || res.Errors != 0 || len(e.sessions()) != 0 {
-		t.Fatalf("stale source ingested: %+v", res)
+	if res.Added != 1 || res.Errors != 0 || len(e.sessions()) != 1 {
+		t.Fatalf("old source excluded: %+v", res)
 	}
 }
 
