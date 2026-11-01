@@ -35,11 +35,14 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogCancel,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   isSafeTimelineArtifactURL,
@@ -111,6 +114,15 @@ function TicketLinks({ refs }: { refs: TimelineTicketRef[] }) {
       )}
     </div>
   );
+}
+
+function keyedSteps(steps: string[]) {
+  const occurrences = new Map<string, number>();
+  return steps.map((text) => {
+    const count = (occurrences.get(text) ?? 0) + 1;
+    occurrences.set(text, count);
+    return { key: `${count}:${text}`, text };
+  });
 }
 
 function CaptureImage({
@@ -279,11 +291,9 @@ export function TimelineContent({
         : current,
     );
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-6">
       {session.summary && (
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          {session.summary}
-        </p>
+        <p className="text-sm text-muted-foreground">{session.summary}</p>
       )}
       {error && (
         <Alert variant="destructive">
@@ -324,18 +334,16 @@ export function TimelineContent({
                   key={event.event_id}
                   step={index + 1}
                   id={`timeline-event-${event.event_id}`}
+                  className="group-data-[orientation=vertical]/timeline:ms-9"
                 >
-                  <TimelineSeparator />
-                  <TimelineIndicator className="flex items-center justify-center">
-                    <Icon className="size-2.5" />
+                  <TimelineSeparator className="bg-border group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
+                  <TimelineIndicator className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5">
+                    <Icon className="size-4" />
                   </TimelineIndicator>
-                  <TimelineHeader>
-                    <TimelineDate dateTime={event.created_at}>
-                      {timelineDate(event.created_at, lang)}
-                    </TimelineDate>
+                  <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <TimelineTitle
-                        className="m-0 min-w-0 truncate"
+                        className="min-w-0 truncate"
                         title={event.title}
                       >
                         {event.withdrawn ? t.withdrawn : event.title}
@@ -345,15 +353,9 @@ export function TimelineContent({
                       )}
                     </div>
                   </TimelineHeader>
-                  <EventContent className="flex min-w-0 flex-col gap-3">
+                  <EventContent className="flex min-w-0 flex-col items-start gap-2 pb-1">
                     {!event.withdrawn && event.summary && (
                       <p className="text-sm">{event.summary}</p>
-                    )}
-                    {(event.kind === "changes_reported" ||
-                      event.kind === "approval_reported") && (
-                      <p className="text-xs text-muted-foreground">
-                        {t.reported}
-                      </p>
                     )}
                     {!event.withdrawn &&
                       event.candidate?.branch &&
@@ -379,11 +381,11 @@ export function TimelineContent({
                           <section
                             key={view.view_id}
                             aria-label={view.title}
-                            className="flex min-w-0 flex-col gap-3"
+                            className="flex w-full min-w-0 flex-col gap-3"
                           >
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <h4
-                                className="m-0 min-w-0 truncate text-sm font-medium text-foreground"
+                                className="min-w-0 truncate text-sm font-medium text-foreground"
                                 title={view.title}
                               >
                                 {view.title}
@@ -435,7 +437,7 @@ export function TimelineContent({
                                 return (
                                   <figure
                                     key={ref.artifact_id}
-                                    className="m-0 flex min-w-0 flex-col gap-1"
+                                    className="flex min-w-0 flex-col gap-1"
                                   >
                                     <CaptureThumbnail
                                       url={url}
@@ -495,38 +497,53 @@ export function TimelineContent({
                           </section>
                         );
                       })}
-                    {!event.withdrawn &&
-                      event.deliveries?.map((delivery) => (
-                        <div
-                          key={delivery.url}
-                          className="flex min-w-0 flex-wrap items-center gap-2"
-                        >
-                          {isSafeTimelineURL(delivery.url) ? (
-                            <a
-                              href={delivery.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm underline underline-offset-4"
-                            >
-                              {delivery.label}
-                            </a>
-                          ) : (
-                            <span>{delivery.label}</span>
-                          )}
-                          <Badge
-                            variant={
-                              delivery.status === "merged"
-                                ? "success-light"
-                                : "outline"
-                            }
-                          >
-                            {t[delivery.status]}
-                          </Badge>
-                        </div>
-                      ))}
                     {!event.withdrawn && event.closure && (
                       <p className="text-sm">{event.closure.result}</p>
                     )}
+                    <div
+                      data-slot="timeline-event-footer"
+                      className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                    >
+                      <TimelineDate
+                        className="mb-0"
+                        dateTime={event.created_at}
+                      >
+                        {timelineDate(event.created_at, lang)}
+                      </TimelineDate>
+                      {(event.kind === "changes_reported" ||
+                        event.kind === "approval_reported") && (
+                        <span>{t.reported}</span>
+                      )}
+                      {!event.withdrawn &&
+                        event.deliveries?.map((delivery) => (
+                          <div
+                            key={delivery.url}
+                            className="flex min-w-0 flex-wrap items-center gap-2"
+                          >
+                            {isSafeTimelineURL(delivery.url) ? (
+                              <a
+                                href={delivery.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm underline underline-offset-4"
+                              >
+                                {delivery.label}
+                              </a>
+                            ) : (
+                              <span>{delivery.label}</span>
+                            )}
+                            <Badge
+                              variant={
+                                delivery.status === "merged"
+                                  ? "success-light"
+                                  : "outline"
+                              }
+                            >
+                              {t[delivery.status]}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
                   </EventContent>
                 </TimelineItem>
               );
@@ -542,11 +559,10 @@ export function TimelineContent({
       >
         <DialogContent
           finalFocus={returnFocus}
-          style={
-            snapshot?.mode === "images"
-              ? { width: "calc(100vw - 2rem)", maxWidth: "72rem" }
-              : undefined
-          }
+          style={{
+            width: "calc(100vw - 2rem)",
+            maxWidth: snapshot?.mode === "images" ? "72rem" : "40rem",
+          }}
           onKeyDown={(e) => {
             if (snapshot?.mode !== "images") return;
             if (e.key === "ArrowRight") {
@@ -561,7 +577,9 @@ export function TimelineContent({
         >
           <DialogHeader>
             <DialogTitle>{snapshot?.view.title}</DialogTitle>
-            <DialogDescription>{snapshot?.event.title}</DialogDescription>
+            <DialogDescription className="whitespace-pre-line">
+              {snapshot?.event.title}
+            </DialogDescription>
           </DialogHeader>
           {isUpdated && (
             <Alert variant="info">
@@ -571,18 +589,24 @@ export function TimelineContent({
           {snapshot?.mode === "instructions" ? (
             <div className="flex min-h-0 flex-col gap-4 overflow-auto">
               {snapshot.view.steps.length ? (
-                <ol className="list-decimal pl-5 text-sm">
-                  {snapshot.view.steps.map((step, index) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: Snapshot steps are immutable and repeated text is valid.
-                    <li key={`${index}:${step}`}>{step}</li>
+                <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed">
+                  {keyedSteps(snapshot.view.steps).map((step) => (
+                    <li className="whitespace-pre-line" key={step.key}>
+                      {step.text}
+                    </li>
                   ))}
                 </ol>
               ) : (
                 <p className="text-sm text-muted-foreground">{t.noSteps}</p>
               )}
+              <Separator />
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">{t.expected}</p>
-                <p className="text-sm">{snapshot.view.expected_result}</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {t.expected}
+                </p>
+                <p className="whitespace-pre-line text-sm leading-relaxed">
+                  {snapshot.view.expected_result}
+                </p>
               </div>
             </div>
           ) : selected ? (
@@ -611,7 +635,7 @@ export function TimelineContent({
           ) : (
             <p className="text-sm text-muted-foreground">{t.unavailable}</p>
           )}
-          <div className="flex items-center justify-between gap-2">
+          <DialogFooter>
             {snapshot?.mode === "images" && snapshot.images.length > 0 ? (
               <div className="flex items-center gap-2">
                 <Button
@@ -638,19 +662,12 @@ export function TimelineContent({
                   <ChevronRight aria-hidden />
                 </Button>
               </div>
-            ) : (
-              <span />
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setSnapshot(null)}
-            >
+            ) : null}
+            <DialogCancel variant="outline" size="sm">
               <X aria-hidden />
               {t.close}
-            </Button>
-          </div>
+            </DialogCancel>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

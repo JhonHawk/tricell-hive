@@ -105,47 +105,89 @@ body {
 [data-slot="dialog-content"]::after,
 [data-slot="dialog-content"] *::before,
 [data-slot="dialog-content"] *::after,
+[data-slot="popover-content"],
+[data-slot="popover-content"] *,
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-content"] *,
 [data-slot="sheet-content"] *,
 [data-sidebar="sidebar"] * {
   box-sizing: border-box;
 }
-:is(.viewer-shell, [data-slot="dialog-content"])
-  :is(h1, h2, p):not(.walkthrough *) {
+:is(
+    .viewer-shell,
+    [data-slot="dialog-content"],
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"]
+  )
+  :is(h1, h2, h3, h4, h5, h6, p, figure):not(.walkthrough *) {
   margin: 0;
 }
 .viewer-shell button:not(.walkthrough *),
 [data-slot="sheet-content"] button,
-[data-slot="dialog-content"] button {
+[data-slot="dialog-content"] button,
+[data-slot="popover-content"] button,
+[data-slot="dropdown-menu-content"] button {
   cursor: pointer;
 }
-/* Reset only the application shell and its portalled navigation and Dialog. The report
+/* Reset the application shell and its portalled navigation, dialogs and menus. The report
    renderer deliberately keeps its own styles instead of Tailwind preflight. */
 @layer base {
+  :where([data-slot="popover-content"], [data-slot="dropdown-menu-content"])
+    :where(h1, h2, h3, h4) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
   :where(button, input, select, textarea):not(.walkthrough *) {
     font: inherit;
   }
   :where(*, ::before, ::after):not(.walkthrough, .walkthrough *) {
     border-color: var(--border);
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
-    :where(ul):not(.walkthrough *) {
+  :is(
+      .viewer-shell,
+      [data-sidebar="sidebar"],
+      [data-slot="dialog-content"],
+      [data-slot="popover-content"],
+      [data-slot="dropdown-menu-content"]
+    )
+    :where(ul, ol):not(.walkthrough *) {
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+  :is(
+      .viewer-shell,
+      [data-sidebar="sidebar"],
+      [data-slot="dialog-content"],
+      [data-slot="popover-content"],
+      [data-slot="dropdown-menu-content"]
+    )
     :where(button, a):not(.walkthrough *) {
     color: inherit;
     font: inherit;
     text-decoration: none;
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+  :is(
+      .viewer-shell,
+      [data-sidebar="sidebar"],
+      [data-slot="dialog-content"],
+      [data-slot="popover-content"],
+      [data-slot="dropdown-menu-content"]
+    )
     :where(button):not(.walkthrough *) {
+    margin: 0;
+    padding: 0;
     border: 0 solid;
     background: transparent;
   }
 }
-:is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+:is(
+    .viewer-shell,
+    [data-sidebar="sidebar"],
+    [data-slot="dialog-content"],
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"]
+  )
   [data-sidebar="menu-button"] {
   border: 0;
   cursor: pointer;

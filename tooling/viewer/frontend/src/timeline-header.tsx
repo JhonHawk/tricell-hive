@@ -168,231 +168,240 @@ export function TimelineHeader({
       data-slot="timeline-header"
       className="flex min-w-0 flex-col gap-3 border-b border-border px-4 py-3 md:px-6"
     >
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-xs text-muted-foreground">{session.project_name}</p>
-        {editing ? (
-          <div className="flex min-w-0 items-center gap-1">
-            <Input
-              autoFocus
-              aria-label={t.title}
-              aria-invalid={Boolean(error)}
-              value={draft}
-              disabled={pending}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  saveTitle();
-                }
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  setEditing(false);
-                  setError(null);
-                }
-              }}
-            />
-            <IconAction label={t.save} disabled={pending} onClick={saveTitle}>
-              <Check aria-hidden />
-            </IconAction>
-            <IconAction
-              label={t.cancel}
-              disabled={pending}
-              onClick={() => {
-                setEditing(false);
-                setError(null);
-              }}
-            >
-              <X aria-hidden />
-            </IconAction>
-          </div>
-        ) : (
-          <div className="flex min-w-0 items-center gap-2">
-            <h1
-              className="min-w-0 truncate text-lg font-semibold tracking-tight"
-              title={session.title}
-            >
-              {session.title}
-            </h1>
-            <IconAction
-              label={t.edit}
-              disabled={pending}
-              onClick={() => {
-                setDraft(session.title);
-                editVersion.current = session.version;
-                editSession.current = session.viewer_session_id;
-                setEditing(true);
-                setError(null);
-              }}
-            >
-              <Pencil aria-hidden />
-            </IconAction>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          <time dateTime={session.created_at}>
-            {timelineDate(session.created_at, lang, false)}
-          </time>{" "}
-          · {session.validation_count} {t.walkthroughs}
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-2" aria-busy={pending}>
-        <ButtonGroup aria-label={t.actions}>
-          <ButtonGroupText>
-            <Badge variant={statusVariant}>
-              <Circle aria-hidden className="size-2 fill-current" />
-              {t.states[session.state]}
-            </Badge>
-          </ButtonGroupText>
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  aria-label={`${t.tickets}: ${session.tickets.length}`}
-                />
-              }
-            >
-              <Tickets aria-hidden />
-              {session.tickets.length}
-            </PopoverTrigger>
-            <PopoverContent align="start">
-              <PopoverTitle>{t.tickets}</PopoverTitle>
-              {session.tickets.length ? (
-                <ul className="flex flex-col gap-2">
-                  {session.tickets.map((ticket) => (
-                    <li
-                      key={timelineTicketIdentity(ticket)}
-                      className="flex min-w-0 flex-col gap-0.5"
-                    >
-                      {isSafeTimelineURL(ticket.url) ? (
-                        <a
-                          className="text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
-                          href={ticket.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {ticket.key}
-                        </a>
-                      ) : (
-                        <span className="text-sm">
-                          {ticket.key} · {t.ticketUnavailable}
-                        </span>
-                      )}
-                      {ticket.title && (
-                        <span className="text-xs text-muted-foreground">
-                          {ticket.title}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t.noTickets}</p>
-              )}
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  aria-label={`${t.git}: ${deliveries.length}`}
-                />
-              }
-            >
-              <GitPullRequest aria-hidden />
-              {deliveries.length}
-            </PopoverTrigger>
-            <PopoverContent align="start">
-              <PopoverTitle>{t.git}</PopoverTitle>
-              {deliveries.length ? (
-                <ul className="flex flex-col gap-2">
-                  {deliveries.map((delivery) => (
-                    <li
-                      key={delivery.url}
-                      className="flex min-w-0 items-center justify-between gap-2"
-                    >
-                      {isSafeTimelineURL(delivery.url) ? (
-                        <a
-                          className="min-w-0 truncate text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
-                          title={delivery.label}
-                          href={delivery.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {delivery.label}
-                        </a>
-                      ) : (
-                        <span className="text-sm">{delivery.label}</span>
-                      )}
-                      <Badge variant="outline">{t[delivery.status]}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t.noDeliveries}
-                </p>
-              )}
-            </PopoverContent>
-          </Popover>
-        </ButtonGroup>
-        <ButtonGroup aria-label={t.more}>
-          <IconAction
-            label={session.archived ? t.unarchive : t.archive}
-            disabled={pending}
-            onClick={() => void update({ archived: !session.archived })}
-          >
-            {session.archived ? (
-              <ArchiveRestore aria-hidden />
-            ) : (
-              <Archive aria-hidden />
-            )}
-          </IconAction>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label={t.more}
-                  disabled={pending}
-                />
-              }
-            >
-              <MoreHorizontal aria-hidden />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => void update({ pinned: !session.pinned })}
-              >
-                <Pin aria-hidden />
-                {session.pinned ? t.unpin : t.pin}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="text-xs text-muted-foreground">
+            {session.project_name}
+          </p>
+          {editing ? (
+            <div className="flex min-w-0 items-center gap-1">
+              <Input
+                autoFocus
+                aria-label={t.title}
+                aria-invalid={Boolean(error)}
+                value={draft}
+                disabled={pending}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveTitle();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditing(false);
+                    setError(null);
+                  }
+                }}
+              />
+              <IconAction label={t.save} disabled={pending} onClick={saveTitle}>
+                <Check aria-hidden />
+              </IconAction>
+              <IconAction
+                label={t.cancel}
+                disabled={pending}
                 onClick={() => {
-                  deleteVersion.current = session.version;
-                  setDeleting(true);
+                  setEditing(false);
                   setError(null);
                 }}
               >
-                <Trash2 aria-hidden />
-                {t.remove}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </ButtonGroup>
-        {pending && (
-          <span role="status" className="text-xs text-muted-foreground">
-            {t.saving}
-          </span>
-        )}
+                <X aria-hidden />
+              </IconAction>
+            </div>
+          ) : (
+            <div className="flex min-w-0 items-center gap-2">
+              <h1
+                className="min-w-0 truncate text-lg font-semibold tracking-tight"
+                title={session.title}
+              >
+                {session.title}
+              </h1>
+              <IconAction
+                label={t.edit}
+                disabled={pending}
+                onClick={() => {
+                  setDraft(session.title);
+                  editVersion.current = session.version;
+                  editSession.current = session.viewer_session_id;
+                  setEditing(true);
+                  setError(null);
+                }}
+              >
+                <Pencil aria-hidden />
+              </IconAction>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            <time dateTime={session.created_at}>
+              {timelineDate(session.created_at, lang, false)}
+            </time>{" "}
+            · {session.validation_count} {t.walkthroughs}
+          </p>
+        </div>
+        <div
+          className="flex max-w-full flex-wrap items-center gap-2 self-end lg:shrink-0 lg:justify-end lg:self-auto"
+          aria-busy={pending}
+        >
+          <ButtonGroup aria-label={t.actions}>
+            <ButtonGroupText>
+              <Badge variant={statusVariant}>
+                <Circle aria-hidden className="size-2 fill-current" />
+                {t.states[session.state]}
+              </Badge>
+            </ButtonGroupText>
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={`${t.tickets}: ${session.tickets.length}`}
+                  />
+                }
+              >
+                <Tickets aria-hidden />
+                {session.tickets.length}
+              </PopoverTrigger>
+              <PopoverContent align="end">
+                <PopoverTitle>{t.tickets}</PopoverTitle>
+                {session.tickets.length ? (
+                  <ul className="flex flex-col gap-2">
+                    {session.tickets.map((ticket) => (
+                      <li
+                        key={timelineTicketIdentity(ticket)}
+                        className="flex min-w-0 flex-col gap-0.5"
+                      >
+                        {isSafeTimelineURL(ticket.url) ? (
+                          <a
+                            className="text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
+                            href={ticket.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {ticket.key}
+                          </a>
+                        ) : (
+                          <span className="text-sm">
+                            {ticket.key} · {t.ticketUnavailable}
+                          </span>
+                        )}
+                        {ticket.title && (
+                          <span className="text-xs text-muted-foreground">
+                            {ticket.title}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t.noTickets}</p>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={`${t.git}: ${deliveries.length}`}
+                  />
+                }
+              >
+                <GitPullRequest aria-hidden />
+                {deliveries.length}
+              </PopoverTrigger>
+              <PopoverContent align="end">
+                <PopoverTitle>{t.git}</PopoverTitle>
+                {deliveries.length ? (
+                  <ul className="flex flex-col gap-2">
+                    {deliveries.map((delivery) => (
+                      <li
+                        key={delivery.url}
+                        className="flex min-w-0 items-center justify-between gap-2"
+                      >
+                        {isSafeTimelineURL(delivery.url) ? (
+                          <a
+                            className="min-w-0 truncate text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
+                            title={delivery.label}
+                            href={delivery.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {delivery.label}
+                          </a>
+                        ) : (
+                          <span className="text-sm">{delivery.label}</span>
+                        )}
+                        <Badge variant="outline">{t[delivery.status]}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t.noDeliveries}
+                  </p>
+                )}
+              </PopoverContent>
+            </Popover>
+          </ButtonGroup>
+          <ButtonGroup aria-label={t.more}>
+            <IconAction
+              label={session.archived ? t.unarchive : t.archive}
+              disabled={pending}
+              onClick={() => void update({ archived: !session.archived })}
+            >
+              {session.archived ? (
+                <ArchiveRestore aria-hidden />
+              ) : (
+                <Archive aria-hidden />
+              )}
+            </IconAction>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label={t.more}
+                    disabled={pending}
+                  />
+                }
+              >
+                <MoreHorizontal aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-max">
+                <DropdownMenuItem
+                  className="whitespace-nowrap"
+                  onClick={() => void update({ pinned: !session.pinned })}
+                >
+                  <Pin aria-hidden />
+                  {session.pinned ? t.unpin : t.pin}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="whitespace-nowrap"
+                  variant="destructive"
+                  onClick={() => {
+                    deleteVersion.current = session.version;
+                    setDeleting(true);
+                    setError(null);
+                  }}
+                >
+                  <Trash2 aria-hidden />
+                  {t.remove}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ButtonGroup>
+          {pending && (
+            <span role="status" className="text-xs text-muted-foreground">
+              {t.saving}
+            </span>
+          )}
+        </div>
       </div>
       {error && !deleting && (
         <Alert variant="destructive">

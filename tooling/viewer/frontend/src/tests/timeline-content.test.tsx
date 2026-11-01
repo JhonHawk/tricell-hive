@@ -141,6 +141,12 @@ test("timeline is newest-first, shared tickets do not duplicate a view, and step
       .length,
     0,
   );
+  for (const item of container.querySelectorAll(
+    '[data-slot="timeline-item"]',
+  )) {
+    assert.equal(item.querySelectorAll("time").length, 1);
+    assert.ok(item.querySelector('[data-slot="timeline-event-footer"] time'));
+  }
   assert.equal(container.textContent?.includes("Open Chat."), false);
   assert.equal(
     container.querySelectorAll('a[href="https://example.com/tickets/COM-1"]')
@@ -160,6 +166,11 @@ test("instructions keep the opened evidence snapshot across live session updates
     root.render(<TimelineContent data={data} onRetry={() => {}} />),
   );
   await click("Instructions");
+  assert.equal(
+    (document.querySelector('[role="dialog"]') as HTMLElement)?.style.maxWidth,
+    "40rem",
+  );
+  assert.ok(document.querySelector('[role="dialog"] [data-slot="separator"]'));
   assert.ok(
     document
       .querySelector('[role="dialog"]')
